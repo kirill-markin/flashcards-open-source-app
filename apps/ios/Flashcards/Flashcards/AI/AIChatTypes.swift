@@ -108,6 +108,32 @@ func aiChatDecoderSummary(error: Error) -> String {
     return Flashcards.errorMessage(error: error)
 }
 
+func makeAIChatSnapshotMessageId(
+    sessionId: String,
+    index: Int,
+    role: AIChatRole,
+    timestamp: String
+) -> String {
+    let seed = [
+        sessionId,
+        String(index),
+        role.rawValue,
+        timestamp
+    ].joined(separator: "#")
+
+    return "snapshot-\(aiChatStableSeedHash(seed))"
+}
+
+private func aiChatStableSeedHash(_ value: String) -> String {
+    var hash: UInt64 = 1_469_598_103_934_665_603
+    for byte in value.utf8 {
+        hash ^= UInt64(byte)
+        hash &*= 1_099_511_628_211
+    }
+
+    return String(hash, radix: 16)
+}
+
 struct AIChatProviderDef: Codable, Hashable, Sendable {
     let id: String
     let label: String
@@ -392,13 +418,59 @@ struct AIChatStartRunRequestBody: Codable, Hashable, Sendable {
     let timezone: String
 }
 
-struct AIChatSessionSnapshot: Codable, Hashable, Sendable {
+struct AIChatSessionSnapshot: Hashable, Sendable {
     let sessionId: String
     let runState: String
     let updatedAt: Int
     let mainContentInvalidationVersion: Int
     let chatConfig: AIChatServerConfig
     let messages: [AIChatMessage]
+}
+
+struct AIChatSessionSnapshotPayload: Decodable, Hashable, Sendable {
+    let sessionId: String
+    let runState: String
+    let updatedAt: Int
+    let mainContentInvalidationVersion: Int
+    let chatConfig: AIChatServerConfig
+    let messages: [AIChatSnapshotMessagePayload]
+}
+
+struct AIChatSnapshotMessagePayload: Decodable, Hashable, Sendable {
+    let role: AIChatRole
+    let content: [AIChatContentPart]
+    let timestamp: String
+    let isError: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case role
+        case content
+        case timestamp
+        case timestampMillis
+        case isError
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.role = try container.decode(AIChatRole.self, forKey: .role)
+        self.content = try container.decode([AIChatContentPart].self, forKey: .content)
+        if let timestampMillis = try? container.decode(Int.self, forKey: .timestamp) {
+            self.timestamp = isoTimestampFromMilliseconds(timestampMillis)
+        } else if let timestamp = try? container.decode(String.self, forKey: .timestamp) {
+            self.timestamp = timestamp
+        } else if let timestampMillis = try? container.decode(Int.self, forKey: .timestampMillis) {
+            self.timestamp = isoTimestampFromMilliseconds(timestampMillis)
+        } else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.timestamp,
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "AI chat message timestamp is missing."
+                )
+            )
+        }
+        self.isError = try container.decode(Bool.self, forKey: .isError)
+    }
 }
 
 struct AIChatStartRunResponse: Codable, Hashable, Sendable {
