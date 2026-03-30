@@ -39,7 +39,7 @@ const cardSnapshotSchema = z.object({
 
 export const cardPayloadSchema = cardSnapshotSchema.extend({
   clientUpdatedAt: z.string().datetime(),
-  lastModifiedByDeviceId: z.string().min(1),
+  lastModifiedByReplicaId: z.string().min(1),
   lastOperationId: z.string().min(1),
   updatedAt: z.string().datetime(),
 });
@@ -55,7 +55,7 @@ const deckSnapshotSchema = z.object({
 export const deckPayloadSchema = deckSnapshotSchema.extend({
   workspaceId: z.string().min(1),
   clientUpdatedAt: z.string().datetime(),
-  lastModifiedByDeviceId: z.string().min(1),
+  lastModifiedByReplicaId: z.string().min(1),
   lastOperationId: z.string().min(1),
   updatedAt: z.string().datetime(),
 });
@@ -71,7 +71,7 @@ const workspaceSchedulerSettingsSnapshotSchema = z.object({
 
 export const workspaceSchedulerSettingsPayloadSchema = workspaceSchedulerSettingsSnapshotSchema.extend({
   clientUpdatedAt: z.string().datetime(),
-  lastModifiedByDeviceId: z.string().min(1),
+  lastModifiedByReplicaId: z.string().min(1),
   lastOperationId: z.string().min(1),
   updatedAt: z.string().datetime(),
 });
@@ -79,15 +79,33 @@ export const workspaceSchedulerSettingsPayloadSchema = workspaceSchedulerSetting
 const reviewEventPushPayloadSchema = z.object({
   reviewEventId: z.string().min(1),
   cardId: z.string().min(1),
-  deviceId: z.string().min(1),
   clientEventId: z.string().min(1),
   rating: reviewRatingSchema,
   reviewedAtClient: z.string().datetime(),
 });
 
-const reviewEventPayloadSchema = reviewEventPushPayloadSchema.extend({
+const reviewEventImportPayloadSchema = reviewEventPushPayloadSchema.extend({
   workspaceId: z.string().min(1),
   reviewedAtServer: z.string().datetime(),
+});
+
+const cardBootstrapPushPayloadSchema = cardSnapshotSchema.extend({
+  clientUpdatedAt: z.string().datetime(),
+  lastOperationId: z.string().min(1),
+  updatedAt: z.string().datetime(),
+});
+
+const deckBootstrapPushPayloadSchema = deckSnapshotSchema.extend({
+  workspaceId: z.string().min(1),
+  clientUpdatedAt: z.string().datetime(),
+  lastOperationId: z.string().min(1),
+  updatedAt: z.string().datetime(),
+});
+
+const workspaceSchedulerSettingsBootstrapPushPayloadSchema = workspaceSchedulerSettingsSnapshotSchema.extend({
+  clientUpdatedAt: z.string().datetime(),
+  lastOperationId: z.string().min(1),
+  updatedAt: z.string().datetime(),
 });
 
 const baseOperationSchema = z.object({
@@ -121,7 +139,7 @@ const reviewEventOperationSchema = baseOperationSchema.extend({
 });
 
 const syncPushInputSchema = z.object({
-  deviceId: z.string().min(1),
+  installationId: z.string().min(1),
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
   operations: z.array(
@@ -135,7 +153,7 @@ const syncPushInputSchema = z.object({
 });
 
 const syncPullInputSchema = z.object({
-  deviceId: z.string().min(1),
+  installationId: z.string().min(1),
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
   afterHotChangeId: z.number().int().nonnegative(),
@@ -144,7 +162,7 @@ const syncPullInputSchema = z.object({
 
 const syncBootstrapPullInputSchema = z.object({
   mode: z.literal("pull"),
-  deviceId: z.string().min(1),
+  installationId: z.string().min(1),
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
   cursor: z.string().min(1).nullable(),
@@ -153,7 +171,7 @@ const syncBootstrapPullInputSchema = z.object({
 
 const syncBootstrapPushInputSchema = z.object({
   mode: z.literal("push"),
-  deviceId: z.string().min(1),
+  installationId: z.string().min(1),
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
   entries: z.array(
@@ -162,26 +180,26 @@ const syncBootstrapPushInputSchema = z.object({
         entityType: z.literal("card"),
         entityId: z.string().min(1),
         action: z.literal("upsert"),
-        payload: cardPayloadSchema,
+        payload: cardBootstrapPushPayloadSchema,
       }),
       z.object({
         entityType: z.literal("deck"),
         entityId: z.string().min(1),
         action: z.literal("upsert"),
-        payload: deckPayloadSchema,
+        payload: deckBootstrapPushPayloadSchema,
       }),
       z.object({
         entityType: z.literal("workspace_scheduler_settings"),
         entityId: z.string().min(1),
         action: z.literal("upsert"),
-        payload: workspaceSchedulerSettingsPayloadSchema,
+        payload: workspaceSchedulerSettingsBootstrapPushPayloadSchema,
       }),
     ]),
   ),
 });
 
 const syncReviewHistoryPullInputSchema = z.object({
-  deviceId: z.string().min(1),
+  installationId: z.string().min(1),
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
   afterReviewSequenceId: z.number().int().nonnegative(),
@@ -189,10 +207,10 @@ const syncReviewHistoryPullInputSchema = z.object({
 });
 
 const syncReviewHistoryImportInputSchema = z.object({
-  deviceId: z.string().min(1),
+  installationId: z.string().min(1),
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
-  reviewEvents: z.array(reviewEventPayloadSchema),
+  reviewEvents: z.array(reviewEventImportPayloadSchema),
 });
 
 export type SyncPushInput = z.infer<typeof syncPushInputSchema>;

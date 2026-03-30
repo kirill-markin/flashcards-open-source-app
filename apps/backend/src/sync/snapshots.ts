@@ -13,7 +13,7 @@ import type {
 
 type MutationMetadataInput = Readonly<{
   clientUpdatedAt: string;
-  lastModifiedByDeviceId: string;
+  lastModifiedByReplicaId: string;
   lastOperationId: string;
 }>;
 
@@ -64,7 +64,7 @@ export function toWorkspaceSchedulerSettingsSnapshotInput(
 export function toCardMutationMetadata(input: MutationMetadataInput): CardMutationMetadata {
   return {
     clientUpdatedAt: input.clientUpdatedAt,
-    lastModifiedByDeviceId: input.lastModifiedByDeviceId,
+    lastModifiedByReplicaId: input.lastModifiedByReplicaId,
     lastOperationId: input.lastOperationId,
   };
 }
@@ -72,7 +72,7 @@ export function toCardMutationMetadata(input: MutationMetadataInput): CardMutati
 export function toDeckMutationMetadata(input: MutationMetadataInput): DeckMutationMetadata {
   return {
     clientUpdatedAt: input.clientUpdatedAt,
-    lastModifiedByDeviceId: input.lastModifiedByDeviceId,
+    lastModifiedByReplicaId: input.lastModifiedByReplicaId,
     lastOperationId: input.lastOperationId,
   };
 }
@@ -82,7 +82,7 @@ export function toWorkspaceSchedulerSettingsMutationMetadata(
 ): WorkspaceSchedulerSettingsMutationMetadata {
   return {
     clientUpdatedAt: input.clientUpdatedAt,
-    lastModifiedByDeviceId: input.lastModifiedByDeviceId,
+    lastModifiedByReplicaId: input.lastModifiedByReplicaId,
     lastOperationId: input.lastOperationId,
   };
 }

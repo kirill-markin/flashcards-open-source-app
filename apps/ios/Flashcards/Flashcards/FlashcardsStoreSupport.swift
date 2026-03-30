@@ -51,7 +51,7 @@ protocol CloudSyncServing {
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
-        deviceId: String
+        installationId: String
     ) async throws -> Bool
     func deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String) async throws
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult

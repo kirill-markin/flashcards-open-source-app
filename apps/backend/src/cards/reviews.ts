@@ -79,16 +79,16 @@ export async function appendReviewEventSnapshotInExecutor(
   const insertResult = await executor.query<ReviewHistoryRow>(
     [
       "INSERT INTO content.review_events",
-      "(review_event_id, workspace_id, card_id, device_id, client_event_id, rating, reviewed_at_client, reviewed_at_server)",
+      "(review_event_id, workspace_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_at_server)",
       "VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, now()))",
-      "ON CONFLICT (workspace_id, device_id, client_event_id) DO NOTHING",
-      "RETURNING review_event_id, workspace_id, device_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
+      "ON CONFLICT (workspace_id, replica_id, client_event_id) DO NOTHING",
+      "RETURNING review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
     ].join(" "),
     [
       reviewEvent.reviewEventId,
       workspaceId,
       reviewEvent.cardId,
-      reviewEvent.deviceId,
+      reviewEvent.replicaId,
       reviewEvent.clientEventId,
       reviewEvent.rating,
       reviewEvent.reviewedAtClient,
@@ -109,14 +109,14 @@ export async function appendReviewEventSnapshotInExecutor(
 
   const existingResult = await executor.query<ReviewHistoryRow>(
     [
-      "SELECT review_event_id, workspace_id, device_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
+      "SELECT review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
       "FROM content.review_events",
-      "WHERE workspace_id = $1 AND (review_event_id = $2 OR (device_id = $3 AND client_event_id = $4))",
+      "WHERE workspace_id = $1 AND (review_event_id = $2 OR (replica_id = $3 AND client_event_id = $4))",
       "ORDER BY reviewed_at_server DESC",
       "LIMIT 1",
       "FOR UPDATE",
     ].join(" "),
-    [workspaceId, reviewEvent.reviewEventId, reviewEvent.deviceId, reviewEvent.clientEventId],
+    [workspaceId, reviewEvent.reviewEventId, reviewEvent.replicaId, reviewEvent.clientEventId],
   );
 
   const existingRow = existingResult.rows[0];
@@ -135,7 +135,7 @@ export async function appendReviewEventSnapshotInExecutor(
 export async function submitReview(
   userId: string,
   workspaceId: string,
-  deviceId: string,
+  replicaId: string,
   input: SubmitReviewInput,
   metadata: CardMutationMetadata,
 ): Promise<ReviewResult> {
@@ -164,7 +164,7 @@ export async function submitReview(
         reviewEventId: input.reviewEventId ?? randomUUID(),
         workspaceId,
         cardId: input.cardId,
-        deviceId,
+        replicaId,
         clientEventId: input.clientEventId ?? randomUUID(),
         rating: input.rating,
         reviewedAtClient: reviewedAtClient.toISOString(),
@@ -178,7 +178,7 @@ export async function submitReview(
         "UPDATE content.cards",
         "SET due_at = $1, reps = $2, lapses = $3, fsrs_card_state = $4, fsrs_step_index = $5,",
         "fsrs_stability = $6, fsrs_difficulty = $7, fsrs_last_reviewed_at = $8, fsrs_scheduled_days = $9,",
-        "client_updated_at = $10, last_modified_by_device_id = $11, last_operation_id = $12, updated_at = now()",
+        "client_updated_at = $10, last_modified_by_replica_id = $11, last_operation_id = $12, updated_at = now()",
         "WHERE workspace_id = $13 AND card_id = $14",
         "RETURNING",
         CARD_COLUMNS,
@@ -194,7 +194,7 @@ export async function submitReview(
         schedule.fsrsLastReviewedAt,
         schedule.fsrsScheduledDays,
         normalizedMetadata.clientUpdatedAt,
-        normalizedMetadata.lastModifiedByDeviceId,
+        normalizedMetadata.lastModifiedByReplicaId,
         normalizedMetadata.lastOperationId,
         workspaceId,
         input.cardId,

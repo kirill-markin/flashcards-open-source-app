@@ -27,7 +27,7 @@ extension LocalDatabase {
                 cardId: reviewSubmission.cardId,
                 rating: reviewSubmission.rating,
                 reviewedAtClient: reviewSubmission.reviewedAtClient,
-                deviceId: cloudSettings.deviceId,
+                installationId: cloudSettings.installationId,
                 reviewEventId: reviewEventId,
                 clientEventId: clientEventId,
                 reviewedAtServer: reviewedAtServer
@@ -38,14 +38,14 @@ extension LocalDatabase {
                 cardId: reviewSubmission.cardId,
                 reviewSubmission: reviewSubmission,
                 schedule: schedule,
-                deviceId: cloudSettings.deviceId,
+                installationId: cloudSettings.installationId,
                 operationId: cardOperationId,
                 reviewedAtServer: reviewedAtServer
             )
 
             try self.outboxStore.enqueueReviewEventAppendOperation(
                 workspaceId: workspaceId,
-                deviceId: cloudSettings.deviceId,
+                installationId: cloudSettings.installationId,
                 operationId: reviewEventOperationId,
                 clientUpdatedAt: reviewSubmission.reviewedAtClient,
                 reviewEvent: reviewEvent
@@ -53,7 +53,7 @@ extension LocalDatabase {
 
             try self.outboxStore.enqueueCardUpsertOperation(
                 workspaceId: workspaceId,
-                deviceId: cloudSettings.deviceId,
+                installationId: cloudSettings.installationId,
                 operationId: cardOperationId,
                 clientUpdatedAt: reviewSubmission.reviewedAtClient,
                 card: updatedCard
@@ -82,13 +82,13 @@ extension LocalDatabase {
                 relearningStepsMinutes: relearningStepsMinutes,
                 maximumIntervalDays: maximumIntervalDays,
                 enableFuzz: enableFuzz,
-                deviceId: cloudSettings.deviceId,
+                installationId: cloudSettings.installationId,
                 operationId: operationId,
                 now: now
             )
             try self.outboxStore.enqueueWorkspaceSchedulerSettingsUpsertOperation(
                 workspaceId: workspaceId,
-                deviceId: cloudSettings.deviceId,
+                installationId: cloudSettings.installationId,
                 operationId: operationId,
                 clientUpdatedAt: now,
                 settings: updatedSettings

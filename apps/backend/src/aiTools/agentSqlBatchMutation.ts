@@ -46,15 +46,15 @@ type MutationBatchState = Readonly<{
 }>;
 
 function buildMutationMetadata(
-  deviceId: string,
+  replicaId: string,
 ): Readonly<{
   clientUpdatedAt: string;
-  lastModifiedByDeviceId: string;
+  lastModifiedByReplicaId: string;
   lastOperationId: string;
 }> {
   return {
     clientUpdatedAt: new Date().toISOString(),
-    lastModifiedByDeviceId: deviceId,
+    lastModifiedByReplicaId: replicaId,
     lastOperationId: randomUUID().toLowerCase(),
   };
 }
@@ -192,7 +192,7 @@ export async function executeSqlMutationBatch(
   statements: ReadonlyArray<AgentSqlMutationStatement>,
   statementSqls: ReadonlyArray<string>,
 ): Promise<AgentSqlExecutionResult> {
-  const deviceId = await dependencies.ensureAgentSyncDevice(
+  const replicaId = await dependencies.ensureAgentSyncReplica(
     context.workspaceId,
     context.userId,
     context.connectionId,
@@ -218,7 +218,7 @@ export async function executeSqlMutationBatch(
               executor,
               context.workspaceId,
               buildCreateCardInput(statement.columnNames, row),
-              buildMutationMetadata(deviceId),
+              buildMutationMetadata(replicaId),
             );
             createdCards.push(createdCard);
           }
@@ -255,7 +255,7 @@ export async function executeSqlMutationBatch(
                   tags: createDeckInput.tags,
                 } satisfies DeckFilterDefinition,
               },
-              buildMutationMetadata(deviceId),
+              buildMutationMetadata(replicaId),
             );
             createdDecks.push(createdDeck);
           }
@@ -292,7 +292,7 @@ export async function executeSqlMutationBatch(
               context.workspaceId,
               cardId,
               buildCardUpdatePatch(statement.assignments),
-              buildMutationMetadata(deviceId),
+              buildMutationMetadata(replicaId),
             );
             updatedCards.push(updatedCard);
             state = {
@@ -326,7 +326,7 @@ export async function executeSqlMutationBatch(
               context.workspaceId,
               deckId,
               buildResolvedDeckUpdateInput(existingDeck, statement.assignments),
-              buildMutationMetadata(deviceId),
+              buildMutationMetadata(replicaId),
             );
             updatedDecks.push(updatedDeck);
             state = {
@@ -353,7 +353,7 @@ export async function executeSqlMutationBatch(
               executor,
               context.workspaceId,
               cardId,
-              buildMutationMetadata(deviceId),
+              buildMutationMetadata(replicaId),
             );
           }
 
@@ -378,7 +378,7 @@ export async function executeSqlMutationBatch(
             executor,
             context.workspaceId,
             deckId,
-            buildMutationMetadata(deviceId),
+            buildMutationMetadata(replicaId),
           );
         }
 

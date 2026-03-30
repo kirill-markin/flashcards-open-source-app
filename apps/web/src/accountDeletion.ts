@@ -1,5 +1,5 @@
 import { clearWebSyncCache } from "./localDb/cache";
-import { DEVICE_ID_MAP_STORAGE_KEY, LEGACY_DEVICE_ID_STORAGE_KEY } from "./clientIdentity";
+import { INSTALLATION_ID_STORAGE_KEY, LEGACY_DEVICE_ID_STORAGE_KEY } from "./clientIdentity";
 import { WARM_START_SNAPSHOT_STORAGE_KEY } from "./appData/warmStart";
 
 export const deleteAccountConfirmationText: string = "delete my account";
@@ -11,7 +11,8 @@ const APP_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
   "flashcards-account-deletion-pending",
   "flashcards-account-deletion-csrf-token",
   LEGACY_DEVICE_ID_STORAGE_KEY,
-  DEVICE_ID_MAP_STORAGE_KEY,
+  INSTALLATION_ID_STORAGE_KEY,
+  "flashcards-sync-device-ids",
   "selected-review-filter",
   "flashcards-chat-messages",
   "flashcards-chat-open",

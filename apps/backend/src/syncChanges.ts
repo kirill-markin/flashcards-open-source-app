@@ -46,7 +46,7 @@ export async function insertSyncChange(
   entityType: SyncEntityType,
   entityId: string,
   action: SyncChangeAction,
-  deviceId: string,
+  replicaId: string,
   operationId: string,
   clientUpdatedAt: string,
 ): Promise<number> {
@@ -56,7 +56,7 @@ export async function insertSyncChange(
     [
       "INSERT INTO sync.hot_changes",
       "(",
-      "workspace_id, entity_type, entity_id, action, device_id, operation_id, client_updated_at",
+      "workspace_id, entity_type, entity_id, action, replica_id, operation_id, client_updated_at",
       ")",
       "VALUES ($1, $2, $3, $4, $5, $6, $7)",
       "RETURNING change_id",
@@ -66,7 +66,7 @@ export async function insertSyncChange(
       entityType,
       entityId,
       action,
-      deviceId,
+      replicaId,
       operationId,
       normalizeIsoTimestamp(clientUpdatedAt, "clientUpdatedAt"),
     ],

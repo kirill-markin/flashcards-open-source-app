@@ -18,7 +18,7 @@ enum CloudSyncMapper {
             fsrsLastReviewedAt: payload.fsrsLastReviewedAt,
             fsrsScheduledDays: payload.fsrsScheduledDays,
             clientUpdatedAt: payload.clientUpdatedAt,
-            lastModifiedByDeviceId: payload.lastModifiedByDeviceId,
+            lastModifiedByReplicaId: payload.lastModifiedByReplicaId,
             lastOperationId: payload.lastOperationId,
             updatedAt: payload.updatedAt,
             deletedAt: payload.deletedAt
@@ -33,7 +33,7 @@ enum CloudSyncMapper {
             filterDefinition: payload.filterDefinition,
             createdAt: payload.createdAt,
             clientUpdatedAt: payload.clientUpdatedAt,
-            lastModifiedByDeviceId: payload.lastModifiedByDeviceId,
+            lastModifiedByReplicaId: payload.lastModifiedByReplicaId,
             lastOperationId: payload.lastOperationId,
             updatedAt: payload.updatedAt,
             deletedAt: payload.deletedAt
@@ -51,7 +51,7 @@ enum CloudSyncMapper {
             maximumIntervalDays: payload.maximumIntervalDays,
             enableFuzz: payload.enableFuzz,
             clientUpdatedAt: payload.clientUpdatedAt,
-            lastModifiedByDeviceId: payload.lastModifiedByDeviceId,
+            lastModifiedByReplicaId: payload.lastModifiedByReplicaId,
             lastOperationId: payload.lastOperationId,
             updatedAt: payload.updatedAt
         )
@@ -62,7 +62,7 @@ enum CloudSyncMapper {
             reviewEventId: payload.reviewEventId,
             workspaceId: workspaceId,
             cardId: payload.cardId,
-            deviceId: payload.deviceId,
+            replicaId: payload.replicaId,
             clientEventId: payload.clientEventId,
             rating: payload.rating,
             reviewedAtClient: payload.reviewedAtClient,
@@ -75,7 +75,7 @@ enum CloudSyncMapper {
             reviewEventId: payload.reviewEventId,
             workspaceId: payload.workspaceId,
             cardId: payload.cardId,
-            deviceId: payload.deviceId,
+            replicaId: payload.replicaId,
             clientEventId: payload.clientEventId,
             rating: payload.rating,
             reviewedAtClient: payload.reviewedAtClient,

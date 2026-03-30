@@ -622,7 +622,7 @@ class LocalReviewRepository(
                     reviewLogId = UUID.randomUUID().toString(),
                     workspaceId = card.workspaceId,
                     cardId = cardId,
-                    deviceId = preferencesStore.currentCloudSettings().deviceId,
+                    replicaId = preferencesStore.currentCloudSettings().installationId,
                     clientEventId = UUID.randomUUID().toString(),
                     rating = rating,
                     reviewedAtMillis = reviewedAtMillis,

@@ -31,7 +31,7 @@ export type CardRow = Readonly<{
   fsrs_last_reviewed_at: TimestampValue | null;
   fsrs_scheduled_days: number | null;
   client_updated_at: TimestampValue;
-  last_modified_by_device_id: string;
+  last_modified_by_replica_id: string;
   last_operation_id: string;
   updated_at: TimestampValue;
   deleted_at: TimestampValue | null;
@@ -55,7 +55,7 @@ export type ReviewableCardRow = Readonly<{
 export type ReviewHistoryRow = Readonly<{
   review_event_id: string;
   workspace_id: string;
-  device_id: string;
+  replica_id: string;
   client_event_id: string;
   card_id: string;
   rating: number;
@@ -89,7 +89,7 @@ export type Card = Readonly<{
   fsrsLastReviewedAt: string | null;
   fsrsScheduledDays: number | null;
   clientUpdatedAt: string;
-  lastModifiedByDeviceId: string;
+  lastModifiedByReplicaId: string;
   lastOperationId: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -190,7 +190,7 @@ export type ReviewEvent = Readonly<{
   reviewEventId: string;
   workspaceId: string;
   cardId: string;
-  deviceId: string;
+  replicaId: string;
   clientEventId: string;
   rating: number;
   reviewedAtClient: string;

@@ -32,7 +32,7 @@ extension CardStore {
             fsrsLastReviewedAt: DatabaseCore.columnOptionalText(statement: statement, index: 14),
             fsrsScheduledDays: DatabaseCore.columnOptionalInt(statement: statement, index: 15),
             clientUpdatedAt: DatabaseCore.columnText(statement: statement, index: 16),
-            lastModifiedByDeviceId: DatabaseCore.columnText(statement: statement, index: 17),
+            lastModifiedByReplicaId: DatabaseCore.columnText(statement: statement, index: 17),
             lastOperationId: DatabaseCore.columnText(statement: statement, index: 18),
             updatedAt: DatabaseCore.columnText(statement: statement, index: 19),
             deletedAt: DatabaseCore.columnOptionalText(statement: statement, index: 20)

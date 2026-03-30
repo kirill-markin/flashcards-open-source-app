@@ -52,7 +52,7 @@ struct DeleteAccountResponse: Decodable {
 /// Keep this request aligned with `apps/backend/src/sync.ts`
 /// `syncPushInputSchema`.
 struct PushRequest: Encodable {
-    let deviceId: String
+    let installationId: String
     let platform: String
     let appVersion: String
     let operations: [SyncOperationEnvelope]
@@ -63,7 +63,7 @@ struct PushRequest: Encodable {
 /// Keep this request aligned with `apps/backend/src/sync.ts`
 /// `syncPullInputSchema` and the iOS sync tests that cover pull encoding.
 struct PullRequest: Encodable {
-    let deviceId: String
+    let installationId: String
     let platform: String
     let appVersion: String
     let afterHotChangeId: Int64
@@ -78,7 +78,7 @@ struct PullRequest: Encodable {
 /// `apps/backend/src/sync.ts` `syncBootstrapPullInputSchema`.
 struct BootstrapPullRequest: Encodable {
     let mode: String
-    let deviceId: String
+    let installationId: String
     let platform: String
     let appVersion: String
     let cursor: String?
@@ -86,7 +86,7 @@ struct BootstrapPullRequest: Encodable {
 
     enum CodingKeys: String, CodingKey {
         case mode
-        case deviceId
+        case installationId
         case platform
         case appVersion
         case cursor
@@ -100,7 +100,7 @@ struct BootstrapPullRequest: Encodable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.mode, forKey: .mode)
-        try container.encode(self.deviceId, forKey: .deviceId)
+        try container.encode(self.installationId, forKey: .installationId)
         try container.encode(self.platform, forKey: .platform)
         try container.encode(self.appVersion, forKey: .appVersion)
         if let cursor = self.cursor {
@@ -119,7 +119,7 @@ struct BootstrapPullRequest: Encodable {
 /// `syncBootstrapPushInputSchema`.
 struct BootstrapPushRequest: Encodable {
     let mode: String
-    let deviceId: String
+    let installationId: String
     let platform: String
     let appVersion: String
     let entries: [SyncBootstrapEntryEnvelope]
@@ -130,7 +130,7 @@ struct BootstrapPushRequest: Encodable {
 /// Keep this request aligned with `apps/backend/src/sync.ts`
 /// `syncReviewHistoryPullInputSchema`.
 struct ReviewHistoryPullRequest: Encodable {
-    let deviceId: String
+    let installationId: String
     let platform: String
     let appVersion: String
     let afterReviewSequenceId: Int64
@@ -142,7 +142,7 @@ struct ReviewHistoryPullRequest: Encodable {
 /// Keep this request aligned with `apps/backend/src/sync.ts`
 /// `syncReviewHistoryImportInputSchema`.
 struct ReviewHistoryImportRequest: Encodable {
-    let deviceId: String
+    let installationId: String
     let platform: String
     let appVersion: String
     let reviewEvents: [ReviewEvent]
@@ -230,7 +230,7 @@ struct RemoteCardChangePayload: Decodable {
     let fsrsLastReviewedAt: String?
     let fsrsScheduledDays: Int?
     let clientUpdatedAt: String
-    let lastModifiedByDeviceId: String
+    let lastModifiedByReplicaId: String
     let lastOperationId: String
     let updatedAt: String
     let deletedAt: String?
@@ -242,7 +242,7 @@ struct RemoteDeckChangePayload: Decodable {
     let filterDefinition: DeckFilterDefinition
     let createdAt: String
     let clientUpdatedAt: String
-    let lastModifiedByDeviceId: String
+    let lastModifiedByReplicaId: String
     let lastOperationId: String
     let updatedAt: String
     let deletedAt: String?
@@ -256,7 +256,7 @@ struct RemoteWorkspaceSchedulerSettingsChangePayload: Decodable {
     let maximumIntervalDays: Int
     let enableFuzz: Bool
     let clientUpdatedAt: String
-    let lastModifiedByDeviceId: String
+    let lastModifiedByReplicaId: String
     let lastOperationId: String
     let updatedAt: String
 }
@@ -264,7 +264,7 @@ struct RemoteWorkspaceSchedulerSettingsChangePayload: Decodable {
 struct RemoteReviewEventChangePayload: Decodable {
     let reviewEventId: String
     let cardId: String
-    let deviceId: String
+    let replicaId: String
     let clientEventId: String
     let rating: ReviewRating
     let reviewedAtClient: String
@@ -384,11 +384,13 @@ struct RemoteReviewHistoryImportResponseEnvelope: Decodable {
     let nextReviewSequenceId: Int64?
 }
 
+/// Pulled review events are already stamped by the backend with immutable
+/// workspace replica ids. The client must not invent or mutate these ids.
 struct RemoteReviewEventEnvelope: Decodable {
     let reviewEventId: String
     let workspaceId: String
     let cardId: String
-    let deviceId: String
+    let replicaId: String
     let clientEventId: String
     let rating: ReviewRating
     let reviewedAtClient: String

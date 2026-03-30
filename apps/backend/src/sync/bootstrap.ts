@@ -3,18 +3,15 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../db";
-import {
-  ensureSyncDevice,
-  type SyncDevicePlatform,
-} from "../devices";
 import { upsertDeckSnapshotInExecutor } from "../decks";
 import { HttpError } from "../errors";
 import {
   decodeOpaqueCursor,
   encodeOpaqueCursor,
 } from "../pagination";
-import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../workspaceSchedulerSettings";
+import { ensureWorkspaceReplica } from "../syncIdentity";
 import { ensureWorkspaceSyncMetadataInExecutor } from "../syncChanges";
+import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../workspaceSchedulerSettings";
 import {
   cardPayloadSchema,
   deckPayloadSchema,
@@ -150,13 +147,13 @@ export async function processSyncBootstrap(
   userId: string,
   input: SyncBootstrapInput,
 ): Promise<SyncBootstrapPullResult | SyncBootstrapPushResult> {
-  await ensureSyncDevice(
+  const replicaId = await ensureWorkspaceReplica({
     workspaceId,
     userId,
-    input.deviceId,
-    input.platform as SyncDevicePlatform,
-    input.appVersion ?? null,
-  );
+    installationId: input.installationId,
+    platform: input.platform,
+    appVersion: input.appVersion ?? null,
+  });
 
   if (input.mode === "push") {
     return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
@@ -175,7 +172,7 @@ export async function processSyncBootstrap(
             toCardSnapshotInput(entry.payload),
             toCardMutationMetadata({
               clientUpdatedAt: entry.payload.clientUpdatedAt,
-              lastModifiedByDeviceId: entry.payload.lastModifiedByDeviceId,
+              lastModifiedByReplicaId: replicaId,
               lastOperationId: entry.payload.lastOperationId,
             }),
           );
@@ -190,7 +187,7 @@ export async function processSyncBootstrap(
             toDeckSnapshotInput(entry.payload),
             toDeckMutationMetadata({
               clientUpdatedAt: entry.payload.clientUpdatedAt,
-              lastModifiedByDeviceId: entry.payload.lastModifiedByDeviceId,
+              lastModifiedByReplicaId: replicaId,
               lastOperationId: entry.payload.lastOperationId,
             }),
           );
@@ -204,7 +201,7 @@ export async function processSyncBootstrap(
           toWorkspaceSchedulerSettingsSnapshotInput(entry.payload),
           toWorkspaceSchedulerSettingsMutationMetadata({
             clientUpdatedAt: entry.payload.clientUpdatedAt,
-            lastModifiedByDeviceId: entry.payload.lastModifiedByDeviceId,
+            lastModifiedByReplicaId: replicaId,
             lastOperationId: entry.payload.lastOperationId,
           }),
         );
@@ -245,7 +242,7 @@ export async function processSyncBootstrap(
         "      'maximumIntervalDays', workspaces.fsrs_maximum_interval_days,",
         "      'enableFuzz', workspaces.fsrs_enable_fuzz,",
         "      'clientUpdatedAt', to_char(date_trunc('milliseconds', workspaces.fsrs_client_updated_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),",
-        "      'lastModifiedByDeviceId', workspaces.fsrs_last_modified_by_device_id::text,",
+        "      'lastModifiedByReplicaId', workspaces.fsrs_last_modified_by_replica_id::text,",
         "      'lastOperationId', workspaces.fsrs_last_operation_id,",
         "      'updatedAt', to_char(date_trunc('milliseconds', workspaces.fsrs_updated_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"')",
         "    ) AS payload",
@@ -273,7 +270,7 @@ export async function processSyncBootstrap(
         "      'fsrsLastReviewedAt', CASE WHEN cards.fsrs_last_reviewed_at IS NULL THEN NULL ELSE to_char(date_trunc('milliseconds', cards.fsrs_last_reviewed_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') END,",
         "      'fsrsScheduledDays', cards.fsrs_scheduled_days,",
         "      'clientUpdatedAt', to_char(date_trunc('milliseconds', cards.client_updated_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),",
-        "      'lastModifiedByDeviceId', cards.last_modified_by_device_id::text,",
+        "      'lastModifiedByReplicaId', cards.last_modified_by_replica_id::text,",
         "      'lastOperationId', cards.last_operation_id,",
         "      'updatedAt', to_char(date_trunc('milliseconds', cards.updated_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),",
         "      'deletedAt', CASE WHEN cards.deleted_at IS NULL THEN NULL ELSE to_char(date_trunc('milliseconds', cards.deleted_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') END",
@@ -292,7 +289,7 @@ export async function processSyncBootstrap(
         "      'filterDefinition', decks.filter_definition,",
         "      'createdAt', to_char(date_trunc('milliseconds', decks.created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),",
         "      'clientUpdatedAt', to_char(date_trunc('milliseconds', decks.client_updated_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),",
-        "      'lastModifiedByDeviceId', decks.last_modified_by_device_id::text,",
+        "      'lastModifiedByReplicaId', decks.last_modified_by_replica_id::text,",
         "      'lastOperationId', decks.last_operation_id,",
         "      'updatedAt', to_char(date_trunc('milliseconds', decks.updated_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"'),",
         "      'deletedAt', CASE WHEN decks.deleted_at IS NULL THEN NULL ELSE to_char(date_trunc('milliseconds', decks.deleted_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') END",

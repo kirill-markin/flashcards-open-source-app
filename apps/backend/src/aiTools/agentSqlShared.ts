@@ -122,7 +122,7 @@ export function toReviewEventRow(item: ReviewHistoryItem): SqlRow {
   return {
     review_event_id: item.reviewEventId,
     card_id: item.cardId,
-    device_id: item.deviceId,
+    replica_id: item.replicaId,
     client_event_id: item.clientEventId,
     rating: item.rating,
     reviewed_at_client: item.reviewedAtClient,

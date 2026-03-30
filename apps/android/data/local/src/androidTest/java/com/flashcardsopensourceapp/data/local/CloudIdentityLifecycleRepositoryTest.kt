@@ -103,7 +103,7 @@ class CloudIdentityLifecycleRepositoryTest {
     @Test
     fun resetCoordinatorClearsIdentityAndRecreatesEmptyState() = runBlocking {
         val initialLocalWorkspaceId = requireLocalWorkspaceId()
-        val initialDeviceId = cloudPreferencesStore.currentCloudSettings().deviceId
+        val initialInstallationId = cloudPreferencesStore.currentCloudSettings().installationId
         cloudPreferencesStore.saveCredentials(
             credentials = StoredCloudCredentials(
                 refreshToken = "refresh-token",
@@ -149,7 +149,7 @@ class CloudIdentityLifecycleRepositoryTest {
         assertEquals(CloudAccountState.DISCONNECTED, cloudPreferencesStore.currentCloudSettings().cloudState)
         assertEquals(resetWorkspace.workspaceId, cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
         assertNotEquals(initialLocalWorkspaceId, resetWorkspace.workspaceId)
-        assertNotEquals(initialDeviceId, cloudPreferencesStore.currentCloudSettings().deviceId)
+        assertNotEquals(initialInstallationId, cloudPreferencesStore.currentCloudSettings().installationId)
         assertEquals(AccountDeletionState.Hidden, cloudPreferencesStore.currentAccountDeletionState())
         assertTrue(aiChatPreferencesStore.hasConsent().not())
         assertEquals(localWorkspaceName, resetWorkspace.name)
@@ -172,7 +172,7 @@ class CloudIdentityLifecycleRepositoryTest {
     @Test
     fun accountDeletionLifecyclePersistsFailureAndRetryCleansLocalState() = runBlocking {
         val initialLocalWorkspaceId = requireLocalWorkspaceId()
-        val initialDeviceId = cloudPreferencesStore.currentCloudSettings().deviceId
+        val initialInstallationId = cloudPreferencesStore.currentCloudSettings().installationId
         val remoteGateway = FakeCloudRemoteGateway(deleteFailuresRemaining = 1)
         val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
 
@@ -196,7 +196,7 @@ class CloudIdentityLifecycleRepositoryTest {
         assertEquals(2, remoteGateway.deleteAccountCalls)
         assertEquals(CloudAccountState.DISCONNECTED, cloudPreferencesStore.currentCloudSettings().cloudState)
         assertNull(cloudPreferencesStore.loadCredentials())
-        assertNotEquals(initialDeviceId, cloudPreferencesStore.currentCloudSettings().deviceId)
+        assertNotEquals(initialInstallationId, cloudPreferencesStore.currentCloudSettings().installationId)
         assertEquals(1, database.workspaceDao().countWorkspaces())
         assertEquals(localWorkspaceName, resetWorkspace.name)
         assertNotEquals(initialLocalWorkspaceId, resetWorkspace.workspaceId)
@@ -243,7 +243,8 @@ class CloudIdentityLifecycleRepositoryTest {
                 preferencesStore = cloudPreferencesStore
             ),
             operationCoordinator = operationCoordinator,
-            resetCoordinator = resetCoordinator
+            resetCoordinator = resetCoordinator,
+            guestSessionStore = guestAiSessionStore
         )
 
         prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
@@ -538,7 +539,8 @@ class CloudIdentityLifecycleRepositoryTest {
                 preferencesStore = cloudPreferencesStore
             ),
             operationCoordinator = operationCoordinator,
-            resetCoordinator = resetCoordinator
+            resetCoordinator = resetCoordinator,
+            guestSessionStore = guestAiSessionStore
         )
 
         prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
@@ -580,7 +582,8 @@ class CloudIdentityLifecycleRepositoryTest {
                 preferencesStore = cloudPreferencesStore
             ),
             operationCoordinator = operationCoordinator,
-            resetCoordinator = resetCoordinator
+            resetCoordinator = resetCoordinator,
+            guestSessionStore = guestAiSessionStore
         )
 
         prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)

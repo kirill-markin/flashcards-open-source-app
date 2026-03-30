@@ -21,7 +21,7 @@ import { ALL_CARDS_DECK_LABEL } from "../deckFilters";
 
 type LastWriteWinsRecord = Readonly<{
   clientUpdatedAt: string;
-  lastModifiedByDeviceId: string;
+  lastModifiedByReplicaId: string;
   lastOperationId: string;
 }>;
 
@@ -352,7 +352,7 @@ export function compareLww(left: LastWriteWinsRecord, right: LastWriteWinsRecord
     return timestampDifference;
   }
 
-  const deviceDifference = left.lastModifiedByDeviceId.localeCompare(right.lastModifiedByDeviceId);
+  const deviceDifference = left.lastModifiedByReplicaId.localeCompare(right.lastModifiedByReplicaId);
   if (deviceDifference !== 0) {
     return deviceDifference;
   }
@@ -409,7 +409,7 @@ export function upsertWorkspaceSummary(
 export function buildInitialCard(
   input: CreateCardInput,
   clientUpdatedAt: string,
-  deviceId: string,
+  installationId: string,
   operationId: string,
 ): Card {
   return {
@@ -429,7 +429,7 @@ export function buildInitialCard(
     fsrsLastReviewedAt: null,
     fsrsScheduledDays: null,
     clientUpdatedAt,
-    lastModifiedByDeviceId: deviceId,
+    lastModifiedByReplicaId: installationId,
     lastOperationId: operationId,
     updatedAt: clientUpdatedAt,
     deletedAt: null,
@@ -502,7 +502,7 @@ export function buildUpdatedCard(
   card: Card,
   input: UpdateCardInput,
   clientUpdatedAt: string,
-  deviceId: string,
+  installationId: string,
   operationId: string,
 ): Card {
   return {
@@ -512,7 +512,7 @@ export function buildUpdatedCard(
     tags: input.tags ?? card.tags,
     effortLevel: input.effortLevel ?? card.effortLevel,
     clientUpdatedAt,
-    lastModifiedByDeviceId: deviceId,
+    lastModifiedByReplicaId: installationId,
     lastOperationId: operationId,
     updatedAt: clientUpdatedAt,
   };
@@ -521,13 +521,13 @@ export function buildUpdatedCard(
 export function buildDeletedCard(
   card: Card,
   clientUpdatedAt: string,
-  deviceId: string,
+  installationId: string,
   operationId: string,
 ): Card {
   return {
     ...card,
     clientUpdatedAt,
-    lastModifiedByDeviceId: deviceId,
+    lastModifiedByReplicaId: installationId,
     lastOperationId: operationId,
     updatedAt: clientUpdatedAt,
     deletedAt: clientUpdatedAt,
@@ -537,7 +537,7 @@ export function buildDeletedCard(
 export function buildDeck(
   input: CreateDeckInput,
   clientUpdatedAt: string,
-  deviceId: string,
+  installationId: string,
   operationId: string,
 ): Deck {
   return {
@@ -547,7 +547,7 @@ export function buildDeck(
     filterDefinition: input.filterDefinition,
     createdAt: clientUpdatedAt,
     clientUpdatedAt,
-    lastModifiedByDeviceId: deviceId,
+    lastModifiedByReplicaId: installationId,
     lastOperationId: operationId,
     updatedAt: clientUpdatedAt,
     deletedAt: null,
@@ -558,7 +558,7 @@ export function buildUpdatedDeck(
   deck: Deck,
   input: UpdateDeckInput,
   clientUpdatedAt: string,
-  deviceId: string,
+  installationId: string,
   operationId: string,
 ): Deck {
   return {
@@ -566,7 +566,7 @@ export function buildUpdatedDeck(
     name: input.name,
     filterDefinition: input.filterDefinition,
     clientUpdatedAt,
-    lastModifiedByDeviceId: deviceId,
+    lastModifiedByReplicaId: installationId,
     lastOperationId: operationId,
     updatedAt: clientUpdatedAt,
   };
@@ -575,13 +575,13 @@ export function buildUpdatedDeck(
 export function buildDeletedDeck(
   deck: Deck,
   clientUpdatedAt: string,
-  deviceId: string,
+  installationId: string,
   operationId: string,
 ): Deck {
   return {
     ...deck,
     clientUpdatedAt,
-    lastModifiedByDeviceId: deviceId,
+    lastModifiedByReplicaId: installationId,
     lastOperationId: operationId,
     updatedAt: clientUpdatedAt,
     deletedAt: clientUpdatedAt,
@@ -606,7 +606,7 @@ export function buildReviewedCard(
   card: Card,
   schedule: ReviewScheduleResult,
   reviewedAtClient: string,
-  deviceId: string,
+  installationId: string,
   operationId: string,
 ): Card {
   return {
@@ -621,7 +621,7 @@ export function buildReviewedCard(
     fsrsLastReviewedAt: schedule.fsrsLastReviewedAt.toISOString(),
     fsrsScheduledDays: schedule.fsrsScheduledDays,
     clientUpdatedAt: reviewedAtClient,
-    lastModifiedByDeviceId: deviceId,
+    lastModifiedByReplicaId: installationId,
     lastOperationId: operationId,
     updatedAt: reviewedAtClient,
   };
@@ -630,7 +630,7 @@ export function buildReviewedCard(
 export function buildReviewEvent(
   workspaceId: string,
   cardId: string,
-  deviceId: string,
+  replicaId: string,
   rating: 0 | 1 | 2 | 3,
   reviewedAtClient: string,
   reviewEventId: string,
@@ -640,7 +640,7 @@ export function buildReviewEvent(
     reviewEventId,
     workspaceId,
     cardId,
-    deviceId,
+    replicaId,
     clientEventId,
     rating,
     reviewedAtClient,
@@ -703,7 +703,6 @@ export function buildReviewEventAppendOperation(reviewEvent: ReviewEvent): SyncP
     payload: {
       reviewEventId: reviewEvent.reviewEventId,
       cardId: reviewEvent.cardId,
-      deviceId: reviewEvent.deviceId,
       clientEventId: reviewEvent.clientEventId,
       rating: reviewEvent.rating,
       reviewedAtClient: reviewEvent.reviewedAtClient,

@@ -13,6 +13,7 @@ import {
   type CursorPageInput,
 } from "./pagination";
 import { logCloudRouteEvent } from "./server/logging";
+import { ensureSystemWorkspaceReplicaInExecutor } from "./syncIdentity";
 import { insertSyncChange } from "./syncChanges";
 
 export const AUTO_CREATED_WORKSPACE_NAME = "Personal";
@@ -100,7 +101,7 @@ type WorkspaceSchedulerSeedRow = Readonly<{
   fsrs_maximum_interval_days: number;
   fsrs_enable_fuzz: boolean;
   fsrs_client_updated_at: Date | string;
-  fsrs_last_modified_by_device_id: string;
+  fsrs_last_modified_by_replica_id: string;
   fsrs_last_operation_id: string;
   fsrs_updated_at: Date | string;
 }>;
@@ -223,7 +224,7 @@ function toWorkspaceSchedulerSyncPayloadJson(row: WorkspaceSchedulerSeedRow): st
     maximumIntervalDays: row.fsrs_maximum_interval_days,
     enableFuzz: row.fsrs_enable_fuzz,
     clientUpdatedAt: toIsoString(row.fsrs_client_updated_at),
-    lastModifiedByDeviceId: row.fsrs_last_modified_by_device_id,
+    lastModifiedByReplicaId: row.fsrs_last_modified_by_replica_id,
     lastOperationId: row.fsrs_last_operation_id,
     updatedAt: toIsoString(row.fsrs_updated_at),
   });
@@ -329,21 +330,28 @@ export async function createWorkspaceInExecutor(
   await ensureUserSettingsRowInExecutor(executor, userId);
 
   const workspaceId = randomUUID();
-  const bootstrapDeviceId = randomUUID();
   const bootstrapTimestamp = new Date().toISOString();
   const bootstrapOperationId = `bootstrap-workspace-${workspaceId}`;
 
   await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
+  const bootstrapReplicaId = await ensureSystemWorkspaceReplicaInExecutor(executor, {
+    workspaceId,
+    userId,
+    actorKind: "workspace_seed",
+    actorKey: "workspace-seed",
+    platform: "system",
+    appVersion: "server-bootstrap",
+  });
 
   await executor.query(
     [
       "INSERT INTO org.workspaces",
       "(",
-      "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_device_id, fsrs_last_operation_id",
+      "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id",
       ")",
       "VALUES ($1, $2, $3, $4, $5)",
     ].join(" "),
-    [workspaceId, name, bootstrapTimestamp, bootstrapDeviceId, bootstrapOperationId],
+    [workspaceId, name, bootstrapTimestamp, bootstrapReplicaId, bootstrapOperationId],
   );
 
   await executor.query(
@@ -360,7 +368,7 @@ export async function createWorkspaceInExecutor(
       "SELECT",
       "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
       "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
-      "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
+      "fsrs_last_modified_by_replica_id, fsrs_last_operation_id, fsrs_updated_at",
       "FROM org.workspaces",
       "WHERE workspace_id = $1",
     ].join(" "),
@@ -374,22 +382,13 @@ export async function createWorkspaceInExecutor(
     );
   }
 
-  await executor.query(
-    [
-      "INSERT INTO sync.devices",
-      "(device_id, workspace_id, user_id, platform, app_version, last_seen_at)",
-      "VALUES ($1, $2, $3, 'ios', $4, now())",
-    ].join(" "),
-    [bootstrapDeviceId, workspaceId, userId, "server-bootstrap"],
-  );
-
   await insertSyncChange(
     executor,
     workspaceId,
     "workspace_scheduler_settings",
     workspaceId,
     "upsert",
-    workspaceRow.fsrs_last_modified_by_device_id,
+    workspaceRow.fsrs_last_modified_by_replica_id,
     workspaceRow.fsrs_last_operation_id,
     workspaceRow.fsrs_client_updated_at instanceof Date
       ? workspaceRow.fsrs_client_updated_at.toISOString()

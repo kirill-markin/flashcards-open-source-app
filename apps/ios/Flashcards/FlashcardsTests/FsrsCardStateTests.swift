@@ -47,7 +47,7 @@ final class FsrsCardStateTests: XCTestCase {
                     fsrsLastReviewedAt: "2026-03-08T09:00:00.000Z",
                     fsrsScheduledDays: 0,
                     clientUpdatedAt: "2026-03-08T09:00:00.000Z",
-                    lastModifiedByDeviceId: "device",
+                    lastModifiedByReplicaId: "replica",
                     lastOperationId: "operation",
                     updatedAt: "2026-03-08T09:00:00.000Z",
                     deletedAt: nil
@@ -75,7 +75,7 @@ final class FsrsCardStateTests: XCTestCase {
                     fsrsLastReviewedAt: "2026-03-08T09:00:00.000Z",
                     fsrsScheduledDays: 8,
                     clientUpdatedAt: "2026-03-08T09:00:00.000Z",
-                    lastModifiedByDeviceId: "device",
+                    lastModifiedByReplicaId: "replica",
                     lastOperationId: "operation",
                     updatedAt: "2026-03-08T09:00:00.000Z",
                     deletedAt: nil
@@ -103,7 +103,7 @@ final class FsrsCardStateTests: XCTestCase {
                     fsrsLastReviewedAt: "2026-03-08T09:00:00.000Z",
                     fsrsScheduledDays: 0,
                     clientUpdatedAt: "2026-03-08T09:00:00.000Z",
-                    lastModifiedByDeviceId: "device",
+                    lastModifiedByReplicaId: "replica",
                     lastOperationId: "operation",
                     updatedAt: "2026-03-08T09:00:00.000Z",
                     deletedAt: nil
@@ -133,7 +133,7 @@ final class FsrsCardStateTests: XCTestCase {
                 fsrsLastReviewedAt: "2026-03-08T09:00:00.000Z",
                 fsrsScheduledDays: 8,
                 clientUpdatedAt: "2026-03-08T09:00:00.000Z",
-                lastModifiedByDeviceId: "device",
+                lastModifiedByReplicaId: "replica",
                 lastOperationId: "operation",
                 updatedAt: "2026-03-08T09:00:00.000Z",
                 deletedAt: nil
@@ -172,7 +172,7 @@ final class FsrsCardStateTests: XCTestCase {
             fsrsLastReviewedAt: nil,
             fsrsScheduledDays: nil,
             clientUpdatedAt: "2026-03-08T00:00:00.000Z",
-            lastModifiedByDeviceId: "device",
+            lastModifiedByReplicaId: "replica",
             lastOperationId: "operation",
             updatedAt: "",
             deletedAt: nil

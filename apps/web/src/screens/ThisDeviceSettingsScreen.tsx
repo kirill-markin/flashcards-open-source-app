@@ -10,7 +10,7 @@ type WebDeviceInfo = Readonly<{
   build: string;
   client: string;
   storage: string;
-  deviceId: string;
+  installationId: string;
   workspaceScope: string;
 }>;
 
@@ -66,7 +66,7 @@ function detectBrowser(userAgent: string): string {
   return "Unavailable";
 }
 
-function buildWebDeviceInfo(deviceId: string): WebDeviceInfo {
+function buildWebDeviceInfo(installationId: string): WebDeviceInfo {
   const userAgent = navigator.userAgent;
 
   return {
@@ -76,14 +76,14 @@ function buildWebDeviceInfo(deviceId: string): WebDeviceInfo {
     build: formatUnavailable(webAppBuild),
     client: "Browser",
     storage: "IndexedDB + localStorage",
-    deviceId,
+    installationId,
     workspaceScope: "Future sync stays scoped to the currently selected workspace on this device.",
   };
 }
 
 export function ThisDeviceSettingsScreen(): ReactElement {
   const { activeWorkspace, cloudSettings } = useAppData();
-  const deviceInfo = buildWebDeviceInfo(cloudSettings?.deviceId ?? "Unavailable");
+  const deviceInfo = buildWebDeviceInfo(cloudSettings?.installationId ?? "Unavailable");
 
   return (
     <SettingsShell
@@ -121,8 +121,8 @@ export function ThisDeviceSettingsScreen(): ReactElement {
           <strong className="panel-subtitle">{deviceInfo.storage}</strong>
         </article>
         <article className="content-card settings-summary-card">
-          <span className="cell-secondary">Device ID</span>
-          <strong className="panel-subtitle txn-cell-mono">{deviceInfo.deviceId}</strong>
+          <span className="cell-secondary">Installation ID</span>
+          <strong className="panel-subtitle txn-cell-mono">{deviceInfo.installationId}</strong>
         </article>
         <article className="content-card settings-summary-card">
           <span className="cell-secondary">Workspace scope</span>

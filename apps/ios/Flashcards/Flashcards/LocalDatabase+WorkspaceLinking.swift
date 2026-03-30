@@ -161,7 +161,7 @@ extension LocalDatabase {
                 fsrs_maximum_interval_days,
                 fsrs_enable_fuzz,
                 fsrs_client_updated_at,
-                fsrs_last_modified_by_device_id,
+                fsrs_last_modified_by_replica_id,
                 fsrs_last_operation_id,
                 fsrs_updated_at
             )
@@ -178,7 +178,7 @@ extension LocalDatabase {
                 .integer(Int64(settings.maximumIntervalDays)),
                 .integer(settings.enableFuzz ? 1 : 0),
                 .text(settings.clientUpdatedAt),
-                .text(settings.lastModifiedByDeviceId),
+                .text(settings.lastModifiedByReplicaId),
                 .text(settings.lastOperationId),
                 .text(settings.updatedAt)
             ]
@@ -202,7 +202,7 @@ extension LocalDatabase {
                 fsrs_maximum_interval_days,
                 fsrs_enable_fuzz,
                 fsrs_client_updated_at,
-                fsrs_last_modified_by_device_id,
+                fsrs_last_modified_by_replica_id,
                 fsrs_last_operation_id,
                 fsrs_updated_at
             )
@@ -219,7 +219,7 @@ extension LocalDatabase {
                 .integer(Int64(defaultSchedulerSettingsConfig.maximumIntervalDays)),
                 .integer(defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0),
                 .text(now),
-                .text(cloudSettings.deviceId),
+                .text(cloudSettings.installationId),
                 .text(operationId),
                 .text(now)
             ]

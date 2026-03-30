@@ -173,7 +173,7 @@ export type UserSettings = Readonly<{
 
 /** Mirrors the iOS local cloud-settings payload used by local AI tools. */
 export type CloudSettings = Readonly<{
-  deviceId: string;
+  installationId: string;
   cloudState: CloudAccountState;
   linkedUserId: string | null;
   linkedWorkspaceId: string | null;
@@ -209,7 +209,7 @@ export type Card = Readonly<{
   fsrsLastReviewedAt: string | null;
   fsrsScheduledDays: number | null;
   clientUpdatedAt: string;
-  lastModifiedByDeviceId: string;
+  lastModifiedByReplicaId: string;
   lastOperationId: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -326,7 +326,7 @@ export type WorkspaceSchedulerSettings = Readonly<{
   maximumIntervalDays: number;
   enableFuzz: boolean;
   clientUpdatedAt: string;
-  lastModifiedByDeviceId: string;
+  lastModifiedByReplicaId: string;
   lastOperationId: string;
   updatedAt: string;
 }>;
@@ -352,7 +352,7 @@ export type Deck = Readonly<{
   filterDefinition: DeckFilterDefinition;
   createdAt: string;
   clientUpdatedAt: string;
-  lastModifiedByDeviceId: string;
+  lastModifiedByReplicaId: string;
   lastOperationId: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -385,7 +385,7 @@ export type ReviewEvent = Readonly<{
   reviewEventId: string;
   workspaceId: string;
   cardId: string;
-  deviceId: string;
+  replicaId: string;
   clientEventId: string;
   rating: 0 | 1 | 2 | 3;
   reviewedAtClient: string;
@@ -459,7 +459,6 @@ export type SyncPushOperation =
     payload: Readonly<{
       reviewEventId: string;
       cardId: string;
-      deviceId: string;
       clientEventId: string;
       rating: 0 | 1 | 2 | 3;
       reviewedAtClient: string;

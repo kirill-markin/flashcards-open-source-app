@@ -61,7 +61,7 @@ enum FsrsSchedulerTestSupport {
             maximumIntervalDays: maximumIntervalDays,
             enableFuzz: enableFuzz,
             clientUpdatedAt: "2026-03-08T00:00:00.000Z",
-            lastModifiedByDeviceId: "device",
+            lastModifiedByReplicaId: "replica",
             lastOperationId: "operation",
             updatedAt: "2026-03-08T00:00:00.000Z"
         )
@@ -86,7 +86,7 @@ enum FsrsSchedulerTestSupport {
             fsrsLastReviewedAt: nil,
             fsrsScheduledDays: nil,
             clientUpdatedAt: "2026-03-08T00:00:00.000Z",
-            lastModifiedByDeviceId: "device",
+            lastModifiedByReplicaId: "replica",
             lastOperationId: "operation",
             updatedAt: "",
             deletedAt: nil
@@ -118,7 +118,7 @@ enum FsrsSchedulerTestSupport {
             fsrsLastReviewedAt: nil,
             fsrsScheduledDays: nil,
             clientUpdatedAt: updatedAt,
-            lastModifiedByDeviceId: "device",
+            lastModifiedByReplicaId: "replica",
             lastOperationId: "operation",
             updatedAt: updatedAt,
             deletedAt: nil
@@ -137,7 +137,7 @@ enum FsrsSchedulerTestSupport {
             filterDefinition: filterDefinition,
             createdAt: "2026-03-08T00:00:00.000Z",
             clientUpdatedAt: "2026-03-08T00:00:00.000Z",
-            lastModifiedByDeviceId: "device",
+            lastModifiedByReplicaId: "replica",
             lastOperationId: "operation",
             updatedAt: "2026-03-08T00:00:00.000Z",
             deletedAt: nil
@@ -163,7 +163,7 @@ enum FsrsSchedulerTestSupport {
             fsrsLastReviewedAt: formatIsoTimestamp(date: schedule.fsrsLastReviewedAt),
             fsrsScheduledDays: schedule.fsrsScheduledDays,
             clientUpdatedAt: card.clientUpdatedAt,
-            lastModifiedByDeviceId: card.lastModifiedByDeviceId,
+            lastModifiedByReplicaId: card.lastModifiedByReplicaId,
             lastOperationId: card.lastOperationId,
             updatedAt: card.updatedAt,
             deletedAt: card.deletedAt

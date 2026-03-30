@@ -19,7 +19,7 @@ export type WorkspaceSchedulerSettingsRow = Readonly<{
   fsrs_maximum_interval_days: number;
   fsrs_enable_fuzz: boolean;
   fsrs_client_updated_at: TimestampValue;
-  fsrs_last_modified_by_device_id: string;
+  fsrs_last_modified_by_replica_id: string;
   fsrs_last_operation_id: string;
   fsrs_updated_at: TimestampValue;
 }>;
@@ -52,7 +52,7 @@ export type ReviewSequenceRow = Readonly<{
 export type ReviewHistoryRow = Readonly<{
   review_event_id: string;
   workspace_id: string;
-  device_id: string;
+  replica_id: string;
   client_event_id: string;
   card_id: string;
   rating: number;

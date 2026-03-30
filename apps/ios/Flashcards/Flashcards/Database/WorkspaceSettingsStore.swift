@@ -122,7 +122,7 @@ struct WorkspaceSettingsStore {
                 fsrs_maximum_interval_days,
                 fsrs_enable_fuzz,
                 fsrs_client_updated_at,
-                fsrs_last_modified_by_device_id,
+                fsrs_last_modified_by_replica_id,
                 fsrs_last_operation_id,
                 fsrs_updated_at
             FROM workspaces
@@ -150,7 +150,7 @@ struct WorkspaceSettingsStore {
                 maximumIntervalDays: Int(DatabaseCore.columnInt64(statement: statement, index: 4)),
                 enableFuzz: DatabaseCore.columnInt64(statement: statement, index: 5) == 1,
                 clientUpdatedAt: DatabaseCore.columnText(statement: statement, index: 6),
-                lastModifiedByDeviceId: DatabaseCore.columnText(statement: statement, index: 7),
+                lastModifiedByReplicaId: DatabaseCore.columnText(statement: statement, index: 7),
                 lastOperationId: DatabaseCore.columnText(statement: statement, index: 8),
                 updatedAt: DatabaseCore.columnText(statement: statement, index: 9)
             )
@@ -166,7 +166,7 @@ struct WorkspaceSettingsStore {
     func loadCloudSettings() throws -> CloudSettings {
         let settings = try self.core.query(
             sql: """
-            SELECT device_id, cloud_state, linked_user_id, linked_workspace_id, active_workspace_id, linked_email, onboarding_completed, updated_at
+            SELECT installation_id, cloud_state, linked_user_id, linked_workspace_id, active_workspace_id, linked_email, onboarding_completed, updated_at
             FROM app_local_settings
             WHERE settings_id = 1
             LIMIT 1
@@ -179,7 +179,7 @@ struct WorkspaceSettingsStore {
             }
 
             return CloudSettings(
-                deviceId: DatabaseCore.columnText(statement: statement, index: 0),
+                installationId: DatabaseCore.columnText(statement: statement, index: 0),
                 cloudState: cloudState,
                 linkedUserId: DatabaseCore.columnOptionalText(statement: statement, index: 2),
                 linkedWorkspaceId: DatabaseCore.columnOptionalText(statement: statement, index: 3),
@@ -272,7 +272,7 @@ struct WorkspaceSettingsStore {
         relearningStepsMinutes: [Int],
         maximumIntervalDays: Int,
         enableFuzz: Bool,
-        deviceId: String,
+        installationId: String,
         operationId: String,
         now: String
     ) throws -> WorkspaceSchedulerSettings {
@@ -288,7 +288,7 @@ struct WorkspaceSettingsStore {
         let updatedRows = try self.core.execute(
             sql: """
             UPDATE workspaces
-            SET fsrs_algorithm = ?, fsrs_desired_retention = ?, fsrs_learning_steps_minutes_json = ?, fsrs_relearning_steps_minutes_json = ?, fsrs_maximum_interval_days = ?, fsrs_enable_fuzz = ?, fsrs_client_updated_at = ?, fsrs_last_modified_by_device_id = ?, fsrs_last_operation_id = ?, fsrs_updated_at = ?
+            SET fsrs_algorithm = ?, fsrs_desired_retention = ?, fsrs_learning_steps_minutes_json = ?, fsrs_relearning_steps_minutes_json = ?, fsrs_maximum_interval_days = ?, fsrs_enable_fuzz = ?, fsrs_client_updated_at = ?, fsrs_last_modified_by_replica_id = ?, fsrs_last_operation_id = ?, fsrs_updated_at = ?
             WHERE workspace_id = ?
             """,
             values: [
@@ -299,7 +299,7 @@ struct WorkspaceSettingsStore {
                 .integer(Int64(validatedInput.maximumIntervalDays)),
                 .integer(validatedInput.enableFuzz ? 1 : 0),
                 .text(now),
-                .text(deviceId),
+                .text(installationId),
                 .text(operationId),
                 .text(now),
                 .text(workspaceId)

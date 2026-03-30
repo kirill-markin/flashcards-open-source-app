@@ -122,7 +122,6 @@ class SyncLocalStore(
         val payloadJson = JSONObject()
             .put("reviewEventId", reviewLog.reviewLogId)
             .put("cardId", reviewLog.cardId)
-            .put("deviceId", reviewLog.deviceId)
             .put("clientEventId", reviewLog.clientEventId)
             .put("rating", reviewLog.rating.ordinal)
             .put("reviewedAtClient", formatIsoTimestamp(reviewLog.reviewedAtMillis))
@@ -285,7 +284,6 @@ class SyncLocalStore(
                             put("fsrsLastReviewedAt", card.fsrsLastReviewedAtMillis?.let(::formatIsoTimestamp))
                             put("fsrsScheduledDays", card.fsrsScheduledDays)
                             put("clientUpdatedAt", formatIsoTimestamp(card.updatedAtMillis))
-                            put("lastModifiedByDeviceId", preferencesStore.currentCloudSettings().deviceId)
                             put("lastOperationId", UUID.randomUUID().toString())
                             put("updatedAt", formatIsoTimestamp(card.updatedAtMillis))
                             put("deletedAt", card.deletedAtMillis?.let(::formatIsoTimestamp))
@@ -308,7 +306,6 @@ class SyncLocalStore(
                             put("filterDefinition", JSONObject(deck.filterDefinitionJson))
                             put("createdAt", formatIsoTimestamp(deck.createdAtMillis))
                             put("clientUpdatedAt", formatIsoTimestamp(deck.updatedAtMillis))
-                            put("lastModifiedByDeviceId", preferencesStore.currentCloudSettings().deviceId)
                             put("lastOperationId", UUID.randomUUID().toString())
                             put("updatedAt", formatIsoTimestamp(deck.updatedAtMillis))
                             put("deletedAt", deck.deletedAtMillis?.let(::formatIsoTimestamp))
@@ -331,7 +328,6 @@ class SyncLocalStore(
                         put("maximumIntervalDays", settings.maximumIntervalDays)
                         put("enableFuzz", settings.enableFuzz)
                         put("clientUpdatedAt", formatIsoTimestamp(settings.updatedAtMillis))
-                        put("lastModifiedByDeviceId", preferencesStore.currentCloudSettings().deviceId)
                         put("lastOperationId", UUID.randomUUID().toString())
                         put("updatedAt", formatIsoTimestamp(settings.updatedAtMillis))
                     })
@@ -351,7 +347,6 @@ class SyncLocalStore(
                             .put("reviewEventId", reviewLog.reviewLogId)
                             .put("workspaceId", reviewLog.workspaceId)
                             .put("cardId", reviewLog.cardId)
-                            .put("deviceId", reviewLog.deviceId)
                             .put("clientEventId", reviewLog.clientEventId)
                             .put("rating", reviewLog.rating.ordinal)
                             .put("reviewedAtClient", formatIsoTimestamp(reviewLog.reviewedAtMillis))
@@ -397,7 +392,7 @@ class SyncLocalStore(
                     reviewLogId = event.reviewEventId,
                     workspaceId = event.workspaceId,
                     cardId = event.cardId,
-                    deviceId = event.deviceId,
+                    replicaId = event.replicaId,
                     clientEventId = event.clientEventId,
                     rating = ReviewRating.entries[event.rating],
                     reviewedAtMillis = parseIsoTimestamp(event.reviewedAtClient),
@@ -419,7 +414,7 @@ class SyncLocalStore(
             OutboxEntryEntity(
                 outboxEntryId = UUID.randomUUID().toString(),
                 workspaceId = workspaceId,
-                deviceId = preferencesStore.currentCloudSettings().deviceId,
+                installationId = preferencesStore.currentCloudSettings().installationId,
                 entityType = entityType.toRemoteValue(),
                 entityId = entityId,
                 operationType = action.toRemoteValue(),
@@ -714,7 +709,6 @@ class SyncLocalStore(
                     ReviewEventSyncPayload(
                         reviewEventId = payloadJson.requireCloudString("reviewEventId", "outbox.reviewEvent.reviewEventId"),
                         cardId = payloadJson.requireCloudString("cardId", "outbox.reviewEvent.cardId"),
-                        deviceId = payloadJson.requireCloudString("deviceId", "outbox.reviewEvent.deviceId"),
                         clientEventId = payloadJson.requireCloudString("clientEventId", "outbox.reviewEvent.clientEventId"),
                         rating = payloadJson.requireCloudInt("rating", "outbox.reviewEvent.rating"),
                         reviewedAtClient = payloadJson.requireCloudString("reviewedAtClient", "outbox.reviewEvent.reviewedAtClient")

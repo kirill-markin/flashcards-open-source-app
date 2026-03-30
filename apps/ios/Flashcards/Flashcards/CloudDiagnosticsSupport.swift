@@ -25,7 +25,7 @@ func logCloudFlowPhase(
     code: String? = nil,
     statusCode: Int? = nil,
     workspaceId: String? = nil,
-    deviceId: String? = nil,
+    installationId: String? = nil,
     selection: String? = nil,
     operationsCount: Int? = nil,
     changesCount: Int? = nil,
@@ -39,7 +39,7 @@ func logCloudFlowPhase(
         code=\(code ?? "-", privacy: .public) \
         status=\(statusCode.map(String.init) ?? "-", privacy: .public) \
         workspaceId=\(workspaceId ?? "-", privacy: .public) \
-        deviceId=\(deviceId ?? "-", privacy: .public) \
+        installationId=\(installationId ?? "-", privacy: .public) \
         selection=\(selection ?? "-", privacy: .public) \
         operations=\(operationsCount.map(String.init) ?? "-", privacy: .public) \
         changes=\(changesCount.map(String.init) ?? "-", privacy: .public) \

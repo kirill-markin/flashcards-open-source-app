@@ -42,7 +42,7 @@ import {
   type UpdateDeckInput,
 } from "../decks";
 import { HttpError } from "../errors";
-import { ensureAgentSyncDevice } from "../agentSyncIdentity";
+import { ensureAgentSyncReplica } from "../agentSyncIdentity";
 import {
   getWorkspaceSchedulerSettings,
   type WorkspaceSchedulerSettings,
@@ -121,7 +121,7 @@ export type AgentToolOperationDependencies = Readonly<{
   listReviewHistoryPage: typeof listReviewHistoryPage;
   queryCardsPage: typeof queryCardsPage;
   updateCards: typeof updateCards;
-  ensureAgentSyncDevice: typeof ensureAgentSyncDevice;
+  ensureAgentSyncReplica: typeof ensureAgentSyncReplica;
   createDecks: typeof createDecks;
   deleteDecks: typeof deleteDecks;
   getDecks: typeof getDecks;
@@ -273,7 +273,7 @@ type AgentUpdateDecksPayload = Readonly<{
 
 type MutationMetadata = Readonly<{
   clientUpdatedAt: string;
-  lastModifiedByDeviceId: string;
+  lastModifiedByReplicaId: string;
   lastOperationId: string;
 }>;
 
@@ -284,7 +284,7 @@ export const DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES: AgentToolOperationDepend
   listReviewHistoryPage,
   queryCardsPage,
   updateCards,
-  ensureAgentSyncDevice,
+  ensureAgentSyncReplica,
   createDecks,
   deleteDecks,
   getDecks,
@@ -320,7 +320,7 @@ async function buildAgentMutationMetadata(
   context: AgentMutationContext,
   count: number,
 ): Promise<ReadonlyArray<MutationMetadata>> {
-  const deviceId = await dependencies.ensureAgentSyncDevice(
+  const replicaId = await dependencies.ensureAgentSyncReplica(
     context.workspaceId,
     context.userId,
     context.connectionId,
@@ -329,7 +329,7 @@ async function buildAgentMutationMetadata(
 
   return Array.from({ length: count }, (_, index) => ({
     clientUpdatedAt,
-    lastModifiedByDeviceId: deviceId,
+    lastModifiedByReplicaId: replicaId,
     lastOperationId: createMutationOperationId(context.actionName, index),
   }));
 }

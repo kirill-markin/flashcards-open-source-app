@@ -33,7 +33,7 @@ struct CloudSyncRunner {
                 phase: .initialPush,
                 outcome: "self_heal",
                 workspaceId: workspaceId,
-                deviceId: cloudSettings.deviceId,
+                installationId: cloudSettings.installationId,
                 operationsCount: removedReviewEventCount
             )
         }
@@ -43,7 +43,7 @@ struct CloudSyncRunner {
                 try await self.performInitialHotStateSync(
                     linkedSession: linkedSession,
                     workspaceId: workspaceId,
-                    deviceId: cloudSettings.deviceId,
+                    installationId: cloudSettings.installationId,
                     syncBasePath: syncBasePath
                 )
             )
@@ -53,7 +53,7 @@ struct CloudSyncRunner {
             try await self.pushOutboxBatches(
                 linkedSession: linkedSession,
                 workspaceId: workspaceId,
-                deviceId: cloudSettings.deviceId,
+                installationId: cloudSettings.installationId,
                 syncBasePath: syncBasePath
             )
         )
@@ -61,7 +61,7 @@ struct CloudSyncRunner {
             try await self.pullHotChanges(
                 linkedSession: linkedSession,
                 workspaceId: workspaceId,
-                deviceId: cloudSettings.deviceId,
+                installationId: cloudSettings.installationId,
                 syncBasePath: syncBasePath
             )
         )
@@ -69,7 +69,7 @@ struct CloudSyncRunner {
             try await self.pullReviewHistory(
                 linkedSession: linkedSession,
                 workspaceId: workspaceId,
-                deviceId: cloudSettings.deviceId,
+                installationId: cloudSettings.installationId,
                 syncBasePath: syncBasePath
             )
         )
@@ -90,7 +90,7 @@ struct CloudSyncRunner {
     private func performInitialHotStateSync(
         linkedSession: CloudLinkedSession,
         workspaceId: String,
-        deviceId: String,
+        installationId: String,
         syncBasePath: String
     ) async throws -> CloudSyncResult {
         let firstPage: RemoteBootstrapPullResponseEnvelope = try await self.transport.request(
@@ -100,7 +100,7 @@ struct CloudSyncRunner {
             method: "POST",
             body: BootstrapPullRequest(
                 mode: "pull",
-                deviceId: deviceId,
+                installationId: installationId,
                 platform: "ios",
                 appVersion: self.transport.appVersion(),
                 cursor: nil,
@@ -112,7 +112,7 @@ struct CloudSyncRunner {
             return try await self.bootstrapEmptyRemoteWorkspace(
                 linkedSession: linkedSession,
                 workspaceId: workspaceId,
-                deviceId: deviceId,
+                installationId: installationId,
                 syncBasePath: syncBasePath
             )
         }
@@ -159,7 +159,7 @@ struct CloudSyncRunner {
                 method: "POST",
                 body: BootstrapPullRequest(
                     mode: "pull",
-                    deviceId: deviceId,
+                    installationId: installationId,
                     platform: "ios",
                     appVersion: self.transport.appVersion(),
                     cursor: nextCursor,
@@ -172,7 +172,7 @@ struct CloudSyncRunner {
     private func bootstrapEmptyRemoteWorkspace(
         linkedSession: CloudLinkedSession,
         workspaceId: String,
-        deviceId: String,
+        installationId: String,
         syncBasePath: String
     ) async throws -> CloudSyncResult {
         let bootstrapEntries = try self.database.loadHotBootstrapEntries(workspaceId: workspaceId)
@@ -191,7 +191,7 @@ struct CloudSyncRunner {
                     method: "POST",
                     body: BootstrapPushRequest(
                         mode: "push",
-                        deviceId: deviceId,
+                        installationId: installationId,
                         platform: "ios",
                         appVersion: self.transport.appVersion(),
                         entries: bootstrapEntries[startIndex..<endIndex].map { entry in
@@ -219,7 +219,7 @@ struct CloudSyncRunner {
                     path: "\(syncBasePath)/review-history/import",
                     method: "POST",
                     body: ReviewHistoryImportRequest(
-                        deviceId: deviceId,
+                        installationId: installationId,
                         platform: "ios",
                         appVersion: self.transport.appVersion(),
                         reviewEvents: Array(reviewEvents[startIndex..<endIndex])
@@ -268,7 +268,7 @@ struct CloudSyncRunner {
     private func pushOutboxBatches(
         linkedSession: CloudLinkedSession,
         workspaceId: String,
-        deviceId: String,
+        installationId: String,
         syncBasePath: String
     ) async throws -> CloudSyncResult {
         var acknowledgedOperationCount = 0
@@ -291,7 +291,7 @@ struct CloudSyncRunner {
                     path: "\(syncBasePath)/push",
                     method: "POST",
                     body: PushRequest(
-                        deviceId: deviceId,
+                        installationId: installationId,
                         platform: "ios",
                         appVersion: self.transport.appVersion(),
                         operations: outboxEntries.map { entry in
@@ -343,7 +343,7 @@ struct CloudSyncRunner {
     private func pullHotChanges(
         linkedSession: CloudLinkedSession,
         workspaceId: String,
-        deviceId: String,
+        installationId: String,
         syncBasePath: String
     ) async throws -> CloudSyncResult {
         var afterHotChangeId = try self.database.loadLastAppliedHotChangeId(workspaceId: workspaceId)
@@ -357,7 +357,7 @@ struct CloudSyncRunner {
                 path: "\(syncBasePath)/pull",
                 method: "POST",
                 body: PullRequest(
-                    deviceId: deviceId,
+                    installationId: installationId,
                     platform: "ios",
                     appVersion: self.transport.appVersion(),
                     afterHotChangeId: afterHotChangeId,
@@ -394,7 +394,7 @@ struct CloudSyncRunner {
     private func pullReviewHistory(
         linkedSession: CloudLinkedSession,
         workspaceId: String,
-        deviceId: String,
+        installationId: String,
         syncBasePath: String
     ) async throws -> CloudSyncResult {
         var afterReviewSequenceId = try self.database.loadLastAppliedReviewSequenceId(workspaceId: workspaceId)
@@ -407,7 +407,7 @@ struct CloudSyncRunner {
                 path: "\(syncBasePath)/review-history/pull",
                 method: "POST",
                 body: ReviewHistoryPullRequest(
-                    deviceId: deviceId,
+                    installationId: installationId,
                     platform: "ios",
                     appVersion: self.transport.appVersion(),
                     afterReviewSequenceId: afterReviewSequenceId,

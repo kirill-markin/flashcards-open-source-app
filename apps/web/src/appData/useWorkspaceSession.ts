@@ -16,7 +16,7 @@ import {
   selectWorkspace,
 } from "../api";
 import { clearAllLocalBrowserData, consumeAccountDeletedMarker } from "../accountDeletion";
-import { getStableDeviceIdForUser } from "../clientIdentity";
+import { getStableInstallationId } from "../clientIdentity";
 import { loadCloudSettings, putCloudSettings } from "../localDb/cloudSettings";
 import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../types";
 import {
@@ -59,7 +59,7 @@ type WorkspaceSession = Readonly<{
 
 function buildLinkingReadyCloudSettings(session: SessionInfo): CloudSettings {
   return {
-    deviceId: getStableDeviceIdForUser(session.userId),
+    installationId: getStableInstallationId(),
     cloudState: "linking-ready",
     linkedUserId: session.userId,
     linkedWorkspaceId: null,
@@ -71,7 +71,7 @@ function buildLinkingReadyCloudSettings(session: SessionInfo): CloudSettings {
 
 function buildLinkedCloudSettings(session: SessionInfo, workspaceId: string): CloudSettings {
   return {
-    deviceId: getStableDeviceIdForUser(session.userId),
+    installationId: getStableInstallationId(),
     cloudState: "linked",
     linkedUserId: session.userId,
     linkedWorkspaceId: workspaceId,

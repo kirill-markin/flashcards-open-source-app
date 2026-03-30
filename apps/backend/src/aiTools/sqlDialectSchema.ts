@@ -350,13 +350,13 @@ const SQL_RESOURCE_DESCRIPTORS: Readonly<Record<SqlResourceName, SqlResourceDesc
         description: "Reviewed card identifier.",
       },
       {
-        columnName: "device_id",
+        columnName: "replica_id",
         type: "uuid",
         nullable: false,
         readOnly: true,
         filterable: true,
         sortable: false,
-        description: "Device that submitted the review.",
+        description: "Workspace replica that submitted the review.",
       },
       {
         columnName: "client_event_id",

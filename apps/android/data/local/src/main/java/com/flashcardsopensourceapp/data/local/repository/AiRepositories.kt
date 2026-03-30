@@ -334,7 +334,7 @@ class LocalAiChatRepository(
 
             val bootstrapProbe = bootstrapGuestWorkspace(
                 session = session,
-                deviceId = currentCloudSettings.deviceId
+                installationId = currentCloudSettings.installationId
             )
             val workspaceSummary = guestWorkspaceSummary(
                 currentWorkspaceId = currentWorkspace?.workspaceId,
@@ -357,40 +357,17 @@ class LocalAiChatRepository(
 
     private suspend fun bootstrapGuestWorkspace(
         session: StoredGuestAiSession,
-        deviceId: String
+        installationId: String
     ): com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPullResponse {
-        return try {
-            runGuestBootstrapPull(
-                session = session,
-                deviceId = deviceId
-            )
-        } catch (error: CloudRemoteException) {
-            if (error.errorCode != "SYNC_DEVICE_OWNED_BY_ANOTHER_USER") {
-                throw error
-            }
-
-            val regeneratedDeviceId = preferencesStore.regenerateDeviceId()
-            AiChatDiagnosticsLogger.warn(
-                event = "guest_bootstrap_retry_with_regenerated_device_id",
-                fields = listOf(
-                    "workspaceId" to session.workspaceId,
-                    "previousDeviceId" to deviceId,
-                    "regeneratedDeviceId" to regeneratedDeviceId,
-                    "requestId" to error.requestId,
-                    "statusCode" to error.statusCode?.toString(),
-                    "errorCode" to error.errorCode
-                )
-            )
-            runGuestBootstrapPull(
-                session = session,
-                deviceId = regeneratedDeviceId
-            )
-        }
+        return runGuestBootstrapPull(
+            session = session,
+            installationId = installationId
+        )
     }
 
     private suspend fun runGuestBootstrapPull(
         session: StoredGuestAiSession,
-        deviceId: String
+        installationId: String
     ): com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPullResponse {
         return cloudRemoteService.bootstrapPull(
             apiBaseUrl = session.apiBaseUrl,
@@ -398,7 +375,7 @@ class LocalAiChatRepository(
             workspaceId = session.workspaceId,
             body = org.json.JSONObject()
                 .put("mode", "pull")
-                .put("deviceId", deviceId)
+                .put("installationId", installationId)
                 .put("platform", "android")
                 .put("appVersion", "0.1.0")
                 .put("cursor", org.json.JSONObject.NULL)

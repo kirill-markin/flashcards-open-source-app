@@ -125,13 +125,13 @@ extension LocalDatabase {
             workspaceId: workspaceId,
             input: input,
             cardId: cardId,
-            deviceId: cloudSettings.deviceId,
+            installationId: cloudSettings.installationId,
             operationId: operationId,
             now: now
         )
         try self.outboxStore.enqueueCardUpsertOperation(
             workspaceId: workspaceId,
-            deviceId: cloudSettings.deviceId,
+            installationId: cloudSettings.installationId,
             operationId: operationId,
             clientUpdatedAt: now,
             card: persistedCard
@@ -149,13 +149,13 @@ extension LocalDatabase {
         let deletedCard = try self.cardStore.deleteCard(
             workspaceId: workspaceId,
             cardId: cardId,
-            deviceId: cloudSettings.deviceId,
+            installationId: cloudSettings.installationId,
             operationId: operationId,
             now: now
         )
         try self.outboxStore.enqueueCardUpsertOperation(
             workspaceId: workspaceId,
-            deviceId: cloudSettings.deviceId,
+            installationId: cloudSettings.installationId,
             operationId: operationId,
             clientUpdatedAt: now,
             card: deletedCard

@@ -127,7 +127,7 @@ data class CloudWorkspaceLinkContext(
 )
 
 data class CloudSettings(
-    val deviceId: String,
+    val installationId: String,
     val cloudState: CloudAccountState,
     val linkedUserId: String?,
     val linkedWorkspaceId: String?,
@@ -219,7 +219,6 @@ data class WorkspaceSchedulerSettingsSyncPayload(
 data class ReviewEventSyncPayload(
     val reviewEventId: String,
     val cardId: String,
-    val deviceId: String,
     val clientEventId: String,
     val rating: Int,
     val reviewedAtClient: String

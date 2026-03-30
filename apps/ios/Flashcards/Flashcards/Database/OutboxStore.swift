@@ -38,7 +38,7 @@ private struct WorkspaceSchedulerSettingsOutboxPayload: Codable {
 private struct ReviewEventOutboxPayload: Codable {
     let reviewEventId: String
     let cardId: String
-    let deviceId: String
+    let installationId: String
     let clientEventId: String
     let rating: Int
     let reviewedAtClient: String
@@ -123,7 +123,7 @@ struct OutboxStore {
         )
     }
 
-    func deleteStaleReviewEventOutboxEntries(workspaceId: String, currentDeviceId: String) throws -> Int {
+    func deleteStaleReviewEventOutboxEntries(workspaceId: String, currentInstallationId: String) throws -> Int {
         let candidates = try self.core.query(
             sql: """
             SELECT operation_id, payload_json
@@ -143,7 +143,7 @@ struct OutboxStore {
                 ReviewEventOutboxPayload.self,
                 from: Data(candidate.payloadJson.utf8)
             )
-            return payload.deviceId == currentDeviceId ? nil : candidate.operationId
+            return payload.installationId == currentInstallationId ? nil : candidate.operationId
         }
 
         try self.deleteOutboxEntries(operationIds: staleOperationIds)
@@ -326,7 +326,7 @@ struct OutboxStore {
 
     func enqueueCardUpsertOperation(
         workspaceId: String,
-        deviceId: String,
+        installationId: String,
         operationId: String,
         clientUpdatedAt: String,
         card: Card
@@ -352,7 +352,7 @@ struct OutboxStore {
         )
         try self.enqueueOutboxOperation(
             workspaceId: workspaceId,
-            deviceId: deviceId,
+            installationId: installationId,
             operationId: operationId,
             entityType: "card",
             entityId: card.cardId,
@@ -364,7 +364,7 @@ struct OutboxStore {
 
     func enqueueDeckUpsertOperation(
         workspaceId: String,
-        deviceId: String,
+        installationId: String,
         operationId: String,
         clientUpdatedAt: String,
         deck: Deck
@@ -380,7 +380,7 @@ struct OutboxStore {
         )
         try self.enqueueOutboxOperation(
             workspaceId: workspaceId,
-            deviceId: deviceId,
+            installationId: installationId,
             operationId: operationId,
             entityType: "deck",
             entityId: deck.deckId,
@@ -392,7 +392,7 @@ struct OutboxStore {
 
     func enqueueWorkspaceSchedulerSettingsUpsertOperation(
         workspaceId: String,
-        deviceId: String,
+        installationId: String,
         operationId: String,
         clientUpdatedAt: String,
         settings: WorkspaceSchedulerSettings
@@ -409,7 +409,7 @@ struct OutboxStore {
         )
         try self.enqueueOutboxOperation(
             workspaceId: workspaceId,
-            deviceId: deviceId,
+            installationId: installationId,
             operationId: operationId,
             entityType: "workspace_scheduler_settings",
             entityId: workspaceId,
@@ -421,7 +421,7 @@ struct OutboxStore {
 
     func enqueueReviewEventAppendOperation(
         workspaceId: String,
-        deviceId: String,
+        installationId: String,
         operationId: String,
         clientUpdatedAt: String,
         reviewEvent: ReviewEvent
@@ -430,7 +430,7 @@ struct OutboxStore {
             value: ReviewEventOutboxPayload(
                 reviewEventId: reviewEvent.reviewEventId,
                 cardId: reviewEvent.cardId,
-                deviceId: reviewEvent.deviceId,
+                installationId: installationId,
                 clientEventId: reviewEvent.clientEventId,
                 rating: reviewEvent.rating.rawValue,
                 reviewedAtClient: reviewEvent.reviewedAtClient
@@ -438,7 +438,7 @@ struct OutboxStore {
         )
         try self.enqueueOutboxOperation(
             workspaceId: workspaceId,
-            deviceId: deviceId,
+            installationId: installationId,
             operationId: operationId,
             entityType: "review_event",
             entityId: reviewEvent.reviewEventId,
@@ -450,7 +450,7 @@ struct OutboxStore {
 
     private func enqueueOutboxOperation(
         workspaceId: String,
-        deviceId: String,
+        installationId: String,
         operationId: String,
         entityType: String,
         entityId: String,
@@ -463,7 +463,7 @@ struct OutboxStore {
             INSERT INTO outbox (
                 operation_id,
                 workspace_id,
-                device_id,
+                installation_id,
                 entity_type,
                 entity_id,
                 operation_type,
@@ -478,7 +478,7 @@ struct OutboxStore {
             values: [
                 .text(operationId),
                 .text(workspaceId),
-                .text(deviceId),
+                .text(installationId),
                 .text(entityType),
                 .text(entityId),
                 .text(operationType),

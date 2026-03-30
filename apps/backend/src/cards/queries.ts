@@ -793,7 +793,7 @@ export async function listReviewHistoryPage(
   const result = await queryWithWorkspaceScope<ReviewHistoryPageRow>(
     { userId, workspaceId },
     [
-      "SELECT review_event_id, workspace_id, device_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
+      "SELECT review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
       "FROM content.review_events",
       "WHERE workspace_id = $1",
       cursorClause,

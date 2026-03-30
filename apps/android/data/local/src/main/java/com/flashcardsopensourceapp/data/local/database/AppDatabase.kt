@@ -9,7 +9,7 @@ import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 private const val appDatabaseName: String = "flashcards-android.db"
-private const val androidDeviceId: String = "android-device"
+private const val androidInstallationId: String = "android-installation"
 
 @Database(
     entities = [
@@ -23,7 +23,7 @@ private const val androidDeviceId: String = "android-device"
         OutboxEntryEntity::class,
         SyncStateEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(DatabaseTypeConverters::class)
@@ -47,7 +47,7 @@ fun buildAppDatabase(context: Context): AppDatabase {
         context = context,
         klass = AppDatabase::class.java,
         name = appDatabaseName
-    ).addMigrations(migration2To3, migration3To4).build()
+    ).addMigrations(migration2To3, migration3To4, migration4To5).build()
 }
 
 val migration2To3: Migration = object : Migration(2, 3) {
@@ -117,7 +117,7 @@ val migration3To4: Migration = object : Migration(3, 4) {
                 reviewLogId TEXT NOT NULL PRIMARY KEY,
                 workspaceId TEXT NOT NULL,
                 cardId TEXT NOT NULL,
-                deviceId TEXT NOT NULL,
+                replicaId TEXT NOT NULL,
                 clientEventId TEXT NOT NULL,
                 rating TEXT NOT NULL,
                 reviewedAtMillis INTEGER NOT NULL,
@@ -133,7 +133,7 @@ val migration3To4: Migration = object : Migration(3, 4) {
                 reviewLogId,
                 workspaceId,
                 cardId,
-                deviceId,
+                replicaId,
                 clientEventId,
                 rating,
                 reviewedAtMillis,
@@ -143,7 +143,7 @@ val migration3To4: Migration = object : Migration(3, 4) {
                 reviewLogId,
                 workspaceId,
                 cardId,
-                '$androidDeviceId',
+                '$androidInstallationId',
                 reviewLogId,
                 rating,
                 reviewedAtMillis,
@@ -161,7 +161,7 @@ val migration3To4: Migration = object : Migration(3, 4) {
             CREATE TABLE IF NOT EXISTS outbox_entries_v4 (
                 outboxEntryId TEXT NOT NULL PRIMARY KEY,
                 workspaceId TEXT NOT NULL,
-                deviceId TEXT NOT NULL,
+                installationId TEXT NOT NULL,
                 entityType TEXT NOT NULL,
                 entityId TEXT NOT NULL,
                 operationType TEXT NOT NULL,
@@ -179,7 +179,7 @@ val migration3To4: Migration = object : Migration(3, 4) {
             INSERT INTO outbox_entries_v4 (
                 outboxEntryId,
                 workspaceId,
-                deviceId,
+                installationId,
                 entityType,
                 entityId,
                 operationType,
@@ -192,7 +192,7 @@ val migration3To4: Migration = object : Migration(3, 4) {
             SELECT
                 outboxEntryId,
                 workspaceId,
-                '$androidDeviceId',
+                '$androidInstallationId',
                 'workspace_scheduler_settings',
                 workspaceId,
                 operationType,
@@ -248,5 +248,110 @@ val migration3To4: Migration = object : Migration(3, 4) {
         )
         db.execSQL("DROP TABLE sync_state")
         db.execSQL("ALTER TABLE sync_state_v4 RENAME TO sync_state")
+    }
+}
+
+val migration4To5: Migration = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS review_logs_v5 (
+                reviewLogId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                cardId TEXT NOT NULL,
+                replicaId TEXT NOT NULL,
+                clientEventId TEXT NOT NULL,
+                rating TEXT NOT NULL,
+                reviewedAtMillis INTEGER NOT NULL,
+                reviewedAtServerIso TEXT NOT NULL,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE,
+                FOREIGN KEY(cardId) REFERENCES cards(cardId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO review_logs_v5 (
+                reviewLogId,
+                workspaceId,
+                cardId,
+                replicaId,
+                clientEventId,
+                rating,
+                reviewedAtMillis,
+                reviewedAtServerIso
+            )
+            -- v4 stored the server-stamped replica id in the legacy deviceId column.
+            -- v5 keeps the same value and renames the local column to replicaId.
+            SELECT
+                reviewLogId,
+                workspaceId,
+                cardId,
+                deviceId,
+                clientEventId,
+                rating,
+                reviewedAtMillis,
+                reviewedAtServerIso
+            FROM review_logs
+            """.trimIndent()
+        )
+        db.execSQL("DROP TABLE review_logs")
+        db.execSQL("ALTER TABLE review_logs_v5 RENAME TO review_logs")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_review_logs_workspaceId ON review_logs(workspaceId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_review_logs_cardId ON review_logs(cardId)")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS outbox_entries_v5 (
+                outboxEntryId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                installationId TEXT NOT NULL,
+                entityType TEXT NOT NULL,
+                entityId TEXT NOT NULL,
+                operationType TEXT NOT NULL,
+                payloadJson TEXT NOT NULL,
+                clientUpdatedAtIso TEXT NOT NULL,
+                createdAtMillis INTEGER NOT NULL,
+                attemptCount INTEGER NOT NULL,
+                lastError TEXT,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO outbox_entries_v5 (
+                outboxEntryId,
+                workspaceId,
+                installationId,
+                entityType,
+                entityId,
+                operationType,
+                payloadJson,
+                clientUpdatedAtIso,
+                createdAtMillis,
+                attemptCount,
+                lastError
+            )
+            -- v4 stored the stable installation identity in the legacy deviceId column.
+            -- v5 keeps the same value and renames the local column to installationId.
+            SELECT
+                outboxEntryId,
+                workspaceId,
+                deviceId,
+                entityType,
+                entityId,
+                operationType,
+                payloadJson,
+                clientUpdatedAtIso,
+                createdAtMillis,
+                attemptCount,
+                lastError
+            FROM outbox_entries
+            """.trimIndent()
+        )
+        db.execSQL("DROP TABLE outbox_entries")
+        db.execSQL("ALTER TABLE outbox_entries_v5 RENAME TO outbox_entries")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_outbox_entries_workspaceId ON outbox_entries(workspaceId)")
     }
 }

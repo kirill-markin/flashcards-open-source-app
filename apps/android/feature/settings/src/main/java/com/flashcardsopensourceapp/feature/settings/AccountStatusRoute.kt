@@ -77,7 +77,7 @@ fun AccountStatusRoute(
                     title = "Account",
                     rows = buildList {
                         add("Workspace" to uiState.workspaceName)
-                        add("Device ID" to uiState.deviceId)
+                        add("Installation ID" to uiState.installationId)
                         add("Sync" to uiState.syncStatusText)
                         add("Last successful sync" to uiState.lastSuccessfulSync)
                         if (uiState.linkedEmail != null) {

@@ -156,7 +156,7 @@ class SyncLocalStoreContractTest {
             OutboxEntryEntity(
                 outboxEntryId = "outbox-1",
                 workspaceId = workspaceId,
-                deviceId = preferencesStore.currentCloudSettings().deviceId,
+                installationId = preferencesStore.currentCloudSettings().installationId,
                 entityType = "card",
                 entityId = "card-1",
                 operationType = "upsert",

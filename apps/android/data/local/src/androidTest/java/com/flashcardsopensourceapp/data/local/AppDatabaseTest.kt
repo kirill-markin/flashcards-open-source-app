@@ -420,7 +420,7 @@ class AppDatabaseTest {
         val entries = database.outboxDao().loadOutboxEntries(workspaceId = workspaceId, limit = 20)
 
         assertEquals(1, reviewLogs.size)
-        assertFalse(reviewLogs.first().deviceId.isBlank())
+        assertFalse(reviewLogs.first().replicaId.isBlank())
         assertFalse(reviewLogs.first().clientEventId.isBlank())
         assertTrue(entries.any { entry ->
             entry.entityType == "review_event" && entry.entityId == reviewLogs.first().reviewLogId

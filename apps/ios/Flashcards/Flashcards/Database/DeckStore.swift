@@ -16,7 +16,7 @@ struct DeckStore {
     func loadDecks(workspaceId: String) throws -> [Deck] {
         try self.core.query(
             sql: """
-            SELECT deck_id, workspace_id, name, filter_definition_json, created_at, client_updated_at, last_modified_by_device_id, last_operation_id, updated_at, deleted_at
+            SELECT deck_id, workspace_id, name, filter_definition_json, created_at, client_updated_at, last_modified_by_replica_id, last_operation_id, updated_at, deleted_at
             FROM decks
             WHERE workspace_id = ? AND deleted_at IS NULL
             ORDER BY created_at DESC, deck_id DESC
@@ -30,7 +30,7 @@ struct DeckStore {
     func loadDeckIncludingDeleted(workspaceId: String, deckId: String) throws -> Deck {
         let decks = try self.core.query(
             sql: """
-            SELECT deck_id, workspace_id, name, filter_definition_json, created_at, client_updated_at, last_modified_by_device_id, last_operation_id, updated_at, deleted_at
+            SELECT deck_id, workspace_id, name, filter_definition_json, created_at, client_updated_at, last_modified_by_replica_id, last_operation_id, updated_at, deleted_at
             FROM decks
             WHERE workspace_id = ? AND deck_id = ?
             LIMIT 1
@@ -62,7 +62,7 @@ struct DeckStore {
     func loadDecksIncludingDeleted(workspaceId: String) throws -> [Deck] {
         try self.core.query(
             sql: """
-            SELECT deck_id, workspace_id, name, filter_definition_json, created_at, client_updated_at, last_modified_by_device_id, last_operation_id, updated_at, deleted_at
+            SELECT deck_id, workspace_id, name, filter_definition_json, created_at, client_updated_at, last_modified_by_replica_id, last_operation_id, updated_at, deleted_at
             FROM decks
             WHERE workspace_id = ?
             ORDER BY created_at DESC, deck_id DESC
@@ -76,7 +76,7 @@ struct DeckStore {
     func loadOptionalDeckIncludingDeleted(workspaceId: String, deckId: String) throws -> Deck? {
         let decks = try self.core.query(
             sql: """
-            SELECT deck_id, workspace_id, name, filter_definition_json, created_at, client_updated_at, last_modified_by_device_id, last_operation_id, updated_at, deleted_at
+            SELECT deck_id, workspace_id, name, filter_definition_json, created_at, client_updated_at, last_modified_by_replica_id, last_operation_id, updated_at, deleted_at
             FROM decks
             WHERE workspace_id = ? AND deck_id = ?
             LIMIT 1
@@ -95,7 +95,7 @@ struct DeckStore {
     func createDeck(
         workspaceId: String,
         input: DeckEditorInput,
-        deviceId: String,
+        installationId: String,
         operationId: String,
         now: String
     ) throws -> Deck {
@@ -110,7 +110,7 @@ struct DeckStore {
                 filter_definition_json,
                 created_at,
                 client_updated_at,
-                last_modified_by_device_id,
+                last_modified_by_replica_id,
                 last_operation_id,
                 updated_at,
                 deleted_at
@@ -124,7 +124,7 @@ struct DeckStore {
                 .text(filterJson),
                 .text(now),
                 .text(now),
-                .text(deviceId),
+                .text(installationId),
                 .text(operationId),
                 .text(now)
             ]
@@ -137,7 +137,7 @@ struct DeckStore {
         workspaceId: String,
         deckId: String,
         input: DeckEditorInput,
-        deviceId: String,
+        installationId: String,
         operationId: String,
         now: String
     ) throws -> Deck {
@@ -145,14 +145,14 @@ struct DeckStore {
         let updatedRows = try self.core.execute(
             sql: """
             UPDATE decks
-            SET name = ?, filter_definition_json = ?, client_updated_at = ?, last_modified_by_device_id = ?, last_operation_id = ?, updated_at = ?
+            SET name = ?, filter_definition_json = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?
             WHERE workspace_id = ? AND deck_id = ? AND deleted_at IS NULL
             """,
             values: [
                 .text(input.name),
                 .text(filterJson),
                 .text(now),
-                .text(deviceId),
+                .text(installationId),
                 .text(operationId),
                 .text(now),
                 .text(workspaceId),
@@ -170,20 +170,20 @@ struct DeckStore {
     func deleteDeck(
         workspaceId: String,
         deckId: String,
-        deviceId: String,
+        installationId: String,
         operationId: String,
         now: String
     ) throws -> Deck {
         let deletedRows = try self.core.execute(
             sql: """
             UPDATE decks
-            SET deleted_at = ?, client_updated_at = ?, last_modified_by_device_id = ?, last_operation_id = ?, updated_at = ?
+            SET deleted_at = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?
             WHERE workspace_id = ? AND deck_id = ? AND deleted_at IS NULL
             """,
             values: [
                 .text(now),
                 .text(now),
-                .text(deviceId),
+                .text(installationId),
                 .text(operationId),
                 .text(now),
                 .text(workspaceId),
@@ -210,7 +210,7 @@ struct DeckStore {
             filterDefinition: filterDefinition,
             createdAt: DatabaseCore.columnText(statement: statement, index: 4),
             clientUpdatedAt: DatabaseCore.columnText(statement: statement, index: 5),
-            lastModifiedByDeviceId: DatabaseCore.columnText(statement: statement, index: 6),
+            lastModifiedByReplicaId: DatabaseCore.columnText(statement: statement, index: 6),
             lastOperationId: DatabaseCore.columnText(statement: statement, index: 7),
             updatedAt: DatabaseCore.columnText(statement: statement, index: 8),
             deletedAt: DatabaseCore.columnOptionalText(statement: statement, index: 9)
