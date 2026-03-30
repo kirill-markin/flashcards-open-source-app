@@ -243,17 +243,19 @@ final class LiveSmokeUITests: XCTestCase {
         try super.setUpWithError()
         continueAfterFailure = false
         addUIInterruptionMonitor(withDescription: "Live smoke known interruptions") { alert in
-            for label in ["Not now", "Not Now", "OK", "Close", "Dismiss", "Cancel", "Allow"] {
-                let button = alert.buttons[label]
-                guard button.exists else {
-                    continue
+            MainActor.assumeIsolated {
+                for label in ["Not now", "Not Now", "OK", "Close", "Dismiss", "Cancel", "Allow"] {
+                    let button = alert.buttons[label]
+                    guard button.exists else {
+                        continue
+                    }
+
+                    button.tap()
+                    return true
                 }
 
-                button.tap()
-                return true
+                return false
             }
-
-            return false
         }
     }
 
