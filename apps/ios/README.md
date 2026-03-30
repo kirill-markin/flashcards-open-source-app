@@ -62,6 +62,29 @@ Only test the app against the final supported iOS target.
 - Do not spend time validating older iOS versions
 - Do not add compatibility code for older iOS versions unless explicitly requested
 - If tests are requested, use one locally available iPhone simulator runtime only
+- Prefer an already booted local iPhone simulator on the final supported runtime
+- Prefer background CLI runs with `simctl` and `xcodebuild` instead of opening heavy Xcode UI flows
+- Prefer `build-for-testing` followed by `test-without-building` so repeated runs reuse warmed artifacts and the warmed simulator
+- If no suitable local runtime is already installed, stop and ask the user how to proceed instead of downloading extra simulator runtimes
+
+## Local Test Workflow
+
+For local iOS test runs, prefer this sequence:
+
+1. Reuse an already booted iPhone simulator when available.
+2. Wait for that simulator with `xcrun simctl bootstatus <device-uuid> -b`.
+3. Warm the target with `xcodebuild ... build-for-testing`.
+4. Run the requested suite or individual test with `xcodebuild ... test-without-building`.
+
+Preferred command pattern:
+
+```bash
+xcrun simctl list devices available
+xcrun simctl bootstatus <device-uuid> -b
+xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -destination 'platform=iOS Simulator,id=<device-uuid>' build-for-testing
+xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -destination 'platform=iOS Simulator,id=<device-uuid>' test-without-building
+xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -destination 'platform=iOS Simulator,id=<device-uuid>' -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeUITests/testLiveSmokeLocalNavigationFlow' test-without-building
+```
 
 ## Native Test Stack
 
