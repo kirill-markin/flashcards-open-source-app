@@ -142,6 +142,12 @@ class LiveSmokeTest {
                 markerTag = "ai-$runId"
             )
         }
+        step("force a sync in the current guest workspace and wait for the AI card locally") {
+            forceSyncAndWaitForLocalCard(
+                expectedFrontText = aiFrontText,
+                timeoutMillis = externalUiTimeoutMillis
+            )
+        }
         step("restart the activity after AI card creation and keep the guest session") {
             relaunchAndAssertGuestAccountStatus()
         }
@@ -192,7 +198,7 @@ class LiveSmokeTest {
                     if (primaryFailure != null) {
                         primaryFailure.addSuppressed(cleanupError)
                     } else {
-                        throw cleanupError
+                        reportNonBlockingCleanupFailure(cleanupError = cleanupError)
                     }
                 }
             }
@@ -456,6 +462,40 @@ class LiveSmokeTest {
                     "CurrentReviewFront=${currentReviewCardFrontTextOrNull()} " +
                     "ReviewEmptyStateTitle=${reviewEmptyStateTitleOrNull()} " +
                     "LocalCard=${localCardSnapshotOrNull(expectedFrontText = expectedFrontText)} " +
+                    "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+                error
+            )
+        }
+    }
+
+    private fun forceSyncAndWaitForLocalCard(expectedFrontText: String, timeoutMillis: Long) {
+        val appGraph = (composeRule.activity.application as FlashcardsApplication).appGraph
+        try {
+            runBlocking {
+                appGraph.syncRepository.syncNow()
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Forced sync after guest AI card creation failed. " +
+                    "CloudSettings=${currentCloudSettingsSummary()} " +
+                    "Workspace=${currentWorkspaceSummaryOrNull()}",
+                error
+            )
+        }
+
+        try {
+            waitUntilWithMitigation(
+                timeoutMillis = timeoutMillis,
+                context = "while waiting for the synced AI card '$expectedFrontText' to materialize locally"
+            ) {
+                localCardSnapshotOrNull(expectedFrontText = expectedFrontText) != null
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Forced sync completed but the AI card '$expectedFrontText' did not materialize locally. " +
+                    "LocalCard=${localCardSnapshotOrNull(expectedFrontText = expectedFrontText)} " +
+                    "CloudSettings=${currentCloudSettingsSummary()} " +
+                    "Workspace=${currentWorkspaceSummaryOrNull()} " +
                     "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
                 error
             )
@@ -898,6 +938,14 @@ class LiveSmokeTest {
                 "Visible app error $context: ${visibleErrors.joinToString(separator = " || ")}"
             )
         }
+    }
+
+    private fun reportNonBlockingCleanupFailure(cleanupError: Throwable) {
+        System.err.println(
+            "Android live smoke cleanup failed after linked-session assertions succeeded: " +
+                cleanupError.message
+        )
+        cleanupError.printStackTrace()
     }
 
     private fun visibleAppErrors(): List<String> {
