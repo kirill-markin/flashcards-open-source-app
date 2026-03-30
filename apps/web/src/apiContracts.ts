@@ -9,7 +9,7 @@ import type {
   DeckFilterDefinition,
   DeleteWorkspaceResponse,
   QueryCardsPage,
-  ResetChatSessionResponse,
+  NewChatSessionResponse,
   ReviewEvent,
   SessionInfo,
   StartChatRunResponse,
@@ -831,7 +831,7 @@ export function parseStartChatRunResponse(value: unknown, endpoint: string): Sta
   };
 }
 
-export function parseResetChatSessionResponse(value: unknown, endpoint: string): ResetChatSessionResponse {
+export function parseNewChatSessionResponse(value: unknown, endpoint: string): NewChatSessionResponse {
   const objectValue = parseObject(value, endpoint, "");
   return {
     ok: parseLiteral(parseRequiredField(objectValue, "ok", endpoint, "", parseBoolean), endpoint, "ok", true),

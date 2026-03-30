@@ -10,7 +10,7 @@ const {
   useAppDataMock,
   getChatSnapshotMock,
   startChatRunMock,
-  resetChatSessionMock,
+  createNewChatSessionMock,
   stopChatRunMock,
   transcribeChatAudioMock,
   listOutboxRecordsMock,
@@ -22,7 +22,7 @@ const {
   useAppDataMock: vi.fn(),
   getChatSnapshotMock: vi.fn(),
   startChatRunMock: vi.fn(),
-  resetChatSessionMock: vi.fn(),
+  createNewChatSessionMock: vi.fn(),
   stopChatRunMock: vi.fn(),
   transcribeChatAudioMock: vi.fn(),
   listOutboxRecordsMock: vi.fn(),
@@ -42,7 +42,7 @@ vi.mock("./ChatLayoutContext", () => ({
 vi.mock("../api", () => ({
   getChatSnapshot: getChatSnapshotMock,
   startChatRun: startChatRunMock,
-  resetChatSession: resetChatSessionMock,
+  createNewChatSession: createNewChatSessionMock,
   stopChatRun: stopChatRunMock,
   transcribeChatAudio: transcribeChatAudioMock,
 }));
@@ -113,7 +113,7 @@ export {
   listOutboxRecordsMock,
   prepareAttachmentMock,
   recompressImageAttachmentMock,
-  resetChatSessionMock,
+  createNewChatSessionMock,
   startChatRunMock,
   stopChatRunMock,
   transcribeChatAudioMock,
@@ -259,7 +259,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     useAppDataMock.mockReset();
     getChatSnapshotMock.mockReset();
     startChatRunMock.mockReset();
-    resetChatSessionMock.mockReset();
+    createNewChatSessionMock.mockReset();
     stopChatRunMock.mockReset();
     transcribeChatAudioMock.mockReset();
     listOutboxRecordsMock.mockReset();
@@ -294,7 +294,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       runState: "running",
       chatConfig: defaultChatConfig,
     });
-    resetChatSessionMock.mockResolvedValue({
+    createNewChatSessionMock.mockResolvedValue({
       ok: true,
       sessionId: "session-reset",
       chatConfig: defaultChatConfig,

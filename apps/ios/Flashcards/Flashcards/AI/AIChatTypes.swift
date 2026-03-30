@@ -550,7 +550,11 @@ struct AIChatStartRunResponse: Codable, Hashable, Sendable {
     let chatConfig: AIChatServerConfig
 }
 
-struct AIChatResetSessionResponse: Codable, Hashable, Sendable {
+struct AIChatNewSessionRequestBody: Codable, Hashable, Sendable {
+    let sessionId: String?
+}
+
+struct AIChatNewSessionResponse: Codable, Hashable, Sendable {
     let ok: Bool
     let sessionId: String
     let chatConfig: AIChatServerConfig
@@ -745,10 +749,10 @@ protocol AIChatSessionServicing: Sendable {
         request: AIChatStartRunRequestBody
     ) async throws -> AIChatStartRunResponse
 
-    func resetSession(
+    func createNewSession(
         session: CloudLinkedSession,
         sessionId: String?
-    ) async throws -> AIChatResetSessionResponse
+    ) async throws -> AIChatNewSessionResponse
 
     func stopRun(
         session: CloudLinkedSession,

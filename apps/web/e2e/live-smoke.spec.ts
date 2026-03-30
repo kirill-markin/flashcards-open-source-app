@@ -256,6 +256,10 @@ test.describe.serial("live smoke flow uses the real demo account across review, 
           );
         });
 
+        await runTrackedTestStep(diagnostics, "start a new chat and confirm the conversation resets cleanly", async () => {
+          await assertNewChatResetsConversation(page, diagnostics);
+        });
+
         await runTrackedTestStep(diagnostics, "reload after AI card creation and confirm the linked session still persists", async () => {
           await restartAndAssertLinkedSession(page, scenario.workspaceName, diagnostics);
         });
@@ -841,6 +845,29 @@ async function runAiCardCreationWithConfirmation(
     await expect(page.getByText("I'm missing the actual proposed card text in this chat")).not.toBeVisible({
       timeout: 1_000,
     });
+  });
+}
+
+async function assertNewChatResetsConversation(
+  page: Page,
+  diagnostics: LiveSmokeDiagnostics,
+): Promise<void> {
+  await trackedClick(
+    diagnostics,
+    "start a fresh AI chat from the top bar",
+    page.locator(".chat-sidebar-fullscreen").getByRole("button", { name: "New", exact: true }),
+  );
+  await trackedExpectVisible(
+    diagnostics,
+    "confirm AI chat empty state is visible after starting a new chat",
+    page.getByText("Try asking:", { exact: true }),
+    externalUiTimeoutMs,
+  );
+  await diagnostics.runAction("confirm AI chat has no remaining messages or message-level errors", async () => {
+    const allMessages = page.locator(".chat-msg");
+    const errorMessages = page.locator(".chat-msg-error");
+    await expect.poll(async () => allMessages.count(), { timeout: externalUiTimeoutMs }).toBe(0);
+    await expect.poll(async () => errorMessages.count(), { timeout: externalUiTimeoutMs }).toBe(0);
   });
 }
 

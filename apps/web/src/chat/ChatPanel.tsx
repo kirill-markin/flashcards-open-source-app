@@ -639,11 +639,15 @@ export function ChatPanel(props: Props): ReactElement {
             className="chat-close-btn"
             onClick={() => {
               discardDictation();
-              clearDraft();
-              pendingAttachmentsRef.current = [];
-              draftSelectionRef.current = null;
-              pendingTextareaSelectionRef.current = null;
-              void clearConversation();
+              void clearConversation().then(() => {
+                clearDraft();
+                pendingAttachmentsRef.current = [];
+                draftSelectionRef.current = null;
+                pendingTextareaSelectionRef.current = null;
+              }).catch((error: unknown) => {
+                const message = error instanceof Error ? error.message : String(error);
+                appData.setErrorMessage(`New chat failed. ${message}`);
+              });
             }}
           >
             New
