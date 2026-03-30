@@ -70,7 +70,7 @@ data class RemoteReviewHistoryEvent(
     val reviewEventId: String,
     val workspaceId: String,
     val cardId: String,
-    val deviceId: String,
+    val replicaId: String,
     val clientEventId: String,
     val rating: Int,
     val reviewedAtClient: String,
@@ -819,7 +819,7 @@ class CloudRemoteService : CloudRemoteGateway {
                             "reviewHistoryPull.reviewEvents[$index].workspaceId"
                         ),
                         cardId = event.requireCloudString("cardId", "reviewHistoryPull.reviewEvents[$index].cardId"),
-                        deviceId = event.requireCloudString("deviceId", "reviewHistoryPull.reviewEvents[$index].deviceId"),
+                        replicaId = event.requireCloudString("replicaId", "reviewHistoryPull.reviewEvents[$index].replicaId"),
                         clientEventId = event.requireCloudString(
                             "clientEventId",
                             "reviewHistoryPull.reviewEvents[$index].clientEventId"

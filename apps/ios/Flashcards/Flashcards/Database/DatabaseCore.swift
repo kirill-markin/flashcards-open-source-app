@@ -9,7 +9,7 @@ enum SQLiteValue {
 }
 
 let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
-let localDatabaseSchemaVersion: Int = 10
+let localDatabaseSchemaVersion: Int = 11
 let defaultSchedulerAlgorithm: String = defaultSchedulerSettingsConfig.algorithm
 
 final class DatabaseCore {
@@ -308,6 +308,9 @@ final class DatabaseCore {
             case 9:
                 try self.migrateSchemaVersion9To10()
                 schemaVersion = 10
+            case 10:
+                try self.migrateSchemaVersion10To11()
+                schemaVersion = 11
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -336,7 +339,7 @@ final class DatabaseCore {
             fsrs_maximum_interval_days INTEGER NOT NULL DEFAULT \(defaultSchedulerSettingsConfig.maximumIntervalDays) CHECK (fsrs_maximum_interval_days >= 1), -- maximum interval cap mirrored from the backend row
             fsrs_enable_fuzz INTEGER NOT NULL DEFAULT \(defaultEnableFuzzValue) CHECK (fsrs_enable_fuzz IN (0, 1)), -- whether FSRS fuzzing is enabled
             fsrs_client_updated_at TEXT NOT NULL, -- client-side LWW timestamp for the most recent local or synced scheduler-settings winner
-            fsrs_last_modified_by_device_id TEXT NOT NULL, -- device that produced the currently winning scheduler-settings row
+            fsrs_last_modified_by_replica_id TEXT NOT NULL, -- device that produced the currently winning scheduler-settings row
             fsrs_last_operation_id TEXT NOT NULL, -- client-generated operation identifier used as the deterministic final LWW tie-break
             fsrs_updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP -- last time the local mirror row was written or merged
         );
@@ -367,7 +370,7 @@ final class DatabaseCore {
             fsrs_last_reviewed_at TEXT, -- timestamp of the most recent review incorporated into this card row
             fsrs_scheduled_days INTEGER CHECK (fsrs_scheduled_days IS NULL OR fsrs_scheduled_days >= 0), -- interval length that produced the current due_at
             client_updated_at TEXT NOT NULL, -- client-side LWW timestamp for the most recent local or synced card winner
-            last_modified_by_device_id TEXT NOT NULL, -- device that produced the currently winning card row
+            last_modified_by_replica_id TEXT NOT NULL, -- device that produced the currently winning card row
             last_operation_id TEXT NOT NULL, -- client-generated operation identifier used as the deterministic final LWW tie-break
             updated_at TEXT NOT NULL, -- last time the local mirror row was written or merged
             deleted_at TEXT -- tombstone timestamp; non-NULL means the card is deleted but must still sync
@@ -380,7 +383,7 @@ final class DatabaseCore {
             filter_definition_json TEXT NOT NULL, -- JSON-encoded deck filter definition mirrored to sync payloads
             created_at TEXT NOT NULL, -- original deck creation timestamp that must survive later updates
             client_updated_at TEXT NOT NULL, -- client-side LWW timestamp for the most recent local or synced deck winner
-            last_modified_by_device_id TEXT NOT NULL, -- device that produced the currently winning deck row
+            last_modified_by_replica_id TEXT NOT NULL, -- device that produced the currently winning deck row
             last_operation_id TEXT NOT NULL, -- client-generated operation identifier used as the deterministic final LWW tie-break
             updated_at TEXT NOT NULL, -- last time the local mirror row was written or merged
             deleted_at TEXT -- tombstone timestamp; non-NULL means the deck is deleted but must still sync
@@ -390,12 +393,12 @@ final class DatabaseCore {
             review_event_id TEXT PRIMARY KEY, -- immutable review event identifier generated locally for append-only sync
             workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace ownership for isolation and pull scoping
             card_id TEXT NOT NULL REFERENCES cards(card_id) ON DELETE CASCADE, -- card reviewed by this event
-            device_id TEXT NOT NULL, -- device that recorded the review event
+            replica_id TEXT NOT NULL, -- workspace replica that recorded the review event
             client_event_id TEXT NOT NULL, -- client-generated review-event idempotency key reused on push retry
             rating INTEGER NOT NULL CHECK (rating BETWEEN 0 AND 3), -- review rating from Again to Easy
             reviewed_at_client TEXT NOT NULL, -- timestamp captured on the device when the user answered
             reviewed_at_server TEXT NOT NULL, -- local mirror of the backend receive timestamp once synced; local writes use current device time until ack
-            UNIQUE (workspace_id, device_id, client_event_id)
+            UNIQUE (workspace_id, replica_id, client_event_id)
         );
 
         CREATE TABLE IF NOT EXISTS card_tags (
@@ -408,7 +411,7 @@ final class DatabaseCore {
         CREATE TABLE IF NOT EXISTS outbox (
             operation_id TEXT PRIMARY KEY, -- unique local operation id used for idempotent sync push
             workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace that owns the pending sync operation
-            device_id TEXT NOT NULL, -- device that created the pending sync operation
+            installation_id TEXT NOT NULL, -- installation that created the pending sync operation before the backend stamps a workspace replica
             entity_type TEXT NOT NULL, -- sync root targeted by the operation: card, deck, workspace_scheduler_settings, or review_event
             entity_id TEXT NOT NULL, -- identifier of the logical sync root targeted by the operation
             operation_type TEXT NOT NULL, -- mutation kind sent to the backend, such as upsert or append
@@ -430,7 +433,7 @@ final class DatabaseCore {
 
         CREATE TABLE IF NOT EXISTS app_local_settings (
             settings_id INTEGER PRIMARY KEY CHECK (settings_id = 1),
-            device_id TEXT NOT NULL,
+            installation_id TEXT NOT NULL,
             cloud_state TEXT NOT NULL CHECK (cloud_state IN ('disconnected', 'linking-ready', 'guest', 'linked')),
             linked_user_id TEXT,
             linked_workspace_id TEXT,
@@ -564,7 +567,7 @@ final class DatabaseCore {
             sql: """
             CREATE TABLE app_local_settings_v9 (
                 settings_id INTEGER PRIMARY KEY CHECK (settings_id = 1),
-                device_id TEXT NOT NULL,
+                installation_id TEXT NOT NULL,
                 cloud_state TEXT NOT NULL CHECK (cloud_state IN ('disconnected', 'linking-ready', 'guest', 'linked')),
                 linked_user_id TEXT,
                 linked_workspace_id TEXT,
@@ -579,7 +582,7 @@ final class DatabaseCore {
             sql: """
             INSERT INTO app_local_settings_v9 (
                 settings_id,
-                device_id,
+                installation_id,
                 cloud_state,
                 linked_user_id,
                 linked_workspace_id,
@@ -587,6 +590,8 @@ final class DatabaseCore {
                 onboarding_completed,
                 updated_at
             )
+            -- Schema v8 stored the stable installation identity in the legacy
+            -- device_id column. v9 keeps the same value and renames the local column.
             SELECT
                 settings_id,
                 device_id,
@@ -609,7 +614,7 @@ final class DatabaseCore {
             sql: """
             CREATE TABLE app_local_settings_v10 (
                 settings_id INTEGER PRIMARY KEY CHECK (settings_id = 1),
-                device_id TEXT NOT NULL,
+                installation_id TEXT NOT NULL,
                 cloud_state TEXT NOT NULL CHECK (cloud_state IN ('disconnected', 'linking-ready', 'guest', 'linked')),
                 linked_user_id TEXT,
                 linked_workspace_id TEXT,
@@ -625,7 +630,7 @@ final class DatabaseCore {
             sql: """
             INSERT INTO app_local_settings_v10 (
                 settings_id,
-                device_id,
+                installation_id,
                 cloud_state,
                 linked_user_id,
                 linked_workspace_id,
@@ -636,7 +641,7 @@ final class DatabaseCore {
             )
             SELECT
                 settings_id,
-                device_id,
+                installation_id,
                 cloud_state,
                 linked_user_id,
                 linked_workspace_id,
@@ -650,6 +655,164 @@ final class DatabaseCore {
         )
         try self.execute(sql: "DROP TABLE app_local_settings", values: [])
         try self.execute(sql: "ALTER TABLE app_local_settings_v10 RENAME TO app_local_settings", values: [])
+    }
+
+    private func migrateSchemaVersion10To11() throws {
+        try self.execute(
+            sql: """
+            CREATE TABLE review_events_v11 (
+                review_event_id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
+                card_id TEXT NOT NULL REFERENCES cards(card_id) ON DELETE CASCADE,
+                replica_id TEXT NOT NULL,
+                client_event_id TEXT NOT NULL,
+                rating INTEGER NOT NULL CHECK (rating BETWEEN 0 AND 3),
+                reviewed_at_client TEXT NOT NULL,
+                reviewed_at_server TEXT NOT NULL,
+                UNIQUE (workspace_id, replica_id, client_event_id)
+            )
+            """,
+            values: []
+        )
+        try self.execute(
+            sql: """
+            INSERT INTO review_events_v11 (
+                review_event_id,
+                workspace_id,
+                card_id,
+                replica_id,
+                client_event_id,
+                rating,
+                reviewed_at_client,
+                reviewed_at_server
+            )
+            -- Schema v10 stored the server-stamped replica id in the legacy
+            -- device_id column. v11 keeps the same value and renames the local column.
+            SELECT
+                review_event_id,
+                workspace_id,
+                card_id,
+                device_id,
+                client_event_id,
+                rating,
+                reviewed_at_client,
+                reviewed_at_server
+            FROM review_events
+            """,
+            values: []
+        )
+        try self.execute(sql: "DROP TABLE review_events", values: [])
+        try self.execute(sql: "ALTER TABLE review_events_v11 RENAME TO review_events", values: [])
+        try self.execute(
+            sql: "CREATE INDEX IF NOT EXISTS idx_review_events_workspace_card_time ON review_events(workspace_id, card_id, reviewed_at_server DESC)",
+            values: []
+        )
+
+        try self.execute(
+            sql: """
+            CREATE TABLE outbox_v11 (
+                operation_id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
+                installation_id TEXT NOT NULL,
+                entity_type TEXT NOT NULL,
+                entity_id TEXT NOT NULL,
+                operation_type TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                client_updated_at TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                attempt_count INTEGER NOT NULL DEFAULT 0,
+                last_error TEXT
+            )
+            """,
+            values: []
+        )
+        try self.execute(
+            sql: """
+            INSERT INTO outbox_v11 (
+                operation_id,
+                workspace_id,
+                installation_id,
+                entity_type,
+                entity_id,
+                operation_type,
+                payload_json,
+                client_updated_at,
+                created_at,
+                attempt_count,
+                last_error
+            )
+            -- Schema v10 stored the stable installation identity in the legacy
+            -- device_id column. v11 keeps the same value and renames the local column.
+            SELECT
+                operation_id,
+                workspace_id,
+                device_id,
+                entity_type,
+                entity_id,
+                operation_type,
+                payload_json,
+                client_updated_at,
+                created_at,
+                attempt_count,
+                last_error
+            FROM outbox
+            """,
+            values: []
+        )
+        try self.execute(sql: "DROP TABLE outbox", values: [])
+        try self.execute(sql: "ALTER TABLE outbox_v11 RENAME TO outbox", values: [])
+        try self.execute(
+            sql: "CREATE INDEX IF NOT EXISTS idx_outbox_workspace_created_at ON outbox(workspace_id, created_at ASC)",
+            values: []
+        )
+
+        try self.execute(
+            sql: """
+            CREATE TABLE app_local_settings_v11 (
+                settings_id INTEGER PRIMARY KEY CHECK (settings_id = 1),
+                installation_id TEXT NOT NULL,
+                cloud_state TEXT NOT NULL CHECK (cloud_state IN ('disconnected', 'linking-ready', 'guest', 'linked')),
+                linked_user_id TEXT,
+                linked_workspace_id TEXT,
+                active_workspace_id TEXT,
+                linked_email TEXT,
+                onboarding_completed INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL
+            )
+            """,
+            values: []
+        )
+        try self.execute(
+            sql: """
+            INSERT INTO app_local_settings_v11 (
+                settings_id,
+                installation_id,
+                cloud_state,
+                linked_user_id,
+                linked_workspace_id,
+                active_workspace_id,
+                linked_email,
+                onboarding_completed,
+                updated_at
+            )
+            -- Schema v10 still used device_id as the local storage name for the
+            -- stable installation identity. v11 renames that local column.
+            SELECT
+                settings_id,
+                device_id,
+                cloud_state,
+                linked_user_id,
+                linked_workspace_id,
+                active_workspace_id,
+                linked_email,
+                onboarding_completed,
+                updated_at
+            FROM app_local_settings
+            """,
+            values: []
+        )
+        try self.execute(sql: "DROP TABLE app_local_settings", values: [])
+        try self.execute(sql: "ALTER TABLE app_local_settings_v11 RENAME TO app_local_settings", values: [])
     }
 
     /**
@@ -733,14 +896,14 @@ final class DatabaseCore {
                 sql: "SELECT COUNT(*) FROM app_local_settings",
                 values: []
             )
-            let deviceId: String
+            let installationId: String
             if appSettingsCount == 0 {
-                deviceId = UUID().uuidString.lowercased()
+                installationId = UUID().uuidString.lowercased()
                 try self.execute(
                     sql: """
                     INSERT INTO app_local_settings (
                         settings_id,
-                        device_id,
+                        installation_id,
                         cloud_state,
                         linked_user_id,
                         linked_workspace_id,
@@ -752,13 +915,13 @@ final class DatabaseCore {
                     VALUES (1, ?, 'disconnected', NULL, NULL, NULL, NULL, 0, ?)
                     """,
                     values: [
-                        .text(deviceId),
+                        .text(installationId),
                         .text(nowIsoTimestamp())
                     ]
                 )
             } else {
-                deviceId = try self.scalarText(
-                    sql: "SELECT device_id FROM app_local_settings WHERE settings_id = 1",
+                installationId = try self.scalarText(
+                    sql: "SELECT installation_id FROM app_local_settings WHERE settings_id = 1",
                     values: []
                 )
             }
@@ -780,7 +943,7 @@ final class DatabaseCore {
                         name,
                         created_at,
                         fsrs_client_updated_at,
-                        fsrs_last_modified_by_device_id,
+                        fsrs_last_modified_by_replica_id,
                         fsrs_last_operation_id,
                         fsrs_updated_at
                     )
@@ -791,7 +954,7 @@ final class DatabaseCore {
                         .text("Personal"),
                         .text(now),
                         .text(now),
-                        .text(deviceId),
+                        .text(installationId),
                         .text(operationId),
                         .text(now)
                     ]

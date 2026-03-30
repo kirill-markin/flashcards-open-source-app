@@ -24,7 +24,7 @@ extension CardStore {
         let updatedRows = try self.core.execute(
             sql: """
             UPDATE cards
-            SET due_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_device_id = ?, last_operation_id = ?, updated_at = ?
+            SET due_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?
             WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
             """,
             values: [
@@ -38,7 +38,7 @@ extension CardStore {
                 .null,
                 .null,
                 .text(repairedCard.clientUpdatedAt),
-                .text(repairedCard.lastModifiedByDeviceId),
+                .text(repairedCard.lastModifiedByReplicaId),
                 .text(repairedCard.lastOperationId),
                 .text(repairedCard.updatedAt),
                 .text(workspaceId),
@@ -110,7 +110,7 @@ func resetFsrsState(card: Card, updatedAt: String) -> Card {
         fsrsLastReviewedAt: nil,
         fsrsScheduledDays: nil,
         clientUpdatedAt: card.clientUpdatedAt,
-        lastModifiedByDeviceId: card.lastModifiedByDeviceId,
+        lastModifiedByReplicaId: card.lastModifiedByReplicaId,
         lastOperationId: card.lastOperationId,
         updatedAt: updatedAt,
         deletedAt: card.deletedAt

@@ -1,63 +1,56 @@
 export const LEGACY_DEVICE_ID_STORAGE_KEY = "flashcards-sync-device-id";
-export const DEVICE_ID_MAP_STORAGE_KEY = "flashcards-sync-device-ids";
+export const INSTALLATION_ID_STORAGE_KEY = "flashcards-sync-installation-id";
 
 export const webAppVersion = import.meta.env.VITE_APP_VERSION ?? "web-dev";
 export const webAppBuild: string | null = import.meta.env.VITE_APP_BUILD ?? null;
 
-type StoredDeviceIdMap = Readonly<Record<string, string>>;
-
-function parseStoredDeviceIdMap(storedValue: string | null): StoredDeviceIdMap {
-  if (storedValue === null || storedValue === "") {
-    return {};
+function loadStoredInstallationId(): string | null {
+  const installationId = window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY);
+  if (installationId === null || installationId.trim() === "") {
+    return null;
   }
 
-  const parsedValue = JSON.parse(storedValue) as unknown;
-  if (typeof parsedValue !== "object" || parsedValue === null || Array.isArray(parsedValue)) {
-    throw new Error("Stored sync device ids must be a JSON object");
-  }
-
-  const entries = Object.entries(parsedValue);
-  for (const [userId, deviceId] of entries) {
-    if (typeof userId !== "string" || userId === "" || typeof deviceId !== "string" || deviceId === "") {
-      throw new Error("Stored sync device ids must map non-empty user ids to non-empty device ids");
-    }
-  }
-
-  return Object.fromEntries(entries) as StoredDeviceIdMap;
+  return installationId;
 }
 
-function loadStoredDeviceIdMap(): StoredDeviceIdMap {
-  return parseStoredDeviceIdMap(window.localStorage.getItem(DEVICE_ID_MAP_STORAGE_KEY));
-}
-
-function persistStoredDeviceIdMap(deviceIdsByUserId: StoredDeviceIdMap): void {
-  window.localStorage.setItem(DEVICE_ID_MAP_STORAGE_KEY, JSON.stringify(deviceIdsByUserId));
+function persistStoredInstallationId(installationId: string): void {
+  window.localStorage.setItem(INSTALLATION_ID_STORAGE_KEY, installationId);
 }
 
 /**
- * Returns a browser-stable sync device id that is scoped to a single user.
- * Legacy global device ids are migrated only into the current user's entry.
+ * Returns one browser-stable installation id reused across users and workspaces.
+ * Legacy per-user and legacy global device ids are collapsed into one global
+ * installation identity during the hard cutover.
  */
-export function getStableDeviceIdForUser(userId: string): string {
-  if (userId.trim() === "") {
-    throw new Error("userId is required");
-  }
-
-  const storedDeviceIds = loadStoredDeviceIdMap();
-  const existingDeviceId = storedDeviceIds[userId];
-  if (typeof existingDeviceId === "string" && existingDeviceId !== "") {
+export function getStableInstallationId(): string {
+  const existingInstallationId = loadStoredInstallationId();
+  if (existingInstallationId !== null) {
     window.localStorage.removeItem(LEGACY_DEVICE_ID_STORAGE_KEY);
-    return existingDeviceId;
+    window.localStorage.removeItem("flashcards-sync-device-ids");
+    return existingInstallationId;
   }
 
   const legacyDeviceId = window.localStorage.getItem(LEGACY_DEVICE_ID_STORAGE_KEY);
-  const nextDeviceId = legacyDeviceId !== null && legacyDeviceId !== ""
-    ? legacyDeviceId
-    : crypto.randomUUID().toLowerCase();
-  persistStoredDeviceIdMap({
-    ...storedDeviceIds,
-    [userId]: nextDeviceId,
-  });
+  const legacyDeviceMap = window.localStorage.getItem("flashcards-sync-device-ids");
+  let migratedInstallationId: string | null = null;
+
+  if (legacyDeviceMap !== null && legacyDeviceMap !== "") {
+    const parsedValue = JSON.parse(legacyDeviceMap) as unknown;
+    if (typeof parsedValue === "object" && parsedValue !== null && Array.isArray(parsedValue) === false) {
+      for (const value of Object.values(parsedValue)) {
+        if (typeof value === "string" && value.trim() !== "") {
+          migratedInstallationId = value;
+          break;
+        }
+      }
+    }
+  }
+
+  const nextInstallationId = migratedInstallationId
+    ?? (legacyDeviceId !== null && legacyDeviceId !== "" ? legacyDeviceId : crypto.randomUUID().toLowerCase());
+
+  persistStoredInstallationId(nextInstallationId);
   window.localStorage.removeItem(LEGACY_DEVICE_ID_STORAGE_KEY);
-  return nextDeviceId;
+  window.localStorage.removeItem("flashcards-sync-device-ids");
+  return nextInstallationId;
 }

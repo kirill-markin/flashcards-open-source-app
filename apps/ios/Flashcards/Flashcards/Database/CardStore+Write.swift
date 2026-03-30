@@ -13,7 +13,7 @@ extension CardStore {
         workspaceId: String,
         input: CardEditorInput,
         cardId: String?,
-        deviceId: String,
+        installationId: String,
         operationId: String,
         now: String
     ) throws -> Card {
@@ -29,7 +29,7 @@ extension CardStore {
             let updatedRows = try self.core.execute(
                 sql: """
                 UPDATE cards
-                SET front_text = ?, back_text = ?, tags_json = ?, effort_level = ?, client_updated_at = ?, last_modified_by_device_id = ?, last_operation_id = ?, updated_at = ?
+                SET front_text = ?, back_text = ?, tags_json = ?, effort_level = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?
                 WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
                 """,
                 values: [
@@ -38,7 +38,7 @@ extension CardStore {
                     .text(tagsJson),
                     .text(normalizedInput.effortLevel.rawValue),
                     .text(now),
-                    .text(deviceId),
+                    .text(installationId),
                     .text(operationId),
                     .text(now),
                     .text(workspaceId),
@@ -80,7 +80,7 @@ extension CardStore {
                 fsrs_last_reviewed_at,
                 fsrs_scheduled_days,
                 client_updated_at,
-                last_modified_by_device_id,
+                last_modified_by_replica_id,
                 last_operation_id,
                 updated_at,
                 deleted_at
@@ -96,7 +96,7 @@ extension CardStore {
                 .text(normalizedInput.effortLevel.rawValue),
                 .text(now),
                 .text(now),
-                .text(deviceId),
+                .text(installationId),
                 .text(operationId),
                 .text(now)
             ]
@@ -113,20 +113,20 @@ extension CardStore {
     func deleteCard(
         workspaceId: String,
         cardId: String,
-        deviceId: String,
+        installationId: String,
         operationId: String,
         now: String
     ) throws -> Card {
         let updatedRows = try self.core.execute(
             sql: """
             UPDATE cards
-            SET deleted_at = ?, client_updated_at = ?, last_modified_by_device_id = ?, last_operation_id = ?, updated_at = ?
+            SET deleted_at = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?
             WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
             """,
             values: [
                 .text(now),
                 .text(now),
-                .text(deviceId),
+                .text(installationId),
                 .text(operationId),
                 .text(now),
                 .text(workspaceId),
@@ -152,7 +152,7 @@ extension CardStore {
         cardId: String,
         rating: ReviewRating,
         reviewedAtClient: String,
-        deviceId: String,
+        installationId: String,
         reviewEventId: String,
         clientEventId: String,
         reviewedAtServer: String
@@ -163,7 +163,7 @@ extension CardStore {
                 review_event_id,
                 workspace_id,
                 card_id,
-                device_id,
+                replica_id,
                 client_event_id,
                 rating,
                 reviewed_at_client,
@@ -175,7 +175,7 @@ extension CardStore {
                 .text(reviewEventId),
                 .text(workspaceId),
                 .text(cardId),
-                .text(deviceId),
+                .text(installationId),
                 .text(clientEventId),
                 .integer(Int64(rating.rawValue)),
                 .text(reviewedAtClient),
@@ -187,7 +187,7 @@ extension CardStore {
             reviewEventId: reviewEventId,
             workspaceId: workspaceId,
             cardId: cardId,
-            deviceId: deviceId,
+            replicaId: installationId,
             clientEventId: clientEventId,
             rating: rating,
             reviewedAtClient: reviewedAtClient,
@@ -200,14 +200,14 @@ extension CardStore {
         cardId: String,
         reviewSubmission: ReviewSubmission,
         schedule: ReviewSchedule,
-        deviceId: String,
+        installationId: String,
         operationId: String,
         reviewedAtServer: String
     ) throws -> Card {
         let updatedRows = try self.core.execute(
             sql: """
             UPDATE cards
-            SET due_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_device_id = ?, last_operation_id = ?, updated_at = ?
+            SET due_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?
             WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
             """,
             values: [
@@ -223,7 +223,7 @@ extension CardStore {
                 .text(formatIsoTimestamp(date: schedule.fsrsLastReviewedAt)),
                 .integer(Int64(schedule.fsrsScheduledDays)),
                 .text(reviewSubmission.reviewedAtClient),
-                .text(deviceId),
+                .text(installationId),
                 .text(operationId),
                 .text(reviewedAtServer),
                 .text(workspaceId),

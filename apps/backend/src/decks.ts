@@ -33,7 +33,7 @@ export type DeckRow = Readonly<{
   filter_definition: unknown;
   created_at: TimestampValue;
   client_updated_at: TimestampValue;
-  last_modified_by_device_id: string;
+  last_modified_by_replica_id: string;
   last_operation_id: string;
   updated_at: TimestampValue;
   deleted_at: TimestampValue | null;
@@ -54,7 +54,7 @@ export type Deck = Readonly<{
   filterDefinition: DeckFilterDefinition;
   createdAt: string;
   clientUpdatedAt: string;
-  lastModifiedByDeviceId: string;
+  lastModifiedByReplicaId: string;
   lastOperationId: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -253,7 +253,7 @@ export function mapDeck(row: DeckRow): Deck {
     ),
     createdAt: toIsoString(row.created_at),
     clientUpdatedAt: toIsoString(row.client_updated_at),
-    lastModifiedByDeviceId: row.last_modified_by_device_id,
+    lastModifiedByReplicaId: row.last_modified_by_replica_id,
     lastOperationId: row.last_operation_id,
     updatedAt: toIsoString(row.updated_at),
     deletedAt: row.deleted_at === null ? null : toIsoString(row.deleted_at),
@@ -281,7 +281,7 @@ function decodeDeckPageCursor(cursor: string): DeckPageCursor {
 function normalizeDeckMutationMetadata(metadata: DeckMutationMetadata): DeckMutationMetadata {
   return {
     clientUpdatedAt: normalizeIsoTimestamp(metadata.clientUpdatedAt, "clientUpdatedAt"),
-    lastModifiedByDeviceId: metadata.lastModifiedByDeviceId,
+    lastModifiedByReplicaId: metadata.lastModifiedByReplicaId,
     lastOperationId: metadata.lastOperationId,
   };
 }
@@ -289,7 +289,7 @@ function normalizeDeckMutationMetadata(metadata: DeckMutationMetadata): DeckMuta
 function toDeckLwwMetadata(deck: Deck): DeckMutationMetadata {
   return {
     clientUpdatedAt: deck.clientUpdatedAt,
-    lastModifiedByDeviceId: deck.lastModifiedByDeviceId,
+    lastModifiedByReplicaId: deck.lastModifiedByReplicaId,
     lastOperationId: deck.lastOperationId,
   };
 }
@@ -305,7 +305,7 @@ async function recordDeckSyncChange(
     "deck",
     deck.deckId,
     "upsert",
-    deck.lastModifiedByDeviceId,
+    deck.lastModifiedByReplicaId,
     deck.lastOperationId,
     deck.clientUpdatedAt,
   );
@@ -408,7 +408,7 @@ export async function listDecksPage(
     { userId, workspaceId },
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
-      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
       "FROM content.decks",
       "WHERE workspace_id = $1 AND deleted_at IS NULL",
       cursorClause,
@@ -438,7 +438,7 @@ export async function listDecksInExecutor(
   const result = await executor.query<DeckRow>(
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
-      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
       "FROM content.decks",
       "WHERE workspace_id = $1 AND deleted_at IS NULL",
       "ORDER BY created_at DESC, deck_id DESC",
@@ -454,7 +454,7 @@ export async function getDeck(userId: string, workspaceId: string, deckId: strin
     { userId, workspaceId },
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
-      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
       "FROM content.decks",
       "WHERE workspace_id = $1 AND deck_id = $2 AND deleted_at IS NULL",
     ].join(" "),
@@ -481,7 +481,7 @@ export async function getDecks(
     { userId, workspaceId },
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
-      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
       "FROM content.decks",
       "WHERE workspace_id = $1 AND deck_id = ANY($2::uuid[]) AND deleted_at IS NULL",
     ].join(" "),
@@ -542,7 +542,7 @@ export async function searchDecksPage(
     { userId, workspaceId },
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
-      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
       "FROM content.decks",
       "WHERE workspace_id = $1",
       "AND deleted_at IS NULL",
@@ -591,7 +591,7 @@ export async function upsertDeckSnapshotInExecutor(
   const existingResult = await executor.query<DeckRow>(
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
-      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
       "FROM content.decks",
       "WHERE workspace_id = $1 AND deck_id = $2",
       "FOR UPDATE",
@@ -606,11 +606,11 @@ export async function upsertDeckSnapshotInExecutor(
         "INSERT INTO content.decks",
         "(",
         "deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
-        "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+        "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
         ")",
         "VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, now(), $9)",
         "RETURNING deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
-        "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+        "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
       ].join(" "),
       [
         normalizedInput.deckId,
@@ -619,7 +619,7 @@ export async function upsertDeckSnapshotInExecutor(
         JSON.stringify(normalizedInput.filterDefinition),
         normalizedInput.createdAt,
         normalizedMetadata.clientUpdatedAt,
-        normalizedMetadata.lastModifiedByDeviceId,
+        normalizedMetadata.lastModifiedByReplicaId,
         normalizedMetadata.lastOperationId,
         normalizedInput.deletedAt,
       ],
@@ -653,10 +653,10 @@ export async function upsertDeckSnapshotInExecutor(
     [
       "UPDATE content.decks",
       "SET name = $1, filter_definition = $2::jsonb, created_at = $3, deleted_at = $4,",
-      "client_updated_at = $5, last_modified_by_device_id = $6, last_operation_id = $7, updated_at = now()",
+      "client_updated_at = $5, last_modified_by_replica_id = $6, last_operation_id = $7, updated_at = now()",
       "WHERE workspace_id = $8 AND deck_id = $9",
       "RETURNING deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
-      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
     ].join(" "),
     [
       normalizedInput.name,
@@ -664,7 +664,7 @@ export async function upsertDeckSnapshotInExecutor(
       normalizedInput.createdAt,
       normalizedInput.deletedAt,
       normalizedMetadata.clientUpdatedAt,
-      normalizedMetadata.lastModifiedByDeviceId,
+      normalizedMetadata.lastModifiedByReplicaId,
       normalizedMetadata.lastOperationId,
       workspaceId,
       normalizedInput.deckId,
@@ -732,7 +732,7 @@ export async function updateDeckInExecutor(
   const existingResult = await executor.query<DeckRow>(
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
-      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
       "FROM content.decks",
       "WHERE workspace_id = $1 AND deck_id = $2 AND deleted_at IS NULL",
     ].join(" "),
@@ -784,7 +784,7 @@ export async function deleteDeckInExecutor(
   const existingResult = await executor.query<DeckRow>(
     [
       "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
-      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
       "FROM content.decks",
       "WHERE workspace_id = $1 AND deck_id = $2 AND deleted_at IS NULL",
       "FOR UPDATE",

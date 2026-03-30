@@ -308,7 +308,7 @@ extension FlashcardsStore {
                 apiBaseUrl: linkContext.apiBaseUrl,
                 bearerToken: linkContext.credentials.idToken,
                 workspaceId: linkedWorkspace.workspaceId,
-                deviceId: cloudSettings.deviceId
+                installationId: cloudSettings.installationId
             )
             if isWorkspaceEmpty == false {
                 throw CloudBootstrapEligibilityError.remoteWorkspaceIsNotEmpty
@@ -930,7 +930,7 @@ extension FlashcardsStore {
                 phase: .linkLocalWorkspace,
                 outcome: "start",
                 workspaceId: linkedSession.workspaceId,
-                deviceId: self.cloudSettings?.deviceId
+                installationId: self.cloudSettings?.installationId
             )
             try context.database.relinkWorkspace(
                 localWorkspaceId: context.workspaceId,
@@ -944,7 +944,7 @@ extension FlashcardsStore {
                 phase: .linkLocalWorkspace,
                 outcome: "success",
                 workspaceId: linkedSession.workspaceId,
-                deviceId: self.cloudSettings?.deviceId
+                installationId: self.cloudSettings?.installationId
             )
             _ = try await self.runLinkedSync(linkedSession: linkedSession)
             self.lastSuccessfulCloudSyncAt = nowIsoTimestamp()
@@ -955,7 +955,7 @@ extension FlashcardsStore {
                 phase: .linkedSync,
                 outcome: "success",
                 workspaceId: linkedSession.workspaceId,
-                deviceId: self.cloudSettings?.deviceId
+                installationId: self.cloudSettings?.installationId
             )
             try self.reload()
         } catch {
@@ -964,7 +964,7 @@ extension FlashcardsStore {
                     phase: .linkLocalWorkspace,
                     outcome: "failure",
                     workspaceId: linkedSession.workspaceId,
-                    deviceId: self.cloudSettings?.deviceId,
+                    installationId: self.cloudSettings?.installationId,
                     errorMessage: Flashcards.errorMessage(error: error)
                 )
             }
@@ -972,7 +972,7 @@ extension FlashcardsStore {
                 phase: .linkedSync,
                 outcome: "failure",
                 workspaceId: linkedSession.workspaceId,
-                deviceId: self.cloudSettings?.deviceId,
+                installationId: self.cloudSettings?.installationId,
                 errorMessage: Flashcards.errorMessage(error: error)
             )
             self.syncStatus = .failed(message: Flashcards.errorMessage(error: error))
@@ -1002,7 +1002,7 @@ extension FlashcardsStore {
                 phase: .linkedSync,
                 outcome: "failure",
                 workspaceId: linkedSession.workspaceId,
-                deviceId: self.cloudSettings?.deviceId,
+                installationId: self.cloudSettings?.installationId,
                 errorMessage: Flashcards.errorMessage(error: error)
             )
             self.syncStatus = .failed(message: Flashcards.errorMessage(error: error))

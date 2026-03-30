@@ -57,7 +57,7 @@ fun FlashcardsApp(appGraph: AppGraph) {
         val snackbarHostState = remember { SnackbarHostState() }
         val cloudSettings by appGraph.cloudAccountRepository.observeCloudSettings().collectAsStateWithLifecycle(
             initialValue = CloudSettings(
-                deviceId = "",
+                installationId = "",
                 cloudState = CloudAccountState.DISCONNECTED,
                 linkedUserId = null,
                 linkedWorkspaceId = null,

@@ -47,7 +47,7 @@ class AccountStatusViewModel(
             workspaceName = metadata.workspaceName,
             cloudStatusTitle = displayCloudAccountStateTitle(cloudState = cloudSettings.cloudState),
             linkedEmail = cloudSettings.linkedEmail,
-            deviceId = cloudSettings.deviceId,
+            installationId = cloudSettings.installationId,
             syncStatusText = when (val status = syncStatus.status) {
                 is com.flashcardsopensourceapp.data.local.model.SyncStatus.Failed -> status.message
                 com.flashcardsopensourceapp.data.local.model.SyncStatus.Idle -> when (cloudSettings.cloudState) {
@@ -71,7 +71,7 @@ class AccountStatusViewModel(
             workspaceName = "Loading...",
             cloudStatusTitle = "Loading...",
             linkedEmail = null,
-            deviceId = "Loading...",
+            installationId = "Loading...",
             syncStatusText = "Loading...",
             lastSuccessfulSync = "Never",
             isGuest = false,

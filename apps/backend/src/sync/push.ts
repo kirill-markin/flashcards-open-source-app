@@ -6,19 +6,11 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../db";
-import {
-  ensureSyncDevice,
-  type SyncDevicePlatform,
-} from "../devices";
 import { upsertDeckSnapshotInExecutor } from "../decks";
 import { normalizeIsoTimestamp } from "../lww";
-import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../workspaceSchedulerSettings";
+import { ensureWorkspaceReplica } from "../syncIdentity";
 import { ensureWorkspaceSyncMetadataInExecutor } from "../syncChanges";
-import type {
-  AppliedOperationRow,
-  SyncPushOperationResult,
-  SyncPushResult,
-} from "./types";
+import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../workspaceSchedulerSettings";
 import type {
   SyncPushInput,
   SyncPushOperation,
@@ -31,6 +23,11 @@ import {
   toWorkspaceSchedulerSettingsMutationMetadata,
   toWorkspaceSchedulerSettingsSnapshotInput,
 } from "./snapshots";
+import type {
+  AppliedOperationRow,
+  SyncPushOperationResult,
+  SyncPushResult,
+} from "./types";
 
 function toNumber(value: string | number | null): number | null {
   if (value === null) {
@@ -43,7 +40,7 @@ function toNumber(value: string | number | null): number | null {
 async function loadExistingAppliedOperations(
   executor: DatabaseExecutor,
   workspaceId: string,
-  deviceId: string,
+  replicaId: string,
   operationIds: ReadonlyArray<string>,
 ): Promise<ReadonlyMap<string, number | null>> {
   if (operationIds.length === 0) {
@@ -54,10 +51,10 @@ async function loadExistingAppliedOperations(
     [
       "SELECT DISTINCT ON (operation_id) operation_id, resulting_hot_change_id",
       "FROM sync.applied_operations_current",
-      "WHERE workspace_id = $1 AND device_id = $2 AND operation_id = ANY($3::text[])",
+      "WHERE workspace_id = $1 AND replica_id = $2 AND operation_id = ANY($3::text[])",
       "ORDER BY operation_id ASC, applied_at DESC",
     ].join(" "),
-    [workspaceId, deviceId, [...operationIds]],
+    [workspaceId, replicaId, [...operationIds]],
   );
 
   return new Map(result.rows.map((row) => [row.operation_id, toNumber(row.resulting_hot_change_id)]));
@@ -66,7 +63,7 @@ async function loadExistingAppliedOperations(
 async function recordAppliedOperation(
   executor: DatabaseExecutor,
   workspaceId: string,
-  deviceId: string,
+  replicaId: string,
   operation: SyncPushOperation,
   resultingHotChangeId: number | null,
 ): Promise<void> {
@@ -74,13 +71,13 @@ async function recordAppliedOperation(
     [
       "INSERT INTO sync.applied_operations_current",
       "(",
-      "workspace_id, device_id, operation_id, operation_type, entity_type, entity_id, client_updated_at, resulting_hot_change_id, applied_at",
+      "workspace_id, replica_id, operation_id, operation_type, entity_type, entity_id, client_updated_at, resulting_hot_change_id, applied_at",
       ")",
       "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())",
     ].join(" "),
     [
       workspaceId,
-      deviceId,
+      replicaId,
       operation.operationId,
       operation.action,
       operation.entityType,
@@ -94,7 +91,7 @@ async function recordAppliedOperation(
 export async function processOperationInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
-  deviceId: string,
+  replicaId: string,
   operation: SyncPushOperation,
 ): Promise<SyncPushOperationResult> {
   let resultingHotChangeId: number | null = null;
@@ -118,7 +115,7 @@ export async function processOperationInExecutor(
       toCardSnapshotInput(operation.payload),
       toCardMutationMetadata({
         clientUpdatedAt: operation.clientUpdatedAt,
-        lastModifiedByDeviceId: deviceId,
+        lastModifiedByReplicaId: replicaId,
         lastOperationId: operation.operationId,
       }),
     );
@@ -142,7 +139,7 @@ export async function processOperationInExecutor(
       toDeckSnapshotInput(operation.payload),
       toDeckMutationMetadata({
         clientUpdatedAt: operation.clientUpdatedAt,
-        lastModifiedByDeviceId: deviceId,
+        lastModifiedByReplicaId: replicaId,
         lastOperationId: operation.operationId,
       }),
     );
@@ -166,7 +163,7 @@ export async function processOperationInExecutor(
       toWorkspaceSchedulerSettingsSnapshotInput(operation.payload),
       toWorkspaceSchedulerSettingsMutationMetadata({
         clientUpdatedAt: operation.clientUpdatedAt,
-        lastModifiedByDeviceId: deviceId,
+        lastModifiedByReplicaId: replicaId,
         lastOperationId: operation.operationId,
       }),
     );
@@ -181,17 +178,6 @@ export async function processOperationInExecutor(
         status: "rejected",
         resultingHotChangeId: null,
         error: "review_event entityId must match payload.reviewEventId",
-      };
-    }
-
-    if (operation.payload.deviceId !== deviceId) {
-      return {
-        operationId: operation.operationId,
-        entityType: operation.entityType,
-        entityId: operation.entityId,
-        status: "rejected",
-        resultingHotChangeId: null,
-        error: "review_event payload.deviceId must match the authenticated sync deviceId",
       };
     }
 
@@ -235,7 +221,7 @@ export async function processOperationInExecutor(
         reviewEventId: operation.payload.reviewEventId,
         workspaceId,
         cardId: operation.payload.cardId,
-        deviceId,
+        replicaId,
         clientEventId: operation.payload.clientEventId,
         rating: operation.payload.rating,
         reviewedAtClient: normalizedReviewedAtClient,
@@ -247,7 +233,7 @@ export async function processOperationInExecutor(
     resultingHotChangeId = null;
   }
 
-  await recordAppliedOperation(executor, workspaceId, deviceId, operation, resultingHotChangeId);
+  await recordAppliedOperation(executor, workspaceId, replicaId, operation, resultingHotChangeId);
 
   return {
     operationId: operation.operationId,
@@ -262,14 +248,14 @@ export async function processOperationInExecutor(
 export async function processSyncPushOperationsInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
-  deviceId: string,
+  replicaId: string,
   operations: ReadonlyArray<SyncPushOperation>,
 ): Promise<ReadonlyArray<SyncPushOperationResult>> {
   await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);
   const existingAppliedOperations = await loadExistingAppliedOperations(
     executor,
     workspaceId,
-    deviceId,
+    replicaId,
     operations.map((operation) => operation.operationId),
   );
   const results: Array<SyncPushOperationResult> = [];
@@ -288,7 +274,7 @@ export async function processSyncPushOperationsInExecutor(
       continue;
     }
 
-    results.push(await processOperationInExecutor(executor, workspaceId, deviceId, operation));
+    results.push(await processOperationInExecutor(executor, workspaceId, replicaId, operation));
   }
 
   return results;
@@ -299,17 +285,17 @@ export async function processSyncPush(
   userId: string,
   input: SyncPushInput,
 ): Promise<SyncPushResult> {
-  await ensureSyncDevice(
+  const replicaId = await ensureWorkspaceReplica({
     workspaceId,
     userId,
-    input.deviceId,
-    input.platform as SyncDevicePlatform,
-    input.appVersion ?? null,
-  );
+    installationId: input.installationId,
+    platform: input.platform,
+    appVersion: input.appVersion ?? null,
+  });
 
   const operationResults = await transactionWithWorkspaceScope(
     { userId, workspaceId },
-    async (executor) => processSyncPushOperationsInExecutor(executor, workspaceId, input.deviceId, input.operations),
+    async (executor) => processSyncPushOperationsInExecutor(executor, workspaceId, replicaId, input.operations),
   );
 
   return {

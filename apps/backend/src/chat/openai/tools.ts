@@ -4,7 +4,7 @@
  */
 import type OpenAI from "openai";
 import { HttpError } from "../../errors";
-import { ensureAIChatSyncDevice } from "../../aiChatSyncIdentity";
+import { ensureAIChatSyncReplica } from "../../aiChatSyncIdentity";
 import { executeAgentSql } from "../../aiTools/agentSql";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
@@ -47,8 +47,8 @@ type ToolErrorPayload = Readonly<{
 function createToolDependencies(): AgentToolOperationDependencies {
   return {
     ...DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
-    ensureAgentSyncDevice: async (workspaceId: string, userId: string): Promise<string> =>
-      ensureAIChatSyncDevice(workspaceId, userId, "web"),
+    ensureAgentSyncReplica: async (workspaceId: string, userId: string): Promise<string> =>
+      ensureAIChatSyncReplica(workspaceId, userId, "web"),
   };
 }
 

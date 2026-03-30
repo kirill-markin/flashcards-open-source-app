@@ -206,7 +206,7 @@ final class CloudSyncService: @unchecked Sendable {
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
-        deviceId: String
+        installationId: String
     ) async throws -> Bool {
         let bootstrapEnvelope: RemoteBootstrapPullResponseEnvelope = try await self.transport.request(
             apiBaseUrl: apiBaseUrl,
@@ -215,7 +215,7 @@ final class CloudSyncService: @unchecked Sendable {
             method: "POST",
             body: BootstrapPullRequest(
                 mode: "pull",
-                deviceId: deviceId,
+                installationId: installationId,
                 platform: "ios",
                 appVersion: self.transport.appVersion(),
                 cursor: nil,

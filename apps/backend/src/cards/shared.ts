@@ -16,7 +16,7 @@ import type {
 export const CARD_COLUMNS = [
   "card_id, front_text, back_text, tags, effort_level, due_at, created_at, reps, lapses,",
   "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
-  "client_updated_at, last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+  "client_updated_at, last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
 ].join(" ");
 
 export const REVIEWABLE_CARD_COLUMNS = [
@@ -55,7 +55,7 @@ export function normalizeCardMutationMetadata(
 ): CardMutationMetadata {
   return {
     clientUpdatedAt: normalizeIsoTimestamp(metadata.clientUpdatedAt, "clientUpdatedAt"),
-    lastModifiedByDeviceId: metadata.lastModifiedByDeviceId,
+    lastModifiedByReplicaId: metadata.lastModifiedByReplicaId,
     lastOperationId: metadata.lastOperationId,
   };
 }
@@ -80,7 +80,7 @@ export function mapCard(row: CardRow): Card {
       : toIsoString(row.fsrs_last_reviewed_at),
     fsrsScheduledDays: row.fsrs_scheduled_days,
     clientUpdatedAt: toIsoString(row.client_updated_at),
-    lastModifiedByDeviceId: row.last_modified_by_device_id,
+    lastModifiedByReplicaId: row.last_modified_by_replica_id,
     lastOperationId: row.last_operation_id,
     updatedAt: toIsoString(row.updated_at),
     deletedAt: row.deleted_at === null ? null : toIsoString(row.deleted_at),
@@ -92,7 +92,7 @@ export function mapReviewHistoryItem(row: ReviewHistoryRow): ReviewHistoryItem {
     reviewEventId: row.review_event_id,
     workspaceId: row.workspace_id,
     cardId: row.card_id,
-    deviceId: row.device_id,
+    replicaId: row.replica_id,
     clientEventId: row.client_event_id,
     rating: row.rating,
     reviewedAtClient: toIsoString(row.reviewed_at_client),
@@ -103,7 +103,7 @@ export function mapReviewHistoryItem(row: ReviewHistoryRow): ReviewHistoryItem {
 export function toCardLwwMetadata(card: Card): CardMutationMetadata {
   return {
     clientUpdatedAt: card.clientUpdatedAt,
-    lastModifiedByDeviceId: card.lastModifiedByDeviceId,
+    lastModifiedByReplicaId: card.lastModifiedByReplicaId,
     lastOperationId: card.lastOperationId,
   };
 }
@@ -119,7 +119,7 @@ export async function recordCardSyncChange(
     "card",
     card.cardId,
     "upsert",
-    card.lastModifiedByDeviceId,
+    card.lastModifiedByReplicaId,
     card.lastOperationId,
     card.clientUpdatedAt,
   );

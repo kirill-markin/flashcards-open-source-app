@@ -4,16 +4,13 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../db";
-import {
-  ensureSyncDevice,
-  type SyncDevicePlatform,
-} from "../devices";
 import type {
   Deck,
   DeckRow,
 } from "../decks";
 import { mapDeck } from "../decks";
 import { HttpError } from "../errors";
+import { ensureWorkspaceReplica } from "../syncIdentity";
 import { ensureWorkspaceSyncMetadataInExecutor, loadMinAvailableHotChangeId } from "../syncChanges";
 import type { WorkspaceSchedulerSettings } from "../workspaceSchedulerSettings";
 import type { SyncPullInput } from "./input";
@@ -50,7 +47,7 @@ function toWorkspaceSchedulerSettings(row: WorkspaceSchedulerSettingsRow): Works
     maximumIntervalDays: row.fsrs_maximum_interval_days,
     enableFuzz: row.fsrs_enable_fuzz,
     clientUpdatedAt: toIsoString(row.fsrs_client_updated_at),
-    lastModifiedByDeviceId: row.fsrs_last_modified_by_device_id,
+    lastModifiedByReplicaId: row.fsrs_last_modified_by_replica_id,
     lastOperationId: row.fsrs_last_operation_id,
     updatedAt: toIsoString(row.fsrs_updated_at),
   };
@@ -65,7 +62,7 @@ async function loadWorkspaceSchedulerSettingsInExecutor(
       "SELECT",
       "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
       "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
-      "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
+      "fsrs_last_modified_by_replica_id, fsrs_last_operation_id, fsrs_updated_at",
       "FROM org.workspaces",
       "WHERE workspace_id = $1",
       "LIMIT 1",
@@ -95,7 +92,7 @@ async function loadCardsByIdsInExecutor(
       "SELECT",
       "card_id, front_text, back_text, tags, effort_level, due_at, created_at, reps, lapses,",
       "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
-      "client_updated_at, last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "client_updated_at, last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
       "FROM content.cards",
       "WHERE workspace_id = $1 AND card_id = ANY($2::uuid[])",
     ].join(" "),
@@ -117,7 +114,7 @@ async function loadDecksByIdsInExecutor(
   const result = await executor.query<DeckRow>(
     [
       "SELECT",
-      "deck_id, workspace_id, name, filter_definition, created_at, client_updated_at, last_modified_by_device_id,",
+      "deck_id, workspace_id, name, filter_definition, created_at, client_updated_at, last_modified_by_replica_id,",
       "last_operation_id, updated_at, deleted_at",
       "FROM content.decks",
       "WHERE workspace_id = $1 AND deck_id = ANY($2::uuid[])",
@@ -198,13 +195,13 @@ export async function processSyncPull(
   userId: string,
   input: SyncPullInput,
 ): Promise<SyncPullResult> {
-  await ensureSyncDevice(
+  await ensureWorkspaceReplica({
     workspaceId,
     userId,
-    input.deviceId,
-    input.platform as SyncDevicePlatform,
-    input.appVersion ?? null,
-  );
+    installationId: input.installationId,
+    platform: input.platform,
+    appVersion: input.appVersion ?? null,
+  });
 
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);

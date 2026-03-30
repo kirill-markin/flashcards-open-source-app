@@ -522,7 +522,7 @@ class LocalCloudAccountRepository(
             workspaceId = selectedWorkspace.workspaceId,
             body = JSONObject()
                 .put("mode", "pull")
-                .put("deviceId", preferencesStore.currentCloudSettings().deviceId)
+                .put("installationId", preferencesStore.currentCloudSettings().installationId)
                 .put("platform", "android")
                 .put("appVersion", "0.1.0")
                 .put("cursor", JSONObject.NULL)
@@ -912,7 +912,7 @@ private suspend fun runCloudSyncCore(
             workspaceId = workspaceId,
             body = JSONObject()
                 .put("mode", "pull")
-                .put("deviceId", cloudSettings.deviceId)
+                .put("installationId", cloudSettings.installationId)
                 .put("platform", "android")
                 .put("appVersion", "0.1.0")
                 .put("cursor", JSONObject.NULL)
@@ -928,7 +928,7 @@ private suspend fun runCloudSyncCore(
                     workspaceId = workspaceId,
                     body = JSONObject()
                         .put("mode", "push")
-                        .put("deviceId", cloudSettings.deviceId)
+                        .put("installationId", cloudSettings.installationId)
                         .put("platform", "android")
                         .put("appVersion", "0.1.0")
                         .put("entries", bootstrapEntries)
@@ -947,7 +947,7 @@ private suspend fun runCloudSyncCore(
                     workspaceId = workspaceId,
                     body = JSONObject()
                         .put("mode", "pull")
-                        .put("deviceId", cloudSettings.deviceId)
+                        .put("installationId", cloudSettings.installationId)
                         .put("platform", "android")
                         .put("appVersion", "0.1.0")
                         .put("cursor", nextCursor)
@@ -974,7 +974,7 @@ private suspend fun runCloudSyncCore(
                     authorizationHeader = syncSession.authorizationHeader,
                     workspaceId = workspaceId,
                     body = JSONObject()
-                        .put("deviceId", cloudSettings.deviceId)
+                        .put("installationId", cloudSettings.installationId)
                         .put("platform", "android")
                         .put("appVersion", "0.1.0")
                         .put("reviewEvents", reviewEvents)
@@ -989,7 +989,7 @@ private suspend fun runCloudSyncCore(
                     authorizationHeader = syncSession.authorizationHeader,
                     workspaceId = workspaceId,
                     body = JSONObject()
-                        .put("deviceId", cloudSettings.deviceId)
+                        .put("installationId", cloudSettings.installationId)
                         .put("platform", "android")
                         .put("appVersion", "0.1.0")
                         .put("afterReviewSequenceId", lastReviewSequenceId)
@@ -1012,7 +1012,7 @@ private suspend fun runCloudSyncCore(
                 authorizationHeader = syncSession.authorizationHeader,
                 workspaceId = workspaceId,
                 body = buildPushRequest(
-                    deviceId = cloudSettings.deviceId,
+                    installationId = cloudSettings.installationId,
                     outboxEntries = outboxEntries
                 )
             )
@@ -1036,11 +1036,11 @@ private suspend fun runCloudSyncCore(
             apiBaseUrl = syncSession.apiBaseUrl,
             authorizationHeader = syncSession.authorizationHeader,
             workspaceId = workspaceId,
-            body = JSONObject()
-                .put("deviceId", cloudSettings.deviceId)
-                .put("platform", "android")
-                .put("appVersion", "0.1.0")
-                .put("afterHotChangeId", lastHotCursor)
+                body = JSONObject()
+                    .put("installationId", cloudSettings.installationId)
+                    .put("platform", "android")
+                    .put("appVersion", "0.1.0")
+                    .put("afterHotChangeId", lastHotCursor)
                 .put("limit", syncPullPageLimit)
         )
         syncLocalStore.applyPullChanges(workspaceId, pullResponse.changes)
@@ -1055,7 +1055,7 @@ private suspend fun runCloudSyncCore(
             authorizationHeader = syncSession.authorizationHeader,
             workspaceId = workspaceId,
             body = JSONObject()
-                .put("deviceId", cloudSettings.deviceId)
+                .put("installationId", cloudSettings.installationId)
                 .put("platform", "android")
                 .put("appVersion", "0.1.0")
                 .put("afterReviewSequenceId", lastReviewSequenceId)
@@ -1097,9 +1097,9 @@ private data class CloudSyncTarget(
     val session: CloudSyncSession
 )
 
-private fun buildPushRequest(deviceId: String, outboxEntries: List<PersistedOutboxEntry>): JSONObject {
+private fun buildPushRequest(installationId: String, outboxEntries: List<PersistedOutboxEntry>): JSONObject {
     return JSONObject()
-        .put("deviceId", deviceId)
+        .put("installationId", installationId)
         .put("platform", "android")
         .put("appVersion", "0.1.0")
         .put(
@@ -1158,7 +1158,6 @@ private fun buildOperationPayload(payload: SyncOperationPayload): JSONObject {
         is SyncOperationPayload.ReviewEvent -> JSONObject()
             .put("reviewEventId", payload.payload.reviewEventId)
             .put("cardId", payload.payload.cardId)
-            .put("deviceId", payload.payload.deviceId)
             .put("clientEventId", payload.payload.clientEventId)
             .put("rating", payload.payload.rating)
             .put("reviewedAtClient", payload.payload.reviewedAtClient)

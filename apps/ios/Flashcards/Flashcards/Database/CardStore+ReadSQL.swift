@@ -18,7 +18,7 @@ let cardStoreSelectColumnsSQL: String = """
     fsrs_last_reviewed_at,
     fsrs_scheduled_days,
     client_updated_at,
-    last_modified_by_device_id,
+    last_modified_by_replica_id,
     last_operation_id,
     updated_at,
     deleted_at

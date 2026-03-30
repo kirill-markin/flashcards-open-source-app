@@ -24,8 +24,8 @@ struct ThisDeviceSettingsView: View {
         return build ?? "Unavailable"
     }
 
-    private var deviceId: String {
-        store.cloudSettings?.deviceId ?? "Unavailable"
+    private var installationId: String {
+        store.cloudSettings?.installationId ?? "Unavailable"
     }
 
     private var workspaceName: String {
@@ -63,8 +63,8 @@ struct ThisDeviceSettingsView: View {
                     Text("SQLite")
                 }
 
-                LabeledContent("Device ID") {
-                    Text(self.deviceId)
+                LabeledContent("Installation ID") {
+                    Text(self.installationId)
                         .font(.caption.monospaced())
                         .multilineTextAlignment(.trailing)
                 }

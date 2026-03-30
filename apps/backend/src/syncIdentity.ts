@@ -1,0 +1,230 @@
+import { createHash } from "node:crypto";
+import { transactionWithWorkspaceScope, type DatabaseExecutor } from "./db";
+import { HttpError } from "./errors";
+
+export type SyncClientPlatform = "ios" | "android" | "web";
+export type WorkspaceReplicaActorKind =
+  | "client_installation"
+  | "workspace_seed"
+  | "agent_connection"
+  | "ai_chat";
+export type WorkspaceReplicaPlatform = SyncClientPlatform | "system";
+
+type InstallationRow = Readonly<{
+  installation_id: string;
+  platform: SyncClientPlatform;
+}>;
+
+type WorkspaceReplicaRow = Readonly<{
+  replica_id: string;
+  platform: WorkspaceReplicaPlatform;
+}>;
+
+type EnsureClientWorkspaceReplicaParams = Readonly<{
+  workspaceId: string;
+  userId: string;
+  installationId: string;
+  platform: SyncClientPlatform;
+  appVersion: string | null;
+}>;
+
+type EnsureSystemWorkspaceReplicaParams = Readonly<{
+  workspaceId: string;
+  userId: string;
+  actorKind: Exclude<WorkspaceReplicaActorKind, "client_installation">;
+  actorKey: string;
+  platform: WorkspaceReplicaPlatform;
+  appVersion: string | null;
+}>;
+
+function toUuidFromSeed(seed: string): string {
+  const digest = createHash("sha256").update(seed).digest("hex");
+  const baseHex = digest.slice(0, 32).split("");
+
+  baseHex[12] = "5";
+  baseHex[16] = ((parseInt(baseHex[16], 16) & 0x3) | 0x8).toString(16);
+
+  return [
+    baseHex.slice(0, 8).join(""),
+    baseHex.slice(8, 12).join(""),
+    baseHex.slice(12, 16).join(""),
+    baseHex.slice(16, 20).join(""),
+    baseHex.slice(20, 32).join(""),
+  ].join("-");
+}
+
+/**
+ * Installations are global physical app/browser identities. They may change
+ * users and workspaces over time, but their platform must remain stable.
+ */
+async function ensureInstallationInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  installationId: string,
+  platform: SyncClientPlatform,
+  appVersion: string | null,
+): Promise<void> {
+  const insertResult = await executor.query<InstallationRow>(
+    [
+      "INSERT INTO sync.installations",
+      "(installation_id, user_id, platform, app_version, last_seen_at)",
+      "VALUES ($1, $2, $3, $4, now())",
+      "ON CONFLICT (installation_id) DO NOTHING",
+      "RETURNING installation_id, platform",
+    ].join(" "),
+    [installationId, userId, platform, appVersion],
+  );
+
+  if (insertResult.rows.length === 1) {
+    return;
+  }
+
+  const updateResult = await executor.query<InstallationRow>(
+    [
+      "UPDATE sync.installations",
+      "SET user_id = $2, app_version = $4, last_seen_at = now()",
+      "WHERE installation_id = $1 AND platform = $3",
+      "RETURNING installation_id, platform",
+    ].join(" "),
+    [installationId, userId, platform, appVersion],
+  );
+
+  if (updateResult.rows.length === 1) {
+    return;
+  }
+
+  throw new HttpError(
+    409,
+    "installationId is already registered with a different platform",
+    "SYNC_INSTALLATION_PLATFORM_MISMATCH",
+  );
+}
+
+async function upsertWorkspaceReplicaInExecutor(
+  executor: DatabaseExecutor,
+  replicaId: string,
+  workspaceId: string,
+  userId: string,
+  actorKind: WorkspaceReplicaActorKind,
+  installationId: string | null,
+  actorKey: string | null,
+  platform: WorkspaceReplicaPlatform,
+  appVersion: string | null,
+): Promise<string> {
+  const insertResult = await executor.query<WorkspaceReplicaRow>(
+    [
+      "INSERT INTO sync.workspace_replicas",
+      "(",
+      "replica_id, workspace_id, user_id, actor_kind, installation_id, actor_key, platform, app_version, last_seen_at",
+      ")",
+      "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())",
+      "ON CONFLICT (replica_id) DO NOTHING",
+      "RETURNING replica_id, platform",
+    ].join(" "),
+    [replicaId, workspaceId, userId, actorKind, installationId, actorKey, platform, appVersion],
+  );
+
+  if (insertResult.rows.length === 1) {
+    return replicaId;
+  }
+
+  const updateResult = await executor.query<WorkspaceReplicaRow>(
+    [
+      "UPDATE sync.workspace_replicas",
+      "SET user_id = $3, app_version = $8, last_seen_at = now()",
+      "WHERE replica_id = $1",
+      "AND workspace_id = $2",
+      "AND actor_kind = $4",
+      "AND installation_id IS NOT DISTINCT FROM $5",
+      "AND actor_key IS NOT DISTINCT FROM $6",
+      "AND platform = $7",
+      "RETURNING replica_id, platform",
+    ].join(" "),
+    [replicaId, workspaceId, userId, actorKind, installationId, actorKey, platform, appVersion],
+  );
+
+  if (updateResult.rows.length === 1) {
+    return replicaId;
+  }
+
+  throw new HttpError(
+    409,
+    "workspace replica identity conflicts with existing sync metadata",
+    "SYNC_REPLICA_CONFLICT",
+  );
+}
+
+/**
+ * Client-authenticated sync requests provide only installation identity. The
+ * backend derives the immutable workspace replica and stamps it into canonical
+ * rows and sync history.
+ */
+export async function ensureWorkspaceReplicaInExecutor(
+  executor: DatabaseExecutor,
+  params: EnsureClientWorkspaceReplicaParams,
+): Promise<string> {
+  await ensureInstallationInExecutor(
+    executor,
+    params.userId,
+    params.installationId,
+    params.platform,
+    params.appVersion,
+  );
+
+  const replicaId = toUuidFromSeed(`${params.workspaceId}:${params.installationId}`);
+  return upsertWorkspaceReplicaInExecutor(
+    executor,
+    replicaId,
+    params.workspaceId,
+    params.userId,
+    "client_installation",
+    params.installationId,
+    null,
+    params.platform,
+    params.appVersion,
+  );
+}
+
+export async function ensureWorkspaceReplica(
+  params: EnsureClientWorkspaceReplicaParams,
+): Promise<string> {
+  return transactionWithWorkspaceScope(
+    { userId: params.userId, workspaceId: params.workspaceId },
+    async (executor) => ensureWorkspaceReplicaInExecutor(executor, params),
+  );
+}
+
+/**
+ * Non-client actors never move between workspaces either. Each one gets a
+ * deterministic workspace replica keyed by actor kind plus actor-specific key.
+ */
+export async function ensureSystemWorkspaceReplica(
+  params: EnsureSystemWorkspaceReplicaParams,
+): Promise<string> {
+  const replicaId = toUuidFromSeed(`${params.workspaceId}:${params.actorKind}:${params.actorKey}`);
+
+  return transactionWithWorkspaceScope(
+    { userId: params.userId, workspaceId: params.workspaceId },
+    async (executor) => ensureSystemWorkspaceReplicaInExecutor(executor, params, replicaId),
+  );
+}
+
+export async function ensureSystemWorkspaceReplicaInExecutor(
+  executor: DatabaseExecutor,
+  params: EnsureSystemWorkspaceReplicaParams,
+  explicitReplicaId?: string,
+): Promise<string> {
+  const replicaId = explicitReplicaId ?? toUuidFromSeed(`${params.workspaceId}:${params.actorKind}:${params.actorKey}`);
+
+  return upsertWorkspaceReplicaInExecutor(
+    executor,
+    replicaId,
+    params.workspaceId,
+    params.userId,
+    params.actorKind,
+    null,
+    params.actorKey,
+    params.platform,
+    params.appVersion,
+  );
+}

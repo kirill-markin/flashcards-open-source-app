@@ -24,7 +24,7 @@ export type StoredCard = Readonly<{
   fsrsLastReviewedAt: string | null;
   fsrsScheduledDays: number | null;
   clientUpdatedAt: string;
-  lastModifiedByDeviceId: string;
+  lastModifiedByReplicaId: string;
   lastOperationId: string;
   updatedAt: string;
   deletedAt: string | null;

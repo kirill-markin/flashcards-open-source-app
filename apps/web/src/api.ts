@@ -498,7 +498,7 @@ export async function deleteMyAccount(confirmationText: string): Promise<Readonl
 
 export async function pushSyncOperations(
   workspaceId: string,
-  deviceId: string,
+  installationId: string,
   platform: "web",
   appVersion: string,
   operations: ReadonlyArray<SyncPushOperation>,
@@ -506,7 +506,7 @@ export async function pushSyncOperations(
   return parseSyncPushResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/push`, {
     method: "POST",
     body: JSON.stringify({
-      deviceId,
+      installationId,
       platform,
       appVersion,
       operations,
@@ -516,7 +516,7 @@ export async function pushSyncOperations(
 
 export async function pullSyncChanges(
   workspaceId: string,
-  deviceId: string,
+  installationId: string,
   platform: "web",
   appVersion: string,
   afterHotChangeId: number,
@@ -525,7 +525,7 @@ export async function pullSyncChanges(
   return parseSyncPullResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/pull`, {
     method: "POST",
     body: JSON.stringify({
-      deviceId,
+      installationId,
       platform,
       appVersion,
       afterHotChangeId,
@@ -536,7 +536,7 @@ export async function pullSyncChanges(
 
 export async function bootstrapPullSyncState(
   workspaceId: string,
-  deviceId: string,
+  installationId: string,
   platform: "web",
   appVersion: string,
   cursor: string | null,
@@ -546,7 +546,7 @@ export async function bootstrapPullSyncState(
     method: "POST",
     body: JSON.stringify({
       mode: "pull",
-      deviceId,
+      installationId,
       platform,
       appVersion,
       cursor,
@@ -557,7 +557,7 @@ export async function bootstrapPullSyncState(
 
 export async function bootstrapPushSyncState(
   workspaceId: string,
-  deviceId: string,
+  installationId: string,
   platform: "web",
   appVersion: string,
   entries: ReadonlyArray<SyncBootstrapEntry>,
@@ -566,7 +566,7 @@ export async function bootstrapPushSyncState(
     method: "POST",
     body: JSON.stringify({
       mode: "push",
-      deviceId,
+      installationId,
       platform,
       appVersion,
       entries,
@@ -576,7 +576,7 @@ export async function bootstrapPushSyncState(
 
 export async function pullReviewHistorySync(
   workspaceId: string,
-  deviceId: string,
+  installationId: string,
   platform: "web",
   appVersion: string,
   afterReviewSequenceId: number,
@@ -585,7 +585,7 @@ export async function pullReviewHistorySync(
   return parseSyncReviewHistoryPullResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/review-history/pull`, {
     method: "POST",
     body: JSON.stringify({
-      deviceId,
+      installationId,
       platform,
       appVersion,
       afterReviewSequenceId,
@@ -596,7 +596,7 @@ export async function pullReviewHistorySync(
 
 export async function importReviewHistorySync(
   workspaceId: string,
-  deviceId: string,
+  installationId: string,
   platform: "web",
   appVersion: string,
   reviewEvents: ReadonlyArray<ReviewEvent>,
@@ -604,7 +604,7 @@ export async function importReviewHistorySync(
   return parseSyncReviewHistoryImportResultResponse(await requestJson(`/workspaces/${workspaceId}/sync/review-history/import`, {
     method: "POST",
     body: JSON.stringify({
-      deviceId,
+      installationId,
       platform,
       appVersion,
       reviewEvents,

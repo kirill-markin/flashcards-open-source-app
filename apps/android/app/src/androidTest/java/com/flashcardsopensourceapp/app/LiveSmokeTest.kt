@@ -1367,7 +1367,7 @@ class LiveSmokeTest {
                 "linkedUserId=${cloudSettings.linkedUserId} " +
                 "linkedWorkspaceId=${cloudSettings.linkedWorkspaceId} " +
                 "activeWorkspaceId=${cloudSettings.activeWorkspaceId} " +
-                "deviceId=${cloudSettings.deviceId}"
+                "installationId=${cloudSettings.installationId}"
         }
     }
 

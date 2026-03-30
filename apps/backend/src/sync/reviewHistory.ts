@@ -4,11 +4,8 @@ import {
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../db";
-import {
-  ensureSyncDevice,
-  type SyncDevicePlatform,
-} from "../devices";
 import { HttpError } from "../errors";
+import { ensureWorkspaceReplica } from "../syncIdentity";
 import type {
   SyncReviewHistoryImportInput,
   SyncReviewHistoryPullInput,
@@ -59,7 +56,7 @@ export function mapReviewHistoryRows(rows: ReadonlyArray<ReviewHistoryRow>): Rea
     reviewEventId: row.review_event_id,
     workspaceId: row.workspace_id,
     cardId: row.card_id,
-    deviceId: row.device_id,
+    replicaId: row.replica_id,
     clientEventId: row.client_event_id,
     rating: row.rating,
     reviewedAtClient: toIsoString(row.reviewed_at_client),
@@ -70,17 +67,13 @@ export function mapReviewHistoryRows(rows: ReadonlyArray<ReviewHistoryRow>): Rea
 export async function processSyncReviewHistoryImportInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
-  deviceId: string,
+  replicaId: string,
   input: SyncReviewHistoryImportInput,
 ): Promise<SyncReviewHistoryImportResult> {
   let importedCount = 0;
   let duplicateCount = 0;
 
   for (const reviewEvent of input.reviewEvents) {
-    if (reviewEvent.deviceId !== deviceId) {
-      throw new HttpError(400, "reviewEvent.deviceId must match the authenticated sync deviceId");
-    }
-
     const mutation = await appendReviewEventSnapshotInExecutor(
       executor,
       workspaceId,
@@ -88,7 +81,7 @@ export async function processSyncReviewHistoryImportInExecutor(
         reviewEventId: reviewEvent.reviewEventId,
         workspaceId,
         cardId: reviewEvent.cardId,
-        deviceId: reviewEvent.deviceId,
+        replicaId,
         clientEventId: reviewEvent.clientEventId,
         rating: reviewEvent.rating,
         reviewedAtClient: reviewEvent.reviewedAtClient,
@@ -116,18 +109,18 @@ export async function processSyncReviewHistoryPull(
   userId: string,
   input: SyncReviewHistoryPullInput,
 ): Promise<SyncReviewHistoryPullResult> {
-  await ensureSyncDevice(
+  await ensureWorkspaceReplica({
     workspaceId,
     userId,
-    input.deviceId,
-    input.platform as SyncDevicePlatform,
-    input.appVersion ?? null,
-  );
+    installationId: input.installationId,
+    platform: input.platform,
+    appVersion: input.appVersion ?? null,
+  });
 
   const result = await queryWithWorkspaceScope<ReviewHistoryRow>(
     { userId, workspaceId },
     [
-      "SELECT review_event_id, workspace_id, device_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server, review_sequence",
+      "SELECT review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server, review_sequence",
       "FROM content.review_events",
       "WHERE workspace_id = $1 AND review_sequence > $2",
       "ORDER BY review_sequence ASC",
@@ -155,16 +148,16 @@ export async function processSyncReviewHistoryImport(
   userId: string,
   input: SyncReviewHistoryImportInput,
 ): Promise<SyncReviewHistoryImportResult> {
-  await ensureSyncDevice(
+  const replicaId = await ensureWorkspaceReplica({
     workspaceId,
     userId,
-    input.deviceId,
-    input.platform as SyncDevicePlatform,
-    input.appVersion ?? null,
-  );
+    installationId: input.installationId,
+    platform: input.platform,
+    appVersion: input.appVersion ?? null,
+  });
 
   return transactionWithWorkspaceScope(
     { userId, workspaceId },
-    async (executor) => processSyncReviewHistoryImportInExecutor(executor, workspaceId, input.deviceId, input),
+    async (executor) => processSyncReviewHistoryImportInExecutor(executor, workspaceId, replicaId, input),
   );
 }

@@ -96,7 +96,7 @@ struct SyncApplier {
                     fsrs_last_reviewed_at,
                     fsrs_scheduled_days,
                     client_updated_at,
-                    last_modified_by_device_id,
+                    last_modified_by_replica_id,
                     last_operation_id,
                     updated_at,
                     deleted_at
@@ -121,7 +121,7 @@ struct SyncApplier {
                     card.fsrsLastReviewedAt.map(SQLiteValue.text) ?? .null,
                     card.fsrsScheduledDays.map { SQLiteValue.integer(Int64($0)) } ?? .null,
                     .text(card.clientUpdatedAt),
-                    .text(card.lastModifiedByDeviceId),
+                    .text(card.lastModifiedByReplicaId),
                     .text(card.lastOperationId),
                     .text(card.updatedAt),
                     card.deletedAt.map(SQLiteValue.text) ?? .null
@@ -138,7 +138,7 @@ struct SyncApplier {
         _ = try self.core.execute(
             sql: """
             UPDATE cards
-            SET front_text = ?, back_text = ?, tags_json = ?, effort_level = ?, due_at = ?, created_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_device_id = ?, last_operation_id = ?, updated_at = ?, deleted_at = ?
+            SET front_text = ?, back_text = ?, tags_json = ?, effort_level = ?, due_at = ?, created_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?, deleted_at = ?
             WHERE workspace_id = ? AND card_id = ?
             """,
             values: [
@@ -157,7 +157,7 @@ struct SyncApplier {
                 card.fsrsLastReviewedAt.map(SQLiteValue.text) ?? .null,
                 card.fsrsScheduledDays.map { SQLiteValue.integer(Int64($0)) } ?? .null,
                 .text(card.clientUpdatedAt),
-                .text(card.lastModifiedByDeviceId),
+                .text(card.lastModifiedByReplicaId),
                 .text(card.lastOperationId),
                 .text(card.updatedAt),
                 card.deletedAt.map(SQLiteValue.text) ?? .null,
@@ -190,7 +190,7 @@ struct SyncApplier {
                     filter_definition_json,
                     created_at,
                     client_updated_at,
-                    last_modified_by_device_id,
+                    last_modified_by_replica_id,
                     last_operation_id,
                     updated_at,
                     deleted_at
@@ -204,7 +204,7 @@ struct SyncApplier {
                     .text(filterJson),
                     .text(deck.createdAt),
                     .text(deck.clientUpdatedAt),
-                    .text(deck.lastModifiedByDeviceId),
+                    .text(deck.lastModifiedByReplicaId),
                     .text(deck.lastOperationId),
                     .text(deck.updatedAt),
                     deck.deletedAt.map(SQLiteValue.text) ?? .null
@@ -216,7 +216,7 @@ struct SyncApplier {
         _ = try self.core.execute(
             sql: """
             UPDATE decks
-            SET name = ?, filter_definition_json = ?, created_at = ?, client_updated_at = ?, last_modified_by_device_id = ?, last_operation_id = ?, updated_at = ?, deleted_at = ?
+            SET name = ?, filter_definition_json = ?, created_at = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?, deleted_at = ?
             WHERE workspace_id = ? AND deck_id = ?
             """,
             values: [
@@ -224,7 +224,7 @@ struct SyncApplier {
                 .text(filterJson),
                 .text(deck.createdAt),
                 .text(deck.clientUpdatedAt),
-                .text(deck.lastModifiedByDeviceId),
+                .text(deck.lastModifiedByReplicaId),
                 .text(deck.lastOperationId),
                 .text(deck.updatedAt),
                 deck.deletedAt.map(SQLiteValue.text) ?? .null,
@@ -242,7 +242,7 @@ struct SyncApplier {
         _ = try self.core.execute(
             sql: """
             UPDATE workspaces
-            SET fsrs_algorithm = ?, fsrs_desired_retention = ?, fsrs_learning_steps_minutes_json = ?, fsrs_relearning_steps_minutes_json = ?, fsrs_maximum_interval_days = ?, fsrs_enable_fuzz = ?, fsrs_client_updated_at = ?, fsrs_last_modified_by_device_id = ?, fsrs_last_operation_id = ?, fsrs_updated_at = ?
+            SET fsrs_algorithm = ?, fsrs_desired_retention = ?, fsrs_learning_steps_minutes_json = ?, fsrs_relearning_steps_minutes_json = ?, fsrs_maximum_interval_days = ?, fsrs_enable_fuzz = ?, fsrs_client_updated_at = ?, fsrs_last_modified_by_replica_id = ?, fsrs_last_operation_id = ?, fsrs_updated_at = ?
             WHERE workspace_id = ?
             """,
             values: [
@@ -253,7 +253,7 @@ struct SyncApplier {
                 .integer(Int64(settings.maximumIntervalDays)),
                 .integer(settings.enableFuzz ? 1 : 0),
                 .text(settings.clientUpdatedAt),
-                .text(settings.lastModifiedByDeviceId),
+                .text(settings.lastModifiedByReplicaId),
                 .text(settings.lastOperationId),
                 .text(settings.updatedAt),
                 .text(workspaceId)
@@ -268,7 +268,7 @@ struct SyncApplier {
                 review_event_id,
                 workspace_id,
                 card_id,
-                device_id,
+                replica_id,
                 client_event_id,
                 rating,
                 reviewed_at_client,
@@ -280,7 +280,7 @@ struct SyncApplier {
                 .text(reviewEvent.reviewEventId),
                 .text(workspaceId),
                 .text(reviewEvent.cardId),
-                .text(reviewEvent.deviceId),
+                .text(reviewEvent.replicaId),
                 .text(reviewEvent.clientEventId),
                 .integer(Int64(reviewEvent.rating.rawValue)),
                 .text(reviewEvent.reviewedAtClient),
@@ -323,10 +323,10 @@ private func compareLwwTuple(
 private func compareLwwCard(left: Card, right: Card) -> Int {
     compareLwwTuple(
         leftClientUpdatedAt: left.clientUpdatedAt,
-        leftDeviceId: left.lastModifiedByDeviceId,
+        leftDeviceId: left.lastModifiedByReplicaId,
         leftOperationId: left.lastOperationId,
         rightClientUpdatedAt: right.clientUpdatedAt,
-        rightDeviceId: right.lastModifiedByDeviceId,
+        rightDeviceId: right.lastModifiedByReplicaId,
         rightOperationId: right.lastOperationId
     )
 }
@@ -334,10 +334,10 @@ private func compareLwwCard(left: Card, right: Card) -> Int {
 private func compareLwwDeck(left: Deck, right: Deck) -> Int {
     compareLwwTuple(
         leftClientUpdatedAt: left.clientUpdatedAt,
-        leftDeviceId: left.lastModifiedByDeviceId,
+        leftDeviceId: left.lastModifiedByReplicaId,
         leftOperationId: left.lastOperationId,
         rightClientUpdatedAt: right.clientUpdatedAt,
-        rightDeviceId: right.lastModifiedByDeviceId,
+        rightDeviceId: right.lastModifiedByReplicaId,
         rightOperationId: right.lastOperationId
     )
 }
@@ -345,10 +345,10 @@ private func compareLwwDeck(left: Deck, right: Deck) -> Int {
 private func compareLwwWorkspaceSettings(left: WorkspaceSchedulerSettings, right: WorkspaceSchedulerSettings) -> Int {
     compareLwwTuple(
         leftClientUpdatedAt: left.clientUpdatedAt,
-        leftDeviceId: left.lastModifiedByDeviceId,
+        leftDeviceId: left.lastModifiedByReplicaId,
         leftOperationId: left.lastOperationId,
         rightClientUpdatedAt: right.clientUpdatedAt,
-        rightDeviceId: right.lastModifiedByDeviceId,
+        rightDeviceId: right.lastModifiedByReplicaId,
         rightOperationId: right.lastOperationId
     )
 }

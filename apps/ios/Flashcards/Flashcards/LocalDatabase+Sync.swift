@@ -62,7 +62,7 @@ extension LocalDatabase {
             let cloudSettings = try self.workspaceSettingsStore.loadCloudSettings()
             return try self.outboxStore.deleteStaleReviewEventOutboxEntries(
                 workspaceId: workspaceId,
-                currentDeviceId: cloudSettings.deviceId
+                currentInstallationId: cloudSettings.installationId
             )
         }
     }

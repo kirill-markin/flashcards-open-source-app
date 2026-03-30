@@ -1,6 +1,6 @@
 export type LwwMetadata = Readonly<{
   clientUpdatedAt: string;
-  lastModifiedByDeviceId: string;
+  lastModifiedByReplicaId: string;
   lastOperationId: string;
 }>;
 
@@ -21,7 +21,7 @@ export function compareLwwMetadata(left: LwwMetadata, right: LwwMetadata): numbe
     return timestampDifference;
   }
 
-  const deviceComparison = left.lastModifiedByDeviceId.localeCompare(right.lastModifiedByDeviceId);
+  const deviceComparison = left.lastModifiedByReplicaId.localeCompare(right.lastModifiedByReplicaId);
   if (deviceComparison !== 0) {
     return deviceComparison;
   }

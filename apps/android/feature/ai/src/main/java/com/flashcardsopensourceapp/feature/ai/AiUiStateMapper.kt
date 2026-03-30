@@ -19,7 +19,7 @@ internal fun initialAiAppMetadataSummary(): AppMetadataSummary {
 
 internal fun initialAiCloudSettings(): CloudSettings {
     return CloudSettings(
-        deviceId = "",
+        installationId = "",
         cloudState = CloudAccountState.DISCONNECTED,
         linkedUserId = null,
         linkedWorkspaceId = null,

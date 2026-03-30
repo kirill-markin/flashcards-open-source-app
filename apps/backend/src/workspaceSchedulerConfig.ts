@@ -9,7 +9,7 @@ export type WorkspaceSchedulerSettings = Readonly<{
   maximumIntervalDays: number;
   enableFuzz: boolean;
   clientUpdatedAt: string;
-  lastModifiedByDeviceId: string;
+  lastModifiedByReplicaId: string;
   lastOperationId: string;
   updatedAt: string;
 }>;

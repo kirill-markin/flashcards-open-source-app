@@ -136,7 +136,7 @@ data class ReviewLogEntity(
     @PrimaryKey val reviewLogId: String,
     val workspaceId: String,
     val cardId: String,
-    val deviceId: String,
+    val replicaId: String,
     val clientEventId: String,
     val rating: ReviewRating,
     val reviewedAtMillis: Long,
@@ -181,7 +181,7 @@ data class WorkspaceSchedulerSettingsEntity(
 data class OutboxEntryEntity(
     @PrimaryKey val outboxEntryId: String,
     val workspaceId: String,
-    val deviceId: String,
+    val installationId: String,
     val entityType: String,
     val entityId: String,
     val operationType: String,

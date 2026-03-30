@@ -19,7 +19,7 @@ import java.util.UUID
 
 private const val cloudMetadataPreferencesName: String = "flashcards-cloud-metadata"
 private const val cloudSecretPreferencesName: String = "flashcards-cloud-secrets"
-private const val deviceIdKey: String = "device-id"
+private const val installationIdKey: String = "installation-id"
 private const val cloudStateKey: String = "cloud-state"
 private const val linkedUserIdKey: String = "linked-user-id"
 private const val linkedWorkspaceIdKey: String = "linked-workspace-id"
@@ -163,14 +163,16 @@ class CloudPreferencesStore(
         accountDeletionState.value = AccountDeletionState.Hidden
     }
 
-    fun regenerateDeviceId(): String {
-        val deviceId = UUID.randomUUID().toString()
+    fun regenerateInstallationId(): String {
+        // Installation identity is global per app install and must never be reused
+        // after an explicit local identity reset.
+        val installationId = UUID.randomUUID().toString()
         metadataPreferences.edit(commit = true) {
-            putString(deviceIdKey, deviceId)
+            putString(installationIdKey, installationId)
             putLong(updatedAtMillisKey, System.currentTimeMillis())
         }
         cloudSettingsState.value = loadCloudSettings()
-        return deviceId
+        return installationId
     }
 
     fun applyCustomServer(configuration: CloudServiceConfiguration) {
@@ -191,9 +193,9 @@ class CloudPreferencesStore(
     }
 
     private fun loadCloudSettings(): CloudSettings {
-        val deviceId = metadataPreferences.getString(deviceIdKey, null) ?: createDeviceId()
+        val installationId = metadataPreferences.getString(installationIdKey, null) ?: createInstallationId()
         return CloudSettings(
-            deviceId = deviceId,
+            installationId = installationId,
             cloudState = CloudAccountState.valueOf(
                 metadataPreferences.getString(cloudStateKey, CloudAccountState.DISCONNECTED.name)
                     ?: CloudAccountState.DISCONNECTED.name
@@ -226,12 +228,13 @@ class CloudPreferencesStore(
         }
     }
 
-    private fun createDeviceId(): String {
-        val deviceId = UUID.randomUUID().toString()
+    private fun createInstallationId(): String {
+        // The first generated installation id survives user and workspace switches.
+        val installationId = UUID.randomUUID().toString()
         metadataPreferences.edit(commit = true) {
-            putString(deviceIdKey, deviceId)
+            putString(installationIdKey, installationId)
         }
-        return deviceId
+        return installationId
     }
 }
 

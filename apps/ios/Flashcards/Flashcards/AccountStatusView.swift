@@ -56,8 +56,8 @@ struct AccountStatusView: View {
                         Text(displayCloudAccountStateTitle(cloudState: cloudSettings.cloudState))
                     }
 
-                    LabeledContent("Device ID") {
-                        Text(cloudSettings.deviceId)
+                    LabeledContent("Installation ID") {
+                        Text(cloudSettings.installationId)
                             .font(.caption.monospaced())
                             .multilineTextAlignment(.trailing)
                     }

@@ -57,7 +57,7 @@ type WorkspaceSchedulerSettingsRow = Readonly<{
   fsrs_maximum_interval_days: number;
   fsrs_enable_fuzz: boolean;
   fsrs_client_updated_at: Date | string;
-  fsrs_last_modified_by_device_id: string;
+  fsrs_last_modified_by_replica_id: string;
   fsrs_last_operation_id: string;
   fsrs_updated_at: Date | string;
 }>;
@@ -107,7 +107,7 @@ function mapWorkspaceSchedulerSettings(row: WorkspaceSchedulerSettingsRow): Work
     maximumIntervalDays: row.fsrs_maximum_interval_days,
     enableFuzz: row.fsrs_enable_fuzz,
     clientUpdatedAt: toIsoString(row.fsrs_client_updated_at),
-    lastModifiedByDeviceId: row.fsrs_last_modified_by_device_id,
+    lastModifiedByReplicaId: row.fsrs_last_modified_by_replica_id,
     lastOperationId: row.fsrs_last_operation_id,
     updatedAt: toIsoString(row.fsrs_updated_at),
   };
@@ -134,7 +134,7 @@ function toWorkspaceSchedulerLwwMetadata(
 ): WorkspaceSchedulerSettingsMutationMetadata {
   return {
     clientUpdatedAt: settings.clientUpdatedAt,
-    lastModifiedByDeviceId: settings.lastModifiedByDeviceId,
+    lastModifiedByReplicaId: settings.lastModifiedByReplicaId,
     lastOperationId: settings.lastOperationId,
   };
 }
@@ -150,7 +150,7 @@ async function recordWorkspaceSchedulerSyncChange(
     "workspace_scheduler_settings",
     workspaceId,
     "upsert",
-    settings.lastModifiedByDeviceId,
+    settings.lastModifiedByReplicaId,
     settings.lastOperationId,
     settings.clientUpdatedAt,
   );
@@ -161,7 +161,7 @@ function normalizeWorkspaceSchedulerMutationMetadata(
 ): WorkspaceSchedulerSettingsMutationMetadata {
   return {
     clientUpdatedAt: normalizeIsoTimestamp(metadata.clientUpdatedAt, "clientUpdatedAt"),
-    lastModifiedByDeviceId: metadata.lastModifiedByDeviceId,
+    lastModifiedByReplicaId: metadata.lastModifiedByReplicaId,
     lastOperationId: metadata.lastOperationId,
   };
 }
@@ -208,7 +208,7 @@ export async function getWorkspaceSchedulerSettings(
       "SELECT",
       "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
       "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
-      "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
+      "fsrs_last_modified_by_replica_id, fsrs_last_operation_id, fsrs_updated_at",
       "FROM org.workspaces",
       "WHERE workspace_id = $1",
     ].join(" "),
@@ -233,7 +233,7 @@ export async function getWorkspaceSchedulerConfig(
       "SELECT",
       "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
       "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
-      "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
+      "fsrs_last_modified_by_replica_id, fsrs_last_operation_id, fsrs_updated_at",
       "FROM org.workspaces",
       "WHERE workspace_id = $1",
       "FOR UPDATE",
@@ -304,7 +304,7 @@ export async function applyWorkspaceSchedulerSettingsSnapshotInExecutor(
       "SELECT",
       "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
       "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
-      "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
+      "fsrs_last_modified_by_replica_id, fsrs_last_operation_id, fsrs_updated_at",
       "FROM org.workspaces",
       "WHERE workspace_id = $1",
       "FOR UPDATE",
@@ -331,12 +331,12 @@ export async function applyWorkspaceSchedulerSettingsSnapshotInExecutor(
       "UPDATE org.workspaces",
       "SET fsrs_desired_retention = $1, fsrs_learning_steps_minutes = $2::jsonb, fsrs_relearning_steps_minutes = $3::jsonb,",
       "fsrs_maximum_interval_days = $4, fsrs_enable_fuzz = $5, fsrs_client_updated_at = $6,",
-      "fsrs_last_modified_by_device_id = $7, fsrs_last_operation_id = $8, fsrs_updated_at = now()",
+      "fsrs_last_modified_by_replica_id = $7, fsrs_last_operation_id = $8, fsrs_updated_at = now()",
       "WHERE workspace_id = $9",
       "RETURNING",
       "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
       "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
-      "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
+      "fsrs_last_modified_by_replica_id, fsrs_last_operation_id, fsrs_updated_at",
     ].join(" "),
     [
       validatedInput.desiredRetention,
@@ -345,7 +345,7 @@ export async function applyWorkspaceSchedulerSettingsSnapshotInExecutor(
       validatedInput.maximumIntervalDays,
       validatedInput.enableFuzz,
       normalizedMetadata.clientUpdatedAt,
-      normalizedMetadata.lastModifiedByDeviceId,
+      normalizedMetadata.lastModifiedByReplicaId,
       normalizedMetadata.lastOperationId,
       workspaceId,
     ],

@@ -131,16 +131,16 @@ async function requireDeck(workspaceId: string, deckId: string): Promise<Deck> {
   return deck;
 }
 
-function requireCloudDeviceId(cloudSettings: CloudSettings | null): string {
+function requireCloudInstallationId(cloudSettings: CloudSettings | null): string {
   if (cloudSettings === null) {
     throw new Error("Cloud settings are not loaded");
   }
 
-  if (cloudSettings.deviceId.trim() === "") {
-    throw new Error("Cloud settings deviceId is not loaded");
+  if (cloudSettings.installationId.trim() === "") {
+    throw new Error("Cloud settings installationId is not loaded");
   }
 
-  return cloudSettings.deviceId;
+  return cloudSettings.installationId;
 }
 
 function findLastWorkspaceSettingsEntry(
@@ -245,7 +245,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const syncTask = (async (): Promise<void> => {
       try {
         const cloudSettings = await loadCloudSettings();
-        const deviceId = requireCloudDeviceId(cloudSettings);
+        const installationId = requireCloudInstallationId(cloudSettings);
         const hotStateHydrated = await hasHydratedHotState(workspaceId);
         if (hotStateHydrated === false) {
           let bootstrapCursor: string | null = null;
@@ -253,7 +253,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           while (true) {
             const bootstrapResult = await bootstrapPullSyncState(
               workspaceId,
-              deviceId,
+              installationId,
               "web",
               webAppVersion,
               bootstrapCursor,
@@ -292,7 +292,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           try {
             const pushResult = await pushSyncOperations(
               workspaceId,
-              deviceId,
+              installationId,
               "web",
               webAppVersion,
               batch.map((record) => record.operation),
@@ -322,7 +322,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         while (true) {
           const pullResult = await pullSyncChanges(
             workspaceId,
-            deviceId,
+            installationId,
             "web",
             webAppVersion,
             afterHotChangeId,
@@ -353,7 +353,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         while (true) {
           const reviewHistoryResult = await pullReviewHistorySync(
             workspaceId,
-            deviceId,
+            installationId,
             "web",
             webAppVersion,
             afterReviewSequenceId,
@@ -458,8 +458,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const normalizedInput = normalizeCreateCardInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
-    const deviceId = requireCloudDeviceId(await loadCloudSettings());
-    const nextCard = buildInitialCard(normalizedInput, clientUpdatedAt, deviceId, operationId);
+    const installationId = requireCloudInstallationId(await loadCloudSettings());
+    const nextCard = buildInitialCard(normalizedInput, clientUpdatedAt, installationId, operationId);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
       workspaceId: activeWorkspaceId,
@@ -484,9 +484,9 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const normalizedInput = normalizeCreateDeckInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
-    const deviceId = requireCloudDeviceId(await loadCloudSettings());
+    const installationId = requireCloudInstallationId(await loadCloudSettings());
     const nextDeck = {
-      ...buildDeck(normalizedInput, clientUpdatedAt, deviceId, operationId),
+      ...buildDeck(normalizedInput, clientUpdatedAt, installationId, operationId),
       workspaceId: activeWorkspaceId,
     };
     const nextOutboxRecord: PersistedOutboxRecord = {
@@ -514,8 +514,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const normalizedInput = normalizeUpdateCardInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
-    const deviceId = requireCloudDeviceId(await loadCloudSettings());
-    const nextCard = buildUpdatedCard(existingCard, normalizedInput, clientUpdatedAt, deviceId, operationId);
+    const installationId = requireCloudInstallationId(await loadCloudSettings());
+    const nextCard = buildUpdatedCard(existingCard, normalizedInput, clientUpdatedAt, installationId, operationId);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
       workspaceId: activeWorkspaceId,
@@ -541,8 +541,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const normalizedInput = normalizeUpdateDeckInput(input);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
-    const deviceId = requireCloudDeviceId(await loadCloudSettings());
-    const nextDeck = buildUpdatedDeck(existingDeck, normalizedInput, clientUpdatedAt, deviceId, operationId);
+    const installationId = requireCloudInstallationId(await loadCloudSettings());
+    const nextDeck = buildUpdatedDeck(existingDeck, normalizedInput, clientUpdatedAt, installationId, operationId);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
       workspaceId: activeWorkspaceId,
@@ -567,8 +567,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const existingCard = await requireCard(activeWorkspaceId, cardId);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
-    const deviceId = requireCloudDeviceId(await loadCloudSettings());
-    const nextCard = buildDeletedCard(existingCard, clientUpdatedAt, deviceId, operationId);
+    const installationId = requireCloudInstallationId(await loadCloudSettings());
+    const nextCard = buildDeletedCard(existingCard, clientUpdatedAt, installationId, operationId);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
       workspaceId: activeWorkspaceId,
@@ -593,8 +593,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const existingDeck = await requireDeck(activeWorkspaceId, deckId);
     const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
-    const deviceId = requireCloudDeviceId(await loadCloudSettings());
-    const nextDeck = buildDeletedDeck(existingDeck, clientUpdatedAt, deviceId, operationId);
+    const installationId = requireCloudInstallationId(await loadCloudSettings());
+    const nextDeck = buildDeletedDeck(existingDeck, clientUpdatedAt, installationId, operationId);
     const nextOutboxRecord: PersistedOutboxRecord = {
       operationId,
       workspaceId: activeWorkspaceId,
@@ -631,7 +631,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     const reviewEventId = crypto.randomUUID().toLowerCase();
     const clientEventId = crypto.randomUUID().toLowerCase();
     const cardOperationId = crypto.randomUUID().toLowerCase();
-    const deviceId = requireCloudDeviceId(await loadCloudSettings());
+    const installationId = requireCloudInstallationId(await loadCloudSettings());
     const schedule = computeReviewSchedule(
       toReviewableCardState(existingCard),
       {
@@ -646,11 +646,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       new Date(reviewedAtClient),
     );
 
-    const nextCard = buildReviewedCard(existingCard, schedule, reviewedAtClient, deviceId, cardOperationId);
+    const nextCard = buildReviewedCard(existingCard, schedule, reviewedAtClient, installationId, cardOperationId);
     const nextReviewEvent = buildReviewEvent(
       activeWorkspaceId,
       cardId,
-      deviceId,
+      installationId,
       rating,
       reviewedAtClient,
       reviewEventId,

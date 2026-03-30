@@ -76,7 +76,7 @@ test("validateOrResetCardRowForRead resets an invalid card to canonical new stat
     fsrs_last_reviewed_at: "2026-03-08T09:00:00.000Z",
     fsrs_scheduled_days: 0,
     client_updated_at: "2026-03-08T09:00:00.000Z",
-    last_modified_by_device_id: "device-a",
+    last_modified_by_replica_id: "device-a",
     last_operation_id: "operation-a",
     updated_at: "2026-03-08T09:00:00.000Z",
     deleted_at: null,

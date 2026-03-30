@@ -33,7 +33,7 @@ class CloudIdentityResetCoordinator(
                     database = database,
                     currentTimeMillis = System.currentTimeMillis()
                 )
-                cloudPreferencesStore.regenerateDeviceId()
+                cloudPreferencesStore.regenerateInstallationId()
                 cloudPreferencesStore.updateCloudSettings(
                     cloudState = CloudAccountState.DISCONNECTED,
                     linkedUserId = null,

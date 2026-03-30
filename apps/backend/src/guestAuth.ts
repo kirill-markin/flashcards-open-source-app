@@ -10,6 +10,13 @@ import { HttpError } from "./errors";
 import { compareLwwMetadata } from "./lww";
 import { insertSyncChange } from "./syncChanges";
 import {
+  ensureSystemWorkspaceReplicaInExecutor,
+  ensureWorkspaceReplicaInExecutor,
+  type SyncClientPlatform,
+  type WorkspaceReplicaActorKind,
+  type WorkspaceReplicaPlatform,
+} from "./syncIdentity";
+import {
   AUTO_CREATED_WORKSPACE_NAME,
   createWorkspaceInExecutor,
 } from "./workspaces";
@@ -34,9 +41,12 @@ type WorkspaceSummaryRow = Readonly<{
   created_at: Date | string;
 }>;
 
-type SyncDeviceRow = Readonly<{
-  device_id: string;
-  platform: string;
+type WorkspaceReplicaRow = Readonly<{
+  replica_id: string;
+  actor_kind: WorkspaceReplicaActorKind;
+  installation_id: string | null;
+  actor_key: string | null;
+  platform: WorkspaceReplicaPlatform;
   app_version: string | null;
   created_at: Date | string;
   last_seen_at: Date | string;
@@ -59,7 +69,7 @@ type CardRow = Readonly<{
   fsrs_last_reviewed_at: Date | string | null;
   fsrs_scheduled_days: number | null;
   client_updated_at: Date | string;
-  last_modified_by_device_id: string;
+  last_modified_by_replica_id: string;
   last_operation_id: string;
   updated_at: Date | string;
   deleted_at: Date | string | null;
@@ -71,7 +81,7 @@ type DeckRow = Readonly<{
   filter_definition: Readonly<Record<string, unknown>>;
   created_at: Date | string;
   client_updated_at: Date | string;
-  last_modified_by_device_id: string;
+  last_modified_by_replica_id: string;
   last_operation_id: string;
   updated_at: Date | string;
   deleted_at: Date | string | null;
@@ -80,7 +90,7 @@ type DeckRow = Readonly<{
 type ReviewEventRow = Readonly<{
   review_event_id: string;
   card_id: string;
-  device_id: string;
+  replica_id: string;
   client_event_id: string;
   rating: number;
   reviewed_at_client: Date | string;
@@ -95,7 +105,7 @@ type WorkspaceSchedulerRow = Readonly<{
   fsrs_maximum_interval_days: number;
   fsrs_enable_fuzz: boolean;
   fsrs_client_updated_at: Date | string;
-  fsrs_last_modified_by_device_id: string;
+  fsrs_last_modified_by_replica_id: string;
   fsrs_last_operation_id: string;
   fsrs_updated_at: Date | string;
 }>;
@@ -140,7 +150,7 @@ type GuestUpgradeHistoryWrite = Readonly<{
   targetUserId: string;
   targetWorkspaceId: string;
   selectionType: GuestUpgradeSelectionType;
-  deviceIdMap: ReadonlyMap<string, string>;
+  replicaIdMap: ReadonlyMap<string, string>;
 }>;
 
 function toIsoString(value: Date | string): string {
@@ -278,22 +288,22 @@ async function assertTargetWorkspaceAccessInExecutor(
   }
 }
 
-async function loadGuestDevicesInExecutor(
+async function loadGuestReplicasInExecutor(
   executor: DatabaseExecutor,
   guestUserId: string,
   guestWorkspaceId: string,
-): Promise<ReadonlyArray<SyncDeviceRow>> {
+): Promise<ReadonlyArray<WorkspaceReplicaRow>> {
   await applyWorkspaceDatabaseScopeInExecutor(executor, {
     userId: guestUserId,
     workspaceId: guestWorkspaceId,
   });
 
-  const result = await executor.query<SyncDeviceRow>(
+  const result = await executor.query<WorkspaceReplicaRow>(
     [
-      "SELECT device_id, platform, app_version, created_at, last_seen_at",
-      "FROM sync.devices",
+      "SELECT replica_id, actor_kind, installation_id, actor_key, platform, app_version, created_at, last_seen_at",
+      "FROM sync.workspace_replicas",
       "WHERE workspace_id = $1",
-      "ORDER BY created_at ASC, device_id ASC",
+      "ORDER BY created_at ASC, replica_id ASC",
     ].join(" "),
     [guestWorkspaceId],
   );
@@ -316,7 +326,7 @@ async function loadGuestCardsInExecutor(
       "SELECT",
       "card_id, front_text, back_text, tags, effort_level, due_at, created_at, reps, lapses,",
       "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
-      "client_updated_at, last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "client_updated_at, last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
       "FROM content.cards",
       "WHERE workspace_id = $1",
       "ORDER BY created_at ASC, card_id ASC",
@@ -341,7 +351,7 @@ async function loadGuestDecksInExecutor(
     [
       "SELECT",
       "deck_id, name, filter_definition, created_at, client_updated_at,",
-      "last_modified_by_device_id, last_operation_id, updated_at, deleted_at",
+      "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
       "FROM content.decks",
       "WHERE workspace_id = $1",
       "ORDER BY created_at ASC, deck_id ASC",
@@ -364,7 +374,7 @@ async function loadGuestReviewEventsInExecutor(
 
   const result = await executor.query<ReviewEventRow>(
     [
-      "SELECT review_event_id, card_id, device_id, client_event_id, rating, reviewed_at_client, reviewed_at_server",
+      "SELECT review_event_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_at_server",
       "FROM content.review_events",
       "WHERE workspace_id = $1",
       "ORDER BY review_sequence ASC, review_event_id ASC",
@@ -390,7 +400,7 @@ async function loadWorkspaceSchedulerInExecutor(
       "SELECT",
       "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
       "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
-      "fsrs_last_modified_by_device_id, fsrs_last_operation_id, fsrs_updated_at",
+      "fsrs_last_modified_by_replica_id, fsrs_last_operation_id, fsrs_updated_at",
       "FROM org.workspaces",
       "WHERE workspace_id = $1",
       "LIMIT 1",
@@ -412,18 +422,18 @@ function schedulerWinnerIsGuest(
 ): boolean {
   return compareLwwMetadata({
     clientUpdatedAt: toIsoString(guestScheduler.fsrs_client_updated_at),
-    lastModifiedByDeviceId: guestScheduler.fsrs_last_modified_by_device_id,
+    lastModifiedByReplicaId: guestScheduler.fsrs_last_modified_by_replica_id,
     lastOperationId: guestScheduler.fsrs_last_operation_id,
   }, {
     clientUpdatedAt: toIsoString(targetScheduler.fsrs_client_updated_at),
-    lastModifiedByDeviceId: targetScheduler.fsrs_last_modified_by_device_id,
+    lastModifiedByReplicaId: targetScheduler.fsrs_last_modified_by_replica_id,
     lastOperationId: targetScheduler.fsrs_last_operation_id,
   }) > 0;
 }
 
-async function recreateGuestDevicesInExecutor(
+async function recreateGuestReplicasInExecutor(
   executor: DatabaseExecutor,
-  guestDevices: ReadonlyArray<SyncDeviceRow>,
+  guestReplicas: ReadonlyArray<WorkspaceReplicaRow>,
   targetUserId: string,
   targetWorkspaceId: string,
 ): Promise<ReadonlyMap<string, string>> {
@@ -432,31 +442,41 @@ async function recreateGuestDevicesInExecutor(
     workspaceId: targetWorkspaceId,
   });
 
-  const deviceIdMapEntries: Array<readonly [string, string]> = [];
-  for (const device of guestDevices) {
-    const nextDeviceId = randomUUID().toLowerCase();
-    await executor.query(
-      [
-        "INSERT INTO sync.devices",
-        "(",
-        "device_id, workspace_id, user_id, platform, app_version, created_at, last_seen_at",
-        ")",
-        "VALUES ($1, $2, $3, $4, $5, $6, $7)",
-      ].join(" "),
-      [
-        nextDeviceId,
-        targetWorkspaceId,
-        targetUserId,
-        device.platform,
-        device.app_version,
-        toIsoString(device.created_at),
-        toIsoString(device.last_seen_at),
-      ],
-    );
-    deviceIdMapEntries.push([device.device_id, nextDeviceId]);
+  const replicaIdMapEntries: Array<readonly [string, string]> = [];
+  for (const replica of guestReplicas) {
+    let targetReplicaId: string;
+
+    if (replica.actor_kind === "client_installation") {
+      if (replica.installation_id === null) {
+        throw new Error(`Guest replica ${replica.replica_id} is missing installation_id`);
+      }
+
+      targetReplicaId = await ensureWorkspaceReplicaInExecutor(executor, {
+        workspaceId: targetWorkspaceId,
+        userId: targetUserId,
+        installationId: replica.installation_id,
+        platform: replica.platform as SyncClientPlatform,
+        appVersion: replica.app_version,
+      });
+    } else {
+      if (replica.actor_key === null) {
+        throw new Error(`Guest replica ${replica.replica_id} is missing actor_key`);
+      }
+
+      targetReplicaId = await ensureSystemWorkspaceReplicaInExecutor(executor, {
+        workspaceId: targetWorkspaceId,
+        userId: targetUserId,
+        actorKind: replica.actor_kind,
+        actorKey: replica.actor_key,
+        platform: replica.platform,
+        appVersion: replica.app_version,
+      });
+    }
+
+    replicaIdMapEntries.push([replica.replica_id, targetReplicaId]);
   }
 
-  return new Map<string, string>(deviceIdMapEntries);
+  return new Map<string, string>(replicaIdMapEntries);
 }
 
 /**
@@ -464,7 +484,7 @@ async function recreateGuestDevicesInExecutor(
  *
  * Lookup semantics:
  * - source_guest_user_id -> current target user/workspace
- * - source_guest_device_id -> recreated target_device_id
+ * - source_guest_replica_id -> recreated target_replica_id
  *
  * The history tables intentionally avoid live-row foreign keys for guest and
  * target identity rows so destructive guest cleanup cannot erase this audit
@@ -495,34 +515,34 @@ async function recordGuestUpgradeHistoryInExecutor(
     ],
   );
 
-  for (const [sourceGuestDeviceId, targetDeviceId] of history.deviceIdMap) {
+  for (const [sourceGuestReplicaId, targetReplicaId] of history.replicaIdMap) {
     await executor.query(
       [
-        "INSERT INTO auth.guest_device_aliases",
+        "INSERT INTO auth.guest_replica_aliases",
         "(",
-        "source_guest_device_id, upgrade_id, target_device_id",
+        "source_guest_replica_id, upgrade_id, target_replica_id",
         ")",
         "VALUES ($1, $2, $3)",
       ].join(" "),
       [
-        sourceGuestDeviceId,
+        sourceGuestReplicaId,
         history.upgradeId,
-        targetDeviceId,
+        targetReplicaId,
       ],
     );
   }
 }
 
-function requireMappedDeviceId(
-  deviceIdMap: ReadonlyMap<string, string>,
-  oldDeviceId: string,
+function requireMappedReplicaId(
+  replicaIdMap: ReadonlyMap<string, string>,
+  oldReplicaId: string,
 ): string {
-  const nextDeviceId = deviceIdMap.get(oldDeviceId);
-  if (nextDeviceId === undefined) {
-    throw new Error(`Missing merged device mapping for ${oldDeviceId}`);
+  const nextReplicaId = replicaIdMap.get(oldReplicaId);
+  if (nextReplicaId === undefined) {
+    throw new Error(`Missing merged replica mapping for ${oldReplicaId}`);
   }
 
-  return nextDeviceId;
+  return nextReplicaId;
 }
 
 async function deleteGuestWorkspaceContentInExecutor(
@@ -550,7 +570,7 @@ async function insertMergedCardsInExecutor(
   targetUserId: string,
   targetWorkspaceId: string,
   cards: ReadonlyArray<CardRow>,
-  deviceIdMap: ReadonlyMap<string, string>,
+  replicaIdMap: ReadonlyMap<string, string>,
   mergeId: string,
 ): Promise<void> {
   await applyWorkspaceDatabaseScopeInExecutor(executor, {
@@ -559,14 +579,14 @@ async function insertMergedCardsInExecutor(
   });
 
   for (const card of cards) {
-    const nextDeviceId = requireMappedDeviceId(deviceIdMap, card.last_modified_by_device_id);
+    const nextReplicaId = requireMappedReplicaId(replicaIdMap, card.last_modified_by_replica_id);
     await executor.query(
       [
         "INSERT INTO content.cards",
         "(",
         "card_id, workspace_id, front_text, back_text, tags, effort_level, due_at, reps, lapses,",
         "updated_at, deleted_at, fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty,",
-        "fsrs_last_reviewed_at, fsrs_scheduled_days, client_updated_at, last_modified_by_device_id, last_operation_id, created_at",
+        "fsrs_last_reviewed_at, fsrs_scheduled_days, client_updated_at, last_modified_by_replica_id, last_operation_id, created_at",
         ")",
         "VALUES",
         "($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)",
@@ -590,7 +610,7 @@ async function insertMergedCardsInExecutor(
         card.fsrs_last_reviewed_at === null ? null : toIsoString(card.fsrs_last_reviewed_at),
         card.fsrs_scheduled_days,
         toIsoString(card.client_updated_at),
-        nextDeviceId,
+        nextReplicaId,
         card.last_operation_id,
         toIsoString(card.created_at),
       ],
@@ -602,7 +622,7 @@ async function insertMergedCardsInExecutor(
       "card",
       card.card_id,
       "upsert",
-      nextDeviceId,
+      nextReplicaId,
       `guest-merge-${mergeId}-card-${card.card_id}`,
       toIsoString(card.client_updated_at),
     );
@@ -614,7 +634,7 @@ async function insertMergedDecksInExecutor(
   targetUserId: string,
   targetWorkspaceId: string,
   decks: ReadonlyArray<DeckRow>,
-  deviceIdMap: ReadonlyMap<string, string>,
+  replicaIdMap: ReadonlyMap<string, string>,
   mergeId: string,
 ): Promise<void> {
   await applyWorkspaceDatabaseScopeInExecutor(executor, {
@@ -623,13 +643,13 @@ async function insertMergedDecksInExecutor(
   });
 
   for (const deck of decks) {
-    const nextDeviceId = requireMappedDeviceId(deviceIdMap, deck.last_modified_by_device_id);
+    const nextReplicaId = requireMappedReplicaId(replicaIdMap, deck.last_modified_by_replica_id);
     await executor.query(
       [
         "INSERT INTO content.decks",
         "(",
         "deck_id, workspace_id, name, filter_definition, created_at, updated_at, deleted_at,",
-        "client_updated_at, last_modified_by_device_id, last_operation_id",
+        "client_updated_at, last_modified_by_replica_id, last_operation_id",
         ")",
         "VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10)",
       ].join(" "),
@@ -642,7 +662,7 @@ async function insertMergedDecksInExecutor(
         toIsoString(deck.updated_at),
         deck.deleted_at === null ? null : toIsoString(deck.deleted_at),
         toIsoString(deck.client_updated_at),
-        nextDeviceId,
+        nextReplicaId,
         deck.last_operation_id,
       ],
     );
@@ -653,7 +673,7 @@ async function insertMergedDecksInExecutor(
       "deck",
       deck.deck_id,
       "upsert",
-      nextDeviceId,
+      nextReplicaId,
       `guest-merge-${mergeId}-deck-${deck.deck_id}`,
       toIsoString(deck.client_updated_at),
     );
@@ -665,7 +685,7 @@ async function insertMergedReviewEventsInExecutor(
   targetUserId: string,
   targetWorkspaceId: string,
   reviewEvents: ReadonlyArray<ReviewEventRow>,
-  deviceIdMap: ReadonlyMap<string, string>,
+  replicaIdMap: ReadonlyMap<string, string>,
 ): Promise<void> {
   await applyWorkspaceDatabaseScopeInExecutor(executor, {
     userId: targetUserId,
@@ -673,12 +693,12 @@ async function insertMergedReviewEventsInExecutor(
   });
 
   for (const reviewEvent of reviewEvents) {
-    const nextDeviceId = requireMappedDeviceId(deviceIdMap, reviewEvent.device_id);
+    const nextReplicaId = requireMappedReplicaId(replicaIdMap, reviewEvent.replica_id);
     await executor.query(
       [
         "INSERT INTO content.review_events",
         "(",
-        "review_event_id, workspace_id, card_id, device_id, client_event_id, rating, reviewed_at_client, reviewed_at_server",
+        "review_event_id, workspace_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_at_server",
         ")",
         "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
       ].join(" "),
@@ -686,7 +706,7 @@ async function insertMergedReviewEventsInExecutor(
         reviewEvent.review_event_id,
         targetWorkspaceId,
         reviewEvent.card_id,
-        nextDeviceId,
+        nextReplicaId,
         reviewEvent.client_event_id,
         reviewEvent.rating,
         toIsoString(reviewEvent.reviewed_at_client),
@@ -718,7 +738,7 @@ async function mergeGuestWorkspaceIntoTargetInExecutor(
   }>,
 ): Promise<GuestUpgradeHistoryWrite> {
   const upgradeId = randomUUID().toLowerCase();
-  const guestDevices = await loadGuestDevicesInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
+  const guestReplicas = await loadGuestReplicasInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const guestCards = await loadGuestCardsInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const guestDecks = await loadGuestDecksInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const guestReviewEvents = await loadGuestReviewEventsInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
@@ -727,9 +747,9 @@ async function mergeGuestWorkspaceIntoTargetInExecutor(
 
   await deleteGuestWorkspaceContentInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
 
-  const deviceIdMap = await recreateGuestDevicesInExecutor(
+  const replicaIdMap = await recreateGuestReplicasInExecutor(
     executor,
-    guestDevices,
+    guestReplicas,
     params.targetUserId,
     params.targetWorkspaceId,
   );
@@ -739,7 +759,7 @@ async function mergeGuestWorkspaceIntoTargetInExecutor(
     params.targetUserId,
     params.targetWorkspaceId,
     guestCards,
-    deviceIdMap,
+    replicaIdMap,
     upgradeId,
   );
   await insertMergedDecksInExecutor(
@@ -747,7 +767,7 @@ async function mergeGuestWorkspaceIntoTargetInExecutor(
     params.targetUserId,
     params.targetWorkspaceId,
     guestDecks,
-    deviceIdMap,
+    replicaIdMap,
     upgradeId,
   );
   await insertMergedReviewEventsInExecutor(
@@ -755,11 +775,11 @@ async function mergeGuestWorkspaceIntoTargetInExecutor(
     params.targetUserId,
     params.targetWorkspaceId,
     guestReviewEvents,
-    deviceIdMap,
+    replicaIdMap,
   );
 
   if (schedulerWinnerIsGuest(guestScheduler, targetScheduler)) {
-    const nextDeviceId = requireMappedDeviceId(deviceIdMap, guestScheduler.fsrs_last_modified_by_device_id);
+    const nextReplicaId = requireMappedReplicaId(replicaIdMap, guestScheduler.fsrs_last_modified_by_replica_id);
     await applyWorkspaceDatabaseScopeInExecutor(executor, {
       userId: params.targetUserId,
       workspaceId: params.targetWorkspaceId,
@@ -775,7 +795,7 @@ async function mergeGuestWorkspaceIntoTargetInExecutor(
         "fsrs_maximum_interval_days = $5,",
         "fsrs_enable_fuzz = $6,",
         "fsrs_client_updated_at = $7,",
-        "fsrs_last_modified_by_device_id = $8,",
+        "fsrs_last_modified_by_replica_id = $8,",
         "fsrs_last_operation_id = $9,",
         "fsrs_updated_at = $10",
         "WHERE workspace_id = $11",
@@ -788,7 +808,7 @@ async function mergeGuestWorkspaceIntoTargetInExecutor(
         guestScheduler.fsrs_maximum_interval_days,
         guestScheduler.fsrs_enable_fuzz,
         toIsoString(guestScheduler.fsrs_client_updated_at),
-        nextDeviceId,
+        nextReplicaId,
         guestScheduler.fsrs_last_operation_id,
         toIsoString(guestScheduler.fsrs_updated_at),
         params.targetWorkspaceId,
@@ -800,7 +820,7 @@ async function mergeGuestWorkspaceIntoTargetInExecutor(
       "workspace_scheduler_settings",
       params.targetWorkspaceId,
       "upsert",
-      nextDeviceId,
+      nextReplicaId,
       `guest-merge-${upgradeId}-scheduler-${params.targetWorkspaceId}`,
       toIsoString(guestScheduler.fsrs_client_updated_at),
     );
@@ -815,7 +835,7 @@ async function mergeGuestWorkspaceIntoTargetInExecutor(
     targetUserId: params.targetUserId,
     targetWorkspaceId: params.targetWorkspaceId,
     selectionType: params.selectionType,
-    deviceIdMap,
+    replicaIdMap,
   };
 }
 

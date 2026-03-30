@@ -181,7 +181,7 @@ struct WorkspaceSchedulerSettings: Codable, Hashable, Sendable {
     let maximumIntervalDays: Int
     let enableFuzz: Bool
     let clientUpdatedAt: String
-    let lastModifiedByDeviceId: String
+    let lastModifiedByReplicaId: String
     let lastOperationId: String
     let updatedAt: String
 }
@@ -205,7 +205,7 @@ struct Card: Codable, Identifiable, Hashable, Sendable {
     let fsrsLastReviewedAt: String?
     let fsrsScheduledDays: Int?
     let clientUpdatedAt: String
-    let lastModifiedByDeviceId: String
+    let lastModifiedByReplicaId: String
     let lastOperationId: String
     let updatedAt: String
     let deletedAt: String?
@@ -251,7 +251,7 @@ struct Deck: Codable, Identifiable, Hashable, Sendable {
     let filterDefinition: DeckFilterDefinition
     let createdAt: String
     let clientUpdatedAt: String
-    let lastModifiedByDeviceId: String
+    let lastModifiedByReplicaId: String
     let lastOperationId: String
     let updatedAt: String
     let deletedAt: String?
@@ -298,14 +298,68 @@ struct ReviewEvent: Codable, Identifiable, Hashable, Sendable {
     let reviewEventId: String
     let workspaceId: String
     let cardId: String
-    let deviceId: String
+    let replicaId: String
     let clientEventId: String
     let rating: ReviewRating
     let reviewedAtClient: String
     let reviewedAtServer: String
 
+    enum CodingKeys: String, CodingKey {
+        case reviewEventId
+        case workspaceId
+        case cardId
+        case replicaId
+        case clientEventId
+        case rating
+        case reviewedAtClient
+        case reviewedAtServer
+    }
+
     var id: String {
         reviewEventId
+    }
+
+    init(
+        reviewEventId: String,
+        workspaceId: String,
+        cardId: String,
+        replicaId: String,
+        clientEventId: String,
+        rating: ReviewRating,
+        reviewedAtClient: String,
+        reviewedAtServer: String
+    ) {
+        self.reviewEventId = reviewEventId
+        self.workspaceId = workspaceId
+        self.cardId = cardId
+        self.replicaId = replicaId
+        self.clientEventId = clientEventId
+        self.rating = rating
+        self.reviewedAtClient = reviewedAtClient
+        self.reviewedAtServer = reviewedAtServer
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.reviewEventId = try container.decode(String.self, forKey: .reviewEventId)
+        self.workspaceId = try container.decode(String.self, forKey: .workspaceId)
+        self.cardId = try container.decode(String.self, forKey: .cardId)
+        self.replicaId = try container.decode(String.self, forKey: .replicaId)
+        self.clientEventId = try container.decode(String.self, forKey: .clientEventId)
+        self.rating = try container.decode(ReviewRating.self, forKey: .rating)
+        self.reviewedAtClient = try container.decode(String.self, forKey: .reviewedAtClient)
+        self.reviewedAtServer = try container.decode(String.self, forKey: .reviewedAtServer)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.reviewEventId, forKey: .reviewEventId)
+        try container.encode(self.workspaceId, forKey: .workspaceId)
+        try container.encode(self.cardId, forKey: .cardId)
+        try container.encode(self.clientEventId, forKey: .clientEventId)
+        try container.encode(self.rating, forKey: .rating)
+        try container.encode(self.reviewedAtClient, forKey: .reviewedAtClient)
+        try container.encode(self.reviewedAtServer, forKey: .reviewedAtServer)
     }
 }
 
@@ -657,10 +711,54 @@ struct WorkspaceSchedulerSettingsSyncPayload: Codable, Hashable {
 struct ReviewEventSyncPayload: Codable, Hashable {
     let reviewEventId: String
     let cardId: String
-    let deviceId: String
+    let installationId: String
     let clientEventId: String
     let rating: Int
     let reviewedAtClient: String
+
+    enum CodingKeys: String, CodingKey {
+        case reviewEventId
+        case cardId
+        case installationId
+        case clientEventId
+        case rating
+        case reviewedAtClient
+    }
+
+    init(
+        reviewEventId: String,
+        cardId: String,
+        installationId: String,
+        clientEventId: String,
+        rating: Int,
+        reviewedAtClient: String
+    ) {
+        self.reviewEventId = reviewEventId
+        self.cardId = cardId
+        self.installationId = installationId
+        self.clientEventId = clientEventId
+        self.rating = rating
+        self.reviewedAtClient = reviewedAtClient
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.reviewEventId = try container.decode(String.self, forKey: .reviewEventId)
+        self.cardId = try container.decode(String.self, forKey: .cardId)
+        self.installationId = try container.decode(String.self, forKey: .installationId)
+        self.clientEventId = try container.decode(String.self, forKey: .clientEventId)
+        self.rating = try container.decode(Int.self, forKey: .rating)
+        self.reviewedAtClient = try container.decode(String.self, forKey: .reviewedAtClient)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.reviewEventId, forKey: .reviewEventId)
+        try container.encode(self.cardId, forKey: .cardId)
+        try container.encode(self.clientEventId, forKey: .clientEventId)
+        try container.encode(self.rating, forKey: .rating)
+        try container.encode(self.reviewedAtClient, forKey: .reviewedAtClient)
+    }
 }
 
 enum SyncOperationPayload: Hashable {
@@ -771,7 +869,7 @@ struct PersistedOutboxEntry: Hashable {
 }
 
 struct CloudSettings: Codable, Hashable, Sendable {
-    let deviceId: String
+    let installationId: String
     let cloudState: CloudAccountState
     let linkedUserId: String?
     let linkedWorkspaceId: String?

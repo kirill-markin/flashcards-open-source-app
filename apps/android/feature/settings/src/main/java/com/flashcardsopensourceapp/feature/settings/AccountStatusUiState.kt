@@ -4,7 +4,7 @@ data class AccountStatusUiState(
     val workspaceName: String,
     val cloudStatusTitle: String,
     val linkedEmail: String?,
-    val deviceId: String,
+    val installationId: String,
     val syncStatusText: String,
     val lastSuccessfulSync: String,
     val isGuest: Boolean,

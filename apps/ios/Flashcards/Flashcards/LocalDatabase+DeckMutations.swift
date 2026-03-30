@@ -137,13 +137,13 @@ extension LocalDatabase {
         let newDeck = try self.deckStore.createDeck(
             workspaceId: workspaceId,
             input: input,
-            deviceId: cloudSettings.deviceId,
+            installationId: cloudSettings.installationId,
             operationId: operationId,
             now: now
         )
         try self.outboxStore.enqueueDeckUpsertOperation(
             workspaceId: workspaceId,
-            deviceId: cloudSettings.deviceId,
+            installationId: cloudSettings.installationId,
             operationId: operationId,
             clientUpdatedAt: now,
             deck: newDeck
@@ -163,13 +163,13 @@ extension LocalDatabase {
             workspaceId: workspaceId,
             deckId: deckId,
             input: input,
-            deviceId: cloudSettings.deviceId,
+            installationId: cloudSettings.installationId,
             operationId: operationId,
             now: now
         )
         try self.outboxStore.enqueueDeckUpsertOperation(
             workspaceId: workspaceId,
-            deviceId: cloudSettings.deviceId,
+            installationId: cloudSettings.installationId,
             operationId: operationId,
             clientUpdatedAt: now,
             deck: updatedDeck
@@ -187,13 +187,13 @@ extension LocalDatabase {
         let deletedDeck = try self.deckStore.deleteDeck(
             workspaceId: workspaceId,
             deckId: deckId,
-            deviceId: cloudSettings.deviceId,
+            installationId: cloudSettings.installationId,
             operationId: operationId,
             now: now
         )
         try self.outboxStore.enqueueDeckUpsertOperation(
             workspaceId: workspaceId,
-            deviceId: cloudSettings.deviceId,
+            installationId: cloudSettings.installationId,
             operationId: operationId,
             clientUpdatedAt: now,
             deck: deletedDeck
