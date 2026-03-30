@@ -43,16 +43,16 @@ struct CurrentWorkspaceView: View {
         .accessibilityIdentifier(UITestIdentifier.currentWorkspaceScreen)
         .navigationTitle("Current Workspace")
         .sheet(isPresented: self.$isWorkspacePickerPresented) {
-            if let linkedWorkspaces = self.linkedWorkspaces {
-                CurrentWorkspacePickerSheet(
-                    workspaces: linkedWorkspaces,
-                    localWorkspaceName: self.currentWorkspaceName,
-                    onDismiss: {
-                        self.isWorkspacePickerPresented = false
-                    }
-                )
-                .environment(self.store)
-            }
+            CurrentWorkspacePickerContainer(
+                workspaces: self.linkedWorkspaces,
+                isLoading: self.isWorkspacePickerLoading,
+                errorMessage: self.screenErrorMessage,
+                localWorkspaceName: self.currentWorkspaceName,
+                onDismiss: {
+                    self.isWorkspacePickerPresented = false
+                }
+            )
+            .environment(self.store)
         }
     }
 
@@ -66,18 +66,61 @@ struct CurrentWorkspaceView: View {
     }
 
     private func presentWorkspacePicker() {
+        self.linkedWorkspaces = nil
+        self.screenErrorMessage = ""
+        self.isWorkspacePickerLoading = true
+        self.isWorkspacePickerPresented = true
+
         Task { @MainActor in
-            self.isWorkspacePickerLoading = true
             defer {
                 self.isWorkspacePickerLoading = false
             }
 
             do {
                 self.linkedWorkspaces = try await self.store.listLinkedWorkspaces()
-                self.isWorkspacePickerPresented = true
-                self.screenErrorMessage = ""
             } catch {
                 self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            }
+        }
+    }
+}
+
+private struct CurrentWorkspacePickerContainer: View {
+    let workspaces: [CloudWorkspaceSummary]?
+    let isLoading: Bool
+    let errorMessage: String
+    let localWorkspaceName: String
+    let onDismiss: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if self.isLoading {
+                    ProgressView("Loading workspaces...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                } else if let workspaces = self.workspaces {
+                    CurrentWorkspacePickerSheet(
+                        workspaces: workspaces,
+                        localWorkspaceName: self.localWorkspaceName,
+                        onDismiss: self.onDismiss
+                    )
+                } else {
+                    CopyableErrorMessageView(
+                        message: self.errorMessage.isEmpty ? "Failed to load linked workspaces." : self.errorMessage
+                    )
+                    .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+            }
+            .accessibilityIdentifier(UITestIdentifier.currentWorkspacePickerScreen)
+            .navigationTitle("Choose Workspace")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") {
+                        self.onDismiss()
+                    }
+                }
             }
         }
     }
@@ -98,41 +141,28 @@ private struct CurrentWorkspacePickerSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                if self.errorMessage.isEmpty == false {
-                    Section {
-                        CopyableErrorMessageView(message: self.errorMessage)
-                    }
-                }
-
+        List {
+            if self.errorMessage.isEmpty == false {
                 Section {
-                    Text("Choose a linked workspace to open on this device, or create a new one.")
-                        .foregroundStyle(.secondary)
-                }
-
-                Section("Choose workspace") {
-                    ForEach(self.selectionItems) { item in
-                        Button {
-                            self.switchWorkspace(selection: item.selection)
-                        } label: {
-                            CurrentWorkspaceSelectionRow(item: item)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(self.isSwitching)
-                        .accessibilityIdentifier(currentWorkspaceSelectionButtonIdentifier(selection: item.selection))
-                    }
+                    CopyableErrorMessageView(message: self.errorMessage)
                 }
             }
-            .accessibilityIdentifier(UITestIdentifier.currentWorkspacePickerScreen)
-            .navigationTitle("Choose Workspace")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") {
-                        self.onDismiss()
+
+            Section {
+                Text("Choose a linked workspace to open on this device, or create a new one.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Choose workspace") {
+                ForEach(self.selectionItems) { item in
+                    Button {
+                        self.switchWorkspace(selection: item.selection)
+                    } label: {
+                        CurrentWorkspaceSelectionRow(item: item)
                     }
+                    .buttonStyle(.plain)
                     .disabled(self.isSwitching)
+                    .accessibilityIdentifier(currentWorkspaceSelectionButtonIdentifier(selection: item.selection))
                 }
             }
         }
