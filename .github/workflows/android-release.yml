@@ -251,7 +251,20 @@ jobs:
 
       - name: Resolve Android release version code
         run: |
-          version_code=$(( GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT ))
+          base_epoch_seconds=1767225600
+          current_epoch_seconds="$(date -u +%s)"
+          version_code=$(( current_epoch_seconds - base_epoch_seconds ))
+
+          if [[ "${version_code}" -le 0 ]]; then
+            echo "Resolved Android version code must be positive. Got: ${version_code}." >&2
+            exit 1
+          fi
+
+          if [[ "${version_code}" -gt 2100000000 ]]; then
+            echo "Resolved Android version code exceeds Google Play limit. Got: ${version_code}." >&2
+            exit 1
+          fi
+
           printf 'ANDROID_VERSION_CODE=%s\n' "${version_code}" >> "${GITHUB_ENV}"
           printf 'ANDROID_PLAY_RELEASE_NAME=main-%s\n' "${version_code}" >> "${GITHUB_ENV}"
 
