@@ -34,6 +34,11 @@ import kotlinx.coroutines.launch
 
 private const val noSpeechRecordedMessage: String = "No speech was recorded."
 
+private enum class AiServerSnapshotApplyMode {
+    ACTIVE,
+    PASSIVE
+}
+
 class AiViewModel(
     private val aiChatRepository: AiChatRepository,
     private val syncRepository: SyncRepository,
@@ -71,6 +76,7 @@ class AiViewModel(
     private var activeSendJob: Job? = null
     private var activeWarmUpJob: Job? = null
     private var lastAppliedMainContentInvalidationVersion: Long = 0L
+    private var lastPreparedGuestWorkspaceId: String? = null
 
     val uiState: StateFlow<AiUiState> = combine(
         metadataState,
@@ -246,7 +252,10 @@ class AiViewModel(
                     workspaceId = draftState.value.workspaceId,
                     sessionId = null
                 )
-                applyServerSnapshot(snapshot = snapshot)
+                applyServerSnapshot(
+                    snapshot = snapshot,
+                    applyMode = AiServerSnapshotApplyMode.ACTIVE
+                )
             } catch (error: Exception) {
                 handleSendFailure(error = error)
             }
@@ -339,6 +348,12 @@ class AiViewModel(
         ) {
             return
         }
+        if (
+            cloudSettings.cloudState == CloudAccountState.GUEST
+            && lastPreparedGuestWorkspaceId == currentState.workspaceId
+        ) {
+            return
+        }
         if (activeWarmUpJob != null) {
             return
         }
@@ -346,6 +361,12 @@ class AiViewModel(
         activeWarmUpJob = viewModelScope.launch {
             try {
                 aiChatRepository.prepareSessionForAi(workspaceId = currentState.workspaceId)
+                if (
+                    cloudSettings.cloudState == CloudAccountState.GUEST
+                    && draftState.value.workspaceId == currentState.workspaceId
+                ) {
+                    lastPreparedGuestWorkspaceId = currentState.workspaceId
+                }
             } catch (error: Exception) {
                 val message = makeAiUserFacingErrorMessage(
                     error = error,
@@ -433,7 +454,10 @@ class AiViewModel(
                 )
                 val finalSnapshot = outcome.finalSnapshot
                 if (finalSnapshot != null) {
-                    applyServerSnapshot(snapshot = finalSnapshot)
+                    applyServerSnapshot(
+                        snapshot = finalSnapshot,
+                        applyMode = AiServerSnapshotApplyMode.ACTIVE
+                    )
                 } else {
                     draftState.update { state ->
                         val nextChatConfig = outcome.chatConfig ?: state.persistedState.lastKnownChatConfig
@@ -637,6 +661,7 @@ class AiViewModel(
         activeSendJob?.cancel()
         activeWarmUpJob?.cancel()
         lastAppliedMainContentInvalidationVersion = 0L
+        lastPreparedGuestWorkspaceId = null
         viewModelScope.launch {
             val persistedState = aiChatRepository.loadPersistedState(workspaceId = workspaceId)
             draftState.value = makeAiDraftState(
@@ -653,7 +678,10 @@ class AiViewModel(
                     sessionId = persistedState.chatSessionId
                 )
                 when {
-                    snapshot != null -> applyServerSnapshot(snapshot = snapshot)
+                    snapshot != null -> applyServerSnapshot(
+                        snapshot = snapshot,
+                        applyMode = AiServerSnapshotApplyMode.PASSIVE
+                    )
                     persistedState.chatSessionId.isNotBlank() -> {
                         AiChatDiagnosticsLogger.warn(
                             event = "switch_workspace_repaired_missing_session",
@@ -673,7 +701,10 @@ class AiViewModel(
                             workspaceId = workspaceId,
                             sessionId = null
                         )?.let { repairedSnapshot ->
-                            applyServerSnapshot(snapshot = repairedSnapshot)
+                            applyServerSnapshot(
+                                snapshot = repairedSnapshot,
+                                applyMode = AiServerSnapshotApplyMode.PASSIVE
+                            )
                         }
                     }
                 }
@@ -692,18 +723,27 @@ class AiViewModel(
         }
     }
 
-    private suspend fun applyServerSnapshot(snapshot: AiChatSessionSnapshot) {
+    private suspend fun applyServerSnapshot(
+        snapshot: AiChatSessionSnapshot,
+        applyMode: AiServerSnapshotApplyMode
+    ) {
         draftState.update { state ->
+            val preserveLocalComposerState =
+                applyMode == AiServerSnapshotApplyMode.PASSIVE && state.isStreaming.not()
             state.copy(
                 persistedState = state.persistedState.copy(
                     messages = snapshot.messages,
                     chatSessionId = snapshot.sessionId,
                     lastKnownChatConfig = snapshot.chatConfig
                 ),
-                draftMessage = "",
-                pendingAttachments = emptyList(),
+                draftMessage = if (preserveLocalComposerState) state.draftMessage else "",
+                pendingAttachments = if (preserveLocalComposerState) state.pendingAttachments else emptyList(),
                 isStreaming = snapshot.runState == "running",
-                dictationState = AiChatDictationState.IDLE,
+                dictationState = if (preserveLocalComposerState) {
+                    state.dictationState
+                } else {
+                    AiChatDictationState.IDLE
+                },
                 repairStatus = null,
                 activeAlert = null,
                 errorMessage = ""
