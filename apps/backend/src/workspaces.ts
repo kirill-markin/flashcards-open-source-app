@@ -45,6 +45,14 @@ export type DeleteWorkspaceResult = Readonly<{
   workspace: WorkspaceSummary;
 }>;
 
+type WorkspaceDeleteFailureStage =
+  | "load_management_row"
+  | "prepare_selection"
+  | "count_active_cards"
+  | "delete_workspace"
+  | "ensure_selected_workspace"
+  | "load_replacement_workspace";
+
 type WorkspaceSummaryRow = Readonly<{
   workspace_id: string;
   name: string;
@@ -65,6 +73,10 @@ type WorkspaceManagementRow = Readonly<{
 
 type ActiveCardCountRow = Readonly<{
   active_card_count: string | number;
+}>;
+
+type DeletedWorkspaceRow = Readonly<{
+  workspace_id: string;
 }>;
 
 type WorkspacePageCursor = Readonly<{
@@ -136,6 +148,52 @@ function assertDeleteWorkspaceConfirmationText(confirmationText: string): void {
       "WORKSPACE_DELETE_CONFIRMATION_INVALID",
     );
   }
+}
+
+function createWorkspaceInvariantError(message: string, code: string): HttpError {
+  return new HttpError(500, message, code);
+}
+
+type DatabaseErrorDetails = Readonly<{
+  sqlState: string | null;
+  constraint: string | null;
+  table: string | null;
+  detail: string | null;
+}>;
+
+function getDatabaseErrorDetails(error: unknown): DatabaseErrorDetails {
+  if (typeof error !== "object" || error === null) {
+    return {
+      sqlState: null,
+      constraint: null,
+      table: null,
+      detail: null,
+    };
+  }
+
+  const errorRecord = error as Readonly<Record<string, unknown>>;
+  return {
+    sqlState: typeof errorRecord.code === "string" && errorRecord.code !== "" ? errorRecord.code : null,
+    constraint: typeof errorRecord.constraint === "string" && errorRecord.constraint !== "" ? errorRecord.constraint : null,
+    table: typeof errorRecord.table === "string" && errorRecord.table !== "" ? errorRecord.table : null,
+    detail: typeof errorRecord.detail === "string" && errorRecord.detail !== "" ? errorRecord.detail : null,
+  };
+}
+
+function createWorkspaceDeleteFailedError(): HttpError {
+  return new HttpError(
+    500,
+    "Workspace deletion failed on the server before it could be completed. Try again.",
+    "WORKSPACE_DELETE_FAILED",
+  );
+}
+
+function createWorkspaceDeletePreviewFailedError(): HttpError {
+  return new HttpError(
+    500,
+    "Workspace deletion preview failed on the server before it could be loaded. Try again.",
+    "WORKSPACE_DELETE_PREVIEW_FAILED",
+  );
 }
 
 function decodeWorkspacePageCursor(cursor: string): WorkspacePageCursor {
@@ -252,7 +310,10 @@ async function loadActiveCardCountInExecutor(
 
   const row = result.rows[0];
   if (row === undefined) {
-    throw new Error("Active card count query did not return a row");
+    throw createWorkspaceInvariantError(
+      "Workspace card count could not be loaded.",
+      "WORKSPACE_ACTIVE_CARD_COUNT_UNAVAILABLE",
+    );
   }
 
   return typeof row.active_card_count === "number"
@@ -307,7 +368,10 @@ export async function createWorkspaceInExecutor(
   );
   const workspaceRow = workspaceResult.rows[0];
   if (workspaceRow === undefined) {
-    throw new Error("Workspace bootstrap could not load scheduler settings");
+    throw createWorkspaceInvariantError(
+      "Workspace creation failed while loading scheduler settings.",
+      "WORKSPACE_CREATE_SETTINGS_UNAVAILABLE",
+    );
   }
 
   await executor.query(
@@ -388,6 +452,7 @@ async function prepareSelectedWorkspaceForDeletionInExecutor(
   const accessibleWorkspaceIds = await listUserWorkspaceIdsInExecutor(executor, userId);
   const replacementWorkspaceId = accessibleWorkspaceIds.find((workspaceId) => workspaceId !== deletedWorkspaceId)
     ?? await createWorkspaceInExecutor(executor, userId, AUTO_CREATED_WORKSPACE_NAME);
+  await applyUserDatabaseScopeInExecutor(executor, { userId });
 
   await executor.query(
     "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
@@ -422,7 +487,10 @@ export async function ensureUserSelectedWorkspaceInExecutor(
 
   const earliestWorkspaceId = workspaceIds[0];
   if (earliestWorkspaceId === undefined) {
-    throw new Error("Expected one accessible workspace");
+    throw createWorkspaceInvariantError(
+      "Workspace selection could not be recovered because no accessible workspace was found.",
+      "WORKSPACE_SELECTION_RECOVERY_FAILED",
+    );
   }
 
   await executor.query(
@@ -621,20 +689,34 @@ export async function loadWorkspaceDeletePreviewInExecutor(
   userId: string,
   workspaceId: string,
 ): Promise<WorkspaceDeletePreview> {
-  const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
-  assertWorkspaceOwner(managedWorkspace.role);
-  assertWorkspaceIsSoleMember(managedWorkspace.member_count);
-  await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
-  const activeCardCount = await loadActiveCardCountInExecutor(executor, workspaceId);
-  const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, userId);
+  try {
+    const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
+    assertWorkspaceOwner(managedWorkspace.role);
+    assertWorkspaceIsSoleMember(managedWorkspace.member_count);
+    const activeCardCount = await loadActiveCardCountInExecutor(executor, workspaceId);
+    const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, userId);
 
-  return {
-    workspaceId,
-    workspaceName: managedWorkspace.name,
-    activeCardCount,
-    confirmationText: deleteWorkspaceConfirmationText,
-    isLastAccessibleWorkspace: workspaceIds.length === 1,
-  };
+    return {
+      workspaceId,
+      workspaceName: managedWorkspace.name,
+      activeCardCount,
+      confirmationText: deleteWorkspaceConfirmationText,
+      isLastAccessibleWorkspace: workspaceIds.length === 1,
+    };
+  } catch (error) {
+    if (error instanceof HttpError) {
+      throw error;
+    }
+
+    const databaseErrorDetails = getDatabaseErrorDetails(error);
+    logCloudRouteEvent("workspace_delete_preview_transaction_error", {
+      userId,
+      workspaceId,
+      code: "WORKSPACE_DELETE_PREVIEW_FAILED",
+      ...databaseErrorDetails,
+    }, true);
+    throw createWorkspaceDeletePreviewFailedError();
+  }
 }
 
 export async function loadWorkspaceDeletePreviewForUser(
@@ -655,13 +737,16 @@ export async function deleteWorkspaceInExecutor(
   confirmationText: string,
 ): Promise<DeleteWorkspaceResult> {
   assertDeleteWorkspaceConfirmationText(confirmationText);
+  let stage: WorkspaceDeleteFailureStage = "load_management_row";
   const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
   assertWorkspaceOwner(managedWorkspace.role);
   assertWorkspaceIsSoleMember(managedWorkspace.member_count);
   let selectedWorkspaceIdBeforeDelete: string | null = null;
   let selectedWorkspaceIdAfterPreparation: string | null = null;
+  let deletedCardsCount: number | null = null;
 
   try {
+    stage = "prepare_selection";
     const selectionPreparation = await prepareSelectedWorkspaceForDeletionInExecutor(
       executor,
       userId,
@@ -670,15 +755,23 @@ export async function deleteWorkspaceInExecutor(
     selectedWorkspaceIdBeforeDelete = selectionPreparation.selectedWorkspaceIdBeforeDelete;
     selectedWorkspaceIdAfterPreparation = selectionPreparation.selectedWorkspaceIdAfterPreparation;
 
-    await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
-    const deletedCardsCount = await loadActiveCardCountInExecutor(executor, workspaceId);
-    await applyUserDatabaseScopeInExecutor(executor, { userId });
-    await executor.query("DELETE FROM org.workspaces WHERE workspace_id = $1", [workspaceId]);
+    stage = "count_active_cards";
+    deletedCardsCount = await loadActiveCardCountInExecutor(executor, workspaceId);
+    stage = "delete_workspace";
+    const deleteResult = await executor.query<DeletedWorkspaceRow>(
+      "DELETE FROM org.workspaces WHERE workspace_id = $1 RETURNING workspace_id",
+      [workspaceId],
+    );
+    if (deleteResult.rows.length === 0) {
+      throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
+    }
+    stage = "ensure_selected_workspace";
     const selectedWorkspaceId = await ensureUserSelectedWorkspaceInExecutor(
       executor,
       userId,
       selectedWorkspaceIdAfterPreparation,
     );
+    stage = "load_replacement_workspace";
     const workspace = await loadWorkspaceSummaryInExecutor(executor, userId, selectedWorkspaceId, selectedWorkspaceId);
 
     return {
@@ -688,15 +781,33 @@ export async function deleteWorkspaceInExecutor(
       workspace,
     };
   } catch (error) {
+    if (error instanceof HttpError) {
+      logCloudRouteEvent("workspace_delete_transaction_error", {
+        userId,
+        workspaceId,
+        memberCount: managedWorkspace.member_count,
+        selectedWorkspaceIdBeforeDelete,
+        selectedWorkspaceIdAfterPreparation,
+        deletedCardsCount,
+        stage,
+        code: error.code,
+      }, true);
+      throw error;
+    }
+
+    const databaseErrorDetails = getDatabaseErrorDetails(error);
     logCloudRouteEvent("workspace_delete_transaction_error", {
       userId,
       workspaceId,
       memberCount: managedWorkspace.member_count,
       selectedWorkspaceIdBeforeDelete,
       selectedWorkspaceIdAfterPreparation,
-      code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+      deletedCardsCount,
+      stage,
+      code: "WORKSPACE_DELETE_FAILED",
+      ...databaseErrorDetails,
     }, true);
-    throw error;
+    throw createWorkspaceDeleteFailedError();
   }
 }
 
@@ -799,7 +910,10 @@ export async function ensureApiKeyWorkspaceSelection(
   if (workspaces.length === 1) {
     const onlyWorkspace = workspaces[0];
     if (onlyWorkspace === undefined) {
-      throw new Error("Expected one workspace to exist");
+      throw createWorkspaceInvariantError(
+        "Workspace selection could not be recovered because no workspace was available.",
+        "WORKSPACE_SELECTION_RECOVERY_FAILED",
+      );
     }
 
     await setSelectedWorkspaceForApiKeyConnection(userId, connectionId, onlyWorkspace.workspaceId);
