@@ -36,7 +36,7 @@ Run iOS tests locally when they help validate the requested change or when the u
 iOS full test runs can take a bit more than 2 minutes locally, and that is normal.
 If iOS tests are requested, run them only on one specific iPhone simulator runtime that is already downloaded locally.
 Prefer an already booted local iPhone simulator on the final supported iOS runtime. Reuse that exact device instead of booting a different one when possible.
-Prefer the background CLI flow over opening heavy Xcode UI: `xcrun simctl bootstatus`, `xcodebuild build-for-testing`, then `xcodebuild test-without-building`.
+Prefer the background CLI flow over opening heavy Xcode UI: `xcrun simctl bootstatus`, then `xcodebuild test`.
 Do not open a visible iOS Simulator window for test runs unless the user explicitly asks for a visible simulator at that time.
 If a suitable simulator is already warmed, keep using it and avoid rebuilding unnecessarily.
 If no suitable local iPhone simulator runtime is already available, do not trigger extra runtime downloads or installations. Stop and ask the user how to proceed.
@@ -46,9 +46,8 @@ Preferred local CLI examples:
 ```bash
 xcrun simctl list devices available
 xcrun simctl bootstatus <device-uuid> -b
-xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -destination 'platform=iOS Simulator,id=<device-uuid>' build-for-testing
-xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -destination 'platform=iOS Simulator,id=<device-uuid>' test-without-building
-xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -destination 'platform=iOS Simulator,id=<device-uuid>' -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeUITests/testLiveSmokeLocalNavigationFlow' test-without-building
+xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -destination 'platform=iOS Simulator,id=<device-uuid>' test
+xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -destination 'platform=iOS Simulator,id=<device-uuid>' -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeUITests/testLiveSmokeLocalNavigationFlow' test
 ```
 For Android, follow [apps/android/README.md](apps/android/README.md) for platform targets and testing focus. Tests should be run only against the final supported Android target, not against older API levels.
 Run Android local tests sequentially, not in parallel, otherwise local runs can become unstable.
