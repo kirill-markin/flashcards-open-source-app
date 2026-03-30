@@ -135,32 +135,42 @@ interface CloudRemoteGateway {
     suspend fun deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String)
     suspend fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult
     suspend fun revokeAgentConnection(apiBaseUrl: String, bearerToken: String, connectionId: String): AgentApiKeyConnectionsResult
-    suspend fun push(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePushResponse
-    suspend fun pull(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePullResponse
+    suspend fun push(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        body: JSONObject
+    ): RemotePushResponse
+    suspend fun pull(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        body: JSONObject
+    ): RemotePullResponse
     suspend fun bootstrapPull(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteBootstrapPullResponse
 
     suspend fun bootstrapPush(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteBootstrapPushResponse
 
     suspend fun pullReviewHistory(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteReviewHistoryPullResponse
 
     suspend fun importReviewHistory(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteReviewHistoryImportResponse
@@ -558,11 +568,16 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    suspend fun push(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePushResponse {
+    suspend fun push(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        body: JSONObject
+    ): RemotePushResponse {
         val response = postJson(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/push",
-            authorizationHeader = "Bearer $bearerToken",
+            authorizationHeader = authorizationHeader,
             body = body
         )
         val operations = response.requireCloudArray("operations", "push.operations")
@@ -595,11 +610,16 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
-    suspend fun pull(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePullResponse {
+    suspend fun pull(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        body: JSONObject
+    ): RemotePullResponse {
         val response = postJson(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/pull",
-            authorizationHeader = "Bearer $bearerToken",
+            authorizationHeader = authorizationHeader,
             body = body
         )
 
@@ -613,14 +633,14 @@ class CloudRemoteService : CloudRemoteGateway {
     override
     suspend fun bootstrapPull(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteBootstrapPullResponse {
         val response = postJson(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/bootstrap",
-            authorizationHeader = "Bearer $bearerToken",
+            authorizationHeader = authorizationHeader,
             body = body
         )
 
@@ -636,14 +656,14 @@ class CloudRemoteService : CloudRemoteGateway {
     override
     suspend fun bootstrapPush(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteBootstrapPushResponse {
         val response = postJson(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/bootstrap",
-            authorizationHeader = "Bearer $bearerToken",
+            authorizationHeader = authorizationHeader,
             body = body
         )
 
@@ -656,14 +676,14 @@ class CloudRemoteService : CloudRemoteGateway {
     override
     suspend fun pullReviewHistory(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteReviewHistoryPullResponse {
         val response = postJson(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/review-history/pull",
-            authorizationHeader = "Bearer $bearerToken",
+            authorizationHeader = authorizationHeader,
             body = body
         )
 
@@ -677,14 +697,14 @@ class CloudRemoteService : CloudRemoteGateway {
     override
     suspend fun importReviewHistory(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteReviewHistoryImportResponse {
         val response = postJson(
             baseUrl = apiBaseUrl,
             path = "/workspaces/$workspaceId/sync/review-history/import",
-            authorizationHeader = "Bearer $bearerToken",
+            authorizationHeader = authorizationHeader,
             body = body
         )
 

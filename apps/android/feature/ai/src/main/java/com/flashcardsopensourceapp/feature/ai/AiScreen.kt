@@ -222,11 +222,8 @@ internal fun AiRouteContent(
         onDismissErrorMessage()
     }
 
-    LaunchedEffect(uiState.isConsentRequired, uiState.isLinked) {
+    LaunchedEffect(uiState.isConsentRequired) {
         if (uiState.isConsentRequired) {
-            return@LaunchedEffect
-        }
-        if (uiState.isLinked.not()) {
             return@LaunchedEffect
         }
 

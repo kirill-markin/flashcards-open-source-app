@@ -24,9 +24,17 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.feature.ai.aiAssistantMessageBubbleTag
+import com.flashcardsopensourceapp.feature.ai.aiAssistantTextPartTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
+import com.flashcardsopensourceapp.feature.cards.cardsCardFrontTextTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewCurrentCardFrontContentTag
+import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTitleTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
 import com.flashcardsopensourceapp.feature.settings.cloudPostAuthWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.cloudSignInEmailFieldTag
@@ -51,6 +59,8 @@ import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 import org.junit.runner.RunWith
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalTestApi::class)
@@ -61,10 +71,17 @@ class LiveSmokeTest {
         private const val reviewEmailArgumentKey: String = "FLASHCARDS_LIVE_REVIEW_EMAIL"
         private const val cloudSyncChooserPrompt: String =
             "Choose a linked workspace to open on this Android device, or create a new one."
+        private const val systemDialogWaitButtonText: String = "Wait"
+        private const val systemDialogCloseAppButtonText: String = "Close app"
+        private val blockingSystemDialogTitles: List<String> = listOf(
+            "System UI",
+            "Digital Wellbeing"
+        )
     }
 
     private val appStateResetRule = AppStateResetRule()
     private val composeRule = createAndroidComposeRule<MainActivity>()
+    private val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
 
     @get:Rule
     val ruleChain: TestRule = RuleChain
@@ -366,6 +383,8 @@ class LiveSmokeTest {
 
         clickText(text = "AI")
         dismissAiConsentIfNeeded()
+        waitForGuestCloudWorkspaceReady(context = "before filling the AI proposal prompt")
+        waitForAiComposerEditable(context = "before filling the AI proposal prompt")
         composeRule.onNodeWithTag(aiComposerMessageFieldTag).performTextReplacement(proposalPrompt)
         waitForAiComposerReady(
             expectedDraftText = proposalPrompt,
@@ -373,12 +392,12 @@ class LiveSmokeTest {
             context = "after filling the AI proposal prompt"
         )
         clickTag(tag = aiComposerSendButtonTag, label = "Send AI prompt")
-        composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
-            failIfVisibleAppError(context = "while waiting for the AI proposal")
-            composeRule.onAllNodesWithText(aiFrontText, substring = true).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText(aiBackText, substring = true).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText(markerTag, substring = true).fetchSemanticsNodes().isNotEmpty()
-        }
+        waitForAssistantProposal(
+            aiFrontText = aiFrontText,
+            aiBackText = aiBackText,
+            markerTag = markerTag
+        )
+        waitForAiComposerEditable(context = "before filling the AI confirmation prompt")
         composeRule.onNodeWithTag(aiComposerMessageFieldTag).performTextReplacement(confirmationPrompt)
         waitForAiComposerReady(
             expectedDraftText = confirmationPrompt,
@@ -404,17 +423,42 @@ class LiveSmokeTest {
     private fun assertCardVisibleInCards(searchText: String, timeoutMillis: Long) {
         openCardsTab()
         composeRule.onNodeWithText("Search cards").performTextReplacement(searchText)
-        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
-            failIfVisibleAppError(context = "while waiting for cards to show '$searchText'")
-            composeRule.onAllNodesWithText(searchText).fetchSemanticsNodes().isNotEmpty()
+        try {
+            waitUntilWithMitigation(
+                timeoutMillis = timeoutMillis,
+                context = "while waiting for cards to show '$searchText'"
+            ) {
+                visibleCardsFrontTexts().any { text -> text == searchText }
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Cards did not show '$searchText'. " +
+                    "VisibleCardFronts=${visibleCardsFrontTexts()} " +
+                    "LocalCard=${localCardSnapshotOrNull(expectedFrontText = searchText)} " +
+                    "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+                error
+            )
         }
     }
 
     private fun assertCardReachableInReview(expectedFrontText: String, timeoutMillis: Long) {
         clickText(text = "Review")
-        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
-            failIfVisibleAppError(context = "while waiting for review to show '$expectedFrontText'")
-            composeRule.onAllNodesWithText(expectedFrontText).fetchSemanticsNodes().isNotEmpty()
+        try {
+            waitUntilWithMitigation(
+                timeoutMillis = timeoutMillis,
+                context = "while waiting for review to show '$expectedFrontText'"
+            ) {
+                currentReviewCardFrontTextOrNull()?.contains(other = expectedFrontText) == true
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Review did not show '$expectedFrontText'. " +
+                    "CurrentReviewFront=${currentReviewCardFrontTextOrNull()} " +
+                    "ReviewEmptyStateTitle=${reviewEmptyStateTitleOrNull()} " +
+                    "LocalCard=${localCardSnapshotOrNull(expectedFrontText = expectedFrontText)} " +
+                    "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+                error
+            )
         }
     }
 
@@ -787,41 +831,63 @@ class LiveSmokeTest {
             .isNotEmpty()
     }
 
+    private fun waitUntilWithMitigation(
+        timeoutMillis: Long,
+        context: String,
+        condition: () -> Boolean
+    ) {
+        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
+            dismissExternalSystemDialogIfPresent()
+            failIfVisibleAppError(context = context)
+            condition()
+        }
+    }
+
     private fun waitUntilAtLeastOneExistsOrFail(
         matcher: SemanticsMatcher,
         timeoutMillis: Long
     ) {
-        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
-            failIfVisibleAppError(context = "while waiting for UI state to appear")
+        waitUntilWithMitigation(
+            timeoutMillis = timeoutMillis,
+            context = "while waiting for UI state to appear"
+        ) {
             composeRule.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     private fun clickNode(matcher: SemanticsMatcher, label: String) {
+        dismissExternalSystemDialogIfPresent()
         failIfVisibleAppError(context = "before clicking $label")
         composeRule.onNode(matcher = matcher).performClick()
         composeRule.waitForIdle()
+        dismissExternalSystemDialogIfPresent()
         failIfVisibleAppError(context = "after clicking $label")
     }
 
     private fun clickText(text: String, substring: Boolean = false) {
+        dismissExternalSystemDialogIfPresent()
         failIfVisibleAppError(context = "before clicking '$text'")
         composeRule.onNodeWithText(text = text, substring = substring).performClick()
         composeRule.waitForIdle()
+        dismissExternalSystemDialogIfPresent()
         failIfVisibleAppError(context = "after clicking '$text'")
     }
 
     private fun clickTag(tag: String, label: String) {
+        dismissExternalSystemDialogIfPresent()
         failIfVisibleAppError(context = "before clicking $label")
         composeRule.onNodeWithTag(tag).performClick()
         composeRule.waitForIdle()
+        dismissExternalSystemDialogIfPresent()
         failIfVisibleAppError(context = "after clicking $label")
     }
 
     private fun clickContentDescription(contentDescription: String) {
+        dismissExternalSystemDialogIfPresent()
         failIfVisibleAppError(context = "before clicking '$contentDescription'")
         composeRule.onNodeWithContentDescription(contentDescription).performClick()
         composeRule.waitForIdle()
+        dismissExternalSystemDialogIfPresent()
         failIfVisibleAppError(context = "after clicking '$contentDescription'")
     }
 
@@ -854,6 +920,7 @@ class LiveSmokeTest {
     }
 
     private fun tapBackIcon() {
+        dismissExternalSystemDialogIfPresent()
         failIfVisibleAppError(context = "before navigating back")
         if (composeRule.onAllNodes(matcher = hasContentDescription("Back")).fetchSemanticsNodes().isNotEmpty()) {
             composeRule.onNodeWithContentDescription("Back").performClick()
@@ -863,7 +930,55 @@ class LiveSmokeTest {
             }
             composeRule.waitForIdle()
         }
+        dismissExternalSystemDialogIfPresent()
         failIfVisibleAppError(context = "after navigating back")
+    }
+
+    private fun waitForAiComposerEditable(context: String) {
+        try {
+            waitUntilWithMitigation(
+                timeoutMillis = externalUiTimeoutMillis,
+                context = "while waiting for the AI composer field to become editable $context"
+            ) {
+                aiComposerFieldIsEditable()
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "AI composer field was not editable $context. " +
+                    "ActualDraft='${aiComposerDraftTextOrNull()}' " +
+                    "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = "Send")} " +
+                    "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+                error
+            )
+        }
+    }
+
+    private fun waitForGuestCloudWorkspaceReady(context: String) {
+        try {
+            waitUntilWithMitigation(
+                timeoutMillis = externalUiTimeoutMillis,
+                context = "while waiting for guest cloud workspace readiness $context"
+            ) {
+                val appGraph = (composeRule.activity.application as FlashcardsApplication).appGraph
+                val cloudSettings = runBlocking {
+                    appGraph.cloudAccountRepository.observeCloudSettings().first()
+                }
+                val workspace = runBlocking {
+                    appGraph.workspaceRepository.observeWorkspace().first()
+                }
+                cloudSettings.cloudState == CloudAccountState.GUEST
+                    && cloudSettings.activeWorkspaceId != null
+                    && workspace?.workspaceId == cloudSettings.activeWorkspaceId
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Guest cloud workspace was not ready $context. " +
+                    "CloudSettings=${currentCloudSettingsSummary()} " +
+                    "Workspace=${currentWorkspaceSummaryOrNull()} " +
+                    "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+                error
+            )
+        }
     }
 
     private fun waitForAiComposerReady(
@@ -872,8 +987,10 @@ class LiveSmokeTest {
         context: String
     ) {
         try {
-            composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
-                failIfVisibleAppError(context = "while waiting for AI composer readiness $context")
+            waitUntilWithMitigation(
+                timeoutMillis = externalUiTimeoutMillis,
+                context = "while waiting for AI composer readiness $context"
+            ) {
                 aiComposerDraftTextOrNull() == expectedDraftText &&
                     aiComposerSendButtonIsEnabled(expectedLabel = expectedButtonLabel)
             }
@@ -882,7 +999,33 @@ class LiveSmokeTest {
                 "AI composer was not ready $context. " +
                     "ExpectedDraft='$expectedDraftText' " +
                     "ActualDraft='${aiComposerDraftTextOrNull()}' " +
-                    "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = expectedButtonLabel)}",
+                    "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = expectedButtonLabel)} " +
+                    "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+                error
+            )
+        }
+    }
+
+    private fun waitForAssistantProposal(
+        aiFrontText: String,
+        aiBackText: String,
+        markerTag: String
+    ) {
+        try {
+            waitUntilWithMitigation(
+                timeoutMillis = externalUiTimeoutMillis,
+                context = "while waiting for the AI proposal"
+            ) {
+                val assistantText = latestAssistantMessageTextOrNull() ?: return@waitUntilWithMitigation false
+                assistantText.contains(other = aiFrontText) &&
+                    assistantText.contains(other = aiBackText) &&
+                    assistantText.contains(other = markerTag)
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Assistant proposal did not contain the requested card. " +
+                    "LatestAssistant='${latestAssistantMessageTextOrNull()}' " +
+                    "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
                 error
             )
         }
@@ -895,6 +1038,13 @@ class LiveSmokeTest {
             ?.config
             ?.getOrNull(SemanticsProperties.EditableText)
             ?.text
+    }
+
+    private fun aiComposerFieldIsEditable(): Boolean {
+        val node = composeRule.onAllNodesWithTag(aiComposerMessageFieldTag)
+            .fetchSemanticsNodes()
+            .singleOrNull() ?: return false
+        return node.config.contains(SemanticsProperties.Disabled).not()
     }
 
     private fun aiComposerSendButtonIsEnabled(expectedLabel: String): Boolean {
@@ -912,6 +1062,106 @@ class LiveSmokeTest {
             "disabled"
         } else {
             "enabled"
+        }
+    }
+
+    private fun latestAssistantMessageTextOrNull(): String? {
+        return composeRule.onAllNodesWithTag(aiAssistantTextPartTag, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .map(::nodeSummary)
+            .filter { text -> text.isNotBlank() }
+            .takeIf { texts -> texts.isNotEmpty() }
+            ?.joinToString(separator = " | ")
+    }
+
+    private fun visibleCardsFrontTexts(): List<String> {
+        return composeRule.onAllNodesWithTag(cardsCardFrontTextTag, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .map(::nodeSummary)
+            .filter { text -> text.isNotBlank() }
+    }
+
+    private fun currentReviewCardFrontTextOrNull(): String? {
+        return composeRule.onAllNodesWithTag(reviewCurrentCardFrontContentTag, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .singleOrNull()
+            ?.let(::nodeSummary)
+    }
+
+    private fun reviewEmptyStateTitleOrNull(): String? {
+        return composeRule.onAllNodesWithTag(reviewEmptyStateTitleTag, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .singleOrNull()
+            ?.let(::nodeSummary)
+    }
+
+    private fun localCardSnapshotOrNull(expectedFrontText: String): String? {
+        return runBlocking {
+            val database = (composeRule.activity.application as FlashcardsApplication).appGraph.database
+            val matchingCard = database.cardDao()
+                .observeCardsWithRelations()
+                .first()
+                .lastOrNull { cardWithRelations ->
+                    cardWithRelations.card.frontText == expectedFrontText
+                } ?: return@runBlocking null
+            "cardId=${matchingCard.card.cardId} " +
+                "workspaceId=${matchingCard.card.workspaceId} " +
+                "dueAtMillis=${matchingCard.card.dueAtMillis} " +
+                "fsrsCardState=${matchingCard.card.fsrsCardState} " +
+                "reps=${matchingCard.card.reps} " +
+                "lapses=${matchingCard.card.lapses} " +
+                "tags=${matchingCard.tags.map { tag -> tag.name }}"
+        }
+    }
+
+    private fun currentCloudSettingsSummary(): String {
+        return runBlocking {
+            val appGraph = (composeRule.activity.application as FlashcardsApplication).appGraph
+            val cloudSettings = appGraph.cloudAccountRepository.observeCloudSettings().first()
+            "cloudState=${cloudSettings.cloudState} " +
+                "linkedUserId=${cloudSettings.linkedUserId} " +
+                "linkedWorkspaceId=${cloudSettings.linkedWorkspaceId} " +
+                "activeWorkspaceId=${cloudSettings.activeWorkspaceId} " +
+                "deviceId=${cloudSettings.deviceId}"
+        }
+    }
+
+    private fun currentWorkspaceSummaryOrNull(): String? {
+        return runBlocking {
+            val appGraph = (composeRule.activity.application as FlashcardsApplication).appGraph
+            appGraph.workspaceRepository.observeWorkspace().first()?.let { workspace ->
+                "workspaceId=${workspace.workspaceId} name=${workspace.name}"
+            }
+        }
+    }
+
+    private fun dismissExternalSystemDialogIfPresent(): String? {
+        val summary = currentBlockingSystemDialogSummaryOrNull() ?: return null
+        val waitButton = device.findObject(By.text(systemDialogWaitButtonText)) ?: return summary
+        if (device.findObject(By.text(systemDialogCloseAppButtonText)) == null) {
+            return summary
+        }
+        waitButton.click()
+        device.waitForIdle()
+        return summary
+    }
+
+    private fun currentBlockingSystemDialogSummaryOrNull(): String? {
+        val dialogTitle = blockingSystemDialogTitles.firstNotNullOfOrNull { title ->
+            if (device.findObject(By.text(title)) != null) {
+                title
+            } else {
+                null
+            }
+        }
+        val dialogMessage = device.findObject(By.textContains("isn't responding"))?.text
+        val waitButtonVisible = device.findObject(By.text(systemDialogWaitButtonText)) != null
+        val closeAppButtonVisible = device.findObject(By.text(systemDialogCloseAppButtonText)) != null
+        if (waitButtonVisible.not() || closeAppButtonVisible.not()) {
+            return null
+        }
+        return listOfNotNull(dialogTitle, dialogMessage).joinToString(separator = " | ").ifBlank {
+            "external_system_dialog"
         }
     }
 

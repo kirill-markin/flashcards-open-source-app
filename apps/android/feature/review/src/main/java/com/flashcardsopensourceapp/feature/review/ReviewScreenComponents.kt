@@ -70,6 +70,9 @@ const val reviewFilterButtonTag: String = "review_filter_button"
 const val reviewEditCardButtonTag: String = "review_edit_card_button"
 const val reviewEmptyStateTag: String = "review_empty_state"
 const val reviewEmptyStateContentTag: String = "review_empty_state_content"
+const val reviewEmptyStateTitleTag: String = "review_empty_state_title"
+const val reviewCurrentCardTag: String = "review_current_card"
+const val reviewCurrentCardFrontContentTag: String = "review_current_card_front_content"
 
 internal val reviewBottomOverlayBottomPadding = 12.dp
 private val reviewBottomOverlayHorizontalPadding = 16.dp
@@ -260,7 +263,8 @@ private fun ActionableEmptyReviewState(
             Text(
                 text = title,
                 style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.testTag(reviewEmptyStateTitleTag)
             )
             Text(
                 text = body,
@@ -340,20 +344,26 @@ private fun ReviewCardContent(
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(reviewCurrentCardTag)
+        ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
                 modifier = Modifier.padding(20.dp)
             ) {
                 ReviewCardSideSection(
                     label = "Front",
-                    content = currentCard.frontContent
+                    content = currentCard.frontContent,
+                    contentModifier = Modifier.testTag(reviewCurrentCardFrontContentTag)
                 )
                 if (isAnswerVisible) {
                     HorizontalDivider()
                     ReviewCardSideSection(
                         label = "Back",
-                        content = currentCard.backContent
+                        content = currentCard.backContent,
+                        contentModifier = Modifier
                     )
                 }
             }
@@ -383,7 +393,8 @@ private fun ReviewCardContent(
 @Composable
 private fun ReviewCardSideSection(
     label: String,
-    content: ReviewRenderedContent
+    content: ReviewRenderedContent,
+    contentModifier: Modifier
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -394,7 +405,7 @@ private fun ReviewCardSideSection(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        ReviewRenderedContentView(content = content)
+        ReviewRenderedContentView(content = content, modifier = contentModifier)
     }
 }
 

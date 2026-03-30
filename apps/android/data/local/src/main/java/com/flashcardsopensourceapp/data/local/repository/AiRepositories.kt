@@ -6,12 +6,15 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
+import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
 import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
@@ -20,6 +23,7 @@ import com.flashcardsopensourceapp.data.local.model.buildAiChatRequestContent
 import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteService
+import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import kotlinx.coroutines.flow.Flow
 import java.util.TimeZone
 
@@ -29,8 +33,12 @@ private data class AuthorizedAiChatSession(
 )
 
 class LocalAiChatRepository(
+    private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
     private val cloudRemoteService: CloudRemoteService,
+    private val syncLocalStore: SyncLocalStore,
+    private val operationCoordinator: CloudOperationCoordinator,
+    private val syncRepository: SyncRepository,
     private val aiChatRemoteService: AiChatRemoteService,
     private val historyStore: AiChatHistoryStore,
     private val aiChatPreferencesStore: AiChatPreferencesStore,
@@ -46,6 +54,30 @@ class LocalAiChatRepository(
 
     override fun updateConsent(hasConsent: Boolean) {
         aiChatPreferencesStore.updateConsent(hasConsent = hasConsent)
+    }
+
+    override suspend fun prepareSessionForAi(workspaceId: String?) {
+        val cloudSettings = preferencesStore.currentCloudSettings()
+        if (cloudSettings.cloudState == CloudAccountState.LINKED) {
+            val configuration = preferencesStore.currentServerConfiguration()
+            val storedCredentials = requireNotNull(preferencesStore.loadCredentials()) {
+                "Cloud account is not signed in."
+            }
+            refreshedCredentials(
+                storedCredentials = storedCredentials,
+                authBaseUrl = configuration.authBaseUrl
+            )
+            return
+        }
+
+        val configuration = preferencesStore.currentServerConfiguration()
+        val guestSession = loadOrCreateGuestSession(
+            workspaceId = workspaceId,
+            configurationApiBaseUrl = configuration.apiBaseUrl
+        )
+        if (finishGuestCloudLinkIfNeeded(session = guestSession)) {
+            syncRepository.syncNow()
+        }
     }
 
     override suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState {
@@ -215,10 +247,16 @@ class LocalAiChatRepository(
             )
         }
 
-        val guestSession = loadOrCreateGuestSession(
-            workspaceId = workspaceId,
-            configurationApiBaseUrl = configuration.apiBaseUrl
-        )
+        val guestSession = loadGuestSessionForCurrentConfiguration(
+            workspaceId = workspaceId
+        ) ?: run {
+            prepareSessionForAi(workspaceId = workspaceId)
+            requireNotNull(
+                loadGuestSessionForCurrentConfiguration(workspaceId = workspaceId)
+            ) {
+                "Guest AI session is unavailable."
+            }
+        }
         return AuthorizedAiChatSession(
             apiBaseUrl = guestSession.apiBaseUrl,
             authorizationHeader = "Guest ${guestSession.guestToken}"
@@ -249,15 +287,8 @@ class LocalAiChatRepository(
         configurationApiBaseUrl: String
     ): StoredGuestAiSession {
         val configuration = preferencesStore.currentServerConfiguration()
-        val existingSession = guestSessionStore.loadSession(
-            localWorkspaceId = workspaceId,
-            configuration = configuration
-        )
+        val existingSession = loadGuestSessionForCurrentConfiguration(workspaceId = workspaceId)
         if (existingSession != null) {
-            markGuestCloudState(
-                session = existingSession,
-                activeWorkspaceId = workspaceId
-            )
             return existingSession
         }
 
@@ -269,11 +300,134 @@ class LocalAiChatRepository(
             localWorkspaceId = workspaceId,
             session = createdSession
         )
-        markGuestCloudState(
-            session = createdSession,
-            activeWorkspaceId = workspaceId
-        )
         return createdSession
+    }
+
+    private fun loadGuestSessionForCurrentConfiguration(workspaceId: String?): StoredGuestAiSession? {
+        val configuration = preferencesStore.currentServerConfiguration()
+        if (workspaceId.isNullOrBlank()) {
+            return guestSessionStore.loadAnySession(configuration = configuration)
+        }
+
+        return guestSessionStore.loadSession(
+            localWorkspaceId = workspaceId,
+            configuration = configuration
+        )
+    }
+
+    private suspend fun finishGuestCloudLinkIfNeeded(session: StoredGuestAiSession): Boolean {
+        return operationCoordinator.runExclusive {
+            val currentCloudSettings = preferencesStore.currentCloudSettings()
+            val currentWorkspace = loadCurrentWorkspaceOrNull(
+                database = database,
+                preferencesStore = preferencesStore
+            )
+            val isAlreadyGuestLinked = currentCloudSettings.cloudState == CloudAccountState.GUEST
+                && currentWorkspace?.workspaceId == session.workspaceId
+                && currentCloudSettings.linkedUserId == session.userId
+
+            if (isAlreadyGuestLinked) {
+                guestSessionStore.saveSession(localWorkspaceId = session.workspaceId, session = session)
+                markGuestCloudState(session = session, activeWorkspaceId = session.workspaceId)
+                return@runExclusive false
+            }
+
+            val bootstrapProbe = bootstrapGuestWorkspace(
+                session = session,
+                deviceId = currentCloudSettings.deviceId
+            )
+            val workspaceSummary = guestWorkspaceSummary(
+                currentWorkspaceId = currentWorkspace?.workspaceId,
+                currentWorkspaceName = currentWorkspace?.name,
+                currentWorkspaceCreatedAtMillis = currentWorkspace?.createdAtMillis,
+                session = session
+            )
+            syncLocalStore.migrateLocalShellToLinkedWorkspace(
+                workspace = workspaceSummary,
+                remoteWorkspaceIsEmpty = bootstrapProbe.remoteIsEmpty
+            )
+            if (currentWorkspace?.workspaceId != null && currentWorkspace.workspaceId != session.workspaceId) {
+                guestSessionStore.clearSession(localWorkspaceId = currentWorkspace.workspaceId)
+            }
+            guestSessionStore.saveSession(localWorkspaceId = session.workspaceId, session = session)
+            markGuestCloudState(session = session, activeWorkspaceId = session.workspaceId)
+            true
+        }
+    }
+
+    private suspend fun bootstrapGuestWorkspace(
+        session: StoredGuestAiSession,
+        deviceId: String
+    ): com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPullResponse {
+        return try {
+            runGuestBootstrapPull(
+                session = session,
+                deviceId = deviceId
+            )
+        } catch (error: CloudRemoteException) {
+            if (error.errorCode != "SYNC_DEVICE_OWNED_BY_ANOTHER_USER") {
+                throw error
+            }
+
+            val regeneratedDeviceId = preferencesStore.regenerateDeviceId()
+            AiChatDiagnosticsLogger.warn(
+                event = "guest_bootstrap_retry_with_regenerated_device_id",
+                fields = listOf(
+                    "workspaceId" to session.workspaceId,
+                    "previousDeviceId" to deviceId,
+                    "regeneratedDeviceId" to regeneratedDeviceId,
+                    "requestId" to error.requestId,
+                    "statusCode" to error.statusCode?.toString(),
+                    "errorCode" to error.errorCode
+                )
+            )
+            runGuestBootstrapPull(
+                session = session,
+                deviceId = regeneratedDeviceId
+            )
+        }
+    }
+
+    private suspend fun runGuestBootstrapPull(
+        session: StoredGuestAiSession,
+        deviceId: String
+    ): com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPullResponse {
+        return cloudRemoteService.bootstrapPull(
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = "Guest ${session.guestToken}",
+            workspaceId = session.workspaceId,
+            body = org.json.JSONObject()
+                .put("mode", "pull")
+                .put("deviceId", deviceId)
+                .put("platform", "android")
+                .put("appVersion", "0.1.0")
+                .put("cursor", org.json.JSONObject.NULL)
+                .put("limit", 1)
+        )
+    }
+
+    private fun guestWorkspaceSummary(
+        currentWorkspaceId: String?,
+        currentWorkspaceName: String?,
+        currentWorkspaceCreatedAtMillis: Long?,
+        session: StoredGuestAiSession
+    ): CloudWorkspaceSummary {
+        val workspaceName = if (currentWorkspaceId == session.workspaceId) {
+            currentWorkspaceName ?: "Personal"
+        } else {
+            currentWorkspaceName ?: "Personal"
+        }
+        val createdAtMillis = if (currentWorkspaceId == session.workspaceId) {
+            currentWorkspaceCreatedAtMillis ?: System.currentTimeMillis()
+        } else {
+            currentWorkspaceCreatedAtMillis ?: System.currentTimeMillis()
+        }
+        return CloudWorkspaceSummary(
+            workspaceId = session.workspaceId,
+            name = workspaceName,
+            createdAtMillis = createdAtMillis,
+            isSelected = true
+        )
     }
 
     private fun markGuestCloudState(

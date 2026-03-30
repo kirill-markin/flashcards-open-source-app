@@ -79,7 +79,8 @@ class AppGraph(
         remoteService = cloudRemoteService,
         syncLocalStore = syncLocalStore,
         operationCoordinator = cloudOperationCoordinator,
-        resetCoordinator = cloudIdentityResetCoordinator
+        resetCoordinator = cloudIdentityResetCoordinator,
+        guestSessionStore = guestAiSessionStore
     )
     val cardsRepository: CardsRepository = LocalCardsRepository(
         database = database,
@@ -103,8 +104,12 @@ class AppGraph(
         syncLocalStore = syncLocalStore
     )
     val aiChatRepository: AiChatRepository = LocalAiChatRepository(
+        database = database,
         preferencesStore = cloudPreferencesStore,
         cloudRemoteService = cloudRemoteService,
+        syncLocalStore = syncLocalStore,
+        operationCoordinator = cloudOperationCoordinator,
+        syncRepository = syncRepository,
         aiChatRemoteService = aiChatRemoteService,
         historyStore = aiChatHistoryStore,
         aiChatPreferencesStore = aiChatPreferencesStore,
@@ -143,7 +148,7 @@ class AppGraph(
         val guestSession = guestAiSessionStore.loadSession(
             localWorkspaceId = localWorkspaceId,
             configuration = configuration
-        ) ?: guestAiSessionStore.loadAnySession(configuration = configuration)
+        )
 
         if (guestSession == null) {
             if (currentCloudSettings.cloudState == CloudAccountState.GUEST) {
@@ -163,7 +168,7 @@ class AppGraph(
             linkedUserId = guestSession.userId,
             linkedWorkspaceId = guestSession.workspaceId,
             linkedEmail = null,
-            activeWorkspaceId = localWorkspaceId
+            activeWorkspaceId = guestSession.workspaceId
         )
     }
 
