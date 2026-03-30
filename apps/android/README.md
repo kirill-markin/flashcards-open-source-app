@@ -121,6 +121,9 @@ Test only on the final supported Android target.
 - Run Android tests only against Android 16 / API 36
 - Do not spend time on test matrices for older API levels
 - Do not add compatibility code for older Android versions unless explicitly requested
+- Prefer background local emulator runs without a visible emulator window by default
+- Preserve the usual test artifacts, logs, screenshots, and reports when running Android tests in the background
+- Open a visible Android emulator only when the user explicitly asks for it at that time
 
 ## Native Test Stack
 

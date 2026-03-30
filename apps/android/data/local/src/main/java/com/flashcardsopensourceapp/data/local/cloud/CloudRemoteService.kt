@@ -106,6 +106,12 @@ class CloudRemoteException(
     val requestId: String?
 ) : Exception(message)
 
+private data class ParsedCloudErrorPayload(
+    val message: String?,
+    val code: String?,
+    val requestId: String?
+)
+
 interface CloudRemoteGateway {
     suspend fun validateConfiguration(configuration: CloudServiceConfiguration)
     suspend fun sendCode(email: String, authBaseUrl: String): CloudSendCodeResult
@@ -918,11 +924,16 @@ class CloudRemoteService : CloudRemoteGateway {
             if (statusCode < 200 || statusCode >= 300) {
                 val parsedError = parseCloudErrorPayload(responseBody = responseBody)
                 throw CloudRemoteException(
-                    message = "Cloud request failed with status $statusCode for $path: $responseBody",
+                    message = formatCloudRemoteErrorMessage(
+                        statusCode = statusCode,
+                        path = path,
+                        parsedError = parsedError,
+                        responseBody = responseBody
+                    ),
                     statusCode = statusCode,
                     responseBody = responseBody,
-                    errorCode = parsedError?.first,
-                    requestId = parsedError?.second
+                    errorCode = parsedError?.code,
+                    requestId = parsedError?.requestId
                 )
             }
 
@@ -951,18 +962,47 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 }
 
-private fun parseCloudErrorPayload(responseBody: String): Pair<String?, String?>? {
+private fun formatCloudRemoteErrorMessage(
+    statusCode: Int,
+    path: String,
+    parsedError: ParsedCloudErrorPayload?,
+    responseBody: String
+): String {
+    val message = parsedError?.message?.trim().orEmpty()
+    if (message.isNotEmpty()) {
+        val requestId = parsedError?.requestId?.trim().orEmpty()
+        return if (requestId.isEmpty()) {
+            message
+        } else {
+            "$message Reference: $requestId"
+        }
+    }
+
+    return if (responseBody.isBlank()) {
+        "Cloud request failed with status $statusCode for $path."
+    } else {
+        "Cloud request failed with status $statusCode for $path. Response body: $responseBody"
+    }
+}
+
+private fun parseCloudErrorPayload(responseBody: String): ParsedCloudErrorPayload? {
     if (responseBody.isBlank()) {
         return null
     }
 
     return try {
         val payload = JSONObject(responseBody)
+        val topLevelMessage = payload.optCloudStringOrNull("error", "error.message")
         val topLevelCode = payload.optCloudStringOrNull("code", "error.code")
         val nestedErrorValue = payload.opt("error")
+        val nestedMessage = (nestedErrorValue as? JSONObject)?.optCloudStringOrNull("message", "error.error.message")
         val nestedCode = (nestedErrorValue as? JSONObject)?.optCloudStringOrNull("code", "error.error.code")
         val requestId = payload.optCloudStringOrNull("requestId", "error.requestId")
-        Pair(topLevelCode ?: nestedCode, requestId)
+        ParsedCloudErrorPayload(
+            message = topLevelMessage ?: nestedMessage,
+            code = topLevelCode ?: nestedCode,
+            requestId = requestId
+        )
     } catch (_: JSONException) {
         null
     } catch (_: CloudContractMismatchException) {
