@@ -13,7 +13,10 @@ import {
   type CursorPageInput,
 } from "./pagination";
 import { logCloudRouteEvent } from "./server/logging";
-import { ensureSystemWorkspaceReplicaInExecutor } from "./syncIdentity";
+import {
+  buildSystemWorkspaceReplicaId,
+  ensureSystemWorkspaceReplicaInExecutor,
+} from "./syncIdentity";
 import { insertSyncChange } from "./syncChanges";
 
 export const AUTO_CREATED_WORKSPACE_NAME = "Personal";
@@ -349,20 +352,15 @@ export async function createWorkspaceInExecutor(
   const workspaceId = randomUUID();
   const bootstrapTimestamp = new Date().toISOString();
   const bootstrapOperationId = `bootstrap-workspace-${workspaceId}`;
-  let stage: WorkspaceCreateFailureStage = "create_bootstrap_replica";
+  const bootstrapReplicaId = buildSystemWorkspaceReplicaId(
+    workspaceId,
+    "workspace_seed",
+    "workspace-seed",
+  );
+  let stage: WorkspaceCreateFailureStage = "create_workspace_row";
 
   try {
     await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
-    const bootstrapReplicaId = await ensureSystemWorkspaceReplicaInExecutor(executor, {
-      workspaceId,
-      userId,
-      actorKind: "workspace_seed",
-      actorKey: "workspace-seed",
-      platform: "system",
-      appVersion: "server-bootstrap",
-    });
-
-    stage = "create_workspace_row";
     await executor.query(
       [
         "INSERT INTO org.workspaces",
@@ -383,6 +381,16 @@ export async function createWorkspaceInExecutor(
       ].join(" "),
       [workspaceId, userId],
     );
+
+    stage = "create_bootstrap_replica";
+    await ensureSystemWorkspaceReplicaInExecutor(executor, {
+      workspaceId,
+      userId,
+      actorKind: "workspace_seed",
+      actorKey: "workspace-seed",
+      platform: "system",
+      appVersion: "server-bootstrap",
+    }, bootstrapReplicaId);
 
     stage = "load_scheduler_settings";
     const workspaceResult = await executor.query<WorkspaceSchedulerSeedRow>(
