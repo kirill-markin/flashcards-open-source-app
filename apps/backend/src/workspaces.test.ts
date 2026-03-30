@@ -212,6 +212,7 @@ test("loadWorkspaceDeletePreviewInExecutor returns the active card count and las
 test("deleteWorkspaceInExecutor deletes the workspace and selects the earliest remaining workspace", async () => {
   let deletedWorkspaceId: string | null = null;
   let updatedWorkspaceId: string | null = null;
+  let scopeTransitionCount = 0;
 
   const executor: DatabaseExecutor = {
     async query<Row extends pg.QueryResultRow>(
@@ -230,7 +231,14 @@ test("deleteWorkspaceInExecutor deletes the workspace and selects the earliest r
       }
 
       if (text.includes("set_config('app.user_id'")) {
-        assert.deepEqual(params, ["user-1", "workspace-delete"]);
+        scopeTransitionCount += 1;
+        if (scopeTransitionCount == 1) {
+          assert.deepEqual(params, ["user-1", "workspace-delete"]);
+        } else if (scopeTransitionCount == 2) {
+          assert.deepEqual(params, ["user-1", ""]);
+        } else {
+          throw new Error(`Unexpected scope transition ${scopeTransitionCount}`);
+        }
         return makeQueryResult<Row>([]);
       }
 
@@ -281,6 +289,7 @@ test("deleteWorkspaceInExecutor deletes the workspace and selects the earliest r
 
   assert.equal(deletedWorkspaceId, "workspace-delete");
   assert.equal(updatedWorkspaceId, "workspace-a");
+  assert.equal(scopeTransitionCount, 2);
   assert.deepEqual(response, {
     ok: true,
     deletedWorkspaceId: "workspace-delete",
@@ -296,6 +305,7 @@ test("deleteWorkspaceInExecutor deletes the workspace and selects the earliest r
 
 test("deleteWorkspaceInExecutor auto-creates a replacement workspace when the deleted workspace was the last one", async () => {
   let createdWorkspaceId: string | null = null;
+  let scopeTransitionCount = 0;
 
   const executor: DatabaseExecutor = {
     async query<Row extends pg.QueryResultRow>(
@@ -314,6 +324,17 @@ test("deleteWorkspaceInExecutor auto-creates a replacement workspace when the de
       }
 
       if (text.includes("set_config('app.user_id'")) {
+        scopeTransitionCount += 1;
+        if (scopeTransitionCount == 1) {
+          assert.deepEqual(params, ["user-1", "workspace-delete"]);
+        } else if (scopeTransitionCount == 2) {
+          assert.deepEqual(params, ["user-1", ""]);
+        } else if (scopeTransitionCount == 3) {
+          assert.equal(params[0], "user-1");
+          assert.equal(typeof params[1], "string");
+        } else {
+          throw new Error(`Unexpected scope transition ${scopeTransitionCount}`);
+        }
         return makeQueryResult<Row>([]);
       }
 
@@ -412,6 +433,7 @@ test("deleteWorkspaceInExecutor auto-creates a replacement workspace when the de
   );
 
   assert.ok(createdWorkspaceId !== null);
+  assert.equal(scopeTransitionCount, 3);
   assert.equal(response.workspace.workspaceId, createdWorkspaceId);
   assert.equal(response.workspace.name, "Personal");
   assert.equal(response.workspace.isSelected, true);
