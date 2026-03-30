@@ -23,11 +23,23 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 We support the web app, the iOS app, the Android app, and the terminal-first AI-agent API flow. When making changes, we try to keep all supported clients aligned where relevant.
 The platform READMEs are part of the working agreement for client work: [apps/web/README.md](apps/web/README.md) for web changes, [apps/ios/README.md](apps/ios/README.md) for iOS changes, and [apps/android/README.md](apps/android/README.md) for Android changes.
 The iOS Xcode project is file-synchronized, so new Swift files can be added without manual `project.pbxproj` edits.
-Running iOS tests is a heavy operation, so do not run them automatically and only run them after the user explicitly agrees.
+Run iOS tests locally when they help validate the requested change or when the user asks for them.
 iOS full test runs can take a bit more than 2 minutes locally, and that is normal.
-If iOS tests are explicitly requested, run them only on one specific iPhone simulator runtime that is already downloaded locally.
-If that iPhone simulator runtime is not already available locally, do not run the tests and do not trigger extra runtime downloads or installations.
+If iOS tests are requested, run them only on one specific iPhone simulator runtime that is already downloaded locally.
+Prefer an already booted local iPhone simulator on the final supported iOS runtime. Reuse that exact device instead of booting a different one when possible.
+Prefer the background CLI flow over opening heavy Xcode UI: `xcrun simctl bootstatus`, `xcodebuild build-for-testing`, then `xcodebuild test-without-building`.
+If a suitable simulator is already warmed, keep using it and avoid rebuilding unnecessarily.
+If no suitable local iPhone simulator runtime is already available, do not trigger extra runtime downloads or installations. Stop and ask the user how to proceed.
 For iOS, `My Mac` can be used only for iOS compile smoke-checks such as `build` or `build-for-testing`, not as a reliable destination for app-hosted unit tests.
+Preferred local CLI examples:
+
+```bash
+xcrun simctl list devices available
+xcrun simctl bootstatus <device-uuid> -b
+xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -destination 'platform=iOS Simulator,id=<device-uuid>' build-for-testing
+xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -destination 'platform=iOS Simulator,id=<device-uuid>' test-without-building
+xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -destination 'platform=iOS Simulator,id=<device-uuid>' -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeUITests/testLiveSmokeLocalNavigationFlow' test-without-building
+```
 For Android, follow [apps/android/README.md](apps/android/README.md) for platform targets and testing focus. Tests should be run only against the final supported Android target, not against older API levels.
 Run Android local tests sequentially, not in parallel, otherwise local runs can become unstable.
 Before running Android tests, also check which Android emulators are available locally. If a local emulator is available, Android tests can be run by starting that emulator.
