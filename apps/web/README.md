@@ -37,4 +37,4 @@ The expected main-branch release flow is:
 2. Web deploy on `main`
 3. Native Playwright live smoke after deploy as an operational signal
 
-When a change lands on `main`, follow the GitHub `CI` and deploy workflows through completion instead of assuming the web release finished automatically. A failed web live smoke is visible after deploy and should be fixed forward. Do not try to guard every internal web detail with tests; add only the smallest targeted check that validates an important boundary or user flow.
+When a change lands on `main`, follow the GitHub `AWS/Web Release` workflow through completion instead of assuming the web release finished automatically. A failed web live smoke is visible after deploy and should be fixed forward. Do not try to guard every internal web detail with tests; add only the smallest targeted check that validates an important boundary or user flow.

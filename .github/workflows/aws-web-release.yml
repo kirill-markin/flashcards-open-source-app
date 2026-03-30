@@ -11,7 +11,6 @@ on:
       - 'db/**'
       - 'infra/**'
       - 'scripts/**'
-      - '.github/workflows/ci.yml'
       - '.github/workflows/aws-web-release.yml'
   workflow_dispatch:
 
@@ -37,6 +36,11 @@ jobs:
     outputs:
       aws_changed: ${{ steps.detect.outputs.aws_changed }}
       db_migrations_changed: ${{ steps.detect.outputs.db_migrations_changed }}
+      api_changed: ${{ steps.detect.outputs.api_changed }}
+      auth_changed: ${{ steps.detect.outputs.auth_changed }}
+      backend_changed: ${{ steps.detect.outputs.backend_changed }}
+      web_changed: ${{ steps.detect.outputs.web_changed }}
+      infra_changed: ${{ steps.detect.outputs.infra_changed }}
       changed_files: ${{ steps.detect.outputs.changed_files }}
 
     steps:
@@ -63,7 +67,7 @@ jobs:
           fi
 
           aws_changed=false
-          if grep -Eq '^(api/|apps/auth/|apps/backend/|apps/web/|db/|infra/|scripts/|\.github/workflows/(ci|aws-web-release)\.yml$)' "${changed_files_path}"; then
+          if grep -Eq '^(api/|apps/auth/|apps/backend/|apps/web/|db/|infra/|scripts/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
             aws_changed=true
           fi
 
@@ -72,9 +76,39 @@ jobs:
             db_migrations_changed=true
           fi
 
+          api_changed=false
+          if grep -Eq '^(api/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+            api_changed=true
+          fi
+
+          auth_changed=false
+          if grep -Eq '^(apps/auth/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+            auth_changed=true
+          fi
+
+          backend_changed=false
+          if grep -Eq '^(apps/backend/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+            backend_changed=true
+          fi
+
+          web_changed=false
+          if grep -Eq '^(apps/web/|apps/backend/src/schedule\.ts$|apps/backend/src/workspaceSchedulerConfig\.ts$|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+            web_changed=true
+          fi
+
+          infra_changed=false
+          if grep -Eq '^(infra/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+            infra_changed=true
+          fi
+
           {
             echo "aws_changed=${aws_changed}"
             echo "db_migrations_changed=${db_migrations_changed}"
+            echo "api_changed=${api_changed}"
+            echo "auth_changed=${auth_changed}"
+            echo "backend_changed=${backend_changed}"
+            echo "web_changed=${web_changed}"
+            echo "infra_changed=${infra_changed}"
             echo 'changed_files<<EOF'
             cat "${changed_files_path}"
             echo 'EOF'
@@ -89,6 +123,11 @@ jobs:
             echo ""
             echo "- AWS changed: \`${{ steps.detect.outputs.aws_changed }}\`"
             echo "- DB migrations changed: \`${{ steps.detect.outputs.db_migrations_changed }}\`"
+            echo "- API changed: \`${{ steps.detect.outputs.api_changed }}\`"
+            echo "- Auth changed: \`${{ steps.detect.outputs.auth_changed }}\`"
+            echo "- Backend changed: \`${{ steps.detect.outputs.backend_changed }}\`"
+            echo "- Web changed: \`${{ steps.detect.outputs.web_changed }}\`"
+            echo "- Infra changed: \`${{ steps.detect.outputs.infra_changed }}\`"
             echo ""
             echo "### Changed files"
             echo ""
@@ -99,60 +138,68 @@ jobs:
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
 
-  wait_ci_for_aws_release:
-    name: Wait for CI before AWS release
+  pre_deploy_checks:
+    name: Pre-deploy checks
     needs: changes
+    if: ${{ needs.changes.outputs.aws_changed == 'true' }}
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Wait for CI workflow to finish for this SHA
-        env:
-          GH_TOKEN: ${{ github.token }}
-          AWS_CHANGED: ${{ needs.changes.outputs.aws_changed }}
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            api/package-lock.json
+            apps/auth/package-lock.json
+            apps/backend/package-lock.json
+            apps/web/package-lock.json
+            infra/aws/package-lock.json
+
+      - name: Install dependencies
         run: |
-          set -euo pipefail
+          npm ci --prefix api
+          npm ci --prefix apps/auth
+          npm ci --prefix apps/backend
+          npm ci --prefix apps/web
+          npm ci --prefix infra/aws
 
-          if [[ "${GITHUB_EVENT_NAME}" != "push" ]] || [[ "${GITHUB_REF}" != "refs/heads/main" ]] || [[ "${AWS_CHANGED}" != "true" ]]; then
-            echo "Skipping CI gate for this release run."
-            exit 0
-          fi
+      - name: Lint OpenAPI spec
+        if: ${{ needs.changes.outputs.api_changed == 'true' }}
+        run: npm run lint --prefix api
 
-          deadline_epoch="$(( $(date +%s) + 3600 ))"
+      - name: Bundle OpenAPI spec
+        if: ${{ needs.changes.outputs.api_changed == 'true' }}
+        run: npm run bundle --prefix api
 
-          while true; do
-            runs_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=${GITHUB_SHA}&per_page=10")"
-            run_count="$(jq '.workflow_runs | length' <<< "${runs_json}")"
+      - name: Build auth app
+        if: ${{ needs.changes.outputs.auth_changed == 'true' }}
+        run: npm run build --prefix apps/auth
 
-            if [[ "${run_count}" -gt 0 ]]; then
-              latest_run_json="$(jq '.workflow_runs | sort_by(.created_at) | last' <<< "${runs_json}")"
-              status="$(jq -r '.status' <<< "${latest_run_json}")"
-              conclusion="$(jq -r '.conclusion // "null"' <<< "${latest_run_json}")"
-              run_url="$(jq -r '.html_url' <<< "${latest_run_json}")"
+      - name: Lint backend
+        if: ${{ needs.changes.outputs.backend_changed == 'true' }}
+        run: npm run lint --prefix apps/backend
 
-              if [[ "${status}" == "completed" ]]; then
-                if [[ "${conclusion}" == "success" ]]; then
-                  exit 0
-                fi
+      - name: Build backend
+        if: ${{ needs.changes.outputs.backend_changed == 'true' }}
+        run: npm run build --prefix apps/backend
 
-                echo "CI workflow finished with conclusion ${conclusion}: ${run_url}" >&2
-                exit 1
-              fi
-            fi
+      - name: Build web app
+        if: ${{ needs.changes.outputs.web_changed == 'true' }}
+        run: npm run build --prefix apps/web
 
-            if [[ "$(date +%s)" -ge "${deadline_epoch}" ]]; then
-              echo "Timed out waiting for CI workflow for ${GITHUB_SHA}." >&2
-              exit 1
-            fi
-
-            sleep 30
-          done
+      - name: Build infra
+        if: ${{ needs.changes.outputs.infra_changed == 'true' }}
+        run: npm run build --prefix infra/aws
 
   aws_deploy:
     name: Deploy AWS release
     needs:
       - changes
-      - wait_ci_for_aws_release
-    if: ${{ needs.changes.outputs.aws_changed == 'true' && needs.wait_ci_for_aws_release.result == 'success' }}
+      - pre_deploy_checks
+    if: ${{ needs.changes.outputs.aws_changed == 'true' && needs.pre_deploy_checks.result == 'success' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
 
@@ -516,7 +563,7 @@ jobs:
     name: Resolve AWS release outcome
     needs:
       - changes
-      - wait_ci_for_aws_release
+      - pre_deploy_checks
       - aws_deploy
       - web_smoke
       - mark_aws_retained
@@ -539,8 +586,8 @@ jobs:
           retained_aws_sha=""
 
           if [[ "${{ needs.changes.outputs.aws_changed }}" == "true" ]]; then
-            if [[ "${{ needs.wait_ci_for_aws_release.result }}" != "success" ]]; then
-              aws_release_status="ci_gate_failed"
+            if [[ "${{ needs.pre_deploy_checks.result }}" != "success" ]]; then
+              aws_release_status="pre_deploy_checks_failed"
             elif [[ "${{ needs.aws_deploy.result }}" != "success" ]]; then
               aws_release_status="deployment_failed"
             elif [[ "${{ needs.web_smoke.result }}" == "success" ]]; then
@@ -578,7 +625,7 @@ jobs:
     if: ${{ always() }}
     needs:
       - changes
-      - wait_ci_for_aws_release
+      - pre_deploy_checks
       - aws_deploy
       - web_smoke
       - rollback_aws
@@ -593,7 +640,7 @@ jobs:
             echo ""
             echo "- AWS changed: \`${{ needs.changes.outputs.aws_changed }}\`"
             echo "- DB migrations changed: \`${{ needs.changes.outputs.db_migrations_changed }}\`"
-            echo "- CI gate job: \`${{ needs.wait_ci_for_aws_release.result }}\`"
+            echo "- Pre-deploy checks job: \`${{ needs.pre_deploy_checks.result }}\`"
             echo "- AWS release status: \`${{ needs.aws_release_status.outputs.aws_release_status }}\`"
             echo "- Rollback performed: \`${{ needs.aws_release_status.outputs.rollback_performed }}\`"
             echo "- Retained AWS SHA: \`${{ needs.aws_release_status.outputs.retained_aws_sha || 'n/a' }}\`"
