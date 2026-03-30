@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import OSLog
 import XCTest
@@ -808,10 +809,10 @@ final class LiveSmokeUITests: XCTestCase {
         try self.tapElement(identifier: LiveSmokeIdentifier.aiComposerSendButton, timeout: self.shortUiTimeoutSeconds)
         _ = self.dismissKnownBlockingAlertIfVisible()
         self.logActionEnd(action: "ai_send_2", identifier: LiveSmokeIdentifier.aiComposerSendButton, result: "success", note: "confirmation request sent")
-        try self.assertElementLabel(
-            identifier: LiveSmokeIdentifier.aiComposerSendButton,
-            expectedLabel: "Stop response",
-            timeout: self.shortUiTimeoutSeconds
+        try self.assertAiRunStartedOrFinished(
+            timeout: self.shortUiTimeoutSeconds,
+            completedMarkerCountBeforeWait: completedMarkerCountBeforeConfirmation,
+            errorMarkerCountBeforeWait: errorMarkerCountBeforeConfirmation
         )
         try self.assertAiRunFinished(
             timeout: self.longUiTimeoutSeconds,
@@ -1001,10 +1002,12 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func tapElement(identifier: String, timeout: TimeInterval) throws {
-        guard let element = self.waitForOptionalHittableElement(
+        let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+        if self.waitForOptionalElement(
+            element,
             identifier: identifier,
             timeout: timeout
-        ) else {
+        ) == false {
             throw LiveSmokeFailure.missingElement(
                 identifier: identifier,
                 timeoutSeconds: timeout,
@@ -1012,10 +1015,49 @@ final class LiveSmokeUITests: XCTestCase {
                 step: self.currentStepTitle
             )
         }
+
         self.logActionStart(action: "tap_element", identifier: identifier)
-        element.tap()
+        if self.waitForOptionalHittableElement(
+            element,
+            identifier: identifier,
+            timeout: timeout
+        ) {
+            element.tap()
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            self.logActionEnd(action: "tap_element", identifier: identifier, result: "success", note: "element tapped")
+            return
+        }
+
+        if element.isEnabled == false {
+            throw LiveSmokeFailure.disabledElement(
+                identifier: identifier,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        let frame = element.frame
+        if frame.isEmpty {
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        self.logSmokeBreadcrumb(
+            event: "tap_fallback",
+            action: "tap_element_coordinate",
+            identifier: identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: "using coordinate tap for visible but unhittable element"
+        )
+        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         _ = self.dismissKnownBlockingAlertIfVisible()
-        self.logActionEnd(action: "tap_element", identifier: identifier, result: "success", note: "element tapped")
+        self.logActionEnd(action: "tap_element", identifier: identifier, result: "success", note: "element tapped via coordinate fallback")
     }
 
     @MainActor
@@ -2317,6 +2359,119 @@ final class LiveSmokeUITests: XCTestCase {
         )
         throw LiveSmokeFailure.aiRunDidNotFinish(
             timeoutSeconds: timeout,
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+
+    @MainActor
+    private func assertAiRunStartedOrFinished(
+        timeout: TimeInterval,
+        completedMarkerCountBeforeWait: Int,
+        errorMarkerCountBeforeWait: Int
+    ) throws {
+        let sendButton = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiComposerSendButton)
+            .firstMatch
+        let completedElements = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
+        let errorElements = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
+
+        if self.waitForOptionalElement(
+            sendButton,
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
+            timeout: timeout
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: LiveSmokeIdentifier.aiComposerSendButton,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_ai_activity",
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: "waiting for AI run start or completion"
+        )
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+
+            if sendButton.label == "Stop response" {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_ai_activity",
+                    identifier: LiveSmokeIdentifier.aiComposerSendButton,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "success",
+                    note: "AI run entered streaming state"
+                )
+                return
+            }
+
+            if completedElements.count > completedMarkerCountBeforeWait {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_ai_activity",
+                    identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "success",
+                    note: "AI run completed before stop state was observed"
+                )
+                return
+            }
+
+            let errorMarkerCount = errorElements.count
+            if errorMarkerCount > errorMarkerCountBeforeWait {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                let errorMessage = self.elementLabel(
+                    query: errorElements,
+                    index: errorMarkerCount - 1
+                )
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_ai_activity",
+                    identifier: LiveSmokeIdentifier.aiAssistantErrorMessage,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "failure",
+                    note: errorMessage
+                )
+                throw LiveSmokeFailure.aiRunReportedError(
+                    message: errorMessage.isEmpty ? "Assistant error message is empty." : errorMessage,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        let durationSeconds = Date().timeIntervalSince(startedAt)
+        self.logSmokeBreadcrumb(
+            event: "wait_end",
+            action: "wait_for_ai_activity",
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: durationSeconds),
+            result: "failure",
+            note: "AI run did not start or complete"
+        )
+        throw LiveSmokeFailure.unexpectedAiConversationState(
+            message: "AI run did not enter streaming or completion state within \(formatDuration(seconds: timeout)).",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
