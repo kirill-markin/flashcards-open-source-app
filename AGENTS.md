@@ -38,6 +38,7 @@ If iOS tests are requested, run them only on one specific iPhone simulator runti
 Prefer an already booted local iPhone simulator on the final supported iOS runtime. Reuse that exact device instead of booting a different one when possible.
 Prefer the background CLI flow over opening heavy Xcode UI: `xcrun simctl bootstatus`, then `xcodebuild test`.
 Do not open a visible iOS Simulator window for test runs unless the user explicitly asks for a visible simulator at that time.
+If an iOS test fails, inspect the generated `.xcresult` bundle and read the relevant screenshots, attachments, and logs before changing code.
 If a suitable simulator is already warmed, keep using it and avoid rebuilding unnecessarily.
 If no suitable local iPhone simulator runtime is already available, do not trigger extra runtime downloads or installations. Stop and ask the user how to proceed.
 For iOS, `My Mac` can be used only for iOS compile smoke-checks such as `build` or `build-for-testing`, not as a reliable destination for app-hosted unit tests.

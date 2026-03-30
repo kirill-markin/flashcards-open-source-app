@@ -69,6 +69,7 @@ Only test the app against the final supported iOS target.
 - Prefer background CLI runs with `simctl` and `xcodebuild` instead of opening heavy Xcode UI flows
 - Do not open a visible Simulator window for test runs unless the user explicitly asks for a visible simulator at that time
 - Prefer `xcodebuild ... test` so each run validates the current sources and build settings on the selected simulator
+- If a test fails, inspect the generated `.xcresult` bundle and read the relevant screenshots, attachments, and logs before changing code
 - If no suitable local runtime is already installed, stop and ask the user how to proceed instead of downloading extra simulator runtimes
 
 The most trusted iOS checks are the simulator-backed native smoke flows because they exercise the real app closest to production behavior.
@@ -80,6 +81,7 @@ For local iOS test runs, prefer this sequence:
 1. Reuse an already booted iPhone simulator when available.
 2. Wait for that simulator with `xcrun simctl bootstatus <device-uuid> -b`.
 3. Run the requested suite or individual test with `xcodebuild ... test`.
+4. If the run fails, inspect the `.xcresult` failure artifacts before attempting a fix.
 
 Preferred command pattern:
 
