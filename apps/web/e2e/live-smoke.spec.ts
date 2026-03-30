@@ -1,6 +1,8 @@
 import {
   expect,
   test,
+  type Browser,
+  type BrowserContext,
   type ConsoleMessage,
   type Locator,
   type Page,
@@ -125,97 +127,217 @@ type LiveSmokeDiagnostics = Readonly<{
 }>;
 
 /**
- * This smoke test intentionally keeps one connected, stateful story in a
- * single browser session. The workspace name and card texts are unique for
- * each run so the scenario can fail fast at the exact cross-screen step that
- * regressed without depending on any other test cleanup.
+ * This smoke suite intentionally keeps one connected browser session and one
+ * isolated linked workspace, but splits the coverage into a few grouped tests.
+ * The groups share state on purpose so the web release gate stays close to the
+ * existing flow while making failures easier to attribute.
  */
-test("live smoke flow uses the real demo account across review, cards, AI, and settings", async ({
-  page,
-  baseURL,
-}, testInfo) => {
-  if (baseURL === undefined) {
-    throw new Error("Playwright baseURL is required for the live smoke flow");
-  }
+test.describe.serial("live smoke flow uses the real demo account across review, cards, AI, and settings", () => {
+  let sharedContext: BrowserContext | null = null;
+  let sharedPage: Page | null = null;
+  let sharedDiagnostics: LiveSmokeDiagnostics | null = null;
+  let sharedBaseUrl: string | null = null;
+  let sharedScenario: LiveSmokeScenario | null = null;
+  let shouldDeleteWorkspace = false;
 
-  const scenario = buildScenario(runIdFrom(testInfo));
-  const diagnostics = createLiveSmokeDiagnostics(page);
-  let primaryFailure: Error | null = null;
+  test.beforeAll(async ({ browser, baseURL }) => {
+    if (baseURL === undefined) {
+      throw new Error("Playwright baseURL is required for the live smoke flow");
+    }
 
-  try {
-    await runTrackedTestStep(diagnostics, "sign in with the configured review account", async () => {
-      await signInWithReviewAccount(page, baseURL, reviewEmail, diagnostics);
-    });
+    sharedBaseUrl = baseURL;
+    sharedScenario = buildScenario(runIdFromClock());
+    sharedContext = await createSharedLiveSmokeContext(browser);
+    sharedPage = await sharedContext.newPage();
+    sharedDiagnostics = createLiveSmokeDiagnostics(sharedPage);
+  });
 
-    await runTrackedTestStep(diagnostics, "create an isolated linked workspace for this run", async () => {
-      await createEphemeralWorkspace(page, scenario.workspaceName, diagnostics);
-    });
-
-    await runTrackedTestStep(diagnostics, "create one manual card", async () => {
-      await createManualCard(page, scenario.manualFrontText, scenario.manualBackText, diagnostics);
-    });
-
-    await runTrackedTestStep(diagnostics, "verify the manual card in cards and review it", async () => {
-      await assertCardVisibleInCards(page, scenario.manualFrontText, diagnostics, localUiTimeoutMs);
-      await reviewCardFromQueue(page, scenario.manualFrontText, diagnostics);
-    });
-
-    await runTrackedTestStep(diagnostics, "reload the browser and keep the linked session", async () => {
-      await restartAndAssertLinkedSession(page, scenario.workspaceName, diagnostics);
-    });
-
-    await runTrackedTestStep(diagnostics, "create one AI card with explicit confirmation", async () => {
-      await runAiCardCreationWithConfirmation(
-        page,
-        scenario.aiFrontText,
-        scenario.aiBackText,
-        scenario.markerTag,
-        diagnostics,
-      );
-    });
-
-    await runTrackedTestStep(diagnostics, "reload after AI card creation and confirm the linked session still persists", async () => {
-      await restartAndAssertLinkedSession(page, scenario.workspaceName, diagnostics);
-    });
-
-    await runTrackedTestStep(diagnostics, "verify the AI-created card is visible in cards and review", async () => {
-      await assertCardVisibleInCards(page, scenario.aiFrontText, diagnostics, externalUiTimeoutMs);
-      await assertCardReachableInReview(page, scenario.aiFrontText, diagnostics, externalUiTimeoutMs);
-    });
-
-    await runTrackedTestStep(diagnostics, "verify linked account status and workspace state", async () => {
-      await assertLinkedAccountStatus(page, reviewEmail, scenario.workspaceName, diagnostics);
-    });
-  } catch (error) {
-    primaryFailure = normalizeError(error);
-    await diagnostics.attachFailureDetails(testInfo, primaryFailure);
-    throw error;
-  } finally {
-    await attachPageSnapshot(page, testInfo, "final-page", diagnostics);
+  test.afterAll(async () => {
+    const cleanupInfo = test.info();
 
     try {
-      await runTrackedTestStep(diagnostics, "delete the isolated workspace", async () => {
-        await deleteEphemeralWorkspace(page, scenario.workspaceName, diagnostics);
-      });
+      if (shouldDeleteWorkspace && sharedPage !== null && sharedDiagnostics !== null && sharedScenario !== null) {
+        await runTrackedTestStep(sharedDiagnostics, "delete the isolated workspace", async () => {
+          await deleteEphemeralWorkspace(sharedPage, sharedScenario.workspaceName, sharedDiagnostics);
+        });
+      }
     } catch (error) {
       const cleanupError = normalizeError(error);
-      await attachPageSnapshot(page, testInfo, "cleanup-failure-page", diagnostics);
 
-      if (primaryFailure !== null) {
-        await testInfo.attach("cleanup-failure.txt", {
-          body: cleanupError.stack ?? cleanupError.message,
-          contentType: "text/plain",
-        });
-      } else {
-        await diagnostics.attachFailureDetails(testInfo, cleanupError);
-        throw cleanupError;
+      if (sharedPage !== null && sharedDiagnostics !== null) {
+        await sharedDiagnostics.attachFailureDetails(cleanupInfo, cleanupError);
+        await attachPageSnapshot(sharedPage, cleanupInfo, "cleanup-failure-page", sharedDiagnostics);
+      }
+
+      throw cleanupError;
+    } finally {
+      if (sharedPage !== null && sharedDiagnostics !== null) {
+        await attachPageSnapshot(sharedPage, cleanupInfo, "final-page", sharedDiagnostics);
+      }
+
+      if (sharedPage !== null && sharedPage.isClosed() === false) {
+        await sharedPage.close();
+      }
+
+      if (sharedContext !== null) {
+        await sharedContext.close();
       }
     }
-  }
+  });
+
+  test("linked workspace session survives reload and shows account status", async ({ page: _page }, testInfo) => {
+    await runLiveSmokeGroupTest(
+      testInfo,
+      async () => {
+        const page = requireSharedPage(sharedPage);
+        const diagnostics = requireSharedDiagnostics(sharedDiagnostics);
+        const appBaseUrl = requireSharedBaseUrl(sharedBaseUrl);
+        const scenario = requireSharedScenario(sharedScenario);
+
+        await runTrackedTestStep(diagnostics, "sign in with the configured review account", async () => {
+          await signInWithReviewAccount(page, appBaseUrl, reviewEmail, diagnostics);
+        });
+
+        await runTrackedTestStep(diagnostics, "create an isolated linked workspace for this run", async () => {
+          await createEphemeralWorkspace(page, scenario.workspaceName, diagnostics);
+          shouldDeleteWorkspace = true;
+        });
+
+        await runTrackedTestStep(diagnostics, "reload the browser and keep the linked session", async () => {
+          await restartAndAssertLinkedSession(page, scenario.workspaceName, diagnostics);
+        });
+
+        await runTrackedTestStep(diagnostics, "verify linked account status and workspace state", async () => {
+          await assertLinkedAccountStatus(page, reviewEmail, scenario.workspaceName, diagnostics);
+        });
+      },
+      sharedPage,
+      sharedDiagnostics,
+    );
+  });
+
+  test("manual card can be created and reviewed in the linked workspace", async ({ page: _page }, testInfo) => {
+    await runLiveSmokeGroupTest(
+      testInfo,
+      async () => {
+        const page = requireSharedPage(sharedPage);
+        const diagnostics = requireSharedDiagnostics(sharedDiagnostics);
+        const scenario = requireSharedScenario(sharedScenario);
+
+        await runTrackedTestStep(diagnostics, "create one manual card", async () => {
+          await createManualCard(page, scenario.manualFrontText, scenario.manualBackText, diagnostics);
+        });
+
+        await runTrackedTestStep(diagnostics, "verify the manual card in cards and review it", async () => {
+          await assertCardVisibleInCards(page, scenario.manualFrontText, diagnostics, localUiTimeoutMs);
+          await reviewCardFromQueue(page, scenario.manualFrontText, diagnostics);
+        });
+      },
+      sharedPage,
+      sharedDiagnostics,
+    );
+  });
+
+  test("ai card can be created with explicit confirmation and stays reviewable", async ({ page: _page }, testInfo) => {
+    await runLiveSmokeGroupTest(
+      testInfo,
+      async () => {
+        const page = requireSharedPage(sharedPage);
+        const diagnostics = requireSharedDiagnostics(sharedDiagnostics);
+        const scenario = requireSharedScenario(sharedScenario);
+
+        await runTrackedTestStep(diagnostics, "create one AI card with explicit confirmation", async () => {
+          await runAiCardCreationWithConfirmation(
+            page,
+            scenario.aiFrontText,
+            scenario.aiBackText,
+            scenario.markerTag,
+            diagnostics,
+          );
+        });
+
+        await runTrackedTestStep(diagnostics, "reload after AI card creation and confirm the linked session still persists", async () => {
+          await restartAndAssertLinkedSession(page, scenario.workspaceName, diagnostics);
+        });
+
+        await runTrackedTestStep(diagnostics, "verify the AI-created card is visible in cards and review", async () => {
+          await assertCardVisibleInCards(page, scenario.aiFrontText, diagnostics, externalUiTimeoutMs);
+          await assertCardReachableInReview(page, scenario.aiFrontText, diagnostics, externalUiTimeoutMs);
+        });
+      },
+      sharedPage,
+      sharedDiagnostics,
+    );
+  });
 });
 
-function runIdFrom(testInfo: TestInfo): string {
-  return `${testInfo.parallelIndex}-${Date.now()}`;
+function runIdFromClock(): string {
+  return `${Date.now()}`;
+}
+
+async function createSharedLiveSmokeContext(browser: Browser): Promise<BrowserContext> {
+  return browser.newContext({
+    ignoreHTTPSErrors: true,
+  });
+}
+
+function requireSharedPage(page: Page | null): Page {
+  if (page === null) {
+    throw new Error("Shared live smoke page is unavailable");
+  }
+
+  return page;
+}
+
+function requireSharedDiagnostics(diagnostics: LiveSmokeDiagnostics | null): LiveSmokeDiagnostics {
+  if (diagnostics === null) {
+    throw new Error("Shared live smoke diagnostics are unavailable");
+  }
+
+  return diagnostics;
+}
+
+function requireSharedBaseUrl(baseURL: string | null): string {
+  if (baseURL === null) {
+    throw new Error("Shared live smoke baseURL is unavailable");
+  }
+
+  return baseURL;
+}
+
+function requireSharedScenario(scenario: LiveSmokeScenario | null): LiveSmokeScenario {
+  if (scenario === null) {
+    throw new Error("Shared live smoke scenario is unavailable");
+  }
+
+  return scenario;
+}
+
+async function runLiveSmokeGroupTest(
+  testInfo: TestInfo,
+  body: () => Promise<void>,
+  page: Page | null,
+  diagnostics: LiveSmokeDiagnostics | null,
+): Promise<void> {
+  try {
+    await body();
+  } catch (error) {
+    const primaryFailure = normalizeError(error);
+
+    if (diagnostics !== null) {
+      await diagnostics.attachFailureDetails(testInfo, primaryFailure);
+    }
+
+    if (page !== null && diagnostics !== null) {
+      await attachPageSnapshot(page, testInfo, "failure-page", diagnostics);
+    }
+
+    throw error;
+  } finally {
+    if (page !== null && diagnostics !== null) {
+      await attachPageSnapshot(page, testInfo, "group-final-page", diagnostics);
+    }
+  }
 }
 
 function buildScenario(runId: string): LiveSmokeScenario {

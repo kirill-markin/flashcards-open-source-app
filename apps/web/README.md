@@ -18,7 +18,7 @@ The top-level product scope matches the other clients:
 The web app uses the browser-native test stack already present in this package:
 
 - unit and component tests run with Vitest
-- release-gate browser coverage runs with Playwright in `apps/web/e2e/live-smoke.spec.ts`
+- release-gate browser coverage runs with Playwright in `apps/web/e2e/live-smoke.spec.ts`, grouped into shared-session smoke flows
 
 The live smoke scenario intentionally mirrors the mobile clients:
 
