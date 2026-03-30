@@ -1,24 +1,26 @@
 name: Android Release
 
 on:
-  workflow_run:
-    workflows:
-      - Main Release Orchestrator
-    types:
-      - completed
   workflow_dispatch:
     inputs:
-      target_ref:
-        description: Git ref or SHA to release
+      target_sha:
+        description: Git SHA to release
+        required: true
+        type: string
+      source_run_id:
+        description: Optional Main Release Orchestrator run id
+        required: false
+        type: string
+      source_run_url:
+        description: Optional Main Release Orchestrator run URL
         required: false
         type: string
 
 concurrency:
-  group: android-release-${{ github.event.workflow_run.id || github.run_id }}
+  group: android-release-${{ inputs.target_sha }}
   cancel-in-progress: false
 
 permissions:
-  actions: read
   contents: read
   id-token: write
   statuses: read
@@ -28,46 +30,35 @@ jobs:
     name: Resolve Android release target
     runs-on: ubuntu-24.04
     outputs:
-      target_ref: ${{ steps.resolve.outputs.target_ref }}
       target_sha: ${{ steps.resolve.outputs.target_sha }}
       previous_sha: ${{ steps.resolve.outputs.previous_sha }}
       android_changed: ${{ steps.resolve.outputs.android_changed }}
       aws_changed: ${{ steps.resolve.outputs.aws_changed }}
       aws_retained: ${{ steps.resolve.outputs.aws_retained }}
-      should_run_release: ${{ steps.resolve.outputs.should_run_release }}
       block_reason: ${{ steps.resolve.outputs.block_reason }}
-      upstream_conclusion: ${{ steps.resolve.outputs.upstream_conclusion }}
 
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ github.event.workflow_run.head_sha || inputs.target_ref || github.sha }}
-          fetch-depth: 2
+          ref: ${{ inputs.target_sha }}
+          fetch-depth: 0
 
-      - name: Resolve release target and gates
+      - name: Resolve release target
         id: resolve
         env:
           GH_TOKEN: ${{ github.token }}
-          INPUT_TARGET_REF: ${{ inputs.target_ref }}
-          WORKFLOW_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          INPUT_TARGET_SHA: ${{ inputs.target_sha }}
         run: |
           set -euo pipefail
 
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_run" ]]; then
-            target_ref="${WORKFLOW_RUN_HEAD_SHA}"
-            upstream_conclusion="${WORKFLOW_RUN_CONCLUSION}"
-          else
-            target_ref="${INPUT_TARGET_REF:-${GITHUB_SHA}}"
-            upstream_conclusion="success"
-          fi
+          target_sha="${INPUT_TARGET_SHA}"
 
-          if [[ -z "${target_ref}" ]]; then
-            echo "Target ref is required." >&2
+          if [[ -z "${target_sha}" ]]; then
+            echo "Target SHA is required." >&2
             exit 1
           fi
 
-          target_sha="$(git rev-parse "${target_ref}")"
+          target_sha="$(git rev-parse "${target_sha}")"
           previous_sha=""
           if git rev-parse "${target_sha}^" >/dev/null 2>&1; then
             previous_sha="$(git rev-parse "${target_sha}^")"
@@ -99,52 +90,61 @@ jobs:
             fi
           fi
 
-          should_run_release=false
           block_reason=""
-
           if [[ "${android_changed}" != "true" ]]; then
             block_reason="android_not_changed"
-          elif [[ "${upstream_conclusion}" != "success" ]]; then
-            block_reason="upstream_orchestrator_not_success"
           elif [[ "${aws_changed}" == "true" && "${aws_retained}" != "true" ]]; then
             block_reason="aws_not_retained"
-          else
-            should_run_release=true
           fi
 
           {
-            echo "target_ref=${target_ref}"
             echo "target_sha=${target_sha}"
             echo "previous_sha=${previous_sha}"
             echo "android_changed=${android_changed}"
             echo "aws_changed=${aws_changed}"
             echo "aws_retained=${aws_retained}"
-            echo "should_run_release=${should_run_release}"
             echo "block_reason=${block_reason}"
-            echo "upstream_conclusion=${upstream_conclusion}"
           } >> "${GITHUB_OUTPUT}"
+
+      - name: Validate Android release target
+        env:
+          TARGET_SHA: ${{ steps.resolve.outputs.target_sha }}
+          ANDROID_CHANGED: ${{ steps.resolve.outputs.android_changed }}
+          AWS_CHANGED: ${{ steps.resolve.outputs.aws_changed }}
+          AWS_RETAINED: ${{ steps.resolve.outputs.aws_retained }}
+          BLOCK_REASON: ${{ steps.resolve.outputs.block_reason }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${ANDROID_CHANGED}" != "true" ]]; then
+            echo "Android release requires Android changes for ${TARGET_SHA}. Block reason: ${BLOCK_REASON}." >&2
+            exit 1
+          fi
+
+          if [[ "${AWS_CHANGED}" == "true" && "${AWS_RETAINED}" != "true" ]]; then
+            echo "Android release is blocked because AWS retained release is not successful for ${TARGET_SHA}. Block reason: ${BLOCK_REASON}." >&2
+            exit 1
+          fi
 
       - name: Summarize preflight
         run: |
           {
             echo "## Android release preflight"
             echo ""
-            echo "- Target ref: \`${{ steps.resolve.outputs.target_ref }}\`"
             echo "- Target SHA: \`${{ steps.resolve.outputs.target_sha }}\`"
             echo "- Previous SHA: \`${{ steps.resolve.outputs.previous_sha || 'n/a' }}\`"
             echo "- Android changed: \`${{ steps.resolve.outputs.android_changed }}\`"
             echo "- AWS changed: \`${{ steps.resolve.outputs.aws_changed }}\`"
             echo "- AWS retained: \`${{ steps.resolve.outputs.aws_retained }}\`"
-            echo "- Upstream orchestrator conclusion: \`${{ steps.resolve.outputs.upstream_conclusion }}\`"
-            echo "- Should run Android release: \`${{ steps.resolve.outputs.should_run_release }}\`"
             echo "- Block reason: \`${{ steps.resolve.outputs.block_reason || 'n/a' }}\`"
+            echo "- Source run id: \`${{ inputs.source_run_id || 'n/a' }}\`"
+            echo "- Source run url: \`${{ inputs.source_run_url || 'n/a' }}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
   android_ci:
     name: Android CI
     needs:
       - preflight
-    if: ${{ needs.preflight.outputs.should_run_release == 'true' }}
     uses: ./.github/workflows/android-ci-reusable.yml
     with:
       run_live_smoke: true
@@ -156,7 +156,7 @@ jobs:
     needs:
       - preflight
       - android_ci
-    if: ${{ needs.preflight.outputs.should_run_release == 'true' && needs.android_ci.result == 'success' }}
+    if: ${{ needs.android_ci.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
@@ -309,8 +309,8 @@ jobs:
             echo "- Android changed: \`${{ needs.preflight.outputs.android_changed }}\`"
             echo "- AWS changed: \`${{ needs.preflight.outputs.aws_changed }}\`"
             echo "- AWS retained: \`${{ needs.preflight.outputs.aws_retained }}\`"
-            echo "- Upstream orchestrator conclusion: \`${{ needs.preflight.outputs.upstream_conclusion }}\`"
             echo "- Block reason: \`${{ needs.preflight.outputs.block_reason || 'n/a' }}\`"
+            echo "- Source run id: \`${{ inputs.source_run_id || 'n/a' }}\`"
             echo "- Android CI result: \`${{ needs.android_ci.result }}\`"
             echo "- Android publish result: \`${{ needs.publish_android.result }}\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

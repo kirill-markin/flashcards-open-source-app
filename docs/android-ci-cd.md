@@ -63,7 +63,9 @@ The intended Android release order is:
 3. If AWS changed too, require `AWS retained release=success` for the same SHA
 4. Google Play production release from `android-release.yml`
 
-After pushing to `main`, watch the main release orchestrator for AWS/web outcome and watch `Android Release` separately for Firebase Test Lab and Google Play publication. For pull requests, watch the standalone `Android CI` entry workflow.
+After pushing to `main`, watch the main release orchestrator for AWS/web outcome. Watch `Android Release` separately only when the orchestrator explicitly dispatches it for an Android-changing SHA. For pull requests, watch the standalone `Android CI` entry workflow.
+
+`Android Release` does not run as a generic `workflow_run` follower anymore. The main release orchestrator dispatches it explicitly only when `apps/android/**` changed and the same SHA is not blocked by a non-retained AWS outcome.
 
 Cross-client live smoke references:
 
