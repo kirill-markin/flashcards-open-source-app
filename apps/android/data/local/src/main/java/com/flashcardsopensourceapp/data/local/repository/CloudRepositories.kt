@@ -518,7 +518,7 @@ class LocalCloudAccountRepository(
         val configuration = preferencesStore.currentServerConfiguration()
         val bootstrapProbe = remoteService.bootstrapPull(
             apiBaseUrl = configuration.apiBaseUrl,
-            bearerToken = bearerToken,
+            authorizationHeader = "Bearer $bearerToken",
             workspaceId = selectedWorkspace.workspaceId,
             body = JSONObject()
                 .put("mode", "pull")
@@ -600,7 +600,10 @@ class LocalCloudAccountRepository(
             runCloudSyncCore(
                 cloudSettings = cloudSettings,
                 workspaceId = workspaceId,
-                authenticatedSession = authenticatedSession,
+                syncSession = CloudSyncSession(
+                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                    authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}"
+                ),
                 remoteService = remoteService,
                 syncLocalStore = syncLocalStore
             )
@@ -693,10 +696,14 @@ class LocalCloudAccountRepository(
 
     private suspend fun activeGuestSession(configuration: CloudServiceConfiguration): StoredGuestAiSession? {
         val localWorkspaceId = database.workspaceDao().loadAnyWorkspace()?.workspaceId
+        if (localWorkspaceId == null) {
+            return null
+        }
+
         return guestSessionStore.loadSession(
             localWorkspaceId = localWorkspaceId,
             configuration = configuration
-        ) ?: guestSessionStore.loadAnySession(configuration = configuration)
+        )
     }
 
     private fun clearGuestSessionsIfNeeded() {
@@ -733,7 +740,8 @@ class LocalSyncRepository(
     private val remoteService: CloudRemoteGateway,
     private val syncLocalStore: SyncLocalStore,
     private val operationCoordinator: CloudOperationCoordinator,
-    private val resetCoordinator: CloudIdentityResetCoordinator
+    private val resetCoordinator: CloudIdentityResetCoordinator,
+    private val guestSessionStore: GuestAiSessionStore
 ) : SyncRepository {
     private val syncStatusState = MutableStateFlow(
         SyncStatusSnapshot(
@@ -757,21 +765,15 @@ class LocalSyncRepository(
                 return@runExclusive
             }
             val cloudSettings = preferencesStore.currentCloudSettings()
-            require(cloudSettings.cloudState == CloudAccountState.LINKED) {
-                "Cloud sync requires a linked cloud account."
-            }
-            val workspaceId = requireNotNull(cloudSettings.linkedWorkspaceId) {
-                "Cloud sync requires a linked workspace."
-            }
+            val syncTarget = resolveSyncTarget(cloudSettings = cloudSettings)
 
             syncStatusState.value = syncStatusState.value.copy(status = SyncStatus.Syncing, lastErrorMessage = "")
 
             try {
-                val authenticatedSession = authenticatedSession()
                 runCloudSyncCore(
                     cloudSettings = cloudSettings,
-                    workspaceId = workspaceId,
-                    authenticatedSession = authenticatedSession,
+                    workspaceId = syncTarget.workspaceId,
+                    syncSession = syncTarget.session,
                     remoteService = remoteService,
                     syncLocalStore = syncLocalStore
                 )
@@ -797,13 +799,63 @@ class LocalSyncRepository(
                     )
                     return@runExclusive
                 }
-                syncLocalStore.markSyncFailure(workspaceId, error.message ?: "Cloud sync failed.")
+                syncLocalStore.markSyncFailure(syncTarget.workspaceId, error.message ?: "Cloud sync failed.")
                 syncStatusState.value = SyncStatusSnapshot(
                     status = SyncStatus.Failed(error.message ?: "Cloud sync failed."),
                     lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
                     lastErrorMessage = error.message ?: "Cloud sync failed."
                 )
                 throw error
+            }
+        }
+    }
+
+    private suspend fun resolveSyncTarget(cloudSettings: CloudSettings): CloudSyncTarget {
+        return when (cloudSettings.cloudState) {
+            CloudAccountState.LINKED -> {
+                val authenticatedSession = authenticatedSession()
+                val workspaceId = requireNotNull(
+                    cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
+                ) {
+                    "Cloud sync requires an active linked workspace."
+                }
+                CloudSyncTarget(
+                    workspaceId = workspaceId,
+                    session = CloudSyncSession(
+                        apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                        authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}"
+                    )
+                )
+            }
+
+            CloudAccountState.GUEST -> {
+                val configuration = preferencesStore.currentServerConfiguration()
+                val workspaceId = requireNotNull(
+                    cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
+                ) {
+                    "Cloud sync requires an active guest workspace."
+                }
+                val guestSession = guestSessionStore.loadSession(
+                    localWorkspaceId = workspaceId,
+                    configuration = configuration
+                )
+                val storedGuestSession = requireNotNull(guestSession) {
+                    "Guest AI session is unavailable."
+                }
+                require(storedGuestSession.workspaceId == workspaceId) {
+                    "Guest cloud sync requires active workspace '$workspaceId', but the stored guest session points to '${storedGuestSession.workspaceId}'."
+                }
+                CloudSyncTarget(
+                    workspaceId = workspaceId,
+                    session = CloudSyncSession(
+                        apiBaseUrl = storedGuestSession.apiBaseUrl,
+                        authorizationHeader = "Guest ${storedGuestSession.guestToken}"
+                    )
+                )
+            }
+
+            else -> {
+                throw IllegalStateException("Cloud sync requires a linked or guest cloud account.")
             }
         }
     }
@@ -841,7 +893,7 @@ class LocalSyncRepository(
 private suspend fun runCloudSyncCore(
     cloudSettings: CloudSettings,
     workspaceId: String,
-    authenticatedSession: AuthenticatedCloudSession,
+    syncSession: CloudSyncSession,
     remoteService: CloudRemoteGateway,
     syncLocalStore: SyncLocalStore
 ) {
@@ -855,8 +907,8 @@ private suspend fun runCloudSyncCore(
 
     if (hasHydratedHotState.not()) {
         bootstrapResponse = remoteService.bootstrapPull(
-            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-            bearerToken = authenticatedSession.credentials.idToken,
+            apiBaseUrl = syncSession.apiBaseUrl,
+            authorizationHeader = syncSession.authorizationHeader,
             workspaceId = workspaceId,
             body = JSONObject()
                 .put("mode", "pull")
@@ -871,8 +923,8 @@ private suspend fun runCloudSyncCore(
             val bootstrapEntries = syncLocalStore.buildBootstrapEntries(workspaceId)
             if (bootstrapEntries.length() > 0) {
                 val bootstrapPushResponse = remoteService.bootstrapPush(
-                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                    bearerToken = authenticatedSession.credentials.idToken,
+                    apiBaseUrl = syncSession.apiBaseUrl,
+                    authorizationHeader = syncSession.authorizationHeader,
                     workspaceId = workspaceId,
                     body = JSONObject()
                         .put("mode", "push")
@@ -890,8 +942,8 @@ private suspend fun runCloudSyncCore(
 
             while (bootstrapResponse.hasMore && nextCursor != null) {
                 val nextPage = remoteService.bootstrapPull(
-                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                    bearerToken = authenticatedSession.credentials.idToken,
+                    apiBaseUrl = syncSession.apiBaseUrl,
+                    authorizationHeader = syncSession.authorizationHeader,
                     workspaceId = workspaceId,
                     body = JSONObject()
                         .put("mode", "pull")
@@ -918,8 +970,8 @@ private suspend fun runCloudSyncCore(
             val reviewEvents = syncLocalStore.buildReviewHistoryImportEvents(workspaceId)
             if (reviewEvents.length() > 0) {
                 val importResponse = remoteService.importReviewHistory(
-                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                    bearerToken = authenticatedSession.credentials.idToken,
+                    apiBaseUrl = syncSession.apiBaseUrl,
+                    authorizationHeader = syncSession.authorizationHeader,
                     workspaceId = workspaceId,
                     body = JSONObject()
                         .put("deviceId", cloudSettings.deviceId)
@@ -933,8 +985,8 @@ private suspend fun runCloudSyncCore(
             var hasMore = true
             while (hasMore) {
                 val reviewHistoryPage = remoteService.pullReviewHistory(
-                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                    bearerToken = authenticatedSession.credentials.idToken,
+                    apiBaseUrl = syncSession.apiBaseUrl,
+                    authorizationHeader = syncSession.authorizationHeader,
                     workspaceId = workspaceId,
                     body = JSONObject()
                         .put("deviceId", cloudSettings.deviceId)
@@ -956,8 +1008,8 @@ private suspend fun runCloudSyncCore(
     if (outboxEntries.isNotEmpty()) {
         try {
             val pushResponse = remoteService.push(
-                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                bearerToken = authenticatedSession.credentials.idToken,
+                apiBaseUrl = syncSession.apiBaseUrl,
+                authorizationHeader = syncSession.authorizationHeader,
                 workspaceId = workspaceId,
                 body = buildPushRequest(
                     deviceId = cloudSettings.deviceId,
@@ -981,8 +1033,8 @@ private suspend fun runCloudSyncCore(
     var hasMoreHotChanges = true
     while (hasMoreHotChanges) {
         val pullResponse = remoteService.pull(
-            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-            bearerToken = authenticatedSession.credentials.idToken,
+            apiBaseUrl = syncSession.apiBaseUrl,
+            authorizationHeader = syncSession.authorizationHeader,
             workspaceId = workspaceId,
             body = JSONObject()
                 .put("deviceId", cloudSettings.deviceId)
@@ -999,8 +1051,8 @@ private suspend fun runCloudSyncCore(
     var hasMoreReviewHistory = true
     while (hasMoreReviewHistory) {
         val reviewHistoryPage = remoteService.pullReviewHistory(
-            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-            bearerToken = authenticatedSession.credentials.idToken,
+            apiBaseUrl = syncSession.apiBaseUrl,
+            authorizationHeader = syncSession.authorizationHeader,
             workspaceId = workspaceId,
             body = JSONObject()
                 .put("deviceId", cloudSettings.deviceId)
@@ -1033,6 +1085,16 @@ private data class AuthenticatedCloudSession(
     val configuration: CloudServiceConfiguration,
     val credentials: StoredCloudCredentials,
     val accountSnapshot: CloudAccountSnapshot
+)
+
+private data class CloudSyncSession(
+    val apiBaseUrl: String,
+    val authorizationHeader: String
+)
+
+private data class CloudSyncTarget(
+    val workspaceId: String,
+    val session: CloudSyncSession
 )
 
 private fun buildPushRequest(deviceId: String, outboxEntries: List<PersistedOutboxEntry>): JSONObject {

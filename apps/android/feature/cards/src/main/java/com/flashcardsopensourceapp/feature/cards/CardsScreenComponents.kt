@@ -33,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
@@ -42,6 +43,9 @@ import com.flashcardsopensourceapp.data.local.model.buildCardFilter
 import com.flashcardsopensourceapp.data.local.model.formatCardDueLabel
 import com.flashcardsopensourceapp.data.local.model.formatCardEffortLabel
 import com.flashcardsopensourceapp.data.local.model.formatCardTagsLabel
+
+const val cardsCardRowTag: String = "cards_card_row"
+const val cardsCardFrontTextTag: String = "cards_card_front_text"
 
 @Composable
 internal fun CardRow(
@@ -55,6 +59,7 @@ internal fun CardRow(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .testTag(cardsCardRowTag)
             .clickable {
                 onOpenCard(card.cardId)
             }
@@ -63,7 +68,8 @@ internal fun CardRow(
             headlineContent = {
                 Text(
                     text = card.frontText,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.testTag(cardsCardFrontTextTag)
                 )
             },
             supportingContent = {

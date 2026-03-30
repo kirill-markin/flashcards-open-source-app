@@ -37,6 +37,9 @@ import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.aiChatOptimisticAssistantStatusText
 
+const val aiAssistantMessageBubbleTag: String = "ai_assistant_message_bubble"
+const val aiAssistantTextPartTag: String = "ai_assistant_text_part"
+
 @Composable
 internal fun MessageRow(
     message: AiChatMessage,
@@ -79,7 +82,9 @@ internal fun MessageRow(
             }
         } else {
             Card(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(tag = aiAssistantMessageBubbleTag)
             ) {
                 MessageBubbleContent(
                     message = message,
@@ -118,7 +123,14 @@ private fun MessageBubbleContent(
                         TypingIndicatorRow()
                     } else {
                         SelectionContainer {
-                            Text(text = contentPart.text)
+                            Text(
+                                text = contentPart.text,
+                                modifier = if (message.role == AiChatRole.ASSISTANT) {
+                                    Modifier.testTag(tag = aiAssistantTextPartTag)
+                                } else {
+                                    Modifier
+                                }
+                            )
                         }
                     }
                 }

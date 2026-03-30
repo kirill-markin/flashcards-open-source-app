@@ -20,7 +20,7 @@ fun observeCurrentWorkspace(
         database.workspaceDao().observeWorkspaces(),
         preferencesStore.observeCloudSettings()
     ) { workspaces, cloudSettings ->
-        resolveCurrentWorkspace(
+        resolveObservedCurrentWorkspace(
             activeWorkspaceId = cloudSettings.activeWorkspaceId,
             workspaces = workspaces
         )
@@ -69,11 +69,46 @@ fun resolveCurrentWorkspace(
         error("Current workspace is ambiguous because activeWorkspaceId is missing. Local workspaces=$workspaceIds")
     }
 
-    val workspaceById = activeWorkspaceId?.let { workspaceId ->
+    val workspaceById = activeWorkspaceId.let { workspaceId ->
         workspaces.firstOrNull { workspace -> workspace.workspaceId == workspaceId }
     }
     if (workspaceById != null) {
         return workspaceById
+    }
+
+    val workspaceIds = workspaces.map(WorkspaceEntity::workspaceId)
+    error(
+        "Current workspace is invalid because activeWorkspaceId '$activeWorkspaceId' does not exist locally. " +
+            "Local workspaces=$workspaceIds"
+    )
+}
+
+private fun resolveObservedCurrentWorkspace(
+    activeWorkspaceId: String?,
+    workspaces: List<WorkspaceEntity>
+): WorkspaceEntity? {
+    if (workspaces.isEmpty()) {
+        return null
+    }
+
+    if (activeWorkspaceId == null) {
+        if (workspaces.size == 1) {
+            return workspaces.single()
+        }
+
+        val workspaceIds = workspaces.map(WorkspaceEntity::workspaceId)
+        error("Current workspace is ambiguous because activeWorkspaceId is missing. Local workspaces=$workspaceIds")
+    }
+
+    val activeWorkspace = workspaces.firstOrNull { workspace ->
+        workspace.workspaceId == activeWorkspaceId
+    }
+    if (activeWorkspace != null) {
+        return activeWorkspace
+    }
+
+    if (workspaces.size == 1) {
+        return workspaces.single()
     }
 
     val workspaceIds = workspaces.map(WorkspaceEntity::workspaceId)

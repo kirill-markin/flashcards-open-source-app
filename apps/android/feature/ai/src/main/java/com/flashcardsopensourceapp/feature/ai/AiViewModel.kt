@@ -319,13 +319,24 @@ class AiViewModel(
 
     fun warmUpLinkedSessionIfNeeded() {
         val currentState = draftState.value
+        val cloudSettings = cloudSettingsState.value
         if (currentState.isStreaming) {
             return
         }
         if (consentState.value.not()) {
             return
         }
-        if (cloudSettingsState.value.cloudState != CloudAccountState.LINKED) {
+        if (currentState.workspaceId == null) {
+            return
+        }
+        if (cloudSettings.cloudState == CloudAccountState.LINKING_READY) {
+            return
+        }
+        if (
+            cloudSettings.cloudState == CloudAccountState.GUEST
+            && cloudSettings.activeWorkspaceId != null
+            && currentState.workspaceId != cloudSettings.activeWorkspaceId
+        ) {
             return
         }
         if (activeWarmUpJob != null) {
@@ -334,7 +345,7 @@ class AiViewModel(
 
         activeWarmUpJob = viewModelScope.launch {
             try {
-                aiChatRepository.warmUpLinkedSession()
+                aiChatRepository.prepareSessionForAi(workspaceId = currentState.workspaceId)
             } catch (error: Exception) {
                 val message = makeAiUserFacingErrorMessage(
                     error = error,
@@ -633,6 +644,9 @@ class AiViewModel(
                 persistedState = persistedState
             )
             persistCurrentState()
+            if (workspaceId == null) {
+                return@launch
+            }
             try {
                 val snapshot = aiChatRepository.loadChatSnapshot(
                     workspaceId = workspaceId,
@@ -709,7 +723,10 @@ class AiViewModel(
         if (workspaceId == null) {
             return
         }
-        if (cloudSettingsState.value.cloudState != CloudAccountState.LINKED) {
+        if (
+            cloudSettingsState.value.cloudState != CloudAccountState.LINKED
+            && cloudSettingsState.value.cloudState != CloudAccountState.GUEST
+        ) {
             return
         }
         if (mainContentInvalidationVersion <= 0L) {
