@@ -48,8 +48,14 @@ import com.flashcardsopensourceapp.feature.settings.currentWorkspaceNameTag
 import com.flashcardsopensourceapp.feature.settings.currentWorkspaceOperationMessageTag
 import com.flashcardsopensourceapp.feature.settings.currentWorkspaceReloadButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteConfirmationButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteConfirmationDialogTag
+import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteConfirmationErrorTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteConfirmationFieldTag
+import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteConfirmationLoadingTag
+import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteConfirmationPhraseTag
+import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeletePreviewBodyTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeletePreviewContinueButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeletePreviewDialogTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteWorkspaceButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewErrorMessageTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewNameFieldTag
@@ -65,6 +71,11 @@ import kotlinx.coroutines.runBlocking
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalTestApi::class)
 class LiveSmokeTest {
+    private enum class DeletePreviewResolution {
+        PREVIEW_READY,
+        ERROR_VISIBLE
+    }
+
     companion object {
         private const val externalUiTimeoutMillis: Long = 30_000L
         private const val internalUiTimeoutMillis: Long = 10_000L
@@ -198,7 +209,7 @@ class LiveSmokeTest {
                     if (primaryFailure != null) {
                         primaryFailure.addSuppressed(cleanupError)
                     } else {
-                        reportNonBlockingCleanupFailure(cleanupError = cleanupError)
+                        throw cleanupError
                     }
                 }
             }
@@ -523,6 +534,10 @@ class LiveSmokeTest {
     }
 
     private fun deleteEphemeralWorkspace(workspaceName: String) {
+        forceLinkedSyncAndWaitForWorkspace(
+            expectedWorkspaceName = workspaceName,
+            timeoutMillis = externalUiTimeoutMillis
+        )
         openSettingsTab()
         clickText(text = "Current Workspace")
         waitForCurrentWorkspaceScreenToSettle()
@@ -542,27 +557,187 @@ class LiveSmokeTest {
 
         openSettingsSection(sectionTitle = "Workspace")
         clickText(text = "Overview")
-        clickTag(tag = workspaceOverviewDeleteWorkspaceButtonTag, label = "Delete workspace")
+        openDeletePreviewWithRetry(workspaceName = workspaceName)
         clickTag(
             tag = workspaceOverviewDeletePreviewContinueButtonTag,
             label = "Continue workspace delete preview"
         )
+        waitForDeleteConfirmationReady(workspaceName = workspaceName)
+        val confirmationPhrase = requireNotNull(deleteConfirmationPhraseOrNull()) {
+            "Delete confirmation phrase was missing for workspace '$workspaceName'."
+        }
         composeRule.onNodeWithTag(workspaceOverviewDeleteConfirmationFieldTag)
-            .performTextReplacement("delete workspace")
-        clickTag(tag = workspaceOverviewDeleteConfirmationButtonTag, label = "Confirm workspace delete")
+            .performTextReplacement(confirmationPhrase)
+        tapDeleteWorkspaceConfirmation(workspaceName = workspaceName)
         tapBackIcon()
         openSettingsTab()
         clickText(text = "Current Workspace")
         waitForCurrentWorkspaceScreenToSettle()
-        composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
-            failIfVisibleAppError(context = "while waiting for workspace deletion to finish")
-            composeRule.onAllNodesWithText(workspaceName).fetchSemanticsNodes().isEmpty()
+        try {
+            composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
+                failIfVisibleAppError(context = "while waiting for workspace deletion to finish")
+                val currentWorkspaceName = currentWorkspaceNameOrNull()
+                val selectedSummary = selectedWorkspaceSummaryOrNull()
+                composeRule.onAllNodesWithText(workspaceName).fetchSemanticsNodes().isEmpty() &&
+                    currentWorkspaceName != workspaceName &&
+                    selectedSummary?.contains(other = workspaceName) != true
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Workspace deletion did not switch away from '$workspaceName'. " +
+                    "CurrentWorkspace=${currentWorkspaceSummaryOrNull()} " +
+                    "CloudSettings=${currentCloudSettingsSummary()} " +
+                    "VisibleRows=${captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)} " +
+                    "WorkspaceOverviewError=${workspaceOverviewErrorMessageOrNull()} " +
+                    "PreviewDialogVisible=${isDeletePreviewDialogVisible()} " +
+                    "ConfirmationDialogVisible=${isDeleteConfirmationDialogVisible()}",
+                error
+            )
         }
         waitForSelectedWorkspaceSummary(
             context = "after deleting the isolated linked workspace",
             timeoutMillis = externalUiTimeoutMillis
         )
         tapBackIcon()
+    }
+
+    private fun forceLinkedSyncAndWaitForWorkspace(expectedWorkspaceName: String, timeoutMillis: Long) {
+        val appGraph = (composeRule.activity.application as FlashcardsApplication).appGraph
+        try {
+            runBlocking {
+                appGraph.syncRepository.syncNow()
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Forced linked sync before cleanup failed. " +
+                    "Workspace=$expectedWorkspaceName " +
+                    "CloudSettings=${currentCloudSettingsSummary()} " +
+                    "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}",
+                error
+            )
+        }
+
+        openSettingsTab()
+        clickText(text = "Current Workspace")
+        waitForCurrentWorkspaceScreenToSettle()
+        waitForCurrentWorkspaceName(expectedWorkspaceName = expectedWorkspaceName)
+        waitForSelectedWorkspaceSummary(
+            context = "after forcing linked sync before cleanup",
+            timeoutMillis = timeoutMillis
+        )
+        val selectedWorkspace = selectedWorkspaceSummary(
+            context = "after forcing linked sync before cleanup"
+        )
+        if (selectedWorkspace.contains(other = expectedWorkspaceName).not()) {
+            throw AssertionError(
+                "Forced linked sync kept the wrong workspace selected before cleanup. " +
+                    "ExpectedWorkspace=$expectedWorkspaceName " +
+                    "SelectedWorkspace=$selectedWorkspace " +
+                    "CloudSettings=${currentCloudSettingsSummary()} " +
+                    "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}"
+            )
+        }
+        tapBackIcon()
+    }
+
+    private fun openDeletePreviewWithRetry(workspaceName: String) {
+        clickTag(tag = workspaceOverviewDeleteWorkspaceButtonTag, label = "Delete workspace")
+        val initialResolution = waitForDeletePreviewResolution(workspaceName = workspaceName)
+        if (initialResolution == DeletePreviewResolution.PREVIEW_READY) {
+            return
+        }
+        clickTag(tag = workspaceOverviewDeleteWorkspaceButtonTag, label = "Retry delete workspace preview")
+        val retryResolution = waitForDeletePreviewResolution(workspaceName = workspaceName)
+        if (retryResolution == DeletePreviewResolution.PREVIEW_READY) {
+            return
+        }
+        throw AssertionError(
+            "Delete workspace preview stayed in error state after retry. " +
+                "Workspace=$workspaceName " +
+                "WorkspaceOverviewError=${workspaceOverviewErrorMessageOrNull()} " +
+                "PreviewBody=${deletePreviewBodyTextOrNull()} " +
+                "VisibleRows=${captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)} " +
+                "CloudSettings=${currentCloudSettingsSummary()} " +
+                "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}"
+        )
+    }
+
+    private fun waitForDeletePreviewResolution(workspaceName: String): DeletePreviewResolution {
+        try {
+            composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
+                dismissExternalSystemDialogIfPresent()
+                isDeletePreviewDialogVisible() || workspaceOverviewErrorMessageOrNull() != null
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Delete workspace preview did not resolve for '$workspaceName'. " +
+                    "WorkspaceOverviewError=${workspaceOverviewErrorMessageOrNull()} " +
+                    "PreviewBody=${deletePreviewBodyTextOrNull()} " +
+                    "VisibleRows=${captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)} " +
+                    "CloudSettings=${currentCloudSettingsSummary()} " +
+                    "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}",
+                error
+            )
+        }
+        return if (isDeletePreviewDialogVisible()) {
+            DeletePreviewResolution.PREVIEW_READY
+        } else {
+            DeletePreviewResolution.ERROR_VISIBLE
+        }
+    }
+
+    private fun waitForDeleteConfirmationReady(workspaceName: String) {
+        try {
+            composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
+                dismissExternalSystemDialogIfPresent()
+                isDeleteConfirmationDialogVisible() &&
+                    deleteConfirmationPhraseOrNull().isNullOrBlank().not() &&
+                    composeRule.onAllNodesWithTag(workspaceOverviewDeleteConfirmationFieldTag)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Delete confirmation dialog did not become ready for '$workspaceName'. " +
+                    "ConfirmationPhrase=${deleteConfirmationPhraseOrNull()} " +
+                    "ConfirmationError=${deleteConfirmationErrorOrNull()} " +
+                    "ConfirmationLoading=${isDeleteConfirmationLoadingVisible()} " +
+                    "WorkspaceOverviewError=${workspaceOverviewErrorMessageOrNull()}",
+                error
+            )
+        }
+    }
+
+    private fun tapDeleteWorkspaceConfirmation(workspaceName: String) {
+        dismissExternalSystemDialogIfPresent()
+        composeRule.onNodeWithTag(workspaceOverviewDeleteConfirmationButtonTag).performClick()
+        composeRule.waitForIdle()
+        try {
+            composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
+                dismissExternalSystemDialogIfPresent()
+                val confirmationError = deleteConfirmationErrorOrNull()
+                if (confirmationError != null) {
+                    throw AssertionError(
+                        "Delete workspace confirmation failed for '$workspaceName': $confirmationError. " +
+                            "ConfirmationPhrase=${deleteConfirmationPhraseOrNull()} " +
+                            "CloudSettings=${currentCloudSettingsSummary()} " +
+                            "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}"
+                    )
+                }
+                isDeleteConfirmationDialogVisible().not()
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Delete workspace confirmation did not complete for '$workspaceName'. " +
+                    "ConfirmationError=${deleteConfirmationErrorOrNull()} " +
+                    "ConfirmationLoading=${isDeleteConfirmationLoadingVisible()} " +
+                    "ConfirmationPhrase=${deleteConfirmationPhraseOrNull()} " +
+                    "WorkspaceOverviewError=${workspaceOverviewErrorMessageOrNull()} " +
+                    "CloudSettings=${currentCloudSettingsSummary()} " +
+                    "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}",
+                error
+            )
+        }
     }
 
     private fun openCardsTab() {
@@ -940,14 +1115,6 @@ class LiveSmokeTest {
         }
     }
 
-    private fun reportNonBlockingCleanupFailure(cleanupError: Throwable) {
-        System.err.println(
-            "Android live smoke cleanup failed after linked-session assertions succeeded: " +
-                cleanupError.message
-        )
-        cleanupError.printStackTrace()
-    }
-
     private fun visibleAppErrors(): List<String> {
         val taggedErrors = listOfNotNull(
             currentWorkspaceVisibleErrorMessageOrNull(),
@@ -1181,6 +1348,45 @@ class LiveSmokeTest {
                 "workspaceId=${workspace.workspaceId} name=${workspace.name}"
             }
         }
+    }
+
+    private fun isDeletePreviewDialogVisible(): Boolean {
+        return composeRule.onAllNodesWithTag(workspaceOverviewDeletePreviewDialogTag)
+            .fetchSemanticsNodes()
+            .isNotEmpty()
+    }
+
+    private fun deletePreviewBodyTextOrNull(): String? {
+        return composeRule.onAllNodesWithTag(workspaceOverviewDeletePreviewBodyTag)
+            .fetchSemanticsNodes()
+            .singleOrNull()
+            ?.let(::nodeSummary)
+    }
+
+    private fun isDeleteConfirmationDialogVisible(): Boolean {
+        return composeRule.onAllNodesWithTag(workspaceOverviewDeleteConfirmationDialogTag)
+            .fetchSemanticsNodes()
+            .isNotEmpty()
+    }
+
+    private fun deleteConfirmationPhraseOrNull(): String? {
+        return composeRule.onAllNodesWithTag(workspaceOverviewDeleteConfirmationPhraseTag)
+            .fetchSemanticsNodes()
+            .singleOrNull()
+            ?.let(::nodeSummary)
+    }
+
+    private fun deleteConfirmationErrorOrNull(): String? {
+        return composeRule.onAllNodesWithTag(workspaceOverviewDeleteConfirmationErrorTag)
+            .fetchSemanticsNodes()
+            .singleOrNull()
+            ?.let(::nodeSummary)
+    }
+
+    private fun isDeleteConfirmationLoadingVisible(): Boolean {
+        return composeRule.onAllNodesWithTag(workspaceOverviewDeleteConfirmationLoadingTag)
+            .fetchSemanticsNodes()
+            .isNotEmpty()
     }
 
     private fun dismissExternalSystemDialogIfPresent(): String? {

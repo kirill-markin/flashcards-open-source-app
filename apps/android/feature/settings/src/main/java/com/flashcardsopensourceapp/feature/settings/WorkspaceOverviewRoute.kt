@@ -26,9 +26,15 @@ const val workspaceOverviewNameFieldTag: String = "workspace_overview_name_field
 const val workspaceOverviewSaveNameButtonTag: String = "workspace_overview_save_name_button"
 const val workspaceOverviewErrorMessageTag: String = "workspace_overview_error_message"
 const val workspaceOverviewDeleteWorkspaceButtonTag: String = "workspace_overview_delete_workspace_button"
+const val workspaceOverviewDeletePreviewDialogTag: String = "workspace_overview_delete_preview_dialog"
+const val workspaceOverviewDeletePreviewBodyTag: String = "workspace_overview_delete_preview_body"
 const val workspaceOverviewDeletePreviewContinueButtonTag: String = "workspace_overview_delete_preview_continue_button"
+const val workspaceOverviewDeleteConfirmationDialogTag: String = "workspace_overview_delete_confirmation_dialog"
+const val workspaceOverviewDeleteConfirmationPhraseTag: String = "workspace_overview_delete_confirmation_phrase"
 const val workspaceOverviewDeleteConfirmationFieldTag: String = "workspace_overview_delete_confirmation_field"
 const val workspaceOverviewDeleteConfirmationButtonTag: String = "workspace_overview_delete_confirmation_button"
+const val workspaceOverviewDeleteConfirmationErrorTag: String = "workspace_overview_delete_confirmation_error"
+const val workspaceOverviewDeleteConfirmationLoadingTag: String = "workspace_overview_delete_confirmation_loading"
 
 @Composable
 fun WorkspaceOverviewRoute(
@@ -205,7 +211,10 @@ fun WorkspaceOverviewRoute(
                 }
             },
             title = {
-                Text("Delete this workspace?")
+                Text(
+                    text = "Delete this workspace?",
+                    modifier = Modifier.testTag(tag = workspaceOverviewDeletePreviewDialogTag)
+                )
             },
             text = {
                 Text(
@@ -213,7 +222,8 @@ fun WorkspaceOverviewRoute(
                         "This permanently deletes ${uiState.deletePreview.activeCardCount} active cards. A new empty Personal workspace will be created immediately after deletion."
                     } else {
                         "This permanently deletes ${uiState.deletePreview.activeCardCount} active cards from this workspace."
-                    }
+                    },
+                    modifier = Modifier.testTag(tag = workspaceOverviewDeletePreviewBodyTag)
                 )
             }
         )
@@ -245,7 +255,10 @@ fun WorkspaceOverviewRoute(
                 }
             },
             title = {
-                Text("Delete workspace")
+                Text(
+                    text = "Delete workspace",
+                    modifier = Modifier.testTag(tag = workspaceOverviewDeleteConfirmationDialogTag)
+                )
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -254,18 +267,22 @@ fun WorkspaceOverviewRoute(
                         color = MaterialTheme.colorScheme.error
                     )
                     if (uiState.deleteState == DestructiveActionState.IN_PROGRESS) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(
+                            modifier = Modifier.testTag(tag = workspaceOverviewDeleteConfirmationLoadingTag)
+                        )
                     }
                     if (uiState.deleteState == DestructiveActionState.FAILED && uiState.errorMessage.isNotEmpty()) {
                         Text(
                             text = uiState.errorMessage,
-                            color = MaterialTheme.colorScheme.error
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.testTag(tag = workspaceOverviewDeleteConfirmationErrorTag)
                         )
                     }
                     Text(
                         text = uiState.deletePreview.confirmationText,
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.testTag(tag = workspaceOverviewDeleteConfirmationPhraseTag)
                     )
                     OutlinedTextField(
                         value = uiState.deleteConfirmationText,

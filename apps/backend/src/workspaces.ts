@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
+  applyUserDatabaseScopeInExecutor,
   applyWorkspaceDatabaseScopeInExecutor,
   queryWithUserScope,
   transactionWithUserScope,
@@ -615,6 +616,7 @@ export async function deleteWorkspaceInExecutor(
   assertWorkspaceIsSoleMember(managedWorkspace.member_count);
   await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
   const deletedCardsCount = await loadActiveCardCountInExecutor(executor, workspaceId);
+  await applyUserDatabaseScopeInExecutor(executor, { userId });
   await executor.query("DELETE FROM org.workspaces WHERE workspace_id = $1", [workspaceId]);
   const selectedWorkspaceId = await ensureUserSelectedWorkspaceInExecutor(executor, userId, workspaceId);
   const workspace = await loadWorkspaceSummaryInExecutor(executor, userId, selectedWorkspaceId, selectedWorkspaceId);
