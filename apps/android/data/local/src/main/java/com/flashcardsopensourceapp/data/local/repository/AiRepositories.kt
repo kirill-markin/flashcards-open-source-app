@@ -377,7 +377,7 @@ class LocalAiChatRepository(
                 .put("mode", "pull")
                 .put("installationId", installationId)
                 .put("platform", "android")
-                .put("appVersion", "0.1.0")
+                .put("appVersion", "1.0.0")
                 .put("cursor", org.json.JSONObject.NULL)
                 .put("limit", 1)
         )
