@@ -188,6 +188,7 @@ private let smokeLogger = Logger(
     subsystem: Bundle.main.bundleIdentifier ?? "flashcards-open-source-app",
     category: "ui-smoke"
 )
+private let aiComposerPlaceholderText: String = "Ask about cards, review history, or propose a change..."
 
 private struct LiveSmokeBreadcrumb {
     let line: String
@@ -756,9 +757,8 @@ final class LiveSmokeUITests: XCTestCase {
             .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
             .count
         let proposalPrompt = "Prepare exactly one flashcard proposal. Use front text \"\(aiFrontText)\", back text \"\(aiBackText)\", and include tag \"\(markerTag)\". Wait for my confirmation before creating it."
-        try self.replaceText(
+        try self.replaceAiComposerText(
             proposalPrompt,
-            inElementWithIdentifier: LiveSmokeIdentifier.aiComposerTextField,
             timeout: self.shortUiTimeoutSeconds
         )
         try self.assertElementEnabled(
@@ -789,9 +789,8 @@ final class LiveSmokeUITests: XCTestCase {
             ignoredExactLabels: [proposalPrompt]
         )
 
-        try self.replaceText(
+        try self.replaceAiComposerText(
             "Confirmed. Create the card exactly as proposed.",
-            inElementWithIdentifier: LiveSmokeIdentifier.aiComposerTextField,
             timeout: self.shortUiTimeoutSeconds
         )
         let completedMarkerCountBeforeConfirmation = self.app.descendants(matching: .any)
@@ -828,12 +827,23 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func startNewAiChatAndAssertConversationReset() throws {
+        let assistantErrorMessagesBeforeReset = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
+            .count
+
         try self.tapElement(
             identifier: LiveSmokeIdentifier.aiNewChatButton,
             timeout: self.shortUiTimeoutSeconds
         )
+
+        try self.assertVisibleTextContains(
+            "Try asking",
+            timeout: self.longUiTimeoutSeconds,
+            aiErrorMarkerCountBeforeWait: assistantErrorMessagesBeforeReset,
+            ignoredExactLabels: []
+        )
         try self.assertElementExists(
-            identifier: LiveSmokeIdentifier.aiEmptyState,
+            identifier: LiveSmokeIdentifier.aiComposerTextField,
             timeout: self.longUiTimeoutSeconds
         )
 
@@ -851,9 +861,9 @@ final class LiveSmokeUITests: XCTestCase {
         let assistantErrorMessages = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
             .count
-        if assistantErrorMessages != 0 {
+        if assistantErrorMessages != assistantErrorMessagesBeforeReset {
             throw LiveSmokeFailure.unexpectedAiConversationState(
-                message: "Expected no AI assistant error messages after starting a new chat, found \(assistantErrorMessages).",
+                message: "Expected no new AI assistant error messages after starting a new chat, found \(assistantErrorMessages - assistantErrorMessagesBeforeReset).",
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
             )
@@ -1375,6 +1385,49 @@ final class LiveSmokeUITests: XCTestCase {
         element.typeText(text)
         _ = self.dismissKnownBlockingAlertIfVisible()
         self.logActionEnd(action: "replace_text", identifier: identifier, result: "success", note: "text replaced")
+    }
+
+    @MainActor
+    private func replaceAiComposerText(_ text: String, timeout: TimeInterval) throws {
+        let element = self.aiComposerTextFieldElement()
+        let identifier = LiveSmokeIdentifier.aiComposerTextField
+
+        if self.waitForOptionalElement(
+            element,
+            identifier: identifier,
+            timeout: timeout
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        self.logActionStart(action: "replace_text", identifier: identifier)
+        element.tap()
+
+        let existingValue = element.value as? String ?? ""
+        if existingValue.isEmpty == false && existingValue != aiComposerPlaceholderText {
+            let deleteSequence = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count)
+            element.typeText(deleteSequence)
+        }
+
+        element.typeText(text)
+        _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionEnd(action: "replace_text", identifier: identifier, result: "success", note: "text replaced")
+    }
+
+    @MainActor
+    private func aiComposerTextFieldElement() -> XCUIElement {
+        let predicate = NSPredicate(
+            format: "identifier == %@ OR value == %@ OR label == %@",
+            LiveSmokeIdentifier.aiComposerTextField,
+            aiComposerPlaceholderText,
+            aiComposerPlaceholderText
+        )
+        return self.app.descendants(matching: .any).matching(predicate).firstMatch
     }
 
     @MainActor

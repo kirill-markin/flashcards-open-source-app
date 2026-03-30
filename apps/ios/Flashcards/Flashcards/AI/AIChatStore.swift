@@ -210,9 +210,9 @@ final class AIChatStore {
     }
 
     func clearHistory() {
-        self.cancelDictation()
-
         let requestedSessionId = self.chatSessionId.isEmpty ? nil : self.chatSessionId
+        self.clearLocalHistory()
+
         Task {
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
@@ -247,6 +247,7 @@ final class AIChatStore {
     func clearLocalHistory() {
         self.cancelStreaming()
         self.cancelDictation()
+        self.inputText = ""
         self.messages = []
         self.pendingAttachments = []
         self.activeAlert = nil
