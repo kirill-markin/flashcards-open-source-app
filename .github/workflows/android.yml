@@ -24,4 +24,5 @@ jobs:
     uses: ./.github/workflows/android-ci-reusable.yml
     with:
       run_live_smoke: ${{ github.event_name == 'workflow_dispatch' }}
+      target_ref: ${{ github.sha }}
     secrets: inherit

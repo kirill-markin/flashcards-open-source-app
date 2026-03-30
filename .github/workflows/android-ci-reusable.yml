@@ -6,6 +6,9 @@ on:
       run_live_smoke:
         required: true
         type: boolean
+      target_ref:
+        required: true
+        type: string
 
 jobs:
   build:
@@ -15,6 +18,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.target_ref }}
 
       - uses: actions/setup-java@v5
         with:
@@ -99,6 +104,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.target_ref }}
 
       - uses: google-github-actions/auth@v3
         with:
