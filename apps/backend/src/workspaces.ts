@@ -54,6 +54,15 @@ type WorkspaceDeleteFailureStage =
   | "ensure_selected_workspace"
   | "load_replacement_workspace";
 
+type WorkspaceCreateFailureStage =
+  | "create_workspace_row"
+  | "create_bootstrap_replica"
+  | "create_membership"
+  | "load_scheduler_settings"
+  | "seed_scheduler_change"
+  | "select_workspace"
+  | "load_workspace_summary";
+
 type WorkspaceSummaryRow = Readonly<{
   workspace_id: string;
   name: string;
@@ -197,6 +206,14 @@ function createWorkspaceDeletePreviewFailedError(): HttpError {
   );
 }
 
+function createWorkspaceCreateFailedError(): HttpError {
+  return new HttpError(
+    500,
+    "Workspace creation failed on the server before it could be completed. Try again.",
+    "WORKSPACE_CREATE_FAILED",
+  );
+}
+
 function decodeWorkspacePageCursor(cursor: string): WorkspacePageCursor {
   const decodedCursor = decodeOpaqueCursor(cursor, "cursor");
   if (decodedCursor.values.length !== 2) {
@@ -332,70 +349,97 @@ export async function createWorkspaceInExecutor(
   const workspaceId = randomUUID();
   const bootstrapTimestamp = new Date().toISOString();
   const bootstrapOperationId = `bootstrap-workspace-${workspaceId}`;
+  let stage: WorkspaceCreateFailureStage = "create_bootstrap_replica";
 
-  await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
-  const bootstrapReplicaId = await ensureSystemWorkspaceReplicaInExecutor(executor, {
-    workspaceId,
-    userId,
-    actorKind: "workspace_seed",
-    actorKey: "workspace-seed",
-    platform: "system",
-    appVersion: "server-bootstrap",
-  });
+  try {
+    await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
+    const bootstrapReplicaId = await ensureSystemWorkspaceReplicaInExecutor(executor, {
+      workspaceId,
+      userId,
+      actorKind: "workspace_seed",
+      actorKey: "workspace-seed",
+      platform: "system",
+      appVersion: "server-bootstrap",
+    });
 
-  await executor.query(
-    [
-      "INSERT INTO org.workspaces",
-      "(",
-      "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id",
-      ")",
-      "VALUES ($1, $2, $3, $4, $5)",
-    ].join(" "),
-    [workspaceId, name, bootstrapTimestamp, bootstrapReplicaId, bootstrapOperationId],
-  );
-
-  await executor.query(
-    [
-      "INSERT INTO org.workspace_memberships",
-      "(workspace_id, user_id, role)",
-      "VALUES ($1, $2, 'owner')",
-    ].join(" "),
-    [workspaceId, userId],
-  );
-
-  const workspaceResult = await executor.query<WorkspaceSchedulerSeedRow>(
-    [
-      "SELECT",
-      "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
-      "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
-      "fsrs_last_modified_by_replica_id, fsrs_last_operation_id, fsrs_updated_at",
-      "FROM org.workspaces",
-      "WHERE workspace_id = $1",
-    ].join(" "),
-    [workspaceId],
-  );
-  const workspaceRow = workspaceResult.rows[0];
-  if (workspaceRow === undefined) {
-    throw createWorkspaceInvariantError(
-      "Workspace creation failed while loading scheduler settings.",
-      "WORKSPACE_CREATE_SETTINGS_UNAVAILABLE",
+    stage = "create_workspace_row";
+    await executor.query(
+      [
+        "INSERT INTO org.workspaces",
+        "(",
+        "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id",
+        ")",
+        "VALUES ($1, $2, $3, $4, $5)",
+      ].join(" "),
+      [workspaceId, name, bootstrapTimestamp, bootstrapReplicaId, bootstrapOperationId],
     );
+
+    stage = "create_membership";
+    await executor.query(
+      [
+        "INSERT INTO org.workspace_memberships",
+        "(workspace_id, user_id, role)",
+        "VALUES ($1, $2, 'owner')",
+      ].join(" "),
+      [workspaceId, userId],
+    );
+
+    stage = "load_scheduler_settings";
+    const workspaceResult = await executor.query<WorkspaceSchedulerSeedRow>(
+      [
+        "SELECT",
+        "fsrs_algorithm, fsrs_desired_retention, fsrs_learning_steps_minutes, fsrs_relearning_steps_minutes,",
+        "fsrs_maximum_interval_days, fsrs_enable_fuzz, fsrs_client_updated_at,",
+        "fsrs_last_modified_by_replica_id, fsrs_last_operation_id, fsrs_updated_at",
+        "FROM org.workspaces",
+        "WHERE workspace_id = $1",
+      ].join(" "),
+      [workspaceId],
+    );
+    const workspaceRow = workspaceResult.rows[0];
+    if (workspaceRow === undefined) {
+      throw createWorkspaceInvariantError(
+        "Workspace creation failed while loading scheduler settings.",
+        "WORKSPACE_CREATE_SETTINGS_UNAVAILABLE",
+      );
+    }
+
+    stage = "seed_scheduler_change";
+    await insertSyncChange(
+      executor,
+      workspaceId,
+      "workspace_scheduler_settings",
+      workspaceId,
+      "upsert",
+      workspaceRow.fsrs_last_modified_by_replica_id,
+      workspaceRow.fsrs_last_operation_id,
+      workspaceRow.fsrs_client_updated_at instanceof Date
+        ? workspaceRow.fsrs_client_updated_at.toISOString()
+        : new Date(workspaceRow.fsrs_client_updated_at).toISOString(),
+    );
+
+    return workspaceId;
+  } catch (error) {
+    if (error instanceof HttpError) {
+      logCloudRouteEvent("workspace_create_transaction_error", {
+        userId,
+        workspaceId,
+        stage,
+        code: error.code,
+      }, true);
+      throw error;
+    }
+
+    const databaseErrorDetails = getDatabaseErrorDetails(error);
+    logCloudRouteEvent("workspace_create_transaction_error", {
+      userId,
+      workspaceId,
+      stage,
+      code: "WORKSPACE_CREATE_FAILED",
+      ...databaseErrorDetails,
+    }, true);
+    throw createWorkspaceCreateFailedError();
   }
-
-  await insertSyncChange(
-    executor,
-    workspaceId,
-    "workspace_scheduler_settings",
-    workspaceId,
-    "upsert",
-    workspaceRow.fsrs_last_modified_by_replica_id,
-    workspaceRow.fsrs_last_operation_id,
-    workspaceRow.fsrs_client_updated_at instanceof Date
-      ? workspaceRow.fsrs_client_updated_at.toISOString()
-      : new Date(workspaceRow.fsrs_client_updated_at).toISOString(),
-  );
-
-  return workspaceId;
 }
 
 type UserWorkspaceAccessRow = Readonly<{
@@ -627,13 +671,37 @@ export async function listUserWorkspacesPageForSelectedWorkspace(
 export async function createWorkspaceForUser(userId: string, name: string): Promise<WorkspaceSummary> {
   return transactionWithUserScope({ userId }, async (executor) => {
     const workspaceId = await createWorkspaceInExecutor(executor, userId, name);
+    let stage: WorkspaceCreateFailureStage = "select_workspace";
 
-    await executor.query(
-      "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
-      [workspaceId, userId],
-    );
+    try {
+      await executor.query(
+        "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
+        [workspaceId, userId],
+      );
 
-    return loadWorkspaceSummaryInExecutor(executor, userId, workspaceId, workspaceId);
+      stage = "load_workspace_summary";
+      return loadWorkspaceSummaryInExecutor(executor, userId, workspaceId, workspaceId);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        logCloudRouteEvent("workspace_create_transaction_error", {
+          userId,
+          workspaceId,
+          stage,
+          code: error.code,
+        }, true);
+        throw error;
+      }
+
+      const databaseErrorDetails = getDatabaseErrorDetails(error);
+      logCloudRouteEvent("workspace_create_transaction_error", {
+        userId,
+        workspaceId,
+        stage,
+        code: "WORKSPACE_CREATE_FAILED",
+        ...databaseErrorDetails,
+      }, true);
+      throw createWorkspaceCreateFailedError();
+    }
   });
 }
 
@@ -644,9 +712,34 @@ export async function createWorkspaceForApiKeyConnection(
 ): Promise<WorkspaceSummary> {
   return transactionWithUserScope({ userId }, async (executor) => {
     const workspaceId = await createWorkspaceInExecutor(executor, userId, name);
-    await setSelectedWorkspaceForApiKeyConnectionInExecutor(executor, userId, connectionId, workspaceId);
+    let stage: WorkspaceCreateFailureStage = "select_workspace";
 
-    return loadWorkspaceSummaryInExecutor(executor, userId, workspaceId, workspaceId);
+    try {
+      await setSelectedWorkspaceForApiKeyConnectionInExecutor(executor, userId, connectionId, workspaceId);
+
+      stage = "load_workspace_summary";
+      return loadWorkspaceSummaryInExecutor(executor, userId, workspaceId, workspaceId);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        logCloudRouteEvent("workspace_create_transaction_error", {
+          userId,
+          workspaceId,
+          stage,
+          code: error.code,
+        }, true);
+        throw error;
+      }
+
+      const databaseErrorDetails = getDatabaseErrorDetails(error);
+      logCloudRouteEvent("workspace_create_transaction_error", {
+        userId,
+        workspaceId,
+        stage,
+        code: "WORKSPACE_CREATE_FAILED",
+        ...databaseErrorDetails,
+      }, true);
+      throw createWorkspaceCreateFailedError();
+    }
   });
 }
 
