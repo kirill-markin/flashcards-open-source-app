@@ -78,6 +78,9 @@ extension AIChatView {
                         axis: .vertical
                     )
                     .focused(self.$isComposerFocused)
+                    .onTapGesture {
+                        self.isComposerFocused = true
+                    }
                     .lineLimit(1...aiChatComposerMaximumLineCount)
                     .padding(.leading, 12)
                     .padding(.top, self.chatStore.dictationState == .idle ? 12 : aiChatComposerDictationTextFieldTopPadding)
