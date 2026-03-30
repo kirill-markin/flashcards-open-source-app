@@ -373,14 +373,15 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func makeRunContext(runLabel: String) -> LiveSmokeRunContext {
-        let runId = "\(runLabel)-\(String(Int(Date().timeIntervalSince1970)))-\(UUID().uuidString.lowercased())"
+        let runToken = String(UUID().uuidString.lowercased().prefix(8))
+        let runId = "\(runLabel)-\(String(Int(Date().timeIntervalSince1970)))-\(runToken)"
 
         return LiveSmokeRunContext(
             workspaceName: "E2E ios \(runId)",
-            manualFrontText: "Manual e2e ios \(runId)",
-            manualBackText: "Manual answer e2e ios \(runId)",
-            aiFrontText: "AI e2e ios \(runId)",
-            aiBackText: "AI answer e2e ios \(runId)",
+            manualFrontText: "Manual \(runId)",
+            manualBackText: "Manual answer \(runId)",
+            aiFrontText: "AI \(runId)",
+            aiBackText: "AI answer \(runId)",
             markerTag: "e2e-ios-\(runId)"
         )
     }
@@ -668,21 +669,45 @@ final class LiveSmokeUITests: XCTestCase {
         )
         try self.tapFirstNavigationBackButton()
         try self.tapElement(identifier: LiveSmokeIdentifier.cardEditorSaveButton, timeout: self.longUiTimeoutSeconds)
+        try self.assertTextExists(frontText, timeout: self.longUiTimeoutSeconds)
     }
 
     @MainActor
     private func reviewCurrentCard(expectedFrontText: String, maximumSkips: Int) throws {
         try self.assertScreenVisible(screen: .review, timeout: self.shortUiTimeoutSeconds)
+        let expectedFrontElement = self.matchingVisibleStaticText(
+            containing: expectedFrontText,
+            ignoredExactLabels: []
+        ).firstMatch
 
-        for _ in 0...maximumSkips {
-            if self.app.staticTexts[expectedFrontText].exists {
-                try self.tapElement(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: self.shortUiTimeoutSeconds)
-                try self.tapElement(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: self.shortUiTimeoutSeconds)
+        for skipIndex in 0...maximumSkips {
+            let expectedFrontTimeout = skipIndex == 0
+                ? self.longUiTimeoutSeconds
+                : self.optionalProbeTimeoutSeconds
+            if self.waitForOptionalElement(
+                expectedFrontElement,
+                identifier: "text.contains.\(expectedFrontText)",
+                timeout: expectedFrontTimeout
+            ) {
+                try self.tapElement(
+                    identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+                    timeout: self.longUiTimeoutSeconds
+                )
+                try self.tapElement(
+                    identifier: LiveSmokeIdentifier.reviewRateGoodButton,
+                    timeout: self.longUiTimeoutSeconds
+                )
                 return
             }
 
-            try self.tapElement(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: self.shortUiTimeoutSeconds)
-            try self.tapElement(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: self.shortUiTimeoutSeconds)
+            try self.tapElement(
+                identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+                timeout: self.longUiTimeoutSeconds
+            )
+            try self.tapElement(
+                identifier: LiveSmokeIdentifier.reviewRateGoodButton,
+                timeout: self.longUiTimeoutSeconds
+            )
         }
 
         throw LiveSmokeFailure.missingText(

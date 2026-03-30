@@ -251,6 +251,9 @@ struct CardsScreen: View {
             )
             self.screenErrorMessage = ""
             self.editorPresentation = nil
+            Task { @MainActor in
+                await self.reloadCardsSnapshot()
+            }
         } catch {
             self.screenErrorMessage = Flashcards.errorMessage(error: error)
         }
