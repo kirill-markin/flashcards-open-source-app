@@ -12,7 +12,9 @@ struct AccountSettingsView: View {
             }
 
             Section {
-                NavigationLink(value: SettingsNavigationDestination.accountStatus) {
+                NavigationLink {
+                    AccountStatusView()
+                } label: {
                     SettingsNavigationRow(
                         title: "Account Status",
                         value: displayCloudAccountStateTitle(cloudState: store.cloudSettings?.cloudState ?? .disconnected),

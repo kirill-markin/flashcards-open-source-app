@@ -32,7 +32,7 @@ export type CardsLoadingRowPreview = Readonly<{
   dueAt: string | null;
   reps: number;
   lapses: number;
-  createdAt: string;
+  updatedAt: string;
 }>;
 
 export type CardsLoadingSnapshot = Readonly<{
@@ -135,7 +135,7 @@ function parseCardsLoadingRowPreview(value: unknown): CardsLoadingRowPreview | n
     || (value.dueAt !== null && typeof value.dueAt !== "string")
     || typeof value.reps !== "number"
     || typeof value.lapses !== "number"
-    || typeof value.createdAt !== "string"
+    || typeof value.updatedAt !== "string"
   ) {
     return null;
   }
@@ -149,7 +149,7 @@ function parseCardsLoadingRowPreview(value: unknown): CardsLoadingRowPreview | n
     dueAt: value.dueAt,
     reps: value.reps,
     lapses: value.lapses,
-    createdAt: value.createdAt,
+    updatedAt: value.updatedAt,
   };
 }
 
@@ -277,7 +277,7 @@ export function buildCardsLoadingRowPreview(card: Card): CardsLoadingRowPreview 
     dueAt: card.dueAt,
     reps: card.reps,
     lapses: card.lapses,
-    createdAt: card.createdAt,
+    updatedAt: card.updatedAt,
   };
 }
 

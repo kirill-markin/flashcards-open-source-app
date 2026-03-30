@@ -139,6 +139,7 @@ private enum LiveSmokeFailure: LocalizedError {
     case missingText(text: String, timeoutSeconds: TimeInterval, screen: String, step: String)
     case disabledElement(identifier: String, screen: String, step: String)
     case unexpectedElementLabel(identifier: String, expectedLabel: String, actualLabel: String, timeoutSeconds: TimeInterval, screen: String, step: String)
+    case unexpectedElementValue(identifier: String, expectedValue: String, actualValue: String, timeoutSeconds: TimeInterval, screen: String, step: String)
     case missingScreen(screen: String, identifier: String, timeoutSeconds: TimeInterval, currentScreen: String, step: String)
     case missingBackButton(screen: String, step: String)
     case currentWorkspacePickerNotVisible(screen: String, step: String)
@@ -158,6 +159,8 @@ private enum LiveSmokeFailure: LocalizedError {
             return "Element '\(identifier)' appeared but was disabled during step '\(step)' on screen: \(screen)"
         case .unexpectedElementLabel(let identifier, let expectedLabel, let actualLabel, let timeoutSeconds, let screen, let step):
             return "Element '\(identifier)' did not reach expected label '\(expectedLabel)' within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)' on screen: \(screen). Actual label: '\(actualLabel)'"
+        case .unexpectedElementValue(let identifier, let expectedValue, let actualValue, let timeoutSeconds, let screen, let step):
+            return "Element '\(identifier)' did not reach expected value '\(expectedValue)' within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)' on screen: \(screen). Actual value: '\(actualValue)'"
         case .missingScreen(let screen, let identifier, let timeoutSeconds, let currentScreen, let step):
             return "Screen '\(screen)' with root identifier '\(identifier)' did not appear within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)'. Current screen: \(currentScreen)"
         case .missingBackButton(let screen, let step):
@@ -373,16 +376,16 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func makeRunContext(runLabel: String) -> LiveSmokeRunContext {
-        let runToken = String(UUID().uuidString.lowercased().prefix(8))
-        let runId = "\(runLabel)-\(String(Int(Date().timeIntervalSince1970)))-\(runToken)"
+        let runToken = String(UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased().prefix(10))
+        let workspaceToken = String(runToken.prefix(6))
 
         return LiveSmokeRunContext(
-            workspaceName: "E2E ios \(runId)",
-            manualFrontText: "Manual \(runId)",
-            manualBackText: "Manual answer \(runId)",
-            aiFrontText: "AI \(runId)",
-            aiBackText: "AI answer \(runId)",
-            markerTag: "e2e-ios-\(runId)"
+            workspaceName: "E2E iOS \(workspaceToken)",
+            manualFrontText: "Manual \(runToken)",
+            manualBackText: "Manual answer \(runToken)",
+            aiFrontText: "AI \(runToken)",
+            aiBackText: "AI answer \(runToken)",
+            markerTag: "e2eios\(runToken)"
         )
     }
 
@@ -583,7 +586,7 @@ final class LiveSmokeUITests: XCTestCase {
             try self.completeCloudWorkspaceSelectionIfNeeded()
         } else if self.isAccountStatusLinked() {
             let visibleEmail = self.visibleLinkedEmailLabel()
-            if visibleEmail != reviewEmail {
+            if visibleEmail?.contains(reviewEmail) == false {
                 try self.logoutFromAccountStatus()
                 try self.assertElementExists(
                     identifier: LiveSmokeIdentifier.accountStatusSignInButton,
@@ -594,7 +597,7 @@ final class LiveSmokeUITests: XCTestCase {
             }
         }
 
-        try self.assertTextExists(reviewEmail, timeout: self.longUiTimeoutSeconds)
+        try self.assertLinkedEmailVisible(reviewEmail: reviewEmail, timeout: self.longUiTimeoutSeconds)
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.accountStatusSyncNowButton,
             timeout: self.longUiTimeoutSeconds
@@ -889,12 +892,12 @@ final class LiveSmokeUITests: XCTestCase {
         try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
         try self.tapElement(
             identifier: LiveSmokeIdentifier.settingsAccountSettingsRow,
-            timeout: self.shortUiTimeoutSeconds
+            timeout: self.longUiTimeoutSeconds
         )
         try self.assertScreenVisible(screen: .accountSettings, timeout: self.shortUiTimeoutSeconds)
         try self.tapElement(
             identifier: LiveSmokeIdentifier.accountSettingsAccountStatusRow,
-            timeout: self.shortUiTimeoutSeconds
+            timeout: self.longUiTimeoutSeconds
         )
         try self.assertScreenVisible(screen: .accountStatus, timeout: self.shortUiTimeoutSeconds)
     }
@@ -990,7 +993,7 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func assertTextExists(_ text: String, timeout: TimeInterval) throws {
-        let textElement = self.app.staticTexts[text]
+        let textElement = self.exactVisibleText(text).firstMatch
         if self.waitForOptionalElement(
             textElement,
             identifier: "text.\(text)",
@@ -1106,6 +1109,12 @@ final class LiveSmokeUITests: XCTestCase {
         let predicates = [containsPredicate] + ignoredPredicates
         let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
         return self.app.staticTexts.matching(compoundPredicate)
+    }
+
+    @MainActor
+    private func exactVisibleText(_ text: String) -> XCUIElementQuery {
+        let predicate = NSPredicate(format: "label == %@ OR identifier == %@", text, text)
+        return self.app.descendants(matching: .any).matching(predicate)
     }
 
     @MainActor
@@ -1225,6 +1234,21 @@ final class LiveSmokeUITests: XCTestCase {
         element.tap()
         element.typeText(text)
         _ = self.dismissKnownBlockingAlertIfVisible()
+        if self.waitForElementValueContaining(
+            element,
+            identifier: identifier,
+            expectedValue: text,
+            timeout: timeout
+        ) == false {
+            throw LiveSmokeFailure.unexpectedElementValue(
+                identifier: identifier,
+                expectedValue: text,
+                actualValue: self.elementValue(element: element),
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
         self.logActionEnd(action: "type_text", identifier: identifier, result: "success", note: "text typed")
     }
 
@@ -1924,6 +1948,71 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
+    private func elementValue(element: XCUIElement) -> String {
+        if let value = element.value as? String {
+            return value.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        if let value = element.value {
+            return String(describing: value).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return element.label.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    @MainActor
+    private func waitForElementValueContaining(
+        _ element: XCUIElement,
+        identifier: String,
+        expectedValue: String,
+        timeout: TimeInterval
+    ) -> Bool {
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_element_value",
+            identifier: identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: expectedValue
+        )
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            let currentValue = self.elementValue(element: element)
+            if currentValue == expectedValue || currentValue.contains(expectedValue) {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_element_value",
+                    identifier: identifier,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "success",
+                    note: expectedValue
+                )
+                return true
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        let durationSeconds = Date().timeIntervalSince(startedAt)
+        self.logSmokeBreadcrumb(
+            event: "wait_end",
+            action: "wait_for_element_value",
+            identifier: identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: durationSeconds),
+            result: "failure",
+            note: self.elementValue(element: element)
+        )
+        return false
+    }
+
+    @MainActor
     private func waitForSelectedTabScreen(selectedTab: LiveSmokeSelectedTab, timeout: TimeInterval) throws {
         try self.assertScreenVisible(screen: selectedTab.screen, timeout: timeout)
     }
@@ -1950,6 +2039,23 @@ final class LiveSmokeUITests: XCTestCase {
         }
 
         return nil
+    }
+
+    @MainActor
+    private func assertLinkedEmailVisible(reviewEmail: String, timeout: TimeInterval) throws {
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            if let visibleEmail = self.visibleLinkedEmailLabel(), visibleEmail.contains(reviewEmail) {
+                return
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        try self.assertTextExists(reviewEmail, timeout: self.optionalProbeTimeoutSeconds)
     }
 
     @MainActor

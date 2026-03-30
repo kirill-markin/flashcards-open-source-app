@@ -10,6 +10,7 @@ This repository uses one reusable Android validation workflow plus one dedicated
 - `cloudbuild.android.yaml` is the Google-native entrypoint for Cloud Build triggers in the Google Cloud console
 
 This setup keeps fast repository-native checks in GitHub while still using Google-managed device testing and avoiding long-lived Google service account keys.
+We do not aim for exhaustive Android test coverage here. Fast repository-native checks should stay targeted, while the most trusted automated signal is the native live smoke on a real managed device because it is the closest CI check to production behavior.
 
 ## Required GitHub repository variables
 

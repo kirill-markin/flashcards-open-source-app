@@ -72,7 +72,7 @@ function toggleCardFilterEffort(
 }
 
 export function getDefaultCardSortDirection(sortKey: CardQuerySortKey): CardQuerySortDirection {
-  if (sortKey === "createdAt") {
+  if (sortKey === "updatedAt") {
     return "desc";
   }
 
@@ -542,7 +542,7 @@ export function CardsScreen(): ReactElement {
                 <th className="txn-th cards-header-th cards-col-due">{renderSortableHeaderCell("dueAt", "Due")}</th>
                 <th className="txn-th cards-header-th cards-col-reps">{renderSortableHeaderCell("reps", "Reps")}</th>
                 <th className="txn-th cards-header-th cards-col-lapses">{renderSortableHeaderCell("lapses", "Lapses")}</th>
-                <th className="txn-th cards-header-th cards-col-updated">{renderSortableHeaderCell("createdAt", "Created")}</th>
+                <th className="txn-th cards-header-th cards-col-updated">{renderSortableHeaderCell("updatedAt", "Updated")}</th>
               </tr>
             </thead>
             <tbody>
@@ -566,7 +566,7 @@ export function CardsScreen(): ReactElement {
                       <td className="txn-cell txn-cell-mono cards-col-due">{formatTimestamp(card.dueAt)}</td>
                       <td className="txn-cell txn-cell-mono cards-col-reps">{card.reps}</td>
                       <td className="txn-cell txn-cell-mono cards-col-lapses">{card.lapses}</td>
-                      <td className="txn-cell txn-cell-mono cards-col-updated">{formatTimestamp(card.createdAt)}</td>
+                      <td className="txn-cell txn-cell-mono cards-col-updated">{formatTimestamp(card.updatedAt)}</td>
                     </tr>
                   ))
                 ) : (
@@ -625,7 +625,7 @@ export function CardsScreen(): ReactElement {
                     <td className="txn-cell txn-cell-mono cards-col-due">{formatTimestamp(card.dueAt)}</td>
                     <td className="txn-cell txn-cell-mono cards-col-reps">{card.reps}</td>
                     <td className="txn-cell txn-cell-mono cards-col-lapses">{card.lapses}</td>
-                    <td className="txn-cell txn-cell-mono cards-col-updated">{formatTimestamp(card.createdAt)}</td>
+                    <td className="txn-cell txn-cell-mono cards-col-updated">{formatTimestamp(card.updatedAt)}</td>
                   </tr>
                 );
               })}

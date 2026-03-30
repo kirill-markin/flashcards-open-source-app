@@ -62,7 +62,7 @@ export type DatabaseStores =
   | "meta";
 
 const databaseName = "flashcards-web-sync";
-const databaseVersion = 6;
+const databaseVersion = 7;
 
 function isQuotaExceededError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "QuotaExceededError";
@@ -86,11 +86,21 @@ function deleteExistingStore(database: IDBDatabase, storeName: string): void {
   }
 }
 
+function createCardsUpdatedAtIndexes(cardsStore: IDBObjectStore): void {
+  if (!cardsStore.indexNames.contains("workspaceId_updatedAt_cardId")) {
+    cardsStore.createIndex("workspaceId_updatedAt_cardId", ["workspaceId", "updatedAt", "cardId"], { unique: false });
+  }
+  if (!cardsStore.indexNames.contains("workspaceId_effort_updatedAt_cardId")) {
+    cardsStore.createIndex("workspaceId_effort_updatedAt_cardId", ["workspaceId", "effortLevel", "updatedAt", "cardId"], { unique: false });
+  }
+}
+
 function createCardsStore(database: IDBDatabase): void {
   const cardsStore = database.createObjectStore("cards", { keyPath: ["workspaceId", "cardId"] });
   cardsStore.createIndex("workspaceId_createdAt_cardId", ["workspaceId", "createdAt", "cardId"], { unique: false });
   cardsStore.createIndex("workspaceId_dueAt_cardId", ["workspaceId", "dueAt", "cardId"], { unique: false });
   cardsStore.createIndex("workspaceId_effort_createdAt_cardId", ["workspaceId", "effortLevel", "createdAt", "cardId"], { unique: false });
+  createCardsUpdatedAtIndexes(cardsStore);
 }
 
 function createCardTagsStore(database: IDBDatabase): void {
@@ -158,6 +168,11 @@ function upgradeToVersion6(database: IDBDatabase): void {
   upgradeToVersion4(database);
 }
 
+function upgradeToVersion7(transaction: IDBTransaction): void {
+  const cardsStore = transaction.objectStore("cards");
+  createCardsUpdatedAtIndexes(cardsStore);
+}
+
 export function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(databaseName, databaseVersion);
@@ -179,6 +194,15 @@ export function openDatabase(): Promise<IDBDatabase> {
 
       if (oldVersion < 6) {
         upgradeToVersion6(request.result);
+      }
+
+      if (oldVersion < 7) {
+        const transaction = request.transaction;
+        if (transaction === null) {
+          throw new Error("IndexedDB upgrade transaction is unavailable");
+        }
+
+        upgradeToVersion7(transaction);
       }
     };
 

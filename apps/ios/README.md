@@ -59,6 +59,9 @@ Avoid:
 
 Only test the app against the final supported iOS target.
 
+- Do not try to cover the iOS app exhaustively with tests
+- Do not add isolated unit tests by default
+- Prefer native integration, parity, or UI tests when they validate a real module boundary or user flow
 - Do not spend time validating older iOS versions
 - Do not add compatibility code for older iOS versions unless explicitly requested
 - If tests are requested, use one locally available iPhone simulator runtime only
@@ -67,6 +70,8 @@ Only test the app against the final supported iOS target.
 - Do not open a visible Simulator window for test runs unless the user explicitly asks for a visible simulator at that time
 - Prefer `build-for-testing` followed by `test-without-building` so repeated runs reuse warmed artifacts and the warmed simulator
 - If no suitable local runtime is already installed, stop and ask the user how to proceed instead of downloading extra simulator runtimes
+
+The most trusted iOS checks are the simulator-backed native smoke flows because they exercise the real app closest to production behavior.
 
 ## Local Test Workflow
 
@@ -91,7 +96,7 @@ xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -
 
 The iOS app uses native Apple test tooling only:
 
-- FSRS parity and scheduler-focused tests live in `apps/ios/Flashcards/FlashcardsTests`
+- FSRS parity and scheduler-focused tests live in `apps/ios/Flashcards/FlashcardsTests` as targeted native verification, not as an exhaustive safety net
 - release-gate UI coverage lives in `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
 - accessibility identifiers used by the live smoke flows live in `apps/ios/Flashcards/Flashcards/UITestIdentifiers.swift`
 

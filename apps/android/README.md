@@ -118,6 +118,9 @@ The current local Android app uses:
 
 Test only on the final supported Android target.
 
+- Do not try to cover the Android app exhaustively with tests
+- Do not add isolated unit tests by default
+- Prefer native integration, parity, and instrumentation tests when they validate a real module boundary or user flow
 - Run Android tests only against Android 16 / API 36
 - Do not spend time on test matrices for older API levels
 - Do not add compatibility code for older Android versions unless explicitly requested
@@ -125,11 +128,13 @@ Test only on the final supported Android target.
 - Preserve the usual test artifacts, logs, screenshots, and reports when running Android tests in the background
 - Open a visible Android emulator only when the user explicitly asks for it at that time
 
+The most trusted Android checks are the emulator or managed-device smoke flows because they exercise the real app closest to production behavior.
+
 ## Native Test Stack
 
 The Android app uses native Android and Compose testing:
 
-- integration coverage runs through native instrumentation and Compose UI testing in `apps/android/app/src/androidTest` and `apps/android/data/local/src/androidTest`
+- targeted integration coverage runs through native instrumentation and Compose UI testing in `apps/android/app/src/androidTest` and `apps/android/data/local/src/androidTest`
 - shared FSRS scheduler parity stays in `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/model/FsrsSchedulerParityTest.kt` and uses `tests/fsrs-full-vectors.json`
 - release-gate UI coverage runs through native instrumentation and Compose UI testing in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
 - the live smoke flow relies on stable Compose test tags from the production UI modules, not on a separate mock shell

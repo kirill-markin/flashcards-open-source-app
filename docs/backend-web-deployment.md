@@ -113,6 +113,8 @@ For AWS-backed changes, the main-branch order is:
 
 Manual `workflow_dispatch` runs bypass the `CI` wait and act as an explicit release override.
 
+This repository does not try to prove backend and web correctness with exhaustive test coverage before deploy. The highest-confidence automated signal is the real Playwright live smoke that runs against the deployed environment closest to production, and any additional non-smoke tests should stay targeted to important module boundaries or contracts.
+
 After pushing to `main`, watch both `CI` and `AWS/Web Release` until the release either retains the AWS runtime, reverts it, or fails clearly. A failed AWS release with DB migrations is intentionally a fix-forward path; the next push must still be allowed to deploy.
 
 Cross-client live smoke references:

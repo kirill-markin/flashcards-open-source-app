@@ -14,10 +14,12 @@ export function makeCard(input: Readonly<{
   effortLevel: Card["effortLevel"];
   dueAt: string | null;
   createdAt: string;
+  updatedAt?: string;
   reps?: number;
   lapses?: number;
   deletedAt?: string | null;
 }>): Card {
+  const updatedAt = input.updatedAt ?? input.createdAt;
   return {
     cardId: input.cardId,
     frontText: input.frontText,
@@ -34,10 +36,10 @@ export function makeCard(input: Readonly<{
     fsrsDifficulty: null,
     fsrsLastReviewedAt: null,
     fsrsScheduledDays: null,
-    clientUpdatedAt: input.createdAt,
+    clientUpdatedAt: updatedAt,
     lastModifiedByReplicaId: "device-1",
     lastOperationId: `op-${input.cardId}`,
-    updatedAt: input.createdAt,
+    updatedAt,
     deletedAt: input.deletedAt ?? null,
   };
 }
@@ -133,8 +135,8 @@ function compareCardsForCardsQuery(
       difference = compareNumber(leftCard.reps, rightCard.reps, sort.direction);
     } else if (sort.key === "lapses") {
       difference = compareNumber(leftCard.lapses, rightCard.lapses, sort.direction);
-    } else if (sort.key === "createdAt") {
-      difference = compareText(leftCard.createdAt, rightCard.createdAt, sort.direction);
+    } else if (sort.key === "updatedAt") {
+      difference = compareText(leftCard.updatedAt, rightCard.updatedAt, sort.direction);
     }
 
     if (difference !== 0) {
@@ -142,9 +144,9 @@ function compareCardsForCardsQuery(
     }
   }
 
-  const createdAtDifference = rightCard.createdAt.localeCompare(leftCard.createdAt);
-  if (createdAtDifference !== 0) {
-    return createdAtDifference;
+  const updatedAtDifference = rightCard.updatedAt.localeCompare(leftCard.updatedAt);
+  if (updatedAtDifference !== 0) {
+    return updatedAtDifference;
   }
 
   return leftCard.cardId.localeCompare(rightCard.cardId);
