@@ -14,13 +14,17 @@ on:
       - 'scripts/setup-github-android.sh'
       - '.github/workflows/android-ci-reusable.yml'
       - '.github/workflows/android-release.yml'
-      - '.github/workflows/android.yml'
   workflow_dispatch:
     inputs:
       target_sha:
         description: Git SHA to release
         required: true
         type: string
+      publish_to_play:
+        description: Publish the signed bundle to Google Play after Android CI succeeds
+        required: true
+        default: false
+        type: boolean
 
 concurrency:
   group: android-release-${{ github.event_name == 'push' && github.sha || inputs.target_sha }}
@@ -83,7 +87,7 @@ jobs:
             case "${changed_path}" in
               apps/android/README.md) ;;
               apps/android/docs/*) ;;
-              apps/android/*|cloudbuild.android.yaml|scripts/run-android-ci.sh|scripts/run-android-firebase-test-lab.sh|scripts/run-android-release.sh|scripts/setup-github-android.sh|.github/workflows/android-ci-reusable.yml|.github/workflows/android-release.yml|.github/workflows/android.yml)
+              apps/android/*|cloudbuild.android.yaml|scripts/run-android-ci.sh|scripts/run-android-firebase-test-lab.sh|scripts/run-android-release.sh|scripts/setup-github-android.sh|.github/workflows/android-ci-reusable.yml|.github/workflows/android-release.yml)
                 android_changed=true
                 break
                 ;;
@@ -104,13 +108,15 @@ jobs:
 
       - name: Validate Android release target
         env:
+          EVENT_NAME: ${{ github.event_name }}
           TARGET_SHA: ${{ steps.resolve.outputs.target_sha }}
           ANDROID_CHANGED: ${{ steps.resolve.outputs.android_changed }}
           BLOCK_REASON: ${{ steps.resolve.outputs.block_reason }}
+          PUBLISH_TO_PLAY: ${{ inputs.publish_to_play }}
         run: |
           set -euo pipefail
 
-          if [[ "${ANDROID_CHANGED}" != "true" ]]; then
+          if [[ "${ANDROID_CHANGED}" != "true" ]] && [[ "${EVENT_NAME}" == "push" || "${PUBLISH_TO_PLAY}" == "true" ]]; then
             echo "Android release requires Android changes for ${TARGET_SHA}. Block reason: ${BLOCK_REASON}." >&2
             exit 1
           fi
@@ -125,6 +131,7 @@ jobs:
             echo "- Android changed: \`${{ steps.resolve.outputs.android_changed }}\`"
             echo "- Block reason: \`${{ steps.resolve.outputs.block_reason || 'n/a' }}\`"
             echo "- Event: \`${{ github.event_name }}\`"
+            echo "- Publish to Play: \`${{ github.event_name == 'push' || inputs.publish_to_play }}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
   android_ci:
@@ -142,7 +149,7 @@ jobs:
     needs:
       - preflight
       - android_ci
-    if: ${{ needs.android_ci.result == 'success' }}
+    if: ${{ needs.android_ci.result == 'success' && (github.event_name == 'push' || inputs.publish_to_play) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
 
