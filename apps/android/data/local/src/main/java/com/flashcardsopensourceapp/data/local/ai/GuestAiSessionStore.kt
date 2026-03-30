@@ -28,11 +28,16 @@ class GuestAiSessionStore(
         localWorkspaceId: String?,
         configuration: CloudServiceConfiguration
     ): StoredGuestAiSession? {
-        val rawValue = preferences.getString(storageKey(localWorkspaceId = localWorkspaceId), null)
+        val sessionStorageKey = storageKey(localWorkspaceId = localWorkspaceId)
+        val rawValue = preferences.getString(sessionStorageKey, null)
             ?: return null
         val session = decodeSession(rawValue = rawValue)
-        if (session.apiBaseUrl != configuration.apiBaseUrl || session.configurationMode != configuration.mode) {
-            clearSession(localWorkspaceId = localWorkspaceId)
+        if (
+            session.apiBaseUrl != configuration.apiBaseUrl
+            || session.configurationMode != configuration.mode
+            || isWorkspaceBindingInvalid(storageKey = sessionStorageKey, session = session)
+        ) {
+            clearSessionByStorageKey(storageKey = sessionStorageKey)
             return null
         }
 
@@ -40,20 +45,42 @@ class GuestAiSessionStore(
     }
 
     fun saveSession(localWorkspaceId: String?, session: StoredGuestAiSession) {
+        val sessionStorageKey = storageKey(localWorkspaceId = localWorkspaceId)
         preferences.edit(commit = true) {
-            putString(storageKey(localWorkspaceId = localWorkspaceId), encodeSession(session = session).toString())
+            duplicateSessionStorageKeys(
+                session = session,
+                targetStorageKey = sessionStorageKey
+            ).forEach { duplicateStorageKey ->
+                remove(duplicateStorageKey)
+            }
+            putString(sessionStorageKey, encodeSession(session = session).toString())
         }
     }
 
     fun loadAnySession(configuration: CloudServiceConfiguration): StoredGuestAiSession? {
-        val storedSession = preferences.all.values
+        val invalidStorageKeys = mutableListOf<String>()
+        val storedSession = preferences.all.entries
             .asSequence()
-            .mapNotNull { value ->
-                (value as? String)?.let(::decodeSession)
+            .mapNotNull { entry ->
+                val rawValue = entry.value as? String ?: return@mapNotNull null
+                val session = decodeSession(rawValue = rawValue)
+                if (
+                    session.apiBaseUrl != configuration.apiBaseUrl
+                    || session.configurationMode != configuration.mode
+                    || isWorkspaceBindingInvalid(storageKey = entry.key, session = session)
+                ) {
+                    invalidStorageKeys += entry.key
+                    return@mapNotNull null
+                }
+                session
             }
-            .firstOrNull { session ->
-                session.apiBaseUrl == configuration.apiBaseUrl && session.configurationMode == configuration.mode
+            .firstOrNull()
+
+        if (invalidStorageKeys.isNotEmpty()) {
+            preferences.edit(commit = true) {
+                invalidStorageKeys.forEach(::remove)
             }
+        }
 
         return storedSession
     }
@@ -76,6 +103,51 @@ class GuestAiSessionStore(
         }
 
         return guestAiWorkspaceSessionPrefix + localWorkspaceId
+    }
+
+    private fun clearSessionByStorageKey(storageKey: String) {
+        preferences.edit(commit = true) {
+            remove(storageKey)
+        }
+    }
+
+    private fun expectedWorkspaceId(storageKey: String): String? {
+        return if (storageKey.startsWith(guestAiWorkspaceSessionPrefix)) {
+            storageKey.removePrefix(guestAiWorkspaceSessionPrefix)
+        } else {
+            null
+        }
+    }
+
+    private fun isWorkspaceBindingInvalid(storageKey: String, session: StoredGuestAiSession): Boolean {
+        val expectedWorkspaceId = expectedWorkspaceId(storageKey = storageKey) ?: return false
+        return expectedWorkspaceId != session.workspaceId
+    }
+
+    private fun duplicateSessionStorageKeys(
+        session: StoredGuestAiSession,
+        targetStorageKey: String
+    ): List<String> {
+        return preferences.all.entries.mapNotNull { entry ->
+            if (entry.key == targetStorageKey) {
+                return@mapNotNull null
+            }
+
+            val rawValue = entry.value as? String ?: return@mapNotNull null
+            val storedSession = decodeSession(rawValue = rawValue)
+            if (
+                storedSession.configurationMode == session.configurationMode
+                && storedSession.apiBaseUrl == session.apiBaseUrl
+                && (
+                    storedSession.guestToken == session.guestToken
+                        || storedSession.workspaceId == session.workspaceId
+                )
+            ) {
+                entry.key
+            } else {
+                null
+            }
+        }
     }
 
     private fun encodeSession(session: StoredGuestAiSession): JSONObject {
