@@ -64,6 +64,8 @@ Cross-client live smoke references:
 - Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
 - Web: `apps/web/e2e/live-smoke.spec.ts`
 
+When a code change affects a primary user flow, main screen, or cross-client navigation path, check the relevant live smoke or integration tests in the same change and update them when the expected behavior changed. For small internal or low-risk changes that do not affect the main user journey, updating those tests is optional.
+
 ## Repository Strategy
 
 Use a single monorepo for now because it keeps shared API contracts and the data model together, makes coordinated backend/mobile changes easier, and lowers operational overhead at this stage.
