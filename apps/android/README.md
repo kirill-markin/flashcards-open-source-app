@@ -149,7 +149,7 @@ The repository policy for Android CI/CD is:
 - `cloudbuild.android.yaml` is the Google-native Cloud Build entrypoint
 - Google auth from GitHub must use Workload Identity Federation, not a JSON key
 - the release gate order is native build/lint checks first, then the native Firebase Test Lab live smoke, then Google Play release
-- after pushing to `main`, watch both `Android CI` and `Android Release` until Google Play publication either completes or fails clearly
+- after pushing to `main`, watch `Main Release Orchestrator` for AWS/web outcome and watch `Android Release` separately until Google Play publication either completes or fails clearly
 
 ## Review Standard
 

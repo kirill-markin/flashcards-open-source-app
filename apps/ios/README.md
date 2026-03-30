@@ -89,7 +89,7 @@ The expected release gate is:
 1. Native XCUITest grouped live smoke
 2. Xcode Cloud archive and distribution
 
-When a change lands on `main`, follow the Xcode Cloud workflow until the release either completes or fails with a concrete error. Do not assume the iOS release finished just because GitHub-side jobs are green.
+When a change lands on `main`, follow the Xcode Cloud workflow until the release either completes or fails with a concrete error. Do not assume the iOS release finished just because the GitHub-side AWS/web orchestrator is green.
 
 ## Review Standard
 

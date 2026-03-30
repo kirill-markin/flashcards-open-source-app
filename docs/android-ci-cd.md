@@ -1,14 +1,14 @@
 # Android CI/CD
 
-This repository uses one reusable Android validation workflow plus one main-branch release orchestrator:
+This repository uses one reusable Android validation workflow plus one dedicated Android main-release workflow:
 
 - GitHub Actions is the primary CI entrypoint for pull requests and `main`
 - Firebase Test Lab runs instrumentation tests on Google-managed devices
 - `.github/workflows/android-ci-reusable.yml` contains the actual Android CI implementation
-- `.github/workflows/android.yml` is the thin pull-request and manual entrypoint that calls that reusable workflow
-- the main GitHub release orchestrator publishes the signed Android App Bundle to the Google Play production track after Android CI succeeds for the same `main` SHA
+- `.github/workflows/android.yml` is the thin pull-request and manual validation entrypoint that calls that reusable workflow
+- `.github/workflows/android-release.yml` is the canonical Android main-release workflow
+- the main GitHub release orchestrator remains the AWS/web release gate and exposes the `AWS retained release` status that Android release uses when the same SHA also changed AWS
 - `cloudbuild.android.yaml` is the Google-native entrypoint for Cloud Build triggers in the Google Cloud console
-- `.github/workflows/android-release.yml` remains as a manual fallback only
 
 This setup keeps fast repository-native checks in GitHub while still using Google-managed device testing and avoiding long-lived Google service account keys.
 
@@ -60,10 +60,10 @@ The intended Android release order is:
 
 1. Native build and lint checks in GitHub Actions
 2. Native Firebase Test Lab live smoke on the configured Android 16 device
-3. If AWS changed too, wait for the main release orchestrator to retain the AWS release for the same SHA
-4. Google Play production release from the main release orchestrator
+3. If AWS changed too, require `AWS retained release=success` for the same SHA
+4. Google Play production release from `android-release.yml`
 
-After pushing to `main`, watch the main release orchestrator until Android publication either completes or fails clearly. For pull requests, watch the standalone `Android CI` entry workflow.
+After pushing to `main`, watch the main release orchestrator for AWS/web outcome and watch `Android Release` separately for Firebase Test Lab and Google Play publication. For pull requests, watch the standalone `Android CI` entry workflow.
 
 Cross-client live smoke references:
 
