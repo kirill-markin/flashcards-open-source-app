@@ -26,10 +26,6 @@ on:
         default: false
         type: boolean
 
-concurrency:
-  group: android-release-${{ github.event_name == 'push' && github.sha || inputs.target_sha }}
-  cancel-in-progress: false
-
 permissions:
   contents: read
   id-token: write
@@ -138,6 +134,9 @@ jobs:
     name: Android CI
     needs:
       - preflight
+    concurrency:
+      group: android-release-ci-main
+      cancel-in-progress: true
     uses: ./.github/workflows/android-ci-reusable.yml
     with:
       run_live_smoke: true
@@ -152,6 +151,9 @@ jobs:
     if: ${{ needs.android_ci.result == 'success' && (github.event_name == 'push' || inputs.publish_to_play) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    concurrency:
+      group: android-release-publish-main
+      cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@v6
