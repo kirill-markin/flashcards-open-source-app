@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.app
 
+import android.os.ParcelFileDescriptor
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -18,6 +19,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
@@ -67,9 +69,13 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
+import org.junit.rules.TestName
 import org.junit.runner.RunWith
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.time.Instant
 
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalTestApi::class)
@@ -96,11 +102,16 @@ class LiveSmokeTest {
     private val appStateResetRule = AppStateResetRule()
     private val composeRule = createAndroidComposeRule<MainActivity>()
     private val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+    private var currentStepLabel: String = "test bootstrap"
+    private var hasPrintedInlineRawScreenStateForCurrentFailure: Boolean = false
 
     @get:Rule
     val ruleChain: TestRule = RuleChain
         .outerRule(appStateResetRule)
         .around(composeRule)
+
+    @get:Rule
+    val testNameRule: TestName = TestName()
 
     @Test
     fun linkedWorkspaceSessionSurvivesActivityRelaunch() {
@@ -207,6 +218,9 @@ class LiveSmokeTest {
             throw error
         } finally {
             if (shouldDeleteWorkspace) {
+                if (primaryFailure != null) {
+                    resetInlineRawScreenStateFailureGuard()
+                }
                 try {
                     step("delete the isolated workspace") {
                         deleteEphemeralWorkspace(workspaceName = workspaceName)
@@ -228,10 +242,15 @@ class LiveSmokeTest {
      * owns linked workspace setup so regressions stay independently attributable.
      */
     private fun step(label: String, action: () -> Unit) {
+        val previousStepLabel = currentStepLabel
+        currentStepLabel = label
         try {
             action()
         } catch (error: Throwable) {
+            emitInlineRawScreenStateIfNeeded(action = "step.$label")
             throw AssertionError("Android live smoke step failed: $label", error)
+        } finally {
+            currentStepLabel = previousStepLabel
         }
     }
 
@@ -1063,6 +1082,86 @@ class LiveSmokeTest {
         return texts.joinToString(separator = " | ")
     }
 
+    private fun resetInlineRawScreenStateFailureGuard() {
+        hasPrintedInlineRawScreenStateForCurrentFailure = false
+    }
+
+    private fun emitInlineRawScreenStateIfNeeded(action: String) {
+        if (hasPrintedInlineRawScreenStateForCurrentFailure) {
+            return
+        }
+
+        hasPrintedInlineRawScreenStateForCurrentFailure = true
+        System.err.println(inlineRawScreenStateBlock(action = action))
+    }
+
+    private fun inlineRawScreenStateBlock(action: String): String {
+        val systemDialogSummary = currentBlockingSystemDialogSummaryOrNull() ?: "-"
+        val activityName = composeRule.activity::class.java.simpleName
+        return listOf(
+            "===== BEGIN RAW SCREEN STATE =====",
+            "platform: android",
+            "test: ${testNameRule.methodName}",
+            "step: $currentStepLabel",
+            "action: $action",
+            "capturedAt: ${Instant.now()}",
+            "context: activity=$activityName systemDialog=$systemDialogSummary",
+            "",
+            "composeSemanticsTree:",
+            captureComposeSemanticsTree(),
+            "",
+            "windowHierarchy:",
+            captureWindowHierarchy(),
+            "===== END RAW SCREEN STATE ====="
+        ).joinToString(separator = "\n")
+    }
+
+    private fun captureComposeSemanticsTree(): String {
+        return try {
+            formatSemanticsNode(
+                node = composeRule.onRoot(useUnmergedTree = true).fetchSemanticsNode(),
+                depth = 0
+            )
+        } catch (error: Throwable) {
+            "<compose semantics capture failed: ${error.message}>"
+        }
+    }
+
+    private fun formatSemanticsNode(node: SemanticsNode, depth: Int): String {
+        val indent = "  ".repeat(depth)
+        val nodeLine = listOf(
+            "${indent}- id=${node.id}",
+            "bounds=${node.boundsInRoot}",
+            "config=${node.config}"
+        ).joinToString(separator = " ")
+        val childLines = node.children.map { child ->
+            formatSemanticsNode(node = child, depth = depth + 1)
+        }
+        return (listOf(nodeLine) + childLines).joinToString(separator = "\n")
+    }
+
+    private fun captureWindowHierarchy(): String {
+        val dumpPath = "/sdcard/Download/flashcards-live-smoke-window-hierarchy.xml"
+        return try {
+            val command = "uiautomator dump $dumpPath >/dev/null 2>&1 && cat $dumpPath"
+            runShellCommand(command = command).ifBlank { "<empty window hierarchy dump>" }
+        } catch (error: Throwable) {
+            "<window hierarchy capture failed: ${error.message}>"
+        }
+    }
+
+    private fun <T> runWithInlineRawScreenStateOnFailure(
+        action: String,
+        operation: () -> T
+    ): T {
+        try {
+            return operation()
+        } catch (error: Throwable) {
+            emitInlineRawScreenStateIfNeeded(action = action)
+            throw error
+        }
+    }
+
     private fun hasVisibleText(text: String, substring: Boolean = false): Boolean {
         return composeRule.onAllNodesWithText(text = text, substring = substring)
             .fetchSemanticsNodes()
@@ -1074,10 +1173,12 @@ class LiveSmokeTest {
         context: String,
         condition: () -> Boolean
     ) {
-        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
-            dismissExternalSystemDialogIfPresent()
-            failIfVisibleAppError(context = context)
-            condition()
+        runWithInlineRawScreenStateOnFailure(action = "wait_until_with_mitigation") {
+            composeRule.waitUntil(timeoutMillis = timeoutMillis) {
+                dismissExternalSystemDialogIfPresent()
+                failIfVisibleAppError(context = context)
+                condition()
+            }
         }
     }
 
@@ -1094,39 +1195,47 @@ class LiveSmokeTest {
     }
 
     private fun clickNode(matcher: SemanticsMatcher, label: String) {
-        dismissExternalSystemDialogIfPresent()
-        failIfVisibleAppError(context = "before clicking $label")
-        composeRule.onNode(matcher = matcher).performClick()
-        composeRule.waitForIdle()
-        dismissExternalSystemDialogIfPresent()
-        failIfVisibleAppError(context = "after clicking $label")
+        runWithInlineRawScreenStateOnFailure(action = "click_node.$label") {
+            dismissExternalSystemDialogIfPresent()
+            failIfVisibleAppError(context = "before clicking $label")
+            composeRule.onNode(matcher = matcher).performClick()
+            composeRule.waitForIdle()
+            dismissExternalSystemDialogIfPresent()
+            failIfVisibleAppError(context = "after clicking $label")
+        }
     }
 
     private fun clickText(text: String, substring: Boolean = false) {
-        dismissExternalSystemDialogIfPresent()
-        failIfVisibleAppError(context = "before clicking '$text'")
-        composeRule.onNodeWithText(text = text, substring = substring).performClick()
-        composeRule.waitForIdle()
-        dismissExternalSystemDialogIfPresent()
-        failIfVisibleAppError(context = "after clicking '$text'")
+        runWithInlineRawScreenStateOnFailure(action = "click_text.$text") {
+            dismissExternalSystemDialogIfPresent()
+            failIfVisibleAppError(context = "before clicking '$text'")
+            composeRule.onNodeWithText(text = text, substring = substring).performClick()
+            composeRule.waitForIdle()
+            dismissExternalSystemDialogIfPresent()
+            failIfVisibleAppError(context = "after clicking '$text'")
+        }
     }
 
     private fun clickTag(tag: String, label: String) {
-        dismissExternalSystemDialogIfPresent()
-        failIfVisibleAppError(context = "before clicking $label")
-        composeRule.onNodeWithTag(tag).performClick()
-        composeRule.waitForIdle()
-        dismissExternalSystemDialogIfPresent()
-        failIfVisibleAppError(context = "after clicking $label")
+        runWithInlineRawScreenStateOnFailure(action = "click_tag.$tag") {
+            dismissExternalSystemDialogIfPresent()
+            failIfVisibleAppError(context = "before clicking $label")
+            composeRule.onNodeWithTag(tag).performClick()
+            composeRule.waitForIdle()
+            dismissExternalSystemDialogIfPresent()
+            failIfVisibleAppError(context = "after clicking $label")
+        }
     }
 
     private fun clickContentDescription(contentDescription: String) {
-        dismissExternalSystemDialogIfPresent()
-        failIfVisibleAppError(context = "before clicking '$contentDescription'")
-        composeRule.onNodeWithContentDescription(contentDescription).performClick()
-        composeRule.waitForIdle()
-        dismissExternalSystemDialogIfPresent()
-        failIfVisibleAppError(context = "after clicking '$contentDescription'")
+        runWithInlineRawScreenStateOnFailure(action = "click_content_description.$contentDescription") {
+            dismissExternalSystemDialogIfPresent()
+            failIfVisibleAppError(context = "before clicking '$contentDescription'")
+            composeRule.onNodeWithContentDescription(contentDescription).performClick()
+            composeRule.waitForIdle()
+            dismissExternalSystemDialogIfPresent()
+            failIfVisibleAppError(context = "after clicking '$contentDescription'")
+        }
     }
 
     private fun failIfVisibleAppError(context: String) {
@@ -1158,18 +1267,20 @@ class LiveSmokeTest {
     }
 
     private fun tapBackIcon() {
-        dismissExternalSystemDialogIfPresent()
-        failIfVisibleAppError(context = "before navigating back")
-        if (composeRule.onAllNodes(matcher = hasContentDescription("Back")).fetchSemanticsNodes().isNotEmpty()) {
-            composeRule.onNodeWithContentDescription("Back").performClick()
-        } else {
-            composeRule.activity.runOnUiThread {
-                composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        runWithInlineRawScreenStateOnFailure(action = "tap_back_icon") {
+            dismissExternalSystemDialogIfPresent()
+            failIfVisibleAppError(context = "before navigating back")
+            if (composeRule.onAllNodes(matcher = hasContentDescription("Back")).fetchSemanticsNodes().isNotEmpty()) {
+                composeRule.onNodeWithContentDescription("Back").performClick()
+            } else {
+                composeRule.activity.runOnUiThread {
+                    composeRule.activity.onBackPressedDispatcher.onBackPressed()
+                }
+                composeRule.waitForIdle()
             }
-            composeRule.waitForIdle()
+            dismissExternalSystemDialogIfPresent()
+            failIfVisibleAppError(context = "after navigating back")
         }
-        dismissExternalSystemDialogIfPresent()
-        failIfVisibleAppError(context = "after navigating back")
     }
 
     private fun waitForAiComposerEditable(context: String) {
@@ -1475,6 +1586,15 @@ class LiveSmokeTest {
         }
         return listOfNotNull(dialogTitle, dialogMessage).joinToString(separator = " | ").ifBlank {
             "external_system_dialog"
+        }
+    }
+
+    private fun runShellCommand(command: String): String {
+        val shellOutput = InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command)
+        ParcelFileDescriptor.AutoCloseInputStream(shellOutput).use { inputStream ->
+            BufferedReader(InputStreamReader(inputStream)).use { reader ->
+                return reader.readText()
+            }
         }
     }
 

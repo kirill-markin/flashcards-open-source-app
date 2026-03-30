@@ -250,6 +250,7 @@ final class LiveSmokeUITests: XCTestCase {
 
     private var app: XCUIApplication!
     private var currentStepTitle: String = "test bootstrap"
+    private var hasPrintedInlineRawScreenStateForCurrentFailure: Bool = false
     private var recentBreadcrumbs: [LiveSmokeBreadcrumb] = []
 
     override func setUpWithError() throws {
@@ -277,6 +278,7 @@ final class LiveSmokeUITests: XCTestCase {
             self.app.terminate()
         }
         self.app = nil
+        self.hasPrintedInlineRawScreenStateForCurrentFailure = false
         self.recentBreadcrumbs = []
         self.currentStepTitle = "test bootstrap"
         try super.tearDownWithError()
@@ -428,6 +430,9 @@ final class LiveSmokeUITests: XCTestCase {
         }
 
         if shouldDeleteWorkspace {
+            if primaryFailure != nil {
+                self.resetInlineRawScreenStateFailureGuard()
+            }
             do {
                 try self.step("delete the isolated workspace") {
                     try self.deleteEphemeralWorkspace()
@@ -511,6 +516,7 @@ final class LiveSmokeUITests: XCTestCase {
                     "event=step_success step=\(title, privacy: .public) duration=\(formatDuration(seconds: durationSeconds), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
                 )
             } catch {
+                self.emitInlineRawScreenStateIfNeeded(action: "step.\(title)")
                 let durationSeconds = Date().timeIntervalSince(startedAt)
                 activity.add(
                     self.makeTextAttachment(
@@ -991,116 +997,124 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func tapButton(named name: String, timeout: TimeInterval) throws {
-        let button = self.app.buttons[name].firstMatch
-        if self.waitForOptionalHittableElement(
-            button,
-            identifier: "button.\(name)",
-            timeout: timeout
-        ) == false {
-            throw LiveSmokeFailure.missingElement(
+        try self.runWithInlineRawScreenStateOnFailure(action: "tap_button.\(name)") {
+            let button = self.app.buttons[name].firstMatch
+            if self.waitForOptionalHittableElement(
+                button,
                 identifier: "button.\(name)",
-                timeoutSeconds: timeout,
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
+                timeout: timeout
+            ) == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: "button.\(name)",
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+            self.logActionStart(action: "tap_button", identifier: "button.\(name)")
+            button.tap()
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            self.logActionEnd(action: "tap_button", identifier: "button.\(name)", result: "success", note: "button tapped")
         }
-        self.logActionStart(action: "tap_button", identifier: "button.\(name)")
-        button.tap()
-        _ = self.dismissKnownBlockingAlertIfVisible()
-        self.logActionEnd(action: "tap_button", identifier: "button.\(name)", result: "success", note: "button tapped")
     }
 
     @MainActor
     private func tapElement(identifier: String, timeout: TimeInterval) throws {
-        let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-        if self.waitForOptionalElement(
-            element,
-            identifier: identifier,
-            timeout: timeout
-        ) == false {
-            throw LiveSmokeFailure.missingElement(
+        try self.runWithInlineRawScreenStateOnFailure(action: "tap_element.\(identifier)") {
+            let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            if self.waitForOptionalElement(
+                element,
                 identifier: identifier,
-                timeoutSeconds: timeout,
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
-        }
+                timeout: timeout
+            ) == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: identifier,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
 
-        self.logActionStart(action: "tap_element", identifier: identifier)
-        if self.waitForOptionalHittableElement(
-            element,
-            identifier: identifier,
-            timeout: timeout
-        ) {
-            element.tap()
+            self.logActionStart(action: "tap_element", identifier: identifier)
+            if self.waitForOptionalHittableElement(
+                element,
+                identifier: identifier,
+                timeout: timeout
+            ) {
+                element.tap()
+                _ = self.dismissKnownBlockingAlertIfVisible()
+                self.logActionEnd(action: "tap_element", identifier: identifier, result: "success", note: "element tapped")
+                return
+            }
+
+            if element.isEnabled == false {
+                throw LiveSmokeFailure.disabledElement(
+                    identifier: identifier,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            let frame = element.frame
+            if frame.isEmpty {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: identifier,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            self.logSmokeBreadcrumb(
+                event: "tap_fallback",
+                action: "tap_element_coordinate",
+                identifier: identifier,
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: "-",
+                result: "start",
+                note: "using coordinate tap for visible but unhittable element"
+            )
+            element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             _ = self.dismissKnownBlockingAlertIfVisible()
-            self.logActionEnd(action: "tap_element", identifier: identifier, result: "success", note: "element tapped")
-            return
+            self.logActionEnd(action: "tap_element", identifier: identifier, result: "success", note: "element tapped via coordinate fallback")
         }
-
-        if element.isEnabled == false {
-            throw LiveSmokeFailure.disabledElement(
-                identifier: identifier,
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
-        }
-
-        let frame = element.frame
-        if frame.isEmpty {
-            throw LiveSmokeFailure.missingElement(
-                identifier: identifier,
-                timeoutSeconds: timeout,
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
-        }
-
-        self.logSmokeBreadcrumb(
-            event: "tap_fallback",
-            action: "tap_element_coordinate",
-            identifier: identifier,
-            timeoutSeconds: formatDuration(seconds: timeout),
-            durationSeconds: "-",
-            result: "start",
-            note: "using coordinate tap for visible but unhittable element"
-        )
-        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        _ = self.dismissKnownBlockingAlertIfVisible()
-        self.logActionEnd(action: "tap_element", identifier: identifier, result: "success", note: "element tapped via coordinate fallback")
     }
 
     @MainActor
     private func assertElementExists(identifier: String, timeout: TimeInterval) throws {
-        let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-        if self.waitForOptionalElement(
-            element,
-            identifier: identifier,
-            timeout: timeout
-        ) == false {
-            throw LiveSmokeFailure.missingElement(
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_element_exists.\(identifier)") {
+            let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            if self.waitForOptionalElement(
+                element,
                 identifier: identifier,
-                timeoutSeconds: timeout,
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
+                timeout: timeout
+            ) == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: identifier,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
         }
     }
 
     @MainActor
     private func assertTextExists(_ text: String, timeout: TimeInterval) throws {
-        let textElement = self.exactVisibleText(text).firstMatch
-        if self.waitForOptionalElement(
-            textElement,
-            identifier: "text.\(text)",
-            timeout: timeout
-        ) == false {
-            throw LiveSmokeFailure.missingText(
-                text: text,
-                timeoutSeconds: timeout,
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_text_exists.\(text)") {
+            let textElement = self.exactVisibleText(text).firstMatch
+            if self.waitForOptionalElement(
+                textElement,
+                identifier: "text.\(text)",
+                timeout: timeout
+            ) == false {
+                throw LiveSmokeFailure.missingText(
+                    text: text,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
         }
     }
 
@@ -1111,81 +1125,83 @@ final class LiveSmokeUITests: XCTestCase {
         aiErrorMarkerCountBeforeWait: Int,
         ignoredExactLabels: Set<String>
     ) throws {
-        let errorElements = self.app.descendants(matching: .any)
-            .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
-        let startedAt = Date()
-        let deadline = startedAt.addingTimeInterval(timeout)
-        self.logSmokeBreadcrumb(
-            event: "wait_start",
-            action: "wait_for_visible_text_contains",
-            identifier: "text.contains.\(text)",
-            timeoutSeconds: formatDuration(seconds: timeout),
-            durationSeconds: "-",
-            result: "start",
-            note: "waiting for visible text substring"
-        )
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_visible_text_contains.\(text)") {
+            let errorElements = self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
+            let startedAt = Date()
+            let deadline = startedAt.addingTimeInterval(timeout)
+            self.logSmokeBreadcrumb(
+                event: "wait_start",
+                action: "wait_for_visible_text_contains",
+                identifier: "text.contains.\(text)",
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: "-",
+                result: "start",
+                note: "waiting for visible text substring"
+            )
 
-        while Date() < deadline {
-            _ = self.dismissKnownBlockingAlertIfVisible()
+            while Date() < deadline {
+                _ = self.dismissKnownBlockingAlertIfVisible()
 
-            if self.visibleStaticTextLabels(ignoredExactLabels: ignoredExactLabels).contains(where: { label in
-                label.contains(text)
-            }) {
-                let durationSeconds = Date().timeIntervalSince(startedAt)
-                self.logSmokeBreadcrumb(
-                    event: "wait_end",
-                    action: "wait_for_visible_text_contains",
-                    identifier: "text.contains.\(text)",
-                    timeoutSeconds: formatDuration(seconds: timeout),
-                    durationSeconds: formatDuration(seconds: durationSeconds),
-                    result: "success",
-                    note: "visible text substring appeared"
-                )
-                return
+                if self.visibleStaticTextLabels(ignoredExactLabels: ignoredExactLabels).contains(where: { label in
+                    label.contains(text)
+                }) {
+                    let durationSeconds = Date().timeIntervalSince(startedAt)
+                    self.logSmokeBreadcrumb(
+                        event: "wait_end",
+                        action: "wait_for_visible_text_contains",
+                        identifier: "text.contains.\(text)",
+                        timeoutSeconds: formatDuration(seconds: timeout),
+                        durationSeconds: formatDuration(seconds: durationSeconds),
+                        result: "success",
+                        note: "visible text substring appeared"
+                    )
+                    return
+                }
+
+                let errorMarkerCount = errorElements.count
+                if errorMarkerCount > aiErrorMarkerCountBeforeWait {
+                    let durationSeconds = Date().timeIntervalSince(startedAt)
+                    let errorMessage = self.elementLabel(
+                        query: errorElements,
+                        index: errorMarkerCount - 1
+                    )
+                    self.logSmokeBreadcrumb(
+                        event: "wait_end",
+                        action: "wait_for_visible_text_contains",
+                        identifier: LiveSmokeIdentifier.aiAssistantErrorMessage,
+                        timeoutSeconds: formatDuration(seconds: timeout),
+                        durationSeconds: formatDuration(seconds: durationSeconds),
+                        result: "failure",
+                        note: errorMessage
+                    )
+                    throw LiveSmokeFailure.aiRunReportedError(
+                        message: errorMessage.isEmpty ? "Assistant error message is empty." : errorMessage,
+                        screen: self.currentScreenSummary(),
+                        step: self.currentStepTitle
+                    )
+                }
+
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
             }
 
-            let errorMarkerCount = errorElements.count
-            if errorMarkerCount > aiErrorMarkerCountBeforeWait {
-                let durationSeconds = Date().timeIntervalSince(startedAt)
-                let errorMessage = self.elementLabel(
-                    query: errorElements,
-                    index: errorMarkerCount - 1
-                )
-                self.logSmokeBreadcrumb(
-                    event: "wait_end",
-                    action: "wait_for_visible_text_contains",
-                    identifier: LiveSmokeIdentifier.aiAssistantErrorMessage,
-                    timeoutSeconds: formatDuration(seconds: timeout),
-                    durationSeconds: formatDuration(seconds: durationSeconds),
-                    result: "failure",
-                    note: errorMessage
-                )
-                throw LiveSmokeFailure.aiRunReportedError(
-                    message: errorMessage.isEmpty ? "Assistant error message is empty." : errorMessage,
-                    screen: self.currentScreenSummary(),
-                    step: self.currentStepTitle
-                )
-            }
-
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+            let durationSeconds = Date().timeIntervalSince(startedAt)
+            self.logSmokeBreadcrumb(
+                event: "wait_end",
+                action: "wait_for_visible_text_contains",
+                identifier: "text.contains.\(text)",
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: formatDuration(seconds: durationSeconds),
+                result: "failure",
+                note: "visible text substring did not appear"
+            )
+            throw LiveSmokeFailure.missingText(
+                text: text,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
         }
-
-        let durationSeconds = Date().timeIntervalSince(startedAt)
-        self.logSmokeBreadcrumb(
-            event: "wait_end",
-            action: "wait_for_visible_text_contains",
-            identifier: "text.contains.\(text)",
-            timeoutSeconds: formatDuration(seconds: timeout),
-            durationSeconds: formatDuration(seconds: durationSeconds),
-            result: "failure",
-            note: "visible text substring did not appear"
-        )
-        throw LiveSmokeFailure.missingText(
-            text: text,
-            timeoutSeconds: timeout,
-            screen: self.currentScreenSummary(),
-            step: self.currentStepTitle
-        )
     }
 
     @MainActor
@@ -1224,26 +1240,28 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func assertElementEnabled(identifier: String, timeout: TimeInterval) throws {
-        let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-        if self.waitForOptionalElement(
-            element,
-            identifier: identifier,
-            timeout: timeout
-        ) == false {
-            throw LiveSmokeFailure.missingElement(
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_element_enabled.\(identifier)") {
+            let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            if self.waitForOptionalElement(
+                element,
                 identifier: identifier,
-                timeoutSeconds: timeout,
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
-        }
+                timeout: timeout
+            ) == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: identifier,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
 
-        if element.isEnabled == false {
-            throw LiveSmokeFailure.disabledElement(
-                identifier: identifier,
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
+            if element.isEnabled == false {
+                throw LiveSmokeFailure.disabledElement(
+                    identifier: identifier,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
         }
     }
 
@@ -1253,170 +1271,178 @@ final class LiveSmokeUITests: XCTestCase {
         expectedLabel: String,
         timeout: TimeInterval
     ) throws {
-        let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-        if self.waitForOptionalElement(
-            element,
-            identifier: identifier,
-            timeout: timeout
-        ) == false {
-            throw LiveSmokeFailure.missingElement(
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_element_label.\(identifier)") {
+            let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            if self.waitForOptionalElement(
+                element,
                 identifier: identifier,
+                timeout: timeout
+            ) == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: identifier,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            let startedAt = Date()
+            let deadline = startedAt.addingTimeInterval(timeout)
+            var lastObservedLabel = element.label
+            self.logSmokeBreadcrumb(
+                event: "wait_start",
+                action: "wait_for_element_label",
+                identifier: identifier,
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: "-",
+                result: "start",
+                note: expectedLabel
+            )
+
+            while Date() < deadline {
+                _ = self.dismissKnownBlockingAlertIfVisible()
+                lastObservedLabel = element.label
+                if lastObservedLabel == expectedLabel {
+                    let durationSeconds = Date().timeIntervalSince(startedAt)
+                    self.logSmokeBreadcrumb(
+                        event: "wait_end",
+                        action: "wait_for_element_label",
+                        identifier: identifier,
+                        timeoutSeconds: formatDuration(seconds: timeout),
+                        durationSeconds: formatDuration(seconds: durationSeconds),
+                        result: "success",
+                        note: expectedLabel
+                    )
+                    return
+                }
+
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+            }
+
+            let durationSeconds = Date().timeIntervalSince(startedAt)
+            self.logSmokeBreadcrumb(
+                event: "wait_end",
+                action: "wait_for_element_label",
+                identifier: identifier,
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: formatDuration(seconds: durationSeconds),
+                result: "failure",
+                note: "expected=\(expectedLabel) actual=\(lastObservedLabel)"
+            )
+            throw LiveSmokeFailure.unexpectedElementLabel(
+                identifier: identifier,
+                expectedLabel: expectedLabel,
+                actualLabel: lastObservedLabel,
                 timeoutSeconds: timeout,
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
             )
         }
-
-        let startedAt = Date()
-        let deadline = startedAt.addingTimeInterval(timeout)
-        var lastObservedLabel = element.label
-        self.logSmokeBreadcrumb(
-            event: "wait_start",
-            action: "wait_for_element_label",
-            identifier: identifier,
-            timeoutSeconds: formatDuration(seconds: timeout),
-            durationSeconds: "-",
-            result: "start",
-            note: expectedLabel
-        )
-
-        while Date() < deadline {
-            _ = self.dismissKnownBlockingAlertIfVisible()
-            lastObservedLabel = element.label
-            if lastObservedLabel == expectedLabel {
-                let durationSeconds = Date().timeIntervalSince(startedAt)
-                self.logSmokeBreadcrumb(
-                    event: "wait_end",
-                    action: "wait_for_element_label",
-                    identifier: identifier,
-                    timeoutSeconds: formatDuration(seconds: timeout),
-                    durationSeconds: formatDuration(seconds: durationSeconds),
-                    result: "success",
-                    note: expectedLabel
-                )
-                return
-            }
-
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
-        }
-
-        let durationSeconds = Date().timeIntervalSince(startedAt)
-        self.logSmokeBreadcrumb(
-            event: "wait_end",
-            action: "wait_for_element_label",
-            identifier: identifier,
-            timeoutSeconds: formatDuration(seconds: timeout),
-            durationSeconds: formatDuration(seconds: durationSeconds),
-            result: "failure",
-            note: "expected=\(expectedLabel) actual=\(lastObservedLabel)"
-        )
-        throw LiveSmokeFailure.unexpectedElementLabel(
-            identifier: identifier,
-            expectedLabel: expectedLabel,
-            actualLabel: lastObservedLabel,
-            timeoutSeconds: timeout,
-            screen: self.currentScreenSummary(),
-            step: self.currentStepTitle
-        )
     }
 
     @MainActor
     private func typeText(_ text: String, intoElementWithIdentifier identifier: String, timeout: TimeInterval) throws {
-        let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-        if self.waitForOptionalElement(
-            element,
-            identifier: identifier,
-            timeout: timeout
-        ) == false {
-            throw LiveSmokeFailure.missingElement(
+        try self.runWithInlineRawScreenStateOnFailure(action: "type_text.\(identifier)") {
+            let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            if self.waitForOptionalElement(
+                element,
                 identifier: identifier,
-                timeoutSeconds: timeout,
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
-        }
-        self.logActionStart(action: "type_text", identifier: identifier)
-        element.tap()
-        element.typeText(text)
-        _ = self.dismissKnownBlockingAlertIfVisible()
-        if self.waitForElementValueContaining(
-            element,
-            identifier: identifier,
-            expectedValue: text,
-            timeout: timeout
-        ) == false {
-            throw LiveSmokeFailure.unexpectedElementValue(
+                timeout: timeout
+            ) == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: identifier,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+            self.logActionStart(action: "type_text", identifier: identifier)
+            element.tap()
+            element.typeText(text)
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            if self.waitForElementValueContaining(
+                element,
                 identifier: identifier,
                 expectedValue: text,
-                actualValue: self.elementValue(element: element),
-                timeoutSeconds: timeout,
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
+                timeout: timeout
+            ) == false {
+                throw LiveSmokeFailure.unexpectedElementValue(
+                    identifier: identifier,
+                    expectedValue: text,
+                    actualValue: self.elementValue(element: element),
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+            self.logActionEnd(action: "type_text", identifier: identifier, result: "success", note: "text typed")
         }
-        self.logActionEnd(action: "type_text", identifier: identifier, result: "success", note: "text typed")
     }
 
     @MainActor
     private func replaceText(_ text: String, inElementWithIdentifier identifier: String, timeout: TimeInterval) throws {
-        let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-        if self.waitForOptionalElement(
-            element,
-            identifier: identifier,
-            timeout: timeout
-        ) == false {
-            throw LiveSmokeFailure.missingElement(
+        try self.runWithInlineRawScreenStateOnFailure(action: "replace_text.\(identifier)") {
+            let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            if self.waitForOptionalElement(
+                element,
                 identifier: identifier,
-                timeoutSeconds: timeout,
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
-        }
-        self.logActionStart(action: "replace_text", identifier: identifier)
-        element.tap()
+                timeout: timeout
+            ) == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: identifier,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+            self.logActionStart(action: "replace_text", identifier: identifier)
+            element.tap()
 
-        let existingValue = element.value as? String ?? ""
-        let placeholderValue = element.placeholderValue ?? ""
-        if existingValue.isEmpty == false && existingValue != placeholderValue {
-            let deleteSequence = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count)
-            element.typeText(deleteSequence)
-        }
+            let existingValue = element.value as? String ?? ""
+            let placeholderValue = element.placeholderValue ?? ""
+            if existingValue.isEmpty == false && existingValue != placeholderValue {
+                let deleteSequence = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count)
+                element.typeText(deleteSequence)
+            }
 
-        element.typeText(text)
-        _ = self.dismissKnownBlockingAlertIfVisible()
-        self.logActionEnd(action: "replace_text", identifier: identifier, result: "success", note: "text replaced")
+            element.typeText(text)
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            self.logActionEnd(action: "replace_text", identifier: identifier, result: "success", note: "text replaced")
+        }
     }
 
     @MainActor
     private func replaceAiComposerText(_ text: String, timeout: TimeInterval) throws {
-        let element = self.aiComposerTextFieldElement()
-        let identifier = LiveSmokeIdentifier.aiComposerTextField
+        try self.runWithInlineRawScreenStateOnFailure(action: "replace_text.\(LiveSmokeIdentifier.aiComposerTextField)") {
+            let element = self.aiComposerTextFieldElement()
+            let identifier = LiveSmokeIdentifier.aiComposerTextField
 
-        if self.waitForOptionalElement(
-            element,
-            identifier: identifier,
-            timeout: timeout
-        ) == false {
-            throw LiveSmokeFailure.missingElement(
+            if self.waitForOptionalElement(
+                element,
                 identifier: identifier,
-                timeoutSeconds: timeout,
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
+                timeout: timeout
+            ) == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: identifier,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            self.logActionStart(action: "replace_text", identifier: identifier)
+            element.tap()
+
+            let existingValue = element.value as? String ?? ""
+            if existingValue.isEmpty == false && existingValue != aiComposerPlaceholderText {
+                let deleteSequence = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count)
+                element.typeText(deleteSequence)
+            }
+
+            element.typeText(text)
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            self.logActionEnd(action: "replace_text", identifier: identifier, result: "success", note: "text replaced")
         }
-
-        self.logActionStart(action: "replace_text", identifier: identifier)
-        element.tap()
-
-        let existingValue = element.value as? String ?? ""
-        if existingValue.isEmpty == false && existingValue != aiComposerPlaceholderText {
-            let deleteSequence = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count)
-            element.typeText(deleteSequence)
-        }
-
-        element.typeText(text)
-        _ = self.dismissKnownBlockingAlertIfVisible()
-        self.logActionEnd(action: "replace_text", identifier: identifier, result: "success", note: "text replaced")
     }
 
     @MainActor
@@ -1432,16 +1458,18 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func tapFirstNavigationBackButton() throws {
-        guard let backButton = self.waitForFirstHittableNavigationBackButton(timeout: self.shortUiTimeoutSeconds) else {
-            throw LiveSmokeFailure.missingBackButton(
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
+        try self.runWithInlineRawScreenStateOnFailure(action: "tap_back_button.navigation.backButton") {
+            guard let backButton = self.waitForFirstHittableNavigationBackButton(timeout: self.shortUiTimeoutSeconds) else {
+                throw LiveSmokeFailure.missingBackButton(
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+            self.logActionStart(action: "tap_back_button", identifier: "navigation.backButton")
+            backButton.tap()
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            self.logActionEnd(action: "tap_back_button", identifier: "navigation.backButton", result: "success", note: "back tapped")
         }
-        self.logActionStart(action: "tap_back_button", identifier: "navigation.backButton")
-        backButton.tap()
-        _ = self.dismissKnownBlockingAlertIfVisible()
-        self.logActionEnd(action: "tap_back_button", identifier: "navigation.backButton", result: "success", note: "back tapped")
     }
 
     @MainActor
@@ -1525,46 +1553,48 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func assertScreenVisible(screen: LiveSmokeScreen, timeout: TimeInterval) throws {
-        let element = self.app.descendants(matching: .any).matching(identifier: screen.identifier).firstMatch
-        if timeout >= self.longUiTimeoutSeconds {
-            _ = self.dismissKnownBlockingAlertIfVisible()
-        }
-        self.logSmokeBreadcrumb(
-            event: "screen_assert_start",
-            action: "assert_screen",
-            identifier: screen.identifier,
-            timeoutSeconds: formatDuration(seconds: timeout),
-            durationSeconds: "-",
-            result: "start",
-            note: screen.title
-        )
-        smokeLogger.log(
-            "event=screen_assert_start step=\(self.currentStepTitle, privacy: .public) screen=\(screen.title, privacy: .public) identifier=\(screen.identifier, privacy: .public) timeout=\(formatDuration(seconds: timeout), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
-        )
-        let startedAt = Date()
-        let found = element.waitForExistence(timeout: timeout)
-        let durationSeconds = Date().timeIntervalSince(startedAt)
-        self.logSmokeBreadcrumb(
-            event: "screen_assert_end",
-            action: "assert_screen",
-            identifier: screen.identifier,
-            timeoutSeconds: formatDuration(seconds: timeout),
-            durationSeconds: formatDuration(seconds: durationSeconds),
-            result: found ? "success" : "failure",
-            note: screen.title
-        )
-        smokeLogger.log(
-            "event=screen_assert_end step=\(self.currentStepTitle, privacy: .public) screen=\(screen.title, privacy: .public) identifier=\(screen.identifier, privacy: .public) found=\(found, privacy: .public) duration=\(formatDuration(seconds: durationSeconds), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
-        )
-
-        if found == false {
-            throw LiveSmokeFailure.missingScreen(
-                screen: screen.title,
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_screen.\(screen.identifier)") {
+            let element = self.app.descendants(matching: .any).matching(identifier: screen.identifier).firstMatch
+            if timeout >= self.longUiTimeoutSeconds {
+                _ = self.dismissKnownBlockingAlertIfVisible()
+            }
+            self.logSmokeBreadcrumb(
+                event: "screen_assert_start",
+                action: "assert_screen",
                 identifier: screen.identifier,
-                timeoutSeconds: timeout,
-                currentScreen: self.currentScreenSummary(),
-                step: self.currentStepTitle
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: "-",
+                result: "start",
+                note: screen.title
             )
+            smokeLogger.log(
+                "event=screen_assert_start step=\(self.currentStepTitle, privacy: .public) screen=\(screen.title, privacy: .public) identifier=\(screen.identifier, privacy: .public) timeout=\(formatDuration(seconds: timeout), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
+            )
+            let startedAt = Date()
+            let found = element.waitForExistence(timeout: timeout)
+            let durationSeconds = Date().timeIntervalSince(startedAt)
+            self.logSmokeBreadcrumb(
+                event: "screen_assert_end",
+                action: "assert_screen",
+                identifier: screen.identifier,
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: formatDuration(seconds: durationSeconds),
+                result: found ? "success" : "failure",
+                note: screen.title
+            )
+            smokeLogger.log(
+                "event=screen_assert_end step=\(self.currentStepTitle, privacy: .public) screen=\(screen.title, privacy: .public) identifier=\(screen.identifier, privacy: .public) found=\(found, privacy: .public) duration=\(formatDuration(seconds: durationSeconds), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
+            )
+
+            if found == false {
+                throw LiveSmokeFailure.missingScreen(
+                    screen: screen.title,
+                    identifier: screen.identifier,
+                    timeoutSeconds: timeout,
+                    currentScreen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
         }
     }
 
@@ -1912,6 +1942,52 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
+    private func resetInlineRawScreenStateFailureGuard() {
+        self.hasPrintedInlineRawScreenStateForCurrentFailure = false
+    }
+
+    @MainActor
+    private func emitInlineRawScreenStateIfNeeded(action: String) {
+        if self.hasPrintedInlineRawScreenStateForCurrentFailure {
+            return
+        }
+
+        self.hasPrintedInlineRawScreenStateForCurrentFailure = true
+        fputs(self.inlineRawScreenStateBlock(action: action) + "\n", stderr)
+    }
+
+    @MainActor
+    private func inlineRawScreenStateBlock(action: String) -> String {
+        return [
+            "===== BEGIN RAW SCREEN STATE =====",
+            "platform: ios",
+            "test: \(self.name)",
+            "step: \(self.currentStepTitle)",
+            "action: \(action)",
+            "capturedAt: \(ISO8601DateFormatter().string(from: Date()))",
+            "context: \(self.currentScreenSummary())",
+            "",
+            "activeAlerts: \(self.activeAlertsSnapshot())",
+            "",
+            self.appDebugHierarchy(),
+            "===== END RAW SCREEN STATE ====="
+        ].joined(separator: "\n")
+    }
+
+    @MainActor
+    private func runWithInlineRawScreenStateOnFailure<T>(
+        action: String,
+        operation: () throws -> T
+    ) throws -> T {
+        do {
+            return try operation()
+        } catch {
+            self.emitInlineRawScreenStateIfNeeded(action: action)
+            throw error
+        }
+    }
+
+    @MainActor
     private func logSmokeBreadcrumb(
         event: String,
         action: String,
@@ -1994,38 +2070,40 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func waitForApplicationToReachForeground(timeout: TimeInterval) throws {
-        self.logSmokeBreadcrumb(
-            event: "wait_start",
-            action: "wait_for_app_foreground",
-            identifier: "application",
-            timeoutSeconds: formatDuration(seconds: timeout),
-            durationSeconds: "-",
-            result: "start",
-            note: "waiting for runningForeground",
-            captureScreenSummary: false,
-            screenOverride: "appState=\(self.appStateDescription()) screens=[-] nav=[-] alerts=[-] tabs=[-]"
-        )
-        let startedAt = Date()
-        let reachedForeground = self.app.wait(for: .runningForeground, timeout: timeout)
-        let durationSeconds = Date().timeIntervalSince(startedAt)
-        self.logSmokeBreadcrumb(
-            event: "wait_end",
-            action: "wait_for_app_foreground",
-            identifier: "application",
-            timeoutSeconds: formatDuration(seconds: timeout),
-            durationSeconds: formatDuration(seconds: durationSeconds),
-            result: reachedForeground ? "success" : "failure",
-            note: "foreground wait finished",
-            captureScreenSummary: reachedForeground,
-            screenOverride: reachedForeground ? nil : "appState=\(self.appStateDescription()) screens=[-] nav=[-] alerts=[-] tabs=[-]"
-        )
-
-        if reachedForeground == false {
-            throw LiveSmokeFailure.appDidNotReachForeground(
-                timeoutSeconds: timeout,
-                appState: self.appStateDescription(),
-                step: self.currentStepTitle
+        try self.runWithInlineRawScreenStateOnFailure(action: "wait_for_app_foreground") {
+            self.logSmokeBreadcrumb(
+                event: "wait_start",
+                action: "wait_for_app_foreground",
+                identifier: "application",
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: "-",
+                result: "start",
+                note: "waiting for runningForeground",
+                captureScreenSummary: false,
+                screenOverride: "appState=\(self.appStateDescription()) screens=[-] nav=[-] alerts=[-] tabs=[-]"
             )
+            let startedAt = Date()
+            let reachedForeground = self.app.wait(for: .runningForeground, timeout: timeout)
+            let durationSeconds = Date().timeIntervalSince(startedAt)
+            self.logSmokeBreadcrumb(
+                event: "wait_end",
+                action: "wait_for_app_foreground",
+                identifier: "application",
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: formatDuration(seconds: durationSeconds),
+                result: reachedForeground ? "success" : "failure",
+                note: "foreground wait finished",
+                captureScreenSummary: reachedForeground,
+                screenOverride: reachedForeground ? nil : "appState=\(self.appStateDescription()) screens=[-] nav=[-] alerts=[-] tabs=[-]"
+            )
+
+            if reachedForeground == false {
+                throw LiveSmokeFailure.appDidNotReachForeground(
+                    timeoutSeconds: timeout,
+                    appState: self.appStateDescription(),
+                    step: self.currentStepTitle
+                )
+            }
         }
     }
 

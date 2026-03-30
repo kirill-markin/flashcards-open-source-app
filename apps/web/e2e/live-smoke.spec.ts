@@ -38,6 +38,7 @@ type DiagnosticTimelineEntry = Readonly<{
 }>;
 
 type DiagnosticStateSnapshot = Readonly<{
+  currentTest: string | null;
   currentStep: string | null;
   currentStepStartedAt: string | null;
   currentAction: string | null;
@@ -93,6 +94,7 @@ type DeleteWorkspaceDialogObservation = Readonly<{
 }>;
 
 type FailureDiagnosticRecord = Readonly<{
+  currentTest: string | null;
   primaryErrorMessage: string;
   primaryErrorStack: string | null;
   currentStep: string | null;
@@ -109,6 +111,7 @@ type FailureDiagnosticRecord = Readonly<{
 }>;
 
 type MutableDiagnosticState = {
+  currentTest: string | null;
   currentStep: string | null;
   currentStepStartedAt: string | null;
   currentAction: string | null;
@@ -119,6 +122,7 @@ type MutableDiagnosticState = {
 };
 
 type LiveSmokeDiagnostics = Readonly<{
+  startTest: (testName: string) => void;
   startStep: (stepName: string) => void;
   completeStep: (stepName: string) => void;
   runAction: <T>(actionName: string, operation: () => Promise<T>) => Promise<T>;
@@ -157,6 +161,7 @@ test.describe.serial("live smoke flow uses the real demo account across review, 
 
     try {
       if (shouldDeleteWorkspace && sharedPage !== null && sharedDiagnostics !== null && sharedScenario !== null) {
+        sharedDiagnostics.startTest(`${cleanupInfo.title} cleanup`);
         await runTrackedTestStep(sharedDiagnostics, "delete the isolated workspace", async () => {
           await deleteEphemeralWorkspace(sharedPage, sharedScenario.workspaceName, sharedDiagnostics);
         });
@@ -323,6 +328,10 @@ async function runLiveSmokeGroupTest(
   page: Page | null,
   diagnostics: LiveSmokeDiagnostics | null,
 ): Promise<void> {
+  if (diagnostics !== null) {
+    diagnostics.startTest(testInfo.title);
+  }
+
   try {
     await body();
   } catch (error) {
@@ -366,6 +375,7 @@ function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
   const pageErrors: PageErrorDiagnosticEvent[] = [];
   const networkEvents: NetworkDiagnosticEvent[] = [];
   const state: MutableDiagnosticState = {
+    currentTest: null,
     currentStep: null,
     currentStepStartedAt: null,
     currentAction: null,
@@ -374,6 +384,7 @@ function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
     lastCompletedActionAt: null,
     currentUrl: readPageUrl(page, "about:blank"),
   };
+  let hasPrintedInlineRawScreenState = false;
 
   function refreshCurrentUrl(): string {
     state.currentUrl = readPageUrl(page, state.currentUrl);
@@ -382,6 +393,7 @@ function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
 
   function getStateSnapshot(): DiagnosticStateSnapshot {
     return {
+      currentTest: state.currentTest,
       currentStep: state.currentStep,
       currentStepStartedAt: state.currentStepStartedAt,
       currentAction: state.currentAction,
@@ -400,6 +412,17 @@ function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
       action,
       url: refreshCurrentUrl(),
     });
+  }
+
+  function startTest(testName: string): void {
+    state.currentTest = testName;
+    state.currentStep = null;
+    state.currentStepStartedAt = null;
+    state.currentAction = null;
+    state.currentActionStartedAt = null;
+    state.lastCompletedAction = null;
+    state.lastCompletedActionAt = null;
+    hasPrintedInlineRawScreenState = false;
   }
 
   function captureContext(): DiagnosticStateSnapshot {
@@ -514,13 +537,18 @@ function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
       recordTimeline("action_completed", stepName, actionName);
       return result;
     } catch (error) {
+      await emitInlineRawScreenState(page, getStateSnapshot(), hasPrintedInlineRawScreenState);
+      hasPrintedInlineRawScreenState = true;
       throw createTrackedActionError(stepName, actionName, error);
     }
   }
 
   async function attachFailureDetails(testInfo: TestInfo, error: Error): Promise<void> {
     const snapshot = getStateSnapshot();
+    await emitInlineRawScreenState(page, snapshot, hasPrintedInlineRawScreenState);
+    hasPrintedInlineRawScreenState = true;
     const failureRecord: FailureDiagnosticRecord = {
+      currentTest: snapshot.currentTest,
       primaryErrorMessage: error.message,
       primaryErrorStack: error.stack ?? null,
       currentStep: snapshot.currentStep,
@@ -548,6 +576,7 @@ function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
   }
 
   return {
+    startTest,
     startStep,
     completeStep,
     runAction,
@@ -1400,6 +1429,7 @@ function buildFailureSummary(record: FailureDiagnosticRecord): string {
   const recentNetworkEvents = record.networkEvents.slice(-failureSummaryTailSize);
 
   return [
+    `Current test: ${record.currentTest ?? "unknown"}`,
     `Primary error: ${record.primaryErrorMessage}`,
     `Current step: ${record.currentStep ?? "unknown"}`,
     `Current step started at: ${record.currentStepStartedAt ?? "unknown"}`,
@@ -1493,6 +1523,7 @@ function buildSnapshotState(snapshotState: DiagnosticStateSnapshot, page: Page):
   return [
     `capturedAt: ${nowIsoString()}`,
     `pageClosed: ${String(page.isClosed())}`,
+    `currentTest: ${snapshotState.currentTest ?? "unknown"}`,
     `currentUrl: ${snapshotState.currentUrl}`,
     `currentStep: ${snapshotState.currentStep ?? "unknown"}`,
     `currentStepStartedAt: ${snapshotState.currentStepStartedAt ?? "unknown"}`,
@@ -1501,6 +1532,90 @@ function buildSnapshotState(snapshotState: DiagnosticStateSnapshot, page: Page):
     `lastCompletedAction: ${snapshotState.lastCompletedAction ?? "none"}`,
     `lastCompletedActionAt: ${snapshotState.lastCompletedActionAt ?? "unknown"}`,
   ].join("\n");
+}
+
+async function emitInlineRawScreenState(
+  page: Page,
+  snapshotState: DiagnosticStateSnapshot,
+  hasPrintedInlineRawScreenState: boolean,
+): Promise<void> {
+  if (hasPrintedInlineRawScreenState) {
+    return;
+  }
+
+  const rawScreenStateBlock = await buildRawScreenStateBlock(page, snapshotState);
+  process.stderr.write(`${rawScreenStateBlock}\n`);
+}
+
+async function buildRawScreenStateBlock(
+  page: Page,
+  snapshotState: DiagnosticStateSnapshot,
+): Promise<string> {
+  const rawDump = await captureRawWebScreenState(page);
+
+  return [
+    "===== BEGIN RAW SCREEN STATE =====",
+    "platform: web",
+    `test: ${snapshotState.currentTest ?? "unknown"}`,
+    `step: ${snapshotState.currentStep ?? "unknown"}`,
+    `action: ${snapshotState.currentAction ?? "none"}`,
+    `capturedAt: ${nowIsoString()}`,
+    `context: url=${snapshotState.currentUrl} pageClosed=${String(page.isClosed())}`,
+    "",
+    `activeElement: ${rawDump.activeElementSummary}`,
+    "",
+    "bodyInnerText:",
+    rawDump.bodyInnerText,
+    "",
+    "bodyOuterHTML:",
+    rawDump.bodyOuterHtml,
+    "===== END RAW SCREEN STATE =====",
+  ].join("\n");
+}
+
+async function captureRawWebScreenState(page: Page): Promise<{
+  activeElementSummary: string;
+  bodyInnerText: string;
+  bodyOuterHtml: string;
+}> {
+  if (page.isClosed()) {
+    return {
+      activeElementSummary: "<page closed>",
+      bodyInnerText: "<page closed>",
+      bodyOuterHtml: "<page closed>",
+    };
+  }
+
+  try {
+    return await page.evaluate(() => {
+      const activeElement = document.activeElement;
+      const activeElementSummary = activeElement === null
+        ? "<none>"
+        : [
+            activeElement.tagName.toLowerCase(),
+            activeElement.id === "" ? null : `id=${activeElement.id}`,
+            activeElement.getAttribute("role"),
+            activeElement.getAttribute("aria-label"),
+            activeElement.getAttribute("name"),
+            activeElement.textContent?.trim() === "" ? null : activeElement.textContent?.trim(),
+          ]
+            .filter((value): value is string => value !== null && value !== "")
+            .join(" ");
+
+      return {
+        activeElementSummary,
+        bodyInnerText: document.body?.innerText ?? "<document.body missing>",
+        bodyOuterHtml: document.body?.outerHTML ?? "<document.body missing>",
+      };
+    });
+  } catch (error) {
+    const message = getErrorMessage(error);
+    return {
+      activeElementSummary: `<capture failed: ${message}>`,
+      bodyInnerText: `<capture failed: ${message}>`,
+      bodyOuterHtml: `<capture failed: ${message}>`,
+    };
+  }
 }
 
 function formatConsoleLocation(message: ConsoleMessage): string | null {
