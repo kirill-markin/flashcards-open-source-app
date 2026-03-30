@@ -142,7 +142,6 @@ private struct CardTextPreviewRow: View {
 private struct CardTextEditorScreen: View {
     let title: String
     @Binding var text: String
-    @State private var textSelection: TextSelection?
     @FocusState private var isTextEditorFocused: Bool
 
     var body: some View {
@@ -150,7 +149,7 @@ private struct CardTextEditorScreen: View {
             maxWidth: flashcardsReadableFormMaxWidth,
             horizontalPadding: 16
         ) {
-            TextEditor(text: $text, selection: self.$textSelection)
+            TextEditor(text: $text)
                 .scrollContentBackground(.hidden)
                 .focused(self.$isTextEditorFocused)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -162,7 +161,6 @@ private struct CardTextEditorScreen: View {
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            self.textSelection = TextSelection(insertionPoint: self.text.startIndex)
             self.isTextEditorFocused = true
         }
     }

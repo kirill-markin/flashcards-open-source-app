@@ -9,10 +9,12 @@ import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
@@ -263,6 +265,64 @@ class AppDatabaseTest {
         assertEquals(pendingCardIds, page.cards.takeLast(2).map { card -> card.cardId }.toSet())
         assertFalse(page.cards.first().cardId in pendingCardIds)
         assertTrue(page.hasMoreCards.not())
+    }
+
+    @Test
+    fun observeCardsWithRelationsOrdersCardsByUpdatedAtDescending(): Unit = runBlocking {
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = 100L)
+        val olderCard = CardEntity(
+            cardId = "card-older",
+            workspaceId = workspaceId,
+            frontText = "Older",
+            backText = "Back",
+            effortLevel = EffortLevel.FAST,
+            dueAtMillis = null,
+            createdAtMillis = 100L,
+            updatedAtMillis = 100L,
+            reps = 0,
+            lapses = 0,
+            fsrsCardState = FsrsCardState.NEW,
+            fsrsStepIndex = null,
+            fsrsStability = null,
+            fsrsDifficulty = null,
+            fsrsLastReviewedAtMillis = null,
+            fsrsScheduledDays = null,
+            deletedAtMillis = null
+        )
+        val newerCard = CardEntity(
+            cardId = "card-newer",
+            workspaceId = workspaceId,
+            frontText = "Newer",
+            backText = "Back",
+            effortLevel = EffortLevel.FAST,
+            dueAtMillis = null,
+            createdAtMillis = 200L,
+            updatedAtMillis = 200L,
+            reps = 0,
+            lapses = 0,
+            fsrsCardState = FsrsCardState.NEW,
+            fsrsStepIndex = null,
+            fsrsStability = null,
+            fsrsDifficulty = null,
+            fsrsLastReviewedAtMillis = null,
+            fsrsScheduledDays = null,
+            deletedAtMillis = null
+        )
+
+        database.cardDao().insertCard(card = olderCard)
+        database.cardDao().insertCard(card = newerCard)
+        database.cardDao().updateCard(
+            card = olderCard.copy(
+                frontText = "Older updated",
+                updatedAtMillis = 300L
+            )
+        )
+
+        val orderedCardIds = database.cardDao().observeCardsWithRelations().first().map { card ->
+            card.card.cardId
+        }
+
+        assertEquals(listOf("card-older", "card-newer"), orderedCardIds)
     }
 
     @Test

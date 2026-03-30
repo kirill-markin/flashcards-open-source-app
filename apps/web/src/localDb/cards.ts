@@ -20,8 +20,10 @@ import { encodeCursor, decodeCursor } from "./queryShared";
 
 type CardCursorIndexName =
   | "workspaceId_createdAt_cardId"
+  | "workspaceId_updatedAt_cardId"
   | "workspaceId_dueAt_cardId"
-  | "workspaceId_effort_createdAt_cardId";
+  | "workspaceId_effort_createdAt_cardId"
+  | "workspaceId_effort_updatedAt_cardId";
 
 type IndexedCardCursorOptions = Readonly<{
   indexName: CardCursorIndexName;
@@ -200,6 +202,67 @@ export async function iterateCardsByCreatedAtDesc(
   }
 }
 
+export async function iterateCardsByUpdatedAtDesc(
+  database: IDBDatabase,
+  workspaceId: string,
+  onCard: (card: Card) => boolean | void,
+): Promise<void> {
+  let currentUpdatedAt: string | null | undefined;
+  let currentGroup: Array<Card> = [];
+  let shouldStop = false;
+
+  function flushCurrentGroup(): boolean {
+    const sortedGroup = [...currentGroup].sort((leftCard, rightCard) => leftCard.cardId.localeCompare(rightCard.cardId));
+    currentGroup = [];
+
+    for (const card of sortedGroup) {
+      if (onCard(card) === false) {
+        shouldStop = true;
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  await iterateCardsByIndex(
+    database,
+    workspaceId,
+    {
+      indexName: "workspaceId_updatedAt_cardId",
+      direction: "prev",
+    },
+    (card) => {
+      if (shouldStop) {
+        return false;
+      }
+
+      if (currentUpdatedAt === undefined) {
+        currentUpdatedAt = card.updatedAt;
+        currentGroup = [card];
+        return true;
+      }
+
+      if (currentUpdatedAt === card.updatedAt) {
+        currentGroup.push(card);
+        return true;
+      }
+
+      if (flushCurrentGroup() === false) {
+        return false;
+      }
+
+      currentUpdatedAt = card.updatedAt;
+      currentGroup = [card];
+      return true;
+    },
+  );
+
+  if (shouldStop === false && currentGroup.length > 0) {
+    flushCurrentGroup();
+  }
+}
+
 export async function iterateCardsByDueAtAsc(
   database: IDBDatabase,
   workspaceId: string,
@@ -282,12 +345,78 @@ async function iterateCardsByEffortAndCreatedAtDesc(
   }
 }
 
-function isDefaultCreatedAtDescendingSort(
+async function iterateCardsByEffortAndUpdatedAtDesc(
+  database: IDBDatabase,
+  workspaceId: string,
+  effortLevel: Card["effortLevel"],
+  onCard: (card: Card) => boolean | void,
+): Promise<void> {
+  let currentUpdatedAt: string | null | undefined;
+  let currentGroup: Array<Card> = [];
+  let shouldStop = false;
+
+  function flushCurrentGroup(): boolean {
+    const sortedGroup = [...currentGroup].sort((leftCard, rightCard) => leftCard.cardId.localeCompare(rightCard.cardId));
+    currentGroup = [];
+
+    for (const card of sortedGroup) {
+      if (onCard(card) === false) {
+        shouldStop = true;
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  await iterateCardsByIndex(
+    database,
+    workspaceId,
+    {
+      indexName: "workspaceId_effort_updatedAt_cardId",
+      direction: "prev",
+    },
+    (card) => {
+      if (card.effortLevel !== effortLevel) {
+        return true;
+      }
+
+      if (shouldStop) {
+        return false;
+      }
+
+      if (currentUpdatedAt === undefined) {
+        currentUpdatedAt = card.updatedAt;
+        currentGroup = [card];
+        return true;
+      }
+
+      if (currentUpdatedAt === card.updatedAt) {
+        currentGroup.push(card);
+        return true;
+      }
+
+      if (flushCurrentGroup() === false) {
+        return false;
+      }
+
+      currentUpdatedAt = card.updatedAt;
+      currentGroup = [card];
+      return true;
+    },
+  );
+
+  if (shouldStop === false && currentGroup.length > 0) {
+    flushCurrentGroup();
+  }
+}
+
+function isDefaultUpdatedAtDescendingSort(
   sorts: QueryCardsInput["sorts"],
 ): boolean {
   return sorts.length === 0 || (
     sorts.length === 1
-    && sorts[0]?.key === "createdAt"
+    && sorts[0]?.key === "updatedAt"
     && sorts[0].direction === "desc"
   );
 }
@@ -381,8 +510,8 @@ function compareCardsForCardsQuery(
       difference = compareNumber(leftCard.reps, rightCard.reps, sort.direction);
     } else if (sort.key === "lapses") {
       difference = compareNumber(leftCard.lapses, rightCard.lapses, sort.direction);
-    } else if (sort.key === "createdAt") {
-      difference = compareText(leftCard.createdAt, rightCard.createdAt, sort.direction);
+    } else if (sort.key === "updatedAt") {
+      difference = compareText(leftCard.updatedAt, rightCard.updatedAt, sort.direction);
     }
 
     if (difference !== 0) {
@@ -390,9 +519,9 @@ function compareCardsForCardsQuery(
     }
   }
 
-  const createdAtDifference = rightCard.createdAt.localeCompare(leftCard.createdAt);
-  if (createdAtDifference !== 0) {
-    return createdAtDifference;
+  const updatedAtDifference = rightCard.updatedAt.localeCompare(leftCard.updatedAt);
+  if (updatedAtDifference !== 0) {
+    return updatedAtDifference;
   }
 
   return leftCard.cardId.localeCompare(rightCard.cardId);
@@ -517,7 +646,7 @@ export async function queryLocalCardsPage(workspaceId: string, input: QueryCards
     const allowedTagCardIds = input.filter === null || input.filter.tags.length === 0
       ? null
       : await loadAllowedCardIdsForTags(database, workspaceId, input.filter.tags);
-    const canUseStreamingPage = isDefaultCreatedAtDescendingSort(input.sorts);
+    const canUseStreamingPage = isDefaultUpdatedAtDescendingSort(input.sorts);
 
     if (canUseStreamingPage) {
       const cursorPredicate = makeCursorCardIdPredicate(input.cursor);
@@ -527,7 +656,7 @@ export async function queryLocalCardsPage(workspaceId: string, input: QueryCards
       let hasMoreCards = false;
 
       const iterateCards = input.filter !== null && input.filter.effort.length === 1
-        ? iterateCardsByEffortAndCreatedAtDesc(database, workspaceId, input.filter.effort[0], (card) => {
+        ? iterateCardsByEffortAndUpdatedAtDesc(database, workspaceId, input.filter.effort[0], (card) => {
           if (card.deletedAt !== null) {
             return true;
           }
@@ -558,7 +687,7 @@ export async function queryLocalCardsPage(workspaceId: string, input: QueryCards
           hasMoreCards = true;
           return true;
         })
-        : iterateCardsByCreatedAtDesc(database, workspaceId, (card) => {
+        : iterateCardsByUpdatedAtDesc(database, workspaceId, (card) => {
           if (card.deletedAt !== null) {
             return true;
           }
@@ -633,7 +762,7 @@ export async function queryLocalCardsPage(workspaceId: string, input: QueryCards
         pageWindow = insertCardIntoSortedWindow(pageWindow, card, input.sorts, pageWindowLimit) as Array<Card>;
         return true;
       })
-      : iterateCardsByCreatedAtDesc(database, workspaceId, (card) => {
+      : iterateCardsByUpdatedAtDesc(database, workspaceId, (card) => {
         if (card.deletedAt !== null) {
           return true;
         }

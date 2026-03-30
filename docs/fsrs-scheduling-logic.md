@@ -320,12 +320,15 @@ They are not a replacement for persisted scheduler state.
 ## Testing strategy
 
 Parity is enforced through shared golden vectors in `tests/fsrs-full-vectors.json`.
-Those vectors must be consumed by:
+Those vectors must be consumed by targeted parity tests in:
 
 - backend scheduler tests
 - iOS scheduler tests
+- Android scheduler tests
 
-Required test coverage:
+This parity suite is intentionally targeted. It does not try to cover every scheduler-adjacent detail in the product, but it must keep the core cross-platform scheduling contract aligned.
+
+Targeted parity coverage:
 
 - first review for each rating
 - learning progression

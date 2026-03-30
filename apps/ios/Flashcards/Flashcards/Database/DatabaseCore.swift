@@ -446,6 +446,9 @@ final class DatabaseCore {
         CREATE INDEX IF NOT EXISTS idx_cards_workspace_created_at
             ON cards(workspace_id, created_at DESC, card_id ASC);
 
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_updated_at
+            ON cards(workspace_id, updated_at DESC, card_id ASC);
+
         CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_active
             ON cards(workspace_id, due_at)
             WHERE deleted_at IS NULL;

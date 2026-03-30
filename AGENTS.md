@@ -22,6 +22,15 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 
 We support the web app, the iOS app, the Android app, and the terminal-first AI-agent API flow. When making changes, we try to keep all supported clients aligned where relevant.
 The platform READMEs are part of the working agreement for client work: [apps/web/README.md](apps/web/README.md) for web changes, [apps/ios/README.md](apps/ios/README.md) for iOS changes, and [apps/android/README.md](apps/android/README.md) for Android changes.
+
+## Testing Philosophy
+
+We do not try to cover the whole product with tests, and we do not optimize for blanket test coverage metrics.
+Do not add unit tests by default, and do not guard every helper or pure function with a dedicated test.
+Targeted integration or module-boundary tests are allowed when they validate a real interaction between modules, storage layers, or contracts.
+The most trusted tests are the native/browser smoke flows that run the real app on a simulator, emulator, managed device, or deployed environment because they are the closest checks to production behavior.
+Keep tests minimal and focused on primary user flows, critical contracts, or important cross-module behavior.
+
 The iOS Xcode project is file-synchronized, so new Swift files can be added without manual `project.pbxproj` edits.
 Run iOS tests locally when they help validate the requested change or when the user asks for them.
 iOS full test runs can take a bit more than 2 minutes locally, and that is normal.
@@ -64,7 +73,8 @@ Cross-client live smoke references:
 - Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
 - Web: `apps/web/e2e/live-smoke.spec.ts`
 
-When a code change affects a primary user flow, main screen, or cross-client navigation path, check the relevant live smoke or integration tests in the same change and update them when the expected behavior changed. For small internal or low-risk changes that do not affect the main user journey, updating those tests is optional.
+These live smoke flows are the highest-confidence checks in the repository because they exercise the real app closest to production conditions.
+When a code change affects a primary user flow, main screen, or cross-client navigation path, check the relevant live smoke or targeted integration tests in the same change and update them when the expected behavior changed. We do not try to guard every internal detail with tests. For small internal or low-risk changes that do not affect the main user journey, updating those tests is optional.
 
 ## Repository Strategy
 

@@ -301,7 +301,7 @@ extension CardStore {
             \(cardStoreSelectColumnsSQL)
             FROM cards
             WHERE workspace_id = ? AND deleted_at IS NULL\(querySQL.clause)
-            ORDER BY created_at DESC, card_id ASC
+            ORDER BY updated_at DESC, card_id ASC
             """,
             values: [.text(workspaceId)] + querySQL.values
         ) { statement in

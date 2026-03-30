@@ -223,7 +223,7 @@ export type CardQuerySortKey =
   | "dueAt"
   | "reps"
   | "lapses"
-  | "createdAt";
+  | "updatedAt";
 
 export type CardQuerySortDirection = "asc" | "desc";
 
