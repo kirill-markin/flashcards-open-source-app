@@ -508,9 +508,9 @@ CREATE INDEX idx_applied_operations_current_workspace_replica_operation
 
 DROP INDEX IF EXISTS idx_sync_changes_workspace_change_id;
 DROP INDEX IF EXISTS idx_sync_changes_workspace_entity_latest;
-CREATE INDEX idx_hot_changes_workspace_change_id
+CREATE INDEX IF NOT EXISTS idx_hot_changes_workspace_change_id
   ON sync.hot_changes(workspace_id, change_id);
-CREATE INDEX idx_hot_changes_workspace_entity_latest
+CREATE INDEX IF NOT EXISTS idx_hot_changes_workspace_entity_latest
   ON sync.hot_changes(workspace_id, entity_type, entity_id, change_id DESC);
 
 ALTER TABLE content.review_events
