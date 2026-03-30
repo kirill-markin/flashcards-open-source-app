@@ -37,6 +37,7 @@ extension FlashcardsStore {
         self.userDefaults.removeObject(forKey: reviewNotificationPromptStateUserDefaultsKey)
         self.userDefaults.removeObject(forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey)
         self.userDefaults.removeObject(forKey: reviewNotificationLastActiveAtUserDefaultsKey)
+        self.userDefaults.removeObject(forKey: accountDeletionPendingUserDefaultsKey)
         self.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)
         self.cachedAIChatStore?.clearHistory()
         clearStoredAIChatHistories(userDefaults: self.userDefaults)
@@ -48,6 +49,14 @@ extension FlashcardsStore {
         self.applyReviewPublishedState(
             reviewState: ReviewQueueRuntime.makeInitialPublishedState(selectedReviewFilter: .allCards)
         )
+        self.notificationPermissionPromptState = makeDefaultNotificationPermissionPromptState()
+        self.isReviewNotificationPrePromptPresented = false
+        self.accountDeletionState = .hidden
+        self.accountDeletionSuccessMessage = nil
+        self.cloudSyncFastPollingUntil = nil
+        self.pendingReviewCardIds = []
+        self.reviewSubmissionFailure = nil
+        self.isAccountDeletionRunning = false
         self.clearTransientBanners()
         self.lastSuccessfulCloudSyncAt = nil
         self.syncStatus = .idle

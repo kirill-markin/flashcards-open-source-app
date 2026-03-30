@@ -96,6 +96,7 @@ struct CardEditorScreen: View {
         } message: {
             Text("Deleting removes this card from the local list and from the next sync.")
         }
+        .accessibilityIdentifier(UITestIdentifier.cardEditorScreen)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button("Cancel", action: onCancel)

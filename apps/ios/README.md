@@ -64,6 +64,7 @@ Only test the app against the final supported iOS target.
 - If tests are requested, use one locally available iPhone simulator runtime only
 - Prefer an already booted local iPhone simulator on the final supported runtime
 - Prefer background CLI runs with `simctl` and `xcodebuild` instead of opening heavy Xcode UI flows
+- Do not open a visible Simulator window for test runs unless the user explicitly asks for a visible simulator at that time
 - Prefer `build-for-testing` followed by `test-without-building` so repeated runs reuse warmed artifacts and the warmed simulator
 - If no suitable local runtime is already installed, stop and ask the user how to proceed instead of downloading extra simulator runtimes
 

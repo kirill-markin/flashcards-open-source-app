@@ -28,6 +28,7 @@ iOS full test runs can take a bit more than 2 minutes locally, and that is norma
 If iOS tests are requested, run them only on one specific iPhone simulator runtime that is already downloaded locally.
 Prefer an already booted local iPhone simulator on the final supported iOS runtime. Reuse that exact device instead of booting a different one when possible.
 Prefer the background CLI flow over opening heavy Xcode UI: `xcrun simctl bootstatus`, `xcodebuild build-for-testing`, then `xcodebuild test-without-building`.
+Do not open a visible iOS Simulator window for test runs unless the user explicitly asks for a visible simulator at that time.
 If a suitable simulator is already warmed, keep using it and avoid rebuilding unnecessarily.
 If no suitable local iPhone simulator runtime is already available, do not trigger extra runtime downloads or installations. Stop and ask the user how to proceed.
 For iOS, `My Mac` can be used only for iOS compile smoke-checks such as `build` or `build-for-testing`, not as a reliable destination for app-hosted unit tests.
@@ -42,7 +43,7 @@ xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -
 ```
 For Android, follow [apps/android/README.md](apps/android/README.md) for platform targets and testing focus. Tests should be run only against the final supported Android target, not against older API levels.
 Run Android local tests sequentially, not in parallel, otherwise local runs can become unstable.
-Before running Android tests, also check which Android emulators are available locally. If a local emulator is available, Android tests can be run by starting that emulator.
+Before running Android tests, also check which Android emulators are available locally. If a local emulator is available, start it in the background without a visible emulator window by default and preserve the usual test artifacts, logs, screenshots, and reports. Open a visible Android emulator only when the user explicitly asks for it at that time.
 
 ## Release Gates and Monitoring
 
