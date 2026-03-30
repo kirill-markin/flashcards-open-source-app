@@ -130,7 +130,7 @@ interface AiChatRepository {
     suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState)
     suspend fun clearPersistedState(workspaceId: String?)
     suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot?
-    suspend fun resetSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot
+    suspend fun createNewSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot
     suspend fun transcribeAudio(
         workspaceId: String?,
         sessionId: String?,

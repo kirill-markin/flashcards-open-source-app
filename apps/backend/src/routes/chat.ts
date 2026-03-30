@@ -71,6 +71,10 @@ export type ChatRequestBody = Readonly<{
   timezone: string;
 }>;
 
+type NewChatRequestBody = Readonly<{
+  sessionId?: string;
+}>;
+
 type StopChatRequestBody = Readonly<{
   sessionId: string;
 }>;
@@ -203,6 +207,22 @@ export function parseChatRequestBody(value: unknown): ChatRequestBody {
 }
 
 /**
+ * Parses the request body for creating a fresh chat session when the current
+ * session already contains history.
+ */
+export function parseNewChatRequestBody(value: unknown): NewChatRequestBody {
+  const body = expectRecord(value);
+
+  if (body.sessionId === undefined) {
+    return {};
+  }
+
+  return {
+    sessionId: expectNonEmptyString(body.sessionId, "sessionId"),
+  };
+}
+
+/**
  * Parses the stop request body for cancelling the active run of a server-owned chat session.
  */
 export function parseStopChatRequestBody(value: unknown): StopChatRequestBody {
@@ -252,7 +272,7 @@ type ChatStartResponse = Readonly<{
   chatConfig: ChatConfig;
 }>;
 
-type ChatResetResponse = Readonly<{
+type ChatNewResponse = Readonly<{
   ok: true;
   sessionId: string;
   chatConfig: ChatConfig;
@@ -307,7 +327,7 @@ async function loadSupportedRequestContext(
 }
 
 /**
- * Mounts the backend-owned `/chat` routes for history, start, reset, and stop operations.
+ * Mounts the backend-owned `/chat` routes for history, start, new-session, and stop operations.
  */
 export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
@@ -377,21 +397,21 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     } satisfies ChatStartResponse);
   });
 
-  app.delete("/chat", async (context) => {
+  app.post("/chat/new", async (context) => {
     const requestContext = await loadSupportedRequestContext(
       context.req.raw,
       options.allowedOrigins,
       loadRequestContextFromRequestFn,
     );
     const workspaceId = requireSelectedWorkspaceId(requestContext);
-    const sessionId = context.req.query("sessionId") ?? undefined;
+    const body = parseNewChatRequestBody(await parseJsonBody(context.req.raw));
 
     let snapshot: ChatSessionSnapshot;
     try {
       snapshot = await getRecoveredChatSessionSnapshotFn(
         requestContext.userId,
         workspaceId,
-        sessionId,
+        body.sessionId,
       );
     } catch (error) {
       return mapStoreError(error);
@@ -402,7 +422,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
         ok: true,
         sessionId: snapshot.sessionId,
         chatConfig: getChatConfig(),
-      } satisfies ChatResetResponse);
+      } satisfies ChatNewResponse);
     }
 
     const newSessionId = await createFreshChatSessionFn(
@@ -414,7 +434,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       ok: true,
       sessionId: newSessionId,
       chatConfig: getChatConfig(),
-    } satisfies ChatResetResponse);
+    } satisfies ChatNewResponse);
   });
 
   app.post("/chat/stop", async (context) => {

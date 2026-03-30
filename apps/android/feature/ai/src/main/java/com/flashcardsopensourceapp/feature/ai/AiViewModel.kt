@@ -248,16 +248,16 @@ class AiViewModel(
 
         viewModelScope.launch {
             try {
-                val snapshot = aiChatRepository.resetSession(
+                val snapshot = aiChatRepository.createNewSession(
                     workspaceId = draftState.value.workspaceId,
-                    sessionId = null
+                    sessionId = draftState.value.persistedState.chatSessionId.ifBlank { null }
                 )
                 applyServerSnapshot(
                     snapshot = snapshot,
                     applyMode = AiServerSnapshotApplyMode.ACTIVE
                 )
             } catch (error: Exception) {
-                handleSendFailure(error = error)
+                handleNewChatFailure(error = error)
             }
         }
     }
@@ -652,6 +652,34 @@ class AiViewModel(
                     message = message,
                     timestampMillis = System.currentTimeMillis()
                 ),
+                errorMessage = message
+            )
+        }
+    }
+
+    private fun handleNewChatFailure(error: Exception) {
+        val remoteError = error as? AiChatRemoteException
+        val message = makeAiUserFacingErrorMessage(
+            error = error,
+            surface = AiErrorSurface.CHAT,
+            configuration = serverConfigurationState.value
+        )
+
+        AiChatDiagnosticsLogger.error(
+            event = "new_chat_failure_handled",
+            fields = listOf(
+                "workspaceId" to draftState.value.workspaceId,
+                "cloudState" to cloudSettingsState.value.cloudState.name,
+                "chatSessionId" to draftState.value.persistedState.chatSessionId,
+                "messageCount" to draftState.value.persistedState.messages.size.toString(),
+                "userFacingMessage" to message
+            ) + remoteErrorFields(error = remoteError),
+            throwable = error
+        )
+
+        draftState.update { state ->
+            state.copy(
+                activeAlert = null,
                 errorMessage = message
             )
         }

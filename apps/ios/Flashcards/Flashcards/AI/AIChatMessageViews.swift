@@ -59,6 +59,7 @@ extension AIChatView {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityIdentifier(UITestIdentifier.aiMessageRow)
     }
 
     func messageBubble(

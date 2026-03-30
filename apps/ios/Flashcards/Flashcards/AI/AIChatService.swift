@@ -158,16 +158,16 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         }
     }
 
-    func resetSession(
+    func createNewSession(
         session: CloudLinkedSession,
         sessionId: String?
-    ) async throws -> AIChatResetSessionResponse {
+    ) async throws -> AIChatNewSessionResponse {
         let clientRequestId = UUID().uuidString.lowercased()
-        let path = makeChatPath(basePath: "/chat", sessionId: sessionId)
-        let request = try self.makeRequest(
+        let request = try self.makeJsonRequest(
             session: session,
-            path: path,
-            method: "DELETE",
+            path: "/chat/new",
+            method: "POST",
+            body: AIChatNewSessionRequestBody(sessionId: sessionId),
             clientRequestId: clientRequestId
         )
         let data = try await self.execute(
@@ -177,7 +177,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         )
 
         do {
-            return try self.decoder.decode(AIChatResetSessionResponse.self, from: data)
+            return try self.decoder.decode(AIChatNewSessionResponse.self, from: data)
         } catch {
             let diagnostics = AIChatFailureDiagnostics(
                 clientRequestId: clientRequestId,
@@ -194,7 +194,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
                 continuationAttempt: nil,
                 continuationToolCallIds: []
             )
-            throw AIChatServiceError.invalidPayload("AI chat reset response is invalid.", diagnostics)
+            throw AIChatServiceError.invalidPayload("AI chat new-session response is invalid.", diagnostics)
         }
     }
 

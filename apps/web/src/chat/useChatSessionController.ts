@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  createNewChatSession,
   getChatSnapshot,
-  resetChatSession,
   startChatRun,
   stopChatRun,
 } from "../api";
@@ -278,30 +278,21 @@ export function useChatSessionController(
     }
 
     if (currentSessionId !== null && isAssistantRunActive) {
-      try {
-        await stopChatRun(currentSessionId);
-      } catch (error) {
-        markAssistantError(`Chat stop failed. ${toErrorMessage(error)}`);
-        return;
-      }
+      await stopChatRun(currentSessionId);
     }
 
-    try {
-      const response = await resetChatSession(currentSessionId ?? undefined);
-      clearHistory();
-      stoppedSessionIdsRef.current.clear();
-      hasObservedMainContentInvalidationVersionRef.current = false;
-      lastMainContentInvalidationVersionRef.current = 0;
-      lastSnapshotUpdatedAtRef.current = null;
-      setCurrentSessionId(response.sessionId);
-      setRunState("idle");
-      setMainContentInvalidationVersion(0);
-      setChatConfig(response.chatConfig);
-      storeChatConfig(response.chatConfig);
-    } catch (error) {
-      markAssistantError(`Chat reset failed. ${toErrorMessage(error)}`);
-    }
-  }, [clearHistory, currentSessionId, isAssistantRunActive, markAssistantError, workspaceId]);
+    const response = await createNewChatSession(currentSessionId ?? undefined);
+    clearHistory();
+    stoppedSessionIdsRef.current.clear();
+    hasObservedMainContentInvalidationVersionRef.current = false;
+    lastMainContentInvalidationVersionRef.current = 0;
+    lastSnapshotUpdatedAtRef.current = null;
+    setCurrentSessionId(response.sessionId);
+    setRunState("idle");
+    setMainContentInvalidationVersion(0);
+    setChatConfig(response.chatConfig);
+    storeChatConfig(response.chatConfig);
+  }, [clearHistory, currentSessionId, isAssistantRunActive, workspaceId]);
 
   return {
     messages,

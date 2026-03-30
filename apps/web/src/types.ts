@@ -141,7 +141,7 @@ export type StartChatRunResponse = Readonly<{
   chatConfig: ChatConfig;
 }>;
 
-export type ResetChatSessionResponse = Readonly<{
+export type NewChatSessionResponse = Readonly<{
   ok: true;
   sessionId: string;
   chatConfig: ChatConfig;

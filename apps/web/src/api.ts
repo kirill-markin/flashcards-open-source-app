@@ -7,7 +7,7 @@ import {
   parseDeleteAccountResponse,
   parseDeleteWorkspaceResponse,
   parseQueryCardsPageResponse,
-  parseResetChatSessionResponse,
+  parseNewChatSessionResponse,
   parseSessionInfoResponse,
   parseStartChatRunResponse,
   parseStopChatRunResponse,
@@ -32,7 +32,7 @@ import type {
   DeleteWorkspaceResponse,
   QueryCardsInput,
   QueryCardsPage,
-  ResetChatSessionResponse,
+  NewChatSessionResponse,
   ReviewEvent,
   SessionInfo,
   StartChatRunRequestBody,
@@ -639,14 +639,13 @@ export async function startChatRun(body: StartChatRunRequestBody): Promise<Start
   }, allowAuthRecovery), "POST /chat");
 }
 
-export async function resetChatSession(sessionId?: string): Promise<ResetChatSessionResponse> {
-  const pathname = sessionId === undefined
-    ? "/chat"
-    : `/chat?sessionId=${encodeURIComponent(sessionId)}`;
-
-  return parseResetChatSessionResponse(await requestJson(pathname, {
-    method: "DELETE",
-  }, allowAuthRecovery), "DELETE /chat");
+export async function createNewChatSession(sessionId?: string): Promise<NewChatSessionResponse> {
+  return parseNewChatSessionResponse(await requestJson("/chat/new", {
+    method: "POST",
+    body: JSON.stringify({
+      sessionId,
+    }),
+  }, allowAuthRecovery), "POST /chat/new");
 }
 
 export async function stopChatRun(sessionId: string): Promise<StopChatRunResponse> {

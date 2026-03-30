@@ -31,6 +31,9 @@ import com.flashcardsopensourceapp.feature.ai.aiAssistantMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.aiAssistantTextPartTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
+import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
+import com.flashcardsopensourceapp.feature.ai.aiNewChatButtonTag
+import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
 import com.flashcardsopensourceapp.feature.cards.cardsCardFrontTextTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewCurrentCardFrontContentTag
@@ -152,6 +155,9 @@ class LiveSmokeTest {
                 aiBackText = aiBackText,
                 markerTag = "ai-$runId"
             )
+        }
+        step("start a new chat and confirm the conversation resets cleanly") {
+            startNewChatAndAssertConversationReset()
         }
         step("force a sync in the current guest workspace and wait for the AI card locally") {
             forceSyncAndWaitForLocalCard(
@@ -427,6 +433,29 @@ class LiveSmokeTest {
         if (hasVisibleText(text = "I'm missing the actual proposed card text in this chat")) {
             throw AssertionError(
                 "AI confirmation asked for missing proposal details instead of creating the card."
+            )
+        }
+    }
+
+    private fun startNewChatAndAssertConversationReset() {
+        clickTag(tag = aiNewChatButtonTag, label = "New chat")
+        try {
+            waitUntilWithMitigation(
+                timeoutMillis = externalUiTimeoutMillis,
+                context = "while waiting for New chat to reset the AI conversation"
+            ) {
+                composeRule.onAllNodesWithTag(aiEmptyStateTag).fetchSemanticsNodes().isNotEmpty() &&
+                    composeRule.onAllNodesWithTag(aiAssistantMessageBubbleTag).fetchSemanticsNodes().isEmpty() &&
+                    composeRule.onAllNodesWithTag(aiUserMessageBubbleTag).fetchSemanticsNodes().isEmpty()
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "New chat did not reset the AI conversation. " +
+                    "EmptyStateVisible=${composeRule.onAllNodesWithTag(aiEmptyStateTag).fetchSemanticsNodes().isNotEmpty()} " +
+                    "AssistantMessages=${composeRule.onAllNodesWithTag(aiAssistantMessageBubbleTag).fetchSemanticsNodes().size} " +
+                    "UserMessages=${composeRule.onAllNodesWithTag(aiUserMessageBubbleTag).fetchSemanticsNodes().size} " +
+                    "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+                error
             )
         }
     }

@@ -45,6 +45,9 @@ private enum LiveSmokeIdentifier {
     static let reviewShowAnswerButton: String = "review.showAnswerButton"
     static let reviewRateGoodButton: String = "review.rateGoodButton"
     static let aiConsentAcceptButton: String = "ai.consentAcceptButton"
+    static let aiNewChatButton: String = "ai.newChatButton"
+    static let aiEmptyState: String = "ai.emptyState"
+    static let aiMessageRow: String = "ai.messageRow"
     static let aiComposerTextField: String = "ai.composerTextField"
     static let aiComposerSendButton: String = "ai.composerSendButton"
     static let aiToolCallCompletedStatus: String = "ai.toolCallCompletedStatus"
@@ -145,6 +148,7 @@ private enum LiveSmokeFailure: LocalizedError {
     case currentWorkspacePickerNotVisible(screen: String, step: String)
     case aiRunDidNotFinish(timeoutSeconds: TimeInterval, screen: String, step: String)
     case aiRunReportedError(message: String, screen: String, step: String)
+    case unexpectedAiConversationState(message: String, screen: String, step: String)
     case appDidNotReachForeground(timeoutSeconds: TimeInterval, appState: String, step: String)
 
     var errorDescription: String? {
@@ -171,6 +175,8 @@ private enum LiveSmokeFailure: LocalizedError {
             return "AI run did not finish within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)'. Current screen: \(screen)"
         case .aiRunReportedError(let message, let screen, let step):
             return "AI run reported an assistant error during step '\(step)'. Current screen: \(screen). Message: \(message)"
+        case .unexpectedAiConversationState(let message, let screen, let step):
+            return "AI conversation reached an unexpected state during step '\(step)'. Current screen: \(screen). \(message)"
         case .appDidNotReachForeground(let timeoutSeconds, let appState, let step):
             return "Application did not reach runningForeground within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)'. App state: \(appState)"
         }
@@ -300,6 +306,10 @@ final class LiveSmokeUITests: XCTestCase {
                 aiBackText: context.aiBackText,
                 markerTag: context.markerTag
             )
+        }
+
+        try self.step("start a new chat and confirm the conversation resets cleanly") {
+            try self.startNewAiChatAndAssertConversationReset()
         }
 
         try self.step("verify the guest AI card is visible in cards after relaunch") {
@@ -652,7 +662,7 @@ final class LiveSmokeUITests: XCTestCase {
     @MainActor
     private func createManualCard(frontText: String, backText: String) throws {
         try self.assertScreenVisible(screen: .cards, timeout: self.shortUiTimeoutSeconds)
-        try self.tapElement(identifier: LiveSmokeIdentifier.cardsAddButton, timeout: self.shortUiTimeoutSeconds)
+        try self.tapElement(identifier: LiveSmokeIdentifier.cardsAddButton, timeout: self.longUiTimeoutSeconds)
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.cardEditorScreen,
             timeout: self.longUiTimeoutSeconds
@@ -813,6 +823,40 @@ final class LiveSmokeUITests: XCTestCase {
             expectedLabel: "Send message",
             timeout: self.longUiTimeoutSeconds
         )
+    }
+
+    @MainActor
+    private func startNewAiChatAndAssertConversationReset() throws {
+        try self.tapElement(
+            identifier: LiveSmokeIdentifier.aiNewChatButton,
+            timeout: self.shortUiTimeoutSeconds
+        )
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.aiEmptyState,
+            timeout: self.longUiTimeoutSeconds
+        )
+
+        let messageRows = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
+            .count
+        if messageRows != 0 {
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "Expected zero AI chat message rows after starting a new chat, found \(messageRows).",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        let assistantErrorMessages = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
+            .count
+        if assistantErrorMessages != 0 {
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "Expected no AI assistant error messages after starting a new chat, found \(assistantErrorMessages).",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
     }
 
     @MainActor

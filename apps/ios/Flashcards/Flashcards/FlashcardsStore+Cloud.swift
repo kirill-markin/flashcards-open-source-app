@@ -39,7 +39,7 @@ extension FlashcardsStore {
         self.userDefaults.removeObject(forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.userDefaults.removeObject(forKey: accountDeletionPendingUserDefaultsKey)
         self.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)
-        self.cachedAIChatStore?.clearHistory()
+        self.cachedAIChatStore?.clearLocalHistory()
         clearStoredAIChatHistories(userDefaults: self.userDefaults)
         self.reviewRuntime = ReviewQueueRuntime(
             initialSelectedReviewFilter: .allCards,

@@ -203,24 +203,29 @@ class AiChatRemoteService {
         }
     }
 
-    suspend fun resetSession(
+    suspend fun createNewSession(
         apiBaseUrl: String,
         authorizationHeader: String,
         sessionId: String?
     ): AiChatSessionSnapshot = withContext(Dispatchers.IO) {
-        val path = if (sessionId.isNullOrBlank()) {
-            "/chat"
-        } else {
-            "/chat?sessionId=$sessionId"
-        }
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
-            path = path,
-            method = "DELETE",
+            path = "/chat/new",
+            method = "POST",
             authorizationHeader = authorizationHeader
         )
 
         try {
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.doOutput = true
+            connection.outputStream.use { outputStream ->
+                outputStream.write(
+                    JSONObject()
+                        .put("sessionId", sessionId)
+                        .toString()
+                        .toByteArray(StandardCharsets.UTF_8)
+                )
+            }
             val response = readJsonResponse(connection = connection)
             return@withContext AiChatSessionSnapshot(
                 sessionId = response.requireCloudString("sessionId", "sessionId"),

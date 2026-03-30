@@ -63,6 +63,7 @@ struct AIChatView: View {
                     Button("New") {
                         self.chatStore.clearHistory()
                     }
+                    .accessibilityIdentifier(UITestIdentifier.aiNewChatButton)
                     .disabled(self.isNewChatDisabled)
                 }
             }
@@ -277,6 +278,7 @@ struct AIChatView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, aiChatMessageListHorizontalPadding)
+        .accessibilityIdentifier(UITestIdentifier.aiEmptyState)
         .contentShape(Rectangle())
         .onTapGesture {
             self.isComposerFocused = false

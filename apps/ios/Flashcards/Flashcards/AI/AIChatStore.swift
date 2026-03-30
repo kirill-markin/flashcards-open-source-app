@@ -210,6 +210,41 @@ final class AIChatStore {
     }
 
     func clearHistory() {
+        self.cancelDictation()
+
+        let requestedSessionId = self.chatSessionId.isEmpty ? nil : self.chatSessionId
+        Task {
+            do {
+                let session = try await self.flashcardsStore.cloudSessionForAI()
+                let response = try await self.chatService.createNewSession(
+                    session: session,
+                    sessionId: requestedSessionId
+                )
+                await MainActor.run {
+                    self.inputText = ""
+                    self.messages = []
+                    self.pendingAttachments = []
+                    self.activeAlert = nil
+                    self.repairStatus = nil
+                    self.completedDictationTranscript = nil
+                    self.activeConversationId = nil
+                    self.chatSessionId = response.sessionId
+                    self.serverChatConfig = response.chatConfig
+                }
+                await self.historyStore.saveState(state: AIChatPersistedState(
+                    messages: [],
+                    chatSessionId: response.sessionId,
+                    lastKnownChatConfig: response.chatConfig
+                ))
+            } catch {
+                await MainActor.run {
+                    self.showGeneralError(message: Flashcards.errorMessage(error: error))
+                }
+            }
+        }
+    }
+
+    func clearLocalHistory() {
         self.cancelStreaming()
         self.cancelDictation()
         self.messages = []
@@ -226,23 +261,6 @@ final class AIChatStore {
         self.chatSessionId = clearedState.chatSessionId
         Task {
             await self.historyStore.saveState(state: clearedState)
-            do {
-                let session = try await self.flashcardsStore.cloudSessionForAI()
-                let response = try await self.chatService.resetSession(
-                    session: session,
-                    sessionId: nil
-                )
-                await MainActor.run {
-                    self.chatSessionId = response.sessionId
-                    self.serverChatConfig = response.chatConfig
-                }
-                await self.historyStore.saveState(state: AIChatPersistedState(
-                    messages: [],
-                    chatSessionId: response.sessionId,
-                    lastKnownChatConfig: response.chatConfig
-                ))
-            } catch {
-            }
         }
     }
 
