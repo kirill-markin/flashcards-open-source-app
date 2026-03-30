@@ -41,7 +41,7 @@ struct FlashcardsApp: App {
         let store = FlashcardsStore()
         let selectedTab = ProcessInfo.processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey]
             .flatMap(FlashcardsUITestSelectedTab.init(rawValue:))
-            ?.appTab ?? .review
+            .map(\.appTab) ?? .review
         if let resetStateRawValue = ProcessInfo.processInfo.environment[flashcardsUITestResetStateEnvironmentKey],
            let resetState = FlashcardsUITestResetState(rawValue: resetStateRawValue) {
             do {
