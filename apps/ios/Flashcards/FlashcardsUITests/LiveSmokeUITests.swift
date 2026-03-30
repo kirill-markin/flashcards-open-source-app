@@ -1076,10 +1076,9 @@ final class LiveSmokeUITests: XCTestCase {
         while Date() < deadline {
             _ = self.dismissKnownBlockingAlertIfVisible()
 
-            if self.matchingVisibleStaticText(
-                containing: text,
-                ignoredExactLabels: ignoredExactLabels
-            ).firstMatch.exists {
+            if self.visibleStaticTextLabels(ignoredExactLabels: ignoredExactLabels).contains(where: { label in
+                label.contains(text)
+            }) {
                 let durationSeconds = Date().timeIntervalSince(startedAt)
                 self.logSmokeBreadcrumb(
                     event: "wait_end",
@@ -1135,6 +1134,16 @@ final class LiveSmokeUITests: XCTestCase {
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
+    }
+
+    @MainActor
+    private func visibleStaticTextLabels(ignoredExactLabels: Set<String>) -> [String] {
+        self.elements(query: self.app.staticTexts)
+            .map(\.label)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { label in
+                label.isEmpty == false && ignoredExactLabels.contains(label) == false
+            }
     }
 
     @MainActor
@@ -1314,7 +1323,9 @@ final class LiveSmokeUITests: XCTestCase {
         self.logActionStart(action: "replace_text", identifier: identifier)
         element.tap()
 
-        if let existingValue = element.value as? String, existingValue.isEmpty == false {
+        let existingValue = element.value as? String ?? ""
+        let placeholderValue = element.placeholderValue ?? ""
+        if existingValue.isEmpty == false && existingValue != placeholderValue {
             let deleteSequence = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count)
             element.typeText(deleteSequence)
         }
@@ -1784,12 +1795,7 @@ final class LiveSmokeUITests: XCTestCase {
             return "<app not running>"
         }
 
-        let labels = self.elements(query: self.app.staticTexts)
-            .map { element in
-                element.label
-            }
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { $0.isEmpty == false }
+        let labels = self.visibleStaticTextLabels(ignoredExactLabels: [])
 
         if labels.isEmpty {
             return "<no visible static text>"
