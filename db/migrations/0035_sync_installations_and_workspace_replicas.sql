@@ -550,10 +550,10 @@ SET
     ELSE pg_temp.uuid_from_seed(format('%s:%s:%s', history.target_workspace_id::text, target_catalog.actor_kind, coalesce(target_catalog.actor_key, 'missing-ai-chat-actor')))
   END
 FROM auth.guest_upgrade_history AS history
-INNER JOIN sync_legacy_device_catalog AS source_catalog
-  ON source_catalog.legacy_device_id = aliases.source_guest_replica_id
-INNER JOIN sync_legacy_device_catalog AS target_catalog
-  ON target_catalog.legacy_device_id = aliases.target_replica_id
-WHERE history.upgrade_id = aliases.upgrade_id;
+, sync_legacy_device_catalog AS source_catalog
+, sync_legacy_device_catalog AS target_catalog
+WHERE history.upgrade_id = aliases.upgrade_id
+  AND source_catalog.legacy_device_id = aliases.source_guest_replica_id
+  AND target_catalog.legacy_device_id = aliases.target_replica_id;
 
 DROP TABLE sync.devices;
