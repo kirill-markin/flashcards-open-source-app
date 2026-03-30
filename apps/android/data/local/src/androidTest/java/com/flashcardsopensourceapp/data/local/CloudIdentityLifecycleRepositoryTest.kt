@@ -268,6 +268,7 @@ class CloudIdentityLifecycleRepositoryTest {
     @Test
     fun verifyCodePreparesBoundGuestUpgradeWhenGuestSessionExists() = runBlocking {
         val localWorkspaceId = requireLocalWorkspaceId()
+        val guestWorkspaceId = "guest-workspace"
         val remoteGateway = FakeCloudRemoteGateway(guestUpgradeMode = CloudGuestUpgradeMode.BOUND)
         val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
         cloudPreferencesStore.updateCloudSettings(
@@ -278,11 +279,11 @@ class CloudIdentityLifecycleRepositoryTest {
             activeWorkspaceId = localWorkspaceId
         )
         guestAiSessionStore.saveSession(
-            localWorkspaceId = localWorkspaceId,
+            localWorkspaceId = guestWorkspaceId,
             session = StoredGuestAiSession(
                 guestToken = "guest-token",
                 userId = "guest-user",
-                workspaceId = "guest-workspace",
+                workspaceId = guestWorkspaceId,
                 configurationMode = CloudServiceConfigurationMode.OFFICIAL,
                 apiBaseUrl = "https://api.flashcards-open-source-app.com/v1"
             )
@@ -379,8 +380,69 @@ class CloudIdentityLifecycleRepositoryTest {
     }
 
     @Test
+    fun guestSessionStoreClearsWorkspaceScopedSessionWhenStoredWorkspaceIdDoesNotMatchKey() {
+        guestAiSessionStore.saveSession(
+            localWorkspaceId = "local-workspace",
+            session = StoredGuestAiSession(
+                guestToken = "guest-token",
+                userId = "guest-user",
+                workspaceId = "remote-workspace",
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1"
+            )
+        )
+
+        assertNull(
+            guestAiSessionStore.loadSession(
+                localWorkspaceId = "local-workspace",
+                configuration = makeOfficialCloudServiceConfiguration()
+            )
+        )
+        assertNull(
+            guestAiSessionStore.loadAnySession(
+                configuration = makeOfficialCloudServiceConfiguration()
+            )
+        )
+    }
+
+    @Test
+    fun guestSessionStoreRebindsGuestSessionToTheRemoteWorkspaceKeyOnly() {
+        val session = StoredGuestAiSession(
+            guestToken = "guest-token",
+            userId = "guest-user",
+            workspaceId = "remote-workspace",
+            configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+            apiBaseUrl = "https://api.flashcards-open-source-app.com/v1"
+        )
+        guestAiSessionStore.saveSession(
+            localWorkspaceId = "local-workspace",
+            session = session
+        )
+
+        guestAiSessionStore.saveSession(
+            localWorkspaceId = session.workspaceId,
+            session = session
+        )
+
+        assertNull(
+            guestAiSessionStore.loadSession(
+                localWorkspaceId = "local-workspace",
+                configuration = makeOfficialCloudServiceConfiguration()
+            )
+        )
+        assertEquals(
+            session.workspaceId,
+            guestAiSessionStore.loadSession(
+                localWorkspaceId = session.workspaceId,
+                configuration = makeOfficialCloudServiceConfiguration()
+            )?.workspaceId
+        )
+    }
+
+    @Test
     fun completeGuestUpgradeClearsGuestSessionAndLinksWorkspace() = runBlocking {
         val localWorkspaceId = requireLocalWorkspaceId()
+        val guestWorkspaceId = "guest-workspace"
         val selectedWorkspace = CloudWorkspaceSummary(
             workspaceId = "workspace-linked",
             name = "Linked Workspace",
@@ -397,11 +459,11 @@ class CloudIdentityLifecycleRepositoryTest {
         )
         val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
         guestAiSessionStore.saveSession(
-            localWorkspaceId = localWorkspaceId,
+            localWorkspaceId = guestWorkspaceId,
             session = StoredGuestAiSession(
                 guestToken = "guest-token",
                 userId = "guest-user",
-                workspaceId = "guest-workspace",
+                workspaceId = guestWorkspaceId,
                 configurationMode = CloudServiceConfigurationMode.OFFICIAL,
                 apiBaseUrl = "https://api.flashcards-open-source-app.com/v1"
             )

@@ -695,15 +695,16 @@ class LocalCloudAccountRepository(
     }
 
     private suspend fun activeGuestSession(configuration: CloudServiceConfiguration): StoredGuestAiSession? {
-        val localWorkspaceId = database.workspaceDao().loadAnyWorkspace()?.workspaceId
-        if (localWorkspaceId == null) {
-            return null
+        val cloudSettings = preferencesStore.currentCloudSettings()
+        val guestWorkspaceId = cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
+        if (cloudSettings.cloudState == CloudAccountState.GUEST && guestWorkspaceId != null) {
+            return guestSessionStore.loadSession(
+                localWorkspaceId = guestWorkspaceId,
+                configuration = configuration
+            )
         }
 
-        return guestSessionStore.loadSession(
-            localWorkspaceId = localWorkspaceId,
-            configuration = configuration
-        )
+        return guestSessionStore.loadAnySession(configuration = configuration)
     }
 
     private fun clearGuestSessionsIfNeeded() {

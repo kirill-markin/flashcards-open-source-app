@@ -32,6 +32,11 @@ private data class AuthorizedAiChatSession(
     val authorizationHeader: String
 )
 
+private data class PreparedGuestAiSession(
+    val session: StoredGuestAiSession,
+    val shouldSync: Boolean
+)
+
 class LocalAiChatRepository(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
@@ -71,11 +76,11 @@ class LocalAiChatRepository(
         }
 
         val configuration = preferencesStore.currentServerConfiguration()
-        val guestSession = loadOrCreateGuestSession(
+        val preparedGuestSession = prepareGuestSession(
             workspaceId = workspaceId,
             configurationApiBaseUrl = configuration.apiBaseUrl
         )
-        if (finishGuestCloudLinkIfNeeded(session = guestSession)) {
+        if (preparedGuestSession.shouldSync) {
             syncRepository.syncNow()
         }
     }
@@ -250,12 +255,14 @@ class LocalAiChatRepository(
         val guestSession = loadGuestSessionForCurrentConfiguration(
             workspaceId = workspaceId
         ) ?: run {
-            prepareSessionForAi(workspaceId = workspaceId)
-            requireNotNull(
-                loadGuestSessionForCurrentConfiguration(workspaceId = workspaceId)
-            ) {
-                "Guest AI session is unavailable."
+            val preparedGuestSession = prepareGuestSession(
+                workspaceId = workspaceId,
+                configurationApiBaseUrl = configuration.apiBaseUrl
+            )
+            if (preparedGuestSession.shouldSync) {
+                syncRepository.syncNow()
             }
+            preparedGuestSession.session
         }
         return AuthorizedAiChatSession(
             apiBaseUrl = guestSession.apiBaseUrl,
@@ -296,11 +303,23 @@ class LocalAiChatRepository(
             apiBaseUrl = configurationApiBaseUrl,
             configurationMode = configuration.mode
         )
-        guestSessionStore.saveSession(
-            localWorkspaceId = workspaceId,
-            session = createdSession
-        )
         return createdSession
+    }
+
+    private suspend fun prepareGuestSession(
+        workspaceId: String?,
+        configurationApiBaseUrl: String
+    ): PreparedGuestAiSession {
+        return operationCoordinator.runExclusive {
+            val guestSession = loadOrCreateGuestSession(
+                workspaceId = workspaceId,
+                configurationApiBaseUrl = configurationApiBaseUrl
+            )
+            PreparedGuestAiSession(
+                session = guestSession,
+                shouldSync = finishGuestCloudLinkIfNeededLocked(session = guestSession)
+            )
+        }
     }
 
     private fun loadGuestSessionForCurrentConfiguration(workspaceId: String?): StoredGuestAiSession? {
@@ -315,44 +334,42 @@ class LocalAiChatRepository(
         )
     }
 
-    private suspend fun finishGuestCloudLinkIfNeeded(session: StoredGuestAiSession): Boolean {
-        return operationCoordinator.runExclusive {
-            val currentCloudSettings = preferencesStore.currentCloudSettings()
-            val currentWorkspace = loadCurrentWorkspaceOrNull(
-                database = database,
-                preferencesStore = preferencesStore
-            )
-            val isAlreadyGuestLinked = currentCloudSettings.cloudState == CloudAccountState.GUEST
-                && currentWorkspace?.workspaceId == session.workspaceId
-                && currentCloudSettings.linkedUserId == session.userId
+    private suspend fun finishGuestCloudLinkIfNeededLocked(session: StoredGuestAiSession): Boolean {
+        val currentCloudSettings = preferencesStore.currentCloudSettings()
+        val currentWorkspace = loadCurrentWorkspaceOrNull(
+            database = database,
+            preferencesStore = preferencesStore
+        )
+        val isAlreadyGuestLinked = currentCloudSettings.cloudState == CloudAccountState.GUEST
+            && currentWorkspace?.workspaceId == session.workspaceId
+            && currentCloudSettings.linkedUserId == session.userId
 
-            if (isAlreadyGuestLinked) {
-                guestSessionStore.saveSession(localWorkspaceId = session.workspaceId, session = session)
-                markGuestCloudState(session = session, activeWorkspaceId = session.workspaceId)
-                return@runExclusive false
-            }
-
-            val bootstrapProbe = bootstrapGuestWorkspace(
-                session = session,
-                installationId = currentCloudSettings.installationId
-            )
-            val workspaceSummary = guestWorkspaceSummary(
-                currentWorkspaceId = currentWorkspace?.workspaceId,
-                currentWorkspaceName = currentWorkspace?.name,
-                currentWorkspaceCreatedAtMillis = currentWorkspace?.createdAtMillis,
-                session = session
-            )
-            syncLocalStore.migrateLocalShellToLinkedWorkspace(
-                workspace = workspaceSummary,
-                remoteWorkspaceIsEmpty = bootstrapProbe.remoteIsEmpty
-            )
-            if (currentWorkspace?.workspaceId != null && currentWorkspace.workspaceId != session.workspaceId) {
-                guestSessionStore.clearSession(localWorkspaceId = currentWorkspace.workspaceId)
-            }
+        if (isAlreadyGuestLinked) {
             guestSessionStore.saveSession(localWorkspaceId = session.workspaceId, session = session)
             markGuestCloudState(session = session, activeWorkspaceId = session.workspaceId)
-            true
+            return false
         }
+
+        val bootstrapProbe = bootstrapGuestWorkspace(
+            session = session,
+            installationId = currentCloudSettings.installationId
+        )
+        val workspaceSummary = guestWorkspaceSummary(
+            currentWorkspaceId = currentWorkspace?.workspaceId,
+            currentWorkspaceName = currentWorkspace?.name,
+            currentWorkspaceCreatedAtMillis = currentWorkspace?.createdAtMillis,
+            session = session
+        )
+        syncLocalStore.migrateLocalShellToLinkedWorkspace(
+            workspace = workspaceSummary,
+            remoteWorkspaceIsEmpty = bootstrapProbe.remoteIsEmpty
+        )
+        if (currentWorkspace?.workspaceId != null && currentWorkspace.workspaceId != session.workspaceId) {
+            guestSessionStore.clearSession(localWorkspaceId = currentWorkspace.workspaceId)
+        }
+        guestSessionStore.saveSession(localWorkspaceId = session.workspaceId, session = session)
+        markGuestCloudState(session = session, activeWorkspaceId = session.workspaceId)
+        return true
     }
 
     private suspend fun bootstrapGuestWorkspace(
