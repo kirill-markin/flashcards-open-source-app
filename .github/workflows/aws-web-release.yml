@@ -1,8 +1,18 @@
-name: Main Release Orchestrator
+name: AWS/Web Release
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'api/**'
+      - 'apps/auth/**'
+      - 'apps/backend/**'
+      - 'apps/web/**'
+      - 'db/**'
+      - 'infra/**'
+      - 'scripts/**'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/aws-web-release.yml'
   workflow_dispatch:
 
 concurrency:
@@ -10,7 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  actions: write
+  actions: read
   checks: read
   contents: read
   id-token: write
@@ -25,7 +35,6 @@ jobs:
     name: Detect changed areas
     runs-on: ubuntu-24.04
     outputs:
-      android_changed: ${{ steps.detect.outputs.android_changed }}
       aws_changed: ${{ steps.detect.outputs.aws_changed }}
       db_migrations_changed: ${{ steps.detect.outputs.db_migrations_changed }}
       changed_files: ${{ steps.detect.outputs.changed_files }}
@@ -53,13 +62,8 @@ jobs:
             git ls-files > "${changed_files_path}"
           fi
 
-          android_changed=false
-          if grep -Eq '^apps/android/' "${changed_files_path}"; then
-            android_changed=true
-          fi
-
           aws_changed=false
-          if grep -Eq '^(api/|apps/auth/|apps/backend/|apps/web/|db/|infra/|scripts/|\.github/workflows/(ci|deploy)\.yml$)' "${changed_files_path}"; then
+          if grep -Eq '^(api/|apps/auth/|apps/backend/|apps/web/|db/|infra/|scripts/|\.github/workflows/(ci|aws-web-release)\.yml$)' "${changed_files_path}"; then
             aws_changed=true
           fi
 
@@ -69,7 +73,6 @@ jobs:
           fi
 
           {
-            echo "android_changed=${android_changed}"
             echo "aws_changed=${aws_changed}"
             echo "db_migrations_changed=${db_migrations_changed}"
             echo 'changed_files<<EOF'
@@ -84,7 +87,6 @@ jobs:
           {
             echo "## Release scope"
             echo ""
-            echo "- Android changed: \`${{ steps.detect.outputs.android_changed }}\`"
             echo "- AWS changed: \`${{ steps.detect.outputs.aws_changed }}\`"
             echo "- DB migrations changed: \`${{ steps.detect.outputs.db_migrations_changed }}\`"
             echo ""
@@ -571,41 +573,8 @@ jobs:
             echo "- Retained AWS SHA: \`${{ steps.resolve.outputs.retained_aws_sha || 'n/a' }}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
-  dispatch_android_release:
-    name: Dispatch Android release
-    needs:
-      - changes
-      - aws_release_status
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.android_changed == 'true' && (needs.aws_release_status.outputs.aws_release_status == 'no_aws_changes' || needs.aws_release_status.outputs.aws_release_status == 'retained') }}
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Dispatch Android release workflow
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          gh api \
-            --method POST \
-            "repos/${GITHUB_REPOSITORY}/actions/workflows/android-release.yml/dispatches" \
-            -f ref='main' \
-            -f inputs[target_sha]="${GITHUB_SHA}" \
-            -f inputs[source_run_id]="${GITHUB_RUN_ID}" \
-            -f inputs[source_run_url]="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-
-      - name: Summarize Android dispatch
-        run: |
-          {
-            echo "## Android release dispatch"
-            echo ""
-            echo "- Android changed: \`${{ needs.changes.outputs.android_changed }}\`"
-            echo "- AWS release status: \`${{ needs.aws_release_status.outputs.aws_release_status }}\`"
-            echo "- Dispatched Android release for SHA: \`${GITHUB_SHA}\`"
-          } >> "${GITHUB_STEP_SUMMARY}"
-
   release_summary:
-    name: Release summary
+    name: AWS/Web release summary
     if: ${{ always() }}
     needs:
       - changes
@@ -614,23 +583,20 @@ jobs:
       - web_smoke
       - rollback_aws
       - aws_release_status
-      - dispatch_android_release
     runs-on: ubuntu-24.04
 
     steps:
       - name: Summarize release outcome
         run: |
           {
-            echo "## Main release orchestrator summary"
+            echo "## AWS/Web release summary"
             echo ""
-            echo "- Android changed: \`${{ needs.changes.outputs.android_changed }}\`"
             echo "- AWS changed: \`${{ needs.changes.outputs.aws_changed }}\`"
             echo "- DB migrations changed: \`${{ needs.changes.outputs.db_migrations_changed }}\`"
             echo "- CI gate job: \`${{ needs.wait_ci_for_aws_release.result }}\`"
             echo "- AWS release status: \`${{ needs.aws_release_status.outputs.aws_release_status }}\`"
             echo "- Rollback performed: \`${{ needs.aws_release_status.outputs.rollback_performed }}\`"
             echo "- Retained AWS SHA: \`${{ needs.aws_release_status.outputs.retained_aws_sha || 'n/a' }}\`"
-            echo "- Android dispatch job: \`${{ needs.dispatch_android_release.result }}\`"
             echo "- AWS deploy job: \`${{ needs.aws_deploy.result }}\`"
             echo "- Web smoke job: \`${{ needs.web_smoke.result }}\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

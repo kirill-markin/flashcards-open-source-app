@@ -11,7 +11,7 @@ on:
       - 'infra/**'
       - 'scripts/**'
       - '.github/workflows/ci.yml'
-      - '.github/workflows/deploy.yml'
+      - '.github/workflows/aws-web-release.yml'
   push:
     branches: [main]
     paths:
@@ -23,7 +23,7 @@ on:
       - 'infra/**'
       - 'scripts/**'
       - '.github/workflows/ci.yml'
-      - '.github/workflows/deploy.yml'
+      - '.github/workflows/aws-web-release.yml'
   workflow_dispatch:
 
 concurrency:
@@ -52,20 +52,25 @@ jobs:
             api:
               - 'api/**'
               - '.github/workflows/ci.yml'
+              - '.github/workflows/aws-web-release.yml'
             auth:
               - 'apps/auth/**'
               - '.github/workflows/ci.yml'
+              - '.github/workflows/aws-web-release.yml'
             backend:
               - 'apps/backend/**'
               - '.github/workflows/ci.yml'
+              - '.github/workflows/aws-web-release.yml'
             web:
               - 'apps/web/**'
               - 'apps/backend/src/schedule.ts'
               - 'apps/backend/src/workspaceSchedulerConfig.ts'
               - '.github/workflows/ci.yml'
+              - '.github/workflows/aws-web-release.yml'
             infra:
               - 'infra/**'
               - '.github/workflows/ci.yml'
+              - '.github/workflows/aws-web-release.yml'
 
   api:
     name: API lint and bundle

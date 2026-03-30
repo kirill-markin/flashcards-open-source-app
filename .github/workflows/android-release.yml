@@ -1,29 +1,34 @@
 name: Android Release
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/android/**'
+      - '!apps/android/README.md'
+      - '!apps/android/docs/**'
+      - 'cloudbuild.android.yaml'
+      - 'scripts/run-android-ci.sh'
+      - 'scripts/run-android-firebase-test-lab.sh'
+      - 'scripts/run-android-release.sh'
+      - 'scripts/setup-github-android.sh'
+      - '.github/workflows/android-ci-reusable.yml'
+      - '.github/workflows/android-release.yml'
+      - '.github/workflows/android.yml'
   workflow_dispatch:
     inputs:
       target_sha:
         description: Git SHA to release
         required: true
         type: string
-      source_run_id:
-        description: Optional Main Release Orchestrator run id
-        required: false
-        type: string
-      source_run_url:
-        description: Optional Main Release Orchestrator run URL
-        required: false
-        type: string
 
 concurrency:
-  group: android-release-${{ inputs.target_sha }}
+  group: android-release-${{ github.event_name == 'push' && github.sha || inputs.target_sha }}
   cancel-in-progress: false
 
 permissions:
   contents: read
   id-token: write
-  statuses: read
 
 jobs:
   preflight:
@@ -31,23 +36,21 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       target_sha: ${{ steps.resolve.outputs.target_sha }}
-      previous_sha: ${{ steps.resolve.outputs.previous_sha }}
+      compare_base_sha: ${{ steps.resolve.outputs.compare_base_sha }}
       android_changed: ${{ steps.resolve.outputs.android_changed }}
-      aws_changed: ${{ steps.resolve.outputs.aws_changed }}
-      aws_retained: ${{ steps.resolve.outputs.aws_retained }}
       block_reason: ${{ steps.resolve.outputs.block_reason }}
 
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.target_sha }}
+          ref: ${{ github.event_name == 'push' && github.sha || inputs.target_sha }}
           fetch-depth: 0
 
       - name: Resolve release target
         id: resolve
         env:
-          GH_TOKEN: ${{ github.token }}
-          INPUT_TARGET_SHA: ${{ inputs.target_sha }}
+          INPUT_TARGET_SHA: ${{ github.event_name == 'push' && github.sha || inputs.target_sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
         run: |
           set -euo pipefail
 
@@ -59,50 +62,43 @@ jobs:
           fi
 
           target_sha="$(git rev-parse "${target_sha}")"
-          previous_sha=""
-          if git rev-parse "${target_sha}^" >/dev/null 2>&1; then
-            previous_sha="$(git rev-parse "${target_sha}^")"
+          compare_base_sha=""
+          before_sha="${PUSH_BEFORE_SHA:-}"
+
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]] && [[ -n "${before_sha}" ]] && [[ "${before_sha}" != "0000000000000000000000000000000000000000" ]]; then
+            compare_base_sha="${before_sha}"
+          elif git rev-parse "${target_sha}^" >/dev/null 2>&1; then
+            compare_base_sha="$(git rev-parse "${target_sha}^")"
           fi
 
           changed_files_path="${RUNNER_TEMP}/android-release-changed-files.txt"
-          if [[ -n "${previous_sha}" ]]; then
-            git diff --name-only "${previous_sha}" "${target_sha}" > "${changed_files_path}"
+          if [[ -n "${compare_base_sha}" ]]; then
+            git diff --name-only "${compare_base_sha}" "${target_sha}" > "${changed_files_path}"
           else
             git ls-tree -r --name-only "${target_sha}" > "${changed_files_path}"
           fi
 
           android_changed=false
-          if grep -Eq '^apps/android/' "${changed_files_path}"; then
-            android_changed=true
-          fi
-
-          aws_changed=false
-          if grep -Eq '^(api/|apps/auth/|apps/backend/|apps/web/|db/|infra/|scripts/|\.github/workflows/(ci|deploy)\.yml$)' "${changed_files_path}"; then
-            aws_changed=true
-          fi
-
-          aws_retained=false
-          if [[ "${aws_changed}" == "true" ]]; then
-            status_json="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${target_sha}/status")"
-            retained_state="$(jq -r '.statuses[] | select(.context == "AWS retained release") | .state' <<< "${status_json}" | head -n 1)"
-            if [[ "${retained_state}" == "success" ]]; then
-              aws_retained=true
-            fi
-          fi
+          while IFS= read -r changed_path; do
+            case "${changed_path}" in
+              apps/android/README.md) ;;
+              apps/android/docs/*) ;;
+              apps/android/*|cloudbuild.android.yaml|scripts/run-android-ci.sh|scripts/run-android-firebase-test-lab.sh|scripts/run-android-release.sh|scripts/setup-github-android.sh|.github/workflows/android-ci-reusable.yml|.github/workflows/android-release.yml|.github/workflows/android.yml)
+                android_changed=true
+                break
+                ;;
+            esac
+          done < "${changed_files_path}"
 
           block_reason=""
           if [[ "${android_changed}" != "true" ]]; then
             block_reason="android_not_changed"
-          elif [[ "${aws_changed}" == "true" && "${aws_retained}" != "true" ]]; then
-            block_reason="aws_not_retained"
           fi
 
           {
             echo "target_sha=${target_sha}"
-            echo "previous_sha=${previous_sha}"
+            echo "compare_base_sha=${compare_base_sha}"
             echo "android_changed=${android_changed}"
-            echo "aws_changed=${aws_changed}"
-            echo "aws_retained=${aws_retained}"
             echo "block_reason=${block_reason}"
           } >> "${GITHUB_OUTPUT}"
 
@@ -110,8 +106,6 @@ jobs:
         env:
           TARGET_SHA: ${{ steps.resolve.outputs.target_sha }}
           ANDROID_CHANGED: ${{ steps.resolve.outputs.android_changed }}
-          AWS_CHANGED: ${{ steps.resolve.outputs.aws_changed }}
-          AWS_RETAINED: ${{ steps.resolve.outputs.aws_retained }}
           BLOCK_REASON: ${{ steps.resolve.outputs.block_reason }}
         run: |
           set -euo pipefail
@@ -121,24 +115,16 @@ jobs:
             exit 1
           fi
 
-          if [[ "${AWS_CHANGED}" == "true" && "${AWS_RETAINED}" != "true" ]]; then
-            echo "Android release is blocked because AWS retained release is not successful for ${TARGET_SHA}. Block reason: ${BLOCK_REASON}." >&2
-            exit 1
-          fi
-
       - name: Summarize preflight
         run: |
           {
             echo "## Android release preflight"
             echo ""
             echo "- Target SHA: \`${{ steps.resolve.outputs.target_sha }}\`"
-            echo "- Previous SHA: \`${{ steps.resolve.outputs.previous_sha || 'n/a' }}\`"
+            echo "- Compare base SHA: \`${{ steps.resolve.outputs.compare_base_sha || 'n/a' }}\`"
             echo "- Android changed: \`${{ steps.resolve.outputs.android_changed }}\`"
-            echo "- AWS changed: \`${{ steps.resolve.outputs.aws_changed }}\`"
-            echo "- AWS retained: \`${{ steps.resolve.outputs.aws_retained }}\`"
             echo "- Block reason: \`${{ steps.resolve.outputs.block_reason || 'n/a' }}\`"
-            echo "- Source run id: \`${{ inputs.source_run_id || 'n/a' }}\`"
-            echo "- Source run url: \`${{ inputs.source_run_url || 'n/a' }}\`"
+            echo "- Event: \`${{ github.event_name }}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
   android_ci:
@@ -307,10 +293,7 @@ jobs:
             echo ""
             echo "- Target SHA: \`${{ needs.preflight.outputs.target_sha }}\`"
             echo "- Android changed: \`${{ needs.preflight.outputs.android_changed }}\`"
-            echo "- AWS changed: \`${{ needs.preflight.outputs.aws_changed }}\`"
-            echo "- AWS retained: \`${{ needs.preflight.outputs.aws_retained }}\`"
             echo "- Block reason: \`${{ needs.preflight.outputs.block_reason || 'n/a' }}\`"
-            echo "- Source run id: \`${{ inputs.source_run_id || 'n/a' }}\`"
             echo "- Android CI result: \`${{ needs.android_ci.result }}\`"
             echo "- Android publish result: \`${{ needs.publish_android.result }}\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

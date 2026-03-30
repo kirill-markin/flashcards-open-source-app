@@ -34,16 +34,16 @@ Before running Android tests, also check which Android emulators are available l
 
 ## Release Gates and Monitoring
 
-Pushes to `main` use one GitHub Actions release orchestrator in `.github/workflows/deploy.yml`:
+Pushes to `main` use three independent release streams:
 
-- it detects whether AWS changed
-- when AWS changed, it deploys production, runs the native Playwright smoke in `apps/web/e2e/live-smoke.spec.ts`, and keeps or rolls back the whole AWS runtime based on that result
+- `.github/workflows/aws-web-release.yml` handles AWS/backend/web release work
+- when AWS/backend/web changed, it deploys production, runs the native Playwright smoke in `apps/web/e2e/live-smoke.spec.ts`, and keeps or rolls back the whole AWS runtime based on that result
 - rollback is automatic only when the failed AWS release did not include new DB migrations
 - migration-bearing AWS failures are explicit fix-forward cases; the next push must still be allowed to run
-- when Android changed, `.github/workflows/android-release.yml` is explicitly dispatched by the main release orchestrator for that same SHA after the AWS/web outcome is known
+- when Android-impacting files changed, `.github/workflows/android-release.yml` runs independently and handles Android CI, Firebase Test Lab, and Google Play publication
 - when iOS changed, Xcode Cloud runs independently for the same `main` SHA
 
-When a change lands on `main`, monitor the main release orchestrator for AWS/web outcome, monitor `Android Release` separately only when it was dispatched for an Android-changing SHA, and monitor Xcode Cloud separately when iOS changed.
+When a change lands on `main`, monitor `AWS/Web Release` for backend/web outcome when AWS-impacting files changed, monitor `Android Release` when Android-impacting files changed, and monitor Xcode Cloud separately when iOS changed.
 
 Cross-client live smoke references:
 
