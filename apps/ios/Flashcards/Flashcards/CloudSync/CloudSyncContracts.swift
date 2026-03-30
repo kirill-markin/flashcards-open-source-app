@@ -50,7 +50,7 @@ struct DeleteAccountResponse: Decodable {
 /// Wire contract for `POST /sync/push`.
 ///
 /// Keep this request aligned with `apps/backend/src/sync.ts`
-/// `syncPushInputSchema` and `apps/backend/src/sync.test.ts`.
+/// `syncPushInputSchema`.
 struct PushRequest: Encodable {
     let deviceId: String
     let platform: String
