@@ -159,19 +159,25 @@ CREATE POLICY workspace_replicas_scoped_delete_runtime
 GRANT SELECT, INSERT, UPDATE, DELETE ON sync.installations TO backend_app, auth_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON sync.workspace_replicas TO backend_app, auth_app;
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+
 CREATE OR REPLACE FUNCTION pg_temp.uuid_from_seed(seed TEXT)
 RETURNS UUID
 LANGUAGE SQL
 IMMUTABLE
 AS $$
+  WITH digest AS (
+    SELECT encode(public.digest(seed, 'sha256'), 'hex') AS hex
+  )
   SELECT (
-    substr(md5(seed), 1, 8) || '-' ||
-    substr(md5(seed), 9, 4) || '-' ||
-    '5' || substr(md5(seed), 14, 3) || '-' ||
-    to_hex((get_byte(decode(substr(md5(seed), 17, 2), 'hex'), 0) & 63) | 128) ||
-    substr(md5(seed), 19, 2) || '-' ||
-    substr(md5(seed), 21, 12)
+    substr(hex, 1, 8) || '-' ||
+    substr(hex, 9, 4) || '-' ||
+    '5' || substr(hex, 14, 3) || '-' ||
+    lpad(to_hex((get_byte(decode(substr(hex, 17, 2), 'hex'), 0) & 63) | 128), 2, '0') ||
+    substr(hex, 19, 2) || '-' ||
+    substr(hex, 21, 12)
   )::uuid
+  FROM digest
 $$;
 
 CREATE TEMP TABLE sync_legacy_device_catalog ON COMMIT DROP AS
@@ -232,6 +238,76 @@ BEGIN
 END
 $$;
 
+CREATE TEMP TABLE sync_legacy_replica_candidates ON COMMIT DROP AS
+SELECT
+  sources.workspace_id,
+  sources.legacy_device_id,
+  catalog.user_id,
+  catalog.actor_kind,
+  CASE
+    WHEN catalog.actor_kind = 'client_installation' THEN catalog.legacy_device_id::text
+    WHEN catalog.actor_kind = 'workspace_seed' THEN 'workspace-seed'
+    WHEN catalog.actor_kind = 'agent_connection' THEN coalesce(catalog.actor_key, 'missing-agent-connection')
+    ELSE coalesce(catalog.actor_key, 'missing-ai-chat-actor')
+  END AS canonical_actor_key,
+  CASE
+    WHEN catalog.actor_kind = 'client_installation' THEN catalog.legacy_device_id
+    ELSE NULL
+  END AS installation_id,
+  CASE
+    WHEN catalog.actor_kind = 'client_installation' THEN NULL
+    WHEN catalog.actor_kind = 'workspace_seed' THEN 'workspace-seed'
+    WHEN catalog.actor_kind = 'agent_connection' THEN coalesce(catalog.actor_key, 'missing-agent-connection')
+    ELSE coalesce(catalog.actor_key, 'missing-ai-chat-actor')
+  END AS actor_key,
+  CASE
+    WHEN catalog.actor_kind = 'workspace_seed' THEN 'system'
+    ELSE catalog.platform
+  END AS platform,
+  catalog.app_version,
+  catalog.created_at,
+  catalog.last_seen_at
+FROM sync_legacy_replica_sources AS sources
+INNER JOIN sync_legacy_device_catalog AS catalog
+  ON catalog.legacy_device_id = sources.legacy_device_id;
+
+CREATE TEMP TABLE sync_legacy_canonical_replicas ON COMMIT DROP AS
+SELECT DISTINCT ON (workspace_id, actor_kind, canonical_actor_key)
+  CASE
+    WHEN actor_kind = 'client_installation'
+      THEN pg_temp.uuid_from_seed(format('%s:%s', workspace_id::text, installation_id::text))
+    ELSE pg_temp.uuid_from_seed(format('%s:%s:%s', workspace_id::text, actor_kind, canonical_actor_key))
+  END AS replica_id,
+  workspace_id,
+  user_id,
+  actor_kind,
+  installation_id,
+  actor_key,
+  platform,
+  app_version,
+  created_at,
+  last_seen_at,
+  canonical_actor_key
+FROM sync_legacy_replica_candidates
+ORDER BY
+  workspace_id,
+  actor_kind,
+  canonical_actor_key,
+  last_seen_at DESC,
+  created_at DESC,
+  legacy_device_id DESC;
+
+CREATE TEMP TABLE sync_legacy_replica_mapping ON COMMIT DROP AS
+SELECT
+  candidates.workspace_id,
+  candidates.legacy_device_id,
+  canonical_replicas.replica_id
+FROM sync_legacy_replica_candidates AS candidates
+INNER JOIN sync_legacy_canonical_replicas AS canonical_replicas
+  ON canonical_replicas.workspace_id = candidates.workspace_id
+  AND canonical_replicas.actor_kind = candidates.actor_kind
+  AND canonical_replicas.canonical_actor_key = candidates.canonical_actor_key;
+
 INSERT INTO sync.installations (
   installation_id,
   user_id,
@@ -269,37 +345,27 @@ INSERT INTO sync.workspace_replicas (
   last_seen_at
 )
 SELECT
-  pg_temp.uuid_from_seed(format('%s:%s', sources.workspace_id::text, sources.legacy_device_id::text)) AS replica_id,
-  sources.workspace_id,
-  catalog.user_id,
-  catalog.actor_kind,
-  CASE WHEN catalog.actor_kind = 'client_installation' THEN catalog.legacy_device_id ELSE NULL END AS installation_id,
-  CASE
-    WHEN catalog.actor_kind = 'client_installation' THEN NULL
-    WHEN catalog.actor_kind = 'workspace_seed' THEN 'workspace-seed'
-    WHEN catalog.actor_kind = 'agent_connection' THEN coalesce(catalog.actor_key, 'missing-agent-connection')
-    ELSE coalesce(catalog.actor_key, 'missing-ai-chat-actor')
-  END AS actor_key,
-  CASE
-    WHEN catalog.actor_kind = 'workspace_seed' THEN 'system'
-    ELSE catalog.platform
-  END AS platform,
-  catalog.app_version,
-  catalog.created_at,
-  catalog.last_seen_at
-FROM sync_legacy_replica_sources AS sources
-INNER JOIN sync_legacy_device_catalog AS catalog
-  ON catalog.legacy_device_id = sources.legacy_device_id
+  canonical_replicas.replica_id,
+  canonical_replicas.workspace_id,
+  canonical_replicas.user_id,
+  canonical_replicas.actor_kind,
+  canonical_replicas.installation_id,
+  canonical_replicas.actor_key,
+  canonical_replicas.platform,
+  canonical_replicas.app_version,
+  canonical_replicas.created_at,
+  canonical_replicas.last_seen_at
+FROM sync_legacy_canonical_replicas AS canonical_replicas
 ON CONFLICT (replica_id) DO NOTHING;
 
 ALTER TABLE content.cards
   ADD COLUMN last_modified_by_replica_id UUID;
 
 UPDATE content.cards AS cards
-SET last_modified_by_replica_id = replicas.replica_id
-FROM sync.workspace_replicas AS replicas
-WHERE replicas.workspace_id = cards.workspace_id
-  AND replicas.replica_id = pg_temp.uuid_from_seed(format('%s:%s', cards.workspace_id::text, cards.last_modified_by_device_id::text));
+SET last_modified_by_replica_id = mapping.replica_id
+FROM sync_legacy_replica_mapping AS mapping
+WHERE mapping.workspace_id = cards.workspace_id
+  AND mapping.legacy_device_id = cards.last_modified_by_device_id;
 
 ALTER TABLE content.cards
   ALTER COLUMN last_modified_by_replica_id SET NOT NULL;
@@ -308,10 +374,10 @@ ALTER TABLE content.decks
   ADD COLUMN last_modified_by_replica_id UUID;
 
 UPDATE content.decks AS decks
-SET last_modified_by_replica_id = replicas.replica_id
-FROM sync.workspace_replicas AS replicas
-WHERE replicas.workspace_id = decks.workspace_id
-  AND replicas.replica_id = pg_temp.uuid_from_seed(format('%s:%s', decks.workspace_id::text, decks.last_modified_by_device_id::text));
+SET last_modified_by_replica_id = mapping.replica_id
+FROM sync_legacy_replica_mapping AS mapping
+WHERE mapping.workspace_id = decks.workspace_id
+  AND mapping.legacy_device_id = decks.last_modified_by_device_id;
 
 ALTER TABLE content.decks
   ALTER COLUMN last_modified_by_replica_id SET NOT NULL;
@@ -320,10 +386,10 @@ ALTER TABLE org.workspaces
   ADD COLUMN fsrs_last_modified_by_replica_id UUID;
 
 UPDATE org.workspaces AS workspaces
-SET fsrs_last_modified_by_replica_id = replicas.replica_id
-FROM sync.workspace_replicas AS replicas
-WHERE replicas.workspace_id = workspaces.workspace_id
-  AND replicas.replica_id = pg_temp.uuid_from_seed(format('%s:%s', workspaces.workspace_id::text, workspaces.fsrs_last_modified_by_device_id::text));
+SET fsrs_last_modified_by_replica_id = mapping.replica_id
+FROM sync_legacy_replica_mapping AS mapping
+WHERE mapping.workspace_id = workspaces.workspace_id
+  AND mapping.legacy_device_id = workspaces.fsrs_last_modified_by_device_id;
 
 ALTER TABLE org.workspaces
   ALTER COLUMN fsrs_last_modified_by_replica_id SET NOT NULL;
@@ -332,10 +398,10 @@ ALTER TABLE content.review_events
   ADD COLUMN replica_id UUID;
 
 UPDATE content.review_events AS review_events
-SET replica_id = replicas.replica_id
-FROM sync.workspace_replicas AS replicas
-WHERE replicas.workspace_id = review_events.workspace_id
-  AND replicas.replica_id = pg_temp.uuid_from_seed(format('%s:%s', review_events.workspace_id::text, review_events.device_id::text));
+SET replica_id = mapping.replica_id
+FROM sync_legacy_replica_mapping AS mapping
+WHERE mapping.workspace_id = review_events.workspace_id
+  AND mapping.legacy_device_id = review_events.device_id;
 
 ALTER TABLE content.review_events
   ALTER COLUMN replica_id SET NOT NULL;
@@ -344,10 +410,10 @@ ALTER TABLE sync.hot_changes
   ADD COLUMN replica_id UUID;
 
 UPDATE sync.hot_changes AS hot_changes
-SET replica_id = replicas.replica_id
-FROM sync.workspace_replicas AS replicas
-WHERE replicas.workspace_id = hot_changes.workspace_id
-  AND replicas.replica_id = pg_temp.uuid_from_seed(format('%s:%s', hot_changes.workspace_id::text, hot_changes.device_id::text));
+SET replica_id = mapping.replica_id
+FROM sync_legacy_replica_mapping AS mapping
+WHERE mapping.workspace_id = hot_changes.workspace_id
+  AND mapping.legacy_device_id = hot_changes.device_id;
 
 ALTER TABLE sync.hot_changes
   ALTER COLUMN replica_id SET NOT NULL;
@@ -356,10 +422,10 @@ ALTER TABLE sync.applied_operations_current
   ADD COLUMN replica_id UUID;
 
 UPDATE sync.applied_operations_current AS applied
-SET replica_id = replicas.replica_id
-FROM sync.workspace_replicas AS replicas
-WHERE replicas.workspace_id = applied.workspace_id
-  AND replicas.replica_id = pg_temp.uuid_from_seed(format('%s:%s', applied.workspace_id::text, applied.device_id::text));
+SET replica_id = mapping.replica_id
+FROM sync_legacy_replica_mapping AS mapping
+WHERE mapping.workspace_id = applied.workspace_id
+  AND mapping.legacy_device_id = applied.device_id;
 
 ALTER TABLE sync.applied_operations_current
   ALTER COLUMN replica_id SET NOT NULL;
@@ -462,5 +528,32 @@ COMMENT ON COLUMN org.workspaces.fsrs_last_modified_by_replica_id IS 'Immutable 
 COMMENT ON COLUMN content.review_events.replica_id IS 'Immutable workspace replica that recorded the review event.';
 COMMENT ON COLUMN sync.hot_changes.replica_id IS 'Immutable workspace replica that produced the winning hot mutation entry.';
 COMMENT ON COLUMN sync.applied_operations_current.replica_id IS 'Immutable workspace replica that submitted the idempotent push operation.';
+
+UPDATE auth.guest_replica_aliases AS aliases
+SET
+  source_guest_replica_id = CASE
+    WHEN source_catalog.actor_kind = 'client_installation'
+      THEN pg_temp.uuid_from_seed(format('%s:%s', history.source_guest_workspace_id::text, aliases.source_guest_replica_id::text))
+    WHEN source_catalog.actor_kind = 'workspace_seed'
+      THEN pg_temp.uuid_from_seed(format('%s:%s:%s', history.source_guest_workspace_id::text, source_catalog.actor_kind, 'workspace-seed'))
+    WHEN source_catalog.actor_kind = 'agent_connection'
+      THEN pg_temp.uuid_from_seed(format('%s:%s:%s', history.source_guest_workspace_id::text, source_catalog.actor_kind, coalesce(source_catalog.actor_key, 'missing-agent-connection')))
+    ELSE pg_temp.uuid_from_seed(format('%s:%s:%s', history.source_guest_workspace_id::text, source_catalog.actor_kind, coalesce(source_catalog.actor_key, 'missing-ai-chat-actor')))
+  END,
+  target_replica_id = CASE
+    WHEN target_catalog.actor_kind = 'client_installation'
+      THEN pg_temp.uuid_from_seed(format('%s:%s', history.target_workspace_id::text, aliases.target_replica_id::text))
+    WHEN target_catalog.actor_kind = 'workspace_seed'
+      THEN pg_temp.uuid_from_seed(format('%s:%s:%s', history.target_workspace_id::text, target_catalog.actor_kind, 'workspace-seed'))
+    WHEN target_catalog.actor_kind = 'agent_connection'
+      THEN pg_temp.uuid_from_seed(format('%s:%s:%s', history.target_workspace_id::text, target_catalog.actor_kind, coalesce(target_catalog.actor_key, 'missing-agent-connection')))
+    ELSE pg_temp.uuid_from_seed(format('%s:%s:%s', history.target_workspace_id::text, target_catalog.actor_kind, coalesce(target_catalog.actor_key, 'missing-ai-chat-actor')))
+  END
+FROM auth.guest_upgrade_history AS history
+INNER JOIN sync_legacy_device_catalog AS source_catalog
+  ON source_catalog.legacy_device_id = aliases.source_guest_replica_id
+INNER JOIN sync_legacy_device_catalog AS target_catalog
+  ON target_catalog.legacy_device_id = aliases.target_replica_id
+WHERE history.upgrade_id = aliases.upgrade_id;
 
 DROP TABLE sync.devices;
