@@ -2,6 +2,7 @@ import Foundation
 
 enum UITestIdentifier {
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
+    static let cloudSignInScreen: String = "cloudSignIn.screen"
     static let reviewScreen: String = "review.screen"
     static let cardsScreen: String = "cards.screen"
     static let aiScreen: String = "ai.screen"
@@ -33,6 +34,7 @@ enum UITestIdentifier {
     static let deleteWorkspaceConfirmationField: String = "deleteWorkspace.confirmationField"
     static let deleteWorkspaceConfirmationButton: String = "deleteWorkspace.confirmationButton"
     static let cardsAddButton: String = "cards.addButton"
+    static let cardEditorScreen: String = "cardEditor.screen"
     static let cardEditorFrontRow: String = "cardEditor.frontRow"
     static let cardEditorBackRow: String = "cardEditor.backRow"
     static let cardEditorSaveButton: String = "cardEditor.saveButton"

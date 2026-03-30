@@ -189,6 +189,7 @@ struct CloudSignInSheet: View {
             }
             .navigationTitle("Sign in")
             .navigationBarTitleDisplayMode(.inline)
+            .accessibilityIdentifier(UITestIdentifier.cloudSignInScreen)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") {
@@ -266,6 +267,7 @@ struct CloudSignInSheet: View {
                 self.scheduleEmailFieldFocus()
             }
         }
+        .accessibilityIdentifier(UITestIdentifier.cloudSignInScreen)
     }
 
     private func scheduleEmailFieldFocus() {

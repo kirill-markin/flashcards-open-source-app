@@ -169,6 +169,7 @@ struct CardsScreen: View {
                     }
                 )
             }
+            .accessibilityIdentifier(UITestIdentifier.cardEditorScreen)
         }
         .sheet(isPresented: $isFilterSheetPresented) {
             NavigationStack {
@@ -230,6 +231,9 @@ struct CardsScreen: View {
     }
 
     private func dismissCardsSearch() {
+        guard self.isSearchPresented else {
+            return
+        }
         self.dismissSearch()
         self.isSearchPresented = false
     }

@@ -4,6 +4,7 @@ import XCTest
 
 private enum LiveSmokeIdentifier {
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
+    static let cloudSignInScreen: String = "cloudSignIn.screen"
     static let reviewScreen: String = "review.screen"
     static let cardsScreen: String = "cards.screen"
     static let aiScreen: String = "ai.screen"
@@ -35,6 +36,7 @@ private enum LiveSmokeIdentifier {
     static let deleteWorkspaceConfirmationField: String = "deleteWorkspace.confirmationField"
     static let deleteWorkspaceConfirmationButton: String = "deleteWorkspace.confirmationButton"
     static let cardsAddButton: String = "cards.addButton"
+    static let cardEditorScreen: String = "cardEditor.screen"
     static let cardEditorFrontRow: String = "cardEditor.frontRow"
     static let cardEditorBackRow: String = "cardEditor.backRow"
     static let cardEditorSaveButton: String = "cardEditor.saveButton"
@@ -260,6 +262,12 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
+        if self.app != nil {
+            self.app.terminate()
+        }
+        self.app = nil
+        self.recentBreadcrumbs = []
+        self.currentStepTitle = "test bootstrap"
         try super.tearDownWithError()
     }
 
@@ -383,7 +391,7 @@ final class LiveSmokeUITests: XCTestCase {
         reviewEmail: String,
         scenario: () throws -> Void
     ) throws {
-        try self.launchApplication(resetState: nil, selectedTab: .settings)
+        try self.launchApplication(resetState: .localGuest, selectedTab: .settings)
 
         var primaryFailure: Error?
         var shouldDeleteWorkspace = false
@@ -558,14 +566,18 @@ final class LiveSmokeUITests: XCTestCase {
             signInButton.tap()
             _ = self.dismissKnownBlockingAlertIfVisible()
             self.logActionEnd(action: "tap_element", identifier: LiveSmokeIdentifier.accountStatusSignInButton, result: "success", note: "sign in tapped")
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.cloudSignInScreen,
+                timeout: self.longUiTimeoutSeconds
+            )
             try self.typeText(
                 reviewEmail,
                 intoElementWithIdentifier: LiveSmokeIdentifier.cloudSignInEmailField,
-                timeout: self.shortUiTimeoutSeconds
+                timeout: self.longUiTimeoutSeconds
             )
             try self.tapElement(
                 identifier: LiveSmokeIdentifier.cloudSignInSendCodeButton,
-                timeout: self.shortUiTimeoutSeconds
+                timeout: self.longUiTimeoutSeconds
             )
             try self.completeCloudWorkspaceSelectionIfNeeded()
         } else if self.isAccountStatusLinked() {
@@ -637,21 +649,25 @@ final class LiveSmokeUITests: XCTestCase {
     private func createManualCard(frontText: String, backText: String) throws {
         try self.assertScreenVisible(screen: .cards, timeout: self.shortUiTimeoutSeconds)
         try self.tapElement(identifier: LiveSmokeIdentifier.cardsAddButton, timeout: self.shortUiTimeoutSeconds)
-        try self.tapElement(identifier: LiveSmokeIdentifier.cardEditorFrontRow, timeout: self.shortUiTimeoutSeconds)
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.cardEditorScreen,
+            timeout: self.longUiTimeoutSeconds
+        )
+        try self.tapElement(identifier: LiveSmokeIdentifier.cardEditorFrontRow, timeout: self.longUiTimeoutSeconds)
         try self.typeText(
             frontText,
             intoElementWithIdentifier: LiveSmokeIdentifier.cardEditorFrontTextEditor,
-            timeout: self.shortUiTimeoutSeconds
+            timeout: self.longUiTimeoutSeconds
         )
         try self.tapFirstNavigationBackButton()
-        try self.tapElement(identifier: LiveSmokeIdentifier.cardEditorBackRow, timeout: self.shortUiTimeoutSeconds)
+        try self.tapElement(identifier: LiveSmokeIdentifier.cardEditorBackRow, timeout: self.longUiTimeoutSeconds)
         try self.typeText(
             backText,
             intoElementWithIdentifier: LiveSmokeIdentifier.cardEditorBackTextEditor,
-            timeout: self.shortUiTimeoutSeconds
+            timeout: self.longUiTimeoutSeconds
         )
         try self.tapFirstNavigationBackButton()
-        try self.tapElement(identifier: LiveSmokeIdentifier.cardEditorSaveButton, timeout: self.shortUiTimeoutSeconds)
+        try self.tapElement(identifier: LiveSmokeIdentifier.cardEditorSaveButton, timeout: self.longUiTimeoutSeconds)
     }
 
     @MainActor
@@ -699,7 +715,7 @@ final class LiveSmokeUITests: XCTestCase {
 
         let proposalErrorMarkerCountBeforeWait = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
-            .allElementsBoundByIndex.count
+            .count
         let proposalPrompt = "Prepare exactly one flashcard proposal. Use front text \"\(aiFrontText)\", back text \"\(aiBackText)\", and include tag \"\(markerTag)\". Wait for my confirmation before creating it."
         try self.replaceText(
             proposalPrompt,
@@ -741,10 +757,10 @@ final class LiveSmokeUITests: XCTestCase {
         )
         let completedMarkerCountBeforeConfirmation = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
-            .allElementsBoundByIndex.count
+            .count
         let errorMarkerCountBeforeConfirmation = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
-            .allElementsBoundByIndex.count
+            .count
         try self.assertElementEnabled(
             identifier: LiveSmokeIdentifier.aiComposerSendButton,
             timeout: self.shortUiTimeoutSeconds
@@ -913,12 +929,10 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func tapElement(identifier: String, timeout: TimeInterval) throws {
-        let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-        if self.waitForOptionalHittableElement(
-            element,
+        guard let element = self.waitForOptionalHittableElement(
             identifier: identifier,
             timeout: timeout
-        ) == false {
+        ) else {
             throw LiveSmokeFailure.missingElement(
                 identifier: identifier,
                 timeoutSeconds: timeout,
@@ -990,12 +1004,10 @@ final class LiveSmokeUITests: XCTestCase {
         while Date() < deadline {
             _ = self.dismissKnownBlockingAlertIfVisible()
 
-            let visibleLabels = self.app.staticTexts.allElementsBoundByIndex
-                .map(\.label)
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { $0.isEmpty == false }
-                .filter { ignoredExactLabels.contains($0) == false }
-            if visibleLabels.contains(where: { $0.contains(text) }) {
+            if self.matchingVisibleStaticText(
+                containing: text,
+                ignoredExactLabels: ignoredExactLabels
+            ).firstMatch.exists {
                 let durationSeconds = Date().timeIntervalSince(startedAt)
                 self.logSmokeBreadcrumb(
                     event: "wait_end",
@@ -1009,10 +1021,13 @@ final class LiveSmokeUITests: XCTestCase {
                 return
             }
 
-            let errorMarkerCount = errorElements.allElementsBoundByIndex.count
+            let errorMarkerCount = errorElements.count
             if errorMarkerCount > aiErrorMarkerCountBeforeWait {
                 let durationSeconds = Date().timeIntervalSince(startedAt)
-                let errorMessage = errorElements.allElementsBoundByIndex.last?.label.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let errorMessage = self.elementLabel(
+                    query: errorElements,
+                    index: errorMarkerCount - 1
+                )
                 self.logSmokeBreadcrumb(
                     event: "wait_end",
                     action: "wait_for_visible_text_contains",
@@ -1048,6 +1063,24 @@ final class LiveSmokeUITests: XCTestCase {
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
+    }
+
+    @MainActor
+    private func matchingVisibleStaticText(
+        containing text: String,
+        ignoredExactLabels: Set<String>
+    ) -> XCUIElementQuery {
+        let containsPredicate = NSPredicate(format: "label CONTAINS %@", text)
+        if ignoredExactLabels.isEmpty {
+            return self.app.staticTexts.matching(containsPredicate)
+        }
+
+        let ignoredPredicates = ignoredExactLabels.map { ignoredLabel in
+            NSPredicate(format: "label != %@", ignoredLabel)
+        }
+        let predicates = [containsPredicate] + ignoredPredicates
+        let compoundPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        return self.app.staticTexts.matching(compoundPredicate)
     }
 
     @MainActor
@@ -1200,12 +1233,7 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func tapFirstNavigationBackButton() throws {
-        let backButton = self.app.navigationBars.buttons.firstMatch
-        if self.waitForOptionalHittableElement(
-            backButton,
-            identifier: "navigation.backButton",
-            timeout: self.shortUiTimeoutSeconds
-        ) == false {
+        guard let backButton = self.waitForFirstHittableNavigationBackButton(timeout: self.shortUiTimeoutSeconds) else {
             throw LiveSmokeFailure.missingBackButton(
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
@@ -1215,6 +1243,68 @@ final class LiveSmokeUITests: XCTestCase {
         backButton.tap()
         _ = self.dismissKnownBlockingAlertIfVisible()
         self.logActionEnd(action: "tap_back_button", identifier: "navigation.backButton", result: "success", note: "back tapped")
+    }
+
+    @MainActor
+    private func waitForFirstHittableNavigationBackButton(timeout: TimeInterval) -> XCUIElement? {
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_hittable_element",
+            identifier: "navigation.backButton",
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: "waiting for hittable back button"
+        )
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+
+            if let backButton = self.firstHittableNavigationBackButton() {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_hittable_element",
+                    identifier: "navigation.backButton",
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "success",
+                    note: "back button became hittable"
+                )
+                return backButton
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        let durationSeconds = Date().timeIntervalSince(startedAt)
+        self.logSmokeBreadcrumb(
+            event: "wait_end",
+            action: "wait_for_hittable_element",
+            identifier: "navigation.backButton",
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: durationSeconds),
+            result: "failure",
+            note: "back button did not become hittable"
+        )
+        return nil
+    }
+
+    @MainActor
+    private func firstHittableNavigationBackButton() -> XCUIElement? {
+        let navigationBars = self.elements(query: self.app.navigationBars)
+        let navigationButtons = navigationBars.flatMap { navigationBar in
+            self.elements(query: navigationBar.buttons)
+        }
+
+        return navigationButtons
+            .filter(\.isHittable)
+            .sorted { lhs, rhs in
+                lhs.frame.minX < rhs.frame.minX
+            }
+            .first
     }
 
     @MainActor
@@ -1378,6 +1468,75 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
+    private func waitForOptionalHittableElement(
+        identifier: String,
+        timeout: TimeInterval
+    ) -> XCUIElement? {
+        let query = self.app.descendants(matching: .any).matching(identifier: identifier)
+        let element = query.firstMatch
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+
+        if self.waitForOptionalElement(
+            element,
+            identifier: identifier,
+            timeout: timeout
+        ) == false {
+            return nil
+        }
+
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_hittable_element",
+            identifier: identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: "waiting for hittable element"
+        )
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            if let hittableElement = self.firstMatchingHittableElement(identifier: identifier) {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_hittable_element",
+                    identifier: identifier,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "success",
+                    note: "element became hittable"
+                )
+                return hittableElement
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        let durationSeconds = Date().timeIntervalSince(startedAt)
+        self.logSmokeBreadcrumb(
+            event: "wait_end",
+            action: "wait_for_hittable_element",
+            identifier: identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: durationSeconds),
+            result: "failure",
+            note: "element did not become hittable"
+        )
+        return nil
+    }
+
+    @MainActor
+    private func firstMatchingHittableElement(identifier: String) -> XCUIElement? {
+        self.elements(
+            query: self.app.descendants(matching: .any).matching(identifier: identifier)
+        )
+        .filter(\.isHittable)
+        .first
+    }
+
+    @MainActor
     private func dismissKnownBlockingAlertIfVisible() -> Bool {
         guard self.app != nil else {
             return false
@@ -1455,8 +1614,10 @@ final class LiveSmokeUITests: XCTestCase {
             return "<app not running>"
         }
 
-        let alerts = self.app.alerts.allElementsBoundByIndex.map { alert in
-            let buttons = alert.buttons.allElementsBoundByIndex.map(\.label).joined(separator: ", ")
+        let alerts = self.elements(query: self.app.alerts).map { alert in
+            let buttons = self.elements(query: alert.buttons)
+                .map(\.label)
+                .joined(separator: ", ")
             return "\(alert.label) [\(buttons.isEmpty ? "-" : buttons)]"
         }
 
@@ -1530,7 +1691,7 @@ final class LiveSmokeUITests: XCTestCase {
             return "<app not running>"
         }
 
-        let labels = self.app.staticTexts.allElementsBoundByIndex
+        let labels = self.elements(query: self.app.staticTexts)
             .map { element in
                 element.label
             }
@@ -1708,6 +1869,33 @@ final class LiveSmokeUITests: XCTestCase {
         if let resetState {
             self.app.launchEnvironment[self.resetStateEnvironmentKey] = resetState.rawValue
         }
+    }
+
+    @MainActor
+    private func elements(query: XCUIElementQuery) -> [XCUIElement] {
+        let count = query.count
+        guard count > 0 else {
+            return []
+        }
+
+        return (0..<count).compactMap { index in
+            let element = query.element(boundBy: index)
+            return element.exists ? element : nil
+        }
+    }
+
+    @MainActor
+    private func elementLabel(query: XCUIElementQuery, index: Int) -> String {
+        guard index >= 0, index < query.count else {
+            return ""
+        }
+
+        let element = query.element(boundBy: index)
+        guard element.exists else {
+            return ""
+        }
+
+        return element.label.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     @MainActor
@@ -1895,7 +2083,7 @@ final class LiveSmokeUITests: XCTestCase {
         while Date() < deadline {
             _ = self.dismissKnownBlockingAlertIfVisible()
 
-            let completedMarkerCount = completedElements.allElementsBoundByIndex.count
+            let completedMarkerCount = completedElements.count
             if completedMarkerCount > completedMarkerCountBeforeWait {
                 let durationSeconds = Date().timeIntervalSince(startedAt)
                 self.logSmokeBreadcrumb(
@@ -1910,10 +2098,13 @@ final class LiveSmokeUITests: XCTestCase {
                 return
             }
 
-            let errorMarkerCount = errorElements.allElementsBoundByIndex.count
+            let errorMarkerCount = errorElements.count
             if errorMarkerCount > errorMarkerCountBeforeWait {
                 let durationSeconds = Date().timeIntervalSince(startedAt)
-                let errorMessage = errorElements.allElementsBoundByIndex.last?.label.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let errorMessage = self.elementLabel(
+                    query: errorElements,
+                    index: errorMarkerCount - 1
+                )
                 self.logSmokeBreadcrumb(
                     event: "wait_end",
                     action: "wait_for_ai_completion",

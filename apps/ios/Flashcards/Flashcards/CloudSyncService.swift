@@ -10,7 +10,7 @@ enum CloudSyncError: LocalizedError {
             return "Cloud sync is unavailable. Check the app configuration."
         case .invalidResponse(let details, _):
             return appendCloudRequestIdReference(
-                message: "Cloud sync failed. Try again.",
+                message: details.message,
                 requestId: details.requestId
             )
         }
