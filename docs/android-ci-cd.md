@@ -1,12 +1,11 @@
 # Android CI/CD
 
-This repository uses one reusable Android validation workflow plus one dedicated Android main-release workflow:
+This repository uses one reusable Android validation workflow plus one dedicated Android release entry workflow:
 
-- GitHub Actions is the primary CI entrypoint for pull requests and `main`
+- GitHub Actions is the primary Android CI/CD entrypoint on `main`
 - Firebase Test Lab runs instrumentation tests on Google-managed devices
 - `.github/workflows/android-ci-reusable.yml` contains the actual Android CI implementation
-- `.github/workflows/android.yml` is the thin pull-request and manual validation entrypoint that calls that reusable workflow
-- `.github/workflows/android-release.yml` is the canonical Android main-release workflow
+- `.github/workflows/android-release.yml` is the canonical Android workflow for `push main` and manual runs
 - Android release is fully independent from the AWS/Web release workflow on `main`
 - `cloudbuild.android.yaml` is the Google-native entrypoint for Cloud Build triggers in the Google Cloud console
 
@@ -62,9 +61,9 @@ The intended Android release order is:
 2. Native Firebase Test Lab live smoke on the configured Android 16 device
 3. Google Play production release from `android-release.yml`
 
-After pushing to `main`, watch `Android Release` separately when Android-impacting files changed. For pull requests, watch the standalone `Android CI` entry workflow.
+After pushing to `main`, watch `Android Release` separately when Android-impacting files changed.
 
-`Android Release` runs independently on `push main` for Android-impacting changes and on manual `workflow_dispatch` with an explicit target SHA.
+`Android Release` runs independently on `push main` for Android-impacting changes and on manual `workflow_dispatch` with an explicit target SHA. Manual runs execute Android CI plus Firebase Test Lab, and publish to Google Play only when `publish_to_play` is explicitly enabled.
 
 Cross-client live smoke references:
 
