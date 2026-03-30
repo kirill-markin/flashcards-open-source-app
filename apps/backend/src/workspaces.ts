@@ -12,6 +12,7 @@ import {
   encodeOpaqueCursor,
   type CursorPageInput,
 } from "./pagination";
+import { logCloudRouteEvent } from "./server/logging";
 import { insertSyncChange } from "./syncChanges";
 
 export const AUTO_CREATED_WORKSPACE_NAME = "Personal";
@@ -356,6 +357,49 @@ async function listUserWorkspaceIdsInExecutor(
   return result.rows.map((row) => row.workspace_id);
 }
 
+async function loadSelectedWorkspaceIdInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+): Promise<string | null> {
+  const result = await executor.query<UserSettingsWorkspaceRow>(
+    "SELECT workspace_id FROM org.user_settings WHERE user_id = $1",
+    [userId],
+  );
+
+  return result.rows[0]?.workspace_id ?? null;
+}
+
+async function prepareSelectedWorkspaceForDeletionInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  deletedWorkspaceId: string,
+): Promise<Readonly<{
+  selectedWorkspaceIdBeforeDelete: string | null;
+  selectedWorkspaceIdAfterPreparation: string | null;
+}>> {
+  const selectedWorkspaceIdBeforeDelete = await loadSelectedWorkspaceIdInExecutor(executor, userId);
+  if (selectedWorkspaceIdBeforeDelete !== deletedWorkspaceId) {
+    return {
+      selectedWorkspaceIdBeforeDelete,
+      selectedWorkspaceIdAfterPreparation: selectedWorkspaceIdBeforeDelete,
+    };
+  }
+
+  const accessibleWorkspaceIds = await listUserWorkspaceIdsInExecutor(executor, userId);
+  const replacementWorkspaceId = accessibleWorkspaceIds.find((workspaceId) => workspaceId !== deletedWorkspaceId)
+    ?? await createWorkspaceInExecutor(executor, userId, AUTO_CREATED_WORKSPACE_NAME);
+
+  await executor.query(
+    "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
+    [replacementWorkspaceId, userId],
+  );
+
+  return {
+    selectedWorkspaceIdBeforeDelete,
+    selectedWorkspaceIdAfterPreparation: replacementWorkspaceId,
+  };
+}
+
 export async function ensureUserSelectedWorkspaceInExecutor(
   executor: DatabaseExecutor,
   userId: string,
@@ -614,19 +658,46 @@ export async function deleteWorkspaceInExecutor(
   const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
   assertWorkspaceOwner(managedWorkspace.role);
   assertWorkspaceIsSoleMember(managedWorkspace.member_count);
-  await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
-  const deletedCardsCount = await loadActiveCardCountInExecutor(executor, workspaceId);
-  await applyUserDatabaseScopeInExecutor(executor, { userId });
-  await executor.query("DELETE FROM org.workspaces WHERE workspace_id = $1", [workspaceId]);
-  const selectedWorkspaceId = await ensureUserSelectedWorkspaceInExecutor(executor, userId, workspaceId);
-  const workspace = await loadWorkspaceSummaryInExecutor(executor, userId, selectedWorkspaceId, selectedWorkspaceId);
+  let selectedWorkspaceIdBeforeDelete: string | null = null;
+  let selectedWorkspaceIdAfterPreparation: string | null = null;
 
-  return {
-    ok: true,
-    deletedWorkspaceId: workspaceId,
-    deletedCardsCount,
-    workspace,
-  };
+  try {
+    const selectionPreparation = await prepareSelectedWorkspaceForDeletionInExecutor(
+      executor,
+      userId,
+      workspaceId,
+    );
+    selectedWorkspaceIdBeforeDelete = selectionPreparation.selectedWorkspaceIdBeforeDelete;
+    selectedWorkspaceIdAfterPreparation = selectionPreparation.selectedWorkspaceIdAfterPreparation;
+
+    await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
+    const deletedCardsCount = await loadActiveCardCountInExecutor(executor, workspaceId);
+    await applyUserDatabaseScopeInExecutor(executor, { userId });
+    await executor.query("DELETE FROM org.workspaces WHERE workspace_id = $1", [workspaceId]);
+    const selectedWorkspaceId = await ensureUserSelectedWorkspaceInExecutor(
+      executor,
+      userId,
+      selectedWorkspaceIdAfterPreparation,
+    );
+    const workspace = await loadWorkspaceSummaryInExecutor(executor, userId, selectedWorkspaceId, selectedWorkspaceId);
+
+    return {
+      ok: true,
+      deletedWorkspaceId: workspaceId,
+      deletedCardsCount,
+      workspace,
+    };
+  } catch (error) {
+    logCloudRouteEvent("workspace_delete_transaction_error", {
+      userId,
+      workspaceId,
+      memberCount: managedWorkspace.member_count,
+      selectedWorkspaceIdBeforeDelete,
+      selectedWorkspaceIdAfterPreparation,
+      code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+    }, true);
+    throw error;
+  }
 }
 
 export async function deleteWorkspaceForUser(

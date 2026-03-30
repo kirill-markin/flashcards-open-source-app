@@ -401,12 +401,9 @@ class LiveSmokeTest {
         clickText(text = "AI")
         dismissAiConsentIfNeeded()
         waitForGuestCloudWorkspaceReady(context = "before filling the AI proposal prompt")
-        waitForAiComposerEditable(context = "before filling the AI proposal prompt")
-        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performTextReplacement(proposalPrompt)
-        waitForAiComposerReady(
+        fillAiComposerWithRetry(
             expectedDraftText = proposalPrompt,
-            expectedButtonLabel = "Send",
-            context = "after filling the AI proposal prompt"
+            context = "for the AI proposal prompt"
         )
         clickTag(tag = aiComposerSendButtonTag, label = "Send AI prompt")
         waitForAssistantProposal(
@@ -414,12 +411,9 @@ class LiveSmokeTest {
             aiBackText = aiBackText,
             markerTag = markerTag
         )
-        waitForAiComposerEditable(context = "before filling the AI confirmation prompt")
-        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performTextReplacement(confirmationPrompt)
-        waitForAiComposerReady(
+        fillAiComposerWithRetry(
             expectedDraftText = confirmationPrompt,
-            expectedButtonLabel = "Send",
-            context = "after filling the AI confirmation prompt"
+            context = "for the AI confirmation prompt"
         )
         clickTag(tag = aiComposerSendButtonTag, label = "Confirm AI card creation")
         waitUntilAtLeastOneExistsOrFail(
@@ -1165,6 +1159,42 @@ class LiveSmokeTest {
                     "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
                 error
             )
+        }
+    }
+
+    private fun fillAiComposerWithRetry(
+        expectedDraftText: String,
+        context: String
+    ) {
+        waitUntilAtLeastOneExistsOrFail(
+            matcher = hasTestTag(aiComposerMessageFieldTag),
+            timeoutMillis = externalUiTimeoutMillis
+        )
+        val expectedButtonLabel = "Send"
+
+        repeat(2) { attemptIndex ->
+            dismissExternalSystemDialogIfPresent()
+            waitForAiComposerEditable(context = "before filling $context")
+            composeRule.onNodeWithTag(aiComposerMessageFieldTag).performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag(aiComposerMessageFieldTag).performTextReplacement(expectedDraftText)
+            try {
+                waitForAiComposerReady(
+                    expectedDraftText = expectedDraftText,
+                    expectedButtonLabel = expectedButtonLabel,
+                    context = "after filling $context"
+                )
+                return
+            } catch (error: AssertionError) {
+                val shouldRetry =
+                    attemptIndex == 0
+                        && aiComposerDraftTextOrNull().isNullOrBlank()
+                        && currentBlockingSystemDialogSummaryOrNull() == null
+                        && visibleAppErrors().isEmpty()
+                if (shouldRetry.not()) {
+                    throw error
+                }
+            }
         }
     }
 
