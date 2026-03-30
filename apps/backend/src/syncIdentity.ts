@@ -53,6 +53,14 @@ function toUuidFromSeed(seed: string): string {
   ].join("-");
 }
 
+export function buildSystemWorkspaceReplicaId(
+  workspaceId: string,
+  actorKind: Exclude<WorkspaceReplicaActorKind, "client_installation">,
+  actorKey: string,
+): string {
+  return toUuidFromSeed(`${workspaceId}:${actorKind}:${actorKey}`);
+}
+
 /**
  * Installations are global physical app/browser identities. They may change
  * users and workspaces over time, but their platform must remain stable.
@@ -201,7 +209,7 @@ export async function ensureWorkspaceReplica(
 export async function ensureSystemWorkspaceReplica(
   params: EnsureSystemWorkspaceReplicaParams,
 ): Promise<string> {
-  const replicaId = toUuidFromSeed(`${params.workspaceId}:${params.actorKind}:${params.actorKey}`);
+  const replicaId = buildSystemWorkspaceReplicaId(params.workspaceId, params.actorKind, params.actorKey);
 
   return transactionWithWorkspaceScope(
     { userId: params.userId, workspaceId: params.workspaceId },
@@ -214,7 +222,11 @@ export async function ensureSystemWorkspaceReplicaInExecutor(
   params: EnsureSystemWorkspaceReplicaParams,
   explicitReplicaId?: string,
 ): Promise<string> {
-  const replicaId = explicitReplicaId ?? toUuidFromSeed(`${params.workspaceId}:${params.actorKind}:${params.actorKey}`);
+  const replicaId = explicitReplicaId ?? buildSystemWorkspaceReplicaId(
+    params.workspaceId,
+    params.actorKind,
+    params.actorKey,
+  );
 
   return upsertWorkspaceReplicaInExecutor(
     executor,
