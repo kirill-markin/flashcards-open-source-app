@@ -4,13 +4,15 @@ on:
   pull_request:
     paths:
       - 'apps/android/**'
+      - '!apps/android/README.md'
       - '!apps/android/docs/**'
-      - 'docs/android-ci-cd.md'
       - 'scripts/run-android-ci.sh'
       - 'scripts/run-android-firebase-test-lab.sh'
+      - 'scripts/run-android-release.sh'
       - 'scripts/setup-github-android.sh'
       - 'cloudbuild.android.yaml'
       - '.github/workflows/android-ci-reusable.yml'
+      - '.github/workflows/android-release.yml'
       - '.github/workflows/android.yml'
   workflow_dispatch:
 

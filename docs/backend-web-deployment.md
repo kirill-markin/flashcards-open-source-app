@@ -94,7 +94,7 @@ Run only the secret setup scripts you actually need. `setup-github.sh` rediscove
 
 ## CI/CD
 
-GitHub Actions uses one main release orchestrator on push to `main`. The repository stores:
+GitHub Actions uses one dedicated `AWS/Web Release` workflow on push to `main`. The repository stores:
 
 - GitHub variables for all non-secret deploy config, including certificate ARNs and secret ARNs
 - one GitHub secret for `AWS_DEPLOY_ROLE_ARN`
@@ -113,7 +113,7 @@ For AWS-backed changes, the main-branch order is:
 
 Manual `workflow_dispatch` runs bypass the `CI` wait and act as an explicit release override.
 
-After pushing to `main`, watch both `CI` and the main release orchestrator until the release either retains the AWS runtime, reverts it, or fails clearly. A failed AWS release with DB migrations is intentionally a fix-forward path; the next push must still be allowed to deploy.
+After pushing to `main`, watch both `CI` and `AWS/Web Release` until the release either retains the AWS runtime, reverts it, or fails clearly. A failed AWS release with DB migrations is intentionally a fix-forward path; the next push must still be allowed to deploy.
 
 Cross-client live smoke references:
 

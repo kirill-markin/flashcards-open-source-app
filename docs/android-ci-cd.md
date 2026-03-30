@@ -7,7 +7,7 @@ This repository uses one reusable Android validation workflow plus one dedicated
 - `.github/workflows/android-ci-reusable.yml` contains the actual Android CI implementation
 - `.github/workflows/android.yml` is the thin pull-request and manual validation entrypoint that calls that reusable workflow
 - `.github/workflows/android-release.yml` is the canonical Android main-release workflow
-- the main GitHub release orchestrator remains the AWS/web release gate and exposes the `AWS retained release` status that Android release uses when the same SHA also changed AWS
+- Android release is fully independent from the AWS/Web release workflow on `main`
 - `cloudbuild.android.yaml` is the Google-native entrypoint for Cloud Build triggers in the Google Cloud console
 
 This setup keeps fast repository-native checks in GitHub while still using Google-managed device testing and avoiding long-lived Google service account keys.
@@ -60,12 +60,11 @@ The intended Android release order is:
 
 1. Native build and lint checks in GitHub Actions
 2. Native Firebase Test Lab live smoke on the configured Android 16 device
-3. If AWS changed too, require `AWS retained release=success` for the same SHA
-4. Google Play production release from `android-release.yml`
+3. Google Play production release from `android-release.yml`
 
-After pushing to `main`, watch the main release orchestrator for AWS/web outcome. Watch `Android Release` separately only when the orchestrator explicitly dispatches it for an Android-changing SHA. For pull requests, watch the standalone `Android CI` entry workflow.
+After pushing to `main`, watch `Android Release` separately when Android-impacting files changed. For pull requests, watch the standalone `Android CI` entry workflow.
 
-`Android Release` does not run as a generic `workflow_run` follower anymore. The main release orchestrator dispatches it explicitly only when `apps/android/**` changed and the same SHA is not blocked by a non-retained AWS outcome.
+`Android Release` runs independently on `push main` for Android-impacting changes and on manual `workflow_dispatch` with an explicit target SHA.
 
 Cross-client live smoke references:
 

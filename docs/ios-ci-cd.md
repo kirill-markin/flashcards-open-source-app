@@ -1,6 +1,6 @@
 # iOS CI/CD
 
-This repository uses Xcode Cloud as the native iOS release gate and distribution path. The main GitHub release orchestrator no longer waits for Xcode Cloud on `main`.
+This repository uses Xcode Cloud as the native iOS release gate and distribution path. The GitHub-side AWS/Web release workflow does not wait for Xcode Cloud on `main`.
 
 ## Native release gate
 
@@ -54,4 +54,4 @@ This keeps the login smoke path pinned to the intended review/demo account inste
 
 ## Monitoring expectations
 
-After pushing to `main`, watch Xcode Cloud separately through the full archive and distribution path. Do not assume the iOS release completed just because the GitHub-side AWS/web orchestrator is green.
+After pushing to `main`, watch Xcode Cloud separately through the full archive and distribution path. Do not assume the iOS release completed just because the GitHub-side AWS/Web release workflow is green.
