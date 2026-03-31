@@ -506,10 +506,10 @@ class LiveSmokeTest {
             "Prepare exactly one flashcard proposal. Use front text '$aiFrontText', back text '$aiBackText', and include tag '$markerTag'. Wait for my confirmation before creating it."
         val confirmationPrompt = "Confirmed. Create the card exactly as proposed."
 
-        clickText(text = "AI")
+        openAiTab()
         dismissAiConsentIfNeeded()
         waitForGuestCloudWorkspaceReady(context = "before filling the AI proposal prompt")
-        fillAiComposerWithRetry(
+        fillAiComposer(
             expectedDraftText = proposalPrompt,
             context = "for the AI proposal prompt"
         )
@@ -519,7 +519,7 @@ class LiveSmokeTest {
             aiBackText = aiBackText,
             markerTag = markerTag
         )
-        fillAiComposerWithRetry(
+        fillAiComposer(
             expectedDraftText = confirmationPrompt,
             context = "for the AI confirmation prompt"
         )
@@ -563,10 +563,10 @@ class LiveSmokeTest {
     }
 
     private fun createGuestAiConversation(promptText: String, expectedAssistantText: String) {
-        clickText(text = "AI")
+        openAiTab()
         dismissAiConsentIfNeeded()
         waitForGuestCloudWorkspaceReady(context = "before creating a guest AI conversation")
-        fillAiComposerWithRetry(
+        fillAiComposer(
             expectedDraftText = promptText,
             context = "for the guest AI reset smoke prompt"
         )
@@ -697,7 +697,7 @@ class LiveSmokeTest {
 
         openSettingsSection(sectionTitle = "Workspace")
         clickText(text = "Overview")
-        openDeletePreviewWithRetry(workspaceName = workspaceName)
+        openDeletePreview(workspaceName = workspaceName)
         clickTag(
             tag = workspaceOverviewDeletePreviewContinueButtonTag,
             label = "Continue workspace delete preview"
@@ -780,19 +780,14 @@ class LiveSmokeTest {
         tapBackIcon()
     }
 
-    private fun openDeletePreviewWithRetry(workspaceName: String) {
+    private fun openDeletePreview(workspaceName: String) {
         clickTag(tag = workspaceOverviewDeleteWorkspaceButtonTag, label = "Delete workspace")
-        val initialResolution = waitForDeletePreviewResolution(workspaceName = workspaceName)
-        if (initialResolution == DeletePreviewResolution.PREVIEW_READY) {
-            return
-        }
-        clickTag(tag = workspaceOverviewDeleteWorkspaceButtonTag, label = "Retry delete workspace preview")
-        val retryResolution = waitForDeletePreviewResolution(workspaceName = workspaceName)
-        if (retryResolution == DeletePreviewResolution.PREVIEW_READY) {
+        val resolution = waitForDeletePreviewResolution(workspaceName = workspaceName)
+        if (resolution == DeletePreviewResolution.PREVIEW_READY) {
             return
         }
         throw AssertionError(
-            "Delete workspace preview stayed in error state after retry. " +
+            "Delete workspace preview resolved with an error state. " +
                 "Workspace=$workspaceName " +
                 "WorkspaceOverviewError=${workspaceOverviewErrorMessageOrNull()} " +
                 "PreviewBody=${deletePreviewBodyTextOrNull()} " +
@@ -891,6 +886,13 @@ class LiveSmokeTest {
         clickNode(
             matcher = hasText("Review").and(other = hasClickAction()),
             label = "Review tab"
+        )
+    }
+
+    private fun openAiTab() {
+        clickNode(
+            matcher = hasText("AI").and(other = hasClickAction()),
+            label = "AI tab"
         )
     }
 
@@ -1407,7 +1409,7 @@ class LiveSmokeTest {
         }
     }
 
-    private fun fillAiComposerWithRetry(
+    private fun fillAiComposer(
         expectedDraftText: String,
         context: String
     ) {
@@ -1415,32 +1417,16 @@ class LiveSmokeTest {
             matcher = hasTestTag(aiComposerMessageFieldTag),
             timeoutMillis = externalUiTimeoutMillis
         )
-        val expectedButtonLabel = "Send"
-
-        repeat(2) { attemptIndex ->
-            dismissExternalSystemDialogIfPresent()
-            waitForAiComposerEditable(context = "before filling $context")
-            composeRule.onNodeWithTag(aiComposerMessageFieldTag).performClick()
-            composeRule.waitForIdle()
-            composeRule.onNodeWithTag(aiComposerMessageFieldTag).performTextReplacement(expectedDraftText)
-            try {
-                waitForAiComposerReady(
-                    expectedDraftText = expectedDraftText,
-                    expectedButtonLabel = expectedButtonLabel,
-                    context = "after filling $context"
-                )
-                return
-            } catch (error: AssertionError) {
-                val shouldRetry =
-                    attemptIndex == 0
-                        && aiComposerDraftTextOrNull().isNullOrBlank()
-                        && currentBlockingSystemDialogSummaryOrNull() == null
-                        && visibleAppErrors().isEmpty()
-                if (shouldRetry.not()) {
-                    throw error
-                }
-            }
-        }
+        dismissExternalSystemDialogIfPresent()
+        waitForAiComposerEditable(context = "before filling $context")
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performTextReplacement(expectedDraftText)
+        waitForAiComposerReady(
+            expectedDraftText = expectedDraftText,
+            expectedButtonLabel = "Send",
+            context = "after filling $context"
+        )
     }
 
     private fun waitForGuestCloudWorkspaceReady(context: String) {

@@ -1,6 +1,8 @@
 import Foundation
 import Observation
 
+private let flashcardsUITestDisableAIBackgroundRefreshEnvironmentKey: String = "FLASHCARDS_UI_TEST_DISABLE_AI_BACKGROUND_REFRESH"
+
 enum AIChatAttachmentSettingsSource: String, Equatable {
     case camera
     case photos
@@ -366,6 +368,9 @@ final class AIChatStore {
     }
 
     func warmUpSessionIfNeeded() {
+        guard self.shouldDisableBackgroundRefreshForUITests == false else {
+            return
+        }
         guard self.isStreaming == false else {
             return
         }
@@ -640,6 +645,9 @@ final class AIChatStore {
     }
 
     private func refreshSnapshotIfPossible() {
+        guard self.shouldDisableBackgroundRefreshForUITests == false else {
+            return
+        }
         guard self.hasExternalProviderConsent else {
             return
         }
@@ -716,6 +724,10 @@ final class AIChatStore {
         }
 
         self.applySnapshot(snapshot)
+    }
+
+    private var shouldDisableBackgroundRefreshForUITests: Bool {
+        ProcessInfo.processInfo.environment[flashcardsUITestDisableAIBackgroundRefreshEnvironmentKey] == "1"
     }
 
     private func markAssistantError(message: String) {
