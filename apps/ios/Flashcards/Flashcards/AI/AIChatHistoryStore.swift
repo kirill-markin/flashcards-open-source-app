@@ -18,6 +18,22 @@ func clearStoredAIChatHistories(userDefaults: UserDefaults) {
     }
 }
 
+func storeAIChatHistoryStateSynchronously(
+    userDefaults: UserDefaults,
+    encoder: JSONEncoder,
+    workspaceId: String?,
+    state: AIChatPersistedState
+) throws {
+    runAIChatHistoryMigrationCleanupIfNeeded(userDefaults: userDefaults)
+    let trimmedState = AIChatPersistedState(
+        messages: Array(state.messages.suffix(aiChatMaxMessages)),
+        chatSessionId: state.chatSessionId,
+        lastKnownChatConfig: state.lastKnownChatConfig
+    )
+    let data = try encoder.encode(trimmedState)
+    userDefaults.set(data, forKey: aiChatHistoryStorageKeyForWorkspace(workspaceId: workspaceId))
+}
+
 final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     private let userDefaults: UserDefaults
     private let encoder: JSONEncoder
@@ -48,7 +64,7 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     }
 
     func loadState() -> AIChatPersistedState {
-        self.runHistoryMigrationCleanupIfNeeded()
+        runAIChatHistoryMigrationCleanupIfNeeded(userDefaults: self.userDefaults)
         guard let data = self.userDefaults.data(forKey: self.storageKey()) else {
             return AIChatPersistedState(
                 messages: [],
@@ -76,16 +92,13 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     }
 
     func saveState(state: AIChatPersistedState) async {
-        self.runHistoryMigrationCleanupIfNeeded()
-        let trimmedState = AIChatPersistedState(
-            messages: Array(state.messages.suffix(aiChatMaxMessages)),
-            chatSessionId: state.chatSessionId,
-            lastKnownChatConfig: state.lastKnownChatConfig
-        )
-
         do {
-            let data = try self.encoder.encode(trimmedState)
-            self.userDefaults.set(data, forKey: self.storageKey())
+            try storeAIChatHistoryStateSynchronously(
+                userDefaults: self.userDefaults,
+                encoder: self.encoder,
+                workspaceId: self.currentWorkspaceId,
+                state: state
+            )
         } catch {
             self.userDefaults.removeObject(forKey: self.storageKey())
         }
@@ -96,23 +109,27 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     }
 
     private func storageKey() -> String {
-        guard let workspaceId = self.currentWorkspaceId, workspaceId.isEmpty == false else {
-            return aiChatHistoryStorageKey
-        }
+        aiChatHistoryStorageKeyForWorkspace(workspaceId: self.currentWorkspaceId)
+    }
+}
 
-        return makeAIChatHistoryStorageKey(workspaceId: workspaceId)
+private func aiChatHistoryStorageKeyForWorkspace(workspaceId: String?) -> String {
+    guard let workspaceId, workspaceId.isEmpty == false else {
+        return aiChatHistoryStorageKey
     }
 
-    private func runHistoryMigrationCleanupIfNeeded() {
-        let storedVersion = self.userDefaults.integer(forKey: aiChatHistoryMigrationCleanupVersionKey)
-        if storedVersion >= aiChatHistoryMigrationCleanupVersion {
-            return
-        }
+    return makeAIChatHistoryStorageKey(workspaceId: workspaceId)
+}
 
-        clearStoredAIChatHistories(userDefaults: self.userDefaults)
-        self.userDefaults.set(
-            aiChatHistoryMigrationCleanupVersion,
-            forKey: aiChatHistoryMigrationCleanupVersionKey
-        )
+private func runAIChatHistoryMigrationCleanupIfNeeded(userDefaults: UserDefaults) {
+    let storedVersion = userDefaults.integer(forKey: aiChatHistoryMigrationCleanupVersionKey)
+    if storedVersion >= aiChatHistoryMigrationCleanupVersion {
+        return
     }
+
+    clearStoredAIChatHistories(userDefaults: userDefaults)
+    userDefaults.set(
+        aiChatHistoryMigrationCleanupVersion,
+        forKey: aiChatHistoryMigrationCleanupVersionKey
+    )
 }

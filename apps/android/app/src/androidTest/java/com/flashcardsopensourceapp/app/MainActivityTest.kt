@@ -61,7 +61,7 @@ class MainActivityTest {
         waitForCardsEmptyState()
         composeRule.onNodeWithText("Search cards").fetchSemanticsNode()
 
-        composeRule.onNodeWithText("AI").performClick()
+        openAiTab()
         dismissAiConsentIfNeeded()
         composeRule.onNodeWithTag(aiEmptyStateTag).fetchSemanticsNode()
         composeRule.onNodeWithText("Try asking").fetchSemanticsNode()
@@ -72,7 +72,7 @@ class MainActivityTest {
             matcher = hasText("Workspace").and(other = hasClickAction())
         ).fetchSemanticsNode()
 
-        composeRule.onNodeWithText("Review").performClick()
+        openReviewTab()
         composeRule.onNodeWithText("No cards yet").fetchSemanticsNode()
     }
 
@@ -302,7 +302,7 @@ class MainActivityTest {
     fun reviewEmptyStateSupportsGuidedCreationHandoffs() {
         waitForCardsEmptyState()
 
-        composeRule.onNodeWithText("Review").performClick()
+        openReviewTab()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithTag(reviewEmptyStateTag).fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithTag(reviewEmptyStateContentTag).fetchSemanticsNodes().isNotEmpty()
@@ -334,7 +334,7 @@ class MainActivityTest {
             tags = listOf("review")
         )
 
-        composeRule.onNodeWithText("Review").performClick()
+        openReviewTab()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
@@ -356,7 +356,7 @@ class MainActivityTest {
             tags = listOf("review", "android")
         )
 
-        composeRule.onNodeWithText("Review").performClick()
+        openReviewTab()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithTag(reviewFilterButtonTag).fetchSemanticsNodes().isNotEmpty()
                 && composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
@@ -448,6 +448,18 @@ class MainActivityTest {
     private fun openCardsTab() {
         composeRule.onNode(
             matcher = hasText("Cards").and(other = hasClickAction())
+        ).performClick()
+    }
+
+    private fun openReviewTab() {
+        composeRule.onNode(
+            matcher = hasText("Review").and(other = hasClickAction())
+        ).performClick()
+    }
+
+    private fun openAiTab() {
+        composeRule.onNode(
+            matcher = hasText("AI").and(other = hasClickAction())
         ).performClick()
     }
 

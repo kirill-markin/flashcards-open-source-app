@@ -18,6 +18,19 @@ private enum PersistedCloudStateReconciliationOutcome {
 
 enum FlashcardsUITestResetState: String {
     case localGuest = "local_guest"
+    case localGuestSeededManualReviewCard = "local_guest_seeded_manual_review_card"
+    case localGuestSeededAIConversation = "local_guest_seeded_ai_conversation"
+    case localGuestSeededAIReviewCard = "local_guest_seeded_ai_review_card"
+}
+
+private enum FlashcardsUITestSeedData {
+    static let manualReviewFrontText: String = "Smoke seeded manual review question"
+    static let manualReviewBackText: String = "Smoke seeded manual review answer"
+    static let aiReviewFrontText: String = "Smoke seeded AI review question"
+    static let aiReviewBackText: String = "Smoke seeded AI review answer"
+    static let aiReviewTag: String = "smoke-seeded-ai-review"
+    static let aiConversationUserText: String = "Show me the seeded smoke conversation."
+    static let aiConversationAssistantText: String = "This seeded AI conversation is ready to reset."
 }
 
 @MainActor
@@ -375,10 +388,71 @@ extension FlashcardsStore {
     }
 
     func applyUITestResetState(resetState: FlashcardsUITestResetState) throws {
+        try self.resetLocalStateForCloudIdentityChange()
+
         switch resetState {
         case .localGuest:
-            try self.resetLocalStateForCloudIdentityChange()
+            return
+        case .localGuestSeededManualReviewCard:
+            try self.seedUITestCard(
+                frontText: FlashcardsUITestSeedData.manualReviewFrontText,
+                backText: FlashcardsUITestSeedData.manualReviewBackText,
+                tags: []
+            )
+        case .localGuestSeededAIConversation:
+            try self.seedUITestAIConversation()
+        case .localGuestSeededAIReviewCard:
+            try self.seedUITestCard(
+                frontText: FlashcardsUITestSeedData.aiReviewFrontText,
+                backText: FlashcardsUITestSeedData.aiReviewBackText,
+                tags: [FlashcardsUITestSeedData.aiReviewTag]
+            )
         }
+    }
+
+    private func seedUITestCard(frontText: String, backText: String, tags: [String]) throws {
+        try self.saveCard(
+            input: CardEditorInput(
+                frontText: frontText,
+                backText: backText,
+                tags: tags,
+                effortLevel: .medium
+            ),
+            editingCardId: nil
+        )
+    }
+
+    private func seedUITestAIConversation() throws {
+        grantAIChatExternalProviderConsent(userDefaults: self.userDefaults)
+
+        let workspaceId = try requireWorkspaceId(workspace: self.workspace)
+        let timestamp = nowIsoTimestamp()
+        let persistedState = AIChatPersistedState(
+            messages: [
+                AIChatMessage(
+                    id: UUID().uuidString.lowercased(),
+                    role: .user,
+                    content: [.text(FlashcardsUITestSeedData.aiConversationUserText)],
+                    timestamp: timestamp,
+                    isError: false
+                ),
+                AIChatMessage(
+                    id: UUID().uuidString.lowercased(),
+                    role: .assistant,
+                    content: [.text(FlashcardsUITestSeedData.aiConversationAssistantText)],
+                    timestamp: timestamp,
+                    isError: false
+                )
+            ],
+            chatSessionId: makeAIChatSessionId(),
+            lastKnownChatConfig: aiChatDefaultServerConfig
+        )
+        try storeAIChatHistoryStateSynchronously(
+            userDefaults: self.userDefaults,
+            encoder: self.encoder,
+            workspaceId: workspaceId,
+            state: persistedState
+        )
     }
 
     func beginAccountDeletion() {
