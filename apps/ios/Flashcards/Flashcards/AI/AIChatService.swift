@@ -118,6 +118,127 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         }
     }
 
+    func loadBootstrap(
+        session: CloudLinkedSession,
+        sessionId: String?,
+        limit: Int
+    ) async throws -> AIChatBootstrapResponse {
+        let clientRequestId = UUID().uuidString.lowercased()
+        var path = "/chat?limit=\(limit)"
+        if let sessionId, sessionId.isEmpty == false {
+            let allowedCharacters = CharacterSet.urlQueryAllowed.subtracting(CharacterSet(charactersIn: "+&=?"))
+            let encoded = sessionId.addingPercentEncoding(withAllowedCharacters: allowedCharacters) ?? sessionId
+            path += "&sessionId=\(encoded)"
+        }
+        let request = try self.makeRequest(
+            session: session,
+            path: path,
+            method: "GET",
+            clientRequestId: clientRequestId
+        )
+        let data = try await self.execute(
+            session: session,
+            request: request,
+            clientRequestId: clientRequestId
+        )
+
+        do {
+            let payload = try self.decoder.decode(AIChatBootstrapResponsePayload.self, from: data)
+            return AIChatBootstrapResponse(
+                sessionId: payload.sessionId,
+                runState: payload.runState,
+                chatConfig: payload.chatConfig,
+                messages: payload.messages.enumerated().map { index, message in
+                    AIChatMessage(
+                        id: "\(payload.sessionId)-\(index)-\(message.cursor)",
+                        role: message.role,
+                        content: message.content,
+                        timestamp: message.timestamp,
+                        isError: message.isError
+                    )
+                },
+                hasOlder: payload.hasOlder,
+                oldestCursor: payload.oldestCursor,
+                liveCursor: payload.liveCursor
+            )
+        } catch {
+            let diagnostics = AIChatFailureDiagnostics(
+                clientRequestId: clientRequestId,
+                backendRequestId: nil,
+                stage: .decodingEventJSON,
+                errorKind: .invalidStreamContract,
+                statusCode: nil,
+                eventType: nil,
+                toolName: nil,
+                toolCallId: nil,
+                lineNumber: nil,
+                rawSnippet: aiChatTruncatedSnippet(String(decoding: data, as: UTF8.self)),
+                decoderSummary: aiChatDecoderSummary(error: error),
+                continuationAttempt: nil,
+                continuationToolCallIds: []
+            )
+            throw AIChatServiceError.invalidPayload("AI chat bootstrap payload is invalid.", diagnostics)
+        }
+    }
+
+    func loadOlderMessages(
+        session: CloudLinkedSession,
+        sessionId: String,
+        beforeCursor: String,
+        limit: Int
+    ) async throws -> AIChatOlderMessagesResponse {
+        let clientRequestId = UUID().uuidString.lowercased()
+        let allowedCharacters = CharacterSet.urlQueryAllowed.subtracting(CharacterSet(charactersIn: "+&=?"))
+        let encodedSessionId = sessionId.addingPercentEncoding(withAllowedCharacters: allowedCharacters) ?? sessionId
+        let encodedCursor = beforeCursor.addingPercentEncoding(withAllowedCharacters: allowedCharacters) ?? beforeCursor
+        let path = "/chat?sessionId=\(encodedSessionId)&limit=\(limit)&before=\(encodedCursor)"
+        let request = try self.makeRequest(
+            session: session,
+            path: path,
+            method: "GET",
+            clientRequestId: clientRequestId
+        )
+        let data = try await self.execute(
+            session: session,
+            request: request,
+            clientRequestId: clientRequestId
+        )
+
+        do {
+            let payload = try self.decoder.decode(AIChatBootstrapResponsePayload.self, from: data)
+            return AIChatOlderMessagesResponse(
+                messages: payload.messages.enumerated().map { index, message in
+                    AIChatMessage(
+                        id: "\(payload.sessionId)-older-\(index)-\(message.cursor)",
+                        role: message.role,
+                        content: message.content,
+                        timestamp: message.timestamp,
+                        isError: message.isError
+                    )
+                },
+                hasOlder: payload.hasOlder,
+                oldestCursor: payload.oldestCursor
+            )
+        } catch {
+            let diagnostics = AIChatFailureDiagnostics(
+                clientRequestId: clientRequestId,
+                backendRequestId: nil,
+                stage: .decodingEventJSON,
+                errorKind: .invalidStreamContract,
+                statusCode: nil,
+                eventType: nil,
+                toolName: nil,
+                toolCallId: nil,
+                lineNumber: nil,
+                rawSnippet: aiChatTruncatedSnippet(String(decoding: data, as: UTF8.self)),
+                decoderSummary: aiChatDecoderSummary(error: error),
+                continuationAttempt: nil,
+                continuationToolCallIds: []
+            )
+            throw AIChatServiceError.invalidPayload("AI chat older messages payload is invalid.", diagnostics)
+        }
+    }
+
     func startRun(
         session: CloudLinkedSession,
         request: AIChatStartRunRequestBody

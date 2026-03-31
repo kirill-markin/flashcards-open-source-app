@@ -36,6 +36,7 @@ export type ChatConfig = Readonly<{
     dictationEnabled: true;
     attachmentsEnabled: true;
   }>;
+  liveUrl: string | null;
 }>;
 
 export const CHAT_MODEL: ChatModelDef = {
@@ -67,5 +68,6 @@ export function getChatConfig(): ChatConfig {
       dictationEnabled: true,
       attachmentsEnabled: true,
     },
+    liveUrl: process.env.CHAT_LIVE_URL || null,
   };
 }

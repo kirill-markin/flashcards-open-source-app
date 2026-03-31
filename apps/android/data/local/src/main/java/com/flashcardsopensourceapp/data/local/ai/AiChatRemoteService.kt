@@ -23,6 +23,9 @@ import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
 import com.flashcardsopensourceapp.data.local.model.AiToolCallRequest
+import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
+import com.flashcardsopensourceapp.data.local.model.AiChatOlderMessagesResponse
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import kotlinx.coroutines.Dispatchers
@@ -201,6 +204,128 @@ class AiChatRemoteService {
         try {
             val response = readJsonResponse(connection = connection)
             return@withContext decodeSnapshot(response)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    suspend fun loadBootstrap(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        sessionId: String?,
+        limit: Int
+    ): AiChatBootstrapResponse = withContext(Dispatchers.IO) {
+        val path = buildString {
+            append("/chat?limit=$limit")
+            if (!sessionId.isNullOrBlank()) {
+                append("&sessionId=$sessionId")
+            }
+        }
+        val connection = openConnection(
+            apiBaseUrl = apiBaseUrl,
+            path = path,
+            method = "GET",
+            authorizationHeader = authorizationHeader
+        )
+
+        try {
+            val response = readJsonResponse(connection = connection)
+            return@withContext decodeBootstrapResponse(response)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    suspend fun loadOlderMessages(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        sessionId: String,
+        beforeCursor: String,
+        limit: Int
+    ): AiChatOlderMessagesResponse = withContext(Dispatchers.IO) {
+        val path = "/chat?sessionId=$sessionId&limit=$limit&before=$beforeCursor"
+        val connection = openConnection(
+            apiBaseUrl = apiBaseUrl,
+            path = path,
+            method = "GET",
+            authorizationHeader = authorizationHeader
+        )
+
+        try {
+            val response = readJsonResponse(connection = connection)
+            val bootstrap = decodeBootstrapResponse(response)
+            return@withContext AiChatOlderMessagesResponse(
+                messages = bootstrap.messages,
+                hasOlder = bootstrap.hasOlder,
+                oldestCursor = bootstrap.oldestCursor
+            )
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    suspend fun connectLiveStream(
+        liveUrl: String,
+        authorizationHeader: String,
+        sessionId: String,
+        afterCursor: String?,
+        onEvent: suspend (AiChatLiveEvent) -> Unit
+    ): Unit = withContext(Dispatchers.IO) {
+        val urlString = buildString {
+            append(liveUrl.removeSuffix("/"))
+            append("?sessionId=$sessionId")
+            if (afterCursor != null) {
+                append("&afterCursor=$afterCursor")
+            }
+        }
+        val connection = (URL(urlString).openConnection() as HttpURLConnection)
+        connection.requestMethod = "GET"
+        connection.connectTimeout = 15_000
+        connection.readTimeout = 600_000
+        connection.useCaches = false
+        connection.setRequestProperty("Accept", "text/event-stream")
+        connection.setRequestProperty("Authorization", authorizationHeader)
+
+        try {
+            val responseCode = connection.responseCode
+            if (responseCode !in 200..299) {
+                throw readErrorResponse(connection = connection)
+            }
+
+            val reader = connection.inputStream.bufferedReader(StandardCharsets.UTF_8)
+            var currentEventType: String? = null
+            val dataLines = mutableListOf<String>()
+
+            reader.forEachLine { line ->
+                if (line.startsWith("event: ")) {
+                    currentEventType = line.removePrefix("event: ")
+                    return@forEachLine
+                }
+                if (line.startsWith("data: ")) {
+                    dataLines += line.removePrefix("data: ")
+                    return@forEachLine
+                }
+                if (line.startsWith(":")) {
+                    return@forEachLine
+                }
+                if (line.isEmpty() && dataLines.isNotEmpty()) {
+                    val payload = dataLines.joinToString(separator = "\n")
+                    dataLines.clear()
+                    val event = parseLiveEvent(currentEventType, payload)
+                    currentEventType = null
+                    if (event != null) {
+                        kotlinx.coroutines.runBlocking { onEvent(event) }
+                    }
+                }
+            }
+
+            if (dataLines.isNotEmpty()) {
+                val payload = dataLines.joinToString(separator = "\n")
+                val event = parseLiveEvent(currentEventType, payload)
+                if (event != null) {
+                    kotlinx.coroutines.runBlocking { onEvent(event) }
+                }
+            }
         } finally {
             connection.disconnect()
         }
@@ -556,7 +681,51 @@ class AiChatRemoteService {
                     "attachmentsEnabled",
                     "chatConfig.features.attachmentsEnabled"
                 )
-            )
+            ),
+            liveUrl = jsonObject.optCloudStringOrNull("liveUrl", "chatConfig.liveUrl")
+                ?.ifBlank { null }
+        )
+    }
+
+    private fun decodeBootstrapResponse(jsonObject: JSONObject): AiChatBootstrapResponse {
+        val sessionId = jsonObject.requireCloudString("sessionId", "sessionId")
+        val messagesArray = jsonObject.requireCloudArray("messages", "messages")
+        val messages = buildList {
+            for (index in 0 until messagesArray.length()) {
+                val item = messagesArray.requireCloudObject(index = index, fieldPath = "messages[$index]")
+                val cursor = item.optCloudStringOrNull("cursor", "messages[$index].cursor")
+                    ?.ifBlank { null } ?: "bootstrap-$index"
+                add(
+                    AiChatMessage(
+                        messageId = "$sessionId-$index-$cursor",
+                        role = decodeMessageRole(
+                            value = item.requireCloudString("role", "messages[$index].role"),
+                            fieldPath = "messages[$index].role"
+                        ),
+                        content = decodeContentParts(
+                            jsonArray = item.requireCloudArray("content", "messages[$index].content"),
+                            fieldPath = "messages[$index].content"
+                        ),
+                        timestampMillis = item.requireCloudLong("timestamp", "messages[$index].timestamp"),
+                        isError = item.requireCloudBoolean("isError", "messages[$index].isError")
+                    )
+                )
+            }
+        }
+
+        return AiChatBootstrapResponse(
+            sessionId = sessionId,
+            runState = decodeRunState(
+                value = jsonObject.requireCloudString("runState", "runState"),
+                fieldPath = "runState"
+            ),
+            chatConfig = decodeChatConfig(jsonObject.requireCloudObject("chatConfig", "chatConfig")),
+            messages = messages,
+            hasOlder = jsonObject.requireCloudBoolean("hasOlder", "hasOlder"),
+            oldestCursor = jsonObject.optCloudStringOrNull("oldestCursor", "oldestCursor")
+                ?.ifBlank { null },
+            liveCursor = jsonObject.optCloudStringOrNull("liveCursor", "liveCursor")
+                ?.ifBlank { null }
         )
     }
 
@@ -747,6 +916,77 @@ private fun parseStreamEvent(jsonObject: JSONObject): AiChatStreamEvent {
         else -> throw CloudContractMismatchException(
             "Cloud contract mismatch for type: unsupported AI chat stream event type \"$type\""
         )
+    }
+}
+
+private fun parseLiveEvent(eventType: String?, payload: String): AiChatLiveEvent? {
+    val json = try {
+        JSONObject(payload)
+    } catch (_: Exception) {
+        return null
+    }
+    val type = eventType ?: json.optString("type", "")
+
+    return when (type) {
+        "run_state" -> {
+            val runState = json.optString("runState", "") .ifBlank { return null }
+            AiChatLiveEvent.RunState(runState = runState)
+        }
+        "assistant_delta" -> {
+            val text = json.optString("text", "").ifBlank { return null }
+            val cursor = json.optString("cursor", "").ifBlank { return null }
+            val itemId = json.optString("itemId", "").ifBlank { return null }
+            AiChatLiveEvent.AssistantDelta(text = text, cursor = cursor, itemId = itemId)
+        }
+        "assistant_tool_call" -> {
+            val name = json.optString("name", "").ifBlank { return null }
+            val statusStr = json.optString("status", "").ifBlank { return null }
+            val cursor = json.optString("cursor", "").ifBlank { return null }
+            val itemId = json.optString("itemId", "").ifBlank { return null }
+            val status = if (statusStr == "completed") AiChatToolCallStatus.COMPLETED else AiChatToolCallStatus.STARTED
+            AiChatLiveEvent.AssistantToolCall(
+                toolCall = AiChatToolCall(
+                    toolCallId = itemId,
+                    name = name,
+                    status = status,
+                    input = json.optString("input", "").ifBlank { null },
+                    output = json.optString("output", "").ifBlank { null }
+                ),
+                cursor = cursor,
+                itemId = itemId
+            )
+        }
+        "assistant_message_done" -> {
+            val cursor = json.optString("cursor", "").ifBlank { return null }
+            val itemId = json.optString("itemId", "").ifBlank { return null }
+            AiChatLiveEvent.AssistantMessageDone(
+                cursor = cursor,
+                itemId = itemId,
+                isError = json.optBoolean("isError", false),
+                isStopped = json.optBoolean("isStopped", false)
+            )
+        }
+        "repair_status" -> {
+            val message = json.optString("message", "").ifBlank { return null }
+            AiChatLiveEvent.RepairStatus(
+                status = AiChatRepairAttemptStatus(
+                    message = message,
+                    attempt = json.optInt("attempt", 0),
+                    maxAttempts = json.optInt("maxAttempts", 0),
+                    toolName = json.optString("toolName", "").ifBlank { null }
+                )
+            )
+        }
+        "error" -> {
+            val message = json.optString("message", "").ifBlank { return null }
+            AiChatLiveEvent.Error(message = message)
+        }
+        "stop_ack" -> {
+            val sessionId = json.optString("sessionId", "").ifBlank { return null }
+            AiChatLiveEvent.StopAck(sessionId = sessionId)
+        }
+        "reset_required" -> AiChatLiveEvent.ResetRequired
+        else -> null
     }
 }
 

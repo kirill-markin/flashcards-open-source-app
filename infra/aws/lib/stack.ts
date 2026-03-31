@@ -102,6 +102,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       restApi: api.restApi,
       backendFn: api.backendFn,
       chatWorkerFn: api.chatWorkerFn,
+      chatLiveFn: api.chatLiveFn,
     });
 
     ciCd(this, {
@@ -129,6 +130,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       authRestApi: authApi.restApi,
       backendFn: api.backendFn,
       chatWorkerFn: api.chatWorkerFn,
+      chatLiveFn: api.chatLiveFn,
       authFn: authApi.authFn,
       migrationFn,
       userPoolId: authResult.userPool.userPoolId,

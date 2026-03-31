@@ -6,15 +6,18 @@ import { Hono } from "hono";
 import { getChatConfig, type ChatConfig } from "../chat/config";
 import {
   getRecoveredChatSessionSnapshot,
+  getRecoveredPaginatedSession,
   prepareChatRun,
   requestChatRunCancellation,
   type ChatRunStopState,
   type PreparedChatRun,
+  type RecoveredPaginatedSession,
 } from "../chat/runs";
 import {
   ChatSessionConflictError,
   ChatSessionNotFoundError,
   createFreshChatSession,
+  stripBase64FromContentParts,
   type ChatSessionSnapshot,
 } from "../chat/store";
 import { invokeChatWorkerOrPersistFailure } from "../chat/workerInvoke";
@@ -84,6 +87,7 @@ type ChatRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
   getRecoveredChatSessionSnapshotFn?: typeof getRecoveredChatSessionSnapshot;
+  getRecoveredPaginatedSessionFn?: typeof getRecoveredPaginatedSession;
   createFreshChatSessionFn?: typeof createFreshChatSession;
   prepareChatRunFn?: typeof prepareChatRun;
   invokeChatWorkerFn?: typeof invokeChatWorkerOrPersistFailure;
@@ -282,6 +286,49 @@ type ChatNewResponse = Readonly<{
   chatConfig: ChatConfig;
 }>;
 
+type ChatPaginatedHistoryResponse = Readonly<{
+  sessionId: string;
+  runState: string;
+  chatConfig: ChatConfig;
+  liveCursor: string | null;
+  oldestCursor: string | null;
+  hasOlder: boolean;
+  messages: ReadonlyArray<Readonly<{
+    role: "user" | "assistant";
+    content: ReadonlyArray<ChatContentPart>;
+    timestamp: number;
+    isError: boolean;
+    isStopped: boolean;
+    cursor: string;
+  }>>;
+}>;
+
+const MAX_CHAT_PAGE_LIMIT = 50;
+
+/**
+ * Converts a recovered paginated session into the response contract for paginated clients.
+ */
+function toChatPaginatedHistoryResponse(
+  result: RecoveredPaginatedSession,
+): ChatPaginatedHistoryResponse {
+  return {
+    sessionId: result.sessionId,
+    runState: result.runState,
+    chatConfig: getChatConfig(),
+    liveCursor: result.page.newestCursor,
+    oldestCursor: result.page.oldestCursor,
+    hasOlder: result.page.hasOlder,
+    messages: result.page.messages.map((message) => ({
+      role: message.role,
+      content: stripBase64FromContentParts(message.content) as ReadonlyArray<ChatContentPart>,
+      timestamp: message.timestamp,
+      isError: message.isError,
+      isStopped: message.isStopped,
+      cursor: String(message.itemOrder),
+    })),
+  };
+}
+
 /**
  * Converts a persisted session snapshot into the response contract consumed by thin clients.
  */
@@ -341,6 +388,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
   const getRecoveredChatSessionSnapshotFn = options.getRecoveredChatSessionSnapshotFn ?? getRecoveredChatSessionSnapshot;
+  const getRecoveredPaginatedSessionFn = options.getRecoveredPaginatedSessionFn ?? getRecoveredPaginatedSession;
   const createFreshChatSessionFn = options.createFreshChatSessionFn ?? createFreshChatSession;
   const prepareChatRunFn = options.prepareChatRunFn ?? prepareChatRun;
   const invokeChatWorkerFn = options.invokeChatWorkerFn ?? invokeChatWorkerOrPersistFailure;
@@ -354,6 +402,31 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     );
     const workspaceId = requireSelectedWorkspaceId(requestContext);
     const sessionId = context.req.query("sessionId") ?? undefined;
+    const limitParam = context.req.query("limit") ?? undefined;
+
+    if (limitParam !== undefined) {
+      const limit = Math.min(Math.max(Number.parseInt(limitParam, 10) || 7, 1), MAX_CHAT_PAGE_LIMIT);
+      const beforeParam = context.req.query("before") ?? undefined;
+      const beforeCursor = beforeParam !== undefined
+        ? Number.parseInt(beforeParam, 10)
+        : undefined;
+      if (beforeParam !== undefined && (!Number.isSafeInteger(beforeCursor) || (beforeCursor as number) < 0)) {
+        throw new HttpError(400, "Invalid before cursor");
+      }
+
+      try {
+        const result = await getRecoveredPaginatedSessionFn(
+          requestContext.userId,
+          workspaceId,
+          sessionId,
+          limit,
+          beforeCursor,
+        );
+        return context.json(toChatPaginatedHistoryResponse(result));
+      } catch (error) {
+        return mapStoreError(error);
+      }
+    }
 
     try {
       const snapshot = await getRecoveredChatSessionSnapshotFn(

@@ -1,0 +1,255 @@
+/**
+ * SSE live stream handler for the chat surface.
+ * Polls the database for in-progress assistant content changes and emits
+ * synthetic delta events to connected clients.
+ */
+import type { Writable } from "node:stream";
+import { authenticateRequest, type AuthResult } from "../auth";
+import { query } from "../db";
+import {
+  listChatMessagesAfterCursor,
+  listChatMessagesLatest,
+  selectRequestedChatSessionWithExecutor,
+  stripBase64FromContentParts,
+  type ChatSessionRunState,
+  type PersistedChatMessageItem,
+} from "./store";
+import { diffAssistantContent } from "./liveDiff";
+import type { ContentPart, LiveSSEEvent } from "./types";
+
+const LIVE_POLL_INTERVAL_MS = 750;
+const KEEPALIVE_INTERVAL_MS = 15_000;
+const MAX_CONNECTION_DURATION_MS = 9 * 60 * 1000;
+const IDLE_GRACE_PERIOD_MS = 30_000;
+const IDLE_POLL_INTERVAL_MS = 5_000;
+
+type LiveStreamParams = Readonly<{
+  sessionId: string;
+  afterCursor: number | undefined;
+  userId: string;
+  workspaceId: string;
+}>;
+
+function formatSSEEvent(event: LiveSSEEvent): string {
+  return `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
+}
+
+function formatSSEComment(comment: string): string {
+  return `: ${comment}\n\n`;
+}
+
+/**
+ * Finds the in-progress assistant item from a list of messages.
+ */
+function findInProgressAssistantItem(
+  messages: ReadonlyArray<PersistedChatMessageItem>,
+): PersistedChatMessageItem | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i]!;
+    if (message.role === "assistant" && message.state === "in_progress") {
+      return message;
+    }
+  }
+  return null;
+}
+
+/**
+ * Runs the SSE live loop, writing events to the provided writable stream.
+ */
+export async function runLiveStream(
+  stream: Writable,
+  params: LiveStreamParams,
+): Promise<void> {
+  const { sessionId, userId, workspaceId } = params;
+  let lastEmittedCursor = params.afterCursor ?? 0;
+  let previousAssistantContent: ReadonlyArray<ContentPart> = [];
+  let previousAssistantItemId: string | null = null;
+  let previousRunState: ChatSessionRunState | null = null;
+  let idleSince: number | null = null;
+  const connectionStart = Date.now();
+  let lastKeepalive = Date.now();
+
+  const write = (data: string): boolean => {
+    if (stream.destroyed) {
+      return false;
+    }
+    return stream.write(data);
+  };
+
+  // Backlog phase: emit events for items after the client's cursor.
+  if (params.afterCursor !== undefined) {
+    try {
+      const backlogMessages = await listChatMessagesAfterCursor(
+        userId,
+        workspaceId,
+        sessionId,
+        params.afterCursor,
+      );
+      for (const message of backlogMessages) {
+        if (stream.destroyed) {
+          return;
+        }
+        const event: LiveSSEEvent = {
+          type: "assistant_message_done",
+          cursor: String(message.itemOrder),
+          itemId: message.itemId,
+          isError: message.isError,
+          isStopped: message.isStopped,
+        };
+        write(formatSSEEvent(event));
+        lastEmittedCursor = message.itemOrder;
+      }
+    } catch {
+      write(formatSSEEvent({ type: "reset_required" }));
+      stream.end();
+      return;
+    }
+  }
+
+  // Live phase: poll the database and emit delta events.
+  while (!stream.destroyed) {
+    const elapsed = Date.now() - connectionStart;
+    if (elapsed >= MAX_CONNECTION_DURATION_MS) {
+      break;
+    }
+
+    // Keepalive
+    if (Date.now() - lastKeepalive >= KEEPALIVE_INTERVAL_MS) {
+      write(formatSSEComment("keepalive"));
+      lastKeepalive = Date.now();
+    }
+
+    try {
+      const page = await listChatMessagesLatest(userId, workspaceId, sessionId, 1);
+      const latestMessage = page.messages.length > 0 ? page.messages[page.messages.length - 1]! : null;
+      const currentRunState = latestMessage !== null
+        ? (latestMessage.state === "in_progress" ? "running" as const : "idle" as const)
+        : "idle" as const;
+
+      // Check for new completed messages beyond our cursor.
+      if (latestMessage !== null && latestMessage.itemOrder > lastEmittedCursor) {
+        const newMessages = await listChatMessagesAfterCursor(
+          userId,
+          workspaceId,
+          sessionId,
+          lastEmittedCursor,
+        );
+
+        for (const message of newMessages) {
+          if (stream.destroyed) {
+            return;
+          }
+
+          if (message.state === "in_progress") {
+            // Diff in-progress content
+            const prevContent = message.itemId === previousAssistantItemId
+              ? previousAssistantContent
+              : [];
+            const deltaEvents = diffAssistantContent(
+              prevContent,
+              stripBase64FromContentParts(message.content),
+              String(message.itemOrder),
+              message.itemId,
+            );
+            for (const event of deltaEvents) {
+              write(formatSSEEvent(event));
+            }
+            previousAssistantContent = stripBase64FromContentParts(message.content);
+            previousAssistantItemId = message.itemId;
+          } else {
+            // Completed/error/cancelled message
+            write(formatSSEEvent({
+              type: "assistant_message_done",
+              cursor: String(message.itemOrder),
+              itemId: message.itemId,
+              isError: message.isError,
+              isStopped: message.isStopped,
+            }));
+            lastEmittedCursor = message.itemOrder;
+            previousAssistantContent = [];
+            previousAssistantItemId = null;
+          }
+        }
+      } else if (latestMessage !== null && latestMessage.state === "in_progress" && latestMessage.itemId === previousAssistantItemId) {
+        // Same in-progress item, check for content changes.
+        const strippedContent = stripBase64FromContentParts(latestMessage.content);
+        const deltaEvents = diffAssistantContent(
+          previousAssistantContent,
+          strippedContent,
+          String(latestMessage.itemOrder),
+          latestMessage.itemId,
+        );
+        for (const event of deltaEvents) {
+          write(formatSSEEvent(event));
+        }
+        previousAssistantContent = strippedContent;
+      }
+
+      // Emit run_state changes.
+      if (previousRunState !== null && currentRunState !== previousRunState) {
+        write(formatSSEEvent({ type: "run_state", runState: currentRunState, sessionId }));
+      }
+      previousRunState = currentRunState;
+
+      // Idle tracking for reduced polling frequency.
+      if (currentRunState === "idle") {
+        if (idleSince === null) {
+          idleSince = Date.now();
+        }
+      } else {
+        idleSince = null;
+      }
+    } catch {
+      write(formatSSEEvent({ type: "error", message: "Failed to poll session state" }));
+    }
+
+    const pollInterval = idleSince !== null && Date.now() - idleSince > IDLE_GRACE_PERIOD_MS
+      ? IDLE_POLL_INTERVAL_MS
+      : LIVE_POLL_INTERVAL_MS;
+    await new Promise<void>((resolve) => setTimeout(resolve, pollInterval));
+  }
+
+  if (!stream.destroyed) {
+    stream.end();
+  }
+}
+
+/**
+ * Parses and validates the SSE live request from a Lambda Function URL event.
+ */
+export async function handleLiveRequest(
+  url: URL,
+  authorizationHeader: string | undefined,
+): Promise<LiveStreamParams> {
+  const sessionId = url.searchParams.get("sessionId");
+  if (sessionId === null || sessionId === "") {
+    throw new Error("Missing sessionId parameter");
+  }
+
+  const afterCursorParam = url.searchParams.get("afterCursor");
+  const afterCursor = afterCursorParam !== null
+    ? Number.parseInt(afterCursorParam, 10)
+    : undefined;
+  if (afterCursor !== undefined && (!Number.isSafeInteger(afterCursor) || afterCursor < 0)) {
+    throw new Error("Invalid afterCursor parameter");
+  }
+
+  const tokenParam = url.searchParams.get("token");
+  const effectiveAuth = authorizationHeader ?? (tokenParam !== null ? `Bearer ${tokenParam}` : undefined);
+
+  const authResult: AuthResult = await authenticateRequest({
+    authorizationHeader: effectiveAuth,
+    sessionToken: undefined,
+  });
+
+  if (authResult.selectedWorkspaceId === null) {
+    throw new Error("No workspace selected");
+  }
+
+  return {
+    sessionId,
+    afterCursor,
+    userId: authResult.userId,
+    workspaceId: authResult.selectedWorkspaceId,
+  };
+}

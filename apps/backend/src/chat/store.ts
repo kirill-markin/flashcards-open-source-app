@@ -42,6 +42,7 @@ type ChatItemPayload = Readonly<{
 type ChatItemRow = Readonly<{
   item_id: string;
   session_id: string;
+  item_order: string | number;
   state: ChatItemState;
   payload: ChatItemPayload;
   created_at: string;
@@ -124,6 +125,7 @@ export class ChatSessionConflictError extends Error {
 export type PersistedChatMessageItem = Readonly<{
   itemId: string;
   sessionId: string;
+  itemOrder: number;
   role: "user" | "assistant";
   content: ReadonlyArray<ContentPart>;
   openaiItems?: ReadonlyArray<StoredOpenAIReplayItem>;
@@ -186,6 +188,7 @@ const LIST_CHAT_ITEMS_SQL = `
   SELECT
     item_id,
     session_id,
+    item_order,
     state,
     payload,
     created_at,
@@ -193,6 +196,55 @@ const LIST_CHAT_ITEMS_SQL = `
   FROM ai.chat_items
   WHERE session_id = $1
     AND item_kind = 'message'
+  ORDER BY item_order ASC
+`;
+
+const LIST_CHAT_ITEMS_LATEST_SQL = `
+  SELECT
+    item_id,
+    session_id,
+    item_order,
+    state,
+    payload,
+    created_at,
+    updated_at
+  FROM ai.chat_items
+  WHERE session_id = $1
+    AND item_kind = 'message'
+  ORDER BY item_order DESC
+  LIMIT $2
+`;
+
+const LIST_CHAT_ITEMS_BEFORE_CURSOR_SQL = `
+  SELECT
+    item_id,
+    session_id,
+    item_order,
+    state,
+    payload,
+    created_at,
+    updated_at
+  FROM ai.chat_items
+  WHERE session_id = $1
+    AND item_kind = 'message'
+    AND item_order < $2
+  ORDER BY item_order DESC
+  LIMIT $3
+`;
+
+const LIST_CHAT_ITEMS_AFTER_CURSOR_SQL = `
+  SELECT
+    item_id,
+    session_id,
+    item_order,
+    state,
+    payload,
+    created_at,
+    updated_at
+  FROM ai.chat_items
+  WHERE session_id = $1
+    AND item_kind = 'message'
+    AND item_order > $2
   ORDER BY item_order ASC
 `;
 
@@ -206,14 +258,14 @@ const INSERT_CHAT_ITEM_SQL = `
       updated_at
     )
     VALUES ($1, 'message', $2, $3::jsonb, now())
-    RETURNING item_id, session_id, state, payload, created_at, updated_at
+    RETURNING item_id, session_id, item_order, state, payload, created_at, updated_at
   ),
   touched_session AS (
     UPDATE ai.chat_sessions
     SET updated_at = now()
     WHERE session_id = (SELECT session_id FROM inserted_item)
   )
-  SELECT item_id, session_id, state, payload, created_at, updated_at
+  SELECT item_id, session_id, item_order, state, payload, created_at, updated_at
   FROM inserted_item
 `;
 
@@ -224,14 +276,14 @@ const UPDATE_CHAT_ITEM_SQL = `
         state = $3,
         updated_at = now()
     WHERE item_id = $1
-    RETURNING item_id, session_id, state, payload, created_at, updated_at
+    RETURNING item_id, session_id, item_order, state, payload, created_at, updated_at
   ),
   touched_session AS (
     UPDATE ai.chat_sessions
     SET updated_at = now()
     WHERE session_id = (SELECT session_id FROM updated_item)
   )
-  SELECT item_id, session_id, state, payload, created_at, updated_at
+  SELECT item_id, session_id, item_order, state, payload, created_at, updated_at
   FROM updated_item
 `;
 
@@ -252,7 +304,7 @@ const UPDATE_CHAT_ITEM_AND_INVALIDATE_MAIN_CONTENT_SQL = `
         state = $3,
         updated_at = now()
     WHERE item_id = $1
-    RETURNING item_id, session_id, state, payload, created_at, updated_at
+    RETURNING item_id, session_id, item_order, state, payload, created_at, updated_at
   ),
   invalidated_session AS (
     UPDATE ai.chat_sessions
@@ -264,6 +316,7 @@ const UPDATE_CHAT_ITEM_AND_INVALIDATE_MAIN_CONTENT_SQL = `
   SELECT
     updated_item.item_id,
     updated_item.session_id,
+    updated_item.item_order,
     updated_item.state,
     updated_item.payload,
     updated_item.created_at,
@@ -301,10 +354,19 @@ function mapSessionRow(row: ChatSessionRow): Omit<ChatSessionSnapshot, "messages
   };
 }
 
+function parseItemOrder(value: string | number): number {
+  const parsed = typeof value === "number" ? value : Number.parseInt(value, 10);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new Error(`Chat item has an invalid item_order: ${String(value)}`);
+  }
+  return parsed;
+}
+
 function mapChatItemRow(row: ChatItemRow): PersistedChatMessageItem {
   return {
     itemId: row.item_id,
     sessionId: row.session_id,
+    itemOrder: parseItemOrder(row.item_order),
     role: row.payload.role,
     content: row.payload.content,
     openaiItems: row.payload.role === "assistant" ? row.payload.openaiItems : undefined,
@@ -326,6 +388,23 @@ function mapPersistedMessagesToStoredMessages(
     isError: message.isError,
     isStopped: message.isStopped,
   }));
+}
+
+/**
+ * Strips binary payload from image and file content parts, keeping only reference metadata.
+ */
+export function stripBase64FromContentParts(
+  parts: ReadonlyArray<ContentPart>,
+): ReadonlyArray<ContentPart> {
+  return parts.map((part) => {
+    if (part.type === "image") {
+      return { type: "image" as const, mediaType: part.mediaType, base64Data: "" };
+    }
+    if (part.type === "file") {
+      return { type: "file" as const, mediaType: part.mediaType, base64Data: "", fileName: part.fileName };
+    }
+    return part;
+  });
 }
 
 /**
@@ -587,6 +666,85 @@ export const listChatMessagesWithExecutor = async (
     return rows.map((row) => mapChatItemRow(row));
   });
 
+export type PaginatedChatMessages = Readonly<{
+  messages: ReadonlyArray<PersistedChatMessageItem>;
+  hasOlder: boolean;
+  oldestCursor: string | null;
+  newestCursor: string | null;
+}>;
+
+/**
+ * Returns the latest N messages for a session, in ascending order, with pagination metadata.
+ * Fetches limit+1 rows to determine whether older messages exist beyond the window.
+ */
+export const listChatMessagesLatestWithExecutor = async (
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+  limit: number,
+): Promise<PaginatedChatMessages> =>
+  withScopedExecutor(executor, scope, async () => {
+    const rows = await executeQuery<ChatItemRow>(
+      executor,
+      LIST_CHAT_ITEMS_LATEST_SQL,
+      [sessionId, String(limit + 1)],
+    );
+    const hasOlder = rows.length > limit;
+    const windowRows = hasOlder ? rows.slice(0, limit) : rows;
+    const messages = windowRows.map((row) => mapChatItemRow(row)).reverse();
+    return {
+      messages,
+      hasOlder,
+      oldestCursor: messages.length > 0 ? String(messages[0]!.itemOrder) : null,
+      newestCursor: messages.length > 0 ? String(messages[messages.length - 1]!.itemOrder) : null,
+    };
+  });
+
+/**
+ * Returns N messages before the given cursor, in ascending order, with pagination metadata.
+ */
+export const listChatMessagesBeforeWithExecutor = async (
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+  beforeCursor: number,
+  limit: number,
+): Promise<PaginatedChatMessages> =>
+  withScopedExecutor(executor, scope, async () => {
+    const rows = await executeQuery<ChatItemRow>(
+      executor,
+      LIST_CHAT_ITEMS_BEFORE_CURSOR_SQL,
+      [sessionId, String(beforeCursor), String(limit + 1)],
+    );
+    const hasOlder = rows.length > limit;
+    const windowRows = hasOlder ? rows.slice(0, limit) : rows;
+    const messages = windowRows.map((row) => mapChatItemRow(row)).reverse();
+    return {
+      messages,
+      hasOlder,
+      oldestCursor: messages.length > 0 ? String(messages[0]!.itemOrder) : null,
+      newestCursor: messages.length > 0 ? String(messages[messages.length - 1]!.itemOrder) : null,
+    };
+  });
+
+/**
+ * Returns all messages after the given cursor, in ascending order. Used for SSE backlog replay.
+ */
+export const listChatMessagesAfterCursorWithExecutor = async (
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+  afterCursor: number,
+): Promise<ReadonlyArray<PersistedChatMessageItem>> =>
+  withScopedExecutor(executor, scope, async () => {
+    const rows = await executeQuery<ChatItemRow>(
+      executor,
+      LIST_CHAT_ITEMS_AFTER_CURSOR_SQL,
+      [sessionId, String(afterCursor)],
+    );
+    return rows.map((row) => mapChatItemRow(row));
+  });
+
 /**
  * Builds the full session snapshot, including ordered messages, inside the current transaction scope.
  */
@@ -700,6 +858,43 @@ export const listChatMessages = async (
 ): Promise<ReadonlyArray<PersistedChatMessageItem>> =>
   transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
     listChatMessagesWithExecutor(executor, { userId, workspaceId }, sessionId));
+
+/**
+ * Returns the latest N messages for a session through the public store surface.
+ */
+export const listChatMessagesLatest = async (
+  userId: string,
+  workspaceId: string,
+  sessionId: string,
+  limit: number,
+): Promise<PaginatedChatMessages> =>
+  transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
+    listChatMessagesLatestWithExecutor(executor, { userId, workspaceId }, sessionId, limit));
+
+/**
+ * Returns N messages before the given cursor through the public store surface.
+ */
+export const listChatMessagesBefore = async (
+  userId: string,
+  workspaceId: string,
+  sessionId: string,
+  beforeCursor: number,
+  limit: number,
+): Promise<PaginatedChatMessages> =>
+  transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
+    listChatMessagesBeforeWithExecutor(executor, { userId, workspaceId }, sessionId, beforeCursor, limit));
+
+/**
+ * Returns all messages after the given cursor through the public store surface.
+ */
+export const listChatMessagesAfterCursor = async (
+  userId: string,
+  workspaceId: string,
+  sessionId: string,
+  afterCursor: number,
+): Promise<ReadonlyArray<PersistedChatMessageItem>> =>
+  transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
+    listChatMessagesAfterCursorWithExecutor(executor, { userId, workspaceId }, sessionId, afterCursor));
 
 /**
  * Returns a full chat session snapshot through the public store surface.
