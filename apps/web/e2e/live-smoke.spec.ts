@@ -17,6 +17,7 @@ import {
   trackedGoto,
   trackedIsVisible,
   trackedReadRequiredTextContent,
+  trackedWaitForComposerState,
   trackedWaitForComposerReady,
   trackedWaitForDeleteWorkspaceConfirmationState,
   trackedWaitForDeleteWorkspaceRetryTransition,
@@ -465,6 +466,15 @@ async function runAiCardCreationWithConfirmation(
   const createPrompt = "I give you all permissions. Please create one test flashcard now.";
 
   await waitForAiChatSendReadiness(page, diagnostics);
+  await trackedWaitForComposerState(
+    diagnostics,
+    "confirm AI create flow starts with an empty draft and disabled send action",
+    messageField,
+    sendButton,
+    "",
+    false,
+    externalUiTimeoutMs,
+  );
 
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     const previousUserMessageCount = await diagnostics.runAction(
@@ -558,6 +568,15 @@ async function runAiCardCreationWithConfirmation(
           throw new Error(`AI create prompt attempt ${String(attempt)} reported an assistant error before the run completed.`);
         }
       },
+    );
+    await trackedWaitForComposerState(
+      diagnostics,
+      `confirm AI create prompt attempt ${String(attempt)} returns to empty draft with disabled send action`,
+      messageField,
+      sendButton,
+      "",
+      false,
+      externalUiTimeoutMs,
     );
 
     const matchedInsertToolCall = await diagnostics.runAction(
@@ -710,10 +729,13 @@ async function assertNewChatResetsConversation(
   page: Page,
   diagnostics: LiveSmokeDiagnostics,
 ): Promise<void> {
+  const fullscreenChat = page.locator(".chat-sidebar-fullscreen");
+  const messageField = fullscreenChat.getByPlaceholder("Ask about cards, review history, or attach notes...");
+  const sendButton = fullscreenChat.getByRole("button", { name: "Send message" });
   await trackedClick(
     diagnostics,
     "start a fresh AI chat from the top bar",
-    page.locator(".chat-sidebar-fullscreen").getByRole("button", { name: "New", exact: true }),
+    fullscreenChat.getByRole("button", { name: "New", exact: true }),
   );
   await trackedExpectVisible(
     diagnostics,
@@ -727,6 +749,15 @@ async function assertNewChatResetsConversation(
     await expect.poll(async () => allMessages.count(), { timeout: externalUiTimeoutMs }).toBe(0);
     await expect.poll(async () => errorMessages.count(), { timeout: externalUiTimeoutMs }).toBe(0);
   });
+  await trackedWaitForComposerState(
+    diagnostics,
+    "confirm AI chat reset leaves an empty draft and disabled send action",
+    messageField,
+    sendButton,
+    "",
+    false,
+    externalUiTimeoutMs,
+  );
 }
 
 async function assertCardReachableInReview(

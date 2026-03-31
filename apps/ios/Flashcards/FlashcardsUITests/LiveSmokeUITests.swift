@@ -763,6 +763,10 @@ final class LiveSmokeUITests: XCTestCase {
         var latestCompletedSqlSummaries: [String] = []
 
         for attempt in 1...aiCreatePromptMaximumAttempts {
+            try self.assertElementDisabled(
+                identifier: LiveSmokeIdentifier.aiComposerSendButton,
+                timeout: self.shortUiTimeoutSeconds
+            )
             try self.replaceAiComposerText(
                 aiCreatePromptText,
                 timeout: self.shortUiTimeoutSeconds
@@ -802,6 +806,10 @@ final class LiveSmokeUITests: XCTestCase {
                 expectedLabel: "Send message",
                 timeout: self.longUiTimeoutSeconds
             )
+            try self.assertElementDisabled(
+                identifier: LiveSmokeIdentifier.aiComposerSendButton,
+                timeout: self.longUiTimeoutSeconds
+            )
 
             let toolCallCheck = try self.completedAiInsertToolCallCheck()
             latestCompletedSqlSummaries = toolCallCheck.completedSqlSummaries
@@ -836,6 +844,10 @@ final class LiveSmokeUITests: XCTestCase {
         )
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.aiComposerTextField,
+            timeout: self.longUiTimeoutSeconds
+        )
+        try self.assertElementDisabled(
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
             timeout: self.longUiTimeoutSeconds
         )
 
@@ -1236,6 +1248,33 @@ final class LiveSmokeUITests: XCTestCase {
             if element.isEnabled == false {
                 throw LiveSmokeFailure.disabledElement(
                     identifier: identifier,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+        }
+    }
+
+    @MainActor
+    private func assertElementDisabled(identifier: String, timeout: TimeInterval) throws {
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_element_disabled.\(identifier)") {
+            let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            if self.waitForOptionalElement(
+                element,
+                identifier: identifier,
+                timeout: timeout
+            ) == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: identifier,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            if element.isEnabled {
+                throw LiveSmokeFailure.unexpectedAiConversationState(
+                    message: "Expected \(identifier) to be disabled.",
                     screen: self.currentScreenSummary(),
                     step: self.currentStepTitle
                 )
@@ -2441,6 +2480,13 @@ final class LiveSmokeUITests: XCTestCase {
             _ = self.dismissKnownBlockingAlertIfVisible()
 
             if sendButton.label == "Stop response" {
+                if sendButton.isEnabled == false {
+                    throw LiveSmokeFailure.disabledElement(
+                        identifier: LiveSmokeIdentifier.aiComposerSendButton,
+                        screen: self.currentScreenSummary(),
+                        step: self.currentStepTitle
+                    )
+                }
                 let durationSeconds = Date().timeIntervalSince(startedAt)
                 self.logSmokeBreadcrumb(
                     event: "wait_end",

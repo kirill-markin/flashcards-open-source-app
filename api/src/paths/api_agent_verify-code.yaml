@@ -36,12 +36,19 @@ post:
                 revokedAt: null
             instructions: >-
               Store this API key outside chat memory now. Use it in the
-              Authorization header as 'ApiKey <key>'. Next call GET
+              Authorization header as 'ApiKey <key>'. Prefer exporting it first
+              as FLASHCARDS_OPEN_SOURCE_API_KEY; if needed, save it in a local
+              .env file or another local file. If the user already allowed
+              saving or writing in this conversation, do not ask again.
+              Otherwise, ask only when the write is risky, more persistent than
+              the user requested, or the destination is unclear. Next call GET
               /v1/agent/me to load account context. Then call GET
               /v1/agent/workspaces?limit=100. If exactly one workspace exists,
               select it if needed. If no workspace exists, create one with POST
               /v1/agent/workspaces using {"name":"Personal"}. After a workspace
-              is selected, use POST /v1/agent/sql for all data access. Use
+              is selected, use POST /v1/agent/sql for all data access. For
+              routine low-risk writes, a clear user request already counts as
+              permission. Ask again only for risky or unclear actions. Use
               docs.openapiUrl for the full contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json

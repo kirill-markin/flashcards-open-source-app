@@ -136,6 +136,26 @@ export async function trackedWaitForComposerReady(
   expectedDraftText: string,
   timeoutMs: number,
 ): Promise<void> {
+  await trackedWaitForComposerState(
+    diagnostics,
+    actionName,
+    messageField,
+    sendButton,
+    expectedDraftText,
+    true,
+    timeoutMs,
+  );
+}
+
+export async function trackedWaitForComposerState(
+  diagnostics: LiveSmokeDiagnostics,
+  actionName: string,
+  messageField: Locator,
+  sendButton: Locator,
+  expectedDraftText: string,
+  expectedSendEnabled: boolean,
+  timeoutMs: number,
+): Promise<void> {
   await diagnostics.runAction(actionName, async () => {
     await expect.poll(
       async () => ({
@@ -145,7 +165,7 @@ export async function trackedWaitForComposerReady(
       { timeout: timeoutMs },
     ).toEqual({
       inputText: expectedDraftText,
-      isSendEnabled: true,
+      isSendEnabled: expectedSendEnabled,
     });
   });
 }
