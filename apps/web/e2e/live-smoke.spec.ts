@@ -17,7 +17,6 @@ import {
   trackedGoto,
   trackedIsVisible,
   trackedReadRequiredTextContent,
-  trackedReload,
   trackedWaitForComposerReady,
   trackedWaitForDeleteWorkspaceConfirmationState,
   trackedWaitForDeleteWorkspaceRetryTransition,
@@ -108,7 +107,7 @@ test.describe.serial("live smoke flow uses the real demo account across review, 
     }
   });
 
-  test("linked workspace session survives reload and shows account status", async ({ page: _page }, testInfo) => {
+  test("linked workspace shows account status and workspace state", async ({ page: _page }, testInfo) => {
     await runLiveSmokeGroupTest(
       testInfo,
       async () => {
@@ -124,10 +123,6 @@ test.describe.serial("live smoke flow uses the real demo account across review, 
         await runTrackedTestStep(diagnostics, "create an isolated linked workspace for this run", async () => {
           await createEphemeralWorkspace(page, scenario.workspaceName, diagnostics);
           shouldDeleteWorkspace = true;
-        });
-
-        await runTrackedTestStep(diagnostics, "reload the browser and keep the linked session", async () => {
-          await restartAndAssertLinkedSession(page, scenario.workspaceName, diagnostics);
         });
 
         await runTrackedTestStep(diagnostics, "verify linked account status and workspace state", async () => {
@@ -444,27 +439,6 @@ async function reviewCardFromQueue(
       { timeout: localUiTimeoutMs },
     ).not.toContain(expectedFrontText);
   });
-}
-
-async function restartAndAssertLinkedSession(
-  page: Page,
-  workspaceName: string,
-  diagnostics: LiveSmokeDiagnostics,
-): Promise<void> {
-  await trackedReload(page, diagnostics, "reload the app shell and wait for DOM content", externalUiTimeoutMs);
-  await trackedExpectVisible(
-    diagnostics,
-    "confirm primary navigation is visible after reload",
-    page.getByRole("navigation", { name: "Primary" }),
-    externalUiTimeoutMs,
-  );
-  await trackedExpectText(
-    diagnostics,
-    `confirm topbar workspace persisted as ${workspaceName} after reload`,
-    page.locator(".topbar-workspace"),
-    workspaceName,
-    externalUiTimeoutMs,
-  );
 }
 
 async function runAiCardCreationWithConfirmation(

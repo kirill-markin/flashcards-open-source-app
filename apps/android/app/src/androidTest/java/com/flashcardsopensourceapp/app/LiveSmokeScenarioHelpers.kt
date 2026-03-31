@@ -142,49 +142,6 @@ internal fun LiveSmokeContext.seedLocalCard(
     composeRule.waitForIdle()
 }
 
-internal fun LiveSmokeContext.relaunchAndAssertAccountStatus(reviewEmail: String) {
-    composeRule.activityRule.scenario.recreate()
-    openSettingsTab()
-    clickNode(
-        matcher = hasText("Account").and(other = hasClickAction()),
-        label = "Account"
-    )
-    clickText(text = "Account status", substring = false)
-    waitUntilAtLeastOneExistsOrFail(
-        matcher = hasText(reviewEmail),
-        timeoutMillis = internalUiTimeoutMillis
-    )
-    tapBackIcon()
-    tapBackIcon()
-}
-
-internal fun LiveSmokeContext.relaunchAndAssertGuestAccountStatus() {
-    composeRule.activityRule.scenario.recreate()
-    openSettingsTab()
-    waitUntilAtLeastOneExistsOrFail(
-        matcher = hasText("Guest AI"),
-        timeoutMillis = internalUiTimeoutMillis
-    )
-    clickNode(
-        matcher = hasText("Account").and(other = hasClickAction()),
-        label = "Account"
-    )
-    clickText(text = "Account status", substring = false)
-    waitUntilAtLeastOneExistsOrFail(
-        matcher = hasText("Guest AI"),
-        timeoutMillis = internalUiTimeoutMillis
-    )
-    waitUntilAtLeastOneExistsOrFail(
-        matcher = hasText("Guest AI session"),
-        timeoutMillis = internalUiTimeoutMillis
-    )
-    if (hasVisibleText(text = "Linked", substring = false)) {
-        throw AssertionError("Guest AI smoke unexpectedly reached a linked account state.")
-    }
-    tapBackIcon()
-    tapBackIcon()
-}
-
 private const val aiCreatePromptText: String =
     "I give you all permissions. Please create one test flashcard now."
 

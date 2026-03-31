@@ -24,17 +24,6 @@ export async function trackedGoto(
   });
 }
 
-export async function trackedReload(
-  page: Page,
-  diagnostics: LiveSmokeDiagnostics,
-  actionName: string,
-  timeoutMs: number,
-): Promise<void> {
-  await diagnostics.runAction(actionName, async () => {
-    await page.reload({ waitUntil: "domcontentloaded", timeout: timeoutMs });
-  });
-}
-
 export async function trackedWaitForUrl(
   page: Page,
   diagnostics: LiveSmokeDiagnostics,
