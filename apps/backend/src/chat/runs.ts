@@ -25,11 +25,14 @@ import {
   INTERRUPTED_TOOL_CALL_OUTPUT,
   FAILED_TOOL_CALL_OUTPUT,
   listChatMessagesWithExecutor,
+  listChatMessagesLatestWithExecutor,
+  listChatMessagesBeforeWithExecutor,
   resolveLatestOrCreateChatSessionWithExecutor,
   resolveRequestedChatSessionWithExecutor,
   STOPPED_BY_USER_TOOL_OUTPUT,
   type ChatSessionRow,
   type ChatSessionRunState,
+  type PaginatedChatMessages,
   type PersistedChatMessageItem,
   updateChatItemWithExecutor,
   updateChatSessionRunStateWithExecutor,
@@ -570,6 +573,49 @@ export async function getRecoveredChatSessionSnapshot(
     }
 
     return getChatSessionSnapshotWithExecutor(executor, scope, snapshot.sessionId);
+  });
+}
+
+export type RecoveredPaginatedSession = Readonly<{
+  sessionId: string;
+  runState: ChatSessionRunState;
+  page: PaginatedChatMessages;
+}>;
+
+/**
+ * Resolves a session with stale-run recovery, then returns a paginated message window.
+ */
+export async function getRecoveredPaginatedSession(
+  userId: string,
+  workspaceId: string,
+  sessionId: string | undefined,
+  limit: number,
+  beforeCursor: number | undefined,
+): Promise<RecoveredPaginatedSession> {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+    const scope = { userId, workspaceId };
+    const sessionRow = sessionId === undefined
+      ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
+      : await resolveRequestedChatSessionWithExecutor(executor, scope, sessionId);
+
+    if (sessionRow.status === "running") {
+      const lockedSession = await selectSessionForUpdateWithExecutor(executor, scope, sessionRow.session_id);
+      await recoverStaleRunWithExecutor(executor, scope, lockedSession);
+    }
+
+    const resolvedSession = sessionId === undefined
+      ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
+      : await resolveRequestedChatSessionWithExecutor(executor, scope, sessionRow.session_id);
+
+    const page = beforeCursor === undefined
+      ? await listChatMessagesLatestWithExecutor(executor, scope, resolvedSession.session_id, limit)
+      : await listChatMessagesBeforeWithExecutor(executor, scope, resolvedSession.session_id, beforeCursor, limit);
+
+    return {
+      sessionId: resolvedSession.session_id,
+      runState: resolvedSession.status,
+      page,
+    };
   });
 }
 

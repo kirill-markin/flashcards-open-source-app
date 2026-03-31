@@ -61,7 +61,8 @@ data class AiChatServerConfig(
     val provider: AiChatProvider,
     val model: AiChatServerModel,
     val reasoning: AiChatReasoning,
-    val features: AiChatFeatures
+    val features: AiChatFeatures,
+    val liveUrl: String?
 )
 
 data class AiChatSessionSnapshot(
@@ -91,7 +92,8 @@ val defaultAiChatServerConfig: AiChatServerConfig = AiChatServerConfig(
         modelPickerEnabled = false,
         dictationEnabled = true,
         attachmentsEnabled = true
-    )
+    ),
+    liveUrl = null
 )
 
 enum class AiChatRole {
@@ -277,6 +279,71 @@ fun makeDefaultAiChatPersistedState(): AiChatPersistedState {
         lastKnownChatConfig = null
     )
 }
+
+// Thin Live Chat Types
+
+data class AiChatAttachmentReference(
+    val id: String,
+    val kind: String,
+    val displayName: String,
+    val mediaType: String
+)
+
+data class AiChatBootstrapResponse(
+    val sessionId: String,
+    val runState: String,
+    val chatConfig: AiChatServerConfig,
+    val messages: List<AiChatMessage>,
+    val hasOlder: Boolean,
+    val oldestCursor: String?,
+    val liveCursor: String?
+)
+
+data class AiChatOlderMessagesResponse(
+    val messages: List<AiChatMessage>,
+    val hasOlder: Boolean,
+    val oldestCursor: String?
+)
+
+sealed interface AiChatLiveEvent {
+    data class RunState(val runState: String) : AiChatLiveEvent
+    data class AssistantDelta(val text: String, val cursor: String, val itemId: String) : AiChatLiveEvent
+    data class AssistantToolCall(val toolCall: AiChatToolCall, val cursor: String, val itemId: String) : AiChatLiveEvent
+    data class AssistantMessageDone(val cursor: String, val itemId: String, val isError: Boolean, val isStopped: Boolean) : AiChatLiveEvent
+    data class RepairStatus(val status: AiChatRepairAttemptStatus) : AiChatLiveEvent
+    data class Error(val message: String) : AiChatLiveEvent
+    data class StopAck(val sessionId: String) : AiChatLiveEvent
+    data object ResetRequired : AiChatLiveEvent
+}
+
+data class AiChatConversationWindow(
+    val messages: List<AiChatMessage>,
+    val hasOlder: Boolean,
+    val oldestCursor: String?,
+    val liveCursor: String?,
+    val runState: String,
+    val isBootstrapping: Boolean,
+    val isLoadingOlder: Boolean,
+    val isLiveAttached: Boolean
+) {
+    companion object {
+        fun empty(): AiChatConversationWindow = AiChatConversationWindow(
+            messages = emptyList(),
+            hasOlder = false,
+            oldestCursor = null,
+            liveCursor = null,
+            runState = "idle",
+            isBootstrapping = true,
+            isLoadingOlder = false,
+            isLiveAttached = false
+        )
+    }
+}
+
+data class AiChatMinimalPersistedState(
+    val lastSessionId: String,
+    val draftText: String
+)
 
 fun buildAiChatRequestContent(content: List<AiChatContentPart>): List<AiChatWireContentPart> {
     return content.mapNotNull { part ->

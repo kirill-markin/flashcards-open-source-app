@@ -18,6 +18,7 @@ export interface OutputsProps {
   authRestApi: apigw.RestApi;
   backendFn: lambda.IFunction;
   chatWorkerFn: lambda.IFunction;
+  chatLiveFn: lambda.IFunction;
   authFn: lambda.IFunction;
   migrationFn: lambda.IFunction;
   userPoolId: string;
@@ -88,6 +89,11 @@ export function outputs(scope: Construct, props: OutputsProps): void {
   new cdk.CfnOutput(scope, "ChatWorkerFunctionName", {
     value: props.chatWorkerFn.functionName,
     description: "Lambda function name for detached chat worker",
+  });
+
+  new cdk.CfnOutput(scope, "ChatLiveFunctionName", {
+    value: props.chatLiveFn.functionName,
+    description: "Lambda function name for SSE live chat stream",
   });
 
   new cdk.CfnOutput(scope, "AuthFunctionName", {

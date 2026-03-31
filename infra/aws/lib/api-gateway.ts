@@ -29,6 +29,8 @@ export interface ApiGatewayResult {
   restApi: apigw.RestApi;
   backendFn: lambdaNodejs.NodejsFunction;
   chatWorkerFn: lambdaNodejs.NodejsFunction;
+  chatLiveFn: lambdaNodejs.NodejsFunction;
+  chatLiveFunctionUrl: lambda.FunctionUrl;
 }
 
 interface BackendFunctionProps {
@@ -244,7 +246,39 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
   });
+  const chatLiveFn = createBackendFunction(scope, {
+    constructId: "ChatLiveHandler",
+    entry: path.join(__dirname, "../../../apps/backend/src/lambda-chat-live.ts"),
+    baseDomain: props.baseDomain,
+    vpc: props.vpc,
+    lambdaSg: props.lambdaSg,
+    db: props.db,
+    backendDbSecret: props.backendDbSecret,
+    backendCsrfSecret,
+    allowedOrigins,
+    userPoolId: props.userPoolId,
+    userPoolArn: props.userPoolArn,
+    userPoolClientId: props.userPoolClientId,
+    openAiApiKeySecretArn: props.openAiApiKeySecretArn,
+    langfusePublicKeySecretArn: props.langfusePublicKeySecretArn,
+    langfuseSecretKeySecretArn: props.langfuseSecretKeySecretArn,
+    langfuseBaseUrl: props.langfuseBaseUrl,
+    demoEmailDostip: props.demoEmailDostip,
+    guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
+  });
+  const chatLiveFunctionUrl = chatLiveFn.addFunctionUrl({
+    authType: lambda.FunctionUrlAuthType.NONE,
+    invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
+    cors: {
+      allowedOrigins: allowedOrigins,
+      allowedMethods: [lambda.HttpMethod.GET, lambda.HttpMethod.OPTIONS],
+      allowedHeaders: ["content-type", "authorization"],
+      allowCredentials: true,
+    },
+  });
+
   backendFn.addEnvironment("CHAT_WORKER_FUNCTION_NAME", chatWorkerFn.functionName);
+  backendFn.addEnvironment("CHAT_LIVE_URL", chatLiveFunctionUrl.url);
   chatWorkerFn.grantInvoke(backendFn);
 
   const restApi = new apigw.RestApi(scope, "Api", {
@@ -394,5 +428,10 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     });
   }
 
-  return { restApi, backendFn, chatWorkerFn };
+  new cdk.CfnOutput(scope, "ChatLiveFunctionUrl", {
+    value: chatLiveFunctionUrl.url,
+    description: "Lambda Function URL for the SSE live chat stream",
+  });
+
+  return { restApi, backendFn, chatWorkerFn, chatLiveFn, chatLiveFunctionUrl };
 }

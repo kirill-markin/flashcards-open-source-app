@@ -14,6 +14,7 @@ export interface MonitoringProps {
   restApi: apigw.RestApi;
   backendFn: lambda.IFunction;
   chatWorkerFn: lambda.IFunction;
+  chatLiveFn: lambda.IFunction;
 }
 
 export interface MonitoringResult {
@@ -82,6 +83,17 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     threshold: 1,
     evaluationPeriods: 1,
     alarmDescription: "Chat worker Lambda had errors",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  new cloudwatch.Alarm(scope, "ChatLiveLambdaErrorAlarm", {
+    metric: props.chatLiveFn.metricErrors({
+      period: cdk.Duration.minutes(15),
+      statistic: "Sum",
+    }),
+    threshold: 3,
+    evaluationPeriods: 1,
+    alarmDescription: "Chat live SSE Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 

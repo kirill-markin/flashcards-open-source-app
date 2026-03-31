@@ -147,9 +147,9 @@ final class AIChatStore {
         self.voiceRecorder = voiceRecorder
         self.audioTranscriber = audioTranscriber
         self.runtime = AIChatSessionRuntime(
-            historyStore: historyStore,
             chatService: chatService,
-            contextLoader: contextLoader
+            contextLoader: contextLoader,
+            urlSession: URLSession.shared
         )
 
         let initialHistoryWorkspaceId = makeAIChatHistoryScopedWorkspaceId(
@@ -497,17 +497,14 @@ final class AIChatStore {
                 didAppendOptimisticMessages = true
                 self.composerPhase = .startingRun
                 self.activeConversationId = conversationId
-                let initialState = self.currentPersistedState()
                 await self.runtime.run(
                     session: session,
-                    initialState: initialState,
+                    sessionId: self.chatSessionId,
                     outgoingContent: content,
                     eventHandler: { [weak self] event in
                         await self?.handleRuntimeEvent(event, conversationId: conversationId)
                     }
                 )
-                let latestPersistedState = self.historyStore.loadState()
-                self.chatSessionId = latestPersistedState.chatSessionId
                 if session.authorization.isGuest == false {
                     do {
                         _ = try await self.flashcardsStore.runLinkedSync(linkedSession: session)

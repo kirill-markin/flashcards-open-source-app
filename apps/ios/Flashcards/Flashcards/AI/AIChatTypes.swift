@@ -165,6 +165,7 @@ struct AIChatServerConfig: Codable, Hashable, Sendable {
     let model: AIChatServerModelDef
     let reasoning: AIChatReasoningDef
     let features: AIChatFeaturesDef
+    let liveUrl: String?
 }
 
 let aiChatDefaultServerConfig = AIChatServerConfig(
@@ -185,7 +186,8 @@ let aiChatDefaultServerConfig = AIChatServerConfig(
         modelPickerEnabled: false,
         dictationEnabled: true,
         attachmentsEnabled: true
-    )
+    ),
+    liveUrl: nil
 )
 
 enum AIChatRole: String, Codable, Hashable, Sendable {
@@ -561,6 +563,118 @@ struct AIChatSnapshotMessagePayload: Decodable, Hashable, Sendable {
     }
 }
 
+// MARK: - Thin Live Chat Types
+
+struct AIChatAttachmentReference: Codable, Hashable, Sendable {
+    let id: String
+    let kind: String
+    let displayName: String
+    let mediaType: String
+}
+
+struct AIChatBootstrapResponse: Sendable {
+    let sessionId: String
+    let runState: String
+    let chatConfig: AIChatServerConfig
+    let messages: [AIChatMessage]
+    let hasOlder: Bool
+    let oldestCursor: String?
+    let liveCursor: String?
+}
+
+struct AIChatOlderMessagesResponse: Sendable {
+    let messages: [AIChatMessage]
+    let hasOlder: Bool
+    let oldestCursor: String?
+}
+
+struct AIChatBootstrapResponsePayload: Decodable, Sendable {
+    let sessionId: String
+    let runState: String
+    let chatConfig: AIChatServerConfig
+    let messages: [AIChatBootstrapMessagePayload]
+    let hasOlder: Bool
+    let oldestCursor: String?
+    let liveCursor: String?
+}
+
+struct AIChatBootstrapMessagePayload: Decodable, Sendable {
+    let role: AIChatRole
+    let content: [AIChatContentPart]
+    let timestamp: String
+    let isError: Bool
+    let isStopped: Bool
+    let cursor: String
+
+    private enum CodingKeys: String, CodingKey {
+        case role
+        case content
+        case timestamp
+        case isError
+        case isStopped
+        case cursor
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.role = try container.decode(AIChatRole.self, forKey: .role)
+        self.content = try decodeAIChatContentParts(container: container, key: .content)
+        if let timestampMillis = try? container.decode(Int.self, forKey: .timestamp) {
+            self.timestamp = isoTimestampFromMilliseconds(timestampMillis)
+        } else {
+            self.timestamp = try container.decode(String.self, forKey: .timestamp)
+        }
+        self.isError = try container.decode(Bool.self, forKey: .isError)
+        self.isStopped = try container.decodeIfPresent(Bool.self, forKey: .isStopped) ?? false
+        self.cursor = try container.decode(String.self, forKey: .cursor)
+    }
+}
+
+enum AIChatLiveEvent: Sendable {
+    case runState(String)
+    case assistantDelta(text: String, cursor: String, itemId: String)
+    case assistantToolCall(AIChatToolCall, cursor: String, itemId: String)
+    case assistantMessageDone(cursor: String, itemId: String, isError: Bool, isStopped: Bool)
+    case repairStatus(AIChatRepairAttemptStatus)
+    case error(String)
+    case stopAck(sessionId: String)
+    case resetRequired
+}
+
+struct AIChatConversationWindow: Sendable {
+    var messages: [AIChatMessage]
+    var hasOlder: Bool
+    var oldestCursor: String?
+    var liveCursor: String?
+    var runState: String
+    var isBootstrapping: Bool
+    var isLoadingOlder: Bool
+    var isLiveAttached: Bool
+
+    static func empty() -> AIChatConversationWindow {
+        AIChatConversationWindow(
+            messages: [],
+            hasOlder: false,
+            oldestCursor: nil,
+            liveCursor: nil,
+            runState: "idle",
+            isBootstrapping: true,
+            isLoadingOlder: false,
+            isLiveAttached: false
+        )
+    }
+}
+
+struct AIChatMinimalPersistedState: Codable, Hashable, Sendable {
+    let lastSessionId: String
+    let draftText: String
+
+    init(lastSessionId: String, draftText: String) {
+        self.lastSessionId = lastSessionId
+        self.draftText = draftText
+    }
+}
+
 struct AIChatStartRunResponse: Codable, Hashable, Sendable {
     let ok: Bool
     let sessionId: String
@@ -765,6 +879,19 @@ protocol AIChatSessionServicing: Sendable {
         session: CloudLinkedSession,
         sessionId: String?
     ) async throws -> AIChatSessionSnapshot
+
+    func loadBootstrap(
+        session: CloudLinkedSession,
+        sessionId: String?,
+        limit: Int
+    ) async throws -> AIChatBootstrapResponse
+
+    func loadOlderMessages(
+        session: CloudLinkedSession,
+        sessionId: String,
+        beforeCursor: String,
+        limit: Int
+    ) async throws -> AIChatOlderMessagesResponse
 
     func startRun(
         session: CloudLinkedSession,
