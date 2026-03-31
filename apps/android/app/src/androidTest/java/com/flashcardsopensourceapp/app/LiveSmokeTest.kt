@@ -28,7 +28,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
+import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.feature.ai.aiAssistantMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.aiAssistantTextPartTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
@@ -133,7 +135,7 @@ class LiveSmokeTest {
     }
 
     @Test
-    fun manualCardCanBeCreatedAndReviewedInDefaultWorkspace() {
+    fun manualCardCanBeCreatedInDefaultWorkspace() {
         val runId = System.currentTimeMillis().toString()
         val manualFrontText = "Manual e2e android $runId"
         val manualBackText = "Manual answer e2e android $runId"
@@ -145,17 +147,38 @@ class LiveSmokeTest {
                 markerTag = "manual-$runId"
             )
         }
-        step("verify the manual card in cards and review") {
+        step("verify the manual card in cards") {
             assertCardVisibleInCards(
                 searchText = manualFrontText,
                 timeoutMillis = internalUiTimeoutMillis
             )
-            reviewOneCard()
         }
     }
 
     @Test
-    fun aiCardCanBeCreatedAsGuestInDefaultWorkspace() {
+    fun manualCardCanBeReviewedInDefaultWorkspace() {
+        val runId = System.currentTimeMillis().toString()
+        val manualFrontText = "Manual review e2e android $runId"
+        val manualBackText = "Manual review answer e2e android $runId"
+
+        step("seed one manual card directly in the default local workspace") {
+            seedLocalCard(
+                frontText = manualFrontText,
+                backText = manualBackText,
+                markerTag = "manual-review-$runId"
+            )
+        }
+        step("verify the seeded manual card in review") {
+            assertCardReachableInReview(
+                expectedFrontText = manualFrontText,
+                timeoutMillis = internalUiTimeoutMillis
+            )
+            rateVisibleReviewCardGood()
+        }
+    }
+
+    @Test
+    fun guestAiCardCanBeCreatedWithExplicitConfirmation() {
         val runId = System.currentTimeMillis().toString()
         val aiFrontText = "AI e2e android $runId"
         val aiBackText = "AI answer e2e android $runId"
@@ -167,8 +190,48 @@ class LiveSmokeTest {
                 markerTag = "ai-$runId"
             )
         }
+        step("force a sync in the current guest workspace and wait for the AI card locally") {
+            forceSyncAndWaitForLocalCard(
+                expectedFrontText = aiFrontText,
+                timeoutMillis = externalUiTimeoutMillis
+            )
+        }
+        step("verify the AI-created card in cards") {
+            assertCardVisibleInCards(
+                searchText = aiFrontText,
+                timeoutMillis = externalUiTimeoutMillis
+            )
+        }
+    }
+
+    @Test
+    fun guestAiNewChatResetsConversationCleanly() {
+        val runId = System.currentTimeMillis().toString()
+        val guestPrompt = "Reply with exactly ANDROID_SMOKE_RESET_$runId"
+
+        step("start a minimal guest AI conversation") {
+            createGuestAiConversation(
+                promptText = guestPrompt,
+                expectedAssistantText = "ANDROID_SMOKE_RESET_$runId"
+            )
+        }
         step("start a new chat and confirm the conversation resets cleanly") {
             startNewChatAndAssertConversationReset()
+        }
+    }
+
+    @Test
+    fun guestAiCardSurvivesActivityRelaunchAndIsReviewable() {
+        val runId = System.currentTimeMillis().toString()
+        val aiFrontText = "AI review e2e android $runId"
+        val aiBackText = "AI review answer e2e android $runId"
+
+        step("create one AI card with explicit confirmation as guest in the default workspace") {
+            createAiCardWithConfirmation(
+                aiFrontText = aiFrontText,
+                aiBackText = aiBackText,
+                markerTag = "ai-review-$runId"
+            )
         }
         step("force a sync in the current guest workspace and wait for the AI card locally") {
             forceSyncAndWaitForLocalCard(
@@ -188,6 +251,7 @@ class LiveSmokeTest {
                 expectedFrontText = aiFrontText,
                 timeoutMillis = externalUiTimeoutMillis
             )
+            rateVisibleReviewCardGood()
         }
     }
 
@@ -237,9 +301,7 @@ class LiveSmokeTest {
     }
 
     /**
-     * This smoke suite is intentionally split into a few stateful groups.
-     * The manual and AI groups stay local-first, while the linked-session group
-     * owns linked workspace setup so regressions stay independently attributable.
+     * Keep each smoke test independently attributable and short enough for device-farm runs.
      */
     private fun step(label: String, action: () -> Unit) {
         val previousStepLabel = currentStepLabel
@@ -358,6 +420,10 @@ class LiveSmokeTest {
 
     private fun reviewOneCard() {
         clickText(text = "Review")
+        rateVisibleReviewCardGood()
+    }
+
+    private fun rateVisibleReviewCardGood() {
         waitUntilAtLeastOneExistsOrFail(
             matcher = hasText("Show answer"),
             timeoutMillis = internalUiTimeoutMillis
@@ -369,6 +435,23 @@ class LiveSmokeTest {
             composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
                 || composeRule.onAllNodesWithText("Session complete").fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    private fun seedLocalCard(frontText: String, backText: String, markerTag: String) {
+        val application = composeRule.activity.application as FlashcardsApplication
+        val appGraph = application.appGraph
+        runBlocking {
+            appGraph.ensureLocalWorkspaceShell(currentTimeMillis = System.currentTimeMillis())
+            appGraph.cardsRepository.createCard(
+                cardDraft = CardDraft(
+                    frontText = frontText,
+                    backText = backText,
+                    tags = listOf(markerTag),
+                    effortLevel = EffortLevel.MEDIUM
+                )
+            )
+        }
+        composeRule.waitForIdle()
     }
 
     private fun relaunchAndAssertAccountStatus(reviewEmail: String) {
@@ -477,6 +560,22 @@ class LiveSmokeTest {
                 error
             )
         }
+    }
+
+    private fun createGuestAiConversation(promptText: String, expectedAssistantText: String) {
+        clickText(text = "AI")
+        dismissAiConsentIfNeeded()
+        waitForGuestCloudWorkspaceReady(context = "before creating a guest AI conversation")
+        fillAiComposerWithRetry(
+            expectedDraftText = promptText,
+            context = "for the guest AI reset smoke prompt"
+        )
+        clickTag(tag = aiComposerSendButtonTag, label = "Send guest AI reset smoke prompt")
+        waitForAiRunToFinish(context = "after sending the guest AI reset smoke prompt")
+        waitForGuestConversation(
+            expectedUserText = promptText,
+            expectedAssistantText = expectedAssistantText
+        )
     }
 
     private fun assertCardVisibleInCards(searchText: String, timeoutMillis: Long) {
@@ -1410,6 +1509,66 @@ class LiveSmokeTest {
             throw AssertionError(
                 "Assistant proposal did not contain the requested card. " +
                     "LatestAssistant='${latestAssistantMessageTextOrNull()}' " +
+                    "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+                error
+            )
+        }
+    }
+
+    private fun waitForAiRunToFinish(context: String) {
+        waitUntilAtLeastOneExistsOrFail(
+            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText("Stop")),
+            timeoutMillis = externalUiTimeoutMillis
+        )
+        waitUntilAtLeastOneExistsOrFail(
+            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText("Send")),
+            timeoutMillis = externalUiTimeoutMillis
+        )
+        try {
+            waitUntilWithMitigation(
+                timeoutMillis = externalUiTimeoutMillis,
+                context = "while waiting for AI streaming to finish $context"
+            ) {
+                aiComposerSendButtonIsEnabled(expectedLabel = "Send")
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "AI streaming did not finish $context. " +
+                    "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = "Send")} " +
+                    "LatestAssistant='${latestAssistantMessageTextOrNull()}' " +
+                    "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+                error
+            )
+        }
+    }
+
+    private fun waitForGuestConversation(
+        expectedUserText: String,
+        expectedAssistantText: String
+    ) {
+        try {
+            waitUntilWithMitigation(
+                timeoutMillis = externalUiTimeoutMillis,
+                context = "while waiting for the guest AI conversation to materialize"
+            ) {
+                val userMessagesVisible =
+                    composeRule.onAllNodesWithTag(aiUserMessageBubbleTag).fetchSemanticsNodes().isNotEmpty()
+                val assistantMessagesVisible =
+                    composeRule.onAllNodesWithTag(aiAssistantMessageBubbleTag).fetchSemanticsNodes().isNotEmpty()
+                val assistantText = latestAssistantMessageTextOrNull()
+                userMessagesVisible &&
+                    assistantMessagesVisible &&
+                    hasVisibleText(text = expectedUserText) &&
+                    (assistantText?.contains(other = expectedAssistantText) == true)
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "Guest AI conversation did not materialize as expected. " +
+                    "ExpectedUser='$expectedUserText' " +
+                    "ExpectedAssistant='$expectedAssistantText' " +
+                    "LatestAssistant='${latestAssistantMessageTextOrNull()}' " +
+                    "UserMessages=${composeRule.onAllNodesWithTag(aiUserMessageBubbleTag).fetchSemanticsNodes().size} " +
+                    "AssistantMessages=${composeRule.onAllNodesWithTag(aiAssistantMessageBubbleTag).fetchSemanticsNodes().size} " +
                     "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
                 error
             )
