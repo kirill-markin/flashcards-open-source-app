@@ -45,6 +45,12 @@ type LiveSmokeScenario = Readonly<{
   markerTag: string;
 }>;
 
+type CompletedSqlToolCall = Readonly<{
+  summary: string;
+  request: string | null;
+  response: string | null;
+}>;
+
 /**
  * This smoke suite intentionally keeps one connected browser session and one
  * isolated linked workspace, but splits the coverage into a few grouped tests.
@@ -495,84 +501,223 @@ async function runAiCardCreationWithConfirmation(
   );
   const messageField = fullscreenChat.getByPlaceholder("Ask about cards, review history, or attach notes...");
   const sendButton = fullscreenChat.getByRole("button", { name: "Send message" });
-  const proposalPrompt = `Prepare exactly one flashcard proposal. Use front text "${aiFrontText}", back text "${aiBackText}", and include tag "${markerTag}". Wait for my confirmation before creating it.`;
-  const confirmationPrompt = "Confirmed. Create the card exactly as proposed.";
+  const createPrompt = [
+    "Create exactly one flashcard now.",
+    `Use front text "${aiFrontText}".`,
+    `Use back text "${aiBackText}".`,
+    `Include tag "${markerTag}".`,
+    "You have my explicit permission to create it now.",
+    "You have my permission to execute the required SQL insert now.",
+    "Do not ask follow-up questions if the data above is sufficient.",
+    "Do not create more than one card.",
+  ].join(" ");
 
-  await trackedFill(
-    diagnostics,
-    "fill AI prompt for exactly one flashcard proposal",
-    messageField,
-    proposalPrompt,
+  await waitForAiChatSendReadiness(page, diagnostics);
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const previousUserMessageCount = await diagnostics.runAction(
+      `read user message count before AI create prompt attempt ${String(attempt)}`,
+      async () => page.locator(".chat-msg.chat-msg-user").count(),
+    );
+
+    await trackedFill(
+      diagnostics,
+      `fill AI create prompt attempt ${String(attempt)}`,
+      messageField,
+      createPrompt,
+    );
+    await trackedWaitForComposerReady(
+      diagnostics,
+      `confirm AI create prompt attempt ${String(attempt)} keeps the draft and enables send action`,
+      messageField,
+      sendButton,
+      createPrompt,
+      externalUiTimeoutMs,
+    );
+    await trackedClick(diagnostics, `send AI create prompt attempt ${String(attempt)}`, sendButton);
+
+    await diagnostics.runAction(
+      `confirm AI create prompt attempt ${String(attempt)} was accepted by the chat composer`,
+      async () => {
+        await expect.poll(
+          async () => {
+            const stopButtonVisible = await page.getByRole("button", { name: "Stop response" }).isVisible().catch(() => false);
+            if (stopButtonVisible) {
+              return "running";
+            }
+
+            const currentUserMessageCount = await page.locator(".chat-msg.chat-msg-user").count();
+            if (currentUserMessageCount > previousUserMessageCount) {
+              return "queued";
+            }
+
+            return "waiting";
+          },
+          { timeout: externalUiTimeoutMs },
+        ).not.toBe("waiting");
+      },
+    );
+    await trackedExpectVisible(
+      diagnostics,
+      `wait for AI create prompt attempt ${String(attempt)} run to finish and return send action`,
+      page.getByRole("button", { name: "Send message" }),
+      externalUiTimeoutMs,
+    );
+
+    const matchedInsertToolCall = await diagnostics.runAction(
+      `scan completed SQL tool calls for card insert after attempt ${String(attempt)}`,
+      async () => findCompletedCardInsertToolCall(page, aiFrontText, markerTag),
+    );
+
+    if (matchedInsertToolCall !== null) {
+      return;
+    }
+  }
+
+  const completedSqlToolCalls = await diagnostics.runAction(
+    "collect completed SQL tool calls after exhausted AI create attempts",
+    async () => readCompletedSqlToolCalls(page),
   );
-  await trackedWaitForComposerReady(
-    diagnostics,
-    "confirm AI proposal request keeps the draft and enables send action",
-    messageField,
-    sendButton,
-    proposalPrompt,
-    externalUiTimeoutMs,
+  const sqlSummary = completedSqlToolCalls.length === 0
+    ? "none"
+    : completedSqlToolCalls.map((toolCall, index) => {
+      const requestPreview = toolCall.request === null ? "request=<missing>" : `request=${toolCall.request}`;
+      const responsePreview = toolCall.response === null ? "response=<missing>" : `response=${toolCall.response}`;
+      return `[${String(index + 1)}] summary=${toolCall.summary} ${requestPreview} ${responsePreview}`;
+    }).join("\n");
+
+  throw new Error(
+    "AI chat did not create the expected card after 3 attempts. "
+    + `No completed SQL INSERT INTO cards tool call matched front "${aiFrontText}" and tag "${markerTag}". `
+    + `Completed SQL tool calls:\n${sqlSummary}`,
   );
-  await trackedClick(diagnostics, "send AI proposal request", sendButton);
-  await diagnostics.runAction("confirm assistant proposal includes front, back, and tag", async () => {
-    const assistantMessages = page.locator(".chat-msg.chat-msg-assistant");
+}
+
+async function waitForAiChatSendReadiness(
+  page: Page,
+  diagnostics: LiveSmokeDiagnostics,
+): Promise<void> {
+  await diagnostics.runAction("wait for AI chat sync gate to clear before send", async () => {
+    const syncStatus = page.locator(".topbar-sync-status");
     await expect.poll(
       async () => {
-        const assistantMessageCount = await assistantMessages.count();
-        if (assistantMessageCount === 0) {
-          return "";
+        const syncStatusCount = await syncStatus.count();
+        if (syncStatusCount === 0) {
+          return "ready";
         }
-        return assistantMessages.last().innerText();
+
+        const syncText = await syncStatus.first().innerText();
+        return syncText.trim() === "Syncing..." ? "syncing" : "ready";
       },
       { timeout: externalUiTimeoutMs },
-    ).toContain(aiFrontText);
-    await expect.poll(
-      async () => {
-        const assistantMessageCount = await assistantMessages.count();
-        if (assistantMessageCount === 0) {
-          return "";
-        }
-        return assistantMessages.last().innerText();
-      },
-      { timeout: externalUiTimeoutMs },
-    ).toContain(aiBackText);
-    await expect.poll(
-      async () => {
-        const assistantMessageCount = await assistantMessages.count();
-        if (assistantMessageCount === 0) {
-          return "";
-        }
-        return assistantMessages.last().innerText();
-      },
-      { timeout: externalUiTimeoutMs },
-    ).toContain(markerTag);
+    ).toBe("ready");
   });
 
-  await trackedFill(diagnostics, "fill AI confirmation message", messageField, confirmationPrompt);
-  await trackedWaitForComposerReady(
-    diagnostics,
-    "confirm AI confirmation keeps the draft and enables send action",
-    messageField,
-    sendButton,
-    confirmationPrompt,
-    externalUiTimeoutMs,
-  );
-  await trackedClick(diagnostics, "send AI confirmation", sendButton);
-  await trackedExpectVisible(
-    diagnostics,
-    "confirm AI confirmation run started",
-    page.getByRole("button", { name: "Stop response" }),
-    externalUiTimeoutMs,
-  );
-  await trackedExpectVisible(
-    diagnostics,
-    "wait for AI confirmation run to finish and return send action",
-    page.getByRole("button", { name: "Send message" }),
-    externalUiTimeoutMs,
-  );
-  await diagnostics.runAction("confirm AI did not ask for missing proposal details", async () => {
-    await expect(page.getByText("I'm missing the actual proposed card text in this chat")).not.toBeVisible({
-      timeout: 1_000,
-    });
+  await diagnostics.runAction("wait for AI chat local outbox to clear before send", async () => {
+    await expect.poll(
+      async () => page.evaluate(async () => {
+        return new Promise<number>((resolve, reject) => {
+          const openRequest = window.indexedDB.open("flashcards-web-sync");
+          openRequest.onerror = () => {
+            reject(new Error("IndexedDB open failed while checking AI chat outbox readiness"));
+          };
+          openRequest.onsuccess = () => {
+            const database = openRequest.result;
+            const transaction = database.transaction(["outbox"], "readonly");
+            const request = transaction.objectStore("outbox").getAll();
+            request.onerror = () => {
+              database.close();
+              reject(new Error("IndexedDB outbox read failed while checking AI chat outbox readiness"));
+            };
+            request.onsuccess = () => {
+              const rows = Array.isArray(request.result) ? request.result : [];
+              database.close();
+              resolve(rows.length);
+            };
+          };
+        });
+      }),
+      { timeout: externalUiTimeoutMs },
+    ).toBe(0);
+  });
+}
+
+async function findCompletedCardInsertToolCall(
+  page: Page,
+  expectedFrontText: string,
+  expectedTag: string,
+): Promise<CompletedSqlToolCall | null> {
+  const completedSqlToolCalls = await readCompletedSqlToolCalls(page);
+  for (const toolCall of completedSqlToolCalls) {
+    if (toolCall.request === null || toolCall.response === null) {
+      continue;
+    }
+
+    if (toolCall.request.includes("INSERT INTO cards") === false) {
+      continue;
+    }
+
+    if (toolCall.request.includes(expectedFrontText) === false) {
+      continue;
+    }
+
+    if (toolCall.request.includes(expectedTag) === false) {
+      continue;
+    }
+
+    if (toolCall.response.includes("\"ok\":true") === false) {
+      continue;
+    }
+
+    return toolCall;
+  }
+
+  return null;
+}
+
+async function readCompletedSqlToolCalls(page: Page): Promise<ReadonlyArray<CompletedSqlToolCall>> {
+  return page.locator(".chat-sidebar-fullscreen").evaluate((chatRoot) => {
+    function readSectionText(
+      toolCallElement: Element,
+      expectedTitle: string,
+    ): string | null {
+      const sections = toolCallElement.querySelectorAll(".chat-tool-call-section");
+      for (const section of sections) {
+        const titleElement = section.querySelector(".chat-tool-call-section-title");
+        if (titleElement?.textContent?.trim() !== expectedTitle) {
+          continue;
+        }
+
+        const contentElement = section.querySelector(".chat-tool-call-input, .chat-tool-call-output");
+        const contentText = contentElement?.textContent;
+        if (contentText === undefined || contentText === null) {
+          return null;
+        }
+
+        return contentText.trim();
+      }
+
+      return null;
+    }
+
+    const toolCallElements = Array.from(chatRoot.querySelectorAll(".chat-tool-call.chat-tool-call-completed"));
+    return toolCallElements
+      .map((toolCallElement) => {
+        const summary = toolCallElement.querySelector(".chat-tool-call-summary-main")?.textContent?.trim() ?? "";
+        const status = toolCallElement.querySelector(".chat-tool-call-status")?.textContent?.trim() ?? "";
+        return {
+          summary,
+          status,
+          request: readSectionText(toolCallElement, "Request"),
+          response: readSectionText(toolCallElement, "Response"),
+        };
+      })
+      .filter((toolCall) => toolCall.status === "Done" && toolCall.summary.startsWith("SQL"))
+      .map((toolCall) => ({
+        summary: toolCall.summary,
+        request: toolCall.request,
+        response: toolCall.response,
+      }));
   });
 }
 
