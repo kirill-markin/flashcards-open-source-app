@@ -104,11 +104,8 @@ class LiveSmokeTest {
 
     @Test
     fun guestAiNewChatResetsConversationCleanly() {
-        liveSmokeContext.step("seed a minimal guest AI conversation locally") {
-            liveSmokeContext.seedGuestAiConversation()
-        }
-        liveSmokeContext.step("verify the seeded AI conversation is visible before reset") {
-            liveSmokeContext.assertSeededAiConversationLoaded()
+        liveSmokeContext.step("create one guest AI conversation before reset") {
+            liveSmokeContext.createGuestAiConversationForReset()
         }
         liveSmokeContext.step("start a new chat and confirm the conversation resets cleanly") {
             liveSmokeContext.startNewChatAndAssertConversationReset()
