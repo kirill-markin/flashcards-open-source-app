@@ -67,6 +67,7 @@ export type ChatContentPart =
 
 export type ChatRequestBody = Readonly<{
   sessionId?: string;
+  clientRequestId: string;
   content: ReadonlyArray<ChatContentPart>;
   timezone: string;
 }>;
@@ -201,6 +202,7 @@ export function parseChatRequestBody(value: unknown): ChatRequestBody {
 
   return {
     sessionId,
+    clientRequestId: expectNonEmptyString(body.clientRequestId, "clientRequestId"),
     content: parseChatContentParts(body.content, "content"),
     timezone: expectNonEmptyString(body.timezone, "timezone"),
   };
@@ -268,8 +270,10 @@ type ChatStartResponse = Readonly<{
   ok: true;
   sessionId: string;
   runId: string;
-  runState: "running";
+  clientRequestId: string;
+  runState: ChatSessionSnapshot["runState"];
   chatConfig: ChatConfig;
+  deduplicated?: boolean;
 }>;
 
 type ChatNewResponse = Readonly<{
@@ -307,7 +311,11 @@ function mapStoreError(error: unknown): never {
   }
 
   if (error instanceof ChatSessionConflictError) {
-    throw new HttpError(409, "Chat session already has an active response");
+    throw new HttpError(
+      409,
+      "Chat session already has an active response",
+      "CHAT_ACTIVE_RUN_IN_PROGRESS",
+    );
   }
 
   throw error;
@@ -367,6 +375,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     );
     const workspaceId = requireSelectedWorkspaceId(requestContext);
     const body = parseChatRequestBody(await parseJsonBody(context.req.raw));
+    context.header("X-Chat-Request-Id", body.clientRequestId);
 
     let preparedRun: PreparedChatRun;
     try {
@@ -375,25 +384,29 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
         workspaceId,
         body.sessionId,
         body.content,
-        context.get("requestId"),
+        body.clientRequestId,
         body.timezone,
       );
     } catch (error) {
       return mapStoreError(error);
     }
 
-    await invokeChatWorkerFn({
-      runId: preparedRun.runId,
-      userId: requestContext.userId,
-      workspaceId,
-    });
+    if (preparedRun.shouldInvokeWorker) {
+      await invokeChatWorkerFn({
+        runId: preparedRun.runId,
+        userId: requestContext.userId,
+        workspaceId,
+      });
+    }
 
     return context.json({
       ok: true,
       sessionId: preparedRun.sessionId,
       runId: preparedRun.runId,
-      runState: "running",
+      clientRequestId: preparedRun.clientRequestId,
+      runState: preparedRun.runState,
       chatConfig: getChatConfig(),
+      deduplicated: preparedRun.deduplicated ? true : undefined,
     } satisfies ChatStartResponse);
   });
 

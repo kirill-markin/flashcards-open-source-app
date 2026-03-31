@@ -6,12 +6,20 @@ import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 
+internal enum class AiComposerPhase {
+    IDLE,
+    PREPARING_SEND,
+    STARTING_RUN,
+    RUNNING,
+    STOPPING
+}
+
 internal data class AiDraftState(
     val workspaceId: String?,
     val persistedState: AiChatPersistedState,
     val draftMessage: String,
     val pendingAttachments: List<AiChatAttachment>,
-    val isStreaming: Boolean,
+    val composerPhase: AiComposerPhase,
     val dictationState: AiChatDictationState,
     val repairStatus: AiChatRepairAttemptStatus?,
     val activeAlert: AiAlertState?,
@@ -24,7 +32,7 @@ internal fun makeDefaultAiDraftState(): AiDraftState {
         persistedState = makeDefaultAiChatPersistedState(),
         draftMessage = "",
         pendingAttachments = emptyList(),
-        isStreaming = false,
+        composerPhase = AiComposerPhase.IDLE,
         dictationState = AiChatDictationState.IDLE,
         repairStatus = null,
         activeAlert = null,
@@ -41,7 +49,7 @@ internal fun makeAiDraftState(
         persistedState = persistedState,
         draftMessage = "",
         pendingAttachments = emptyList(),
-        isStreaming = false,
+        composerPhase = AiComposerPhase.IDLE,
         dictationState = AiChatDictationState.IDLE,
         repairStatus = null,
         activeAlert = null,

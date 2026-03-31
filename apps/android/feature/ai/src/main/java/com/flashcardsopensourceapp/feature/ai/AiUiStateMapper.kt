@@ -38,7 +38,10 @@ internal fun mapToAiUiState(
     val isLinked = cloudState == CloudAccountState.LINKED
     val hasMessages = draft.persistedState.messages.isNotEmpty()
     val hasDraftText = draft.draftMessage.trim().isNotEmpty()
-    val canEditConversation = draft.isStreaming.not() && draft.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
+    val isComposerBusy = draft.composerPhase != AiComposerPhase.IDLE
+    val isStreaming = draft.composerPhase == AiComposerPhase.RUNNING || draft.composerPhase == AiComposerPhase.STOPPING
+    val canEditConversation = isComposerBusy.not()
+        && draft.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
 
     return AiUiState(
         currentWorkspaceName = metadata.currentWorkspaceName,
@@ -48,11 +51,12 @@ internal fun mapToAiUiState(
         chatConfig = effectiveAiChatServerConfig(draft.persistedState.lastKnownChatConfig),
         isConsentRequired = hasConsent.not(),
         isLinked = isLinked,
-        isStreaming = draft.isStreaming,
-        canStopStreaming = draft.isStreaming,
+        isComposerBusy = isComposerBusy,
+        isStreaming = isStreaming,
+        canStopStreaming = draft.composerPhase == AiComposerPhase.RUNNING,
         dictationState = draft.dictationState,
         canSend = hasConsent
-            && draft.isStreaming.not()
+            && draft.composerPhase == AiComposerPhase.IDLE
             && draft.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
             && (hasDraftText || draft.pendingAttachments.isNotEmpty()),
         canStartNewChat = canEditConversation
@@ -72,6 +76,7 @@ internal fun makeInitialAiUiState(hasConsent: Boolean): AiUiState {
         chatConfig = defaultAiChatServerConfig,
         isConsentRequired = hasConsent.not(),
         isLinked = false,
+        isComposerBusy = false,
         isStreaming = false,
         canStopStreaming = false,
         dictationState = com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE,

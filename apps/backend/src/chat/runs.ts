@@ -77,6 +77,10 @@ type InsertChatRunParams = Readonly<{
 export type PreparedChatRun = Readonly<{
   sessionId: string;
   runId: string;
+  clientRequestId: string;
+  runState: ChatSessionRunState;
+  deduplicated: boolean;
+  shouldInvokeWorker: boolean;
 }>;
 
 export type ClaimedChatRun = Readonly<{
@@ -220,6 +224,30 @@ const SELECT_SESSION_FOR_UPDATE_SQL = `
   FOR UPDATE
 `;
 
+const SELECT_CHAT_RUN_BY_SESSION_REQUEST_SQL = `
+  SELECT
+    run_id,
+    session_id,
+    assistant_item_id,
+    status,
+    request_id,
+    model_id,
+    reasoning_effort,
+    timezone,
+    turn_input,
+    worker_claimed_at,
+    worker_heartbeat_at,
+    cancel_requested_at,
+    started_at,
+    finished_at,
+    last_error_message
+  FROM ai.chat_runs
+  WHERE session_id = $1
+    AND request_id = $2
+  ORDER BY created_at DESC, run_id DESC
+  LIMIT 1
+`;
+
 async function executeQuery<Row extends QueryResultRow>(
   executor: DatabaseExecutor,
   text: string,
@@ -254,6 +282,18 @@ function requireRunRow(row: ChatRunRow | undefined, operation: string): ChatRunR
   return row;
 }
 
+function mapChatRunStatusToSessionRunState(status: ChatRunStatus): ChatSessionRunState {
+  if (status === "queued" || status === "running") {
+    return "running";
+  }
+
+  if (status === "interrupted") {
+    return "interrupted";
+  }
+
+  return "idle";
+}
+
 async function selectChatRunWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -272,6 +312,21 @@ async function selectChatRunForUpdateWithExecutor(
 ): Promise<ChatRunRow | null> {
   return withScopedExecutor(executor, scope, async () => {
     const rows = await executeQuery<ChatRunRow>(executor, SELECT_CHAT_RUN_FOR_UPDATE_SQL, [runId]);
+    return rows[0] ?? null;
+  });
+}
+
+async function selectChatRunBySessionRequestWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+  requestId: string,
+): Promise<ChatRunRow | null> {
+  return withScopedExecutor(executor, scope, async () => {
+    const rows = await executeQuery<ChatRunRow>(executor, SELECT_CHAT_RUN_BY_SESSION_REQUEST_SQL, [
+      sessionId,
+      requestId,
+    ]);
     return rows[0] ?? null;
   });
 }
@@ -535,6 +590,23 @@ export async function prepareChatRun(
       ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
       : await resolveRequestedChatSessionWithExecutor(executor, scope, requestedSessionId);
     const lockedSession = await selectSessionForUpdateWithExecutor(executor, scope, session.session_id);
+    const existingRun = await selectChatRunBySessionRequestWithExecutor(
+      executor,
+      scope,
+      session.session_id,
+      requestId,
+    );
+
+    if (existingRun !== null) {
+      return {
+        sessionId: session.session_id,
+        runId: existingRun.run_id,
+        clientRequestId: requestId,
+        runState: mapChatRunStatusToSessionRunState(existingRun.status),
+        deduplicated: true,
+        shouldInvokeWorker: existingRun.status === "queued",
+      };
+    }
 
     if (lockedSession.status === "running") {
       const recovered = await recoverStaleRunWithExecutor(executor, scope, lockedSession);
@@ -577,6 +649,10 @@ export async function prepareChatRun(
     return {
       sessionId: session.session_id,
       runId: run.run_id,
+      clientRequestId: requestId,
+      runState: mapChatRunStatusToSessionRunState(run.status),
+      deduplicated: false,
+      shouldInvokeWorker: true,
     };
   });
 }

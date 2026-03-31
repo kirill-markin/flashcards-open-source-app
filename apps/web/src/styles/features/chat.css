@@ -385,6 +385,16 @@
   min-height: 190px;
 }
 
+.chat-composer-notice {
+  border: 1px solid rgba(196, 75, 45, 0.32);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: rgba(196, 75, 45, 0.08);
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
 .chat-loading-composer {
   min-height: 110px;
   border-radius: var(--radius-md);

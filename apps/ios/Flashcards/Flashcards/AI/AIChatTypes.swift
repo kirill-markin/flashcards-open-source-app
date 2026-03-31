@@ -79,6 +79,10 @@ func makeAIChatSessionId() -> String {
     UUID().uuidString.lowercased()
 }
 
+func makeAIChatClientRequestId() -> String {
+    UUID().uuidString.lowercased()
+}
+
 func aiChatTruncatedSnippet(_ value: String) -> String {
     let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
     if trimmed.count <= 240 {
@@ -483,8 +487,17 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
 
 struct AIChatStartRunRequestBody: Codable, Hashable, Sendable {
     let sessionId: String?
+    let clientRequestId: String
     let content: [AIChatContentPart]
     let timezone: String
+}
+
+enum AIChatComposerPhase: String, Hashable, Sendable {
+    case idle
+    case preparingSend
+    case startingRun
+    case running
+    case stopping
 }
 
 struct AIChatSessionSnapshot: Hashable, Sendable {
@@ -546,8 +559,10 @@ struct AIChatStartRunResponse: Codable, Hashable, Sendable {
     let ok: Bool
     let sessionId: String
     let runId: String
+    let clientRequestId: String
     let runState: String
     let chatConfig: AIChatServerConfig
+    let deduplicated: Bool?
 }
 
 struct AIChatNewSessionRequestBody: Codable, Hashable, Sendable {
@@ -719,6 +734,7 @@ enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
 }
 
 enum AIChatRuntimeEvent: Sendable {
+    case accepted(AIChatStartRunResponse)
     case applySnapshot(AIChatSessionSnapshot)
     case appendAssistantAccountUpgradePrompt(message: String, buttonTitle: String)
     case finish

@@ -129,6 +129,7 @@ export type ChatSessionSnapshot = Readonly<{
 
 export type StartChatRunRequestBody = Readonly<{
   sessionId?: string;
+  clientRequestId: string;
   content: ReadonlyArray<ContentPart>;
   timezone: string;
 }>;
@@ -137,8 +138,10 @@ export type StartChatRunResponse = Readonly<{
   ok: true;
   sessionId: string;
   runId: string;
-  runState: "running";
+  clientRequestId: string;
+  runState: "idle" | "running" | "interrupted";
   chatConfig: ChatConfig;
+  deduplicated?: boolean;
 }>;
 
 export type NewChatSessionResponse = Readonly<{

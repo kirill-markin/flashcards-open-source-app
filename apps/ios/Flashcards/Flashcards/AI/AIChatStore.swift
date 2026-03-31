@@ -91,7 +91,7 @@ final class AIChatStore {
     private(set) var messages: [AIChatMessage]
     private(set) var pendingAttachments: [AIChatAttachment]
     private(set) var serverChatConfig: AIChatServerConfig
-    private(set) var isStreaming: Bool
+    private(set) var composerPhase: AIChatComposerPhase
     private(set) var dictationState: AIChatDictationState
     private(set) var activeAlert: AIChatAlert?
     private(set) var repairStatus: AIChatRepairAttemptStatus?
@@ -151,7 +151,7 @@ final class AIChatStore {
         self.pendingAttachments = []
         self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
         self.chatSessionId = persistedState.chatSessionId
-        self.isStreaming = false
+        self.composerPhase = .idle
         self.dictationState = .idle
         self.activeAlert = nil
         self.repairStatus = nil
@@ -163,10 +163,22 @@ final class AIChatStore {
     }
 
     var canSendMessage: Bool {
-        self.isStreaming == false
+        self.composerPhase == .idle
             && self.dictationState == .idle
             && self.hasExternalProviderConsent
             && (self.trimmedInputText().isEmpty == false || self.pendingAttachments.isEmpty == false)
+    }
+
+    var canStopResponse: Bool {
+        self.composerPhase == .running
+    }
+
+    var isComposerBusy: Bool {
+        self.composerPhase != .idle
+    }
+
+    var isStreaming: Bool {
+        self.composerPhase == .running || self.composerPhase == .stopping
     }
 
     var usesGuestAIRestrictions: Bool {
@@ -288,7 +300,7 @@ final class AIChatStore {
         self.pendingAttachments = []
         self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
         self.chatSessionId = persistedState.chatSessionId
-        self.isStreaming = false
+        self.composerPhase = .idle
         self.dictationState = .idle
         self.activeAlert = nil
         self.repairStatus = nil
@@ -300,7 +312,7 @@ final class AIChatStore {
     func cancelStreaming() {
         self.activeSendTask?.cancel()
         self.activeSendTask = nil
-        self.isStreaming = false
+        self.composerPhase = .idle
         self.repairStatus = nil
         self.clearOptimisticAssistantStatusIfNeeded()
         let state = self.currentPersistedState()
@@ -371,7 +383,7 @@ final class AIChatStore {
         guard self.shouldDisableBackgroundRefreshForUITests == false else {
             return
         }
-        guard self.isStreaming == false else {
+        guard self.isComposerBusy == false else {
             return
         }
         guard self.flashcardsStore.cloudSettings?.cloudState == .linked else {
@@ -394,7 +406,7 @@ final class AIChatStore {
     }
 
     func sendMessage() {
-        if self.isStreaming || self.dictationState != .idle {
+        if self.isComposerBusy || self.dictationState != .idle {
             return
         }
 
@@ -410,10 +422,13 @@ final class AIChatStore {
 
         self.activeAlert = nil
         self.repairStatus = nil
+        self.composerPhase = .preparingSend
         let conversationId = UUID().uuidString.lowercased()
+        let draftText = self.inputText
+        let draftAttachments = self.pendingAttachments
 
         let task = Task {
-            var didStartStreamingRequest = false
+            var didAppendOptimisticMessages = false
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
                 try await self.ensureAIChatReadyForSend(linkedSession: session)
@@ -435,11 +450,9 @@ final class AIChatStore {
                         isError: false
                     )
                 )
-                self.inputText = ""
-                self.pendingAttachments = []
-                self.isStreaming = true
+                didAppendOptimisticMessages = true
+                self.composerPhase = .startingRun
                 self.activeConversationId = conversationId
-                didStartStreamingRequest = true
                 let initialState = self.currentPersistedState()
                 await self.runtime.run(
                     session: session,
@@ -460,11 +473,19 @@ final class AIChatStore {
                 }
             } catch is CancellationError {
             } catch {
-                self.handleSendMessageError(error, didStartStreamingRequest: didStartStreamingRequest)
+                self.handleSendMessageError(
+                    error,
+                    didAcceptRun: self.composerPhase == .running,
+                    didAppendOptimisticMessages: didAppendOptimisticMessages,
+                    draftText: draftText,
+                    draftAttachments: draftAttachments
+                )
             }
 
             if self.activeConversationId == conversationId {
-                self.isStreaming = false
+                if self.composerPhase != .idle {
+                    self.composerPhase = .idle
+                }
                 self.activeConversationId = nil
             }
             self.activeSendTask = nil
@@ -626,14 +647,41 @@ final class AIChatStore {
         )
     }
 
-    private func handleSendMessageError(_ error: Error, didStartStreamingRequest: Bool) {
+    private func handleSendMessageError(
+        _ error: Error,
+        didAcceptRun: Bool,
+        didAppendOptimisticMessages: Bool,
+        draftText: String,
+        draftAttachments: [AIChatAttachment]
+    ) {
         let latestPersistedState = self.historyStore.loadState()
         self.chatSessionId = latestPersistedState.chatSessionId
         self.repairStatus = nil
-        self.isStreaming = false
+        self.composerPhase = .idle
 
-        if didStartStreamingRequest == false && isAIChatOfflineSendError(error: error) {
+        if didAcceptRun == false && didAppendOptimisticMessages {
+            self.messages = latestPersistedState.messages
+            self.inputText = draftText
+            self.pendingAttachments = draftAttachments
+        }
+
+        if didAcceptRun == false && isAIChatOfflineSendError(error: error) {
             self.flashcardsStore.enqueueTransientBanner(banner: makeAIChatOfflineBanner())
+            return
+        }
+
+        if
+            didAcceptRun == false,
+            let serviceError = error as? AIChatServiceError,
+            case .invalidResponse(let errorDetails, _, _) = serviceError,
+            errorDetails.code == "CHAT_ACTIVE_RUN_IN_PROGRESS"
+        {
+            self.flashcardsStore.enqueueTransientBanner(banner: makeAIChatActiveRunBanner())
+            return
+        }
+
+        if didAcceptRun == false {
+            self.showGeneralError(message: Flashcards.errorMessage(error: error))
             return
         }
 
@@ -687,6 +735,12 @@ final class AIChatStore {
         }
 
         switch event {
+        case .accepted(let response):
+            self.chatSessionId = response.sessionId
+            self.serverChatConfig = response.chatConfig
+            self.inputText = ""
+            self.pendingAttachments = []
+            self.composerPhase = .running
         case .applySnapshot(let snapshot):
             self.applySnapshot(snapshot)
         case .appendAssistantAccountUpgradePrompt(let message, let buttonTitle):
@@ -694,13 +748,13 @@ final class AIChatStore {
         case .finish:
             self.repairStatus = nil
             if self.activeConversationId == conversationId {
-                self.isStreaming = false
+                self.composerPhase = .idle
             }
         case .fail(let message):
             self.repairStatus = nil
             self.markAssistantError(message: message)
             if self.activeConversationId == conversationId {
-                self.isStreaming = false
+                self.composerPhase = .idle
             }
         }
     }
@@ -709,7 +763,7 @@ final class AIChatStore {
         self.messages = snapshot.messages
         self.chatSessionId = snapshot.sessionId
         self.serverChatConfig = snapshot.chatConfig
-        self.isStreaming = snapshot.runState == "running"
+        self.composerPhase = snapshot.runState == "running" ? .running : .idle
         Task {
             await self.historyStore.saveState(state: self.currentPersistedState())
         }

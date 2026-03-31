@@ -826,8 +826,10 @@ export function parseStartChatRunResponse(value: unknown, endpoint: string): Sta
     ok: parseLiteral(parseRequiredField(objectValue, "ok", endpoint, "", parseBoolean), endpoint, "ok", true),
     sessionId: parseRequiredField(objectValue, "sessionId", endpoint, "", parseString),
     runId: parseRequiredField(objectValue, "runId", endpoint, "", parseString),
-    runState: parseLiteral(parseRequiredField(objectValue, "runState", endpoint, "", parseString), endpoint, "runState", "running"),
+    clientRequestId: parseRequiredField(objectValue, "clientRequestId", endpoint, "", parseString),
+    runState: parseRequiredField(objectValue, "runState", endpoint, "", parseChatRunState),
     chatConfig: parseRequiredField(objectValue, "chatConfig", endpoint, "", parseChatConfig),
+    deduplicated: parseOptionalField(objectValue, "deduplicated", endpoint, "", parseBoolean),
   };
 }
 
