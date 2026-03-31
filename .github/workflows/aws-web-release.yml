@@ -23,7 +23,6 @@ permissions:
   checks: read
   contents: read
   id-token: write
-  statuses: write
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
@@ -35,7 +34,6 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       aws_changed: ${{ steps.detect.outputs.aws_changed }}
-      db_migrations_changed: ${{ steps.detect.outputs.db_migrations_changed }}
       api_changed: ${{ steps.detect.outputs.api_changed }}
       auth_changed: ${{ steps.detect.outputs.auth_changed }}
       backend_changed: ${{ steps.detect.outputs.backend_changed }}
@@ -71,11 +69,6 @@ jobs:
             aws_changed=true
           fi
 
-          db_migrations_changed=false
-          if grep -Eq '^db/migrations/' "${changed_files_path}"; then
-            db_migrations_changed=true
-          fi
-
           api_changed=false
           if grep -Eq '^(api/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
             api_changed=true
@@ -103,7 +96,6 @@ jobs:
 
           {
             echo "aws_changed=${aws_changed}"
-            echo "db_migrations_changed=${db_migrations_changed}"
             echo "api_changed=${api_changed}"
             echo "auth_changed=${auth_changed}"
             echo "backend_changed=${backend_changed}"
@@ -122,7 +114,6 @@ jobs:
             echo "## Release scope"
             echo ""
             echo "- AWS changed: \`${{ steps.detect.outputs.aws_changed }}\`"
-            echo "- DB migrations changed: \`${{ steps.detect.outputs.db_migrations_changed }}\`"
             echo "- API changed: \`${{ steps.detect.outputs.api_changed }}\`"
             echo "- Auth changed: \`${{ steps.detect.outputs.auth_changed }}\`"
             echo "- Backend changed: \`${{ steps.detect.outputs.backend_changed }}\`"
@@ -405,160 +396,6 @@ jobs:
             echo "- Artifacts: \`web-playwright-report\`, \`web-playwright-test-results\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
-  mark_aws_retained:
-    name: Mark retained AWS release
-    needs:
-      - changes
-      - aws_deploy
-      - web_smoke
-    if: ${{ needs.changes.outputs.aws_changed == 'true' && needs.aws_deploy.result == 'success' && needs.web_smoke.result == 'success' }}
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Mark current SHA as retained AWS release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api \
-            --method POST \
-            "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            -f state='success' \
-            -f context='AWS retained release' \
-            -f description='retained after production deploy and web smoke' \
-            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-
-  rollback_aws:
-    name: Roll back AWS release
-    needs:
-      - changes
-      - aws_deploy
-      - web_smoke
-    if: ${{ always() && needs.changes.outputs.aws_changed == 'true' && needs.aws_deploy.result == 'success' && needs.web_smoke.result == 'failure' && needs.changes.outputs.db_migrations_changed != 'true' }}
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 30
-    outputs:
-      rollback_target_sha: ${{ steps.resolve.outputs.rollback_target_sha }}
-
-    steps:
-      - name: Resolve previous retained AWS release SHA
-        id: resolve
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          commits_json="$(gh api "repos/${GITHUB_REPOSITORY}/commits?sha=main&per_page=50")"
-          rollback_target_sha=""
-
-          for candidate_sha in $(jq -r '.[].sha' <<< "${commits_json}"); do
-            if [[ "${candidate_sha}" == "${GITHUB_SHA}" ]]; then
-              continue
-            fi
-
-            status_json="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${candidate_sha}/status")"
-            retained_state="$(jq -r '.statuses[] | select(.context == "AWS retained release" and .state == "success") | .state' <<< "${status_json}" | head -n 1)"
-
-            if [[ "${retained_state}" == "success" ]]; then
-              rollback_target_sha="${candidate_sha}"
-              break
-            fi
-          done
-
-          if [[ -z "${rollback_target_sha}" ]]; then
-            echo "Could not find a previous retained AWS release SHA on main." >&2
-            exit 1
-          fi
-
-          echo "rollback_target_sha=${rollback_target_sha}" >> "${GITHUB_OUTPUT}"
-
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ steps.resolve.outputs.rollback_target_sha }}
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: |
-            api/package-lock.json
-            apps/auth/package-lock.json
-            apps/backend/package-lock.json
-            apps/web/package-lock.json
-            infra/aws/package-lock.json
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Install dependencies
-        run: |
-          npm ci --prefix api
-          npm ci --prefix apps/auth
-          npm ci --prefix apps/backend
-          npm ci --prefix apps/web
-          npm ci --prefix infra/aws
-
-      - name: Bundle OpenAPI spec
-        run: npm run bundle --prefix api
-
-      - name: CDK deploy retained AWS release
-        working-directory: infra/aws
-        run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          cat > cdk.context.local.json <<CTXEOF
-          {
-            "region": "${{ vars.AWS_REGION }}",
-            "domainName": "${{ vars.CDK_DOMAIN_NAME }}",
-            "apiCertificateArn": "${{ vars.CDK_API_CERTIFICATE_ARN }}",
-            "authCertificateArn": "${{ vars.CDK_AUTH_CERTIFICATE_ARN }}",
-            "webCertificateArnUsEast1": "${{ vars.CDK_WEB_CERTIFICATE_ARN_US_EAST_1 }}",
-            "apexRedirectCertificateArnUsEast1": "${{ vars.CDK_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1 }}",
-            "resendApiKeySecretArn": "${{ vars.CDK_RESEND_API_KEY_SECRET_ARN }}",
-            "resendSenderEmail": "${{ vars.CDK_RESEND_SENDER_EMAIL }}",
-            "openAiApiKeySecretArn": "${{ vars.CDK_OPENAI_API_KEY_SECRET_ARN }}",
-            "anthropicApiKeySecretArn": "${{ vars.CDK_ANTHROPIC_API_KEY_SECRET_ARN }}",
-            "langfusePublicKeySecretArn": "${{ vars.CDK_LANGFUSE_PUBLIC_KEY_SECRET_ARN }}",
-            "langfuseSecretKeySecretArn": "${{ vars.CDK_LANGFUSE_SECRET_KEY_SECRET_ARN }}",
-            "langfuseBaseUrl": "${{ vars.CDK_LANGFUSE_BASE_URL }}",
-            "demoEmailDostip": "${{ vars.CDK_DEMO_EMAIL_DOSTIP }}",
-            "demoPasswordSecretArn": "${{ vars.CDK_DEMO_PASSWORD_SECRET_ARN }}",
-            "guestAiWeightedMonthlyTokenCap": "${{ vars.CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP }}",
-            "githubOidcProviderArn": "arn:aws:iam::${ACCOUNT_ID}:oidc-provider/token.actions.githubusercontent.com",
-            "alertEmail": "${{ vars.CDK_ALERT_EMAIL }}",
-            "githubRepo": "${{ vars.CDK_GITHUB_REPO }}"
-          }
-          CTXEOF
-          npx cdk deploy --all --require-approval never
-
-      - name: Check demo Cognito users
-        run: bash scripts/check-demo-cognito-users.sh --stack-name ${{ env.STACK_NAME }} --region ${{ env.AWS_REGION }}
-
-      - name: Check API health
-        run: bash scripts/check-api-health.sh --stack-name ${{ env.STACK_NAME }}
-
-      - name: Check public API routes
-        run: bash scripts/check-public-endpoints.sh --stack-name ${{ env.STACK_NAME }}
-
-      - name: Build web app
-        run: npm run build --prefix apps/web
-
-      - name: Deploy web assets
-        run: bash scripts/deploy-web.sh --stack-name ${{ env.STACK_NAME }}
-
-      - name: Check public custom domains
-        run: bash scripts/check-public-endpoints.sh --stack-name ${{ env.STACK_NAME }}
-
-      - name: Summarize rollback
-        run: |
-          {
-            echo "## AWS rollback"
-            echo ""
-            echo "- Failed SHA: \`${GITHUB_SHA}\`"
-            echo "- Rolled back to retained SHA: \`${{ steps.resolve.outputs.rollback_target_sha }}\`"
-          } >> "${GITHUB_STEP_SUMMARY}"
-
   aws_release_status:
     name: Resolve AWS release outcome
     needs:
@@ -566,14 +403,10 @@ jobs:
       - pre_deploy_checks
       - aws_deploy
       - web_smoke
-      - mark_aws_retained
-      - rollback_aws
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     outputs:
       aws_release_status: ${{ steps.resolve.outputs.aws_release_status }}
-      rollback_performed: ${{ steps.resolve.outputs.rollback_performed }}
-      retained_aws_sha: ${{ steps.resolve.outputs.retained_aws_sha }}
 
     steps:
       - name: Resolve AWS release status
@@ -582,8 +415,6 @@ jobs:
           set -euo pipefail
 
           aws_release_status="no_aws_changes"
-          rollback_performed="false"
-          retained_aws_sha=""
 
           if [[ "${{ needs.changes.outputs.aws_changed }}" == "true" ]]; then
             if [[ "${{ needs.pre_deploy_checks.result }}" != "success" ]]; then
@@ -591,24 +422,13 @@ jobs:
             elif [[ "${{ needs.aws_deploy.result }}" != "success" ]]; then
               aws_release_status="deployment_failed"
             elif [[ "${{ needs.web_smoke.result }}" == "success" ]]; then
-              aws_release_status="retained"
-              retained_aws_sha="${GITHUB_SHA}"
-            elif [[ "${{ needs.changes.outputs.db_migrations_changed }}" == "true" ]]; then
-              aws_release_status="fix_forward_required"
-            elif [[ "${{ needs.rollback_aws.result }}" == "success" ]]; then
-              aws_release_status="reverted"
-              rollback_performed="true"
-              retained_aws_sha="${{ needs.rollback_aws.outputs.rollback_target_sha }}"
+              aws_release_status="released"
             else
-              aws_release_status="rollback_failed"
+              aws_release_status="smoke_failed"
             fi
           fi
 
-          {
-            echo "aws_release_status=${aws_release_status}"
-            echo "rollback_performed=${rollback_performed}"
-            echo "retained_aws_sha=${retained_aws_sha}"
-          } >> "${GITHUB_OUTPUT}"
+          echo "aws_release_status=${aws_release_status}" >> "${GITHUB_OUTPUT}"
 
       - name: Summarize AWS release outcome
         run: |
@@ -616,8 +436,6 @@ jobs:
             echo "## AWS release outcome"
             echo ""
             echo "- AWS release status: \`${{ steps.resolve.outputs.aws_release_status }}\`"
-            echo "- Rollback performed: \`${{ steps.resolve.outputs.rollback_performed }}\`"
-            echo "- Retained AWS SHA: \`${{ steps.resolve.outputs.retained_aws_sha || 'n/a' }}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
   release_summary:
@@ -628,7 +446,6 @@ jobs:
       - pre_deploy_checks
       - aws_deploy
       - web_smoke
-      - rollback_aws
       - aws_release_status
     runs-on: ubuntu-24.04
 
@@ -639,23 +456,20 @@ jobs:
             echo "## AWS/Web release summary"
             echo ""
             echo "- AWS changed: \`${{ needs.changes.outputs.aws_changed }}\`"
-            echo "- DB migrations changed: \`${{ needs.changes.outputs.db_migrations_changed }}\`"
             echo "- Pre-deploy checks job: \`${{ needs.pre_deploy_checks.result }}\`"
             echo "- AWS release status: \`${{ needs.aws_release_status.outputs.aws_release_status }}\`"
-            echo "- Rollback performed: \`${{ needs.aws_release_status.outputs.rollback_performed }}\`"
-            echo "- Retained AWS SHA: \`${{ needs.aws_release_status.outputs.retained_aws_sha || 'n/a' }}\`"
             echo "- AWS deploy job: \`${{ needs.aws_deploy.result }}\`"
             echo "- Web smoke job: \`${{ needs.web_smoke.result }}\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
 
-      - name: Fail workflow when the retained release is not healthy
+      - name: Fail workflow when AWS/Web release is not healthy
         run: |
           set -euo pipefail
 
           aws_release_status="${{ needs.aws_release_status.outputs.aws_release_status }}"
 
-          if [[ "${aws_release_status}" != "no_aws_changes" ]] && [[ "${aws_release_status}" != "retained" ]]; then
+          if [[ "${aws_release_status}" != "no_aws_changes" ]] && [[ "${aws_release_status}" != "released" ]]; then
             echo "AWS release finished in non-healthy state: ${aws_release_status}" >&2
             exit 1
           fi

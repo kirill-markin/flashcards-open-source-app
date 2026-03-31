@@ -107,15 +107,14 @@ For AWS-backed changes, the main-branch order is:
 2. run the pre-deploy API/auth/backend/web/infra checks inside `AWS/Web Release`
 3. deploy backend, auth, infra, and web to production
 4. run the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts`
-5. keep the new AWS release only if the smoke passes
-6. roll the whole AWS runtime back to the previous retained AWS SHA if the smoke fails and the release did not include DB migrations
-7. fail loudly and require fix-forward when the smoke fails after DB migrations
+5. finish green if the smoke passes
+6. finish red if the smoke fails, without rolling production back
 
 Manual `workflow_dispatch` runs use the same embedded pre-deploy checks before the release starts.
 
 This repository does not try to prove backend and web correctness with exhaustive test coverage before deploy. The highest-confidence automated signal is the real Playwright live smoke that runs against the deployed environment closest to production, and any additional non-smoke tests should stay targeted to important module boundaries or contracts.
 
-After pushing to `main`, watch `AWS/Web Release` until the release either retains the AWS runtime, reverts it, or fails clearly. A failed AWS release with DB migrations is intentionally a fix-forward path; the next push must still be allowed to deploy.
+After pushing to `main`, watch `AWS/Web Release` until the release either finishes green or fails clearly after deploy. This pipeline is intentionally fix-forward only: a failed post-deploy smoke leaves the deployed AWS/Web release in place, marks that run failed, and the next push must still be allowed to deploy.
 
 Cross-client live smoke references:
 
