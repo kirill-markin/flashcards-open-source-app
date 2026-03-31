@@ -36,3 +36,6 @@ apps/web/test-results/
 tmp/
 temp/
 .codex-tmp-run/
+
+# local settings
+.claude/settings.local.json
