@@ -14,17 +14,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
-import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.makeAiChatHistoryScopedWorkspaceId
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
-import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
-import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.feature.ai.aiAssistantMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.aiAssistantTextPartTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
@@ -40,7 +36,6 @@ import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import java.util.UUID
 
 internal fun LiveSmokeContext.withLinkedWorkspaceSession(
     reviewEmail: String,
@@ -157,9 +152,8 @@ internal fun LiveSmokeContext.seedLocalCard(
 
 private const val aiCreatePromptText: String =
     "I give you all permissions. Please create one test flashcard now."
-private const val seededAiConversationUserText: String = "Show me the seeded smoke conversation."
-private const val seededAiConversationAssistantText: String =
-    "This seeded AI conversation is ready to reset."
+private const val aiResetPromptText: String =
+    "Please reply with one short sentence so I can verify this chat resets."
 
 internal fun LiveSmokeContext.createAiCardWithConfirmation() {
     openAiTab()
@@ -274,57 +268,29 @@ internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
     }
 }
 
-internal fun LiveSmokeContext.seedGuestAiConversation() {
-    val application = composeRule.activity.application as FlashcardsApplication
-    val appGraph = application.appGraph
-    val applicationContext = application.applicationContext
-    val aiChatPreferencesStore = AiChatPreferencesStore(context = applicationContext)
-    val aiChatHistoryStore = AiChatHistoryStore(context = applicationContext)
-    val currentTimeMillis: Long = System.currentTimeMillis()
-
-    runBlocking {
-        appGraph.ensureLocalWorkspaceShell(currentTimeMillis = currentTimeMillis)
-        val workspace = requireNotNull(appGraph.workspaceRepository.observeWorkspace().first()) {
-            "Local workspace was missing while seeding the AI reset conversation."
-        }
-
-        aiChatPreferencesStore.updateConsent(hasConsent = true)
-        aiChatHistoryStore.saveState(
-            workspaceId = workspace.workspaceId,
-            state = AiChatPersistedState(
-                messages = listOf(
-                    AiChatMessage(
-                        messageId = UUID.randomUUID().toString().lowercase(),
-                        role = AiChatRole.USER,
-                        content = listOf(AiChatContentPart.Text(text = seededAiConversationUserText)),
-                        timestampMillis = currentTimeMillis,
-                        isError = false
-                    ),
-                    AiChatMessage(
-                        messageId = UUID.randomUUID().toString().lowercase(),
-                        role = AiChatRole.ASSISTANT,
-                        content = listOf(AiChatContentPart.Text(text = seededAiConversationAssistantText)),
-                        timestampMillis = currentTimeMillis,
-                        isError = false
-                    )
-                ),
-                chatSessionId = UUID.randomUUID().toString().lowercase(),
-                lastKnownChatConfig = defaultAiChatServerConfig
-            )
-        )
-    }
-
-    composeRule.waitForIdle()
-}
-
-internal fun LiveSmokeContext.assertSeededAiConversationLoaded() {
+internal fun LiveSmokeContext.createGuestAiConversationForReset() {
     openAiTab()
     dismissAiConsentIfNeeded()
-    waitForGuestCloudWorkspaceReady(context = "before verifying the seeded AI conversation")
-    waitForAiConversation(
-        expectedUserText = seededAiConversationUserText,
-        expectedAssistantText = seededAiConversationAssistantText,
-        context = "while waiting for the seeded AI conversation to materialize"
+    waitForGuestCloudWorkspaceReady(context = "before creating the AI reset conversation")
+    waitForAiComposerButtonState(
+        expectedLabel = "Send",
+        expectedEnabled = false,
+        context = "before filling the AI reset prompt"
+    )
+    val previousPersistedState: AiChatPersistedState = currentAiPersistedState()
+
+    fillAiComposer(
+        expectedDraftText = aiResetPromptText,
+        context = "for the AI reset conversation"
+    )
+    clickTag(tag = aiComposerSendButtonTag, label = "Send AI reset prompt")
+    waitForAiRunAcceptedOrCompleted(
+        previousPersistedState = previousPersistedState,
+        context = "for the AI reset conversation"
+    )
+    waitForAiConversationMaterialized(
+        expectedUserText = aiResetPromptText,
+        context = "while waiting for the AI reset conversation to materialize"
     )
 }
 
@@ -588,6 +554,37 @@ private fun LiveSmokeContext.waitForAiConversation(
                 "ExpectedUser='$expectedUserText' " +
                 "ExpectedAssistant='$expectedAssistantText' " +
                 "LatestAssistant='${latestAssistantMessageTextOrNull()}' " +
+                "UserMessages=${composeRule.onAllNodesWithTag(aiUserMessageBubbleTag).fetchSemanticsNodes().size} " +
+                "AssistantMessages=${composeRule.onAllNodesWithTag(aiAssistantMessageBubbleTag).fetchSemanticsNodes().size} " +
+                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+            error
+        )
+    }
+}
+
+private fun LiveSmokeContext.waitForAiConversationMaterialized(
+    expectedUserText: String,
+    context: String
+) {
+    try {
+        waitForTagToExist(
+            tag = aiUserMessageBubbleTag,
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for a user AI message $context"
+        )
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = context
+        ) {
+            hasVisibleText(text = expectedUserText, substring = false) &&
+                currentAiPersistedState().chatSessionId.isNotBlank() &&
+                currentAiPersistedState().messages.isNotEmpty()
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "AI reset conversation did not materialize as expected. " +
+                "ExpectedUser='$expectedUserText' " +
+                "PersistedState=${currentAiPersistedStateSummary()} " +
                 "UserMessages=${composeRule.onAllNodesWithTag(aiUserMessageBubbleTag).fetchSemanticsNodes().size} " +
                 "AssistantMessages=${composeRule.onAllNodesWithTag(aiAssistantMessageBubbleTag).fetchSemanticsNodes().size} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",

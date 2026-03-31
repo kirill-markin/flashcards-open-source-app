@@ -1,8 +1,6 @@
 import Foundation
 import Observation
 
-private let flashcardsUITestDisableAIBackgroundRefreshEnvironmentKey: String = "FLASHCARDS_UI_TEST_DISABLE_AI_BACKGROUND_REFRESH"
-
 enum AIChatAttachmentSettingsSource: String, Equatable {
     case camera
     case photos
@@ -188,7 +186,8 @@ final class AIChatStore {
     }
 
     var canStopResponse: Bool {
-        self.isChatInteractive && self.composerPhase == .running
+        self.isChatInteractive
+            && (self.composerPhase == .startingRun || self.composerPhase == .running)
     }
 
     var isComposerBusy: Bool {
@@ -196,7 +195,7 @@ final class AIChatStore {
     }
 
     var isStreaming: Bool {
-        self.composerPhase == .running || self.composerPhase == .stopping
+        self.composerPhase == .startingRun || self.composerPhase == .running || self.composerPhase == .stopping
     }
 
     var usesGuestAIRestrictions: Bool {
@@ -423,9 +422,6 @@ final class AIChatStore {
 
     func warmUpSessionIfNeeded() {
         guard self.isChatInteractive else {
-            return
-        }
-        guard self.shouldDisableBackgroundRefreshForUITests == false else {
             return
         }
         guard self.isComposerBusy == false else {
@@ -768,6 +764,16 @@ final class AIChatStore {
             return
         }
 
+        if self.shouldPreserveActiveGuestSendDuringAccessContextChange(nextAccessContext: nextAccessContext) {
+            self.activeAccessContext = nextAccessContext
+            self.historyStore.activateWorkspace(workspaceId: self.historyWorkspaceId())
+            let state = self.currentPersistedState()
+            Task {
+                await self.historyStore.saveState(state: state)
+            }
+            return
+        }
+
         self.activeAccessContext = nextAccessContext
         self.activeBootstrapTask?.cancel()
         self.activeBootstrapTask = nil
@@ -789,6 +795,21 @@ final class AIChatStore {
 
         self.bootstrapPhase = .ready
         self.startPassiveSnapshotRefreshIfPossible(baselineState: persistedState)
+    }
+
+    private func shouldPreserveActiveGuestSendDuringAccessContextChange(
+        nextAccessContext: AIChatAccessContext
+    ) -> Bool {
+        guard self.activeSendTask != nil else {
+            return false
+        }
+        guard let activeAccessContext = self.activeAccessContext else {
+            return false
+        }
+        guard activeAccessContext.cloudState != .linked else {
+            return false
+        }
+        return nextAccessContext.cloudState == .guest
     }
 
     private func restorePersistedState(_ persistedState: AIChatPersistedState) {
@@ -852,9 +873,6 @@ final class AIChatStore {
     }
 
     private func startPassiveSnapshotRefreshIfPossible(baselineState: AIChatPersistedState) {
-        guard self.shouldDisableBackgroundRefreshForUITests == false else {
-            return
-        }
         guard self.hasExternalProviderConsent else {
             return
         }
@@ -934,10 +952,6 @@ final class AIChatStore {
         }
 
         self.applySnapshot(snapshot)
-    }
-
-    private var shouldDisableBackgroundRefreshForUITests: Bool {
-        ProcessInfo.processInfo.environment[flashcardsUITestDisableAIBackgroundRefreshEnvironmentKey] == "1"
     }
 
     private func markAssistantError(message: String) {

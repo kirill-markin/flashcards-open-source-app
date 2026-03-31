@@ -60,7 +60,6 @@ private enum LiveSmokeIdentifier {
 private enum LiveSmokeLaunchResetState: String {
     case localGuest = "local_guest"
     case localGuestSeededManualReviewCard = "local_guest_seeded_manual_review_card"
-    case localGuestSeededAIConversation = "local_guest_seeded_ai_conversation"
     case localGuestSeededAIReviewCard = "local_guest_seeded_ai_review_card"
 }
 
@@ -165,6 +164,7 @@ private enum LiveSmokeFailure: LocalizedError {
     case missingBackButton(screen: String, step: String)
     case currentWorkspacePickerNotVisible(screen: String, step: String)
     case unexpectedAccountState(message: String, screen: String, step: String)
+    case unexpectedReviewState(message: String, screen: String, step: String)
     case aiRunDidNotFinish(timeoutSeconds: TimeInterval, screen: String, step: String)
     case aiRunReportedError(message: String, screen: String, step: String)
     case unexpectedAiConversationState(message: String, screen: String, step: String)
@@ -205,6 +205,8 @@ private enum LiveSmokeFailure: LocalizedError {
             return "Current Workspace picker did not appear during step '\(step)'. Current screen: \(screen)"
         case .unexpectedAccountState(let message, let screen, let step):
             return "Account state was unexpected during step '\(step)'. Current screen: \(screen). \(message)"
+        case .unexpectedReviewState(let message, let screen, let step):
+            return "Review screen reached an unexpected state during step '\(step)'. Current screen: \(screen). \(message)"
         case .aiRunDidNotFinish(let timeoutSeconds, let screen, let step):
             return "AI run did not finish within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)'. Current screen: \(screen)"
         case .aiRunReportedError(let message, let screen, let step):
@@ -223,6 +225,7 @@ private let smokeLogger = Logger(
 )
 private let aiComposerPlaceholderText: String = "Ask about cards, review history, or propose a change..."
 private let aiCreatePromptText: String = "I give you all permissions. Please create one test flashcard now."
+private let aiResetPromptText: String = "Please reply with one short sentence so I can verify this chat resets."
 private let aiCreatePromptMaximumAttempts: Int = 3
 private let liveSmokeFocusPollIntervalSeconds: TimeInterval = 0.2
 
@@ -244,8 +247,6 @@ private struct LiveSmokeAIToolCallCheck {
 private enum LiveSmokeSeededData {
     static let manualReviewFrontText: String = "Smoke seeded manual review question"
     static let aiReviewFrontText: String = "Smoke seeded AI review question"
-    static let aiConversationUserText: String = "Show me the seeded smoke conversation."
-    static let aiConversationAssistantText: String = "This seeded AI conversation is ready to reset."
 }
 
 private func makeLiveSmokeBreadcrumbLine(
@@ -293,7 +294,6 @@ final class LiveSmokeUITests: XCTestCase {
     private let reviewEmailEnvironmentKey: String = "FLASHCARDS_LIVE_REVIEW_EMAIL"
     private let resetStateEnvironmentKey: String = "FLASHCARDS_UI_TEST_RESET_STATE"
     private let selectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
-    private let disableAIBackgroundRefreshEnvironmentKey: String = "FLASHCARDS_UI_TEST_DISABLE_AI_BACKGROUND_REFRESH"
     private let maximumStoredBreadcrumbCount: Int = 30
 
     private var app: XCUIApplication!
@@ -366,10 +366,10 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     func testLiveSmokeGuestAiChatResetFlow() throws {
-        try self.launchApplication(resetState: .localGuestSeededAIConversation, selectedTab: .ai)
+        try self.launchApplication(resetState: .localGuest, selectedTab: .ai)
 
-        try self.step("verify the seeded AI conversation is visible before reset") {
-            try self.assertSeededAiConversationLoaded()
+        try self.step("create one guest AI conversation before reset") {
+            try self.createGuestAiConversationForReset()
         }
 
         try self.step("start a new chat and confirm the conversation resets cleanly") {
@@ -718,9 +718,42 @@ final class LiveSmokeUITests: XCTestCase {
             identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
             timeout: self.reviewInteractionTimeoutSeconds
         )
+        try self.waitForReviewAnswerReveal()
         try self.tapElement(
             identifier: LiveSmokeIdentifier.reviewRateGoodButton,
             timeout: self.reviewInteractionTimeoutSeconds
+        )
+    }
+
+    @MainActor
+    private func waitForReviewAnswerReveal() throws {
+        let showAnswerButton = self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton]
+        let rateGoodButton = self.app.buttons[LiveSmokeIdentifier.reviewRateGoodButton]
+        let deadline = Date().addingTimeInterval(self.reviewInteractionTimeoutSeconds)
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+
+            if showAnswerButton.exists == false && rateGoodButton.exists {
+                return
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        if showAnswerButton.exists {
+            throw LiveSmokeFailure.unexpectedReviewState(
+                message: "Review answer did not reveal after tapping Show answer.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        throw LiveSmokeFailure.missingElement(
+            identifier: LiveSmokeIdentifier.reviewRateGoodButton,
+            timeoutSeconds: self.reviewInteractionTimeoutSeconds,
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
         )
     }
 
@@ -734,10 +767,11 @@ final class LiveSmokeUITests: XCTestCase {
             identifier: LiveSmokeIdentifier.aiConsentAcceptButton,
             timeout: self.optionalProbeTimeoutSeconds
         ) {
-            self.logActionStart(action: "tap_element", identifier: LiveSmokeIdentifier.aiConsentAcceptButton)
-            aiConsentButton.tap()
-            _ = self.dismissKnownBlockingAlertIfVisible()
-            self.logActionEnd(action: "tap_element", identifier: LiveSmokeIdentifier.aiConsentAcceptButton, result: "success", note: "AI consent accepted")
+            try self.tapElement(
+                identifier: LiveSmokeIdentifier.aiConsentAcceptButton,
+                timeout: self.shortUiTimeoutSeconds
+            )
+            try self.waitForAiComposerAfterConsent()
         }
 
         var latestCompletedSqlSummaries: [String] = []
@@ -772,7 +806,7 @@ final class LiveSmokeUITests: XCTestCase {
                 note: "AI create request sent"
             )
             try self.assertAiRunStartedOrFinished(
-                timeout: self.shortUiTimeoutSeconds,
+                timeout: self.longUiTimeoutSeconds,
                 completedMarkerCountBeforeWait: completedMarkerCountBeforeAttempt,
                 errorMarkerCountBeforeWait: errorMarkerCountBeforeAttempt
             )
@@ -820,6 +854,10 @@ final class LiveSmokeUITests: XCTestCase {
             identifier: LiveSmokeIdentifier.aiComposerTextField,
             timeout: self.longUiTimeoutSeconds
         )
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.aiEmptyState,
+            timeout: self.longUiTimeoutSeconds
+        )
         try self.assertElementDisabled(
             identifier: LiveSmokeIdentifier.aiComposerSendButton,
             timeout: self.longUiTimeoutSeconds
@@ -849,35 +887,90 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    private func assertSeededAiConversationLoaded() throws {
-        try self.assertScreenVisible(screen: .ai, timeout: self.shortUiTimeoutSeconds)
-        let firstMessageRow = self.app.descendants(matching: .any)
-            .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
+    private func waitForAiComposerAfterConsent() throws {
+        let consentButton = self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton]
+        let composerTextField = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiComposerTextField)
             .firstMatch
-        if self.waitForOptionalElement(
-            firstMessageRow,
-            identifier: LiveSmokeIdentifier.aiMessageRow,
-            timeout: self.shortUiTimeoutSeconds
-        ) == false {
-            throw LiveSmokeFailure.missingElement(
-                identifier: LiveSmokeIdentifier.aiMessageRow,
-                timeoutSeconds: self.shortUiTimeoutSeconds,
+        let deadline = Date().addingTimeInterval(self.longUiTimeoutSeconds)
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+
+            if consentButton.exists == false && composerTextField.exists {
+                return
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        if consentButton.exists {
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "AI consent gate did not dismiss after accepting consent.",
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
             )
         }
 
-        try self.assertTextExists(
-            LiveSmokeSeededData.aiConversationUserText,
+        throw LiveSmokeFailure.missingElement(
+            identifier: LiveSmokeIdentifier.aiComposerTextField,
+            timeoutSeconds: self.longUiTimeoutSeconds,
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+
+    @MainActor
+    private func createGuestAiConversationForReset() throws {
+        try self.assertScreenVisible(screen: .ai, timeout: self.shortUiTimeoutSeconds)
+
+        let aiConsentButton = self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton]
+        if self.waitForOptionalElement(
+            aiConsentButton,
+            identifier: LiveSmokeIdentifier.aiConsentAcceptButton,
+            timeout: self.optionalProbeTimeoutSeconds
+        ) {
+            try self.tapElement(
+                identifier: LiveSmokeIdentifier.aiConsentAcceptButton,
+                timeout: self.shortUiTimeoutSeconds
+            )
+            try self.waitForAiComposerAfterConsent()
+        }
+
+        try self.assertElementDisabled(
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
             timeout: self.shortUiTimeoutSeconds
         )
-        try self.assertTextExists(
-            LiveSmokeSeededData.aiConversationAssistantText,
+        try self.replaceAiComposerText(
+            aiResetPromptText,
             timeout: self.shortUiTimeoutSeconds
+        )
+        let completedMarkerCountBeforeWait = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
+            .count
+        let errorMarkerCountBeforeWait = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
+            .count
+        try self.assertElementEnabled(
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
+            timeout: self.shortUiTimeoutSeconds
+        )
+        try self.tapElement(
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
+            timeout: self.shortUiTimeoutSeconds
+        )
+        try self.assertAiRunStartedOrFinished(
+            timeout: self.longUiTimeoutSeconds,
+            completedMarkerCountBeforeWait: completedMarkerCountBeforeWait,
+            errorMarkerCountBeforeWait: errorMarkerCountBeforeWait
+        )
+        try self.assertTextExists(
+            aiResetPromptText,
+            timeout: self.longUiTimeoutSeconds
         )
         try self.assertElementEnabled(
             identifier: LiveSmokeIdentifier.aiNewChatButton,
-            timeout: self.shortUiTimeoutSeconds
+            timeout: self.longUiTimeoutSeconds
         )
     }
 
@@ -2027,7 +2120,6 @@ final class LiveSmokeUITests: XCTestCase {
     ) {
         self.app.launchEnvironment.removeValue(forKey: self.resetStateEnvironmentKey)
         self.app.launchEnvironment[self.selectedTabEnvironmentKey] = selectedTab.rawValue
-        self.app.launchEnvironment[self.disableAIBackgroundRefreshEnvironmentKey] = "1"
         if let resetState {
             self.app.launchEnvironment[self.resetStateEnvironmentKey] = resetState.rawValue
         }
@@ -2398,8 +2490,9 @@ final class LiveSmokeUITests: XCTestCase {
         completedMarkerCountBeforeWait: Int,
         errorMarkerCountBeforeWait: Int
     ) throws {
-        let sendButton = self.app.descendants(matching: .any)
+        let sendButtonQuery = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.aiComposerSendButton)
+        let sendButton = sendButtonQuery
             .firstMatch
         let completedElements = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
@@ -2433,27 +2526,6 @@ final class LiveSmokeUITests: XCTestCase {
 
         while Date() < deadline {
             _ = self.dismissKnownBlockingAlertIfVisible()
-
-            if sendButton.label == "Stop response" {
-                if sendButton.isEnabled == false {
-                    throw LiveSmokeFailure.disabledElement(
-                        identifier: LiveSmokeIdentifier.aiComposerSendButton,
-                        screen: self.currentScreenSummary(),
-                        step: self.currentStepTitle
-                    )
-                }
-                let durationSeconds = Date().timeIntervalSince(startedAt)
-                self.logSmokeBreadcrumb(
-                    event: "wait_end",
-                    action: "wait_for_ai_activity",
-                    identifier: LiveSmokeIdentifier.aiComposerSendButton,
-                    timeoutSeconds: formatDuration(seconds: timeout),
-                    durationSeconds: formatDuration(seconds: durationSeconds),
-                    result: "success",
-                    note: "AI run entered streaming state"
-                )
-                return
-            }
 
             if completedElements.count > completedMarkerCountBeforeWait {
                 let durationSeconds = Date().timeIntervalSince(startedAt)
@@ -2490,6 +2562,28 @@ final class LiveSmokeUITests: XCTestCase {
                     screen: self.currentScreenSummary(),
                     step: self.currentStepTitle
                 )
+            }
+
+            let currentSendButton = sendButtonQuery.firstMatch
+            if currentSendButton.exists, currentSendButton.label == "Stop response" {
+                if currentSendButton.isEnabled == false {
+                    throw LiveSmokeFailure.disabledElement(
+                        identifier: LiveSmokeIdentifier.aiComposerSendButton,
+                        screen: self.currentScreenSummary(),
+                        step: self.currentStepTitle
+                    )
+                }
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_ai_activity",
+                    identifier: LiveSmokeIdentifier.aiComposerSendButton,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "success",
+                    note: "AI run entered streaming state"
+                )
+                return
             }
 
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))

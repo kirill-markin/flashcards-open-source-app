@@ -19,7 +19,6 @@ private enum PersistedCloudStateReconciliationOutcome {
 enum FlashcardsUITestResetState: String {
     case localGuest = "local_guest"
     case localGuestSeededManualReviewCard = "local_guest_seeded_manual_review_card"
-    case localGuestSeededAIConversation = "local_guest_seeded_ai_conversation"
     case localGuestSeededAIReviewCard = "local_guest_seeded_ai_review_card"
 }
 
@@ -29,8 +28,6 @@ private enum FlashcardsUITestSeedData {
     static let aiReviewFrontText: String = "Smoke seeded AI review question"
     static let aiReviewBackText: String = "Smoke seeded AI review answer"
     static let aiReviewTag: String = "smoke-seeded-ai-review"
-    static let aiConversationUserText: String = "Show me the seeded smoke conversation."
-    static let aiConversationAssistantText: String = "This seeded AI conversation is ready to reset."
 }
 
 @MainActor
@@ -399,8 +396,6 @@ extension FlashcardsStore {
                 backText: FlashcardsUITestSeedData.manualReviewBackText,
                 tags: []
             )
-        case .localGuestSeededAIConversation:
-            try self.seedUITestAIConversation()
         case .localGuestSeededAIReviewCard:
             try self.seedUITestCard(
                 frontText: FlashcardsUITestSeedData.aiReviewFrontText,
@@ -419,43 +414,6 @@ extension FlashcardsStore {
                 effortLevel: .medium
             ),
             editingCardId: nil
-        )
-    }
-
-    private func seedUITestAIConversation() throws {
-        grantAIChatExternalProviderConsent(userDefaults: self.userDefaults)
-
-        let workspaceId = try requireWorkspaceId(workspace: self.workspace)
-        let historyWorkspaceId = makeAIChatHistoryScopedWorkspaceId(
-            workspaceId: workspaceId,
-            cloudSettings: self.cloudSettings
-        )
-        let timestamp = nowIsoTimestamp()
-        let persistedState = AIChatPersistedState(
-            messages: [
-                AIChatMessage(
-                    id: UUID().uuidString.lowercased(),
-                    role: .user,
-                    content: [.text(FlashcardsUITestSeedData.aiConversationUserText)],
-                    timestamp: timestamp,
-                    isError: false
-                ),
-                AIChatMessage(
-                    id: UUID().uuidString.lowercased(),
-                    role: .assistant,
-                    content: [.text(FlashcardsUITestSeedData.aiConversationAssistantText)],
-                    timestamp: timestamp,
-                    isError: false
-                )
-            ],
-            chatSessionId: makeAIChatSessionId(),
-            lastKnownChatConfig: aiChatDefaultServerConfig
-        )
-        try storeAIChatHistoryStateSynchronously(
-            userDefaults: self.userDefaults,
-            encoder: self.encoder,
-            workspaceId: historyWorkspaceId,
-            state: persistedState
         )
     }
 
@@ -708,8 +666,10 @@ extension FlashcardsStore {
         )
     }
 
-    private func markLocalCloudStateAsGuest(session: CloudLinkedSession) throws {
-        let database = try requireLocalDatabase(database: self.database)
+    private func applyGuestCloudStateBeforeReload(
+        database: LocalDatabase,
+        session: CloudLinkedSession
+    ) throws {
         try database.updateCloudSettings(
             cloudState: .guest,
             linkedUserId: session.userId,
@@ -717,7 +677,6 @@ extension FlashcardsStore {
             activeWorkspaceId: session.workspaceId,
             linkedEmail: nil
         )
-        try self.reload()
     }
 
     private func prepareGuestCloudSessionForAI() async throws -> CloudLinkedSession {
@@ -737,7 +696,6 @@ extension FlashcardsStore {
         }
 
         try await self.finishCloudLink(linkedSession: guestSession)
-        try self.markLocalCloudStateAsGuest(session: guestSession)
         return (guestSession, true)
     }
 
@@ -1014,6 +972,12 @@ extension FlashcardsStore {
                 localWorkspaceId: context.workspaceId,
                 linkedSession: linkedSession
             )
+            if linkedSession.authorization.isGuest {
+                try self.applyGuestCloudStateBeforeReload(
+                    database: context.database,
+                    session: linkedSession
+                )
+            }
 
             self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
             try self.reload()
