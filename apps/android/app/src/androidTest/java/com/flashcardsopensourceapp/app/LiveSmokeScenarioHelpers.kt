@@ -5,7 +5,6 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -20,6 +19,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
+import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
@@ -30,16 +30,13 @@ import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
 import com.flashcardsopensourceapp.feature.ai.aiNewChatButtonTag
-import com.flashcardsopensourceapp.feature.ai.aiToolCallInputTag
-import com.flashcardsopensourceapp.feature.ai.aiToolCallOutputTag
-import com.flashcardsopensourceapp.feature.ai.aiToolCallStatusTag
-import com.flashcardsopensourceapp.feature.ai.aiToolCallSummaryTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
 import com.flashcardsopensourceapp.feature.cards.cardsCardFrontTextTag
 import com.flashcardsopensourceapp.feature.review.reviewCurrentCardFrontContentTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTitleTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.util.UUID
@@ -98,20 +95,25 @@ internal fun LiveSmokeContext.createManualCard(
     clickText(text = "Add tag", substring = false)
     tapBackIcon()
     scrollToText(text = "Save")
-    composeRule.waitUntil(timeoutMillis = internalUiTimeoutMillis) {
-        failIfVisibleAppError(context = "while waiting for Save card")
-        composeRule.onAllNodes(
-            matcher = hasClickAction().and(other = hasText("Save"))
-        ).fetchSemanticsNodes().isNotEmpty()
-    }
+    waitUntilAtLeastOneExistsOrFail(
+        matcher = hasClickAction().and(other = hasText("Save")),
+        timeoutMillis = internalUiTimeoutMillis
+    )
     clickNode(
         matcher = hasClickAction().and(other = hasText("Save")),
         label = "Save card"
     )
-    composeRule.waitUntil(timeoutMillis = internalUiTimeoutMillis) {
-        failIfVisibleAppError(context = "while waiting for the saved manual card to appear")
-        composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty() &&
-            composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty()
+    waitForTextToExist(
+        text = "Search cards",
+        substring = false,
+        timeoutMillis = internalUiTimeoutMillis,
+        context = "while waiting for cards search after saving a manual card"
+    )
+    waitUntilWithMitigation(
+        timeoutMillis = internalUiTimeoutMillis,
+        context = "while waiting for the saved manual card to appear"
+    ) {
+        visibleCardsFrontTexts().any { text -> text == frontText }
     }
 }
 
@@ -122,8 +124,10 @@ internal fun LiveSmokeContext.rateVisibleReviewCardGood() {
     )
     clickTag(tag = reviewShowAnswerButtonTag, label = "Show answer")
     clickTag(tag = reviewRateGoodButtonTag, label = "Rate Good")
-    composeRule.waitUntil(timeoutMillis = internalUiTimeoutMillis) {
-        failIfVisibleAppError(context = "while waiting for the review queue to advance")
+    waitUntilWithMitigation(
+        timeoutMillis = internalUiTimeoutMillis,
+        context = "while waiting for the review queue to advance"
+    ) {
         composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty() ||
             composeRule.onAllNodesWithText("Session complete").fetchSemanticsNodes().isNotEmpty()
     }
@@ -168,7 +172,7 @@ internal fun LiveSmokeContext.createAiCardWithConfirmation() {
 
     var latestCompletedSqlSummaries: List<String> = emptyList()
     repeat(times = 3) { attemptIndex ->
-        val previousToolCallSummaryCount: Int = toolCallSummaryTexts().size
+        val previousPersistedState: AiChatPersistedState = currentAiPersistedState()
 
         fillAiComposer(
             expectedDraftText = aiCreatePromptText,
@@ -176,8 +180,7 @@ internal fun LiveSmokeContext.createAiCardWithConfirmation() {
         )
         clickTag(tag = aiComposerSendButtonTag, label = "Send AI create prompt")
         waitForAiRunAcceptedOrCompleted(
-            expectedDraftText = aiCreatePromptText,
-            previousToolCallSummaryCount = previousToolCallSummaryCount,
+            previousPersistedState = previousPersistedState,
             context = "for AI create attempt ${attemptIndex + 1}"
         )
         waitForAiComposerButtonState(
@@ -205,30 +208,24 @@ private data class LiveSmokeAiToolCallCheck(
 )
 
 private fun LiveSmokeContext.waitForAiRunAcceptedOrCompleted(
-    expectedDraftText: String,
-    previousToolCallSummaryCount: Int,
+    previousPersistedState: AiChatPersistedState,
     context: String
 ) {
     try {
-        waitUntilWithMitigation(
+        waitForAiPersistedState(
             timeoutMillis = externalUiTimeoutMillis,
             context = "while waiting for AI run acceptance $context"
-        ) {
-            val stopVisible: Boolean = aiComposerSendButtonMatchesState(
-                expectedLabel = "Stop",
-                expectedEnabled = true
-            )
-            val draftChanged: Boolean = aiComposerDraftTextOrNull() != expectedDraftText
-            val toolCallProgressed: Boolean = toolCallSummaryTexts().size > previousToolCallSummaryCount
-            stopVisible || draftChanged || toolCallProgressed
+        ) { state ->
+            state.chatSessionId != previousPersistedState.chatSessionId ||
+                completedAiInsertToolCallCheck(state = state).completedSqlSummaries.isNotEmpty() ||
+                state.messages.size > previousPersistedState.messages.size
         }
     } catch (error: Throwable) {
         throw AssertionError(
             "AI run was not accepted $context. " +
-                "ExpectedDraft='$expectedDraftText' " +
                 "ActualDraft='${aiComposerDraftTextOrNull()}' " +
                 "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = "Send")} " +
-                "ToolCallSummaries=${toolCallSummaryTexts()} " +
+                "PersistedState=${currentAiPersistedStateSummary()} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )
@@ -238,14 +235,27 @@ private fun LiveSmokeContext.waitForAiRunAcceptedOrCompleted(
 internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
     clickTag(tag = aiNewChatButtonTag, label = "New chat")
     try {
-        waitUntilWithMitigation(
+        waitForAiPersistedState(
             timeoutMillis = externalUiTimeoutMillis,
             context = "while waiting for New chat to reset the AI conversation"
-        ) {
-            composeRule.onAllNodesWithTag(aiEmptyStateTag).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithTag(aiAssistantMessageBubbleTag).fetchSemanticsNodes().isEmpty() &&
-                composeRule.onAllNodesWithTag(aiUserMessageBubbleTag).fetchSemanticsNodes().isEmpty()
+        ) { state ->
+            state.messages.isEmpty()
         }
+        waitForTagToExist(
+            tag = aiEmptyStateTag,
+            timeoutMillis = internalUiTimeoutMillis,
+            context = "while waiting for the AI empty state after resetting the conversation"
+        )
+        waitForTagToDisappear(
+            tag = aiAssistantMessageBubbleTag,
+            timeoutMillis = internalUiTimeoutMillis,
+            context = "while waiting for assistant messages to disappear after resetting the conversation"
+        )
+        waitForTagToDisappear(
+            tag = aiUserMessageBubbleTag,
+            timeoutMillis = internalUiTimeoutMillis,
+            context = "while waiting for user messages to disappear after resetting the conversation"
+        )
         waitForAiComposerButtonState(
             expectedLabel = "Send",
             expectedEnabled = false,
@@ -426,17 +436,17 @@ private fun LiveSmokeContext.fillAiComposer(
 
 private fun LiveSmokeContext.waitForGuestCloudWorkspaceReady(context: String) {
     try {
-        waitUntilWithMitigation(
+        val appGraph = appGraph()
+        waitForFlowValue(
             timeoutMillis = externalUiTimeoutMillis,
-            context = "while waiting for guest cloud workspace readiness $context"
-        ) {
-            val appGraph = (composeRule.activity.application as FlashcardsApplication).appGraph
-            val cloudSettings = runBlocking {
-                appGraph.cloudAccountRepository.observeCloudSettings().first()
+            context = "while waiting for guest cloud workspace readiness $context",
+            flow = combine(
+                appGraph.cloudAccountRepository.observeCloudSettings(),
+                appGraph.workspaceRepository.observeWorkspace()
+            ) { cloudSettings, workspace ->
+                cloudSettings to workspace
             }
-            val workspace = runBlocking {
-                appGraph.workspaceRepository.observeWorkspace().first()
-            }
+        ) { (cloudSettings, workspace) ->
             cloudSettings.cloudState == CloudAccountState.GUEST &&
                 cloudSettings.activeWorkspaceId != null &&
                 workspace?.workspaceId == cloudSettings.activeWorkspaceId
@@ -509,24 +519,35 @@ private fun LiveSmokeContext.waitForAiComposerButtonState(
 }
 
 private fun LiveSmokeContext.completedAiInsertToolCallCheck(): LiveSmokeAiToolCallCheck {
-    expandAllToolCallDetails()
+    return completedAiInsertToolCallCheck(state = currentAiPersistedState())
+}
 
-    val summaryTexts: List<String> = toolCallSummaryTexts()
-    val statusTexts: List<String> = toolCallStatusTexts()
-    val inputTexts: List<String> = toolCallInputTexts()
-    val outputTexts: List<String> = toolCallOutputTexts()
-    val completedSqlSummaries: List<String> = summaryTexts.filterIndexed { index, summaryText ->
-        val statusText: String = statusTexts.getOrNull(index) ?: ""
-        summaryText.contains(other = "SQL:") && statusText == "Done"
-    }
+private fun completedAiInsertToolCallCheck(state: AiChatPersistedState): LiveSmokeAiToolCallCheck {
+    val completedToolCalls = state.messages
+        .flatMap { message -> message.content }
+        .mapNotNull { part ->
+            if (part is AiChatContentPart.ToolCall) {
+                part.toolCall
+            } else {
+                null
+            }
+        }
+        .filter { toolCall -> toolCall.status == AiChatToolCallStatus.COMPLETED }
+    val completedSqlSummaries: List<String> = completedToolCalls.map { toolCall ->
+        listOfNotNull(
+            toolCall.name.takeIf { name -> name.isNotBlank() },
+            toolCall.input?.takeIf { input -> input.isNotBlank() },
+            toolCall.output?.takeIf { output -> output.isNotBlank() }
+        ).joinToString(separator = " | ")
+    }.filter { summary -> summary.isNotBlank() }
     val summaryMatch: Boolean = completedSqlSummaries.any { summaryText ->
         summaryText.contains(other = "INSERT INTO cards")
     }
-    val requestMatch: Boolean = inputTexts.isEmpty() || inputTexts.any { inputText ->
-        inputText.contains(other = "INSERT INTO cards")
+    val requestMatch: Boolean = completedToolCalls.any { toolCall ->
+        toolCall.input?.contains(other = "INSERT INTO cards") == true
     }
-    val responseMatch: Boolean = outputTexts.isEmpty() || outputTexts.any { outputText ->
-        outputText.contains(other = "\"ok\":true")
+    val responseMatch: Boolean = completedToolCalls.any { toolCall ->
+        toolCall.output?.contains(other = "\"ok\":true") == true
     }
     val matchingInsertFound: Boolean = summaryMatch && requestMatch && responseMatch
 
@@ -536,31 +557,28 @@ private fun LiveSmokeContext.completedAiInsertToolCallCheck(): LiveSmokeAiToolCa
     )
 }
 
-private fun LiveSmokeContext.expandAllToolCallDetails() {
-    while (composeRule.onAllNodesWithContentDescription("Expand tool details").fetchSemanticsNodes().isNotEmpty()) {
-        composeRule.onAllNodesWithContentDescription("Expand tool details")[0].performClick()
-        composeRule.waitForIdle()
-    }
-}
-
 private fun LiveSmokeContext.waitForAiConversation(
     expectedUserText: String,
     expectedAssistantText: String,
     context: String
 ) {
     try {
+        waitForTagToExist(
+            tag = aiUserMessageBubbleTag,
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for a user AI message $context"
+        )
+        waitForTagToExist(
+            tag = aiAssistantMessageBubbleTag,
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for an assistant AI message $context"
+        )
         waitUntilWithMitigation(
             timeoutMillis = externalUiTimeoutMillis,
             context = context
         ) {
-            val userMessagesVisible: Boolean =
-                composeRule.onAllNodesWithTag(aiUserMessageBubbleTag).fetchSemanticsNodes().isNotEmpty()
-            val assistantMessagesVisible: Boolean =
-                composeRule.onAllNodesWithTag(aiAssistantMessageBubbleTag).fetchSemanticsNodes().isNotEmpty()
             val assistantText: String? = latestAssistantMessageTextOrNull()
-            userMessagesVisible &&
-                assistantMessagesVisible &&
-                hasVisibleText(text = expectedUserText, substring = false) &&
+            hasVisibleText(text = expectedUserText, substring = false) &&
                 (assistantText?.contains(other = expectedAssistantText) == true)
         }
     } catch (error: Throwable) {
@@ -632,34 +650,6 @@ private fun LiveSmokeContext.latestAssistantMessageTextOrNull(): String? {
         ?.joinToString(separator = " | ")
 }
 
-private fun LiveSmokeContext.toolCallSummaryTexts(): List<String> {
-    return composeRule.onAllNodesWithTag(aiToolCallSummaryTag, useUnmergedTree = true)
-        .fetchSemanticsNodes()
-        .map(::nodeSummary)
-        .filter { text -> text.isNotBlank() }
-}
-
-private fun LiveSmokeContext.toolCallStatusTexts(): List<String> {
-    return composeRule.onAllNodesWithTag(aiToolCallStatusTag, useUnmergedTree = true)
-        .fetchSemanticsNodes()
-        .map(::nodeSummary)
-        .filter { text -> text.isNotBlank() }
-}
-
-private fun LiveSmokeContext.toolCallInputTexts(): List<String> {
-    return composeRule.onAllNodesWithTag(aiToolCallInputTag, useUnmergedTree = true)
-        .fetchSemanticsNodes()
-        .map(::nodeSummary)
-        .filter { text -> text.isNotBlank() }
-}
-
-private fun LiveSmokeContext.toolCallOutputTexts(): List<String> {
-    return composeRule.onAllNodesWithTag(aiToolCallOutputTag, useUnmergedTree = true)
-        .fetchSemanticsNodes()
-        .map(::nodeSummary)
-        .filter { text -> text.isNotBlank() }
-}
-
 private fun LiveSmokeContext.visibleCardsFrontTexts(): List<String> {
     return composeRule.onAllNodesWithTag(cardsCardFrontTextTag, useUnmergedTree = true)
         .fetchSemanticsNodes()
@@ -698,4 +688,42 @@ private fun LiveSmokeContext.localCardSnapshotOrNull(expectedFrontText: String):
             "lapses=${matchingCard.card.lapses} " +
             "tags=${matchingCard.tags.map { tag -> tag.name }}"
     }
+}
+
+private fun LiveSmokeContext.currentWorkspaceIdOrThrow(context: String): String {
+    return runBlocking {
+        requireNotNull(appGraph().workspaceRepository.observeWorkspace().first()?.workspaceId) {
+            "Workspace ID was missing $context."
+        }
+    }
+}
+
+private fun LiveSmokeContext.aiHistoryStore(): AiChatHistoryStore {
+    return AiChatHistoryStore(context = composeRule.activity.applicationContext)
+}
+
+private fun LiveSmokeContext.currentAiPersistedState(): AiChatPersistedState {
+    return runBlocking {
+        aiHistoryStore().loadState(workspaceId = currentWorkspaceIdOrThrow(context = "while loading AI persisted state"))
+    }
+}
+
+private fun LiveSmokeContext.currentAiPersistedStateSummary(): String {
+    val state = currentAiPersistedState()
+    val completedToolCalls = completedAiInsertToolCallCheck(state = state).completedSqlSummaries
+    return "chatSessionId=${state.chatSessionId} messageCount=${state.messages.size} completedToolCalls=$completedToolCalls"
+}
+
+private fun LiveSmokeContext.waitForAiPersistedState(
+    timeoutMillis: Long,
+    context: String,
+    predicate: (AiChatPersistedState) -> Boolean
+): AiChatPersistedState {
+    val workspaceId = currentWorkspaceIdOrThrow(context = context)
+    return waitForFlowValue(
+        timeoutMillis = timeoutMillis,
+        context = context,
+        flow = aiHistoryStore().observeState(workspaceId = workspaceId),
+        predicate = predicate
+    )
 }

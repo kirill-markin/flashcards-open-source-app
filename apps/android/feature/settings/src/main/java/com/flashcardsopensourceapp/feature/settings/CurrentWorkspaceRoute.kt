@@ -209,6 +209,13 @@ fun CurrentWorkspaceRoute(
                                                     )
                                                 }
                                             )
+                                            .then(
+                                                if (workspace.isSelected) {
+                                                    Modifier.testTag(tag = currentWorkspaceSelectedSummaryTag)
+                                                } else {
+                                                    Modifier
+                                                }
+                                            )
                                     ) {
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -231,12 +238,7 @@ fun CurrentWorkspaceRoute(
                                             Text(
                                                 text = workspace.subtitle,
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = if (workspace.isSelected) {
-                                                    Modifier.testTag(tag = currentWorkspaceSelectedSummaryTag)
-                                                } else {
-                                                    Modifier
-                                                }
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }

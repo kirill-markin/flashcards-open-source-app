@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.ai
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
@@ -11,6 +12,9 @@ import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -55,6 +59,22 @@ class AiChatHistoryStore(
     suspend fun clearAllState() = withContext(Dispatchers.IO) {
         preferences.edit(commit = true) {
             clear()
+        }
+    }
+
+    fun observeState(workspaceId: String?): Flow<AiChatPersistedState> {
+        val key = storageKey(workspaceId = workspaceId)
+        return callbackFlow {
+            val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
+                if (changedKey == null || changedKey == key) {
+                    trySend(currentState(workspaceId = workspaceId))
+                }
+            }
+            trySend(currentState(workspaceId = workspaceId))
+            preferences.registerOnSharedPreferenceChangeListener(listener)
+            awaitClose {
+                preferences.unregisterOnSharedPreferenceChangeListener(listener)
+            }
         }
     }
 
@@ -262,6 +282,17 @@ class AiChatHistoryStore(
             )
 
             else -> throw IllegalArgumentException("Unsupported AI chat content type.")
+        }
+    }
+
+    private fun currentState(workspaceId: String?): AiChatPersistedState {
+        val rawValue = preferences.getString(storageKey(workspaceId = workspaceId), null)
+            ?: return makeDefaultAiChatPersistedState()
+
+        return try {
+            decodeState(rawValue = rawValue)
+        } catch (_: Exception) {
+            makeDefaultAiChatPersistedState()
         }
     }
 }

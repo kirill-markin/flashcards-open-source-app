@@ -82,6 +82,7 @@ gcloud_args=(
   "${TEST_PATH}"
   --device
   "model=${DEVICE_MODEL},version=${DEVICE_VERSION},locale=en,orientation=portrait"
+  --no-performance-metrics
 )
 
 if [[ -n "${RESULTS_BUCKET}" ]]; then
