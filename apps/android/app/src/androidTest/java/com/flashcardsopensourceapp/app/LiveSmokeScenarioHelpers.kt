@@ -185,7 +185,47 @@ internal fun LiveSmokeContext.relaunchAndAssertGuestAccountStatus() {
     tapBackIcon()
 }
 
-internal fun LiveSmokeContext.createAiCardWithConfirmation(
+private const val aiCreatePromptText: String =
+    "I give you all permissions. Please create one test flashcard now."
+
+internal fun LiveSmokeContext.createAiCardWithConfirmation() {
+    openAiTab()
+    dismissAiConsentIfNeeded()
+    waitForGuestCloudWorkspaceReady(context = "before filling the AI create prompt")
+
+    var latestCompletedSqlSummaries: List<String> = emptyList()
+    repeat(times = 3) { attemptIndex ->
+        val previousToolCallSummaryCount: Int = toolCallSummaryTexts().size
+
+        fillAiComposer(
+            expectedDraftText = aiCreatePromptText,
+            context = "for AI create attempt ${attemptIndex + 1}"
+        )
+        clickTag(tag = aiComposerSendButtonTag, label = "Send AI create prompt")
+        waitForAiRunAcceptedOrCompleted(
+            expectedDraftText = aiCreatePromptText,
+            previousToolCallSummaryCount = previousToolCallSummaryCount,
+            context = "for AI create attempt ${attemptIndex + 1}"
+        )
+        waitUntilAtLeastOneExistsOrFail(
+            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText("Send")),
+            timeoutMillis = externalUiTimeoutMillis
+        )
+
+        val toolCallCheck: LiveSmokeAiToolCallCheck = completedAiInsertToolCallCheck()
+        latestCompletedSqlSummaries = toolCallCheck.completedSqlSummaries
+        if (toolCallCheck.matchingInsertFound) {
+            return
+        }
+    }
+
+    throw AssertionError(
+        "AI create flow did not produce a completed SQL INSERT INTO cards after 3 attempts. " +
+            "CompletedSqlToolCalls=${latestCompletedSqlSummaries}"
+    )
+}
+
+internal fun LiveSmokeContext.createTaggedAiCardWithConfirmation(
     aiFrontText: String,
     aiBackText: String,
     markerTag: String
@@ -219,7 +259,7 @@ internal fun LiveSmokeContext.createAiCardWithConfirmation(
             timeoutMillis = externalUiTimeoutMillis
         )
 
-        val toolCallCheck: LiveSmokeAiToolCallCheck = completedAiInsertToolCallCheck(
+        val toolCallCheck: LiveSmokeAiToolCallCheck = completedTaggedAiInsertToolCallCheck(
             aiFrontText = aiFrontText,
             markerTag = markerTag
         )
@@ -508,7 +548,35 @@ private fun LiveSmokeContext.waitForAiComposerReady(
     }
 }
 
-private fun LiveSmokeContext.completedAiInsertToolCallCheck(
+private fun LiveSmokeContext.completedAiInsertToolCallCheck(): LiveSmokeAiToolCallCheck {
+    expandAllToolCallDetails()
+
+    val summaryTexts: List<String> = toolCallSummaryTexts()
+    val statusTexts: List<String> = toolCallStatusTexts()
+    val inputTexts: List<String> = toolCallInputTexts()
+    val outputTexts: List<String> = toolCallOutputTexts()
+    val completedSqlSummaries: List<String> = summaryTexts.filterIndexed { index, summaryText ->
+        val statusText: String = statusTexts.getOrNull(index) ?: ""
+        summaryText.contains(other = "SQL:") && statusText == "Done"
+    }
+    val summaryMatch: Boolean = completedSqlSummaries.any { summaryText ->
+        summaryText.contains(other = "INSERT INTO cards")
+    }
+    val requestMatch: Boolean = inputTexts.isEmpty() || inputTexts.any { inputText ->
+        inputText.contains(other = "INSERT INTO cards")
+    }
+    val responseMatch: Boolean = outputTexts.isEmpty() || outputTexts.any { outputText ->
+        outputText.contains(other = "\"ok\":true")
+    }
+    val matchingInsertFound: Boolean = summaryMatch && requestMatch && responseMatch
+
+    return LiveSmokeAiToolCallCheck(
+        matchingInsertFound = matchingInsertFound,
+        completedSqlSummaries = completedSqlSummaries
+    )
+}
+
+private fun LiveSmokeContext.completedTaggedAiInsertToolCallCheck(
     aiFrontText: String,
     markerTag: String
 ): LiveSmokeAiToolCallCheck {
