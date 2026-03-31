@@ -10,6 +10,8 @@ import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
+import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import kotlinx.coroutines.channels.awaitClose
@@ -24,6 +26,37 @@ private const val aiChatHistoryPreferencesName: String = "flashcards-ai-chat-his
 private const val aiChatDefaultHistoryKey: String = "ai-chat-history"
 private const val aiChatWorkspaceHistoryPrefix: String = "ai-chat-history::"
 private const val aiChatMaxMessages: Int = 200
+
+fun makeAiChatHistoryScopedWorkspaceId(
+    workspaceId: String?,
+    cloudSettings: CloudSettings
+): String {
+    val normalizedWorkspaceId = workspaceId?.trim()?.takeIf { value ->
+        value.isNotEmpty()
+    } ?: "default"
+
+    return when (cloudSettings.cloudState) {
+        CloudAccountState.LINKED -> {
+            val normalizedUserId = cloudSettings.linkedUserId?.trim()?.takeIf { value ->
+                value.isNotEmpty()
+            } ?: "linked-user"
+            val normalizedActiveWorkspaceId = cloudSettings.activeWorkspaceId?.trim()?.takeIf { value ->
+                value.isNotEmpty()
+            } ?: normalizedWorkspaceId
+            "linked::$normalizedUserId::$normalizedActiveWorkspaceId"
+        }
+
+        CloudAccountState.GUEST -> {
+            val normalizedUserId = cloudSettings.linkedUserId?.trim()?.takeIf { value ->
+                value.isNotEmpty()
+            } ?: "guest-user"
+            "guest::$normalizedUserId::$normalizedWorkspaceId"
+        }
+
+        CloudAccountState.DISCONNECTED,
+        CloudAccountState.LINKING_READY -> "local::$normalizedWorkspaceId"
+    }
+}
 
 class AiChatHistoryStore(
     context: Context

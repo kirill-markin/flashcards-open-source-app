@@ -4,7 +4,30 @@ let aiChatHistoryStorageKey: String = "ai-chat-history"
 let aiChatHistoryStorageKeyPrefix: String = "ai-chat-history::"
 private let aiChatMaxMessages: Int = 200
 private let aiChatHistoryMigrationCleanupVersionKey: String = "ai-chat-history-cleanup-version"
-private let aiChatHistoryMigrationCleanupVersion: Int = 1
+private let aiChatHistoryMigrationCleanupVersion: Int = 2
+
+func makeAIChatHistoryScopedWorkspaceId(
+    workspaceId: String?,
+    cloudSettings: CloudSettings?
+) -> String? {
+    let resolvedWorkspaceId = workspaceId?.trimmingCharacters(in: .whitespacesAndNewlines)
+    let normalizedWorkspaceId = resolvedWorkspaceId?.isEmpty == false ? resolvedWorkspaceId! : "default"
+
+    switch cloudSettings?.cloudState {
+    case .linked:
+        let linkedUserId = cloudSettings?.linkedUserId?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedUserId = linkedUserId?.isEmpty == false ? linkedUserId! : "linked-user"
+        let activeWorkspaceId = cloudSettings?.activeWorkspaceId?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedActiveWorkspaceId = activeWorkspaceId?.isEmpty == false ? activeWorkspaceId! : normalizedWorkspaceId
+        return "linked::\(normalizedUserId)::\(normalizedActiveWorkspaceId)"
+    case .guest:
+        let guestUserId = cloudSettings?.linkedUserId?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedUserId = guestUserId?.isEmpty == false ? guestUserId! : "guest-user"
+        return "guest::\(normalizedUserId)::\(normalizedWorkspaceId)"
+    case .disconnected, .linkingReady, .none:
+        return "local::\(normalizedWorkspaceId)"
+    }
+}
 
 func makeAIChatHistoryStorageKey(workspaceId: String) -> String {
     "\(aiChatHistoryStorageKeyPrefix)\(workspaceId)"

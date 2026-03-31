@@ -5,13 +5,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddComment
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,6 +69,7 @@ internal fun AiRouteContent(
     onTranscribeRecordedAudio: (String, String, ByteArray) -> Unit,
     onCancelDictation: () -> Unit,
     onWarmUpSessionIfNeeded: () -> Unit,
+    onRetryConversationLoad: () -> Unit,
     onShowAlert: (AiAlertState) -> Unit,
     onShowErrorMessage: (String) -> Unit
 ) {
@@ -305,7 +312,7 @@ internal fun AiRouteContent(
             SnackbarHost(hostState = snackbarHostState)
         },
         bottomBar = {
-            if (uiState.isConsentRequired.not()) {
+            if (uiState.isConsentRequired.not() && uiState.isConversationReady) {
                 AiComposer(
                     uiState = uiState,
                     onDraftMessageChange = onDraftMessageChange,
@@ -339,6 +346,42 @@ internal fun AiRouteContent(
                 onAcceptConsent = onAcceptConsent,
                 modifier = Modifier.padding(innerPadding)
             )
+        } else if (uiState.isConversationLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp)
+                ) {
+                    CircularProgressIndicator()
+                    Text("Loading chat")
+                    Text("We are loading the latest AI chat for this account before enabling the composer.")
+                }
+            }
+        } else if (uiState.isConversationReady.not()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp)
+                ) {
+                    Text("Chat unavailable")
+                    Text(uiState.conversationErrorMessage)
+                    Button(onClick = onRetryConversationLoad) {
+                        Text("Retry")
+                    }
+                }
+            }
         } else {
             AiConversation(
                 messages = uiState.messages,

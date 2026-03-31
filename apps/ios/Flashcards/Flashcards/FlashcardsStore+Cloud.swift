@@ -426,6 +426,10 @@ extension FlashcardsStore {
         grantAIChatExternalProviderConsent(userDefaults: self.userDefaults)
 
         let workspaceId = try requireWorkspaceId(workspace: self.workspace)
+        let historyWorkspaceId = makeAIChatHistoryScopedWorkspaceId(
+            workspaceId: workspaceId,
+            cloudSettings: self.cloudSettings
+        )
         let timestamp = nowIsoTimestamp()
         let persistedState = AIChatPersistedState(
             messages: [
@@ -450,7 +454,7 @@ extension FlashcardsStore {
         try storeAIChatHistoryStateSynchronously(
             userDefaults: self.userDefaults,
             encoder: self.encoder,
-            workspaceId: workspaceId,
+            workspaceId: historyWorkspaceId,
             state: persistedState
         )
     }

@@ -500,6 +500,12 @@ enum AIChatComposerPhase: String, Hashable, Sendable {
     case stopping
 }
 
+enum AIChatBootstrapPhase: Hashable, Sendable {
+    case ready
+    case loading
+    case failed(String)
+}
+
 struct AIChatSessionSnapshot: Hashable, Sendable {
     let sessionId: String
     let runState: String

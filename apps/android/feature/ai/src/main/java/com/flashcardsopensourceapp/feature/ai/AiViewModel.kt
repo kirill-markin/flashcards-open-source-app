@@ -75,9 +75,11 @@ class AiViewModel(
     )
     private var activeSendJob: Job? = null
     private var activeWarmUpJob: Job? = null
+    private var activeBootstrapJob: Job? = null
     private var pendingWarmUpAfterWorkspaceSwitch: Boolean = false
     private var lastAppliedMainContentInvalidationVersion: Long = 0L
     private var lastPreparedGuestWorkspaceId: String? = null
+    private var activeAccessContext: AiAccessContext? = null
 
     val uiState: StateFlow<AiUiState> = combine(
         metadataState,
@@ -99,10 +101,20 @@ class AiViewModel(
 
     init {
         viewModelScope.launch {
-            workspaceState.map { workspace ->
-                workspace?.workspaceId
-            }.distinctUntilChanged().collect { workspaceId ->
-                switchWorkspace(workspaceId = workspaceId)
+            combine(
+                workspaceState.map { workspace ->
+                    workspace?.workspaceId
+                },
+                cloudSettingsState
+            ) { workspaceId, cloudSettings ->
+                AiAccessContext(
+                    workspaceId = workspaceId,
+                    cloudState = cloudSettings.cloudState,
+                    linkedUserId = cloudSettings.linkedUserId,
+                    activeWorkspaceId = cloudSettings.activeWorkspaceId
+                )
+            }.distinctUntilChanged().collect { accessContext ->
+                switchAccessContext(accessContext = accessContext)
             }
         }
     }
@@ -122,6 +134,9 @@ class AiViewModel(
     }
 
     fun addPendingAttachment(attachment: AiChatAttachment) {
+        if (draftState.value.conversationBootstrapState != AiConversationBootstrapState.READY) {
+            return
+        }
         draftState.update { state ->
             state.copy(
                 pendingAttachments = state.pendingAttachments + attachment,
@@ -132,6 +147,9 @@ class AiViewModel(
     }
 
     fun removePendingAttachment(attachmentId: String) {
+        if (draftState.value.conversationBootstrapState != AiConversationBootstrapState.READY) {
+            return
+        }
         draftState.update { state ->
             state.copy(
                 pendingAttachments = state.pendingAttachments.filter { attachment ->
@@ -144,6 +162,9 @@ class AiViewModel(
     }
 
     fun startDictationPermissionRequest() {
+        if (draftState.value.conversationBootstrapState != AiConversationBootstrapState.READY) {
+            return
+        }
         if (draftState.value.composerPhase != AiComposerPhase.IDLE) {
             return
         }
@@ -158,6 +179,9 @@ class AiViewModel(
     }
 
     fun startDictationRecording() {
+        if (draftState.value.conversationBootstrapState != AiConversationBootstrapState.READY) {
+            return
+        }
         if (draftState.value.composerPhase != AiComposerPhase.IDLE) {
             return
         }
@@ -185,6 +209,9 @@ class AiViewModel(
         mediaType: String,
         audioBytes: ByteArray
     ) {
+        if (draftState.value.conversationBootstrapState != AiConversationBootstrapState.READY) {
+            return
+        }
         if (draftState.value.dictationState != AiChatDictationState.RECORDING) {
             return
         }
@@ -254,6 +281,9 @@ class AiViewModel(
     }
 
     fun clearConversation() {
+        if (draftState.value.conversationBootstrapState != AiConversationBootstrapState.READY) {
+            return
+        }
         if (draftState.value.composerPhase != AiComposerPhase.IDLE) {
             return
         }
@@ -318,7 +348,11 @@ class AiViewModel(
 
     fun applyEntryPrefill(prefill: AiEntryPrefill) {
         val currentState = draftState.value
-        if (currentState.composerPhase != AiComposerPhase.IDLE || currentState.dictationState != AiChatDictationState.IDLE) {
+        if (
+            currentState.conversationBootstrapState != AiConversationBootstrapState.READY
+            || currentState.composerPhase != AiComposerPhase.IDLE
+            || currentState.dictationState != AiChatDictationState.IDLE
+        ) {
             return
         }
 
@@ -349,6 +383,17 @@ class AiViewModel(
         }
     }
 
+    fun retryConversationBootstrap() {
+        if (consentState.value.not()) {
+            return
+        }
+        if (draftState.value.workspaceId == null) {
+            return
+        }
+
+        startLinkedConversationBootstrap(forceReloadState = true)
+    }
+
     fun warmUpLinkedSessionIfNeeded() {
         val currentState = draftState.value
         val cloudSettings = cloudSettingsState.value
@@ -362,6 +407,17 @@ class AiViewModel(
             return
         }
         if (cloudSettings.cloudState == CloudAccountState.LINKING_READY) {
+            return
+        }
+        if (cloudSettings.cloudState == CloudAccountState.LINKED) {
+            if (
+                currentState.conversationBootstrapState == AiConversationBootstrapState.READY
+                && currentState.persistedState.chatSessionId.isNotBlank()
+            ) {
+                return
+            }
+
+            startLinkedConversationBootstrap(forceReloadState = false)
             return
         }
         if (
@@ -814,22 +870,29 @@ class AiViewModel(
         }
     }
 
-    private fun switchWorkspace(workspaceId: String?) {
+    private fun switchAccessContext(accessContext: AiAccessContext) {
+        activeAccessContext = accessContext
         activeSendJob?.cancel(
-            cause = CancellationException("AI send cancelled because workspace changed.")
+            cause = CancellationException("AI send cancelled because access context changed.")
         )
+        if (activeBootstrapJob != null) {
+            activeBootstrapJob?.cancel(
+                cause = CancellationException("AI bootstrap cancelled because access context changed.")
+            )
+            activeBootstrapJob = null
+        }
         if (activeWarmUpJob != null) {
             pendingWarmUpAfterWorkspaceSwitch = true
             AiChatDiagnosticsLogger.info(
-                event = "switch_workspace_cancelling_warm_up",
+                event = "switch_access_context_cancelling_warm_up",
                 fields = listOf(
-                    "nextWorkspaceId" to workspaceId,
+                    "nextWorkspaceId" to accessContext.workspaceId,
                     "currentWorkspaceId" to draftState.value.workspaceId,
-                    "cloudState" to cloudSettingsState.value.cloudState.name
+                    "cloudState" to accessContext.cloudState.name
                 )
             )
             activeWarmUpJob?.cancel(
-                cause = CancellationException("AI warm-up cancelled because workspace changed.")
+                cause = CancellationException("AI warm-up cancelled because access context changed.")
             )
         } else {
             pendingWarmUpAfterWorkspaceSwitch = false
@@ -837,18 +900,31 @@ class AiViewModel(
         lastAppliedMainContentInvalidationVersion = 0L
         lastPreparedGuestWorkspaceId = null
         viewModelScope.launch {
-            val persistedState = aiChatRepository.loadPersistedState(workspaceId = workspaceId)
+            val persistedState = aiChatRepository.loadPersistedState(workspaceId = accessContext.workspaceId)
             draftState.value = makeAiDraftState(
-                workspaceId = workspaceId,
+                workspaceId = accessContext.workspaceId,
                 persistedState = persistedState
+            ).copy(
+                conversationBootstrapState = if (accessContext.cloudState == CloudAccountState.LINKED) {
+                    AiConversationBootstrapState.LOADING
+                } else {
+                    AiConversationBootstrapState.READY
+                }
             )
             persistCurrentState()
-            if (workspaceId == null) {
+            if (accessContext.workspaceId == null) {
+                return@launch
+            }
+            if (consentState.value.not()) {
+                return@launch
+            }
+            if (accessContext.cloudState == CloudAccountState.LINKED) {
+                startLinkedConversationBootstrap(forceReloadState = false)
                 return@launch
             }
             try {
                 val snapshot = aiChatRepository.loadChatSnapshot(
-                    workspaceId = workspaceId,
+                    workspaceId = accessContext.workspaceId,
                     sessionId = persistedState.chatSessionId
                 )
                 when {
@@ -858,10 +934,10 @@ class AiViewModel(
                     )
                     persistedState.chatSessionId.isNotBlank() -> {
                         AiChatDiagnosticsLogger.warn(
-                            event = "switch_workspace_repaired_missing_session",
+                            event = "switch_access_context_repaired_missing_session",
                             fields = listOf(
-                                "workspaceId" to workspaceId,
-                                "cloudState" to cloudSettingsState.value.cloudState.name,
+                                "workspaceId" to accessContext.workspaceId,
+                                "cloudState" to accessContext.cloudState.name,
                                 "missingChatSessionId" to persistedState.chatSessionId,
                                 "messageCount" to persistedState.messages.size.toString()
                             )
@@ -872,7 +948,7 @@ class AiViewModel(
                         }
                         persistCurrentState()
                         aiChatRepository.loadChatSnapshot(
-                            workspaceId = workspaceId,
+                            workspaceId = accessContext.workspaceId,
                             sessionId = null
                         )?.let { repairedSnapshot ->
                             applyServerSnapshot(
@@ -884,10 +960,10 @@ class AiViewModel(
                 }
             } catch (error: CancellationException) {
                 AiChatDiagnosticsLogger.info(
-                    event = "switch_workspace_snapshot_load_cancelled",
+                    event = "switch_access_context_snapshot_load_cancelled",
                     fields = listOf(
-                        "workspaceId" to workspaceId,
-                        "cloudState" to cloudSettingsState.value.cloudState.name,
+                        "workspaceId" to accessContext.workspaceId,
+                        "cloudState" to accessContext.cloudState.name,
                         "chatSessionId" to persistedState.chatSessionId,
                         "messageCount" to persistedState.messages.size.toString(),
                         "message" to error.message
@@ -896,10 +972,10 @@ class AiViewModel(
                 throw error
             } catch (error: Exception) {
                 AiChatDiagnosticsLogger.error(
-                    event = "switch_workspace_snapshot_load_failed",
+                    event = "switch_access_context_snapshot_load_failed",
                     fields = listOf(
-                        "workspaceId" to workspaceId,
-                        "cloudState" to cloudSettingsState.value.cloudState.name,
+                        "workspaceId" to accessContext.workspaceId,
+                        "cloudState" to accessContext.cloudState.name,
                         "chatSessionId" to persistedState.chatSessionId,
                         "messageCount" to persistedState.messages.size.toString()
                     ) + remoteErrorFields(error = error as? AiChatRemoteException),
@@ -909,13 +985,133 @@ class AiViewModel(
         }
     }
 
+    private fun startLinkedConversationBootstrap(forceReloadState: Boolean) {
+        val accessContext = activeAccessContext ?: return
+        val workspaceId = accessContext.workspaceId ?: return
+        if (accessContext.cloudState != CloudAccountState.LINKED) {
+            return
+        }
+
+        activeBootstrapJob?.cancel(
+            cause = CancellationException("AI bootstrap restarted for linked conversation.")
+        )
+        var bootstrapJob: Job? = null
+        bootstrapJob = viewModelScope.launch {
+            try {
+                if (forceReloadState) {
+                    val persistedState = aiChatRepository.loadPersistedState(workspaceId = workspaceId)
+                    draftState.update { state ->
+                        state.copy(
+                            workspaceId = workspaceId,
+                            persistedState = persistedState,
+                            draftMessage = "",
+                            pendingAttachments = emptyList(),
+                            composerPhase = AiComposerPhase.IDLE,
+                            dictationState = AiChatDictationState.IDLE,
+                            conversationBootstrapState = AiConversationBootstrapState.LOADING,
+                            conversationBootstrapErrorMessage = "",
+                            repairStatus = null,
+                            activeAlert = null,
+                            errorMessage = ""
+                        )
+                    }
+                } else {
+                    draftState.update { state ->
+                        state.copy(
+                            draftMessage = "",
+                            pendingAttachments = emptyList(),
+                            composerPhase = AiComposerPhase.IDLE,
+                            dictationState = AiChatDictationState.IDLE,
+                            conversationBootstrapState = AiConversationBootstrapState.LOADING,
+                            conversationBootstrapErrorMessage = "",
+                            repairStatus = null,
+                            activeAlert = null,
+                            errorMessage = ""
+                        )
+                    }
+                }
+
+                aiChatRepository.prepareSessionForAi(workspaceId = workspaceId)
+                val snapshot = requireNotNull(
+                    aiChatRepository.loadChatSnapshot(
+                        workspaceId = workspaceId,
+                        sessionId = null
+                    )
+                ) {
+                    "Linked AI chat snapshot is unavailable."
+                }
+                if (activeAccessContext != accessContext) {
+                    return@launch
+                }
+
+                applyServerSnapshot(
+                    snapshot = snapshot,
+                    applyMode = AiServerSnapshotApplyMode.ACTIVE
+                )
+            } catch (error: CancellationException) {
+                AiChatDiagnosticsLogger.info(
+                    event = "linked_conversation_bootstrap_cancelled",
+                    fields = listOf(
+                        "workspaceId" to workspaceId,
+                        "cloudState" to accessContext.cloudState.name,
+                        "message" to error.message
+                    )
+                )
+                throw error
+            } catch (error: Exception) {
+                if (activeAccessContext != accessContext) {
+                    return@launch
+                }
+
+                val message = makeAiUserFacingErrorMessage(
+                    error = error,
+                    surface = AiErrorSurface.CHAT,
+                    configuration = serverConfigurationState.value
+                )
+                AiChatDiagnosticsLogger.error(
+                    event = "linked_conversation_bootstrap_failed",
+                    fields = listOf(
+                        "workspaceId" to workspaceId,
+                        "cloudState" to accessContext.cloudState.name,
+                        "userFacingMessage" to message
+                    ) + remoteErrorFields(error = error as? AiChatRemoteException),
+                    throwable = error
+                )
+                draftState.update { state ->
+                    state.copy(
+                        persistedState = state.persistedState.copy(
+                            messages = emptyList(),
+                            chatSessionId = ""
+                        ),
+                        draftMessage = "",
+                        pendingAttachments = emptyList(),
+                        composerPhase = AiComposerPhase.IDLE,
+                        dictationState = AiChatDictationState.IDLE,
+                        conversationBootstrapState = AiConversationBootstrapState.FAILED,
+                        conversationBootstrapErrorMessage = message,
+                        repairStatus = null,
+                        activeAlert = null,
+                        errorMessage = ""
+                    )
+                }
+            } finally {
+                if (activeBootstrapJob === bootstrapJob) {
+                    activeBootstrapJob = null
+                }
+            }
+        }
+        activeBootstrapJob = bootstrapJob
+    }
+
     private suspend fun applyServerSnapshot(
         snapshot: AiChatSessionSnapshot,
         applyMode: AiServerSnapshotApplyMode
     ) {
         draftState.update { state ->
             val preserveLocalComposerState =
-                applyMode == AiServerSnapshotApplyMode.PASSIVE && state.composerPhase == AiComposerPhase.IDLE
+                applyMode == AiServerSnapshotApplyMode.PASSIVE
+                    && state.composerPhase == AiComposerPhase.IDLE
+                    && state.conversationBootstrapState == AiConversationBootstrapState.READY
             state.copy(
                 persistedState = state.persistedState.copy(
                     messages = snapshot.messages,
@@ -934,6 +1130,8 @@ class AiViewModel(
                 } else {
                     AiChatDictationState.IDLE
                 },
+                conversationBootstrapState = AiConversationBootstrapState.READY,
+                conversationBootstrapErrorMessage = "",
                 repairStatus = null,
                 activeAlert = null,
                 errorMessage = ""

@@ -53,7 +53,7 @@ struct AIChatView: View {
         .navigationTitle("AI")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaBar(edge: .bottom, spacing: 0) {
-            if self.accessState == .ready {
+            if self.accessState == .ready && self.chatStore.isChatInteractive {
                 self.composerAccessory
             }
         }
@@ -64,18 +64,21 @@ struct AIChatView: View {
                         self.chatStore.clearHistory()
                     }
                     .accessibilityIdentifier(UITestIdentifier.aiNewChatButton)
-                    .disabled(self.isNewChatDisabled)
+                    .disabled(self.isNewChatDisabled || self.chatStore.isChatInteractive == false)
                 }
             }
         }
         .onAppear {
             self.refreshExternalAIConsentState()
+            self.chatStore.refreshAccessContextIfNeeded()
             guard self.hasAcceptedExternalAIConsent else {
                 return
             }
 
             self.handleAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
-            self.chatStore.warmUpSessionIfNeeded()
+            if self.chatStore.isChatInteractive {
+                self.chatStore.warmUpSessionIfNeeded()
+            }
         }
         .onChange(of: self.navigation.aiChatPresentationRequest) { _, request in
             guard self.hasAcceptedExternalAIConsent else {
@@ -98,7 +101,22 @@ struct AIChatView: View {
                 return
             }
 
-            self.chatStore.warmUpSessionIfNeeded()
+            self.chatStore.refreshAccessContextIfNeeded()
+            if self.chatStore.isChatInteractive {
+                self.chatStore.warmUpSessionIfNeeded()
+            }
+        }
+        .onChange(of: self.flashcardsStore.workspace?.workspaceId) { _, _ in
+            self.chatStore.refreshAccessContextIfNeeded()
+        }
+        .onChange(of: self.flashcardsStore.cloudSettings?.cloudState) { _, _ in
+            self.chatStore.refreshAccessContextIfNeeded()
+        }
+        .onChange(of: self.flashcardsStore.cloudSettings?.linkedUserId) { _, _ in
+            self.chatStore.refreshAccessContextIfNeeded()
+        }
+        .onChange(of: self.flashcardsStore.cloudSettings?.activeWorkspaceId) { _, _ in
+            self.chatStore.refreshAccessContextIfNeeded()
         }
         .onChange(of: self.navigation.selectedTab) { _, nextTab in
             guard nextTab != .ai else {
@@ -165,16 +183,7 @@ struct AIChatView: View {
         }
         .alert(
             self.chatStore.activeAlert?.title ?? "",
-            isPresented: Binding(
-                get: {
-                    self.chatStore.activeAlert != nil
-                },
-                set: { isPresented in
-                    if isPresented == false {
-                        self.chatStore.dismissAlert()
-                    }
-                }
-            )
+            isPresented: self.isAlertPresentedBinding
         ) {
             if self.chatStore.activeAlert?.showsSettingsAction == true {
                 Button("Cancel", role: .cancel) {
@@ -200,6 +209,19 @@ struct AIChatView: View {
             && self.chatStore.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && self.chatStore.isStreaming == false
             && self.chatStore.dictationState == .idle
+    }
+
+    var isAlertPresentedBinding: Binding<Bool> {
+        Binding(
+            get: {
+                self.chatStore.activeAlert != nil
+            },
+            set: { isPresented in
+                if isPresented == false {
+                    self.chatStore.dismissAlert()
+                }
+            }
+        )
     }
 
     var accessState: AIChatAccessState {
@@ -256,12 +278,46 @@ struct AIChatView: View {
 
     var chatContent: some View {
         Group {
-            if self.chatStore.messages.isEmpty {
-                self.emptyChatState
-            } else {
-                self.messageList
+            switch self.chatStore.bootstrapPhase {
+            case .loading:
+                self.loadingChatState
+            case .failed:
+                self.failedChatState
+            case .ready:
+                if self.chatStore.messages.isEmpty {
+                    self.emptyChatState
+                } else {
+                    self.messageList
+                }
             }
         }
+    }
+
+    var loadingChatState: some View {
+        ContentUnavailableView {
+            ProgressView()
+            Text("Loading chat")
+        } description: {
+            Text("We are loading the latest AI chat for this account before enabling the composer.")
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, aiChatMessageListHorizontalPadding)
+    }
+
+    var failedChatState: some View {
+        ContentUnavailableView {
+            Label("Chat unavailable", systemImage: "exclamationmark.triangle")
+        } description: {
+            VStack(spacing: 12) {
+                Text(self.chatStore.bootstrapFailureMessage ?? "Failed to load AI chat.")
+                Button("Retry") {
+                    self.chatStore.retryLinkedBootstrap()
+                }
+                .buttonStyle(.glassProminent)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, aiChatMessageListHorizontalPadding)
     }
 
     var emptyChatState: some View {
@@ -358,8 +414,11 @@ struct AIChatView: View {
     func acceptExternalAIConsent() {
         grantAIChatExternalProviderConsent(userDefaults: self.flashcardsStore.userDefaults)
         self.hasAcceptedExternalAIConsent = true
+        self.chatStore.activateWorkspace()
         self.handleAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
-        self.chatStore.warmUpSessionIfNeeded()
+        if self.chatStore.isChatInteractive {
+            self.chatStore.warmUpSessionIfNeeded()
+        }
     }
 
     func refreshExternalAIConsentState() {
@@ -400,6 +459,9 @@ struct AIChatView: View {
     }
 
     func handlePrimaryComposerAction() {
+        guard self.chatStore.isChatInteractive else {
+            return
+        }
         if self.chatStore.canStopResponse {
             self.chatStore.cancelStreaming()
             return

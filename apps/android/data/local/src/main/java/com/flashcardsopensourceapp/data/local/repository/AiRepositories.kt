@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
+import com.flashcardsopensourceapp.data.local.ai.makeAiChatHistoryScopedWorkspaceId
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
@@ -86,15 +87,15 @@ class LocalAiChatRepository(
     }
 
     override suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState {
-        return historyStore.loadState(workspaceId = workspaceId)
+        return historyStore.loadState(workspaceId = historyScopeId(workspaceId = workspaceId))
     }
 
     override suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState) {
-        historyStore.saveState(workspaceId = workspaceId, state = state)
+        historyStore.saveState(workspaceId = historyScopeId(workspaceId = workspaceId), state = state)
     }
 
     override suspend fun clearPersistedState(workspaceId: String?) {
-        historyStore.clearState(workspaceId = workspaceId)
+        historyStore.clearState(workspaceId = historyScopeId(workspaceId = workspaceId))
     }
 
     override suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot? {
@@ -191,7 +192,12 @@ class LocalAiChatRepository(
         onEvent: suspend (AiChatStreamEvent) -> Unit
     ): AiChatStreamOutcome {
         val session = authorizedSession(workspaceId = workspaceId)
+        val isLinkedSession = session.authorizationHeader.startsWith(prefix = "Bearer ")
         val resolvedSessionId = state.chatSessionId.ifBlank {
+            require(isLinkedSession.not()) {
+                "Linked AI chat session is unavailable."
+            }
+
             aiChatRemoteService.loadSnapshot(
                 apiBaseUrl = session.apiBaseUrl,
                 authorizationHeader = session.authorizationHeader,
@@ -277,6 +283,13 @@ class LocalAiChatRepository(
         return AuthorizedAiChatSession(
             apiBaseUrl = guestSession.apiBaseUrl,
             authorizationHeader = "Guest ${guestSession.guestToken}"
+        )
+    }
+
+    private fun historyScopeId(workspaceId: String?): String {
+        return makeAiChatHistoryScopedWorkspaceId(
+            workspaceId = workspaceId,
+            cloudSettings = preferencesStore.currentCloudSettings()
         )
     }
 
