@@ -42,7 +42,9 @@ get:
               /api/agent/verify-code with the email and code to obtain a
               long-lived API key. After login, call GET /v1/agent/me, then GET
               /v1/agent/workspaces?limit=100. If no workspace is selected,
-              select one before using POST /v1/agent/sql. Use docs.openapiUrl
-              for the full contract.
+              select one before using POST /v1/agent/sql. For routine low-risk
+              writes, a clear user request already counts as permission. Ask
+              again only for risky or unclear actions. Use docs.openapiUrl for
+              the full contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json

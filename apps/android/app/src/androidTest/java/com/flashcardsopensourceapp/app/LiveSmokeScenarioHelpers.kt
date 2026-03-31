@@ -149,6 +149,11 @@ internal fun LiveSmokeContext.createAiCardWithConfirmation() {
     openAiTab()
     dismissAiConsentIfNeeded()
     waitForGuestCloudWorkspaceReady(context = "before filling the AI create prompt")
+    waitForAiComposerButtonState(
+        expectedLabel = "Send",
+        expectedEnabled = false,
+        context = "before filling the AI create prompt"
+    )
 
     var latestCompletedSqlSummaries: List<String> = emptyList()
     repeat(times = 3) { attemptIndex ->
@@ -164,9 +169,10 @@ internal fun LiveSmokeContext.createAiCardWithConfirmation() {
             previousToolCallSummaryCount = previousToolCallSummaryCount,
             context = "for AI create attempt ${attemptIndex + 1}"
         )
-        waitUntilAtLeastOneExistsOrFail(
-            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText("Send")),
-            timeoutMillis = externalUiTimeoutMillis
+        waitForAiComposerButtonState(
+            expectedLabel = "Send",
+            expectedEnabled = false,
+            context = "after AI create attempt ${attemptIndex + 1} completed"
         )
 
         val toolCallCheck: LiveSmokeAiToolCallCheck = completedAiInsertToolCallCheck()
@@ -196,6 +202,11 @@ internal fun LiveSmokeContext.createTaggedAiCardWithConfirmation(
     openAiTab()
     dismissAiConsentIfNeeded()
     waitForGuestCloudWorkspaceReady(context = "before filling the AI create prompt")
+    waitForAiComposerButtonState(
+        expectedLabel = "Send",
+        expectedEnabled = false,
+        context = "before filling the tagged AI create prompt"
+    )
 
     var latestCompletedSqlSummaries: List<String> = emptyList()
     repeat(times = 3) { attemptIndex ->
@@ -211,9 +222,10 @@ internal fun LiveSmokeContext.createTaggedAiCardWithConfirmation(
             previousToolCallSummaryCount = previousToolCallSummaryCount,
             context = "for AI create attempt ${attemptIndex + 1}"
         )
-        waitUntilAtLeastOneExistsOrFail(
-            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText("Send")),
-            timeoutMillis = externalUiTimeoutMillis
+        waitForAiComposerButtonState(
+            expectedLabel = "Send",
+            expectedEnabled = false,
+            context = "after tagged AI create attempt ${attemptIndex + 1} completed"
         )
 
         val toolCallCheck: LiveSmokeAiToolCallCheck = completedTaggedAiInsertToolCallCheck(
@@ -247,9 +259,10 @@ private fun LiveSmokeContext.waitForAiRunAcceptedOrCompleted(
             timeoutMillis = externalUiTimeoutMillis,
             context = "while waiting for AI run acceptance $context"
         ) {
-            val stopVisible: Boolean = composeRule.onAllNodes(
-                matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText("Stop"))
-            ).fetchSemanticsNodes().isNotEmpty()
+            val stopVisible: Boolean = aiComposerSendButtonMatchesState(
+                expectedLabel = "Stop",
+                expectedEnabled = true
+            )
             val draftChanged: Boolean = aiComposerDraftTextOrNull() != expectedDraftText
             val toolCallProgressed: Boolean = toolCallSummaryTexts().size > previousToolCallSummaryCount
             stopVisible || draftChanged || toolCallProgressed
@@ -278,6 +291,11 @@ internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
                 composeRule.onAllNodesWithTag(aiAssistantMessageBubbleTag).fetchSemanticsNodes().isEmpty() &&
                 composeRule.onAllNodesWithTag(aiUserMessageBubbleTag).fetchSemanticsNodes().isEmpty()
         }
+        waitForAiComposerButtonState(
+            expectedLabel = "Send",
+            expectedEnabled = false,
+            context = "after resetting the AI conversation"
+        )
     } catch (error: Throwable) {
         throw AssertionError(
             "New chat did not reset the AI conversation. " +
@@ -490,8 +508,11 @@ private fun LiveSmokeContext.waitForAiComposerReady(
             timeoutMillis = externalUiTimeoutMillis,
             context = "while waiting for AI composer readiness $context"
         ) {
-            aiComposerDraftTextOrNull() == expectedDraftText &&
-                aiComposerSendButtonIsEnabled(expectedLabel = expectedButtonLabel)
+                aiComposerDraftTextOrNull() == expectedDraftText &&
+                aiComposerSendButtonMatchesState(
+                    expectedLabel = expectedButtonLabel,
+                    expectedEnabled = true
+                )
         }
     } catch (error: Throwable) {
         throw AssertionError(
@@ -499,6 +520,34 @@ private fun LiveSmokeContext.waitForAiComposerReady(
                 "ExpectedDraft='$expectedDraftText' " +
                 "ActualDraft='${aiComposerDraftTextOrNull()}' " +
                 "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = expectedButtonLabel)} " +
+                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+            error
+        )
+    }
+}
+
+private fun LiveSmokeContext.waitForAiComposerButtonState(
+    expectedLabel: String,
+    expectedEnabled: Boolean,
+    context: String
+) {
+    try {
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for AI composer button state $context"
+        ) {
+            aiComposerSendButtonMatchesState(
+                expectedLabel = expectedLabel,
+                expectedEnabled = expectedEnabled
+            )
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "AI composer button was not in the expected state $context. " +
+                "ExpectedLabel='$expectedLabel' " +
+                "ExpectedEnabled=$expectedEnabled " +
+                "ActualState=${aiComposerSendButtonStateOrNull(expectedLabel = expectedLabel)} " +
+                "ActualDraft='${aiComposerDraftTextOrNull()}' " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )
@@ -626,6 +675,18 @@ private fun LiveSmokeContext.aiComposerSendButtonIsEnabled(expectedLabel: String
         matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText(expectedLabel))
     ).fetchSemanticsNodes().singleOrNull() ?: return false
     return node.config.contains(SemanticsProperties.Disabled).not()
+}
+
+private fun LiveSmokeContext.aiComposerSendButtonMatchesState(
+    expectedLabel: String,
+    expectedEnabled: Boolean
+): Boolean {
+    val isEnabled = aiComposerSendButtonIsEnabled(expectedLabel = expectedLabel)
+    return if (expectedEnabled) {
+        isEnabled
+    } else {
+        aiComposerSendButtonStateOrNull(expectedLabel = expectedLabel) == "disabled"
+    }
 }
 
 private fun LiveSmokeContext.aiComposerSendButtonStateOrNull(expectedLabel: String): String? {

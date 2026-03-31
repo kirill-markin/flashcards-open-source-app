@@ -45,8 +45,10 @@ get:
               Workspace bootstrap is complete. Use POST /v1/agent/sql for
               reads, writes, and SQL introspection. For example, query cards
               with SELECT * FROM cards ORDER BY updated_at DESC LIMIT 20 OFFSET
-              0. Read payload from data.* and use docs.openapiUrl for the full
-              contract.
+              0. For routine low-risk writes, a clear user request already
+              counts as permission. Ask again only for risky or unclear
+              actions. Read payload from data.* and use docs.openapiUrl for the
+              full contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
     default:
@@ -88,8 +90,10 @@ post:
             instructions: >-
               Workspace bootstrap is complete. Use POST /v1/agent/sql for
               reads, writes, and SQL introspection. Start discovery with SHOW
-              TABLES or DESCRIBE cards when helpful. This endpoint accepts the
-              published SQL dialect, not full PostgreSQL. Read payload from
+              TABLES or DESCRIBE cards when helpful. For routine low-risk
+              writes, a clear user request already counts as permission. Ask
+              again only for risky or unclear actions. This endpoint accepts
+              the published SQL dialect, not full PostgreSQL. Read payload from
               data.* and use docs.openapiUrl for the full contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json

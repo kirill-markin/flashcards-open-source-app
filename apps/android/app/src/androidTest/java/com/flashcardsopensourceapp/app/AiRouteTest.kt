@@ -7,6 +7,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -31,6 +33,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.AiUiState
+import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateContentTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
@@ -192,6 +195,72 @@ class AiRouteTest {
         }
 
         composeRule.onNodeWithText("Stop").assertIsDisplayed()
+        composeRule.onNodeWithTag(aiComposerSendButtonTag).assertIsEnabled()
+    }
+
+    @Test
+    fun idleComposerPrimaryActionShowsDisabledSendWithoutDraft() {
+        composeRule.setContent {
+            FlashcardsTheme {
+                AiRoute(
+                    uiState = makeAiUiState(),
+                    onAcceptConsent = {},
+                    onDraftMessageChange = {},
+                    onSendMessage = {},
+                    onCancelStreaming = {},
+                    onNewChat = {},
+                    onOpenAccountStatus = {},
+                    onDismissErrorMessage = {},
+                    onDismissAlert = {},
+                    onAddPendingAttachment = {},
+                    onRemovePendingAttachment = {},
+                    onStartDictationPermissionRequest = {},
+                    onStartDictationRecording = {},
+                    onTranscribeRecordedAudio = { _, _, _ -> },
+                    onCancelDictation = {},
+                    onWarmUpSessionIfNeeded = {},
+                    onShowAlert = {},
+                    onShowErrorMessage = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Send").assertIsDisplayed()
+        composeRule.onNodeWithTag(aiComposerSendButtonTag).assertIsNotEnabled()
+    }
+
+    @Test
+    fun idleComposerPrimaryActionEnablesSendWhenDraftExists() {
+        composeRule.setContent {
+            FlashcardsTheme {
+                AiRoute(
+                    uiState = makeAiUiState(
+                        draftMessage = "hello",
+                        canSend = true
+                    ),
+                    onAcceptConsent = {},
+                    onDraftMessageChange = {},
+                    onSendMessage = {},
+                    onCancelStreaming = {},
+                    onNewChat = {},
+                    onOpenAccountStatus = {},
+                    onDismissErrorMessage = {},
+                    onDismissAlert = {},
+                    onAddPendingAttachment = {},
+                    onRemovePendingAttachment = {},
+                    onStartDictationPermissionRequest = {},
+                    onStartDictationRecording = {},
+                    onTranscribeRecordedAudio = { _, _, _ -> },
+                    onCancelDictation = {},
+                    onWarmUpSessionIfNeeded = {},
+                    onShowAlert = {},
+                    onShowErrorMessage = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Send").assertIsDisplayed()
+        composeRule.onNodeWithTag(aiComposerSendButtonTag).assertIsEnabled()
     }
 
     @Test
@@ -306,22 +375,26 @@ class AiRouteTest {
 
 private fun makeAiUiState(
     messages: List<AiChatMessage> = emptyList(),
+    draftMessage: String = "",
     isConsentRequired: Boolean = false,
     isStreaming: Boolean = false,
-    canStopStreaming: Boolean = false
+    canStopStreaming: Boolean = false,
+    canSend: Boolean = false,
+    isComposerBusy: Boolean = false
 ): AiUiState {
     return AiUiState(
         currentWorkspaceName = "Personal",
         messages = messages,
         pendingAttachments = emptyList(),
-        draftMessage = "",
+        draftMessage = draftMessage,
         chatConfig = defaultAiChatServerConfig,
         isConsentRequired = isConsentRequired,
         isLinked = false,
+        isComposerBusy = isComposerBusy,
         isStreaming = isStreaming,
         canStopStreaming = canStopStreaming,
         dictationState = AiChatDictationState.IDLE,
-        canSend = false,
+        canSend = canSend,
         canStartNewChat = messages.isNotEmpty(),
         repairStatus = null,
         activeAlert = null,

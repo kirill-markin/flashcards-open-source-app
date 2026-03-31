@@ -49,11 +49,14 @@ get:
               https://api.flashcards-open-source-app.com/v1/agent/workspaces
               using {"name":"Personal"}. After workspace bootstrap, use POST
               https://api.flashcards-open-source-app.com/v1/agent/sql for all
-              shared card and deck reads and writes. SELECT returns at most 100
-              rows per statement, and INSERT, UPDATE, and DELETE may affect at
-              most 100 rows per statement. If you need more than 100 writes,
-              split the work into multiple batches of at most 100 records
-              across separate SQL statements or separate tool calls. Use
+              shared card and deck reads and writes. For routine low-risk
+              writes, a clear user request already counts as permission. Ask
+              again only for risky or unclear actions. SELECT returns at most
+              100 rows per statement, and INSERT, UPDATE, and DELETE may affect
+              at most 100 rows per statement. If you need more than 100
+              writes, split the work into multiple batches of at most 100
+              records across separate SQL statements or separate tool calls.
+              Use
               https://api.flashcards-open-source-app.com/v1/agent/openapi.json
               for the full contract. The SQL surface is intentionally limited
               and is not full PostgreSQL.

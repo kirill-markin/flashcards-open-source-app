@@ -31,8 +31,10 @@ get:
               it becomes null. If no workspace is selected, call POST
               /v1/agent/workspaces/{workspaceId}/select. After a workspace is
               selected, use POST /v1/agent/sql for reads, writes, and SQL
-              introspection. Read payload from data.* and use docs.openapiUrl
-              for the full contract.
+              introspection. For routine low-risk writes, a clear user request
+              already counts as permission. Ask again only for risky or unclear
+              actions. Read payload from data.* and use docs.openapiUrl for the
+              full contract.
             docs:
               openapiUrl: https://api.flashcards-open-source-app.com/v1/agent/openapi.json
     default:

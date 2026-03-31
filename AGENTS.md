@@ -27,9 +27,11 @@ The platform READMEs are part of the working agreement for client work: [apps/we
 
 We do not try to cover the whole product with tests, and we do not optimize for blanket test coverage metrics.
 Do not add unit tests by default, and do not guard every helper or pure function with a dedicated test.
+Do not add new unit tests for this repository as part of implementation or as part of a written plan unless the user explicitly asks for unit tests.
 Targeted integration or module-boundary tests are allowed when they validate a real interaction between modules, storage layers, or contracts.
 The most trusted tests are the native/browser smoke flows that run the real app on a simulator, emulator, managed device, or deployed environment because they are the closest checks to production behavior.
 Keep tests minimal and focused on primary user flows, critical contracts, or important cross-module behavior.
+When proposing a test plan, treat "real testing" as one of these two options only: either implement a real integration/end-to-end/smoke flow that exercises the app or API for real, or provide explicit manual test instructions for the user to run. Do not treat unit tests as the default validation plan.
 
 The iOS Xcode project is file-synchronized, so new Swift files can be added without manual `project.pbxproj` edits.
 Run iOS tests locally when they help validate the requested change or when the user asks for them.

@@ -5,6 +5,7 @@ import {
   createChatSnapshot,
   createNewChatSessionMock,
   getChatSnapshotMock,
+  setTextareaValue,
   setupChatPanelTest,
   startChatRunMock,
   useAppDataMock,
@@ -80,6 +81,22 @@ describe("ChatPanel new chat", () => {
 });
 
 describe("ChatPanel send lifecycle", () => {
+  it("shows a disabled send button until the draft has text or attachments", async () => {
+    await renderChatPanel();
+    await flushAsync();
+
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    const sendButton = getContainer().querySelector('.chat-send-btn[aria-label="Send message"]') as HTMLButtonElement | null;
+    expect(textarea).not.toBeNull();
+    expect(sendButton).not.toBeNull();
+    expect(sendButton?.disabled).toBe(true);
+
+    await setTextareaValue(textarea as HTMLTextAreaElement, "hello");
+    await flushAsync();
+
+    expect(sendButton?.disabled).toBe(false);
+  });
+
   it("does not fetch remote chat history until the browser session is verified", async () => {
     useAppDataMock.mockReturnValue({
       sessionVerificationState: "unverified",
@@ -127,6 +144,27 @@ describe("ChatPanel send lifecycle", () => {
     resolveStartRun?.();
     await flushAsync();
     await flushAsync();
+  });
+
+  it("shows stop while the assistant run is active and returns to send afterward", async () => {
+    getChatSnapshotMock
+      .mockResolvedValueOnce(createChatSnapshot())
+      .mockResolvedValue(createChatSnapshot({
+        sessionId: "session-1",
+        runState: "running",
+      }));
+
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("hello");
+    await flushAsync();
+    await flushAsync();
+
+    const stopButton = getContainer().querySelector('.chat-stop-btn[aria-label="Stop response"]') as HTMLButtonElement | null;
+    const sendButton = getContainer().querySelector('.chat-send-btn[aria-label="Send message"]') as HTMLButtonElement | null;
+    expect(stopButton).not.toBeNull();
+    expect(stopButton?.disabled).toBe(false);
+    expect(sendButton).toBeNull();
   });
 
   it("disables starting a new chat while turn acceptance is still in flight", async () => {
