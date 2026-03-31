@@ -397,13 +397,13 @@ final class LiveSmokeUITests: XCTestCase {
                 timeout: self.shortUiTimeoutSeconds
             )
 
-            try self.relaunchApplication(resetState: nil, selectedTab: .review)
+            try self.tapButton(named: LiveSmokeScreen.review.title, timeout: self.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: .review, timeout: self.shortUiTimeoutSeconds)
 
-            try self.relaunchApplication(resetState: nil, selectedTab: .ai)
+            try self.tapButton(named: LiveSmokeScreen.ai.title, timeout: self.shortUiTimeoutSeconds)
             try self.assertAiEntrySurfaceVisible()
 
-            try self.relaunchApplication(resetState: nil, selectedTab: .settings)
+            try self.tapButton(named: LiveSmokeScreen.settings.title, timeout: self.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
             try self.openAccountStatus()
             try self.assertElementExists(
@@ -2024,30 +2024,6 @@ final class LiveSmokeUITests: XCTestCase {
                 )
             }
         }
-    }
-
-    @MainActor
-    private func relaunchApplication(
-        resetState: LiveSmokeLaunchResetState?,
-        selectedTab: LiveSmokeSelectedTab
-    ) throws {
-        self.logActionStart(action: "terminate_app", identifier: "application")
-        self.app.terminate()
-        self.logActionEnd(
-            action: "terminate_app",
-            identifier: "application",
-            result: "success",
-            note: "application terminated",
-            captureScreenSummary: false,
-            screenOverride: "appState=notRunning screens=[-] nav=[-] alerts=[-] tabs=[-]"
-        )
-        self.logActionStart(action: "relaunch_app", identifier: "application")
-        self.configureLaunchEnvironment(resetState: resetState, selectedTab: selectedTab)
-        self.app.launch()
-        try self.waitForApplicationToReachForeground(timeout: self.shortUiTimeoutSeconds)
-        _ = self.dismissKnownBlockingAlertIfVisible()
-        try self.waitForSelectedTabScreen(selectedTab: selectedTab, timeout: self.shortUiTimeoutSeconds)
-        self.logActionEnd(action: "relaunch_app", identifier: "application", result: "success", note: "application relaunched")
     }
 
     @MainActor

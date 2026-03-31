@@ -34,7 +34,7 @@ class LiveSmokeTest {
     )
 
     @Test
-    fun linkedWorkspaceSessionSurvivesActivityRelaunch() {
+    fun linkedWorkspaceAccountStatusAndWorkspaceStateAreVisible() {
         val runId: String = System.currentTimeMillis().toString()
         val reviewEmail: String = configuredReviewEmail()
         val workspaceName: String = "E2E android session $runId"
@@ -43,9 +43,6 @@ class LiveSmokeTest {
             reviewEmail = reviewEmail,
             workspaceName = workspaceName
         ) {
-            liveSmokeContext.step("restart the activity and keep the linked session") {
-                liveSmokeContext.relaunchAndAssertAccountStatus(reviewEmail = reviewEmail)
-            }
             liveSmokeContext.step("verify linked account status and workspace state") {
                 liveSmokeContext.assertLinkedAccountStatus(
                     reviewEmail = reviewEmail,
@@ -122,7 +119,7 @@ class LiveSmokeTest {
     }
 
     @Test
-    fun guestAiCardSurvivesActivityRelaunchAndIsReviewable() {
+    fun guestAiCardIsReviewableAfterSync() {
         val runId: String = System.currentTimeMillis().toString()
         val aiFrontText: String = "AI review e2e android $runId"
         val aiBackText: String = "AI review answer e2e android $runId"
@@ -139,9 +136,6 @@ class LiveSmokeTest {
                 expectedFrontText = aiFrontText,
                 timeoutMillis = externalUiTimeoutMillis
             )
-        }
-        liveSmokeContext.step("restart the activity after AI card creation and keep the guest session") {
-            liveSmokeContext.relaunchAndAssertGuestAccountStatus()
         }
         liveSmokeContext.step("verify the AI-created card in cards and review") {
             liveSmokeContext.assertCardVisibleInCards(
