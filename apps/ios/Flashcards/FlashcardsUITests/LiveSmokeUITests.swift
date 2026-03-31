@@ -520,25 +520,11 @@ final class LiveSmokeUITests: XCTestCase {
                 result: "start",
                 note: title
             )
-            smokeLogger.log(
-                "event=step_start step=\(title, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
-            )
 
             do {
                 try action()
 
                 let durationSeconds = Date().timeIntervalSince(startedAt)
-                activity.add(
-                    self.makeTextAttachment(
-                        name: "Step Summary - \(title)",
-                        text: """
-                        Result: success
-                        Step: \(title)
-                        Duration: \(formatDuration(seconds: durationSeconds))
-                        Current screen: \(self.currentScreenSummary())
-                        """
-                    )
-                )
                 self.logSmokeBreadcrumb(
                     event: "step_end",
                     action: "step",
@@ -547,9 +533,6 @@ final class LiveSmokeUITests: XCTestCase {
                     durationSeconds: formatDuration(seconds: durationSeconds),
                     result: "success",
                     note: title
-                )
-                smokeLogger.log(
-                    "event=step_success step=\(title, privacy: .public) duration=\(formatDuration(seconds: durationSeconds), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
                 )
             } catch {
                 self.emitInlineRawScreenStateIfNeeded(action: "step.\(title)")
@@ -604,9 +587,6 @@ final class LiveSmokeUITests: XCTestCase {
         _ = self.dismissKnownBlockingAlertIfVisible()
         try self.waitForSelectedTabScreen(selectedTab: selectedTab, timeout: self.shortUiTimeoutSeconds)
         self.logActionEnd(action: "launch_app", identifier: "application", result: "success", note: "application launched")
-        smokeLogger.log(
-            "event=app_launch step=\(self.currentStepTitle, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
-        )
     }
 
     @MainActor
@@ -918,9 +898,6 @@ final class LiveSmokeUITests: XCTestCase {
             result: "start",
             note: "cleanup begins"
         )
-        smokeLogger.log(
-            "event=cleanup_start step=\(self.currentStepTitle, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
-        )
         _ = self.dismissKnownBlockingAlertIfVisible()
         try self.openWorkspaceOverviewFromSettings()
         try self.tapElement(
@@ -973,9 +950,6 @@ final class LiveSmokeUITests: XCTestCase {
             durationSeconds: "-",
             result: "success",
             note: "cleanup finished"
-        )
-        smokeLogger.log(
-            "event=cleanup_success step=\(self.currentStepTitle, privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
         )
     }
 
@@ -1653,9 +1627,6 @@ final class LiveSmokeUITests: XCTestCase {
                 result: "start",
                 note: screen.title
             )
-            smokeLogger.log(
-                "event=screen_assert_start step=\(self.currentStepTitle, privacy: .public) screen=\(screen.title, privacy: .public) identifier=\(screen.identifier, privacy: .public) timeout=\(formatDuration(seconds: timeout), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
-            )
             let startedAt = Date()
             let found = element.waitForExistence(timeout: timeout)
             let durationSeconds = Date().timeIntervalSince(startedAt)
@@ -1667,9 +1638,6 @@ final class LiveSmokeUITests: XCTestCase {
                 durationSeconds: formatDuration(seconds: durationSeconds),
                 result: found ? "success" : "failure",
                 note: screen.title
-            )
-            smokeLogger.log(
-                "event=screen_assert_end step=\(self.currentStepTitle, privacy: .public) screen=\(screen.title, privacy: .public) identifier=\(screen.identifier, privacy: .public) found=\(found, privacy: .public) duration=\(formatDuration(seconds: durationSeconds), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
             )
 
             if found == false {
@@ -1702,9 +1670,6 @@ final class LiveSmokeUITests: XCTestCase {
             result: "start",
             note: "wait begins"
         )
-        smokeLogger.log(
-            "event=wait_start step=\(self.currentStepTitle, privacy: .public) identifier=\(identifier, privacy: .public) timeout=\(formatDuration(seconds: timeout), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
-        )
         let startedAt = Date()
         let found = element.waitForExistence(timeout: timeout)
         let durationSeconds = Date().timeIntervalSince(startedAt)
@@ -1716,9 +1681,6 @@ final class LiveSmokeUITests: XCTestCase {
             durationSeconds: formatDuration(seconds: durationSeconds),
             result: found ? "success" : "failure",
             note: "wait finished"
-        )
-        smokeLogger.log(
-            "event=wait_end step=\(self.currentStepTitle, privacy: .public) identifier=\(identifier, privacy: .public) found=\(found, privacy: .public) duration=\(formatDuration(seconds: durationSeconds), privacy: .public) currentScreen=\(self.currentScreenSummary(), privacy: .public)"
         )
         return found
     }
@@ -1954,10 +1916,11 @@ final class LiveSmokeUITests: XCTestCase {
         durationSeconds: String,
         result: String,
         note: String,
-        captureScreenSummary: Bool = true,
+        captureScreenSummary: Bool = false,
         screenOverride: String? = nil
     ) {
-        let screen = screenOverride ?? (captureScreenSummary ? self.currentScreenSummary() : "screens=[-] nav=[-] alerts=[-] tabs=[-]")
+        let shouldCaptureScreenSummary = captureScreenSummary || result == "failure"
+        let screen = screenOverride ?? (shouldCaptureScreenSummary ? self.currentScreenSummary() : "screens=[-] nav=[-] alerts=[-] tabs=[-]")
         let line = makeLiveSmokeBreadcrumbLine(
             event: event,
             step: self.currentStepTitle,
@@ -1970,8 +1933,6 @@ final class LiveSmokeUITests: XCTestCase {
             note: note
         )
         self.appendBreadcrumb(line: line)
-        fputs(line + "\n", stderr)
-        smokeLogger.log("\(line, privacy: .public)")
     }
 
     @MainActor
@@ -2010,7 +1971,7 @@ final class LiveSmokeUITests: XCTestCase {
         identifier: String,
         result: String,
         note: String,
-        captureScreenSummary: Bool = true,
+        captureScreenSummary: Bool = false,
         screenOverride: String? = nil
     ) {
         self.logSmokeBreadcrumb(
@@ -2051,7 +2012,7 @@ final class LiveSmokeUITests: XCTestCase {
                 durationSeconds: formatDuration(seconds: durationSeconds),
                 result: reachedForeground ? "success" : "failure",
                 note: "foreground wait finished",
-                captureScreenSummary: reachedForeground,
+                captureScreenSummary: false,
                 screenOverride: reachedForeground ? nil : "appState=\(self.appStateDescription()) screens=[-] nav=[-] alerts=[-] tabs=[-]"
             )
 
