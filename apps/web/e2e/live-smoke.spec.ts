@@ -938,10 +938,11 @@ async function assertLinkedAccountStatus(
   diagnostics: LiveSmokeDiagnostics,
 ): Promise<void> {
   await trackedClick(diagnostics, "open settings navigation for account verification", page.getByRole("link", { name: "Settings", exact: true }));
-  await trackedExpectVisible(
+  await trackedExpectText(
     diagnostics,
     `confirm settings shows workspace ${workspaceName}`,
-    page.getByText(workspaceName, { exact: true }),
+    page.locator(".topbar-workspace"),
+    workspaceName,
     localUiTimeoutMs,
   );
   await trackedClick(
