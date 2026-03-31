@@ -112,63 +112,38 @@ class AiChatRemoteService {
 
         onAccepted(sessionId, latestChatConfig)
 
-        var previousAssistantText = ""
-        var previousToolCalls = linkedMapOf<String, AiChatToolCall>()
+        val liveUrl = latestChatConfig?.liveUrl
 
         return@withContext try {
-            while (true) {
-                val snapshot = loadSnapshot(
+            if (liveUrl != null) {
+                streamViaLive(
+                    liveUrl = liveUrl,
+                    authorizationHeader = authorizationHeader,
+                    sessionId = sessionId,
+                    onEvent = onEvent
+                )
+            } else {
+                pollUntilDone(
                     apiBaseUrl = apiBaseUrl,
                     authorizationHeader = authorizationHeader,
-                    sessionId = sessionId
+                    sessionId = sessionId,
+                    onEvent = onEvent
                 )
-                latestChatConfig = snapshot.chatConfig
-
-                val latestAssistantMessage = snapshot.messages.lastOrNull { message ->
-                    message.role == AiChatRole.ASSISTANT
-                }
-                val latestAssistantText = latestAssistantMessage?.content
-                    ?.filterIsInstance<AiChatContentPart.Text>()
-                    ?.joinToString(separator = "") { part -> part.text }
-                    ?: ""
-
-                if (latestAssistantText.startsWith(previousAssistantText) && latestAssistantText != previousAssistantText) {
-                    onEvent(
-                        AiChatStreamEvent.Delta(
-                            text = latestAssistantText.removePrefix(previousAssistantText)
-                        )
-                    )
-                    previousAssistantText = latestAssistantText
-                }
-
-                val latestToolCalls = linkedMapOf<String, AiChatToolCall>()
-                latestAssistantMessage?.content?.forEach { part ->
-                    if (part is AiChatContentPart.ToolCall) {
-                        latestToolCalls[part.toolCall.toolCallId] = part.toolCall
-                    }
-                }
-                latestToolCalls.values.forEach { toolCall ->
-                    val previousToolCall = previousToolCalls[toolCall.toolCallId]
-                    if (previousToolCall != toolCall) {
-                        onEvent(AiChatStreamEvent.ToolCall(toolCall = toolCall))
-                    }
-                }
-                previousToolCalls = latestToolCalls
-
-                if (snapshot.runState != "running") {
-                    onEvent(AiChatStreamEvent.Done)
-                    return@withContext AiChatStreamOutcome(
-                        requestId = requestId,
-                        chatSessionId = sessionId,
-                        chatConfig = latestChatConfig,
-                        finalSnapshot = snapshot
-                    )
-                }
-
-                delay(activeRunSnapshotPollIntervalMs)
             }
 
-            throw IllegalStateException("Chat polling loop exited unexpectedly.")
+            val finalSnapshot = loadSnapshot(
+                apiBaseUrl = apiBaseUrl,
+                authorizationHeader = authorizationHeader,
+                sessionId = sessionId
+            )
+            latestChatConfig = finalSnapshot.chatConfig
+            onEvent(AiChatStreamEvent.Done)
+            AiChatStreamOutcome(
+                requestId = requestId,
+                chatSessionId = sessionId,
+                chatConfig = latestChatConfig,
+                finalSnapshot = finalSnapshot
+            )
         } catch (error: Exception) {
             if (error is kotlinx.coroutines.CancellationException) {
                 try {
@@ -269,7 +244,7 @@ class AiChatRemoteService {
         authorizationHeader: String,
         sessionId: String,
         afterCursor: String?,
-        onEvent: suspend (AiChatLiveEvent) -> Unit
+        onEvent: suspend (AiChatLiveEvent) -> Boolean
     ): Unit = withContext(Dispatchers.IO) {
         val urlString = buildString {
             append(liveUrl.removeSuffix("/"))
@@ -296,27 +271,27 @@ class AiChatRemoteService {
             var currentEventType: String? = null
             val dataLines = mutableListOf<String>()
 
-            reader.forEachLine { line ->
+            var line: String? = reader.readLine()
+            while (line != null) {
                 if (line.startsWith("event: ")) {
                     currentEventType = line.removePrefix("event: ")
-                    return@forEachLine
-                }
-                if (line.startsWith("data: ")) {
+                } else if (line.startsWith("data: ")) {
                     dataLines += line.removePrefix("data: ")
-                    return@forEachLine
-                }
-                if (line.startsWith(":")) {
-                    return@forEachLine
-                }
-                if (line.isEmpty() && dataLines.isNotEmpty()) {
+                } else if (line.startsWith(":")) {
+                    // comment / keepalive, ignore
+                } else if (line.isEmpty() && dataLines.isNotEmpty()) {
                     val payload = dataLines.joinToString(separator = "\n")
                     dataLines.clear()
                     val event = parseLiveEvent(currentEventType, payload)
                     currentEventType = null
                     if (event != null) {
-                        kotlinx.coroutines.runBlocking { onEvent(event) }
+                        val shouldContinue = kotlinx.coroutines.runBlocking { onEvent(event) }
+                        if (shouldContinue.not()) {
+                            return@withContext
+                        }
                     }
                 }
+                line = reader.readLine()
             }
 
             if (dataLines.isNotEmpty()) {
@@ -394,6 +369,110 @@ class AiChatRemoteService {
             readJsonResponse(connection = connection)
         } finally {
             connection.disconnect()
+        }
+    }
+
+    private suspend fun streamViaLive(
+        liveUrl: String,
+        authorizationHeader: String,
+        sessionId: String,
+        onEvent: suspend (AiChatStreamEvent) -> Unit
+    ) {
+        connectLiveStream(
+            liveUrl = liveUrl,
+            authorizationHeader = authorizationHeader,
+            sessionId = sessionId,
+            afterCursor = null,
+            onEvent = { liveEvent ->
+                when (liveEvent) {
+                    is AiChatLiveEvent.AssistantDelta -> {
+                        onEvent(AiChatStreamEvent.Delta(text = liveEvent.text))
+                        true
+                    }
+                    is AiChatLiveEvent.AssistantToolCall -> {
+                        onEvent(AiChatStreamEvent.ToolCall(toolCall = liveEvent.toolCall))
+                        true
+                    }
+                    is AiChatLiveEvent.RepairStatus -> {
+                        onEvent(AiChatStreamEvent.RepairAttempt(status = liveEvent.status))
+                        true
+                    }
+                    is AiChatLiveEvent.Error -> {
+                        onEvent(
+                            AiChatStreamEvent.Error(
+                                error = AiChatStreamError(
+                                    message = liveEvent.message,
+                                    code = "",
+                                    stage = "",
+                                    requestId = ""
+                                )
+                            )
+                        )
+                        false
+                    }
+                    is AiChatLiveEvent.RunState -> {
+                        liveEvent.runState == "running"
+                    }
+                    is AiChatLiveEvent.AssistantMessageDone -> true
+                    is AiChatLiveEvent.StopAck -> false
+                    is AiChatLiveEvent.ResetRequired -> false
+                }
+            }
+        )
+    }
+
+    private suspend fun pollUntilDone(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        sessionId: String,
+        onEvent: suspend (AiChatStreamEvent) -> Unit
+    ) {
+        var previousAssistantText = ""
+        var previousToolCalls = linkedMapOf<String, AiChatToolCall>()
+
+        while (true) {
+            val snapshot = loadSnapshot(
+                apiBaseUrl = apiBaseUrl,
+                authorizationHeader = authorizationHeader,
+                sessionId = sessionId
+            )
+
+            val latestAssistantMessage = snapshot.messages.lastOrNull { message ->
+                message.role == AiChatRole.ASSISTANT
+            }
+            val latestAssistantText = latestAssistantMessage?.content
+                ?.filterIsInstance<AiChatContentPart.Text>()
+                ?.joinToString(separator = "") { part -> part.text }
+                ?: ""
+
+            if (latestAssistantText.startsWith(previousAssistantText) && latestAssistantText != previousAssistantText) {
+                onEvent(
+                    AiChatStreamEvent.Delta(
+                        text = latestAssistantText.removePrefix(previousAssistantText)
+                    )
+                )
+                previousAssistantText = latestAssistantText
+            }
+
+            val latestToolCalls = linkedMapOf<String, AiChatToolCall>()
+            latestAssistantMessage?.content?.forEach { part ->
+                if (part is AiChatContentPart.ToolCall) {
+                    latestToolCalls[part.toolCall.toolCallId] = part.toolCall
+                }
+            }
+            latestToolCalls.values.forEach { toolCall ->
+                val previousToolCall = previousToolCalls[toolCall.toolCallId]
+                if (previousToolCall != toolCall) {
+                    onEvent(AiChatStreamEvent.ToolCall(toolCall = toolCall))
+                }
+            }
+            previousToolCalls = latestToolCalls
+
+            if (snapshot.runState != "running") {
+                return
+            }
+
+            delay(activeRunSnapshotPollIntervalMs)
         }
     }
 

@@ -332,18 +332,54 @@ class AiViewModel(
             return
         }
 
+        val sessionId = draftState.value.persistedState.chatSessionId
+        val workspaceId = draftState.value.workspaceId
+
         activeSendJob?.cancel()
         activeSendJob = null
         draftState.update { state ->
             state.copy(
                 persistedState = clearOptimisticAssistantStatusIfNeeded(state = state.persistedState),
-                composerPhase = AiComposerPhase.IDLE,
+                composerPhase = AiComposerPhase.STOPPING,
                 repairStatus = null,
                 activeAlert = null,
                 errorMessage = ""
             )
         }
         persistCurrentState()
+
+        viewModelScope.launch {
+            try {
+                if (sessionId.isNotBlank()) {
+                    aiChatRepository.stopRun(
+                        workspaceId = workspaceId,
+                        sessionId = sessionId
+                    )
+                    val snapshot = aiChatRepository.loadChatSnapshot(
+                        workspaceId = workspaceId,
+                        sessionId = sessionId
+                    )
+                    if (snapshot != null) {
+                        applyServerSnapshot(
+                            snapshot = snapshot,
+                            applyMode = AiServerSnapshotApplyMode.ACTIVE
+                        )
+                        return@launch
+                    }
+                }
+                draftState.update { state ->
+                    state.copy(composerPhase = AiComposerPhase.IDLE)
+                }
+                persistCurrentState()
+            } catch (_: CancellationException) {
+                throw CancellationException("Stop run cancelled.")
+            } catch (_: Exception) {
+                draftState.update { state ->
+                    state.copy(composerPhase = AiComposerPhase.IDLE)
+                }
+                persistCurrentState()
+            }
+        }
     }
 
     fun applyEntryPrefill(prefill: AiEntryPrefill) {
@@ -460,6 +496,15 @@ class AiViewModel(
                 )
                 throw error
             } catch (error: Exception) {
+                AiChatDiagnosticsLogger.error(
+                    event = "warm_up_failed",
+                    fields = listOf(
+                        "workspaceId" to currentState.workspaceId,
+                        "cloudState" to cloudSettingsState.value.cloudState.name,
+                        "message" to error.message
+                    ) + remoteErrorFields(error = error as? AiChatRemoteException),
+                    throwable = error
+                )
                 val message = makeAiUserFacingErrorMessage(
                     error = error,
                     surface = AiErrorSurface.CHAT,
@@ -622,10 +667,9 @@ class AiViewModel(
             } finally {
                 draftState.update { state ->
                     state.copy(
-                        composerPhase = if (state.composerPhase == AiComposerPhase.RUNNING) {
-                            AiComposerPhase.RUNNING
-                        } else {
-                            AiComposerPhase.IDLE
+                        composerPhase = when (state.composerPhase) {
+                            AiComposerPhase.RUNNING, AiComposerPhase.STOPPING -> state.composerPhase
+                            else -> AiComposerPhase.IDLE
                         },
                         repairStatus = null
                     )

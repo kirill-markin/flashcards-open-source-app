@@ -146,4 +146,5 @@ interface AiChatRepository {
         onAccepted: suspend (String, com.flashcardsopensourceapp.data.local.model.AiChatServerConfig?) -> Unit,
         onEvent: suspend (AiChatStreamEvent) -> Unit
     ): AiChatStreamOutcome
+    suspend fun stopRun(workspaceId: String?, sessionId: String)
 }
