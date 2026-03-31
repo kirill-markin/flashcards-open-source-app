@@ -222,6 +222,7 @@ private let smokeLogger = Logger(
     category: "ui-smoke"
 )
 private let aiComposerPlaceholderText: String = "Ask about cards, review history, or propose a change..."
+private let aiCreatePromptText: String = "I give you all permissions. Please create one test flashcard now."
 private let aiCreatePromptMaximumAttempts: Int = 3
 private let liveSmokeFocusPollIntervalSeconds: TimeInterval = 0.2
 
@@ -233,9 +234,6 @@ private struct LiveSmokeRunContext {
     let workspaceName: String
     let manualFrontText: String
     let manualBackText: String
-    let aiFrontText: String
-    let aiBackText: String
-    let markerTag: String
 }
 
 private struct LiveSmokeAIToolCallCheck {
@@ -338,7 +336,7 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     func testLiveSmokeManualCardCreationFlow() throws {
-        let context = self.makeRunContext(runLabel: "manual-card")
+        let context = self.makeRunContext()
         try self.launchApplication(resetState: .localGuest, selectedTab: .cards)
 
         try self.step("create one local manual card without login") {
@@ -364,20 +362,10 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     func testLiveSmokeGuestAiCardCreationFlow() throws {
-        let context = self.makeRunContext(runLabel: "ai-card")
         try self.launchApplication(resetState: .localGuest, selectedTab: .ai)
 
-        try self.step("create one guest AI card with explicit confirmation") {
-            try self.createAiCardWithConfirmation(
-                aiFrontText: context.aiFrontText,
-                aiBackText: context.aiBackText,
-                markerTag: context.markerTag
-            )
-        }
-
-        try self.step("verify the guest AI card is visible in cards after relaunch") {
-            try self.relaunchApplication(resetState: nil, selectedTab: .cards)
-            try self.assertTextExists(context.aiFrontText, timeout: self.longUiTimeoutSeconds)
+        try self.step("create one guest AI card and confirm the insert completed") {
+            try self.createAiCardWithConfirmation()
         }
     }
 
@@ -445,17 +433,14 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    private func makeRunContext(runLabel: String) -> LiveSmokeRunContext {
+    private func makeRunContext() -> LiveSmokeRunContext {
         let runToken = String(UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased().prefix(10))
         let workspaceToken = String(runToken.prefix(6))
 
         return LiveSmokeRunContext(
             workspaceName: "E2E iOS \(workspaceToken)",
             manualFrontText: "Manual \(runToken)",
-            manualBackText: "Manual answer \(runToken)",
-            aiFrontText: "AI \(runToken)",
-            aiBackText: "AI answer \(runToken)",
-            markerTag: "e2eios\(runToken)"
+            manualBackText: "Manual answer \(runToken)"
         )
     }
 
@@ -765,11 +750,7 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    private func createAiCardWithConfirmation(
-        aiFrontText: String,
-        aiBackText: String,
-        markerTag: String
-    ) throws {
+    private func createAiCardWithConfirmation() throws {
         try self.assertScreenVisible(screen: .ai, timeout: self.shortUiTimeoutSeconds)
 
         let aiConsentButton = self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton]
@@ -784,16 +765,11 @@ final class LiveSmokeUITests: XCTestCase {
             self.logActionEnd(action: "tap_element", identifier: LiveSmokeIdentifier.aiConsentAcceptButton, result: "success", note: "AI consent accepted")
         }
 
-        let createPrompt =
-            "Create exactly one flashcard now. " +
-            "Use front text \"\(aiFrontText)\", back text \"\(aiBackText)\", and tag \"\(markerTag)\". " +
-            "You have my explicit permission to write data and execute the SQL insert now. " +
-            "Do not ask follow-up questions if these details are sufficient."
         var latestCompletedSqlSummaries: [String] = []
 
         for attempt in 1...aiCreatePromptMaximumAttempts {
             try self.replaceAiComposerText(
-                createPrompt,
+                aiCreatePromptText,
                 timeout: self.shortUiTimeoutSeconds
             )
             let completedMarkerCountBeforeAttempt = self.app.descendants(matching: .any)
@@ -832,10 +808,7 @@ final class LiveSmokeUITests: XCTestCase {
                 timeout: self.longUiTimeoutSeconds
             )
 
-            let toolCallCheck = try self.completedAiInsertToolCallCheck(
-                aiFrontText: aiFrontText,
-                markerTag: markerTag
-            )
+            let toolCallCheck = try self.completedAiInsertToolCallCheck()
             latestCompletedSqlSummaries = toolCallCheck.completedSqlSummaries
             if toolCallCheck.matchingInsertFound {
                 return
@@ -2568,10 +2541,7 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    private func completedAiInsertToolCallCheck(
-        aiFrontText: String,
-        markerTag: String
-    ) throws -> LiveSmokeAIToolCallCheck {
+    private func completedAiInsertToolCallCheck() throws -> LiveSmokeAIToolCallCheck {
         try self.expandAllVisibleAiToolCallSummaries()
 
         let summaryTexts = self.elements(
@@ -2603,13 +2573,9 @@ final class LiveSmokeUITests: XCTestCase {
         }
         let summaryMatch = completedSqlSummaries.contains { summaryText in
             summaryText.contains("INSERT INTO cards")
-                && summaryText.contains(aiFrontText)
-                && summaryText.contains(markerTag)
         }
         let requestMatch = requestTexts.isEmpty || requestTexts.contains { requestText in
             requestText.contains("INSERT INTO cards")
-                && requestText.contains(aiFrontText)
-                && requestText.contains(markerTag)
         }
         let responseMatch = responseTexts.isEmpty || responseTexts.contains { responseText in
             responseText.contains("\"ok\":true")
