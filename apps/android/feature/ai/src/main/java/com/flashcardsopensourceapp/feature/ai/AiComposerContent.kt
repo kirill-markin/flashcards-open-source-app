@@ -47,8 +47,8 @@ internal fun AiComposer(
     onOpenAttachmentMenu: () -> Unit,
     onToggleDictation: () -> Unit
 ) {
-    val canEditDraft = uiState.isStreaming.not() && uiState.dictationState == AiChatDictationState.IDLE
-    val canManageAttachments = uiState.isStreaming.not() && uiState.dictationState == AiChatDictationState.IDLE
+    val canEditDraft = uiState.isComposerBusy.not() && uiState.dictationState == AiChatDictationState.IDLE
+    val canManageAttachments = uiState.isComposerBusy.not() && uiState.dictationState == AiChatDictationState.IDLE
     val isDictationBusy = uiState.dictationState == AiChatDictationState.REQUESTING_PERMISSION
         || uiState.dictationState == AiChatDictationState.TRANSCRIBING
 
@@ -180,7 +180,7 @@ internal fun AiComposer(
 
                 Button(
                     onClick = onToggleDictation,
-                    enabled = uiState.isStreaming.not() && isDictationBusy.not() && uiState.chatConfig.features.dictationEnabled,
+                    enabled = uiState.isComposerBusy.not() && isDictationBusy.not() && uiState.chatConfig.features.dictationEnabled,
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(

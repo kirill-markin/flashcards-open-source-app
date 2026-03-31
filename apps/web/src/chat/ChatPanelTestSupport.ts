@@ -6,6 +6,7 @@ import { defaultChatConfig } from "./chatConfig";
 import { ChatDraftProvider } from "./ChatDraftContext";
 
 const {
+  ApiErrorMock,
   useChatLayoutMock,
   useAppDataMock,
   getChatSnapshotMock,
@@ -18,6 +19,16 @@ const {
   prepareAttachmentMock,
   recompressImageAttachmentMock,
 } = vi.hoisted(() => ({
+  ApiErrorMock: class ApiError extends Error {
+    readonly statusCode: number;
+    readonly code: string | null;
+
+    constructor(statusCode: number, message: string, code: string | null = null) {
+      super(message);
+      this.statusCode = statusCode;
+      this.code = code;
+    }
+  },
   useChatLayoutMock: vi.fn(),
   useAppDataMock: vi.fn(),
   getChatSnapshotMock: vi.fn(),
@@ -40,6 +51,7 @@ vi.mock("./ChatLayoutContext", () => ({
 }));
 
 vi.mock("../api", () => ({
+  ApiError: ApiErrorMock,
   getChatSnapshot: getChatSnapshotMock,
   startChatRun: startChatRunMock,
   createNewChatSession: createNewChatSessionMock,
@@ -108,6 +120,7 @@ type ChatPanelTestHarness = Readonly<{
 }>;
 
 export {
+  ApiErrorMock,
   checkFileSizeMock,
   getChatSnapshotMock,
   listOutboxRecordsMock,
@@ -274,6 +287,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       setChatWidth: vi.fn(),
     });
     useAppDataMock.mockReturnValue({
+      sessionVerificationState: "verified",
       activeWorkspace: {
         workspaceId: "workspace-1",
         name: "Primary",
@@ -291,6 +305,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       ok: true,
       sessionId: "session-1",
       runId: "run-1",
+      clientRequestId: "client-request-1",
       runState: "running",
       chatConfig: defaultChatConfig,
     });

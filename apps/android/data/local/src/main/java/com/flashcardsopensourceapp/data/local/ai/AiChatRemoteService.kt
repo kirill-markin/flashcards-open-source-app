@@ -78,6 +78,7 @@ class AiChatRemoteService {
         apiBaseUrl: String,
         authorizationHeader: String,
         request: AiChatStartRunRequest,
+        onAccepted: suspend (String, AiChatServerConfig?) -> Unit,
         onEvent: suspend (AiChatStreamEvent) -> Unit
     ): AiChatStreamOutcome = withContext(Dispatchers.IO) {
         val startConnection = openConnection(
@@ -105,6 +106,8 @@ class AiChatRemoteService {
         } finally {
             startConnection.disconnect()
         }
+
+        onAccepted(sessionId, latestChatConfig)
 
         var previousAssistantText = ""
         var previousToolCalls = linkedMapOf<String, AiChatToolCall>()
@@ -383,6 +386,7 @@ class AiChatRemoteService {
     private fun encodeStartRunRequest(request: AiChatStartRunRequest): JSONObject {
         return JSONObject()
             .put("sessionId", request.sessionId)
+            .put("clientRequestId", request.clientRequestId)
             .put("content", JSONArray(request.content.map(::encodeWireContentPart)))
             .put("timezone", request.timezone)
     }

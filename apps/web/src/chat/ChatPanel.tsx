@@ -48,6 +48,8 @@ type Props = Readonly<{
   mode: "sidebar" | "fullscreen";
 }>;
 
+type ChatSendPhase = "idle" | "preparingSend" | "startingRun";
+
 function stopMediaStream(stream: MediaStream | null): void {
   if (stream === null) {
     return;
@@ -132,6 +134,7 @@ export function ChatPanel(props: Props): ReactElement {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const [dictationState, setDictationState] = useState<ChatDictationState>("idle");
+  const [sendPhase, setSendPhase] = useState<ChatSendPhase>("idle");
   const inputText = draft.inputText;
   const pendingAttachments = draft.pendingAttachments;
 
@@ -155,12 +158,14 @@ export function ChatPanel(props: Props): ReactElement {
     currentSessionId,
     chatConfig,
     composerAction,
+    composerNotice,
     acceptServerSessionId,
     sendMessage: sendChatMessage,
     stopMessage,
     clearConversation,
   } = useChatSessionController({
     workspaceId: activeWorkspaceId,
+    isRemoteReady: appData.sessionVerificationState === "verified",
     onMainContentInvalidated: handleMainContentInvalidated,
   });
 
@@ -508,7 +513,7 @@ export function ChatPanel(props: Props): ReactElement {
   }
 
   async function sendPendingMessage(): Promise<void> {
-    if (dictationState !== "idle" || composerAction !== "send") {
+    if (dictationState !== "idle" || composerAction !== "send" || sendPhase !== "idle") {
       return;
     }
 
@@ -539,31 +544,44 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
 
+    setSendPhase("preparingSend");
+
     try {
       await appData.runSync();
       const outboxRecords = await listOutboxRecords(activeWorkspaceId);
       if (outboxRecords.length > 0) {
         appData.setErrorMessage("AI chat is blocked until all pending sync operations are uploaded.");
+        setSendPhase("idle");
         return;
       }
     } catch (error) {
       appData.setErrorMessage(error instanceof Error ? error.message : String(error));
+      setSendPhase("idle");
       return;
     }
 
-    clearDraft();
-    pendingAttachmentsRef.current = [];
-    draftSelectionRef.current = null;
-    pendingTextareaSelectionRef.current = null;
+    setSendPhase("startingRun");
 
-    await sendChatMessage({
-      text: nextText,
-      attachments: nextAttachments,
-    });
+    try {
+      const result = await sendChatMessage({
+        clientRequestId: crypto.randomUUID().toLowerCase(),
+        text: nextText,
+        attachments: nextAttachments,
+      });
+
+      if (result.accepted) {
+        clearDraft();
+        pendingAttachmentsRef.current = [];
+        draftSelectionRef.current = null;
+        pendingTextareaSelectionRef.current = null;
+      }
+    } finally {
+      setSendPhase("idle");
+    }
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
-    if (event.key === "Enter" && !event.shiftKey) {
+    if (event.key === "Enter" && !event.shiftKey && !event.repeat) {
       event.preventDefault();
 
       if (composerAction === "stop") {
@@ -577,12 +595,14 @@ export function ChatPanel(props: Props): ReactElement {
 
   const rootClassName = mode === "sidebar" ? "chat-sidebar" : "chat-sidebar-fullscreen";
   const isDictationVisible = dictationState !== "idle";
-  const isDraftInputBlocked = dictationState !== "idle";
+  const isDraftInputBlocked = dictationState !== "idle" || sendPhase !== "idle";
+  const isComposerTransientBusy = sendPhase !== "idle";
   const isChatActionLocked = appData.isSessionVerified === false;
   const areAttachmentsEnabled = chatConfig.features.attachmentsEnabled;
   const isDictationEnabled = chatConfig.features.dictationEnabled;
   const canSendPendingMessage = isHistoryLoaded
     && composerAction === "send"
+    && sendPhase === "idle"
     && !isStopping
     && !isChatActionLocked
     && dictationState === "idle"
@@ -649,6 +669,7 @@ export function ChatPanel(props: Props): ReactElement {
                 appData.setErrorMessage(`New chat failed. ${message}`);
               });
             }}
+            disabled={isComposerTransientBusy || isStopping}
           >
             New
           </button>
@@ -704,6 +725,12 @@ export function ChatPanel(props: Props): ReactElement {
       </div>
 
       <div className="chat-input-area">
+        {composerNotice !== null ? (
+          <div className="chat-composer-notice" role="status" aria-live="polite">
+            {composerNotice}
+          </div>
+        ) : null}
+
         {pendingAttachments.length > 0 ? (
           <div className="chat-attachment-preview">
             {pendingAttachments.map((attachment, index) => (
@@ -713,6 +740,7 @@ export function ChatPanel(props: Props): ReactElement {
                   type="button"
                   className="chat-attachment-remove"
                   onClick={() => removeAttachment(index)}
+                  disabled={isDraftInputBlocked}
                 >
                   &times;
                 </button>
@@ -740,6 +768,7 @@ export function ChatPanel(props: Props): ReactElement {
             placeholder="Ask about cards, review history, or attach notes..."
             value={inputText}
             rows={1}
+            disabled={isDraftInputBlocked}
             onChange={(event) => {
               replaceInputText(event.target.value);
               updateTrackedDraftSelection(event.target);
@@ -760,7 +789,7 @@ export function ChatPanel(props: Props): ReactElement {
               className={`chat-mic-btn${dictationState === "recording" ? " chat-mic-btn-recording" : ""}`}
               aria-label={microphoneAriaLabel}
               onClick={() => void handleMicrophoneClick()}
-              disabled={isChatActionLocked || dictationState === "requesting_permission" || dictationState === "transcribing" || !isDictationEnabled}
+              disabled={isChatActionLocked || sendPhase !== "idle" || dictationState === "requesting_permission" || dictationState === "transcribing" || !isDictationEnabled}
             >
               {dictationState === "recording" ? (
                 <span className="chat-stop-btn-icon" aria-hidden="true" />

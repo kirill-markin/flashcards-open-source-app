@@ -187,11 +187,20 @@ class LocalAiChatRepository(
         workspaceId: String?,
         state: AiChatPersistedState,
         content: List<AiChatContentPart>,
+        onAccepted: suspend (String, com.flashcardsopensourceapp.data.local.model.AiChatServerConfig?) -> Unit,
         onEvent: suspend (AiChatStreamEvent) -> Unit
     ): AiChatStreamOutcome {
         val session = authorizedSession(workspaceId = workspaceId)
+        val resolvedSessionId = state.chatSessionId.ifBlank {
+            aiChatRemoteService.loadSnapshot(
+                apiBaseUrl = session.apiBaseUrl,
+                authorizationHeader = session.authorizationHeader,
+                sessionId = null
+            ).sessionId
+        }
         val request = AiChatStartRunRequest(
-            sessionId = state.chatSessionId.ifBlank { null },
+            sessionId = resolvedSessionId,
+            clientRequestId = java.util.UUID.randomUUID().toString().lowercase(),
             content = buildAiChatRequestContent(content = content),
             timezone = TimeZone.getDefault().id,
         )
@@ -212,6 +221,7 @@ class LocalAiChatRepository(
                 apiBaseUrl = session.apiBaseUrl,
                 authorizationHeader = session.authorizationHeader,
                 request = request,
+                onAccepted = onAccepted,
                 onEvent = onEvent
             )
         } catch (error: AiChatRemoteException) {

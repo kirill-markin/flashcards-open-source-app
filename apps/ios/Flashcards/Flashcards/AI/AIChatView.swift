@@ -400,7 +400,7 @@ struct AIChatView: View {
     }
 
     func handlePrimaryComposerAction() {
-        if self.chatStore.isStreaming {
+        if self.chatStore.canStopResponse {
             self.chatStore.cancelStreaming()
             return
         }

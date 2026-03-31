@@ -77,6 +77,7 @@ extension AIChatView {
                         selection: self.$composerSelection,
                         axis: .vertical
                     )
+                    .disabled(self.chatStore.isComposerBusy)
                     .focused(self.$isComposerFocused)
                     .onTapGesture {
                         self.isComposerFocused = true
@@ -91,14 +92,14 @@ extension AIChatView {
                     Button {
                         self.handlePrimaryComposerAction()
                     } label: {
-                        Image(systemName: self.chatStore.isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
+                        Image(systemName: self.chatStore.canStopResponse ? "stop.circle.fill" : "arrow.up.circle.fill")
                             .font(.system(size: 28))
                             .frame(width: aiChatComposerSendButtonVisualSize, height: aiChatComposerSendButtonVisualSize)
-                            .foregroundStyle(self.chatStore.isStreaming ? Color.red : Color.accentColor)
+                            .foregroundStyle(self.chatStore.canStopResponse ? Color.red : Color.accentColor)
                     }
                     .buttonStyle(.plain)
                     .disabled(self.primaryComposerButtonDisabled)
-                    .accessibilityLabel(self.chatStore.isStreaming ? "Stop response" : "Send message")
+                    .accessibilityLabel(self.chatStore.canStopResponse ? "Stop response" : "Send message")
                     .accessibilityIdentifier(UITestIdentifier.aiComposerSendButton)
                     .padding(.trailing, aiChatComposerSendButtonInset)
                     .padding(.bottom, aiChatComposerSendButtonInset)
@@ -129,16 +130,16 @@ extension AIChatView {
                                 ForEach(aiChatAttachmentMenuActions()) { action in
                                     Button {
                                         self.handleAttachmentMenuAction(action)
-                                    } label: {
-                                        Label(action.title, systemImage: action.systemImage)
-                                    }
-                                }
+                            } label: {
+                                Label(action.title, systemImage: action.systemImage)
+                            }
+                        }
                             } label: {
                                 aiChatComposerAccessoryIcon(systemName: "paperclip")
                             }
                             .buttonStyle(.glass)
                             .tint(.accentColor)
-                            .disabled(self.chatStore.dictationState != .idle)
+                            .disabled(self.chatStore.dictationState != .idle || self.chatStore.isComposerBusy)
                             .accessibilityLabel("Add attachment")
                             .accessibilityHint("Take a photo, choose a photo, or select a file")
                             .menuOrder(.fixed)
@@ -154,7 +155,7 @@ extension AIChatView {
                             }
                             .buttonStyle(.glass)
                             .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
-                            .disabled(self.chatStore.dictationState == .requestingPermission || self.chatStore.dictationState == .transcribing)
+                            .disabled(self.chatStore.dictationState == .requestingPermission || self.chatStore.dictationState == .transcribing || self.chatStore.isComposerBusy)
                             .accessibilityLabel(self.chatStore.dictationState == .recording ? "Stop dictation" : "Start dictation")
                         }
                     }
@@ -186,6 +187,6 @@ extension AIChatView {
     }
 
     var primaryComposerButtonDisabled: Bool {
-        self.chatStore.isStreaming == false && self.chatStore.canSendMessage == false
+        self.chatStore.canStopResponse == false && self.chatStore.canSendMessage == false
     }
 }

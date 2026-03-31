@@ -122,7 +122,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         session: CloudLinkedSession,
         request: AIChatStartRunRequestBody
     ) async throws -> AIChatStartRunResponse {
-        let clientRequestId = UUID().uuidString.lowercased()
+        let clientRequestId = request.clientRequestId
         let urlRequest = try self.makeJsonRequest(
             session: session,
             path: "/chat",

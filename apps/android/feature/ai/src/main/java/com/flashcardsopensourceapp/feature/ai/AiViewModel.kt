@@ -143,7 +143,7 @@ class AiViewModel(
     }
 
     fun startDictationPermissionRequest() {
-        if (draftState.value.isStreaming) {
+        if (draftState.value.composerPhase != AiComposerPhase.IDLE) {
             return
         }
 
@@ -157,7 +157,7 @@ class AiViewModel(
     }
 
     fun startDictationRecording() {
-        if (draftState.value.isStreaming) {
+        if (draftState.value.composerPhase != AiComposerPhase.IDLE) {
             return
         }
 
@@ -242,7 +242,7 @@ class AiViewModel(
     }
 
     fun clearConversation() {
-        if (draftState.value.isStreaming) {
+        if (draftState.value.composerPhase != AiComposerPhase.IDLE) {
             return
         }
 
@@ -275,7 +275,7 @@ class AiViewModel(
     }
 
     fun cancelStreaming() {
-        if (draftState.value.isStreaming.not()) {
+        if (draftState.value.composerPhase != AiComposerPhase.RUNNING) {
             return
         }
 
@@ -284,7 +284,7 @@ class AiViewModel(
         draftState.update { state ->
             state.copy(
                 persistedState = clearOptimisticAssistantStatusIfNeeded(state = state.persistedState),
-                isStreaming = false,
+                composerPhase = AiComposerPhase.IDLE,
                 repairStatus = null,
                 activeAlert = null,
                 errorMessage = ""
@@ -295,7 +295,7 @@ class AiViewModel(
 
     fun applyEntryPrefill(prefill: AiEntryPrefill) {
         val currentState = draftState.value
-        if (currentState.isStreaming || currentState.dictationState != AiChatDictationState.IDLE) {
+        if (currentState.composerPhase != AiComposerPhase.IDLE || currentState.dictationState != AiChatDictationState.IDLE) {
             return
         }
 
@@ -329,7 +329,7 @@ class AiViewModel(
     fun warmUpLinkedSessionIfNeeded() {
         val currentState = draftState.value
         val cloudSettings = cloudSettingsState.value
-        if (currentState.isStreaming) {
+        if (currentState.composerPhase != AiComposerPhase.IDLE) {
             return
         }
         if (consentState.value.not()) {
@@ -416,6 +416,17 @@ class AiViewModel(
             )
         )
 
+        draftState.update { state ->
+            state.copy(
+                composerPhase = AiComposerPhase.PREPARING_SEND,
+                dictationState = AiChatDictationState.IDLE,
+                repairStatus = null,
+                activeAlert = null,
+                errorMessage = ""
+            )
+        }
+
+        val previousPersistedState = draftState.value.persistedState
         val nextPersistedState = draftState.value.persistedState.copy(
             messages = draftState.value.persistedState.messages + listOf(
                 makeUserMessage(
@@ -427,27 +438,45 @@ class AiViewModel(
                 )
             )
         )
-        draftState.update { state ->
-            state.copy(
-                persistedState = nextPersistedState,
-                draftMessage = "",
-                pendingAttachments = emptyList(),
-                isStreaming = true,
-                dictationState = AiChatDictationState.IDLE,
-                repairStatus = null,
-                activeAlert = null,
-                errorMessage = ""
-            )
-        }
-        persistCurrentState()
+        val draftMessageBackup = draftState.value.draftMessage
+        val pendingAttachmentsBackup = draftState.value.pendingAttachments
 
         activeSendJob?.cancel()
         activeSendJob = viewModelScope.launch {
+            var didAcceptRun = false
+            var didAppendOptimisticMessages = false
             try {
+                draftState.update { state ->
+                    state.copy(
+                        persistedState = nextPersistedState,
+                        composerPhase = AiComposerPhase.STARTING_RUN
+                    )
+                }
+                persistCurrentState()
+                didAppendOptimisticMessages = true
+
                 val outcome = aiChatRepository.startRun(
                     workspaceId = draftState.value.workspaceId,
                     state = nextPersistedState,
                     content = outgoingContent,
+                    onAccepted = { sessionId, chatConfig ->
+                        didAcceptRun = true
+                        draftState.update { state ->
+                            state.copy(
+                                persistedState = state.persistedState.copy(
+                                    chatSessionId = sessionId,
+                                    lastKnownChatConfig = chatConfig ?: state.persistedState.lastKnownChatConfig
+                                ),
+                                draftMessage = "",
+                                pendingAttachments = emptyList(),
+                                composerPhase = AiComposerPhase.RUNNING,
+                                dictationState = AiChatDictationState.IDLE,
+                                activeAlert = null,
+                                errorMessage = ""
+                            )
+                        }
+                        persistCurrentState()
+                    },
                     onEvent = { event ->
                         applyStreamEvent(event = event)
                     }
@@ -473,13 +502,31 @@ class AiViewModel(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: AiChatRemoteException) {
-                handleSendFailure(error = error)
+                handleSendFailure(
+                    error = error,
+                    didAcceptRun = didAcceptRun,
+                    didAppendOptimisticMessages = didAppendOptimisticMessages,
+                    previousPersistedState = previousPersistedState,
+                    draftMessage = draftMessageBackup,
+                    pendingAttachments = pendingAttachmentsBackup
+                )
             } catch (error: Exception) {
-                handleSendFailure(error = error)
+                handleSendFailure(
+                    error = error,
+                    didAcceptRun = didAcceptRun,
+                    didAppendOptimisticMessages = didAppendOptimisticMessages,
+                    previousPersistedState = previousPersistedState,
+                    draftMessage = draftMessageBackup,
+                    pendingAttachments = pendingAttachmentsBackup
+                )
             } finally {
                 draftState.update { state ->
                     state.copy(
-                        isStreaming = false,
+                        composerPhase = if (state.composerPhase == AiComposerPhase.RUNNING) {
+                            AiComposerPhase.RUNNING
+                        } else {
+                            AiComposerPhase.IDLE
+                        },
                         repairStatus = null
                     )
                 }
@@ -535,7 +582,7 @@ class AiViewModel(
             AiChatStreamEvent.Done -> {
                 draftState.update { state ->
                     state.copy(
-                        isStreaming = false,
+                        composerPhase = AiComposerPhase.IDLE,
                         repairStatus = null
                     )
                 }
@@ -551,7 +598,7 @@ class AiViewModel(
                                 buttonTitle = aiChatGuestQuotaButtonTitle,
                                 timestampMillis = System.currentTimeMillis()
                             ),
-                            isStreaming = false,
+                            composerPhase = AiComposerPhase.IDLE,
                             repairStatus = null
                         )
                     }
@@ -582,7 +629,7 @@ class AiViewModel(
                                 message = message,
                                 timestampMillis = System.currentTimeMillis()
                             ),
-                            isStreaming = false,
+                            composerPhase = AiComposerPhase.IDLE,
                             repairStatus = null,
                             errorMessage = message
                         )
@@ -593,7 +640,14 @@ class AiViewModel(
         persistCurrentState()
     }
 
-    private fun handleSendFailure(error: Exception) {
+    private fun handleSendFailure(
+        error: Exception,
+        didAcceptRun: Boolean,
+        didAppendOptimisticMessages: Boolean,
+        previousPersistedState: com.flashcardsopensourceapp.data.local.model.AiChatPersistedState,
+        draftMessage: String,
+        pendingAttachments: List<AiChatAttachment>
+    ) {
         val remoteError = error as? AiChatRemoteException
         if (remoteError?.code == "GUEST_AI_LIMIT_REACHED") {
             AiChatDiagnosticsLogger.warn(
@@ -616,7 +670,30 @@ class AiViewModel(
                         buttonTitle = aiChatGuestQuotaButtonTitle,
                         timestampMillis = System.currentTimeMillis()
                     ),
+                    composerPhase = AiComposerPhase.IDLE,
                     errorMessage = ""
+                )
+            }
+            return
+        }
+
+        if (didAcceptRun.not() && didAppendOptimisticMessages) {
+            draftState.update { state ->
+                state.copy(
+                    persistedState = previousPersistedState,
+                    draftMessage = draftMessage,
+                    pendingAttachments = pendingAttachments,
+                    composerPhase = AiComposerPhase.IDLE,
+                    repairStatus = null
+                )
+            }
+        }
+
+        if (didAcceptRun.not() && remoteError?.code == "CHAT_ACTIVE_RUN_IN_PROGRESS") {
+            draftState.update { state ->
+                state.copy(
+                    composerPhase = AiComposerPhase.IDLE,
+                    errorMessage = "A response is already in progress. Wait for it to finish or stop it before sending another message."
                 )
             }
             return
@@ -646,14 +723,22 @@ class AiViewModel(
             throwable = error
         )
         draftState.update { state ->
-            state.copy(
-                persistedState = markAssistantError(
-                    state = repairedState,
-                    message = message,
-                    timestampMillis = System.currentTimeMillis()
-                ),
-                errorMessage = message
-            )
+            if (didAcceptRun.not()) {
+                state.copy(
+                    composerPhase = AiComposerPhase.IDLE,
+                    errorMessage = message
+                )
+            } else {
+                state.copy(
+                    persistedState = markAssistantError(
+                        state = repairedState,
+                        message = message,
+                        timestampMillis = System.currentTimeMillis()
+                    ),
+                    composerPhase = AiComposerPhase.IDLE,
+                    errorMessage = message
+                )
+            }
         }
     }
 
@@ -757,7 +842,7 @@ class AiViewModel(
     ) {
         draftState.update { state ->
             val preserveLocalComposerState =
-                applyMode == AiServerSnapshotApplyMode.PASSIVE && state.isStreaming.not()
+                applyMode == AiServerSnapshotApplyMode.PASSIVE && state.composerPhase == AiComposerPhase.IDLE
             state.copy(
                 persistedState = state.persistedState.copy(
                     messages = snapshot.messages,
@@ -766,7 +851,11 @@ class AiViewModel(
                 ),
                 draftMessage = if (preserveLocalComposerState) state.draftMessage else "",
                 pendingAttachments = if (preserveLocalComposerState) state.pendingAttachments else emptyList(),
-                isStreaming = snapshot.runState == "running",
+                composerPhase = if (snapshot.runState == "running") {
+                    AiComposerPhase.RUNNING
+                } else {
+                    AiComposerPhase.IDLE
+                },
                 dictationState = if (preserveLocalComposerState) {
                     state.dictationState
                 } else {

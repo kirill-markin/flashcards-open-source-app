@@ -51,10 +51,24 @@ actor AIChatSessionRuntime {
         )
 
         do {
+            if self.persistedState.chatSessionId.isEmpty {
+                let recoveredSnapshot = try await self.chatService.loadSnapshot(
+                    session: session,
+                    sessionId: nil
+                )
+                self.persistedState = AIChatPersistedState(
+                    messages: self.persistedState.messages,
+                    chatSessionId: recoveredSnapshot.sessionId,
+                    lastKnownChatConfig: recoveredSnapshot.chatConfig
+                )
+                await self.historyStore.saveState(state: self.persistedState)
+            }
+
             let startResponse = try await self.chatService.startRun(
                 session: session,
                 request: AIChatStartRunRequestBody(
-                    sessionId: initialState.chatSessionId.isEmpty ? nil : initialState.chatSessionId,
+                    sessionId: self.persistedState.chatSessionId.isEmpty ? nil : self.persistedState.chatSessionId,
+                    clientRequestId: makeAIChatClientRequestId(),
                     content: outgoingContent,
                     timezone: TimeZone.current.identifier
                 )
@@ -65,6 +79,7 @@ actor AIChatSessionRuntime {
                 lastKnownChatConfig: startResponse.chatConfig
             )
             await self.historyStore.saveState(state: self.persistedState)
+            await eventHandler(.accepted(startResponse))
             logAIChatRuntimeEvent(
                 action: "ai_run_started",
                 metadata: [

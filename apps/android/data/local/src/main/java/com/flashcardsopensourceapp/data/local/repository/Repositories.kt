@@ -143,6 +143,7 @@ interface AiChatRepository {
         workspaceId: String?,
         state: AiChatPersistedState,
         content: List<com.flashcardsopensourceapp.data.local.model.AiChatContentPart>,
+        onAccepted: suspend (String, com.flashcardsopensourceapp.data.local.model.AiChatServerConfig?) -> Unit,
         onEvent: suspend (AiChatStreamEvent) -> Unit
     ): AiChatStreamOutcome
 }
