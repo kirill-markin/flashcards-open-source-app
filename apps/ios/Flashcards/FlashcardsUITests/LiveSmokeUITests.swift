@@ -243,6 +243,10 @@ final class LiveSmokeUITests: XCTestCase {
     private let shortUiTimeoutSeconds: TimeInterval = 10
     private let longUiTimeoutSeconds: TimeInterval = 30
     private let optionalProbeTimeoutSeconds: TimeInterval = 3
+    private let reviewInitialProbeTimeoutSeconds: TimeInterval = 15
+    private let reviewPerSkipProbeTimeoutSeconds: TimeInterval = 1
+    private let reviewInteractionTimeoutSeconds: TimeInterval = 10
+    private let maximumSmokeReviewSkips: Int = 4
     private let reviewEmailEnvironmentKey: String = "FLASHCARDS_LIVE_REVIEW_EMAIL"
     private let resetStateEnvironmentKey: String = "FLASHCARDS_UI_TEST_RESET_STATE"
     private let selectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
@@ -274,8 +278,10 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        if self.app != nil {
-            self.app.terminate()
+        if let app = self.app {
+            MainActor.assumeIsolated {
+                app.terminate()
+            }
         }
         self.app = nil
         self.hasPrintedInlineRawScreenStateForCurrentFailure = false
@@ -295,7 +301,10 @@ final class LiveSmokeUITests: XCTestCase {
 
         try self.step("verify the local manual card in review after relaunch") {
             try self.relaunchApplication(resetState: nil, selectedTab: .review)
-            try self.reviewCurrentCard(expectedFrontText: context.manualFrontText, maximumSkips: 12)
+            try self.reviewCurrentCard(
+                expectedFrontText: context.manualFrontText,
+                maximumSkips: self.maximumSmokeReviewSkips
+            )
         }
     }
 
@@ -323,7 +332,10 @@ final class LiveSmokeUITests: XCTestCase {
 
         try self.step("review the guest AI card after relaunch") {
             try self.relaunchApplication(resetState: nil, selectedTab: .review)
-            try self.reviewCurrentCard(expectedFrontText: context.aiFrontText, maximumSkips: 12)
+            try self.reviewCurrentCard(
+                expectedFrontText: context.aiFrontText,
+                maximumSkips: self.maximumSmokeReviewSkips
+            )
         }
     }
 
@@ -678,11 +690,14 @@ final class LiveSmokeUITests: XCTestCase {
             containing: expectedFrontText,
             ignoredExactLabels: []
         ).firstMatch
+        let initialProbeTimeout = min(self.reviewInitialProbeTimeoutSeconds, self.longUiTimeoutSeconds)
+        let perSkipProbeTimeout = min(self.reviewPerSkipProbeTimeoutSeconds, self.optionalProbeTimeoutSeconds)
+        let reviewProbeBudgetSeconds = initialProbeTimeout + (Double(maximumSkips) * perSkipProbeTimeout)
 
         for skipIndex in 0...maximumSkips {
             let expectedFrontTimeout = skipIndex == 0
-                ? self.longUiTimeoutSeconds
-                : self.optionalProbeTimeoutSeconds
+                ? initialProbeTimeout
+                : perSkipProbeTimeout
             if self.waitForOptionalElement(
                 expectedFrontElement,
                 identifier: "text.contains.\(expectedFrontText)",
@@ -690,28 +705,28 @@ final class LiveSmokeUITests: XCTestCase {
             ) {
                 try self.tapElement(
                     identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
-                    timeout: self.longUiTimeoutSeconds
+                    timeout: self.reviewInteractionTimeoutSeconds
                 )
                 try self.tapElement(
                     identifier: LiveSmokeIdentifier.reviewRateGoodButton,
-                    timeout: self.longUiTimeoutSeconds
+                    timeout: self.reviewInteractionTimeoutSeconds
                 )
                 return
             }
 
             try self.tapElement(
                 identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
-                timeout: self.longUiTimeoutSeconds
+                timeout: self.reviewInteractionTimeoutSeconds
             )
             try self.tapElement(
                 identifier: LiveSmokeIdentifier.reviewRateGoodButton,
-                timeout: self.longUiTimeoutSeconds
+                timeout: self.reviewInteractionTimeoutSeconds
             )
         }
 
         throw LiveSmokeFailure.missingText(
             text: expectedFrontText,
-            timeoutSeconds: self.shortUiTimeoutSeconds,
+            timeoutSeconds: reviewProbeBudgetSeconds,
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
