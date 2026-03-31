@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { HttpError } from "./errors";
 import { createChatRoutes } from "./routes/chat";
 import type { ChatSessionSnapshot } from "./chat/store";
@@ -268,7 +269,7 @@ test("POST /chat maps active-run conflicts to a stable machine-readable code", a
   const app = new Hono();
   app.onError((error, context) => {
     if (error instanceof HttpError) {
-      context.status(error.statusCode);
+      context.status(error.statusCode as ContentfulStatusCode);
       return context.json({
         error: error.message,
         requestId: null,
