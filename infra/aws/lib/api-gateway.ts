@@ -271,7 +271,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
     cors: {
       allowedOrigins: allowedOrigins,
-      allowedMethods: [lambda.HttpMethod.GET, lambda.HttpMethod.OPTIONS],
+      allowedMethods: [lambda.HttpMethod.GET],
       allowedHeaders: ["content-type", "authorization"],
       allowCredentials: true,
     },
