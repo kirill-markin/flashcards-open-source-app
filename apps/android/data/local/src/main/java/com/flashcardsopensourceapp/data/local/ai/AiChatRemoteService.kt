@@ -748,7 +748,7 @@ private fun parseStreamEvent(jsonObject: JSONObject): AiChatStreamEvent {
 
 private fun decodeRunState(value: String, fieldPath: String): String {
     return when (value) {
-        "idle", "running", "completed", "failed", "stopped" -> value
+        "idle", "running", "completed", "failed", "stopped", "interrupted" -> value
         else -> throw CloudContractMismatchException(
             "Cloud contract mismatch for $fieldPath: unsupported AI chat run state \"$value\""
         )
