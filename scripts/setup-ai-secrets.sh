@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Create or update optional AI and telemetry secrets in AWS Secrets Manager.
+# Create optional AI and telemetry secrets in AWS Secrets Manager only when missing.
 
 set -euo pipefail
 
@@ -37,7 +37,7 @@ if [[ -z "$REGION" ]]; then
   exit 1
 fi
 
-create_or_update_secret() {
+create_secret_if_missing() {
   local secret_name="$1"
   local secret_value="$2"
   local description="$3"
@@ -55,10 +55,7 @@ create_or_update_secret() {
     --output text 2>/dev/null || true)
 
   if [[ -n "$secret_arn" && "$secret_arn" != "None" ]]; then
-    aws secretsmanager put-secret-value \
-      --secret-id "$secret_name" \
-      --secret-string "file://${secret_file}" \
-      --region "$REGION" >/dev/null
+    echo "Secret already exists in AWS Secrets Manager and was left unchanged: ${secret_arn}" >&2
     printf '%s\n' "$secret_arn"
     return
   fi
@@ -88,7 +85,7 @@ if [[ -z "${OPENAI_API_KEY:-}" && -z "${LANGFUSE_PUBLIC_KEY:-}" && -z "${LANGFUS
 fi
 
 if [[ -n "${OPENAI_API_KEY:-}" ]]; then
-  OPENAI_SECRET_ARN=$(create_or_update_secret \
+  OPENAI_SECRET_ARN=$(create_secret_if_missing \
     "$OPENAI_SECRET_NAME" \
     "${OPENAI_API_KEY}" \
     "OpenAI API key for flashcards-open-source-app backend chat")
@@ -96,13 +93,13 @@ if [[ -n "${OPENAI_API_KEY:-}" ]]; then
 fi
 
 if [[ -n "${LANGFUSE_PUBLIC_KEY:-}" ]]; then
-  LANGFUSE_PUBLIC_SECRET_ARN=$(create_or_update_secret \
+  LANGFUSE_PUBLIC_SECRET_ARN=$(create_secret_if_missing \
     "$LANGFUSE_PUBLIC_KEY_SECRET_NAME" \
     "${LANGFUSE_PUBLIC_KEY}" \
     "Langfuse public key for flashcards-open-source-app backend AI telemetry")
   echo "Configured Langfuse public key secret in AWS Secrets Manager: ${LANGFUSE_PUBLIC_SECRET_ARN}"
 
-  LANGFUSE_SECRET_SECRET_ARN=$(create_or_update_secret \
+  LANGFUSE_SECRET_SECRET_ARN=$(create_secret_if_missing \
     "$LANGFUSE_SECRET_KEY_SECRET_NAME" \
     "${LANGFUSE_SECRET_KEY}" \
     "Langfuse secret key for flashcards-open-source-app backend AI telemetry")
