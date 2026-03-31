@@ -57,6 +57,17 @@ type WorkspaceSession = Readonly<{
   deleteWorkspace: (workspaceId: string, confirmationText: string) => Promise<void>;
 }>;
 
+type WorkspaceTransitionLogDetails = Readonly<{
+  workspaceId?: string;
+  deletedWorkspaceId?: string;
+  replacementWorkspaceId?: string;
+  selectedWorkspaceId?: string | null;
+  availableWorkspaceIds?: ReadonlyArray<string>;
+  nextWorkspaceIds?: ReadonlyArray<string>;
+  redirected?: boolean;
+  errorMessage?: string;
+}>;
+
 function buildLinkingReadyCloudSettings(session: SessionInfo): CloudSettings {
   return {
     installationId: getStableInstallationId(),
@@ -114,6 +125,14 @@ function createRemoteActionLockedError(): Error {
   return new Error("Restoring session. Try again in a moment.");
 }
 
+function logWorkspaceTransition(event: string, details: WorkspaceTransitionLogDetails): void {
+  console.info(event, details);
+}
+
+function logWorkspaceTransitionError(event: string, details: WorkspaceTransitionLogDetails): void {
+  console.error(event, details);
+}
+
 export function useWorkspaceSession(params: UseWorkspaceSessionParams): WorkspaceSession {
   const {
     sessionLoadState,
@@ -161,19 +180,34 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
   const bootstrapWorkspaceInBackground = useCallback(function bootstrapWorkspaceInBackground(
     workspace: WorkspaceSummary,
   ): void {
+    logWorkspaceTransition("workspace_activate_bootstrap_started", {
+      workspaceId: workspace.workspaceId,
+    });
+
     void (async (): Promise<void> => {
       try {
         await refreshWorkspaceView(workspace.workspaceId);
         await runSyncForWorkspace(workspace);
         setSessionErrorMessage("");
         setErrorMessage("");
+        logWorkspaceTransition("workspace_activate_bootstrap_succeeded", {
+          workspaceId: workspace.workspaceId,
+        });
       } catch (error) {
         if (isAuthRedirectError(error)) {
+          logWorkspaceTransition("workspace_activate_bootstrap_redirected", {
+            workspaceId: workspace.workspaceId,
+            redirected: true,
+          });
           setSessionLoadState("redirecting");
           return;
         }
 
         const nextErrorMessage = getErrorMessage(error);
+        logWorkspaceTransitionError("workspace_activate_bootstrap_failed", {
+          workspaceId: workspace.workspaceId,
+          errorMessage: nextErrorMessage,
+        });
         setSessionErrorMessage(nextErrorMessage);
         setErrorMessage(nextErrorMessage);
       }
@@ -191,12 +225,26 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     currentWorkspaces: ReadonlyArray<WorkspaceSummary>,
     workspace: WorkspaceSummary,
   ): Promise<void> {
+    logWorkspaceTransition("workspace_activate_started", {
+      workspaceId: workspace.workspaceId,
+      selectedWorkspaceId: currentSession.selectedWorkspaceId,
+      availableWorkspaceIds: currentWorkspaces.map((currentWorkspace) => currentWorkspace.workspaceId),
+    });
     const linkedCloudSettings = buildLinkedCloudSettings(currentSession, workspace.workspaceId);
     await putCloudSettings(linkedCloudSettings);
+    logWorkspaceTransition("workspace_activate_cloud_settings_saved", {
+      workspaceId: workspace.workspaceId,
+      selectedWorkspaceId: workspace.workspaceId,
+    });
     setCloudSettings(linkedCloudSettings);
     setSessionErrorMessage("");
     setErrorMessage("");
     publishSelectedWorkspace(currentSession, currentWorkspaces, workspace);
+    logWorkspaceTransition("workspace_activate_published", {
+      workspaceId: workspace.workspaceId,
+      selectedWorkspaceId: workspace.workspaceId,
+      availableWorkspaceIds: currentWorkspaces.map((currentWorkspace) => currentWorkspace.workspaceId),
+    });
     bootstrapWorkspaceInBackground(workspace);
   }, [
     bootstrapWorkspaceInBackground,
@@ -439,19 +487,42 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
 
     setIsChoosingWorkspace(true);
     try {
+      logWorkspaceTransition("workspace_delete_client_started", {
+        workspaceId,
+        selectedWorkspaceId: session.selectedWorkspaceId,
+        availableWorkspaceIds: availableWorkspaces.map((workspace) => workspace.workspaceId),
+      });
       const response = await deleteWorkspaceRequest(workspaceId, confirmationText);
+      logWorkspaceTransition("workspace_delete_client_succeeded", {
+        workspaceId,
+        deletedWorkspaceId: response.deletedWorkspaceId,
+        replacementWorkspaceId: response.workspace.workspaceId,
+      });
       const nextWorkspaces = replaceWorkspaceSummary(
         availableWorkspaces.filter((workspace) => workspace.workspaceId !== response.deletedWorkspaceId),
         response.workspace,
       );
+      logWorkspaceTransition("workspace_delete_client_preparing_activation", {
+        deletedWorkspaceId: response.deletedWorkspaceId,
+        replacementWorkspaceId: response.workspace.workspaceId,
+        nextWorkspaceIds: nextWorkspaces.map((workspace) => workspace.workspaceId),
+      });
       await activateWorkspace(session, nextWorkspaces, response.workspace);
       setErrorMessage("");
     } catch (error) {
       if (isAuthRedirectError(error)) {
+        logWorkspaceTransition("workspace_delete_client_redirected", {
+          workspaceId,
+          redirected: true,
+        });
         return;
       }
 
       const nextErrorMessage = getErrorMessage(error);
+      logWorkspaceTransitionError("workspace_delete_client_failed", {
+        workspaceId,
+        errorMessage: nextErrorMessage,
+      });
       setErrorMessage(nextErrorMessage);
       throw error;
     } finally {
