@@ -275,10 +275,34 @@ export function clickElement(element: Element): void {
   element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 }
 
+export async function clickElementAsync(element: Element): Promise<void> {
+  await act(async () => {
+    clickElement(element);
+  });
+}
+
 export function setInputValue(input: HTMLInputElement, value: string): void {
   const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
   descriptor?.set?.call(input, value);
   input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+export function setTextFieldValue(field: HTMLInputElement | HTMLTextAreaElement, value: string): void {
+  if (field instanceof HTMLInputElement) {
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+    descriptor?.set?.call(field, value);
+  } else {
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
+    descriptor?.set?.call(field, value);
+  }
+
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+export async function setTextFieldValueAsync(field: HTMLInputElement | HTMLTextAreaElement, value: string): Promise<void> {
+  await act(async () => {
+    setTextFieldValue(field, value);
+  });
 }
 
 export function dispatchKeydown(element: Document | HTMLElement, key: string): void {
