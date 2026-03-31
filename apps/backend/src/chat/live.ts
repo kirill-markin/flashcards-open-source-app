@@ -5,6 +5,7 @@
  */
 import type { Writable } from "node:stream";
 import { authenticateRequest, type AuthResult } from "../auth";
+import { ensureUserProfile } from "../ensureUser";
 import { query } from "../db";
 import {
   listChatMessagesAfterCursor,
@@ -242,7 +243,11 @@ export async function handleLiveRequest(
     sessionToken: undefined,
   });
 
-  if (authResult.selectedWorkspaceId === null) {
+  const workspaceId = authResult.transport === "api_key"
+    ? authResult.selectedWorkspaceId
+    : (await ensureUserProfile(authResult.userId, null)).selectedWorkspaceId;
+
+  if (workspaceId === null) {
     throw new Error("No workspace selected");
   }
 
@@ -250,6 +255,6 @@ export async function handleLiveRequest(
     sessionId,
     afterCursor,
     userId: authResult.userId,
-    workspaceId: authResult.selectedWorkspaceId,
+    workspaceId,
   };
 }

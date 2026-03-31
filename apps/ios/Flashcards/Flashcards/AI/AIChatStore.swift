@@ -348,12 +348,35 @@ final class AIChatStore {
     func cancelStreaming() {
         self.activeSendTask?.cancel()
         self.activeSendTask = nil
-        self.composerPhase = .idle
+        self.composerPhase = .stopping
         self.repairStatus = nil
         self.clearOptimisticAssistantStatusIfNeeded()
-        let state = self.currentPersistedState()
+
+        let sessionId = self.chatSessionId
+        guard sessionId.isEmpty == false else {
+            self.composerPhase = .idle
+            let state = self.currentPersistedState()
+            Task { await self.historyStore.saveState(state: state) }
+            return
+        }
+
         Task {
-            await self.historyStore.saveState(state: state)
+            defer {
+                if self.composerPhase == .stopping {
+                    self.composerPhase = .idle
+                }
+                Task { await self.historyStore.saveState(state: self.currentPersistedState()) }
+            }
+            do {
+                let session = try await self.flashcardsStore.cloudSessionForAI()
+                _ = try await self.chatService.stopRun(session: session, sessionId: sessionId)
+                let snapshot = try await self.chatService.loadSnapshot(
+                    session: session,
+                    sessionId: sessionId
+                )
+                self.applySnapshot(snapshot)
+            } catch {
+            }
         }
     }
 
@@ -524,7 +547,7 @@ final class AIChatStore {
             }
 
             if self.activeConversationId == conversationId {
-                if self.composerPhase != .idle {
+                if self.composerPhase != .idle && self.composerPhase != .stopping {
                     self.composerPhase = .idle
                 }
                 self.activeConversationId = nil
@@ -912,6 +935,8 @@ final class AIChatStore {
             self.inputText = ""
             self.pendingAttachments = []
             self.composerPhase = .running
+        case .liveEvent(let liveEvent):
+            self.handleLiveEvent(liveEvent)
         case .applySnapshot(let snapshot):
             self.applySnapshot(snapshot)
         case .appendAssistantAccountUpgradePrompt(let message, let buttonTitle):
@@ -926,6 +951,90 @@ final class AIChatStore {
             self.markAssistantError(message: message)
             if self.activeConversationId == conversationId {
                 self.composerPhase = .idle
+            }
+        }
+    }
+
+    private func handleLiveEvent(_ event: AIChatLiveEvent) {
+        switch event {
+        case .assistantDelta(let text, _, _):
+            guard let lastIndex = self.messages.indices.last,
+                  self.messages[lastIndex].role == .assistant else {
+                return
+            }
+            let lastMessage = self.messages[lastIndex]
+            self.messages[lastIndex] = AIChatMessage(
+                id: lastMessage.id,
+                role: lastMessage.role,
+                content: appendingAIChatText(content: lastMessage.content, text: text),
+                timestamp: lastMessage.timestamp,
+                isError: lastMessage.isError
+            )
+
+        case .assistantToolCall(let toolCall, _, _):
+            guard let lastIndex = self.messages.indices.last,
+                  self.messages[lastIndex].role == .assistant else {
+                return
+            }
+            let lastMessage = self.messages[lastIndex]
+            var updatedContent = removingOptimisticAIChatStatus(content: lastMessage.content)
+            if let existingIndex = updatedContent.firstIndex(where: {
+                if case .toolCall(let existing) = $0 { return existing.id == toolCall.id }
+                return false
+            }) {
+                updatedContent[existingIndex] = .toolCall(toolCall)
+            } else {
+                updatedContent.append(.toolCall(toolCall))
+            }
+            self.messages[lastIndex] = AIChatMessage(
+                id: lastMessage.id,
+                role: lastMessage.role,
+                content: updatedContent,
+                timestamp: lastMessage.timestamp,
+                isError: lastMessage.isError
+            )
+
+        case .assistantMessageDone(_, _, let isError, _):
+            if isError, let lastIndex = self.messages.indices.last,
+               self.messages[lastIndex].role == .assistant
+            {
+                let lastMessage = self.messages[lastIndex]
+                self.messages[lastIndex] = AIChatMessage(
+                    id: lastMessage.id,
+                    role: lastMessage.role,
+                    content: lastMessage.content,
+                    timestamp: lastMessage.timestamp,
+                    isError: true
+                )
+            }
+
+        case .runState(let state):
+            if state != "running" {
+                self.composerPhase = .idle
+                self.repairStatus = nil
+            }
+
+        case .repairStatus(let status):
+            self.repairStatus = status
+
+        case .error(let message):
+            self.markAssistantError(message: message)
+            self.composerPhase = .idle
+
+        case .stopAck:
+            break
+
+        case .resetRequired:
+            Task {
+                do {
+                    let session = try await self.flashcardsStore.cloudSessionForAI()
+                    let snapshot = try await self.chatService.loadSnapshot(
+                        session: session,
+                        sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId
+                    )
+                    self.applySnapshot(snapshot)
+                } catch {
+                }
             }
         }
     }

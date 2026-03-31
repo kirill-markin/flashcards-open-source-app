@@ -75,6 +75,27 @@ actor AIChatSessionRuntime {
                 ]
             )
 
+            if startResponse.runState == "running",
+               let liveUrl = startResponse.chatConfig.liveUrl
+            {
+                try Task.checkCancellation()
+                logAIChatRuntimeEvent(
+                    action: "ai_live_attach_inline",
+                    metadata: ["sessionId": startResponse.sessionId]
+                )
+                let stream = await self.liveStreamClient.connect(
+                    liveUrl: liveUrl,
+                    authorization: session.authorization.headerValue,
+                    sessionId: startResponse.sessionId,
+                    afterCursor: nil,
+                    configurationMode: session.configurationMode
+                )
+                for try await event in stream {
+                    try Task.checkCancellation()
+                    await eventHandler(.liveEvent(event))
+                }
+            }
+
             await eventHandler(.finish)
         } catch is CancellationError {
             await eventHandler(.finish)
@@ -103,6 +124,7 @@ actor AIChatSessionRuntime {
         authorization: String,
         sessionId: String,
         afterCursor: String?,
+        configurationMode: CloudServiceConfigurationMode,
         eventHandler: @escaping @Sendable (AIChatLiveEvent) async -> Void
     ) {
         detach()
@@ -119,7 +141,8 @@ actor AIChatSessionRuntime {
                     liveUrl: liveUrl,
                     authorization: authorization,
                     sessionId: sessionId,
-                    afterCursor: afterCursor
+                    afterCursor: afterCursor,
+                    configurationMode: configurationMode
                 )
                 for try await event in stream {
                     try Task.checkCancellation()
