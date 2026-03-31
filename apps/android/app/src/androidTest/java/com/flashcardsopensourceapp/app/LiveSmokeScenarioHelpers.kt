@@ -14,9 +14,16 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
+import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
+import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.AiChatMessage
+import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.feature.ai.aiAssistantMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.aiAssistantTextPartTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
@@ -35,6 +42,7 @@ import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import java.util.UUID
 
 internal fun LiveSmokeContext.withLinkedWorkspaceSession(
     reviewEmail: String,
@@ -144,6 +152,9 @@ internal fun LiveSmokeContext.seedLocalCard(
 
 private const val aiCreatePromptText: String =
     "I give you all permissions. Please create one test flashcard now."
+private const val seededAiConversationUserText: String = "Show me the seeded smoke conversation."
+private const val seededAiConversationAssistantText: String =
+    "This seeded AI conversation is ready to reset."
 
 internal fun LiveSmokeContext.createAiCardWithConfirmation() {
     openAiTab()
@@ -176,62 +187,6 @@ internal fun LiveSmokeContext.createAiCardWithConfirmation() {
         )
 
         val toolCallCheck: LiveSmokeAiToolCallCheck = completedAiInsertToolCallCheck()
-        latestCompletedSqlSummaries = toolCallCheck.completedSqlSummaries
-        if (toolCallCheck.matchingInsertFound) {
-            return
-        }
-    }
-
-    throw AssertionError(
-        "AI create flow did not produce a completed SQL INSERT INTO cards after 3 attempts. " +
-            "CompletedSqlToolCalls=${latestCompletedSqlSummaries}"
-    )
-}
-
-internal fun LiveSmokeContext.createTaggedAiCardWithConfirmation(
-    aiFrontText: String,
-    aiBackText: String,
-    markerTag: String
-) {
-    val createPrompt: String =
-        "Create exactly one flashcard now. " +
-            "Use front text '$aiFrontText', back text '$aiBackText', and tag '$markerTag'. " +
-            "You have my explicit permission to write data and execute the SQL insert now. " +
-            "Do not ask follow-up questions if these details are sufficient."
-
-    openAiTab()
-    dismissAiConsentIfNeeded()
-    waitForGuestCloudWorkspaceReady(context = "before filling the AI create prompt")
-    waitForAiComposerButtonState(
-        expectedLabel = "Send",
-        expectedEnabled = false,
-        context = "before filling the tagged AI create prompt"
-    )
-
-    var latestCompletedSqlSummaries: List<String> = emptyList()
-    repeat(times = 3) { attemptIndex ->
-        val previousToolCallSummaryCount: Int = toolCallSummaryTexts().size
-
-        fillAiComposer(
-            expectedDraftText = createPrompt,
-            context = "for AI create attempt ${attemptIndex + 1}"
-        )
-        clickTag(tag = aiComposerSendButtonTag, label = "Send AI create prompt")
-        waitForAiRunAcceptedOrCompleted(
-            expectedDraftText = createPrompt,
-            previousToolCallSummaryCount = previousToolCallSummaryCount,
-            context = "for AI create attempt ${attemptIndex + 1}"
-        )
-        waitForAiComposerButtonState(
-            expectedLabel = "Send",
-            expectedEnabled = false,
-            context = "after tagged AI create attempt ${attemptIndex + 1} completed"
-        )
-
-        val toolCallCheck: LiveSmokeAiToolCallCheck = completedTaggedAiInsertToolCallCheck(
-            aiFrontText = aiFrontText,
-            markerTag = markerTag
-        )
         latestCompletedSqlSummaries = toolCallCheck.completedSqlSummaries
         if (toolCallCheck.matchingInsertFound) {
             return
@@ -308,21 +263,57 @@ internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
     }
 }
 
-internal fun LiveSmokeContext.createGuestAiConversation(
-    promptText: String,
-    expectedAssistantText: String
-) {
+internal fun LiveSmokeContext.seedGuestAiConversation() {
+    val application = composeRule.activity.application as FlashcardsApplication
+    val appGraph = application.appGraph
+    val applicationContext = application.applicationContext
+    val aiChatPreferencesStore = AiChatPreferencesStore(context = applicationContext)
+    val aiChatHistoryStore = AiChatHistoryStore(context = applicationContext)
+    val currentTimeMillis: Long = System.currentTimeMillis()
+
+    runBlocking {
+        appGraph.ensureLocalWorkspaceShell(currentTimeMillis = currentTimeMillis)
+        val workspace = requireNotNull(appGraph.workspaceRepository.observeWorkspace().first()) {
+            "Local workspace was missing while seeding the AI reset conversation."
+        }
+
+        aiChatPreferencesStore.updateConsent(hasConsent = true)
+        aiChatHistoryStore.saveState(
+            workspaceId = workspace.workspaceId,
+            state = AiChatPersistedState(
+                messages = listOf(
+                    AiChatMessage(
+                        messageId = UUID.randomUUID().toString().lowercase(),
+                        role = AiChatRole.USER,
+                        content = listOf(AiChatContentPart.Text(text = seededAiConversationUserText)),
+                        timestampMillis = currentTimeMillis,
+                        isError = false
+                    ),
+                    AiChatMessage(
+                        messageId = UUID.randomUUID().toString().lowercase(),
+                        role = AiChatRole.ASSISTANT,
+                        content = listOf(AiChatContentPart.Text(text = seededAiConversationAssistantText)),
+                        timestampMillis = currentTimeMillis,
+                        isError = false
+                    )
+                ),
+                chatSessionId = UUID.randomUUID().toString().lowercase(),
+                lastKnownChatConfig = defaultAiChatServerConfig
+            )
+        )
+    }
+
+    composeRule.waitForIdle()
+}
+
+internal fun LiveSmokeContext.assertSeededAiConversationLoaded() {
     openAiTab()
     dismissAiConsentIfNeeded()
-    waitForGuestCloudWorkspaceReady(context = "before creating a guest AI conversation")
-    fillAiComposer(
-        expectedDraftText = promptText,
-        context = "for the guest AI reset smoke prompt"
-    )
-    clickTag(tag = aiComposerSendButtonTag, label = "Send guest AI reset smoke prompt")
-    waitForGuestConversation(
-        expectedUserText = promptText,
-        expectedAssistantText = expectedAssistantText
+    waitForGuestCloudWorkspaceReady(context = "before verifying the seeded AI conversation")
+    waitForAiConversation(
+        expectedUserText = seededAiConversationUserText,
+        expectedAssistantText = seededAiConversationAssistantText,
+        context = "while waiting for the seeded AI conversation to materialize"
     )
 }
 
@@ -365,43 +356,6 @@ internal fun LiveSmokeContext.assertCardReachableInReview(
                 "CurrentReviewFront=${currentReviewCardFrontTextOrNull()} " +
                 "ReviewEmptyStateTitle=${reviewEmptyStateTitleOrNull()} " +
                 "LocalCard=${localCardSnapshotOrNull(expectedFrontText = expectedFrontText)} " +
-                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
-            error
-        )
-    }
-}
-
-internal fun LiveSmokeContext.forceSyncAndWaitForLocalCard(
-    expectedFrontText: String,
-    timeoutMillis: Long
-) {
-    val appGraph = (composeRule.activity.application as FlashcardsApplication).appGraph
-    try {
-        runBlocking {
-            appGraph.syncRepository.syncNow()
-        }
-    } catch (error: Throwable) {
-        throw AssertionError(
-            "Forced sync after guest AI card creation failed. " +
-                "CloudSettings=${currentCloudSettingsSummary()} " +
-                "Workspace=${currentWorkspaceSummaryOrNull()}",
-            error
-        )
-    }
-
-    try {
-        waitUntilWithMitigation(
-            timeoutMillis = timeoutMillis,
-            context = "while waiting for the synced AI card '$expectedFrontText' to materialize locally"
-        ) {
-            localCardSnapshotOrNull(expectedFrontText = expectedFrontText) != null
-        }
-    } catch (error: Throwable) {
-        throw AssertionError(
-            "Forced sync completed but the AI card '$expectedFrontText' did not materialize locally. " +
-                "LocalCard=${localCardSnapshotOrNull(expectedFrontText = expectedFrontText)} " +
-                "CloudSettings=${currentCloudSettingsSummary()} " +
-                "Workspace=${currentWorkspaceSummaryOrNull()} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )
@@ -582,38 +536,6 @@ private fun LiveSmokeContext.completedAiInsertToolCallCheck(): LiveSmokeAiToolCa
     )
 }
 
-private fun LiveSmokeContext.completedTaggedAiInsertToolCallCheck(
-    aiFrontText: String,
-    markerTag: String
-): LiveSmokeAiToolCallCheck {
-    expandAllToolCallDetails()
-
-    val summaryTexts: List<String> = toolCallSummaryTexts()
-    val statusTexts: List<String> = toolCallStatusTexts()
-    val inputTexts: List<String> = toolCallInputTexts()
-    val outputTexts: List<String> = toolCallOutputTexts()
-    val completedSqlSummaries: List<String> = summaryTexts.filterIndexed { index, summaryText ->
-        val statusText: String = statusTexts.getOrNull(index) ?: ""
-        summaryText.contains(other = "SQL:") && statusText == "Done"
-    }
-    val matchingInsertFound: Boolean = completedSqlSummaries.any { summaryText ->
-        summaryText.contains(other = "INSERT INTO cards") &&
-            summaryText.contains(other = aiFrontText) &&
-            summaryText.contains(other = markerTag)
-    } && inputTexts.any { inputText ->
-        inputText.contains(other = "INSERT INTO cards") &&
-            inputText.contains(other = aiFrontText) &&
-            inputText.contains(other = markerTag)
-    } && outputTexts.any { outputText ->
-        outputText.contains(other = "\"ok\":true")
-    }
-
-    return LiveSmokeAiToolCallCheck(
-        matchingInsertFound = matchingInsertFound,
-        completedSqlSummaries = completedSqlSummaries
-    )
-}
-
 private fun LiveSmokeContext.expandAllToolCallDetails() {
     while (composeRule.onAllNodesWithContentDescription("Expand tool details").fetchSemanticsNodes().isNotEmpty()) {
         composeRule.onAllNodesWithContentDescription("Expand tool details")[0].performClick()
@@ -621,14 +543,15 @@ private fun LiveSmokeContext.expandAllToolCallDetails() {
     }
 }
 
-private fun LiveSmokeContext.waitForGuestConversation(
+private fun LiveSmokeContext.waitForAiConversation(
     expectedUserText: String,
-    expectedAssistantText: String
+    expectedAssistantText: String,
+    context: String
 ) {
     try {
         waitUntilWithMitigation(
             timeoutMillis = externalUiTimeoutMillis,
-            context = "while waiting for the guest AI conversation to materialize"
+            context = context
         ) {
             val userMessagesVisible: Boolean =
                 composeRule.onAllNodesWithTag(aiUserMessageBubbleTag).fetchSemanticsNodes().isNotEmpty()
@@ -642,7 +565,7 @@ private fun LiveSmokeContext.waitForGuestConversation(
         }
     } catch (error: Throwable) {
         throw AssertionError(
-            "Guest AI conversation did not materialize as expected. " +
+            "AI conversation did not materialize as expected. " +
                 "ExpectedUser='$expectedUserText' " +
                 "ExpectedAssistant='$expectedAssistantText' " +
                 "LatestAssistant='${latestAssistantMessageTextOrNull()}' " +

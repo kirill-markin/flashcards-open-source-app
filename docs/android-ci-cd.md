@@ -42,7 +42,7 @@ Push them to the repository with:
 bash scripts/setup-github-android.sh
 ```
 
-This Android-specific sync is separate from the AWS deploy sync script `bash scripts/setup-github.sh`.
+This Android-specific sync is separate from the AWS deploy bootstrap script `bash scripts/setup-github.sh`.
 
 ## What runs
 
