@@ -16,19 +16,17 @@ actor AIChatLiveStreamClient {
         liveUrl: String,
         authorization: String,
         sessionId: String,
-        afterCursor: String?
+        afterCursor: String?,
+        configurationMode: CloudServiceConfigurationMode
     ) -> AsyncThrowingStream<AIChatLiveEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    var urlString = "\(liveUrl)?sessionId=\(sessionId)"
-                    if let cursor = afterCursor {
-                        urlString += "&afterCursor=\(cursor)"
-                    }
-                    guard let url = URL(string: urlString) else {
-                        continuation.finish(throwing: AIChatLiveStreamError.invalidUrl)
-                        return
-                    }
+                    let url = try makeAIChatLiveStreamURL(
+                        liveUrl: liveUrl,
+                        sessionId: sessionId,
+                        afterCursor: afterCursor
+                    )
 
                     var request = URLRequest(url: url)
                     request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
@@ -42,7 +40,14 @@ actor AIChatLiveStreamClient {
                         return
                     }
                     guard httpResponse.statusCode == 200 else {
-                        continuation.finish(throwing: AIChatLiveStreamError.httpError(httpResponse.statusCode))
+                        let responseData = try await readAIChatLiveStreamResponseBody(bytes: bytes)
+                        let requestId = extractAIChatLiveRequestId(httpResponse: httpResponse)
+                        let errorDetails = decodeCloudApiErrorDetails(data: responseData, requestId: requestId)
+                        continuation.finish(throwing: AIChatLiveStreamError.invalidStatusCode(
+                            httpStatusCode: httpResponse.statusCode,
+                            errorDetails: errorDetails,
+                            configurationMode: configurationMode
+                        ))
                         return
                     }
 
@@ -100,10 +105,82 @@ actor AIChatLiveStreamClient {
     }
 }
 
-enum AIChatLiveStreamError: Error {
-    case invalidUrl
+enum AIChatLiveStreamError: LocalizedError {
+    case invalidUrl(String)
     case invalidResponse
-    case httpError(Int)
+    case invalidStatusCode(
+        httpStatusCode: Int,
+        errorDetails: CloudApiErrorDetails,
+        configurationMode: CloudServiceConfigurationMode
+    )
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidUrl(let liveUrl):
+            return "AI live stream URL is invalid: \(liveUrl)"
+        case .invalidResponse:
+            return "AI live stream did not receive an HTTP response."
+        case .invalidStatusCode(let httpStatusCode, let errorDetails, let configurationMode):
+            let message = makeAIChatUserFacingErrorMessage(
+                rawMessage: errorDetails.message,
+                code: errorDetails.code,
+                requestId: errorDetails.requestId,
+                configurationMode: configurationMode,
+                surface: .chat
+            )
+            return "AI live stream failed with status \(httpStatusCode): \(message)"
+        }
+    }
+}
+
+private func makeAIChatLiveStreamURL(
+    liveUrl: String,
+    sessionId: String,
+    afterCursor: String?
+) throws -> URL {
+    guard var components = URLComponents(string: liveUrl) else {
+        throw AIChatLiveStreamError.invalidUrl(liveUrl)
+    }
+
+    var queryItems = components.queryItems ?? []
+    queryItems.removeAll { item in
+        item.name == "sessionId" || item.name == "afterCursor"
+    }
+    queryItems.append(URLQueryItem(name: "sessionId", value: sessionId))
+    if let afterCursor, afterCursor.isEmpty == false {
+        queryItems.append(URLQueryItem(name: "afterCursor", value: afterCursor))
+    }
+    components.queryItems = queryItems
+
+    guard let url = components.url else {
+        throw AIChatLiveStreamError.invalidUrl(liveUrl)
+    }
+
+    return url
+}
+
+private func readAIChatLiveStreamResponseBody(
+    bytes: URLSession.AsyncBytes
+) async throws -> Data {
+    var data = Data()
+    for try await byte in bytes {
+        data.append(byte)
+    }
+    return data
+}
+
+private func extractAIChatLiveRequestId(httpResponse: HTTPURLResponse) -> String? {
+    let chatRequestId = httpResponse.value(forHTTPHeaderField: "X-Chat-Request-Id")
+    if let chatRequestId, chatRequestId.isEmpty == false {
+        return chatRequestId
+    }
+
+    let requestId = httpResponse.value(forHTTPHeaderField: "X-Request-Id")
+    if let requestId, requestId.isEmpty == false {
+        return requestId
+    }
+
+    return nil
 }
 
 private func parseSSEEvent(eventType: String?, payload: String) -> AIChatLiveEvent? {

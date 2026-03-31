@@ -7,7 +7,8 @@ import kotlinx.coroutines.runBlocking
 import org.junit.rules.ExternalResource
 
 private val testOnlyPreferenceNames: List<String> = listOf(
-    "flashcards-review-preferences"
+    "flashcards-review-preferences",
+    "flashcards-cloud-metadata"
 )
 
 class AppStateResetRule : ExternalResource() {

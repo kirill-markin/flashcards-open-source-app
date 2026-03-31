@@ -855,6 +855,7 @@ enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
 
 enum AIChatRuntimeEvent: Sendable {
     case accepted(AIChatStartRunResponse)
+    case liveEvent(AIChatLiveEvent)
     case applySnapshot(AIChatSessionSnapshot)
     case appendAssistantAccountUpgradePrompt(message: String, buttonTitle: String)
     case finish

@@ -36,12 +36,13 @@ func aiChatTypingIndicatorActiveDotCount(date: Date) -> Int {
 }
 
 extension AIChatView {
+    @ViewBuilder
     func messageRow(
         message: AIChatMessage,
         repairStatus: AIChatRepairAttemptStatus?,
         showsTypingIndicator: Bool
     ) -> some View {
-        HStack(alignment: .bottom, spacing: 0) {
+        let row = HStack(alignment: .bottom, spacing: 0) {
             if message.role == .assistant {
                 self.messageBubble(
                     message: message,
@@ -59,7 +60,16 @@ extension AIChatView {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityIdentifier(UITestIdentifier.aiMessageRow)
+
+        if message.role == .assistant, message.isError {
+            row
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(self.messageRowAccessibilityLabel(message: message))
+                .accessibilityIdentifier(UITestIdentifier.aiAssistantErrorMessage)
+        } else {
+            row
+                .accessibilityIdentifier(UITestIdentifier.aiMessageRow)
+        }
     }
 
     func messageBubble(
@@ -73,7 +83,7 @@ extension AIChatView {
                 .foregroundStyle(.secondary)
 
             ForEach(Array(message.content.enumerated()), id: \.offset) { _, part in
-                self.messageContent(part: part)
+                self.messageContent(part: part, message: message)
             }
 
             if let repairStatus {
@@ -103,15 +113,18 @@ extension AIChatView {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(message.isError ? Color.red.opacity(0.5) : Color.clear, lineWidth: 1)
         )
-        .accessibilityIdentifier(self.messageBubbleAccessibilityIdentifier(message: message))
     }
 
     @ViewBuilder
-    func messageContent(part: AIChatContentPart) -> some View {
+    func messageContent(part: AIChatContentPart, message: AIChatMessage) -> some View {
         switch part {
         case .text(let text):
-            Text(text)
-                .textSelection(.enabled)
+            if message.role == .assistant, message.isError == false {
+                Text(text)
+                    .textSelection(.enabled)
+            } else {
+                Text(text)
+            }
         case .image:
             Label("Image attached", systemImage: "photo")
                 .font(.subheadline)
@@ -196,12 +209,15 @@ extension AIChatView {
         }
     }
 
-    private func messageBubbleAccessibilityIdentifier(message: AIChatMessage) -> String {
-        guard message.role == .assistant, message.isError else {
-            return ""
+    private func messageRowAccessibilityLabel(message: AIChatMessage) -> String {
+        let text = message.content.reduce(into: "") { partialResult, part in
+            if case .text(let text) = part {
+                partialResult.append(text)
+            }
         }
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        return UITestIdentifier.aiAssistantErrorMessage
+        return trimmedText.isEmpty ? "Assistant error" : trimmedText
     }
 }
 
