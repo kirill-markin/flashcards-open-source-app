@@ -27,6 +27,7 @@ import com.flashcardsopensourceapp.feature.settings.currentWorkspaceLoadingState
 import com.flashcardsopensourceapp.feature.settings.currentWorkspaceNameTag
 import com.flashcardsopensourceapp.feature.settings.currentWorkspaceOperationMessageTag
 import com.flashcardsopensourceapp.feature.settings.currentWorkspaceReloadButtonTag
+import com.flashcardsopensourceapp.feature.settings.currentWorkspaceSelectedSummaryTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteConfirmationButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteConfirmationDialogTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteConfirmationErrorTag
@@ -48,6 +49,13 @@ private enum class DeletePreviewResolution {
     ERROR_VISIBLE
 }
 
+private const val linkedSignInTimeoutMillis: Long = 120_000L
+private const val cloudPostAuthLinkingWorkspaceTitle: String = "Linking workspace"
+private const val cloudPostAuthSyncingWorkspaceTitle: String = "Syncing workspace"
+private const val cloudPostAuthGuestUpgradeTitle: String = "Upgrading guest account"
+private const val cloudPostAuthRetryButtonText: String = "Retry"
+private const val accountStatusSyncNowButtonText: String = "Sync now"
+
 internal fun LiveSmokeContext.signInWithReviewAccount(reviewEmail: String) {
     openSettingsTab()
     clickNode(
@@ -59,26 +67,88 @@ internal fun LiveSmokeContext.signInWithReviewAccount(reviewEmail: String) {
     composeRule.onNodeWithTag(cloudSignInEmailFieldTag).performTextInput(reviewEmail)
     clickTag(tag = cloudSignInSendCodeButtonTag, label = "Send code")
 
-    composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
-        failIfVisibleAppError(context = "while waiting for sign-in to reach cloud sync")
-        hasVisibleText(text = "Sync now", substring = false) ||
-            hasVisibleText(text = "Preparing", substring = true) ||
-            hasVisibleText(text = cloudSyncChooserPrompt, substring = false)
+    waitForCloudSignInSurface()
+    completeCloudPostAuthWorkspaceSelectionIfNeeded()
+    waitForLinkedAccountStatusAfterSignIn()
+    tapBackIcon()
+    tapBackIcon()
+}
+
+private fun LiveSmokeContext.waitForCloudSignInSurface() {
+    try {
+        waitUntilWithMitigation(
+            timeoutMillis = linkedSignInTimeoutMillis,
+            context = "while waiting for sign-in to reach account status or post-auth sync"
+        ) {
+            hasVisibleText(text = accountStatusSyncNowButtonText, substring = false) ||
+                hasVisibleText(text = cloudSyncChooserPrompt, substring = false) ||
+                hasVisibleText(text = cloudPostAuthLinkingWorkspaceTitle, substring = false) ||
+                hasVisibleText(text = cloudPostAuthSyncingWorkspaceTitle, substring = false) ||
+                hasVisibleText(text = cloudPostAuthGuestUpgradeTitle, substring = false) ||
+                hasVisibleText(text = cloudPostAuthRetryButtonText, substring = false)
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "Sign-in did not reach account status or post-auth sync. " +
+                "CloudSettings=${currentCloudSettingsSummary()} " +
+                "CurrentWorkspace=${currentWorkspaceSummaryOrNull()} " +
+                "VisibleRows=${captureVisibleWorkspaceRows(rowTag = cloudPostAuthWorkspaceRowTag)} " +
+                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+            error
+        )
+    }
+}
+
+private fun LiveSmokeContext.completeCloudPostAuthWorkspaceSelectionIfNeeded() {
+    if (hasVisibleText(text = cloudSyncChooserPrompt, substring = false).not()) {
+        return
     }
 
-    if (hasVisibleText(text = cloudSyncChooserPrompt, substring = false)) {
+    val visibleRows: List<String> = captureVisibleWorkspaceRows(rowTag = cloudPostAuthWorkspaceRowTag)
+    if (visibleRows.isEmpty()) {
         throw AssertionError(
-            "Cloud sync chooser still required manual selection for the review account. " +
-                "Visible rows=${captureVisibleWorkspaceRows(rowTag = cloudPostAuthWorkspaceRowTag)}"
+            "Cloud sync chooser was visible without selectable workspace rows. " +
+                "CloudSettings=${currentCloudSettingsSummary()} " +
+                "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}"
         )
     }
 
-    waitUntilAtLeastOneExistsOrFail(
-        matcher = hasText("Sync now"),
-        timeoutMillis = externalUiTimeoutMillis
-    )
-    tapBackIcon()
-    tapBackIcon()
+    val preferredRowIndex: Int = visibleRows.indexOfFirst { row -> row.contains(other = "(Current)") }
+        .takeIf { index -> index >= 0 }
+        ?: 0
+    runWithInlineRawScreenStateOnFailure(action = "click_post_auth_workspace_row") {
+        dismissExternalSystemDialogIfPresent()
+        composeRule.onAllNodesWithTag(cloudPostAuthWorkspaceRowTag)[preferredRowIndex].performClick()
+        composeRule.waitForIdle()
+    }
+}
+
+private fun LiveSmokeContext.waitForLinkedAccountStatusAfterSignIn() {
+    try {
+        waitUntilWithMitigation(
+            timeoutMillis = linkedSignInTimeoutMillis,
+            context = "while waiting for the linked account status surface after sign-in"
+        ) {
+            if (hasVisibleText(text = cloudPostAuthRetryButtonText, substring = false)) {
+                throw AssertionError(
+                    "Cloud post-auth failed after sign-in. " +
+                        "CloudSettings=${currentCloudSettingsSummary()} " +
+                        "CurrentWorkspace=${currentWorkspaceSummaryOrNull()} " +
+                        "VisibleRows=${captureVisibleWorkspaceRows(rowTag = cloudPostAuthWorkspaceRowTag)}"
+                )
+            }
+            hasVisibleText(text = accountStatusSyncNowButtonText, substring = false)
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "Linked account status did not appear after sign-in. " +
+                "CloudSettings=${currentCloudSettingsSummary()} " +
+                "CurrentWorkspace=${currentWorkspaceSummaryOrNull()} " +
+                "VisibleRows=${captureVisibleWorkspaceRows(rowTag = cloudPostAuthWorkspaceRowTag)} " +
+                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+            error
+        )
+    }
 }
 
 internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String) {
@@ -100,12 +170,10 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String) {
         matcher = hasTestTag(currentWorkspaceCreateButtonTag)
     )
     clickTag(tag = currentWorkspaceCreateButtonTag, label = "Create new workspace")
-    waitForCurrentWorkspaceOperationToStart()
-    waitForCurrentWorkspaceOperationToFinish()
     waitForSelectedWorkspaceSummaryToChange(
         beforeSummary = selectedWorkspaceSummaryBeforeCreate,
         context = "after creating a linked workspace",
-        timeoutMillis = internalUiTimeoutMillis
+        timeoutMillis = externalUiTimeoutMillis
     )
     tapBackIcon()
 
@@ -164,8 +232,10 @@ internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceName: String) {
     clickText(text = "Current Workspace", substring = false)
     waitForCurrentWorkspaceScreenToSettle()
     try {
-        composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
-            failIfVisibleAppError(context = "while waiting for workspace deletion to finish")
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for workspace deletion to finish"
+        ) {
             val currentWorkspaceName: String? = currentWorkspaceNameOrNull()
             val selectedSummary: String? = selectedWorkspaceSummaryOrNull()
             composeRule.onAllNodesWithText(workspaceName).fetchSemanticsNodes().isEmpty() &&
@@ -254,8 +324,10 @@ private fun LiveSmokeContext.waitForDeletePreviewResolution(
     workspaceName: String
 ): DeletePreviewResolution {
     try {
-        composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
-            dismissExternalSystemDialogIfPresent()
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for delete preview resolution for '$workspaceName'"
+        ) {
             isDeletePreviewDialogVisible() || workspaceOverviewErrorMessageOrNull() != null
         }
     } catch (error: Throwable) {
@@ -278,8 +350,15 @@ private fun LiveSmokeContext.waitForDeletePreviewResolution(
 
 private fun LiveSmokeContext.waitForDeleteConfirmationReady(workspaceName: String) {
     try {
-        composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
-            dismissExternalSystemDialogIfPresent()
+        waitForTagToExist(
+            tag = workspaceOverviewDeleteConfirmationDialogTag,
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for the delete confirmation dialog for '$workspaceName'"
+        )
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for delete confirmation readiness for '$workspaceName'"
+        ) {
             isDeleteConfirmationDialogVisible() &&
                 deleteConfirmationPhraseOrNull().isNullOrBlank().not() &&
                 composeRule.onAllNodesWithTag(workspaceOverviewDeleteConfirmationFieldTag)
@@ -303,8 +382,10 @@ private fun LiveSmokeContext.tapDeleteWorkspaceConfirmation(workspaceName: Strin
     composeRule.onNodeWithTag(workspaceOverviewDeleteConfirmationButtonTag).performClick()
     composeRule.waitForIdle()
     try {
-        composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
-            dismissExternalSystemDialogIfPresent()
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for delete confirmation completion for '$workspaceName'"
+        ) {
             val confirmationError: String? = deleteConfirmationErrorOrNull()
             if (confirmationError != null) {
                 throw AssertionError(
@@ -385,8 +466,10 @@ internal fun LiveSmokeContext.updateCardText(fieldTitle: String, value: String) 
 internal fun LiveSmokeContext.waitForSelectedWorkspaceSummary(context: String, timeoutMillis: Long) {
     try {
         scrollCurrentWorkspaceListToSelectedWorkspace()
-        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
-            failIfVisibleAppError(context = "while waiting for current workspace selection $context")
+        waitUntilWithMitigation(
+            timeoutMillis = timeoutMillis,
+            context = "while waiting for current workspace selection $context"
+        ) {
             selectedWorkspaceSummaryOrNull() != null
         }
     } catch (error: Throwable) {
@@ -401,7 +484,10 @@ internal fun LiveSmokeContext.waitForSelectedWorkspaceSummary(context: String, t
 
 internal fun LiveSmokeContext.waitForCurrentWorkspaceScreenToSettle() {
     try {
-        composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for the Current Workspace screen to settle"
+        ) {
             val visibleError: String? = currentWorkspaceVisibleErrorMessageOrNull()
             if (visibleError != null) {
                 throw AssertionError("Current Workspace settled with an error: $visibleError")
@@ -410,16 +496,14 @@ internal fun LiveSmokeContext.waitForCurrentWorkspaceScreenToSettle() {
             val isLoading: Boolean = composeRule.onAllNodesWithTag(currentWorkspaceLoadingStateTag)
                 .fetchSemanticsNodes()
                 .isNotEmpty()
-            if (isLoading) {
-                return@waitUntil false
-            }
-
-            composeRule.onAllNodesWithTag(currentWorkspaceCreateButtonTag)
-                .fetchSemanticsNodes()
-                .isNotEmpty() ||
-                composeRule.onAllNodesWithTag(currentWorkspaceReloadButtonTag)
+            isLoading.not() && (
+                composeRule.onAllNodesWithTag(currentWorkspaceCreateButtonTag)
                     .fetchSemanticsNodes()
-                    .isNotEmpty()
+                    .isNotEmpty() ||
+                    composeRule.onAllNodesWithTag(currentWorkspaceReloadButtonTag)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                )
         }
     } catch (error: Throwable) {
         throw AssertionError(
@@ -438,8 +522,10 @@ private fun LiveSmokeContext.waitForSelectedWorkspaceSummaryToChange(
     timeoutMillis: Long
 ) {
     try {
-        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
-            failIfVisibleAppError(context = "while waiting for current workspace selection to change $context")
+        waitUntilWithMitigation(
+            timeoutMillis = timeoutMillis,
+            context = "while waiting for current workspace selection to change $context"
+        ) {
             runCatching {
                 scrollCurrentWorkspaceListToSelectedWorkspace()
                 selectedWorkspaceSummary(context = context) != beforeSummary
@@ -458,10 +544,11 @@ private fun LiveSmokeContext.waitForSelectedWorkspaceSummaryToChange(
 
 private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToStart() {
     try {
-        composeRule.waitUntil(timeoutMillis = internalUiTimeoutMillis) {
-            failIfVisibleAppError(context = "while waiting for current workspace operation to start")
-            currentWorkspaceOperationMessageOrNull() != null
-        }
+        waitForTagToExist(
+            tag = currentWorkspaceOperationMessageTag,
+            timeoutMillis = internalUiTimeoutMillis,
+            context = "while waiting for current workspace operation to start"
+        )
     } catch (error: Throwable) {
         throw AssertionError(
             "Current workspace operation did not start after tapping create. " +
@@ -476,8 +563,10 @@ private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToStart() {
 private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToFinish() {
     waitForCurrentWorkspaceOperationToLeaveSwitchingState()
     try {
-        composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
-            failIfVisibleAppError(context = "while waiting for current workspace operation to finish")
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for current workspace operation to finish"
+        ) {
             currentWorkspaceOperationMessageOrNull() == null &&
                 currentWorkspaceNameOrNull() != "Unavailable" &&
                 selectedWorkspaceSummaryOrNull() != null
@@ -496,8 +585,10 @@ private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToFinish() {
 
 private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToLeaveSwitchingState() {
     try {
-        composeRule.waitUntil(timeoutMillis = internalUiTimeoutMillis) {
-            failIfVisibleAppError(context = "while waiting for current workspace operation to leave switching")
+        waitUntilWithMitigation(
+            timeoutMillis = internalUiTimeoutMillis,
+            context = "while waiting for current workspace operation to leave switching"
+        ) {
             currentWorkspaceOperationMessageOrNull()
                 ?.startsWith(prefix = "Switching to")
                 ?.not()
@@ -517,8 +608,10 @@ private fun LiveSmokeContext.waitForCurrentWorkspaceOperationToLeaveSwitchingSta
 
 private fun LiveSmokeContext.waitForWorkspaceRenameOutcome(expectedWorkspaceName: String) {
     try {
-        composeRule.waitUntil(timeoutMillis = externalUiTimeoutMillis) {
-            failIfVisibleAppError(context = "while waiting for workspace rename to persist")
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for workspace rename to persist"
+        ) {
             workspaceOverviewNameFieldValueOrNull() == expectedWorkspaceName &&
                 hasVisibleText(text = "Saving...", substring = false).not()
         }
@@ -534,8 +627,10 @@ private fun LiveSmokeContext.waitForWorkspaceRenameOutcome(expectedWorkspaceName
 
 internal fun LiveSmokeContext.waitForCurrentWorkspaceName(expectedWorkspaceName: String) {
     try {
-        composeRule.waitUntil(timeoutMillis = internalUiTimeoutMillis) {
-            failIfVisibleAppError(context = "while waiting for Current Workspace top card to update")
+        waitUntilWithMitigation(
+            timeoutMillis = internalUiTimeoutMillis,
+            context = "while waiting for Current Workspace top card to update"
+        ) {
             currentWorkspaceNameOrNull() == expectedWorkspaceName
         }
     } catch (error: Throwable) {
@@ -556,15 +651,16 @@ internal fun LiveSmokeContext.selectedWorkspaceSummary(context: String): String 
 }
 
 internal fun LiveSmokeContext.selectedWorkspaceSummaryOrNull(): String? {
-    val selectedRows: List<String> = captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)
-        .filter { row -> row.contains("(Current)") }
-    if (selectedRows.size > 1) {
-        throw AssertionError(
-            "Current Workspace rendered more than one selected workspace row. " +
-                "Visible selected rows=$selectedRows"
-        )
+    val taggedSelection: String? = composeRule.onAllNodesWithTag(currentWorkspaceSelectedSummaryTag)
+        .fetchSemanticsNodes()
+        .singleOrNull()
+        ?.let(::nodeSummary)
+    if (taggedSelection != null) {
+        return taggedSelection
     }
-    return selectedRows.singleOrNull()
+    scrollCurrentWorkspaceListToSelectedWorkspace()
+    return captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)
+        .firstOrNull { row -> row.contains(other = "(Current)") }
 }
 
 internal fun LiveSmokeContext.workspaceOverviewNameFieldValueOrNull(): String? {

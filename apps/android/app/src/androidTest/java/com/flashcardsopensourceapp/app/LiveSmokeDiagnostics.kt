@@ -8,6 +8,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -20,6 +21,10 @@ import androidx.test.uiautomator.By
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.time.Instant
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 
 internal fun LiveSmokeContext.resetInlineRawScreenStateFailureGuard() {
     hasPrintedInlineRawScreenStateForCurrentFailure = false
@@ -113,10 +118,17 @@ internal fun LiveSmokeContext.waitUntilWithMitigation(
     condition: () -> Boolean
 ) {
     runWithInlineRawScreenStateOnFailure(action = "wait_until_with_mitigation") {
-        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
+        dismissExternalSystemDialogIfPresent()
+        failIfVisibleAppError(context = "before $context")
+        try {
+            composeRule.waitUntil(timeoutMillis = timeoutMillis) {
+                dismissExternalSystemDialogIfPresent()
+                condition()
+            }
+        } catch (error: Throwable) {
             dismissExternalSystemDialogIfPresent()
             failIfVisibleAppError(context = context)
-            condition()
+            throw error
         }
     }
 }
@@ -130,6 +142,71 @@ internal fun LiveSmokeContext.waitUntilAtLeastOneExistsOrFail(
         context = "while waiting for UI state to appear"
     ) {
         composeRule.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty()
+    }
+}
+
+internal fun LiveSmokeContext.waitForTagToExist(
+    tag: String,
+    timeoutMillis: Long,
+    context: String
+) {
+    waitUntilWithMitigation(
+        timeoutMillis = timeoutMillis,
+        context = context
+    ) {
+        composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+    }
+}
+
+internal fun LiveSmokeContext.waitForTagToDisappear(
+    tag: String,
+    timeoutMillis: Long,
+    context: String
+) {
+    waitUntilWithMitigation(
+        timeoutMillis = timeoutMillis,
+        context = context
+    ) {
+        composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty()
+    }
+}
+
+internal fun LiveSmokeContext.waitForTextToExist(
+    text: String,
+    substring: Boolean,
+    timeoutMillis: Long,
+    context: String
+) {
+    waitUntilWithMitigation(
+        timeoutMillis = timeoutMillis,
+        context = context
+    ) {
+        composeRule.onAllNodesWithText(text = text, substring = substring)
+            .fetchSemanticsNodes()
+            .isNotEmpty()
+    }
+}
+
+internal fun <T> LiveSmokeContext.waitForFlowValue(
+    timeoutMillis: Long,
+    context: String,
+    flow: Flow<T>,
+    predicate: (T) -> Boolean
+): T {
+    return runWithInlineRawScreenStateOnFailure(action = "wait_for_flow_value") {
+        dismissExternalSystemDialogIfPresent()
+        failIfVisibleAppError(context = "before $context")
+        try {
+            runBlocking {
+                withTimeout(timeoutMillis) {
+                    flow.first { value -> predicate(value) }
+                }
+            }
+        } catch (error: Throwable) {
+            dismissExternalSystemDialogIfPresent()
+            failIfVisibleAppError(context = context)
+            throw error
+        }
     }
 }
 
@@ -187,22 +264,11 @@ internal fun LiveSmokeContext.failIfVisibleAppError(context: String) {
 }
 
 internal fun LiveSmokeContext.visibleAppErrors(): List<String> {
-    val taggedErrors: List<String> = listOfNotNull(
+    return listOfNotNull(
         currentWorkspaceVisibleErrorMessageOrNull(),
         workspaceOverviewErrorMessageOrNull()
     )
-    val visibleFailureTexts: List<String> = listOf(
-        "Sync failed:",
-        "failed",
-        "invalid"
-    ).flatMap { query ->
-        composeRule.onAllNodesWithText(text = query, substring = true)
-            .fetchSemanticsNodes()
-            .map(::nodeSummary)
-    }.filter { text ->
-        text.isNotBlank() && text.startsWith(prefix = "Current workspace is now ").not()
-    }
-    return (taggedErrors + visibleFailureTexts).distinct()
+        .distinct()
 }
 
 internal fun LiveSmokeContext.tapBackIcon() {
@@ -268,6 +334,9 @@ private fun runShellCommand(command: String): String {
         }
     }
 }
+
+internal fun LiveSmokeContext.appGraph() =
+    (composeRule.activity.application as FlashcardsApplication).appGraph
 
 internal fun LiveSmokeContext.scrollToText(text: String) {
     composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(text))
