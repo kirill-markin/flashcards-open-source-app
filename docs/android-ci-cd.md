@@ -310,6 +310,14 @@ bash scripts/run-android-release.sh \
   --key-password "YOUR_KEY_PASSWORD"
 ```
 
+Run the live smoke test on a local emulator (requires a running emulator via `adb devices`):
+
+```bash
+cd apps/android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.flashcardsopensourceapp.app.LiveSmokeTest
+```
+
+Note: `connectedDebugAndroidTest` does not support the `--tests` flag. Use `-Pandroid.testInstrumentationRunnerArguments.class=` to filter by test class.
+
 Run Firebase Test Lab directly after authenticating with `gcloud`:
 
 ```bash
