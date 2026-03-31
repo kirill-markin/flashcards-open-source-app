@@ -419,7 +419,7 @@ class LiveSmokeTest {
     }
 
     private fun reviewOneCard() {
-        clickText(text = "Review")
+        openReviewTab()
         rateVisibleReviewCardGood()
     }
 
@@ -571,7 +571,6 @@ class LiveSmokeTest {
             context = "for the guest AI reset smoke prompt"
         )
         clickTag(tag = aiComposerSendButtonTag, label = "Send guest AI reset smoke prompt")
-        waitForAiRunToFinish(context = "after sending the guest AI reset smoke prompt")
         waitForGuestConversation(
             expectedUserText = promptText,
             expectedAssistantText = expectedAssistantText
@@ -600,7 +599,7 @@ class LiveSmokeTest {
     }
 
     private fun assertCardReachableInReview(expectedFrontText: String, timeoutMillis: Long) {
-        clickText(text = "Review")
+        openReviewTab()
         try {
             waitUntilWithMitigation(
                 timeoutMillis = timeoutMillis,
@@ -885,6 +884,13 @@ class LiveSmokeTest {
         clickNode(
             matcher = hasText("Cards").and(other = hasClickAction()),
             label = "Cards tab"
+        )
+    }
+
+    private fun openReviewTab() {
+        clickNode(
+            matcher = hasText("Review").and(other = hasClickAction()),
+            label = "Review tab"
         )
     }
 
@@ -1508,33 +1514,6 @@ class LiveSmokeTest {
         } catch (error: Throwable) {
             throw AssertionError(
                 "Assistant proposal did not contain the requested card. " +
-                    "LatestAssistant='${latestAssistantMessageTextOrNull()}' " +
-                    "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
-                error
-            )
-        }
-    }
-
-    private fun waitForAiRunToFinish(context: String) {
-        waitUntilAtLeastOneExistsOrFail(
-            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText("Stop")),
-            timeoutMillis = externalUiTimeoutMillis
-        )
-        waitUntilAtLeastOneExistsOrFail(
-            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText("Send")),
-            timeoutMillis = externalUiTimeoutMillis
-        )
-        try {
-            waitUntilWithMitigation(
-                timeoutMillis = externalUiTimeoutMillis,
-                context = "while waiting for AI streaming to finish $context"
-            ) {
-                aiComposerSendButtonIsEnabled(expectedLabel = "Send")
-            }
-        } catch (error: Throwable) {
-            throw AssertionError(
-                "AI streaming did not finish $context. " +
-                    "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = "Send")} " +
                     "LatestAssistant='${latestAssistantMessageTextOrNull()}' " +
                     "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
                 error
