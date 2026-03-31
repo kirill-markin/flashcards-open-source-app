@@ -14,6 +14,19 @@ internal enum class AiComposerPhase {
     STOPPING
 }
 
+internal enum class AiConversationBootstrapState {
+    READY,
+    LOADING,
+    FAILED
+}
+
+internal data class AiAccessContext(
+    val workspaceId: String?,
+    val cloudState: com.flashcardsopensourceapp.data.local.model.CloudAccountState,
+    val linkedUserId: String?,
+    val activeWorkspaceId: String?
+)
+
 internal data class AiDraftState(
     val workspaceId: String?,
     val persistedState: AiChatPersistedState,
@@ -21,6 +34,8 @@ internal data class AiDraftState(
     val pendingAttachments: List<AiChatAttachment>,
     val composerPhase: AiComposerPhase,
     val dictationState: AiChatDictationState,
+    val conversationBootstrapState: AiConversationBootstrapState,
+    val conversationBootstrapErrorMessage: String,
     val repairStatus: AiChatRepairAttemptStatus?,
     val activeAlert: AiAlertState?,
     val errorMessage: String
@@ -34,6 +49,8 @@ internal fun makeDefaultAiDraftState(): AiDraftState {
         pendingAttachments = emptyList(),
         composerPhase = AiComposerPhase.IDLE,
         dictationState = AiChatDictationState.IDLE,
+        conversationBootstrapState = AiConversationBootstrapState.READY,
+        conversationBootstrapErrorMessage = "",
         repairStatus = null,
         activeAlert = null,
         errorMessage = ""
@@ -51,6 +68,8 @@ internal fun makeAiDraftState(
         pendingAttachments = emptyList(),
         composerPhase = AiComposerPhase.IDLE,
         dictationState = AiChatDictationState.IDLE,
+        conversationBootstrapState = AiConversationBootstrapState.READY,
+        conversationBootstrapErrorMessage = "",
         repairStatus = null,
         activeAlert = null,
         errorMessage = ""

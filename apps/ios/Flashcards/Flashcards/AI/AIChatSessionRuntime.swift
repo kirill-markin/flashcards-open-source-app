@@ -52,6 +52,9 @@ actor AIChatSessionRuntime {
 
         do {
             if self.persistedState.chatSessionId.isEmpty {
+                if session.authorization.isGuest == false {
+                    throw LocalStoreError.validation("AI chat session is unavailable for the linked account.")
+                }
                 let recoveredSnapshot = try await self.chatService.loadSnapshot(
                     session: session,
                     sessionId: nil

@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
+import com.flashcardsopensourceapp.data.local.ai.makeAiChatHistoryScopedWorkspaceId
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
@@ -702,9 +703,22 @@ private fun LiveSmokeContext.aiHistoryStore(): AiChatHistoryStore {
     return AiChatHistoryStore(context = composeRule.activity.applicationContext)
 }
 
+private fun LiveSmokeContext.currentAiHistoryWorkspaceId(context: String): String {
+    val workspaceId = currentWorkspaceIdOrThrow(context = context)
+    val cloudSettings = runBlocking {
+        appGraph().cloudAccountRepository.observeCloudSettings().first()
+    }
+    return makeAiChatHistoryScopedWorkspaceId(
+        workspaceId = workspaceId,
+        cloudSettings = cloudSettings
+    )
+}
+
 private fun LiveSmokeContext.currentAiPersistedState(): AiChatPersistedState {
     return runBlocking {
-        aiHistoryStore().loadState(workspaceId = currentWorkspaceIdOrThrow(context = "while loading AI persisted state"))
+        aiHistoryStore().loadState(
+            workspaceId = currentAiHistoryWorkspaceId(context = "while loading AI persisted state")
+        )
     }
 }
 
@@ -719,7 +733,7 @@ private fun LiveSmokeContext.waitForAiPersistedState(
     context: String,
     predicate: (AiChatPersistedState) -> Boolean
 ): AiChatPersistedState {
-    val workspaceId = currentWorkspaceIdOrThrow(context = context)
+    val workspaceId = currentAiHistoryWorkspaceId(context = context)
     return waitForFlowValue(
         timeoutMillis = timeoutMillis,
         context = context,

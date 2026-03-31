@@ -23,6 +23,7 @@ fun AiRoute(
     onTranscribeRecordedAudio: (String, String, ByteArray) -> Unit,
     onCancelDictation: () -> Unit,
     onWarmUpSessionIfNeeded: () -> Unit,
+    onRetryConversationLoad: () -> Unit,
     onShowAlert: (AiAlertState) -> Unit,
     onShowErrorMessage: (String) -> Unit
 ) {
@@ -43,6 +44,7 @@ fun AiRoute(
         onTranscribeRecordedAudio = onTranscribeRecordedAudio,
         onCancelDictation = onCancelDictation,
         onWarmUpSessionIfNeeded = onWarmUpSessionIfNeeded,
+        onRetryConversationLoad = onRetryConversationLoad,
         onShowAlert = onShowAlert,
         onShowErrorMessage = onShowErrorMessage
     )

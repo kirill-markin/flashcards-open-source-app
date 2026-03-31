@@ -52,6 +52,7 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             onTranscribeRecordedAudio = aiViewModel::transcribeRecordedAudio,
             onCancelDictation = aiViewModel::cancelDictation,
             onWarmUpSessionIfNeeded = aiViewModel::warmUpLinkedSessionIfNeeded,
+            onRetryConversationLoad = aiViewModel::retryConversationBootstrap,
             onShowAlert = aiViewModel::showAlert,
             onShowErrorMessage = aiViewModel::showErrorMessage
         )

@@ -84,6 +84,13 @@ struct AIChatCompletedDictationTranscript: Identifiable, Equatable {
     let transcript: String
 }
 
+private struct AIChatAccessContext: Equatable {
+    let workspaceId: String?
+    let cloudState: CloudAccountState?
+    let linkedUserId: String?
+    let activeWorkspaceId: String?
+}
+
 @MainActor
 @Observable
 final class AIChatStore {
@@ -96,6 +103,7 @@ final class AIChatStore {
     private(set) var activeAlert: AIChatAlert?
     private(set) var repairStatus: AIChatRepairAttemptStatus?
     private(set) var completedDictationTranscript: AIChatCompletedDictationTranscript?
+    private(set) var bootstrapPhase: AIChatBootstrapPhase
 
     @ObservationIgnored private let flashcardsStore: FlashcardsStore
     @ObservationIgnored private let historyStore: any AIChatHistoryStoring
@@ -107,7 +115,9 @@ final class AIChatStore {
     @ObservationIgnored private var activeSendTask: Task<Void, Never>?
     @ObservationIgnored private var activeDictationTask: Task<Void, Never>?
     @ObservationIgnored private var activeWarmUpTask: Task<Void, Never>?
+    @ObservationIgnored private var activeBootstrapTask: Task<Void, Never>?
     @ObservationIgnored private var activeConversationId: String?
+    @ObservationIgnored private var activeAccessContext: AIChatAccessContext?
 
     convenience init(
         flashcardsStore: FlashcardsStore,
@@ -144,7 +154,11 @@ final class AIChatStore {
             contextLoader: contextLoader
         )
 
-        historyStore.activateWorkspace(workspaceId: flashcardsStore.workspace?.workspaceId)
+        let initialHistoryWorkspaceId = makeAIChatHistoryScopedWorkspaceId(
+            workspaceId: flashcardsStore.workspace?.workspaceId,
+            cloudSettings: flashcardsStore.cloudSettings
+        )
+        historyStore.activateWorkspace(workspaceId: initialHistoryWorkspaceId)
         let persistedState = historyStore.loadState()
         self.inputText = ""
         self.messages = persistedState.messages
@@ -156,25 +170,29 @@ final class AIChatStore {
         self.activeAlert = nil
         self.repairStatus = nil
         self.completedDictationTranscript = nil
+        self.bootstrapPhase = .ready
         self.activeDictationTask = nil
         self.activeWarmUpTask = nil
+        self.activeBootstrapTask = nil
         self.activeConversationId = nil
-        self.refreshSnapshotIfPossible()
+        self.activeAccessContext = nil
+        self.activateAccessContext(force: true)
     }
 
     var canSendMessage: Bool {
-        self.composerPhase == .idle
+        self.isChatInteractive
+            && self.composerPhase == .idle
             && self.dictationState == .idle
             && self.hasExternalProviderConsent
             && (self.trimmedInputText().isEmpty == false || self.pendingAttachments.isEmpty == false)
     }
 
     var canStopResponse: Bool {
-        self.composerPhase == .running
+        self.isChatInteractive && self.composerPhase == .running
     }
 
     var isComposerBusy: Bool {
-        self.composerPhase != .idle
+        self.bootstrapPhase == .loading || self.composerPhase != .idle
     }
 
     var isStreaming: Bool {
@@ -189,7 +207,22 @@ final class AIChatStore {
         hasAIChatExternalProviderConsent(userDefaults: self.flashcardsStore.userDefaults)
     }
 
+    var isChatInteractive: Bool {
+        self.bootstrapPhase == .ready
+    }
+
+    var bootstrapFailureMessage: String? {
+        guard case .failed(let message) = self.bootstrapPhase else {
+            return nil
+        }
+
+        return message
+    }
+
     func appendAttachment(_ attachment: AIChatAttachment) {
+        guard self.isChatInteractive else {
+            return
+        }
         guard self.serverChatConfig.features.attachmentsEnabled else {
             return
         }
@@ -202,6 +235,9 @@ final class AIChatStore {
     }
 
     func removeAttachment(id: String) {
+        guard self.isChatInteractive else {
+            return
+        }
         self.pendingAttachments.removeAll { attachment in
             attachment.id == id
         }
@@ -224,6 +260,9 @@ final class AIChatStore {
     }
 
     func clearHistory() {
+        guard self.isChatInteractive else {
+            return
+        }
         let requestedSessionId = self.chatSessionId.isEmpty ? nil : self.chatSessionId
         self.clearLocalHistory()
 
@@ -280,6 +319,8 @@ final class AIChatStore {
     }
 
     func prepareForWorkspaceChange() {
+        self.activeBootstrapTask?.cancel()
+        self.activeBootstrapTask = nil
         self.activeWarmUpTask?.cancel()
         self.activeWarmUpTask = nil
         self.cancelStreaming()
@@ -290,23 +331,19 @@ final class AIChatStore {
         self.activeConversationId = nil
         self.pendingAttachments = []
         self.inputText = ""
+        self.bootstrapPhase = .loading
     }
 
     func activateWorkspace() {
-        self.historyStore.activateWorkspace(workspaceId: self.flashcardsStore.workspace?.workspaceId)
-        let persistedState = self.historyStore.loadState()
-        self.inputText = ""
-        self.messages = persistedState.messages
-        self.pendingAttachments = []
-        self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
-        self.chatSessionId = persistedState.chatSessionId
-        self.composerPhase = .idle
-        self.dictationState = .idle
-        self.activeAlert = nil
-        self.repairStatus = nil
-        self.completedDictationTranscript = nil
-        self.activeConversationId = nil
-        self.refreshSnapshotIfPossible()
+        self.activateAccessContext(force: true)
+    }
+
+    func refreshAccessContextIfNeeded() {
+        self.activateAccessContext(force: false)
+    }
+
+    func retryLinkedBootstrap() {
+        self.startLinkedBootstrap(forceReloadState: false)
     }
 
     func cancelStreaming() {
@@ -322,6 +359,9 @@ final class AIChatStore {
     }
 
     func toggleDictation() {
+        guard self.isChatInteractive else {
+            return
+        }
         guard self.serverChatConfig.features.dictationEnabled || self.dictationState != .idle else {
             return
         }
@@ -354,6 +394,8 @@ final class AIChatStore {
     }
 
     func shutdownForTests() {
+        self.activeBootstrapTask?.cancel()
+        self.activeBootstrapTask = nil
         self.activeWarmUpTask?.cancel()
         self.activeWarmUpTask = nil
         self.cancelStreaming()
@@ -380,6 +422,9 @@ final class AIChatStore {
     }
 
     func warmUpSessionIfNeeded() {
+        guard self.isChatInteractive else {
+            return
+        }
         guard self.shouldDisableBackgroundRefreshForUITests == false else {
             return
         }
@@ -406,6 +451,9 @@ final class AIChatStore {
     }
 
     func sendMessage() {
+        guard self.isChatInteractive else {
+            return
+        }
         if self.isComposerBusy || self.dictationState != .idle {
             return
         }
@@ -495,6 +543,12 @@ final class AIChatStore {
     }
 
     private func ensureAIChatReadyForSend(linkedSession: CloudLinkedSession) async throws {
+        guard self.bootstrapPhase == .ready else {
+            throw LocalStoreError.validation("AI chat is still loading.")
+        }
+        if linkedSession.authorization.isGuest == false && self.chatSessionId.isEmpty {
+            throw LocalStoreError.validation("AI chat session is unavailable. Reload the AI tab and try again.")
+        }
         guard let workspaceId = self.flashcardsStore.workspace?.workspaceId else {
             throw LocalStoreError.validation("Select a workspace before using AI chat.")
         }
@@ -692,7 +746,112 @@ final class AIChatStore {
         }
     }
 
-    private func refreshSnapshotIfPossible() {
+    private func currentAccessContext() -> AIChatAccessContext {
+        AIChatAccessContext(
+            workspaceId: self.flashcardsStore.workspace?.workspaceId,
+            cloudState: self.flashcardsStore.cloudSettings?.cloudState,
+            linkedUserId: self.flashcardsStore.cloudSettings?.linkedUserId,
+            activeWorkspaceId: self.flashcardsStore.cloudSettings?.activeWorkspaceId
+        )
+    }
+
+    private func historyWorkspaceId() -> String? {
+        makeAIChatHistoryScopedWorkspaceId(
+            workspaceId: self.flashcardsStore.workspace?.workspaceId,
+            cloudSettings: self.flashcardsStore.cloudSettings
+        )
+    }
+
+    private func activateAccessContext(force: Bool) {
+        let nextAccessContext = self.currentAccessContext()
+        if force == false, self.activeAccessContext == nextAccessContext {
+            return
+        }
+
+        self.activeAccessContext = nextAccessContext
+        self.activeBootstrapTask?.cancel()
+        self.activeBootstrapTask = nil
+        self.cancelStreaming()
+        self.cancelDictation()
+        self.historyStore.activateWorkspace(workspaceId: self.historyWorkspaceId())
+        let persistedState = self.historyStore.loadState()
+        self.restorePersistedState(persistedState)
+
+        guard self.hasExternalProviderConsent else {
+            self.bootstrapPhase = .ready
+            return
+        }
+
+        if nextAccessContext.cloudState == .linked {
+            self.startLinkedBootstrap(forceReloadState: false)
+            return
+        }
+
+        self.bootstrapPhase = .ready
+        self.startPassiveSnapshotRefreshIfPossible(baselineState: persistedState)
+    }
+
+    private func restorePersistedState(_ persistedState: AIChatPersistedState) {
+        self.inputText = ""
+        self.messages = persistedState.messages
+        self.pendingAttachments = []
+        self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
+        self.chatSessionId = persistedState.chatSessionId
+        self.composerPhase = .idle
+        self.dictationState = .idle
+        self.activeAlert = nil
+        self.repairStatus = nil
+        self.completedDictationTranscript = nil
+        self.activeConversationId = nil
+    }
+
+    private func startLinkedBootstrap(forceReloadState: Bool) {
+        self.activeBootstrapTask?.cancel()
+        self.activeBootstrapTask = nil
+        if forceReloadState {
+            self.historyStore.activateWorkspace(workspaceId: self.historyWorkspaceId())
+            self.restorePersistedState(self.historyStore.loadState())
+        }
+        self.bootstrapPhase = .loading
+
+        let bootstrapContext = self.currentAccessContext()
+        self.activeBootstrapTask = Task {
+            defer {
+                self.activeBootstrapTask = nil
+            }
+
+            do {
+                let session = try await self.flashcardsStore.cloudSessionForAI()
+                guard session.authorization.isGuest == false else {
+                    self.bootstrapPhase = .ready
+                    return
+                }
+                let snapshot = try await self.chatService.loadSnapshot(
+                    session: session,
+                    sessionId: nil
+                )
+                guard self.activeAccessContext == bootstrapContext else {
+                    return
+                }
+                self.applySnapshot(snapshot)
+                self.bootstrapPhase = .ready
+            } catch is CancellationError {
+            } catch {
+                guard self.activeAccessContext == bootstrapContext else {
+                    return
+                }
+                self.messages = []
+                self.chatSessionId = ""
+                self.pendingAttachments = []
+                self.inputText = ""
+                self.composerPhase = .idle
+                self.repairStatus = nil
+                self.bootstrapPhase = .failed(Flashcards.errorMessage(error: error))
+            }
+        }
+    }
+
+    private func startPassiveSnapshotRefreshIfPossible(baselineState: AIChatPersistedState) {
         guard self.shouldDisableBackgroundRefreshForUITests == false else {
             return
         }
@@ -700,19 +859,16 @@ final class AIChatStore {
             return
         }
 
-        let refreshBaselineState = self.currentPersistedState()
         Task {
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
-                let currentSessionId = refreshBaselineState.chatSessionId.isEmpty
-                    ? nil
-                    : refreshBaselineState.chatSessionId
+                let currentSessionId = baselineState.chatSessionId.isEmpty ? nil : baselineState.chatSessionId
                 do {
                     let snapshot = try await self.chatService.loadSnapshot(
                         session: session,
                         sessionId: currentSessionId
                     )
-                    self.applyRefreshedSnapshot(snapshot, baselineState: refreshBaselineState)
+                    self.applyRefreshedSnapshot(snapshot, baselineState: baselineState)
                 } catch {
                     guard currentSessionId != nil else {
                         throw error
@@ -722,7 +878,7 @@ final class AIChatStore {
                         session: session,
                         sessionId: nil
                     )
-                    self.applyRefreshedSnapshot(repairedSnapshot, baselineState: refreshBaselineState)
+                    self.applyRefreshedSnapshot(repairedSnapshot, baselineState: baselineState)
                 }
             } catch {
             }

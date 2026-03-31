@@ -90,6 +90,8 @@ extension FlashcardsStore {
         self.localReadVersion += 1
         if didSwitchWorkspace {
             self.cachedAIChatStore?.activateWorkspace()
+        } else {
+            self.cachedAIChatStore?.refreshAccessContextIfNeeded()
         }
         self.refreshReviewState(now: now)
         self.refreshReviewNotificationsScheduling(now: now)

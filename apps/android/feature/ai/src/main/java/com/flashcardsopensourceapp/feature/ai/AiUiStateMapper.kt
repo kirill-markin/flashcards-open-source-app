@@ -38,9 +38,12 @@ internal fun mapToAiUiState(
     val isLinked = cloudState == CloudAccountState.LINKED
     val hasMessages = draft.persistedState.messages.isNotEmpty()
     val hasDraftText = draft.draftMessage.trim().isNotEmpty()
-    val isComposerBusy = draft.composerPhase != AiComposerPhase.IDLE
+    val isConversationReady = draft.conversationBootstrapState == AiConversationBootstrapState.READY
+    val isConversationLoading = draft.conversationBootstrapState == AiConversationBootstrapState.LOADING
+    val isComposerBusy = draft.composerPhase != AiComposerPhase.IDLE || isConversationLoading
     val isStreaming = draft.composerPhase == AiComposerPhase.RUNNING || draft.composerPhase == AiComposerPhase.STOPPING
     val canEditConversation = isComposerBusy.not()
+        && isConversationReady
         && draft.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
 
     return AiUiState(
@@ -51,11 +54,15 @@ internal fun mapToAiUiState(
         chatConfig = effectiveAiChatServerConfig(draft.persistedState.lastKnownChatConfig),
         isConsentRequired = hasConsent.not(),
         isLinked = isLinked,
+        isConversationReady = isConversationReady,
+        isConversationLoading = isConversationLoading,
+        conversationErrorMessage = draft.conversationBootstrapErrorMessage,
         isComposerBusy = isComposerBusy,
         isStreaming = isStreaming,
         canStopStreaming = draft.composerPhase == AiComposerPhase.RUNNING,
         dictationState = draft.dictationState,
         canSend = hasConsent
+            && isConversationReady
             && draft.composerPhase == AiComposerPhase.IDLE
             && draft.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
             && (hasDraftText || draft.pendingAttachments.isNotEmpty()),
@@ -76,6 +83,9 @@ internal fun makeInitialAiUiState(hasConsent: Boolean): AiUiState {
         chatConfig = defaultAiChatServerConfig,
         isConsentRequired = hasConsent.not(),
         isLinked = false,
+        isConversationReady = true,
+        isConversationLoading = false,
+        conversationErrorMessage = "",
         isComposerBusy = false,
         isStreaming = false,
         canStopStreaming = false,

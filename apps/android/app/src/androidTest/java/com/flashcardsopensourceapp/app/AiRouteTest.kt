@@ -74,6 +74,7 @@ class AiRouteTest {
                     onTranscribeRecordedAudio = { _, _, _ -> },
                     onCancelDictation = {},
                     onWarmUpSessionIfNeeded = {},
+                    onRetryConversationLoad = {},
                     onShowAlert = {},
                     onShowErrorMessage = {}
                 )
@@ -138,6 +139,7 @@ class AiRouteTest {
                     onTranscribeRecordedAudio = { _, _, _ -> },
                     onCancelDictation = {},
                     onWarmUpSessionIfNeeded = {},
+                    onRetryConversationLoad = {},
                     onShowAlert = {},
                     onShowErrorMessage = {}
                 )
@@ -188,6 +190,7 @@ class AiRouteTest {
                     onTranscribeRecordedAudio = { _, _, _ -> },
                     onCancelDictation = {},
                     onWarmUpSessionIfNeeded = {},
+                    onRetryConversationLoad = {},
                     onShowAlert = {},
                     onShowErrorMessage = {}
                 )
@@ -219,6 +222,7 @@ class AiRouteTest {
                     onTranscribeRecordedAudio = { _, _, _ -> },
                     onCancelDictation = {},
                     onWarmUpSessionIfNeeded = {},
+                    onRetryConversationLoad = {},
                     onShowAlert = {},
                     onShowErrorMessage = {}
                 )
@@ -253,6 +257,7 @@ class AiRouteTest {
                     onTranscribeRecordedAudio = { _, _, _ -> },
                     onCancelDictation = {},
                     onWarmUpSessionIfNeeded = {},
+                    onRetryConversationLoad = {},
                     onShowAlert = {},
                     onShowErrorMessage = {}
                 )
@@ -294,6 +299,7 @@ class AiRouteTest {
                     onTranscribeRecordedAudio = { _, _, _ -> },
                     onCancelDictation = {},
                     onWarmUpSessionIfNeeded = {},
+                    onRetryConversationLoad = {},
                     onShowAlert = {},
                     onShowErrorMessage = {}
                 )
@@ -356,6 +362,7 @@ class AiRouteTest {
                             onTranscribeRecordedAudio = { _, _, _ -> },
                             onCancelDictation = {},
                             onWarmUpSessionIfNeeded = {},
+                            onRetryConversationLoad = {},
                             onShowAlert = {},
                             onShowErrorMessage = {}
                         )
@@ -390,6 +397,9 @@ private fun makeAiUiState(
         chatConfig = defaultAiChatServerConfig,
         isConsentRequired = isConsentRequired,
         isLinked = false,
+        isConversationReady = true,
+        isConversationLoading = false,
+        conversationErrorMessage = "",
         isComposerBusy = isComposerBusy,
         isStreaming = isStreaming,
         canStopStreaming = canStopStreaming,

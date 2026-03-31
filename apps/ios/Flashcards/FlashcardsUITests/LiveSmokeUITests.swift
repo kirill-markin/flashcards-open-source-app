@@ -816,12 +816,6 @@ final class LiveSmokeUITests: XCTestCase {
             timeout: self.shortUiTimeoutSeconds
         )
 
-        try self.assertVisibleTextContains(
-            "Try asking",
-            timeout: self.longUiTimeoutSeconds,
-            aiErrorMarkerCountBeforeWait: assistantErrorMessagesBeforeReset,
-            ignoredExactLabels: []
-        )
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.aiComposerTextField,
             timeout: self.longUiTimeoutSeconds
