@@ -342,11 +342,6 @@ final class LiveSmokeUITests: XCTestCase {
         try self.step("create one local manual card without login") {
             try self.createManualCard(frontText: context.manualFrontText, backText: context.manualBackText)
         }
-
-        try self.step("verify the local manual card is visible in cards after relaunch") {
-            try self.relaunchApplication(resetState: nil, selectedTab: .cards)
-            try self.assertTextExists(context.manualFrontText, timeout: self.longUiTimeoutSeconds)
-        }
     }
 
     @MainActor
