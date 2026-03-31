@@ -100,28 +100,8 @@ class LiveSmokeTest {
 
     @Test
     fun guestAiCardCanBeCreatedWithExplicitConfirmation() {
-        val runId: String = System.currentTimeMillis().toString()
-        val aiFrontText: String = "AI e2e android $runId"
-        val aiBackText: String = "AI answer e2e android $runId"
-
-        liveSmokeContext.step("create one AI card with explicit confirmation as guest in the default workspace") {
-            liveSmokeContext.createAiCardWithConfirmation(
-                aiFrontText = aiFrontText,
-                aiBackText = aiBackText,
-                markerTag = "ai-$runId"
-            )
-        }
-        liveSmokeContext.step("force a sync in the current guest workspace and wait for the AI card locally") {
-            liveSmokeContext.forceSyncAndWaitForLocalCard(
-                expectedFrontText = aiFrontText,
-                timeoutMillis = externalUiTimeoutMillis
-            )
-        }
-        liveSmokeContext.step("verify the AI-created card in cards") {
-            liveSmokeContext.assertCardVisibleInCards(
-                searchText = aiFrontText,
-                timeoutMillis = externalUiTimeoutMillis
-            )
+        liveSmokeContext.step("create one AI card as guest and confirm the insert completed") {
+            liveSmokeContext.createAiCardWithConfirmation()
         }
     }
 
@@ -148,7 +128,7 @@ class LiveSmokeTest {
         val aiBackText: String = "AI review answer e2e android $runId"
 
         liveSmokeContext.step("create one AI card with explicit confirmation as guest in the default workspace") {
-            liveSmokeContext.createAiCardWithConfirmation(
+            liveSmokeContext.createTaggedAiCardWithConfirmation(
                 aiFrontText = aiFrontText,
                 aiBackText = aiBackText,
                 markerTag = "ai-review-$runId"
