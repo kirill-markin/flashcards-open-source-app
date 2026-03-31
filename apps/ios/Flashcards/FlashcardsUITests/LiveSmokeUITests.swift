@@ -147,6 +147,18 @@ private enum LiveSmokeFailure: LocalizedError {
     case missingElement(identifier: String, timeoutSeconds: TimeInterval, screen: String, step: String)
     case missingText(text: String, timeoutSeconds: TimeInterval, screen: String, step: String)
     case disabledElement(identifier: String, screen: String, step: String)
+    case textInputNotReady(
+        identifier: String,
+        timeoutSeconds: TimeInterval,
+        screen: String,
+        step: String,
+        exists: Bool,
+        hittable: Bool,
+        hasKeyboardFocus: Bool,
+        softwareKeyboardVisible: Bool,
+        elementLabel: String,
+        elementValue: String
+    )
     case unexpectedElementLabel(identifier: String, expectedLabel: String, actualLabel: String, timeoutSeconds: TimeInterval, screen: String, step: String)
     case unexpectedElementValue(identifier: String, expectedValue: String, actualValue: String, timeoutSeconds: TimeInterval, screen: String, step: String)
     case missingScreen(screen: String, identifier: String, timeoutSeconds: TimeInterval, currentScreen: String, step: String)
@@ -168,6 +180,19 @@ private enum LiveSmokeFailure: LocalizedError {
             return "Text '\(text)' did not appear within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)' on screen: \(screen)"
         case .disabledElement(let identifier, let screen, let step):
             return "Element '\(identifier)' appeared but was disabled during step '\(step)' on screen: \(screen)"
+        case .textInputNotReady(
+            let identifier,
+            let timeoutSeconds,
+            let screen,
+            let step,
+            let exists,
+            let hittable,
+            let hasKeyboardFocus,
+            let softwareKeyboardVisible,
+            let elementLabel,
+            let elementValue
+        ):
+            return "Text input '\(identifier)' was not ready within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)' on screen: \(screen). exists=\(exists) hittable=\(hittable) hasKeyboardFocus=\(hasKeyboardFocus) softwareKeyboardVisible=\(softwareKeyboardVisible) label='\(elementLabel)' value='\(elementValue)'"
         case .unexpectedElementLabel(let identifier, let expectedLabel, let actualLabel, let timeoutSeconds, let screen, let step):
             return "Element '\(identifier)' did not reach expected label '\(expectedLabel)' within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)' on screen: \(screen). Actual label: '\(actualLabel)'"
         case .unexpectedElementValue(let identifier, let expectedValue, let actualValue, let timeoutSeconds, let screen, let step):
@@ -198,6 +223,7 @@ private let smokeLogger = Logger(
 )
 private let aiComposerPlaceholderText: String = "Ask about cards, review history, or propose a change..."
 private let aiCreatePromptMaximumAttempts: Int = 3
+private let liveSmokeFocusPollIntervalSeconds: TimeInterval = 0.2
 
 private struct LiveSmokeBreadcrumb {
     let line: String
@@ -622,7 +648,7 @@ final class LiveSmokeUITests: XCTestCase {
                 identifier: LiveSmokeIdentifier.cloudSignInScreen,
                 timeout: self.longUiTimeoutSeconds
             )
-            try self.typeText(
+            try self.typeTextSafely(
                 reviewEmail,
                 intoElementWithIdentifier: LiveSmokeIdentifier.cloudSignInEmailField,
                 timeout: self.longUiTimeoutSeconds
@@ -681,7 +707,7 @@ final class LiveSmokeUITests: XCTestCase {
             timeout: self.shortUiTimeoutSeconds
         )
         try self.assertScreenVisible(screen: .workspaceOverview, timeout: self.shortUiTimeoutSeconds)
-        try self.replaceText(
+        try self.replaceTextSafely(
             workspaceName,
             inElementWithIdentifier: LiveSmokeIdentifier.workspaceOverviewNameField,
             timeout: self.shortUiTimeoutSeconds
@@ -704,14 +730,14 @@ final class LiveSmokeUITests: XCTestCase {
             timeout: self.longUiTimeoutSeconds
         )
         try self.tapElement(identifier: LiveSmokeIdentifier.cardEditorFrontRow, timeout: self.longUiTimeoutSeconds)
-        try self.typeText(
+        try self.typeTextSafely(
             frontText,
             intoElementWithIdentifier: LiveSmokeIdentifier.cardEditorFrontTextEditor,
             timeout: self.longUiTimeoutSeconds
         )
         try self.tapFirstNavigationBackButton()
         try self.tapElement(identifier: LiveSmokeIdentifier.cardEditorBackRow, timeout: self.longUiTimeoutSeconds)
-        try self.typeText(
+        try self.typeTextSafely(
             backText,
             intoElementWithIdentifier: LiveSmokeIdentifier.cardEditorBackTextEditor,
             timeout: self.longUiTimeoutSeconds
@@ -953,7 +979,7 @@ final class LiveSmokeUITests: XCTestCase {
             )
         }
 
-        try self.replaceText(
+        try self.replaceTextSafely(
             confirmationPhrase.label,
             inElementWithIdentifier: LiveSmokeIdentifier.deleteWorkspaceConfirmationField,
             timeout: self.shortUiTimeoutSeconds
@@ -1324,24 +1350,23 @@ final class LiveSmokeUITests: XCTestCase {
         }
     }
 
+    // Raw XCUIElement.typeText can hang until XCTest's global execution allowance
+    // when Simulator or CI never grants keyboard focus. Always gate text entry on
+    // explicit focus so text-input failures fail fast with local diagnostics.
     @MainActor
-    private func typeText(_ text: String, intoElementWithIdentifier identifier: String, timeout: TimeInterval) throws {
+    private func typeTextSafely(
+        _ text: String,
+        intoElement element: XCUIElement,
+        identifier: String,
+        timeout: TimeInterval
+    ) throws {
         try self.runWithInlineRawScreenStateOnFailure(action: "type_text.\(identifier)") {
-            let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-            if self.waitForOptionalElement(
+            try self.focusElementForTextInput(
                 element,
                 identifier: identifier,
                 timeout: timeout
-            ) == false {
-                throw LiveSmokeFailure.missingElement(
-                    identifier: identifier,
-                    timeoutSeconds: timeout,
-                    screen: self.currentScreenSummary(),
-                    step: self.currentStepTitle
-                )
-            }
+            )
             self.logActionStart(action: "type_text", identifier: identifier)
-            element.tap()
             element.typeText(text)
             _ = self.dismissKnownBlockingAlertIfVisible()
             if self.waitForElementValueContaining(
@@ -1364,69 +1389,90 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    private func replaceText(_ text: String, inElementWithIdentifier identifier: String, timeout: TimeInterval) throws {
+    private func typeTextSafely(
+        _ text: String,
+        intoElementWithIdentifier identifier: String,
+        timeout: TimeInterval
+    ) throws {
+        let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+        try self.typeTextSafely(
+            text,
+            intoElement: element,
+            identifier: identifier,
+            timeout: timeout
+        )
+    }
+
+    @MainActor
+    private func replaceTextSafely(
+        _ text: String,
+        inElement element: XCUIElement,
+        identifier: String,
+        placeholderValue: String,
+        timeout: TimeInterval
+    ) throws {
         try self.runWithInlineRawScreenStateOnFailure(action: "replace_text.\(identifier)") {
-            let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-            if self.waitForOptionalElement(
+            try self.focusElementForTextInput(
                 element,
                 identifier: identifier,
                 timeout: timeout
+            )
+
+            self.logActionStart(action: "replace_text", identifier: identifier)
+            let existingValue = element.value as? String ?? ""
+            if existingValue.isEmpty == false && existingValue != placeholderValue {
+                let deleteSequence = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count)
+                element.typeText(deleteSequence)
+            }
+            element.typeText(text)
+            _ = self.dismissKnownBlockingAlertIfVisible()
+
+            if self.waitForElementValueContaining(
+                element,
+                identifier: identifier,
+                expectedValue: text,
+                timeout: timeout
             ) == false {
-                throw LiveSmokeFailure.missingElement(
+                throw LiveSmokeFailure.unexpectedElementValue(
                     identifier: identifier,
+                    expectedValue: text,
+                    actualValue: self.elementValue(element: element),
                     timeoutSeconds: timeout,
                     screen: self.currentScreenSummary(),
                     step: self.currentStepTitle
                 )
             }
-            self.logActionStart(action: "replace_text", identifier: identifier)
-            element.tap()
 
-            let existingValue = element.value as? String ?? ""
-            let placeholderValue = element.placeholderValue ?? ""
-            if existingValue.isEmpty == false && existingValue != placeholderValue {
-                let deleteSequence = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count)
-                element.typeText(deleteSequence)
-            }
-
-            element.typeText(text)
-            _ = self.dismissKnownBlockingAlertIfVisible()
             self.logActionEnd(action: "replace_text", identifier: identifier, result: "success", note: "text replaced")
         }
     }
 
     @MainActor
+    private func replaceTextSafely(
+        _ text: String,
+        inElementWithIdentifier identifier: String,
+        timeout: TimeInterval
+    ) throws {
+        let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+        try self.replaceTextSafely(
+            text,
+            inElement: element,
+            identifier: identifier,
+            placeholderValue: element.placeholderValue ?? "",
+            timeout: timeout
+        )
+    }
+
+    @MainActor
     private func replaceAiComposerText(_ text: String, timeout: TimeInterval) throws {
-        try self.runWithInlineRawScreenStateOnFailure(action: "replace_text.\(LiveSmokeIdentifier.aiComposerTextField)") {
-            let element = self.aiComposerTextFieldElement()
-            let identifier = LiveSmokeIdentifier.aiComposerTextField
-
-            if self.waitForOptionalElement(
-                element,
-                identifier: identifier,
-                timeout: timeout
-            ) == false {
-                throw LiveSmokeFailure.missingElement(
-                    identifier: identifier,
-                    timeoutSeconds: timeout,
-                    screen: self.currentScreenSummary(),
-                    step: self.currentStepTitle
-                )
-            }
-
-            self.logActionStart(action: "replace_text", identifier: identifier)
-            element.tap()
-
-            let existingValue = element.value as? String ?? ""
-            if existingValue.isEmpty == false && existingValue != aiComposerPlaceholderText {
-                let deleteSequence = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count)
-                element.typeText(deleteSequence)
-            }
-
-            element.typeText(text)
-            _ = self.dismissKnownBlockingAlertIfVisible()
-            self.logActionEnd(action: "replace_text", identifier: identifier, result: "success", note: "text replaced")
-        }
+        let element = self.aiComposerTextFieldElement()
+        try self.replaceTextSafely(
+            text,
+            inElement: element,
+            identifier: LiveSmokeIdentifier.aiComposerTextField,
+            placeholderValue: aiComposerPlaceholderText,
+            timeout: timeout
+        )
     }
 
     @MainActor
@@ -1438,6 +1484,105 @@ final class LiveSmokeUITests: XCTestCase {
             aiComposerPlaceholderText
         )
         return self.app.descendants(matching: .any).matching(predicate).firstMatch
+    }
+
+    @MainActor
+    private func focusElementForTextInput(
+        _ element: XCUIElement,
+        identifier: String,
+        timeout: TimeInterval
+    ) throws {
+        if self.waitForOptionalElement(
+            element,
+            identifier: identifier,
+            timeout: timeout
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+        var didRetryActivation = false
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_text_input_focus",
+            identifier: identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: "waiting for keyboard focus"
+        )
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+
+            if element.exists && element.isHittable {
+                element.tap()
+                if self.elementHasKeyboardFocus(element: element) {
+                    let durationSeconds = Date().timeIntervalSince(startedAt)
+                    self.logSmokeBreadcrumb(
+                        event: "wait_end",
+                        action: "wait_for_text_input_focus",
+                        identifier: identifier,
+                        timeoutSeconds: formatDuration(seconds: timeout),
+                        durationSeconds: formatDuration(seconds: durationSeconds),
+                        result: "success",
+                        note: "keyboard focus acquired"
+                    )
+                    return
+                }
+            }
+
+            if didRetryActivation == false {
+                self.app.activate()
+                didRetryActivation = true
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+        }
+
+        let durationSeconds = Date().timeIntervalSince(startedAt)
+        self.logSmokeBreadcrumb(
+            event: "wait_end",
+            action: "wait_for_text_input_focus",
+            identifier: identifier,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: durationSeconds),
+            result: "failure",
+            note: self.textInputFailureNote(element: element)
+        )
+        throw LiveSmokeFailure.textInputNotReady(
+            identifier: identifier,
+            timeoutSeconds: timeout,
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle,
+            exists: element.exists,
+            hittable: element.isHittable,
+            hasKeyboardFocus: self.elementHasKeyboardFocus(element: element),
+            softwareKeyboardVisible: self.softwareKeyboardIsVisible(),
+            elementLabel: element.label,
+            elementValue: self.elementValue(element: element)
+        )
+    }
+
+    @MainActor
+    private func elementHasKeyboardFocus(element: XCUIElement) -> Bool {
+        (element.value(forKey: "hasKeyboardFocus") as? Bool) == true
+    }
+
+    @MainActor
+    private func softwareKeyboardIsVisible() -> Bool {
+        self.app.keyboards.firstMatch.exists
+    }
+
+    @MainActor
+    private func textInputFailureNote(element: XCUIElement) -> String {
+        "exists=\(element.exists) hittable=\(element.isHittable) hasKeyboardFocus=\(self.elementHasKeyboardFocus(element: element)) softwareKeyboardVisible=\(self.softwareKeyboardIsVisible()) value=\(self.elementValue(element: element))"
     }
 
     @MainActor

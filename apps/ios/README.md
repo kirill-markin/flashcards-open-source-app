@@ -83,6 +83,8 @@ For local iOS test runs, prefer this sequence:
 3. Run the requested suite or individual test with `xcodebuild ... test`.
 4. If the run fails, inspect the `.xcresult` failure artifacts before attempting a fix.
 
+For simulator-backed XCUITest runs that edit text inputs, keep the software keyboard available and do not rely on `Connect Hardware Keyboard`. Text entry is materially less stable when the simulator does not surface the on-screen keyboard.
+
 Preferred command pattern:
 
 ```bash
