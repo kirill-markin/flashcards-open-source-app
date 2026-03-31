@@ -579,9 +579,11 @@ async function runAiCardCreationWithConfirmation(
       externalUiTimeoutMs,
     );
 
-    const matchedInsertToolCall = await diagnostics.runAction(
-      `scan completed SQL tool calls for card insert after attempt ${String(attempt)}`,
-      async () => findCompletedCardInsertToolCall(page),
+    const matchedInsertToolCall = await waitForCompletedCardInsertToolCall(
+      page,
+      diagnostics,
+      `wait for completed SQL card insert tool call after AI create attempt ${String(attempt)}`,
+      localUiTimeoutMs,
     );
 
     if (matchedInsertToolCall !== null) {
@@ -677,6 +679,25 @@ async function findCompletedCardInsertToolCall(
   }
 
   return null;
+}
+
+async function waitForCompletedCardInsertToolCall(
+  page: Page,
+  diagnostics: LiveSmokeDiagnostics,
+  actionName: string,
+  timeoutMs: number,
+): Promise<CompletedSqlToolCall | null> {
+  return diagnostics.runAction(actionName, async () => {
+    const timeoutAt = Date.now() + timeoutMs;
+    let matchedToolCall: CompletedSqlToolCall | null = await findCompletedCardInsertToolCall(page);
+
+    while (matchedToolCall === null && Date.now() < timeoutAt) {
+      await page.waitForTimeout(250);
+      matchedToolCall = await findCompletedCardInsertToolCall(page);
+    }
+
+    return matchedToolCall;
+  });
 }
 
 async function readCompletedSqlToolCalls(page: Page): Promise<ReadonlyArray<CompletedSqlToolCall>> {

@@ -68,6 +68,7 @@ Pushes to `main` use three independent release streams:
 - when iOS changed, Xcode Cloud runs independently for the same `main` SHA
 
 When a change lands on `main`, monitor `AWS/Web Release` for backend/web outcome when AWS-impacting files changed, monitor `Android Release` when Android-impacting files changed, and monitor Xcode Cloud separately when iOS changed.
+If you need to inspect Xcode Cloud directly instead of relying only on the web UI, use `docs/xcode-cloud-data-access.md`. It documents the local `.env` secrets, App Store Connect API flow, example commands, returned data formats, artifact types, and how to extract timing/debugging insights from cloud test runs.
 
 Cross-client live smoke references:
 
