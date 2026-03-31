@@ -251,6 +251,15 @@ class LocalAiChatRepository(
         }
     }
 
+    override suspend fun stopRun(workspaceId: String?, sessionId: String) {
+        val session = authorizedSession(workspaceId = workspaceId)
+        aiChatRemoteService.stopRun(
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader,
+            sessionId = sessionId
+        )
+    }
+
     private suspend fun authorizedSession(workspaceId: String?): AuthorizedAiChatSession {
         val cloudSettings = preferencesStore.currentCloudSettings()
         val configuration = preferencesStore.currentServerConfiguration()
