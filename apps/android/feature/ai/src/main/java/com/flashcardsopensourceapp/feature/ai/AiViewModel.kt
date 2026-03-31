@@ -75,6 +75,7 @@ class AiViewModel(
     )
     private var activeSendJob: Job? = null
     private var activeWarmUpJob: Job? = null
+    private var pendingWarmUpAfterWorkspaceSwitch: Boolean = false
     private var lastAppliedMainContentInvalidationVersion: Long = 0L
     private var lastPreparedGuestWorkspaceId: String? = null
 
@@ -224,6 +225,17 @@ class AiViewModel(
                     )
                 }
                 persistCurrentState()
+            } catch (error: CancellationException) {
+                AiChatDiagnosticsLogger.info(
+                    event = "dictation_transcription_cancelled",
+                    fields = listOf(
+                        "workspaceId" to draftState.value.workspaceId,
+                        "cloudState" to cloudSettingsState.value.cloudState.name,
+                        "chatSessionId" to draftState.value.persistedState.chatSessionId,
+                        "message" to error.message
+                    )
+                )
+                throw error
             } catch (error: Exception) {
                 val message = makeAiUserFacingErrorMessage(
                     error = error,
@@ -256,6 +268,17 @@ class AiViewModel(
                     snapshot = snapshot,
                     applyMode = AiServerSnapshotApplyMode.ACTIVE
                 )
+            } catch (error: CancellationException) {
+                AiChatDiagnosticsLogger.info(
+                    event = "new_chat_cancelled",
+                    fields = listOf(
+                        "workspaceId" to draftState.value.workspaceId,
+                        "cloudState" to cloudSettingsState.value.cloudState.name,
+                        "chatSessionId" to draftState.value.persistedState.chatSessionId,
+                        "message" to error.message
+                    )
+                )
+                throw error
             } catch (error: Exception) {
                 handleNewChatFailure(error = error)
             }
@@ -358,7 +381,8 @@ class AiViewModel(
             return
         }
 
-        activeWarmUpJob = viewModelScope.launch {
+        var warmUpJob: Job? = null
+        warmUpJob = viewModelScope.launch {
             try {
                 aiChatRepository.prepareSessionForAi(workspaceId = currentState.workspaceId)
                 if (
@@ -367,6 +391,18 @@ class AiViewModel(
                 ) {
                     lastPreparedGuestWorkspaceId = currentState.workspaceId
                 }
+            } catch (error: CancellationException) {
+                AiChatDiagnosticsLogger.info(
+                    event = "warm_up_cancelled",
+                    fields = listOf(
+                        "workspaceId" to currentState.workspaceId,
+                        "currentWorkspaceId" to draftState.value.workspaceId,
+                        "cloudState" to cloudSettingsState.value.cloudState.name,
+                        "retryAfterWorkspaceSwitch" to pendingWarmUpAfterWorkspaceSwitch.toString(),
+                        "message" to error.message
+                    )
+                )
+                throw error
             } catch (error: Exception) {
                 val message = makeAiUserFacingErrorMessage(
                     error = error,
@@ -375,14 +411,22 @@ class AiViewModel(
                 )
                 draftState.update { state ->
                     state.copy(
-                        activeAlert = AiAlertState.GeneralError(message = message),
-                        errorMessage = ""
+                        activeAlert = null,
+                        errorMessage = message
                     )
                 }
             } finally {
-                activeWarmUpJob = null
+                val shouldRetryWarmUp = pendingWarmUpAfterWorkspaceSwitch
+                if (activeWarmUpJob === warmUpJob) {
+                    activeWarmUpJob = null
+                }
+                if (shouldRetryWarmUp) {
+                    pendingWarmUpAfterWorkspaceSwitch = false
+                    warmUpLinkedSessionIfNeeded()
+                }
             }
         }
+        activeWarmUpJob = warmUpJob
     }
 
     fun sendMessage() {
@@ -771,8 +815,25 @@ class AiViewModel(
     }
 
     private fun switchWorkspace(workspaceId: String?) {
-        activeSendJob?.cancel()
-        activeWarmUpJob?.cancel()
+        activeSendJob?.cancel(
+            cause = CancellationException("AI send cancelled because workspace changed.")
+        )
+        if (activeWarmUpJob != null) {
+            pendingWarmUpAfterWorkspaceSwitch = true
+            AiChatDiagnosticsLogger.info(
+                event = "switch_workspace_cancelling_warm_up",
+                fields = listOf(
+                    "nextWorkspaceId" to workspaceId,
+                    "currentWorkspaceId" to draftState.value.workspaceId,
+                    "cloudState" to cloudSettingsState.value.cloudState.name
+                )
+            )
+            activeWarmUpJob?.cancel(
+                cause = CancellationException("AI warm-up cancelled because workspace changed.")
+            )
+        } else {
+            pendingWarmUpAfterWorkspaceSwitch = false
+        }
         lastAppliedMainContentInvalidationVersion = 0L
         lastPreparedGuestWorkspaceId = null
         viewModelScope.launch {
@@ -821,6 +882,18 @@ class AiViewModel(
                         }
                     }
                 }
+            } catch (error: CancellationException) {
+                AiChatDiagnosticsLogger.info(
+                    event = "switch_workspace_snapshot_load_cancelled",
+                    fields = listOf(
+                        "workspaceId" to workspaceId,
+                        "cloudState" to cloudSettingsState.value.cloudState.name,
+                        "chatSessionId" to persistedState.chatSessionId,
+                        "messageCount" to persistedState.messages.size.toString(),
+                        "message" to error.message
+                    )
+                )
+                throw error
             } catch (error: Exception) {
                 AiChatDiagnosticsLogger.error(
                     event = "switch_workspace_snapshot_load_failed",
@@ -896,6 +969,17 @@ class AiViewModel(
         try {
             syncRepository.syncNow()
             lastAppliedMainContentInvalidationVersion = mainContentInvalidationVersion
+        } catch (error: CancellationException) {
+            AiChatDiagnosticsLogger.info(
+                event = "main_content_refresh_cancelled",
+                fields = listOf(
+                    "workspaceId" to workspaceId,
+                    "mainContentInvalidationVersion" to mainContentInvalidationVersion.toString(),
+                    "cloudState" to cloudSettingsState.value.cloudState.name,
+                    "message" to error.message
+                )
+            )
+            throw error
         } catch (error: Exception) {
             val message = error.message ?: error.javaClass.simpleName
             AiChatDiagnosticsLogger.error(

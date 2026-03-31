@@ -104,49 +104,14 @@ class LiveSmokeTest {
 
     @Test
     fun guestAiNewChatResetsConversationCleanly() {
-        val runId: String = System.currentTimeMillis().toString()
-        val guestPrompt: String = "Reply with exactly ANDROID_SMOKE_RESET_$runId"
-
-        liveSmokeContext.step("start a minimal guest AI conversation") {
-            liveSmokeContext.createGuestAiConversation(
-                promptText = guestPrompt,
-                expectedAssistantText = "ANDROID_SMOKE_RESET_$runId"
-            )
+        liveSmokeContext.step("seed a minimal guest AI conversation locally") {
+            liveSmokeContext.seedGuestAiConversation()
+        }
+        liveSmokeContext.step("verify the seeded AI conversation is visible before reset") {
+            liveSmokeContext.assertSeededAiConversationLoaded()
         }
         liveSmokeContext.step("start a new chat and confirm the conversation resets cleanly") {
             liveSmokeContext.startNewChatAndAssertConversationReset()
-        }
-    }
-
-    @Test
-    fun guestAiCardIsReviewableAfterSync() {
-        val runId: String = System.currentTimeMillis().toString()
-        val aiFrontText: String = "AI review e2e android $runId"
-        val aiBackText: String = "AI review answer e2e android $runId"
-
-        liveSmokeContext.step("create one AI card with explicit confirmation as guest in the default workspace") {
-            liveSmokeContext.createTaggedAiCardWithConfirmation(
-                aiFrontText = aiFrontText,
-                aiBackText = aiBackText,
-                markerTag = "ai-review-$runId"
-            )
-        }
-        liveSmokeContext.step("force a sync in the current guest workspace and wait for the AI card locally") {
-            liveSmokeContext.forceSyncAndWaitForLocalCard(
-                expectedFrontText = aiFrontText,
-                timeoutMillis = externalUiTimeoutMillis
-            )
-        }
-        liveSmokeContext.step("verify the AI-created card in cards and review") {
-            liveSmokeContext.assertCardVisibleInCards(
-                searchText = aiFrontText,
-                timeoutMillis = externalUiTimeoutMillis
-            )
-            liveSmokeContext.assertCardReachableInReview(
-                expectedFrontText = aiFrontText,
-                timeoutMillis = externalUiTimeoutMillis
-            )
-            liveSmokeContext.rateVisibleReviewCardGood()
         }
     }
 

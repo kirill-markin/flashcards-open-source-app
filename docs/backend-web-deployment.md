@@ -70,7 +70,7 @@ The first deploy flow:
 - bootstraps and deploys CDK
 - uploads web assets
 - configures Cloudflare DNS when requested
-- syncs deploy config to GitHub Actions variables
+- populates missing deploy config in GitHub Actions variables without overwriting existing values
 
 Public domains after deploy:
 
@@ -90,7 +90,7 @@ bash scripts/setup-auth-secrets.sh --region eu-central-1
 bash scripts/setup-github.sh
 ```
 
-Run only the secret setup scripts you actually need. `setup-github.sh` rediscovers the current AWS ARNs and syncs the matching GitHub variables afterward.
+Run only the secret setup scripts you actually need. `setup-github.sh` rediscovers the current AWS ARNs and fills in any missing matching GitHub variables afterward, leaving existing values untouched.
 
 ## CI/CD
 

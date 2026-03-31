@@ -33,18 +33,19 @@ has_variable() {
   gh variable list --repo "$REPO" --json name --jq ".[] | select(.name == \"${variable_name}\") | .name" | grep -qx "$variable_name"
 }
 
-set_or_delete_variable() {
+set_variable_if_missing() {
   local variable_name="$1"
   local variable_value="$2"
 
-  if [[ -n "$variable_value" ]]; then
-    gh variable set "$variable_name" --body "$variable_value" --repo "$REPO"
+  if [[ -z "$variable_value" ]]; then
     return
   fi
 
   if has_variable "$variable_name"; then
-    gh variable delete "$variable_name" --repo "$REPO"
+    return
   fi
+
+  gh variable set "$variable_name" --body "$variable_value" --repo "$REPO"
 }
 
 has_secret() {
@@ -53,12 +54,19 @@ has_secret() {
   gh secret list --repo "$REPO" --json name --jq ".[] | select(.name == \"${secret_name}\") | .name" | grep -qx "$secret_name"
 }
 
-delete_secret_if_exists() {
+set_secret_if_missing() {
   local secret_name="$1"
+  local secret_value="$2"
+
+  if [[ -z "$secret_value" ]]; then
+    return
+  fi
 
   if has_secret "$secret_name"; then
-    gh secret delete "$secret_name" --repo "$REPO"
+    return
   fi
+
+  gh secret set "$secret_name" --body "$secret_value" --repo "$REPO"
 }
 
 get_output() {
@@ -100,31 +108,25 @@ if [[ -z "$DEPLOY_ROLE_ARN" || "$DEPLOY_ROLE_ARN" == "None" ]]; then
   exit 1
 fi
 
-gh variable set AWS_REGION --body "$REGION" --repo "$REPO"
-gh variable set CDK_DOMAIN_NAME --body "$DOMAIN_NAME" --repo "$REPO"
-gh variable set CDK_ALERT_EMAIL --body "$ALERT_EMAIL" --repo "$REPO"
-gh variable set CDK_GITHUB_REPO --body "$GITHUB_REPO_VALUE" --repo "$REPO"
-set_or_delete_variable CDK_API_CERTIFICATE_ARN "$API_CERT_ARN"
-set_or_delete_variable CDK_AUTH_CERTIFICATE_ARN "$AUTH_CERT_ARN"
-set_or_delete_variable CDK_WEB_CERTIFICATE_ARN_US_EAST_1 "$WEB_CERT_ARN"
-set_or_delete_variable CDK_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1 "$APEX_REDIRECT_CERT_ARN"
-set_or_delete_variable CDK_SES_SENDER_EMAIL ""
-set_or_delete_variable CDK_RESEND_API_KEY_SECRET_ARN "$RESEND_SECRET_ARN"
-set_or_delete_variable CDK_RESEND_SENDER_EMAIL "$RESEND_SENDER_EMAIL"
-set_or_delete_variable CDK_OPENAI_API_KEY_SECRET_ARN "$OPENAI_SECRET_ARN"
-set_or_delete_variable CDK_LANGFUSE_PUBLIC_KEY_SECRET_ARN "$LANGFUSE_PUBLIC_KEY_SECRET_ARN"
-set_or_delete_variable CDK_LANGFUSE_SECRET_KEY_SECRET_ARN "$LANGFUSE_SECRET_KEY_SECRET_ARN"
-set_or_delete_variable CDK_LANGFUSE_BASE_URL "$LANGFUSE_BASE_URL"
-set_or_delete_variable CDK_DEMO_EMAIL_DOSTIP "$DEMO_EMAIL_DOSTIP"
-set_or_delete_variable CDK_DEMO_PASSWORD_SECRET_ARN "$DEMO_PASSWORD_SECRET_ARN"
-set_or_delete_variable CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP "$GUEST_AI_QUOTA_CAP"
+set_variable_if_missing AWS_REGION "$REGION"
+set_variable_if_missing CDK_DOMAIN_NAME "$DOMAIN_NAME"
+set_variable_if_missing CDK_ALERT_EMAIL "$ALERT_EMAIL"
+set_variable_if_missing CDK_GITHUB_REPO "$GITHUB_REPO_VALUE"
+set_variable_if_missing CDK_API_CERTIFICATE_ARN "$API_CERT_ARN"
+set_variable_if_missing CDK_AUTH_CERTIFICATE_ARN "$AUTH_CERT_ARN"
+set_variable_if_missing CDK_WEB_CERTIFICATE_ARN_US_EAST_1 "$WEB_CERT_ARN"
+set_variable_if_missing CDK_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1 "$APEX_REDIRECT_CERT_ARN"
+set_variable_if_missing CDK_SES_SENDER_EMAIL ""
+set_variable_if_missing CDK_RESEND_API_KEY_SECRET_ARN "$RESEND_SECRET_ARN"
+set_variable_if_missing CDK_RESEND_SENDER_EMAIL "$RESEND_SENDER_EMAIL"
+set_variable_if_missing CDK_OPENAI_API_KEY_SECRET_ARN "$OPENAI_SECRET_ARN"
+set_variable_if_missing CDK_LANGFUSE_PUBLIC_KEY_SECRET_ARN "$LANGFUSE_PUBLIC_KEY_SECRET_ARN"
+set_variable_if_missing CDK_LANGFUSE_SECRET_KEY_SECRET_ARN "$LANGFUSE_SECRET_KEY_SECRET_ARN"
+set_variable_if_missing CDK_LANGFUSE_BASE_URL "$LANGFUSE_BASE_URL"
+set_variable_if_missing CDK_DEMO_EMAIL_DOSTIP "$DEMO_EMAIL_DOSTIP"
+set_variable_if_missing CDK_DEMO_PASSWORD_SECRET_ARN "$DEMO_PASSWORD_SECRET_ARN"
+set_variable_if_missing CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP "$GUEST_AI_QUOTA_CAP"
 
-gh secret set AWS_DEPLOY_ROLE_ARN --body "$DEPLOY_ROLE_ARN" --repo "$REPO"
+set_secret_if_missing AWS_DEPLOY_ROLE_ARN "$DEPLOY_ROLE_ARN"
 
-delete_secret_if_exists "CDK_API_CERTIFICATE_ARN"
-delete_secret_if_exists "CDK_AUTH_CERTIFICATE_ARN"
-delete_secret_if_exists "CDK_WEB_CERTIFICATE_ARN_US_EAST_1"
-delete_secret_if_exists "DEMO_EMAIL_DOSTIP"
-delete_secret_if_exists "DEMO_PASSWORD_DOSTIP"
-
-echo "GitHub Actions variables and secrets configured for ${REPO}."
+echo "Missing GitHub Actions variables and secrets configured for ${REPO}."

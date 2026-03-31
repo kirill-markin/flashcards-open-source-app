@@ -64,7 +64,7 @@ That flow:
 - bootstraps and deploys CDK
 - uploads web assets
 - optionally configures Cloudflare DNS
-- syncs deploy config into GitHub Actions variables
+- populates missing deploy config in GitHub Actions variables without overwriting existing values
 
 You can still run CDK manually from `infra/aws`; the local helper scripts assemble the CDK context file before the CDK step.
 
@@ -91,13 +91,13 @@ This script:
 
 - reads operator config from root `.env`
 - discovers AWS secret ARNs and ACM certificate ARNs
-- writes non-secret deploy config to GitHub repository variables
-- writes only `AWS_DEPLOY_ROLE_ARN` as a GitHub secret
-- deletes old GitHub secrets that are no longer used for demo auth or certificate ARNs
+- writes missing non-secret deploy config to GitHub repository variables
+- writes only a missing `AWS_DEPLOY_ROLE_ARN` as a GitHub secret
+- leaves existing GitHub variables and secrets untouched
 
 The deploy workflow assembles its own `cdk.context.local.json` from those GitHub variables inside CI.
 
-This AWS sync does not manage the Android Google Cloud and Firebase Test Lab repository variables. Android CI/CD uses its own setup flow and helper script:
+This AWS bootstrap helper does not manage the Android Google Cloud and Firebase Test Lab repository variables. Android CI/CD uses its own setup flow and helper script:
 
 - docs: [`docs/android-ci-cd.md`](../../docs/android-ci-cd.md)
 - sync command: `bash scripts/setup-github-android.sh`
@@ -144,7 +144,7 @@ bash scripts/check-demo-cognito-users.sh --stack-name FlashcardsOpenSourceApp --
 1. Confirm the SNS subscription in the `ALERT_EMAIL` inbox.
 2. Configure Resend DNS with `bash scripts/setup-resend-domain.sh --domain <base-domain> --subdomain mail`.
 3. Configure Cloudflare public DNS with `bash scripts/cloudflare/setup-dns.sh --stack-name FlashcardsOpenSourceApp --domain <base-domain>`.
-4. Sync GitHub Actions config with `bash scripts/setup-github.sh`.
+4. Populate any missing GitHub Actions config with `bash scripts/setup-github.sh`.
 5. Run `bash scripts/check-public-endpoints.sh --stack-name FlashcardsOpenSourceApp` after DNS changes.
 
 ## Auth flow

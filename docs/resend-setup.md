@@ -54,7 +54,7 @@ This script:
 - upserts them in Cloudflare
 - triggers Resend domain verification
 
-3. Sync deploy-time config to GitHub Actions:
+3. Populate any missing deploy-time config in GitHub Actions:
 
 ```bash
 bash scripts/setup-github.sh
