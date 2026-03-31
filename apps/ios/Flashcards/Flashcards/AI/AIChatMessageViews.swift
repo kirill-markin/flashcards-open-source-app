@@ -145,6 +145,7 @@ extension AIChatView {
                                     .font(.caption.monospaced())
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .textSelection(.enabled)
+                                    .accessibilityIdentifier(aiChatToolSectionAccessibilityIdentifier(sectionId: section.id))
                             }
 
                             if index < sections.count - 1 {
@@ -160,6 +161,7 @@ extension AIChatView {
                             .lineLimit(1)
                             .truncationMode(.tail)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityIdentifier(UITestIdentifier.aiToolCallSummary)
                         Text(aiChatToolStatusLabel(status: toolCall.status))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
@@ -209,5 +211,16 @@ private func aiChatToolStatusAccessibilityIdentifier(status: AIChatToolCallStatu
         return ""
     case .completed:
         return UITestIdentifier.aiToolCallCompletedStatus
+    }
+}
+
+private func aiChatToolSectionAccessibilityIdentifier(sectionId: String) -> String {
+    switch sectionId {
+    case "request":
+        return UITestIdentifier.aiToolCallRequestText
+    case "response":
+        return UITestIdentifier.aiToolCallResponseText
+    default:
+        return ""
     }
 }

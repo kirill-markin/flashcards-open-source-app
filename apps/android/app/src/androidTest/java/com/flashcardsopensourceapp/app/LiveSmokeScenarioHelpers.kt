@@ -5,8 +5,10 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -21,6 +23,10 @@ import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
 import com.flashcardsopensourceapp.feature.ai.aiNewChatButtonTag
+import com.flashcardsopensourceapp.feature.ai.aiToolCallInputTag
+import com.flashcardsopensourceapp.feature.ai.aiToolCallOutputTag
+import com.flashcardsopensourceapp.feature.ai.aiToolCallStatusTag
+import com.flashcardsopensourceapp.feature.ai.aiToolCallSummaryTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
 import com.flashcardsopensourceapp.feature.cards.cardsCardFrontTextTag
 import com.flashcardsopensourceapp.feature.review.reviewCurrentCardFrontContentTag
@@ -184,39 +190,82 @@ internal fun LiveSmokeContext.createAiCardWithConfirmation(
     aiBackText: String,
     markerTag: String
 ) {
-    val proposalPrompt: String =
-        "Prepare exactly one flashcard proposal. Use front text '$aiFrontText', back text '$aiBackText', and include tag '$markerTag'. Wait for my confirmation before creating it."
-    val confirmationPrompt: String = "Confirmed. Create the card exactly as proposed."
+    val createPrompt: String =
+        "Create exactly one flashcard now. " +
+            "Use front text '$aiFrontText', back text '$aiBackText', and tag '$markerTag'. " +
+            "You have my explicit permission to write data and execute the SQL insert now. " +
+            "Do not ask follow-up questions if these details are sufficient."
 
     openAiTab()
     dismissAiConsentIfNeeded()
-    waitForGuestCloudWorkspaceReady(context = "before filling the AI proposal prompt")
-    fillAiComposer(
-        expectedDraftText = proposalPrompt,
-        context = "for the AI proposal prompt"
+    waitForGuestCloudWorkspaceReady(context = "before filling the AI create prompt")
+
+    var latestCompletedSqlSummaries: List<String> = emptyList()
+    repeat(times = 3) { attemptIndex ->
+        val previousToolCallSummaryCount: Int = toolCallSummaryTexts().size
+
+        fillAiComposer(
+            expectedDraftText = createPrompt,
+            context = "for AI create attempt ${attemptIndex + 1}"
+        )
+        clickTag(tag = aiComposerSendButtonTag, label = "Send AI create prompt")
+        waitForAiRunAcceptedOrCompleted(
+            expectedDraftText = createPrompt,
+            previousToolCallSummaryCount = previousToolCallSummaryCount,
+            context = "for AI create attempt ${attemptIndex + 1}"
+        )
+        waitUntilAtLeastOneExistsOrFail(
+            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText("Send")),
+            timeoutMillis = externalUiTimeoutMillis
+        )
+
+        val toolCallCheck: LiveSmokeAiToolCallCheck = completedAiInsertToolCallCheck(
+            aiFrontText = aiFrontText,
+            markerTag = markerTag
+        )
+        latestCompletedSqlSummaries = toolCallCheck.completedSqlSummaries
+        if (toolCallCheck.matchingInsertFound) {
+            return
+        }
+    }
+
+    throw AssertionError(
+        "AI create flow did not produce a completed SQL INSERT INTO cards after 3 attempts. " +
+            "CompletedSqlToolCalls=${latestCompletedSqlSummaries}"
     )
-    clickTag(tag = aiComposerSendButtonTag, label = "Send AI prompt")
-    waitForAssistantProposal(
-        aiFrontText = aiFrontText,
-        aiBackText = aiBackText,
-        markerTag = markerTag
-    )
-    fillAiComposer(
-        expectedDraftText = confirmationPrompt,
-        context = "for the AI confirmation prompt"
-    )
-    clickTag(tag = aiComposerSendButtonTag, label = "Confirm AI card creation")
-    waitUntilAtLeastOneExistsOrFail(
-        matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText("Stop")),
-        timeoutMillis = externalUiTimeoutMillis
-    )
-    waitUntilAtLeastOneExistsOrFail(
-        matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText("Send")),
-        timeoutMillis = externalUiTimeoutMillis
-    )
-    if (hasVisibleText(text = "I'm missing the actual proposed card text in this chat", substring = false)) {
+}
+
+private data class LiveSmokeAiToolCallCheck(
+    val matchingInsertFound: Boolean,
+    val completedSqlSummaries: List<String>
+)
+
+private fun LiveSmokeContext.waitForAiRunAcceptedOrCompleted(
+    expectedDraftText: String,
+    previousToolCallSummaryCount: Int,
+    context: String
+) {
+    try {
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for AI run acceptance $context"
+        ) {
+            val stopVisible: Boolean = composeRule.onAllNodes(
+                matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText("Stop"))
+            ).fetchSemanticsNodes().isNotEmpty()
+            val draftChanged: Boolean = aiComposerDraftTextOrNull() != expectedDraftText
+            val toolCallProgressed: Boolean = toolCallSummaryTexts().size > previousToolCallSummaryCount
+            stopVisible || draftChanged || toolCallProgressed
+        }
+    } catch (error: Throwable) {
         throw AssertionError(
-            "AI confirmation asked for missing proposal details instead of creating the card."
+            "AI run was not accepted $context. " +
+                "ExpectedDraft='$expectedDraftText' " +
+                "ActualDraft='${aiComposerDraftTextOrNull()}' " +
+                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = "Send")} " +
+                "ToolCallSummaries=${toolCallSummaryTexts()} " +
+                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+            error
         )
     }
 }
@@ -459,28 +508,42 @@ private fun LiveSmokeContext.waitForAiComposerReady(
     }
 }
 
-private fun LiveSmokeContext.waitForAssistantProposal(
+private fun LiveSmokeContext.completedAiInsertToolCallCheck(
     aiFrontText: String,
-    aiBackText: String,
     markerTag: String
-) {
-    try {
-        waitUntilWithMitigation(
-            timeoutMillis = externalUiTimeoutMillis,
-            context = "while waiting for the AI proposal"
-        ) {
-            val assistantText: String = latestAssistantMessageTextOrNull() ?: return@waitUntilWithMitigation false
-            assistantText.contains(other = aiFrontText) &&
-                assistantText.contains(other = aiBackText) &&
-                assistantText.contains(other = markerTag)
-        }
-    } catch (error: Throwable) {
-        throw AssertionError(
-            "Assistant proposal did not contain the requested card. " +
-                "LatestAssistant='${latestAssistantMessageTextOrNull()}' " +
-                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
-            error
-        )
+): LiveSmokeAiToolCallCheck {
+    expandAllToolCallDetails()
+
+    val summaryTexts: List<String> = toolCallSummaryTexts()
+    val statusTexts: List<String> = toolCallStatusTexts()
+    val inputTexts: List<String> = toolCallInputTexts()
+    val outputTexts: List<String> = toolCallOutputTexts()
+    val completedSqlSummaries: List<String> = summaryTexts.filterIndexed { index, summaryText ->
+        val statusText: String = statusTexts.getOrNull(index) ?: ""
+        summaryText.contains(other = "SQL:") && statusText == "Done"
+    }
+    val matchingInsertFound: Boolean = completedSqlSummaries.any { summaryText ->
+        summaryText.contains(other = "INSERT INTO cards") &&
+            summaryText.contains(other = aiFrontText) &&
+            summaryText.contains(other = markerTag)
+    } && inputTexts.any { inputText ->
+        inputText.contains(other = "INSERT INTO cards") &&
+            inputText.contains(other = aiFrontText) &&
+            inputText.contains(other = markerTag)
+    } && outputTexts.any { outputText ->
+        outputText.contains(other = "\"ok\":true")
+    }
+
+    return LiveSmokeAiToolCallCheck(
+        matchingInsertFound = matchingInsertFound,
+        completedSqlSummaries = completedSqlSummaries
+    )
+}
+
+private fun LiveSmokeContext.expandAllToolCallDetails() {
+    while (composeRule.onAllNodesWithContentDescription("Expand tool details").fetchSemanticsNodes().isNotEmpty()) {
+        composeRule.onAllNodesWithContentDescription("Expand tool details")[0].performClick()
+        composeRule.waitForIdle()
     }
 }
 
@@ -558,6 +621,34 @@ private fun LiveSmokeContext.latestAssistantMessageTextOrNull(): String? {
         .filter { text -> text.isNotBlank() }
         .takeIf { texts -> texts.isNotEmpty() }
         ?.joinToString(separator = " | ")
+}
+
+private fun LiveSmokeContext.toolCallSummaryTexts(): List<String> {
+    return composeRule.onAllNodesWithTag(aiToolCallSummaryTag, useUnmergedTree = true)
+        .fetchSemanticsNodes()
+        .map(::nodeSummary)
+        .filter { text -> text.isNotBlank() }
+}
+
+private fun LiveSmokeContext.toolCallStatusTexts(): List<String> {
+    return composeRule.onAllNodesWithTag(aiToolCallStatusTag, useUnmergedTree = true)
+        .fetchSemanticsNodes()
+        .map(::nodeSummary)
+        .filter { text -> text.isNotBlank() }
+}
+
+private fun LiveSmokeContext.toolCallInputTexts(): List<String> {
+    return composeRule.onAllNodesWithTag(aiToolCallInputTag, useUnmergedTree = true)
+        .fetchSemanticsNodes()
+        .map(::nodeSummary)
+        .filter { text -> text.isNotBlank() }
+}
+
+private fun LiveSmokeContext.toolCallOutputTexts(): List<String> {
+    return composeRule.onAllNodesWithTag(aiToolCallOutputTag, useUnmergedTree = true)
+        .fetchSemanticsNodes()
+        .map(::nodeSummary)
+        .filter { text -> text.isNotBlank() }
 }
 
 private fun LiveSmokeContext.visibleCardsFrontTexts(): List<String> {
