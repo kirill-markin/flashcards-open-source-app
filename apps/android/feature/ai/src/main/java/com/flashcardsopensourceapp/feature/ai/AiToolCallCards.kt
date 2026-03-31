@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -52,7 +53,8 @@ internal fun ToolCallCard(toolCall: AiChatToolCall) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 2.dp
+        tonalElevation = 2.dp,
+        modifier = Modifier.testTag(tag = aiToolCallCardTag)
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -66,20 +68,23 @@ internal fun ToolCallCard(toolCall: AiChatToolCall) {
                             input = toolCall.input
                         ),
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.testTag(tag = aiToolCallSummaryTag)
                     )
                 },
                 supportingContent = {
                     Text(
                         text = formatAiToolCallStatus(status = toolCall.status),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag(tag = aiToolCallStatusTag)
                     )
                 },
                 trailingContent = {
                     IconButton(
                         onClick = {
                             isExpanded = isExpanded.not()
-                        }
+                        },
+                        modifier = Modifier.testTag(tag = aiToolCallExpandButtonTag)
                     ) {
                         Icon(
                             imageVector = if (isExpanded) {
@@ -105,6 +110,7 @@ internal fun ToolCallCard(toolCall: AiChatToolCall) {
                     ToolCallDetailCard(
                         title = "Input",
                         value = input,
+                        valueTag = aiToolCallInputTag,
                         onCopy = {
                             clipboardManager.setPrimaryClip(
                                 ClipData.newPlainText("Input", input)
@@ -116,6 +122,7 @@ internal fun ToolCallCard(toolCall: AiChatToolCall) {
                     ToolCallDetailCard(
                         title = "Output",
                         value = output,
+                        valueTag = aiToolCallOutputTag,
                         onCopy = {
                             clipboardManager.setPrimaryClip(
                                 ClipData.newPlainText("Output", output)
@@ -132,6 +139,7 @@ internal fun ToolCallCard(toolCall: AiChatToolCall) {
 private fun ToolCallDetailCard(
     title: String,
     value: String,
+    valueTag: String,
     onCopy: () -> Unit
 ) {
     Surface(
@@ -165,7 +173,8 @@ private fun ToolCallDetailCard(
                 Text(
                     text = value,
                     style = MaterialTheme.typography.bodySmall,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.testTag(tag = valueTag)
                 )
             }
         }

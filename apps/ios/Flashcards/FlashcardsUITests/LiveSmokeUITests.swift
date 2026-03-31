@@ -50,6 +50,9 @@ private enum LiveSmokeIdentifier {
     static let aiMessageRow: String = "ai.messageRow"
     static let aiComposerTextField: String = "ai.composerTextField"
     static let aiComposerSendButton: String = "ai.composerSendButton"
+    static let aiToolCallSummary: String = "ai.toolCallSummary"
+    static let aiToolCallRequestText: String = "ai.toolCallRequestText"
+    static let aiToolCallResponseText: String = "ai.toolCallResponseText"
     static let aiToolCallCompletedStatus: String = "ai.toolCallCompletedStatus"
     static let aiAssistantErrorMessage: String = "ai.assistantErrorMessage"
 }
@@ -194,6 +197,7 @@ private let smokeLogger = Logger(
     category: "ui-smoke"
 )
 private let aiComposerPlaceholderText: String = "Ask about cards, review history, or propose a change..."
+private let aiCreatePromptMaximumAttempts: Int = 3
 
 private struct LiveSmokeBreadcrumb {
     let line: String
@@ -206,6 +210,11 @@ private struct LiveSmokeRunContext {
     let aiFrontText: String
     let aiBackText: String
     let markerTag: String
+}
+
+private struct LiveSmokeAIToolCallCheck {
+    let matchingInsertFound: Bool
+    let completedSqlSummaries: [String]
 }
 
 private enum LiveSmokeSeededData {
@@ -749,75 +758,68 @@ final class LiveSmokeUITests: XCTestCase {
             self.logActionEnd(action: "tap_element", identifier: LiveSmokeIdentifier.aiConsentAcceptButton, result: "success", note: "AI consent accepted")
         }
 
-        let proposalErrorMarkerCountBeforeWait = self.app.descendants(matching: .any)
-            .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
-            .count
-        let proposalPrompt = "Prepare exactly one flashcard proposal. Use front text \"\(aiFrontText)\", back text \"\(aiBackText)\", and include tag \"\(markerTag)\". Wait for my confirmation before creating it."
-        try self.replaceAiComposerText(
-            proposalPrompt,
-            timeout: self.shortUiTimeoutSeconds
-        )
-        try self.assertElementEnabled(
-            identifier: LiveSmokeIdentifier.aiComposerSendButton,
-            timeout: self.shortUiTimeoutSeconds
-        )
-        _ = self.dismissKnownBlockingAlertIfVisible()
-        self.logActionStart(action: "ai_send_1", identifier: LiveSmokeIdentifier.aiComposerSendButton)
-        try self.tapElement(identifier: LiveSmokeIdentifier.aiComposerSendButton, timeout: self.shortUiTimeoutSeconds)
-        _ = self.dismissKnownBlockingAlertIfVisible()
-        self.logActionEnd(action: "ai_send_1", identifier: LiveSmokeIdentifier.aiComposerSendButton, result: "success", note: "proposal request sent")
-        try self.assertVisibleTextContains(
-            aiFrontText,
-            timeout: self.longUiTimeoutSeconds,
-            aiErrorMarkerCountBeforeWait: proposalErrorMarkerCountBeforeWait,
-            ignoredExactLabels: [proposalPrompt]
-        )
-        try self.assertVisibleTextContains(
-            aiBackText,
-            timeout: self.longUiTimeoutSeconds,
-            aiErrorMarkerCountBeforeWait: proposalErrorMarkerCountBeforeWait,
-            ignoredExactLabels: [proposalPrompt]
-        )
-        try self.assertVisibleTextContains(
-            markerTag,
-            timeout: self.longUiTimeoutSeconds,
-            aiErrorMarkerCountBeforeWait: proposalErrorMarkerCountBeforeWait,
-            ignoredExactLabels: [proposalPrompt]
-        )
+        let createPrompt =
+            "Create exactly one flashcard now. " +
+            "Use front text \"\(aiFrontText)\", back text \"\(aiBackText)\", and tag \"\(markerTag)\". " +
+            "You have my explicit permission to write data and execute the SQL insert now. " +
+            "Do not ask follow-up questions if these details are sufficient."
+        var latestCompletedSqlSummaries: [String] = []
 
-        try self.replaceAiComposerText(
-            "Confirmed. Create the card exactly as proposed.",
-            timeout: self.shortUiTimeoutSeconds
-        )
-        let completedMarkerCountBeforeConfirmation = self.app.descendants(matching: .any)
-            .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
-            .count
-        let errorMarkerCountBeforeConfirmation = self.app.descendants(matching: .any)
-            .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
-            .count
-        try self.assertElementEnabled(
-            identifier: LiveSmokeIdentifier.aiComposerSendButton,
-            timeout: self.shortUiTimeoutSeconds
-        )
-        _ = self.dismissKnownBlockingAlertIfVisible()
-        self.logActionStart(action: "ai_send_2", identifier: LiveSmokeIdentifier.aiComposerSendButton)
-        try self.tapElement(identifier: LiveSmokeIdentifier.aiComposerSendButton, timeout: self.shortUiTimeoutSeconds)
-        _ = self.dismissKnownBlockingAlertIfVisible()
-        self.logActionEnd(action: "ai_send_2", identifier: LiveSmokeIdentifier.aiComposerSendButton, result: "success", note: "confirmation request sent")
-        try self.assertAiRunStartedOrFinished(
-            timeout: self.shortUiTimeoutSeconds,
-            completedMarkerCountBeforeWait: completedMarkerCountBeforeConfirmation,
-            errorMarkerCountBeforeWait: errorMarkerCountBeforeConfirmation
-        )
-        try self.assertAiRunFinished(
-            timeout: self.longUiTimeoutSeconds,
-            completedMarkerCountBeforeWait: completedMarkerCountBeforeConfirmation,
-            errorMarkerCountBeforeWait: errorMarkerCountBeforeConfirmation
-        )
-        try self.assertElementLabel(
-            identifier: LiveSmokeIdentifier.aiComposerSendButton,
-            expectedLabel: "Send message",
-            timeout: self.longUiTimeoutSeconds
+        for attempt in 1...aiCreatePromptMaximumAttempts {
+            try self.replaceAiComposerText(
+                createPrompt,
+                timeout: self.shortUiTimeoutSeconds
+            )
+            let completedMarkerCountBeforeAttempt = self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
+                .count
+            let errorMarkerCountBeforeAttempt = self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
+                .count
+            try self.assertElementEnabled(
+                identifier: LiveSmokeIdentifier.aiComposerSendButton,
+                timeout: self.shortUiTimeoutSeconds
+            )
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            self.logActionStart(action: "ai_send_\(attempt)", identifier: LiveSmokeIdentifier.aiComposerSendButton)
+            try self.tapElement(identifier: LiveSmokeIdentifier.aiComposerSendButton, timeout: self.shortUiTimeoutSeconds)
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            self.logActionEnd(
+                action: "ai_send_\(attempt)",
+                identifier: LiveSmokeIdentifier.aiComposerSendButton,
+                result: "success",
+                note: "AI create request sent"
+            )
+            try self.assertAiRunStartedOrFinished(
+                timeout: self.shortUiTimeoutSeconds,
+                completedMarkerCountBeforeWait: completedMarkerCountBeforeAttempt,
+                errorMarkerCountBeforeWait: errorMarkerCountBeforeAttempt
+            )
+            try self.assertAiRunFinished(
+                timeout: self.longUiTimeoutSeconds,
+                completedMarkerCountBeforeWait: completedMarkerCountBeforeAttempt,
+                errorMarkerCountBeforeWait: errorMarkerCountBeforeAttempt
+            )
+            try self.assertElementLabel(
+                identifier: LiveSmokeIdentifier.aiComposerSendButton,
+                expectedLabel: "Send message",
+                timeout: self.longUiTimeoutSeconds
+            )
+
+            let toolCallCheck = try self.completedAiInsertToolCallCheck(
+                aiFrontText: aiFrontText,
+                markerTag: markerTag
+            )
+            latestCompletedSqlSummaries = toolCallCheck.completedSqlSummaries
+            if toolCallCheck.matchingInsertFound {
+                return
+            }
+        }
+
+        throw LiveSmokeFailure.unexpectedAiConversationState(
+            message: "AI create flow did not produce a completed SQL INSERT INTO cards after \(aiCreatePromptMaximumAttempts) attempts. CompletedSqlToolCalls: \(latestCompletedSqlSummaries)",
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
         )
     }
 
@@ -2418,5 +2420,87 @@ final class LiveSmokeUITests: XCTestCase {
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
+    }
+
+    @MainActor
+    private func completedAiInsertToolCallCheck(
+        aiFrontText: String,
+        markerTag: String
+    ) throws -> LiveSmokeAIToolCallCheck {
+        try self.expandAllVisibleAiToolCallSummaries()
+
+        let summaryTexts = self.elements(
+            query: self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiToolCallSummary)
+        ).map(\.label).map { label in
+            label.trimmingCharacters(in: .whitespacesAndNewlines)
+        }.filter { label in
+            label.isEmpty == false
+        }
+        let requestTexts = self.elements(
+            query: self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiToolCallRequestText)
+        ).map(\.label).map { label in
+            label.trimmingCharacters(in: .whitespacesAndNewlines)
+        }.filter { label in
+            label.isEmpty == false
+        }
+        let responseTexts = self.elements(
+            query: self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiToolCallResponseText)
+        ).map(\.label).map { label in
+            label.trimmingCharacters(in: .whitespacesAndNewlines)
+        }.filter { label in
+            label.isEmpty == false
+        }
+        let completedSqlSummaries = summaryTexts.filter { summaryText in
+            summaryText.contains("SQL:")
+        }
+        let summaryMatch = completedSqlSummaries.contains { summaryText in
+            summaryText.contains("INSERT INTO cards")
+                && summaryText.contains(aiFrontText)
+                && summaryText.contains(markerTag)
+        }
+        let requestMatch = requestTexts.isEmpty || requestTexts.contains { requestText in
+            requestText.contains("INSERT INTO cards")
+                && requestText.contains(aiFrontText)
+                && requestText.contains(markerTag)
+        }
+        let responseMatch = responseTexts.isEmpty || responseTexts.contains { responseText in
+            responseText.contains("\"ok\":true")
+        }
+        let matchingInsertFound = summaryMatch && requestMatch && responseMatch
+
+        return LiveSmokeAIToolCallCheck(
+            matchingInsertFound: matchingInsertFound,
+            completedSqlSummaries: completedSqlSummaries
+        )
+    }
+
+    @MainActor
+    private func expandAllVisibleAiToolCallSummaries() throws {
+        let summaryElements = self.elements(
+            query: self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiToolCallSummary)
+        )
+
+        for (index, summaryElement) in summaryElements.enumerated() {
+            guard summaryElement.exists, summaryElement.isHittable else {
+                continue
+            }
+
+            self.logActionStart(
+                action: "tap_tool_call_summary",
+                identifier: "\(LiveSmokeIdentifier.aiToolCallSummary).\(index)"
+            )
+            summaryElement.tap()
+            _ = self.dismissKnownBlockingAlertIfVisible()
+            self.logActionEnd(
+                action: "tap_tool_call_summary",
+                identifier: "\(LiveSmokeIdentifier.aiToolCallSummary).\(index)",
+                result: "success",
+                note: "tool call summary toggled"
+            )
+        }
     }
 }
