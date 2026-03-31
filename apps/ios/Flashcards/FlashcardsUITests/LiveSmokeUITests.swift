@@ -788,7 +788,7 @@ final class LiveSmokeUITests: XCTestCase {
             let completedMarkerCountBeforeAttempt = self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
                 .count
-            let errorMarkerCountBeforeAttempt = self.visibleAssistantErrorMessages().count
+            let errorMarkerCountBeforeAttempt = self.visibleAssistantErrorMessageCount()
             try self.assertElementEnabled(
                 identifier: LiveSmokeIdentifier.aiComposerSendButton,
                 timeout: self.shortUiTimeoutSeconds
@@ -839,7 +839,7 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func startNewAiChatAndAssertConversationReset() throws {
-        let assistantErrorMessagesBeforeReset = self.visibleAssistantErrorMessages().count
+        let assistantErrorMessagesBeforeReset = self.visibleAssistantErrorMessageCount()
 
         try self.tapElement(
             identifier: LiveSmokeIdentifier.aiNewChatButton,
@@ -870,7 +870,7 @@ final class LiveSmokeUITests: XCTestCase {
             )
         }
 
-        let assistantErrorMessages = self.visibleAssistantErrorMessages().count
+        let assistantErrorMessages = self.visibleAssistantErrorMessageCount()
         if assistantErrorMessages != assistantErrorMessagesBeforeReset {
             throw LiveSmokeFailure.unexpectedAiConversationState(
                 message: "Expected no new AI assistant error messages after starting a new chat, found \(assistantErrorMessages - assistantErrorMessagesBeforeReset).",
@@ -942,7 +942,7 @@ final class LiveSmokeUITests: XCTestCase {
         let completedMarkerCountBeforeWait = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
             .count
-        let errorMarkerCountBeforeWait = self.visibleAssistantErrorMessages().count
+        let errorMarkerCountBeforeWait = self.visibleAssistantErrorMessageCount()
         try self.assertElementEnabled(
             identifier: LiveSmokeIdentifier.aiComposerSendButton,
             timeout: self.shortUiTimeoutSeconds
@@ -1263,10 +1263,8 @@ final class LiveSmokeUITests: XCTestCase {
                     return
                 }
 
-                let assistantErrorMessages = self.visibleAssistantErrorMessages()
-                if assistantErrorMessages.count > aiErrorMarkerCountBeforeWait {
+                if let errorMessage = self.latestVisibleAssistantErrorMessage() {
                     let durationSeconds = Date().timeIntervalSince(startedAt)
-                    let errorMessage = assistantErrorMessages.last ?? ""
                     self.logSmokeBreadcrumb(
                         event: "wait_end",
                         action: "wait_for_visible_text_contains",
@@ -1284,6 +1282,24 @@ final class LiveSmokeUITests: XCTestCase {
                 }
 
                 RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+            }
+
+            if let errorMessage = self.latestVisibleAssistantErrorMessage() {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_visible_text_contains",
+                    identifier: LiveSmokeIdentifier.aiAssistantErrorMessage,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "failure",
+                    note: errorMessage
+                )
+                throw LiveSmokeFailure.aiRunReportedError(
+                    message: errorMessage,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
             }
 
             let durationSeconds = Date().timeIntervalSince(startedAt)
@@ -1316,18 +1332,52 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
-    private func visibleAssistantErrorTextQuery() -> XCUIElementQuery {
-        self.app.descendants(matching: .any)
-            .matching(identifier: LiveSmokeIdentifier.aiAssistantErrorMessage)
+    private func visibleAssistantErrorElement() -> XCUIElement {
+        self.app.otherElements[LiveSmokeIdentifier.aiAssistantErrorMessage].firstMatch
     }
 
     @MainActor
     private func visibleAssistantErrorMessages() -> [String] {
-        self.elements(query: self.visibleAssistantErrorTextQuery())
-            .map { self.elementValue(element: $0) }
+        guard let message = self.latestVisibleAssistantErrorMessage() else {
+            return []
+        }
+
+        return [message]
+    }
+
+    @MainActor
+    private func visibleAssistantErrorMessageCount() -> Int {
+        self.visibleAssistantErrorElement().exists ? 1 : 0
+    }
+
+    @MainActor
+    private func latestVisibleAssistantErrorMessage() -> String? {
+        let element = self.visibleAssistantErrorElement()
+        guard element.exists else {
+            return nil
+        }
+
+        let nestedStaticTextLabels = self.elements(query: element.descendants(matching: .staticText))
+            .map(\.label)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { label in
-                label.isEmpty == false
+                label.isEmpty == false && label != "Assistant"
             }
+        if let message = nestedStaticTextLabels.last {
+            return message
+        }
+
+        let label = element.label.trimmingCharacters(in: .whitespacesAndNewlines)
+        if label.isEmpty == false {
+            return label
+        }
+
+        let value = self.elementValue(element: element)
+        if value.isEmpty == false {
+            return value
+        }
+
+        return "Assistant error is visible."
     }
 
     @MainActor
@@ -1484,7 +1534,7 @@ final class LiveSmokeUITests: XCTestCase {
             self.logActionStart(action: "type_text", identifier: identifier)
             element.typeText(text)
             _ = self.dismissKnownBlockingAlertIfVisible()
-            if self.waitForElementValueContaining(
+            if try self.waitForElementValueContaining(
                 element,
                 identifier: identifier,
                 expectedValue: text,
@@ -1542,7 +1592,7 @@ final class LiveSmokeUITests: XCTestCase {
             element.typeText(text)
             _ = self.dismissKnownBlockingAlertIfVisible()
 
-            if self.waitForElementValueContaining(
+            if try self.waitForElementValueContaining(
                 element,
                 identifier: identifier,
                 expectedValue: text,
@@ -2237,7 +2287,7 @@ final class LiveSmokeUITests: XCTestCase {
         identifier: String,
         expectedValue: String,
         timeout: TimeInterval
-    ) -> Bool {
+    ) throws -> Bool {
         self.logSmokeBreadcrumb(
             event: "wait_start",
             action: "wait_for_element_value",
@@ -2268,6 +2318,24 @@ final class LiveSmokeUITests: XCTestCase {
             }
 
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        if let errorMessage = self.latestVisibleAssistantErrorMessage() {
+            let durationSeconds = Date().timeIntervalSince(startedAt)
+            self.logSmokeBreadcrumb(
+                event: "wait_end",
+                action: "wait_for_ai_completion",
+                identifier: LiveSmokeIdentifier.aiAssistantErrorMessage,
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: formatDuration(seconds: durationSeconds),
+                result: "failure",
+                note: errorMessage
+            )
+            throw LiveSmokeFailure.aiRunReportedError(
+                message: errorMessage,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
         }
 
         let durationSeconds = Date().timeIntervalSince(startedAt)
@@ -2490,10 +2558,8 @@ final class LiveSmokeUITests: XCTestCase {
         while Date() < deadline {
             _ = self.dismissKnownBlockingAlertIfVisible()
 
-            let assistantErrorMessages = self.visibleAssistantErrorMessages()
-            if assistantErrorMessages.count > errorMarkerCountBeforeWait {
+            if let errorMessage = self.latestVisibleAssistantErrorMessage() {
                 let durationSeconds = Date().timeIntervalSince(startedAt)
-                let errorMessage = assistantErrorMessages.last ?? ""
                 self.logSmokeBreadcrumb(
                     event: "wait_end",
                     action: "wait_for_ai_completion",
@@ -2526,6 +2592,24 @@ final class LiveSmokeUITests: XCTestCase {
             }
 
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        if let errorMessage = self.latestVisibleAssistantErrorMessage() {
+            let durationSeconds = Date().timeIntervalSince(startedAt)
+            self.logSmokeBreadcrumb(
+                event: "wait_end",
+                action: "wait_for_ai_activity",
+                identifier: LiveSmokeIdentifier.aiAssistantErrorMessage,
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: formatDuration(seconds: durationSeconds),
+                result: "failure",
+                note: errorMessage
+            )
+            throw LiveSmokeFailure.aiRunReportedError(
+                message: errorMessage,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
         }
 
         let durationSeconds = Date().timeIntervalSince(startedAt)
@@ -2586,10 +2670,8 @@ final class LiveSmokeUITests: XCTestCase {
         while Date() < deadline {
             _ = self.dismissKnownBlockingAlertIfVisible()
 
-            let assistantErrorMessages = self.visibleAssistantErrorMessages()
-            if assistantErrorMessages.count > errorMarkerCountBeforeWait {
+            if let errorMessage = self.latestVisibleAssistantErrorMessage() {
                 let durationSeconds = Date().timeIntervalSince(startedAt)
-                let errorMessage = assistantErrorMessages.last ?? ""
                 self.logSmokeBreadcrumb(
                     event: "wait_end",
                     action: "wait_for_ai_activity",
