@@ -6,6 +6,8 @@ import { SettingsActionCard, SettingsGroup, SettingsShell } from "./SettingsShar
 
 export function CurrentWorkspaceScreen(): ReactElement {
   const {
+    sessionVerificationState,
+    session,
     activeWorkspace,
     availableWorkspaces,
     chooseWorkspace,
@@ -21,6 +23,29 @@ export function CurrentWorkspaceScreen(): ReactElement {
   const { message, showMessage } = useTransientMessage(3000);
   const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
   const currentWorkspaceName = activeWorkspace?.name ?? "Unavailable";
+  const workspaceManagementState = isWorkspaceLocked ? "locked" : "ready";
+
+  function buildWorkspaceInteractionLogDetails(workspaceId: string | null, errorMessage: string | null): Readonly<{
+    sessionVerificationState: string;
+    isSessionVerified: boolean;
+    cloudState: string | null;
+    selectedWorkspaceId: string | null;
+    activeWorkspaceId: string | null;
+    workspaceId: string | null;
+    availableWorkspaceIds: ReadonlyArray<string>;
+    errorMessage: string | null;
+  }> {
+    return {
+      sessionVerificationState,
+      isSessionVerified,
+      cloudState: cloudSettings?.cloudState ?? null,
+      selectedWorkspaceId: session?.selectedWorkspaceId ?? null,
+      activeWorkspaceId: activeWorkspace?.workspaceId ?? null,
+      workspaceId,
+      availableWorkspaceIds: availableWorkspaces.map((workspace) => workspace.workspaceId),
+      errorMessage,
+    };
+  }
 
   async function handleWorkspaceSelect(workspaceId: string): Promise<void> {
     setErrorMessage("");
@@ -52,6 +77,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
 
   function handleWorkspaceRowClick(): void {
     if (isWorkspaceLocked) {
+      console.info("workspace_management_interaction_blocked", buildWorkspaceInteractionLogDetails(null, null));
       showMessage(workspaceManagementLockedBannerMessage);
       return;
     }
@@ -76,6 +102,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
             value={currentWorkspaceName}
             onClick={handleWorkspaceRowClick}
             isMuted={isWorkspaceLocked}
+            workspaceManagementState={workspaceManagementState}
           />
         </div>
 

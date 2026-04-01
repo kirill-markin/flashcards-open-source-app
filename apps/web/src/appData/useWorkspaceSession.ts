@@ -37,6 +37,7 @@ type UseWorkspaceSessionParams = Readonly<{
   session: SessionInfo | null;
   activeWorkspace: WorkspaceSummary | null;
   availableWorkspaces: ReadonlyArray<WorkspaceSummary>;
+  cloudSettings: CloudSettings | null;
   setSessionLoadState: Dispatch<SetStateAction<SessionLoadState>>;
   setSessionVerificationState: Dispatch<SetStateAction<SessionVerificationState>>;
   setSessionErrorMessage: Dispatch<SetStateAction<string>>;
@@ -61,10 +62,14 @@ type WorkspaceSession = Readonly<{
 }>;
 
 type WorkspaceTransitionLogDetails = Readonly<{
+  sessionVerificationState?: SessionVerificationState;
+  isSessionVerified?: boolean;
+  cloudState?: CloudSettings["cloudState"] | null;
   workspaceId?: string;
   deletedWorkspaceId?: string;
   replacementWorkspaceId?: string;
   selectedWorkspaceId?: string | null;
+  activeWorkspaceId?: string | null;
   availableWorkspaceIds?: ReadonlyArray<string>;
   nextWorkspaceIds?: ReadonlyArray<string>;
   redirected?: boolean;
@@ -142,6 +147,27 @@ function waitForDelay(delayMs: number): Promise<void> {
   });
 }
 
+function buildWorkspaceInteractionLogDetails(
+  sessionVerificationState: SessionVerificationState,
+  session: SessionInfo | null,
+  activeWorkspace: WorkspaceSummary | null,
+  availableWorkspaces: ReadonlyArray<WorkspaceSummary>,
+  cloudSettings: CloudSettings | null,
+  workspaceId: string | null,
+  errorMessage: string | null,
+): WorkspaceTransitionLogDetails {
+  return {
+    sessionVerificationState,
+    isSessionVerified: sessionVerificationState === "verified",
+    cloudState: cloudSettings?.cloudState ?? null,
+    selectedWorkspaceId: session?.selectedWorkspaceId ?? null,
+    activeWorkspaceId: activeWorkspace?.workspaceId ?? null,
+    workspaceId: workspaceId ?? undefined,
+    availableWorkspaceIds: availableWorkspaces.map((workspace) => workspace.workspaceId),
+    errorMessage: errorMessage ?? undefined,
+  };
+}
+
 export function useWorkspaceSession(params: UseWorkspaceSessionParams): WorkspaceSession {
   const {
     sessionLoadState,
@@ -149,6 +175,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     session,
     activeWorkspace,
     availableWorkspaces,
+    cloudSettings,
     setSessionLoadState,
     setSessionVerificationState,
     setSessionErrorMessage,
@@ -388,18 +415,54 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
 
     setIsChoosingWorkspace(true);
     try {
+      logWorkspaceTransition("workspace_select_client_started", buildWorkspaceInteractionLogDetails(
+        sessionVerificationState,
+        session,
+        activeWorkspace,
+        availableWorkspaces,
+        cloudSettings,
+        workspaceId,
+        null,
+      ));
       const selectedWorkspace = await selectWorkspace(workspaceId);
+      logWorkspaceTransition("workspace_select_client_succeeded", buildWorkspaceInteractionLogDetails(
+        sessionVerificationState,
+        session,
+        activeWorkspace,
+        availableWorkspaces,
+        cloudSettings,
+        selectedWorkspace.workspaceId,
+        null,
+      ));
       await activateWorkspace(session, availableWorkspaces, selectedWorkspace);
     } catch (error) {
       if (isAuthRedirectError(error)) {
         return;
       }
 
+      logWorkspaceTransitionError("workspace_select_client_failed", buildWorkspaceInteractionLogDetails(
+        sessionVerificationState,
+        session,
+        activeWorkspace,
+        availableWorkspaces,
+        cloudSettings,
+        workspaceId,
+        getErrorMessage(error),
+      ));
       setErrorMessage(getErrorMessage(error));
     } finally {
       setIsChoosingWorkspace(false);
     }
-  }, [activateWorkspace, availableWorkspaces, session, sessionVerificationState, setErrorMessage, setIsChoosingWorkspace]);
+  }, [
+    activateWorkspace,
+    activeWorkspace,
+    availableWorkspaces,
+    cloudSettings,
+    session,
+    sessionVerificationState,
+    setErrorMessage,
+    setIsChoosingWorkspace,
+  ]);
 
   const createWorkspace = useCallback(async function createWorkspace(name: string): Promise<void> {
     if (session === null) {
@@ -417,7 +480,25 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
 
     setIsChoosingWorkspace(true);
     try {
+      logWorkspaceTransition("workspace_create_client_started", buildWorkspaceInteractionLogDetails(
+        sessionVerificationState,
+        session,
+        activeWorkspace,
+        availableWorkspaces,
+        cloudSettings,
+        null,
+        null,
+      ));
       const createdWorkspace = await createWorkspaceRequest(trimmedName);
+      logWorkspaceTransition("workspace_create_client_succeeded", buildWorkspaceInteractionLogDetails(
+        sessionVerificationState,
+        session,
+        activeWorkspace,
+        availableWorkspaces,
+        cloudSettings,
+        createdWorkspace.workspaceId,
+        null,
+      ));
       const nextWorkspaces = replaceWorkspaceSummary(availableWorkspaces, createdWorkspace);
       await activateWorkspace(session, nextWorkspaces, createdWorkspace);
     } catch (error) {
@@ -426,12 +507,30 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       }
 
       const nextErrorMessage = getErrorMessage(error);
+      logWorkspaceTransitionError("workspace_create_client_failed", buildWorkspaceInteractionLogDetails(
+        sessionVerificationState,
+        session,
+        activeWorkspace,
+        availableWorkspaces,
+        cloudSettings,
+        null,
+        nextErrorMessage,
+      ));
       setErrorMessage(nextErrorMessage);
       throw error;
     } finally {
       setIsChoosingWorkspace(false);
     }
-  }, [activateWorkspace, availableWorkspaces, session, sessionVerificationState, setErrorMessage, setIsChoosingWorkspace]);
+  }, [
+    activateWorkspace,
+    activeWorkspace,
+    availableWorkspaces,
+    cloudSettings,
+    session,
+    sessionVerificationState,
+    setErrorMessage,
+    setIsChoosingWorkspace,
+  ]);
 
   const renameWorkspace = useCallback(async function renameWorkspace(
     workspaceId: string,

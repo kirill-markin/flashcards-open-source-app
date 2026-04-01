@@ -11,6 +11,7 @@ import {
 import {
   observeDeleteWorkspaceDialogState,
   trackedClick,
+  trackedExpectAttribute,
   trackedExpectNotText,
   trackedExpectText,
   trackedExpectVisible,
@@ -362,7 +363,22 @@ async function createEphemeralWorkspace(
     "open current workspace settings",
     page.getByRole("navigation", { name: "Settings tabs" }).getByRole("link", { name: "Current Workspace", exact: true }),
   );
-  await trackedClick(diagnostics, "expand workspace picker card", page.getByRole("button", { name: "Workspace" }));
+  const workspaceActionCard = page.getByRole("button", { name: "Workspace" });
+  await trackedExpectAttribute(
+    diagnostics,
+    "wait for workspace management readiness",
+    workspaceActionCard,
+    "data-workspace-management-state",
+    "ready",
+    externalUiTimeoutMs,
+  );
+  await trackedClick(diagnostics, "expand workspace picker card", workspaceActionCard);
+  await trackedExpectVisible(
+    diagnostics,
+    "confirm workspace picker is visible",
+    page.locator(".settings-workspace-picker"),
+    externalUiTimeoutMs,
+  );
   await trackedClick(
     diagnostics,
     "open new workspace form",

@@ -87,6 +87,19 @@ export async function trackedExpectVisible(
   });
 }
 
+export async function trackedExpectAttribute(
+  diagnostics: LiveSmokeDiagnostics,
+  actionName: string,
+  locator: Locator,
+  attributeName: string,
+  expectedValue: string,
+  timeoutMs: number,
+): Promise<void> {
+  await diagnostics.runAction(actionName, async () => {
+    await expect(locator).toHaveAttribute(attributeName, expectedValue, { timeout: timeoutMs });
+  });
+}
+
 export async function trackedExpectText(
   diagnostics: LiveSmokeDiagnostics,
   actionName: string,
