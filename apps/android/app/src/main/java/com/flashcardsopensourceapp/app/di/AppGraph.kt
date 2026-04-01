@@ -36,11 +36,31 @@ import com.flashcardsopensourceapp.data.local.repository.LocalWorkspaceRepositor
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+
+sealed interface AppStartupState {
+    data object Loading : AppStartupState
+    data object Ready : AppStartupState
+    data class Failed(val message: String) : AppStartupState
+}
 
 class AppGraph(
     context: Context
 ) {
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val startupStateMutable = MutableStateFlow<AppStartupState>(AppStartupState.Loading)
+    private var startupJob: Job? = null
+
     val appMessageBus = AppMessageBus()
     val appHandoffCoordinator = AppHandoffCoordinator()
     val database: AppDatabase = buildAppDatabase(context = context)
@@ -131,10 +151,29 @@ class AppGraph(
         reviewPreferencesStore = reviewPreferencesStore,
         reviewNotificationsStore = reviewNotificationsStore
     )
+    val startupState: StateFlow<AppStartupState> = startupStateMutable.asStateFlow()
 
     init {
-        runBlocking {
-            cloudGuestSessionCoordinator.reconcilePersistedCloudStateForStartup()
+        startStartup()
+    }
+
+    private fun startStartup() {
+        startupJob?.cancel()
+        startupStateMutable.value = AppStartupState.Loading
+        startupJob = appScope.launch {
+            try {
+                cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
+                ensureLocalWorkspaceShell(currentTimeMillis = System.currentTimeMillis())
+                cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
+                cloudGuestSessionCoordinator.reconcilePersistedCloudStateForStartup()
+                startupStateMutable.value = AppStartupState.Ready
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                startupStateMutable.value = AppStartupState.Failed(
+                    message = error.message ?: "Android startup failed."
+                )
+            }
         }
     }
 
@@ -143,8 +182,31 @@ class AppGraph(
             database = database,
             currentTimeMillis = currentTimeMillis
         )
+        cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
     }
+
+    suspend fun awaitStartup() {
+        when (val currentStartupState = startupState.first { state ->
+            state !is AppStartupState.Loading
+        }) {
+            AppStartupState.Ready -> Unit
+            is AppStartupState.Failed -> {
+                throw IllegalStateException(currentStartupState.message)
+            }
+
+            AppStartupState.Loading -> {
+                throw IllegalStateException("Android startup is still loading.")
+            }
+        }
+    }
+
+    fun retryStartup() {
+        startStartup()
+    }
+
     fun close() {
+        startupJob?.cancel()
+        appScope.cancel()
         closeAppDatabase(database = database)
     }
 }

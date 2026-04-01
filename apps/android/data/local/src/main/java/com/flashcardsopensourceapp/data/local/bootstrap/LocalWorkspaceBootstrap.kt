@@ -97,7 +97,7 @@ private suspend fun ensureLocalWorkspaceDependencies(
     }
 }
 
-private fun ensureAppLocalSettings(
+private suspend fun ensureAppLocalSettings(
     database: AppDatabase,
     workspaceId: String,
     currentTimeMillis: Long

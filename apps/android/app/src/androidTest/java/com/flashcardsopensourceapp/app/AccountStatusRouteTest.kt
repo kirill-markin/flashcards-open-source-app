@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.feature.settings.AccountStatusRoute
@@ -54,7 +55,7 @@ class AccountStatusRouteTest {
             "Use Log out to clear local cloud identity on this device before reconnecting."
         ).assertIsDisplayed()
         composeRule.onNodeWithText("Sync now").assertIsNotEnabled()
+        composeRule.onNodeWithText("Log out").performScrollTo()
         composeRule.onNodeWithText("Log out").assertIsDisplayed()
     }
 }
-

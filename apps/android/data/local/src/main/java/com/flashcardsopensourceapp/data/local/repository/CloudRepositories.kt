@@ -764,6 +764,7 @@ class LocalSyncRepository(
     override suspend fun syncNow() {
         operationCoordinator.runExclusive {
             val currentCloudSettings = preferencesStore.currentCloudSettings()
+            val previousCloudState = currentCloudSettings.cloudState
             val currentStatus = syncStatusState.value.status
             if (currentStatus is SyncStatus.Blocked) {
                 if (currentStatus.installationId == currentCloudSettings.installationId) {
@@ -780,6 +781,7 @@ class LocalSyncRepository(
             }
             val reconciliation = cloudGuestSessionCoordinator.reconcilePersistedCloudStateLocked()
             val cloudSettings = reconciliation.cloudSettings
+            val failureWorkspaceId = cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
             if (reconciliation.didRunSync) {
                 syncStatusState.value = SyncStatusSnapshot(
                     status = SyncStatus.Idle,
@@ -788,11 +790,23 @@ class LocalSyncRepository(
                 )
                 return@runExclusive
             }
-            val syncTarget = resolveSyncTarget(cloudSettings = cloudSettings)
-
+            if (
+                previousCloudState != CloudAccountState.GUEST &&
+                cloudSettings.cloudState == CloudAccountState.GUEST &&
+                reconciliation.guestRestoreRequiresSync.not()
+            ) {
+                syncStatusState.value = SyncStatusSnapshot(
+                    status = SyncStatus.Idle,
+                    lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
+                    lastErrorMessage = ""
+                )
+                return@runExclusive
+            }
             syncStatusState.value = syncStatusState.value.copy(status = SyncStatus.Syncing, lastErrorMessage = "")
 
+            var syncTarget: CloudSyncTarget? = null
             try {
+                syncTarget = resolveSyncTarget(cloudSettings = cloudSettings)
                 runCloudSyncCore(
                     cloudSettings = cloudSettings,
                     workspaceId = syncTarget.workspaceId,
@@ -834,7 +848,13 @@ class LocalSyncRepository(
                     )
                     throw error
                 }
-                syncLocalStore.markSyncFailure(syncTarget.workspaceId, error.message ?: "Cloud sync failed.")
+                val workspaceIdForFailure = syncTarget?.workspaceId ?: failureWorkspaceId
+                if (workspaceIdForFailure != null) {
+                    syncLocalStore.markSyncFailure(
+                        workspaceIdForFailure,
+                        error.message ?: "Cloud sync failed."
+                    )
+                }
                 syncStatusState.value = SyncStatusSnapshot(
                     status = SyncStatus.Failed(error.message ?: "Cloud sync failed."),
                     lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,

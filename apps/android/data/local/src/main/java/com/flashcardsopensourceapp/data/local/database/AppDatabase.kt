@@ -283,13 +283,11 @@ val migration4To5: Migration = object : Migration(4, 5) {
                 reviewedAtMillis,
                 reviewedAtServerIso
             )
-            -- v4 stored the server-stamped replica id in the legacy deviceId column.
-            -- v5 keeps the same value and renames the local column to replicaId.
             SELECT
                 reviewLogId,
                 workspaceId,
                 cardId,
-                deviceId,
+                replicaId,
                 clientEventId,
                 rating,
                 reviewedAtMillis,
@@ -335,12 +333,10 @@ val migration4To5: Migration = object : Migration(4, 5) {
                 attemptCount,
                 lastError
             )
-            -- v4 stored the stable installation identity in the legacy deviceId column.
-            -- v5 keeps the same value and renames the local column to installationId.
             SELECT
                 outboxEntryId,
                 workspaceId,
-                deviceId,
+                installationId,
                 entityType,
                 entityId,
                 operationType,

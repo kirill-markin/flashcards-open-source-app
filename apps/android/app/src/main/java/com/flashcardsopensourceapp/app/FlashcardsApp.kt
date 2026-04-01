@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -35,6 +36,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.di.AppStartupState
 import com.flashcardsopensourceapp.app.navigation.AppNavHost
 import com.flashcardsopensourceapp.app.navigation.currentTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
@@ -49,9 +51,32 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
+private const val startupLoadingTag: String = "app.startupLoading"
+private const val startupErrorTag: String = "app.startupError"
+
 @Composable
 fun FlashcardsApp(appGraph: AppGraph) {
     FlashcardsTheme {
+        val startupState by appGraph.startupState.collectAsStateWithLifecycle(
+            initialValue = AppStartupState.Loading
+        )
+        when (val currentStartupState = startupState) {
+            AppStartupState.Loading -> {
+                StartupLoadingScreen()
+                return@FlashcardsTheme
+            }
+
+            is AppStartupState.Failed -> {
+                StartupErrorScreen(
+                    message = currentStartupState.message,
+                    onRetry = appGraph::retryStartup
+                )
+                return@FlashcardsTheme
+            }
+
+            AppStartupState.Ready -> Unit
+        }
+
         val navController = rememberNavController()
         val lifecycleOwner = LocalLifecycleOwner.current
         val currentDestination = currentTopLevelDestination(navController = navController)
@@ -229,6 +254,60 @@ fun FlashcardsApp(appGraph: AppGraph) {
                         appGraph.cloudAccountRepository.retryPendingAccountDeletion()
                     }
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StartupLoadingScreen() {
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag(startupLoadingTag)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+    }
+}
+
+@Composable
+private fun StartupErrorScreen(
+    message: String,
+    onRetry: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag(startupErrorTag)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Startup failed",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Button(onClick = onRetry) {
+                        Text(text = "Retry startup")
+                    }
+                }
             }
         }
     }

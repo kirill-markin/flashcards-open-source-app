@@ -21,6 +21,9 @@ import com.flashcardsopensourceapp.data.local.cloud.RemoteReviewHistoryImportRes
 import com.flashcardsopensourceapp.data.local.cloud.RemoteReviewHistoryPullResponse
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.CardEntity
+import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
+import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
+import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
@@ -41,8 +44,10 @@ import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
+import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.repository.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.CloudGuestSessionCoordinator
 import com.flashcardsopensourceapp.data.local.repository.CloudOperationCoordinator
@@ -93,6 +98,7 @@ class CloudIdentityLifecycleRepositoryTest {
             database = database,
             currentTimeMillis = 100L
         )
+        cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
         resetCoordinator = CloudIdentityResetCoordinator(
             database = database,
             cloudPreferencesStore = cloudPreferencesStore,
@@ -1013,6 +1019,10 @@ class CloudIdentityLifecycleRepositoryTest {
             }
         }
         lockAcquired.await()
+        createWorkspaceShell(
+            workspaceId = "workspace-after-lock",
+            createdAtMillis = 200L
+        )
         cloudPreferencesStore.updateCloudSettings(
             cloudState = CloudAccountState.LINKED,
             linkedUserId = "user-1",
@@ -1067,7 +1077,7 @@ class CloudIdentityLifecycleRepositoryTest {
         )
     }
 
-    private fun prepareLinkedCloudIdentity(localWorkspaceId: String) {
+    private suspend fun prepareLinkedCloudIdentity(localWorkspaceId: String) {
         cloudPreferencesStore.saveCredentials(
             credentials = StoredCloudCredentials(
                 refreshToken = "refresh-token",
@@ -1088,6 +1098,47 @@ class CloudIdentityLifecycleRepositoryTest {
         return requireNotNull(database.workspaceDao().loadAnyWorkspace()?.workspaceId) {
             "Expected a local workspace."
         }
+    }
+
+    private suspend fun createWorkspaceShell(
+        workspaceId: String,
+        createdAtMillis: Long
+    ) {
+        database.workspaceDao().insertWorkspace(
+            WorkspaceEntity(
+                workspaceId = workspaceId,
+                name = localWorkspaceName,
+                createdAtMillis = createdAtMillis
+            )
+        )
+        val schedulerSettings = makeDefaultWorkspaceSchedulerSettings(
+            workspaceId = workspaceId,
+            updatedAtMillis = createdAtMillis
+        )
+        database.workspaceSchedulerSettingsDao().insertWorkspaceSchedulerSettings(
+            WorkspaceSchedulerSettingsEntity(
+                workspaceId = schedulerSettings.workspaceId,
+                algorithm = schedulerSettings.algorithm,
+                desiredRetention = schedulerSettings.desiredRetention,
+                learningStepsMinutesJson = encodeSchedulerStepListJson(schedulerSettings.learningStepsMinutes),
+                relearningStepsMinutesJson = encodeSchedulerStepListJson(schedulerSettings.relearningStepsMinutes),
+                maximumIntervalDays = schedulerSettings.maximumIntervalDays,
+                enableFuzz = schedulerSettings.enableFuzz,
+                updatedAtMillis = schedulerSettings.updatedAtMillis
+            )
+        )
+        database.syncStateDao().insertSyncState(
+            SyncStateEntity(
+                workspaceId = workspaceId,
+                lastSyncCursor = null,
+                lastReviewSequenceId = 0L,
+                hasHydratedHotState = false,
+                hasHydratedReviewHistory = false,
+                lastSyncAttemptAtMillis = null,
+                lastSuccessfulSyncAtMillis = null,
+                lastSyncError = null
+            )
+        )
     }
 
     private fun clearTestPreferences() {
