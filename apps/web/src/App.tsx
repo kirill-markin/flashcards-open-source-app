@@ -12,6 +12,7 @@ import { AppDataProvider, useAppData } from "./appData";
 import { ApiError, buildLoginUrl, buildLogoutLocalUrl, buildLogoutUrl, deleteMyAccount, primeSessionCsrfToken } from "./api";
 import { ChatDraftProvider } from "./chat/ChatDraftContext";
 import { ChatLayoutProvider, useChatLayout } from "./chat/ChatLayoutContext";
+import { ChatSessionControllerProvider } from "./chat/ChatSessionControllerContext";
 import { ChatToggle } from "./chat/ChatToggle";
 import {
   accountAgentConnectionsRoute,
@@ -532,11 +533,13 @@ export default function App(): ReactElement {
   return (
     <AppDataProvider>
       <ChatLayoutProvider>
-        <ChatDraftProvider>
-          <BrowserRouter>
-            <AppShell />
-          </BrowserRouter>
-        </ChatDraftProvider>
+        <ChatSessionControllerProvider>
+          <ChatDraftProvider>
+            <BrowserRouter>
+              <AppShell />
+            </BrowserRouter>
+          </ChatDraftProvider>
+        </ChatSessionControllerProvider>
       </ChatLayoutProvider>
     </AppDataProvider>
   );

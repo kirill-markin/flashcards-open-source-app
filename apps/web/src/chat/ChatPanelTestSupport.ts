@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, vi } from "vitest";
 import type { ChatSessionSnapshot } from "../types";
 import { defaultChatConfig } from "./chatConfig";
 import { ChatDraftProvider } from "./ChatDraftContext";
+import { ChatSessionControllerProvider } from "./ChatSessionControllerContext";
 
 const {
   ApiErrorMock,
@@ -474,9 +475,13 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     await act(async () => {
       root?.render(
         createElement(
-          ChatDraftProvider,
+          ChatSessionControllerProvider,
           null,
-          createElement(ChatPanel, { key: mode, mode }),
+          createElement(
+            ChatDraftProvider,
+            null,
+            createElement(ChatPanel, { key: mode, mode }),
+          ),
         ),
       );
       await Promise.resolve();

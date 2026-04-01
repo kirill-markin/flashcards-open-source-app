@@ -43,6 +43,9 @@ import type {
   ToolCallContentPart,
 } from "../types";
 
+const CHAT_DEBUG_LOG_PREFIX = "chat_debug ";
+const CHAT_DEBUG_STORAGE_KEY = "flashcards-chat-debug";
+
 type UseChatSessionControllerParams = Readonly<{
   workspaceId: string | null;
   isRemoteReady: boolean;
@@ -78,6 +81,9 @@ export type ChatSessionController = Readonly<{
   stopMessage: () => Promise<void>;
   clearConversation: () => Promise<void>;
 }>;
+
+type ChatDebugDetailValue = string | number | boolean | null;
+type ChatDebugDetails = Readonly<Record<string, ChatDebugDetailValue>>;
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -290,6 +296,44 @@ function extractLatestAssistantMessageText(
   return messageText === "" ? null : messageText;
 }
 
+function createChatControllerDebugId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `chat-controller-${String(Date.now())}`;
+}
+
+function isChatDebugLoggingEnabled(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  if (searchParams.get("chatDebug") === "1") {
+    return true;
+  }
+
+  return window.localStorage.getItem(CHAT_DEBUG_STORAGE_KEY) === "true";
+}
+
+function logChatControllerDebug(
+  controllerId: string,
+  event: string,
+  details: ChatDebugDetails,
+): void {
+  if (isChatDebugLoggingEnabled() === false) {
+    return;
+  }
+
+  console.info(`${CHAT_DEBUG_LOG_PREFIX}${JSON.stringify({
+    source: "useChatSessionController",
+    controllerId,
+    event,
+    ...details,
+  })}`);
+}
+
 function toAssistantToolCallContentPart(
   event: Extract<ChatLiveEvent, { type: "assistant_tool_call" }>,
 ): ToolCallContentPart {
@@ -334,6 +378,8 @@ export function useChatSessionController(
   params: UseChatSessionControllerParams,
 ): ChatSessionController {
   const { workspaceId, isRemoteReady, onMainContentInvalidated } = params;
+  const controllerIdRef = useRef<string>(createChatControllerDebugId());
+  const controllerId = controllerIdRef.current;
   const initialWarmStartSnapshotRef = useRef<WarmStartChatSessionSnapshot | null>(
     loadChatSessionWarmStartSnapshot(workspaceId),
   );
@@ -384,6 +430,19 @@ export function useChatSessionController(
 
   const isAssistantRunActive = isChatRunActive(runState);
   const composerAction = getChatComposerAction(runState);
+
+  const debugLog = useCallback((event: string, details: ChatDebugDetails): void => {
+    logChatControllerDebug(controllerId, event, details);
+  }, [controllerId]);
+
+  useEffect(() => {
+    debugLog("controller_mounted", {
+      workspaceId,
+      isRemoteReady,
+      currentSessionId,
+      isHistoryLoaded,
+    });
+  }, []);
 
   useEffect(() => {
     runStateRef.current = runState;
@@ -527,7 +586,7 @@ export function useChatSessionController(
       snapshotRequestVersionRef.current = requestVersion;
       void (async (): Promise<void> => {
         try {
-          const snapshot = await loadChatSnapshot(sessionId, true, requestVersion);
+          const snapshot = await loadChatSnapshot(sessionId, true, requestVersion, "unexpected_stream_end");
           if (snapshot === null) {
             return;
           }
@@ -577,52 +636,82 @@ export function useChatSessionController(
     sessionId: string | undefined,
     replaceHistory: boolean,
     requestVersion: number,
+    trigger: string,
   ): Promise<ChatSessionSnapshot | null> => {
-    const snapshot = await getChatSnapshot(sessionId);
-    if (requestVersion !== snapshotRequestVersionRef.current) {
-      return null;
-    }
-
-    const isUserStoppedSession = stoppedSessionIdsRef.current.has(snapshot.sessionId);
-    const effectiveRunState = getEffectiveSnapshotRunState(snapshot.runState, isUserStoppedSession);
-    const nextMainContentInvalidationVersion = snapshot.mainContentInvalidationVersion;
-
-    const shouldReplaceVisibleMessages = replaceHistory
-      && areMessagesEqual(messagesRef.current, snapshot.messages) === false;
-    const shouldUpdateChatConfig = areChatConfigsEqual(chatConfigRef.current, snapshot.chatConfig) === false;
-
-    setCurrentSessionId(snapshot.sessionId);
-    setKnownLiveCursor(snapshot.liveCursor);
-    updateRunState(effectiveRunState);
-    setMainContentInvalidationVersion(nextMainContentInvalidationVersion);
-    if (shouldUpdateChatConfig) {
-      setChatConfig(snapshot.chatConfig);
-    }
-    setComposerNotice(null);
-    storeChatConfig(snapshot.chatConfig);
-
-    if (hasObservedMainContentInvalidationVersionRef.current) {
-      if (nextMainContentInvalidationVersion > lastMainContentInvalidationVersionRef.current) {
-        onMainContentInvalidatedRef.current(nextMainContentInvalidationVersion);
+    debugLog("snapshot_request_started", {
+      workspaceId,
+      currentSessionId: sessionId ?? null,
+      replaceHistory,
+      requestVersion,
+      trigger,
+    });
+    try {
+      const snapshot = await getChatSnapshot(sessionId);
+      if (requestVersion !== snapshotRequestVersionRef.current) {
+        return null;
       }
-    } else {
-      hasObservedMainContentInvalidationVersionRef.current = true;
+
+      const isUserStoppedSession = stoppedSessionIdsRef.current.has(snapshot.sessionId);
+      const effectiveRunState = getEffectiveSnapshotRunState(snapshot.runState, isUserStoppedSession);
+      const nextMainContentInvalidationVersion = snapshot.mainContentInvalidationVersion;
+
+      const shouldReplaceVisibleMessages = replaceHistory
+        && areMessagesEqual(messagesRef.current, snapshot.messages) === false;
+      const shouldUpdateChatConfig = areChatConfigsEqual(chatConfigRef.current, snapshot.chatConfig) === false;
+
+      setCurrentSessionId(snapshot.sessionId);
+      setKnownLiveCursor(snapshot.liveCursor);
+      updateRunState(effectiveRunState);
+      setMainContentInvalidationVersion(nextMainContentInvalidationVersion);
+      if (shouldUpdateChatConfig) {
+        setChatConfig(snapshot.chatConfig);
+      }
+      setComposerNotice(null);
+      storeChatConfig(snapshot.chatConfig);
+
+      if (hasObservedMainContentInvalidationVersionRef.current) {
+        if (nextMainContentInvalidationVersion > lastMainContentInvalidationVersionRef.current) {
+          onMainContentInvalidatedRef.current(nextMainContentInvalidationVersion);
+        }
+      } else {
+        hasObservedMainContentInvalidationVersionRef.current = true;
+      }
+      lastMainContentInvalidationVersionRef.current = nextMainContentInvalidationVersion;
+
+      if (shouldReplaceVisibleMessages) {
+        replaceMessages(snapshot.messages);
+      }
+
+      lastSnapshotUpdatedAtRef.current = lastSnapshotUpdatedAtRef.current === null
+        ? snapshot.updatedAt
+        : Math.max(lastSnapshotUpdatedAtRef.current, snapshot.updatedAt);
+
+      debugLog("snapshot_request_succeeded", {
+        workspaceId,
+        currentSessionId: snapshot.sessionId,
+        replaceHistory,
+        requestVersion,
+        trigger,
+        runState: snapshot.runState,
+        messageCount: snapshot.messages.length,
+      });
+
+      return {
+        ...snapshot,
+        runState: effectiveRunState,
+      };
+    } catch (error) {
+      debugLog("snapshot_request_failed", {
+        workspaceId,
+        currentSessionId: sessionId ?? null,
+        replaceHistory,
+        requestVersion,
+        trigger,
+        message: toErrorMessage(error),
+      });
+      throw error;
     }
-    lastMainContentInvalidationVersionRef.current = nextMainContentInvalidationVersion;
-
-    if (shouldReplaceVisibleMessages) {
-      replaceMessages(snapshot.messages);
-    }
-
-    lastSnapshotUpdatedAtRef.current = lastSnapshotUpdatedAtRef.current === null
-      ? snapshot.updatedAt
-      : Math.max(lastSnapshotUpdatedAtRef.current, snapshot.updatedAt);
-
-    return {
-      ...snapshot,
-      runState: effectiveRunState,
-    };
-  }, [replaceMessages, setKnownLiveCursor, updateRunState]);
+  }, [debugLog, replaceMessages, setKnownLiveCursor, updateRunState, workspaceId]);
 
   const refreshVisibleSnapshot = useCallback((): void => {
     if (
@@ -642,7 +731,12 @@ export function useChatSessionController(
     let refreshPromise: Promise<void> | null = null;
     refreshPromise = (async (): Promise<void> => {
       try {
-        const snapshot = await loadChatSnapshot(currentSessionId ?? undefined, true, requestVersion);
+        const snapshot = await loadChatSnapshot(
+          currentSessionId ?? undefined,
+          true,
+          requestVersion,
+          "visible_resume",
+        );
         if (snapshot === null || isDocumentVisibleRef.current === false) {
           return;
         }
@@ -744,7 +838,7 @@ export function useChatSessionController(
 
     void (async (): Promise<void> => {
       try {
-        const snapshot = await loadChatSnapshot(undefined, true, requestVersion);
+        const snapshot = await loadChatSnapshot(undefined, true, requestVersion, "initial_hydration");
         if (isDisposed || snapshot === null) {
           return;
         }
