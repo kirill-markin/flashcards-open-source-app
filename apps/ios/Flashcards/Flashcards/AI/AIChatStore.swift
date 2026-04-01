@@ -1136,7 +1136,7 @@ final class AIChatStore {
     }
 }
 
-private func isOptimisticAIChatStatusContent(content: [AIChatContentPart]) -> Bool {
+func isOptimisticAIChatStatusContent(content: [AIChatContentPart]) -> Bool {
     guard content.count == 1 else {
         return false
     }

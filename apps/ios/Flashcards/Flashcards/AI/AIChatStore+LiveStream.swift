@@ -456,7 +456,8 @@ extension AIChatStore {
         guard self.isChatInteractive else {
             return
         }
-        guard self.flashcardsStore.cloudSettings?.cloudState == .linked else {
+        let cloudState = self.flashcardsStore.cloudSettings?.cloudState
+        guard cloudState == .linked || cloudState == .guest else {
             return
         }
         guard self.hasExternalProviderConsent else {
@@ -501,13 +502,51 @@ extension AIChatStore {
             guard self.shouldKeepLiveAttached else {
                 return
             }
-            self.composerPhase = .idle
-            self.showGeneralError(message: message)
+            await self.reconcileFailedLiveStreamTermination(
+                sessionId: sessionId,
+                fallbackMessage: message
+            )
         case .endedWithoutTerminalEvent:
             guard self.shouldKeepLiveAttached else {
                 return
             }
             await self.reconcileUnexpectedLiveStreamEnd(sessionId: sessionId)
+        }
+    }
+
+    func reconcileFailedLiveStreamTermination(
+        sessionId: String,
+        fallbackMessage: String
+    ) async {
+        do {
+            let session = try await self.flashcardsStore.cloudSessionForAI()
+            let response = try await self.chatService.loadBootstrap(
+                session: session,
+                sessionId: sessionId,
+                limit: aiChatBootstrapPageLimit
+            )
+            self.applyBootstrap(response)
+
+            if let errorMessage = aiChatLatestAssistantErrorMessage(messages: response.messages) {
+                self.composerPhase = .idle
+                self.showGeneralError(message: errorMessage)
+                return
+            }
+
+            if response.runState == "running" {
+                self.attachBootstrapLiveIfNeeded(response: response, session: session)
+                return
+            }
+
+            self.composerPhase = .idle
+            if self.messages.last.map({ message in
+                message.role == .assistant && isOptimisticAIChatStatusContent(content: message.content)
+            }) == true {
+                self.markAssistantError(message: fallbackMessage)
+            }
+        } catch {
+            self.composerPhase = .idle
+            self.showGeneralError(message: Flashcards.errorMessage(error: error))
         }
     }
 

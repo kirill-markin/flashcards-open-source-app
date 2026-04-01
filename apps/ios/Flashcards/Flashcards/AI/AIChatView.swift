@@ -442,6 +442,9 @@ struct AIChatView: View {
         grantAIChatExternalProviderConsent(userDefaults: self.flashcardsStore.userDefaults)
         self.hasAcceptedExternalAIConsent = true
         self.chatStore.activateWorkspace()
+        self.chatStore.setChatVisibility(
+            isVisible: self.scenePhase == .active && self.navigation.selectedTab == .ai
+        )
         self.handleAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
         if self.chatStore.isChatInteractive {
             self.chatStore.warmUpSessionIfNeeded()
