@@ -10,6 +10,8 @@ import {
   startChatRunMock,
   useAppDataMock,
 } from "./ChatPanelTestSupport";
+import { storeChatSessionWarmStartSnapshot } from "./chatSessionWarmStart";
+import { defaultChatConfig } from "./chatConfig";
 
 const {
   flushAsync,
@@ -90,7 +92,7 @@ describe("ChatPanel send lifecycle", () => {
     expect(getContainer().textContent).not.toContain("Try asking:");
   });
 
-  it("preserves the visible transcript while the session is revalidating", async () => {
+  it("preserves the visible transcript while the session is revalidating without showing a restore notice", async () => {
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
       sessionId: "session-1",
       messages: [{
@@ -104,6 +106,23 @@ describe("ChatPanel send lifecycle", () => {
 
     await renderChatPanel();
     await flushAsync();
+
+    storeChatSessionWarmStartSnapshot("workspace-1", {
+      sessionId: "session-1",
+      runState: "idle",
+      updatedAt: 1,
+      mainContentInvalidationVersion: 0,
+      liveCursor: null,
+      liveStream: null,
+      chatConfig: defaultChatConfig,
+      messages: [{
+        role: "assistant",
+        content: [{ type: "text", text: "Existing response" }],
+        timestamp: 1,
+        isError: false,
+        isStopped: false,
+      }],
+    });
 
     useAppDataMock.mockReturnValue({
       sessionVerificationState: "unverified",
@@ -124,7 +143,7 @@ describe("ChatPanel send lifecycle", () => {
     await flushAsync();
 
     expect(getContainer().textContent).toContain("Existing response");
-    expect(getContainer().textContent).toContain("Restoring session...");
+    expect(getContainer().textContent).not.toContain("Restoring session...");
     expect(getContainer().textContent).not.toContain("Try asking:");
   });
 
@@ -164,7 +183,47 @@ describe("ChatPanel send lifecycle", () => {
     await flushAsync();
 
     expect(getChatSnapshotMock).not.toHaveBeenCalled();
-    expect(getContainer().textContent).toContain("Restoring session...");
+    expect(getContainer().textContent).toContain("Loading AI chat");
+  });
+
+  it("uses the persisted chat snapshot as the first paint while refresh is pending", async () => {
+    storeChatSessionWarmStartSnapshot("workspace-1", {
+      sessionId: "session-1",
+      runState: "idle",
+      updatedAt: 1,
+      mainContentInvalidationVersion: 0,
+      liveCursor: null,
+      liveStream: null,
+      chatConfig: defaultChatConfig,
+      messages: [{
+        role: "assistant",
+        content: [{ type: "text", text: "Warm start response" }],
+        timestamp: 1,
+        isError: false,
+        isStopped: false,
+      }],
+    });
+    getChatSnapshotMock.mockImplementation(() => new Promise(() => undefined));
+    useAppDataMock.mockReturnValue({
+      sessionVerificationState: "unverified",
+      activeWorkspace: {
+        workspaceId: "workspace-1",
+        name: "Primary",
+        createdAt: "2026-03-10T00:00:00.000Z",
+        isSelected: true,
+      },
+      isSessionVerified: false,
+      localCardCount: 1,
+      refreshLocalData: vi.fn(async (): Promise<void> => undefined),
+      runSync: vi.fn(async (): Promise<void> => undefined),
+      setErrorMessage: vi.fn(),
+    });
+
+    await renderChatPanel();
+
+    expect(getContainer().textContent).toContain("Warm start response");
+    expect(getContainer().textContent).not.toContain("Loading AI chat");
+    expect(getContainer().textContent).not.toContain("Try asking:");
   });
 
   it("sends only one POST /chat while async preflight is in progress", async () => {

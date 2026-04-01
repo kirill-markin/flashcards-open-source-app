@@ -15,6 +15,7 @@ const APP_LOCAL_STORAGE_KEYS: ReadonlyArray<string> = [
   "flashcards-sync-device-ids",
   "selected-review-filter",
   "flashcards-chat-messages",
+  "flashcards-chat-session-snapshot",
   "flashcards-chat-open",
   "flashcards-chat-width",
   "flashcards-chat-model",

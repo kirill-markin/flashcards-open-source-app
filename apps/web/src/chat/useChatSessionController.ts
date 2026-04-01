@@ -6,7 +6,6 @@ import {
   startChatRun,
   stopChatRun,
 } from "../api";
-import type { ContentPart } from "../types";
 import type { PendingAttachment } from "./FileAttachment";
 import {
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
@@ -25,13 +24,20 @@ import {
 import {
   OPTIMISTIC_ASSISTANT_STATUS_TEXT,
   useChatHistory,
+  type StoredMessage,
 } from "./useChatHistory";
 import { defaultChatConfig, loadStoredChatConfig, storeChatConfig } from "./chatConfig";
 import type { ChatSessionSnapshot } from "./chatSessionSnapshot";
+import {
+  loadChatSessionWarmStartSnapshot,
+  storeChatSessionWarmStartSnapshot,
+  type WarmStartChatSessionSnapshot,
+} from "./chatSessionWarmStart";
 import { consumeChatLiveStream, type ChatLiveEvent } from "./liveStream";
 import type {
   ChatConfig,
   ChatLiveStream,
+  ContentPart,
   ReasoningSummaryContentPart,
   ToolCallContentPart,
 } from "../types";
@@ -100,6 +106,154 @@ type ActiveLiveStreamConnection = Readonly<{
   abortController: AbortController;
 }>;
 
+type StreamPosition = Readonly<{
+  itemId: string;
+  responseIndex?: number;
+  outputIndex: number;
+  contentIndex: number | null;
+  sequenceNumber: number | null;
+}>;
+
+function areStreamPositionsEqual(
+  left: StreamPosition | undefined,
+  right: StreamPosition | undefined,
+): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (left === undefined || right === undefined) {
+    return false;
+  }
+
+  return left.itemId === right.itemId
+    && left.responseIndex === right.responseIndex
+    && left.outputIndex === right.outputIndex
+    && left.contentIndex === right.contentIndex
+    && left.sequenceNumber === right.sequenceNumber;
+}
+
+function areContentPartsEqual(
+  left: ReadonlyArray<ContentPart>,
+  right: ReadonlyArray<ContentPart>,
+): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftPart = left[index];
+    const rightPart = right[index];
+
+    if (leftPart?.type !== rightPart?.type) {
+      return false;
+    }
+
+    switch (leftPart?.type) {
+      case "text":
+        if (rightPart.type !== "text" || leftPart.text !== rightPart.text) {
+          return false;
+        }
+        break;
+      case "image":
+        if (
+          rightPart.type !== "image"
+          || leftPart.mediaType !== rightPart.mediaType
+          || leftPart.base64Data !== rightPart.base64Data
+        ) {
+          return false;
+        }
+        break;
+      case "file":
+        if (
+          rightPart.type !== "file"
+          || leftPart.mediaType !== rightPart.mediaType
+          || leftPart.base64Data !== rightPart.base64Data
+          || leftPart.fileName !== rightPart.fileName
+        ) {
+          return false;
+        }
+        break;
+      case "tool_call":
+        if (
+          rightPart.type !== "tool_call"
+          || leftPart.id !== rightPart.id
+          || leftPart.name !== rightPart.name
+          || leftPart.status !== rightPart.status
+          || leftPart.providerStatus !== rightPart.providerStatus
+          || leftPart.input !== rightPart.input
+          || leftPart.output !== rightPart.output
+          || areStreamPositionsEqual(leftPart.streamPosition, rightPart.streamPosition) === false
+        ) {
+          return false;
+        }
+        break;
+      case "reasoning_summary":
+        if (
+          rightPart.type !== "reasoning_summary"
+          || leftPart.reasoningId !== rightPart.reasoningId
+          || leftPart.summary !== rightPart.summary
+          || leftPart.status !== rightPart.status
+          || areStreamPositionsEqual(leftPart.streamPosition, rightPart.streamPosition) === false
+        ) {
+          return false;
+        }
+        break;
+      default:
+        return false;
+    }
+  }
+
+  return true;
+}
+
+function areMessagesEqual(
+  left: ReadonlyArray<StoredMessage>,
+  right: ReadonlyArray<StoredMessage>,
+): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftMessage = left[index];
+    const rightMessage = right[index];
+
+    if (
+      leftMessage?.role !== rightMessage?.role
+      || leftMessage.timestamp !== rightMessage.timestamp
+      || leftMessage.isError !== rightMessage.isError
+      || leftMessage.isStopped !== rightMessage.isStopped
+      || areContentPartsEqual(leftMessage.content, rightMessage.content) === false
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function areChatConfigsEqual(left: ChatConfig, right: ChatConfig): boolean {
+  return left.provider.id === right.provider.id
+    && left.provider.label === right.provider.label
+    && left.model.id === right.model.id
+    && left.model.label === right.model.label
+    && left.model.badgeLabel === right.model.badgeLabel
+    && left.reasoning.effort === right.reasoning.effort
+    && left.reasoning.label === right.reasoning.label
+    && left.features.modelPickerEnabled === right.features.modelPickerEnabled
+    && left.features.dictationEnabled === right.features.dictationEnabled
+    && left.features.attachmentsEnabled === right.features.attachmentsEnabled;
+}
+
 function toAssistantToolCallContentPart(
   event: Extract<ChatLiveEvent, { type: "assistant_tool_call" }>,
 ): ToolCallContentPart {
@@ -144,6 +298,10 @@ export function useChatSessionController(
   params: UseChatSessionControllerParams,
 ): ChatSessionController {
   const { workspaceId, isRemoteReady, onMainContentInvalidated } = params;
+  const initialWarmStartSnapshotRef = useRef<WarmStartChatSessionSnapshot | null>(
+    loadChatSessionWarmStartSnapshot(workspaceId),
+  );
+  const initialWarmStartSnapshot = initialWarmStartSnapshotRef.current;
   const {
     messages,
     replaceMessages,
@@ -156,24 +314,35 @@ export function useChatSessionController(
     finishAssistantMessage,
     markAssistantError,
     clearHistory,
-  } = useChatHistory();
+  } = useChatHistory(initialWarmStartSnapshot?.messages ?? []);
 
-  const [isHistoryLoaded, setIsHistoryLoaded] = useState<boolean>(false);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [isHistoryLoaded, setIsHistoryLoaded] = useState<boolean>(
+    initialWarmStartSnapshot !== null || workspaceId === null,
+  );
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(
+    initialWarmStartSnapshot?.sessionId ?? null,
+  );
   const [runState, setRunState] = useState<ChatRunState>("idle");
   const [isStopping, setIsStopping] = useState<boolean>(false);
-  const [mainContentInvalidationVersion, setMainContentInvalidationVersion] = useState<number>(0);
-  const [chatConfig, setChatConfig] = useState<ChatConfig>(() => loadStoredChatConfig());
+  const [mainContentInvalidationVersion, setMainContentInvalidationVersion] = useState<number>(
+    initialWarmStartSnapshot?.mainContentInvalidationVersion ?? 0,
+  );
+  const [chatConfig, setChatConfig] = useState<ChatConfig>(
+    initialWarmStartSnapshot?.chatConfig ?? loadStoredChatConfig(),
+  );
   const [composerNotice, setComposerNotice] = useState<string | null>(null);
   const [isLiveStreamConnected, setIsLiveStreamConnected] = useState<boolean>(false);
 
-  const lastSnapshotUpdatedAtRef = useRef<number | null>(null);
+  const lastSnapshotUpdatedAtRef = useRef<number | null>(initialWarmStartSnapshot?.updatedAt ?? null);
   const hasObservedMainContentInvalidationVersionRef = useRef<boolean>(false);
   const lastMainContentInvalidationVersionRef = useRef<number>(0);
-  const hydratedWorkspaceIdRef = useRef<string | null>(null);
+  const hydratedWorkspaceIdRef = useRef<string | null>(initialWarmStartSnapshot?.workspaceId ?? null);
   const stoppedSessionIdsRef = useRef<Set<string>>(new Set());
   const activeLiveConnectionRef = useRef<ActiveLiveStreamConnection | null>(null);
   const runStateRef = useRef<ChatRunState>("idle");
+  const messagesRef = useRef<ReadonlyArray<StoredMessage>>(messages);
+  const chatConfigRef = useRef<ChatConfig>(chatConfig);
+  const snapshotRequestVersionRef = useRef<number>(0);
 
   const isAssistantRunActive = isChatRunActive(runState);
   const composerAction = getChatComposerAction(runState);
@@ -181,6 +350,14 @@ export function useChatSessionController(
   useEffect(() => {
     runStateRef.current = runState;
   }, [runState]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    chatConfigRef.current = chatConfig;
+  }, [chatConfig]);
 
   const detachLiveStream = useCallback((sessionId: string | null): void => {
     const activeConnection = activeLiveConnectionRef.current;
@@ -327,19 +504,51 @@ export function useChatSessionController(
     });
   }, [applyLiveEvent, detachLiveStream, finalizeInterruptedRun, markAssistantError]);
 
+  const applyWarmStartSnapshot = useCallback((nextWorkspaceId: string): boolean => {
+    const warmStartSnapshot = loadChatSessionWarmStartSnapshot(nextWorkspaceId);
+    if (warmStartSnapshot === null) {
+      return false;
+    }
+
+    detachLiveStream(null);
+    replaceMessages(warmStartSnapshot.messages);
+    setCurrentSessionId(warmStartSnapshot.sessionId);
+    setRunState("idle");
+    setIsStopping(false);
+    setIsLiveStreamConnected(false);
+    setMainContentInvalidationVersion(warmStartSnapshot.mainContentInvalidationVersion);
+    setChatConfig(warmStartSnapshot.chatConfig);
+    setComposerNotice(null);
+    setIsHistoryLoaded(true);
+    lastSnapshotUpdatedAtRef.current = warmStartSnapshot.updatedAt;
+    hydratedWorkspaceIdRef.current = nextWorkspaceId;
+    return true;
+  }, [detachLiveStream, replaceMessages]);
+
   const loadChatSnapshot = useCallback(async (
     sessionId: string | undefined,
     replaceHistory: boolean,
-  ): Promise<ChatSessionSnapshot> => {
+    requestVersion: number,
+  ): Promise<ChatSessionSnapshot | null> => {
     const snapshot = await getChatSnapshot(sessionId);
+    if (requestVersion !== snapshotRequestVersionRef.current) {
+      return null;
+    }
+
     const isUserStoppedSession = stoppedSessionIdsRef.current.has(snapshot.sessionId);
     const effectiveRunState = getEffectiveSnapshotRunState(snapshot.runState, isUserStoppedSession);
     const nextMainContentInvalidationVersion = snapshot.mainContentInvalidationVersion;
 
+    const shouldReplaceVisibleMessages = replaceHistory
+      && areMessagesEqual(messagesRef.current, snapshot.messages) === false;
+    const shouldUpdateChatConfig = areChatConfigsEqual(chatConfigRef.current, snapshot.chatConfig) === false;
+
     setCurrentSessionId(snapshot.sessionId);
     setRunState(effectiveRunState);
     setMainContentInvalidationVersion(nextMainContentInvalidationVersion);
-    setChatConfig(snapshot.chatConfig);
+    if (shouldUpdateChatConfig) {
+      setChatConfig(snapshot.chatConfig);
+    }
     setComposerNotice(null);
     storeChatConfig(snapshot.chatConfig);
 
@@ -352,7 +561,7 @@ export function useChatSessionController(
     }
     lastMainContentInvalidationVersionRef.current = nextMainContentInvalidationVersion;
 
-    if (replaceHistory && (lastSnapshotUpdatedAtRef.current === null || snapshot.updatedAt > lastSnapshotUpdatedAtRef.current)) {
+    if (shouldReplaceVisibleMessages) {
       replaceMessages(snapshot.messages);
     }
 
@@ -390,6 +599,7 @@ export function useChatSessionController(
     const isWorkspaceTransition = hydratedWorkspaceIdRef.current !== workspaceId;
 
     if (workspaceId === null) {
+      snapshotRequestVersionRef.current += 1;
       resetControllerState(true);
       hydratedWorkspaceIdRef.current = null;
       setIsHistoryLoaded(true);
@@ -400,9 +610,12 @@ export function useChatSessionController(
 
     if (!isRemoteReady) {
       if (isWorkspaceTransition) {
-        resetControllerState(true);
+        const didApplyWarmStartSnapshot = applyWarmStartSnapshot(workspaceId);
+        if (didApplyWarmStartSnapshot === false) {
+          resetControllerState(true);
+        }
       }
-      setComposerNotice("Restoring session...");
+      snapshotRequestVersionRef.current += 1;
       return () => {
         isDisposed = true;
       };
@@ -412,10 +625,13 @@ export function useChatSessionController(
       resetControllerState(true);
     }
 
+    const requestVersion = snapshotRequestVersionRef.current + 1;
+    snapshotRequestVersionRef.current = requestVersion;
+
     void (async (): Promise<void> => {
       try {
-        const snapshot = await loadChatSnapshot(undefined, true);
-        if (isDisposed) {
+        const snapshot = await loadChatSnapshot(undefined, true, requestVersion);
+        if (isDisposed || snapshot === null) {
           return;
         }
 
@@ -429,7 +645,7 @@ export function useChatSessionController(
           return;
         }
 
-        if (isWorkspaceTransition) {
+        if (isWorkspaceTransition && messagesRef.current.length === 0) {
           replaceMessages([{
             role: "assistant",
             content: [{ type: "text", text: `Chat failed to load. ${toErrorMessage(error)}` }],
@@ -437,7 +653,7 @@ export function useChatSessionController(
             isError: true,
             isStopped: false,
           }]);
-        } else {
+        } else if (messagesRef.current.length === 0) {
           setComposerNotice(`Chat refresh failed. ${toErrorMessage(error)}`);
         }
       } finally {
@@ -450,7 +666,40 @@ export function useChatSessionController(
     return () => {
       isDisposed = true;
     };
-  }, [isRemoteReady, loadChatSnapshot, replaceMessages, resetControllerState, startLiveStream, workspaceId]);
+  }, [
+    applyWarmStartSnapshot,
+    isRemoteReady,
+    loadChatSnapshot,
+    replaceMessages,
+    resetControllerState,
+    startLiveStream,
+    workspaceId,
+  ]);
+
+  useEffect(() => {
+    if (workspaceId === null || currentSessionId === null || isHistoryLoaded === false) {
+      return;
+    }
+
+    storeChatSessionWarmStartSnapshot(workspaceId, {
+      sessionId: currentSessionId,
+      runState,
+      updatedAt: lastSnapshotUpdatedAtRef.current ?? Date.now(),
+      mainContentInvalidationVersion,
+      liveCursor: null,
+      liveStream: null,
+      chatConfig,
+      messages,
+    });
+  }, [
+    chatConfig,
+    currentSessionId,
+    isHistoryLoaded,
+    mainContentInvalidationVersion,
+    messages,
+    runState,
+    workspaceId,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -547,6 +796,7 @@ export function useChatSessionController(
   const clearConversation = useCallback(async (): Promise<void> => {
     if (workspaceId === null) {
       detachLiveStream(null);
+      snapshotRequestVersionRef.current += 1;
       clearHistory();
       setCurrentSessionId(null);
       setRunState("idle");
@@ -557,6 +807,7 @@ export function useChatSessionController(
       await stopChatRun(currentSessionId);
     }
 
+    snapshotRequestVersionRef.current += 1;
     detachLiveStream(null);
     const response = await createNewChatSession(currentSessionId ?? undefined);
     clearHistory();
