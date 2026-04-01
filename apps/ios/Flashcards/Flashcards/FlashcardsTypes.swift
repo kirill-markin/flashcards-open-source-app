@@ -528,6 +528,7 @@ enum SyncAction: String, Codable, Hashable {
 enum SyncStatus: Hashable {
     case idle
     case syncing
+    case blocked(message: String)
     case failed(message: String)
 }
 

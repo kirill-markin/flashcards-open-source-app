@@ -9,6 +9,24 @@ import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
+interface AppLocalSettingsDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertSettings(settings: AppLocalSettingsEntity)
+
+    @Update
+    fun updateSettings(settings: AppLocalSettingsEntity)
+
+    @Query("SELECT * FROM app_local_settings WHERE settingsId = 1 LIMIT 1")
+    fun observeSettings(): Flow<AppLocalSettingsEntity?>
+
+    @Query("SELECT * FROM app_local_settings WHERE settingsId = 1 LIMIT 1")
+    fun loadSettings(): AppLocalSettingsEntity?
+
+    @Query("DELETE FROM app_local_settings")
+    fun deleteAllSettings()
+}
+
+@Dao
 interface WorkspaceDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertWorkspace(workspace: WorkspaceEntity)
@@ -87,6 +105,9 @@ interface DeckDao {
 
     @Query("SELECT COUNT(*) FROM decks")
     fun observeDeckCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM decks WHERE deletedAtMillis IS NULL")
+    suspend fun countDecks(): Int
 
     @Query("DELETE FROM decks")
     suspend fun deleteAllDecks()
@@ -233,6 +254,9 @@ interface CardDao {
 
     @Query("SELECT COUNT(*) FROM cards")
     fun observeCardCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM cards WHERE deletedAtMillis IS NULL")
+    suspend fun countActiveCards(): Int
 
     @Query("DELETE FROM cards")
     suspend fun deleteAllCards()

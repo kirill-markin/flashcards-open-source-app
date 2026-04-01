@@ -16,6 +16,11 @@ private enum PersistedCloudStateReconciliationOutcome {
     case stopSync
 }
 
+private let blockedCloudIdentityConflictCodes: Set<String> = [
+    "SYNC_INSTALLATION_PLATFORM_MISMATCH",
+    "SYNC_REPLICA_CONFLICT"
+]
+
 enum FlashcardsUITestResetState: String {
     case localGuest = "local_guest"
     case localGuestSeededManualReviewCard = "local_guest_seeded_manual_review_card"
@@ -446,6 +451,9 @@ extension FlashcardsStore {
     }
 
     func syncCloudNow() async throws {
+        if case .blocked(let message) = self.syncStatus {
+            throw LocalStoreError.validation(message)
+        }
         if self.cloudRuntime.activeCloudSession() == nil {
             if self.cloudSettings?.cloudState == .guest {
                 let restoredGuestSession = try await self.restoreGuestCloudSessionIfNeeded()
@@ -481,15 +489,19 @@ extension FlashcardsStore {
                 now: now
             )
         } catch {
-            self.syncStatus = failureStateCloudState == .linked || failureStateCloudState == .guest
-                ? .failed(message: Flashcards.errorMessage(error: error))
-                : .idle
+            self.syncStatus = self.syncStatusForCloudFailure(
+                error: error,
+                fallbackCloudState: failureStateCloudState
+            )
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
             throw error
         }
     }
 
     func syncCloudIfLinked() async {
+        if self.isCloudSyncBlocked {
+            return
+        }
         if self.userDefaults.bool(forKey: accountDeletionPendingUserDefaultsKey) {
             await self.resumePendingAccountDeletionIfNeeded()
             return
@@ -617,6 +629,9 @@ extension FlashcardsStore {
     }
 
     func cloudSessionForAI() async throws -> CloudLinkedSession {
+        if case .blocked(let message) = self.syncStatus {
+            throw LocalStoreError.validation(message)
+        }
         if self.cloudSettings?.cloudState == .linked {
             return try await self.prepareAuthenticatedCloudSessionForAI()
         }
@@ -820,7 +835,7 @@ extension FlashcardsStore {
             let syncResult = try await self.runLinkedSync(linkedSession: activeSession)
             try await self.applySyncResultWithoutBlockingReset(syncResult: syncResult, now: Date())
         } catch {
-            self.syncStatus = .failed(message: Flashcards.errorMessage(error: error))
+            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
             throw error
         }
@@ -921,7 +936,7 @@ extension FlashcardsStore {
             let syncResult = try await self.runLinkedSync(linkedSession: replacementSession)
             try await self.applySyncResultWithoutBlockingReset(syncResult: syncResult, now: Date())
         } catch {
-            self.syncStatus = .failed(message: Flashcards.errorMessage(error: error))
+            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
             throw error
         }
@@ -1017,7 +1032,7 @@ extension FlashcardsStore {
                 installationId: self.cloudSettings?.installationId,
                 errorMessage: Flashcards.errorMessage(error: error)
             )
-            self.syncStatus = .failed(message: Flashcards.errorMessage(error: error))
+            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
             throw error
         }
@@ -1047,7 +1062,7 @@ extension FlashcardsStore {
                 installationId: self.cloudSettings?.installationId,
                 errorMessage: Flashcards.errorMessage(error: error)
             )
-            self.syncStatus = .failed(message: Flashcards.errorMessage(error: error))
+            self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
             throw error
         }
@@ -1249,8 +1264,51 @@ extension FlashcardsStore {
         self.cloudRuntime.isCloudAuthorizationError(error)
     }
 
+    var isCloudSyncBlocked: Bool {
+        if case .blocked = self.syncStatus {
+            return true
+        }
+        return false
+    }
+
     func isCloudAccountDeletedError(_ error: Error) -> Bool {
         self.cloudRuntime.isCloudAccountDeletedError(error)
+    }
+
+    private func syncStatusForCloudFailure(
+        error: Error,
+        fallbackCloudState: CloudAccountState?
+    ) -> SyncStatus {
+        if let blockedMessage = self.blockedCloudIdentityConflictMessage(error: error) {
+            return .blocked(message: blockedMessage)
+        }
+
+        if fallbackCloudState == .linked || fallbackCloudState == .guest {
+            return .failed(message: Flashcards.errorMessage(error: error))
+        }
+
+        return .idle
+    }
+
+    private func transitionSyncStatusForCloudFailure(error: Error) -> SyncStatus {
+        if let blockedMessage = self.blockedCloudIdentityConflictMessage(error: error) {
+            return .blocked(message: blockedMessage)
+        }
+
+        return .failed(message: Flashcards.errorMessage(error: error))
+    }
+
+    private func blockedCloudIdentityConflictMessage(error: Error) -> String? {
+        guard let syncError = error as? CloudSyncError else {
+            return nil
+        }
+        guard case .invalidResponse(let details, _) = syncError else {
+            return nil
+        }
+        guard blockedCloudIdentityConflictCodes.contains(details.code ?? "") else {
+            return nil
+        }
+        return Flashcards.errorMessage(error: error)
     }
 
     func runPendingAccountDeletion() async {

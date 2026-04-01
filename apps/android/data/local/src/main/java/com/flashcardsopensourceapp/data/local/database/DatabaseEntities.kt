@@ -18,6 +18,18 @@ data class WorkspaceEntity(
     val createdAtMillis: Long
 )
 
+@Entity(tableName = "app_local_settings")
+data class AppLocalSettingsEntity(
+    @PrimaryKey val settingsId: Int,
+    val installationId: String,
+    val cloudState: String,
+    val linkedUserId: String?,
+    val linkedWorkspaceId: String?,
+    val linkedEmail: String?,
+    val activeWorkspaceId: String?,
+    val updatedAtMillis: Long
+)
+
 @Entity(
     tableName = "decks",
     foreignKeys = [

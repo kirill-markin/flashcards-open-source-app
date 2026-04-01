@@ -36,7 +36,7 @@ class SyncLocalStoreContractTest {
             context = context,
             klass = AppDatabase::class.java
         ).allowMainThreadQueries().build()
-        preferencesStore = CloudPreferencesStore(context = context)
+        preferencesStore = CloudPreferencesStore(context = context, database = database)
         syncLocalStore = SyncLocalStore(
             database = database,
             preferencesStore = preferencesStore

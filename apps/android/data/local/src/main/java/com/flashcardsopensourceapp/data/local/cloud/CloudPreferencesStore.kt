@@ -5,6 +5,8 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.flashcardsopensourceapp.data.local.database.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.AppLocalSettingsEntity
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
@@ -15,6 +17,7 @@ import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.runBlocking
 import java.util.UUID
 
 private const val cloudMetadataPreferencesName: String = "flashcards-cloud-metadata"
@@ -34,7 +37,8 @@ private const val idTokenKey: String = "id-token"
 private const val idTokenExpiresAtMillisKey: String = "id-token-expires-at-millis"
 
 class CloudPreferencesStore(
-    context: Context
+    context: Context,
+    private val database: AppDatabase
 ) {
     private val metadataPreferences: SharedPreferences =
         context.getSharedPreferences(cloudMetadataPreferencesName, Context.MODE_PRIVATE)
@@ -63,7 +67,11 @@ class CloudPreferencesStore(
     }
 
     fun currentCloudSettings(): CloudSettings {
-        return cloudSettingsState.value
+        val latestSettings = loadCloudSettings()
+        if (latestSettings != cloudSettingsState.value) {
+            cloudSettingsState.value = latestSettings
+        }
+        return latestSettings
     }
 
     fun currentServerConfiguration(): CloudServiceConfiguration {
@@ -120,23 +128,30 @@ class CloudPreferencesStore(
         activeWorkspaceId: String?
     ) {
         val updatedAtMillis = System.currentTimeMillis()
-        metadataPreferences.edit(commit = true) {
-            putString(cloudStateKey, cloudState.name)
-            putString(linkedUserIdKey, linkedUserId)
-            putString(linkedWorkspaceIdKey, linkedWorkspaceId)
-            putString(linkedEmailKey, linkedEmail)
-            putString(activeWorkspaceIdKey, activeWorkspaceId)
-            putLong(updatedAtMillisKey, updatedAtMillis)
-        }
-        cloudSettingsState.value = loadCloudSettings()
+        val currentSettings = loadCloudSettingsEntity()
+        val updatedSettings = currentSettings.copy(
+            cloudState = cloudState.name,
+            linkedUserId = linkedUserId,
+            linkedWorkspaceId = linkedWorkspaceId,
+            linkedEmail = linkedEmail,
+            activeWorkspaceId = activeWorkspaceId,
+            updatedAtMillis = updatedAtMillis
+        )
+        database.appLocalSettingsDao().insertSettings(updatedSettings)
+        mirrorLegacyCloudSettings(updatedSettings)
+        cloudSettingsState.value = updatedSettings.toCloudSettings()
     }
 
     fun updateActiveWorkspaceId(activeWorkspaceId: String?) {
-        metadataPreferences.edit(commit = true) {
-            putString(activeWorkspaceIdKey, activeWorkspaceId)
-            putLong(updatedAtMillisKey, System.currentTimeMillis())
-        }
-        cloudSettingsState.value = loadCloudSettings()
+        val updatedAtMillis = System.currentTimeMillis()
+        val currentSettings = loadCloudSettingsEntity()
+        val updatedSettings = currentSettings.copy(
+            activeWorkspaceId = activeWorkspaceId,
+            updatedAtMillis = updatedAtMillis
+        )
+        database.appLocalSettingsDao().insertSettings(updatedSettings)
+        mirrorLegacyCloudSettings(updatedSettings)
+        cloudSettingsState.value = updatedSettings.toCloudSettings()
     }
 
     fun markAccountDeletionInProgress() {
@@ -167,11 +182,15 @@ class CloudPreferencesStore(
         // Installation identity is global per app install and must never be reused
         // after an explicit local identity reset.
         val installationId = UUID.randomUUID().toString()
-        metadataPreferences.edit(commit = true) {
-            putString(installationIdKey, installationId)
-            putLong(updatedAtMillisKey, System.currentTimeMillis())
-        }
-        cloudSettingsState.value = loadCloudSettings()
+        val updatedAtMillis = System.currentTimeMillis()
+        val currentSettings = loadCloudSettingsEntity()
+        val updatedSettings = currentSettings.copy(
+            installationId = installationId,
+            updatedAtMillis = updatedAtMillis
+        )
+        database.appLocalSettingsDao().insertSettings(updatedSettings)
+        mirrorLegacyCloudSettings(updatedSettings)
+        cloudSettingsState.value = updatedSettings.toCloudSettings()
         return installationId
     }
 
@@ -193,19 +212,7 @@ class CloudPreferencesStore(
     }
 
     private fun loadCloudSettings(): CloudSettings {
-        val installationId = metadataPreferences.getString(installationIdKey, null) ?: createInstallationId()
-        return CloudSettings(
-            installationId = installationId,
-            cloudState = CloudAccountState.valueOf(
-                metadataPreferences.getString(cloudStateKey, CloudAccountState.DISCONNECTED.name)
-                    ?: CloudAccountState.DISCONNECTED.name
-            ),
-            linkedUserId = metadataPreferences.getString(linkedUserIdKey, null),
-            linkedWorkspaceId = metadataPreferences.getString(linkedWorkspaceIdKey, null),
-            linkedEmail = metadataPreferences.getString(linkedEmailKey, null),
-            activeWorkspaceId = metadataPreferences.getString(activeWorkspaceIdKey, null),
-            updatedAtMillis = metadataPreferences.getLong(updatedAtMillisKey, 0L)
-        )
+        return loadCloudSettingsEntity().toCloudSettings()
     }
 
     private fun loadServerConfiguration(): CloudServiceConfiguration {
@@ -236,6 +243,61 @@ class CloudPreferencesStore(
         }
         return installationId
     }
+
+    private fun loadCloudSettingsEntity(): AppLocalSettingsEntity {
+        val storedSettings = database.appLocalSettingsDao().loadSettings()
+        if (storedSettings != null) {
+            return storedSettings
+        }
+
+        val migratedSettings = migrateLegacyCloudSettings()
+        database.appLocalSettingsDao().insertSettings(migratedSettings)
+        mirrorLegacyCloudSettings(migratedSettings)
+        return migratedSettings
+    }
+
+    private fun migrateLegacyCloudSettings(): AppLocalSettingsEntity {
+        val installationId = metadataPreferences.getString(installationIdKey, null) ?: createInstallationId()
+        val activeWorkspaceId = metadataPreferences.getString(activeWorkspaceIdKey, null)
+            ?: runBlocking {
+                database.workspaceDao().loadAnyWorkspace()?.workspaceId
+            }
+        return AppLocalSettingsEntity(
+            settingsId = 1,
+            installationId = installationId,
+            cloudState = metadataPreferences.getString(cloudStateKey, CloudAccountState.DISCONNECTED.name)
+                ?: CloudAccountState.DISCONNECTED.name,
+            linkedUserId = metadataPreferences.getString(linkedUserIdKey, null),
+            linkedWorkspaceId = metadataPreferences.getString(linkedWorkspaceIdKey, null),
+            linkedEmail = metadataPreferences.getString(linkedEmailKey, null),
+            activeWorkspaceId = activeWorkspaceId,
+            updatedAtMillis = metadataPreferences.getLong(updatedAtMillisKey, 0L)
+        )
+    }
+
+    private fun mirrorLegacyCloudSettings(settings: AppLocalSettingsEntity) {
+        metadataPreferences.edit(commit = true) {
+            putString(installationIdKey, settings.installationId)
+            putString(cloudStateKey, settings.cloudState)
+            putString(linkedUserIdKey, settings.linkedUserId)
+            putString(linkedWorkspaceIdKey, settings.linkedWorkspaceId)
+            putString(linkedEmailKey, settings.linkedEmail)
+            putString(activeWorkspaceIdKey, settings.activeWorkspaceId)
+            putLong(updatedAtMillisKey, settings.updatedAtMillis)
+        }
+    }
+}
+
+private fun AppLocalSettingsEntity.toCloudSettings(): CloudSettings {
+    return CloudSettings(
+        installationId = installationId,
+        cloudState = CloudAccountState.valueOf(cloudState),
+        linkedUserId = linkedUserId,
+        linkedWorkspaceId = linkedWorkspaceId,
+        linkedEmail = linkedEmail,
+        activeWorkspaceId = activeWorkspaceId,
+        updatedAtMillis = updatedAtMillis
+    )
 }
 
 private const val accountDeletionStatusHidden: String = "hidden"

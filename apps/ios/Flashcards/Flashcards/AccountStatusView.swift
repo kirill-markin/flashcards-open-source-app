@@ -72,6 +72,10 @@ struct AccountStatusView: View {
                         SyncStatusIndicatorView(presentation: syncStatusPresentation)
                     }
 
+                    if case .blocked(let message) = store.syncStatus {
+                        CopyableErrorMessageView(message: message)
+                    }
+
                     if let lastSuccessfulCloudSyncAt = store.lastSuccessfulCloudSyncAt {
                         LabeledContent("Last sync") {
                             Text(lastSuccessfulCloudSyncAt)
@@ -98,7 +102,7 @@ struct AccountStatusView: View {
                         Button("Sync now") {
                             self.syncNow()
                         }
-                        .disabled(isSyncInFlight(status: store.syncStatus))
+                        .disabled(isSyncInFlight(status: store.syncStatus) || self.isSyncBlocked)
                         .accessibilityIdentifier(UITestIdentifier.accountStatusSyncNowButton)
 
                         Button("Switch account") {
@@ -152,6 +156,13 @@ struct AccountStatusView: View {
                 self.screenErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
+    }
+
+    private var isSyncBlocked: Bool {
+        if case .blocked = self.store.syncStatus {
+            return true
+        }
+        return false
     }
 }
 

@@ -125,6 +125,8 @@ func makeSyncStatusPresentation(status: SyncStatus, cloudState: CloudAccountStat
         }
     case .syncing:
         return SyncStatusPresentation(title: "Syncing", tone: .inProgress)
+    case .blocked(let message):
+        return SyncStatusPresentation(title: "Sync blocked: \(message)", tone: .failure)
     case .failed(let message):
         return SyncStatusPresentation(title: "Sync failed: \(message)", tone: .failure)
     }
@@ -145,7 +147,7 @@ func isSyncInFlight(status: SyncStatus) -> Bool {
     switch status {
     case .syncing:
         return true
-    case .idle, .failed:
+    case .idle, .blocked, .failed:
         return false
     }
 }

@@ -310,10 +310,17 @@ struct AIChatView: View {
         } description: {
             VStack(spacing: 12) {
                 Text(self.chatStore.bootstrapFailureMessage ?? "Failed to load AI chat.")
-                Button("Retry") {
-                    self.chatStore.retryLinkedBootstrap()
+                if self.flashcardsStore.isCloudSyncBlocked {
+                    Button("Open account status") {
+                        self.navigation.openSettings(destination: .accountStatus)
+                    }
+                    .buttonStyle(.glassProminent)
+                } else {
+                    Button("Retry") {
+                        self.chatStore.retryLinkedBootstrap()
+                    }
+                    .buttonStyle(.glassProminent)
                 }
-                .buttonStyle(.glassProminent)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

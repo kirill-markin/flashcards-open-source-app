@@ -778,7 +778,16 @@ class LocalSyncRepository(
             if (preferencesStore.currentAccountDeletionState() != AccountDeletionState.Hidden) {
                 return@runExclusive
             }
-            val cloudSettings = cloudGuestSessionCoordinator.reconcilePersistedCloudStateLocked().cloudSettings
+            val reconciliation = cloudGuestSessionCoordinator.reconcilePersistedCloudStateLocked()
+            val cloudSettings = reconciliation.cloudSettings
+            if (reconciliation.didRunSync) {
+                syncStatusState.value = SyncStatusSnapshot(
+                    status = SyncStatus.Idle,
+                    lastSuccessfulSyncAtMillis = System.currentTimeMillis(),
+                    lastErrorMessage = ""
+                )
+                return@runExclusive
+            }
             val syncTarget = resolveSyncTarget(cloudSettings = cloudSettings)
 
             syncStatusState.value = syncStatusState.value.copy(status = SyncStatus.Syncing, lastErrorMessage = "")
@@ -916,7 +925,7 @@ class LocalSyncRepository(
     }
 }
 
-private suspend fun runCloudSyncCore(
+internal suspend fun runCloudSyncCore(
     cloudSettings: CloudSettings,
     workspaceId: String,
     syncSession: CloudSyncSession,
@@ -1120,7 +1129,7 @@ private data class AuthenticatedCloudSession(
     val accountSnapshot: CloudAccountSnapshot
 )
 
-private data class CloudSyncSession(
+internal data class CloudSyncSession(
     val apiBaseUrl: String,
     val authorizationHeader: String
 )

@@ -13,6 +13,7 @@ private const val androidInstallationId: String = "android-installation"
 
 @Database(
     entities = [
+        AppLocalSettingsEntity::class,
         WorkspaceEntity::class,
         WorkspaceSchedulerSettingsEntity::class,
         DeckEntity::class,
@@ -23,11 +24,12 @@ private const val androidInstallationId: String = "android-installation"
         OutboxEntryEntity::class,
         SyncStateEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(DatabaseTypeConverters::class)
 abstract class AppDatabase : RoomDatabase() {
+    abstract fun appLocalSettingsDao(): AppLocalSettingsDao
     abstract fun workspaceDao(): WorkspaceDao
     abstract fun workspaceSchedulerSettingsDao(): WorkspaceSchedulerSettingsDao
     abstract fun deckDao(): DeckDao
@@ -47,7 +49,7 @@ fun buildAppDatabase(context: Context): AppDatabase {
         context = context,
         klass = AppDatabase::class.java,
         name = appDatabaseName
-    ).addMigrations(migration2To3, migration3To4, migration4To5).build()
+    ).addMigrations(migration2To3, migration3To4, migration4To5, migration5To6).build()
 }
 
 val migration2To3: Migration = object : Migration(2, 3) {
@@ -353,5 +355,24 @@ val migration4To5: Migration = object : Migration(4, 5) {
         db.execSQL("DROP TABLE outbox_entries")
         db.execSQL("ALTER TABLE outbox_entries_v5 RENAME TO outbox_entries")
         db.execSQL("CREATE INDEX IF NOT EXISTS index_outbox_entries_workspaceId ON outbox_entries(workspaceId)")
+    }
+}
+
+val migration5To6: Migration = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS app_local_settings (
+                settingsId INTEGER NOT NULL PRIMARY KEY,
+                installationId TEXT NOT NULL,
+                cloudState TEXT NOT NULL,
+                linkedUserId TEXT,
+                linkedWorkspaceId TEXT,
+                linkedEmail TEXT,
+                activeWorkspaceId TEXT,
+                updatedAtMillis INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
     }
 }

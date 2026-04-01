@@ -44,7 +44,7 @@ class AppGraph(
     val appMessageBus = AppMessageBus()
     val appHandoffCoordinator = AppHandoffCoordinator()
     val database: AppDatabase = buildAppDatabase(context = context)
-    private val cloudPreferencesStore = CloudPreferencesStore(context = context)
+    private val cloudPreferencesStore = CloudPreferencesStore(context = context, database = database)
     private val cloudRemoteService = CloudRemoteService()
     private val aiChatPreferencesStore = AiChatPreferencesStore(context = context)
     private val aiChatHistoryStore = AiChatHistoryStore(context = context)
