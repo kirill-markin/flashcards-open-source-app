@@ -1,11 +1,11 @@
 /**
  * SSE live stream handler for the chat surface.
- * Polls the database for in-progress assistant content changes and emits
- * synthetic delta events to connected clients.
+ * The chat snapshot/bootstrap response remains the source of truth for full UI
+ * state. This loop only provides a temporary live overlay while a run is
+ * actively streaming, and clients must resume from snapshot/bootstrap instead
+ * of depending on long-lived reconnect semantics.
  */
 import type { Writable } from "node:stream";
-import { authenticateRequest, type AuthResult } from "../auth";
-import { ensureUserProfile } from "../ensureUser";
 import { getErrorLogContext, logCloudRouteEvent } from "../server/logging";
 import {
   listChatMessagesAfterCursor,
@@ -15,102 +15,19 @@ import {
   type PersistedChatMessageItem,
 } from "./store";
 import { diffAssistantContent } from "./liveDiff";
+import type { LiveStreamParams } from "./liveRequest";
+import {
+  createLiveConnectionState,
+  formatSSEComment,
+  formatSSEEvent,
+  isStreamWritable,
+  waitForNextPollInterval,
+} from "./liveTransport";
 import type { ContentPart, LiveSSEEvent } from "./types";
-import { verifyChatLiveAuthorizationHeader } from "./liveAuth";
 
 const LIVE_POLL_INTERVAL_MS = 750;
 const KEEPALIVE_INTERVAL_MS = 15_000;
 const MAX_CONNECTION_DURATION_MS = 9 * 60 * 1000;
-
-type LiveStreamParams = Readonly<{
-  sessionId: string;
-  afterCursor: number | undefined;
-  userId: string;
-  workspaceId: string;
-  requestId?: string;
-}>;
-
-type LiveDisconnectReason =
-  | "close"
-  | "finish"
-  | "aborted"
-  | "stream_error"
-  | "write_error";
-
-type LiveConnectionState = Readonly<{
-  isClosed: () => boolean;
-  closeReason: () => LiveDisconnectReason | null;
-  closeError: () => unknown;
-  waitForClose: () => Promise<void>;
-  dispose: () => void;
-}>;
-
-function formatSSEEvent(event: LiveSSEEvent): string {
-  return `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
-}
-
-function formatSSEComment(comment: string): string {
-  return `: ${comment}\n\n`;
-}
-
-function createLiveConnectionState(stream: Writable): LiveConnectionState {
-  let isClosed = false;
-  let closeReason: LiveDisconnectReason | null = null;
-  let closeError: unknown = null;
-  let resolveCloseWaiters: (() => void) | null = null;
-  const closePromise = new Promise<void>((resolve) => {
-    resolveCloseWaiters = resolve;
-  });
-
-  const markClosed = (reason: LiveDisconnectReason, error: unknown): void => {
-    if (isClosed) {
-      return;
-    }
-
-    isClosed = true;
-    closeReason = reason;
-    closeError = error;
-    resolveCloseWaiters?.();
-  };
-
-  const handleClose = (): void => {
-    markClosed("close", null);
-  };
-  const handleFinish = (): void => {
-    markClosed("finish", null);
-  };
-  const handleAborted = (): void => {
-    markClosed("aborted", null);
-  };
-  const handleError = (error: unknown): void => {
-    markClosed("stream_error", error);
-  };
-
-  stream.on("close", handleClose);
-  stream.on("finish", handleFinish);
-  stream.on("aborted", handleAborted);
-  stream.on("error", handleError);
-
-  return {
-    isClosed: () => isClosed,
-    closeReason: () => closeReason,
-    closeError: () => closeError,
-    waitForClose: () => closePromise,
-    dispose: () => {
-      stream.off("close", handleClose);
-      stream.off("finish", handleFinish);
-      stream.off("aborted", handleAborted);
-      stream.off("error", handleError);
-    },
-  };
-}
-
-function isStreamWritable(stream: Writable, connectionState: LiveConnectionState): boolean {
-  return connectionState.isClosed() === false
-    && stream.destroyed === false
-    && stream.writable === true
-    && stream.writableEnded === false;
-}
 
 function logLiveLifecycleEvent(
   action: string,
@@ -126,22 +43,6 @@ function logLiveLifecycleEvent(
     afterCursor: params.afterCursor ?? null,
     ...payload,
   }, isError);
-}
-
-async function waitForNextPollInterval(
-  connectionState: LiveConnectionState,
-  intervalMs: number,
-): Promise<boolean> {
-  const sleepPromise = new Promise<boolean>((resolve) => {
-    setTimeout(() => {
-      resolve(true);
-    }, intervalMs);
-  });
-
-  return Promise.race([
-    sleepPromise,
-    connectionState.waitForClose().then(() => false),
-  ]);
 }
 
 /**
@@ -218,7 +119,87 @@ function buildReasoningDoneEvents(
 }
 
 /**
- * Runs the SSE live loop, writing events to the provided writable stream.
+ * Replays assistant terminal events after the caller's cursor before the live
+ * polling loop starts. Clients use this to bridge the gap between their last
+ * snapshot/bootstrap cursor and the moment they reattached the live stream.
+ */
+async function replayBacklogEvents(
+  stream: Writable,
+  connectionState: ReturnType<typeof createLiveConnectionState>,
+  params: LiveStreamParams,
+  write: (data: string) => boolean,
+  connectionStart: number,
+): Promise<Readonly<{
+  lastEmittedCursor: number;
+  shouldStop: boolean;
+  terminationReason: string | null;
+}>> {
+  if (params.afterCursor === undefined) {
+    return {
+      lastEmittedCursor: params.afterCursor ?? 0,
+      shouldStop: false,
+      terminationReason: null,
+    };
+  }
+
+  let lastEmittedCursor = params.afterCursor;
+  try {
+    const backlogMessages = await listChatMessagesAfterCursor(
+      params.userId,
+      params.workspaceId,
+      params.sessionId,
+      params.afterCursor,
+    );
+    const backlogAssistantMessages = filterAssistantMessages(backlogMessages);
+    for (const message of backlogAssistantMessages) {
+      if (isStreamWritable(stream, connectionState) === false) {
+        return {
+          lastEmittedCursor,
+          shouldStop: true,
+          terminationReason: "client_disconnect",
+        };
+      }
+      const event: LiveSSEEvent = {
+        type: "assistant_message_done",
+        cursor: String(message.itemOrder),
+        itemId: message.itemId,
+        isError: message.isError,
+        isStopped: message.isStopped,
+      };
+      if (write(formatSSEEvent(event)) === false) {
+        return {
+          lastEmittedCursor,
+          shouldStop: true,
+          terminationReason: "client_disconnect",
+        };
+      }
+      lastEmittedCursor = message.itemOrder;
+    }
+
+    return {
+      lastEmittedCursor,
+      shouldStop: false,
+      terminationReason: null,
+    };
+  } catch (error) {
+    logLiveLifecycleEvent("chat_live_backlog_failed", params, {
+      connectionDurationMs: Date.now() - connectionStart,
+      ...getErrorLogContext(error),
+    }, true);
+    write(formatSSEEvent({ type: "reset_required" }));
+    return {
+      lastEmittedCursor,
+      shouldStop: true,
+      terminationReason: "backlog_reset_required",
+    };
+  }
+}
+
+/**
+ * Runs the live SSE orchestration loop for one attached client.
+ * Attach is only meaningful while a run is actively streaming. Once the run is
+ * no longer running, or the client disconnects, the loop closes and leaves
+ * recovery to the next snapshot/bootstrap fetch.
  */
 export async function runLiveStream(
   stream: Writable,
@@ -256,46 +237,20 @@ export async function runLiveStream(
   };
 
   try {
-    // Backlog phase: emit events for items after the client's cursor.
-    if (params.afterCursor !== undefined) {
-      try {
-        const backlogMessages = await listChatMessagesAfterCursor(
-          userId,
-          workspaceId,
-          sessionId,
-          params.afterCursor,
-        );
-        const backlogAssistantMessages = filterAssistantMessages(backlogMessages);
-        for (const message of backlogAssistantMessages) {
-          if (isStreamWritable(stream, connectionState) === false) {
-            terminationReason = "client_disconnect";
-            return;
-          }
-          const event: LiveSSEEvent = {
-            type: "assistant_message_done",
-            cursor: String(message.itemOrder),
-            itemId: message.itemId,
-            isError: message.isError,
-            isStopped: message.isStopped,
-          };
-          if (write(formatSSEEvent(event)) === false) {
-            terminationReason = "client_disconnect";
-            return;
-          }
-          lastEmittedCursor = message.itemOrder;
-        }
-      } catch (error) {
-        terminationReason = "backlog_reset_required";
-        logLiveLifecycleEvent("chat_live_backlog_failed", params, {
-          connectionDurationMs: Date.now() - connectionStart,
-          ...getErrorLogContext(error),
-        }, true);
-        write(formatSSEEvent({ type: "reset_required" }));
-        return;
-      }
+    const backlogResult = await replayBacklogEvents(
+      stream,
+      connectionState,
+      params,
+      write,
+      connectionStart,
+    );
+    lastEmittedCursor = backlogResult.lastEmittedCursor;
+    if (backlogResult.shouldStop) {
+      terminationReason = backlogResult.terminationReason ?? terminationReason;
+      return;
     }
 
-    // Live phase: poll the database and emit delta events.
+    // Live phase: poll the database and emit delta events until the run ends.
     while (isStreamWritable(stream, connectionState)) {
       const elapsed = Date.now() - connectionStart;
       if (elapsed >= MAX_CONNECTION_DURATION_MS) {
@@ -500,58 +455,4 @@ export async function runLiveStream(
       ...(closeError === null ? {} : getErrorLogContext(closeError)),
     }, terminationReason === "max_duration" || terminationReason === "poll_error");
   }
-}
-
-/**
- * Parses and validates the SSE live request from a Lambda Function URL event.
- */
-export async function handleLiveRequest(
-  url: URL,
-  authorizationHeader: string | undefined,
-): Promise<LiveStreamParams> {
-  const sessionId = url.searchParams.get("sessionId");
-  if (sessionId === null || sessionId === "") {
-    throw new Error("Missing sessionId parameter");
-  }
-
-  const afterCursorParam = url.searchParams.get("afterCursor");
-  const afterCursor = afterCursorParam !== null
-    ? Number.parseInt(afterCursorParam, 10)
-    : undefined;
-  if (afterCursor !== undefined && (!Number.isSafeInteger(afterCursor) || afterCursor < 0)) {
-    throw new Error("Invalid afterCursor parameter");
-  }
-
-  const tokenParam = url.searchParams.get("token");
-  if (authorizationHeader !== undefined && authorizationHeader.startsWith("Live ")) {
-    const verifiedLiveAuth = await verifyChatLiveAuthorizationHeader(authorizationHeader, sessionId);
-    return {
-      sessionId,
-      afterCursor,
-      userId: verifiedLiveAuth.userId,
-      workspaceId: verifiedLiveAuth.workspaceId,
-    };
-  }
-
-  const effectiveAuth = authorizationHeader ?? (tokenParam !== null ? `Bearer ${tokenParam}` : undefined);
-
-  const authResult: AuthResult = await authenticateRequest({
-    authorizationHeader: effectiveAuth,
-    sessionToken: undefined,
-  });
-
-  const workspaceId = authResult.transport === "api_key"
-    ? authResult.selectedWorkspaceId
-    : (await ensureUserProfile(authResult.userId, null)).selectedWorkspaceId;
-
-  if (workspaceId === null) {
-    throw new Error("No workspace selected");
-  }
-
-  return {
-    sessionId,
-    afterCursor,
-    userId: authResult.userId,
-    workspaceId,
-  };
 }

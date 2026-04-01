@@ -35,6 +35,12 @@ actor AIChatSessionRuntime {
         self.liveStreamClient = AIChatLiveStreamClient(urlSession: urlSession)
     }
 
+    /**
+     * Starts a new run request and reports the accepted response back to the
+     * store. Snapshot/bootstrap remains the source of truth for session state;
+     * this method only kicks off the run and leaves live attachment to the
+     * caller when the backend reports `runState == "running"`.
+     */
     func run(
         session: CloudLinkedSession,
         sessionId: String,
@@ -109,6 +115,11 @@ actor AIChatSessionRuntime {
         }
     }
 
+    /**
+     * Attaches the thin live SSE overlay for one already-known chat session.
+     * Callers must only use this while the surface is visible and after they
+     * have a trusted snapshot/bootstrap cursor to resume from.
+     */
     func attachLive(
         liveStream: AIChatLiveStreamEnvelope,
         sessionId: String,

@@ -139,6 +139,10 @@ function requireType(
   return value;
 }
 
+/**
+ * Validates one SSE payload against the browser live-stream contract and
+ * returns the typed event expected by the chat lifecycle layer.
+ */
 export function parseChatLiveEvent(
   eventType: string | null,
   payload: string,
@@ -318,6 +322,10 @@ function consumeSSEBlock(
   onEvent(parseChatLiveEvent(eventType, dataLines.join("\n")));
 }
 
+/**
+ * Opens the backend SSE endpoint for one live chat run, validates the wire
+ * contract, and forwards typed events to the caller.
+ */
 export async function consumeChatLiveStream(
   params: ConsumeChatLiveStreamParams,
 ): Promise<void> {
