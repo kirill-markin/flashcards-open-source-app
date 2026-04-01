@@ -33,8 +33,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
+import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
+import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.aiChatOptimisticAssistantStatusText
 
 const val aiAssistantMessageBubbleTag: String = "ai_assistant_message_bubble"
@@ -136,7 +138,7 @@ private fun MessageBubbleContent(
                 }
 
                 is AiChatContentPart.ReasoningSummary -> {
-                    ReasoningSummaryCard(summary = contentPart.summary)
+                    ReasoningSummaryCard(reasoningSummary = contentPart.reasoningSummary)
                 }
 
                 is AiChatContentPart.Image -> {
@@ -179,7 +181,7 @@ private fun MessageBubbleContent(
 }
 
 @Composable
-private fun ReasoningSummaryCard(summary: String) {
+private fun ReasoningSummaryCard(reasoningSummary: AiChatReasoningSummary) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -192,13 +194,17 @@ private fun ReasoningSummaryCard(summary: String) {
                 .padding(16.dp)
         ) {
             Text(
-                text = "Reasoning summary",
+                text = if (reasoningSummary.status == AiChatToolCallStatus.STARTED) {
+                    "Reasoning summary · Running"
+                } else {
+                    "Reasoning summary · Done"
+                },
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
             SelectionContainer {
                 Text(
-                    text = summary,
+                    text = reasoningSummary.summary.ifBlank { "Thinking..." },
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

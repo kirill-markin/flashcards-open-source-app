@@ -1053,7 +1053,7 @@ final class AIChatStore {
                 )
             )
 
-        case .assistantReasoningSummary(let summary, let cursor, let itemId):
+        case .assistantReasoningStarted(let reasoningId, let cursor, let itemId):
             let messageIndex = self.resolveStreamingAssistantMessageIndex(
                 itemId: itemId,
                 cursor: cursor,
@@ -1063,7 +1063,50 @@ final class AIChatStore {
             self.messages[messageIndex] = AIChatMessage(
                 id: message.id,
                 role: message.role,
-                content: upsertingAIChatReasoningSummary(content: message.content, summary: summary),
+                content: upsertingAIChatReasoningSummary(
+                    content: message.content,
+                    reasoningSummary: AIChatReasoningSummary(
+                        id: reasoningId,
+                        summary: "",
+                        status: .started
+                    )
+                ),
+                timestamp: message.timestamp,
+                isError: message.isError,
+                isStopped: message.isStopped,
+                cursor: cursor,
+                itemId: itemId
+            )
+            self.liveCursor = cursor
+            logAIChatStoreEvent(
+                action: "ai_live_event_handle_applied",
+                metadata: self.metadataForAppliedStreamingEvent(
+                    eventType: "assistant_reasoning_started",
+                    cursor: cursor,
+                    itemId: itemId,
+                    messageIndex: messageIndex,
+                    extra: ["reasoningId": reasoningId]
+                )
+            )
+
+        case .assistantReasoningSummary(let reasoningId, let summary, let cursor, let itemId):
+            let messageIndex = self.resolveStreamingAssistantMessageIndex(
+                itemId: itemId,
+                cursor: cursor,
+                allowsPlaceholderAdoption: true
+            )
+            let message = self.messages[messageIndex]
+            self.messages[messageIndex] = AIChatMessage(
+                id: message.id,
+                role: message.role,
+                content: upsertingAIChatReasoningSummary(
+                    content: message.content,
+                    reasoningSummary: AIChatReasoningSummary(
+                        id: reasoningId,
+                        summary: summary,
+                        status: .started
+                    )
+                ),
                 timestamp: message.timestamp,
                 isError: message.isError,
                 isStopped: message.isStopped,
@@ -1078,7 +1121,39 @@ final class AIChatStore {
                     cursor: cursor,
                     itemId: itemId,
                     messageIndex: messageIndex,
-                    extra: ["summaryLength": String(summary.count)]
+                    extra: [
+                        "reasoningId": reasoningId,
+                        "summaryLength": String(summary.count)
+                    ]
+                )
+            )
+
+        case .assistantReasoningDone(let reasoningId, let cursor, let itemId):
+            let messageIndex = self.resolveStreamingAssistantMessageIndex(
+                itemId: itemId,
+                cursor: cursor,
+                allowsPlaceholderAdoption: true
+            )
+            let message = self.messages[messageIndex]
+            self.messages[messageIndex] = AIChatMessage(
+                id: message.id,
+                role: message.role,
+                content: completingAIChatReasoningSummary(content: message.content, reasoningId: reasoningId),
+                timestamp: message.timestamp,
+                isError: message.isError,
+                isStopped: message.isStopped,
+                cursor: cursor,
+                itemId: itemId
+            )
+            self.liveCursor = cursor
+            logAIChatStoreEvent(
+                action: "ai_live_event_handle_applied",
+                metadata: self.metadataForAppliedStreamingEvent(
+                    eventType: "assistant_reasoning_done",
+                    cursor: cursor,
+                    itemId: itemId,
+                    messageIndex: messageIndex,
+                    extra: ["reasoningId": reasoningId]
                 )
             )
 
@@ -1108,7 +1183,7 @@ final class AIChatStore {
             self.messages[messageIndex] = AIChatMessage(
                 id: message.id,
                 role: message.role,
-                content: removingOptimisticAIChatStatus(content: message.content),
+                content: finalizingAIChatContent(content: message.content),
                 timestamp: message.timestamp,
                 isError: isError,
                 isStopped: isStopped,
@@ -1426,11 +1501,22 @@ final class AIChatStore {
             metadata["itemId"] = itemId
             metadata["toolName"] = toolCall.name
             metadata["toolStatus"] = toolCall.status.rawValue
-        case .assistantReasoningSummary(let summary, let cursor, let itemId):
+        case .assistantReasoningStarted(let reasoningId, let cursor, let itemId):
+            metadata["eventType"] = "assistant_reasoning_started"
+            metadata["cursor"] = cursor
+            metadata["itemId"] = itemId
+            metadata["reasoningId"] = reasoningId
+        case .assistantReasoningSummary(let reasoningId, let summary, let cursor, let itemId):
             metadata["eventType"] = "assistant_reasoning_summary"
             metadata["cursor"] = cursor
             metadata["itemId"] = itemId
+            metadata["reasoningId"] = reasoningId
             metadata["summaryLength"] = String(summary.count)
+        case .assistantReasoningDone(let reasoningId, let cursor, let itemId):
+            metadata["eventType"] = "assistant_reasoning_done"
+            metadata["cursor"] = cursor
+            metadata["itemId"] = itemId
+            metadata["reasoningId"] = reasoningId
         case .assistantMessageDone(let cursor, let itemId, let isError, let isStopped):
             metadata["eventType"] = "assistant_message_done"
             metadata["cursor"] = cursor
@@ -1652,16 +1738,88 @@ private func upsertingAIChatToolCall(
 
 private func upsertingAIChatReasoningSummary(
     content: [AIChatContentPart],
-    summary: String
+    reasoningSummary: AIChatReasoningSummary
 ) -> [AIChatContentPart] {
     var updatedContent = removingOptimisticAIChatStatus(content: content)
-    if let existingIndex = updatedContent.firstIndex(where: { $0.reasoningSummaryValue != nil }) {
-        updatedContent[existingIndex] = .reasoningSummary(summary)
+    if let existingIndex = updatedContent.firstIndex(where: { part in
+        if case .reasoningSummary(let existing) = part {
+            return existing.id == reasoningSummary.id
+        }
+        return false
+    }) {
+        if case .reasoningSummary(let existing) = updatedContent[existingIndex] {
+            updatedContent[existingIndex] = .reasoningSummary(
+                AIChatReasoningSummary(
+                    id: existing.id,
+                    summary: reasoningSummary.summary.isEmpty ? existing.summary : reasoningSummary.summary,
+                    status: reasoningSummary.status
+                )
+            )
+        }
         return updatedContent
     }
 
-    updatedContent.insert(.reasoningSummary(summary), at: 0)
+    updatedContent.insert(.reasoningSummary(reasoningSummary), at: 0)
     return updatedContent
+}
+
+private func completingAIChatReasoningSummary(
+    content: [AIChatContentPart],
+    reasoningId: String
+) -> [AIChatContentPart] {
+    removingOptimisticAIChatStatus(content: content).compactMap { part in
+        guard case .reasoningSummary(let reasoningSummary) = part else {
+            return part
+        }
+
+        guard reasoningSummary.id == reasoningId else {
+            return part
+        }
+
+        if reasoningSummary.summary.isEmpty {
+            return nil
+        }
+
+        return .reasoningSummary(
+            AIChatReasoningSummary(
+                id: reasoningSummary.id,
+                summary: reasoningSummary.summary,
+                status: .completed
+            )
+        )
+    }
+}
+
+private func finalizingAIChatContent(
+    content: [AIChatContentPart]
+) -> [AIChatContentPart] {
+    removingOptimisticAIChatStatus(content: content).compactMap { part in
+        guard case .reasoningSummary(let reasoningSummary) = part else {
+            return part
+        }
+
+        if reasoningSummary.summary.isEmpty {
+            return nil
+        }
+
+        return .reasoningSummary(
+            AIChatReasoningSummary(
+                id: reasoningSummary.id,
+                summary: reasoningSummary.summary,
+                status: .completed
+            )
+        )
+    }
+}
+
+private func reasoningSummaryText(
+    reasoningSummary: AIChatReasoningSummary
+) -> String {
+    if reasoningSummary.summary.isEmpty {
+        return "Thinking..."
+    }
+
+    return reasoningSummary.summary
 }
 
 private func extractAIChatTextContent(parts: [AIChatContentPart]) -> String {
@@ -1673,8 +1831,8 @@ private func extractAIChatTextContent(parts: [AIChatContentPart]) -> String {
         switch part {
         case .text(let text):
             partialResult.append(text)
-        case .reasoningSummary(let summary):
-            partialResult.append(summary)
+        case .reasoningSummary(let reasoningSummary):
+            partialResult.append(reasoningSummaryText(reasoningSummary: reasoningSummary))
         default:
             break
         }

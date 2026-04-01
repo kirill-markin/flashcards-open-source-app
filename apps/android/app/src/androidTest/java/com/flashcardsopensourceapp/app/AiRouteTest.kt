@@ -120,7 +120,10 @@ class AiRouteTest {
                                     )
                                 ),
                                 timestampMillis = 1L,
-                                isError = false
+                                isError = false,
+                                isStopped = false,
+                                cursor = null,
+                                itemId = null
                             )
                         )
                     ),
@@ -169,7 +172,10 @@ class AiRouteTest {
                                 role = AiChatRole.ASSISTANT,
                                 content = listOf(AiChatContentPart.Text(text = "Looking through your cards...")),
                                 timestampMillis = 1L,
-                                isError = false
+                                isError = false,
+                                isStopped = false,
+                                cursor = null,
+                                itemId = null
                             )
                         ),
                         isStreaming = true,
@@ -280,7 +286,10 @@ class AiRouteTest {
                                 role = AiChatRole.USER,
                                 content = listOf(AiChatContentPart.Text(text = "hi")),
                                 timestampMillis = 1L,
-                                isError = false
+                                isError = false,
+                                isStopped = false,
+                                cursor = null,
+                                itemId = null
                             )
                         )
                     ),
@@ -341,7 +350,10 @@ class AiRouteTest {
                                             )
                                         ),
                                         timestampMillis = 1L,
-                                        isError = false
+                                        isError = false,
+                                        isStopped = false,
+                                        cursor = null,
+                                        itemId = null
                                     )
                                 )
                             ),

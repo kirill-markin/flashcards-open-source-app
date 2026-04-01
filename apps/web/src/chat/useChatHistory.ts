@@ -16,7 +16,8 @@ type ChatHistoryState = Readonly<{
   startAssistantMessage: (initialText: string | null) => void;
   appendAssistantText: (text: string) => void;
   upsertAssistantToolCall: (toolCall: ToolCallContentPart) => void;
-  upsertAssistantReasoningSummary: (summary: string) => void;
+  upsertAssistantReasoningSummary: (reasoningSummary: ReasoningSummaryContentPart) => void;
+  completeAssistantReasoningSummary: (reasoningId: string) => void;
   finishAssistantMessage: (isError: boolean, isStopped: boolean) => void;
   markAssistantError: (errorText: string) => void;
   clearHistory: () => void;
@@ -88,22 +89,88 @@ function upsertAssistantToolCallContent(
   return normalizedContent.map((part, index) => index === existingIndex ? toolCall : part);
 }
 
-function upsertAssistantReasoningSummaryContent(
-  content: ReadonlyArray<ContentPart>,
-  summary: string,
-): ReadonlyArray<ContentPart> {
-  const normalizedContent = removeOptimisticAssistantStatusContent(content);
-  const reasoningSummaryPart: ReasoningSummaryContentPart = {
-    type: "reasoning_summary",
-    summary,
-  };
-  const existingIndex = normalizedContent.findIndex((part) => part.type === "reasoning_summary");
-
-  if (existingIndex < 0) {
-    return [reasoningSummaryPart, ...normalizedContent];
+function resolveReasoningId(part: ReasoningSummaryContentPart): string | null {
+  if (part.reasoningId !== undefined && part.reasoningId !== "") {
+    return part.reasoningId;
   }
 
-  return normalizedContent.map((part, index) => index === existingIndex ? reasoningSummaryPart : part);
+  return part.streamPosition?.itemId ?? null;
+}
+
+function upsertAssistantReasoningSummaryContent(
+  content: ReadonlyArray<ContentPart>,
+  reasoningSummary: ReasoningSummaryContentPart,
+): ReadonlyArray<ContentPart> {
+  const normalizedContent = removeOptimisticAssistantStatusContent(content);
+  const reasoningId = resolveReasoningId(reasoningSummary);
+  const existingIndex = normalizedContent.findIndex((part) =>
+    part.type === "reasoning_summary"
+    && reasoningId !== null
+    && resolveReasoningId(part) === reasoningId,
+  );
+
+  if (existingIndex < 0) {
+    return [reasoningSummary, ...normalizedContent];
+  }
+
+  return normalizedContent.map((part, index) => {
+    if (index !== existingIndex || part.type !== "reasoning_summary") {
+      return part;
+    }
+
+    return {
+      ...part,
+      ...reasoningSummary,
+      summary: reasoningSummary.summary === "" ? part.summary : reasoningSummary.summary,
+      status: reasoningSummary.status ?? part.status ?? "completed",
+      reasoningId: reasoningSummary.reasoningId ?? part.reasoningId,
+      streamPosition: reasoningSummary.streamPosition ?? part.streamPosition,
+    };
+  });
+}
+
+function completeAssistantReasoningSummaryContent(
+  content: ReadonlyArray<ContentPart>,
+  reasoningId: string,
+): ReadonlyArray<ContentPart> {
+  return content.reduce<ContentPart[]>((nextContent, part) => {
+    if (part.type !== "reasoning_summary" || resolveReasoningId(part) !== reasoningId) {
+      nextContent.push(part);
+      return nextContent;
+    }
+
+    if (part.summary === "") {
+      return nextContent;
+    }
+
+    nextContent.push({
+      ...part,
+      status: "completed" as const,
+    });
+    return nextContent;
+  }, []);
+}
+
+function finalizeAssistantContent(
+  content: ReadonlyArray<ContentPart>,
+): ReadonlyArray<ContentPart> {
+  const normalizedContent = removeOptimisticAssistantStatusContent(content);
+  return normalizedContent.reduce<ContentPart[]>((nextContent, part) => {
+    if (part.type !== "reasoning_summary") {
+      nextContent.push(part);
+      return nextContent;
+    }
+
+    if (part.summary === "") {
+      return nextContent;
+    }
+
+    nextContent.push({
+      ...part,
+      status: "completed" as const,
+    });
+    return nextContent;
+  }, []);
 }
 
 export function useChatHistory(): ChatHistoryState {
@@ -191,7 +258,7 @@ export function useChatHistory(): ChatHistoryState {
     });
   }, []);
 
-  const upsertAssistantReasoningSummary = useCallback((summary: string): void => {
+  const upsertAssistantReasoningSummary = useCallback((reasoningSummary: ReasoningSummaryContentPart): void => {
     setMessages((currentMessages) => {
       const lastMessage = currentMessages[currentMessages.length - 1];
       if (lastMessage === undefined || lastMessage.role !== "assistant") {
@@ -199,7 +266,7 @@ export function useChatHistory(): ChatHistoryState {
           ...currentMessages,
           {
             role: "assistant",
-            content: upsertAssistantReasoningSummaryContent([], summary),
+            content: upsertAssistantReasoningSummaryContent([], reasoningSummary),
             timestamp: Date.now(),
             isError: false,
             isStopped: false,
@@ -211,7 +278,24 @@ export function useChatHistory(): ChatHistoryState {
         ...currentMessages.slice(0, -1),
         {
           ...lastMessage,
-          content: upsertAssistantReasoningSummaryContent(lastMessage.content, summary),
+          content: upsertAssistantReasoningSummaryContent(lastMessage.content, reasoningSummary),
+        },
+      ];
+    });
+  }, []);
+
+  const completeAssistantReasoningSummary = useCallback((reasoningId: string): void => {
+    setMessages((currentMessages) => {
+      const lastMessage = currentMessages[currentMessages.length - 1];
+      if (lastMessage === undefined || lastMessage.role !== "assistant") {
+        return currentMessages;
+      }
+
+      return [
+        ...currentMessages.slice(0, -1),
+        {
+          ...lastMessage,
+          content: completeAssistantReasoningSummaryContent(lastMessage.content, reasoningId),
         },
       ];
     });
@@ -228,6 +312,7 @@ export function useChatHistory(): ChatHistoryState {
         ...currentMessages.slice(0, -1),
         {
           ...lastMessage,
+          content: finalizeAssistantContent(lastMessage.content),
           isError,
           isStopped,
         },
@@ -255,7 +340,7 @@ export function useChatHistory(): ChatHistoryState {
         ...currentMessages.slice(0, -1),
         {
           ...lastMessage,
-          content: appendAssistantErrorContent(lastMessage.content, errorText),
+          content: appendAssistantErrorContent(finalizeAssistantContent(lastMessage.content), errorText),
           isError: true,
         },
       ];
@@ -274,6 +359,7 @@ export function useChatHistory(): ChatHistoryState {
     appendAssistantText,
     upsertAssistantToolCall,
     upsertAssistantReasoningSummary,
+    completeAssistantReasoningSummary,
     finishAssistantMessage,
     markAssistantError,
     clearHistory,

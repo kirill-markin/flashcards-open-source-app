@@ -200,9 +200,9 @@ extension AIChatView {
                         style: aiChatToolBorderStrokeStyle(status: toolCall.status)
                     )
             )
-        case .reasoningSummary(let summary):
+        case .reasoningSummary(let reasoningSummary):
             DisclosureGroup {
-                Text(summary)
+                Text(reasoningSummary.summary.isEmpty ? "Thinking..." : reasoningSummary.summary)
                     .font(.subheadline)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
@@ -213,7 +213,7 @@ extension AIChatView {
                     Text("Reasoning")
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Text("DONE")
+                    Text(reasoningSummary.status == .started ? "RUNNING" : "DONE")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -225,7 +225,10 @@ extension AIChatView {
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                    .stroke(
+                        aiChatToolBorderColor(status: reasoningSummary.status),
+                        style: aiChatToolBorderStrokeStyle(status: reasoningSummary.status)
+                    )
             )
         case .accountUpgradePrompt(let message, let buttonTitle):
             VStack(alignment: .leading, spacing: 12) {
@@ -246,11 +249,11 @@ extension AIChatView {
             switch part {
             case .text(let text):
                 partialResult.append(text)
-            case .reasoningSummary(let summary):
+            case .reasoningSummary(let reasoningSummary):
                 if partialResult.isEmpty == false {
                     partialResult.append("\n")
                 }
-                partialResult.append(summary)
+                partialResult.append(reasoningSummary.summary.isEmpty ? "Thinking..." : reasoningSummary.summary)
             case .toolCall, .image, .file, .accountUpgradePrompt:
                 break
             }

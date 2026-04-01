@@ -8,9 +8,13 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
+import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
+import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
+import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.aiChatConsentRequiredMessage
 import com.flashcardsopensourceapp.data.local.model.aiChatGuestQuotaButtonTitle
@@ -33,6 +37,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val noSpeechRecordedMessage: String = "No speech was recorded."
+private const val aiChatBootstrapPageLimit: Int = 20
 
 private enum class AiServerSnapshotApplyMode {
     ACTIVE,
@@ -74,6 +79,7 @@ class AiViewModel(
         value = makeDefaultAiDraftState()
     )
     private var activeSendJob: Job? = null
+    private var activeLiveJob: Job? = null
     private var activeWarmUpJob: Job? = null
     private var activeBootstrapJob: Job? = null
     private var pendingWarmUpAfterWorkspaceSwitch: Boolean = false
@@ -294,10 +300,34 @@ class AiViewModel(
                     workspaceId = draftState.value.workspaceId,
                     sessionId = draftState.value.persistedState.chatSessionId.ifBlank { null }
                 )
-                applyServerSnapshot(
-                    snapshot = snapshot,
-                    applyMode = AiServerSnapshotApplyMode.ACTIVE
+                activeLiveJob?.cancel(
+                    cause = CancellationException("AI live stream detached because a new chat was created.")
                 )
+                activeLiveJob = null
+                draftState.update { state ->
+                    state.copy(
+                        persistedState = state.persistedState.copy(
+                            messages = emptyList(),
+                            chatSessionId = snapshot.sessionId,
+                            lastKnownChatConfig = snapshot.chatConfig
+                        ),
+                        hasOlder = false,
+                        oldestCursor = null,
+                        liveCursor = null,
+                        runState = "idle",
+                        isLiveAttached = false,
+                        draftMessage = "",
+                        pendingAttachments = emptyList(),
+                        composerPhase = AiComposerPhase.IDLE,
+                        dictationState = AiChatDictationState.IDLE,
+                        conversationBootstrapState = AiConversationBootstrapState.READY,
+                        conversationBootstrapErrorMessage = "",
+                        repairStatus = null,
+                        activeAlert = null,
+                        errorMessage = ""
+                    )
+                }
+                persistCurrentState()
             } catch (error: CancellationException) {
                 AiChatDiagnosticsLogger.info(
                     event = "new_chat_cancelled",
@@ -335,12 +365,10 @@ class AiViewModel(
         val sessionId = draftState.value.persistedState.chatSessionId
         val workspaceId = draftState.value.workspaceId
 
-        activeSendJob?.cancel()
-        activeSendJob = null
         draftState.update { state ->
             state.copy(
-                persistedState = clearOptimisticAssistantStatusIfNeeded(state = state.persistedState),
                 composerPhase = AiComposerPhase.STOPPING,
+                runState = "stopping",
                 repairStatus = null,
                 activeAlert = null,
                 errorMessage = ""
@@ -355,29 +383,16 @@ class AiViewModel(
                         workspaceId = workspaceId,
                         sessionId = sessionId
                     )
-                    val snapshot = aiChatRepository.loadChatSnapshot(
-                        workspaceId = workspaceId,
-                        sessionId = sessionId
-                    )
-                    if (snapshot != null) {
-                        applyServerSnapshot(
-                            snapshot = snapshot,
-                            applyMode = AiServerSnapshotApplyMode.ACTIVE
-                        )
-                        return@launch
+                    if (activeSendJob?.isActive != true && activeLiveJob?.isActive != true) {
+                        finalizeStoppedConversation()
                     }
+                    return@launch
                 }
-                draftState.update { state ->
-                    state.copy(composerPhase = AiComposerPhase.IDLE)
-                }
-                persistCurrentState()
+                finalizeStoppedConversation()
             } catch (_: CancellationException) {
                 throw CancellationException("Stop run cancelled.")
             } catch (_: Exception) {
-                draftState.update { state ->
-                    state.copy(composerPhase = AiComposerPhase.IDLE)
-                }
-                persistCurrentState()
+                finalizeStoppedConversation()
             }
         }
     }
@@ -427,7 +442,7 @@ class AiViewModel(
             return
         }
 
-        startLinkedConversationBootstrap(forceReloadState = true)
+        startConversationBootstrap(forceReloadState = true)
     }
 
     fun warmUpLinkedSessionIfNeeded() {
@@ -445,30 +460,6 @@ class AiViewModel(
         if (cloudSettings.cloudState == CloudAccountState.LINKING_READY) {
             return
         }
-        if (cloudSettings.cloudState == CloudAccountState.LINKED) {
-            if (
-                currentState.conversationBootstrapState == AiConversationBootstrapState.READY
-                && currentState.persistedState.chatSessionId.isNotBlank()
-            ) {
-                return
-            }
-
-            startLinkedConversationBootstrap(forceReloadState = false)
-            return
-        }
-        if (
-            cloudSettings.cloudState == CloudAccountState.GUEST
-            && cloudSettings.activeWorkspaceId != null
-            && currentState.workspaceId != cloudSettings.activeWorkspaceId
-        ) {
-            return
-        }
-        if (
-            cloudSettings.cloudState == CloudAccountState.GUEST
-            && lastPreparedGuestWorkspaceId == currentState.workspaceId
-        ) {
-            return
-        }
         if (activeWarmUpJob != null) {
             return
         }
@@ -476,13 +467,7 @@ class AiViewModel(
         var warmUpJob: Job? = null
         warmUpJob = viewModelScope.launch {
             try {
-                aiChatRepository.prepareSessionForAi(workspaceId = currentState.workspaceId)
-                if (
-                    cloudSettings.cloudState == CloudAccountState.GUEST
-                    && draftState.value.workspaceId == currentState.workspaceId
-                ) {
-                    lastPreparedGuestWorkspaceId = currentState.workspaceId
-                }
+                startConversationBootstrap(forceReloadState = false)
             } catch (error: CancellationException) {
                 AiChatDiagnosticsLogger.info(
                     event = "warm_up_cancelled",
@@ -604,17 +589,24 @@ class AiViewModel(
                     workspaceId = draftState.value.workspaceId,
                     state = nextPersistedState,
                     content = outgoingContent,
-                    onAccepted = { sessionId, chatConfig ->
+                    onAccepted = { response ->
                         didAcceptRun = true
                         draftState.update { state ->
                             state.copy(
                                 persistedState = state.persistedState.copy(
-                                    chatSessionId = sessionId,
-                                    lastKnownChatConfig = chatConfig ?: state.persistedState.lastKnownChatConfig
+                                    chatSessionId = response.sessionId,
+                                    lastKnownChatConfig = response.chatConfig
                                 ),
+                                liveCursor = null,
+                                runState = response.runState,
+                                isLiveAttached = response.runState == "running" && response.liveStream != null,
                                 draftMessage = "",
                                 pendingAttachments = emptyList(),
-                                composerPhase = AiComposerPhase.RUNNING,
+                                composerPhase = if (response.runState == "running") {
+                                    AiComposerPhase.RUNNING
+                                } else {
+                                    AiComposerPhase.IDLE
+                                },
                                 dictationState = AiChatDictationState.IDLE,
                                 activeAlert = null,
                                 errorMessage = ""
@@ -623,27 +615,20 @@ class AiViewModel(
                         persistCurrentState()
                     },
                     onEvent = { event ->
-                        applyStreamEvent(event = event)
+                        applyLiveEvent(event = event)
                     }
                 )
-                val finalSnapshot = outcome.finalSnapshot
-                if (finalSnapshot != null) {
-                    applyServerSnapshot(
-                        snapshot = finalSnapshot,
-                        applyMode = AiServerSnapshotApplyMode.ACTIVE
+                draftState.update { state ->
+                    val nextChatConfig = outcome.chatConfig ?: state.persistedState.lastKnownChatConfig
+                    state.copy(
+                        persistedState = state.persistedState.copy(
+                            chatSessionId = outcome.chatSessionId,
+                            lastKnownChatConfig = nextChatConfig
+                        ),
+                        isLiveAttached = false
                     )
-                } else {
-                    draftState.update { state ->
-                        val nextChatConfig = outcome.chatConfig ?: state.persistedState.lastKnownChatConfig
-                        state.copy(
-                            persistedState = state.persistedState.copy(
-                                chatSessionId = outcome.chatSessionId,
-                                lastKnownChatConfig = nextChatConfig
-                            )
-                        )
-                    }
-                    persistCurrentState()
                 }
+                persistCurrentState()
             } catch (error: CancellationException) {
                 throw error
             } catch (error: AiChatRemoteException) {
@@ -671,6 +656,11 @@ class AiViewModel(
                             AiComposerPhase.RUNNING, AiComposerPhase.STOPPING -> state.composerPhase
                             else -> AiComposerPhase.IDLE
                         },
+                        isLiveAttached = if (state.composerPhase == AiComposerPhase.RUNNING || state.composerPhase == AiComposerPhase.STOPPING) {
+                            state.isLiveAttached
+                        } else {
+                            false
+                        },
                         repairStatus = null
                     )
                 }
@@ -680,105 +670,164 @@ class AiViewModel(
         }
     }
 
-    private suspend fun applyStreamEvent(event: AiChatStreamEvent) {
+    private suspend fun applyLiveEvent(event: AiChatLiveEvent) {
         when (event) {
-            is AiChatStreamEvent.Delta -> {
+            is AiChatLiveEvent.AssistantDelta -> {
                 draftState.update { state ->
                     state.copy(
-                        persistedState = appendAssistantText(
+                        persistedState = upsertAssistantText(
                             state = state.persistedState,
-                            text = event.text
+                            text = event.text,
+                            itemId = event.itemId,
+                            cursor = event.cursor
                         )
                     )
                 }
             }
 
-            is AiChatStreamEvent.ToolCall -> {
+            is AiChatLiveEvent.AssistantToolCall -> {
                 draftState.update { state ->
                     state.copy(
                         persistedState = upsertAssistantToolCall(
                             state = state.persistedState,
-                            toolCall = event.toolCall
+                            toolCall = event.toolCall,
+                            itemId = event.itemId,
+                            cursor = event.cursor
                         ),
+                        liveCursor = event.cursor,
                         repairStatus = null
                     )
                 }
             }
 
-            is AiChatStreamEvent.ToolCallRequest -> {
+            is AiChatLiveEvent.AssistantReasoningStarted -> {
                 draftState.update { state ->
                     state.copy(
-                        persistedState = upsertAssistantToolCallRequest(
+                        persistedState = upsertAssistantReasoningSummary(
                             state = state.persistedState,
-                            toolCallRequest = event.toolCallRequest
+                            reasoningSummary = AiChatReasoningSummary(
+                                reasoningId = event.reasoningId,
+                                summary = "",
+                                status = AiChatToolCallStatus.STARTED
+                            ),
+                            itemId = event.itemId,
+                            cursor = event.cursor
                         ),
+                        liveCursor = event.cursor,
                         repairStatus = null
                     )
                 }
             }
 
-            is AiChatStreamEvent.RepairAttempt -> {
+            is AiChatLiveEvent.AssistantReasoningSummary -> {
                 draftState.update { state ->
-                    state.copy(repairStatus = event.status)
+                    state.copy(
+                        persistedState = upsertAssistantReasoningSummary(
+                            state = state.persistedState,
+                            reasoningSummary = event.reasoningSummary,
+                            itemId = event.itemId,
+                            cursor = event.cursor
+                        ),
+                        liveCursor = event.cursor,
+                        repairStatus = null
+                    )
                 }
             }
 
-            AiChatStreamEvent.Done -> {
+            is AiChatLiveEvent.AssistantReasoningDone -> {
                 draftState.update { state ->
                     state.copy(
+                        persistedState = completeAssistantReasoningSummary(
+                            state = state.persistedState,
+                            reasoningId = event.reasoningId,
+                            itemId = event.itemId,
+                            cursor = event.cursor
+                        ),
+                        liveCursor = event.cursor,
+                        repairStatus = null
+                    )
+                }
+            }
+
+            is AiChatLiveEvent.AssistantMessageDone -> {
+                draftState.update { state ->
+                    state.copy(
+                        persistedState = finalizeAssistantMessage(
+                            state = state.persistedState,
+                            itemId = event.itemId,
+                            cursor = event.cursor,
+                            isError = event.isError,
+                            isStopped = event.isStopped
+                        ),
+                        liveCursor = event.cursor,
+                        runState = if (event.isError) "failed" else if (event.isStopped) "stopped" else "idle",
+                        isLiveAttached = false,
                         composerPhase = AiComposerPhase.IDLE,
                         repairStatus = null
                     )
                 }
             }
 
-            is AiChatStreamEvent.Error -> {
-                if (event.error.code == "GUEST_AI_LIMIT_REACHED") {
-                    draftState.update { state ->
+            is AiChatLiveEvent.RepairStatus -> {
+                draftState.update { state ->
+                    state.copy(repairStatus = event.status)
+                }
+            }
+
+            is AiChatLiveEvent.RunState -> {
+                draftState.update { state ->
+                    if (event.runState == "running") {
                         state.copy(
-                            persistedState = appendAssistantAccountUpgradePrompt(
-                                state = state.persistedState,
-                                message = aiChatGuestQuotaReachedMessage,
-                                buttonTitle = aiChatGuestQuotaButtonTitle,
-                                timestampMillis = System.currentTimeMillis()
-                            ),
-                            composerPhase = AiComposerPhase.IDLE,
-                            repairStatus = null
+                            runState = event.runState,
+                            isLiveAttached = true
                         )
-                    }
-                } else {
-                    val message = makeAiChatUserFacingErrorMessage(
-                        rawMessage = event.error.message,
-                        code = event.error.code,
-                        requestId = event.error.requestId,
-                        configurationMode = serverConfigurationState.value.mode,
-                        surface = AiErrorSurface.CHAT
-                    )
-                    AiChatDiagnosticsLogger.error(
-                        event = "stream_error_event_received",
-                        fields = listOf(
-                            "workspaceId" to draftState.value.workspaceId,
-                            "cloudState" to cloudSettingsState.value.cloudState.name,
-                            "chatSessionId" to draftState.value.persistedState.chatSessionId,
-                            "requestId" to event.error.requestId,
-                            "code" to event.error.code,
-                            "stage" to event.error.stage,
-                            "message" to event.error.message
-                        )
-                    )
-                    draftState.update { state ->
+                    } else {
                         state.copy(
                             persistedState = markAssistantError(
                                 state = state.persistedState,
-                                message = message,
+                                message = "AI live stream ended before message completion.",
                                 timestampMillis = System.currentTimeMillis()
                             ),
+                            runState = event.runState,
+                            isLiveAttached = false,
                             composerPhase = AiComposerPhase.IDLE,
                             repairStatus = null,
-                            errorMessage = message
+                            errorMessage = "AI live stream ended before message completion."
                         )
                     }
                 }
+            }
+
+            is AiChatLiveEvent.Error -> {
+                draftState.update { state ->
+                    state.copy(
+                        persistedState = markAssistantError(
+                            state = state.persistedState,
+                            message = event.message,
+                            timestampMillis = System.currentTimeMillis()
+                        ),
+                        runState = "failed",
+                        isLiveAttached = false,
+                        composerPhase = AiComposerPhase.IDLE,
+                        repairStatus = null,
+                        errorMessage = event.message
+                    )
+                }
+            }
+
+            is AiChatLiveEvent.StopAck -> {
+                draftState.update { state ->
+                    state.copy(
+                        runState = "stopped",
+                        isLiveAttached = false,
+                        composerPhase = AiComposerPhase.IDLE,
+                        repairStatus = null
+                    )
+                }
+            }
+
+            AiChatLiveEvent.ResetRequired -> {
+                startConversationBootstrap(forceReloadState = true)
             }
         }
         persistCurrentState()
@@ -814,6 +863,8 @@ class AiViewModel(
                         buttonTitle = aiChatGuestQuotaButtonTitle,
                         timestampMillis = System.currentTimeMillis()
                     ),
+                    runState = "idle",
+                    isLiveAttached = false,
                     composerPhase = AiComposerPhase.IDLE,
                     errorMessage = ""
                 )
@@ -827,6 +878,8 @@ class AiViewModel(
                     persistedState = previousPersistedState,
                     draftMessage = draftMessage,
                     pendingAttachments = pendingAttachments,
+                    runState = "idle",
+                    isLiveAttached = false,
                     composerPhase = AiComposerPhase.IDLE,
                     repairStatus = null
                 )
@@ -836,6 +889,8 @@ class AiViewModel(
         if (didAcceptRun.not() && remoteError?.code == "CHAT_ACTIVE_RUN_IN_PROGRESS") {
             draftState.update { state ->
                 state.copy(
+                    runState = "idle",
+                    isLiveAttached = false,
                     composerPhase = AiComposerPhase.IDLE,
                     errorMessage = "A response is already in progress. Wait for it to finish or stop it before sending another message."
                 )
@@ -869,6 +924,8 @@ class AiViewModel(
         draftState.update { state ->
             if (didAcceptRun.not()) {
                 state.copy(
+                    runState = "failed",
+                    isLiveAttached = false,
                     composerPhase = AiComposerPhase.IDLE,
                     errorMessage = message
                 )
@@ -879,6 +936,8 @@ class AiViewModel(
                         message = message,
                         timestampMillis = System.currentTimeMillis()
                     ),
+                    runState = "failed",
+                    isLiveAttached = false,
                     composerPhase = AiComposerPhase.IDLE,
                     errorMessage = message
                 )
@@ -919,6 +978,10 @@ class AiViewModel(
         activeSendJob?.cancel(
             cause = CancellationException("AI send cancelled because access context changed.")
         )
+        activeLiveJob?.cancel(
+            cause = CancellationException("AI live attach cancelled because access context changed.")
+        )
+        activeLiveJob = null
         if (activeBootstrapJob != null) {
             activeBootstrapJob?.cancel(
                 cause = CancellationException("AI bootstrap cancelled because access context changed.")
@@ -949,7 +1012,11 @@ class AiViewModel(
                 workspaceId = accessContext.workspaceId,
                 persistedState = persistedState
             ).copy(
-                conversationBootstrapState = if (accessContext.cloudState == CloudAccountState.LINKED) {
+                conversationBootstrapState = if (
+                    accessContext.workspaceId != null
+                    && consentState.value
+                    && accessContext.cloudState != CloudAccountState.LINKING_READY
+                ) {
                     AiConversationBootstrapState.LOADING
                 } else {
                     AiConversationBootstrapState.READY
@@ -962,92 +1029,41 @@ class AiViewModel(
             if (consentState.value.not()) {
                 return@launch
             }
-            if (accessContext.cloudState == CloudAccountState.LINKED) {
-                startLinkedConversationBootstrap(forceReloadState = false)
+            if (accessContext.cloudState == CloudAccountState.LINKING_READY) {
                 return@launch
             }
-            try {
-                val snapshot = aiChatRepository.loadChatSnapshot(
-                    workspaceId = accessContext.workspaceId,
-                    sessionId = persistedState.chatSessionId
-                )
-                when {
-                    snapshot != null -> applyServerSnapshot(
-                        snapshot = snapshot,
-                        applyMode = AiServerSnapshotApplyMode.PASSIVE
-                    )
-                    persistedState.chatSessionId.isNotBlank() -> {
-                        AiChatDiagnosticsLogger.warn(
-                            event = "switch_access_context_repaired_missing_session",
-                            fields = listOf(
-                                "workspaceId" to accessContext.workspaceId,
-                                "cloudState" to accessContext.cloudState.name,
-                                "missingChatSessionId" to persistedState.chatSessionId,
-                                "messageCount" to persistedState.messages.size.toString()
-                            )
-                        )
-                        val repairedState = persistedState.copy(chatSessionId = "")
-                        draftState.update { state ->
-                            state.copy(persistedState = repairedState)
-                        }
-                        persistCurrentState()
-                        aiChatRepository.loadChatSnapshot(
-                            workspaceId = accessContext.workspaceId,
-                            sessionId = null
-                        )?.let { repairedSnapshot ->
-                            applyServerSnapshot(
-                                snapshot = repairedSnapshot,
-                                applyMode = AiServerSnapshotApplyMode.PASSIVE
-                            )
-                        }
-                    }
-                }
-            } catch (error: CancellationException) {
-                AiChatDiagnosticsLogger.info(
-                    event = "switch_access_context_snapshot_load_cancelled",
-                    fields = listOf(
-                        "workspaceId" to accessContext.workspaceId,
-                        "cloudState" to accessContext.cloudState.name,
-                        "chatSessionId" to persistedState.chatSessionId,
-                        "messageCount" to persistedState.messages.size.toString(),
-                        "message" to error.message
-                    )
-                )
-                throw error
-            } catch (error: Exception) {
-                AiChatDiagnosticsLogger.error(
-                    event = "switch_access_context_snapshot_load_failed",
-                    fields = listOf(
-                        "workspaceId" to accessContext.workspaceId,
-                        "cloudState" to accessContext.cloudState.name,
-                        "chatSessionId" to persistedState.chatSessionId,
-                        "messageCount" to persistedState.messages.size.toString()
-                    ) + remoteErrorFields(error = error as? AiChatRemoteException),
-                    throwable = error
-                )
-            }
+            startConversationBootstrap(forceReloadState = false)
         }
     }
 
-    private fun startLinkedConversationBootstrap(forceReloadState: Boolean) {
+    private fun startConversationBootstrap(forceReloadState: Boolean) {
         val accessContext = activeAccessContext ?: return
         val workspaceId = accessContext.workspaceId ?: return
-        if (accessContext.cloudState != CloudAccountState.LINKED) {
+        if (accessContext.cloudState == CloudAccountState.LINKING_READY) {
             return
         }
 
         activeBootstrapJob?.cancel(
-            cause = CancellationException("AI bootstrap restarted for linked conversation.")
+            cause = CancellationException("AI bootstrap restarted.")
         )
         var bootstrapJob: Job? = null
         bootstrapJob = viewModelScope.launch {
             try {
+                activeLiveJob?.cancel(
+                    cause = CancellationException("AI live attach cancelled because bootstrap restarted.")
+                )
+                activeLiveJob = null
                 if (forceReloadState) {
                     val persistedState = aiChatRepository.loadPersistedState(workspaceId = workspaceId)
                     draftState.update { state ->
                         state.copy(
                             workspaceId = workspaceId,
                             persistedState = persistedState,
+                            hasOlder = false,
+                            oldestCursor = null,
+                            liveCursor = null,
+                            runState = "idle",
+                            isLiveAttached = false,
                             draftMessage = "",
                             pendingAttachments = emptyList(),
                             composerPhase = AiComposerPhase.IDLE,
@@ -1062,8 +1078,7 @@ class AiViewModel(
                 } else {
                     draftState.update { state ->
                         state.copy(
-                            draftMessage = "",
-                            pendingAttachments = emptyList(),
+                            isLiveAttached = false,
                             composerPhase = AiComposerPhase.IDLE,
                             dictationState = AiChatDictationState.IDLE,
                             conversationBootstrapState = AiConversationBootstrapState.LOADING,
@@ -1076,25 +1091,41 @@ class AiViewModel(
                 }
 
                 aiChatRepository.prepareSessionForAi(workspaceId = workspaceId)
-                val snapshot = requireNotNull(
-                    aiChatRepository.loadChatSnapshot(
-                        workspaceId = workspaceId,
-                        sessionId = null
-                    )
+                if (
+                    accessContext.cloudState == CloudAccountState.GUEST
+                    && draftState.value.workspaceId == workspaceId
                 ) {
-                    "Linked AI chat snapshot is unavailable."
+                    lastPreparedGuestWorkspaceId = workspaceId
                 }
                 if (activeAccessContext != accessContext) {
                     return@launch
                 }
 
-                applyServerSnapshot(
-                    snapshot = snapshot,
-                    applyMode = AiServerSnapshotApplyMode.ACTIVE
+                val persistedState = aiChatRepository.loadPersistedState(workspaceId = workspaceId)
+                val bootstrap = aiChatRepository.loadBootstrap(
+                    workspaceId = workspaceId,
+                    sessionId = persistedState.chatSessionId.ifBlank { null },
+                    limit = aiChatBootstrapPageLimit
+                )
+                if (activeAccessContext != accessContext) {
+                    return@launch
+                }
+
+                applyBootstrap(
+                    response = bootstrap,
+                    applyMode = if (forceReloadState) {
+                        AiServerSnapshotApplyMode.ACTIVE
+                    } else {
+                        AiServerSnapshotApplyMode.PASSIVE
+                    }
+                )
+                attachBootstrapLiveIfNeeded(
+                    workspaceId = workspaceId,
+                    response = bootstrap
                 )
             } catch (error: CancellationException) {
                 AiChatDiagnosticsLogger.info(
-                    event = "linked_conversation_bootstrap_cancelled",
+                    event = "conversation_bootstrap_cancelled",
                     fields = listOf(
                         "workspaceId" to workspaceId,
                         "cloudState" to accessContext.cloudState.name,
@@ -1113,7 +1144,7 @@ class AiViewModel(
                     configuration = serverConfigurationState.value
                 )
                 AiChatDiagnosticsLogger.error(
-                    event = "linked_conversation_bootstrap_failed",
+                    event = "conversation_bootstrap_failed",
                     fields = listOf(
                         "workspaceId" to workspaceId,
                         "cloudState" to accessContext.cloudState.name,
@@ -1127,6 +1158,11 @@ class AiViewModel(
                             messages = emptyList(),
                             chatSessionId = ""
                         ),
+                        hasOlder = false,
+                        oldestCursor = null,
+                        liveCursor = null,
+                        runState = "idle",
+                        isLiveAttached = false,
                         draftMessage = "",
                         pendingAttachments = emptyList(),
                         composerPhase = AiComposerPhase.IDLE,
@@ -1147,6 +1183,127 @@ class AiViewModel(
         activeBootstrapJob = bootstrapJob
     }
 
+    private fun attachBootstrapLiveIfNeeded(
+        workspaceId: String,
+        response: AiChatBootstrapResponse
+    ) {
+        val liveStream = response.liveStream ?: return
+        if (response.runState != "running") {
+            return
+        }
+
+        activeLiveJob?.cancel(
+            cause = CancellationException("AI live attach restarted from bootstrap.")
+        )
+        var liveJob: Job? = null
+        liveJob = viewModelScope.launch {
+            draftState.update { state ->
+                state.copy(isLiveAttached = true)
+            }
+            persistCurrentState()
+            try {
+                aiChatRepository.attachLiveRun(
+                    workspaceId = workspaceId,
+                    sessionId = response.sessionId,
+                    liveStream = liveStream,
+                    afterCursor = response.liveCursor,
+                    onEvent = { event ->
+                        applyLiveEvent(event = event)
+                    }
+                )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                draftState.update { state ->
+                    state.copy(
+                        persistedState = markAssistantError(
+                            state = state.persistedState,
+                            message = makeAiUserFacingErrorMessage(
+                                error = error,
+                                surface = AiErrorSurface.CHAT,
+                                configuration = serverConfigurationState.value
+                            ),
+                            timestampMillis = System.currentTimeMillis()
+                        ),
+                        runState = "failed",
+                        isLiveAttached = false,
+                        composerPhase = AiComposerPhase.IDLE,
+                        repairStatus = null
+                    )
+                }
+                persistCurrentState()
+            } finally {
+                if (activeLiveJob === liveJob) {
+                    activeLiveJob = null
+                }
+                draftState.update { state ->
+                    if (state.composerPhase == AiComposerPhase.RUNNING || state.composerPhase == AiComposerPhase.STOPPING) {
+                        state
+                    } else {
+                        state.copy(isLiveAttached = false)
+                    }
+                }
+                persistCurrentState()
+            }
+        }
+        activeLiveJob = liveJob
+    }
+
+    private suspend fun applyBootstrap(
+        response: AiChatBootstrapResponse,
+        applyMode: AiServerSnapshotApplyMode
+    ) {
+        draftState.update { state ->
+            val preserveLocalComposerState =
+                applyMode == AiServerSnapshotApplyMode.PASSIVE
+                    && state.composerPhase == AiComposerPhase.IDLE
+                    && state.conversationBootstrapState == AiConversationBootstrapState.READY
+            state.copy(
+                persistedState = state.persistedState.copy(
+                    messages = response.messages,
+                    chatSessionId = response.sessionId,
+                    lastKnownChatConfig = response.chatConfig
+                ),
+                hasOlder = response.hasOlder,
+                oldestCursor = response.oldestCursor,
+                liveCursor = response.liveCursor,
+                runState = response.runState,
+                isLiveAttached = false,
+                draftMessage = if (preserveLocalComposerState) state.draftMessage else "",
+                pendingAttachments = if (preserveLocalComposerState) state.pendingAttachments else emptyList(),
+                composerPhase = if (response.runState == "running") {
+                    AiComposerPhase.RUNNING
+                } else {
+                    AiComposerPhase.IDLE
+                },
+                dictationState = if (preserveLocalComposerState) {
+                    state.dictationState
+                } else {
+                    AiChatDictationState.IDLE
+                },
+                conversationBootstrapState = AiConversationBootstrapState.READY,
+                conversationBootstrapErrorMessage = "",
+                repairStatus = null,
+                activeAlert = null,
+                errorMessage = ""
+            )
+        }
+        persistCurrentState()
+    }
+
+    private fun finalizeStoppedConversation() {
+        draftState.update { state ->
+            state.copy(
+                persistedState = clearOptimisticAssistantStatusIfNeeded(state = state.persistedState),
+                runState = "stopped",
+                isLiveAttached = false,
+                composerPhase = AiComposerPhase.IDLE,
+                repairStatus = null
+            )
+        }
+        persistCurrentState()
+    }
+
     private suspend fun applyServerSnapshot(
         snapshot: AiChatSessionSnapshot,
         applyMode: AiServerSnapshotApplyMode
@@ -1162,6 +1319,11 @@ class AiViewModel(
                     chatSessionId = snapshot.sessionId,
                     lastKnownChatConfig = snapshot.chatConfig
                 ),
+                hasOlder = false,
+                oldestCursor = null,
+                liveCursor = null,
+                runState = snapshot.runState,
+                isLiveAttached = false,
                 draftMessage = if (preserveLocalComposerState) state.draftMessage else "",
                 pendingAttachments = if (preserveLocalComposerState) state.pendingAttachments else emptyList(),
                 composerPhase = if (snapshot.runState == "running") {

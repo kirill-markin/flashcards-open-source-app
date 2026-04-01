@@ -46,6 +46,10 @@ function toolCallStatusLabel(status: "started" | "completed"): string {
   return status === "started" ? "Running" : "Done";
 }
 
+function reasoningStatusLabel(status: "started" | "completed" | undefined): string {
+  return status === "started" ? "Running" : "Done";
+}
+
 function buildToolCallSummaryText(name: string, input: string | null): string {
   const toolLabel = formatToolLabel(name);
   const toolPreview = extractToolCallPreview(name, input);
@@ -134,13 +138,15 @@ export function renderStoredMessageContent(message: StoredMessage): ReactElement
     }
 
     if (part.type === "reasoning_summary") {
+      const reasoningStatus = part.status ?? "completed";
+      const reasoningText = part.summary === "" ? "Thinking..." : part.summary;
       elements.push(
-        <details key={`reasoning-${index}`} className="chat-tool-call chat-tool-call-completed">
+        <details key={`reasoning-${index}`} className={`chat-tool-call chat-tool-call-${reasoningStatus}`}>
           <summary className="chat-tool-call-summary">
-            <span className="chat-tool-call-summary-main" title={part.summary}>Reasoning</span>
-            <span className="chat-tool-call-status">Done</span>
+            <span className="chat-tool-call-summary-main" title={reasoningText}>Reasoning</span>
+            <span className="chat-tool-call-status">{reasoningStatusLabel(part.status)}</span>
           </summary>
-          <pre className="chat-tool-call-output">{part.summary}</pre>
+          <pre className="chat-tool-call-output">{reasoningText}</pre>
         </details>,
       );
       previousPartWasAttachment = false;

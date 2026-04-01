@@ -208,6 +208,16 @@ struct AIChatToolCall: Codable, Hashable, Identifiable, Sendable {
     let output: String?
 }
 
+struct AIChatReasoningSummary: Codable, Hashable, Identifiable, Sendable {
+    let id: String
+    let summary: String
+    let status: AIChatToolCallStatus
+}
+
+private struct AIChatStreamPositionPayload: Decodable {
+    let itemId: String
+}
+
 struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
     let id: String
     let fileName: String
@@ -224,7 +234,7 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
     case image(mediaType: String, base64Data: String)
     case file(fileName: String, mediaType: String, base64Data: String)
     case toolCall(AIChatToolCall)
-    case reasoningSummary(String)
+    case reasoningSummary(AIChatReasoningSummary)
     case accountUpgradePrompt(message: String, buttonTitle: String)
 
     private enum CodingKeys: String, CodingKey {
@@ -239,6 +249,7 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
         case input
         case output
         case summary
+        case streamPosition
         case buttonTitle
     }
 
@@ -271,7 +282,18 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
                 )
             )
         case "reasoning_summary":
-            self = .reasoningSummary(try container.decode(String.self, forKey: .summary))
+            let summary = try container.decode(String.self, forKey: .summary)
+            let streamPosition = try container.decodeIfPresent(AIChatStreamPositionPayload.self, forKey: .streamPosition)
+            let reasoningId = try container.decodeIfPresent(String.self, forKey: .id)
+                ?? streamPosition?.itemId
+                ?? summary
+            self = .reasoningSummary(
+                AIChatReasoningSummary(
+                    id: reasoningId,
+                    summary: summary,
+                    status: .completed
+                )
+            )
         case "account_upgrade_prompt":
             self = .accountUpgradePrompt(
                 message: try container.decode(String.self, forKey: .text),
@@ -309,9 +331,11 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
             try container.encode(toolCall.status, forKey: .status)
             try container.encodeIfPresent(toolCall.input, forKey: .input)
             try container.encodeIfPresent(toolCall.output, forKey: .output)
-        case .reasoningSummary(let summary):
+        case .reasoningSummary(let reasoningSummary):
             try container.encode("reasoning_summary", forKey: .type)
-            try container.encode(summary, forKey: .summary)
+            try container.encode(reasoningSummary.id, forKey: .id)
+            try container.encode(reasoningSummary.summary, forKey: .summary)
+            try container.encode(reasoningSummary.status, forKey: .status)
         case .accountUpgradePrompt(let message, let buttonTitle):
             try container.encode("account_upgrade_prompt", forKey: .type)
             try container.encode(message, forKey: .text)
@@ -339,8 +363,8 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
 
     var reasoningSummaryValue: String? {
         switch self {
-        case .reasoningSummary(let summary):
-            return summary
+        case .reasoningSummary(let reasoningSummary):
+            return reasoningSummary.summary
         default:
             return nil
         }
@@ -362,6 +386,7 @@ private struct AIChatDecodableContentPartPayload: Decodable {
         case input
         case output
         case summary
+        case streamPosition
         case buttonTitle
     }
 
@@ -394,7 +419,21 @@ private struct AIChatDecodableContentPartPayload: Decodable {
                 )
             )
         case "reasoning_summary":
-            self.value = .reasoningSummary(try container.decode(String.self, forKey: .summary))
+            let summary = try container.decode(String.self, forKey: .summary)
+            let streamPosition = try container.decodeIfPresent(
+                AIChatStreamPositionPayload.self,
+                forKey: .streamPosition
+            )
+            let reasoningId = try container.decodeIfPresent(String.self, forKey: .id)
+                ?? streamPosition?.itemId
+                ?? summary
+            self.value = .reasoningSummary(
+                AIChatReasoningSummary(
+                    id: reasoningId,
+                    summary: summary,
+                    status: .completed
+                )
+            )
         case "account_upgrade_prompt":
             self.value = .accountUpgradePrompt(
                 message: try container.decode(String.self, forKey: .text),
@@ -671,7 +710,9 @@ enum AIChatLiveEvent: Sendable {
     case runState(String)
     case assistantDelta(text: String, cursor: String, itemId: String)
     case assistantToolCall(AIChatToolCall, cursor: String, itemId: String)
-    case assistantReasoningSummary(summary: String, cursor: String, itemId: String)
+    case assistantReasoningStarted(reasoningId: String, cursor: String, itemId: String)
+    case assistantReasoningSummary(reasoningId: String, summary: String, cursor: String, itemId: String)
+    case assistantReasoningDone(reasoningId: String, cursor: String, itemId: String)
     case assistantMessageDone(cursor: String, itemId: String, isError: Bool, isStopped: Bool)
     case repairStatus(AIChatRepairAttemptStatus)
     case error(String)
