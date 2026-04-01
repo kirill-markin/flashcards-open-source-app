@@ -371,6 +371,18 @@ internal fun appendAssistantAccountUpgradePrompt(
     )
 }
 
+internal fun latestAssistantErrorMessage(messages: List<AiChatMessage>): String? {
+    val assistantMessage = messages.lastOrNull { message ->
+        message.role == AiChatRole.ASSISTANT && message.isError
+    } ?: return null
+
+    val message = assistantMessage.content.filterIsInstance<AiChatContentPart.Text>()
+        .joinToString(separator = "") { part -> part.text }
+        .trim()
+
+    return message.ifEmpty { null }
+}
+
 private fun appendingAssistantTextPart(
     content: List<AiChatContentPart>,
     text: String

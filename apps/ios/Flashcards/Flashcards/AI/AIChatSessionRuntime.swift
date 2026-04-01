@@ -2,6 +2,12 @@ import Foundation
 
 private let aiChatRunTimeoutSeconds: TimeInterval = 600
 
+enum AIChatLiveAttachTermination: Sendable {
+    case sawTerminalEvent
+    case endedWithoutTerminalEvent
+    case failed(message: String)
+}
+
 private enum AIChatRuntimeError: LocalizedError {
     case runTimedOut(sessionId: String, timeoutSeconds: TimeInterval)
     case liveStreamUnavailable(sessionId: String)
@@ -47,7 +53,7 @@ actor AIChatSessionRuntime {
         afterCursor: String?,
         outgoingContent: [AIChatContentPart],
         eventHandler: @escaping @Sendable (AIChatRuntimeEvent) async -> Void
-    ) async {
+    ) async throws {
         _ = self.contextLoader
         logAIChatRuntimeEvent(
             action: "ai_run_start",
@@ -95,6 +101,7 @@ actor AIChatSessionRuntime {
             await eventHandler(.finish)
         } catch is CancellationError {
             await eventHandler(.finish)
+            throw CancellationError()
         } catch {
             logAIChatRuntimeEvent(
                 action: "ai_run_fail",
@@ -111,7 +118,7 @@ actor AIChatSessionRuntime {
                 await eventHandler(.finish)
                 return
             }
-            await eventHandler(.fail(Flashcards.errorMessage(error: error)))
+            throw error
         }
     }
 
@@ -125,7 +132,8 @@ actor AIChatSessionRuntime {
         sessionId: String,
         afterCursor: String?,
         configurationMode: CloudServiceConfigurationMode,
-        eventHandler: @escaping @Sendable (AIChatLiveEvent) async -> Void
+        eventHandler: @escaping @Sendable (AIChatLiveEvent) async -> Void,
+        completionHandler: @escaping @Sendable (AIChatLiveAttachTermination) async -> Void
     ) {
         detach()
         activeLiveTask = Task {
@@ -137,13 +145,14 @@ actor AIChatSessionRuntime {
                 ]
             )
             do {
-                try await self.consumeLiveStream(
+                let termination = try await self.consumeLiveStream(
                     liveStream: liveStream,
                     sessionId: sessionId,
                     afterCursor: afterCursor,
                     configurationMode: configurationMode,
                     eventHandler: eventHandler
                 )
+                await completionHandler(termination)
             } catch is CancellationError {
             } catch {
                 logAIChatRuntimeEvent(
@@ -153,7 +162,7 @@ actor AIChatSessionRuntime {
                         "error": error.localizedDescription
                     ]
                 )
-                await eventHandler(.error(error.localizedDescription))
+                await completionHandler(.failed(message: Flashcards.errorMessage(error: error)))
             }
             logAIChatRuntimeEvent(
                 action: "ai_live_detach",
@@ -177,7 +186,7 @@ actor AIChatSessionRuntime {
         afterCursor: String?,
         configurationMode: CloudServiceConfigurationMode,
         eventHandler: @escaping @Sendable (AIChatLiveEvent) async -> Void
-    ) async throws {
+    ) async throws -> AIChatLiveAttachTermination {
         let stream = await self.liveStreamClient.connect(
             liveUrl: liveStream.url,
             authorization: liveStream.authorization,
@@ -196,14 +205,12 @@ actor AIChatSessionRuntime {
             switch event {
             case .assistantMessageDone:
                 sawTerminalMessage = true
-                return
+                return .sawTerminalEvent
             case .error, .resetRequired:
                 sawExplicitFailure = true
-                return
-            case .runState(let state):
-                if state != "running" {
-                    throw AIChatRuntimeError.liveStreamEndedBeforeCompletion(sessionId: sessionId)
-                }
+                return .sawTerminalEvent
+            case .runState:
+                break
             case .assistantDelta,
                     .assistantToolCall,
                     .assistantReasoningStarted,
@@ -216,10 +223,10 @@ actor AIChatSessionRuntime {
         }
 
         if sawTerminalMessage || sawExplicitFailure {
-            return
+            return .sawTerminalEvent
         }
 
-        throw AIChatRuntimeError.liveStreamEndedBeforeCompletion(sessionId: sessionId)
+        return .endedWithoutTerminalEvent
     }
 }
 

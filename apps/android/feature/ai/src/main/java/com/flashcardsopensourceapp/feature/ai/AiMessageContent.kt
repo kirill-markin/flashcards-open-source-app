@@ -52,8 +52,6 @@ internal fun MessageRow(
     val alignment = if (message.role == AiChatRole.USER) Alignment.CenterEnd else Alignment.CenterStart
     val containerColor = if (message.role == AiChatRole.USER) {
         MaterialTheme.colorScheme.primaryContainer
-    } else if (message.isError) {
-        MaterialTheme.colorScheme.errorContainer
     } else {
         MaterialTheme.colorScheme.surfaceContainerHighest
     }

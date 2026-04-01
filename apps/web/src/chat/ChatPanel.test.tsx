@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   ApiErrorMock,
+  consumeChatLiveStreamMock,
   createChatSnapshot,
   createNewChatSessionMock,
   getChatSnapshotMock,
@@ -328,6 +329,7 @@ describe("ChatPanel send lifecycle", () => {
     const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
     expect(textarea?.value).toBe("keep this draft");
     expect(getContainer().querySelector(".chat-msg")).toBeNull();
+    expect(getContainer().querySelector('[role="dialog"]')).not.toBeNull();
     expect(getContainer().textContent).toContain("Chat request failed.");
   });
 
@@ -347,7 +349,83 @@ describe("ChatPanel send lifecycle", () => {
     const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
     expect(textarea?.value).toBe("second turn");
     expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
+    expect(getContainer().querySelector('[role="dialog"]')).not.toBeNull();
     expect(getContainer().textContent).toContain("A response is already in progress.");
+  });
+
+  it("does not open an error dialog when assistant_message_done is followed by stream close", async () => {
+    consumeChatLiveStreamMock.mockImplementation(async ({ onEvent }) => {
+      onEvent({
+        type: "assistant_delta",
+        text: "All set.",
+        cursor: "cursor-1",
+        itemId: "item-1",
+      });
+      onEvent({
+        type: "assistant_message_done",
+        cursor: "cursor-1",
+        itemId: "item-1",
+        isError: false,
+        isStopped: false,
+      });
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("hello");
+    await flushAsync();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
+    expect(getContainer().querySelector('[role="dialog"]')).toBeNull();
+    expect(getContainer().textContent).not.toContain("AI live stream ended before the run finished.");
+  });
+
+  it("reconciles a clean unexpected EOF without opening an error dialog", async () => {
+    getChatSnapshotMock
+      .mockResolvedValueOnce(createChatSnapshot())
+      .mockResolvedValueOnce(createChatSnapshot({
+        sessionId: "session-1",
+        runState: "idle",
+      }));
+    consumeChatLiveStreamMock.mockResolvedValue(undefined);
+
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("hello");
+    await flushAsync();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).toHaveBeenCalledTimes(2);
+    expect(getContainer().querySelector('[role="dialog"]')).toBeNull();
+    expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
+  });
+
+  it("opens an error dialog when unexpected EOF still reconciles to a running run", async () => {
+    getChatSnapshotMock
+      .mockResolvedValueOnce(createChatSnapshot())
+      .mockResolvedValueOnce(createChatSnapshot({
+        sessionId: "session-1",
+        runState: "running",
+        liveStream: {
+          url: "https://chat-live.example.com",
+          authorization: "Live mock-token",
+          expiresAt: Date.now() + 60_000,
+        },
+      }));
+    consumeChatLiveStreamMock.mockResolvedValue(undefined);
+
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("hello");
+    await flushAsync();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).toHaveBeenCalledTimes(2);
+    expect(getContainer().querySelector('[role="dialog"]')).not.toBeNull();
+    expect(getContainer().textContent).toContain("AI live stream ended before the run finished.");
+    expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
   });
 
   it("renders completed reasoning summaries with the completed tool-call styling", async () => {

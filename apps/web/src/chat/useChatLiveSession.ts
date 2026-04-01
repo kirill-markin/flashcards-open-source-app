@@ -7,11 +7,13 @@ type ActiveLiveStreamConnection = Readonly<{
   abortController: AbortController;
 }>;
 
+type LiveStreamDisposition = "pending" | "terminal";
+
 type UseChatLiveSessionParams = Readonly<{
   applyLiveEvent: (event: ChatLiveEvent) => void;
   finalizeInterruptedRun: (message: string) => void;
   onVisibleResumeRequested: () => void;
-  onUnexpectedStreamEnd: () => void;
+  onUnexpectedStreamEnd: (sessionId: string) => void;
 }>;
 
 export type ChatLiveSessionState = Readonly<{
@@ -86,6 +88,7 @@ export function useChatLiveSession(
     }
 
     const abortController = new AbortController();
+    let liveStreamDisposition: LiveStreamDisposition = "pending";
     activeLiveConnectionRef.current = { sessionId, abortController };
     setIsLiveStreamConnected(false);
 
@@ -97,6 +100,14 @@ export function useChatLiveSession(
       onEvent: (event) => {
         if (activeLiveConnectionRef.current?.sessionId !== sessionId) {
           return;
+        }
+
+        if (
+          event.type === "assistant_message_done"
+          || event.type === "error"
+          || event.type === "reset_required"
+        ) {
+          liveStreamDisposition = "terminal";
         }
 
         setIsLiveStreamConnected(true);
@@ -113,7 +124,11 @@ export function useChatLiveSession(
 
       activeLiveConnectionRef.current = null;
       setIsLiveStreamConnected(false);
-      onUnexpectedStreamEnd();
+      if (liveStreamDisposition === "terminal") {
+        return;
+      }
+
+      onUnexpectedStreamEnd(sessionId);
     }).catch((error: unknown) => {
       if (abortController.signal.aborted) {
         return;

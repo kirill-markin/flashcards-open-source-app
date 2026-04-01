@@ -71,6 +71,8 @@ export type ChatSessionController = Readonly<{
   chatConfig: ChatConfig;
   composerAction: ChatComposerAction;
   composerNotice: string | null;
+  errorDialogMessage: string | null;
+  dismissErrorDialog: () => void;
   acceptServerSessionId: (sessionId: string) => void;
   sendMessage: (params: SendChatMessageParams) => Promise<SendChatMessageResult>;
   stopMessage: () => Promise<void>;
@@ -250,6 +252,44 @@ function areChatConfigsEqual(left: ChatConfig, right: ChatConfig): boolean {
     && left.features.attachmentsEnabled === right.features.attachmentsEnabled;
 }
 
+function extractStoredMessageTextContent(message: StoredMessage): string {
+  return message.content.reduce<string>((result, part) => {
+    if (part.type !== "text") {
+      return result;
+    }
+
+    if (part.text === OPTIMISTIC_ASSISTANT_STATUS_TEXT) {
+      return result;
+    }
+
+    return result + part.text;
+  }, "").trim();
+}
+
+function extractAssistantErrorMessage(
+  messages: ReadonlyArray<StoredMessage>,
+): string | null {
+  const assistantMessage = [...messages].reverse().find((message) => message.role === "assistant");
+  if (assistantMessage === undefined || assistantMessage.isError === false) {
+    return null;
+  }
+
+  const messageText = extractStoredMessageTextContent(assistantMessage);
+  return messageText === "" ? null : messageText;
+}
+
+function extractLatestAssistantMessageText(
+  messages: ReadonlyArray<StoredMessage>,
+): string | null {
+  const assistantMessage = [...messages].reverse().find((message) => message.role === "assistant");
+  if (assistantMessage === undefined) {
+    return null;
+  }
+
+  const messageText = extractStoredMessageTextContent(assistantMessage);
+  return messageText === "" ? null : messageText;
+}
+
 function toAssistantToolCallContentPart(
   event: Extract<ChatLiveEvent, { type: "assistant_tool_call" }>,
 ): ToolCallContentPart {
@@ -308,7 +348,6 @@ export function useChatSessionController(
     upsertAssistantReasoningSummary,
     completeAssistantReasoningSummary,
     finishAssistantMessage,
-    markAssistantError,
     clearHistory,
   } = useChatHistory(initialWarmStartSnapshot?.messages ?? []);
 
@@ -327,6 +366,7 @@ export function useChatSessionController(
     initialWarmStartSnapshot?.chatConfig ?? loadStoredChatConfig(),
   );
   const [composerNotice, setComposerNotice] = useState<string | null>(null);
+  const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
 
   const lastSnapshotUpdatedAtRef = useRef<number | null>(initialWarmStartSnapshot?.updatedAt ?? null);
   const hasObservedMainContentInvalidationVersionRef = useRef<boolean>(false);
@@ -362,11 +402,20 @@ export function useChatSessionController(
 
   const getKnownLiveCursor = useCallback((): string | null => liveCursorRef.current, []);
 
+  const dismissErrorDialog = useCallback((): void => {
+    setErrorDialogMessage(null);
+  }, []);
+
+  const showErrorDialog = useCallback((message: string): void => {
+    setComposerNotice(null);
+    setErrorDialogMessage(message);
+  }, []);
+
   const finalizeInterruptedRun = useCallback((message: string): void => {
-    markAssistantError(message);
+    showErrorDialog(message);
     setRunState("interrupted");
     setIsStopping(false);
-  }, [markAssistantError]);
+  }, [showErrorDialog]);
 
   const applyLiveEvent = useCallback((event: ChatLiveEvent): void => {
     if (event.type === "assistant_delta") {
@@ -404,6 +453,12 @@ export function useChatSessionController(
       finishAssistantMessage(event.isError, event.isStopped);
       setRunState(event.isError ? "interrupted" : "idle");
       setIsStopping(false);
+      if (event.isError) {
+        showErrorDialog(
+          extractLatestAssistantMessageText(messagesRef.current)
+            ?? "AI chat failed.",
+        );
+      }
       return;
     }
 
@@ -430,6 +485,7 @@ export function useChatSessionController(
     appendAssistantText,
     finalizeInterruptedRun,
     finishAssistantMessage,
+    showErrorDialog,
     upsertAssistantReasoningSummary,
     upsertAssistantToolCall,
     completeAssistantReasoningSummary,
@@ -450,12 +506,37 @@ export function useChatSessionController(
     onVisibleResumeRequested: () => {
       refreshVisibleSnapshotRef.current();
     },
-    onUnexpectedStreamEnd: () => {
+    onUnexpectedStreamEnd: (sessionId) => {
       setIsStopping(false);
-      if (runStateRef.current === "running") {
-        markAssistantError("AI live stream ended before the run finished.");
-        setRunState("interrupted");
+      if (runStateRef.current !== "running") {
+        return;
       }
+
+      const requestVersion = snapshotRequestVersionRef.current + 1;
+      snapshotRequestVersionRef.current = requestVersion;
+      void (async (): Promise<void> => {
+        try {
+          const snapshot = await loadChatSnapshot(sessionId, true, requestVersion);
+          if (snapshot === null) {
+            return;
+          }
+
+          const snapshotErrorMessage = extractAssistantErrorMessage(snapshot.messages);
+          if (snapshotErrorMessage !== null) {
+            setRunState("interrupted");
+            showErrorDialog(snapshotErrorMessage);
+            return;
+          }
+
+          if (snapshot.runState === "running") {
+            setRunState("interrupted");
+            showErrorDialog("AI live stream ended before the run finished.");
+          }
+        } catch (error) {
+          setRunState("interrupted");
+          showErrorDialog(`Chat refresh failed. ${toErrorMessage(error)}`);
+        }
+      })();
     },
   });
 
@@ -473,6 +554,7 @@ export function useChatSessionController(
     setMainContentInvalidationVersion(warmStartSnapshot.mainContentInvalidationVersion);
     setChatConfig(warmStartSnapshot.chatConfig);
     setComposerNotice(null);
+    setErrorDialogMessage(null);
     setIsHistoryLoaded(true);
     lastSnapshotUpdatedAtRef.current = warmStartSnapshot.updatedAt;
     hydratedWorkspaceIdRef.current = nextWorkspaceId;
@@ -564,7 +646,7 @@ export function useChatSessionController(
           return;
         }
 
-        setComposerNotice(`Chat refresh failed. ${toErrorMessage(error)}`);
+        showErrorDialog(`Chat refresh failed. ${toErrorMessage(error)}`);
       } finally {
         if (visibilityResumePromiseRef.current === refreshPromise) {
           visibilityResumePromiseRef.current = null;
@@ -582,6 +664,7 @@ export function useChatSessionController(
     loadChatSnapshot,
     startLiveStream,
     workspaceId,
+    showErrorDialog,
   ]);
 
   refreshVisibleSnapshotRef.current = refreshVisibleSnapshot;
@@ -592,6 +675,7 @@ export function useChatSessionController(
     setIsStopping(false);
     setMainContentInvalidationVersion(0);
     setComposerNotice(null);
+    setErrorDialogMessage(null);
     hasObservedMainContentInvalidationVersionRef.current = false;
     lastMainContentInvalidationVersionRef.current = 0;
     lastSnapshotUpdatedAtRef.current = null;
@@ -657,16 +741,10 @@ export function useChatSessionController(
         }
 
         if (isWorkspaceTransition && messagesRef.current.length === 0) {
-          replaceMessages([{
-            role: "assistant",
-            content: [{ type: "text", text: `Chat failed to load. ${toErrorMessage(error)}` }],
-            timestamp: Date.now(),
-            isError: true,
-            isStopped: false,
-          }]);
-        } else if (messagesRef.current.length === 0) {
-          setComposerNotice(`Chat refresh failed. ${toErrorMessage(error)}`);
+          replaceMessages([]);
         }
+
+        showErrorDialog(`Chat refresh failed. ${toErrorMessage(error)}`);
       } finally {
         if (!isDisposed) {
           setIsHistoryLoaded(true);
@@ -683,6 +761,7 @@ export function useChatSessionController(
     loadChatSnapshot,
     replaceMessages,
     resetControllerState,
+    showErrorDialog,
     startLiveStream,
     workspaceId,
   ]);
@@ -733,10 +812,11 @@ export function useChatSessionController(
     };
 
     if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
-      markAssistantError(ATTACHMENT_LIMIT_ERROR_MESSAGE);
+      showErrorDialog(ATTACHMENT_LIMIT_ERROR_MESSAGE);
       return { accepted: false };
     }
     setComposerNotice(null);
+    setErrorDialogMessage(null);
 
     try {
       const response = await startChatRun(requestBody);
@@ -756,11 +836,11 @@ export function useChatSessionController(
       return { accepted: true };
     } catch (error) {
       if (isChatApiError(error) && error.code === "CHAT_ACTIVE_RUN_IN_PROGRESS") {
-        setComposerNotice("A response is already in progress. Wait for it to finish or stop it before sending another message.");
+        showErrorDialog("A response is already in progress. Wait for it to finish or stop it before sending another message.");
         return { accepted: false };
       }
 
-      setComposerNotice(`Chat request failed. ${toErrorMessage(error)}`);
+      showErrorDialog(`Chat request failed. ${toErrorMessage(error)}`);
       setRunState("idle");
       return { accepted: false };
     }
@@ -771,10 +851,10 @@ export function useChatSessionController(
     isHistoryLoaded,
     isRemoteReady,
     isStopping,
-    markAssistantError,
     startAssistantMessage,
     startLiveStream,
     getKnownLiveCursor,
+    showErrorDialog,
     workspaceId,
   ]);
 
@@ -794,14 +874,14 @@ export function useChatSessionController(
         setIsStopping(false);
       }
     } catch (error) {
-      markAssistantError(`Chat stop failed. ${toErrorMessage(error)}`);
+      showErrorDialog(`Chat stop failed. ${toErrorMessage(error)}`);
       setRunState("interrupted");
     } finally {
       if (hasActiveLiveConnection() === false) {
         setIsStopping(false);
       }
     }
-  }, [currentSessionId, finishAssistantMessage, hasActiveLiveConnection, isAssistantRunActive, isStopping, markAssistantError]);
+  }, [currentSessionId, finishAssistantMessage, hasActiveLiveConnection, isAssistantRunActive, isStopping, showErrorDialog]);
 
   const clearConversation = useCallback(async (): Promise<void> => {
     if (workspaceId === null) {
@@ -831,6 +911,7 @@ export function useChatSessionController(
     setMainContentInvalidationVersion(0);
     setChatConfig(response.chatConfig);
     setComposerNotice(null);
+    setErrorDialogMessage(null);
     storeChatConfig(response.chatConfig);
   }, [clearHistory, currentSessionId, detachLiveStream, isAssistantRunActive, workspaceId]);
 
@@ -846,6 +927,8 @@ export function useChatSessionController(
     chatConfig: chatConfig ?? defaultChatConfig,
     composerAction,
     composerNotice,
+    errorDialogMessage,
+    dismissErrorDialog,
     acceptServerSessionId: setCurrentSessionId,
     sendMessage,
     stopMessage,

@@ -113,17 +113,13 @@ extension AIChatView {
             in: RoundedRectangle(cornerRadius: 14, style: .continuous)
         )
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(message.isError ? Color.red.opacity(0.5) : Color.clear, lineWidth: 1)
-        )
     }
 
     @ViewBuilder
     func messageContent(part: AIChatContentPart, message: AIChatMessage) -> some View {
         switch part {
         case .text(let text):
-            if message.role == .assistant, message.isError == false {
+            if message.role == .assistant {
                 Text(text)
                     .textSelection(.enabled)
                     .accessibilityIdentifier(UITestIdentifier.aiAssistantVisibleText)
