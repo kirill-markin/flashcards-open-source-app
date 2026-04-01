@@ -99,6 +99,7 @@ type UseSyncEngineParams = Readonly<{
 
 type SyncEngine = Readonly<{
   runSync: () => Promise<void>;
+  runSyncSilently: () => Promise<void>;
   runSyncForWorkspace: (workspace: WorkspaceSummary) => Promise<void>;
   refreshLocalData: () => Promise<void>;
   refreshWorkspaceView: (workspaceId: string) => Promise<void>;
@@ -210,6 +211,13 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     }
   }, [bumpLocalReadVersion, isVisibleWorkspace, refreshLocalMetadata]);
 
+  const reportGlobalSyncError = useCallback(function reportGlobalSyncError(errorMessage: string): void {
+    setErrorMessage(errorMessage);
+  }, [setErrorMessage]);
+
+  const ignoreSyncError = useCallback(function ignoreSyncError(_errorMessage: string): void {
+  }, []);
+
   const waitForWorkspaceSyncToSettle = useCallback(async function waitForWorkspaceSyncToSettle(
     workspaceId: string,
   ): Promise<void> {
@@ -223,8 +231,9 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     }
   }, []);
 
-  const runSyncForWorkspace = useCallback(async function runSyncForWorkspace(
+  const runSyncForWorkspaceInternal = useCallback(async function runSyncForWorkspaceInternal(
     workspace: WorkspaceSummary,
+    reportSyncError: (errorMessage: string) => void,
   ): Promise<void> {
     // Local writes may happen during warm start, but remote sync stays paused
     // until auth verification confirms which account owns this browser state.
@@ -379,7 +388,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           throw error;
         }
 
-        setErrorMessage(getErrorMessage(error));
+        reportSyncError(getErrorMessage(error));
         throw error;
       } finally {
         syncPromisesRef.current.delete(workspaceId);
@@ -399,11 +408,17 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     isVisibleWorkspace,
     refreshSyncIndicator,
     refreshWorkspaceView,
+    reportGlobalSyncError,
     session,
     sessionVerificationState,
-    setErrorMessage,
     setWorkspaceSettings,
   ]);
+
+  const runSyncForWorkspace = useCallback(async function runSyncForWorkspace(
+    workspace: WorkspaceSummary,
+  ): Promise<void> {
+    await runSyncForWorkspaceInternal(workspace, reportGlobalSyncError);
+  }, [reportGlobalSyncError, runSyncForWorkspaceInternal]);
 
   const runSync = useCallback(async function runSync(): Promise<void> {
     if (activeWorkspace === null) {
@@ -412,6 +427,14 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     await runSyncForWorkspace(activeWorkspace);
   }, [activeWorkspace, runSyncForWorkspace]);
+
+  const runSyncSilently = useCallback(async function runSyncSilently(): Promise<void> {
+    if (activeWorkspace === null) {
+      return;
+    }
+
+    await runSyncForWorkspaceInternal(activeWorkspace, ignoreSyncError);
+  }, [activeWorkspace, ignoreSyncError, runSyncForWorkspaceInternal]);
 
   useEffect(() => {
     if (sessionLoadState !== "ready" || sessionVerificationState !== "verified" || session === null || activeWorkspace === null) {
@@ -686,6 +709,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
   return {
     runSync,
+    runSyncSilently,
     runSyncForWorkspace,
     refreshLocalData,
     refreshWorkspaceView,

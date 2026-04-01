@@ -28,6 +28,8 @@ import type { SessionLoadState } from "./types";
 import type { SessionVerificationState } from "./warmStart";
 
 const defaultWorkspaceName = "Personal";
+const resumeRetryDelayMs = 750;
+const resumeRetryCount = 2;
 
 type UseWorkspaceSessionParams = Readonly<{
   sessionLoadState: SessionLoadState;
@@ -46,6 +48,7 @@ type UseWorkspaceSessionParams = Readonly<{
   setCloudSettings: Dispatch<SetStateAction<CloudSettings | null>>;
   refreshWorkspaceView: (workspaceId: string) => Promise<void>;
   runSync: () => Promise<void>;
+  runSyncSilently: () => Promise<void>;
   runSyncForWorkspace: (workspace: WorkspaceSummary) => Promise<void>;
 }>;
 
@@ -133,6 +136,12 @@ function logWorkspaceTransitionError(event: string, details: WorkspaceTransition
   console.error(event, details);
 }
 
+function waitForDelay(delayMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, delayMs);
+  });
+}
+
 export function useWorkspaceSession(params: UseWorkspaceSessionParams): WorkspaceSession {
   const {
     sessionLoadState,
@@ -151,8 +160,10 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     setCloudSettings,
     refreshWorkspaceView,
     runSync,
+    runSyncSilently,
     runSyncForWorkspace,
   } = params;
+  const resumePromiseRef = useRef<Promise<void> | null>(null);
 
   const publishSelectedWorkspace = useCallback(function publishSelectedWorkspace(
     currentSession: SessionInfo,
@@ -556,10 +567,62 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
         return false;
       }
 
-      setErrorMessage(getErrorMessage(error));
       throw error;
     }
-  }, [sessionLoadState, sessionVerificationState, setErrorMessage, setSession, setSessionErrorMessage]);
+  }, [sessionLoadState, sessionVerificationState, setSession, setSessionErrorMessage]);
+
+  const runResumeAttempt = useCallback(async function runResumeAttempt(): Promise<void> {
+    const isSessionValid = await revalidateActiveSession();
+    if (isSessionValid) {
+      await runSyncSilently();
+    }
+
+    setSessionErrorMessage("");
+    setErrorMessage("");
+  }, [revalidateActiveSession, runSyncSilently, setErrorMessage, setSessionErrorMessage]);
+
+  const resumeInBackground = useCallback(async function resumeInBackground(): Promise<void> {
+    const activeResume = resumePromiseRef.current;
+    if (activeResume !== null) {
+      return activeResume;
+    }
+
+    let trackedResumePromise: Promise<void>;
+    trackedResumePromise = (async (): Promise<void> => {
+      let attemptNumber = 1;
+      let lastError: unknown = null;
+
+      while (attemptNumber <= resumeRetryCount) {
+        try {
+          await runResumeAttempt();
+          return;
+        } catch (error) {
+          if (isAuthRedirectError(error)) {
+            return;
+          }
+
+          lastError = error;
+          if (attemptNumber === resumeRetryCount) {
+            break;
+          }
+
+          await waitForDelay(resumeRetryDelayMs);
+          attemptNumber += 1;
+        }
+      }
+
+      const nextErrorMessage = getErrorMessage(lastError);
+      setErrorMessage(nextErrorMessage);
+      throw lastError;
+    })().finally(() => {
+      if (resumePromiseRef.current === trackedResumePromise) {
+        resumePromiseRef.current = null;
+      }
+    });
+
+    resumePromiseRef.current = trackedResumePromise;
+    return trackedResumePromise;
+  }, [runResumeAttempt, setErrorMessage]);
 
   useEffect(() => {
     if (sessionLoadState !== "ready" || sessionVerificationState !== "verified" || session === null) {
@@ -573,12 +636,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     }, 60_000);
 
     const handleResume = (): void => {
-      void (async (): Promise<void> => {
-        const isSessionValid = await revalidateActiveSession();
-        if (isSessionValid) {
-          await runSync();
-        }
-      })();
+      void resumeInBackground();
     };
 
     const handleFocus = (): void => {
@@ -598,7 +656,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [revalidateActiveSession, runSync, session, sessionLoadState, sessionVerificationState]);
+  }, [resumeInBackground, runSync, session, sessionLoadState, sessionVerificationState]);
 
   return {
     initialize,
