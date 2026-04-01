@@ -4,8 +4,10 @@ import * as rds from "aws-cdk-lib/aws-rds";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
+import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
 import * as path from "path";
+import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
 
 export interface ApiGatewayProps {
   vpc: ec2.Vpc;
@@ -297,6 +299,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   backendFn.addEnvironment("CHAT_WORKER_FUNCTION_NAME", chatWorkerFn.functionName);
   backendFn.addEnvironment("CHAT_LIVE_URL", chatLiveFunctionUrl.url);
   chatWorkerFn.grantInvoke(backendFn);
+  const accessLogGroup = new logs.LogGroup(scope, "ApiAccessLogGroup", {
+    retention: logs.RetentionDays.ONE_WEEK,
+  });
 
   const restApi = new apigw.RestApi(scope, "Api", {
     restApiName: "flashcards-open-source-app-api",
@@ -306,6 +311,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       stageName: "v1",
       throttlingRateLimit: 50,
       throttlingBurstLimit: 100,
+      metricsEnabled: true,
+      dataTraceEnabled: false,
+      tracingEnabled: false,
+      accessLogDestination: new apigw.LogGroupLogDestination(accessLogGroup),
+      accessLogFormat: createSafeApiGatewayAccessLogFormat(),
     },
     defaultCorsPreflightOptions: {
       allowOrigins: allowedOrigins,
