@@ -742,7 +742,8 @@ class LocalSyncRepository(
     private val syncLocalStore: SyncLocalStore,
     private val operationCoordinator: CloudOperationCoordinator,
     private val resetCoordinator: CloudIdentityResetCoordinator,
-    private val guestSessionStore: GuestAiSessionStore
+    private val guestSessionStore: GuestAiSessionStore,
+    private val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator
 ) : SyncRepository {
     private val syncStatusState = MutableStateFlow(
         SyncStatusSnapshot(
@@ -762,10 +763,22 @@ class LocalSyncRepository(
 
     override suspend fun syncNow() {
         operationCoordinator.runExclusive {
+            val currentCloudSettings = preferencesStore.currentCloudSettings()
+            val currentStatus = syncStatusState.value.status
+            if (currentStatus is SyncStatus.Blocked) {
+                if (currentStatus.installationId == currentCloudSettings.installationId) {
+                    throw IllegalStateException(currentStatus.message)
+                }
+                syncStatusState.value = SyncStatusSnapshot(
+                    status = SyncStatus.Idle,
+                    lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
+                    lastErrorMessage = ""
+                )
+            }
             if (preferencesStore.currentAccountDeletionState() != AccountDeletionState.Hidden) {
                 return@runExclusive
             }
-            val cloudSettings = preferencesStore.currentCloudSettings()
+            val cloudSettings = cloudGuestSessionCoordinator.reconcilePersistedCloudStateLocked().cloudSettings
             val syncTarget = resolveSyncTarget(cloudSettings = cloudSettings)
 
             syncStatusState.value = syncStatusState.value.copy(status = SyncStatus.Syncing, lastErrorMessage = "")
@@ -799,6 +812,18 @@ class LocalSyncRepository(
                         lastErrorMessage = ""
                     )
                     return@runExclusive
+                }
+                if (isCloudIdentityConflictError(error = error)) {
+                    val message = error.message ?: "Cloud sync is blocked for this installation."
+                    syncStatusState.value = SyncStatusSnapshot(
+                        status = SyncStatus.Blocked(
+                            message = message,
+                            installationId = cloudSettings.installationId
+                        ),
+                        lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
+                        lastErrorMessage = message
+                    )
+                    throw error
                 }
                 syncLocalStore.markSyncFailure(syncTarget.workspaceId, error.message ?: "Cloud sync failed.")
                 syncStatusState.value = SyncStatusSnapshot(
@@ -1080,6 +1105,13 @@ private fun isRemoteAccountDeletedError(error: Exception): Boolean {
     return error is CloudRemoteException
         && error.statusCode == 410
         && error.errorCode == "ACCOUNT_DELETED"
+}
+
+internal fun isCloudIdentityConflictError(error: Exception): Boolean {
+    return error is CloudRemoteException && (
+        error.errorCode == "SYNC_INSTALLATION_PLATFORM_MISMATCH" ||
+            error.errorCode == "SYNC_REPLICA_CONFLICT"
+        )
 }
 
 private data class AuthenticatedCloudSession(

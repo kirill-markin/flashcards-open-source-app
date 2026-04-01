@@ -17,6 +17,8 @@ data class AiUiState(
     val isConversationReady: Boolean,
     val isConversationLoading: Boolean,
     val conversationErrorMessage: String,
+    val canRetryConversationLoad: Boolean,
+    val showOpenAccountStatusForConversationError: Boolean,
     val isComposerBusy: Boolean,
     val isStreaming: Boolean,
     val canStopStreaming: Boolean,

@@ -377,8 +377,15 @@ internal fun AiRouteContent(
                 ) {
                     Text("Chat unavailable")
                     Text(uiState.conversationErrorMessage)
-                    Button(onClick = onRetryConversationLoad) {
-                        Text("Retry")
+                    if (uiState.canRetryConversationLoad) {
+                        Button(onClick = onRetryConversationLoad) {
+                            Text("Retry")
+                        }
+                    }
+                    if (uiState.showOpenAccountStatusForConversationError) {
+                        Button(onClick = onOpenAccountStatus) {
+                            Text("Open account status")
+                        }
                     }
                 }
             }

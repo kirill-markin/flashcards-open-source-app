@@ -42,6 +42,7 @@ import com.flashcardsopensourceapp.app.navigation.topLevelDestinations
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import kotlinx.coroutines.delay
@@ -69,6 +70,13 @@ fun FlashcardsApp(appGraph: AppGraph) {
         val accountDeletionState by appGraph.cloudAccountRepository.observeAccountDeletionState().collectAsStateWithLifecycle(
             initialValue = AccountDeletionState.Hidden
         )
+        val syncStatusSnapshot by appGraph.syncRepository.observeSyncStatus().collectAsStateWithLifecycle(
+            initialValue = SyncStatusSnapshot(
+                status = SyncStatus.Idle,
+                lastSuccessfulSyncAtMillis = null,
+                lastErrorMessage = ""
+            )
+        )
         var isAppResumed by remember(lifecycleOwner) {
             mutableStateOf(
                 value = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
@@ -88,6 +96,12 @@ fun FlashcardsApp(appGraph: AppGraph) {
                     val failedStatus = snapshot.status as SyncStatus.Failed
                     appGraph.appMessageBus.showMessage(
                         message = "Sync failed: ${failedStatus.message}"
+                    )
+                }
+                if (snapshot.status is SyncStatus.Blocked && previousStatus !is SyncStatus.Blocked) {
+                    val blockedStatus = snapshot.status as SyncStatus.Blocked
+                    appGraph.appMessageBus.showMessage(
+                        message = blockedStatus.message
                     )
                 }
                 previousStatus = snapshot.status
@@ -125,12 +139,19 @@ fun FlashcardsApp(appGraph: AppGraph) {
             appGraph.cloudAccountRepository.resumePendingAccountDeletionIfNeeded()
         }
 
-        LaunchedEffect(isAppResumed, cloudSettings.cloudState, accountDeletionState, currentDestination.route) {
+        LaunchedEffect(
+            isAppResumed,
+            cloudSettings.cloudState,
+            syncStatusSnapshot.status,
+            accountDeletionState,
+            currentDestination.route
+        ) {
             if (
                 isAppResumed.not() || shouldRunForegroundSyncPolling(
                     cloudState = cloudSettings.cloudState,
                     accountDeletionState = accountDeletionState,
-                    destination = currentDestination
+                    destination = currentDestination,
+                    syncStatus = syncStatusSnapshot.status
                 ).not()
             ) {
                 return@LaunchedEffect
@@ -141,12 +162,19 @@ fun FlashcardsApp(appGraph: AppGraph) {
             }
         }
 
-        LaunchedEffect(isAppResumed, cloudSettings.cloudState, accountDeletionState, currentDestination.route) {
+        LaunchedEffect(
+            isAppResumed,
+            cloudSettings.cloudState,
+            syncStatusSnapshot.status,
+            accountDeletionState,
+            currentDestination.route
+        ) {
             if (
                 isAppResumed.not() || shouldRunForegroundSyncPolling(
                     cloudState = cloudSettings.cloudState,
                     accountDeletionState = accountDeletionState,
-                    destination = currentDestination
+                    destination = currentDestination,
+                    syncStatus = syncStatusSnapshot.status
                 ).not()
             ) {
                 return@LaunchedEffect

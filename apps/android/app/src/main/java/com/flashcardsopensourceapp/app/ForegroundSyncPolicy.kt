@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.TopLevelDestination
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.SyncStatus
 
 const val fastForegroundSyncPollingIntervalMillis: Long = 15_000L
 const val defaultForegroundSyncPollingIntervalMillis: Long = 60_000L
@@ -13,10 +14,12 @@ const val defaultForegroundSyncPollingIntervalMillis: Long = 60_000L
 fun shouldRunForegroundSyncPolling(
     cloudState: CloudAccountState,
     accountDeletionState: AccountDeletionState,
-    destination: TopLevelDestination
+    destination: TopLevelDestination,
+    syncStatus: SyncStatus
 ): Boolean {
     return cloudState == CloudAccountState.LINKED
         && accountDeletionState == AccountDeletionState.Hidden
+        && syncStatus !is SyncStatus.Blocked
         && destination != SettingsDestination
 }
 

@@ -580,7 +580,10 @@ class ReviewViewModel(
             reviewCardIdsAtSyncStart = null
         }
 
-        if (currentSyncStatus is SyncStatus.Failed && previousSyncStatus is SyncStatus.Syncing) {
+        if (
+            (currentSyncStatus is SyncStatus.Failed || currentSyncStatus is SyncStatus.Blocked) &&
+            previousSyncStatus is SyncStatus.Syncing
+        ) {
             reviewCardIdsAtSyncStart = null
         }
 

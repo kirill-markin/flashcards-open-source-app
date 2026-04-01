@@ -4,9 +4,11 @@ private let collectionPageLimit: Int = 100
 
 struct CloudSyncTransport {
     private let session: URLSession
+    private let decoder: JSONDecoder
 
-    init(session: URLSession) {
+    init(session: URLSession, decoder: JSONDecoder = makeFlashcardsRemoteJSONDecoder()) {
         self.session = session
+        self.decoder = decoder
     }
 
     func appVersion() -> String {
@@ -84,7 +86,7 @@ struct CloudSyncTransport {
 
         logCloudFlowPhase(phase: self.phase(for: path), outcome: "success")
 
-        return try JSONDecoder().decode(Response.self, from: data)
+        return try self.decoder.decode(Response.self, from: data)
     }
 
     private func makeUrl(apiBaseUrl: String, path: String) throws -> URL {

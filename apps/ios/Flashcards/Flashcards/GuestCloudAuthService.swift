@@ -53,7 +53,7 @@ final class GuestCloudAuthService {
 
     init(
         encoder: JSONEncoder = JSONEncoder(),
-        decoder: JSONDecoder = JSONDecoder(),
+        decoder: JSONDecoder = makeFlashcardsRemoteJSONDecoder(),
         session: URLSession = .shared
     ) {
         self.encoder = encoder

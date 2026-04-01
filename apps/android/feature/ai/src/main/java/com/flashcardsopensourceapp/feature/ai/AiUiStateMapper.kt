@@ -32,6 +32,7 @@ internal fun initialAiCloudSettings(): CloudSettings {
 internal fun mapToAiUiState(
     metadata: AppMetadataSummary,
     cloudState: CloudAccountState,
+    isCloudIdentityBlocked: Boolean,
     hasConsent: Boolean,
     draft: AiDraftState
 ): AiUiState {
@@ -57,6 +58,8 @@ internal fun mapToAiUiState(
         isConversationReady = isConversationReady,
         isConversationLoading = isConversationLoading,
         conversationErrorMessage = draft.conversationBootstrapErrorMessage,
+        canRetryConversationLoad = isCloudIdentityBlocked.not(),
+        showOpenAccountStatusForConversationError = isCloudIdentityBlocked,
         isComposerBusy = isComposerBusy,
         isStreaming = isStreaming,
         canStopStreaming = draft.composerPhase == AiComposerPhase.RUNNING,
@@ -86,6 +89,8 @@ internal fun makeInitialAiUiState(hasConsent: Boolean): AiUiState {
         isConversationReady = true,
         isConversationLoading = false,
         conversationErrorMessage = "",
+        canRetryConversationLoad = true,
+        showOpenAccountStatusForConversationError = false,
         isComposerBusy = false,
         isStreaming = false,
         canStopStreaming = false,

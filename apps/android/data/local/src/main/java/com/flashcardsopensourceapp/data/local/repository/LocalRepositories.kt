@@ -306,6 +306,7 @@ class LocalWorkspaceRepository(
                     CloudAccountState.LINKING_READY -> "Sign-in complete, choose a workspace"
                     CloudAccountState.GUEST -> "Guest AI session"
                     CloudAccountState.LINKED -> when (val syncStatus = syncStatusSnapshot.status) {
+                        is com.flashcardsopensourceapp.data.local.model.SyncStatus.Blocked -> syncStatus.message
                         is com.flashcardsopensourceapp.data.local.model.SyncStatus.Failed -> syncStatus.message
                         com.flashcardsopensourceapp.data.local.model.SyncStatus.Idle -> "Synced"
                         com.flashcardsopensourceapp.data.local.model.SyncStatus.Syncing -> "Syncing"

@@ -7,9 +7,14 @@ import Foundation
 
 actor AIChatLiveStreamClient {
     private let fallbackSession: URLSession
+    private let decoder: JSONDecoder
 
-    init(urlSession: URLSession) {
+    init(
+        urlSession: URLSession,
+        decoder: JSONDecoder = makeFlashcardsRemoteJSONDecoder()
+    ) {
         self.fallbackSession = urlSession
+        self.decoder = decoder
     }
 
     func connect(
@@ -47,7 +52,8 @@ actor AIChatLiveStreamClient {
                         continuation: continuation,
                         sessionId: sessionId,
                         afterCursor: afterCursor,
-                        configurationMode: configurationMode
+                        configurationMode: configurationMode,
+                        decoder: self.decoder
                     )
                     let configuration = self.fallbackSession.configuration.copy() as? URLSessionConfiguration
                         ?? .ephemeral
@@ -79,6 +85,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
     private let sessionId: String
     private let afterCursor: String?
     private let configurationMode: CloudServiceConfigurationMode
+    private let decoder: JSONDecoder
     private var session: URLSession?
     private var task: URLSessionDataTask?
     private var httpResponse: HTTPURLResponse?
@@ -92,12 +99,14 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
         continuation: AsyncThrowingStream<AIChatLiveEvent, Error>.Continuation,
         sessionId: String,
         afterCursor: String?,
-        configurationMode: CloudServiceConfigurationMode
+        configurationMode: CloudServiceConfigurationMode,
+        decoder: JSONDecoder
     ) {
         self.continuation = continuation
         self.sessionId = sessionId
         self.afterCursor = afterCursor
         self.configurationMode = configurationMode
+        self.decoder = decoder
     }
 
     func start(task: URLSessionDataTask, session: URLSession) {
@@ -243,22 +252,37 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
         }
 
         let payload = self.currentDataLines.joined(separator: "\n")
-        if let event = parseSSEEvent(eventType: self.currentEventType, payload: payload) {
+        do {
+            let event = try decodeAIChatLiveEvent(
+                eventType: self.currentEventType,
+                payload: payload,
+                decoder: self.decoder,
+                context: AIChatLiveEventDecodingContext(
+                    sessionId: self.sessionId,
+                    afterCursor: self.afterCursor,
+                    requestId: self.httpResponse.flatMap(extractAIChatLiveRequestId(httpResponse:))
+                )
+            )
             logAIChatLiveClientEvent(
                 action: "ai_live_event_received",
                 metadata: self.metadataForParsedEvent(event)
             )
             self.continuation.yield(event)
-        } else {
+        } catch {
             logAIChatLiveClientEvent(
-                action: "ai_live_event_parse_dropped",
+                action: "ai_live_event_parse_failed",
                 metadata: [
                     "sessionId": self.sessionId,
                     "afterCursor": self.afterCursor ?? "-",
                     "eventType": self.currentEventType ?? "-",
-                    "payloadSnippet": aiChatLiveTruncatedSnippet(payload)
+                    "payloadSnippet": aiChatLiveTruncatedSnippet(payload),
+                    "error": error.localizedDescription
                 ]
             )
+            self.currentEventType = nil
+            self.currentDataLines = []
+            self.finish(throwing: error)
+            return
         }
         self.currentEventType = nil
         self.currentDataLines = []
@@ -445,93 +469,264 @@ private func logAIChatLiveClientEvent(action: String, metadata: [String: String]
     logFlashcardsError(domain: "ios_ai_live", action: action, metadata: metadata)
 }
 
-private func parseSSEEvent(eventType: String?, payload: String) -> AIChatLiveEvent? {
-    guard let data = payload.data(using: .utf8) else {
-        return nil
-    }
-    guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-        return nil
-    }
+struct AIChatLiveEventDecodingContext: Sendable {
+    let sessionId: String
+    let afterCursor: String?
+    let requestId: String?
+}
 
-    let type = eventType ?? (json["type"] as? String ?? "")
+struct AIChatLiveStreamContractError: LocalizedError, AIChatFailureDiagnosticProviding {
+    let diagnostics: AIChatFailureDiagnostics
 
-    switch type {
-    case "run_state":
-        guard let runState = json["runState"] as? String else { return nil }
-        return .runState(runState)
-
-    case "assistant_delta":
-        guard let text = json["text"] as? String,
-              let cursor = json["cursor"] as? String,
-              let itemId = json["itemId"] as? String else { return nil }
-        return .assistantDelta(text: text, cursor: cursor, itemId: itemId)
-
-    case "assistant_tool_call":
-        guard let toolCallId = json["toolCallId"] as? String,
-              let name = json["name"] as? String,
-              let statusStr = json["status"] as? String,
-              let cursor = json["cursor"] as? String,
-              let itemId = json["itemId"] as? String else { return nil }
-        let status: AIChatToolCallStatus = statusStr == "completed" ? .completed : .started
-        let toolCall = AIChatToolCall(
-            id: toolCallId,
-            name: name,
-            status: status,
-            input: json["input"] as? String,
-            output: json["output"] as? String
+    var errorDescription: String? {
+        appendCloudRequestIdReference(
+            message: "AI live stream payload is invalid.",
+            requestId: self.diagnostics.backendRequestId
         )
-        return .assistantToolCall(toolCall, cursor: cursor, itemId: itemId)
-
-    case "assistant_reasoning_started":
-        guard let reasoningId = json["reasoningId"] as? String,
-              let cursor = json["cursor"] as? String,
-              let itemId = json["itemId"] as? String else { return nil }
-        return .assistantReasoningStarted(reasoningId: reasoningId, cursor: cursor, itemId: itemId)
-
-    case "assistant_reasoning_summary":
-        guard let reasoningId = json["reasoningId"] as? String,
-              let summary = json["summary"] as? String,
-              let cursor = json["cursor"] as? String,
-              let itemId = json["itemId"] as? String else { return nil }
-        return .assistantReasoningSummary(reasoningId: reasoningId, summary: summary, cursor: cursor, itemId: itemId)
-
-    case "assistant_reasoning_done":
-        guard let reasoningId = json["reasoningId"] as? String,
-              let cursor = json["cursor"] as? String,
-              let itemId = json["itemId"] as? String else { return nil }
-        return .assistantReasoningDone(reasoningId: reasoningId, cursor: cursor, itemId: itemId)
-
-    case "assistant_message_done":
-        guard let cursor = json["cursor"] as? String,
-              let itemId = json["itemId"] as? String else { return nil }
-        let isError = json["isError"] as? Bool ?? false
-        let isStopped = json["isStopped"] as? Bool ?? false
-        return .assistantMessageDone(cursor: cursor, itemId: itemId, isError: isError, isStopped: isStopped)
-
-    case "repair_status":
-        guard let message = json["message"] as? String,
-              let attempt = json["attempt"] as? Int,
-              let maxAttempts = json["maxAttempts"] as? Int else { return nil }
-        let toolName = json["toolName"] as? String
-        return .repairStatus(AIChatRepairAttemptStatus(
-            message: message,
-            attempt: attempt,
-            maxAttempts: maxAttempts,
-            toolName: toolName
-        ))
-
-    case "error":
-        guard let message = json["message"] as? String else { return nil }
-        return .error(message)
-
-    case "stop_ack":
-        guard let sessionId = json["sessionId"] as? String else { return nil }
-        return .stopAck(sessionId: sessionId)
-
-    case "reset_required":
-        return .resetRequired
-
-    default:
-        return nil
     }
+}
+
+private struct AIChatLiveEventTypeEnvelope: Decodable {
+    let type: AIChatLiveEventType
+}
+
+private enum AIChatLiveEventType: String, Decodable {
+    case runState = "run_state"
+    case assistantDelta = "assistant_delta"
+    case assistantToolCall = "assistant_tool_call"
+    case assistantReasoningStarted = "assistant_reasoning_started"
+    case assistantReasoningSummary = "assistant_reasoning_summary"
+    case assistantReasoningDone = "assistant_reasoning_done"
+    case assistantMessageDone = "assistant_message_done"
+    case repairStatus = "repair_status"
+    case error = "error"
+    case stopAck = "stop_ack"
+    case resetRequired = "reset_required"
+}
+
+private enum AIChatLiveRunStateWire: String, Decodable {
+    case idle
+    case running
+    case completed
+    case failed
+    case stopped
+    case interrupted
+}
+
+private struct AIChatLiveRunStateWireEvent: Decodable {
+    let runState: AIChatLiveRunStateWire
+}
+
+private struct AIChatLiveAssistantDeltaWireEvent: Decodable {
+    let text: String
+    let cursor: String
+    let itemId: String
+}
+
+private struct AIChatLiveAssistantToolCallWireEvent: Decodable {
+    let toolCallId: String
+    let name: String
+    let status: AIChatToolCallStatus
+    let input: String?
+    let output: String?
+    let cursor: String
+    let itemId: String
+}
+
+private struct AIChatLiveAssistantReasoningStartedWireEvent: Decodable {
+    let reasoningId: String
+    let cursor: String
+    let itemId: String
+}
+
+private struct AIChatLiveAssistantReasoningSummaryWireEvent: Decodable {
+    let reasoningId: String
+    let summary: String
+    let cursor: String
+    let itemId: String
+}
+
+private struct AIChatLiveAssistantReasoningDoneWireEvent: Decodable {
+    let reasoningId: String
+    let cursor: String
+    let itemId: String
+}
+
+private struct AIChatLiveAssistantMessageDoneWireEvent: Decodable {
+    let cursor: String
+    let itemId: String
+    let isError: Bool
+    let isStopped: Bool
+}
+
+private struct AIChatLiveRepairStatusWireEvent: Decodable {
+    let message: String
+    let attempt: Int
+    let maxAttempts: Int
+    let toolName: String?
+}
+
+private struct AIChatLiveErrorWireEvent: Decodable {
+    let message: String
+}
+
+private struct AIChatLiveStopAckWireEvent: Decodable {
+    let sessionId: String
+}
+
+func decodeAIChatLiveEvent(
+    eventType: String?,
+    payload: String,
+    decoder: JSONDecoder = makeFlashcardsRemoteJSONDecoder(),
+    context: AIChatLiveEventDecodingContext = AIChatLiveEventDecodingContext(
+        sessionId: "-",
+        afterCursor: nil,
+        requestId: nil
+    )
+) throws -> AIChatLiveEvent {
+    guard let data = payload.data(using: .utf8) else {
+        throw makeAIChatLiveStreamContractError(
+            eventType: eventType,
+            payload: payload,
+            context: context,
+            summary: "AI live stream payload is not valid UTF-8.",
+            underlyingError: nil
+        )
+    }
+
+    let resolvedType: AIChatLiveEventType
+    do {
+        if let eventType {
+            guard let parsedEventType = AIChatLiveEventType(rawValue: eventType) else {
+                throw makeAIChatLiveStreamContractError(
+                    eventType: eventType,
+                    payload: payload,
+                    context: context,
+                    summary: "AI live stream event type is unsupported.",
+                    underlyingError: nil
+                )
+            }
+            resolvedType = parsedEventType
+        } else {
+            resolvedType = try decoder.decode(AIChatLiveEventTypeEnvelope.self, from: data).type
+        }
+    } catch let error as AIChatLiveStreamContractError {
+        throw error
+    } catch {
+        throw makeAIChatLiveStreamContractError(
+            eventType: eventType,
+            payload: payload,
+            context: context,
+            summary: "AI live stream event type could not be decoded.",
+            underlyingError: error
+        )
+    }
+
+    do {
+        switch resolvedType {
+        case .runState:
+            let event = try decoder.decode(AIChatLiveRunStateWireEvent.self, from: data)
+            return .runState(event.runState.rawValue)
+        case .assistantDelta:
+            let event = try decoder.decode(AIChatLiveAssistantDeltaWireEvent.self, from: data)
+            return .assistantDelta(text: event.text, cursor: event.cursor, itemId: event.itemId)
+        case .assistantToolCall:
+            let event = try decoder.decode(AIChatLiveAssistantToolCallWireEvent.self, from: data)
+            return .assistantToolCall(
+                AIChatToolCall(
+                    id: event.toolCallId,
+                    name: event.name,
+                    status: event.status,
+                    input: event.input,
+                    output: event.output
+                ),
+                cursor: event.cursor,
+                itemId: event.itemId
+            )
+        case .assistantReasoningStarted:
+            let event = try decoder.decode(AIChatLiveAssistantReasoningStartedWireEvent.self, from: data)
+            return .assistantReasoningStarted(
+                reasoningId: event.reasoningId,
+                cursor: event.cursor,
+                itemId: event.itemId
+            )
+        case .assistantReasoningSummary:
+            let event = try decoder.decode(AIChatLiveAssistantReasoningSummaryWireEvent.self, from: data)
+            return .assistantReasoningSummary(
+                reasoningId: event.reasoningId,
+                summary: event.summary,
+                cursor: event.cursor,
+                itemId: event.itemId
+            )
+        case .assistantReasoningDone:
+            let event = try decoder.decode(AIChatLiveAssistantReasoningDoneWireEvent.self, from: data)
+            return .assistantReasoningDone(
+                reasoningId: event.reasoningId,
+                cursor: event.cursor,
+                itemId: event.itemId
+            )
+        case .assistantMessageDone:
+            let event = try decoder.decode(AIChatLiveAssistantMessageDoneWireEvent.self, from: data)
+            return .assistantMessageDone(
+                cursor: event.cursor,
+                itemId: event.itemId,
+                isError: event.isError,
+                isStopped: event.isStopped
+            )
+        case .repairStatus:
+            let event = try decoder.decode(AIChatLiveRepairStatusWireEvent.self, from: data)
+            return .repairStatus(
+                AIChatRepairAttemptStatus(
+                    message: event.message,
+                    attempt: event.attempt,
+                    maxAttempts: event.maxAttempts,
+                    toolName: event.toolName
+                )
+            )
+        case .error:
+            let event = try decoder.decode(AIChatLiveErrorWireEvent.self, from: data)
+            return .error(event.message)
+        case .stopAck:
+            let event = try decoder.decode(AIChatLiveStopAckWireEvent.self, from: data)
+            return .stopAck(sessionId: event.sessionId)
+        case .resetRequired:
+            return .resetRequired
+        }
+    } catch {
+        throw makeAIChatLiveStreamContractError(
+            eventType: resolvedType.rawValue,
+            payload: payload,
+            context: context,
+            summary: "AI live stream payload is missing required fields or contains invalid values.",
+            underlyingError: error
+        )
+    }
+}
+
+private func makeAIChatLiveStreamContractError(
+    eventType: String?,
+    payload: String,
+    context: AIChatLiveEventDecodingContext,
+    summary: String,
+    underlyingError: Error?
+) -> AIChatLiveStreamContractError {
+    AIChatLiveStreamContractError(
+        diagnostics: AIChatFailureDiagnostics(
+            clientRequestId: context.sessionId,
+            backendRequestId: context.requestId,
+            stage: .decodingEventJSON,
+            errorKind: .invalidStreamContract,
+            statusCode: nil,
+            eventType: eventType,
+            toolName: nil,
+            toolCallId: nil,
+            lineNumber: nil,
+            rawSnippet: aiChatLiveTruncatedSnippet(payload),
+            decoderSummary: [summary, underlyingError.map { String(describing: $0) }]
+                .compactMap { $0 }
+                .joined(separator: " "),
+            continuationAttempt: nil,
+            continuationToolCallIds: []
+        )
+    )
 }
