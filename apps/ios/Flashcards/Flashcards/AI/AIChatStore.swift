@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-private let aiChatBootstrapPageLimit: Int = 20
+let aiChatBootstrapPageLimit: Int = 20
 
 enum AIChatAttachmentSettingsSource: String, Equatable {
     case camera
@@ -95,36 +95,36 @@ private struct AIChatAccessContext: Equatable {
 @Observable
 final class AIChatStore {
     var inputText: String
-    private(set) var messages: [AIChatMessage]
+    var messages: [AIChatMessage]
     private(set) var pendingAttachments: [AIChatAttachment]
-    private(set) var serverChatConfig: AIChatServerConfig
-    private(set) var composerPhase: AIChatComposerPhase
+    var serverChatConfig: AIChatServerConfig
+    var composerPhase: AIChatComposerPhase
     private(set) var dictationState: AIChatDictationState
     private(set) var activeAlert: AIChatAlert?
-    private(set) var repairStatus: AIChatRepairAttemptStatus?
+    var repairStatus: AIChatRepairAttemptStatus?
     private(set) var completedDictationTranscript: AIChatCompletedDictationTranscript?
     private(set) var bootstrapPhase: AIChatBootstrapPhase
 
-    @ObservationIgnored private let flashcardsStore: FlashcardsStore
-    @ObservationIgnored private let historyStore: any AIChatHistoryStoring
-    @ObservationIgnored private let chatService: any AIChatSessionServicing
+    @ObservationIgnored let flashcardsStore: FlashcardsStore
+    @ObservationIgnored let historyStore: any AIChatHistoryStoring
+    @ObservationIgnored let chatService: any AIChatSessionServicing
     @ObservationIgnored private let voiceRecorder: any AIChatVoiceRecording
     @ObservationIgnored private let audioTranscriber: any AIChatAudioTranscribing
-    @ObservationIgnored private let runtime: AIChatSessionRuntime
-    @ObservationIgnored private var chatSessionId: String
+    @ObservationIgnored let runtime: AIChatSessionRuntime
+    @ObservationIgnored var chatSessionId: String
     @ObservationIgnored private var activeSendTask: Task<Void, Never>?
     @ObservationIgnored private var activeDictationTask: Task<Void, Never>?
     @ObservationIgnored private var activeWarmUpTask: Task<Void, Never>?
-    @ObservationIgnored private var activeBootstrapTask: Task<Void, Never>?
+    @ObservationIgnored var activeBootstrapTask: Task<Void, Never>?
     @ObservationIgnored private var activeConversationId: String?
     @ObservationIgnored private var activeAccessContext: AIChatAccessContext?
-    @ObservationIgnored private var hasOlderMessages: Bool
-    @ObservationIgnored private var oldestCursor: String?
-    @ObservationIgnored private var liveCursor: String?
-    @ObservationIgnored private var activeLiveStream: AIChatLiveStreamEnvelope?
-    @ObservationIgnored private var activeStreamingMessageId: String?
-    @ObservationIgnored private var activeStreamingItemId: String?
-    @ObservationIgnored private var shouldKeepLiveAttached: Bool
+    @ObservationIgnored var hasOlderMessages: Bool
+    @ObservationIgnored var oldestCursor: String?
+    @ObservationIgnored var liveCursor: String?
+    @ObservationIgnored var activeLiveStream: AIChatLiveStreamEnvelope?
+    @ObservationIgnored var activeStreamingMessageId: String?
+    @ObservationIgnored var activeStreamingItemId: String?
+    @ObservationIgnored var shouldKeepLiveAttached: Bool
 
     convenience init(
         flashcardsStore: FlashcardsStore,
@@ -361,19 +361,6 @@ final class AIChatStore {
 
     func refreshAccessContextIfNeeded() {
         self.activateAccessContext(force: false)
-    }
-
-    func setChatVisibility(isVisible: Bool) {
-        self.shouldKeepLiveAttached = isVisible
-
-        if isVisible {
-            self.resumeVisibleSessionIfNeeded()
-            return
-        }
-
-        Task {
-            await self.runtime.detach()
-        }
     }
 
     func retryLinkedBootstrap() {
@@ -756,7 +743,7 @@ final class AIChatStore {
         return content
     }
 
-    private func currentPersistedState() -> AIChatPersistedState {
+    func currentPersistedState() -> AIChatPersistedState {
         return AIChatPersistedState(
             messages: self.messages,
             chatSessionId: self.chatSessionId,
@@ -902,7 +889,7 @@ final class AIChatStore {
         self.activeStreamingItemId = nil
     }
 
-    private func startLinkedBootstrap(forceReloadState: Bool) {
+    func startLinkedBootstrap(forceReloadState: Bool) {
         self.activeBootstrapTask?.cancel()
         self.activeBootstrapTask = nil
         if forceReloadState {
@@ -1005,323 +992,6 @@ final class AIChatStore {
         }
     }
 
-    private func handleLiveEvent(_ event: AIChatLiveEvent) {
-        logAIChatStoreEvent(
-            action: "ai_live_event_handle_start",
-            metadata: self.metadataForLiveEvent(event)
-        )
-
-        switch event {
-        case .assistantDelta(let text, let cursor, let itemId):
-            let messageIndex = self.resolveStreamingAssistantMessageIndex(
-                itemId: itemId,
-                cursor: cursor,
-                allowsPlaceholderAdoption: true
-            )
-            let message = self.messages[messageIndex]
-            self.messages[messageIndex] = AIChatMessage(
-                id: message.id,
-                role: message.role,
-                content: appendingAIChatText(content: message.content, text: text),
-                timestamp: message.timestamp,
-                isError: message.isError,
-                isStopped: message.isStopped,
-                cursor: cursor,
-                itemId: itemId
-            )
-            self.liveCursor = cursor
-            logAIChatStoreEvent(
-                action: "ai_live_event_handle_applied",
-                metadata: self.metadataForAppliedStreamingEvent(
-                    eventType: "assistant_delta",
-                    cursor: cursor,
-                    itemId: itemId,
-                    messageIndex: messageIndex,
-                    extra: ["textLength": String(text.count)]
-                )
-            )
-
-        case .assistantToolCall(let toolCall, let cursor, let itemId):
-            let messageIndex = self.resolveStreamingAssistantMessageIndex(
-                itemId: itemId,
-                cursor: cursor,
-                allowsPlaceholderAdoption: true
-            )
-            let message = self.messages[messageIndex]
-            self.messages[messageIndex] = AIChatMessage(
-                id: message.id,
-                role: message.role,
-                content: upsertingAIChatToolCall(content: message.content, toolCall: toolCall),
-                timestamp: message.timestamp,
-                isError: message.isError,
-                isStopped: message.isStopped,
-                cursor: cursor,
-                itemId: itemId
-            )
-            self.liveCursor = cursor
-            logAIChatStoreEvent(
-                action: "ai_live_event_handle_applied",
-                metadata: self.metadataForAppliedStreamingEvent(
-                    eventType: "assistant_tool_call",
-                    cursor: cursor,
-                    itemId: itemId,
-                    messageIndex: messageIndex,
-                    extra: [
-                        "toolName": toolCall.name,
-                        "toolStatus": toolCall.status.rawValue
-                    ]
-                )
-            )
-
-        case .assistantReasoningStarted(let reasoningId, let cursor, let itemId):
-            let messageIndex = self.resolveStreamingAssistantMessageIndex(
-                itemId: itemId,
-                cursor: cursor,
-                allowsPlaceholderAdoption: true
-            )
-            let message = self.messages[messageIndex]
-            self.messages[messageIndex] = AIChatMessage(
-                id: message.id,
-                role: message.role,
-                content: upsertingAIChatReasoningSummary(
-                    content: message.content,
-                    reasoningSummary: AIChatReasoningSummary(
-                        id: reasoningId,
-                        summary: "",
-                        status: .started
-                    )
-                ),
-                timestamp: message.timestamp,
-                isError: message.isError,
-                isStopped: message.isStopped,
-                cursor: cursor,
-                itemId: itemId
-            )
-            self.liveCursor = cursor
-            logAIChatStoreEvent(
-                action: "ai_live_event_handle_applied",
-                metadata: self.metadataForAppliedStreamingEvent(
-                    eventType: "assistant_reasoning_started",
-                    cursor: cursor,
-                    itemId: itemId,
-                    messageIndex: messageIndex,
-                    extra: ["reasoningId": reasoningId]
-                )
-            )
-
-        case .assistantReasoningSummary(let reasoningId, let summary, let cursor, let itemId):
-            let messageIndex = self.resolveStreamingAssistantMessageIndex(
-                itemId: itemId,
-                cursor: cursor,
-                allowsPlaceholderAdoption: true
-            )
-            let message = self.messages[messageIndex]
-            self.messages[messageIndex] = AIChatMessage(
-                id: message.id,
-                role: message.role,
-                content: upsertingAIChatReasoningSummary(
-                    content: message.content,
-                    reasoningSummary: AIChatReasoningSummary(
-                        id: reasoningId,
-                        summary: summary,
-                        status: .started
-                    )
-                ),
-                timestamp: message.timestamp,
-                isError: message.isError,
-                isStopped: message.isStopped,
-                cursor: cursor,
-                itemId: itemId
-            )
-            self.liveCursor = cursor
-            logAIChatStoreEvent(
-                action: "ai_live_event_handle_applied",
-                metadata: self.metadataForAppliedStreamingEvent(
-                    eventType: "assistant_reasoning_summary",
-                    cursor: cursor,
-                    itemId: itemId,
-                    messageIndex: messageIndex,
-                    extra: [
-                        "reasoningId": reasoningId,
-                        "summaryLength": String(summary.count)
-                    ]
-                )
-            )
-
-        case .assistantReasoningDone(let reasoningId, let cursor, let itemId):
-            let messageIndex = self.resolveStreamingAssistantMessageIndex(
-                itemId: itemId,
-                cursor: cursor,
-                allowsPlaceholderAdoption: true
-            )
-            let message = self.messages[messageIndex]
-            self.messages[messageIndex] = AIChatMessage(
-                id: message.id,
-                role: message.role,
-                content: completingAIChatReasoningSummary(content: message.content, reasoningId: reasoningId),
-                timestamp: message.timestamp,
-                isError: message.isError,
-                isStopped: message.isStopped,
-                cursor: cursor,
-                itemId: itemId
-            )
-            self.liveCursor = cursor
-            logAIChatStoreEvent(
-                action: "ai_live_event_handle_applied",
-                metadata: self.metadataForAppliedStreamingEvent(
-                    eventType: "assistant_reasoning_done",
-                    cursor: cursor,
-                    itemId: itemId,
-                    messageIndex: messageIndex,
-                    extra: ["reasoningId": reasoningId]
-                )
-            )
-
-        case .assistantMessageDone(let cursor, let itemId, let isError, let isStopped):
-            let messageIndex = self.resolveStreamingAssistantMessageIndex(
-                itemId: itemId,
-                cursor: cursor,
-                allowsPlaceholderAdoption: false
-            )
-            guard messageIndex >= 0 else {
-                logAIChatStoreEvent(
-                    action: "ai_live_terminal_event_dropped",
-                    metadata: self.metadataForAppliedStreamingEvent(
-                        eventType: "assistant_message_done",
-                        cursor: cursor,
-                        itemId: itemId,
-                        messageIndex: messageIndex,
-                        extra: [
-                            "isError": isError ? "true" : "false",
-                            "isStopped": isStopped ? "true" : "false"
-                        ]
-                    )
-                )
-                return
-            }
-            let message = self.messages[messageIndex]
-            self.messages[messageIndex] = AIChatMessage(
-                id: message.id,
-                role: message.role,
-                content: finalizingAIChatContent(content: message.content),
-                timestamp: message.timestamp,
-                isError: isError,
-                isStopped: isStopped,
-                cursor: cursor,
-                itemId: itemId
-            )
-            self.liveCursor = cursor
-            self.activeStreamingMessageId = nil
-            self.activeStreamingItemId = nil
-            self.composerPhase = .idle
-            self.repairStatus = nil
-            logAIChatStoreEvent(
-                action: "ai_live_terminal_event_applied",
-                metadata: self.metadataForAppliedStreamingEvent(
-                    eventType: "assistant_message_done",
-                    cursor: cursor,
-                    itemId: itemId,
-                    messageIndex: messageIndex,
-                    extra: [
-                        "isError": isError ? "true" : "false",
-                        "isStopped": isStopped ? "true" : "false"
-                    ]
-                )
-            )
-
-        case .runState(let state):
-            if state != "running" {
-                logAIChatStoreEvent(
-                    action: "ai_live_run_state_non_running",
-                    metadata: [
-                        "chatSessionId": self.chatSessionId.isEmpty ? "-" : self.chatSessionId,
-                        "runState": state,
-                        "activeStreamingMessageId": self.activeStreamingMessageId ?? "-",
-                        "activeStreamingItemId": self.activeStreamingItemId ?? "-",
-                        "messagesCount": String(self.messages.count)
-                    ]
-                )
-                if self.activeStreamingMessageId != nil {
-                    self.markAssistantError(message: "AI live stream ended before message completion.")
-                    self.activeStreamingMessageId = nil
-                    self.activeStreamingItemId = nil
-                }
-                self.composerPhase = .idle
-                self.repairStatus = nil
-            }
-
-        case .repairStatus(let status):
-            self.repairStatus = status
-            logAIChatStoreEvent(
-                action: "ai_live_repair_status_applied",
-                metadata: [
-                    "chatSessionId": self.chatSessionId.isEmpty ? "-" : self.chatSessionId,
-                    "attempt": String(status.attempt),
-                    "maxAttempts": String(status.maxAttempts),
-                    "toolName": status.toolName ?? "-"
-                ]
-            )
-
-        case .error(let message):
-            self.markAssistantError(message: message)
-            self.activeStreamingMessageId = nil
-            self.activeStreamingItemId = nil
-            self.composerPhase = .idle
-            logAIChatStoreEvent(
-                action: "ai_live_error_applied",
-                metadata: [
-                    "chatSessionId": self.chatSessionId.isEmpty ? "-" : self.chatSessionId,
-                    "message": message,
-                    "messagesCount": String(self.messages.count)
-                ]
-            )
-
-        case .stopAck:
-            logAIChatStoreEvent(
-                action: "ai_live_stop_ack_ignored",
-                metadata: [
-                    "chatSessionId": self.chatSessionId.isEmpty ? "-" : self.chatSessionId
-                ]
-            )
-            break
-
-        case .resetRequired:
-            logAIChatStoreEvent(
-                action: "ai_live_reset_required",
-                metadata: [
-                    "chatSessionId": self.chatSessionId.isEmpty ? "-" : self.chatSessionId,
-                    "liveCursor": self.liveCursor ?? "-"
-                ]
-            )
-            self.reloadConversationFromBootstrap()
-        }
-    }
-
-    private func applyBootstrap(_ response: AIChatBootstrapResponse) {
-        self.messages = response.messages
-        self.chatSessionId = response.sessionId
-        self.serverChatConfig = response.chatConfig
-        self.hasOlderMessages = response.hasOlder
-        self.oldestCursor = response.oldestCursor
-        self.liveCursor = response.liveCursor
-        self.activeLiveStream = response.liveStream
-        self.composerPhase = response.runState == "running" ? .running : .idle
-
-        if response.runState == "running",
-           let lastAssistantMessage = response.messages.last(where: { $0.role == .assistant })
-        {
-            self.activeStreamingMessageId = lastAssistantMessage.id
-            self.activeStreamingItemId = lastAssistantMessage.itemId
-        } else {
-            self.activeStreamingMessageId = nil
-            self.activeStreamingItemId = nil
-        }
-
-        Task {
-            await self.historyStore.saveState(state: self.currentPersistedState())
-        }
-    }
-
     private func applySnapshot(_ snapshot: AIChatSessionSnapshot) {
         self.messages = snapshot.messages
         self.chatSessionId = snapshot.sessionId
@@ -1338,208 +1008,7 @@ final class AIChatStore {
         }
     }
 
-    private func attachBootstrapLiveIfNeeded(
-        response: AIChatBootstrapResponse,
-        session: CloudLinkedSession
-    ) {
-        guard self.shouldKeepLiveAttached else {
-            Task {
-                await self.runtime.detach()
-            }
-            return
-        }
-        guard response.runState == "running" else {
-            Task {
-                await self.runtime.detach()
-            }
-            return
-        }
-
-        guard let liveStream = response.liveStream else {
-            self.markAssistantError(message: "AI live stream is unavailable for the active run.")
-            self.composerPhase = .idle
-            return
-        }
-
-        Task {
-            await self.runtime.detach()
-            await self.runtime.attachLive(
-                liveStream: liveStream,
-                sessionId: response.sessionId,
-                afterCursor: response.liveCursor,
-                configurationMode: session.configurationMode,
-                eventHandler: { [weak self] event in
-                    await self?.handleLiveEvent(event)
-                }
-            )
-        }
-    }
-
-    private func attachActiveLiveStreamIfPossible() {
-        guard self.shouldKeepLiveAttached else {
-            Task {
-                await self.runtime.detach()
-            }
-            return
-        }
-        guard self.composerPhase == .running else {
-            return
-        }
-        guard let liveStream = self.activeLiveStream else {
-            self.markAssistantError(message: "AI live stream is unavailable for the active run.")
-            self.composerPhase = .idle
-            return
-        }
-        guard self.chatSessionId.isEmpty == false else {
-            self.markAssistantError(message: "AI chat session is unavailable for the active run.")
-            self.composerPhase = .idle
-            return
-        }
-
-        let sessionId = self.chatSessionId
-        let afterCursor = self.liveCursor
-        Task {
-            do {
-                let session = try await self.flashcardsStore.cloudSessionForAI()
-                guard self.shouldKeepLiveAttached else {
-                    await self.runtime.detach()
-                    return
-                }
-                await self.runtime.detach()
-                await self.runtime.attachLive(
-                    liveStream: liveStream,
-                    sessionId: sessionId,
-                    afterCursor: afterCursor,
-                    configurationMode: session.configurationMode,
-                    eventHandler: { [weak self] event in
-                        await self?.handleLiveEvent(event)
-                    }
-                )
-            } catch {
-                guard self.shouldKeepLiveAttached else {
-                    return
-                }
-                self.markAssistantError(message: Flashcards.errorMessage(error: error))
-                self.composerPhase = .idle
-            }
-        }
-    }
-
-    private func resumeVisibleSessionIfNeeded() {
-        guard self.shouldKeepLiveAttached else {
-            return
-        }
-        guard self.isChatInteractive else {
-            return
-        }
-        guard self.flashcardsStore.cloudSettings?.cloudState == .linked else {
-            return
-        }
-        guard self.hasExternalProviderConsent else {
-            return
-        }
-        guard self.activeBootstrapTask == nil else {
-            return
-        }
-        guard self.composerPhase != .preparingSend && self.composerPhase != .startingRun else {
-            return
-        }
-
-        self.startLinkedBootstrap(forceReloadState: false)
-    }
-
-    private func reloadConversationFromBootstrap() {
-        Task {
-            do {
-                let session = try await self.flashcardsStore.cloudSessionForAI()
-                let response = try await self.chatService.loadBootstrap(
-                    session: session,
-                    sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
-                    limit: aiChatBootstrapPageLimit
-                )
-                self.applyBootstrap(response)
-                self.attachBootstrapLiveIfNeeded(response: response, session: session)
-            } catch {
-                self.markAssistantError(message: Flashcards.errorMessage(error: error))
-                self.composerPhase = .idle
-            }
-        }
-    }
-
-    private func resolveStreamingAssistantMessageIndex(
-        itemId: String,
-        cursor: String,
-        allowsPlaceholderAdoption: Bool
-    ) -> Int {
-        if let existingIndex = self.messages.firstIndex(where: { message in
-            message.role == .assistant && message.itemId == itemId
-        }) {
-            self.activeStreamingMessageId = self.messages[existingIndex].id
-            self.activeStreamingItemId = itemId
-            return existingIndex
-        }
-
-        if let activeStreamingMessageId = self.activeStreamingMessageId,
-           let existingIndex = self.messages.firstIndex(where: { message in
-               message.id == activeStreamingMessageId && message.role == .assistant
-           })
-        {
-            let message = self.messages[existingIndex]
-            self.messages[existingIndex] = AIChatMessage(
-                id: message.id,
-                role: message.role,
-                content: message.content,
-                timestamp: message.timestamp,
-                isError: message.isError,
-                isStopped: message.isStopped,
-                cursor: cursor,
-                itemId: itemId
-            )
-            self.activeStreamingItemId = itemId
-            return existingIndex
-        }
-
-        guard allowsPlaceholderAdoption else {
-            return -1
-        }
-
-        if let existingIndex = self.messages.indices.reversed().first(where: { index in
-            let message = self.messages[index]
-            return message.role == .assistant && message.itemId == nil && message.isStopped == false
-        }) {
-            let message = self.messages[existingIndex]
-            self.messages[existingIndex] = AIChatMessage(
-                id: message.id,
-                role: message.role,
-                content: message.content,
-                timestamp: message.timestamp,
-                isError: message.isError,
-                isStopped: message.isStopped,
-                cursor: cursor,
-                itemId: itemId
-            )
-            self.activeStreamingMessageId = message.id
-            self.activeStreamingItemId = itemId
-            return existingIndex
-        }
-
-        let message = AIChatMessage(
-            id: UUID().uuidString.lowercased(),
-            role: .assistant,
-            content: [],
-            timestamp: nowIsoTimestamp(),
-            isError: false,
-            isStopped: false,
-            cursor: cursor,
-            itemId: itemId
-        )
-        self.messages.append(message)
-        self.activeStreamingMessageId = message.id
-        self.activeStreamingItemId = itemId
-        return self.messages.count - 1
-    }
-
-    private func markAssistantError(message: String) {
+    func markAssistantError(message: String) {
         let targetIndex = self.activeStreamingMessageId.flatMap { messageId in
             self.messages.firstIndex(where: { $0.id == messageId && $0.role == .assistant })
         } ?? self.messages.indices.last(where: { self.messages[$0].role == .assistant })
@@ -1574,96 +1043,6 @@ final class AIChatStore {
 
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
-    }
-
-    private func metadataForLiveEvent(_ event: AIChatLiveEvent) -> [String: String] {
-        var metadata: [String: String] = [
-            "chatSessionId": self.chatSessionId.isEmpty ? "-" : self.chatSessionId,
-            "liveCursor": self.liveCursor ?? "-",
-            "activeStreamingMessageId": self.activeStreamingMessageId ?? "-",
-            "activeStreamingItemId": self.activeStreamingItemId ?? "-",
-            "messagesCount": String(self.messages.count)
-        ]
-
-        switch event {
-        case .runState(let state):
-            metadata["eventType"] = "run_state"
-            metadata["runState"] = state
-        case .assistantDelta(let text, let cursor, let itemId):
-            metadata["eventType"] = "assistant_delta"
-            metadata["cursor"] = cursor
-            metadata["itemId"] = itemId
-            metadata["textLength"] = String(text.count)
-        case .assistantToolCall(let toolCall, let cursor, let itemId):
-            metadata["eventType"] = "assistant_tool_call"
-            metadata["cursor"] = cursor
-            metadata["itemId"] = itemId
-            metadata["toolName"] = toolCall.name
-            metadata["toolStatus"] = toolCall.status.rawValue
-        case .assistantReasoningStarted(let reasoningId, let cursor, let itemId):
-            metadata["eventType"] = "assistant_reasoning_started"
-            metadata["cursor"] = cursor
-            metadata["itemId"] = itemId
-            metadata["reasoningId"] = reasoningId
-        case .assistantReasoningSummary(let reasoningId, let summary, let cursor, let itemId):
-            metadata["eventType"] = "assistant_reasoning_summary"
-            metadata["cursor"] = cursor
-            metadata["itemId"] = itemId
-            metadata["reasoningId"] = reasoningId
-            metadata["summaryLength"] = String(summary.count)
-        case .assistantReasoningDone(let reasoningId, let cursor, let itemId):
-            metadata["eventType"] = "assistant_reasoning_done"
-            metadata["cursor"] = cursor
-            metadata["itemId"] = itemId
-            metadata["reasoningId"] = reasoningId
-        case .assistantMessageDone(let cursor, let itemId, let isError, let isStopped):
-            metadata["eventType"] = "assistant_message_done"
-            metadata["cursor"] = cursor
-            metadata["itemId"] = itemId
-            metadata["isError"] = isError ? "true" : "false"
-            metadata["isStopped"] = isStopped ? "true" : "false"
-        case .repairStatus(let status):
-            metadata["eventType"] = "repair_status"
-            metadata["attempt"] = String(status.attempt)
-            metadata["maxAttempts"] = String(status.maxAttempts)
-            metadata["toolName"] = status.toolName ?? "-"
-        case .error(let message):
-            metadata["eventType"] = "error"
-            metadata["message"] = message
-        case .stopAck(let sessionId):
-            metadata["eventType"] = "stop_ack"
-            metadata["ackSessionId"] = sessionId
-        case .resetRequired:
-            metadata["eventType"] = "reset_required"
-        }
-
-        return metadata
-    }
-
-    private func metadataForAppliedStreamingEvent(
-        eventType: String,
-        cursor: String,
-        itemId: String,
-        messageIndex: Int,
-        extra: [String: String]
-    ) -> [String: String] {
-        var metadata: [String: String] = [
-            "chatSessionId": self.chatSessionId.isEmpty ? "-" : self.chatSessionId,
-            "eventType": eventType,
-            "cursor": cursor,
-            "itemId": itemId,
-            "messageIndex": String(messageIndex),
-            "liveCursor": self.liveCursor ?? "-",
-            "activeStreamingMessageId": self.activeStreamingMessageId ?? "-",
-            "activeStreamingItemId": self.activeStreamingItemId ?? "-",
-            "messagesCount": String(self.messages.count)
-        ]
-
-        for (key, value) in extra {
-            metadata[key] = value
-        }
-
-        return metadata
     }
 
     private func appendAssistantAccountUpgradePrompt(message: String, buttonTitle: String) {
@@ -1772,7 +1151,7 @@ private func isOptimisticAIChatStatusContent(content: [AIChatContentPart]) -> Bo
     return text == aiChatOptimisticAssistantStatusText
 }
 
-private func logAIChatStoreEvent(action: String, metadata: [String: String]) {
+func logAIChatStoreEvent(action: String, metadata: [String: String]) {
     logFlashcardsError(domain: "ios_ai_store", action: action, metadata: metadata)
 }
 
@@ -1797,7 +1176,7 @@ private func removingOptimisticAIChatStatus(content: [AIChatContentPart]) -> [AI
     return isOptimisticAIChatStatusContent(content: content) ? [] : content
 }
 
-private func appendingAIChatText(content: [AIChatContentPart], text: String) -> [AIChatContentPart] {
+func appendingAIChatText(content: [AIChatContentPart], text: String) -> [AIChatContentPart] {
     guard text.isEmpty == false else {
         return content
     }
@@ -1816,7 +1195,7 @@ private func appendingAIChatText(content: [AIChatContentPart], text: String) -> 
     return updatedContent
 }
 
-private func upsertingAIChatToolCall(
+func upsertingAIChatToolCall(
     content: [AIChatContentPart],
     toolCall: AIChatToolCall
 ) -> [AIChatContentPart] {
@@ -1835,7 +1214,7 @@ private func upsertingAIChatToolCall(
     return updatedContent
 }
 
-private func upsertingAIChatReasoningSummary(
+func upsertingAIChatReasoningSummary(
     content: [AIChatContentPart],
     reasoningSummary: AIChatReasoningSummary
 ) -> [AIChatContentPart] {
@@ -1862,7 +1241,7 @@ private func upsertingAIChatReasoningSummary(
     return updatedContent
 }
 
-private func completingAIChatReasoningSummary(
+func completingAIChatReasoningSummary(
     content: [AIChatContentPart],
     reasoningId: String
 ) -> [AIChatContentPart] {
@@ -1889,7 +1268,7 @@ private func completingAIChatReasoningSummary(
     }
 }
 
-private func finalizingAIChatContent(
+func finalizingAIChatContent(
     content: [AIChatContentPart]
 ) -> [AIChatContentPart] {
     removingOptimisticAIChatStatus(content: content).compactMap { part in

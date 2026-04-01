@@ -39,7 +39,7 @@ import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
-private const val chatRequestIdHeaderName: String = "X-Chat-Request-Id"
+internal const val chatRequestIdHeaderName: String = "X-Chat-Request-Id"
 
 class AiChatRemoteException(
     message: String,
@@ -51,6 +51,8 @@ class AiChatRemoteException(
 ) : Exception(message)
 
 class AiChatRemoteService {
+    private val liveRemoteService = AiChatLiveRemoteService()
+
     suspend fun createGuestSession(
         apiBaseUrl: String,
         configurationMode: CloudServiceConfigurationMode
@@ -193,69 +195,6 @@ class AiChatRemoteService {
         }
     }
 
-    suspend fun connectLiveStream(
-        liveUrl: String,
-        authorization: String,
-        sessionId: String,
-        afterCursor: String?,
-        onEvent: suspend (AiChatLiveEvent) -> Boolean
-    ): Unit = withContext(Dispatchers.IO) {
-        val urlString = buildString {
-            append(liveUrl.removeSuffix("/"))
-            append("?sessionId=$sessionId")
-            if (afterCursor != null) {
-                append("&afterCursor=$afterCursor")
-            }
-        }
-        val connection = (URL(urlString).openConnection() as HttpURLConnection)
-        connection.requestMethod = "GET"
-        connection.connectTimeout = 15_000
-        connection.readTimeout = 600_000
-        connection.useCaches = false
-        connection.setRequestProperty("Accept", "text/event-stream")
-        connection.setRequestProperty("Authorization", authorization)
-
-        try {
-            val responseCode = connection.responseCode
-            if (responseCode !in 200..299) {
-                throw readErrorResponse(connection = connection)
-            }
-
-            val reader = connection.inputStream.bufferedReader(StandardCharsets.UTF_8)
-            var currentEventType: String? = null
-            val dataLines = mutableListOf<String>()
-
-            var line: String? = reader.readLine()
-            while (line != null) {
-                if (line.startsWith("event: ")) {
-                    currentEventType = line.removePrefix("event: ")
-                } else if (line.startsWith("data: ")) {
-                    dataLines += line.removePrefix("data: ")
-                } else if (line.startsWith(":")) {
-                    // comment / keepalive, ignore
-                } else if (line.isEmpty() && dataLines.isNotEmpty()) {
-                    val payload = dataLines.joinToString(separator = "\n")
-                    dataLines.clear()
-                    val event = decodeAiChatLiveEventPayload(currentEventType, payload)
-                    currentEventType = null
-                    val shouldContinue = kotlinx.coroutines.runBlocking { onEvent(event) }
-                    if (shouldContinue.not()) {
-                        return@withContext
-                    }
-                }
-                line = reader.readLine()
-            }
-
-            if (dataLines.isNotEmpty()) {
-                val payload = dataLines.joinToString(separator = "\n")
-                val event = decodeAiChatLiveEventPayload(currentEventType, payload)
-                kotlinx.coroutines.runBlocking { onEvent(event) }
-            }
-        } finally {
-            connection.disconnect()
-        }
-    }
-
     suspend fun attachLiveRun(
         apiBaseUrl: String,
         authorizationHeader: String,
@@ -264,32 +203,12 @@ class AiChatRemoteService {
         afterCursor: String?,
         onEvent: suspend (AiChatLiveEvent) -> Unit
     ) {
-        val authorization = if (liveStream.authorization.startsWith(prefix = "Live ")) {
-            liveStream.authorization
-        } else {
-            authorizationHeader
-        }
-        connectLiveStream(
-            liveUrl = liveStream.url,
-            authorization = authorization,
+        liveRemoteService.attachLiveRun(
+            authorizationHeader = authorizationHeader,
             sessionId = sessionId,
+            liveStream = liveStream,
             afterCursor = afterCursor,
-            onEvent = { event ->
-                onEvent(event)
-                when (event) {
-                    is AiChatLiveEvent.RunState -> event.runState == "running"
-                    is AiChatLiveEvent.AssistantMessageDone,
-                    is AiChatLiveEvent.Error,
-                    is AiChatLiveEvent.StopAck,
-                    AiChatLiveEvent.ResetRequired -> false
-                    is AiChatLiveEvent.AssistantDelta,
-                    is AiChatLiveEvent.AssistantReasoningDone,
-                    is AiChatLiveEvent.AssistantReasoningStarted,
-                    is AiChatLiveEvent.AssistantReasoningSummary,
-                    is AiChatLiveEvent.AssistantToolCall,
-                    is AiChatLiveEvent.RepairStatus -> true
-                }
-            }
+            onEvent = onEvent
         )
     }
 
@@ -412,51 +331,12 @@ class AiChatRemoteService {
     private fun readResponseBody(connection: HttpURLConnection): String {
         val responseCode = connection.responseCode
         if (responseCode !in 200..299) {
-            throw readErrorResponse(connection = connection)
+            throw readAiChatRemoteErrorResponse(connection = connection)
         }
 
         return connection.inputStream.bufferedReader(StandardCharsets.UTF_8).use { reader ->
             reader.readText()
         }
-    }
-
-    private fun readErrorResponse(connection: HttpURLConnection): AiChatRemoteException {
-        val responseBody = (connection.errorStream ?: connection.inputStream)?.bufferedReader(StandardCharsets.UTF_8)?.use { reader ->
-            reader.readText()
-        }
-        val requestId = connection.getHeaderField(chatRequestIdHeaderName)
-        val parsedError = parseBackendErrorPayload(rawBody = responseBody)
-        val fields = listOf(
-            "url" to connection.url.toString(),
-            "method" to connection.requestMethod,
-            "statusCode" to connection.responseCode.toString(),
-            "code" to parsedError?.code,
-            "stage" to parsedError?.stage,
-            "requestId" to (parsedError?.requestId ?: requestId),
-            "message" to parsedError?.message,
-            "responseBody" to responseBody
-        )
-
-        if (connection.responseCode >= 500) {
-            AiChatDiagnosticsLogger.error(
-                event = "http_request_failed",
-                fields = fields
-            )
-        } else {
-            AiChatDiagnosticsLogger.warn(
-                event = "http_request_failed",
-                fields = fields
-            )
-        }
-
-        return AiChatRemoteException(
-            message = parsedError?.message ?: "AI chat request failed.",
-            statusCode = connection.responseCode,
-            code = parsedError?.code,
-            stage = parsedError?.stage,
-            requestId = parsedError?.requestId ?: requestId,
-            responseBody = responseBody
-        )
     }
 
     private fun encodeStartRunRequest(request: AiChatStartRunRequest): JSONObject {
@@ -763,6 +643,45 @@ class AiChatRemoteService {
     }
 }
 
+internal fun readAiChatRemoteErrorResponse(connection: HttpURLConnection): AiChatRemoteException {
+    val responseBody = (connection.errorStream ?: connection.inputStream)?.bufferedReader(StandardCharsets.UTF_8)?.use { reader ->
+        reader.readText()
+    }
+    val requestId = connection.getHeaderField(chatRequestIdHeaderName)
+    val parsedError = parseBackendErrorPayload(rawBody = responseBody)
+    val fields = listOf(
+        "url" to connection.url.toString(),
+        "method" to connection.requestMethod,
+        "statusCode" to connection.responseCode.toString(),
+        "code" to parsedError?.code,
+        "stage" to parsedError?.stage,
+        "requestId" to (parsedError?.requestId ?: requestId),
+        "message" to parsedError?.message,
+        "responseBody" to responseBody
+    )
+
+    if (connection.responseCode >= 500) {
+        AiChatDiagnosticsLogger.error(
+            event = "http_request_failed",
+            fields = fields
+        )
+    } else {
+        AiChatDiagnosticsLogger.warn(
+            event = "http_request_failed",
+            fields = fields
+        )
+    }
+
+    return AiChatRemoteException(
+        message = parsedError?.message ?: "AI chat request failed.",
+        statusCode = connection.responseCode,
+        code = parsedError?.code,
+        stage = parsedError?.stage,
+        requestId = parsedError?.requestId ?: requestId,
+        responseBody = responseBody
+    )
+}
+
 private fun decodeToolCallId(jsonObject: JSONObject, fieldPath: String): String {
     return jsonObject.optCloudStringOrNull("toolCallId", "$fieldPath.toolCallId")
         ?.ifBlank { null }
@@ -801,14 +720,14 @@ private fun decodeMessageItemId(jsonArray: JSONArray, fieldPath: String): String
     return null
 }
 
-private data class ParsedBackendError(
+internal data class ParsedBackendError(
     val message: String,
     val code: String?,
     val stage: String?,
     val requestId: String?
 )
 
-private fun parseBackendErrorPayload(rawBody: String?): ParsedBackendError? {
+internal fun parseBackendErrorPayload(rawBody: String?): ParsedBackendError? {
     if (rawBody.isNullOrBlank()) {
         return null
     }
@@ -852,7 +771,7 @@ private fun decodeReasoningStatus(value: String?): AiChatToolCallStatus {
     }
 }
 
-private fun parseBackendErrorJson(jsonObject: JSONObject): ParsedBackendError? {
+internal fun parseBackendErrorJson(jsonObject: JSONObject): ParsedBackendError? {
     if (jsonObject.optString("type") != "error") {
         return null
     }
@@ -863,113 +782,6 @@ private fun parseBackendErrorJson(jsonObject: JSONObject): ParsedBackendError? {
         stage = jsonObject.optString("stage", "").ifBlank { null },
         requestId = jsonObject.optString("requestId", "").ifBlank { null }
     )
-}
-
-private fun parseLiveEvent(eventType: String?, payload: String): AiChatLiveEvent? {
-    val json = try {
-        JSONObject(payload)
-    } catch (_: Exception) {
-        return null
-    }
-    val type = eventType ?: json.optString("type", "")
-
-    return when (type) {
-        "run_state" -> {
-            val runState = json.optString("runState", "").ifBlank { return null }
-            AiChatLiveEvent.RunState(runState = runState)
-        }
-        "assistant_delta" -> {
-            val text = json.optString("text", "").ifBlank { return null }
-            val cursor = json.optString("cursor", "").ifBlank { return null }
-            val itemId = json.optString("itemId", "").ifBlank { return null }
-            AiChatLiveEvent.AssistantDelta(text = text, cursor = cursor, itemId = itemId)
-        }
-        "assistant_tool_call" -> {
-            val toolCallId = json.optString("toolCallId", "").ifBlank { return null }
-            val name = json.optString("name", "").ifBlank { return null }
-            val statusStr = json.optString("status", "").ifBlank { return null }
-            val cursor = json.optString("cursor", "").ifBlank { return null }
-            val itemId = json.optString("itemId", "").ifBlank { return null }
-            val status = if (statusStr == "completed") AiChatToolCallStatus.COMPLETED else AiChatToolCallStatus.STARTED
-            AiChatLiveEvent.AssistantToolCall(
-                toolCall = AiChatToolCall(
-                    toolCallId = toolCallId,
-                    name = name,
-                    status = status,
-                    input = json.optString("input", "").ifBlank { null },
-                    output = json.optString("output", "").ifBlank { null }
-                ),
-                cursor = cursor,
-                itemId = itemId
-            )
-        }
-        "assistant_reasoning_started" -> {
-            val reasoningId = json.optString("reasoningId", "").ifBlank { return null }
-            val cursor = json.optString("cursor", "").ifBlank { return null }
-            val itemId = json.optString("itemId", "").ifBlank { return null }
-            AiChatLiveEvent.AssistantReasoningStarted(
-                reasoningId = reasoningId,
-                cursor = cursor,
-                itemId = itemId
-            )
-        }
-        "assistant_reasoning_summary" -> {
-            val reasoningId = json.optString("reasoningId", "").ifBlank { return null }
-            val summary = json.optString("summary", "").ifBlank { return null }
-            val cursor = json.optString("cursor", "").ifBlank { return null }
-            val itemId = json.optString("itemId", "").ifBlank { return null }
-            AiChatLiveEvent.AssistantReasoningSummary(
-                reasoningSummary = AiChatReasoningSummary(
-                    reasoningId = reasoningId,
-                    summary = summary,
-                    status = AiChatToolCallStatus.STARTED
-                ),
-                cursor = cursor,
-                itemId = itemId
-            )
-        }
-        "assistant_reasoning_done" -> {
-            val reasoningId = json.optString("reasoningId", "").ifBlank { return null }
-            val cursor = json.optString("cursor", "").ifBlank { return null }
-            val itemId = json.optString("itemId", "").ifBlank { return null }
-            AiChatLiveEvent.AssistantReasoningDone(
-                reasoningId = reasoningId,
-                cursor = cursor,
-                itemId = itemId
-            )
-        }
-        "assistant_message_done" -> {
-            val cursor = json.optString("cursor", "").ifBlank { return null }
-            val itemId = json.optString("itemId", "").ifBlank { return null }
-            AiChatLiveEvent.AssistantMessageDone(
-                cursor = cursor,
-                itemId = itemId,
-                isError = json.optBoolean("isError", false),
-                isStopped = json.optBoolean("isStopped", false)
-            )
-        }
-        "repair_status" -> {
-            val message = json.optString("message", "").ifBlank { return null }
-            AiChatLiveEvent.RepairStatus(
-                status = AiChatRepairAttemptStatus(
-                    message = message,
-                    attempt = json.optInt("attempt", 0),
-                    maxAttempts = json.optInt("maxAttempts", 0),
-                    toolName = json.optString("toolName", "").ifBlank { null }
-                )
-            )
-        }
-        "error" -> {
-            val message = json.optString("message", "").ifBlank { return null }
-            AiChatLiveEvent.Error(message = message)
-        }
-        "stop_ack" -> {
-            val sessionId = json.optString("sessionId", "").ifBlank { return null }
-            AiChatLiveEvent.StopAck(sessionId = sessionId)
-        }
-        "reset_required" -> AiChatLiveEvent.ResetRequired
-        else -> null
-    }
 }
 
 private fun decodeRunState(value: String, fieldPath: String): String {

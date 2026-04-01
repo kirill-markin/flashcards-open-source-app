@@ -458,11 +458,19 @@ class AiViewModel(
         startConversationBootstrap(forceReloadState = true)
     }
 
+    /**
+     * Marks the AI screen visible and resumes from bootstrap instead of
+     * reconnecting live blindly. Bootstrap decides whether a new live attach is
+     * still needed for the current run.
+     */
     fun onScreenVisible() {
         isScreenVisible = true
         warmUpLinkedSessionIfNeeded()
     }
 
+    /**
+     * Hidden screens must not keep the live SSE overlay attached.
+     */
     fun onScreenHidden() {
         isScreenVisible = false
         detachLiveStream(reason = "AI live stream detached because the screen is no longer visible.")
@@ -701,6 +709,11 @@ class AiViewModel(
         }
     }
 
+    /**
+     * Applies one typed live event on top of the last trusted bootstrap state.
+     * The live stream is only an overlay for the currently active run and never
+     * replaces bootstrap as the source of truth.
+     */
     private suspend fun applyLiveEvent(event: AiChatLiveEvent) {
         when (event) {
             is AiChatLiveEvent.AssistantDelta -> {
@@ -1067,6 +1080,10 @@ class AiViewModel(
         }
     }
 
+    /**
+     * Refreshes the full conversation snapshot before any resumed live attach.
+     * This is the only supported resume path after hidden/background or reset.
+     */
     private fun startConversationBootstrap(forceReloadState: Boolean) {
         val accessContext = activeAccessContext ?: return
         val workspaceId = accessContext.workspaceId ?: return
@@ -1228,6 +1245,10 @@ class AiViewModel(
         }
     }
 
+    /**
+     * Bootstrap may reopen live SSE only when the refreshed server state is
+     * still running and the screen remains visible.
+     */
     private fun attachBootstrapLiveIfNeeded(
         workspaceId: String,
         response: AiChatBootstrapResponse
@@ -1295,6 +1316,10 @@ class AiViewModel(
         )
     }
 
+    /**
+     * Starts the Android live SSE overlay for the active run. Callers must
+     * already know that bootstrap or the accepted run response permits attach.
+     */
     private fun attachLiveStream(
         workspaceId: String?,
         sessionId: String,
@@ -1359,6 +1384,9 @@ class AiViewModel(
         activeLiveJob = liveJob
     }
 
+    /**
+     * Cancels the active live SSE overlay and clears local attached state.
+     */
     private fun detachLiveStream(reason: String) {
         activeLiveJob?.cancel(
             cause = CancellationException(reason)

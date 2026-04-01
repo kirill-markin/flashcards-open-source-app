@@ -6,7 +6,8 @@
 import { randomUUID } from "node:crypto";
 import type { Writable } from "node:stream";
 import type { APIGatewayProxyEventV2 } from "aws-lambda";
-import { handleLiveRequest, runLiveStream } from "./chat/live";
+import { runLiveStream } from "./chat/live";
+import { handleLiveRequest } from "./chat/liveRequest";
 import { getErrorLogContext, logCloudRouteEvent } from "./server/logging";
 import { initializeLangfuseTelemetry } from "./telemetry/langfuse";
 
