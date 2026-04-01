@@ -76,10 +76,11 @@ function upsertAssistantToolCallContent(
   toolCall: ToolCallContentPart,
 ): ReadonlyArray<ContentPart> {
   const normalizedContent = removeOptimisticAssistantStatusContent(content);
+  const toolCallId = resolveToolCallId(toolCall);
   const existingIndex = normalizedContent.findIndex((part) => {
     return part.type === "tool_call"
-      && part.name === toolCall.name
-      && part.input === toolCall.input;
+      && toolCallId !== null
+      && resolveToolCallId(part) === toolCallId;
   });
 
   if (existingIndex < 0) {
@@ -87,6 +88,20 @@ function upsertAssistantToolCallContent(
   }
 
   return normalizedContent.map((part, index) => index === existingIndex ? toolCall : part);
+}
+
+function resolveToolCallId(part: ToolCallContentPart): string | null {
+  if (part.id !== undefined && part.id !== "") {
+    return part.id;
+  }
+
+  const itemId = part.streamPosition?.itemId;
+  const outputIndex = part.streamPosition?.outputIndex;
+  if (itemId === undefined || itemId === "" || outputIndex === undefined) {
+    return null;
+  }
+
+  return `${itemId}:${String(outputIndex)}`;
 }
 
 function resolveReasoningId(part: ReasoningSummaryContentPart): string | null {
