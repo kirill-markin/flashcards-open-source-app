@@ -4,8 +4,10 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
+import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
 import * as path from "path";
+import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
 
 export interface AuthGatewayProps {
   vpc: ec2.Vpc;
@@ -119,6 +121,9 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     "DemoPasswordSecret",
     "DEMO_PASSWORD_SECRET_ARN",
   );
+  const accessLogGroup = new logs.LogGroup(scope, "AuthApiAccessLogGroup", {
+    retention: logs.RetentionDays.ONE_WEEK,
+  });
 
   const restApi = new apigw.RestApi(scope, "AuthApi", {
     restApiName: "flashcards-open-source-app-auth",
@@ -127,6 +132,11 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       stageName: "v1",
       throttlingRateLimit: 20,
       throttlingBurstLimit: 40,
+      metricsEnabled: true,
+      dataTraceEnabled: false,
+      tracingEnabled: false,
+      accessLogDestination: new apigw.LogGroupLogDestination(accessLogGroup),
+      accessLogFormat: createSafeApiGatewayAccessLogFormat(),
     },
   });
 
