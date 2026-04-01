@@ -66,6 +66,10 @@ extension AIChatView {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(self.messageRowAccessibilityLabel(message: message))
                 .accessibilityIdentifier(UITestIdentifier.aiAssistantErrorMessage)
+        } else if message.role == .assistant {
+            row
+                .accessibilityIdentifier(UITestIdentifier.aiAssistantVisibleText)
+                .accessibilityValue(self.messageRowAccessibilityLabel(message: message))
         } else {
             row
                 .accessibilityIdentifier(UITestIdentifier.aiMessageRow)
@@ -122,6 +126,7 @@ extension AIChatView {
             if message.role == .assistant, message.isError == false {
                 Text(text)
                     .textSelection(.enabled)
+                    .accessibilityIdentifier(UITestIdentifier.aiAssistantVisibleText)
             } else {
                 Text(text)
             }
@@ -195,6 +200,33 @@ extension AIChatView {
                         style: aiChatToolBorderStrokeStyle(status: toolCall.status)
                     )
             )
+        case .reasoningSummary(let summary):
+            DisclosureGroup {
+                Text(summary)
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+                    .accessibilityIdentifier(UITestIdentifier.aiAssistantVisibleText)
+                    .padding(.top, 4)
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text("Reasoning")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("DONE")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .tint(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+            )
         case .accountUpgradePrompt(let message, let buttonTitle):
             VStack(alignment: .leading, spacing: 12) {
                 Text(message)
@@ -211,13 +243,21 @@ extension AIChatView {
 
     private func messageRowAccessibilityLabel(message: AIChatMessage) -> String {
         let text = message.content.reduce(into: "") { partialResult, part in
-            if case .text(let text) = part {
+            switch part {
+            case .text(let text):
                 partialResult.append(text)
+            case .reasoningSummary(let summary):
+                if partialResult.isEmpty == false {
+                    partialResult.append("\n")
+                }
+                partialResult.append(summary)
+            case .toolCall, .image, .file, .accountUpgradePrompt:
+                break
             }
         }
         let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        return trimmedText.isEmpty ? "Assistant error" : trimmedText
+        return trimmedText.isEmpty ? "Assistant" : trimmedText
     }
 }
 

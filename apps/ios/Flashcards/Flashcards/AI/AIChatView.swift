@@ -37,7 +37,7 @@ struct AIChatView: View {
         self.shouldRestoreComposerFocusAfterDictation = false
         self.composerSelection = nil
         self.composerDictationInsertionSelection = nil
-        self.hasAcceptedExternalAIConsent = chatStore.hasExternalProviderConsent
+        self._hasAcceptedExternalAIConsent = State(initialValue: chatStore.hasExternalProviderConsent)
     }
 
     var body: some View {
@@ -413,7 +413,7 @@ struct AIChatView: View {
 
     func acceptExternalAIConsent() {
         grantAIChatExternalProviderConsent(userDefaults: self.flashcardsStore.userDefaults)
-        self.hasAcceptedExternalAIConsent = true
+        self.refreshExternalAIConsentState()
         self.chatStore.activateWorkspace()
         self.handleAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
         if self.chatStore.isChatInteractive {

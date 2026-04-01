@@ -55,6 +55,7 @@ private enum LiveSmokeIdentifier {
     static let aiToolCallResponseText: String = "ai.toolCallResponseText"
     static let aiToolCallCompletedStatus: String = "ai.toolCallCompletedStatus"
     static let aiAssistantErrorMessage: String = "ai.assistantErrorMessage"
+    static let aiAssistantVisibleText: String = "ai.assistantVisibleText"
 }
 
 private enum LiveSmokeLaunchResetState: String {
@@ -1323,12 +1324,29 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func visibleStaticTextLabels(ignoredExactLabels: Set<String>) -> [String] {
-        self.elements(query: self.app.staticTexts)
+        let staticTextLabels = self.elements(query: self.app.staticTexts)
             .map(\.label)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { label in
                 label.isEmpty == false && ignoredExactLabels.contains(label) == false
             }
+        let assistantTextLabels = self.elements(
+            query: self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
+        )
+            .map { element in
+                let label = element.label.trimmingCharacters(in: .whitespacesAndNewlines)
+                if label.isEmpty == false {
+                    return label
+                }
+
+                return self.elementValue(element: element).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            .filter { label in
+                label.isEmpty == false && ignoredExactLabels.contains(label) == false
+            }
+
+        return staticTextLabels + assistantTextLabels
     }
 
     @MainActor
