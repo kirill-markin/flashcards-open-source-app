@@ -142,6 +142,7 @@ export function useChatSessionController(
   const lastSnapshotUpdatedAtRef = useRef<number | null>(null);
   const hasObservedMainContentInvalidationVersionRef = useRef<boolean>(false);
   const lastMainContentInvalidationVersionRef = useRef<number>(0);
+  const hydratedWorkspaceIdRef = useRef<string | null>(null);
   const stoppedSessionIdsRef = useRef<Set<string>>(new Set());
   const activeLiveConnectionRef = useRef<ActiveLiveStreamConnection | null>(null);
   const runStateRef = useRef<ChatRunState>("idle");
@@ -322,24 +323,32 @@ export function useChatSessionController(
     };
   }, [onMainContentInvalidated, replaceMessages]);
 
-  useEffect(() => {
-    let isDisposed = false;
-
-    setIsHistoryLoaded(false);
+  const resetControllerState = useCallback((clearHistoryImmediately: boolean): void => {
     setCurrentSessionId(null);
     setRunState("idle");
     setIsStopping(false);
     setIsLiveStreamConnected(false);
     setMainContentInvalidationVersion(0);
+    setComposerNotice(null);
     hasObservedMainContentInvalidationVersionRef.current = false;
     lastMainContentInvalidationVersionRef.current = 0;
     lastSnapshotUpdatedAtRef.current = null;
     stoppedSessionIdsRef.current.clear();
     detachLiveStream(null);
-    replaceMessages([]);
+
+    if (clearHistoryImmediately) {
+      replaceMessages([]);
+      setIsHistoryLoaded(false);
+    }
+  }, [detachLiveStream, replaceMessages]);
+
+  useEffect(() => {
+    let isDisposed = false;
+    const isWorkspaceTransition = hydratedWorkspaceIdRef.current !== workspaceId;
 
     if (workspaceId === null) {
-      setComposerNotice(null);
+      resetControllerState(true);
+      hydratedWorkspaceIdRef.current = null;
       setIsHistoryLoaded(true);
       return () => {
         isDisposed = true;
@@ -347,11 +356,17 @@ export function useChatSessionController(
     }
 
     if (!isRemoteReady) {
+      if (isWorkspaceTransition) {
+        resetControllerState(true);
+      }
       setComposerNotice("Restoring session...");
-      setIsHistoryLoaded(true);
       return () => {
         isDisposed = true;
       };
+    }
+
+    if (isWorkspaceTransition) {
+      resetControllerState(true);
     }
 
     void (async (): Promise<void> => {
@@ -361,6 +376,7 @@ export function useChatSessionController(
           return;
         }
 
+        hydratedWorkspaceIdRef.current = workspaceId;
         setCurrentSessionId(snapshot.sessionId);
         if (snapshot.runState === "running") {
           startLiveStream(snapshot.sessionId, snapshot.liveStream, snapshot.liveCursor);
@@ -370,13 +386,17 @@ export function useChatSessionController(
           return;
         }
 
-        replaceMessages([{
-          role: "assistant",
-          content: [{ type: "text", text: `Chat failed to load. ${toErrorMessage(error)}` }],
-          timestamp: Date.now(),
-          isError: true,
-          isStopped: false,
-        }]);
+        if (isWorkspaceTransition) {
+          replaceMessages([{
+            role: "assistant",
+            content: [{ type: "text", text: `Chat failed to load. ${toErrorMessage(error)}` }],
+            timestamp: Date.now(),
+            isError: true,
+            isStopped: false,
+          }]);
+        } else {
+          setComposerNotice(`Chat refresh failed. ${toErrorMessage(error)}`);
+        }
       } finally {
         if (!isDisposed) {
           setIsHistoryLoaded(true);
@@ -387,7 +407,7 @@ export function useChatSessionController(
     return () => {
       isDisposed = true;
     };
-  }, [detachLiveStream, isRemoteReady, loadChatSnapshot, replaceMessages, startLiveStream, workspaceId]);
+  }, [isRemoteReady, loadChatSnapshot, replaceMessages, resetControllerState, startLiveStream, workspaceId]);
 
   useEffect(() => {
     return () => {

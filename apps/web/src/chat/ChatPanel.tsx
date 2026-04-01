@@ -189,6 +189,7 @@ export function ChatPanel(props: Props): ReactElement {
     messages,
     messagesRef,
   });
+  const isInitialHistoryLoading = !isHistoryLoaded && messages.length === 0;
 
   function setPendingAttachmentsState(nextAttachments: ReadonlyArray<PendingAttachment>): void {
     pendingAttachmentsRef.current = nextAttachments;
@@ -689,7 +690,19 @@ export function ChatPanel(props: Props): ReactElement {
       </div>
 
       <div className="chat-messages" ref={messagesRef} onScroll={handleMessagesScroll}>
-        {messages.length === 0 ? (
+        {isInitialHistoryLoading ? (
+          <div className="chat-empty chat-empty-loading" aria-live="polite">
+            <p className="chat-empty-title">Loading AI chat…</p>
+            <div className="chat-loading-lines" aria-hidden="true">
+              <span className="chat-loading-line chat-loading-line-title" />
+              <span className="chat-loading-line" />
+              <span className="chat-loading-line" />
+              <span className="chat-loading-line chat-loading-line-short" />
+            </div>
+          </div>
+        ) : null}
+
+        {!isInitialHistoryLoading && messages.length === 0 ? (
           <div className="chat-empty">
             <p className="chat-empty-title">Try asking:</p>
             <ul className="chat-empty-list">
