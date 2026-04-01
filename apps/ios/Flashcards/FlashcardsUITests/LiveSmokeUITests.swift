@@ -228,6 +228,7 @@ private let aiComposerPlaceholderText: String = "Ask about cards, review history
 private let aiCreatePromptText: String = "I give you all permissions. Please create one test flashcard now."
 private let aiResetPromptText: String = "Please reply with one short sentence so I can verify this chat resets."
 private let aiCreatePromptMaximumAttempts: Int = 3
+private let aiCreateRunCompletionTimeoutSeconds: TimeInterval = 90
 private let liveSmokeFocusPollIntervalSeconds: TimeInterval = 0.2
 
 private struct LiveSmokeBreadcrumb {
@@ -786,10 +787,6 @@ final class LiveSmokeUITests: XCTestCase {
                 aiCreatePromptText,
                 timeout: self.shortUiTimeoutSeconds
             )
-            let completedMarkerCountBeforeAttempt = self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
-                .count
-            let errorMarkerCountBeforeAttempt = self.visibleAssistantErrorMessageCount()
             try self.assertElementEnabled(
                 identifier: LiveSmokeIdentifier.aiComposerSendButton,
                 timeout: self.shortUiTimeoutSeconds
@@ -804,15 +801,8 @@ final class LiveSmokeUITests: XCTestCase {
                 result: "success",
                 note: "AI create request sent"
             )
-            try self.assertAiRunStartedOrFinished(
-                timeout: self.longUiTimeoutSeconds,
-                completedMarkerCountBeforeWait: completedMarkerCountBeforeAttempt,
-                errorMarkerCountBeforeWait: errorMarkerCountBeforeAttempt
-            )
-            try self.assertAiRunFinished(
-                timeout: self.longUiTimeoutSeconds,
-                completedMarkerCountBeforeWait: completedMarkerCountBeforeAttempt,
-                errorMarkerCountBeforeWait: errorMarkerCountBeforeAttempt
+            latestCompletedSqlSummaries = try self.waitForCompletedAiInsertToolCall(
+                timeout: aiCreateRunCompletionTimeoutSeconds
             )
             try self.assertElementLabel(
                 identifier: LiveSmokeIdentifier.aiComposerSendButton,
@@ -823,12 +813,7 @@ final class LiveSmokeUITests: XCTestCase {
                 identifier: LiveSmokeIdentifier.aiComposerSendButton,
                 timeout: self.longUiTimeoutSeconds
             )
-
-            let toolCallCheck = try self.completedAiInsertToolCallCheck()
-            latestCompletedSqlSummaries = toolCallCheck.completedSqlSummaries
-            if toolCallCheck.matchingInsertFound {
-                return
-            }
+            return
         }
 
         throw LiveSmokeFailure.unexpectedAiConversationState(
@@ -944,6 +929,7 @@ final class LiveSmokeUITests: XCTestCase {
             .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
             .count
         let errorMarkerCountBeforeWait = self.visibleAssistantErrorMessageCount()
+        let assistantTextCountBeforeWait = self.visibleMeaningfulAssistantTextMessages().count
         try self.assertElementEnabled(
             identifier: LiveSmokeIdentifier.aiComposerSendButton,
             timeout: self.shortUiTimeoutSeconds
@@ -955,7 +941,8 @@ final class LiveSmokeUITests: XCTestCase {
         try self.assertAiRunStartedOrFinished(
             timeout: self.longUiTimeoutSeconds,
             completedMarkerCountBeforeWait: completedMarkerCountBeforeWait,
-            errorMarkerCountBeforeWait: errorMarkerCountBeforeWait
+            errorMarkerCountBeforeWait: errorMarkerCountBeforeWait,
+            assistantTextCountBeforeWait: assistantTextCountBeforeWait
         )
         try self.assertTextExists(
             aiResetPromptText,
@@ -1361,6 +1348,118 @@ final class LiveSmokeUITests: XCTestCase {
         }
 
         return [message]
+    }
+
+    @MainActor
+    private func visibleCompletedAiSqlToolCallSummaries() -> [String] {
+        let assistantToolLabels = self.elements(
+            query: self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
+        )
+        .compactMap { element in
+            let label = element.label.trimmingCharacters(in: .whitespacesAndNewlines)
+            if label.isEmpty == false {
+                return label
+            }
+
+            let value = self.elementValue(element: element)
+            return value.isEmpty ? nil : value
+        }
+        .filter { label in
+            label.contains("SQL:") && label.contains("Done")
+        }
+
+        return Array(Set(assistantToolLabels)).sorted()
+    }
+
+    @MainActor
+    private func waitForCompletedAiInsertToolCall(
+        timeout: TimeInterval
+    ) throws -> [String] {
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_ai_insert_completion",
+            identifier: LiveSmokeIdentifier.aiAssistantVisibleText,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: "waiting for completed INSERT INTO cards tool call"
+        )
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+
+            if let errorMessage = self.latestVisibleAssistantErrorMessage() {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_ai_insert_completion",
+                    identifier: LiveSmokeIdentifier.aiAssistantErrorMessage,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "failure",
+                    note: errorMessage
+                )
+                throw LiveSmokeFailure.aiRunReportedError(
+                    message: errorMessage.isEmpty ? "Assistant error message is empty." : errorMessage,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            let completedSqlSummaries = self.visibleCompletedAiSqlToolCallSummaries()
+            if completedSqlSummaries.contains(where: { summary in
+                summary.contains("INSERT INTO cards")
+            }) {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_ai_insert_completion",
+                    identifier: LiveSmokeIdentifier.aiAssistantVisibleText,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "success",
+                    note: "completed INSERT INTO cards became visible"
+                )
+                return completedSqlSummaries
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        let completedSqlSummaries = self.visibleCompletedAiSqlToolCallSummaries()
+        throw LiveSmokeFailure.unexpectedAiConversationState(
+            message: "AI create flow did not surface a completed SQL INSERT INTO cards within \(formatDuration(seconds: timeout)). CompletedSqlToolCalls: \(completedSqlSummaries)",
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+
+    @MainActor
+    private func visibleMeaningfulAssistantTextMessages() -> [String] {
+        var seenMessages: Set<String> = []
+        return self.elements(
+            query: self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
+        )
+        .compactMap { element in
+            let label = element.label.trimmingCharacters(in: .whitespacesAndNewlines)
+            if label.isEmpty == false {
+                return label
+            }
+
+            return self.elementValue(element: element).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        .filter { message in
+            message.isEmpty == false
+                && message != "Assistant"
+                && message != "Looking through your cards..."
+        }
+        .filter { message in
+            seenMessages.insert(message).inserted
+        }
     }
 
     @MainActor
@@ -2651,7 +2750,8 @@ final class LiveSmokeUITests: XCTestCase {
     private func assertAiRunStartedOrFinished(
         timeout: TimeInterval,
         completedMarkerCountBeforeWait: Int,
-        errorMarkerCountBeforeWait: Int
+        errorMarkerCountBeforeWait: Int,
+        assistantTextCountBeforeWait: Int
     ) throws {
         let sendButtonQuery = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.aiComposerSendButton)
@@ -2716,6 +2816,20 @@ final class LiveSmokeUITests: XCTestCase {
                     durationSeconds: formatDuration(seconds: durationSeconds),
                     result: "success",
                     note: "AI run completed before stop state was observed"
+                )
+                return
+            }
+
+            if self.visibleMeaningfulAssistantTextMessages().count > assistantTextCountBeforeWait {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_ai_activity",
+                    identifier: LiveSmokeIdentifier.aiAssistantVisibleText,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "success",
+                    note: "AI run completed with visible assistant text"
                 )
                 return
             }
