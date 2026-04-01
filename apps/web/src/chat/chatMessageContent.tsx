@@ -135,7 +135,7 @@ export function renderStoredMessageContent(message: StoredMessage): ReactElement
 
     if (part.type === "reasoning_summary") {
       elements.push(
-        <details key={`reasoning-${index}`} className="chat-tool-call chat-tool-call-started">
+        <details key={`reasoning-${index}`} className="chat-tool-call chat-tool-call-completed">
           <summary className="chat-tool-call-summary">
             <span className="chat-tool-call-summary-main" title={part.summary}>Reasoning</span>
             <span className="chat-tool-call-status">Done</span>

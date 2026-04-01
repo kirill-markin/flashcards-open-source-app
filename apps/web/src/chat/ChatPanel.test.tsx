@@ -81,6 +81,53 @@ describe("ChatPanel new chat", () => {
 });
 
 describe("ChatPanel send lifecycle", () => {
+  it("shows loading UI instead of empty suggestions while the initial chat history is unresolved", async () => {
+    getChatSnapshotMock.mockImplementation(() => new Promise(() => undefined));
+
+    await renderChatPanel();
+
+    expect(getContainer().textContent).toContain("Loading AI chat");
+    expect(getContainer().textContent).not.toContain("Try asking:");
+  });
+
+  it("preserves the visible transcript while the session is revalidating", async () => {
+    getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
+      sessionId: "session-1",
+      messages: [{
+        role: "assistant",
+        content: [{ type: "text", text: "Existing response" }],
+        timestamp: 1,
+        isError: false,
+        isStopped: false,
+      }],
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    useAppDataMock.mockReturnValue({
+      sessionVerificationState: "unverified",
+      activeWorkspace: {
+        workspaceId: "workspace-1",
+        name: "Primary",
+        createdAt: "2026-03-10T00:00:00.000Z",
+        isSelected: true,
+      },
+      isSessionVerified: false,
+      localCardCount: 1,
+      refreshLocalData: vi.fn(async (): Promise<void> => undefined),
+      runSync: vi.fn(async (): Promise<void> => undefined),
+      setErrorMessage: vi.fn(),
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+
+    expect(getContainer().textContent).toContain("Existing response");
+    expect(getContainer().textContent).toContain("Restoring session...");
+    expect(getContainer().textContent).not.toContain("Try asking:");
+  });
+
   it("shows a disabled send button until the draft has text or attachments", async () => {
     await renderChatPanel();
     await flushAsync();
@@ -242,5 +289,26 @@ describe("ChatPanel send lifecycle", () => {
     expect(textarea?.value).toBe("second turn");
     expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
     expect(getContainer().textContent).toContain("A response is already in progress.");
+  });
+
+  it("renders completed reasoning summaries with the completed tool-call styling", async () => {
+    getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
+      sessionId: "session-1",
+      messages: [{
+        role: "assistant",
+        content: [{ type: "reasoning_summary", summary: "Compared due cards and queued a search." }],
+        timestamp: 1,
+        isError: false,
+        isStopped: false,
+      }],
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    expect(getContainer().querySelector(".chat-tool-call-completed")).not.toBeNull();
+    expect(getContainer().querySelector(".chat-tool-call-started")).toBeNull();
+    expect(getContainer().textContent).toContain("Reasoning");
+    expect(getContainer().textContent).toContain("Done");
   });
 });
