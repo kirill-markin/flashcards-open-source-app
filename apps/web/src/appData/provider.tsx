@@ -167,6 +167,7 @@ export function AppDataProvider(props: Props): ReactElement {
     session,
     activeWorkspace,
     availableWorkspaces,
+    cloudSettings,
     setSessionLoadState,
     setSessionVerificationState,
     setSessionErrorMessage,
