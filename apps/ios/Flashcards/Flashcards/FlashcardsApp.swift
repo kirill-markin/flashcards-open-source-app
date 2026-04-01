@@ -27,6 +27,7 @@ private struct CloudSyncPollingTaskID: Hashable {
     let isSceneActive: Bool
     let selectedTab: AppTab
     let fastPollingUntil: Date?
+    let isSyncBlocked: Bool
 }
 
 @main
@@ -99,13 +100,17 @@ struct FlashcardsApp: App {
         CloudSyncPollingTaskID(
             isSceneActive: self.scenePhase == .active,
             selectedTab: self.navigation.selectedTab,
-            fastPollingUntil: self.store.cloudSyncFastPollingUntil
+            fastPollingUntil: self.store.cloudSyncFastPollingUntil,
+            isSyncBlocked: self.store.isCloudSyncBlocked
         )
     }
 
     @MainActor
     private func runCloudSyncPollingLoop() async {
         guard self.scenePhase == .active else {
+            return
+        }
+        guard self.store.isCloudSyncBlocked == false else {
             return
         }
 
@@ -125,6 +130,9 @@ struct FlashcardsApp: App {
             }
 
             guard Task.isCancelled == false, self.scenePhase == .active else {
+                return
+            }
+            guard self.store.isCloudSyncBlocked == false else {
                 return
             }
 

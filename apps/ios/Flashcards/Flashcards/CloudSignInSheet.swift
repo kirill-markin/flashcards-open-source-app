@@ -980,6 +980,8 @@ private func isCloudSignInSyncInFlight(status: SyncStatus) -> Bool {
     switch status {
     case .syncing:
         return true
+    case .blocked:
+        return true
     case .idle, .failed:
         return false
     }

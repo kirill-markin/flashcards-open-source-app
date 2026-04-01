@@ -61,7 +61,7 @@ class AppDatabaseTest {
             context = context,
             klass = AppDatabase::class.java
         ).allowMainThreadQueries().build()
-        preferencesStore = CloudPreferencesStore(context = context)
+        preferencesStore = CloudPreferencesStore(context = context, database = database)
         syncLocalStore = SyncLocalStore(
             database = database,
             preferencesStore = preferencesStore
@@ -91,6 +91,45 @@ class AppDatabaseTest {
         )
         assertTrue(database.cardDao().observeCardsWithRelations().first().isEmpty())
         assertTrue(database.deckDao().observeDecks().first().isEmpty())
+    }
+
+    @Test
+    fun cloudPreferencesStoreMigratesLegacyIdentityFromPreferencesIntoDatabaseSettings() = runBlocking {
+        database.close()
+        context.deleteSharedPreferences("flashcards-cloud-metadata")
+        context.deleteSharedPreferences("flashcards-cloud-secrets")
+
+        val legacyPreferences = context.getSharedPreferences("flashcards-cloud-metadata", Context.MODE_PRIVATE)
+        legacyPreferences.edit()
+            .putString("installation-id", "legacy-installation-id")
+            .putString("cloud-state", "LINKED")
+            .putString("linked-user-id", "legacy-user")
+            .putString("linked-workspace-id", "legacy-workspace")
+            .putString("linked-email", "legacy@example.com")
+            .putString("active-workspace-id", "legacy-workspace")
+            .putLong("updated-at-millis", 456L)
+            .commit()
+
+        database = Room.inMemoryDatabaseBuilder(
+            context = context,
+            klass = AppDatabase::class.java
+        ).allowMainThreadQueries().build()
+        val migratedStore = CloudPreferencesStore(context = context, database = database)
+
+        val migratedSettings = migratedStore.currentCloudSettings()
+        val storedSettings = requireNotNull(database.appLocalSettingsDao().loadSettings()) {
+            "Expected app_local_settings after legacy migration."
+        }
+
+        assertEquals("legacy-installation-id", migratedSettings.installationId)
+        assertEquals("legacy-workspace", migratedSettings.activeWorkspaceId)
+        assertEquals("legacy-installation-id", storedSettings.installationId)
+        assertEquals("LINKED", storedSettings.cloudState)
+        assertEquals("legacy-user", storedSettings.linkedUserId)
+        assertEquals("legacy-workspace", storedSettings.linkedWorkspaceId)
+        assertEquals("legacy@example.com", storedSettings.linkedEmail)
+        assertEquals("legacy-workspace", storedSettings.activeWorkspaceId)
+        assertEquals(456L, storedSettings.updatedAtMillis)
     }
 
     @Test

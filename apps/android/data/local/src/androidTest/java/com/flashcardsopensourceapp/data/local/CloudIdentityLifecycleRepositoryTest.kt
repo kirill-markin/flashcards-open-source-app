@@ -20,6 +20,7 @@ import com.flashcardsopensourceapp.data.local.cloud.RemotePushResponse
 import com.flashcardsopensourceapp.data.local.cloud.RemoteReviewHistoryImportResponse
 import com.flashcardsopensourceapp.data.local.cloud.RemoteReviewHistoryPullResponse
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
@@ -35,6 +36,8 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
@@ -80,7 +83,7 @@ class CloudIdentityLifecycleRepositoryTest {
             context = context,
             klass = AppDatabase::class.java
         ).allowMainThreadQueries().build()
-        cloudPreferencesStore = CloudPreferencesStore(context = context)
+        cloudPreferencesStore = CloudPreferencesStore(context = context, database = database)
         aiChatPreferencesStore = AiChatPreferencesStore(context = context)
         aiChatHistoryStore = AiChatHistoryStore(context = context)
         guestAiSessionStore = GuestAiSessionStore(context = context)
@@ -355,6 +358,129 @@ class CloudIdentityLifecycleRepositoryTest {
         assertEquals(guestWorkspaceId, cloudSettings.activeWorkspaceId)
         assertEquals(guestWorkspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
         assertEquals(listOf(guestWorkspaceId), remoteGateway.bootstrapPullWorkspaceIds)
+    }
+
+    @Test
+    fun syncRepositorySilentlyRestoresLinkedWorkspaceFromStoredCredentialsWhenLocalShellIsSafe() = runBlocking {
+        val localWorkspaceId = requireLocalWorkspaceId()
+        val remoteWorkspaceId = "workspace-linked"
+        val remoteGateway = FakeCloudRemoteGateway(
+            accountSnapshot = CloudAccountSnapshot(
+                userId = "user-1",
+                email = "user@example.com",
+                workspaces = listOf(
+                    CloudWorkspaceSummary(
+                        workspaceId = remoteWorkspaceId,
+                        name = "Personal",
+                        createdAtMillis = 200L,
+                        isSelected = true
+                    )
+                )
+            )
+        )
+        val syncRepository = LocalSyncRepository(
+            database = database,
+            preferencesStore = cloudPreferencesStore,
+            remoteService = remoteGateway,
+            syncLocalStore = com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore(
+                database = database,
+                preferencesStore = cloudPreferencesStore
+            ),
+            operationCoordinator = operationCoordinator,
+            resetCoordinator = resetCoordinator,
+            guestSessionStore = guestAiSessionStore,
+            cloudGuestSessionCoordinator = createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+        )
+        cloudPreferencesStore.saveCredentials(
+            StoredCloudCredentials(
+                refreshToken = "refresh-token",
+                idToken = "id-token",
+                idTokenExpiresAtMillis = Long.MAX_VALUE
+            )
+        )
+        cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.DISCONNECTED,
+            linkedUserId = null,
+            linkedWorkspaceId = null,
+            linkedEmail = null,
+            activeWorkspaceId = localWorkspaceId
+        )
+
+        syncRepository.syncNow()
+
+        val cloudSettings = cloudPreferencesStore.currentCloudSettings()
+        assertEquals(CloudAccountState.LINKED, cloudSettings.cloudState)
+        assertEquals(remoteWorkspaceId, cloudSettings.activeWorkspaceId)
+        assertEquals(remoteWorkspaceId, cloudSettings.linkedWorkspaceId)
+        assertEquals("user@example.com", cloudSettings.linkedEmail)
+        assertEquals(remoteWorkspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertEquals(SyncStatus.Idle, syncRepository.observeSyncStatus().first().status)
+        assertEquals(listOf(remoteWorkspaceId, remoteWorkspaceId), remoteGateway.bootstrapPullWorkspaceIds)
+    }
+
+    @Test
+    fun syncRepositoryDoesNotSilentlyRestoreLinkedWorkspaceWhenLocalShellContainsData() = runBlocking {
+        val localWorkspaceId = requireLocalWorkspaceId()
+        val remoteGateway = FakeCloudRemoteGateway()
+        val syncRepository = LocalSyncRepository(
+            database = database,
+            preferencesStore = cloudPreferencesStore,
+            remoteService = remoteGateway,
+            syncLocalStore = com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore(
+                database = database,
+                preferencesStore = cloudPreferencesStore
+            ),
+            operationCoordinator = operationCoordinator,
+            resetCoordinator = resetCoordinator,
+            guestSessionStore = guestAiSessionStore,
+            cloudGuestSessionCoordinator = createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+        )
+        cloudPreferencesStore.saveCredentials(
+            StoredCloudCredentials(
+                refreshToken = "refresh-token",
+                idToken = "id-token",
+                idTokenExpiresAtMillis = Long.MAX_VALUE
+            )
+        )
+        cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.DISCONNECTED,
+            linkedUserId = null,
+            linkedWorkspaceId = null,
+            linkedEmail = null,
+            activeWorkspaceId = localWorkspaceId
+        )
+        database.cardDao().insertCard(
+            CardEntity(
+                cardId = "card-1",
+                workspaceId = localWorkspaceId,
+                frontText = "Question",
+                backText = "Answer",
+                effortLevel = EffortLevel.FAST,
+                dueAtMillis = null,
+                createdAtMillis = 100L,
+                updatedAtMillis = 100L,
+                reps = 0,
+                lapses = 0,
+                fsrsCardState = FsrsCardState.NEW,
+                fsrsStepIndex = null,
+                fsrsStability = null,
+                fsrsDifficulty = null,
+                fsrsLastReviewedAtMillis = null,
+                fsrsScheduledDays = null,
+                deletedAtMillis = null
+            )
+        )
+
+        try {
+            syncRepository.syncNow()
+        } catch (_: IllegalStateException) {
+        }
+
+        val cloudSettings = cloudPreferencesStore.currentCloudSettings()
+        assertEquals(CloudAccountState.DISCONNECTED, cloudSettings.cloudState)
+        assertEquals(localWorkspaceId, cloudSettings.activeWorkspaceId)
+        assertEquals(localWorkspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertTrue(remoteGateway.bootstrapPullWorkspaceIds.isEmpty())
     }
 
     @Test

@@ -2,9 +2,11 @@ package com.flashcardsopensourceapp.data.local.bootstrap
 
 import androidx.room.withTransaction
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.AppLocalSettingsEntity
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
+import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
 import java.util.UUID
@@ -23,6 +25,11 @@ suspend fun ensureLocalWorkspaceShell(
                 workspace = existingWorkspace,
                 currentTimeMillis = currentTimeMillis
             )
+            ensureAppLocalSettings(
+                database = database,
+                workspaceId = existingWorkspace.workspaceId,
+                currentTimeMillis = currentTimeMillis
+            )
             return@withTransaction existingWorkspace.workspaceId
         }
 
@@ -35,6 +42,11 @@ suspend fun ensureLocalWorkspaceShell(
         ensureLocalWorkspaceDependencies(
             database = database,
             workspace = workspace,
+            currentTimeMillis = currentTimeMillis
+        )
+        ensureAppLocalSettings(
+            database = database,
+            workspaceId = workspace.workspaceId,
             currentTimeMillis = currentTimeMillis
         )
         workspace.workspaceId
@@ -83,4 +95,36 @@ private suspend fun ensureLocalWorkspaceDependencies(
             )
         )
     }
+}
+
+private fun ensureAppLocalSettings(
+    database: AppDatabase,
+    workspaceId: String,
+    currentTimeMillis: Long
+) {
+    val existingSettings = database.appLocalSettingsDao().loadSettings()
+    if (existingSettings != null) {
+        if (existingSettings.activeWorkspaceId == null) {
+            database.appLocalSettingsDao().insertSettings(
+                existingSettings.copy(
+                    activeWorkspaceId = workspaceId,
+                    updatedAtMillis = currentTimeMillis
+                )
+            )
+        }
+        return
+    }
+
+    database.appLocalSettingsDao().insertSettings(
+        AppLocalSettingsEntity(
+            settingsId = 1,
+            installationId = UUID.randomUUID().toString(),
+            cloudState = CloudAccountState.DISCONNECTED.name,
+            linkedUserId = null,
+            linkedWorkspaceId = null,
+            linkedEmail = null,
+            activeWorkspaceId = workspaceId,
+            updatedAtMillis = currentTimeMillis
+        )
+    )
 }
