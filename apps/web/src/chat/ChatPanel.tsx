@@ -122,6 +122,8 @@ function stopMediaRecorder(
 export function ChatPanel(props: Props): ReactElement {
   const { mode } = props;
   const appData = useAppData();
+  const refreshLocalData = appData.refreshLocalData;
+  const setAppErrorMessage = appData.setErrorMessage;
   const {
     draft,
     replaceInputText,
@@ -143,11 +145,11 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
 
-    void appData.refreshLocalData().catch((error: unknown) => {
+    void refreshLocalData().catch((error: unknown) => {
       const message = error instanceof Error ? error.message : String(error);
-      appData.setErrorMessage(`Chat content refresh failed. ${message}`);
+      setAppErrorMessage(`Chat content refresh failed. ${message}`);
     });
-  }, [appData]);
+  }, [refreshLocalData, setAppErrorMessage]);
 
   const activeWorkspaceId = appData.activeWorkspace?.workspaceId ?? null;
   const {

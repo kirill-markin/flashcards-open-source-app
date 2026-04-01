@@ -401,6 +401,7 @@ function buildFailureSummary(record: FailureDiagnosticRecord): string {
   const recentTimeline = record.actionTimeline.slice(-failureSummaryTailSize);
   const recentConsoleEvents = record.consoleEvents.slice(-failureSummaryTailSize);
   const recentNetworkEvents = record.networkEvents.slice(-failureSummaryTailSize);
+  const chatRequestSummary = summarizeChatRequests(record.networkEvents);
 
   return [
     `Current test: ${record.currentTest ?? "unknown"}`,
@@ -416,6 +417,10 @@ function buildFailureSummary(record: FailureDiagnosticRecord): string {
     `Console events: ${record.consoleEvents.length}`,
     `Page errors: ${record.pageErrors.length}`,
     `Network events: ${record.networkEvents.length}`,
+    `Chat requests: ${String(chatRequestSummary.total)}`,
+    `Chat requests without sessionId: ${String(chatRequestSummary.withoutSessionId)}`,
+    `Chat requests with sessionId: ${String(chatRequestSummary.withSessionId)}`,
+    `Chat requests with afterCursor: ${String(chatRequestSummary.withAfterCursor)}`,
     "",
     "Recent timeline:",
     ...formatTimelineEntries(recentTimeline),
@@ -432,6 +437,49 @@ function buildFailureSummary(record: FailureDiagnosticRecord): string {
     "Primary stack:",
     record.primaryErrorStack ?? "No stack available",
   ].join("\n");
+}
+
+type ChatRequestSummary = Readonly<{
+  total: number;
+  withoutSessionId: number;
+  withSessionId: number;
+  withAfterCursor: number;
+}>;
+
+function summarizeChatRequests(
+  events: ReadonlyArray<NetworkDiagnosticEvent>,
+): ChatRequestSummary {
+  return events.reduce<ChatRequestSummary>((summary, event) => {
+    if (event.kind !== "request") {
+      return summary;
+    }
+
+    let url: URL;
+    try {
+      url = new URL(event.requestUrl);
+    } catch {
+      return summary;
+    }
+
+    if (url.pathname !== "/v1/chat") {
+      return summary;
+    }
+
+    const hasSessionId = url.searchParams.has("sessionId");
+    const hasAfterCursor = url.searchParams.has("afterCursor");
+
+    return {
+      total: summary.total + 1,
+      withoutSessionId: summary.withoutSessionId + (hasSessionId ? 0 : 1),
+      withSessionId: summary.withSessionId + (hasSessionId ? 1 : 0),
+      withAfterCursor: summary.withAfterCursor + (hasAfterCursor ? 1 : 0),
+    };
+  }, {
+    total: 0,
+    withoutSessionId: 0,
+    withSessionId: 0,
+    withAfterCursor: 0,
+  });
 }
 
 function formatTimelineEntries(entries: ReadonlyArray<DiagnosticTimelineEntry>): string[] {

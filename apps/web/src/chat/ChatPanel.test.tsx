@@ -227,6 +227,53 @@ describe("ChatPanel send lifecycle", () => {
     expect(getContainer().textContent).not.toContain("Try asking:");
   });
 
+  it("does not restart initial hydration for the same workspace after a failed snapshot refresh", async () => {
+    getChatSnapshotMock.mockRejectedValue(new Error("Request failed with status 500"));
+
+    useAppDataMock.mockReturnValue({
+      sessionVerificationState: "verified",
+      activeWorkspace: {
+        workspaceId: "workspace-1",
+        name: "Primary",
+        createdAt: "2026-03-10T00:00:00.000Z",
+        isSelected: true,
+      },
+      isSessionVerified: true,
+      localCardCount: 1,
+      refreshLocalData: vi.fn(async (): Promise<void> => undefined),
+      runSync: vi.fn(async (): Promise<void> => undefined),
+      setErrorMessage: vi.fn(),
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    useAppDataMock.mockReturnValue({
+      sessionVerificationState: "verified",
+      activeWorkspace: {
+        workspaceId: "workspace-1",
+        name: "Primary",
+        createdAt: "2026-03-10T00:00:00.000Z",
+        isSelected: true,
+      },
+      isSessionVerified: true,
+      localCardCount: 1,
+      refreshLocalData: vi.fn(async (): Promise<void> => undefined),
+      runSync: vi.fn(async (): Promise<void> => undefined),
+      setErrorMessage: vi.fn(),
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(getContainer().querySelector('[role="dialog"]')).not.toBeNull();
+    expect(getContainer().textContent).toContain("Chat refresh failed.");
+    expect(getContainer().textContent).not.toContain("Loading AI chat");
+  });
+
   it("sends only one POST /chat while async preflight is in progress", async () => {
     let resolveStartRun: (() => void) | null = null;
     startChatRunMock.mockImplementation(() => new Promise((resolve) => {
@@ -426,6 +473,27 @@ describe("ChatPanel send lifecycle", () => {
     expect(getContainer().querySelector('[role="dialog"]')).not.toBeNull();
     expect(getContainer().textContent).toContain("AI live stream ended before the run finished.");
     expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
+  });
+
+  it("ignores duplicate visible visibilitychange events while the live stream is already connected", async () => {
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "visible",
+    });
+    consumeChatLiveStreamMock.mockImplementation(() => new Promise(() => undefined));
+
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("hello");
+    await flushAsync();
+    await flushAsync();
+
+    document.dispatchEvent(new Event("visibilitychange"));
+    await flushAsync();
+    document.dispatchEvent(new Event("visibilitychange"));
+    await flushAsync();
+
+    expect(getChatSnapshotMock).toHaveBeenCalledTimes(1);
   });
 
   it("renders completed reasoning summaries with the completed tool-call styling", async () => {

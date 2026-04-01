@@ -1,6 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
 const appBaseUrl = process.env.FLASHCARDS_E2E_APP_BASE_URL ?? "https://app.flashcards-open-source-app.com";
+const traceMode = process.env.FLASHCARDS_E2E_TRACE === "true" ? "on" : "off";
+const videoMode = process.env.FLASHCARDS_E2E_VIDEO === "true" ? "on" : "off";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -18,8 +20,8 @@ export default defineConfig({
     headless: true,
     ignoreHTTPSErrors: true,
     navigationTimeout: 30_000,
-    trace: "on",
+    trace: traceMode,
     screenshot: "on",
-    video: "on",
+    video: videoMode,
   },
 });

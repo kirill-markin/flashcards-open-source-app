@@ -49,6 +49,10 @@ export function useChatLiveSession(
   const [isLiveStreamConnected, setIsLiveStreamConnected] = useState<boolean>(false);
   const activeLiveConnectionRef = useRef<ActiveLiveStreamConnection | null>(null);
   const isDocumentVisibleRef = useRef<boolean>(isDocumentVisible());
+  const applyLiveEventRef = useRef<(event: ChatLiveEvent) => void>(applyLiveEvent);
+  const finalizeInterruptedRunRef = useRef<(message: string) => void>(finalizeInterruptedRun);
+  const onVisibleResumeRequestedRef = useRef<() => void>(onVisibleResumeRequested);
+  const onUnexpectedStreamEndRef = useRef<(sessionId: string) => void>(onUnexpectedStreamEnd);
   const hasActiveLiveConnection = useCallback((): boolean => activeLiveConnectionRef.current !== null, []);
 
   const detachLiveStream = useCallback((sessionId: string | null): void => {
@@ -65,6 +69,22 @@ export function useChatLiveSession(
     activeLiveConnectionRef.current = null;
     setIsLiveStreamConnected(false);
   }, []);
+
+  useEffect(() => {
+    applyLiveEventRef.current = applyLiveEvent;
+  }, [applyLiveEvent]);
+
+  useEffect(() => {
+    finalizeInterruptedRunRef.current = finalizeInterruptedRun;
+  }, [finalizeInterruptedRun]);
+
+  useEffect(() => {
+    onVisibleResumeRequestedRef.current = onVisibleResumeRequested;
+  }, [onVisibleResumeRequested]);
+
+  useEffect(() => {
+    onUnexpectedStreamEndRef.current = onUnexpectedStreamEnd;
+  }, [onUnexpectedStreamEnd]);
 
   /**
    * Attaches live SSE only while the chat surface is visible. Existing sessions
@@ -83,7 +103,7 @@ export function useChatLiveSession(
     }
 
     if (liveStream === null) {
-      finalizeInterruptedRun("AI live stream is unavailable for the active run.");
+      finalizeInterruptedRunRef.current("AI live stream is unavailable for the active run.");
       return;
     }
 
@@ -111,7 +131,7 @@ export function useChatLiveSession(
         }
 
         setIsLiveStreamConnected(true);
-        applyLiveEvent(event);
+        applyLiveEventRef.current(event);
       },
     }).then(() => {
       if (abortController.signal.aborted) {
@@ -128,7 +148,7 @@ export function useChatLiveSession(
         return;
       }
 
-      onUnexpectedStreamEnd(sessionId);
+      onUnexpectedStreamEndRef.current(sessionId);
     }).catch((error: unknown) => {
       if (abortController.signal.aborted) {
         return;
@@ -140,9 +160,9 @@ export function useChatLiveSession(
 
       activeLiveConnectionRef.current = null;
       setIsLiveStreamConnected(false);
-      finalizeInterruptedRun(error instanceof Error ? error.message : String(error));
+      finalizeInterruptedRunRef.current(error instanceof Error ? error.message : String(error));
     });
-  }, [applyLiveEvent, detachLiveStream, finalizeInterruptedRun, onUnexpectedStreamEnd]);
+  }, [detachLiveStream]);
 
   useEffect(() => {
     if (typeof document === "undefined") {
@@ -155,22 +175,27 @@ export function useChatLiveSession(
      * streaming is still warranted for the current run.
      */
     const handleVisibilityChange = (): void => {
+      const previousIsVisible = isDocumentVisibleRef.current;
       const nextIsVisible = isDocumentVisible();
       isDocumentVisibleRef.current = nextIsVisible;
+
+      if (previousIsVisible === nextIsVisible) {
+        return;
+      }
 
       if (nextIsVisible === false) {
         detachLiveStream(null);
         return;
       }
 
-      onVisibleResumeRequested();
+      onVisibleResumeRequestedRef.current();
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [detachLiveStream, onVisibleResumeRequested]);
+  }, [detachLiveStream]);
 
   useEffect(() => {
     return () => {
