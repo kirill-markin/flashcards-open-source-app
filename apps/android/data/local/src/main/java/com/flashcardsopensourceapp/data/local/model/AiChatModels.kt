@@ -65,6 +65,12 @@ data class AiChatServerConfig(
     val liveUrl: String?
 )
 
+data class AiChatLiveStreamEnvelope(
+    val url: String,
+    val authorization: String,
+    val expiresAt: Long
+)
+
 data class AiChatSessionSnapshot(
     val sessionId: String,
     val runState: String,
@@ -131,13 +137,19 @@ data class AiChatToolCall(
     val output: String?
 )
 
+data class AiChatReasoningSummary(
+    val reasoningId: String,
+    val summary: String,
+    val status: AiChatToolCallStatus
+)
+
 sealed interface AiChatContentPart {
     data class Text(
         val text: String
     ) : AiChatContentPart
 
     data class ReasoningSummary(
-        val summary: String
+        val reasoningSummary: AiChatReasoningSummary
     ) : AiChatContentPart
 
     data class Image(
@@ -167,7 +179,10 @@ data class AiChatMessage(
     val role: AiChatRole,
     val content: List<AiChatContentPart>,
     val timestampMillis: Long,
-    val isError: Boolean
+    val isError: Boolean,
+    val isStopped: Boolean,
+    val cursor: String?,
+    val itemId: String?
 )
 
 data class AiChatPersistedState(
@@ -221,42 +236,17 @@ data class AiChatRepairAttemptStatus(
     val toolName: String?
 )
 
-data class AiChatStreamError(
-    val message: String,
-    val code: String,
-    val stage: String,
-    val requestId: String
+data class AiChatStartRunResponse(
+    val sessionId: String,
+    val runState: String,
+    val chatConfig: AiChatServerConfig,
+    val liveStream: AiChatLiveStreamEnvelope?
 )
-
-sealed interface AiChatStreamEvent {
-    data class Delta(
-        val text: String
-    ) : AiChatStreamEvent
-
-    data class ToolCall(
-        val toolCall: AiChatToolCall
-    ) : AiChatStreamEvent
-
-    data class ToolCallRequest(
-        val toolCallRequest: AiToolCallRequest
-    ) : AiChatStreamEvent
-
-    data class RepairAttempt(
-        val status: AiChatRepairAttemptStatus
-    ) : AiChatStreamEvent
-
-    data object Done : AiChatStreamEvent
-
-    data class Error(
-        val error: AiChatStreamError
-    ) : AiChatStreamEvent
-}
 
 data class AiChatStreamOutcome(
     val requestId: String?,
     val chatSessionId: String,
-    val chatConfig: AiChatServerConfig?,
-    val finalSnapshot: AiChatSessionSnapshot?
+    val chatConfig: AiChatServerConfig?
 )
 
 data class AiChatTranscriptionResult(
@@ -296,7 +286,8 @@ data class AiChatBootstrapResponse(
     val messages: List<AiChatMessage>,
     val hasOlder: Boolean,
     val oldestCursor: String?,
-    val liveCursor: String?
+    val liveCursor: String?,
+    val liveStream: AiChatLiveStreamEnvelope?
 )
 
 data class AiChatOlderMessagesResponse(
@@ -309,6 +300,9 @@ sealed interface AiChatLiveEvent {
     data class RunState(val runState: String) : AiChatLiveEvent
     data class AssistantDelta(val text: String, val cursor: String, val itemId: String) : AiChatLiveEvent
     data class AssistantToolCall(val toolCall: AiChatToolCall, val cursor: String, val itemId: String) : AiChatLiveEvent
+    data class AssistantReasoningStarted(val reasoningId: String, val cursor: String, val itemId: String) : AiChatLiveEvent
+    data class AssistantReasoningSummary(val reasoningSummary: AiChatReasoningSummary, val cursor: String, val itemId: String) : AiChatLiveEvent
+    data class AssistantReasoningDone(val reasoningId: String, val cursor: String, val itemId: String) : AiChatLiveEvent
     data class AssistantMessageDone(val cursor: String, val itemId: String, val isError: Boolean, val isStopped: Boolean) : AiChatLiveEvent
     data class RepairStatus(val status: AiChatRepairAttemptStatus) : AiChatLiveEvent
     data class Error(val message: String) : AiChatLiveEvent

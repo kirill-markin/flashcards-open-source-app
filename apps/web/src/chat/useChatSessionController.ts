@@ -29,7 +29,12 @@ import {
 import { defaultChatConfig, loadStoredChatConfig, storeChatConfig } from "./chatConfig";
 import type { ChatSessionSnapshot } from "./chatSessionSnapshot";
 import { consumeChatLiveStream, type ChatLiveEvent } from "./liveStream";
-import type { ChatConfig, ChatLiveStream, ToolCallContentPart } from "../types";
+import type {
+  ChatConfig,
+  ChatLiveStream,
+  ReasoningSummaryContentPart,
+  ToolCallContentPart,
+} from "../types";
 
 type UseChatSessionControllerParams = Readonly<{
   workspaceId: string | null;
@@ -100,13 +105,35 @@ function toAssistantToolCallContentPart(
 ): ToolCallContentPart {
   return {
     type: "tool_call",
+    id: event.toolCallId,
     name: event.name,
     status: event.status,
+    providerStatus: event.providerStatus ?? null,
     input: event.input,
     output: event.output,
     streamPosition: {
       itemId: event.itemId,
-      outputIndex: 0,
+      outputIndex: event.outputIndex,
+      contentIndex: null,
+      sequenceNumber: null,
+    },
+  };
+}
+
+function toAssistantReasoningSummaryContentPart(
+  event: Extract<ChatLiveEvent, { type: "assistant_reasoning_started" | "assistant_reasoning_summary" | "assistant_reasoning_done" }>,
+): ReasoningSummaryContentPart {
+  const summary = event.type === "assistant_reasoning_summary" ? event.summary : "";
+  const status = event.type === "assistant_reasoning_done" ? "completed" : "started";
+
+  return {
+    type: "reasoning_summary",
+    reasoningId: event.reasoningId,
+    summary,
+    status,
+    streamPosition: {
+      itemId: event.reasoningId,
+      outputIndex: event.outputIndex,
       contentIndex: null,
       sequenceNumber: null,
     },
@@ -125,6 +152,7 @@ export function useChatSessionController(
     appendAssistantText,
     upsertAssistantToolCall,
     upsertAssistantReasoningSummary,
+    completeAssistantReasoningSummary,
     finishAssistantMessage,
     markAssistantError,
     clearHistory,
@@ -189,7 +217,17 @@ export function useChatSessionController(
     }
 
     if (event.type === "assistant_reasoning_summary") {
-      upsertAssistantReasoningSummary(event.summary);
+      upsertAssistantReasoningSummary(toAssistantReasoningSummaryContentPart(event));
+      return;
+    }
+
+    if (event.type === "assistant_reasoning_started") {
+      upsertAssistantReasoningSummary(toAssistantReasoningSummaryContentPart(event));
+      return;
+    }
+
+    if (event.type === "assistant_reasoning_done") {
+      completeAssistantReasoningSummary(event.reasoningId);
       return;
     }
 
@@ -222,6 +260,7 @@ export function useChatSessionController(
     finishAssistantMessage,
     upsertAssistantReasoningSummary,
     upsertAssistantToolCall,
+    completeAssistantReasoningSummary,
   ]);
 
   const startLiveStream = useCallback((

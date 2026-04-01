@@ -210,7 +210,9 @@ actor AIChatSessionRuntime {
                 }
             case .assistantDelta,
                     .assistantToolCall,
+                    .assistantReasoningStarted,
                     .assistantReasoningSummary,
+                    .assistantReasoningDone,
                     .repairStatus,
                     .stopAck:
                 break

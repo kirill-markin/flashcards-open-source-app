@@ -323,11 +323,22 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
             metadata["itemId"] = itemId
             metadata["toolName"] = toolCall.name
             metadata["toolStatus"] = toolCall.status.rawValue
-        case .assistantReasoningSummary(let summary, let cursor, let itemId):
+        case .assistantReasoningStarted(let reasoningId, let cursor, let itemId):
+            metadata["eventType"] = "assistant_reasoning_started"
+            metadata["cursor"] = cursor
+            metadata["itemId"] = itemId
+            metadata["reasoningId"] = reasoningId
+        case .assistantReasoningSummary(let reasoningId, let summary, let cursor, let itemId):
             metadata["eventType"] = "assistant_reasoning_summary"
             metadata["cursor"] = cursor
             metadata["itemId"] = itemId
+            metadata["reasoningId"] = reasoningId
             metadata["summaryLength"] = String(summary.count)
+        case .assistantReasoningDone(let reasoningId, let cursor, let itemId):
+            metadata["eventType"] = "assistant_reasoning_done"
+            metadata["cursor"] = cursor
+            metadata["itemId"] = itemId
+            metadata["reasoningId"] = reasoningId
         case .assistantMessageDone(let cursor, let itemId, let isError, let isStopped):
             metadata["eventType"] = "assistant_message_done"
             metadata["cursor"] = cursor
@@ -456,13 +467,14 @@ private func parseSSEEvent(eventType: String?, payload: String) -> AIChatLiveEve
         return .assistantDelta(text: text, cursor: cursor, itemId: itemId)
 
     case "assistant_tool_call":
-        guard let name = json["name"] as? String,
+        guard let toolCallId = json["toolCallId"] as? String,
+              let name = json["name"] as? String,
               let statusStr = json["status"] as? String,
               let cursor = json["cursor"] as? String,
               let itemId = json["itemId"] as? String else { return nil }
         let status: AIChatToolCallStatus = statusStr == "completed" ? .completed : .started
         let toolCall = AIChatToolCall(
-            id: itemId,
+            id: toolCallId,
             name: name,
             status: status,
             input: json["input"] as? String,
@@ -470,11 +482,24 @@ private func parseSSEEvent(eventType: String?, payload: String) -> AIChatLiveEve
         )
         return .assistantToolCall(toolCall, cursor: cursor, itemId: itemId)
 
-    case "assistant_reasoning_summary":
-        guard let summary = json["summary"] as? String,
+    case "assistant_reasoning_started":
+        guard let reasoningId = json["reasoningId"] as? String,
               let cursor = json["cursor"] as? String,
               let itemId = json["itemId"] as? String else { return nil }
-        return .assistantReasoningSummary(summary: summary, cursor: cursor, itemId: itemId)
+        return .assistantReasoningStarted(reasoningId: reasoningId, cursor: cursor, itemId: itemId)
+
+    case "assistant_reasoning_summary":
+        guard let reasoningId = json["reasoningId"] as? String,
+              let summary = json["summary"] as? String,
+              let cursor = json["cursor"] as? String,
+              let itemId = json["itemId"] as? String else { return nil }
+        return .assistantReasoningSummary(reasoningId: reasoningId, summary: summary, cursor: cursor, itemId: itemId)
+
+    case "assistant_reasoning_done":
+        guard let reasoningId = json["reasoningId"] as? String,
+              let cursor = json["cursor"] as? String,
+              let itemId = json["itemId"] as? String else { return nil }
+        return .assistantReasoningDone(reasoningId: reasoningId, cursor: cursor, itemId: itemId)
 
     case "assistant_message_done":
         guard let cursor = json["cursor"] as? String,

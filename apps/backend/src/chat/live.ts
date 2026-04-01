@@ -71,6 +71,46 @@ function filterAssistantMessages(
   return messages.filter((message) => message.role === "assistant");
 }
 
+function buildReasoningDoneEvents(
+  previousContent: ReadonlyArray<ContentPart>,
+  content: ReadonlyArray<ContentPart>,
+  cursor: string,
+  itemId: string,
+): ReadonlyArray<Extract<LiveSSEEvent, { type: "assistant_reasoning_done" }>> {
+  const events: Array<Extract<LiveSSEEvent, { type: "assistant_reasoning_done" }>> = [];
+
+  for (let index = 0; index < content.length; index += 1) {
+    const part = content[index];
+    if (part.type !== "reasoning_summary") {
+      continue;
+    }
+
+    const previousIndex = previousContent.findIndex((previousPart) =>
+      previousPart.type === "reasoning_summary"
+      && previousPart.streamPosition.itemId === part.streamPosition.itemId,
+    );
+    const wasAlreadyClosed = previousIndex >= 0
+      && previousContent.slice(previousIndex + 1).some((nextPart) =>
+        nextPart.type === "text"
+        || nextPart.type === "tool_call"
+        || nextPart.type === "reasoning_summary",
+      );
+    if (wasAlreadyClosed) {
+      continue;
+    }
+
+    events.push({
+      type: "assistant_reasoning_done",
+      reasoningId: part.streamPosition.itemId,
+      cursor,
+      itemId,
+      outputIndex: part.streamPosition.outputIndex,
+    });
+  }
+
+  return events;
+}
+
 /**
  * Runs the SSE live loop, writing events to the provided writable stream.
  */
@@ -180,6 +220,36 @@ export async function runLiveStream(
             previousAssistantItemId = message.itemId;
           } else {
             // Completed/error/cancelled message
+            if (message.itemId === previousAssistantItemId) {
+              const strippedContent = stripBase64FromContentParts(message.content);
+              const deltaEvents = diffAssistantContent(
+                previousAssistantContent,
+                strippedContent,
+                String(message.itemOrder),
+                message.itemId,
+              );
+              for (const event of deltaEvents) {
+                write(formatSSEEvent(event));
+              }
+              for (const event of buildReasoningDoneEvents(
+                previousAssistantContent,
+                strippedContent,
+                String(message.itemOrder),
+                message.itemId,
+              )) {
+                const alreadyEmittedReasoningDone = deltaEvents.some((deltaEvent) => {
+                  if (deltaEvent.type !== "assistant_reasoning_done") {
+                    return false;
+                  }
+
+                  return deltaEvent.reasoningId === event.reasoningId;
+                });
+                if (alreadyEmittedReasoningDone) {
+                  continue;
+                }
+                write(formatSSEEvent(event));
+              }
+            }
             write(formatSSEEvent({
               type: "assistant_message_done",
               cursor: String(message.itemOrder),

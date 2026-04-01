@@ -3,8 +3,21 @@ import type { ChatLiveStream } from "../types";
 export type ChatLiveEvent =
   | Readonly<{ type: "run_state"; runState: "idle" | "running" | "interrupted"; sessionId: string }>
   | Readonly<{ type: "assistant_delta"; text: string; cursor: string; itemId: string }>
-  | Readonly<{ type: "assistant_tool_call"; name: string; status: "started" | "completed"; input: string | null; output: string | null; cursor: string; itemId: string }>
-  | Readonly<{ type: "assistant_reasoning_summary"; summary: string; cursor: string; itemId: string }>
+  | Readonly<{
+    type: "assistant_tool_call";
+    toolCallId: string;
+    name: string;
+    status: "started" | "completed";
+    input: string | null;
+    output: string | null;
+    providerStatus?: string | null;
+    cursor: string;
+    itemId: string;
+    outputIndex: number;
+  }>
+  | Readonly<{ type: "assistant_reasoning_started"; reasoningId: string; cursor: string; itemId: string; outputIndex: number }>
+  | Readonly<{ type: "assistant_reasoning_summary"; reasoningId: string; summary: string; cursor: string; itemId: string; outputIndex: number }>
+  | Readonly<{ type: "assistant_reasoning_done"; reasoningId: string; cursor: string; itemId: string; outputIndex: number }>
   | Readonly<{ type: "assistant_message_done"; cursor: string; itemId: string; isError: boolean; isStopped: boolean }>
   | Readonly<{ type: "error"; message: string }>
   | Readonly<{ type: "reset_required" }>;
@@ -81,14 +94,18 @@ function parseChatLiveEvent(
   }
 
   if (type === "assistant_tool_call") {
+    const toolCallId = readStringField(objectValue, "toolCallId");
     const name = readStringField(objectValue, "name");
     const status = readStringField(objectValue, "status");
     const cursor = readStringField(objectValue, "cursor");
     const itemId = readStringField(objectValue, "itemId");
+    const outputIndex = objectValue.outputIndex;
     if (
-      name === null
+      toolCallId === null
+      || name === null
       || cursor === null
       || itemId === null
+      || typeof outputIndex !== "number"
       || (status !== "started" && status !== "completed")
     ) {
       return null;
@@ -96,24 +113,53 @@ function parseChatLiveEvent(
 
     return {
       type,
+      toolCallId,
       name,
       status,
       input: readStringField(objectValue, "input"),
       output: readStringField(objectValue, "output"),
+      providerStatus: readStringField(objectValue, "providerStatus"),
       cursor,
       itemId,
+      outputIndex,
     };
   }
 
-  if (type === "assistant_reasoning_summary") {
-    const summary = readStringField(objectValue, "summary");
+  if (type === "assistant_reasoning_started") {
+    const reasoningId = readStringField(objectValue, "reasoningId");
     const cursor = readStringField(objectValue, "cursor");
     const itemId = readStringField(objectValue, "itemId");
-    if (summary === null || cursor === null || itemId === null) {
+    const outputIndex = objectValue.outputIndex;
+    if (reasoningId === null || cursor === null || itemId === null || typeof outputIndex !== "number") {
       return null;
     }
 
-    return { type, summary, cursor, itemId };
+    return { type, reasoningId, cursor, itemId, outputIndex };
+  }
+
+  if (type === "assistant_reasoning_summary") {
+    const reasoningId = readStringField(objectValue, "reasoningId");
+    const summary = readStringField(objectValue, "summary");
+    const cursor = readStringField(objectValue, "cursor");
+    const itemId = readStringField(objectValue, "itemId");
+    const outputIndex = objectValue.outputIndex;
+    if (reasoningId === null || summary === null || cursor === null || itemId === null || typeof outputIndex !== "number") {
+      return null;
+    }
+
+    return { type, reasoningId, summary, cursor, itemId, outputIndex };
+  }
+
+  if (type === "assistant_reasoning_done") {
+    const reasoningId = readStringField(objectValue, "reasoningId");
+    const cursor = readStringField(objectValue, "cursor");
+    const itemId = readStringField(objectValue, "itemId");
+    const outputIndex = objectValue.outputIndex;
+    if (reasoningId === null || cursor === null || itemId === null || typeof outputIndex !== "number") {
+      return null;
+    }
+
+    return { type, reasoningId, cursor, itemId, outputIndex };
   }
 
   if (type === "assistant_message_done") {

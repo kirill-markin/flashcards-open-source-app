@@ -4,10 +4,10 @@ import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
-import com.flashcardsopensourceapp.data.local.model.AiToolCallRequest
 import com.flashcardsopensourceapp.data.local.model.aiChatOptimisticAssistantStatusText
 import java.util.UUID
 
@@ -20,7 +20,10 @@ internal fun makeUserMessage(
         role = AiChatRole.USER,
         content = content,
         timestampMillis = timestampMillis,
-        isError = false
+        isError = false,
+        isStopped = false,
+        cursor = null,
+        itemId = null
     )
 }
 
@@ -32,7 +35,10 @@ internal fun makeAssistantStatusMessage(timestampMillis: Long): AiChatMessage {
             AiChatContentPart.Text(text = aiChatOptimisticAssistantStatusText)
         ),
         timestampMillis = timestampMillis,
-        isError = false
+        isError = false,
+        isStopped = false,
+        cursor = null,
+        itemId = null
     )
 }
 
@@ -103,48 +109,48 @@ internal fun clearOptimisticAssistantStatusIfNeeded(
     )
 }
 
-internal fun appendAssistantText(
+internal fun upsertAssistantText(
     state: AiChatPersistedState,
-    text: String
+    text: String,
+    itemId: String,
+    cursor: String
 ): AiChatPersistedState {
-    if (state.messages.isEmpty()) {
-        return state
-    }
+    val resolution = resolveStreamingAssistantMessage(
+        state = state,
+        itemId = itemId,
+        cursor = cursor
+    )
+    val targetMessage = resolution.state.messages[resolution.index]
+    val updatedContent = appendingAssistantTextPart(
+        content = targetMessage.content,
+        text = text
+    )
 
-    val lastMessage = state.messages.last()
-    if (lastMessage.role != AiChatRole.ASSISTANT) {
-        return state
-    }
-
-    val updatedContent = if (isOptimisticAssistantStatus(content = lastMessage.content)) {
-        listOf(AiChatContentPart.Text(text = text))
-    } else if (lastMessage.content.lastOrNull() is AiChatContentPart.Text) {
-        lastMessage.content.dropLast(1) + AiChatContentPart.Text(
-            text = (lastMessage.content.last() as AiChatContentPart.Text).text + text
+    return resolution.state.copy(
+        messages = resolution.state.messages.replaceAt(
+            index = resolution.index,
+            value = targetMessage.copy(
+                content = updatedContent,
+                cursor = cursor,
+                itemId = itemId
+            )
         )
-    } else {
-        lastMessage.content + AiChatContentPart.Text(text = text)
-    }
-
-    return state.copy(
-        messages = state.messages.dropLast(1) + lastMessage.copy(content = updatedContent)
     )
 }
 
 internal fun upsertAssistantToolCall(
     state: AiChatPersistedState,
-    toolCall: AiChatToolCall
+    toolCall: AiChatToolCall,
+    itemId: String,
+    cursor: String
 ): AiChatPersistedState {
-    if (state.messages.isEmpty()) {
-        return state
-    }
-
-    val lastMessage = state.messages.last()
-    if (lastMessage.role != AiChatRole.ASSISTANT) {
-        return state
-    }
-
-    val currentContent = removingOptimisticAssistantStatus(content = lastMessage.content)
+    val resolution = resolveStreamingAssistantMessage(
+        state = state,
+        itemId = itemId,
+        cursor = cursor
+    )
+    val targetMessage = resolution.state.messages[resolution.index]
+    val currentContent = removingOptimisticAssistantStatus(content = targetMessage.content)
     val existingIndex = currentContent.indexOfFirst { part ->
         part is AiChatContentPart.ToolCall && part.toolCall.toolCallId == toolCall.toolCallId
     }
@@ -160,23 +166,99 @@ internal fun upsertAssistantToolCall(
         }
     }
 
-    return state.copy(
-        messages = state.messages.dropLast(1) + lastMessage.copy(content = updatedContent)
+    return resolution.state.copy(
+        messages = resolution.state.messages.replaceAt(
+            index = resolution.index,
+            value = targetMessage.copy(
+                content = updatedContent,
+                cursor = cursor,
+                itemId = itemId
+            )
+        )
     )
 }
 
-internal fun upsertAssistantToolCallRequest(
+internal fun upsertAssistantReasoningSummary(
     state: AiChatPersistedState,
-    toolCallRequest: AiToolCallRequest
+    reasoningSummary: AiChatReasoningSummary,
+    itemId: String,
+    cursor: String
 ): AiChatPersistedState {
-    return upsertAssistantToolCall(
+    val resolution = resolveStreamingAssistantMessage(
         state = state,
-        toolCall = AiChatToolCall(
-            toolCallId = toolCallRequest.toolCallId,
-            name = toolCallRequest.name,
-            status = AiChatToolCallStatus.STARTED,
-            input = toolCallRequest.input,
-            output = null
+        itemId = itemId,
+        cursor = cursor
+    )
+    val targetMessage = resolution.state.messages[resolution.index]
+    val updatedContent = upsertingReasoningSummary(
+        content = targetMessage.content,
+        reasoningSummary = reasoningSummary
+    )
+
+    return resolution.state.copy(
+        messages = resolution.state.messages.replaceAt(
+            index = resolution.index,
+            value = targetMessage.copy(
+                content = updatedContent,
+                cursor = cursor,
+                itemId = itemId
+            )
+        )
+    )
+}
+
+internal fun completeAssistantReasoningSummary(
+    state: AiChatPersistedState,
+    reasoningId: String,
+    itemId: String,
+    cursor: String
+): AiChatPersistedState {
+    val resolution = resolveStreamingAssistantMessage(
+        state = state,
+        itemId = itemId,
+        cursor = cursor
+    )
+    val targetMessage = resolution.state.messages[resolution.index]
+
+    return resolution.state.copy(
+        messages = resolution.state.messages.replaceAt(
+            index = resolution.index,
+            value = targetMessage.copy(
+                content = completingReasoningSummary(
+                    content = targetMessage.content,
+                    reasoningId = reasoningId
+                ),
+                cursor = cursor,
+                itemId = itemId
+            )
+        )
+    )
+}
+
+internal fun finalizeAssistantMessage(
+    state: AiChatPersistedState,
+    itemId: String,
+    cursor: String,
+    isError: Boolean,
+    isStopped: Boolean
+): AiChatPersistedState {
+    val resolution = resolveStreamingAssistantMessage(
+        state = state,
+        itemId = itemId,
+        cursor = cursor
+    )
+    val targetMessage = resolution.state.messages[resolution.index]
+
+    return resolution.state.copy(
+        messages = resolution.state.messages.replaceAt(
+            index = resolution.index,
+            value = targetMessage.copy(
+                content = finalizingAssistantContent(content = targetMessage.content),
+                isError = isError,
+                isStopped = isStopped,
+                cursor = cursor,
+                itemId = itemId
+            )
         )
     )
 }
@@ -194,7 +276,10 @@ internal fun markAssistantError(
                     role = AiChatRole.ASSISTANT,
                     content = listOf(AiChatContentPart.Text(text = message)),
                     timestampMillis = timestampMillis,
-                    isError = true
+                    isError = true,
+                    isStopped = false,
+                    cursor = null,
+                    itemId = null
                 )
             )
         )
@@ -208,7 +293,10 @@ internal fun markAssistantError(
                 role = AiChatRole.ASSISTANT,
                 content = listOf(AiChatContentPart.Text(text = message)),
                 timestampMillis = timestampMillis,
-                isError = true
+                isError = true,
+                isStopped = false,
+                cursor = null,
+                itemId = null
             )
         )
     }
@@ -223,7 +311,7 @@ internal fun markAssistantError(
     return state.copy(
         messages = state.messages.dropLast(1) + lastMessage.copy(
             content = appendingAssistantTextPart(
-                content = lastMessage.content,
+                content = finalizingAssistantContent(content = lastMessage.content),
                 text = separator + message
             ),
             isError = true
@@ -250,7 +338,10 @@ internal fun appendAssistantAccountUpgradePrompt(
                     role = AiChatRole.ASSISTANT,
                     content = listOf(prompt),
                     timestampMillis = timestampMillis,
-                    isError = false
+                    isError = false,
+                    isStopped = false,
+                    cursor = null,
+                    itemId = null
                 )
             )
         )
@@ -264,7 +355,10 @@ internal fun appendAssistantAccountUpgradePrompt(
                 role = AiChatRole.ASSISTANT,
                 content = listOf(prompt),
                 timestampMillis = timestampMillis,
-                isError = false
+                isError = false,
+                isStopped = false,
+                cursor = null,
+                itemId = null
             )
         )
     }
@@ -303,6 +397,81 @@ private fun appendingAssistantTextPart(
     }
 }
 
+private fun upsertingReasoningSummary(
+    content: List<AiChatContentPart>,
+    reasoningSummary: AiChatReasoningSummary
+): List<AiChatContentPart> {
+    val currentContent = removingOptimisticAssistantStatus(content = content)
+    val existingIndex = currentContent.indexOfFirst { part ->
+        part is AiChatContentPart.ReasoningSummary
+            && part.reasoningSummary.reasoningId == reasoningSummary.reasoningId
+    }
+    return if (existingIndex == -1) {
+        listOf(AiChatContentPart.ReasoningSummary(reasoningSummary = reasoningSummary)) + currentContent
+    } else {
+        currentContent.mapIndexed { index, part ->
+            if (index == existingIndex) {
+                val existing = part as AiChatContentPart.ReasoningSummary
+                AiChatContentPart.ReasoningSummary(
+                    reasoningSummary = existing.reasoningSummary.copy(
+                        summary = if (reasoningSummary.summary.isEmpty()) {
+                            existing.reasoningSummary.summary
+                        } else {
+                            reasoningSummary.summary
+                        },
+                        status = reasoningSummary.status
+                    )
+                )
+            } else {
+                part
+            }
+        }
+    }
+}
+
+private fun completingReasoningSummary(
+    content: List<AiChatContentPart>,
+    reasoningId: String
+): List<AiChatContentPart> {
+    return removingOptimisticAssistantStatus(content = content).mapNotNull { part ->
+        when (part) {
+            is AiChatContentPart.ReasoningSummary -> {
+                if (part.reasoningSummary.reasoningId != reasoningId) {
+                    part
+                } else if (part.reasoningSummary.summary.isEmpty()) {
+                    null
+                } else {
+                    AiChatContentPart.ReasoningSummary(
+                        reasoningSummary = part.reasoningSummary.copy(status = AiChatToolCallStatus.COMPLETED)
+                    )
+                }
+            }
+
+            else -> part
+        }
+    }
+}
+
+private fun finalizingAssistantContent(
+    content: List<AiChatContentPart>
+): List<AiChatContentPart> {
+    return removingOptimisticAssistantStatus(content = content).mapNotNull { part ->
+        when (part) {
+            is AiChatContentPart.ReasoningSummary -> {
+                if (part.reasoningSummary.summary.isEmpty()) {
+                    null
+                } else {
+                    AiChatContentPart.ReasoningSummary(
+                        reasoningSummary = part.reasoningSummary.copy(status = AiChatToolCallStatus.COMPLETED)
+                    )
+                }
+            }
+
+            else -> part
+        }
+    }
+}
+
 private fun removingOptimisticAssistantStatus(
     content: List<AiChatContentPart>
 ): List<AiChatContentPart> {
@@ -321,4 +490,73 @@ private fun isOptimisticAssistantStatus(
     return content.size == 1
         && content[0] is AiChatContentPart.Text
         && (content[0] as AiChatContentPart.Text).text == aiChatOptimisticAssistantStatusText
+}
+
+private data class StreamingAssistantMessageResolution(
+    val state: AiChatPersistedState,
+    val index: Int
+)
+
+private fun resolveStreamingAssistantMessage(
+    state: AiChatPersistedState,
+    itemId: String,
+    cursor: String
+): StreamingAssistantMessageResolution {
+    val existingIndex = state.messages.indexOfFirst { message ->
+        message.role == AiChatRole.ASSISTANT && message.itemId == itemId
+    }
+    if (existingIndex >= 0) {
+        val message = state.messages[existingIndex]
+        return StreamingAssistantMessageResolution(
+            state = state.copy(
+                messages = state.messages.replaceAt(
+                    index = existingIndex,
+                    value = message.copy(cursor = cursor, itemId = itemId)
+                )
+            ),
+            index = existingIndex
+        )
+    }
+
+    val placeholderIndex = state.messages.indexOfLast { message ->
+        message.role == AiChatRole.ASSISTANT && message.itemId == null && message.isStopped == false
+    }
+    if (placeholderIndex >= 0) {
+        val placeholderMessage = state.messages[placeholderIndex]
+        return StreamingAssistantMessageResolution(
+            state = state.copy(
+                messages = state.messages.replaceAt(
+                    index = placeholderIndex,
+                    value = placeholderMessage.copy(cursor = cursor, itemId = itemId)
+                )
+            ),
+            index = placeholderIndex
+        )
+    }
+
+    val message = AiChatMessage(
+        messageId = UUID.randomUUID().toString().lowercase(),
+        role = AiChatRole.ASSISTANT,
+        content = emptyList(),
+        timestampMillis = System.currentTimeMillis(),
+        isError = false,
+        isStopped = false,
+        cursor = cursor,
+        itemId = itemId
+    )
+    val nextMessages = state.messages + message
+    return StreamingAssistantMessageResolution(
+        state = state.copy(messages = nextMessages),
+        index = nextMessages.lastIndex
+    )
+}
+
+private fun <T> List<T>.replaceAt(index: Int, value: T): List<T> {
+    return mapIndexed { currentIndex, currentValue ->
+        if (currentIndex == index) {
+            value
+        } else {
+            currentValue
+        }
+    }
 }

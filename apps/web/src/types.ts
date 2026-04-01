@@ -584,7 +584,9 @@ export type ToolCallContentPart = Readonly<{
 
 export type ReasoningSummaryContentPart = Readonly<{
   type: "reasoning_summary";
+  reasoningId?: string;
   summary: string;
+  status?: "started" | "completed";
   streamPosition?: Readonly<{
     itemId: string;
     responseIndex?: number;

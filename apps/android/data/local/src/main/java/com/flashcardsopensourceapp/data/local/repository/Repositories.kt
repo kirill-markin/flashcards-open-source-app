@@ -1,10 +1,13 @@
 package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
+import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
+import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
+import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CardFilter
@@ -130,6 +133,7 @@ interface AiChatRepository {
     suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState)
     suspend fun clearPersistedState(workspaceId: String?)
     suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot?
+    suspend fun loadBootstrap(workspaceId: String?, sessionId: String?, limit: Int): AiChatBootstrapResponse
     suspend fun createNewSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot
     suspend fun transcribeAudio(
         workspaceId: String?,
@@ -143,8 +147,15 @@ interface AiChatRepository {
         workspaceId: String?,
         state: AiChatPersistedState,
         content: List<com.flashcardsopensourceapp.data.local.model.AiChatContentPart>,
-        onAccepted: suspend (String, com.flashcardsopensourceapp.data.local.model.AiChatServerConfig?) -> Unit,
-        onEvent: suspend (AiChatStreamEvent) -> Unit
+        onAccepted: suspend (AiChatStartRunResponse) -> Unit,
+        onEvent: suspend (AiChatLiveEvent) -> Unit
     ): AiChatStreamOutcome
+    suspend fun attachLiveRun(
+        workspaceId: String?,
+        sessionId: String,
+        liveStream: AiChatLiveStreamEnvelope,
+        afterCursor: String?,
+        onEvent: suspend (AiChatLiveEvent) -> Unit
+    )
     suspend fun stopRun(workspaceId: String?, sessionId: String)
 }

@@ -212,6 +212,12 @@ function isReasoningSummaryDelta(
   return event.type === "response.reasoning_summary_text.delta";
 }
 
+function isReasoningSummaryStarted(
+  event: OpenAI.Responses.ResponseStreamEvent,
+): event is OpenAI.Responses.ResponseReasoningSummaryPartAddedEvent {
+  return event.type === "response.reasoning_summary_part.added";
+}
+
 function isOutputTextDelta(
   event: OpenAI.Responses.ResponseStreamEvent,
 ): event is OpenAI.Responses.ResponseTextDeltaEvent {
@@ -433,6 +439,29 @@ async function runOneModelCall(
       if (update.event !== null) {
         pushQueueEvent(queue, update.event);
       }
+      continue;
+    }
+
+    if (isReasoningSummaryStarted(event)) {
+      if (!reasoningSummaries.has(event.item_id)) {
+        reasoningOrder.push(event.item_id);
+        if (reasoningOrder.length > MAX_REASONING_ITEMS) {
+          const removedItemId = reasoningOrder.shift();
+          if (removedItemId !== undefined) {
+            reasoningSummaries.delete(removedItemId);
+          }
+        }
+      }
+
+      reasoningSummaries.set(event.item_id, reasoningSummaries.get(event.item_id) ?? "");
+      pushQueueEvent(queue, {
+        type: "reasoning_summary",
+        itemId: event.item_id,
+        responseIndex: callIndex - 1,
+        outputIndex: event.output_index,
+        sequenceNumber: event.sequence_number,
+        summary: reasoningSummaries.get(event.item_id) ?? "",
+      });
       continue;
     }
 

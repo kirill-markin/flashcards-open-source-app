@@ -11,12 +11,11 @@ import com.flashcardsopensourceapp.data.local.cloud.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.AiChatStreamError
-import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
 import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
+import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
@@ -25,11 +24,12 @@ import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
 import com.flashcardsopensourceapp.data.local.model.AiToolCallRequest
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
+import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatOlderMessagesResponse
+import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -40,7 +40,6 @@ import java.nio.charset.StandardCharsets
 import java.util.UUID
 
 private const val chatRequestIdHeaderName: String = "X-Chat-Request-Id"
-private const val activeRunSnapshotPollIntervalMs: Long = 1_000L
 
 class AiChatRemoteException(
     message: String,
@@ -81,8 +80,8 @@ class AiChatRemoteService {
         apiBaseUrl: String,
         authorizationHeader: String,
         request: AiChatStartRunRequest,
-        onAccepted: suspend (String, AiChatServerConfig?) -> Unit,
-        onEvent: suspend (AiChatStreamEvent) -> Unit
+        onAccepted: suspend (AiChatStartRunResponse) -> Unit,
+        onEvent: suspend (AiChatLiveEvent) -> Unit
     ): AiChatStreamOutcome = withContext(Dispatchers.IO) {
         val startConnection = openConnection(
             apiBaseUrl = apiBaseUrl,
@@ -91,9 +90,8 @@ class AiChatRemoteService {
             authorizationHeader = authorizationHeader
         )
 
-        var latestChatConfig: AiChatServerConfig? = null
+        val startResponse: AiChatStartRunResponse
         val requestId: String?
-        val sessionId: String
 
         try {
             startConnection.setRequestProperty("Content-Type", "application/json")
@@ -104,45 +102,32 @@ class AiChatRemoteService {
 
             val response = readJsonResponse(connection = startConnection)
             requestId = startConnection.getHeaderField(chatRequestIdHeaderName)
-            sessionId = response.requireCloudString("sessionId", "sessionId")
-            latestChatConfig = response.optCloudObjectOrNull("chatConfig", "chatConfig")?.let(::decodeChatConfig)
+            startResponse = decodeStartRunResponse(response)
         } finally {
             startConnection.disconnect()
         }
 
-        onAccepted(sessionId, latestChatConfig)
-
-        val liveUrl = latestChatConfig?.liveUrl
+        onAccepted(startResponse)
 
         return@withContext try {
-            if (liveUrl != null) {
-                streamViaLive(
-                    liveUrl = liveUrl,
-                    authorizationHeader = authorizationHeader,
-                    sessionId = sessionId,
-                    onEvent = onEvent
-                )
-            } else {
-                pollUntilDone(
+            if (startResponse.runState == "running") {
+                val liveStream = requireNotNull(startResponse.liveStream) {
+                    "AI live stream is unavailable for session ${startResponse.sessionId}."
+                }
+                attachLiveRun(
                     apiBaseUrl = apiBaseUrl,
                     authorizationHeader = authorizationHeader,
-                    sessionId = sessionId,
+                    sessionId = startResponse.sessionId,
+                    liveStream = liveStream,
+                    afterCursor = null,
                     onEvent = onEvent
                 )
             }
 
-            val finalSnapshot = loadSnapshot(
-                apiBaseUrl = apiBaseUrl,
-                authorizationHeader = authorizationHeader,
-                sessionId = sessionId
-            )
-            latestChatConfig = finalSnapshot.chatConfig
-            onEvent(AiChatStreamEvent.Done)
             AiChatStreamOutcome(
                 requestId = requestId,
-                chatSessionId = sessionId,
-                chatConfig = latestChatConfig,
-                finalSnapshot = finalSnapshot
+                chatSessionId = startResponse.sessionId,
+                chatConfig = startResponse.chatConfig
             )
         } catch (error: Exception) {
             if (error is kotlinx.coroutines.CancellationException) {
@@ -150,7 +135,7 @@ class AiChatRemoteService {
                     stopRun(
                         apiBaseUrl = apiBaseUrl,
                         authorizationHeader = authorizationHeader,
-                        sessionId = sessionId
+                        sessionId = startResponse.sessionId
                     )
                 } catch (_: Exception) {
                 }
@@ -241,7 +226,7 @@ class AiChatRemoteService {
 
     suspend fun connectLiveStream(
         liveUrl: String,
-        authorizationHeader: String,
+        authorization: String,
         sessionId: String,
         afterCursor: String?,
         onEvent: suspend (AiChatLiveEvent) -> Boolean
@@ -259,7 +244,7 @@ class AiChatRemoteService {
         connection.readTimeout = 600_000
         connection.useCaches = false
         connection.setRequestProperty("Accept", "text/event-stream")
-        connection.setRequestProperty("Authorization", authorizationHeader)
+        connection.setRequestProperty("Authorization", authorization)
 
         try {
             val responseCode = connection.responseCode
@@ -304,6 +289,43 @@ class AiChatRemoteService {
         } finally {
             connection.disconnect()
         }
+    }
+
+    suspend fun attachLiveRun(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        sessionId: String,
+        liveStream: AiChatLiveStreamEnvelope,
+        afterCursor: String?,
+        onEvent: suspend (AiChatLiveEvent) -> Unit
+    ) {
+        val authorization = if (liveStream.authorization.startsWith(prefix = "Live ")) {
+            liveStream.authorization
+        } else {
+            authorizationHeader
+        }
+        connectLiveStream(
+            liveUrl = liveStream.url,
+            authorization = authorization,
+            sessionId = sessionId,
+            afterCursor = afterCursor,
+            onEvent = { event ->
+                onEvent(event)
+                when (event) {
+                    is AiChatLiveEvent.RunState -> event.runState == "running"
+                    is AiChatLiveEvent.AssistantMessageDone,
+                    is AiChatLiveEvent.Error,
+                    is AiChatLiveEvent.StopAck,
+                    AiChatLiveEvent.ResetRequired -> false
+                    is AiChatLiveEvent.AssistantDelta,
+                    is AiChatLiveEvent.AssistantReasoningDone,
+                    is AiChatLiveEvent.AssistantReasoningStarted,
+                    is AiChatLiveEvent.AssistantReasoningSummary,
+                    is AiChatLiveEvent.AssistantToolCall,
+                    is AiChatLiveEvent.RepairStatus -> true
+                }
+            }
+        )
     }
 
     suspend fun createNewSession(
@@ -369,110 +391,6 @@ class AiChatRemoteService {
             readJsonResponse(connection = connection)
         } finally {
             connection.disconnect()
-        }
-    }
-
-    private suspend fun streamViaLive(
-        liveUrl: String,
-        authorizationHeader: String,
-        sessionId: String,
-        onEvent: suspend (AiChatStreamEvent) -> Unit
-    ) {
-        connectLiveStream(
-            liveUrl = liveUrl,
-            authorizationHeader = authorizationHeader,
-            sessionId = sessionId,
-            afterCursor = null,
-            onEvent = { liveEvent ->
-                when (liveEvent) {
-                    is AiChatLiveEvent.AssistantDelta -> {
-                        onEvent(AiChatStreamEvent.Delta(text = liveEvent.text))
-                        true
-                    }
-                    is AiChatLiveEvent.AssistantToolCall -> {
-                        onEvent(AiChatStreamEvent.ToolCall(toolCall = liveEvent.toolCall))
-                        true
-                    }
-                    is AiChatLiveEvent.RepairStatus -> {
-                        onEvent(AiChatStreamEvent.RepairAttempt(status = liveEvent.status))
-                        true
-                    }
-                    is AiChatLiveEvent.Error -> {
-                        onEvent(
-                            AiChatStreamEvent.Error(
-                                error = AiChatStreamError(
-                                    message = liveEvent.message,
-                                    code = "",
-                                    stage = "",
-                                    requestId = ""
-                                )
-                            )
-                        )
-                        false
-                    }
-                    is AiChatLiveEvent.RunState -> {
-                        liveEvent.runState == "running"
-                    }
-                    is AiChatLiveEvent.AssistantMessageDone -> true
-                    is AiChatLiveEvent.StopAck -> false
-                    is AiChatLiveEvent.ResetRequired -> false
-                }
-            }
-        )
-    }
-
-    private suspend fun pollUntilDone(
-        apiBaseUrl: String,
-        authorizationHeader: String,
-        sessionId: String,
-        onEvent: suspend (AiChatStreamEvent) -> Unit
-    ) {
-        var previousAssistantText = ""
-        var previousToolCalls = linkedMapOf<String, AiChatToolCall>()
-
-        while (true) {
-            val snapshot = loadSnapshot(
-                apiBaseUrl = apiBaseUrl,
-                authorizationHeader = authorizationHeader,
-                sessionId = sessionId
-            )
-
-            val latestAssistantMessage = snapshot.messages.lastOrNull { message ->
-                message.role == AiChatRole.ASSISTANT
-            }
-            val latestAssistantText = latestAssistantMessage?.content
-                ?.filterIsInstance<AiChatContentPart.Text>()
-                ?.joinToString(separator = "") { part -> part.text }
-                ?: ""
-
-            if (latestAssistantText.startsWith(previousAssistantText) && latestAssistantText != previousAssistantText) {
-                onEvent(
-                    AiChatStreamEvent.Delta(
-                        text = latestAssistantText.removePrefix(previousAssistantText)
-                    )
-                )
-                previousAssistantText = latestAssistantText
-            }
-
-            val latestToolCalls = linkedMapOf<String, AiChatToolCall>()
-            latestAssistantMessage?.content?.forEach { part ->
-                if (part is AiChatContentPart.ToolCall) {
-                    latestToolCalls[part.toolCall.toolCallId] = part.toolCall
-                }
-            }
-            latestToolCalls.values.forEach { toolCall ->
-                val previousToolCall = previousToolCalls[toolCall.toolCallId]
-                if (previousToolCall != toolCall) {
-                    onEvent(AiChatStreamEvent.ToolCall(toolCall = toolCall))
-                }
-            }
-            previousToolCalls = latestToolCalls
-
-            if (snapshot.runState != "running") {
-                return
-            }
-
-            delay(activeRunSnapshotPollIntervalMs)
         }
     }
 
@@ -646,6 +564,10 @@ class AiChatRemoteService {
         return buildList {
             for (index in 0 until jsonArray.length()) {
                 val item = jsonArray.requireCloudObject(index = index, fieldPath = "$fieldPath[$index]")
+                val content = decodeContentParts(
+                    jsonArray = item.requireCloudArray("content", "$fieldPath[$index].content"),
+                    fieldPath = "$fieldPath[$index].content"
+                )
                 add(
                     AiChatMessage(
                         messageId = item.optCloudStringOrNull("messageId", "$fieldPath[$index].messageId")
@@ -655,12 +577,16 @@ class AiChatRemoteService {
                             value = item.requireCloudString("role", "$fieldPath[$index].role"),
                             fieldPath = "$fieldPath[$index].role"
                         ),
-                        content = decodeContentParts(
+                        content = content,
+                        timestampMillis = item.requireCloudLong("timestamp", "$fieldPath[$index].timestamp"),
+                        isError = item.requireCloudBoolean("isError", "$fieldPath[$index].isError"),
+                        isStopped = item.optBoolean("isStopped", false),
+                        cursor = item.optCloudStringOrNull("cursor", "$fieldPath[$index].cursor")
+                            ?.ifBlank { null },
+                        itemId = decodeMessageItemId(
                             jsonArray = item.requireCloudArray("content", "$fieldPath[$index].content"),
                             fieldPath = "$fieldPath[$index].content"
-                        ),
-                        timestampMillis = item.requireCloudLong("timestamp", "$fieldPath[$index].timestamp"),
-                        isError = item.requireCloudBoolean("isError", "$fieldPath[$index].isError")
+                        )
                     )
                 )
             }
@@ -680,7 +606,16 @@ class AiChatRemoteService {
 
                     "reasoning_summary" -> add(
                         AiChatContentPart.ReasoningSummary(
-                            summary = item.requireCloudString("summary", "$fieldPath[$index].summary")
+                            reasoningSummary = AiChatReasoningSummary(
+                                reasoningId = decodeReasoningId(
+                                    jsonObject = item,
+                                    fieldPath = "$fieldPath[$index]"
+                                ),
+                                summary = item.requireCloudString("summary", "$fieldPath[$index].summary"),
+                                status = decodeReasoningStatus(
+                                    value = item.optCloudStringOrNull("status", "$fieldPath[$index].status")
+                                )
+                            )
                         )
                     )
 
@@ -766,6 +701,27 @@ class AiChatRemoteService {
         )
     }
 
+    private fun decodeStartRunResponse(jsonObject: JSONObject): AiChatStartRunResponse {
+        return AiChatStartRunResponse(
+            sessionId = jsonObject.requireCloudString("sessionId", "sessionId"),
+            runState = decodeRunState(
+                value = jsonObject.requireCloudString("runState", "runState"),
+                fieldPath = "runState"
+            ),
+            chatConfig = decodeChatConfig(jsonObject.requireCloudObject("chatConfig", "chatConfig")),
+            liveStream = jsonObject.optCloudObjectOrNull("liveStream", "liveStream")
+                ?.let(::decodeLiveStreamEnvelope)
+        )
+    }
+
+    private fun decodeLiveStreamEnvelope(jsonObject: JSONObject): AiChatLiveStreamEnvelope {
+        return AiChatLiveStreamEnvelope(
+            url = jsonObject.requireCloudString("url", "liveStream.url"),
+            authorization = jsonObject.requireCloudString("authorization", "liveStream.authorization"),
+            expiresAt = jsonObject.requireCloudLong("expiresAt", "liveStream.expiresAt")
+        )
+    }
+
     private fun decodeBootstrapResponse(jsonObject: JSONObject): AiChatBootstrapResponse {
         val sessionId = jsonObject.requireCloudString("sessionId", "sessionId")
         val messagesArray = jsonObject.requireCloudArray("messages", "messages")
@@ -774,6 +730,11 @@ class AiChatRemoteService {
                 val item = messagesArray.requireCloudObject(index = index, fieldPath = "messages[$index]")
                 val cursor = item.optCloudStringOrNull("cursor", "messages[$index].cursor")
                     ?.ifBlank { null } ?: "bootstrap-$index"
+                val contentArray = item.requireCloudArray("content", "messages[$index].content")
+                val content = decodeContentParts(
+                    jsonArray = contentArray,
+                    fieldPath = "messages[$index].content"
+                )
                 add(
                     AiChatMessage(
                         messageId = "$sessionId-$index-$cursor",
@@ -781,12 +742,15 @@ class AiChatRemoteService {
                             value = item.requireCloudString("role", "messages[$index].role"),
                             fieldPath = "messages[$index].role"
                         ),
-                        content = decodeContentParts(
-                            jsonArray = item.requireCloudArray("content", "messages[$index].content"),
-                            fieldPath = "messages[$index].content"
-                        ),
+                        content = content,
                         timestampMillis = item.requireCloudLong("timestamp", "messages[$index].timestamp"),
-                        isError = item.requireCloudBoolean("isError", "messages[$index].isError")
+                        isError = item.requireCloudBoolean("isError", "messages[$index].isError"),
+                        isStopped = item.optBoolean("isStopped", false),
+                        cursor = cursor,
+                        itemId = decodeMessageItemId(
+                            jsonArray = contentArray,
+                            fieldPath = "messages[$index].content"
+                        )
                     )
                 )
             }
@@ -804,7 +768,9 @@ class AiChatRemoteService {
             oldestCursor = jsonObject.optCloudStringOrNull("oldestCursor", "oldestCursor")
                 ?.ifBlank { null },
             liveCursor = jsonObject.optCloudStringOrNull("liveCursor", "liveCursor")
-                ?.ifBlank { null }
+                ?.ifBlank { null },
+            liveStream = jsonObject.optCloudObjectOrNull("liveStream", "liveStream")
+                ?.let(::decodeLiveStreamEnvelope)
         )
     }
 
@@ -853,36 +819,32 @@ private fun decodeToolCallId(jsonObject: JSONObject, fieldPath: String): String 
         )
 }
 
-internal class AiChatSseParser {
-    private val currentDataLines = mutableListOf<String>()
+private fun decodeReasoningId(jsonObject: JSONObject, fieldPath: String): String {
+    return jsonObject.optCloudStringOrNull("reasoningId", "$fieldPath.reasoningId")
+        ?.ifBlank { null }
+        ?: jsonObject.optCloudStringOrNull("id", "$fieldPath.id")
+        ?.ifBlank { null }
+        ?: jsonObject.optCloudObjectOrNull("streamPosition", "$fieldPath.streamPosition")
+            ?.optCloudStringOrNull("itemId", "$fieldPath.streamPosition.itemId")
+            ?.ifBlank { null }
+        ?: throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath: missing AI chat reasoning summary id"
+        )
+}
 
-    fun pushLine(line: String): AiChatStreamEvent? {
-        if (line.startsWith("data: ")) {
-            currentDataLines += line.removePrefix("data: ")
-            return null
+private fun decodeMessageItemId(jsonArray: JSONArray, fieldPath: String): String? {
+    for (index in 0 until jsonArray.length()) {
+        val item = jsonArray.requireCloudObject(index = index, fieldPath = "$fieldPath[$index]")
+        val streamPosition = item.optCloudObjectOrNull("streamPosition", "$fieldPath[$index].streamPosition")
+            ?: continue
+        val itemId = streamPosition.optCloudStringOrNull("itemId", "$fieldPath[$index].streamPosition.itemId")
+            ?.ifBlank { null }
+        if (itemId != null) {
+            return itemId
         }
-
-        if (line.isNotEmpty()) {
-            return null
-        }
-
-        return finishEvent()
     }
 
-    fun finish(): List<AiChatStreamEvent> {
-        val trailingEvent = finishEvent() ?: return emptyList()
-        return listOf(trailingEvent)
-    }
-
-    private fun finishEvent(): AiChatStreamEvent? {
-        if (currentDataLines.isEmpty()) {
-            return null
-        }
-
-        val payload = currentDataLines.joinToString(separator = "\n")
-        currentDataLines.clear()
-        return parseStreamEvent(jsonObject = JSONObject(payload))
-    }
+    return null
 }
 
 private data class ParsedBackendError(
@@ -926,6 +888,16 @@ private fun parseBackendErrorPayload(rawBody: String?): ParsedBackendError? {
     }
 }
 
+private fun decodeReasoningStatus(value: String?): AiChatToolCallStatus {
+    return when (value) {
+        null, "", "completed", "COMPLETED" -> AiChatToolCallStatus.COMPLETED
+        "started", "STARTED" -> AiChatToolCallStatus.STARTED
+        else -> throw CloudContractMismatchException(
+            "Cloud contract mismatch for reasoning_summary.status: unsupported AI chat reasoning status \"$value\""
+        )
+    }
+}
+
 private fun parseBackendErrorJson(jsonObject: JSONObject): ParsedBackendError? {
     if (jsonObject.optString("type") != "error") {
         return null
@@ -939,65 +911,6 @@ private fun parseBackendErrorJson(jsonObject: JSONObject): ParsedBackendError? {
     )
 }
 
-private fun parseStreamEvent(jsonObject: JSONObject): AiChatStreamEvent {
-    return when (val type = jsonObject.requireCloudString("type", "type")) {
-        "delta" -> AiChatStreamEvent.Delta(
-            text = jsonObject.requireCloudString("text", "text")
-        )
-
-        "tool_call" -> AiChatStreamEvent.ToolCall(
-            toolCall = AiChatToolCall(
-                toolCallId = decodeToolCallId(
-                    jsonObject = jsonObject,
-                    fieldPath = "tool_call"
-                ),
-                name = jsonObject.requireCloudString("name", "name"),
-                status = decodeToolCallStatus(
-                    value = jsonObject.requireCloudString("status", "status"),
-                    fieldPath = "status"
-                ),
-                input = jsonObject.optCloudStringOrNull("input", "input")?.ifBlank { null },
-                output = jsonObject.optCloudStringOrNull("output", "output")?.ifBlank { null }
-            )
-        )
-
-        "tool_call_request" -> AiChatStreamEvent.ToolCallRequest(
-            toolCallRequest = AiToolCallRequest(
-                toolCallId = decodeToolCallId(
-                    jsonObject = jsonObject,
-                    fieldPath = "tool_call_request"
-                ),
-                name = jsonObject.requireCloudString("name", "name"),
-                input = jsonObject.requireCloudString("input", "input")
-            )
-        )
-
-        "repair_attempt" -> AiChatStreamEvent.RepairAttempt(
-            status = AiChatRepairAttemptStatus(
-                message = jsonObject.requireCloudString("message", "message"),
-                attempt = jsonObject.requireCloudInt("attempt", "attempt"),
-                maxAttempts = jsonObject.requireCloudInt("maxAttempts", "maxAttempts"),
-                toolName = jsonObject.optCloudStringOrNull("toolName", "toolName")?.ifBlank { null }
-            )
-        )
-
-        "done" -> AiChatStreamEvent.Done
-
-        "error" -> AiChatStreamEvent.Error(
-            error = AiChatStreamError(
-                message = jsonObject.requireCloudString("message", "message"),
-                code = jsonObject.requireCloudString("code", "code"),
-                stage = jsonObject.requireCloudString("stage", "stage"),
-                requestId = jsonObject.requireCloudString("requestId", "requestId")
-            )
-        )
-
-        else -> throw CloudContractMismatchException(
-            "Cloud contract mismatch for type: unsupported AI chat stream event type \"$type\""
-        )
-    }
-}
-
 private fun parseLiveEvent(eventType: String?, payload: String): AiChatLiveEvent? {
     val json = try {
         JSONObject(payload)
@@ -1008,7 +921,7 @@ private fun parseLiveEvent(eventType: String?, payload: String): AiChatLiveEvent
 
     return when (type) {
         "run_state" -> {
-            val runState = json.optString("runState", "") .ifBlank { return null }
+            val runState = json.optString("runState", "").ifBlank { return null }
             AiChatLiveEvent.RunState(runState = runState)
         }
         "assistant_delta" -> {
@@ -1018,6 +931,7 @@ private fun parseLiveEvent(eventType: String?, payload: String): AiChatLiveEvent
             AiChatLiveEvent.AssistantDelta(text = text, cursor = cursor, itemId = itemId)
         }
         "assistant_tool_call" -> {
+            val toolCallId = json.optString("toolCallId", "").ifBlank { return null }
             val name = json.optString("name", "").ifBlank { return null }
             val statusStr = json.optString("status", "").ifBlank { return null }
             val cursor = json.optString("cursor", "").ifBlank { return null }
@@ -1025,12 +939,47 @@ private fun parseLiveEvent(eventType: String?, payload: String): AiChatLiveEvent
             val status = if (statusStr == "completed") AiChatToolCallStatus.COMPLETED else AiChatToolCallStatus.STARTED
             AiChatLiveEvent.AssistantToolCall(
                 toolCall = AiChatToolCall(
-                    toolCallId = itemId,
+                    toolCallId = toolCallId,
                     name = name,
                     status = status,
                     input = json.optString("input", "").ifBlank { null },
                     output = json.optString("output", "").ifBlank { null }
                 ),
+                cursor = cursor,
+                itemId = itemId
+            )
+        }
+        "assistant_reasoning_started" -> {
+            val reasoningId = json.optString("reasoningId", "").ifBlank { return null }
+            val cursor = json.optString("cursor", "").ifBlank { return null }
+            val itemId = json.optString("itemId", "").ifBlank { return null }
+            AiChatLiveEvent.AssistantReasoningStarted(
+                reasoningId = reasoningId,
+                cursor = cursor,
+                itemId = itemId
+            )
+        }
+        "assistant_reasoning_summary" -> {
+            val reasoningId = json.optString("reasoningId", "").ifBlank { return null }
+            val summary = json.optString("summary", "").ifBlank { return null }
+            val cursor = json.optString("cursor", "").ifBlank { return null }
+            val itemId = json.optString("itemId", "").ifBlank { return null }
+            AiChatLiveEvent.AssistantReasoningSummary(
+                reasoningSummary = AiChatReasoningSummary(
+                    reasoningId = reasoningId,
+                    summary = summary,
+                    status = AiChatToolCallStatus.STARTED
+                ),
+                cursor = cursor,
+                itemId = itemId
+            )
+        }
+        "assistant_reasoning_done" -> {
+            val reasoningId = json.optString("reasoningId", "").ifBlank { return null }
+            val cursor = json.optString("cursor", "").ifBlank { return null }
+            val itemId = json.optString("itemId", "").ifBlank { return null }
+            AiChatLiveEvent.AssistantReasoningDone(
+                reasoningId = reasoningId,
                 cursor = cursor,
                 itemId = itemId
             )

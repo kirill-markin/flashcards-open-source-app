@@ -6,6 +6,7 @@ import androidx.core.content.edit
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
@@ -214,6 +215,9 @@ class AiChatHistoryStore(
             .put("content", JSONArray(message.content.map(::encodeContentPart)))
             .put("timestampMillis", message.timestampMillis)
             .put("isError", message.isError)
+            .put("isStopped", message.isStopped)
+            .put("cursor", message.cursor ?: JSONObject.NULL)
+            .put("itemId", message.itemId ?: JSONObject.NULL)
     }
 
     private fun decodeMessages(jsonArray: JSONArray): List<AiChatMessage> {
@@ -230,7 +234,10 @@ class AiChatHistoryStore(
             role = AiChatRole.valueOf(jsonObject.getString("role")),
             content = decodeContentParts(jsonArray = jsonObject.getJSONArray("content")),
             timestampMillis = jsonObject.getLong("timestampMillis"),
-            isError = jsonObject.getBoolean("isError")
+            isError = jsonObject.getBoolean("isError"),
+            isStopped = jsonObject.optBoolean("isStopped", false),
+            cursor = jsonObject.optString("cursor", "").ifBlank { null },
+            itemId = jsonObject.optString("itemId", "").ifBlank { null }
         )
     }
 
@@ -242,7 +249,9 @@ class AiChatHistoryStore(
 
             is AiChatContentPart.ReasoningSummary -> JSONObject()
                 .put("type", "reasoning_summary")
-                .put("summary", contentPart.summary)
+                .put("id", contentPart.reasoningSummary.reasoningId)
+                .put("summary", contentPart.reasoningSummary.summary)
+                .put("status", contentPart.reasoningSummary.status.name)
 
             is AiChatContentPart.Image -> JSONObject()
                 .put("type", "image")
@@ -286,7 +295,16 @@ class AiChatHistoryStore(
             )
 
             "reasoning_summary" -> AiChatContentPart.ReasoningSummary(
-                summary = jsonObject.getString("summary")
+                reasoningSummary = AiChatReasoningSummary(
+                    reasoningId = jsonObject.optString("id", "").ifBlank {
+                        jsonObject.getString("summary")
+                    },
+                    summary = jsonObject.getString("summary"),
+                    status = jsonObject.optString("status", AiChatToolCallStatus.COMPLETED.name)
+                        .takeIf { it == AiChatToolCallStatus.STARTED.name || it == AiChatToolCallStatus.COMPLETED.name }
+                        ?.let(AiChatToolCallStatus::valueOf)
+                        ?: AiChatToolCallStatus.COMPLETED
+                )
             )
 
             "image" -> AiChatContentPart.Image(

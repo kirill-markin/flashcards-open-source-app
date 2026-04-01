@@ -9,11 +9,14 @@ import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.ai.makeAiChatHistoryScopedWorkspaceId
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
+import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
+import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.AiChatStreamEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
+import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
@@ -25,6 +28,7 @@ import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteService
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import kotlinx.coroutines.flow.Flow
 import java.util.TimeZone
 
@@ -141,6 +145,20 @@ class LocalAiChatRepository(
         }
     }
 
+    override suspend fun loadBootstrap(
+        workspaceId: String?,
+        sessionId: String?,
+        limit: Int
+    ): AiChatBootstrapResponse {
+        val session = authorizedSession(workspaceId = workspaceId)
+        return aiChatRemoteService.loadBootstrap(
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader,
+            sessionId = sessionId,
+            limit = limit
+        )
+    }
+
     override suspend fun createNewSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot {
         val session = authorizedSession(workspaceId = workspaceId)
         return aiChatRemoteService.createNewSession(
@@ -188,8 +206,8 @@ class LocalAiChatRepository(
         workspaceId: String?,
         state: AiChatPersistedState,
         content: List<AiChatContentPart>,
-        onAccepted: suspend (String, com.flashcardsopensourceapp.data.local.model.AiChatServerConfig?) -> Unit,
-        onEvent: suspend (AiChatStreamEvent) -> Unit
+        onAccepted: suspend (AiChatStartRunResponse) -> Unit,
+        onEvent: suspend (AiChatLiveEvent) -> Unit
     ): AiChatStreamOutcome {
         val session = authorizedSession(workspaceId = workspaceId)
         val isLinkedSession = session.authorizationHeader.startsWith(prefix = "Bearer ")
@@ -198,10 +216,11 @@ class LocalAiChatRepository(
                 "Linked AI chat session is unavailable."
             }
 
-            aiChatRemoteService.loadSnapshot(
+            aiChatRemoteService.loadBootstrap(
                 apiBaseUrl = session.apiBaseUrl,
                 authorizationHeader = session.authorizationHeader,
-                sessionId = null
+                sessionId = null,
+                limit = 1
             ).sessionId
         }
         val request = AiChatStartRunRequest(
@@ -249,6 +268,24 @@ class LocalAiChatRepository(
             )
             throw error
         }
+    }
+
+    override suspend fun attachLiveRun(
+        workspaceId: String?,
+        sessionId: String,
+        liveStream: AiChatLiveStreamEnvelope,
+        afterCursor: String?,
+        onEvent: suspend (AiChatLiveEvent) -> Unit
+    ) {
+        val session = authorizedSession(workspaceId = workspaceId)
+        aiChatRemoteService.attachLiveRun(
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader,
+            sessionId = sessionId,
+            liveStream = liveStream,
+            afterCursor = afterCursor,
+            onEvent = onEvent
+        )
     }
 
     override suspend fun stopRun(workspaceId: String?, sessionId: String) {
@@ -349,7 +386,10 @@ class LocalAiChatRepository(
             )
             PreparedGuestAiSession(
                 session = guestSession,
-                shouldSync = finishGuestCloudLinkIfNeededLocked(session = guestSession)
+                shouldSync = finishGuestCloudLinkIfNeededLocked(
+                    session = guestSession,
+                    workspaceId = workspaceId
+                )
             )
         }
     }
@@ -366,12 +406,12 @@ class LocalAiChatRepository(
         )
     }
 
-    private suspend fun finishGuestCloudLinkIfNeededLocked(session: StoredGuestAiSession): Boolean {
+    private suspend fun finishGuestCloudLinkIfNeededLocked(
+        session: StoredGuestAiSession,
+        workspaceId: String?
+    ): Boolean {
         val currentCloudSettings = preferencesStore.currentCloudSettings()
-        val currentWorkspace = loadCurrentWorkspaceOrNull(
-            database = database,
-            preferencesStore = preferencesStore
-        )
+        val currentWorkspace = loadCurrentWorkspaceForAiOrNull(workspaceId = workspaceId)
         val isAlreadyGuestLinked = currentCloudSettings.cloudState == CloudAccountState.GUEST
             && currentWorkspace?.workspaceId == session.workspaceId
             && currentCloudSettings.linkedUserId == session.userId
@@ -402,6 +442,28 @@ class LocalAiChatRepository(
         guestSessionStore.saveSession(localWorkspaceId = session.workspaceId, session = session)
         markGuestCloudState(session = session, activeWorkspaceId = session.workspaceId)
         return true
+    }
+
+    private suspend fun loadCurrentWorkspaceForAiOrNull(workspaceId: String?): WorkspaceEntity? {
+        if (workspaceId.isNullOrBlank()) {
+            return loadCurrentWorkspaceOrNull(
+                database = database,
+                preferencesStore = preferencesStore
+            )
+        }
+
+        val workspaces = database.workspaceDao().loadWorkspaces()
+        if (workspaces.isEmpty()) {
+            return null
+        }
+
+        return workspaces.firstOrNull { workspace -> workspace.workspaceId == workspaceId } ?: run {
+            val workspaceIds = workspaces.map(WorkspaceEntity::workspaceId)
+            error(
+                "AI workspace '$workspaceId' does not exist locally. " +
+                    "Local workspaces=$workspaceIds"
+            )
+        }
     }
 
     private suspend fun bootstrapGuestWorkspace(
