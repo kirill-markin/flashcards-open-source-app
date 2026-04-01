@@ -50,34 +50,25 @@ function getLiveAuthorizationScheme(authorizationHeader: string | undefined): st
 export const handler = awslambda.streamifyResponse(
   async (event: APIGatewayProxyEventV2, responseStream: Writable) => {
     const requestId = getLiveRequestId(event);
-
     const url = new URL(event.rawPath + "?" + (event.rawQueryString ?? ""), "http://localhost");
     const authorizationHeader = event.headers?.authorization;
+    const origin = event.headers?.origin ?? null;
+    const method = event.requestContext.http.method;
+
+    let params;
 
     try {
-      const params = await handleLiveRequest(url, authorizationHeader);
-
-      const metadata = {
-        statusCode: 200,
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache, no-store",
-          "Connection": "keep-alive",
-          "X-Request-Id": requestId,
-        },
-      };
-      const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
-      await runLiveStream(stream, params);
+      params = await handleLiveRequest(url, authorizationHeader);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       logCloudRouteEvent("chat_live_request_error", {
         requestId,
         path: event.rawPath,
-        method: event.requestContext.http.method,
+        method,
         rawQueryString: event.rawQueryString,
         sessionId: url.searchParams.get("sessionId"),
         afterCursor: url.searchParams.get("afterCursor"),
-        origin: event.headers?.origin ?? null,
+        origin,
         authScheme: getLiveAuthorizationScheme(authorizationHeader),
         statusCode: 400,
         ...getErrorLogContext(error),
@@ -89,6 +80,57 @@ export const handler = awslambda.streamifyResponse(
       const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
       stream.write(JSON.stringify({ error: message, requestId }));
       stream.end();
+      return;
+    }
+
+    const metadata = {
+      statusCode: 200,
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-store",
+        "Connection": "keep-alive",
+        "X-Request-Id": requestId,
+      },
+    };
+    const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
+
+    logCloudRouteEvent("chat_live_attach_start", {
+      requestId,
+      path: event.rawPath,
+      method,
+      rawQueryString: event.rawQueryString,
+      sessionId: params.sessionId,
+      afterCursor: params.afterCursor ?? null,
+      userId: params.userId,
+      workspaceId: params.workspaceId,
+      origin,
+      authScheme: getLiveAuthorizationScheme(authorizationHeader),
+      statusCode: 200,
+    }, false);
+
+    try {
+      await runLiveStream(stream, {
+        ...params,
+        requestId,
+      });
+    } catch (error) {
+      logCloudRouteEvent("chat_live_stream_crashed", {
+        requestId,
+        path: event.rawPath,
+        method,
+        rawQueryString: event.rawQueryString,
+        sessionId: params.sessionId,
+        afterCursor: params.afterCursor ?? null,
+        userId: params.userId,
+        workspaceId: params.workspaceId,
+        origin,
+        authScheme: getLiveAuthorizationScheme(authorizationHeader),
+        statusCode: 500,
+        ...getErrorLogContext(error),
+      }, true);
+      if (stream.destroyed === false && stream.writableEnded === false) {
+        stream.end();
+      }
     }
   },
 );

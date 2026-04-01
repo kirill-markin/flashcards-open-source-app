@@ -254,6 +254,14 @@ function areChatConfigsEqual(left: ChatConfig, right: ChatConfig): boolean {
     && left.features.attachmentsEnabled === right.features.attachmentsEnabled;
 }
 
+function isDocumentVisible(): boolean {
+  if (typeof document === "undefined") {
+    return true;
+  }
+
+  return document.visibilityState === "visible";
+}
+
 function toAssistantToolCallContentPart(
   event: Extract<ChatLiveEvent, { type: "assistant_tool_call" }>,
 ): ToolCallContentPart {
@@ -343,6 +351,9 @@ export function useChatSessionController(
   const messagesRef = useRef<ReadonlyArray<StoredMessage>>(messages);
   const chatConfigRef = useRef<ChatConfig>(chatConfig);
   const snapshotRequestVersionRef = useRef<number>(0);
+  const isDocumentVisibleRef = useRef<boolean>(isDocumentVisible());
+  const visibilityResumePromiseRef = useRef<Promise<void> | null>(null);
+  const liveCursorRef = useRef<string | null>(null);
 
   const isAssistantRunActive = isChatRunActive(runState);
   const composerAction = getChatComposerAction(runState);
@@ -358,6 +369,10 @@ export function useChatSessionController(
   useEffect(() => {
     chatConfigRef.current = chatConfig;
   }, [chatConfig]);
+
+  const setKnownLiveCursor = useCallback((cursor: string | null): void => {
+    liveCursorRef.current = cursor;
+  }, []);
 
   const detachLiveStream = useCallback((sessionId: string | null): void => {
     const activeConnection = activeLiveConnectionRef.current;
@@ -384,35 +399,40 @@ export function useChatSessionController(
 
   const applyLiveEvent = useCallback((event: ChatLiveEvent): void => {
     if (event.type === "assistant_delta") {
+      setKnownLiveCursor(event.cursor);
       appendAssistantText(event.text);
       return;
     }
 
     if (event.type === "assistant_tool_call") {
+      setKnownLiveCursor(event.cursor);
       upsertAssistantToolCall(toAssistantToolCallContentPart(event));
       return;
     }
 
     if (event.type === "assistant_reasoning_summary") {
+      setKnownLiveCursor(event.cursor);
       upsertAssistantReasoningSummary(toAssistantReasoningSummaryContentPart(event));
       return;
     }
 
     if (event.type === "assistant_reasoning_started") {
+      setKnownLiveCursor(event.cursor);
       upsertAssistantReasoningSummary(toAssistantReasoningSummaryContentPart(event));
       return;
     }
 
     if (event.type === "assistant_reasoning_done") {
+      setKnownLiveCursor(event.cursor);
       completeAssistantReasoningSummary(event.reasoningId);
       return;
     }
 
     if (event.type === "assistant_message_done") {
+      setKnownLiveCursor(event.cursor);
       finishAssistantMessage(event.isError, event.isStopped);
-      if (event.isError) {
-        setRunState("interrupted");
-      }
+      setRunState(event.isError ? "interrupted" : "idle");
+      setIsStopping(false);
       return;
     }
 
@@ -442,6 +462,7 @@ export function useChatSessionController(
     upsertAssistantReasoningSummary,
     upsertAssistantToolCall,
     completeAssistantReasoningSummary,
+    setKnownLiveCursor,
   ]);
 
   const startLiveStream = useCallback((
@@ -450,6 +471,10 @@ export function useChatSessionController(
     afterCursor: string | null,
   ): void => {
     detachLiveStream(null);
+
+    if (isDocumentVisibleRef.current === false) {
+      return;
+    }
 
     if (liveStream === null) {
       finalizeInterruptedRun("AI live stream is unavailable for the active run.");
@@ -522,8 +547,9 @@ export function useChatSessionController(
     setIsHistoryLoaded(true);
     lastSnapshotUpdatedAtRef.current = warmStartSnapshot.updatedAt;
     hydratedWorkspaceIdRef.current = nextWorkspaceId;
+    setKnownLiveCursor(null);
     return true;
-  }, [detachLiveStream, replaceMessages]);
+  }, [detachLiveStream, replaceMessages, setKnownLiveCursor]);
 
   const loadChatSnapshot = useCallback(async (
     sessionId: string | undefined,
@@ -544,6 +570,7 @@ export function useChatSessionController(
     const shouldUpdateChatConfig = areChatConfigsEqual(chatConfigRef.current, snapshot.chatConfig) === false;
 
     setCurrentSessionId(snapshot.sessionId);
+    setKnownLiveCursor(snapshot.liveCursor);
     setRunState(effectiveRunState);
     setMainContentInvalidationVersion(nextMainContentInvalidationVersion);
     if (shouldUpdateChatConfig) {
@@ -573,7 +600,7 @@ export function useChatSessionController(
       ...snapshot,
       runState: effectiveRunState,
     };
-  }, [onMainContentInvalidated, replaceMessages]);
+  }, [onMainContentInvalidated, replaceMessages, setKnownLiveCursor]);
 
   const resetControllerState = useCallback((clearHistoryImmediately: boolean): void => {
     setCurrentSessionId(null);
@@ -586,13 +613,66 @@ export function useChatSessionController(
     lastMainContentInvalidationVersionRef.current = 0;
     lastSnapshotUpdatedAtRef.current = null;
     stoppedSessionIdsRef.current.clear();
+    setKnownLiveCursor(null);
     detachLiveStream(null);
 
     if (clearHistoryImmediately) {
       replaceMessages([]);
       setIsHistoryLoaded(false);
     }
-  }, [detachLiveStream, replaceMessages]);
+  }, [detachLiveStream, replaceMessages, setKnownLiveCursor]);
+
+  const refreshVisibleSnapshot = useCallback((): void => {
+    if (
+      isDocumentVisibleRef.current === false
+      || workspaceId === null
+      || isRemoteReady === false
+      || isHistoryLoaded === false
+      || visibilityResumePromiseRef.current !== null
+    ) {
+      return;
+    }
+
+    const requestVersion = snapshotRequestVersionRef.current + 1;
+    snapshotRequestVersionRef.current = requestVersion;
+
+    let refreshPromise: Promise<void> | null = null;
+    refreshPromise = (async (): Promise<void> => {
+      try {
+        const snapshot = await loadChatSnapshot(currentSessionId ?? undefined, true, requestVersion);
+        if (snapshot === null || isDocumentVisibleRef.current === false) {
+          return;
+        }
+
+        if (snapshot.runState === "running") {
+          startLiveStream(snapshot.sessionId, snapshot.liveStream, snapshot.liveCursor);
+          return;
+        }
+
+        detachLiveStream(snapshot.sessionId);
+      } catch (error) {
+        if (isDocumentVisibleRef.current === false) {
+          return;
+        }
+
+        setComposerNotice(`Chat refresh failed. ${toErrorMessage(error)}`);
+      } finally {
+        if (visibilityResumePromiseRef.current === refreshPromise) {
+          visibilityResumePromiseRef.current = null;
+        }
+      }
+    })();
+
+    visibilityResumePromiseRef.current = refreshPromise;
+  }, [
+    currentSessionId,
+    detachLiveStream,
+    isHistoryLoaded,
+    isRemoteReady,
+    loadChatSnapshot,
+    startLiveStream,
+    workspaceId,
+  ]);
 
   useEffect(() => {
     let isDisposed = false;
@@ -637,7 +717,7 @@ export function useChatSessionController(
 
         hydratedWorkspaceIdRef.current = workspaceId;
         setCurrentSessionId(snapshot.sessionId);
-        if (snapshot.runState === "running") {
+        if (snapshot.runState === "running" && isDocumentVisibleRef.current) {
           startLiveStream(snapshot.sessionId, snapshot.liveStream, snapshot.liveCursor);
         }
       } catch (error) {
@@ -702,6 +782,29 @@ export function useChatSessionController(
   ]);
 
   useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    const handleVisibilityChange = (): void => {
+      const nextIsVisible = isDocumentVisible();
+      isDocumentVisibleRef.current = nextIsVisible;
+
+      if (nextIsVisible === false) {
+        detachLiveStream(null);
+        return;
+      }
+
+      refreshVisibleSnapshot();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [detachLiveStream, refreshVisibleSnapshot]);
+
+  useEffect(() => {
     return () => {
       detachLiveStream(null);
     };
@@ -743,7 +846,11 @@ export function useChatSessionController(
       setCurrentSessionId(response.sessionId);
       setChatConfig(response.chatConfig);
       storeChatConfig(response.chatConfig);
-      startLiveStream(response.sessionId, response.liveStream, null);
+      if (isDocumentVisibleRef.current) {
+        // Existing sessions must resume after the latest known cursor so stale
+        // terminal events cannot finish the new optimistic assistant bubble.
+        startLiveStream(response.sessionId, response.liveStream, liveCursorRef.current);
+      }
       return { accepted: true };
     } catch (error) {
       if (isChatApiError(error) && error.code === "CHAT_ACTIVE_RUN_IN_PROGRESS") {

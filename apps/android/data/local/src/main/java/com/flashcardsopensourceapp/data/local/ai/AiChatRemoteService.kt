@@ -106,40 +106,11 @@ class AiChatRemoteService {
         }
 
         onAccepted(startResponse)
-
-        return@withContext try {
-            if (startResponse.runState == "running") {
-                val liveStream = requireNotNull(startResponse.liveStream) {
-                    "AI live stream is unavailable for session ${startResponse.sessionId}."
-                }
-                attachLiveRun(
-                    apiBaseUrl = apiBaseUrl,
-                    authorizationHeader = authorizationHeader,
-                    sessionId = startResponse.sessionId,
-                    liveStream = liveStream,
-                    afterCursor = null,
-                    onEvent = onEvent
-                )
-            }
-
-            AiChatStreamOutcome(
-                requestId = requestId,
-                chatSessionId = startResponse.sessionId,
-                chatConfig = startResponse.chatConfig
-            )
-        } catch (error: Exception) {
-            if (error is kotlinx.coroutines.CancellationException) {
-                try {
-                    stopRun(
-                        apiBaseUrl = apiBaseUrl,
-                        authorizationHeader = authorizationHeader,
-                        sessionId = startResponse.sessionId
-                    )
-                } catch (_: Exception) {
-                }
-            }
-            throw error
-        }
+        return@withContext AiChatStreamOutcome(
+            requestId = requestId,
+            chatSessionId = startResponse.sessionId,
+            chatConfig = startResponse.chatConfig
+        )
     }
 
     suspend fun loadSnapshot(

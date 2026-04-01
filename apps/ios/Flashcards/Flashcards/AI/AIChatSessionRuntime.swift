@@ -83,26 +83,7 @@ actor AIChatSessionRuntime {
             )
 
             if startResponse.runState == "running" {
-                guard let liveStream = startResponse.liveStream else {
-                    throw AIChatRuntimeError.liveStreamUnavailable(sessionId: startResponse.sessionId)
-                }
-                try Task.checkCancellation()
-                logAIChatRuntimeEvent(
-                    action: "ai_live_attach_inline",
-                    metadata: [
-                        "sessionId": startResponse.sessionId,
-                        "afterCursor": afterCursor ?? "-"
-                    ]
-                )
-                try await self.consumeLiveStream(
-                    liveStream: liveStream,
-                    sessionId: startResponse.sessionId,
-                    afterCursor: afterCursor,
-                    configurationMode: session.configurationMode,
-                    eventHandler: { event in
-                        await eventHandler(.liveEvent(event))
-                    }
-                )
+                return
             }
 
             await eventHandler(.finish)

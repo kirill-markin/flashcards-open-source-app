@@ -124,6 +124,7 @@ final class AIChatStore {
     @ObservationIgnored private var activeLiveStream: AIChatLiveStreamEnvelope?
     @ObservationIgnored private var activeStreamingMessageId: String?
     @ObservationIgnored private var activeStreamingItemId: String?
+    @ObservationIgnored private var shouldKeepLiveAttached: Bool
 
     convenience init(
         flashcardsStore: FlashcardsStore,
@@ -188,6 +189,7 @@ final class AIChatStore {
         self.activeLiveStream = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
+        self.shouldKeepLiveAttached = false
         self.activateAccessContext(force: true)
     }
 
@@ -361,6 +363,19 @@ final class AIChatStore {
         self.activateAccessContext(force: false)
     }
 
+    func setChatVisibility(isVisible: Bool) {
+        self.shouldKeepLiveAttached = isVisible
+
+        if isVisible {
+            self.resumeVisibleSessionIfNeeded()
+            return
+        }
+
+        Task {
+            await self.runtime.detach()
+        }
+    }
+
     func retryLinkedBootstrap() {
         self.startLinkedBootstrap(forceReloadState: false)
     }
@@ -470,7 +485,7 @@ final class AIChatStore {
         guard self.isChatInteractive else {
             return
         }
-        guard self.isComposerBusy == false else {
+        guard self.composerPhase != .preparingSend && self.composerPhase != .startingRun else {
             return
         }
         guard self.flashcardsStore.cloudSettings?.cloudState == .linked else {
@@ -489,6 +504,7 @@ final class AIChatStore {
                 self.activeWarmUpTask = nil
             }
             await self.flashcardsStore.warmUpAuthenticatedCloudSessionForAI()
+            self.resumeVisibleSessionIfNeeded()
         }
     }
 
@@ -966,6 +982,9 @@ final class AIChatStore {
             self.inputText = ""
             self.pendingAttachments = []
             self.composerPhase = response.runState == "running" ? .running : .idle
+            if response.runState == "running" {
+                self.attachActiveLiveStreamIfPossible()
+            }
         case .liveEvent(let liveEvent):
             self.handleLiveEvent(liveEvent)
         case .applySnapshot(let snapshot):
@@ -1323,6 +1342,12 @@ final class AIChatStore {
         response: AIChatBootstrapResponse,
         session: CloudLinkedSession
     ) {
+        guard self.shouldKeepLiveAttached else {
+            Task {
+                await self.runtime.detach()
+            }
+            return
+        }
         guard response.runState == "running" else {
             Task {
                 await self.runtime.detach()
@@ -1348,6 +1373,79 @@ final class AIChatStore {
                 }
             )
         }
+    }
+
+    private func attachActiveLiveStreamIfPossible() {
+        guard self.shouldKeepLiveAttached else {
+            Task {
+                await self.runtime.detach()
+            }
+            return
+        }
+        guard self.composerPhase == .running else {
+            return
+        }
+        guard let liveStream = self.activeLiveStream else {
+            self.markAssistantError(message: "AI live stream is unavailable for the active run.")
+            self.composerPhase = .idle
+            return
+        }
+        guard self.chatSessionId.isEmpty == false else {
+            self.markAssistantError(message: "AI chat session is unavailable for the active run.")
+            self.composerPhase = .idle
+            return
+        }
+
+        let sessionId = self.chatSessionId
+        let afterCursor = self.liveCursor
+        Task {
+            do {
+                let session = try await self.flashcardsStore.cloudSessionForAI()
+                guard self.shouldKeepLiveAttached else {
+                    await self.runtime.detach()
+                    return
+                }
+                await self.runtime.detach()
+                await self.runtime.attachLive(
+                    liveStream: liveStream,
+                    sessionId: sessionId,
+                    afterCursor: afterCursor,
+                    configurationMode: session.configurationMode,
+                    eventHandler: { [weak self] event in
+                        await self?.handleLiveEvent(event)
+                    }
+                )
+            } catch {
+                guard self.shouldKeepLiveAttached else {
+                    return
+                }
+                self.markAssistantError(message: Flashcards.errorMessage(error: error))
+                self.composerPhase = .idle
+            }
+        }
+    }
+
+    private func resumeVisibleSessionIfNeeded() {
+        guard self.shouldKeepLiveAttached else {
+            return
+        }
+        guard self.isChatInteractive else {
+            return
+        }
+        guard self.flashcardsStore.cloudSettings?.cloudState == .linked else {
+            return
+        }
+        guard self.hasExternalProviderConsent else {
+            return
+        }
+        guard self.activeBootstrapTask == nil else {
+            return
+        }
+        guard self.composerPhase != .preparingSend && self.composerPhase != .startingRun else {
+            return
+        }
+
+        self.startLinkedBootstrap(forceReloadState: false)
     }
 
     private func reloadConversationFromBootstrap() {

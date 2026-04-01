@@ -6,6 +6,7 @@
 import type { Writable } from "node:stream";
 import { authenticateRequest, type AuthResult } from "../auth";
 import { ensureUserProfile } from "../ensureUser";
+import { getErrorLogContext, logCloudRouteEvent } from "../server/logging";
 import {
   listChatMessagesAfterCursor,
   listChatMessagesLatest,
@@ -20,14 +21,28 @@ import { verifyChatLiveAuthorizationHeader } from "./liveAuth";
 const LIVE_POLL_INTERVAL_MS = 750;
 const KEEPALIVE_INTERVAL_MS = 15_000;
 const MAX_CONNECTION_DURATION_MS = 9 * 60 * 1000;
-const IDLE_GRACE_PERIOD_MS = 30_000;
-const IDLE_POLL_INTERVAL_MS = 5_000;
 
 type LiveStreamParams = Readonly<{
   sessionId: string;
   afterCursor: number | undefined;
   userId: string;
   workspaceId: string;
+  requestId?: string;
+}>;
+
+type LiveDisconnectReason =
+  | "close"
+  | "finish"
+  | "aborted"
+  | "stream_error"
+  | "write_error";
+
+type LiveConnectionState = Readonly<{
+  isClosed: () => boolean;
+  closeReason: () => LiveDisconnectReason | null;
+  closeError: () => unknown;
+  waitForClose: () => Promise<void>;
+  dispose: () => void;
 }>;
 
 function formatSSEEvent(event: LiveSSEEvent): string {
@@ -36,6 +51,97 @@ function formatSSEEvent(event: LiveSSEEvent): string {
 
 function formatSSEComment(comment: string): string {
   return `: ${comment}\n\n`;
+}
+
+function createLiveConnectionState(stream: Writable): LiveConnectionState {
+  let isClosed = false;
+  let closeReason: LiveDisconnectReason | null = null;
+  let closeError: unknown = null;
+  let resolveCloseWaiters: (() => void) | null = null;
+  const closePromise = new Promise<void>((resolve) => {
+    resolveCloseWaiters = resolve;
+  });
+
+  const markClosed = (reason: LiveDisconnectReason, error: unknown): void => {
+    if (isClosed) {
+      return;
+    }
+
+    isClosed = true;
+    closeReason = reason;
+    closeError = error;
+    resolveCloseWaiters?.();
+  };
+
+  const handleClose = (): void => {
+    markClosed("close", null);
+  };
+  const handleFinish = (): void => {
+    markClosed("finish", null);
+  };
+  const handleAborted = (): void => {
+    markClosed("aborted", null);
+  };
+  const handleError = (error: unknown): void => {
+    markClosed("stream_error", error);
+  };
+
+  stream.on("close", handleClose);
+  stream.on("finish", handleFinish);
+  stream.on("aborted", handleAborted);
+  stream.on("error", handleError);
+
+  return {
+    isClosed: () => isClosed,
+    closeReason: () => closeReason,
+    closeError: () => closeError,
+    waitForClose: () => closePromise,
+    dispose: () => {
+      stream.off("close", handleClose);
+      stream.off("finish", handleFinish);
+      stream.off("aborted", handleAborted);
+      stream.off("error", handleError);
+    },
+  };
+}
+
+function isStreamWritable(stream: Writable, connectionState: LiveConnectionState): boolean {
+  return connectionState.isClosed() === false
+    && stream.destroyed === false
+    && stream.writable === true
+    && stream.writableEnded === false;
+}
+
+function logLiveLifecycleEvent(
+  action: string,
+  params: LiveStreamParams,
+  payload: Record<string, unknown>,
+  isError: boolean,
+): void {
+  logCloudRouteEvent(action, {
+    requestId: params.requestId ?? null,
+    sessionId: params.sessionId,
+    userId: params.userId,
+    workspaceId: params.workspaceId,
+    afterCursor: params.afterCursor ?? null,
+    ...payload,
+  }, isError);
+}
+
+async function waitForNextPollInterval(
+  connectionState: LiveConnectionState,
+  intervalMs: number,
+): Promise<boolean> {
+  const sleepPromise = new Promise<boolean>((resolve) => {
+    setTimeout(() => {
+      resolve(true);
+    }, intervalMs);
+  });
+
+  return Promise.race([
+    sleepPromise,
+    connectionState.waitForClose().then(() => false),
+  ]);
 }
 
 /**
@@ -119,194 +225,280 @@ export async function runLiveStream(
   params: LiveStreamParams,
 ): Promise<void> {
   const { sessionId, userId, workspaceId } = params;
+  const connectionState = createLiveConnectionState(stream);
   let lastEmittedCursor = params.afterCursor ?? 0;
   let previousAssistantContent: ReadonlyArray<ContentPart> = [];
   let previousAssistantItemId: string | null = null;
   let previousRunState: ChatSessionRunState | null = null;
-  let idleSince: number | null = null;
+  let lastObservedRunState: ChatSessionRunState | null = null;
   const connectionStart = Date.now();
   let lastKeepalive = Date.now();
   let shouldEmitInitialRunState = true;
+  let terminationReason = "completed";
 
   const write = (data: string): boolean => {
-    if (stream.destroyed) {
+    if (isStreamWritable(stream, connectionState) === false) {
       return false;
     }
-    return stream.write(data);
+
+    try {
+      stream.write(data);
+      return true;
+    } catch (error) {
+      logLiveLifecycleEvent("chat_live_write_failed", params, {
+        lastObservedRunState,
+        connectionDurationMs: Date.now() - connectionStart,
+        closeReason: "write_error",
+        ...getErrorLogContext(error),
+      }, true);
+      return false;
+    }
   };
 
-  // Backlog phase: emit events for items after the client's cursor.
-  if (params.afterCursor !== undefined) {
-    try {
-      const backlogMessages = await listChatMessagesAfterCursor(
-        userId,
-        workspaceId,
-        sessionId,
-        params.afterCursor,
-      );
-      const backlogAssistantMessages = filterAssistantMessages(backlogMessages);
-      for (const message of backlogAssistantMessages) {
-        if (stream.destroyed) {
-          return;
-        }
-        const event: LiveSSEEvent = {
-          type: "assistant_message_done",
-          cursor: String(message.itemOrder),
-          itemId: message.itemId,
-          isError: message.isError,
-          isStopped: message.isStopped,
-        };
-        write(formatSSEEvent(event));
-        lastEmittedCursor = message.itemOrder;
-      }
-    } catch {
-      write(formatSSEEvent({ type: "reset_required" }));
-      stream.end();
-      return;
-    }
-  }
-
-  // Live phase: poll the database and emit delta events.
-  while (!stream.destroyed) {
-    const elapsed = Date.now() - connectionStart;
-    if (elapsed >= MAX_CONNECTION_DURATION_MS) {
-      break;
-    }
-
-    // Keepalive
-    if (Date.now() - lastKeepalive >= KEEPALIVE_INTERVAL_MS) {
-      write(formatSSEComment("keepalive"));
-      lastKeepalive = Date.now();
-    }
-
-    try {
-      const page = await listChatMessagesLatest(userId, workspaceId, sessionId, 4);
-      const latestAssistantMessage = findLatestAssistantItem(page.messages);
-      const inProgressAssistantItem = findInProgressAssistantItem(page.messages);
-      const currentRunState = inProgressAssistantItem === null
-        ? "idle" as const
-        : "running" as const;
-
-      // Check for new completed messages beyond our cursor.
-      if (latestAssistantMessage !== null && latestAssistantMessage.itemOrder > lastEmittedCursor) {
-        const newMessages = await listChatMessagesAfterCursor(
+  try {
+    // Backlog phase: emit events for items after the client's cursor.
+    if (params.afterCursor !== undefined) {
+      try {
+        const backlogMessages = await listChatMessagesAfterCursor(
           userId,
           workspaceId,
           sessionId,
-          lastEmittedCursor,
+          params.afterCursor,
         );
-        const assistantMessages = filterAssistantMessages(newMessages);
-
-        for (const message of assistantMessages) {
-          if (stream.destroyed) {
+        const backlogAssistantMessages = filterAssistantMessages(backlogMessages);
+        for (const message of backlogAssistantMessages) {
+          if (isStreamWritable(stream, connectionState) === false) {
+            terminationReason = "client_disconnect";
             return;
           }
+          const event: LiveSSEEvent = {
+            type: "assistant_message_done",
+            cursor: String(message.itemOrder),
+            itemId: message.itemId,
+            isError: message.isError,
+            isStopped: message.isStopped,
+          };
+          if (write(formatSSEEvent(event)) === false) {
+            terminationReason = "client_disconnect";
+            return;
+          }
+          lastEmittedCursor = message.itemOrder;
+        }
+      } catch (error) {
+        terminationReason = "backlog_reset_required";
+        logLiveLifecycleEvent("chat_live_backlog_failed", params, {
+          connectionDurationMs: Date.now() - connectionStart,
+          ...getErrorLogContext(error),
+        }, true);
+        write(formatSSEEvent({ type: "reset_required" }));
+        return;
+      }
+    }
 
-          if (message.state === "in_progress") {
-            // Diff in-progress content
-            const prevContent = message.itemId === previousAssistantItemId
-              ? previousAssistantContent
-              : [];
-            const deltaEvents = diffAssistantContent(
-              prevContent,
-              stripBase64FromContentParts(message.content),
-              String(message.itemOrder),
-              message.itemId,
-            );
-            for (const event of deltaEvents) {
-              write(formatSSEEvent(event));
+    // Live phase: poll the database and emit delta events.
+    while (isStreamWritable(stream, connectionState)) {
+      const elapsed = Date.now() - connectionStart;
+      if (elapsed >= MAX_CONNECTION_DURATION_MS) {
+        terminationReason = "max_duration";
+        logLiveLifecycleEvent("chat_live_max_duration_reached", params, {
+          connectionDurationMs: elapsed,
+          lastObservedRunState,
+        }, true);
+        break;
+      }
+
+      if (Date.now() - lastKeepalive >= KEEPALIVE_INTERVAL_MS) {
+        if (write(formatSSEComment("keepalive")) === false) {
+          terminationReason = "client_disconnect";
+          break;
+        }
+        lastKeepalive = Date.now();
+      }
+
+      try {
+        const page = await listChatMessagesLatest(userId, workspaceId, sessionId, 4);
+        const latestAssistantMessage = findLatestAssistantItem(page.messages);
+        const inProgressAssistantItem = findInProgressAssistantItem(page.messages);
+        const currentRunState = inProgressAssistantItem === null
+          ? "idle" as const
+          : "running" as const;
+        lastObservedRunState = currentRunState;
+
+        if (latestAssistantMessage !== null && latestAssistantMessage.itemOrder > lastEmittedCursor) {
+          const newMessages = await listChatMessagesAfterCursor(
+            userId,
+            workspaceId,
+            sessionId,
+            lastEmittedCursor,
+          );
+          const assistantMessages = filterAssistantMessages(newMessages);
+
+          for (const message of assistantMessages) {
+            if (isStreamWritable(stream, connectionState) === false) {
+              terminationReason = "client_disconnect";
+              break;
             }
-            previousAssistantContent = stripBase64FromContentParts(message.content);
-            previousAssistantItemId = message.itemId;
-          } else {
-            // Completed/error/cancelled message
-            if (message.itemId === previousAssistantItemId) {
-              const strippedContent = stripBase64FromContentParts(message.content);
+
+            if (message.state === "in_progress") {
+              const nextContent = stripBase64FromContentParts(message.content);
+              const prevContent = message.itemId === previousAssistantItemId
+                ? previousAssistantContent
+                : [];
               const deltaEvents = diffAssistantContent(
-                previousAssistantContent,
-                strippedContent,
+                prevContent,
+                nextContent,
                 String(message.itemOrder),
                 message.itemId,
               );
               for (const event of deltaEvents) {
-                write(formatSSEEvent(event));
-              }
-              for (const event of buildReasoningDoneEvents(
-                previousAssistantContent,
-                strippedContent,
-                String(message.itemOrder),
-                message.itemId,
-              )) {
-                const alreadyEmittedReasoningDone = deltaEvents.some((deltaEvent) => {
-                  if (deltaEvent.type !== "assistant_reasoning_done") {
-                    return false;
-                  }
-
-                  return deltaEvent.reasoningId === event.reasoningId;
-                });
-                if (alreadyEmittedReasoningDone) {
-                  continue;
+                if (write(formatSSEEvent(event)) === false) {
+                  terminationReason = "client_disconnect";
+                  break;
                 }
-                write(formatSSEEvent(event));
               }
+              if (terminationReason === "client_disconnect") {
+                break;
+              }
+              previousAssistantContent = nextContent;
+              previousAssistantItemId = message.itemId;
+            } else {
+              if (message.itemId === previousAssistantItemId) {
+                const strippedContent = stripBase64FromContentParts(message.content);
+                const deltaEvents = diffAssistantContent(
+                  previousAssistantContent,
+                  strippedContent,
+                  String(message.itemOrder),
+                  message.itemId,
+                );
+                for (const event of deltaEvents) {
+                  if (write(formatSSEEvent(event)) === false) {
+                    terminationReason = "client_disconnect";
+                    break;
+                  }
+                }
+                if (terminationReason === "client_disconnect") {
+                  break;
+                }
+                for (const event of buildReasoningDoneEvents(
+                  previousAssistantContent,
+                  strippedContent,
+                  String(message.itemOrder),
+                  message.itemId,
+                )) {
+                  const alreadyEmittedReasoningDone = deltaEvents.some((deltaEvent) => {
+                    if (deltaEvent.type !== "assistant_reasoning_done") {
+                      return false;
+                    }
+
+                    return deltaEvent.reasoningId === event.reasoningId;
+                  });
+                  if (alreadyEmittedReasoningDone) {
+                    continue;
+                  }
+                  if (write(formatSSEEvent(event)) === false) {
+                    terminationReason = "client_disconnect";
+                    break;
+                  }
+                }
+                if (terminationReason === "client_disconnect") {
+                  break;
+                }
+              }
+              if (write(formatSSEEvent({
+                type: "assistant_message_done",
+                cursor: String(message.itemOrder),
+                itemId: message.itemId,
+                isError: message.isError,
+                isStopped: message.isStopped,
+              })) === false) {
+                terminationReason = "client_disconnect";
+                break;
+              }
+              lastEmittedCursor = message.itemOrder;
+              previousAssistantContent = [];
+              previousAssistantItemId = null;
             }
-            write(formatSSEEvent({
-              type: "assistant_message_done",
-              cursor: String(message.itemOrder),
-              itemId: message.itemId,
-              isError: message.isError,
-              isStopped: message.isStopped,
-            }));
-            lastEmittedCursor = message.itemOrder;
-            previousAssistantContent = [];
-            previousAssistantItemId = null;
+          }
+        } else if (
+          inProgressAssistantItem !== null
+          && inProgressAssistantItem.itemId === previousAssistantItemId
+        ) {
+          const strippedContent = stripBase64FromContentParts(inProgressAssistantItem.content);
+          const deltaEvents = diffAssistantContent(
+            previousAssistantContent,
+            strippedContent,
+            String(inProgressAssistantItem.itemOrder),
+            inProgressAssistantItem.itemId,
+          );
+          for (const event of deltaEvents) {
+            if (write(formatSSEEvent(event)) === false) {
+              terminationReason = "client_disconnect";
+              break;
+            }
+          }
+          if (terminationReason === "client_disconnect") {
+            break;
+          }
+          previousAssistantContent = strippedContent;
+        }
+
+        if (shouldEmitInitialRunState || (previousRunState !== null && currentRunState !== previousRunState)) {
+          if (write(formatSSEEvent({ type: "run_state", runState: currentRunState, sessionId })) === false) {
+            terminationReason = "client_disconnect";
+            break;
           }
         }
-      } else if (
-        inProgressAssistantItem !== null
-        && inProgressAssistantItem.itemId === previousAssistantItemId
-      ) {
-        // Same in-progress item, check for content changes.
-        const strippedContent = stripBase64FromContentParts(inProgressAssistantItem.content);
-        const deltaEvents = diffAssistantContent(
-          previousAssistantContent,
-          strippedContent,
-          String(inProgressAssistantItem.itemOrder),
-          inProgressAssistantItem.itemId,
-        );
-        for (const event of deltaEvents) {
-          write(formatSSEEvent(event));
-        }
-        previousAssistantContent = strippedContent;
-      }
+        shouldEmitInitialRunState = false;
+        previousRunState = currentRunState;
 
-      // Emit run_state changes.
-      if (shouldEmitInitialRunState || (previousRunState !== null && currentRunState !== previousRunState)) {
-        write(formatSSEEvent({ type: "run_state", runState: currentRunState, sessionId }));
-      }
-      shouldEmitInitialRunState = false;
-      previousRunState = currentRunState;
-
-      // Idle tracking for reduced polling frequency.
-      if (currentRunState === "idle") {
-        if (idleSince === null) {
-          idleSince = Date.now();
+        if (currentRunState !== "running") {
+          terminationReason = "run_complete";
+          break;
         }
-      } else {
-        idleSince = null;
+
+        const shouldContinue = await waitForNextPollInterval(connectionState, LIVE_POLL_INTERVAL_MS);
+        if (shouldContinue === false) {
+          terminationReason = "client_disconnect";
+          break;
+        }
+      } catch (error) {
+        terminationReason = "poll_error";
+        logLiveLifecycleEvent("chat_live_poll_failed", params, {
+          connectionDurationMs: Date.now() - connectionStart,
+          lastObservedRunState,
+          ...getErrorLogContext(error),
+        }, true);
+        write(formatSSEEvent({ type: "error", message: "Failed to poll session state" }));
+        break;
       }
-    } catch {
-      write(formatSSEEvent({ type: "error", message: "Failed to poll session state" }));
+    }
+  } finally {
+    const connectionDurationMs = Date.now() - connectionStart;
+    const closeReason = connectionState.closeReason();
+    const closeError = connectionState.closeError();
+    connectionState.dispose();
+
+    if (isStreamWritable(stream, connectionState)) {
+      stream.end();
     }
 
-    const pollInterval = idleSince !== null && Date.now() - idleSince > IDLE_GRACE_PERIOD_MS
-      ? IDLE_POLL_INTERVAL_MS
-      : LIVE_POLL_INTERVAL_MS;
-    await new Promise<void>((resolve) => setTimeout(resolve, pollInterval));
-  }
+    if (terminationReason === "client_disconnect" && lastObservedRunState === "running") {
+      logLiveLifecycleEvent("chat_live_client_disconnected_while_running", params, {
+        connectionDurationMs,
+        lastObservedRunState,
+        closeReason,
+        ...(closeError === null ? {} : getErrorLogContext(closeError)),
+      }, true);
+      return;
+    }
 
-  if (!stream.destroyed) {
-    stream.end();
+    logLiveLifecycleEvent("chat_live_stream_closed", params, {
+      connectionDurationMs,
+      terminationReason,
+      lastObservedRunState,
+      closeReason,
+      ...(closeError === null ? {} : getErrorLogContext(closeError)),
+    }, terminationReason === "max_duration" || terminationReason === "poll_error");
   }
 }
 

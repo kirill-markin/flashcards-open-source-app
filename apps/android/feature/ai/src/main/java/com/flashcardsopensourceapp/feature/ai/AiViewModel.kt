@@ -96,6 +96,7 @@ class AiViewModel(
     private var lastAppliedMainContentInvalidationVersion: Long = 0L
     private var lastPreparedGuestWorkspaceId: String? = null
     private var activeAccessContext: AiAccessContext? = null
+    private var isScreenVisible: Boolean = false
 
     val uiState: StateFlow<AiUiState> = combine(
         metadataState,
@@ -457,10 +458,23 @@ class AiViewModel(
         startConversationBootstrap(forceReloadState = true)
     }
 
+    fun onScreenVisible() {
+        isScreenVisible = true
+        warmUpLinkedSessionIfNeeded()
+    }
+
+    fun onScreenHidden() {
+        isScreenVisible = false
+        detachLiveStream(reason = "AI live stream detached because the screen is no longer visible.")
+    }
+
     fun warmUpLinkedSessionIfNeeded() {
         val currentState = draftState.value
         val cloudSettings = cloudSettingsState.value
-        if (currentState.composerPhase != AiComposerPhase.IDLE) {
+        if (
+            currentState.composerPhase == AiComposerPhase.PREPARING_SEND
+            || currentState.composerPhase == AiComposerPhase.STARTING_RUN
+        ) {
             return
         }
         if (consentState.value.not()) {
@@ -609,9 +623,8 @@ class AiViewModel(
                                     chatSessionId = response.sessionId,
                                     lastKnownChatConfig = response.chatConfig
                                 ),
-                                liveCursor = null,
                                 runState = response.runState,
-                                isLiveAttached = response.runState == "running" && response.liveStream != null,
+                                isLiveAttached = false,
                                 draftMessage = "",
                                 pendingAttachments = emptyList(),
                                 composerPhase = if (response.runState == "running") {
@@ -622,6 +635,12 @@ class AiViewModel(
                                 dictationState = AiChatDictationState.IDLE,
                                 activeAlert = null,
                                 errorMessage = ""
+                            )
+                        }
+                        if (response.runState == "running") {
+                            attachAcceptedLiveStreamIfNeeded(
+                                workspaceId = draftState.value.workspaceId,
+                                response = response
                             )
                         }
                         persistCurrentState()
@@ -1213,13 +1232,78 @@ class AiViewModel(
         workspaceId: String,
         response: AiChatBootstrapResponse
     ) {
-        val liveStream = response.liveStream ?: return
         if (response.runState != "running") {
+            detachLiveStream(reason = "AI live stream detached because the run is no longer active.")
+            return
+        }
+        if (isScreenVisible.not()) {
+            detachLiveStream(reason = "AI live stream detached because the screen is hidden.")
             return
         }
 
+        val liveStream = response.liveStream ?: return
+
+        attachLiveStream(
+            workspaceId = workspaceId,
+            sessionId = response.sessionId,
+            liveStream = liveStream,
+            afterCursor = response.liveCursor,
+            cancellationMessage = "AI live attach restarted from bootstrap."
+        )
+    }
+
+    /**
+     * Existing sessions resume live streaming after the latest known cursor so
+     * replayed terminal events from older turns cannot close the current
+     * optimistic assistant message.
+     */
+    private fun attachAcceptedLiveStreamIfNeeded(
+        workspaceId: String?,
+        response: AiChatStartRunResponse
+    ) {
+        if (response.runState != "running") {
+            return
+        }
+        if (isScreenVisible.not()) {
+            return
+        }
+        val liveStream = response.liveStream ?: run {
+            draftState.update { state ->
+                state.copy(
+                    persistedState = markAssistantError(
+                        state = state.persistedState,
+                        message = "AI live stream is unavailable for the active run.",
+                        timestampMillis = System.currentTimeMillis()
+                    ),
+                    runState = "failed",
+                    isLiveAttached = false,
+                    composerPhase = AiComposerPhase.IDLE,
+                    repairStatus = null,
+                    errorMessage = "AI live stream is unavailable for the active run."
+                )
+            }
+            persistCurrentState()
+            return
+        }
+        val afterCursor = draftState.value.liveCursor
+        attachLiveStream(
+            workspaceId = workspaceId,
+            sessionId = response.sessionId,
+            liveStream = liveStream,
+            afterCursor = afterCursor,
+            cancellationMessage = "AI live attach restarted from accepted run."
+        )
+    }
+
+    private fun attachLiveStream(
+        workspaceId: String?,
+        sessionId: String,
+        liveStream: com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope,
+        afterCursor: String?,
+        cancellationMessage: String
+    ) {
         activeLiveJob?.cancel(
-            cause = CancellationException("AI live attach restarted from bootstrap.")
+            cause = CancellationException(cancellationMessage)
         )
         var liveJob: Job? = null
         liveJob = viewModelScope.launch {
@@ -1230,9 +1314,9 @@ class AiViewModel(
             try {
                 aiChatRepository.attachLiveRun(
                     workspaceId = workspaceId,
-                    sessionId = response.sessionId,
+                    sessionId = sessionId,
                     liveStream = liveStream,
-                    afterCursor = response.liveCursor,
+                    afterCursor = afterCursor,
                     onEvent = { event ->
                         applyLiveEvent(event = event)
                     }
@@ -1273,6 +1357,17 @@ class AiViewModel(
             }
         }
         activeLiveJob = liveJob
+    }
+
+    private fun detachLiveStream(reason: String) {
+        activeLiveJob?.cancel(
+            cause = CancellationException(reason)
+        )
+        activeLiveJob = null
+        draftState.update { state ->
+            state.copy(isLiveAttached = false)
+        }
+        persistCurrentState()
     }
 
     private suspend fun applyBootstrap(
