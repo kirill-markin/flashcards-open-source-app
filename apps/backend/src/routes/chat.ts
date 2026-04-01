@@ -17,12 +17,17 @@ import {
   ChatSessionConflictError,
   ChatSessionNotFoundError,
   createFreshChatSession,
+  listChatMessagesLatest,
   stripBase64FromContentParts,
   type ChatSessionSnapshot,
 } from "../chat/store";
 import { invokeChatWorkerOrPersistFailure } from "../chat/workerInvoke";
 import type { AuthTransport } from "../auth";
 import { HttpError } from "../errors";
+import {
+  createChatLiveStreamEnvelope,
+  type ChatLiveStreamEnvelope,
+} from "../chat/liveAuth";
 import {
   loadRequestContextFromRequest,
   requireSelectedWorkspaceId,
@@ -260,6 +265,8 @@ type ChatHistoryResponse = Readonly<{
   runState: ChatSessionSnapshot["runState"];
   updatedAt: number;
   mainContentInvalidationVersion: number;
+  liveCursor: string | null;
+  liveStream: ChatLiveStreamEnvelope | null;
   chatConfig: ChatConfig;
   messages: ReadonlyArray<Readonly<{
     role: "user" | "assistant";
@@ -276,6 +283,7 @@ type ChatStartResponse = Readonly<{
   runId: string;
   clientRequestId: string;
   runState: ChatSessionSnapshot["runState"];
+  liveStream: ChatLiveStreamEnvelope | null;
   chatConfig: ChatConfig;
   deduplicated?: boolean;
 }>;
@@ -338,6 +346,8 @@ function toChatHistoryResponse(snapshot: ChatSessionSnapshot): ChatHistoryRespon
     runState: snapshot.runState,
     updatedAt: snapshot.updatedAt,
     mainContentInvalidationVersion: snapshot.mainContentInvalidationVersion,
+    liveCursor: null,
+    liveStream: null,
     chatConfig: getChatConfig(),
     messages: snapshot.messages.map((message) => ({
       role: message.role,
@@ -346,6 +356,42 @@ function toChatHistoryResponse(snapshot: ChatSessionSnapshot): ChatHistoryRespon
       isError: message.isError,
       isStopped: message.isStopped,
     })),
+  };
+}
+
+async function resolveLiveCursor(
+  userId: string,
+  workspaceId: string,
+  sessionId: string,
+): Promise<string | null> {
+  const page = await listChatMessagesLatest(userId, workspaceId, sessionId, 2);
+  const latestMessage = page.messages.length > 0 ? page.messages[page.messages.length - 1]! : null;
+  if (latestMessage === null) {
+    return null;
+  }
+
+  if (latestMessage.state !== "in_progress") {
+    return String(latestMessage.itemOrder);
+  }
+
+  const previousMessage = page.messages.length > 1 ? page.messages[page.messages.length - 2]! : null;
+  return previousMessage === null ? null : String(previousMessage.itemOrder);
+}
+
+async function toChatHistoryResponseWithLiveStream(
+  snapshot: ChatSessionSnapshot,
+  userId: string,
+  workspaceId: string,
+): Promise<ChatHistoryResponse> {
+  const liveCursor = await resolveLiveCursor(userId, workspaceId, snapshot.sessionId);
+  const liveStream = snapshot.runState === "running"
+    ? await createChatLiveStreamEnvelope(userId, workspaceId, snapshot.sessionId)
+    : null;
+
+  return {
+    ...toChatHistoryResponse(snapshot),
+    liveCursor,
+    liveStream,
   };
 }
 
@@ -428,16 +474,20 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       }
     }
 
-    try {
-      const snapshot = await getRecoveredChatSessionSnapshotFn(
-        requestContext.userId,
-        workspaceId,
-        sessionId,
-      );
-      return context.json(toChatHistoryResponse(snapshot));
-    } catch (error) {
-      return mapStoreError(error);
-    }
+      try {
+        const snapshot = await getRecoveredChatSessionSnapshotFn(
+          requestContext.userId,
+          workspaceId,
+          sessionId,
+        );
+        return context.json(await toChatHistoryResponseWithLiveStream(
+          snapshot,
+          requestContext.userId,
+          workspaceId,
+        ));
+      } catch (error) {
+        return mapStoreError(error);
+      }
   });
 
   app.post("/chat", async (context) => {
@@ -478,6 +528,9 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       runId: preparedRun.runId,
       clientRequestId: preparedRun.clientRequestId,
       runState: preparedRun.runState,
+      liveStream: preparedRun.runState === "running"
+        ? await createChatLiveStreamEnvelope(requestContext.userId, workspaceId, preparedRun.sessionId)
+        : null,
       chatConfig: getChatConfig(),
       deduplicated: preparedRun.deduplicated ? true : undefined,
     } satisfies ChatStartResponse);

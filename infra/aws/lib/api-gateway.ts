@@ -42,6 +42,7 @@ interface BackendFunctionProps {
   db: rds.DatabaseInstance;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   backendCsrfSecret: cdk.aws_secretsmanager.Secret;
+  backendChatLiveAuthSecret: cdk.aws_secretsmanager.Secret;
   allowedOrigins: string[];
   userPoolId: string;
   userPoolArn: string;
@@ -140,6 +141,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
       COGNITO_REGION: cdk.Stack.of(scope).region,
       BACKEND_ALLOWED_ORIGINS: props.allowedOrigins.join(","),
       BACKEND_CSRF_SECRET_ARN: props.backendCsrfSecret.secretArn,
+      BACKEND_CHAT_LIVE_AUTH_SECRET_ARN: props.backendChatLiveAuthSecret.secretArn,
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
       GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP: props.guestAiWeightedMonthlyTokenCap ?? "0",
@@ -151,6 +153,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
 
   props.backendDbSecret.grantRead(fn);
   props.backendCsrfSecret.grantRead(fn);
+  props.backendChatLiveAuthSecret.grantRead(fn);
   fn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
     actions: ["cognito-idp:AdminDeleteUser"],
     resources: [props.userPoolArn],
@@ -205,6 +208,17 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       requireEachIncludedType: false,
     },
   });
+  const backendChatLiveAuthSecret = new cdk.aws_secretsmanager.Secret(scope, "BackendChatLiveAuthSecret", {
+    secretName: "flashcards-open-source-app/backend-chat-live-auth-secret",
+    generateSecretString: {
+      passwordLength: 64,
+      includeSpace: false,
+      excludeUppercase: true,
+      excludePunctuation: true,
+      excludeCharacters: "ghijklmnopqrstuvwxyz",
+      requireEachIncludedType: false,
+    },
+  });
 
   const backendFn = createBackendFunction(scope, {
     constructId: "BackendHandler",
@@ -215,6 +229,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     db: props.db,
     backendDbSecret: props.backendDbSecret,
     backendCsrfSecret,
+    backendChatLiveAuthSecret,
     allowedOrigins,
     userPoolId: props.userPoolId,
     userPoolArn: props.userPoolArn,
@@ -235,6 +250,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     db: props.db,
     backendDbSecret: props.backendDbSecret,
     backendCsrfSecret,
+    backendChatLiveAuthSecret,
     allowedOrigins,
     userPoolId: props.userPoolId,
     userPoolArn: props.userPoolArn,
@@ -255,6 +271,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     db: props.db,
     backendDbSecret: props.backendDbSecret,
     backendCsrfSecret,
+    backendChatLiveAuthSecret,
     allowedOrigins,
     userPoolId: props.userPoolId,
     userPoolArn: props.userPoolArn,

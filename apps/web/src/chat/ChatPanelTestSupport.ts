@@ -14,6 +14,7 @@ const {
   createNewChatSessionMock,
   stopChatRunMock,
   transcribeChatAudioMock,
+  consumeChatLiveStreamMock,
   listOutboxRecordsMock,
   checkFileSizeMock,
   prepareAttachmentMock,
@@ -36,6 +37,7 @@ const {
   createNewChatSessionMock: vi.fn(),
   stopChatRunMock: vi.fn(),
   transcribeChatAudioMock: vi.fn(),
+  consumeChatLiveStreamMock: vi.fn(),
   listOutboxRecordsMock: vi.fn(),
   checkFileSizeMock: vi.fn(),
   prepareAttachmentMock: vi.fn(),
@@ -61,6 +63,10 @@ vi.mock("../api", () => ({
 
 vi.mock("../localDb/outbox", () => ({
   listOutboxRecords: listOutboxRecordsMock,
+}));
+
+vi.mock("./liveStream", () => ({
+  consumeChatLiveStream: consumeChatLiveStreamMock,
 }));
 
 vi.mock("./FileAttachment", () => ({
@@ -130,6 +136,7 @@ export {
   startChatRunMock,
   stopChatRunMock,
   transcribeChatAudioMock,
+  consumeChatLiveStreamMock,
   useAppDataMock,
   useChatLayoutMock,
 };
@@ -142,6 +149,8 @@ export function createChatSnapshot(
     runState: "idle",
     updatedAt: 1,
     mainContentInvalidationVersion: 0,
+    liveCursor: null,
+    liveStream: null,
     chatConfig: defaultChatConfig,
     messages: [],
     ...overrides,
@@ -275,6 +284,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     createNewChatSessionMock.mockReset();
     stopChatRunMock.mockReset();
     transcribeChatAudioMock.mockReset();
+    consumeChatLiveStreamMock.mockReset();
     listOutboxRecordsMock.mockReset();
     checkFileSizeMock.mockReset();
     prepareAttachmentMock.mockReset();
@@ -307,6 +317,11 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       runId: "run-1",
       clientRequestId: "client-request-1",
       runState: "running",
+      liveStream: {
+        url: "https://chat-live.example.com",
+        authorization: "Live mock-token",
+        expiresAt: Date.now() + 60_000,
+      },
       chatConfig: defaultChatConfig,
     });
     createNewChatSessionMock.mockResolvedValue({
@@ -325,6 +340,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       text: "dictated text",
       sessionId: "session-1",
     });
+    consumeChatLiveStreamMock.mockImplementation(() => new Promise(() => undefined));
     listOutboxRecordsMock.mockResolvedValue([]);
     checkFileSizeMock.mockReturnValue(null);
     prepareAttachmentMock.mockResolvedValue({

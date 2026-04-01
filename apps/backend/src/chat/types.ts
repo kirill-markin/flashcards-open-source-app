@@ -60,6 +60,7 @@ export type LiveSSEEvent =
   | Readonly<{ type: "run_state"; runState: string; sessionId: string }>
   | Readonly<{ type: "assistant_delta"; text: string; cursor: string; itemId: string }>
   | Readonly<{ type: "assistant_tool_call"; name: string; status: "started" | "completed"; input: string | null; output: string | null; cursor: string; itemId: string }>
+  | Readonly<{ type: "assistant_reasoning_summary"; summary: string; cursor: string; itemId: string }>
   | Readonly<{ type: "assistant_message_done"; cursor: string; itemId: string; isError: boolean; isStopped: boolean }>
   | Readonly<{ type: "repair_status"; message: string; attempt: number; maxAttempts: number; toolName: string | null }>
   | Readonly<{ type: "error"; message: string }>

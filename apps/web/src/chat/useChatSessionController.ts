@@ -16,7 +16,6 @@ import {
   toRequestBodySizeBytes,
 } from "./chatHelpers";
 import {
-  ACTIVE_RUN_SNAPSHOT_POLL_INTERVAL_MS,
   getChatComposerAction,
   getEffectiveSnapshotRunState,
   isChatRunActive,
@@ -29,7 +28,8 @@ import {
 } from "./useChatHistory";
 import { defaultChatConfig, loadStoredChatConfig, storeChatConfig } from "./chatConfig";
 import type { ChatSessionSnapshot } from "./chatSessionSnapshot";
-import type { ChatConfig } from "../types";
+import { consumeChatLiveStream, type ChatLiveEvent } from "./liveStream";
+import type { ChatConfig, ChatLiveStream, ToolCallContentPart } from "../types";
 
 type UseChatSessionControllerParams = Readonly<{
   workspaceId: string | null;
@@ -90,6 +90,29 @@ function isChatApiError(error: unknown): error is Readonly<{
   return typeof statusCode === "number" && (typeof code === "string" || code === null);
 }
 
+type ActiveLiveStreamConnection = Readonly<{
+  sessionId: string;
+  abortController: AbortController;
+}>;
+
+function toAssistantToolCallContentPart(
+  event: Extract<ChatLiveEvent, { type: "assistant_tool_call" }>,
+): ToolCallContentPart {
+  return {
+    type: "tool_call",
+    name: event.name,
+    status: event.status,
+    input: event.input,
+    output: event.output,
+    streamPosition: {
+      itemId: event.itemId,
+      outputIndex: 0,
+      contentIndex: null,
+      sequenceNumber: null,
+    },
+  };
+}
+
 export function useChatSessionController(
   params: UseChatSessionControllerParams,
 ): ChatSessionController {
@@ -99,6 +122,10 @@ export function useChatSessionController(
     replaceMessages,
     appendUserMessage,
     startAssistantMessage,
+    appendAssistantText,
+    upsertAssistantToolCall,
+    upsertAssistantReasoningSummary,
+    finishAssistantMessage,
     markAssistantError,
     clearHistory,
   } = useChatHistory();
@@ -110,14 +137,151 @@ export function useChatSessionController(
   const [mainContentInvalidationVersion, setMainContentInvalidationVersion] = useState<number>(0);
   const [chatConfig, setChatConfig] = useState<ChatConfig>(() => loadStoredChatConfig());
   const [composerNotice, setComposerNotice] = useState<string | null>(null);
+  const [isLiveStreamConnected, setIsLiveStreamConnected] = useState<boolean>(false);
 
   const lastSnapshotUpdatedAtRef = useRef<number | null>(null);
   const hasObservedMainContentInvalidationVersionRef = useRef<boolean>(false);
   const lastMainContentInvalidationVersionRef = useRef<number>(0);
   const stoppedSessionIdsRef = useRef<Set<string>>(new Set());
+  const activeLiveConnectionRef = useRef<ActiveLiveStreamConnection | null>(null);
+  const runStateRef = useRef<ChatRunState>("idle");
 
   const isAssistantRunActive = isChatRunActive(runState);
   const composerAction = getChatComposerAction(runState);
+
+  useEffect(() => {
+    runStateRef.current = runState;
+  }, [runState]);
+
+  const detachLiveStream = useCallback((sessionId: string | null): void => {
+    const activeConnection = activeLiveConnectionRef.current;
+    if (activeConnection === null) {
+      return;
+    }
+
+    if (sessionId !== null && activeConnection.sessionId !== sessionId) {
+      return;
+    }
+
+    activeConnection.abortController.abort();
+    activeLiveConnectionRef.current = null;
+    setIsLiveStreamConnected(false);
+  }, []);
+
+  const finalizeInterruptedRun = useCallback((message: string): void => {
+    markAssistantError(message);
+    setRunState("interrupted");
+    setIsStopping(false);
+    setIsLiveStreamConnected(false);
+    activeLiveConnectionRef.current = null;
+  }, [markAssistantError]);
+
+  const applyLiveEvent = useCallback((event: ChatLiveEvent): void => {
+    if (event.type === "assistant_delta") {
+      appendAssistantText(event.text);
+      return;
+    }
+
+    if (event.type === "assistant_tool_call") {
+      upsertAssistantToolCall(toAssistantToolCallContentPart(event));
+      return;
+    }
+
+    if (event.type === "assistant_reasoning_summary") {
+      upsertAssistantReasoningSummary(event.summary);
+      return;
+    }
+
+    if (event.type === "assistant_message_done") {
+      finishAssistantMessage(event.isError, event.isStopped);
+      if (event.isError) {
+        setRunState("interrupted");
+      }
+      return;
+    }
+
+    if (event.type === "run_state") {
+      const nextRunState = event.runState === "interrupted" ? "interrupted" : event.runState;
+      setRunState(nextRunState);
+      if (nextRunState !== "running") {
+        setIsStopping(false);
+      }
+      return;
+    }
+
+    if (event.type === "error") {
+      finalizeInterruptedRun(`AI live stream failed. ${sanitizeErrorText(500, event.message)}`);
+      return;
+    }
+
+    finalizeInterruptedRun("AI live stream reset is required.");
+  }, [
+    appendAssistantText,
+    finalizeInterruptedRun,
+    finishAssistantMessage,
+    upsertAssistantReasoningSummary,
+    upsertAssistantToolCall,
+  ]);
+
+  const startLiveStream = useCallback((
+    sessionId: string,
+    liveStream: ChatLiveStream | null,
+    afterCursor: string | null,
+  ): void => {
+    detachLiveStream(null);
+
+    if (liveStream === null) {
+      finalizeInterruptedRun("AI live stream is unavailable for the active run.");
+      return;
+    }
+
+    const abortController = new AbortController();
+    activeLiveConnectionRef.current = { sessionId, abortController };
+    setIsLiveStreamConnected(false);
+
+    void consumeChatLiveStream({
+      liveStream,
+      sessionId,
+      afterCursor,
+      signal: abortController.signal,
+      onEvent: (event) => {
+        if (activeLiveConnectionRef.current?.sessionId !== sessionId) {
+          return;
+        }
+
+        setIsLiveStreamConnected(true);
+        applyLiveEvent(event);
+      },
+    }).then(() => {
+      if (abortController.signal.aborted) {
+        return;
+      }
+
+      if (activeLiveConnectionRef.current?.sessionId !== sessionId) {
+        return;
+      }
+
+      activeLiveConnectionRef.current = null;
+      setIsLiveStreamConnected(false);
+      setIsStopping(false);
+      if (runStateRef.current === "running") {
+        markAssistantError("AI live stream ended before the run finished.");
+        setRunState("interrupted");
+      }
+    }).catch((error: unknown) => {
+      if (abortController.signal.aborted) {
+        return;
+      }
+
+      if (activeLiveConnectionRef.current?.sessionId !== sessionId) {
+        return;
+      }
+
+      activeLiveConnectionRef.current = null;
+      setIsLiveStreamConnected(false);
+      finalizeInterruptedRun(toErrorMessage(error));
+    });
+  }, [applyLiveEvent, detachLiveStream, finalizeInterruptedRun, markAssistantError]);
 
   const loadChatSnapshot = useCallback(async (
     sessionId: string | undefined,
@@ -165,11 +329,13 @@ export function useChatSessionController(
     setCurrentSessionId(null);
     setRunState("idle");
     setIsStopping(false);
+    setIsLiveStreamConnected(false);
     setMainContentInvalidationVersion(0);
     hasObservedMainContentInvalidationVersionRef.current = false;
     lastMainContentInvalidationVersionRef.current = 0;
     lastSnapshotUpdatedAtRef.current = null;
     stoppedSessionIdsRef.current.clear();
+    detachLiveStream(null);
     replaceMessages([]);
 
     if (workspaceId === null) {
@@ -196,6 +362,9 @@ export function useChatSessionController(
         }
 
         setCurrentSessionId(snapshot.sessionId);
+        if (snapshot.runState === "running") {
+          startLiveStream(snapshot.sessionId, snapshot.liveStream, snapshot.liveCursor);
+        }
       } catch (error) {
         if (isDisposed) {
           return;
@@ -218,22 +387,13 @@ export function useChatSessionController(
     return () => {
       isDisposed = true;
     };
-  }, [isRemoteReady, loadChatSnapshot, replaceMessages, workspaceId]);
+  }, [detachLiveStream, isRemoteReady, loadChatSnapshot, replaceMessages, startLiveStream, workspaceId]);
 
   useEffect(() => {
-    if (!isRemoteReady || !isHistoryLoaded || currentSessionId === null || runState !== "running") {
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      void loadChatSnapshot(currentSessionId, true).catch((error) => {
-        markAssistantError(`Chat failed to refresh. ${toErrorMessage(error)}`);
-        setRunState("interrupted");
-      });
-    }, ACTIVE_RUN_SNAPSHOT_POLL_INTERVAL_MS);
-
-    return () => window.clearInterval(intervalId);
-  }, [currentSessionId, isHistoryLoaded, isRemoteReady, loadChatSnapshot, markAssistantError, runState]);
+    return () => {
+      detachLiveStream(null);
+    };
+  }, [detachLiveStream]);
 
   const sendMessage = useCallback(async (
     sendParams: SendChatMessageParams,
@@ -267,27 +427,15 @@ export function useChatSessionController(
       startAssistantMessage(OPTIMISTIC_ASSISTANT_STATUS_TEXT);
       stoppedSessionIdsRef.current.clear();
       setRunState("running");
+      setIsStopping(false);
       setCurrentSessionId(response.sessionId);
       setChatConfig(response.chatConfig);
       storeChatConfig(response.chatConfig);
-      try {
-        await loadChatSnapshot(response.sessionId, true);
-      } catch (error) {
-        setComposerNotice(`Chat started, but refresh failed. ${toErrorMessage(error)}`);
-      }
+      startLiveStream(response.sessionId, response.liveStream, null);
       return { accepted: true };
     } catch (error) {
       if (isChatApiError(error) && error.code === "CHAT_ACTIVE_RUN_IN_PROGRESS") {
-        const conflictMessage = "A response is already in progress. Wait for it to finish or stop it before sending another message.";
-        if (currentSessionId !== null) {
-          void loadChatSnapshot(currentSessionId, true)
-            .catch(() => undefined)
-            .finally(() => {
-              setComposerNotice(conflictMessage);
-            });
-        } else {
-          setComposerNotice(conflictMessage);
-        }
+        setComposerNotice("A response is already in progress. Wait for it to finish or stop it before sending another message.");
         return { accepted: false };
       }
 
@@ -302,9 +450,9 @@ export function useChatSessionController(
     isHistoryLoaded,
     isRemoteReady,
     isStopping,
-    loadChatSnapshot,
     markAssistantError,
     startAssistantMessage,
+    startLiveStream,
     workspaceId,
   ]);
 
@@ -317,18 +465,25 @@ export function useChatSessionController(
     setIsStopping(true);
 
     try {
-      await stopChatRun(currentSessionId);
-      await loadChatSnapshot(currentSessionId, true);
+      const response = await stopChatRun(currentSessionId);
+      if (response.stopped && response.stillRunning === false && activeLiveConnectionRef.current === null) {
+        finishAssistantMessage(false, true);
+        setRunState("idle");
+        setIsStopping(false);
+      }
     } catch (error) {
       markAssistantError(`Chat stop failed. ${toErrorMessage(error)}`);
       setRunState("interrupted");
     } finally {
-      setIsStopping(false);
+      if (activeLiveConnectionRef.current === null) {
+        setIsStopping(false);
+      }
     }
-  }, [currentSessionId, isAssistantRunActive, isStopping, loadChatSnapshot, markAssistantError]);
+  }, [currentSessionId, finishAssistantMessage, isAssistantRunActive, isStopping, markAssistantError]);
 
   const clearConversation = useCallback(async (): Promise<void> => {
     if (workspaceId === null) {
+      detachLiveStream(null);
       clearHistory();
       setCurrentSessionId(null);
       setRunState("idle");
@@ -339,6 +494,7 @@ export function useChatSessionController(
       await stopChatRun(currentSessionId);
     }
 
+    detachLiveStream(null);
     const response = await createNewChatSession(currentSessionId ?? undefined);
     clearHistory();
     stoppedSessionIdsRef.current.clear();
@@ -347,18 +503,20 @@ export function useChatSessionController(
     lastSnapshotUpdatedAtRef.current = null;
     setCurrentSessionId(response.sessionId);
     setRunState("idle");
+    setIsStopping(false);
+    setIsLiveStreamConnected(false);
     setMainContentInvalidationVersion(0);
     setChatConfig(response.chatConfig);
     setComposerNotice(null);
     storeChatConfig(response.chatConfig);
-  }, [clearHistory, currentSessionId, isAssistantRunActive, workspaceId]);
+  }, [clearHistory, currentSessionId, detachLiveStream, isAssistantRunActive, workspaceId]);
 
   return {
     messages,
     runState,
     isHistoryLoaded,
     isAssistantRunActive,
-    isLiveStreamConnected: false,
+    isLiveStreamConnected,
     isStopping,
     currentSessionId,
     mainContentInvalidationVersion,

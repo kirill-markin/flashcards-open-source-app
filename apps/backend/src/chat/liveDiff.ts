@@ -61,6 +61,21 @@ export function diffAssistantContent(
       }
       continue;
     }
+
+    if (currentPart.type === "reasoning_summary") {
+      const previousPart = previous.find((part) => part.type === "reasoning_summary");
+      const previousSummary = previousPart?.type === "reasoning_summary"
+        ? previousPart.summary
+        : null;
+      if (previousSummary !== currentPart.summary) {
+        events.push({
+          type: "assistant_reasoning_summary",
+          summary: currentPart.summary,
+          cursor,
+          itemId,
+        });
+      }
+    }
   }
 
   return events;
