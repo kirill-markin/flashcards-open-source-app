@@ -851,8 +851,8 @@ final class LiveSmokeUITests: XCTestCase {
             identifier: LiveSmokeIdentifier.aiComposerTextField,
             timeout: self.longUiTimeoutSeconds
         )
-        try self.assertElementExists(
-            identifier: LiveSmokeIdentifier.aiEmptyState,
+        try self.assertTextExists(
+            "Try asking",
             timeout: self.longUiTimeoutSeconds
         )
         try self.assertElementDisabled(

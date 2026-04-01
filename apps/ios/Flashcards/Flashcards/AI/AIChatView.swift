@@ -323,6 +323,7 @@ struct AIChatView: View {
     var emptyChatState: some View {
         ContentUnavailableView {
             Text("Try asking")
+                .accessibilityIdentifier(UITestIdentifier.aiEmptyState)
         } description: {
             VStack(spacing: 8) {
                 Text("Summarize weak areas from my due cards.")
@@ -413,7 +414,7 @@ struct AIChatView: View {
 
     func acceptExternalAIConsent() {
         grantAIChatExternalProviderConsent(userDefaults: self.flashcardsStore.userDefaults)
-        self.refreshExternalAIConsentState()
+        self.hasAcceptedExternalAIConsent = true
         self.chatStore.activateWorkspace()
         self.handleAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
         if self.chatStore.isChatInteractive {
