@@ -265,8 +265,18 @@ extension AIChatStore {
                         "messagesCount": String(self.messages.count)
                     ]
                 )
-                self.composerPhase = .idle
-                self.repairStatus = nil
+                /**
+                 * The live stream can report a non-running session state before
+                 * the terminal assistant message event is applied on the UI
+                 * side. Keep the streaming UI active until that terminal event
+                 * clears the active assistant message, otherwise the "Stop
+                 * response" state disappears while text deltas are still
+                 * arriving.
+                 */
+                if self.activeStreamingMessageId == nil && self.activeStreamingItemId == nil {
+                    self.composerPhase = .idle
+                    self.repairStatus = nil
+                }
             }
 
         case .repairStatus(let status):
