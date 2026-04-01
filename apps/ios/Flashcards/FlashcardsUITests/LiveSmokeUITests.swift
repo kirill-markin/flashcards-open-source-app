@@ -872,7 +872,7 @@ final class LiveSmokeUITests: XCTestCase {
         }
 
         let assistantErrorMessages = self.visibleAssistantErrorMessageCount()
-        if assistantErrorMessages != assistantErrorMessagesBeforeReset {
+        if assistantErrorMessages > assistantErrorMessagesBeforeReset {
             throw LiveSmokeFailure.unexpectedAiConversationState(
                 message: "Expected no new AI assistant error messages after starting a new chat, found \(assistantErrorMessages - assistantErrorMessagesBeforeReset).",
                 screen: self.currentScreenSummary(),

@@ -77,7 +77,7 @@ extension AIChatView {
                         selection: self.$composerSelection,
                         axis: .vertical
                     )
-                    .disabled(self.chatStore.isComposerBusy)
+                    .disabled(self.composerTextFieldDisabled)
                     .focused(self.$isComposerFocused)
                     .onTapGesture {
                         self.isComposerFocused = true
@@ -188,5 +188,9 @@ extension AIChatView {
 
     var primaryComposerButtonDisabled: Bool {
         self.chatStore.canStopResponse == false && self.chatStore.canSendMessage == false
+    }
+
+    var composerTextFieldDisabled: Bool {
+        self.chatStore.isChatInteractive == false || self.chatStore.dictationState != .idle
     }
 }
