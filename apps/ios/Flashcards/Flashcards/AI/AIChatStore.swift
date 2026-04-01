@@ -98,6 +98,7 @@ final class AIChatStore {
     var messages: [AIChatMessage]
     private(set) var pendingAttachments: [AIChatAttachment]
     var serverChatConfig: AIChatServerConfig
+    var hasExternalProviderConsent: Bool
     var composerPhase: AIChatComposerPhase
     private(set) var dictationState: AIChatDictationState
     private(set) var activeAlert: AIChatAlert?
@@ -171,6 +172,7 @@ final class AIChatStore {
         self.messages = persistedState.messages
         self.pendingAttachments = []
         self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
+        self.hasExternalProviderConsent = hasAIChatExternalProviderConsent(userDefaults: flashcardsStore.userDefaults)
         self.chatSessionId = persistedState.chatSessionId
         self.composerPhase = .idle
         self.dictationState = .idle
@@ -216,10 +218,6 @@ final class AIChatStore {
 
     var usesGuestAIRestrictions: Bool {
         self.flashcardsStore.cloudSettings?.cloudState != .linked
-    }
-
-    var hasExternalProviderConsent: Bool {
-        hasAIChatExternalProviderConsent(userDefaults: self.flashcardsStore.userDefaults)
     }
 
     var isChatInteractive: Bool {
@@ -361,6 +359,17 @@ final class AIChatStore {
 
     func refreshAccessContextIfNeeded() {
         self.activateAccessContext(force: false)
+    }
+
+    func acceptExternalProviderConsent() {
+        grantAIChatExternalProviderConsent(userDefaults: self.flashcardsStore.userDefaults)
+        self.hasExternalProviderConsent = true
+    }
+
+    func refreshExternalProviderConsentState() {
+        self.hasExternalProviderConsent = hasAIChatExternalProviderConsent(
+            userDefaults: self.flashcardsStore.userDefaults
+        )
     }
 
     func retryLinkedBootstrap() {
@@ -581,7 +590,7 @@ final class AIChatStore {
             }
 
             if self.activeConversationId == conversationId {
-                if self.composerPhase != .idle && self.composerPhase != .stopping {
+                if self.shouldResetComposerPhaseAfterSendTaskCompletion() {
                     self.composerPhase = .idle
                 }
                 self.activeConversationId = nil
@@ -615,6 +624,22 @@ final class AIChatStore {
 
     private func trimmedInputText() -> String {
         self.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func shouldResetComposerPhaseAfterSendTaskCompletion() -> Bool {
+        if self.composerPhase == .idle || self.composerPhase == .stopping {
+            return false
+        }
+
+        if self.composerPhase == .running {
+            return false
+        }
+
+        if self.activeStreamingMessageId != nil || self.activeStreamingItemId != nil {
+            return false
+        }
+
+        return true
     }
 
     private func startDictation() {
@@ -964,9 +989,12 @@ final class AIChatStore {
             self.activeLiveStream = response.liveStream
             self.inputText = ""
             self.pendingAttachments = []
-            self.composerPhase = response.runState == "running" ? .running : .idle
             if response.runState == "running" {
+                self.composerPhase = .running
                 self.attachActiveLiveStreamIfPossible()
+            } else {
+                self.composerPhase = .startingRun
+                self.reconcileAcceptedNonRunningResponse(sessionId: response.sessionId)
             }
         case .liveEvent(let liveEvent):
             self.handleLiveEvent(liveEvent)

@@ -413,8 +413,7 @@ extension AIChatStore {
             return
         }
         guard let liveStream = self.activeLiveStream else {
-            self.showGeneralError(message: "AI live stream is unavailable for the active run.")
-            self.composerPhase = .idle
+            self.reconcileAcceptedNonRunningResponse(sessionId: self.chatSessionId)
             return
         }
         guard self.chatSessionId.isEmpty == false else {
@@ -501,6 +500,47 @@ extension AIChatStore {
         }
     }
 
+    func reconcileAcceptedNonRunningResponse(sessionId: String) {
+        Task {
+            do {
+                let session = try await self.flashcardsStore.cloudSessionForAI()
+                let response = try await self.chatService.loadBootstrap(
+                    session: session,
+                    sessionId: sessionId,
+                    limit: aiChatBootstrapPageLimit
+                )
+                guard self.chatSessionId == sessionId else {
+                    return
+                }
+
+                self.applyBootstrap(response)
+
+                if let errorMessage = aiChatLatestAssistantErrorMessage(messages: response.messages) {
+                    self.showGeneralError(message: errorMessage)
+                    return
+                }
+
+                if response.runState == "running" {
+                    self.attachBootstrapLiveIfNeeded(response: response, session: session)
+                    return
+                }
+
+                if aiChatHasEmptyAssistantPlaceholder(messages: response.messages) {
+                    self.markAssistantError(
+                        message: "AI response did not start streaming correctly. Please try again."
+                    )
+                }
+            } catch {
+                guard self.chatSessionId == sessionId else {
+                    return
+                }
+
+                self.composerPhase = .idle
+                self.showGeneralError(message: Flashcards.errorMessage(error: error))
+            }
+        }
+    }
+
     func handleLiveStreamTermination(
         _ termination: AIChatLiveAttachTermination,
         sessionId: String
@@ -577,8 +617,7 @@ extension AIChatStore {
             }
 
             if response.runState == "running" {
-                self.composerPhase = .idle
-                self.showGeneralError(message: "AI live stream ended before message completion.")
+                self.attachBootstrapLiveIfNeeded(response: response, session: session)
                 return
             }
         } catch {
@@ -763,4 +802,29 @@ private func aiChatLatestAssistantErrorMessage(messages: [AIChatMessage]) -> Str
     }.trimmingCharacters(in: .whitespacesAndNewlines)
 
     return message.isEmpty ? nil : message
+}
+
+private func aiChatHasEmptyAssistantPlaceholder(messages: [AIChatMessage]) -> Bool {
+    guard let assistantMessage = messages.last(where: { $0.role == .assistant }) else {
+        return false
+    }
+
+    if assistantMessage.isError || assistantMessage.isStopped {
+        return false
+    }
+
+    if assistantMessage.content.isEmpty {
+        return true
+    }
+
+    return assistantMessage.content.allSatisfy { part in
+        switch part {
+        case .text(let text):
+            return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .reasoningSummary(let reasoningSummary):
+            return reasoningSummary.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .image, .file, .toolCall, .accountUpgradePrompt:
+            return false
+        }
+    }
 }

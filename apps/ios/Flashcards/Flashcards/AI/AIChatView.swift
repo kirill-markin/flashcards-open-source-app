@@ -20,7 +20,6 @@ struct AIChatView: View {
     @State var shouldRestoreComposerFocusAfterDictation: Bool
     @State var composerSelection: TextSelection?
     @State var composerDictationInsertionSelection: AIChatDictationInsertionSelection?
-    @State var hasAcceptedExternalAIConsent: Bool
     @FocusState var isComposerFocused: Bool
 
     @MainActor
@@ -37,7 +36,6 @@ struct AIChatView: View {
         self.shouldRestoreComposerFocusAfterDictation = false
         self.composerSelection = nil
         self.composerDictationInsertionSelection = nil
-        self._hasAcceptedExternalAIConsent = State(initialValue: chatStore.hasExternalProviderConsent)
     }
 
     var body: some View {
@@ -69,9 +67,9 @@ struct AIChatView: View {
             }
         }
         .onAppear {
-            self.refreshExternalAIConsentState()
+            self.chatStore.refreshExternalProviderConsentState()
             self.chatStore.refreshAccessContextIfNeeded()
-            guard self.hasAcceptedExternalAIConsent else {
+            guard self.chatStore.hasExternalProviderConsent else {
                 self.chatStore.setChatVisibility(isVisible: false)
                 return
             }
@@ -85,7 +83,7 @@ struct AIChatView: View {
             }
         }
         .onChange(of: self.navigation.aiChatPresentationRequest) { _, request in
-            guard self.hasAcceptedExternalAIConsent else {
+            guard self.chatStore.hasExternalProviderConsent else {
                 return
             }
 
@@ -98,8 +96,8 @@ struct AIChatView: View {
                 self.chatStore.setChatVisibility(isVisible: false)
                 return
             }
-            self.refreshExternalAIConsentState()
-            guard self.hasAcceptedExternalAIConsent else {
+            self.chatStore.refreshExternalProviderConsentState()
+            guard self.chatStore.hasExternalProviderConsent else {
                 self.chatStore.setChatVisibility(isVisible: false)
                 return
             }
@@ -134,7 +132,7 @@ struct AIChatView: View {
                 return
             }
 
-            guard self.scenePhase == .active && self.hasAcceptedExternalAIConsent else {
+            guard self.scenePhase == .active && self.chatStore.hasExternalProviderConsent else {
                 self.chatStore.setChatVisibility(isVisible: false)
                 return
             }
@@ -244,7 +242,7 @@ struct AIChatView: View {
     }
 
     var accessState: AIChatAccessState {
-        aiChatAccessState(hasExternalProviderConsent: self.hasAcceptedExternalAIConsent)
+        aiChatAccessState(hasExternalProviderConsent: self.chatStore.hasExternalProviderConsent)
     }
 
     var consentGate: some View {
@@ -439,8 +437,7 @@ struct AIChatView: View {
     }
 
     func acceptExternalAIConsent() {
-        grantAIChatExternalProviderConsent(userDefaults: self.flashcardsStore.userDefaults)
-        self.hasAcceptedExternalAIConsent = true
+        self.chatStore.acceptExternalProviderConsent()
         self.chatStore.activateWorkspace()
         self.chatStore.setChatVisibility(
             isVisible: self.scenePhase == .active && self.navigation.selectedTab == .ai
@@ -452,14 +449,12 @@ struct AIChatView: View {
     }
 
     func refreshExternalAIConsentState() {
-        self.hasAcceptedExternalAIConsent = hasAIChatExternalProviderConsent(
-            userDefaults: self.flashcardsStore.userDefaults
-        )
+        self.chatStore.refreshExternalProviderConsentState()
     }
 
     func ensureExternalAIConsent() -> Bool {
         self.refreshExternalAIConsentState()
-        guard self.hasAcceptedExternalAIConsent else {
+        guard self.chatStore.hasExternalProviderConsent else {
             self.chatStore.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
             return false
         }

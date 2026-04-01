@@ -43,9 +43,9 @@ actor AIChatSessionRuntime {
 
     /**
      * Starts a new run request and reports the accepted response back to the
-     * store. Snapshot/bootstrap remains the source of truth for session state;
-     * this method only kicks off the run and leaves live attachment to the
-     * caller when the backend reports `runState == "running"`.
+     * store. Snapshot/bootstrap remains the source of truth for session state.
+     * This method only kicks off the run; the store reconciles accepted
+     * responses that are not immediately streamable.
      */
     func run(
         session: CloudLinkedSession,
@@ -93,12 +93,6 @@ actor AIChatSessionRuntime {
                     "runState": startResponse.runState
                 ]
             )
-
-            if startResponse.runState == "running" {
-                return
-            }
-
-            await eventHandler(.finish)
         } catch is CancellationError {
             await eventHandler(.finish)
             throw CancellationError()
