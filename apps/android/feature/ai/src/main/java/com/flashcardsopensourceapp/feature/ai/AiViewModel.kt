@@ -45,6 +45,11 @@ private enum class AiServerSnapshotApplyMode {
     PASSIVE
 }
 
+private enum class AiLiveAttachDisposition {
+    PENDING,
+    TERMINAL_EVENT_SEEN
+}
+
 class AiViewModel(
     private val aiChatRepository: AiChatRepository,
     private val syncRepository: SyncRepository,
@@ -531,8 +536,8 @@ class AiViewModel(
                 )
                 draftState.update { state ->
                     state.copy(
-                        activeAlert = null,
-                        errorMessage = message
+                        activeAlert = AiAlertState.GeneralError(message = message),
+                        errorMessage = ""
                     )
                 }
             } finally {
@@ -554,7 +559,10 @@ class AiViewModel(
         if (currentUiState.canSend.not()) {
             if (currentUiState.isConsentRequired) {
                 draftState.update { state ->
-                    state.copy(errorMessage = aiChatConsentRequiredMessage)
+                    state.copy(
+                        activeAlert = AiAlertState.GeneralError(message = aiChatConsentRequiredMessage),
+                        errorMessage = ""
+                    )
                 }
             }
             return
@@ -807,7 +815,23 @@ class AiViewModel(
                         runState = if (event.isError) "failed" else if (event.isStopped) "stopped" else "idle",
                         isLiveAttached = false,
                         composerPhase = AiComposerPhase.IDLE,
-                        repairStatus = null
+                        repairStatus = null,
+                        activeAlert = if (event.isError) {
+                            AiAlertState.GeneralError(
+                                message = latestAssistantErrorMessage(
+                                    messages = finalizeAssistantMessage(
+                                        state = state.persistedState,
+                                        itemId = event.itemId,
+                                        cursor = event.cursor,
+                                        isError = event.isError,
+                                        isStopped = event.isStopped
+                                    ).messages
+                                ) ?: "AI chat failed."
+                            )
+                        } else {
+                            state.activeAlert
+                        },
+                        errorMessage = ""
                     )
                 }
             }
@@ -827,16 +851,11 @@ class AiViewModel(
                         )
                     } else {
                         state.copy(
-                            persistedState = markAssistantError(
-                                state = state.persistedState,
-                                message = "AI live stream ended before message completion.",
-                                timestampMillis = System.currentTimeMillis()
-                            ),
                             runState = event.runState,
                             isLiveAttached = false,
                             composerPhase = AiComposerPhase.IDLE,
                             repairStatus = null,
-                            errorMessage = "AI live stream ended before message completion."
+                            errorMessage = ""
                         )
                     }
                 }
@@ -845,16 +864,12 @@ class AiViewModel(
             is AiChatLiveEvent.Error -> {
                 draftState.update { state ->
                     state.copy(
-                        persistedState = markAssistantError(
-                            state = state.persistedState,
-                            message = event.message,
-                            timestampMillis = System.currentTimeMillis()
-                        ),
                         runState = "failed",
                         isLiveAttached = false,
                         composerPhase = AiComposerPhase.IDLE,
                         repairStatus = null,
-                        errorMessage = event.message
+                        activeAlert = AiAlertState.GeneralError(message = event.message),
+                        errorMessage = ""
                     )
                 }
             }
@@ -936,7 +951,10 @@ class AiViewModel(
                     runState = "idle",
                     isLiveAttached = false,
                     composerPhase = AiComposerPhase.IDLE,
-                    errorMessage = "A response is already in progress. Wait for it to finish or stop it before sending another message."
+                    activeAlert = AiAlertState.GeneralError(
+                        message = "A response is already in progress. Wait for it to finish or stop it before sending another message."
+                    ),
+                    errorMessage = ""
                 )
             }
             return
@@ -966,26 +984,14 @@ class AiViewModel(
             throwable = error
         )
         draftState.update { state ->
-            if (didAcceptRun.not()) {
-                state.copy(
-                    runState = "failed",
-                    isLiveAttached = false,
-                    composerPhase = AiComposerPhase.IDLE,
-                    errorMessage = message
-                )
-            } else {
-                state.copy(
-                    persistedState = markAssistantError(
-                        state = repairedState,
-                        message = message,
-                        timestampMillis = System.currentTimeMillis()
-                    ),
-                    runState = "failed",
-                    isLiveAttached = false,
-                    composerPhase = AiComposerPhase.IDLE,
-                    errorMessage = message
-                )
-            }
+            state.copy(
+                persistedState = repairedState,
+                runState = "failed",
+                isLiveAttached = false,
+                composerPhase = AiComposerPhase.IDLE,
+                activeAlert = AiAlertState.GeneralError(message = message),
+                errorMessage = ""
+            )
         }
     }
 
@@ -1011,8 +1017,8 @@ class AiViewModel(
 
         draftState.update { state ->
             state.copy(
-                activeAlert = null,
-                errorMessage = message
+                activeAlert = AiAlertState.GeneralError(message = message),
+                errorMessage = ""
             )
         }
     }
@@ -1291,16 +1297,14 @@ class AiViewModel(
         val liveStream = response.liveStream ?: run {
             draftState.update { state ->
                 state.copy(
-                    persistedState = markAssistantError(
-                        state = state.persistedState,
-                        message = "AI live stream is unavailable for the active run.",
-                        timestampMillis = System.currentTimeMillis()
-                    ),
                     runState = "failed",
                     isLiveAttached = false,
                     composerPhase = AiComposerPhase.IDLE,
                     repairStatus = null,
-                    errorMessage = "AI live stream is unavailable for the active run."
+                    activeAlert = AiAlertState.GeneralError(
+                        message = "AI live stream is unavailable for the active run."
+                    ),
+                    errorMessage = ""
                 )
             }
             persistCurrentState()
@@ -1332,6 +1336,7 @@ class AiViewModel(
         )
         var liveJob: Job? = null
         liveJob = viewModelScope.launch {
+            var liveAttachDisposition = AiLiveAttachDisposition.PENDING
             draftState.update { state ->
                 state.copy(isLiveAttached = true)
             }
@@ -1343,27 +1348,41 @@ class AiViewModel(
                     liveStream = liveStream,
                     afterCursor = afterCursor,
                     onEvent = { event ->
+                        if (
+                            event is AiChatLiveEvent.AssistantMessageDone
+                            || event is AiChatLiveEvent.Error
+                            || event is AiChatLiveEvent.ResetRequired
+                        ) {
+                            liveAttachDisposition = AiLiveAttachDisposition.TERMINAL_EVENT_SEEN
+                        }
                         applyLiveEvent(event = event)
                     }
                 )
+                if (
+                    liveAttachDisposition == AiLiveAttachDisposition.PENDING
+                    && isScreenVisible
+                ) {
+                    reconcileUnexpectedLiveStreamDetach(
+                        workspaceId = workspaceId,
+                        sessionId = sessionId
+                    )
+                }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
+                val message = makeAiUserFacingErrorMessage(
+                    error = error,
+                    surface = AiErrorSurface.CHAT,
+                    configuration = serverConfigurationState.value
+                )
                 draftState.update { state ->
                     state.copy(
-                        persistedState = markAssistantError(
-                            state = state.persistedState,
-                            message = makeAiUserFacingErrorMessage(
-                                error = error,
-                                surface = AiErrorSurface.CHAT,
-                                configuration = serverConfigurationState.value
-                            ),
-                            timestampMillis = System.currentTimeMillis()
-                        ),
                         runState = "failed",
                         isLiveAttached = false,
                         composerPhase = AiComposerPhase.IDLE,
-                        repairStatus = null
+                        repairStatus = null,
+                        activeAlert = AiAlertState.GeneralError(message = message),
+                        errorMessage = ""
                     )
                 }
                 persistCurrentState()
@@ -1382,6 +1401,69 @@ class AiViewModel(
             }
         }
         activeLiveJob = liveJob
+    }
+
+    private suspend fun reconcileUnexpectedLiveStreamDetach(
+        workspaceId: String?,
+        sessionId: String
+    ) {
+        try {
+            val bootstrap = aiChatRepository.loadBootstrap(
+                workspaceId = workspaceId,
+                sessionId = sessionId,
+                limit = aiChatBootstrapPageLimit
+            )
+            applyBootstrap(
+                response = bootstrap,
+                applyMode = AiServerSnapshotApplyMode.ACTIVE
+            )
+
+            val errorMessage = latestAssistantErrorMessage(messages = bootstrap.messages)
+            if (errorMessage != null) {
+                draftState.update { state ->
+                    state.copy(
+                        composerPhase = AiComposerPhase.IDLE,
+                        activeAlert = AiAlertState.GeneralError(message = errorMessage),
+                        errorMessage = ""
+                    )
+                }
+                persistCurrentState()
+                return
+            }
+
+            if (bootstrap.runState == "running") {
+                draftState.update { state ->
+                    state.copy(
+                        runState = "failed",
+                        isLiveAttached = false,
+                        composerPhase = AiComposerPhase.IDLE,
+                        repairStatus = null,
+                        activeAlert = AiAlertState.GeneralError(
+                            message = "AI live stream ended before message completion."
+                        ),
+                        errorMessage = ""
+                    )
+                }
+                persistCurrentState()
+            }
+        } catch (error: Exception) {
+            val message = makeAiUserFacingErrorMessage(
+                error = error,
+                surface = AiErrorSurface.CHAT,
+                configuration = serverConfigurationState.value
+            )
+            draftState.update { state ->
+                state.copy(
+                    runState = "failed",
+                    isLiveAttached = false,
+                    composerPhase = AiComposerPhase.IDLE,
+                    repairStatus = null,
+                    activeAlert = AiAlertState.GeneralError(message = message),
+                    errorMessage = ""
+                )
+            }
+            persistCurrentState()
+        }
     }
 
     /**
@@ -1546,7 +1628,10 @@ class AiViewModel(
                 throwable = error
             )
             draftState.update { state ->
-                state.copy(errorMessage = "Chat content refresh failed. $message")
+                state.copy(
+                    activeAlert = AiAlertState.GeneralError(message = "Chat content refresh failed. $message"),
+                    errorMessage = ""
+                )
             }
         }
     }

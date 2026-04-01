@@ -222,11 +222,6 @@
   border-color: var(--panel-border);
 }
 
-.chat-msg-error {
-  border-color: rgba(255, 77, 87, 0.32);
-  color: #ffd6d9;
-}
-
 .chat-streaming-indicator {
   display: block;
   color: var(--text-secondary);
@@ -419,6 +414,38 @@
   margin-inline-start: auto;
   width: 84px;
   background: linear-gradient(90deg, rgba(196, 75, 45, 0.5), rgba(196, 75, 45, 0.7), rgba(196, 75, 45, 0.5));
+}
+
+.chat-error-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(5, 7, 9, 0.72);
+}
+
+.chat-error-dialog {
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+}
+
+.chat-error-dialog h2,
+.chat-error-dialog p {
+  margin: 0;
+}
+
+.chat-error-dialog p {
+  color: var(--text-secondary);
+}
+
+.chat-error-dialog .primary-btn {
+  align-self: flex-end;
 }
 
 .chat-textarea {

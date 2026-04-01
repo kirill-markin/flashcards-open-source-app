@@ -553,7 +553,7 @@ final class AIChatStore {
                 didAppendOptimisticMessages = true
                 self.composerPhase = .startingRun
                 self.activeConversationId = conversationId
-                await self.runtime.run(
+                try await self.runtime.run(
                     session: session,
                     sessionId: self.chatSessionId,
                     afterCursor: self.liveCursor,
@@ -773,7 +773,7 @@ final class AIChatStore {
         }
 
         if didAcceptRun == false && isAIChatOfflineSendError(error: error) {
-            self.flashcardsStore.enqueueTransientBanner(banner: makeAIChatOfflineBanner())
+            self.showGeneralError(message: Flashcards.errorMessage(error: error))
             return
         }
 
@@ -783,7 +783,7 @@ final class AIChatStore {
             case .invalidResponse(let errorDetails, _, _) = serviceError,
             errorDetails.code == "CHAT_ACTIVE_RUN_IN_PROGRESS"
         {
-            self.flashcardsStore.enqueueTransientBanner(banner: makeAIChatActiveRunBanner())
+            self.showGeneralError(message: "A response is already in progress. Wait for it to finish or stop it before sending another message.")
             return
         }
 
@@ -792,11 +792,7 @@ final class AIChatStore {
             return
         }
 
-        self.markAssistantError(message: Flashcards.errorMessage(error: error))
-        let state = self.currentPersistedState()
-        Task {
-            await self.historyStore.saveState(state: state)
-        }
+        self.showGeneralError(message: Flashcards.errorMessage(error: error))
     }
 
     private func currentAccessContext() -> AIChatAccessContext {
@@ -985,7 +981,7 @@ final class AIChatStore {
             }
         case .fail(let message):
             self.repairStatus = nil
-            self.markAssistantError(message: message)
+            self.showGeneralError(message: message)
             if self.activeConversationId == conversationId {
                 self.composerPhase = .idle
             }

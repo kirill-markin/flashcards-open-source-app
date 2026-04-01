@@ -234,6 +234,11 @@ extension AIChatStore {
             self.activeStreamingItemId = nil
             self.composerPhase = .idle
             self.repairStatus = nil
+            if isError {
+                self.showGeneralError(
+                    message: aiChatLatestAssistantErrorMessage(messages: self.messages) ?? "AI chat failed."
+                )
+            }
             logAIChatStoreEvent(
                 action: "ai_live_terminal_event_applied",
                 metadata: self.metadataForAppliedStreamingEvent(
@@ -260,11 +265,6 @@ extension AIChatStore {
                         "messagesCount": String(self.messages.count)
                     ]
                 )
-                if self.activeStreamingMessageId != nil {
-                    self.markAssistantError(message: "AI live stream ended before message completion.")
-                    self.activeStreamingMessageId = nil
-                    self.activeStreamingItemId = nil
-                }
                 self.composerPhase = .idle
                 self.repairStatus = nil
             }
@@ -282,10 +282,10 @@ extension AIChatStore {
             )
 
         case .error(let message):
-            self.markAssistantError(message: message)
             self.activeStreamingMessageId = nil
             self.activeStreamingItemId = nil
             self.composerPhase = .idle
+            self.showGeneralError(message: message)
             logAIChatStoreEvent(
                 action: "ai_live_error_applied",
                 metadata: [
@@ -366,7 +366,7 @@ extension AIChatStore {
         }
 
         guard let liveStream = response.liveStream else {
-            self.markAssistantError(message: "AI live stream is unavailable for the active run.")
+            self.showGeneralError(message: "AI live stream is unavailable for the active run.")
             self.composerPhase = .idle
             return
         }
@@ -380,6 +380,9 @@ extension AIChatStore {
                 configurationMode: session.configurationMode,
                 eventHandler: { [weak self] event in
                     await self?.handleLiveEvent(event)
+                },
+                completionHandler: { [weak self] termination in
+                    await self?.handleLiveStreamTermination(termination, sessionId: response.sessionId)
                 }
             )
         }
@@ -400,12 +403,12 @@ extension AIChatStore {
             return
         }
         guard let liveStream = self.activeLiveStream else {
-            self.markAssistantError(message: "AI live stream is unavailable for the active run.")
+            self.showGeneralError(message: "AI live stream is unavailable for the active run.")
             self.composerPhase = .idle
             return
         }
         guard self.chatSessionId.isEmpty == false else {
-            self.markAssistantError(message: "AI chat session is unavailable for the active run.")
+            self.showGeneralError(message: "AI chat session is unavailable for the active run.")
             self.composerPhase = .idle
             return
         }
@@ -427,13 +430,16 @@ extension AIChatStore {
                     configurationMode: session.configurationMode,
                     eventHandler: { [weak self] event in
                         await self?.handleLiveEvent(event)
+                    },
+                    completionHandler: { [weak self] termination in
+                        await self?.handleLiveStreamTermination(termination, sessionId: sessionId)
                     }
                 )
             } catch {
                 guard self.shouldKeepLiveAttached else {
                     return
                 }
-                self.markAssistantError(message: Flashcards.errorMessage(error: error))
+                self.showGeneralError(message: Flashcards.errorMessage(error: error))
                 self.composerPhase = .idle
             }
         }
@@ -478,9 +484,57 @@ extension AIChatStore {
                 self.applyBootstrap(response)
                 self.attachBootstrapLiveIfNeeded(response: response, session: session)
             } catch {
-                self.markAssistantError(message: Flashcards.errorMessage(error: error))
+                self.showGeneralError(message: Flashcards.errorMessage(error: error))
                 self.composerPhase = .idle
             }
+        }
+    }
+
+    func handleLiveStreamTermination(
+        _ termination: AIChatLiveAttachTermination,
+        sessionId: String
+    ) async {
+        switch termination {
+        case .sawTerminalEvent:
+            return
+        case .failed(let message):
+            guard self.shouldKeepLiveAttached else {
+                return
+            }
+            self.composerPhase = .idle
+            self.showGeneralError(message: message)
+        case .endedWithoutTerminalEvent:
+            guard self.shouldKeepLiveAttached else {
+                return
+            }
+            await self.reconcileUnexpectedLiveStreamEnd(sessionId: sessionId)
+        }
+    }
+
+    func reconcileUnexpectedLiveStreamEnd(sessionId: String) async {
+        do {
+            let session = try await self.flashcardsStore.cloudSessionForAI()
+            let response = try await self.chatService.loadBootstrap(
+                session: session,
+                sessionId: sessionId,
+                limit: aiChatBootstrapPageLimit
+            )
+            self.applyBootstrap(response)
+
+            if let errorMessage = aiChatLatestAssistantErrorMessage(messages: response.messages) {
+                self.composerPhase = .idle
+                self.showGeneralError(message: errorMessage)
+                return
+            }
+
+            if response.runState == "running" {
+                self.composerPhase = .idle
+                self.showGeneralError(message: "AI live stream ended before message completion.")
+                return
+            }
+        } catch {
+            self.composerPhase = .idle
+            self.showGeneralError(message: Flashcards.errorMessage(error: error))
         }
     }
 
@@ -646,4 +700,18 @@ extension AIChatStore {
 
         return metadata
     }
+}
+
+private func aiChatLatestAssistantErrorMessage(messages: [AIChatMessage]) -> String? {
+    guard let assistantMessage = messages.last(where: { $0.role == .assistant && $0.isError }) else {
+        return nil
+    }
+
+    let message = assistantMessage.content.reduce(into: "") { result, part in
+        if case .text(let text) = part {
+            result.append(text)
+        }
+    }.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    return message.isEmpty ? nil : message
 }

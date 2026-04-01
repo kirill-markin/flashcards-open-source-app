@@ -158,7 +158,8 @@ export function ChatPanel(props: Props): ReactElement {
     currentSessionId,
     chatConfig,
     composerAction,
-    composerNotice,
+    errorDialogMessage,
+    dismissErrorDialog,
     acceptServerSessionId,
     sendMessage: sendChatMessage,
     stopMessage,
@@ -724,7 +725,7 @@ export function ChatPanel(props: Props): ReactElement {
           return (
             <div
               key={`${message.timestamp}-${index}`}
-              className={`chat-msg chat-msg-${message.role}${message.isError ? " chat-msg-error" : ""}`}
+              className={`chat-msg chat-msg-${message.role}`}
             >
               {renderStoredMessageContent(message)}
               {isLastAssistant ? (
@@ -738,12 +739,6 @@ export function ChatPanel(props: Props): ReactElement {
       </div>
 
       <div className="chat-input-area">
-        {composerNotice !== null ? (
-          <div className="chat-composer-notice" role="status" aria-live="polite">
-            {composerNotice}
-          </div>
-        ) : null}
-
         {pendingAttachments.length > 0 ? (
           <div className="chat-attachment-preview">
             {pendingAttachments.map((attachment, index) => (
@@ -848,6 +843,27 @@ export function ChatPanel(props: Props): ReactElement {
           </div>
         </div>
       </div>
+
+      {errorDialogMessage !== null ? (
+        <div
+          className="chat-error-dialog-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="chat-error-dialog-title"
+        >
+          <div className="panel chat-error-dialog">
+            <h2 id="chat-error-dialog-title">AI chat error</h2>
+            <p>{errorDialogMessage}</p>
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={dismissErrorDialog}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
