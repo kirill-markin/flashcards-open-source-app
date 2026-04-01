@@ -38,6 +38,7 @@ actor AIChatSessionRuntime {
     func run(
         session: CloudLinkedSession,
         sessionId: String,
+        afterCursor: String?,
         outgoingContent: [AIChatContentPart],
         eventHandler: @escaping @Sendable (AIChatRuntimeEvent) async -> Void
     ) async {
@@ -88,12 +89,15 @@ actor AIChatSessionRuntime {
                 try Task.checkCancellation()
                 logAIChatRuntimeEvent(
                     action: "ai_live_attach_inline",
-                    metadata: ["sessionId": startResponse.sessionId]
+                    metadata: [
+                        "sessionId": startResponse.sessionId,
+                        "afterCursor": afterCursor ?? "-"
+                    ]
                 )
                 try await self.consumeLiveStream(
                     liveStream: liveStream,
                     sessionId: startResponse.sessionId,
-                    afterCursor: nil,
+                    afterCursor: afterCursor,
                     configurationMode: session.configurationMode,
                     eventHandler: { event in
                         await eventHandler(.liveEvent(event))
