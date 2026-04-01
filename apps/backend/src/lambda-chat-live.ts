@@ -19,18 +19,6 @@ declare const awslambda: {
   };
 };
 
-const ALLOWED_ORIGINS = (process.env.BACKEND_ALLOWED_ORIGINS ?? "").split(",").filter(Boolean);
-
-function getCorsHeaders(origin: string | undefined): Record<string, string> {
-  const effectiveOrigin = origin !== undefined && ALLOWED_ORIGINS.includes(origin) ? origin : "";
-  return {
-    "Access-Control-Allow-Origin": effectiveOrigin,
-    "Access-Control-Allow-Headers": "content-type, authorization",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Credentials": "true",
-  };
-}
-
 function getLiveRequestId(event: APIGatewayProxyEventV2): string {
   return event.requestContext.requestId ?? randomUUID();
 }
@@ -61,19 +49,7 @@ function getLiveAuthorizationScheme(authorizationHeader: string | undefined): st
 
 export const handler = awslambda.streamifyResponse(
   async (event: APIGatewayProxyEventV2, responseStream: Writable) => {
-    const origin = event.headers?.origin;
-    const corsHeaders = getCorsHeaders(origin);
     const requestId = getLiveRequestId(event);
-
-    if (event.requestContext?.http?.method === "OPTIONS") {
-      const metadata = {
-        statusCode: 204,
-        headers: { ...corsHeaders, "Content-Type": "text/plain", "X-Request-Id": requestId },
-      };
-      const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
-      stream.end();
-      return;
-    }
 
     const url = new URL(event.rawPath + "?" + (event.rawQueryString ?? ""), "http://localhost");
     const authorizationHeader = event.headers?.authorization;
@@ -88,7 +64,6 @@ export const handler = awslambda.streamifyResponse(
           "Cache-Control": "no-cache, no-store",
           "Connection": "keep-alive",
           "X-Request-Id": requestId,
-          ...corsHeaders,
         },
       };
       const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
@@ -102,14 +77,14 @@ export const handler = awslambda.streamifyResponse(
         rawQueryString: event.rawQueryString,
         sessionId: url.searchParams.get("sessionId"),
         afterCursor: url.searchParams.get("afterCursor"),
-        origin: origin ?? null,
+        origin: event.headers?.origin ?? null,
         authScheme: getLiveAuthorizationScheme(authorizationHeader),
         statusCode: 400,
         ...getErrorLogContext(error),
       }, true);
       const metadata = {
         statusCode: 400,
-        headers: { "Content-Type": "application/json", "X-Request-Id": requestId, ...corsHeaders },
+        headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
       };
       const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
       stream.write(JSON.stringify({ error: message, requestId }));
