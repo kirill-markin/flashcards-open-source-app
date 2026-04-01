@@ -187,6 +187,32 @@ describe("ChatPanel send lifecycle", () => {
     expect(getContainer().textContent).toContain("Loading AI chat");
   });
 
+  it("does not restart initial hydration when switching between sidebar and fullscreen chat surfaces", async () => {
+    getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
+      sessionId: "session-1",
+      messages: [{
+        role: "assistant",
+        content: [{ type: "text", text: "Existing response" }],
+        timestamp: 1,
+        isError: false,
+        isStopped: false,
+      }],
+    }));
+
+    await renderChatPanel("sidebar");
+    await flushAsync();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).toHaveBeenCalledTimes(1);
+
+    await renderChatPanel("fullscreen");
+    await flushAsync();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(getContainer().textContent).toContain("Existing response");
+  });
+
   it("uses the persisted chat snapshot as the first paint while refresh is pending", async () => {
     storeChatSessionWarmStartSnapshot("workspace-1", {
       sessionId: "session-1",

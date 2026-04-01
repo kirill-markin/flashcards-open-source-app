@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -42,7 +41,7 @@ import {
   type ChatDraftSelection,
   type ChatDictationState,
 } from "./chatDictation";
-import { useChatSessionController } from "./useChatSessionController";
+import { useChatSession } from "./ChatSessionControllerContext";
 
 type Props = Readonly<{
   mode: "sidebar" | "fullscreen";
@@ -122,8 +121,6 @@ function stopMediaRecorder(
 export function ChatPanel(props: Props): ReactElement {
   const { mode } = props;
   const appData = useAppData();
-  const refreshLocalData = appData.refreshLocalData;
-  const setAppErrorMessage = appData.setErrorMessage;
   const {
     draft,
     replaceInputText,
@@ -140,17 +137,6 @@ export function ChatPanel(props: Props): ReactElement {
   const inputText = draft.inputText;
   const pendingAttachments = draft.pendingAttachments;
 
-  const handleMainContentInvalidated = useCallback((mainContentInvalidationVersion: number): void => {
-    if (mainContentInvalidationVersion <= 0) {
-      return;
-    }
-
-    void refreshLocalData().catch((error: unknown) => {
-      const message = error instanceof Error ? error.message : String(error);
-      setAppErrorMessage(`Chat content refresh failed. ${message}`);
-    });
-  }, [refreshLocalData, setAppErrorMessage]);
-
   const activeWorkspaceId = appData.activeWorkspace?.workspaceId ?? null;
   const {
     messages,
@@ -166,11 +152,7 @@ export function ChatPanel(props: Props): ReactElement {
     sendMessage: sendChatMessage,
     stopMessage,
     clearConversation,
-  } = useChatSessionController({
-    workspaceId: activeWorkspaceId,
-    isRemoteReady: appData.sessionVerificationState === "verified",
-    onMainContentInvalidated: handleMainContentInvalidated,
-  });
+  } = useChatSession();
 
   const rootRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
