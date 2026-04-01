@@ -178,6 +178,7 @@ export function AppDataProvider(props: Props): ReactElement {
     setCloudSettings,
     refreshWorkspaceView: syncEngine.refreshWorkspaceView,
     runSync: syncEngine.runSync,
+    runSyncSilently: syncEngine.runSyncSilently,
     runSyncForWorkspace: syncEngine.runSyncForWorkspace,
   });
 
