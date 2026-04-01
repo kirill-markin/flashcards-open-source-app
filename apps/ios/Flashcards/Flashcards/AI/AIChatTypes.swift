@@ -224,6 +224,7 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
     case image(mediaType: String, base64Data: String)
     case file(fileName: String, mediaType: String, base64Data: String)
     case toolCall(AIChatToolCall)
+    case reasoningSummary(String)
     case accountUpgradePrompt(message: String, buttonTitle: String)
 
     private enum CodingKeys: String, CodingKey {
@@ -237,6 +238,7 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
         case status
         case input
         case output
+        case summary
         case buttonTitle
     }
 
@@ -268,6 +270,8 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
                     output: try container.decodeIfPresent(String.self, forKey: .output)
                 )
             )
+        case "reasoning_summary":
+            self = .reasoningSummary(try container.decode(String.self, forKey: .summary))
         case "account_upgrade_prompt":
             self = .accountUpgradePrompt(
                 message: try container.decode(String.self, forKey: .text),
@@ -305,6 +309,9 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
             try container.encode(toolCall.status, forKey: .status)
             try container.encodeIfPresent(toolCall.input, forKey: .input)
             try container.encodeIfPresent(toolCall.output, forKey: .output)
+        case .reasoningSummary(let summary):
+            try container.encode("reasoning_summary", forKey: .type)
+            try container.encode(summary, forKey: .summary)
         case .accountUpgradePrompt(let message, let buttonTitle):
             try container.encode("account_upgrade_prompt", forKey: .type)
             try container.encode(message, forKey: .text)
@@ -329,6 +336,15 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
             return nil
         }
     }
+
+    var reasoningSummaryValue: String? {
+        switch self {
+        case .reasoningSummary(let summary):
+            return summary
+        default:
+            return nil
+        }
+    }
 }
 
 private struct AIChatDecodableContentPartPayload: Decodable {
@@ -345,6 +361,7 @@ private struct AIChatDecodableContentPartPayload: Decodable {
         case status
         case input
         case output
+        case summary
         case buttonTitle
     }
 
@@ -376,13 +393,13 @@ private struct AIChatDecodableContentPartPayload: Decodable {
                     output: try container.decodeIfPresent(String.self, forKey: .output)
                 )
             )
+        case "reasoning_summary":
+            self.value = .reasoningSummary(try container.decode(String.self, forKey: .summary))
         case "account_upgrade_prompt":
             self.value = .accountUpgradePrompt(
                 message: try container.decode(String.self, forKey: .text),
                 buttonTitle: try container.decode(String.self, forKey: .buttonTitle)
             )
-        case "reasoning_summary":
-            self.value = nil
         default:
             throw DecodingError.dataCorruptedError(
                 forKey: .type,
@@ -406,6 +423,9 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
     let content: [AIChatContentPart]
     let timestamp: String
     let isError: Bool
+    let isStopped: Bool
+    let cursor: String?
+    let itemId: String?
 
     private enum CodingKeys: String, CodingKey {
         case id = "messageId"
@@ -414,6 +434,9 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
         case timestamp
         case timestampMillis
         case isError
+        case isStopped
+        case cursor
+        case itemId
     }
 
     init(
@@ -421,13 +444,19 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
         role: AIChatRole,
         content: [AIChatContentPart],
         timestamp: String,
-        isError: Bool
+        isError: Bool,
+        isStopped: Bool,
+        cursor: String?,
+        itemId: String?
     ) {
         self.id = id
         self.role = role
         self.content = content
         self.timestamp = timestamp
         self.isError = isError
+        self.isStopped = isStopped
+        self.cursor = cursor
+        self.itemId = itemId
     }
 
     init(from decoder: Decoder) throws {
@@ -451,6 +480,9 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
             )
         }
         self.isError = try container.decode(Bool.self, forKey: .isError)
+        self.isStopped = try container.decodeIfPresent(Bool.self, forKey: .isStopped) ?? false
+        self.cursor = try container.decodeIfPresent(String.self, forKey: .cursor)
+        self.itemId = try container.decodeIfPresent(String.self, forKey: .itemId)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -460,6 +492,9 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
         try container.encode(self.content, forKey: .content)
         try container.encode(self.timestamp, forKey: .timestamp)
         try container.encode(self.isError, forKey: .isError)
+        try container.encode(self.isStopped, forKey: .isStopped)
+        try container.encodeIfPresent(self.cursor, forKey: .cursor)
+        try container.encodeIfPresent(self.itemId, forKey: .itemId)
     }
 }
 
@@ -576,6 +611,7 @@ struct AIChatBootstrapResponse: Sendable {
     let sessionId: String
     let runState: String
     let chatConfig: AIChatServerConfig
+    let liveStream: AIChatLiveStreamEnvelope?
     let messages: [AIChatMessage]
     let hasOlder: Bool
     let oldestCursor: String?
@@ -592,6 +628,7 @@ struct AIChatBootstrapResponsePayload: Decodable, Sendable {
     let sessionId: String
     let runState: String
     let chatConfig: AIChatServerConfig
+    let liveStream: AIChatLiveStreamEnvelope?
     let messages: [AIChatBootstrapMessagePayload]
     let hasOlder: Bool
     let oldestCursor: String?
@@ -634,6 +671,7 @@ enum AIChatLiveEvent: Sendable {
     case runState(String)
     case assistantDelta(text: String, cursor: String, itemId: String)
     case assistantToolCall(AIChatToolCall, cursor: String, itemId: String)
+    case assistantReasoningSummary(summary: String, cursor: String, itemId: String)
     case assistantMessageDone(cursor: String, itemId: String, isError: Bool, isStopped: Bool)
     case repairStatus(AIChatRepairAttemptStatus)
     case error(String)
@@ -681,8 +719,15 @@ struct AIChatStartRunResponse: Codable, Hashable, Sendable {
     let runId: String
     let clientRequestId: String
     let runState: String
+    let liveStream: AIChatLiveStreamEnvelope?
     let chatConfig: AIChatServerConfig
     let deduplicated: Bool?
+}
+
+struct AIChatLiveStreamEnvelope: Codable, Hashable, Sendable {
+    let url: String
+    let authorization: String
+    let expiresAt: Int
 }
 
 struct AIChatNewSessionRequestBody: Codable, Hashable, Sendable {

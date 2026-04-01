@@ -53,4 +53,5 @@ enum UITestIdentifier {
     static let aiToolCallResponseText: String = "ai.toolCallResponseText"
     static let aiToolCallCompletedStatus: String = "ai.toolCallCompletedStatus"
     static let aiAssistantErrorMessage: String = "ai.assistantErrorMessage"
+    static let aiAssistantVisibleText: String = "ai.assistantVisibleText"
 }

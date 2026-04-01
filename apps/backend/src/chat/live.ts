@@ -53,6 +53,24 @@ function findInProgressAssistantItem(
   return null;
 }
 
+function findLatestAssistantItem(
+  messages: ReadonlyArray<PersistedChatMessageItem>,
+): PersistedChatMessageItem | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i]!;
+    if (message.role === "assistant") {
+      return message;
+    }
+  }
+  return null;
+}
+
+function filterAssistantMessages(
+  messages: ReadonlyArray<PersistedChatMessageItem>,
+): ReadonlyArray<PersistedChatMessageItem> {
+  return messages.filter((message) => message.role === "assistant");
+}
+
 /**
  * Runs the SSE live loop, writing events to the provided writable stream.
  */
@@ -86,7 +104,8 @@ export async function runLiveStream(
         sessionId,
         params.afterCursor,
       );
-      for (const message of backlogMessages) {
+      const backlogAssistantMessages = filterAssistantMessages(backlogMessages);
+      for (const message of backlogAssistantMessages) {
         if (stream.destroyed) {
           return;
         }
@@ -121,22 +140,24 @@ export async function runLiveStream(
     }
 
     try {
-      const page = await listChatMessagesLatest(userId, workspaceId, sessionId, 1);
-      const latestMessage = page.messages.length > 0 ? page.messages[page.messages.length - 1]! : null;
-      const currentRunState = latestMessage !== null
-        ? (latestMessage.state === "in_progress" ? "running" as const : "idle" as const)
-        : "idle" as const;
+      const page = await listChatMessagesLatest(userId, workspaceId, sessionId, 4);
+      const latestAssistantMessage = findLatestAssistantItem(page.messages);
+      const inProgressAssistantItem = findInProgressAssistantItem(page.messages);
+      const currentRunState = inProgressAssistantItem === null
+        ? "idle" as const
+        : "running" as const;
 
       // Check for new completed messages beyond our cursor.
-      if (latestMessage !== null && latestMessage.itemOrder > lastEmittedCursor) {
+      if (latestAssistantMessage !== null && latestAssistantMessage.itemOrder > lastEmittedCursor) {
         const newMessages = await listChatMessagesAfterCursor(
           userId,
           workspaceId,
           sessionId,
           lastEmittedCursor,
         );
+        const assistantMessages = filterAssistantMessages(newMessages);
 
-        for (const message of newMessages) {
+        for (const message of assistantMessages) {
           if (stream.destroyed) {
             return;
           }
@@ -171,14 +192,17 @@ export async function runLiveStream(
             previousAssistantItemId = null;
           }
         }
-      } else if (latestMessage !== null && latestMessage.state === "in_progress" && latestMessage.itemId === previousAssistantItemId) {
+      } else if (
+        inProgressAssistantItem !== null
+        && inProgressAssistantItem.itemId === previousAssistantItemId
+      ) {
         // Same in-progress item, check for content changes.
-        const strippedContent = stripBase64FromContentParts(latestMessage.content);
+        const strippedContent = stripBase64FromContentParts(inProgressAssistantItem.content);
         const deltaEvents = diffAssistantContent(
           previousAssistantContent,
           strippedContent,
-          String(latestMessage.itemOrder),
-          latestMessage.itemId,
+          String(inProgressAssistantItem.itemOrder),
+          inProgressAssistantItem.itemId,
         );
         for (const event of deltaEvents) {
           write(formatSSEEvent(event));

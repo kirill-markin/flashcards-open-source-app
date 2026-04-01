@@ -1,6 +1,8 @@
 import Foundation
 import Observation
 
+private let aiChatBootstrapPageLimit: Int = 20
+
 enum AIChatAttachmentSettingsSource: String, Equatable {
     case camera
     case photos
@@ -116,6 +118,12 @@ final class AIChatStore {
     @ObservationIgnored private var activeBootstrapTask: Task<Void, Never>?
     @ObservationIgnored private var activeConversationId: String?
     @ObservationIgnored private var activeAccessContext: AIChatAccessContext?
+    @ObservationIgnored private var hasOlderMessages: Bool
+    @ObservationIgnored private var oldestCursor: String?
+    @ObservationIgnored private var liveCursor: String?
+    @ObservationIgnored private var activeLiveStream: AIChatLiveStreamEnvelope?
+    @ObservationIgnored private var activeStreamingMessageId: String?
+    @ObservationIgnored private var activeStreamingItemId: String?
 
     convenience init(
         flashcardsStore: FlashcardsStore,
@@ -174,6 +182,12 @@ final class AIChatStore {
         self.activeBootstrapTask = nil
         self.activeConversationId = nil
         self.activeAccessContext = nil
+        self.hasOlderMessages = false
+        self.oldestCursor = nil
+        self.liveCursor = nil
+        self.activeLiveStream = nil
+        self.activeStreamingMessageId = nil
+        self.activeStreamingItemId = nil
         self.activateAccessContext(force: true)
     }
 
@@ -306,6 +320,12 @@ final class AIChatStore {
         self.repairStatus = nil
         self.completedDictationTranscript = nil
         self.activeConversationId = nil
+        self.hasOlderMessages = false
+        self.oldestCursor = nil
+        self.liveCursor = nil
+        self.activeLiveStream = nil
+        self.activeStreamingMessageId = nil
+        self.activeStreamingItemId = nil
         let clearedState = AIChatPersistedState(
             messages: [],
             chatSessionId: "",
@@ -348,6 +368,9 @@ final class AIChatStore {
     func cancelStreaming() {
         self.activeSendTask?.cancel()
         self.activeSendTask = nil
+        Task {
+            await self.runtime.detach()
+        }
         self.composerPhase = .stopping
         self.repairStatus = nil
         self.clearOptimisticAssistantStatusIfNeeded()
@@ -369,12 +392,12 @@ final class AIChatStore {
             }
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
-                _ = try await self.chatService.stopRun(session: session, sessionId: sessionId)
-                let snapshot = try await self.chatService.loadSnapshot(
-                    session: session,
-                    sessionId: sessionId
-                )
-                self.applySnapshot(snapshot)
+                let stopResponse = try await self.chatService.stopRun(session: session, sessionId: sessionId)
+                if stopResponse.stopped, stopResponse.stillRunning == false {
+                    self.finalizeStoppedAssistantMessageIfNeeded()
+                    self.composerPhase = .idle
+                    self.repairStatus = nil
+                }
             } catch {
             }
         }
@@ -505,18 +528,25 @@ final class AIChatStore {
                         role: .user,
                         content: content,
                         timestamp: nowIsoTimestamp(),
-                        isError: false
+                        isError: false,
+                        isStopped: false,
+                        cursor: nil,
+                        itemId: nil
                     )
                 )
-                self.messages.append(
-                    AIChatMessage(
-                        id: UUID().uuidString.lowercased(),
-                        role: .assistant,
-                        content: [.text(aiChatOptimisticAssistantStatusText)],
-                        timestamp: nowIsoTimestamp(),
-                        isError: false
-                    )
+                let assistantMessage = AIChatMessage(
+                    id: UUID().uuidString.lowercased(),
+                    role: .assistant,
+                    content: [.text(aiChatOptimisticAssistantStatusText)],
+                    timestamp: nowIsoTimestamp(),
+                    isError: false,
+                    isStopped: false,
+                    cursor: nil,
+                    itemId: nil
                 )
+                self.messages.append(assistantMessage)
+                self.activeStreamingMessageId = assistantMessage.id
+                self.activeStreamingItemId = nil
                 didAppendOptimisticMessages = true
                 self.composerPhase = .startingRun
                 self.activeConversationId = conversationId
@@ -728,6 +758,9 @@ final class AIChatStore {
         self.chatSessionId = latestPersistedState.chatSessionId
         self.repairStatus = nil
         self.composerPhase = .idle
+        self.activeLiveStream = nil
+        self.activeStreamingMessageId = nil
+        self.activeStreamingItemId = nil
 
         if didAcceptRun == false && didAppendOptimisticMessages {
             self.messages = latestPersistedState.messages
@@ -844,6 +877,12 @@ final class AIChatStore {
         self.repairStatus = nil
         self.completedDictationTranscript = nil
         self.activeConversationId = nil
+        self.hasOlderMessages = false
+        self.oldestCursor = nil
+        self.liveCursor = nil
+        self.activeLiveStream = nil
+        self.activeStreamingMessageId = nil
+        self.activeStreamingItemId = nil
     }
 
     private func startLinkedBootstrap(forceReloadState: Bool) {
@@ -863,19 +902,17 @@ final class AIChatStore {
 
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
-                guard session.authorization.isGuest == false else {
-                    self.bootstrapPhase = .ready
-                    return
-                }
-                let snapshot = try await self.chatService.loadSnapshot(
+                let bootstrap = try await self.chatService.loadBootstrap(
                     session: session,
-                    sessionId: nil
+                    sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
+                    limit: aiChatBootstrapPageLimit
                 )
                 guard self.activeAccessContext == bootstrapContext else {
                     return
                 }
-                self.applySnapshot(snapshot)
+                self.applyBootstrap(bootstrap)
                 self.bootstrapPhase = .ready
+                self.attachBootstrapLiveIfNeeded(response: bootstrap, session: session)
             } catch is CancellationError {
             } catch {
                 guard self.activeAccessContext == bootstrapContext else {
@@ -900,24 +937,16 @@ final class AIChatStore {
         Task {
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
-                let currentSessionId = baselineState.chatSessionId.isEmpty ? nil : baselineState.chatSessionId
-                do {
-                    let snapshot = try await self.chatService.loadSnapshot(
-                        session: session,
-                        sessionId: currentSessionId
-                    )
-                    self.applyRefreshedSnapshot(snapshot, baselineState: baselineState)
-                } catch {
-                    guard currentSessionId != nil else {
-                        throw error
-                    }
-
-                    let repairedSnapshot = try await self.chatService.loadSnapshot(
-                        session: session,
-                        sessionId: nil
-                    )
-                    self.applyRefreshedSnapshot(repairedSnapshot, baselineState: baselineState)
+                let bootstrap = try await self.chatService.loadBootstrap(
+                    session: session,
+                    sessionId: baselineState.chatSessionId.isEmpty ? nil : baselineState.chatSessionId,
+                    limit: aiChatBootstrapPageLimit
+                )
+                guard self.currentPersistedState() == baselineState else {
+                    return
                 }
+                self.applyBootstrap(bootstrap)
+                self.attachBootstrapLiveIfNeeded(response: bootstrap, session: session)
             } catch {
             }
         }
@@ -932,9 +961,10 @@ final class AIChatStore {
         case .accepted(let response):
             self.chatSessionId = response.sessionId
             self.serverChatConfig = response.chatConfig
+            self.activeLiveStream = response.liveStream
             self.inputText = ""
             self.pendingAttachments = []
-            self.composerPhase = .running
+            self.composerPhase = response.runState == "running" ? .running : .idle
         case .liveEvent(let liveEvent):
             self.handleLiveEvent(liveEvent)
         case .applySnapshot(let snapshot):
@@ -957,59 +987,96 @@ final class AIChatStore {
 
     private func handleLiveEvent(_ event: AIChatLiveEvent) {
         switch event {
-        case .assistantDelta(let text, _, _):
-            guard let lastIndex = self.messages.indices.last,
-                  self.messages[lastIndex].role == .assistant else {
+        case .assistantDelta(let text, let cursor, let itemId):
+            let messageIndex = self.resolveStreamingAssistantMessageIndex(
+                itemId: itemId,
+                cursor: cursor,
+                allowsPlaceholderAdoption: true
+            )
+            let message = self.messages[messageIndex]
+            self.messages[messageIndex] = AIChatMessage(
+                id: message.id,
+                role: message.role,
+                content: appendingAIChatText(content: message.content, text: text),
+                timestamp: message.timestamp,
+                isError: message.isError,
+                isStopped: message.isStopped,
+                cursor: cursor,
+                itemId: itemId
+            )
+            self.liveCursor = cursor
+
+        case .assistantToolCall(let toolCall, let cursor, let itemId):
+            let messageIndex = self.resolveStreamingAssistantMessageIndex(
+                itemId: itemId,
+                cursor: cursor,
+                allowsPlaceholderAdoption: true
+            )
+            let message = self.messages[messageIndex]
+            self.messages[messageIndex] = AIChatMessage(
+                id: message.id,
+                role: message.role,
+                content: upsertingAIChatToolCall(content: message.content, toolCall: toolCall),
+                timestamp: message.timestamp,
+                isError: message.isError,
+                isStopped: message.isStopped,
+                cursor: cursor,
+                itemId: itemId
+            )
+            self.liveCursor = cursor
+
+        case .assistantReasoningSummary(let summary, let cursor, let itemId):
+            let messageIndex = self.resolveStreamingAssistantMessageIndex(
+                itemId: itemId,
+                cursor: cursor,
+                allowsPlaceholderAdoption: true
+            )
+            let message = self.messages[messageIndex]
+            self.messages[messageIndex] = AIChatMessage(
+                id: message.id,
+                role: message.role,
+                content: upsertingAIChatReasoningSummary(content: message.content, summary: summary),
+                timestamp: message.timestamp,
+                isError: message.isError,
+                isStopped: message.isStopped,
+                cursor: cursor,
+                itemId: itemId
+            )
+            self.liveCursor = cursor
+
+        case .assistantMessageDone(let cursor, let itemId, let isError, let isStopped):
+            let messageIndex = self.resolveStreamingAssistantMessageIndex(
+                itemId: itemId,
+                cursor: cursor,
+                allowsPlaceholderAdoption: false
+            )
+            guard messageIndex >= 0 else {
                 return
             }
-            let lastMessage = self.messages[lastIndex]
-            self.messages[lastIndex] = AIChatMessage(
-                id: lastMessage.id,
-                role: lastMessage.role,
-                content: appendingAIChatText(content: lastMessage.content, text: text),
-                timestamp: lastMessage.timestamp,
-                isError: lastMessage.isError
+            let message = self.messages[messageIndex]
+            self.messages[messageIndex] = AIChatMessage(
+                id: message.id,
+                role: message.role,
+                content: removingOptimisticAIChatStatus(content: message.content),
+                timestamp: message.timestamp,
+                isError: isError,
+                isStopped: isStopped,
+                cursor: cursor,
+                itemId: itemId
             )
-
-        case .assistantToolCall(let toolCall, _, _):
-            guard let lastIndex = self.messages.indices.last,
-                  self.messages[lastIndex].role == .assistant else {
-                return
-            }
-            let lastMessage = self.messages[lastIndex]
-            var updatedContent = removingOptimisticAIChatStatus(content: lastMessage.content)
-            if let existingIndex = updatedContent.firstIndex(where: {
-                if case .toolCall(let existing) = $0 { return existing.id == toolCall.id }
-                return false
-            }) {
-                updatedContent[existingIndex] = .toolCall(toolCall)
-            } else {
-                updatedContent.append(.toolCall(toolCall))
-            }
-            self.messages[lastIndex] = AIChatMessage(
-                id: lastMessage.id,
-                role: lastMessage.role,
-                content: updatedContent,
-                timestamp: lastMessage.timestamp,
-                isError: lastMessage.isError
-            )
-
-        case .assistantMessageDone(_, _, let isError, _):
-            if isError, let lastIndex = self.messages.indices.last,
-               self.messages[lastIndex].role == .assistant
-            {
-                let lastMessage = self.messages[lastIndex]
-                self.messages[lastIndex] = AIChatMessage(
-                    id: lastMessage.id,
-                    role: lastMessage.role,
-                    content: lastMessage.content,
-                    timestamp: lastMessage.timestamp,
-                    isError: true
-                )
-            }
+            self.liveCursor = cursor
+            self.activeStreamingMessageId = nil
+            self.activeStreamingItemId = nil
+            self.composerPhase = .idle
+            self.repairStatus = nil
 
         case .runState(let state):
             if state != "running" {
+                if self.activeStreamingMessageId != nil {
+                    self.markAssistantError(message: "AI live stream ended before message completion.")
+                    self.activeStreamingMessageId = nil
+                    self.activeStreamingItemId = nil
+                }
                 self.composerPhase = .idle
                 self.repairStatus = nil
             }
@@ -1019,23 +1086,40 @@ final class AIChatStore {
 
         case .error(let message):
             self.markAssistantError(message: message)
+            self.activeStreamingMessageId = nil
+            self.activeStreamingItemId = nil
             self.composerPhase = .idle
 
         case .stopAck:
             break
 
         case .resetRequired:
-            Task {
-                do {
-                    let session = try await self.flashcardsStore.cloudSessionForAI()
-                    let snapshot = try await self.chatService.loadSnapshot(
-                        session: session,
-                        sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId
-                    )
-                    self.applySnapshot(snapshot)
-                } catch {
-                }
-            }
+            self.reloadConversationFromBootstrap()
+        }
+    }
+
+    private func applyBootstrap(_ response: AIChatBootstrapResponse) {
+        self.messages = response.messages
+        self.chatSessionId = response.sessionId
+        self.serverChatConfig = response.chatConfig
+        self.hasOlderMessages = response.hasOlder
+        self.oldestCursor = response.oldestCursor
+        self.liveCursor = response.liveCursor
+        self.activeLiveStream = response.liveStream
+        self.composerPhase = response.runState == "running" ? .running : .idle
+
+        if response.runState == "running",
+           let lastAssistantMessage = response.messages.last(where: { $0.role == .assistant })
+        {
+            self.activeStreamingMessageId = lastAssistantMessage.id
+            self.activeStreamingItemId = lastAssistantMessage.itemId
+        } else {
+            self.activeStreamingMessageId = nil
+            self.activeStreamingItemId = nil
+        }
+
+        Task {
+            await self.historyStore.saveState(state: self.currentPersistedState())
         }
     }
 
@@ -1044,32 +1128,156 @@ final class AIChatStore {
         self.chatSessionId = snapshot.sessionId
         self.serverChatConfig = snapshot.chatConfig
         self.composerPhase = snapshot.runState == "running" ? .running : .idle
+        self.hasOlderMessages = false
+        self.oldestCursor = nil
+        self.liveCursor = nil
+        self.activeLiveStream = nil
+        self.activeStreamingMessageId = nil
+        self.activeStreamingItemId = nil
         Task {
             await self.historyStore.saveState(state: self.currentPersistedState())
         }
     }
 
-    private func applyRefreshedSnapshot(
-        _ snapshot: AIChatSessionSnapshot,
-        baselineState: AIChatPersistedState
+    private func attachBootstrapLiveIfNeeded(
+        response: AIChatBootstrapResponse,
+        session: CloudLinkedSession
     ) {
-        guard self.currentPersistedState() == baselineState else {
+        guard response.runState == "running" else {
+            Task {
+                await self.runtime.detach()
+            }
             return
         }
 
-        self.applySnapshot(snapshot)
+        guard let liveStream = response.liveStream else {
+            self.markAssistantError(message: "AI live stream is unavailable for the active run.")
+            self.composerPhase = .idle
+            return
+        }
+
+        Task {
+            await self.runtime.detach()
+            await self.runtime.attachLive(
+                liveStream: liveStream,
+                sessionId: response.sessionId,
+                afterCursor: response.liveCursor,
+                configurationMode: session.configurationMode,
+                eventHandler: { [weak self] event in
+                    await self?.handleLiveEvent(event)
+                }
+            )
+        }
+    }
+
+    private func reloadConversationFromBootstrap() {
+        Task {
+            do {
+                let session = try await self.flashcardsStore.cloudSessionForAI()
+                let response = try await self.chatService.loadBootstrap(
+                    session: session,
+                    sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
+                    limit: aiChatBootstrapPageLimit
+                )
+                self.applyBootstrap(response)
+                self.attachBootstrapLiveIfNeeded(response: response, session: session)
+            } catch {
+                self.markAssistantError(message: Flashcards.errorMessage(error: error))
+                self.composerPhase = .idle
+            }
+        }
+    }
+
+    private func resolveStreamingAssistantMessageIndex(
+        itemId: String,
+        cursor: String,
+        allowsPlaceholderAdoption: Bool
+    ) -> Int {
+        if let existingIndex = self.messages.firstIndex(where: { message in
+            message.role == .assistant && message.itemId == itemId
+        }) {
+            self.activeStreamingMessageId = self.messages[existingIndex].id
+            self.activeStreamingItemId = itemId
+            return existingIndex
+        }
+
+        if let activeStreamingMessageId = self.activeStreamingMessageId,
+           let existingIndex = self.messages.firstIndex(where: { message in
+               message.id == activeStreamingMessageId && message.role == .assistant
+           })
+        {
+            let message = self.messages[existingIndex]
+            self.messages[existingIndex] = AIChatMessage(
+                id: message.id,
+                role: message.role,
+                content: message.content,
+                timestamp: message.timestamp,
+                isError: message.isError,
+                isStopped: message.isStopped,
+                cursor: cursor,
+                itemId: itemId
+            )
+            self.activeStreamingItemId = itemId
+            return existingIndex
+        }
+
+        guard allowsPlaceholderAdoption else {
+            return -1
+        }
+
+        if let existingIndex = self.messages.indices.reversed().first(where: { index in
+            let message = self.messages[index]
+            return message.role == .assistant && message.itemId == nil && message.isStopped == false
+        }) {
+            let message = self.messages[existingIndex]
+            self.messages[existingIndex] = AIChatMessage(
+                id: message.id,
+                role: message.role,
+                content: message.content,
+                timestamp: message.timestamp,
+                isError: message.isError,
+                isStopped: message.isStopped,
+                cursor: cursor,
+                itemId: itemId
+            )
+            self.activeStreamingMessageId = message.id
+            self.activeStreamingItemId = itemId
+            return existingIndex
+        }
+
+        let message = AIChatMessage(
+            id: UUID().uuidString.lowercased(),
+            role: .assistant,
+            content: [],
+            timestamp: nowIsoTimestamp(),
+            isError: false,
+            isStopped: false,
+            cursor: cursor,
+            itemId: itemId
+        )
+        self.messages.append(message)
+        self.activeStreamingMessageId = message.id
+        self.activeStreamingItemId = itemId
+        return self.messages.count - 1
     }
 
     private func markAssistantError(message: String) {
-        if let lastIndex = self.messages.indices.last, self.messages[lastIndex].role == .assistant {
-            let lastMessage = self.messages[lastIndex]
+        let targetIndex = self.activeStreamingMessageId.flatMap { messageId in
+            self.messages.firstIndex(where: { $0.id == messageId && $0.role == .assistant })
+        } ?? self.messages.indices.last(where: { self.messages[$0].role == .assistant })
+
+        if let targetIndex {
+            let lastMessage = self.messages[targetIndex]
             let separator = extractAIChatTextContent(parts: lastMessage.content).isEmpty ? "" : "\n\n"
-            self.messages[lastIndex] = AIChatMessage(
+            self.messages[targetIndex] = AIChatMessage(
                 id: lastMessage.id,
                 role: lastMessage.role,
                 content: appendingAIChatText(content: lastMessage.content, text: separator + message),
                 timestamp: lastMessage.timestamp,
-                isError: true
+                isError: true,
+                isStopped: lastMessage.isStopped,
+                cursor: lastMessage.cursor,
+                itemId: lastMessage.itemId
             )
         } else {
             self.messages.append(
@@ -1078,10 +1286,16 @@ final class AIChatStore {
                     role: .assistant,
                     content: [.text(message)],
                     timestamp: nowIsoTimestamp(),
-                    isError: true
+                    isError: true,
+                    isStopped: false,
+                    cursor: nil,
+                    itemId: nil
                 )
             )
         }
+
+        self.activeStreamingMessageId = nil
+        self.activeStreamingItemId = nil
     }
 
     private func appendAssistantAccountUpgradePrompt(message: String, buttonTitle: String) {
@@ -1092,7 +1306,10 @@ final class AIChatStore {
                 role: lastMessage.role,
                 content: [.accountUpgradePrompt(message: message, buttonTitle: buttonTitle)],
                 timestamp: lastMessage.timestamp,
-                isError: false
+                isError: false,
+                isStopped: lastMessage.isStopped,
+                cursor: lastMessage.cursor,
+                itemId: lastMessage.itemId
             )
             return
         }
@@ -1103,7 +1320,10 @@ final class AIChatStore {
                 role: .assistant,
                 content: [.accountUpgradePrompt(message: message, buttonTitle: buttonTitle)],
                 timestamp: nowIsoTimestamp(),
-                isError: false
+                isError: false,
+                isStopped: false,
+                cursor: nil,
+                itemId: nil
             )
         )
     }
@@ -1118,7 +1338,10 @@ final class AIChatStore {
                 role: .assistant,
                 content: [.accountUpgradePrompt(message: message, buttonTitle: buttonTitle)],
                 timestamp: nowIsoTimestamp(),
-                isError: false
+                isError: false,
+                isStopped: false,
+                cursor: nil,
+                itemId: nil
             )
         )
         await self.historyStore.saveState(state: self.currentPersistedState())
@@ -1141,8 +1364,32 @@ final class AIChatStore {
             role: lastMessage.role,
             content: [],
             timestamp: lastMessage.timestamp,
-            isError: lastMessage.isError
+            isError: lastMessage.isError,
+            isStopped: lastMessage.isStopped,
+            cursor: lastMessage.cursor,
+            itemId: lastMessage.itemId
         )
+    }
+
+    private func finalizeStoppedAssistantMessageIfNeeded() {
+        guard let activeStreamingMessageId = self.activeStreamingMessageId,
+              let messageIndex = self.messages.firstIndex(where: { $0.id == activeStreamingMessageId }) else {
+            return
+        }
+
+        let message = self.messages[messageIndex]
+        self.messages[messageIndex] = AIChatMessage(
+            id: message.id,
+            role: message.role,
+            content: removingOptimisticAIChatStatus(content: message.content),
+            timestamp: message.timestamp,
+            isError: message.isError,
+            isStopped: true,
+            cursor: message.cursor,
+            itemId: message.itemId
+        )
+        self.activeStreamingMessageId = nil
+        self.activeStreamingItemId = nil
     }
 }
 
@@ -1197,14 +1444,52 @@ private func appendingAIChatText(content: [AIChatContentPart], text: String) -> 
     return updatedContent
 }
 
+private func upsertingAIChatToolCall(
+    content: [AIChatContentPart],
+    toolCall: AIChatToolCall
+) -> [AIChatContentPart] {
+    var updatedContent = removingOptimisticAIChatStatus(content: content)
+    if let existingIndex = updatedContent.firstIndex(where: { part in
+        if case .toolCall(let existing) = part {
+            return existing.id == toolCall.id
+        }
+        return false
+    }) {
+        updatedContent[existingIndex] = .toolCall(toolCall)
+        return updatedContent
+    }
+
+    updatedContent.append(.toolCall(toolCall))
+    return updatedContent
+}
+
+private func upsertingAIChatReasoningSummary(
+    content: [AIChatContentPart],
+    summary: String
+) -> [AIChatContentPart] {
+    var updatedContent = removingOptimisticAIChatStatus(content: content)
+    if let existingIndex = updatedContent.firstIndex(where: { $0.reasoningSummaryValue != nil }) {
+        updatedContent[existingIndex] = .reasoningSummary(summary)
+        return updatedContent
+    }
+
+    updatedContent.insert(.reasoningSummary(summary), at: 0)
+    return updatedContent
+}
+
 private func extractAIChatTextContent(parts: [AIChatContentPart]) -> String {
     if isOptimisticAIChatStatusContent(content: parts) {
         return ""
     }
 
     return parts.reduce(into: "") { partialResult, part in
-        if case .text(let text) = part {
+        switch part {
+        case .text(let text):
             partialResult.append(text)
+        case .reasoningSummary(let summary):
+            partialResult.append(summary)
+        default:
+            break
         }
     }
 }

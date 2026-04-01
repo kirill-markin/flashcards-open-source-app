@@ -4,11 +4,17 @@ private let aiChatRunTimeoutSeconds: TimeInterval = 600
 
 private enum AIChatRuntimeError: LocalizedError {
     case runTimedOut(sessionId: String, timeoutSeconds: TimeInterval)
+    case liveStreamUnavailable(sessionId: String)
+    case liveStreamEndedBeforeCompletion(sessionId: String)
 
     var errorDescription: String? {
         switch self {
         case .runTimedOut(let sessionId, let timeoutSeconds):
             return "AI chat run timed out after \(Int(timeoutSeconds)) seconds for session \(sessionId)."
+        case .liveStreamUnavailable(let sessionId):
+            return "AI live stream is unavailable for session \(sessionId)."
+        case .liveStreamEndedBeforeCompletion(let sessionId):
+            return "AI live stream ended before message completion for session \(sessionId)."
         }
     }
 }
@@ -75,25 +81,24 @@ actor AIChatSessionRuntime {
                 ]
             )
 
-            if startResponse.runState == "running",
-               let liveUrl = startResponse.chatConfig.liveUrl
-            {
+            if startResponse.runState == "running" {
+                guard let liveStream = startResponse.liveStream else {
+                    throw AIChatRuntimeError.liveStreamUnavailable(sessionId: startResponse.sessionId)
+                }
                 try Task.checkCancellation()
                 logAIChatRuntimeEvent(
                     action: "ai_live_attach_inline",
                     metadata: ["sessionId": startResponse.sessionId]
                 )
-                let stream = await self.liveStreamClient.connect(
-                    liveUrl: liveUrl,
-                    authorization: session.authorization.headerValue,
+                try await self.consumeLiveStream(
+                    liveStream: liveStream,
                     sessionId: startResponse.sessionId,
                     afterCursor: nil,
-                    configurationMode: session.configurationMode
+                    configurationMode: session.configurationMode,
+                    eventHandler: { event in
+                        await eventHandler(.liveEvent(event))
+                    }
                 )
-                for try await event in stream {
-                    try Task.checkCancellation()
-                    await eventHandler(.liveEvent(event))
-                }
             }
 
             await eventHandler(.finish)
@@ -120,8 +125,7 @@ actor AIChatSessionRuntime {
     }
 
     func attachLive(
-        liveUrl: String,
-        authorization: String,
+        liveStream: AIChatLiveStreamEnvelope,
         sessionId: String,
         afterCursor: String?,
         configurationMode: CloudServiceConfigurationMode,
@@ -137,17 +141,13 @@ actor AIChatSessionRuntime {
                 ]
             )
             do {
-                let stream = await self.liveStreamClient.connect(
-                    liveUrl: liveUrl,
-                    authorization: authorization,
+                try await self.consumeLiveStream(
+                    liveStream: liveStream,
                     sessionId: sessionId,
                     afterCursor: afterCursor,
-                    configurationMode: configurationMode
+                    configurationMode: configurationMode,
+                    eventHandler: eventHandler
                 )
-                for try await event in stream {
-                    try Task.checkCancellation()
-                    await eventHandler(event)
-                }
             } catch is CancellationError {
             } catch {
                 logAIChatRuntimeEvent(
@@ -173,6 +173,55 @@ actor AIChatSessionRuntime {
 
     var isLiveAttached: Bool {
         activeLiveTask != nil && activeLiveTask?.isCancelled == false
+    }
+
+    private func consumeLiveStream(
+        liveStream: AIChatLiveStreamEnvelope,
+        sessionId: String,
+        afterCursor: String?,
+        configurationMode: CloudServiceConfigurationMode,
+        eventHandler: @escaping @Sendable (AIChatLiveEvent) async -> Void
+    ) async throws {
+        let stream = await self.liveStreamClient.connect(
+            liveUrl: liveStream.url,
+            authorization: liveStream.authorization,
+            sessionId: sessionId,
+            afterCursor: afterCursor,
+            configurationMode: configurationMode
+        )
+
+        var sawTerminalMessage = false
+        var sawExplicitFailure = false
+
+        for try await event in stream {
+            try Task.checkCancellation()
+            await eventHandler(event)
+
+            switch event {
+            case .assistantMessageDone:
+                sawTerminalMessage = true
+                return
+            case .error, .resetRequired:
+                sawExplicitFailure = true
+                return
+            case .runState(let state):
+                if state != "running" {
+                    throw AIChatRuntimeError.liveStreamEndedBeforeCompletion(sessionId: sessionId)
+                }
+            case .assistantDelta,
+                    .assistantToolCall,
+                    .assistantReasoningSummary,
+                    .repairStatus,
+                    .stopAck:
+                break
+            }
+        }
+
+        if sawTerminalMessage || sawExplicitFailure {
+            return
+        }
+
+        throw AIChatRuntimeError.liveStreamEndedBeforeCompletion(sessionId: sessionId)
     }
 }
 

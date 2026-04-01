@@ -94,7 +94,10 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
                         role: message.role,
                         content: message.content,
                         timestamp: message.timestamp,
-                        isError: message.isError
+                        isError: message.isError,
+                        isStopped: false,
+                        cursor: nil,
+                        itemId: nil
                     )
                 }
             )
@@ -148,13 +151,17 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
                 sessionId: payload.sessionId,
                 runState: payload.runState,
                 chatConfig: payload.chatConfig,
+                liveStream: payload.liveStream,
                 messages: payload.messages.enumerated().map { index, message in
                     AIChatMessage(
                         id: "\(payload.sessionId)-\(index)-\(message.cursor)",
                         role: message.role,
                         content: message.content,
                         timestamp: message.timestamp,
-                        isError: message.isError
+                        isError: message.isError,
+                        isStopped: message.isStopped,
+                        cursor: message.cursor,
+                        itemId: nil
                     )
                 },
                 hasOlder: payload.hasOlder,
@@ -213,7 +220,10 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
                         role: message.role,
                         content: message.content,
                         timestamp: message.timestamp,
-                        isError: message.isError
+                        isError: message.isError,
+                        isStopped: message.isStopped,
+                        cursor: message.cursor,
+                        itemId: nil
                     )
                 },
                 hasOlder: payload.hasOlder,

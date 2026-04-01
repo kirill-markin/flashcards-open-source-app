@@ -6,10 +6,10 @@
 import Foundation
 
 actor AIChatLiveStreamClient {
-    private let urlSession: URLSession
+    private let fallbackSession: URLSession
 
     init(urlSession: URLSession) {
-        self.urlSession = urlSession
+        self.fallbackSession = urlSession
     }
 
     func connect(
@@ -20,7 +20,7 @@ actor AIChatLiveStreamClient {
         configurationMode: CloudServiceConfigurationMode
     ) -> AsyncThrowingStream<AIChatLiveEvent, Error> {
         AsyncThrowingStream { continuation in
-            let task = Task {
+            let streamTask = Task {
                 do {
                     let url = try makeAIChatLiveStreamURL(
                         liveUrl: liveUrl,
@@ -30,78 +30,218 @@ actor AIChatLiveStreamClient {
 
                     var request = URLRequest(url: url)
                     request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+                    request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+                    request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
                     request.setValue(authorization, forHTTPHeaderField: "Authorization")
                     request.timeoutInterval = 600
 
-                    let (bytes, response) = try await self.urlSession.bytes(for: request)
-
-                    guard let httpResponse = response as? HTTPURLResponse else {
-                        continuation.finish(throwing: AIChatLiveStreamError.invalidResponse)
-                        return
-                    }
-                    guard httpResponse.statusCode == 200 else {
-                        let responseData = try await readAIChatLiveStreamResponseBody(bytes: bytes)
-                        let requestId = extractAIChatLiveRequestId(httpResponse: httpResponse)
-                        let errorDetails = decodeCloudApiErrorDetails(data: responseData, requestId: requestId)
-                        continuation.finish(throwing: AIChatLiveStreamError.invalidStatusCode(
-                            httpStatusCode: httpResponse.statusCode,
-                            errorDetails: errorDetails,
-                            configurationMode: configurationMode
-                        ))
-                        return
-                    }
-
-                    var currentEventType: String?
-                    var currentDataLines: [String] = []
-
-                    for try await line in bytes.lines {
-                        try Task.checkCancellation()
-
-                        if line.hasPrefix("event: ") {
-                            currentEventType = String(line.dropFirst(7))
-                            continue
-                        }
-
-                        if line.hasPrefix("data: ") {
-                            currentDataLines.append(String(line.dropFirst(6)))
-                            continue
-                        }
-
-                        if line.hasPrefix(":") {
-                            continue
-                        }
-
-                        if line.isEmpty {
-                            if !currentDataLines.isEmpty {
-                                let payload = currentDataLines.joined(separator: "\n")
-                                if let event = parseSSEEvent(eventType: currentEventType, payload: payload) {
-                                    continuation.yield(event)
-                                }
-                            }
-                            currentEventType = nil
-                            currentDataLines = []
-                        }
-                    }
-
-                    if !currentDataLines.isEmpty {
-                        let payload = currentDataLines.joined(separator: "\n")
-                        if let event = parseSSEEvent(eventType: currentEventType, payload: payload) {
-                            continuation.yield(event)
-                        }
-                    }
-
-                    continuation.finish()
-                } catch is CancellationError {
-                    continuation.finish()
+                    let delegate = AIChatLiveStreamTaskDelegate(
+                        continuation: continuation,
+                        configurationMode: configurationMode
+                    )
+                    let configuration = self.fallbackSession.configuration.copy() as? URLSessionConfiguration
+                        ?? .ephemeral
+                    configuration.timeoutIntervalForRequest = 600
+                    configuration.timeoutIntervalForResource = 600
+                    configuration.waitsForConnectivity = false
+                    let session = URLSession(
+                        configuration: configuration,
+                        delegate: delegate,
+                        delegateQueue: nil
+                    )
+                    let task = session.dataTask(with: request)
+                    delegate.start(task: task, session: session)
+                    task.resume()
                 } catch {
                     continuation.finish(throwing: error)
                 }
             }
 
             continuation.onTermination = { _ in
-                task.cancel()
+                streamTask.cancel()
             }
         }
+    }
+}
+
+private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+    private let continuation: AsyncThrowingStream<AIChatLiveEvent, Error>.Continuation
+    private let configurationMode: CloudServiceConfigurationMode
+    private var session: URLSession?
+    private var task: URLSessionDataTask?
+    private var httpResponse: HTTPURLResponse?
+    private var responseBody: Data = Data()
+    private var bufferedBytes: Data = Data()
+    private var currentEventType: String?
+    private var currentDataLines: [String] = []
+    private var didFinish: Bool = false
+
+    init(
+        continuation: AsyncThrowingStream<AIChatLiveEvent, Error>.Continuation,
+        configurationMode: CloudServiceConfigurationMode
+    ) {
+        self.continuation = continuation
+        self.configurationMode = configurationMode
+    }
+
+    func start(task: URLSessionDataTask, session: URLSession) {
+        self.task = task
+        self.session = session
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        dataTask: URLSessionDataTask,
+        didReceive response: URLResponse,
+        completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
+    ) {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            self.finish(throwing: AIChatLiveStreamError.invalidResponse)
+            completionHandler(.cancel)
+            return
+        }
+
+        self.httpResponse = httpResponse
+        completionHandler(.allow)
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        dataTask: URLSessionDataTask,
+        didReceive data: Data
+    ) {
+        guard self.didFinish == false else {
+            return
+        }
+
+        guard let httpResponse = self.httpResponse else {
+            self.finish(throwing: AIChatLiveStreamError.invalidResponse)
+            return
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            self.responseBody.append(data)
+            return
+        }
+
+        self.bufferedBytes.append(data)
+        self.processBufferedLines()
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didCompleteWithError error: Error?
+    ) {
+        guard self.didFinish == false else {
+            return
+        }
+
+        if let error {
+            let nsError = error as NSError
+            if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                self.finish()
+                return
+            }
+
+            self.finish(throwing: error)
+            return
+        }
+
+        guard let httpResponse = self.httpResponse else {
+            self.finish(throwing: AIChatLiveStreamError.invalidResponse)
+            return
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            let requestId = extractAIChatLiveRequestId(httpResponse: httpResponse)
+            let errorDetails = decodeCloudApiErrorDetails(
+                data: self.responseBody,
+                requestId: requestId
+            )
+            self.finish(throwing: AIChatLiveStreamError.invalidStatusCode(
+                httpStatusCode: httpResponse.statusCode,
+                errorDetails: errorDetails,
+                configurationMode: self.configurationMode
+            ))
+            return
+        }
+
+        self.processBufferedLines(flushIncompleteLine: true)
+        self.finish()
+    }
+
+    private func processBufferedLines(flushIncompleteLine: Bool = false) {
+        while let newlineRange = self.bufferedBytes.firstRange(of: Data([0x0A])) {
+            let lineData = self.bufferedBytes.subdata(in: 0..<newlineRange.lowerBound)
+            self.bufferedBytes.removeSubrange(0...newlineRange.lowerBound)
+            self.processLineData(lineData)
+        }
+
+        if flushIncompleteLine && self.bufferedBytes.isEmpty == false {
+            let lineData = self.bufferedBytes
+            self.bufferedBytes.removeAll(keepingCapacity: false)
+            self.processLineData(lineData)
+        }
+    }
+
+    private func processLineData(_ lineData: Data) {
+        var normalizedLineData = lineData
+        if normalizedLineData.last == 0x0D {
+            normalizedLineData.removeLast()
+        }
+        let line = String(decoding: normalizedLineData, as: UTF8.self)
+
+        if line.hasPrefix("event: ") {
+            self.currentEventType = String(line.dropFirst(7))
+            return
+        }
+
+        if line.hasPrefix("data: ") {
+            self.currentDataLines.append(String(line.dropFirst(6)))
+            return
+        }
+
+        if line.hasPrefix(":") {
+            return
+        }
+
+        if line.isEmpty {
+            self.emitCurrentEventIfNeeded()
+        }
+    }
+
+    private func emitCurrentEventIfNeeded() {
+        guard self.currentDataLines.isEmpty == false else {
+            self.currentEventType = nil
+            return
+        }
+
+        let payload = self.currentDataLines.joined(separator: "\n")
+        if let event = parseSSEEvent(eventType: self.currentEventType, payload: payload) {
+            self.continuation.yield(event)
+        }
+        self.currentEventType = nil
+        self.currentDataLines = []
+    }
+
+    private func finish(throwing error: Error? = nil) {
+        guard self.didFinish == false else {
+            return
+        }
+
+        self.didFinish = true
+        self.task?.cancel()
+        self.session?.invalidateAndCancel()
+        self.task = nil
+        self.session = nil
+
+        if let error {
+            self.continuation.finish(throwing: error)
+            return
+        }
+
+        self.continuation.finish()
     }
 }
 
@@ -159,16 +299,6 @@ private func makeAIChatLiveStreamURL(
     return url
 }
 
-private func readAIChatLiveStreamResponseBody(
-    bytes: URLSession.AsyncBytes
-) async throws -> Data {
-    var data = Data()
-    for try await byte in bytes {
-        data.append(byte)
-    }
-    return data
-}
-
 private func extractAIChatLiveRequestId(httpResponse: HTTPURLResponse) -> String? {
     let chatRequestId = httpResponse.value(forHTTPHeaderField: "X-Chat-Request-Id")
     if let chatRequestId, chatRequestId.isEmpty == false {
@@ -218,6 +348,12 @@ private func parseSSEEvent(eventType: String?, payload: String) -> AIChatLiveEve
             output: json["output"] as? String
         )
         return .assistantToolCall(toolCall, cursor: cursor, itemId: itemId)
+
+    case "assistant_reasoning_summary":
+        guard let summary = json["summary"] as? String,
+              let cursor = json["cursor"] as? String,
+              let itemId = json["itemId"] as? String else { return nil }
+        return .assistantReasoningSummary(summary: summary, cursor: cursor, itemId: itemId)
 
     case "assistant_message_done":
         guard let cursor = json["cursor"] as? String,
