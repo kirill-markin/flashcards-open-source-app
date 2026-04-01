@@ -188,8 +188,10 @@ function finalizeAssistantContent(
   }, []);
 }
 
-export function useChatHistory(): ChatHistoryState {
-  const [messages, setMessages] = useState<ReadonlyArray<StoredMessage>>([]);
+export function useChatHistory(
+  initialMessages?: ReadonlyArray<StoredMessage>,
+): ChatHistoryState {
+  const [messages, setMessages] = useState<ReadonlyArray<StoredMessage>>(initialMessages ?? []);
 
   const replaceMessages = useCallback((nextMessages: ReadonlyArray<StoredMessage>): void => {
     setMessages(nextMessages);

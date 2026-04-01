@@ -262,8 +262,34 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
   let alertMock: ReturnType<typeof vi.fn> | null = null;
 
   beforeEach(() => {
+    const localStorageState = new Map<string, string>();
+    const localStorageMock: Storage = {
+      get length(): number {
+        return localStorageState.size;
+      },
+      clear(): void {
+        localStorageState.clear();
+      },
+      getItem(key: string): string | null {
+        return localStorageState.get(key) ?? null;
+      },
+      key(index: number): string | null {
+        return [...localStorageState.keys()][index] ?? null;
+      },
+      removeItem(key: string): void {
+        localStorageState.delete(key);
+      },
+      setItem(key: string, value: string): void {
+        localStorageState.set(key, value);
+      },
+    };
+
     vi.useFakeTimers();
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: localStorageMock,
+    });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
