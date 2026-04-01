@@ -53,7 +53,7 @@ class AppDatabaseTest {
     private lateinit var syncRepository: FakeSyncRepository
 
     @Before
-    fun setUp() {
+    fun setUp() = runBlocking {
         context = ApplicationProvider.getApplicationContext()
         context.deleteSharedPreferences("flashcards-cloud-metadata")
         context.deleteSharedPreferences("flashcards-cloud-secrets")
@@ -62,6 +62,7 @@ class AppDatabaseTest {
             klass = AppDatabase::class.java
         ).allowMainThreadQueries().build()
         preferencesStore = CloudPreferencesStore(context = context, database = database)
+        preferencesStore.hydrateCloudSettingsFromDatabase()
         syncLocalStore = SyncLocalStore(
             database = database,
             preferencesStore = preferencesStore
@@ -115,6 +116,7 @@ class AppDatabaseTest {
             klass = AppDatabase::class.java
         ).allowMainThreadQueries().build()
         val migratedStore = CloudPreferencesStore(context = context, database = database)
+        migratedStore.hydrateCloudSettingsFromDatabase()
 
         val migratedSettings = migratedStore.currentCloudSettings()
         val storedSettings = requireNotNull(database.appLocalSettingsDao().loadSettings()) {
@@ -530,10 +532,12 @@ class AppDatabaseTest {
     }
 
     private suspend fun bootstrapLocalWorkspace(currentTimeMillis: Long): String {
-        return ensureLocalWorkspaceShell(
+        val workspaceId = ensureLocalWorkspaceShell(
             database = database,
             currentTimeMillis = currentTimeMillis
         )
+        preferencesStore.hydrateCloudSettingsFromDatabase()
+        return workspaceId
     }
 
     private fun makeCardsRepository(): CardsRepository {

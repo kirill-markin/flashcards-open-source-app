@@ -292,6 +292,11 @@ internal fun LiveSmokeContext.createGuestAiConversationForReset() {
         expectedUserText = aiResetPromptText,
         context = "while waiting for the AI reset conversation to materialize"
     )
+    waitForAiComposerButtonState(
+        expectedLabel = "Send",
+        expectedEnabled = false,
+        context = "after the AI reset conversation completed"
+    )
 }
 
 internal fun LiveSmokeContext.assertCardVisibleInCards(searchText: String, timeoutMillis: Long) {

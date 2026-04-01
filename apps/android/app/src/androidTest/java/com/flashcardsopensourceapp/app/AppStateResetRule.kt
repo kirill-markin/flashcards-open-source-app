@@ -26,6 +26,7 @@ class AppStateResetRule : ExternalResource() {
         val application = context as FlashcardsApplication
 
         runBlocking {
+            application.awaitAppGraphStartup()
             application.appGraph.cloudAccountRepository.logout()
         }
         clearTestOnlySharedPreferences(context = context)

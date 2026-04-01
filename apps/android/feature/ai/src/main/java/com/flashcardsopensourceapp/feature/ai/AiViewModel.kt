@@ -155,6 +155,7 @@ class AiViewModel(
 
     fun acceptConsent() {
         aiChatRepository.updateConsent(hasConsent = true)
+        warmUpLinkedSessionIfNeeded()
     }
 
     fun addPendingAttachment(attachment: AiChatAttachment) {
@@ -312,16 +313,39 @@ class AiViewModel(
             return
         }
 
+        val requestedSessionId = draftState.value.persistedState.chatSessionId.ifBlank { null }
+        detachLiveStream(reason = "AI live stream detached because a new chat was requested.")
+        draftState.update { state ->
+            state.copy(
+                persistedState = state.persistedState.copy(
+                    messages = emptyList(),
+                    chatSessionId = "",
+                    lastKnownChatConfig = state.persistedState.lastKnownChatConfig
+                ),
+                hasOlder = false,
+                oldestCursor = null,
+                liveCursor = null,
+                runState = "idle",
+                isLiveAttached = false,
+                draftMessage = "",
+                pendingAttachments = emptyList(),
+                composerPhase = AiComposerPhase.IDLE,
+                dictationState = AiChatDictationState.IDLE,
+                conversationBootstrapState = AiConversationBootstrapState.READY,
+                conversationBootstrapErrorMessage = "",
+                repairStatus = null,
+                activeAlert = null,
+                errorMessage = ""
+            )
+        }
+        persistCurrentState()
+
         viewModelScope.launch {
             try {
                 val snapshot = aiChatRepository.createNewSession(
                     workspaceId = draftState.value.workspaceId,
-                    sessionId = draftState.value.persistedState.chatSessionId.ifBlank { null }
+                    sessionId = requestedSessionId
                 )
-                activeLiveJob?.cancel(
-                    cause = CancellationException("AI live stream detached because a new chat was created.")
-                )
-                activeLiveJob = null
                 draftState.update { state ->
                     state.copy(
                         persistedState = state.persistedState.copy(
@@ -483,6 +507,7 @@ class AiViewModel(
 
     fun warmUpLinkedSessionIfNeeded() {
         val currentState = draftState.value
+        val accessContext = activeAccessContext
         val cloudSettings = cloudSettingsState.value
         if (
             currentState.composerPhase == AiComposerPhase.PREPARING_SEND
@@ -493,10 +518,10 @@ class AiViewModel(
         if (consentState.value.not()) {
             return
         }
-        if (currentState.workspaceId == null) {
+        if (accessContext?.workspaceId == null) {
             return
         }
-        if (cloudSettings.cloudState == CloudAccountState.LINKING_READY) {
+        if (accessContext.cloudState == CloudAccountState.LINKING_READY) {
             return
         }
         if (activeWarmUpJob != null) {
@@ -511,9 +536,9 @@ class AiViewModel(
                 AiChatDiagnosticsLogger.info(
                     event = "warm_up_cancelled",
                     fields = listOf(
-                        "workspaceId" to currentState.workspaceId,
+                        "workspaceId" to accessContext.workspaceId,
                         "currentWorkspaceId" to draftState.value.workspaceId,
-                        "cloudState" to cloudSettingsState.value.cloudState.name,
+                        "cloudState" to accessContext.cloudState.name,
                         "retryAfterWorkspaceSwitch" to pendingWarmUpAfterWorkspaceSwitch.toString(),
                         "message" to error.message
                     )
@@ -523,8 +548,8 @@ class AiViewModel(
                 AiChatDiagnosticsLogger.error(
                     event = "warm_up_failed",
                     fields = listOf(
-                        "workspaceId" to currentState.workspaceId,
-                        "cloudState" to cloudSettingsState.value.cloudState.name,
+                        "workspaceId" to accessContext.workspaceId,
+                        "cloudState" to accessContext.cloudState.name,
                         "message" to error.message
                     ) + remoteErrorFields(error = error as? AiChatRemoteException),
                     throwable = error

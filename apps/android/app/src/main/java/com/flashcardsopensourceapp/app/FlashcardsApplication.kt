@@ -17,6 +17,13 @@ class FlashcardsApplication : Application() {
     }
 
     fun recreateAppGraph() {
+        if (this::appGraph.isInitialized) {
+            appGraph.close()
+        }
         appGraph = AppGraph(context = this)
+    }
+
+    suspend fun awaitAppGraphStartup() {
+        appGraph.awaitStartup()
     }
 }

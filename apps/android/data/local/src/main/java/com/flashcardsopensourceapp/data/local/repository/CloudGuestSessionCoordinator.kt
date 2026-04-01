@@ -18,6 +18,8 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 internal data class CloudIdentityReconciliationResult(
     val cloudSettings: CloudSettings,
@@ -120,7 +122,7 @@ class CloudGuestSessionCoordinator(
                         didRunSync = false
                     )
                 } else {
-                    val shouldSync = finishGuestCloudLinkIfNeededLocked(
+                    val shouldSync = finishGuestCloudLinkNonCancellableLocked(
                         session = storedGuestSession,
                         workspaceId = storedGuestSession.workspaceId
                     )
@@ -135,7 +137,7 @@ class CloudGuestSessionCoordinator(
 
             CloudAccountState.DISCONNECTED -> {
                 if (storedGuestSession != null) {
-                    val shouldSync = finishGuestCloudLinkIfNeededLocked(
+                    val shouldSync = finishGuestCloudLinkNonCancellableLocked(
                         session = storedGuestSession,
                         workspaceId = storedGuestSession.workspaceId
                     )
@@ -207,11 +209,23 @@ class CloudGuestSessionCoordinator(
         }
         return GuestCloudSessionRestoreResult(
             session = resolvedSession,
-            shouldSync = finishGuestCloudLinkIfNeededLocked(
+            shouldSync = finishGuestCloudLinkNonCancellableLocked(
                 session = resolvedSession,
                 workspaceId = workspaceId
             )
         )
+    }
+
+    private suspend fun finishGuestCloudLinkNonCancellableLocked(
+        session: StoredGuestAiSession,
+        workspaceId: String?
+    ): Boolean {
+        return withContext(NonCancellable) {
+            finishGuestCloudLinkIfNeededLocked(
+                session = session,
+                workspaceId = workspaceId
+            )
+        }
     }
 
     private fun loadGuestSessionForCurrentConfiguration(
@@ -272,7 +286,7 @@ class CloudGuestSessionCoordinator(
         }
         guestSessionStore.saveSession(localWorkspaceId = session.workspaceId, session = session)
         markGuestCloudState(session = session)
-        return true
+        return bootstrapProbe.remoteIsEmpty.not()
     }
 
     private suspend fun isAuthenticatedSilentRestoreEligible(
@@ -452,12 +466,6 @@ class CloudGuestSessionCoordinator(
         }
         return workspaces.firstOrNull { workspace ->
             workspace.workspaceId == workspaceId
-        } ?: run {
-            val workspaceIds = workspaces.map(WorkspaceEntity::workspaceId)
-            error(
-                "Cloud guest restore workspace '$workspaceId' does not exist locally. " +
-                    "Local workspaces=$workspaceIds"
-            )
         }
     }
 
@@ -503,7 +511,7 @@ class CloudGuestSessionCoordinator(
         )
     }
 
-    private fun markGuestCloudState(session: StoredGuestAiSession) {
+    private suspend fun markGuestCloudState(session: StoredGuestAiSession) {
         val currentCloudState = preferencesStore.currentCloudSettings().cloudState
         if (
             currentCloudState == CloudAccountState.LINKED ||

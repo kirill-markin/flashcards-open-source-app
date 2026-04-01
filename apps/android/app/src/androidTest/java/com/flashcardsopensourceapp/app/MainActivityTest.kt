@@ -61,9 +61,7 @@ class MainActivityTest {
         waitForCardsEmptyState()
         composeRule.onNodeWithText("Search cards").fetchSemanticsNode()
 
-        openAiTab()
-        dismissAiConsentIfNeeded()
-        composeRule.onNodeWithTag(aiEmptyStateTag).fetchSemanticsNode()
+        waitForAiEmptyState()
         composeRule.onNodeWithText("Try asking").fetchSemanticsNode()
         composeRule.onNodeWithText("Message").fetchSemanticsNode()
 
@@ -192,6 +190,11 @@ class MainActivityTest {
         }
 
         composeRule.onNodeWithText("Storage deck").performClick()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodes(
+                matcher = hasText("SQLite note", substring = true).and(other = hasClickAction())
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onNode(
             matcher = hasText("SQLite note", substring = true).and(other = hasClickAction())
         ).performClick()
@@ -319,7 +322,7 @@ class MainActivityTest {
         composeRule.onNodeWithText("No cards yet").fetchSemanticsNode()
         composeRule.onNodeWithText("Create with AI").performClick()
         dismissAiConsentIfNeeded()
-        composeRule.onNodeWithTag(aiEmptyStateTag).fetchSemanticsNode()
+        waitForAiEmptyState()
         composeRule.onNodeWithTag(aiEmptyStateContentTag).fetchSemanticsNode()
         assertAiEmptyStateIsCentered()
         composeRule.onNodeWithText("Message").fetchSemanticsNode()
@@ -386,6 +389,15 @@ class MainActivityTest {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty()
                 && composeRule.onAllNodesWithText(emptyCardsMessage).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun waitForAiEmptyState() {
+        openAiTab()
+        dismissAiConsentIfNeeded()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(aiEmptyStateTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText("Message").fetchSemanticsNodes().isNotEmpty()
         }
     }
 

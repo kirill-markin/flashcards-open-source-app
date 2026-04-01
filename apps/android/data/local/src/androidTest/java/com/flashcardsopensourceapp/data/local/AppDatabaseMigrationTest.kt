@@ -8,6 +8,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.migration2To3
 import com.flashcardsopensourceapp.data.local.database.migration3To4
+import com.flashcardsopensourceapp.data.local.database.migration4To5
+import com.flashcardsopensourceapp.data.local.database.migration5To6
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -35,7 +37,7 @@ class AppDatabaseMigrationTest {
             context = context,
             klass = AppDatabase::class.java,
             name = databaseName
-        ).addMigrations(migration2To3, migration3To4).build()
+        ).addMigrations(migration2To3, migration3To4, migration4To5, migration5To6).build()
 
         val migratedCard = database.cardDao().loadCard(cardId = "card-1")
         val schedulerSettings = database.workspaceSchedulerSettingsDao().loadWorkspaceSchedulerSettings(

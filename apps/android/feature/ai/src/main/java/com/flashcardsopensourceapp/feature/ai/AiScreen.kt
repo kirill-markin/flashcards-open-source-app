@@ -66,6 +66,7 @@ internal fun AiRouteContent(
     onStartDictationRecording: () -> Unit,
     onTranscribeRecordedAudio: (String, String, ByteArray) -> Unit,
     onCancelDictation: () -> Unit,
+    onScreenVisible: () -> Unit,
     onScreenHidden: () -> Unit,
     onWarmUpSessionIfNeeded: () -> Unit,
     onRetryConversationLoad: () -> Unit,
@@ -83,6 +84,7 @@ internal fun AiRouteContent(
     val currentDictationState by rememberUpdatedState(uiState.dictationState)
     val currentWarmUpAction by rememberUpdatedState(onWarmUpSessionIfNeeded)
     val currentCancelDictationAction by rememberUpdatedState(onCancelDictation)
+    val currentScreenVisibleAction by rememberUpdatedState(onScreenVisible)
     val currentScreenHiddenAction by rememberUpdatedState(onScreenHidden)
     val currentShowAlertAction by rememberUpdatedState(onShowAlert)
 
@@ -228,10 +230,15 @@ internal fun AiRouteContent(
         onWarmUpSessionIfNeeded()
     }
 
+    LaunchedEffect(Unit) {
+        currentScreenVisibleAction()
+    }
+
     DisposableEffect(lifecycleOwner, dictationRecorder) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
+                    currentScreenVisibleAction()
                     if (currentConsentRequired.not()) {
                         currentWarmUpAction()
                     }
