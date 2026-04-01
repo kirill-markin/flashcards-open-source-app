@@ -19,7 +19,9 @@ export type ChatLiveEvent =
   | Readonly<{ type: "assistant_reasoning_summary"; reasoningId: string; summary: string; cursor: string; itemId: string; outputIndex: number }>
   | Readonly<{ type: "assistant_reasoning_done"; reasoningId: string; cursor: string; itemId: string; outputIndex: number }>
   | Readonly<{ type: "assistant_message_done"; cursor: string; itemId: string; isError: boolean; isStopped: boolean }>
+  | Readonly<{ type: "repair_status"; message: string; attempt: number; maxAttempts: number; toolName: string | null }>
   | Readonly<{ type: "error"; message: string }>
+  | Readonly<{ type: "stop_ack"; sessionId: string }>
   | Readonly<{ type: "reset_required" }>;
 
 type ConsumeChatLiveStreamParams = Readonly<{
@@ -31,6 +33,18 @@ type ConsumeChatLiveStreamParams = Readonly<{
 }>;
 
 type JsonObject = Readonly<Record<string, unknown>>;
+
+export class ChatLiveContractError extends Error {
+  readonly eventType: string | null;
+  readonly payloadSnippet: string;
+
+  constructor(message: string, eventType: string | null, payload: string) {
+    super(message);
+    this.name = "ChatLiveContractError";
+    this.eventType = eventType;
+    this.payloadSnippet = payload.trim().slice(0, 240);
+  }
+}
 
 function parseJsonObject(value: string): JsonObject | null {
   try {
@@ -55,135 +69,209 @@ function readBooleanField(objectValue: JsonObject, key: string): boolean | null 
   return typeof value === "boolean" ? value : null;
 }
 
-function parseChatLiveEvent(
+function requireStringField(
+  objectValue: JsonObject,
+  key: string,
   eventType: string | null,
   payload: string,
-): ChatLiveEvent | null {
+): string {
+  const value = readStringField(objectValue, key);
+  if (value === null) {
+    throw new ChatLiveContractError(
+      `AI live stream event is invalid: ${key} must be a string.`,
+      eventType,
+      payload,
+    );
+  }
+
+  return value;
+}
+
+function requireBooleanField(
+  objectValue: JsonObject,
+  key: string,
+  eventType: string | null,
+  payload: string,
+): boolean {
+  const value = readBooleanField(objectValue, key);
+  if (value === null) {
+    throw new ChatLiveContractError(
+      `AI live stream event is invalid: ${key} must be a boolean.`,
+      eventType,
+      payload,
+    );
+  }
+
+  return value;
+}
+
+function requireNumberField(
+  objectValue: JsonObject,
+  key: string,
+  eventType: string | null,
+  payload: string,
+): number {
+  const value = objectValue[key];
+  if (typeof value !== "number") {
+    throw new ChatLiveContractError(
+      `AI live stream event is invalid: ${key} must be a number.`,
+      eventType,
+      payload,
+    );
+  }
+
+  return value;
+}
+
+function requireType(
+  value: string | null,
+  eventType: string | null,
+  payload: string,
+): string {
+  if (value === null) {
+    throw new ChatLiveContractError(
+      "AI live stream event is invalid: type must be a string.",
+      eventType,
+      payload,
+    );
+  }
+
+  return value;
+}
+
+export function parseChatLiveEvent(
+  eventType: string | null,
+  payload: string,
+): ChatLiveEvent {
   const objectValue = parseJsonObject(payload);
   if (objectValue === null) {
-    return null;
+    throw new ChatLiveContractError(
+      "AI live stream event is invalid: payload must be a JSON object.",
+      eventType,
+      payload,
+    );
   }
 
-  const type = eventType ?? readStringField(objectValue, "type");
-  if (type === null) {
-    return null;
-  }
+  const type = requireType(eventType ?? readStringField(objectValue, "type"), eventType, payload);
 
   if (type === "run_state") {
-    const runState = readStringField(objectValue, "runState");
-    const sessionId = readStringField(objectValue, "sessionId");
-    if (
-      sessionId === null
-      || (runState !== "idle" && runState !== "running" && runState !== "interrupted")
-    ) {
-      return null;
+    const runState = requireStringField(objectValue, "runState", type, payload);
+    const sessionId = requireStringField(objectValue, "sessionId", type, payload);
+    if (runState !== "idle" && runState !== "running" && runState !== "interrupted") {
+      throw new ChatLiveContractError(
+        `AI live stream event is invalid: unsupported runState "${runState}".`,
+        type,
+        payload,
+      );
     }
 
     return { type, runState, sessionId };
   }
 
   if (type === "assistant_delta") {
-    const text = readStringField(objectValue, "text");
-    const cursor = readStringField(objectValue, "cursor");
-    const itemId = readStringField(objectValue, "itemId");
-    if (text === null || cursor === null || itemId === null) {
-      return null;
-    }
-
-    return { type, text, cursor, itemId };
+    return {
+      type,
+      text: requireStringField(objectValue, "text", type, payload),
+      cursor: requireStringField(objectValue, "cursor", type, payload),
+      itemId: requireStringField(objectValue, "itemId", type, payload),
+    };
   }
 
   if (type === "assistant_tool_call") {
-    const toolCallId = readStringField(objectValue, "toolCallId");
-    const name = readStringField(objectValue, "name");
-    const status = readStringField(objectValue, "status");
-    const cursor = readStringField(objectValue, "cursor");
-    const itemId = readStringField(objectValue, "itemId");
-    const outputIndex = objectValue.outputIndex;
-    if (
-      toolCallId === null
-      || name === null
-      || cursor === null
-      || itemId === null
-      || typeof outputIndex !== "number"
-      || (status !== "started" && status !== "completed")
-    ) {
-      return null;
+    const status = requireStringField(objectValue, "status", type, payload);
+    if (status !== "started" && status !== "completed") {
+      throw new ChatLiveContractError(
+        `AI live stream event is invalid: unsupported tool status "${status}".`,
+        type,
+        payload,
+      );
     }
 
     return {
       type,
-      toolCallId,
-      name,
+      toolCallId: requireStringField(objectValue, "toolCallId", type, payload),
+      name: requireStringField(objectValue, "name", type, payload),
       status,
       input: readStringField(objectValue, "input"),
       output: readStringField(objectValue, "output"),
       providerStatus: readStringField(objectValue, "providerStatus"),
-      cursor,
-      itemId,
-      outputIndex,
+      cursor: requireStringField(objectValue, "cursor", type, payload),
+      itemId: requireStringField(objectValue, "itemId", type, payload),
+      outputIndex: requireNumberField(objectValue, "outputIndex", type, payload),
     };
   }
 
   if (type === "assistant_reasoning_started") {
-    const reasoningId = readStringField(objectValue, "reasoningId");
-    const cursor = readStringField(objectValue, "cursor");
-    const itemId = readStringField(objectValue, "itemId");
-    const outputIndex = objectValue.outputIndex;
-    if (reasoningId === null || cursor === null || itemId === null || typeof outputIndex !== "number") {
-      return null;
-    }
-
-    return { type, reasoningId, cursor, itemId, outputIndex };
+    return {
+      type,
+      reasoningId: requireStringField(objectValue, "reasoningId", type, payload),
+      cursor: requireStringField(objectValue, "cursor", type, payload),
+      itemId: requireStringField(objectValue, "itemId", type, payload),
+      outputIndex: requireNumberField(objectValue, "outputIndex", type, payload),
+    };
   }
 
   if (type === "assistant_reasoning_summary") {
-    const reasoningId = readStringField(objectValue, "reasoningId");
-    const summary = readStringField(objectValue, "summary");
-    const cursor = readStringField(objectValue, "cursor");
-    const itemId = readStringField(objectValue, "itemId");
-    const outputIndex = objectValue.outputIndex;
-    if (reasoningId === null || summary === null || cursor === null || itemId === null || typeof outputIndex !== "number") {
-      return null;
-    }
-
-    return { type, reasoningId, summary, cursor, itemId, outputIndex };
+    return {
+      type,
+      reasoningId: requireStringField(objectValue, "reasoningId", type, payload),
+      summary: requireStringField(objectValue, "summary", type, payload),
+      cursor: requireStringField(objectValue, "cursor", type, payload),
+      itemId: requireStringField(objectValue, "itemId", type, payload),
+      outputIndex: requireNumberField(objectValue, "outputIndex", type, payload),
+    };
   }
 
   if (type === "assistant_reasoning_done") {
-    const reasoningId = readStringField(objectValue, "reasoningId");
-    const cursor = readStringField(objectValue, "cursor");
-    const itemId = readStringField(objectValue, "itemId");
-    const outputIndex = objectValue.outputIndex;
-    if (reasoningId === null || cursor === null || itemId === null || typeof outputIndex !== "number") {
-      return null;
-    }
-
-    return { type, reasoningId, cursor, itemId, outputIndex };
+    return {
+      type,
+      reasoningId: requireStringField(objectValue, "reasoningId", type, payload),
+      cursor: requireStringField(objectValue, "cursor", type, payload),
+      itemId: requireStringField(objectValue, "itemId", type, payload),
+      outputIndex: requireNumberField(objectValue, "outputIndex", type, payload),
+    };
   }
 
   if (type === "assistant_message_done") {
-    const cursor = readStringField(objectValue, "cursor");
-    const itemId = readStringField(objectValue, "itemId");
-    const isError = readBooleanField(objectValue, "isError");
-    const isStopped = readBooleanField(objectValue, "isStopped");
-    if (cursor === null || itemId === null || isError === null || isStopped === null) {
-      return null;
-    }
+    return {
+      type,
+      cursor: requireStringField(objectValue, "cursor", type, payload),
+      itemId: requireStringField(objectValue, "itemId", type, payload),
+      isError: requireBooleanField(objectValue, "isError", type, payload),
+      isStopped: requireBooleanField(objectValue, "isStopped", type, payload),
+    };
+  }
 
-    return { type, cursor, itemId, isError, isStopped };
+  if (type === "repair_status") {
+    return {
+      type,
+      message: requireStringField(objectValue, "message", type, payload),
+      attempt: requireNumberField(objectValue, "attempt", type, payload),
+      maxAttempts: requireNumberField(objectValue, "maxAttempts", type, payload),
+      toolName: readStringField(objectValue, "toolName"),
+    };
   }
 
   if (type === "error") {
-    const message = readStringField(objectValue, "message");
-    return message === null ? null : { type, message };
+    return { type, message: requireStringField(objectValue, "message", type, payload) };
+  }
+
+  if (type === "stop_ack") {
+    return {
+      type,
+      sessionId: requireStringField(objectValue, "sessionId", type, payload),
+    };
   }
 
   if (type === "reset_required") {
     return { type };
   }
 
-  return null;
+  throw new ChatLiveContractError(
+    `AI live stream event is invalid: unsupported event type "${type}".`,
+    type,
+    payload,
+  );
 }
 
 function buildLiveStreamUrl(
@@ -227,11 +315,7 @@ function consumeSSEBlock(
   if (dataLines.length === 0) {
     return;
   }
-
-  const event = parseChatLiveEvent(eventType, dataLines.join("\n"));
-  if (event !== null) {
-    onEvent(event);
-  }
+  onEvent(parseChatLiveEvent(eventType, dataLines.join("\n")));
 }
 
 export async function consumeChatLiveStream(

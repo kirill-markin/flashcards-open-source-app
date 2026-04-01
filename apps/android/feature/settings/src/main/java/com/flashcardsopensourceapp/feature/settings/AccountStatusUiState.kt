@@ -10,6 +10,8 @@ data class AccountStatusUiState(
     val isGuest: Boolean,
     val isLinked: Boolean,
     val isLinkingReady: Boolean,
+    val isSyncBlocked: Boolean,
+    val syncBlockedMessage: String?,
     val showLogoutConfirmation: Boolean,
     val errorMessage: String,
     val isSubmitting: Boolean

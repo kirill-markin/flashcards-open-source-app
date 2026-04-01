@@ -16,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.aiChatConsentRequiredMessage
 import com.flashcardsopensourceapp.data.local.model.aiChatGuestQuotaButtonTitle
 import com.flashcardsopensourceapp.data.local.model.aiChatGuestQuotaReachedMessage
@@ -70,6 +71,15 @@ class AiViewModel(
         started = SharingStarted.Eagerly,
         initialValue = makeOfficialCloudServiceConfiguration()
     )
+    private val syncStatusState = syncRepository.observeSyncStatus().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot(
+            status = SyncStatus.Idle,
+            lastSuccessfulSyncAtMillis = null,
+            lastErrorMessage = ""
+        )
+    )
     private val consentState = aiChatRepository.observeConsent().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
@@ -90,12 +100,14 @@ class AiViewModel(
     val uiState: StateFlow<AiUiState> = combine(
         metadataState,
         cloudSettingsState,
+        syncStatusState,
         consentState,
         draftState
-    ) { metadata, cloudSettings, hasConsent, draft ->
+    ) { metadata, cloudSettings, syncStatus, hasConsent, draft ->
         mapToAiUiState(
             metadata = metadata,
             cloudState = cloudSettings.cloudState,
+            isCloudIdentityBlocked = syncStatus.status is SyncStatus.Blocked,
             hasConsent = hasConsent,
             draft = draft
         )
@@ -1090,6 +1102,11 @@ class AiViewModel(
                     }
                 }
 
+                val blockedSyncMessage = syncBlockedMessageOrNull()
+                if (blockedSyncMessage != null) {
+                    throw IllegalStateException(blockedSyncMessage)
+                }
+
                 aiChatRepository.prepareSessionForAi(workspaceId = workspaceId)
                 if (
                     accessContext.cloudState == CloudAccountState.GUEST
@@ -1181,6 +1198,15 @@ class AiViewModel(
             }
         }
         activeBootstrapJob = bootstrapJob
+    }
+
+    private fun syncBlockedMessageOrNull(): String? {
+        val syncStatus = syncStatusState.value.status
+        return if (syncStatus is SyncStatus.Blocked) {
+            syncStatus.message
+        } else {
+            null
+        }
     }
 
     private fun attachBootstrapLiveIfNeeded(

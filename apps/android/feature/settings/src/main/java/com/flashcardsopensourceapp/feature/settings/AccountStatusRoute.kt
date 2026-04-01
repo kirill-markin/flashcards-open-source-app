@@ -41,6 +41,29 @@ fun AccountStatusRoute(
             verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
             modifier = Modifier.fillMaxSize()
         ) {
+            if (uiState.syncBlockedMessage != null) {
+                item {
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(20.dp)
+                        ) {
+                            Text(
+                                text = "Sync is blocked on this device",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = uiState.syncBlockedMessage,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = "Use Log out to clear local cloud identity on this device before reconnecting."
+                            )
+                        }
+                    }
+                }
+            }
+
             if (uiState.errorMessage.isNotEmpty()) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
@@ -121,7 +144,7 @@ fun AccountStatusRoute(
                         if (uiState.isLinked) {
                             Button(
                                 onClick = onSyncNow,
-                                enabled = uiState.isSubmitting.not(),
+                                enabled = uiState.isSubmitting.not() && uiState.isSyncBlocked.not(),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(if (uiState.isSubmitting) "Syncing..." else "Sync now")

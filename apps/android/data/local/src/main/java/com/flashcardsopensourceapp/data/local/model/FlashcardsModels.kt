@@ -163,6 +163,11 @@ sealed interface SyncStatus {
 
     data object Syncing : SyncStatus
 
+    data class Blocked(
+        val message: String,
+        val installationId: String
+    ) : SyncStatus
+
     data class Failed(
         val message: String
     ) : SyncStatus

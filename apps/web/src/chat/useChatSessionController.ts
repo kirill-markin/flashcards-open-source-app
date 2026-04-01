@@ -253,6 +253,10 @@ export function useChatSessionController(
       return;
     }
 
+    if (event.type === "repair_status" || event.type === "stop_ack") {
+      return;
+    }
+
     finalizeInterruptedRun("AI live stream reset is required.");
   }, [
     appendAssistantText,

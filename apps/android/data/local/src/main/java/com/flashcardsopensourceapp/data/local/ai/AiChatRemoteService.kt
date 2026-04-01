@@ -63,13 +63,11 @@ class AiChatRemoteService {
         )
 
         try {
-            val response = readJsonResponse(connection = connection)
-            return@withContext StoredGuestAiSession(
-                guestToken = response.requireCloudString("guestToken", "guestToken"),
-                userId = response.requireCloudString("userId", "userId"),
-                workspaceId = response.requireCloudString("workspaceId", "workspaceId"),
-                configurationMode = configurationMode,
-                apiBaseUrl = apiBaseUrl
+            val responseBody = readResponseBody(connection = connection)
+            return@withContext decodeAiChatGuestSession(
+                payload = responseBody,
+                apiBaseUrl = apiBaseUrl,
+                configurationMode = configurationMode
             )
         } finally {
             connection.disconnect()
@@ -100,9 +98,9 @@ class AiChatRemoteService {
                 outputStream.write(encodeStartRunRequest(request = request).toString().toByteArray(StandardCharsets.UTF_8))
             }
 
-            val response = readJsonResponse(connection = startConnection)
+            val responseBody = readResponseBody(connection = startConnection)
             requestId = startConnection.getHeaderField(chatRequestIdHeaderName)
-            startResponse = decodeStartRunResponse(response)
+            startResponse = decodeAiChatStartRunResponse(responseBody)
         } finally {
             startConnection.disconnect()
         }
@@ -162,8 +160,8 @@ class AiChatRemoteService {
         )
 
         try {
-            val response = readJsonResponse(connection = connection)
-            return@withContext decodeSnapshot(response)
+            val responseBody = readResponseBody(connection = connection)
+            return@withContext decodeAiChatSessionSnapshot(responseBody)
         } finally {
             connection.disconnect()
         }
@@ -189,8 +187,8 @@ class AiChatRemoteService {
         )
 
         try {
-            val response = readJsonResponse(connection = connection)
-            return@withContext decodeBootstrapResponse(response)
+            val responseBody = readResponseBody(connection = connection)
+            return@withContext decodeAiChatBootstrapResponse(responseBody)
         } finally {
             connection.disconnect()
         }
@@ -212,8 +210,8 @@ class AiChatRemoteService {
         )
 
         try {
-            val response = readJsonResponse(connection = connection)
-            val bootstrap = decodeBootstrapResponse(response)
+            val responseBody = readResponseBody(connection = connection)
+            val bootstrap = decodeAiChatBootstrapResponse(responseBody)
             return@withContext AiChatOlderMessagesResponse(
                 messages = bootstrap.messages,
                 hasOlder = bootstrap.hasOlder,
@@ -267,13 +265,11 @@ class AiChatRemoteService {
                 } else if (line.isEmpty() && dataLines.isNotEmpty()) {
                     val payload = dataLines.joinToString(separator = "\n")
                     dataLines.clear()
-                    val event = parseLiveEvent(currentEventType, payload)
+                    val event = decodeAiChatLiveEventPayload(currentEventType, payload)
                     currentEventType = null
-                    if (event != null) {
-                        val shouldContinue = kotlinx.coroutines.runBlocking { onEvent(event) }
-                        if (shouldContinue.not()) {
-                            return@withContext
-                        }
+                    val shouldContinue = kotlinx.coroutines.runBlocking { onEvent(event) }
+                    if (shouldContinue.not()) {
+                        return@withContext
                     }
                 }
                 line = reader.readLine()
@@ -281,10 +277,8 @@ class AiChatRemoteService {
 
             if (dataLines.isNotEmpty()) {
                 val payload = dataLines.joinToString(separator = "\n")
-                val event = parseLiveEvent(currentEventType, payload)
-                if (event != null) {
-                    kotlinx.coroutines.runBlocking { onEvent(event) }
-                }
+                val event = decodeAiChatLiveEventPayload(currentEventType, payload)
+                kotlinx.coroutines.runBlocking { onEvent(event) }
             }
         } finally {
             connection.disconnect()
@@ -351,15 +345,8 @@ class AiChatRemoteService {
                         .toByteArray(StandardCharsets.UTF_8)
                 )
             }
-            val response = readJsonResponse(connection = connection)
-            return@withContext AiChatSessionSnapshot(
-                sessionId = response.requireCloudString("sessionId", "sessionId"),
-                runState = "idle",
-                updatedAtMillis = 0L,
-                mainContentInvalidationVersion = 0L,
-                messages = emptyList(),
-                chatConfig = decodeChatConfig(response.requireCloudObject("chatConfig", "chatConfig"))
-            )
+            val responseBody = readResponseBody(connection = connection)
+            return@withContext decodeAiChatNewSession(responseBody)
         } finally {
             connection.disconnect()
         }
@@ -388,7 +375,7 @@ class AiChatRemoteService {
                         .toByteArray(StandardCharsets.UTF_8)
                 )
             }
-            readJsonResponse(connection = connection)
+            readResponseBody(connection = connection)
         } finally {
             connection.disconnect()
         }
@@ -425,11 +412,8 @@ class AiChatRemoteService {
                 )
             }
 
-            val response = readJsonResponse(connection = connection)
-            return@withContext AiChatTranscriptionResult(
-                text = response.requireCloudString("text", "text"),
-                sessionId = response.requireCloudString("sessionId", "sessionId")
-            )
+            val responseBody = readResponseBody(connection = connection)
+            return@withContext decodeAiChatTranscription(responseBody)
         } finally {
             connection.disconnect()
         }
@@ -454,16 +438,15 @@ class AiChatRemoteService {
         return connection
     }
 
-    private fun readJsonResponse(connection: HttpURLConnection): JSONObject {
+    private fun readResponseBody(connection: HttpURLConnection): String {
         val responseCode = connection.responseCode
         if (responseCode !in 200..299) {
             throw readErrorResponse(connection = connection)
         }
 
-        val responseBody = connection.inputStream.bufferedReader(StandardCharsets.UTF_8).use { reader ->
+        return connection.inputStream.bufferedReader(StandardCharsets.UTF_8).use { reader ->
             reader.readText()
         }
-        return JSONObject(responseBody)
     }
 
     private fun readErrorResponse(connection: HttpURLConnection): AiChatRemoteException {

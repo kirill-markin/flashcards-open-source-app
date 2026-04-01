@@ -51,7 +51,7 @@ var flashcardsSupportEmailUrl: String {
 func loadCloudServiceConfiguration(
     bundle: Bundle = .main,
     userDefaults: UserDefaults = .standard,
-    decoder: JSONDecoder = JSONDecoder()
+    decoder: JSONDecoder = makeFlashcardsRemoteJSONDecoder()
 ) throws -> CloudServiceConfiguration {
     if let override = try loadCloudServerOverride(userDefaults: userDefaults, decoder: decoder) {
         return try makeCustomCloudServiceConfiguration(customOrigin: override.customOrigin)

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
@@ -49,6 +50,7 @@ class AccountStatusViewModel(
             linkedEmail = cloudSettings.linkedEmail,
             installationId = cloudSettings.installationId,
             syncStatusText = when (val status = syncStatus.status) {
+                is SyncStatus.Blocked -> status.message
                 is com.flashcardsopensourceapp.data.local.model.SyncStatus.Failed -> status.message
                 com.flashcardsopensourceapp.data.local.model.SyncStatus.Idle -> when (cloudSettings.cloudState) {
                     CloudAccountState.GUEST -> "Guest AI session"
@@ -60,6 +62,8 @@ class AccountStatusViewModel(
             isGuest = cloudSettings.cloudState == CloudAccountState.GUEST,
             isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
             isLinkingReady = cloudSettings.cloudState == CloudAccountState.LINKING_READY,
+            isSyncBlocked = syncStatus.status is SyncStatus.Blocked,
+            syncBlockedMessage = (syncStatus.status as? SyncStatus.Blocked)?.message,
             showLogoutConfirmation = draft.showLogoutConfirmation,
             errorMessage = draft.errorMessage,
             isSubmitting = draft.isSubmitting
@@ -77,6 +81,8 @@ class AccountStatusViewModel(
             isGuest = false,
             isLinked = false,
             isLinkingReady = false,
+            isSyncBlocked = false,
+            syncBlockedMessage = null,
             showLogoutConfirmation = false,
             errorMessage = "",
             isSubmitting = false

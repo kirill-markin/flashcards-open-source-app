@@ -99,7 +99,7 @@ final class CloudAuthService {
 
     init(
         encoder: JSONEncoder = JSONEncoder(),
-        decoder: JSONDecoder = JSONDecoder(),
+        decoder: JSONDecoder = makeFlashcardsRemoteJSONDecoder(),
         session: URLSession? = nil,
         cookieStorage: HTTPCookieStorage = HTTPCookieStorage()
     ) {

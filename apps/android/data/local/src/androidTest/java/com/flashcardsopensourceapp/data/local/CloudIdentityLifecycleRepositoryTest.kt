@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
+import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
@@ -40,6 +41,7 @@ import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.CloudIdentityResetCoordinator
+import com.flashcardsopensourceapp.data.local.repository.CloudGuestSessionCoordinator
 import com.flashcardsopensourceapp.data.local.repository.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.LocalCloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalSyncRepository
@@ -51,6 +53,7 @@ import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -67,6 +70,7 @@ class CloudIdentityLifecycleRepositoryTest {
     private lateinit var guestAiSessionStore: GuestAiSessionStore
     private lateinit var operationCoordinator: CloudOperationCoordinator
     private lateinit var resetCoordinator: CloudIdentityResetCoordinator
+    private lateinit var aiChatRemoteService: AiChatRemoteService
 
     @Before
     fun setUp() = runBlocking {
@@ -81,6 +85,7 @@ class CloudIdentityLifecycleRepositoryTest {
         aiChatHistoryStore = AiChatHistoryStore(context = context)
         guestAiSessionStore = GuestAiSessionStore(context = context)
         operationCoordinator = CloudOperationCoordinator()
+        aiChatRemoteService = AiChatRemoteService()
         ensureLocalWorkspaceShell(
             database = database,
             currentTimeMillis = 100L
@@ -244,7 +249,8 @@ class CloudIdentityLifecycleRepositoryTest {
             ),
             operationCoordinator = operationCoordinator,
             resetCoordinator = resetCoordinator,
-            guestSessionStore = guestAiSessionStore
+            guestSessionStore = guestAiSessionStore,
+            cloudGuestSessionCoordinator = createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
         )
 
         prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
@@ -304,6 +310,229 @@ class CloudIdentityLifecycleRepositoryTest {
         assertNull(cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
         assertEquals(localWorkspaceId, cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
         assertEquals(1, remoteGateway.prepareGuestUpgradeCalls)
+    }
+
+    @Test
+    fun syncRepositoryRestoresStoredGuestSessionBeforeSyncWhenCloudStateIsDisconnected() = runBlocking {
+        val localWorkspaceId = requireLocalWorkspaceId()
+        val guestWorkspaceId = "guest-workspace"
+        val remoteGateway = FakeCloudRemoteGateway()
+        val syncRepository = LocalSyncRepository(
+            database = database,
+            preferencesStore = cloudPreferencesStore,
+            remoteService = remoteGateway,
+            syncLocalStore = com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore(
+                database = database,
+                preferencesStore = cloudPreferencesStore
+            ),
+            operationCoordinator = operationCoordinator,
+            resetCoordinator = resetCoordinator,
+            guestSessionStore = guestAiSessionStore,
+            cloudGuestSessionCoordinator = createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+        )
+        cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.DISCONNECTED,
+            linkedUserId = null,
+            linkedWorkspaceId = null,
+            linkedEmail = null,
+            activeWorkspaceId = localWorkspaceId
+        )
+        guestAiSessionStore.saveSession(
+            localWorkspaceId = guestWorkspaceId,
+            session = StoredGuestAiSession(
+                guestToken = "guest-token",
+                userId = "guest-user",
+                workspaceId = guestWorkspaceId,
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1"
+            )
+        )
+
+        syncRepository.syncNow()
+
+        val cloudSettings = cloudPreferencesStore.currentCloudSettings()
+        assertEquals(CloudAccountState.GUEST, cloudSettings.cloudState)
+        assertEquals(guestWorkspaceId, cloudSettings.activeWorkspaceId)
+        assertEquals(guestWorkspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertEquals(listOf(guestWorkspaceId), remoteGateway.bootstrapPullWorkspaceIds)
+    }
+
+    @Test
+    fun syncRepositoryResetsInvalidGuestStateWhenStoredGuestSessionIsMissing() = runBlocking {
+        val localWorkspaceId = requireLocalWorkspaceId()
+        val initialInstallationId = cloudPreferencesStore.currentCloudSettings().installationId
+        val remoteGateway = FakeCloudRemoteGateway()
+        val syncRepository = LocalSyncRepository(
+            database = database,
+            preferencesStore = cloudPreferencesStore,
+            remoteService = remoteGateway,
+            syncLocalStore = com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore(
+                database = database,
+                preferencesStore = cloudPreferencesStore
+            ),
+            operationCoordinator = operationCoordinator,
+            resetCoordinator = resetCoordinator,
+            guestSessionStore = guestAiSessionStore,
+            cloudGuestSessionCoordinator = createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+        )
+        cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.GUEST,
+            linkedUserId = "guest-user",
+            linkedWorkspaceId = localWorkspaceId,
+            linkedEmail = null,
+            activeWorkspaceId = localWorkspaceId
+        )
+
+        try {
+            syncRepository.syncNow()
+        } catch (_: IllegalStateException) {
+        }
+
+        val resetWorkspace = requireNotNull(database.workspaceDao().loadAnyWorkspace()) {
+            "Expected a local workspace after guest reset."
+        }
+        assertEquals(CloudAccountState.DISCONNECTED, cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(resetWorkspace.workspaceId, cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
+        assertNotEquals(initialInstallationId, cloudPreferencesStore.currentCloudSettings().installationId)
+    }
+
+    @Test
+    fun syncRepositoryResetsStaleActiveWorkspaceIdBeforeSync() = runBlocking {
+        val remoteGateway = FakeCloudRemoteGateway()
+        val syncRepository = LocalSyncRepository(
+            database = database,
+            preferencesStore = cloudPreferencesStore,
+            remoteService = remoteGateway,
+            syncLocalStore = com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore(
+                database = database,
+                preferencesStore = cloudPreferencesStore
+            ),
+            operationCoordinator = operationCoordinator,
+            resetCoordinator = resetCoordinator,
+            guestSessionStore = guestAiSessionStore,
+            cloudGuestSessionCoordinator = createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+        )
+        cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.DISCONNECTED,
+            linkedUserId = null,
+            linkedWorkspaceId = null,
+            linkedEmail = null,
+            activeWorkspaceId = "stale-workspace-id"
+        )
+
+        try {
+            syncRepository.syncNow()
+        } catch (_: IllegalStateException) {
+        }
+
+        val cloudSettings = cloudPreferencesStore.currentCloudSettings()
+        val resetWorkspace = requireNotNull(database.workspaceDao().loadAnyWorkspace()) {
+            "Expected a local workspace after stale active workspace reset."
+        }
+        assertEquals(CloudAccountState.DISCONNECTED, cloudSettings.cloudState)
+        assertEquals(resetWorkspace.workspaceId, cloudSettings.activeWorkspaceId)
+    }
+
+    @Test
+    fun syncRepositoryBlocksInstallationPlatformMismatchWithoutResettingLocalIdentity() = runBlocking {
+        val initialLocalWorkspaceId = requireLocalWorkspaceId()
+        val initialInstallationId = cloudPreferencesStore.currentCloudSettings().installationId
+        val remoteGateway = FakeCloudRemoteGateway(
+            bootstrapPullError = CloudRemoteException(
+                message = "Cloud request failed with status 409 for /sync/bootstrap-pull",
+                statusCode = 409,
+                responseBody = JSONObject()
+                    .put("code", "SYNC_INSTALLATION_PLATFORM_MISMATCH")
+                    .put("requestId", "request-platform-mismatch")
+                    .toString(),
+                errorCode = "SYNC_INSTALLATION_PLATFORM_MISMATCH",
+                requestId = "request-platform-mismatch"
+            )
+        )
+        val syncRepository = LocalSyncRepository(
+            database = database,
+            preferencesStore = cloudPreferencesStore,
+            remoteService = remoteGateway,
+            syncLocalStore = com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore(
+                database = database,
+                preferencesStore = cloudPreferencesStore
+            ),
+            operationCoordinator = operationCoordinator,
+            resetCoordinator = resetCoordinator,
+            guestSessionStore = guestAiSessionStore,
+            cloudGuestSessionCoordinator = createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+        )
+
+        prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
+
+        try {
+            syncRepository.syncNow()
+        } catch (_: CloudRemoteException) {
+        }
+
+        val cloudSettings = cloudPreferencesStore.currentCloudSettings()
+        val syncStatus = syncRepository.observeSyncStatus().first().status
+        assertEquals(CloudAccountState.LINKED, cloudSettings.cloudState)
+        assertEquals(initialInstallationId, cloudSettings.installationId)
+        assertEquals(initialLocalWorkspaceId, cloudSettings.activeWorkspaceId)
+        assertEquals(initialLocalWorkspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertNotNull(cloudPreferencesStore.loadCredentials())
+        assertTrue(syncStatus is SyncStatus.Blocked)
+        assertEquals(
+            "Cloud request failed with status 409 for /sync/bootstrap-pull",
+            (syncStatus as SyncStatus.Blocked).message
+        )
+    }
+
+    @Test
+    fun syncRepositoryBlocksReplicaConflictWithoutResettingLocalIdentity() = runBlocking {
+        val initialLocalWorkspaceId = requireLocalWorkspaceId()
+        val initialInstallationId = cloudPreferencesStore.currentCloudSettings().installationId
+        val remoteGateway = FakeCloudRemoteGateway(
+            bootstrapPullError = CloudRemoteException(
+                message = "Cloud request failed with status 409 for /sync/bootstrap-pull",
+                statusCode = 409,
+                responseBody = JSONObject()
+                    .put("code", "SYNC_REPLICA_CONFLICT")
+                    .put("requestId", "request-replica-conflict")
+                    .toString(),
+                errorCode = "SYNC_REPLICA_CONFLICT",
+                requestId = "request-replica-conflict"
+            )
+        )
+        val syncRepository = LocalSyncRepository(
+            database = database,
+            preferencesStore = cloudPreferencesStore,
+            remoteService = remoteGateway,
+            syncLocalStore = com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore(
+                database = database,
+                preferencesStore = cloudPreferencesStore
+            ),
+            operationCoordinator = operationCoordinator,
+            resetCoordinator = resetCoordinator,
+            guestSessionStore = guestAiSessionStore,
+            cloudGuestSessionCoordinator = createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+        )
+
+        prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
+
+        try {
+            syncRepository.syncNow()
+        } catch (_: CloudRemoteException) {
+        }
+
+        val cloudSettings = cloudPreferencesStore.currentCloudSettings()
+        val syncStatus = syncRepository.observeSyncStatus().first().status
+        assertEquals(CloudAccountState.LINKED, cloudSettings.cloudState)
+        assertEquals(initialInstallationId, cloudSettings.installationId)
+        assertEquals(initialLocalWorkspaceId, cloudSettings.activeWorkspaceId)
+        assertEquals(initialLocalWorkspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertNotNull(cloudPreferencesStore.loadCredentials())
+        assertTrue(syncStatus is SyncStatus.Blocked)
+        assertEquals(
+            "Cloud request failed with status 409 for /sync/bootstrap-pull",
+            (syncStatus as SyncStatus.Blocked).message
+        )
     }
 
     @Test
@@ -602,7 +831,8 @@ class CloudIdentityLifecycleRepositoryTest {
             ),
             operationCoordinator = operationCoordinator,
             resetCoordinator = resetCoordinator,
-            guestSessionStore = guestAiSessionStore
+            guestSessionStore = guestAiSessionStore,
+            cloudGuestSessionCoordinator = createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
         )
 
         prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
@@ -645,7 +875,8 @@ class CloudIdentityLifecycleRepositoryTest {
             ),
             operationCoordinator = operationCoordinator,
             resetCoordinator = resetCoordinator,
-            guestSessionStore = guestAiSessionStore
+            guestSessionStore = guestAiSessionStore,
+            cloudGuestSessionCoordinator = createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
         )
 
         prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
@@ -692,6 +923,24 @@ class CloudIdentityLifecycleRepositoryTest {
         )
     }
 
+    private fun createCloudGuestSessionCoordinator(
+        remoteGateway: CloudRemoteGateway
+    ): CloudGuestSessionCoordinator {
+        return CloudGuestSessionCoordinator(
+            database = database,
+            preferencesStore = cloudPreferencesStore,
+            remoteService = remoteGateway,
+            syncLocalStore = com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore(
+                database = database,
+                preferencesStore = cloudPreferencesStore
+            ),
+            operationCoordinator = operationCoordinator,
+            resetCoordinator = resetCoordinator,
+            guestSessionStore = guestAiSessionStore,
+            aiChatRemoteService = aiChatRemoteService
+        )
+    }
+
     private fun prepareLinkedCloudIdentity(localWorkspaceId: String) {
         cloudPreferencesStore.saveCredentials(
             credentials = StoredCloudCredentials(
@@ -728,6 +977,7 @@ private class FakeCloudRemoteGateway(
     private var deleteFailuresRemaining: Int = 0,
     private val fetchAccountError: CloudRemoteException? = null,
     private val guestUpgradeMode: CloudGuestUpgradeMode? = null,
+    private val bootstrapPullError: CloudRemoteException? = null,
     private val bootstrapRemoteIsEmpty: Boolean = true,
     private val createdWorkspace: CloudWorkspaceSummary = CloudWorkspaceSummary(
         workspaceId = "workspace-new",
@@ -898,6 +1148,9 @@ private class FakeCloudRemoteGateway(
         workspaceId: String,
         body: JSONObject
     ): RemoteBootstrapPullResponse {
+        bootstrapPullError?.let { error ->
+            throw error
+        }
         bootstrapPullWorkspaceIds += workspaceId
         return RemoteBootstrapPullResponse(
             entries = emptyList(),

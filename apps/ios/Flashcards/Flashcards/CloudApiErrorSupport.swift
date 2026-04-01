@@ -13,7 +13,7 @@ struct CloudApiErrorDetails: Hashable {
 }
 
 func decodeCloudApiErrorDetails(data: Data, requestId: String?) -> CloudApiErrorDetails {
-    if let envelope = try? JSONDecoder().decode(CloudApiErrorEnvelope.self, from: data) {
+    if let envelope = try? makeFlashcardsRemoteJSONDecoder().decode(CloudApiErrorEnvelope.self, from: data) {
         let message = envelope.error?.isEmpty == false
             ? envelope.error!
             : String(data: data, encoding: .utf8) ?? "<non-utf8-body>"

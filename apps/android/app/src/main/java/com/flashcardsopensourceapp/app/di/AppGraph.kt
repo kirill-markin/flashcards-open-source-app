@@ -15,7 +15,6 @@ import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.buildAppDatabase
 import com.flashcardsopensourceapp.data.local.database.closeAppDatabase
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.SharedPreferencesReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
@@ -23,6 +22,7 @@ import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPref
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudIdentityResetCoordinator
+import com.flashcardsopensourceapp.data.local.repository.CloudGuestSessionCoordinator
 import com.flashcardsopensourceapp.data.local.repository.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.DecksRepository
@@ -36,6 +36,7 @@ import com.flashcardsopensourceapp.data.local.repository.LocalWorkspaceRepositor
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
+import kotlinx.coroutines.runBlocking
 
 class AppGraph(
     context: Context
@@ -63,6 +64,16 @@ class AppGraph(
         aiChatHistoryStore = aiChatHistoryStore,
         guestAiSessionStore = guestAiSessionStore
     )
+    private val cloudGuestSessionCoordinator = CloudGuestSessionCoordinator(
+        database = database,
+        preferencesStore = cloudPreferencesStore,
+        remoteService = cloudRemoteService,
+        syncLocalStore = syncLocalStore,
+        operationCoordinator = cloudOperationCoordinator,
+        resetCoordinator = cloudIdentityResetCoordinator,
+        guestSessionStore = guestAiSessionStore,
+        aiChatRemoteService = aiChatRemoteService
+    )
 
     val cloudAccountRepository: CloudAccountRepository = LocalCloudAccountRepository(
         database = database,
@@ -80,7 +91,8 @@ class AppGraph(
         syncLocalStore = syncLocalStore,
         operationCoordinator = cloudOperationCoordinator,
         resetCoordinator = cloudIdentityResetCoordinator,
-        guestSessionStore = guestAiSessionStore
+        guestSessionStore = guestAiSessionStore,
+        cloudGuestSessionCoordinator = cloudGuestSessionCoordinator
     )
     val cardsRepository: CardsRepository = LocalCardsRepository(
         database = database,
@@ -104,16 +116,13 @@ class AppGraph(
         syncLocalStore = syncLocalStore
     )
     val aiChatRepository: AiChatRepository = LocalAiChatRepository(
-        database = database,
         preferencesStore = cloudPreferencesStore,
         cloudRemoteService = cloudRemoteService,
-        syncLocalStore = syncLocalStore,
-        operationCoordinator = cloudOperationCoordinator,
+        cloudGuestSessionCoordinator = cloudGuestSessionCoordinator,
         syncRepository = syncRepository,
         aiChatRemoteService = aiChatRemoteService,
         historyStore = aiChatHistoryStore,
-        aiChatPreferencesStore = aiChatPreferencesStore,
-        guestSessionStore = guestAiSessionStore
+        aiChatPreferencesStore = aiChatPreferencesStore
     )
     val reviewNotificationsManager = ReviewNotificationsManager(
         context = context,
@@ -124,7 +133,9 @@ class AppGraph(
     )
 
     init {
-        restoreGuestCloudStateIfNeeded()
+        runBlocking {
+            cloudGuestSessionCoordinator.reconcilePersistedCloudStateForStartup()
+        }
     }
 
     suspend fun ensureLocalWorkspaceShell(currentTimeMillis: Long) {
@@ -133,45 +144,6 @@ class AppGraph(
             currentTimeMillis = currentTimeMillis
         )
     }
-
-    private fun restoreGuestCloudStateIfNeeded() {
-        val currentCloudSettings = cloudPreferencesStore.currentCloudSettings()
-        if (
-            currentCloudSettings.cloudState == CloudAccountState.LINKED
-            || currentCloudSettings.cloudState == CloudAccountState.LINKING_READY
-        ) {
-            return
-        }
-
-        val configuration = cloudPreferencesStore.currentServerConfiguration()
-        val localWorkspaceId = currentCloudSettings.activeWorkspaceId
-        val guestSession = guestAiSessionStore.loadSession(
-            localWorkspaceId = localWorkspaceId,
-            configuration = configuration
-        )
-
-        if (guestSession == null) {
-            if (currentCloudSettings.cloudState == CloudAccountState.GUEST) {
-                cloudPreferencesStore.updateCloudSettings(
-                    cloudState = CloudAccountState.DISCONNECTED,
-                    linkedUserId = null,
-                    linkedWorkspaceId = null,
-                    linkedEmail = null,
-                    activeWorkspaceId = localWorkspaceId
-                )
-            }
-            return
-        }
-
-        cloudPreferencesStore.updateCloudSettings(
-            cloudState = CloudAccountState.GUEST,
-            linkedUserId = guestSession.userId,
-            linkedWorkspaceId = guestSession.workspaceId,
-            linkedEmail = null,
-            activeWorkspaceId = guestSession.workspaceId
-        )
-    }
-
     fun close() {
         closeAppDatabase(database = database)
     }

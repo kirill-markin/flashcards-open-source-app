@@ -390,6 +390,45 @@ class AiRouteTest {
         composeRule.onNodeWithText("Open account status").performClick()
         composeRule.onNodeWithText("Account status destination").assertIsDisplayed()
     }
+
+    @Test
+    fun blockedConversationErrorShowsAccountStatusActionInsteadOfRetry() {
+        composeRule.setContent {
+            FlashcardsTheme {
+                AiRoute(
+                    uiState = makeAiUiState(
+                        conversationErrorMessage = "Cloud sync is blocked for this installation.",
+                        isConversationReady = false,
+                        canRetryConversationLoad = false,
+                        showOpenAccountStatusForConversationError = true
+                    ),
+                    onAcceptConsent = {},
+                    onDraftMessageChange = {},
+                    onSendMessage = {},
+                    onCancelStreaming = {},
+                    onNewChat = {},
+                    onOpenAccountStatus = {},
+                    onDismissErrorMessage = {},
+                    onDismissAlert = {},
+                    onAddPendingAttachment = {},
+                    onRemovePendingAttachment = {},
+                    onStartDictationPermissionRequest = {},
+                    onStartDictationRecording = {},
+                    onTranscribeRecordedAudio = { _, _, _ -> },
+                    onCancelDictation = {},
+                    onWarmUpSessionIfNeeded = {},
+                    onRetryConversationLoad = {},
+                    onShowAlert = {},
+                    onShowErrorMessage = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Chat unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText("Cloud sync is blocked for this installation.").assertIsDisplayed()
+        assertTrue(composeRule.onAllNodesWithText("Retry").fetchSemanticsNodes().isEmpty())
+        composeRule.onNodeWithText("Open account status").assertIsDisplayed()
+    }
 }
 
 private fun makeAiUiState(
@@ -399,7 +438,11 @@ private fun makeAiUiState(
     isStreaming: Boolean = false,
     canStopStreaming: Boolean = false,
     canSend: Boolean = false,
-    isComposerBusy: Boolean = false
+    isComposerBusy: Boolean = false,
+    isConversationReady: Boolean = true,
+    conversationErrorMessage: String = "",
+    canRetryConversationLoad: Boolean = true,
+    showOpenAccountStatusForConversationError: Boolean = false
 ): AiUiState {
     return AiUiState(
         currentWorkspaceName = "Personal",
@@ -409,9 +452,11 @@ private fun makeAiUiState(
         chatConfig = defaultAiChatServerConfig,
         isConsentRequired = isConsentRequired,
         isLinked = false,
-        isConversationReady = true,
+        isConversationReady = isConversationReady,
         isConversationLoading = false,
-        conversationErrorMessage = "",
+        conversationErrorMessage = conversationErrorMessage,
+        canRetryConversationLoad = canRetryConversationLoad,
+        showOpenAccountStatusForConversationError = showOpenAccountStatusForConversationError,
         isComposerBusy = isComposerBusy,
         isStreaming = isStreaming,
         canStopStreaming = canStopStreaming,
