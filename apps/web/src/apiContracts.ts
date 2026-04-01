@@ -1,6 +1,7 @@
 import type {
   AgentApiKeyConnection,
   ChatConfig,
+  ChatLiveStream,
   ChatSessionHistoryMessage,
   ChatSessionSnapshot,
   ChatTranscriptionResponse,
@@ -419,6 +420,27 @@ function parseChatConfig(value: unknown, endpoint: string, path: string): ChatCo
   };
 }
 
+function parseChatLiveStream(value: unknown, endpoint: string, path: string): ChatLiveStream {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    url: parseRequiredField(objectValue, "url", endpoint, path, parseString),
+    authorization: parseRequiredField(objectValue, "authorization", endpoint, path, parseString),
+    expiresAt: parseRequiredField(objectValue, "expiresAt", endpoint, path, parseNumber),
+  };
+}
+
+function parseNullableChatLiveStream(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ChatLiveStream | null {
+  if (value === null) {
+    return null;
+  }
+
+  return parseChatLiveStream(value, endpoint, path);
+}
+
 function parseChatStreamPosition(value: unknown, endpoint: string, path: string): Readonly<{
   itemId: string;
   responseIndex?: number;
@@ -807,6 +829,8 @@ export function parseChatSessionSnapshotResponse(value: unknown, endpoint: strin
     runState: parseRequiredField(objectValue, "runState", endpoint, "", parseChatRunState),
     updatedAt: parseRequiredField(objectValue, "updatedAt", endpoint, "", parseNumber),
     mainContentInvalidationVersion: parseRequiredField(objectValue, "mainContentInvalidationVersion", endpoint, "", parseNumber),
+    liveCursor: parseRequiredField(objectValue, "liveCursor", endpoint, "", parseNullableString),
+    liveStream: parseRequiredField(objectValue, "liveStream", endpoint, "", parseNullableChatLiveStream),
     chatConfig: parseRequiredField(objectValue, "chatConfig", endpoint, "", parseChatConfig),
     messages: parseRequiredField(objectValue, "messages", endpoint, "", parseChatSessionHistoryMessageArray),
   };
@@ -828,6 +852,7 @@ export function parseStartChatRunResponse(value: unknown, endpoint: string): Sta
     runId: parseRequiredField(objectValue, "runId", endpoint, "", parseString),
     clientRequestId: parseRequiredField(objectValue, "clientRequestId", endpoint, "", parseString),
     runState: parseRequiredField(objectValue, "runState", endpoint, "", parseChatRunState),
+    liveStream: parseRequiredField(objectValue, "liveStream", endpoint, "", parseNullableChatLiveStream),
     chatConfig: parseRequiredField(objectValue, "chatConfig", endpoint, "", parseChatConfig),
     deduplicated: parseOptionalField(objectValue, "deduplicated", endpoint, "", parseBoolean),
   };

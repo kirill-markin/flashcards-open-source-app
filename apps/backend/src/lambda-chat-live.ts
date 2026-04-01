@@ -44,6 +44,10 @@ function getLiveAuthorizationScheme(authorizationHeader: string | undefined): st
     return "bearer";
   }
 
+  if (authorizationHeader.startsWith("Live ")) {
+    return "live";
+  }
+
   if (authorizationHeader.startsWith("Guest ")) {
     return "guest";
   }

@@ -6,17 +6,16 @@
 import type { Writable } from "node:stream";
 import { authenticateRequest, type AuthResult } from "../auth";
 import { ensureUserProfile } from "../ensureUser";
-import { query } from "../db";
 import {
   listChatMessagesAfterCursor,
   listChatMessagesLatest,
-  selectRequestedChatSessionWithExecutor,
   stripBase64FromContentParts,
   type ChatSessionRunState,
   type PersistedChatMessageItem,
 } from "./store";
 import { diffAssistantContent } from "./liveDiff";
 import type { ContentPart, LiveSSEEvent } from "./types";
+import { verifyChatLiveAuthorizationHeader } from "./liveAuth";
 
 const LIVE_POLL_INTERVAL_MS = 750;
 const KEEPALIVE_INTERVAL_MS = 15_000;
@@ -69,6 +68,7 @@ export async function runLiveStream(
   let idleSince: number | null = null;
   const connectionStart = Date.now();
   let lastKeepalive = Date.now();
+  let shouldEmitInitialRunState = true;
 
   const write = (data: string): boolean => {
     if (stream.destroyed) {
@@ -187,9 +187,10 @@ export async function runLiveStream(
       }
 
       // Emit run_state changes.
-      if (previousRunState !== null && currentRunState !== previousRunState) {
+      if (shouldEmitInitialRunState || (previousRunState !== null && currentRunState !== previousRunState)) {
         write(formatSSEEvent({ type: "run_state", runState: currentRunState, sessionId }));
       }
+      shouldEmitInitialRunState = false;
       previousRunState = currentRunState;
 
       // Idle tracking for reduced polling frequency.
@@ -236,6 +237,16 @@ export async function handleLiveRequest(
   }
 
   const tokenParam = url.searchParams.get("token");
+  if (authorizationHeader !== undefined && authorizationHeader.startsWith("Live ")) {
+    const verifiedLiveAuth = await verifyChatLiveAuthorizationHeader(authorizationHeader, sessionId);
+    return {
+      sessionId,
+      afterCursor,
+      userId: verifiedLiveAuth.userId,
+      workspaceId: verifiedLiveAuth.workspaceId,
+    };
+  }
+
   const effectiveAuth = authorizationHeader ?? (tokenParam !== null ? `Bearer ${tokenParam}` : undefined);
 
   const authResult: AuthResult = await authenticateRequest({

@@ -4,6 +4,7 @@ import {
   type Browser,
   type BrowserContext,
   type Page,
+  type Request,
   type TestInfo,
 } from "@playwright/test";
 
@@ -46,6 +47,17 @@ type CompletedSqlToolCall = Readonly<{
   summary: string;
   request: string | null;
   response: string | null;
+}>;
+
+type AiTransportObservation = Readonly<{
+  liveRequestCount: number;
+  snapshotPollRequestCount: number;
+}>;
+
+type AiTransportObserver = Readonly<{
+  start: () => void;
+  stop: () => AiTransportObservation;
+  dispose: () => void;
 }>;
 
 /**
@@ -464,6 +476,7 @@ async function runAiCardCreationWithConfirmation(
   const messageField = fullscreenChat.getByPlaceholder("Ask about cards, review history, or attach notes...");
   const sendButton = fullscreenChat.getByRole("button", { name: "Send message" });
   const createPrompt = "I give you all permissions. Please create one test flashcard now.";
+  const transportObserver = createAiTransportObserver(page);
 
   await waitForAiChatSendReadiness(page, diagnostics);
   await trackedWaitForComposerState(
@@ -476,119 +489,138 @@ async function runAiCardCreationWithConfirmation(
     externalUiTimeoutMs,
   );
 
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const previousUserMessageCount = await diagnostics.runAction(
-      `read user message count before AI create prompt attempt ${String(attempt)}`,
-      async () => page.locator(".chat-msg.chat-msg-user").count(),
-    );
-    const previousAssistantErrorCount = await diagnostics.runAction(
-      `read assistant error count before AI create prompt attempt ${String(attempt)}`,
-      async () => page.locator(".chat-msg-error").count(),
-    );
+  try {
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const previousUserMessageCount = await diagnostics.runAction(
+        `read user message count before AI create prompt attempt ${String(attempt)}`,
+        async () => page.locator(".chat-msg.chat-msg-user").count(),
+      );
+      const previousAssistantErrorCount = await diagnostics.runAction(
+        `read assistant error count before AI create prompt attempt ${String(attempt)}`,
+        async () => page.locator(".chat-msg-error").count(),
+      );
 
-    await trackedFill(
-      diagnostics,
-      `fill AI create prompt attempt ${String(attempt)}`,
-      messageField,
-      createPrompt,
-    );
-    await trackedWaitForComposerReady(
-      diagnostics,
-      `confirm AI create prompt attempt ${String(attempt)} keeps the draft and enables send action`,
-      messageField,
-      sendButton,
-      createPrompt,
-      externalUiTimeoutMs,
-    );
-    await trackedClick(diagnostics, `send AI create prompt attempt ${String(attempt)}`, sendButton);
+      await trackedFill(
+        diagnostics,
+        `fill AI create prompt attempt ${String(attempt)}`,
+        messageField,
+        createPrompt,
+      );
+      await trackedWaitForComposerReady(
+        diagnostics,
+        `confirm AI create prompt attempt ${String(attempt)} keeps the draft and enables send action`,
+        messageField,
+        sendButton,
+        createPrompt,
+        externalUiTimeoutMs,
+      );
+      transportObserver.start();
+      let transportObservation: AiTransportObservation;
 
-    await diagnostics.runAction(
-      `confirm AI create prompt attempt ${String(attempt)} was accepted by the chat composer`,
-      async () => {
-        const timeoutAt = Date.now() + externalUiTimeoutMs;
-        let runAcceptanceState: "waiting" | "running" | "queued" | "error" = "waiting";
+      try {
+        await trackedClick(diagnostics, `send AI create prompt attempt ${String(attempt)}`, sendButton);
 
-        while (Date.now() < timeoutAt) {
-          const assistantErrorCount = await page.locator(".chat-msg-error").count();
-          if (assistantErrorCount > previousAssistantErrorCount) {
-            runAcceptanceState = "error";
-            break;
-          }
-          const stopButtonVisible = await page.getByRole("button", { name: "Stop response" }).isVisible().catch(() => false);
-          if (stopButtonVisible) {
-            runAcceptanceState = "running";
-            break;
-          }
+        await diagnostics.runAction(
+          `confirm AI create prompt attempt ${String(attempt)} was accepted by the chat composer`,
+          async () => {
+            const timeoutAt = Date.now() + externalUiTimeoutMs;
+            let runAcceptanceState: "waiting" | "running" | "queued" | "error" = "waiting";
 
-          const currentUserMessageCount = await page.locator(".chat-msg.chat-msg-user").count();
-          if (currentUserMessageCount > previousUserMessageCount) {
-            runAcceptanceState = "queued";
-            break;
-          }
+            while (Date.now() < timeoutAt) {
+              const assistantErrorCount = await page.locator(".chat-msg-error").count();
+              if (assistantErrorCount > previousAssistantErrorCount) {
+                runAcceptanceState = "error";
+                break;
+              }
+              const stopButtonVisible = await page.getByRole("button", { name: "Stop response" }).isVisible().catch(() => false);
+              if (stopButtonVisible) {
+                runAcceptanceState = "running";
+                break;
+              }
 
-          await page.waitForTimeout(250);
-        }
+              const currentUserMessageCount = await page.locator(".chat-msg.chat-msg-user").count();
+              if (currentUserMessageCount > previousUserMessageCount) {
+                runAcceptanceState = "queued";
+                break;
+              }
 
-        if (runAcceptanceState === "waiting") {
-          throw new Error(`AI create prompt attempt ${String(attempt)} was not accepted before timeout.`);
-        }
+              await page.waitForTimeout(250);
+            }
 
-        if (runAcceptanceState === "error") {
-          throw new Error(`AI create prompt attempt ${String(attempt)} reported an assistant error before the run was accepted.`);
-        }
-      },
-    );
-    await diagnostics.runAction(
-      `wait for AI create prompt attempt ${String(attempt)} run to finish and return send action`,
-      async () => {
-        const timeoutAt = Date.now() + externalUiTimeoutMs;
-        let runCompletionState: "running" | "idle" | "error" = "running";
+            if (runAcceptanceState === "waiting") {
+              throw new Error(`AI create prompt attempt ${String(attempt)} was not accepted before timeout.`);
+            }
 
-        while (Date.now() < timeoutAt) {
-          const assistantErrorCount = await page.locator(".chat-msg-error").count();
-          if (assistantErrorCount > previousAssistantErrorCount) {
-            runCompletionState = "error";
-            break;
-          }
+            if (runAcceptanceState === "error") {
+              throw new Error(`AI create prompt attempt ${String(attempt)} reported an assistant error before the run was accepted.`);
+            }
+          },
+        );
+        await diagnostics.runAction(
+          `wait for AI create prompt attempt ${String(attempt)} run to finish and return send action`,
+          async () => {
+            const timeoutAt = Date.now() + externalUiTimeoutMs;
+            let runCompletionState: "running" | "idle" | "error" = "running";
 
-          const sendVisible = await page.getByRole("button", { name: "Send message" }).isVisible().catch(() => false);
-          if (sendVisible) {
-            runCompletionState = "idle";
-            break;
-          }
+            while (Date.now() < timeoutAt) {
+              const assistantErrorCount = await page.locator(".chat-msg-error").count();
+              if (assistantErrorCount > previousAssistantErrorCount) {
+                runCompletionState = "error";
+                break;
+              }
 
-          await page.waitForTimeout(250);
-        }
+              const sendVisible = await page.getByRole("button", { name: "Send message" }).isVisible().catch(() => false);
+              if (sendVisible) {
+                runCompletionState = "idle";
+                break;
+              }
 
-        if (runCompletionState === "running") {
-          throw new Error(`AI create prompt attempt ${String(attempt)} did not finish before timeout.`);
-        }
+              await page.waitForTimeout(250);
+            }
 
-        if (runCompletionState === "error") {
-          throw new Error(`AI create prompt attempt ${String(attempt)} reported an assistant error before the run completed.`);
-        }
-      },
-    );
-    await trackedWaitForComposerState(
-      diagnostics,
-      `confirm AI create prompt attempt ${String(attempt)} returns to empty draft with disabled send action`,
-      messageField,
-      sendButton,
-      "",
-      false,
-      externalUiTimeoutMs,
-    );
+            if (runCompletionState === "running") {
+              throw new Error(`AI create prompt attempt ${String(attempt)} did not finish before timeout.`);
+            }
 
-    const matchedInsertToolCall = await waitForCompletedCardInsertToolCall(
-      page,
-      diagnostics,
-      `wait for completed SQL card insert tool call after AI create attempt ${String(attempt)}`,
-      localUiTimeoutMs,
-    );
+            if (runCompletionState === "error") {
+              throw new Error(`AI create prompt attempt ${String(attempt)} reported an assistant error before the run completed.`);
+            }
+          },
+        );
+      } finally {
+        transportObservation = transportObserver.stop();
+      }
 
-    if (matchedInsertToolCall !== null) {
-      return;
+      await diagnostics.runAction(
+        `confirm AI create prompt attempt ${String(attempt)} used one live stream request and no snapshot polling`,
+        async () => {
+          expect(transportObservation.liveRequestCount).toBe(1);
+          expect(transportObservation.snapshotPollRequestCount).toBe(0);
+        },
+      );
+      await trackedWaitForComposerState(
+        diagnostics,
+        `confirm AI create prompt attempt ${String(attempt)} returns to empty draft with disabled send action`,
+        messageField,
+        sendButton,
+        "",
+        false,
+        externalUiTimeoutMs,
+      );
+
+      const matchedInsertToolCall = await waitForCompletedCardInsertToolCall(
+        page,
+        diagnostics,
+        `wait for completed SQL card insert tool call after AI create attempt ${String(attempt)}`,
+        localUiTimeoutMs,
+      );
+
+      if (matchedInsertToolCall !== null) {
+        return;
+      }
     }
+  } finally {
+    transportObserver.dispose();
   }
 
   const completedSqlToolCalls = await diagnostics.runAction(
@@ -608,6 +640,51 @@ async function runAiCardCreationWithConfirmation(
     + "No completed SQL INSERT INTO cards tool call passed the smoke check. "
     + `Completed SQL tool calls:\n${sqlSummary}`,
   );
+}
+
+function createAiTransportObserver(page: Page): AiTransportObserver {
+  let isObserving = false;
+  let liveRequestCount = 0;
+  let snapshotPollRequestCount = 0;
+
+  const handleRequest = (request: Request): void => {
+    if (isObserving === false || request.method() !== "GET") {
+      return;
+    }
+
+    const url = request.url();
+    if (url.includes("sessionId=") === false) {
+      return;
+    }
+
+    if (url.includes("/v1/chat?sessionId=")) {
+      snapshotPollRequestCount += 1;
+      return;
+    }
+
+    liveRequestCount += 1;
+  };
+
+  page.on("request", handleRequest);
+
+  return {
+    start: (): void => {
+      liveRequestCount = 0;
+      snapshotPollRequestCount = 0;
+      isObserving = true;
+    },
+    stop: (): AiTransportObservation => {
+      isObserving = false;
+      return {
+        liveRequestCount,
+        snapshotPollRequestCount,
+      };
+    },
+    dispose: (): void => {
+      isObserving = false;
+      page.off("request", handleRequest);
+    },
+  };
 }
 
 async function waitForAiChatSendReadiness(

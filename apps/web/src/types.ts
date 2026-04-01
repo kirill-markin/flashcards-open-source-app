@@ -118,11 +118,19 @@ export type ChatConfig = Readonly<{
   }>;
 }>;
 
+export type ChatLiveStream = Readonly<{
+  url: string;
+  authorization: string;
+  expiresAt: number;
+}>;
+
 export type ChatSessionSnapshot = Readonly<{
   sessionId: string;
   runState: "idle" | "running" | "interrupted";
   updatedAt: number;
   mainContentInvalidationVersion: number;
+  liveCursor: string | null;
+  liveStream: ChatLiveStream | null;
   chatConfig: ChatConfig;
   messages: ReadonlyArray<ChatSessionHistoryMessage>;
 }>;
@@ -140,6 +148,7 @@ export type StartChatRunResponse = Readonly<{
   runId: string;
   clientRequestId: string;
   runState: "idle" | "running" | "interrupted";
+  liveStream: ChatLiveStream | null;
   chatConfig: ChatConfig;
   deduplicated?: boolean;
 }>;
@@ -600,5 +609,6 @@ export type ChatMessage = Readonly<{
 export type ChatStreamEvent =
   | Readonly<{ type: "delta"; text: string }>
   | Readonly<{ type: "tool_call"; name: string; status: "started" | "completed"; input?: string; output?: string }>
+  | Readonly<{ type: "reasoning_summary"; summary: string }>
   | Readonly<{ type: "done" }>
   | Readonly<{ type: "error"; message: string }>;

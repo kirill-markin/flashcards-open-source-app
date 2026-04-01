@@ -129,6 +129,11 @@ describe("ChatPanel send lifecycle", () => {
         runId: "run-1",
         clientRequestId: "client-request-1",
         runState: "running",
+        liveStream: {
+          url: "https://chat-live.example.com",
+          authorization: "Live mock-token",
+          expiresAt: Date.now() + 60_000,
+        },
         chatConfig: createChatSnapshot().chatConfig,
       });
     }));
@@ -152,6 +157,11 @@ describe("ChatPanel send lifecycle", () => {
       .mockResolvedValue(createChatSnapshot({
         sessionId: "session-1",
         runState: "running",
+        liveStream: {
+          url: "https://chat-live.example.com",
+          authorization: "Live mock-token",
+          expiresAt: Date.now() + 60_000,
+        },
       }));
 
     await renderChatPanel();
@@ -176,6 +186,11 @@ describe("ChatPanel send lifecycle", () => {
         runId: "run-1",
         clientRequestId: "client-request-1",
         runState: "running",
+        liveStream: {
+          url: "https://chat-live.example.com",
+          authorization: "Live mock-token",
+          expiresAt: Date.now() + 60_000,
+        },
         chatConfig: createChatSnapshot().chatConfig,
       });
     }));
