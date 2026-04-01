@@ -553,6 +553,7 @@ final class AIChatStore {
                 await self.runtime.run(
                     session: session,
                     sessionId: self.chatSessionId,
+                    afterCursor: self.liveCursor,
                     outgoingContent: content,
                     eventHandler: { [weak self] event in
                         await self?.handleRuntimeEvent(event, conversationId: conversationId)
