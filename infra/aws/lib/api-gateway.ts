@@ -324,6 +324,25 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       allowCredentials: true,
     },
   });
+  const gatewayErrorCorsOrigin = `'https://app.${props.baseDomain}'`;
+  const gatewayErrorResponseHeaders = {
+    "Access-Control-Allow-Origin": gatewayErrorCorsOrigin,
+    "Access-Control-Allow-Headers": "'content-type,authorization,x-csrf-token'",
+    "Access-Control-Allow-Methods": "'GET,POST,OPTIONS'",
+    "Access-Control-Allow-Credentials": "'true'",
+  };
+
+  new apigw.GatewayResponse(scope, "ApiDefault4xxGatewayResponse", {
+    restApi,
+    type: apigw.ResponseType.DEFAULT_4XX,
+    responseHeaders: gatewayErrorResponseHeaders,
+  });
+
+  new apigw.GatewayResponse(scope, "ApiDefault5xxGatewayResponse", {
+    restApi,
+    type: apigw.ResponseType.DEFAULT_5XX,
+    responseHeaders: gatewayErrorResponseHeaders,
+  });
 
   /**
    * Keeps the existing buffered Lambda proxy behavior for JSON-style endpoints.

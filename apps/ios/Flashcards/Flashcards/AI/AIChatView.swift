@@ -72,10 +72,14 @@ struct AIChatView: View {
             self.refreshExternalAIConsentState()
             self.chatStore.refreshAccessContextIfNeeded()
             guard self.hasAcceptedExternalAIConsent else {
+                self.chatStore.setChatVisibility(isVisible: false)
                 return
             }
 
             self.handleAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
+            self.chatStore.setChatVisibility(
+                isVisible: self.scenePhase == .active && self.navigation.selectedTab == .ai
+            )
             if self.chatStore.isChatInteractive {
                 self.chatStore.warmUpSessionIfNeeded()
             }
@@ -91,17 +95,21 @@ struct AIChatView: View {
             guard nextPhase == .active else {
                 self.shouldRestoreComposerFocusAfterDictation = false
                 self.chatStore.cancelDictation()
+                self.chatStore.setChatVisibility(isVisible: false)
                 return
             }
             self.refreshExternalAIConsentState()
             guard self.hasAcceptedExternalAIConsent else {
+                self.chatStore.setChatVisibility(isVisible: false)
                 return
             }
             guard self.navigation.selectedTab == .ai else {
+                self.chatStore.setChatVisibility(isVisible: false)
                 return
             }
 
             self.chatStore.refreshAccessContextIfNeeded()
+            self.chatStore.setChatVisibility(isVisible: true)
             if self.chatStore.isChatInteractive {
                 self.chatStore.warmUpSessionIfNeeded()
             }
@@ -119,12 +127,23 @@ struct AIChatView: View {
             self.chatStore.refreshAccessContextIfNeeded()
         }
         .onChange(of: self.navigation.selectedTab) { _, nextTab in
-            guard nextTab != .ai else {
+            guard nextTab == .ai else {
+                self.chatStore.setChatVisibility(isVisible: false)
+                self.shouldRestoreComposerFocusAfterDictation = false
+                self.chatStore.cancelDictation()
                 return
             }
 
-            self.shouldRestoreComposerFocusAfterDictation = false
-            self.chatStore.cancelDictation()
+            guard self.scenePhase == .active && self.hasAcceptedExternalAIConsent else {
+                self.chatStore.setChatVisibility(isVisible: false)
+                return
+            }
+
+            self.chatStore.refreshAccessContextIfNeeded()
+            self.chatStore.setChatVisibility(isVisible: true)
+            if self.chatStore.isChatInteractive {
+                self.chatStore.warmUpSessionIfNeeded()
+            }
         }
         .onChange(of: self.chatStore.dictationState) { _, nextState in
             self.handleDictationStateChange(nextState)

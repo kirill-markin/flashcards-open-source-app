@@ -68,6 +68,7 @@ internal fun AiRouteContent(
     onStartDictationRecording: () -> Unit,
     onTranscribeRecordedAudio: (String, String, ByteArray) -> Unit,
     onCancelDictation: () -> Unit,
+    onScreenHidden: () -> Unit,
     onWarmUpSessionIfNeeded: () -> Unit,
     onRetryConversationLoad: () -> Unit,
     onShowAlert: (AiAlertState) -> Unit,
@@ -85,6 +86,7 @@ internal fun AiRouteContent(
     val currentDictationState by rememberUpdatedState(uiState.dictationState)
     val currentWarmUpAction by rememberUpdatedState(onWarmUpSessionIfNeeded)
     val currentCancelDictationAction by rememberUpdatedState(onCancelDictation)
+    val currentScreenHiddenAction by rememberUpdatedState(onScreenHidden)
     val currentShowAlertAction by rememberUpdatedState(onShowAlert)
 
     val takePictureLauncher = rememberLauncherForActivityResult(
@@ -248,6 +250,7 @@ internal fun AiRouteContent(
                 }
 
                 Lifecycle.Event.ON_STOP -> {
+                    currentScreenHiddenAction()
                     if (
                         currentDictationState == AiChatDictationState.RECORDING
                         || currentDictationState == AiChatDictationState.REQUESTING_PERMISSION
@@ -264,6 +267,7 @@ internal fun AiRouteContent(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            currentScreenHiddenAction()
             if (
                 currentDictationState == AiChatDictationState.RECORDING
                 || currentDictationState == AiChatDictationState.REQUESTING_PERMISSION
