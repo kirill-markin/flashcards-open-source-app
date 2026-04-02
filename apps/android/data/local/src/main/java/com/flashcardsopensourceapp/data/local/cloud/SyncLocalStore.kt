@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.cloud
 
+import android.util.Log
 import androidx.room.withTransaction
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.CardEntity
@@ -47,6 +48,7 @@ import java.util.UUID
  */
 
 private const val outboxBatchLimit: Int = 200
+private const val cloudMigrationLogTag: String = "FlashcardsCloudMigration"
 
 class SyncLocalStore(
     private val database: AppDatabase,
@@ -235,11 +237,24 @@ class SyncLocalStore(
         workspace: CloudWorkspaceSummary,
         remoteWorkspaceIsEmpty: Boolean
     ): WorkspaceEntity {
+        val currentWorkspaceId = currentWorkspaceIdOrNull()
+        val migrationKind = if (remoteWorkspaceIsEmpty) {
+            "preserve_local_data"
+        } else {
+            "replace_local_shell"
+        }
+        logLinkedWorkspaceMigration(
+            outcome = "start",
+            fromWorkspaceId = currentWorkspaceId,
+            toWorkspaceId = workspace.workspaceId,
+            remoteWorkspaceIsEmpty = remoteWorkspaceIsEmpty,
+            migrationKind = migrationKind
+        )
         database.withTransaction {
             if (remoteWorkspaceIsEmpty) {
-                relinkCurrentWorkspaceKeepingLocalDataInTransaction(workspace)
+                preserveLocalDataForEmptyRemoteWorkspaceInTransaction(workspace)
             } else {
-                replaceLocalWorkspaceWithShellInTransaction(workspace)
+                replaceLocalShellForNonEmptyRemoteWorkspaceInTransaction(workspace)
             }
         }
 
@@ -253,6 +268,13 @@ class SyncLocalStore(
         ) {
             "Linked workspace migration did not create the expected local workspace '${workspace.workspaceId}'."
         }
+        logLinkedWorkspaceMigration(
+            outcome = "success",
+            fromWorkspaceId = currentWorkspaceId,
+            toWorkspaceId = workspace.workspaceId,
+            remoteWorkspaceIsEmpty = remoteWorkspaceIsEmpty,
+            migrationKind = migrationKind
+        )
         return resultingWorkspace
     }
 
@@ -434,7 +456,7 @@ class SyncLocalStore(
         )?.workspaceId
     }
 
-    private suspend fun replaceLocalWorkspaceWithShellInTransaction(workspace: CloudWorkspaceSummary) {
+    private suspend fun replaceLocalShellForNonEmptyRemoteWorkspaceInTransaction(workspace: CloudWorkspaceSummary) {
         val currentLocalWorkspaceId = database.workspaceDao().loadAnyWorkspace()?.workspaceId
         if (currentLocalWorkspaceId != null) {
             database.outboxDao().deleteOutboxEntriesForWorkspace(workspaceId = currentLocalWorkspaceId)
@@ -484,7 +506,7 @@ class SyncLocalStore(
         )
     }
 
-    private suspend fun relinkCurrentWorkspaceKeepingLocalDataInTransaction(workspace: CloudWorkspaceSummary) {
+    private suspend fun preserveLocalDataForEmptyRemoteWorkspaceInTransaction(workspace: CloudWorkspaceSummary) {
         val currentWorkspace = requireNotNull(database.workspaceDao().loadAnyWorkspace()) {
             "Workspace is required before linking to cloud."
         }
@@ -495,6 +517,10 @@ class SyncLocalStore(
             return
         }
 
+        database.syncStateDao().deleteSyncState(workspaceId = workspace.workspaceId)
+        database.workspaceDao().loadWorkspaceById(workspace.workspaceId)?.let {
+            database.workspaceDao().deleteWorkspace(workspace.workspaceId)
+        }
         database.workspaceDao().insertWorkspace(
             WorkspaceEntity(
                 workspaceId = workspace.workspaceId,
@@ -508,8 +534,20 @@ class SyncLocalStore(
         database.reviewLogDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
         database.workspaceSchedulerSettingsDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
         database.outboxDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
-        database.syncStateDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
         database.workspaceDao().deleteWorkspace(currentWorkspace.workspaceId)
+        database.syncStateDao().deleteSyncState(workspaceId = currentWorkspace.workspaceId)
+        database.syncStateDao().insertSyncState(
+            SyncStateEntity(
+                workspaceId = workspace.workspaceId,
+                lastSyncCursor = null,
+                lastReviewSequenceId = 0L,
+                hasHydratedHotState = false,
+                hasHydratedReviewHistory = false,
+                lastSyncAttemptAtMillis = null,
+                lastSuccessfulSyncAtMillis = null,
+                lastSyncError = null
+            )
+        )
     }
 
     private suspend fun applyHotPayload(
@@ -717,6 +755,21 @@ class SyncLocalStore(
             }
         )
     }
+}
+
+private fun logLinkedWorkspaceMigration(
+    outcome: String,
+    fromWorkspaceId: String?,
+    toWorkspaceId: String,
+    remoteWorkspaceIsEmpty: Boolean,
+    migrationKind: String
+) {
+    Log.i(
+        cloudMigrationLogTag,
+        "outcome=$outcome fromWorkspaceId=${fromWorkspaceId ?: "-"} " +
+            "toWorkspaceId=$toWorkspaceId remoteWorkspaceIsEmpty=$remoteWorkspaceIsEmpty " +
+            "migrationKind=$migrationKind"
+    )
 }
 
 private fun parseSyncEntityType(rawValue: String): SyncEntityType {

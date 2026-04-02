@@ -23,6 +23,7 @@ import com.flashcardsopensourceapp.data.local.cloud.RemoteReviewHistoryImportRes
 import com.flashcardsopensourceapp.data.local.cloud.RemoteReviewHistoryPullResponse
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.CardEntity
+import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
@@ -43,6 +44,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.FsrsCardState
+import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
@@ -862,6 +864,157 @@ class CloudIdentityLifecycleRepositoryTest {
     }
 
     @Test
+    fun completeGuestUpgradeIntoNonEmptyWorkspaceReplacesLocalShellAndResetsSyncState() = runBlocking {
+        val localWorkspaceId = requireLocalWorkspaceId()
+        seedWorkspaceData(workspaceId = localWorkspaceId)
+        database.syncStateDao().insertSyncState(
+            SyncStateEntity(
+                workspaceId = localWorkspaceId,
+                lastSyncCursor = "123",
+                lastReviewSequenceId = 456L,
+                hasHydratedHotState = true,
+                hasHydratedReviewHistory = true,
+                lastSyncAttemptAtMillis = 1_000L,
+                lastSuccessfulSyncAtMillis = 2_000L,
+                lastSyncError = "broken"
+            )
+        )
+        val guestWorkspaceId = "guest-workspace"
+        val selectedWorkspace = CloudWorkspaceSummary(
+            workspaceId = "workspace-linked",
+            name = "Linked Workspace",
+            createdAtMillis = 200L,
+            isSelected = true
+        )
+        val remoteGateway = FakeCloudRemoteGateway(
+            guestUpgradeMode = CloudGuestUpgradeMode.MERGE_REQUIRED,
+            bootstrapRemoteIsEmpty = false,
+            accountSnapshot = CloudAccountSnapshot(
+                userId = "user-1",
+                email = "user@example.com",
+                workspaces = listOf(selectedWorkspace)
+            )
+        )
+        val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
+        guestAiSessionStore.saveSession(
+            localWorkspaceId = guestWorkspaceId,
+            session = StoredGuestAiSession(
+                guestToken = "guest-token",
+                userId = "guest-user",
+                workspaceId = guestWorkspaceId,
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1"
+            )
+        )
+        repository.verifyCode(
+            challenge = CloudOtpChallenge(
+                email = "user@example.com",
+                csrfToken = "csrf",
+                otpSessionToken = "otp"
+            ),
+            code = "123456"
+        )
+
+        repository.completeGuestUpgrade(
+            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
+        )
+
+        assertEquals(selectedWorkspace.workspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertEquals(0, database.cardDao().observeCardsWithRelations().first().size)
+        assertEquals(0, database.reviewLogDao().countReviewLogs())
+        assertNull(database.syncStateDao().loadSyncState(localWorkspaceId))
+        assertEquals(
+            SyncStateEntity(
+                workspaceId = selectedWorkspace.workspaceId,
+                lastSyncCursor = null,
+                lastReviewSequenceId = 0L,
+                hasHydratedHotState = false,
+                hasHydratedReviewHistory = false,
+                lastSyncAttemptAtMillis = null,
+                lastSuccessfulSyncAtMillis = null,
+                lastSyncError = null
+            ),
+            database.syncStateDao().loadSyncState(selectedWorkspace.workspaceId)
+        )
+    }
+
+    @Test
+    fun completeGuestUpgradeIntoEmptyWorkspacePreservesLocalDataButRecreatesSyncState() = runBlocking {
+        val localWorkspaceId = requireLocalWorkspaceId()
+        val seededCardId = seedWorkspaceData(workspaceId = localWorkspaceId)
+        database.syncStateDao().insertSyncState(
+            SyncStateEntity(
+                workspaceId = localWorkspaceId,
+                lastSyncCursor = "123",
+                lastReviewSequenceId = 456L,
+                hasHydratedHotState = true,
+                hasHydratedReviewHistory = true,
+                lastSyncAttemptAtMillis = 1_000L,
+                lastSuccessfulSyncAtMillis = 2_000L,
+                lastSyncError = "broken"
+            )
+        )
+        val guestWorkspaceId = "guest-workspace"
+        val selectedWorkspace = CloudWorkspaceSummary(
+            workspaceId = "workspace-linked",
+            name = "Linked Workspace",
+            createdAtMillis = 200L,
+            isSelected = true
+        )
+        val remoteGateway = FakeCloudRemoteGateway(
+            guestUpgradeMode = CloudGuestUpgradeMode.MERGE_REQUIRED,
+            bootstrapRemoteIsEmpty = true,
+            accountSnapshot = CloudAccountSnapshot(
+                userId = "user-1",
+                email = "user@example.com",
+                workspaces = listOf(selectedWorkspace)
+            )
+        )
+        val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
+        guestAiSessionStore.saveSession(
+            localWorkspaceId = guestWorkspaceId,
+            session = StoredGuestAiSession(
+                guestToken = "guest-token",
+                userId = "guest-user",
+                workspaceId = guestWorkspaceId,
+                configurationMode = CloudServiceConfigurationMode.OFFICIAL,
+                apiBaseUrl = "https://api.flashcards-open-source-app.com/v1"
+            )
+        )
+        repository.verifyCode(
+            challenge = CloudOtpChallenge(
+                email = "user@example.com",
+                csrfToken = "csrf",
+                otpSessionToken = "otp"
+            ),
+            code = "123456"
+        )
+
+        repository.completeGuestUpgrade(
+            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
+        )
+
+        assertEquals(selectedWorkspace.workspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertNotNull(database.cardDao().loadCard(seededCardId))
+        assertEquals(selectedWorkspace.workspaceId, database.cardDao().loadCard(seededCardId)?.workspaceId)
+        assertEquals(1, database.reviewLogDao().countReviewLogs())
+        assertNull(database.syncStateDao().loadSyncState(localWorkspaceId))
+        assertEquals(
+            SyncStateEntity(
+                workspaceId = selectedWorkspace.workspaceId,
+                lastSyncCursor = null,
+                lastReviewSequenceId = 0L,
+                hasHydratedHotState = false,
+                hasHydratedReviewHistory = false,
+                lastSyncAttemptAtMillis = null,
+                lastSuccessfulSyncAtMillis = null,
+                lastSyncError = null
+            ),
+            database.syncStateDao().loadSyncState(selectedWorkspace.workspaceId)
+        )
+    }
+
+    @Test
     fun switchLinkedWorkspaceCreateNewReplacesCurrentLocalWorkspaceWhenRemoteWorkspaceIsEmpty() = runBlocking {
         val initialLocalWorkspaceId = requireLocalWorkspaceId()
         val createdWorkspace = CloudWorkspaceSummary(
@@ -1146,6 +1299,44 @@ class CloudIdentityLifecycleRepositoryTest {
                 lastSyncError = null
             )
         )
+    }
+
+    private suspend fun seedWorkspaceData(workspaceId: String): String {
+        val cardId = "card-$workspaceId"
+        database.cardDao().insertCard(
+            CardEntity(
+                cardId = cardId,
+                workspaceId = workspaceId,
+                frontText = "Question",
+                backText = "Answer",
+                effortLevel = EffortLevel.MEDIUM,
+                dueAtMillis = null,
+                createdAtMillis = 100L,
+                updatedAtMillis = 100L,
+                reps = 0,
+                lapses = 0,
+                fsrsCardState = FsrsCardState.NEW,
+                fsrsStepIndex = null,
+                fsrsStability = null,
+                fsrsDifficulty = null,
+                fsrsLastReviewedAtMillis = null,
+                fsrsScheduledDays = null,
+                deletedAtMillis = null
+            )
+        )
+        database.reviewLogDao().insertReviewLog(
+            ReviewLogEntity(
+                reviewLogId = "review-$workspaceId",
+                workspaceId = workspaceId,
+                cardId = cardId,
+                replicaId = "replica-$workspaceId",
+                clientEventId = "event-$workspaceId",
+                rating = ReviewRating.GOOD,
+                reviewedAtMillis = 200L,
+                reviewedAtServerIso = "2026-04-02T15:50:57.000Z"
+            )
+        )
+        return cardId
     }
 
     private fun clearTestPreferences() {

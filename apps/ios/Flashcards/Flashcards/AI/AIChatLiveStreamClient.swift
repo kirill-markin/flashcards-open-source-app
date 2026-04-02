@@ -25,65 +25,65 @@ actor AIChatLiveStreamClient {
         configurationMode: CloudServiceConfigurationMode,
         resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
     ) -> AsyncThrowingStream<AIChatLiveEvent, Error> {
-        AsyncThrowingStream { continuation in
-            let streamTask = Task {
-                do {
-                    let url = try makeAIChatLiveStreamURL(
-                        liveUrl: liveUrl,
-                        sessionId: sessionId,
-                        afterCursor: afterCursor
-                    )
-                    logAIChatLiveClientEvent(
-                        action: "ai_live_connect_start",
-                        metadata: [
-                            "sessionId": sessionId,
-                            "afterCursor": afterCursor ?? "-",
-                            "liveUrl": liveUrl
-                        ]
-                    )
+        let decoder = self.decoder
+        let fallbackConfiguration = self.fallbackSession.configuration
+        return AsyncThrowingStream { continuation in
+            do {
+                let url = try makeAIChatLiveStreamURL(
+                    liveUrl: liveUrl,
+                    sessionId: sessionId,
+                    afterCursor: afterCursor
+                )
+                logAIChatLiveClientEvent(
+                    action: "ai_live_connect_start",
+                    metadata: [
+                        "sessionId": sessionId,
+                        "afterCursor": afterCursor ?? "-",
+                        "liveUrl": liveUrl
+                    ]
+                )
 
-                    var request = URLRequest(url: url)
-                    request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-                    request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
-                    request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
-                    request.setValue(authorization, forHTTPHeaderField: "Authorization")
-                    if let resumeAttemptDiagnostics {
-                        request.setValue(
-                            resumeAttemptDiagnostics.headerValue,
-                            forHTTPHeaderField: "X-Chat-Resume-Attempt-Id"
-                        )
-                        request.setValue(aiChatClientPlatform, forHTTPHeaderField: "X-Client-Platform")
-                        request.setValue(aiChatAppVersion(), forHTTPHeaderField: "X-Client-Version")
-                    }
-                    request.timeoutInterval = 600
-
-                    let delegate = AIChatLiveStreamTaskDelegate(
-                        continuation: continuation,
-                        sessionId: sessionId,
-                        afterCursor: afterCursor,
-                        configurationMode: configurationMode,
-                        decoder: self.decoder
+                var request = URLRequest(url: url)
+                request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+                request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+                request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
+                request.setValue(authorization, forHTTPHeaderField: "Authorization")
+                if let resumeAttemptDiagnostics {
+                    request.setValue(
+                        resumeAttemptDiagnostics.headerValue,
+                        forHTTPHeaderField: "X-Chat-Resume-Attempt-Id"
                     )
-                    let configuration = self.fallbackSession.configuration.copy() as? URLSessionConfiguration
-                        ?? .ephemeral
-                    configuration.timeoutIntervalForRequest = 600
-                    configuration.timeoutIntervalForResource = 600
-                    configuration.waitsForConnectivity = false
-                    let session = URLSession(
-                        configuration: configuration,
-                        delegate: delegate,
-                        delegateQueue: nil
-                    )
-                    let task = session.dataTask(with: request)
-                    delegate.start(task: task, session: session)
-                    task.resume()
-                } catch {
-                    continuation.finish(throwing: error)
+                    request.setValue(aiChatClientPlatform, forHTTPHeaderField: "X-Client-Platform")
+                    request.setValue(aiChatAppVersion(), forHTTPHeaderField: "X-Client-Version")
                 }
-            }
+                request.timeoutInterval = 600
 
-            continuation.onTermination = { _ in
-                streamTask.cancel()
+                let delegate = AIChatLiveStreamTaskDelegate(
+                    continuation: continuation,
+                    sessionId: sessionId,
+                    afterCursor: afterCursor,
+                    configurationMode: configurationMode,
+                    decoder: decoder
+                )
+                let configuration = fallbackConfiguration.copy() as? URLSessionConfiguration
+                    ?? .ephemeral
+                configuration.timeoutIntervalForRequest = 600
+                configuration.timeoutIntervalForResource = 600
+                configuration.waitsForConnectivity = false
+                let session = URLSession(
+                    configuration: configuration,
+                    delegate: delegate,
+                    delegateQueue: nil
+                )
+                let task = session.dataTask(with: request)
+                delegate.start(task: task, session: session)
+                task.resume()
+
+                continuation.onTermination = { _ in
+                    task.cancel()
+                }
+            } catch {
+                continuation.finish(throwing: error)
             }
         }
     }

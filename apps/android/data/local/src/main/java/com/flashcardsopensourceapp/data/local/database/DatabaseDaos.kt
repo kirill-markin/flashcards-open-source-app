@@ -375,6 +375,9 @@ interface SyncStateDao {
     @Query("DELETE FROM sync_state")
     suspend fun deleteAllSyncState()
 
+    @Query("DELETE FROM sync_state WHERE workspaceId = :workspaceId")
+    suspend fun deleteSyncState(workspaceId: String)
+
     @Query("UPDATE sync_state SET workspaceId = :newWorkspaceId WHERE workspaceId = :oldWorkspaceId")
     suspend fun reassignWorkspace(oldWorkspaceId: String, newWorkspaceId: String)
 }

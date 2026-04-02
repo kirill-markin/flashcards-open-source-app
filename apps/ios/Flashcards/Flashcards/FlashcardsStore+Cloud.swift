@@ -337,7 +337,7 @@ extension FlashcardsStore {
                 let cloudSettings = try requireCloudSettings(cloudSettings: self.cloudSettings)
                 let isWorkspaceEmpty = try await cloudSyncService.isWorkspaceEmptyForBootstrap(
                     apiBaseUrl: linkContext.apiBaseUrl,
-                    bearerToken: linkContext.credentials.idToken,
+                    authorizationHeader: "Bearer \(linkContext.credentials.idToken)",
                     workspaceId: linkedWorkspace.workspaceId,
                     installationId: cloudSettings.installationId
                 )
@@ -1047,15 +1047,24 @@ extension FlashcardsStore {
         self.syncStatus = .syncing
         var didCompleteLocalLink = false
         do {
+            let remoteWorkspaceIsEmpty = try await self.isLinkedWorkspaceEmptyForBootstrap(
+                linkedSession: linkedSession
+            )
+            let migrationKind = remoteWorkspaceIsEmpty ? "preserve_local_data" : "replace_local_shell"
             logCloudFlowPhase(
                 phase: .linkLocalWorkspace,
                 outcome: "start",
                 workspaceId: linkedSession.workspaceId,
-                installationId: self.cloudSettings?.installationId
+                installationId: self.cloudSettings?.installationId,
+                sourceWorkspaceId: context.workspaceId,
+                targetWorkspaceId: linkedSession.workspaceId,
+                migrationKind: migrationKind,
+                remoteWorkspaceIsEmpty: remoteWorkspaceIsEmpty
             )
-            try context.database.relinkWorkspace(
+            try context.database.migrateLocalWorkspaceToLinkedWorkspace(
                 localWorkspaceId: context.workspaceId,
-                linkedSession: linkedSession
+                linkedSession: linkedSession,
+                remoteWorkspaceIsEmpty: remoteWorkspaceIsEmpty
             )
             if linkedSession.authorization.isGuest {
                 try self.applyGuestCloudStateBeforeReload(
@@ -1071,7 +1080,11 @@ extension FlashcardsStore {
                 phase: .linkLocalWorkspace,
                 outcome: "success",
                 workspaceId: linkedSession.workspaceId,
-                installationId: self.cloudSettings?.installationId
+                installationId: self.cloudSettings?.installationId,
+                sourceWorkspaceId: context.workspaceId,
+                targetWorkspaceId: linkedSession.workspaceId,
+                migrationKind: migrationKind,
+                remoteWorkspaceIsEmpty: remoteWorkspaceIsEmpty
             )
             let syncResult = try await self.runLinkedSync(linkedSession: linkedSession)
             try await self.applySyncResultWithoutBlockingReset(
@@ -1094,6 +1107,8 @@ extension FlashcardsStore {
                     outcome: "failure",
                     workspaceId: linkedSession.workspaceId,
                     installationId: self.cloudSettings?.installationId,
+                    sourceWorkspaceId: context.workspaceId,
+                    targetWorkspaceId: linkedSession.workspaceId,
                     errorMessage: Flashcards.errorMessage(error: error)
                 )
             }
@@ -1540,5 +1555,16 @@ extension FlashcardsStore {
         let configuration = try self.currentCloudServiceConfiguration()
         return configuration.mode == .custom
             && self.userDefaults.bool(forKey: pendingCloudServerBootstrapUserDefaultsKey)
+    }
+
+    private func isLinkedWorkspaceEmptyForBootstrap(linkedSession: CloudLinkedSession) async throws -> Bool {
+        let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+        let cloudSettings = try requireCloudSettings(cloudSettings: self.cloudSettings)
+        return try await cloudSyncService.isWorkspaceEmptyForBootstrap(
+            apiBaseUrl: linkedSession.apiBaseUrl,
+            authorizationHeader: linkedSession.authorizationHeaderValue,
+            workspaceId: linkedSession.workspaceId,
+            installationId: cloudSettings.installationId
+        )
     }
 }

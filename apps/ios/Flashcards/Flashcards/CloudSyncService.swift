@@ -204,13 +204,13 @@ final class CloudSyncService: @unchecked Sendable {
 
     func isWorkspaceEmptyForBootstrap(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         workspaceId: String,
         installationId: String
     ) async throws -> Bool {
         let bootstrapEnvelope: RemoteBootstrapPullResponseEnvelope = try await self.transport.request(
             apiBaseUrl: apiBaseUrl,
-            authorizationHeader: "Bearer \(bearerToken)",
+            authorizationHeader: authorizationHeader,
             path: "/workspaces/\(workspaceId)/sync/bootstrap",
             method: "POST",
             body: BootstrapPullRequest(

@@ -27,6 +27,10 @@ func logCloudFlowPhase(
     workspaceId: String? = nil,
     installationId: String? = nil,
     selection: String? = nil,
+    sourceWorkspaceId: String? = nil,
+    targetWorkspaceId: String? = nil,
+    migrationKind: String? = nil,
+    remoteWorkspaceIsEmpty: Bool? = nil,
     operationsCount: Int? = nil,
     changesCount: Int? = nil,
     errorMessage: String? = nil
@@ -41,6 +45,10 @@ func logCloudFlowPhase(
         workspaceId=\(workspaceId ?? "-", privacy: .public) \
         installationId=\(installationId ?? "-", privacy: .public) \
         selection=\(selection ?? "-", privacy: .public) \
+        sourceWorkspaceId=\(sourceWorkspaceId ?? "-", privacy: .public) \
+        targetWorkspaceId=\(targetWorkspaceId ?? "-", privacy: .public) \
+        migrationKind=\(migrationKind ?? "-", privacy: .public) \
+        remoteWorkspaceIsEmpty=\(remoteWorkspaceIsEmpty.map(String.init) ?? "-", privacy: .public) \
         operations=\(operationsCount.map(String.init) ?? "-", privacy: .public) \
         changes=\(changesCount.map(String.init) ?? "-", privacy: .public) \
         error=\(errorMessage ?? "-", privacy: .public)
