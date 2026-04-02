@@ -116,6 +116,7 @@ test("POST /chat/new creates a fresh session when history is not empty", async (
         timestamp: 1,
         isError: false,
         isStopped: false,
+        itemId: null,
       }]);
     },
     createFreshChatSessionFn: async () => {

@@ -53,7 +53,9 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             onCancelDictation = aiViewModel::cancelDictation,
             onScreenVisible = aiViewModel::onScreenVisible,
             onScreenHidden = aiViewModel::onScreenHidden,
-            onWarmUpSessionIfNeeded = aiViewModel::warmUpLinkedSessionIfNeeded,
+            onWarmUpSessionIfNeeded = {
+                aiViewModel.warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
+            },
             onRetryConversationLoad = aiViewModel::retryConversationBootstrap,
             onShowAlert = aiViewModel::showAlert,
             onShowErrorMessage = aiViewModel::showErrorMessage
