@@ -95,7 +95,7 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             )
         }
 
-        var stream: AsyncThrowingStream<AIChatLiveEvent, Error>? = await client.connect(
+        let stream = await client.connect(
             liveUrl: "https://api.example.com/chat/live",
             authorization: "Live token",
             sessionId: "session-1",
@@ -104,7 +104,7 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics(sequence: 12)
         )
         await self.fulfillment(of: [expectation], timeout: 1.0)
-        stream = nil
+        withExtendedLifetime(stream) {}
     }
 
     private func makeURLSession() -> URLSession {
