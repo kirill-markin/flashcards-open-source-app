@@ -3,6 +3,7 @@ import {
   ApiError,
   createNewChatSession,
   getChatSnapshot,
+  getChatSnapshotWithResumeDiagnostics,
   startChatRun,
   stopChatRun,
 } from "../api";
@@ -430,6 +431,8 @@ export function useChatSessionController(
   const refreshVisibleSnapshotRef = useRef<() => void>(() => {});
   const reconcileTerminalSnapshotRef = useRef<() => void>(() => {});
   const liveCursorRef = useRef<string | null>(null);
+  const resumeAttemptCounterRef = useRef<number>(0);
+  const activeResumeErrorAttemptIdRef = useRef<number | null>(null);
 
   const isAssistantRunActive = isChatRunActive(runState);
   const composerAction = getChatComposerAction(runState);
@@ -475,12 +478,40 @@ export function useChatSessionController(
   const getKnownLiveCursor = useCallback((): string | null => liveCursorRef.current, []);
 
   const dismissErrorDialog = useCallback((): void => {
+    activeResumeErrorAttemptIdRef.current = null;
     setErrorDialogMessage(null);
   }, []);
 
   const showErrorDialog = useCallback((message: string): void => {
     setComposerNotice(null);
+    activeResumeErrorAttemptIdRef.current = null;
     setErrorDialogMessage(message);
+  }, []);
+
+  const showResumeErrorDialog = useCallback((message: string, resumeAttemptId: number): void => {
+    setComposerNotice(null);
+    activeResumeErrorAttemptIdRef.current = resumeAttemptId;
+    setErrorDialogMessage(message);
+  }, []);
+
+  const nextResumeAttemptId = useCallback((): number => {
+    const nextAttemptId = resumeAttemptCounterRef.current + 1;
+    resumeAttemptCounterRef.current = nextAttemptId;
+    return nextAttemptId;
+  }, []);
+
+  const clearStaleResumeErrorDialog = useCallback((resumeAttemptId: number | null): void => {
+    if (resumeAttemptId === null) {
+      return;
+    }
+
+    const activeResumeErrorAttemptId = activeResumeErrorAttemptIdRef.current;
+    if (activeResumeErrorAttemptId === null || activeResumeErrorAttemptId >= resumeAttemptId) {
+      return;
+    }
+
+    activeResumeErrorAttemptIdRef.current = null;
+    setErrorDialogMessage(null);
   }, []);
 
   const finalizeInterruptedRun = useCallback((message: string): void => {
@@ -597,6 +628,9 @@ export function useChatSessionController(
     onVisibleResumeRequested: () => {
       refreshVisibleSnapshotRef.current();
     },
+    onLiveAttachConnected: (_sessionId, resumeAttemptId) => {
+      clearStaleResumeErrorDialog(resumeAttemptId);
+    },
     onUnexpectedStreamEnd: (sessionId) => {
       setIsStopping(false);
       if (runStateRef.current !== "running") {
@@ -607,7 +641,7 @@ export function useChatSessionController(
       snapshotRequestVersionRef.current = requestVersion;
       void (async (): Promise<void> => {
         try {
-          const snapshot = await loadChatSnapshot(sessionId, true, requestVersion, "unexpected_stream_end");
+          const snapshot = await loadChatSnapshot(sessionId, true, requestVersion, "unexpected_stream_end", null);
           if (snapshot === null) {
             return;
           }
@@ -631,6 +665,30 @@ export function useChatSessionController(
     },
   });
 
+  const startSnapshotLiveStream = useCallback((
+    snapshot: ChatSessionSnapshot,
+    resumeAttemptId: number | null,
+  ): void => {
+    if (snapshot.runState !== "running") {
+      detachLiveStream(snapshot.sessionId);
+      return;
+    }
+
+    if (snapshot.liveStream === null) {
+      detachLiveStream(null);
+      updateRunState("interrupted");
+      setIsStopping(false);
+      if (resumeAttemptId === null) {
+        showErrorDialog("AI live stream is unavailable for the active run.");
+      } else {
+        showResumeErrorDialog("AI live stream is unavailable for the active run.", resumeAttemptId);
+      }
+      return;
+    }
+
+    startLiveStream(snapshot.sessionId, snapshot.liveStream, snapshot.liveCursor, resumeAttemptId);
+  }, [detachLiveStream, showErrorDialog, showResumeErrorDialog, startLiveStream, updateRunState]);
+
   const applyWarmStartSnapshot = useCallback((nextWorkspaceId: string): boolean => {
     const warmStartSnapshot = loadChatSessionWarmStartSnapshot(nextWorkspaceId);
     if (warmStartSnapshot === null) {
@@ -645,6 +703,7 @@ export function useChatSessionController(
     setMainContentInvalidationVersion(warmStartSnapshot.mainContentInvalidationVersion);
     setChatConfig(warmStartSnapshot.chatConfig);
     setComposerNotice(null);
+    activeResumeErrorAttemptIdRef.current = null;
     setErrorDialogMessage(null);
     setIsHistoryLoaded(true);
     lastSnapshotUpdatedAtRef.current = warmStartSnapshot.updatedAt;
@@ -658,6 +717,7 @@ export function useChatSessionController(
     replaceHistory: boolean,
     requestVersion: number,
     trigger: string,
+    resumeAttemptId: number | null,
   ): Promise<ChatSessionSnapshot | null> => {
     debugLog("snapshot_request_started", {
       workspaceId,
@@ -667,7 +727,9 @@ export function useChatSessionController(
       trigger,
     });
     try {
-      const snapshot = await getChatSnapshot(sessionId);
+      const snapshot = resumeAttemptId === null
+        ? await getChatSnapshot(sessionId)
+        : await getChatSnapshotWithResumeDiagnostics(sessionId, { resumeAttemptId });
       if (requestVersion !== snapshotRequestVersionRef.current) {
         return null;
       }
@@ -749,13 +811,14 @@ export function useChatSessionController(
           true,
           requestVersion,
           "terminal_reconcile",
+          null,
         );
         if (snapshot === null) {
           return;
         }
 
         if (isDocumentVisibleRef.current && snapshot.runState === "running") {
-          startLiveStream(snapshot.sessionId, snapshot.liveStream, snapshot.liveCursor);
+          startSnapshotLiveStream(snapshot, null);
           return;
         }
 
@@ -774,7 +837,7 @@ export function useChatSessionController(
     isRemoteReady,
     loadChatSnapshot,
     showErrorDialog,
-    startLiveStream,
+    startSnapshotLiveStream,
     updateRunState,
     workspaceId,
   ]);
@@ -797,6 +860,7 @@ export function useChatSessionController(
 
     const requestVersion = snapshotRequestVersionRef.current + 1;
     snapshotRequestVersionRef.current = requestVersion;
+    const resumeAttemptId = nextResumeAttemptId();
 
     let refreshPromise: Promise<void> | null = null;
     refreshPromise = (async (): Promise<void> => {
@@ -806,13 +870,14 @@ export function useChatSessionController(
           true,
           requestVersion,
           "visible_resume",
+          resumeAttemptId,
         );
         if (snapshot === null || isDocumentVisibleRef.current === false) {
           return;
         }
 
         if (snapshot.runState === "running") {
-          startLiveStream(snapshot.sessionId, snapshot.liveStream, snapshot.liveCursor);
+          startSnapshotLiveStream(snapshot, resumeAttemptId);
           return;
         }
 
@@ -842,7 +907,8 @@ export function useChatSessionController(
     isRemoteReady,
     isDocumentVisibleRef,
     loadChatSnapshot,
-    startLiveStream,
+    nextResumeAttemptId,
+    startSnapshotLiveStream,
     workspaceId,
     showErrorDialog,
     updateRunState,
@@ -856,6 +922,7 @@ export function useChatSessionController(
     setIsStopping(false);
     setMainContentInvalidationVersion(0);
     setComposerNotice(null);
+    activeResumeErrorAttemptIdRef.current = null;
     setErrorDialogMessage(null);
     hasObservedMainContentInvalidationVersionRef.current = false;
     lastMainContentInvalidationVersionRef.current = 0;
@@ -908,7 +975,7 @@ export function useChatSessionController(
 
     void (async (): Promise<void> => {
       try {
-        const snapshot = await loadChatSnapshot(undefined, true, requestVersion, "initial_hydration");
+        const snapshot = await loadChatSnapshot(undefined, true, requestVersion, "initial_hydration", null);
         if (isDisposed || snapshot === null) {
           return;
         }
@@ -916,7 +983,7 @@ export function useChatSessionController(
         hydratedWorkspaceIdRef.current = workspaceId;
         setCurrentSessionId(snapshot.sessionId);
         if (snapshot.runState === "running" && isDocumentVisibleRef.current) {
-          startLiveStream(snapshot.sessionId, snapshot.liveStream, snapshot.liveCursor);
+          startSnapshotLiveStream(snapshot, null);
         }
       } catch (error) {
         if (isDisposed) {
@@ -945,7 +1012,7 @@ export function useChatSessionController(
     replaceMessages,
     resetControllerState,
     showErrorDialog,
-    startLiveStream,
+    startSnapshotLiveStream,
     workspaceId,
   ]);
 
@@ -1014,7 +1081,7 @@ export function useChatSessionController(
       if (isDocumentVisibleRef.current) {
         // Existing sessions must resume after the latest known cursor so stale
         // terminal events cannot finish the new optimistic assistant bubble.
-        startLiveStream(response.sessionId, response.liveStream, getKnownLiveCursor());
+        startLiveStream(response.sessionId, response.liveStream, getKnownLiveCursor(), null);
       }
       return { accepted: true };
     } catch (error) {

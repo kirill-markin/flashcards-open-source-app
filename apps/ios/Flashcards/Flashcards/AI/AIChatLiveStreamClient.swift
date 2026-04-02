@@ -22,7 +22,8 @@ actor AIChatLiveStreamClient {
         authorization: String,
         sessionId: String,
         afterCursor: String?,
-        configurationMode: CloudServiceConfigurationMode
+        configurationMode: CloudServiceConfigurationMode,
+        resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
     ) -> AsyncThrowingStream<AIChatLiveEvent, Error> {
         AsyncThrowingStream { continuation in
             let streamTask = Task {
@@ -46,6 +47,14 @@ actor AIChatLiveStreamClient {
                     request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
                     request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
                     request.setValue(authorization, forHTTPHeaderField: "Authorization")
+                    if let resumeAttemptDiagnostics {
+                        request.setValue(
+                            resumeAttemptDiagnostics.headerValue,
+                            forHTTPHeaderField: "X-Chat-Resume-Attempt-Id"
+                        )
+                        request.setValue(aiChatClientPlatform, forHTTPHeaderField: "X-Client-Platform")
+                        request.setValue(aiChatAppVersion(), forHTTPHeaderField: "X-Client-Version")
+                    }
                     request.timeoutInterval = 600
 
                     let delegate = AIChatLiveStreamTaskDelegate(

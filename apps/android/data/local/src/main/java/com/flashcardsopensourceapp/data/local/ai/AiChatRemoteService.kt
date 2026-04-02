@@ -16,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
+import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
@@ -144,7 +145,8 @@ class AiChatRemoteService {
         apiBaseUrl: String,
         authorizationHeader: String,
         sessionId: String?,
-        limit: Int
+        limit: Int,
+        resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse = withContext(Dispatchers.IO) {
         val path = buildString {
             append("/chat?limit=$limit")
@@ -156,7 +158,8 @@ class AiChatRemoteService {
             apiBaseUrl = apiBaseUrl,
             path = path,
             method = "GET",
-            authorizationHeader = authorizationHeader
+            authorizationHeader = authorizationHeader,
+            extraHeaders = resumeDiagnosticsHeaders(resumeDiagnostics = resumeDiagnostics)
         )
 
         try {
@@ -201,6 +204,7 @@ class AiChatRemoteService {
         sessionId: String,
         liveStream: AiChatLiveStreamEnvelope,
         afterCursor: String?,
+        resumeDiagnostics: AiChatResumeDiagnostics?,
         onEvent: suspend (AiChatLiveEvent) -> Unit
     ) {
         liveRemoteService.attachLiveRun(
@@ -208,6 +212,7 @@ class AiChatRemoteService {
             sessionId = sessionId,
             liveStream = liveStream,
             afterCursor = afterCursor,
+            resumeDiagnostics = resumeDiagnostics,
             onEvent = onEvent
         )
     }
@@ -313,7 +318,8 @@ class AiChatRemoteService {
         apiBaseUrl: String,
         path: String,
         method: String,
-        authorizationHeader: String?
+        authorizationHeader: String?,
+        extraHeaders: Map<String, String> = emptyMap()
     ): HttpURLConnection {
         val trimmedBaseUrl = apiBaseUrl.removeSuffix("/")
         val connection = (URL(trimmedBaseUrl + path).openConnection() as HttpURLConnection)
@@ -325,7 +331,24 @@ class AiChatRemoteService {
         authorizationHeader?.let { header ->
             connection.setRequestProperty("Authorization", header)
         }
+        extraHeaders.forEach { (headerName, headerValue) ->
+            connection.setRequestProperty(headerName, headerValue)
+        }
         return connection
+    }
+
+    private fun resumeDiagnosticsHeaders(
+        resumeDiagnostics: AiChatResumeDiagnostics?
+    ): Map<String, String> {
+        if (resumeDiagnostics == null) {
+            return emptyMap()
+        }
+
+        return mapOf(
+            "X-Chat-Resume-Attempt-Id" to resumeDiagnostics.resumeAttemptId.toString(),
+            "X-Client-Platform" to resumeDiagnostics.clientPlatform,
+            "X-Client-Version" to resumeDiagnostics.clientVersion
+        )
     }
 
     private fun readResponseBody(connection: HttpURLConnection): String {

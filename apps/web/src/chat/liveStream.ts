@@ -1,4 +1,5 @@
 import { parseContentPartArray } from "../apiContracts";
+import { webAppVersion } from "../clientIdentity";
 import type { ChatLiveStream, ContentPart } from "../types";
 
 export type ChatLiveEvent =
@@ -36,6 +37,7 @@ type ConsumeChatLiveStreamParams = Readonly<{
   liveStream: ChatLiveStream;
   sessionId: string;
   afterCursor: string | null;
+  resumeAttemptId: number | null;
   signal: AbortSignal;
   onEvent: (event: ChatLiveEvent) => void;
 }>;
@@ -338,6 +340,16 @@ function consumeSSEBlock(
 export async function consumeChatLiveStream(
   params: ConsumeChatLiveStreamParams,
 ): Promise<void> {
+  const headers = new Headers({
+    Accept: "text/event-stream",
+    Authorization: params.liveStream.authorization,
+  });
+  if (params.resumeAttemptId !== null) {
+    headers.set("X-Chat-Resume-Attempt-Id", String(params.resumeAttemptId));
+    headers.set("X-Client-Platform", "web");
+    headers.set("X-Client-Version", webAppVersion);
+  }
+
   const response = await fetch(buildLiveStreamUrl(
     params.liveStream,
     params.sessionId,
@@ -345,10 +357,7 @@ export async function consumeChatLiveStream(
   ), {
     method: "GET",
     credentials: "omit",
-    headers: {
-      Accept: "text/event-stream",
-      Authorization: params.liveStream.authorization,
-    },
+    headers,
     signal: params.signal,
   });
 

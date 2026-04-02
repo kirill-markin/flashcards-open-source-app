@@ -8,7 +8,26 @@ export type LiveStreamParams = Readonly<{
   userId: string;
   workspaceId: string;
   requestId?: string;
+  resumeAttemptId?: string;
+  clientPlatform?: string;
+  clientVersion?: string;
 }>;
+
+function readOptionalHeader(headers: Headers | Record<string, string | undefined>, name: string): string | undefined {
+  if (headers instanceof Headers) {
+    const value = headers.get(name);
+    return value === null || value === "" ? undefined : value;
+  }
+
+  const normalizedHeaderName = name.toLowerCase();
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === normalizedHeaderName && value !== undefined && value !== "") {
+      return value;
+    }
+  }
+
+  return undefined;
+}
 
 /**
  * Parses and authenticates the live SSE request.
@@ -19,6 +38,7 @@ export type LiveStreamParams = Readonly<{
 export async function handleLiveRequest(
   url: URL,
   authorizationHeader: string | undefined,
+  headers: Headers | Record<string, string | undefined>,
 ): Promise<LiveStreamParams> {
   const sessionId = url.searchParams.get("sessionId");
   if (sessionId === null || sessionId === "") {
@@ -41,6 +61,9 @@ export async function handleLiveRequest(
       afterCursor,
       userId: verifiedLiveAuth.userId,
       workspaceId: verifiedLiveAuth.workspaceId,
+      resumeAttemptId: readOptionalHeader(headers, "X-Chat-Resume-Attempt-Id"),
+      clientPlatform: readOptionalHeader(headers, "X-Client-Platform"),
+      clientVersion: readOptionalHeader(headers, "X-Client-Version"),
     };
   }
 
@@ -64,5 +87,8 @@ export async function handleLiveRequest(
     afterCursor,
     userId: authResult.userId,
     workspaceId,
+    resumeAttemptId: readOptionalHeader(headers, "X-Chat-Resume-Attempt-Id"),
+    clientPlatform: readOptionalHeader(headers, "X-Client-Platform"),
+    clientVersion: readOptionalHeader(headers, "X-Client-Version"),
   };
 }

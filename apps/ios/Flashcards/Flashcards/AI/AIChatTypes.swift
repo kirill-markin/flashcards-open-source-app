@@ -5,6 +5,7 @@ let aiChatDefaultModelLabel: String = "GPT-5.4"
 let aiChatDefaultProviderLabel: String = "OpenAI"
 let aiChatDefaultReasoningEffort: String = "medium"
 let aiChatDefaultReasoningLabel: String = "Medium"
+let aiChatClientPlatform: String = "ios"
 let aiChatCreateCardDraftPrompt: String = "Help me create a card."
 let aiChatOptimisticAssistantStatusText: String = "Looking through your cards..."
 let aiChatExternalProviderConsentUserDefaultsKey: String = "ai-chat-external-provider-consent"
@@ -966,6 +967,14 @@ struct AIChatContext: Sendable {
     let totalActiveCards: Int
 }
 
+struct AIChatResumeAttemptDiagnostics: Equatable, Sendable {
+    let sequence: Int
+
+    var headerValue: String {
+        String(self.sequence)
+    }
+}
+
 protocol AIChatHistoryStoring: Sendable {
     func activateWorkspace(workspaceId: String?)
     func loadState() -> AIChatPersistedState
@@ -982,7 +991,8 @@ protocol AIChatSessionServicing: Sendable {
     func loadBootstrap(
         session: CloudLinkedSession,
         sessionId: String?,
-        limit: Int
+        limit: Int,
+        resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
     ) async throws -> AIChatBootstrapResponse
 
     func loadOlderMessages(

@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
+import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
@@ -39,6 +40,9 @@ import kotlinx.coroutines.launch
 
 private const val noSpeechRecordedMessage: String = "No speech was recorded."
 private const val aiChatBootstrapPageLimit: Int = 20
+private const val aiChatClientPlatform: String = "android"
+private const val aiChatClientVersion: String = "1.0.0"
+private const val missingLiveStreamMessage: String = "AI live stream is unavailable for the active run."
 
 private enum class AiServerSnapshotApplyMode {
     ACTIVE,
@@ -102,6 +106,9 @@ class AiViewModel(
     private var lastPreparedGuestWorkspaceId: String? = null
     private var activeAccessContext: AiAccessContext? = null
     private var isScreenVisible: Boolean = false
+    private var nextResumeAttemptId: Long = 0L
+    private var activeResumeErrorAttemptId: Long? = null
+    private var activeLiveResumeAttemptId: Long? = null
 
     val uiState: StateFlow<AiUiState> = combine(
         metadataState,
@@ -122,6 +129,36 @@ class AiViewModel(
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = makeInitialAiUiState(hasConsent = aiChatRepository.hasConsent())
     )
+
+    private fun nextResumeDiagnostics(): AiChatResumeDiagnostics {
+        nextResumeAttemptId += 1L
+        return AiChatResumeDiagnostics(
+            resumeAttemptId = nextResumeAttemptId,
+            clientPlatform = aiChatClientPlatform,
+            clientVersion = aiChatClientVersion
+        )
+    }
+
+    private fun clearStaleResumeErrorIfNeeded(connectedResumeAttemptId: Long?) {
+        if (connectedResumeAttemptId == null) {
+            return
+        }
+        val activeResumeErrorAttemptId = activeResumeErrorAttemptId ?: return
+        if (activeResumeErrorAttemptId >= connectedResumeAttemptId) {
+            return
+        }
+        val currentAlert = draftState.value.activeAlert
+        if (
+            currentAlert is AiAlertState.GeneralError
+            && currentAlert.message == missingLiveStreamMessage
+        ) {
+            draftState.update { state ->
+                state.copy(activeAlert = null, errorMessage = "")
+            }
+        }
+        this.activeResumeErrorAttemptId = null
+        this.activeLiveResumeAttemptId = null
+    }
 
     init {
         viewModelScope.launch {
@@ -155,7 +192,7 @@ class AiViewModel(
 
     fun acceptConsent() {
         aiChatRepository.updateConsent(hasConsent = true)
-        warmUpLinkedSessionIfNeeded()
+        warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
     }
 
     fun addPendingAttachment(attachment: AiChatAttachment) {
@@ -468,6 +505,7 @@ class AiViewModel(
     }
 
     fun showErrorMessage(message: String) {
+        activeResumeErrorAttemptId = null
         draftState.update { state ->
             state.copy(
                 activeAlert = AiAlertState.GeneralError(message = message),
@@ -484,7 +522,7 @@ class AiViewModel(
             return
         }
 
-        startConversationBootstrap(forceReloadState = true)
+        startConversationBootstrap(forceReloadState = true, resumeDiagnostics = null)
     }
 
     /**
@@ -494,7 +532,7 @@ class AiViewModel(
      */
     fun onScreenVisible() {
         isScreenVisible = true
-        warmUpLinkedSessionIfNeeded()
+        warmUpLinkedSessionIfNeeded(resumeDiagnostics = nextResumeDiagnostics())
     }
 
     /**
@@ -505,7 +543,7 @@ class AiViewModel(
         detachLiveStream(reason = "AI live stream detached because the screen is no longer visible.")
     }
 
-    fun warmUpLinkedSessionIfNeeded() {
+    fun warmUpLinkedSessionIfNeeded(resumeDiagnostics: AiChatResumeDiagnostics?) {
         val currentState = draftState.value
         val accessContext = activeAccessContext
         val cloudSettings = cloudSettingsState.value
@@ -531,7 +569,10 @@ class AiViewModel(
         var warmUpJob: Job? = null
         warmUpJob = viewModelScope.launch {
             try {
-                startConversationBootstrap(forceReloadState = false)
+                startConversationBootstrap(
+                    forceReloadState = false,
+                    resumeDiagnostics = resumeDiagnostics
+                )
             } catch (error: CancellationException) {
                 AiChatDiagnosticsLogger.info(
                     event = "warm_up_cancelled",
@@ -572,7 +613,7 @@ class AiViewModel(
                 }
                 if (shouldRetryWarmUp) {
                     pendingWarmUpAfterWorkspaceSwitch = false
-                    warmUpLinkedSessionIfNeeded()
+                    warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
                 }
             }
         }
@@ -748,6 +789,7 @@ class AiViewModel(
      * replaces bootstrap as the source of truth.
      */
     private suspend fun applyLiveEvent(event: AiChatLiveEvent) {
+        clearStaleResumeErrorIfNeeded(connectedResumeAttemptId = activeLiveResumeAttemptId)
         when (event) {
             is AiChatLiveEvent.AssistantDelta -> {
                 draftState.update { state ->
@@ -836,7 +878,7 @@ class AiViewModel(
                     isStopped = event.isStopped
                 )
                 if (finalizedState == null) {
-                    startConversationBootstrap(forceReloadState = true)
+            startConversationBootstrap(forceReloadState = true, resumeDiagnostics = null)
                     return
                 }
                 draftState.update { state ->
@@ -911,7 +953,7 @@ class AiViewModel(
             }
 
             AiChatLiveEvent.ResetRequired -> {
-                startConversationBootstrap(forceReloadState = true)
+                startConversationBootstrap(forceReloadState = true, resumeDiagnostics = null)
             }
         }
         persistCurrentState()
@@ -1107,7 +1149,7 @@ class AiViewModel(
             if (accessContext.cloudState == CloudAccountState.LINKING_READY) {
                 return@launch
             }
-            startConversationBootstrap(forceReloadState = false)
+            startConversationBootstrap(forceReloadState = false, resumeDiagnostics = null)
         }
     }
 
@@ -1115,7 +1157,10 @@ class AiViewModel(
      * Refreshes the full conversation snapshot before any resumed live attach.
      * This is the only supported resume path after hidden/background or reset.
      */
-    private fun startConversationBootstrap(forceReloadState: Boolean) {
+    private fun startConversationBootstrap(
+        forceReloadState: Boolean,
+        resumeDiagnostics: AiChatResumeDiagnostics?
+    ) {
         val accessContext = activeAccessContext ?: return
         val workspaceId = accessContext.workspaceId ?: return
         if (accessContext.cloudState == CloudAccountState.LINKING_READY) {
@@ -1189,7 +1234,8 @@ class AiViewModel(
                 val bootstrap = aiChatRepository.loadBootstrap(
                     workspaceId = workspaceId,
                     sessionId = persistedState.chatSessionId.ifBlank { null },
-                    limit = aiChatBootstrapPageLimit
+                    limit = aiChatBootstrapPageLimit,
+                    resumeDiagnostics = resumeDiagnostics
                 )
                 if (activeAccessContext != accessContext) {
                     return@launch
@@ -1205,7 +1251,8 @@ class AiViewModel(
                 )
                 attachBootstrapLiveIfNeeded(
                     workspaceId = workspaceId,
-                    response = bootstrap
+                    response = bootstrap,
+                    resumeDiagnostics = resumeDiagnostics
                 )
             } catch (error: CancellationException) {
                 AiChatDiagnosticsLogger.info(
@@ -1282,24 +1329,47 @@ class AiViewModel(
      */
     private fun attachBootstrapLiveIfNeeded(
         workspaceId: String,
-        response: AiChatBootstrapResponse
+        response: AiChatBootstrapResponse,
+        resumeDiagnostics: AiChatResumeDiagnostics?
     ) {
         if (response.runState != "running") {
+            activeLiveResumeAttemptId = null
             detachLiveStream(reason = "AI live stream detached because the run is no longer active.")
             return
         }
         if (isScreenVisible.not()) {
+            activeLiveResumeAttemptId = null
             detachLiveStream(reason = "AI live stream detached because the screen is hidden.")
             return
         }
 
-        val liveStream = response.liveStream ?: return
+        val liveStream = response.liveStream ?: run {
+            activeLiveResumeAttemptId = null
+            if (resumeDiagnostics != null) {
+                activeResumeErrorAttemptId = resumeDiagnostics.resumeAttemptId
+            }
+            draftState.update { state ->
+                state.copy(
+                    runState = "failed",
+                    isLiveAttached = false,
+                    composerPhase = AiComposerPhase.IDLE,
+                    repairStatus = null,
+                    activeAlert = AiAlertState.GeneralError(
+                        message = missingLiveStreamMessage
+                    ),
+                    errorMessage = ""
+                )
+            }
+            persistCurrentState()
+            return
+        }
 
         attachLiveStream(
             workspaceId = workspaceId,
             sessionId = response.sessionId,
             liveStream = liveStream,
             afterCursor = response.liveCursor,
+            resumeDiagnostics = resumeDiagnostics,
             cancellationMessage = "AI live attach restarted from bootstrap."
         )
     }
@@ -1327,7 +1397,7 @@ class AiViewModel(
                     composerPhase = AiComposerPhase.IDLE,
                     repairStatus = null,
                     activeAlert = AiAlertState.GeneralError(
-                        message = "AI live stream is unavailable for the active run."
+                        message = missingLiveStreamMessage
                     ),
                     errorMessage = ""
                 )
@@ -1341,6 +1411,7 @@ class AiViewModel(
             sessionId = response.sessionId,
             liveStream = liveStream,
             afterCursor = afterCursor,
+            resumeDiagnostics = null,
             cancellationMessage = "AI live attach restarted from accepted run."
         )
     }
@@ -1354,6 +1425,7 @@ class AiViewModel(
         sessionId: String,
         liveStream: com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope,
         afterCursor: String?,
+        resumeDiagnostics: AiChatResumeDiagnostics?,
         cancellationMessage: String
     ) {
         activeLiveJob?.cancel(
@@ -1362,6 +1434,7 @@ class AiViewModel(
         var liveJob: Job? = null
         liveJob = viewModelScope.launch {
             var liveAttachDisposition = AiLiveAttachDisposition.PENDING
+            activeLiveResumeAttemptId = resumeDiagnostics?.resumeAttemptId
             draftState.update { state ->
                 state.copy(isLiveAttached = true)
             }
@@ -1372,6 +1445,7 @@ class AiViewModel(
                     sessionId = sessionId,
                     liveStream = liveStream,
                     afterCursor = afterCursor,
+                    resumeDiagnostics = resumeDiagnostics,
                     onEvent = { event ->
                         if (
                             event is AiChatLiveEvent.AssistantMessageDone
@@ -1415,6 +1489,7 @@ class AiViewModel(
                 if (activeLiveJob === liveJob) {
                     activeLiveJob = null
                 }
+                activeLiveResumeAttemptId = null
                 draftState.update { state ->
                     if (state.composerPhase == AiComposerPhase.RUNNING || state.composerPhase == AiComposerPhase.STOPPING) {
                         state
@@ -1436,7 +1511,8 @@ class AiViewModel(
             val bootstrap = aiChatRepository.loadBootstrap(
                 workspaceId = workspaceId,
                 sessionId = sessionId,
-                limit = aiChatBootstrapPageLimit
+                limit = aiChatBootstrapPageLimit,
+                resumeDiagnostics = null
             )
             applyBootstrap(
                 response = bootstrap,

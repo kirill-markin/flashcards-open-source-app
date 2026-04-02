@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local.ai
 
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
+import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -21,6 +22,7 @@ class AiChatLiveRemoteService {
         sessionId: String,
         liveStream: AiChatLiveStreamEnvelope,
         afterCursor: String?,
+        resumeDiagnostics: AiChatResumeDiagnostics?,
         onEvent: suspend (AiChatLiveEvent) -> Unit
     ) {
         val authorization = if (liveStream.authorization.startsWith(prefix = "Live ")) {
@@ -33,6 +35,7 @@ class AiChatLiveRemoteService {
             authorization = authorization,
             sessionId = sessionId,
             afterCursor = afterCursor,
+            resumeDiagnostics = resumeDiagnostics,
             onEvent = { event ->
                 onEvent(event)
                 when (event) {
@@ -61,6 +64,7 @@ class AiChatLiveRemoteService {
         authorization: String,
         sessionId: String,
         afterCursor: String?,
+        resumeDiagnostics: AiChatResumeDiagnostics?,
         onEvent: suspend (AiChatLiveEvent) -> Boolean
     ): Unit = withContext(Dispatchers.IO) {
         val urlString = buildString {
@@ -77,6 +81,14 @@ class AiChatLiveRemoteService {
         connection.useCaches = false
         connection.setRequestProperty("Accept", "text/event-stream")
         connection.setRequestProperty("Authorization", authorization)
+        if (resumeDiagnostics != null) {
+            connection.setRequestProperty(
+                "X-Chat-Resume-Attempt-Id",
+                resumeDiagnostics.resumeAttemptId.toString()
+            )
+            connection.setRequestProperty("X-Client-Platform", resumeDiagnostics.clientPlatform)
+            connection.setRequestProperty("X-Client-Version", resumeDiagnostics.clientVersion)
+        }
 
         try {
             val responseCode = connection.responseCode
