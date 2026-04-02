@@ -10,9 +10,18 @@ export type WorkspaceReplicaActorKind =
   | "ai_chat";
 export type WorkspaceReplicaPlatform = SyncClientPlatform | "system";
 
-type InstallationRow = Readonly<{
+type ClaimInstallationStatus =
+  | "inserted"
+  | "refreshed"
+  | "reassigned"
+  | "platform_mismatch";
+
+type ClaimInstallationRow = Readonly<{
+  claim_status: ClaimInstallationStatus;
   installation_id: string;
   platform: SyncClientPlatform;
+  previous_user_id: string | null;
+  current_user_id: string;
 }>;
 
 type WorkspaceReplicaRow = Readonly<{
@@ -53,6 +62,10 @@ function toUuidFromSeed(seed: string): string {
   ].join("-");
 }
 
+function assertNeverClaimStatus(status: never): never {
+  throw new Error(`Unsupported installation claim status: ${status}`);
+}
+
 export function buildSystemWorkspaceReplicaId(
   workspaceId: string,
   actorKind: Exclude<WorkspaceReplicaActorKind, "client_installation">,
@@ -72,40 +85,36 @@ async function ensureInstallationInExecutor(
   platform: SyncClientPlatform,
   appVersion: string | null,
 ): Promise<void> {
-  const insertResult = await executor.query<InstallationRow>(
+  const claimResult = await executor.query<ClaimInstallationRow>(
     [
-      "INSERT INTO sync.installations",
-      "(installation_id, user_id, platform, app_version, last_seen_at)",
-      "VALUES ($1, $2, $3, $4, now())",
-      "ON CONFLICT (installation_id) DO NOTHING",
-      "RETURNING installation_id, platform",
+      "SELECT claim_status, installation_id, platform, previous_user_id, current_user_id",
+      "FROM sync.claim_installation($1, $2, $3, $4)",
     ].join(" "),
-    [installationId, userId, platform, appVersion],
+    [installationId, platform, userId, appVersion],
   );
 
-  if (insertResult.rows.length === 1) {
+  const claimRow = claimResult.rows[0];
+  if (claimRow === undefined) {
+    throw new Error("sync.claim_installation returned no rows");
+  }
+
+  if (claimRow.claim_status === "platform_mismatch") {
+    throw new HttpError(
+      409,
+      "installationId is already registered with a different platform",
+      "SYNC_INSTALLATION_PLATFORM_MISMATCH",
+    );
+  }
+
+  if (
+    claimRow.claim_status === "inserted"
+    || claimRow.claim_status === "refreshed"
+    || claimRow.claim_status === "reassigned"
+  ) {
     return;
   }
 
-  const updateResult = await executor.query<InstallationRow>(
-    [
-      "UPDATE sync.installations",
-      "SET user_id = $2, app_version = $4, last_seen_at = now()",
-      "WHERE installation_id = $1 AND platform = $3",
-      "RETURNING installation_id, platform",
-    ].join(" "),
-    [installationId, userId, platform, appVersion],
-  );
-
-  if (updateResult.rows.length === 1) {
-    return;
-  }
-
-  throw new HttpError(
-    409,
-    "installationId is already registered with a different platform",
-    "SYNC_INSTALLATION_PLATFORM_MISMATCH",
-  );
+  return assertNeverClaimStatus(claimRow.claim_status);
 }
 
 async function upsertWorkspaceReplicaInExecutor(
