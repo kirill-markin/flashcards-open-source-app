@@ -266,11 +266,7 @@ struct AIChatView: View {
             case .failed:
                 self.failedChatState
             case .ready:
-                if self.chatStore.messages.isEmpty {
-                    self.emptyChatState
-                } else {
-                    self.messageList
-                }
+                self.chatScrollSurface
             }
         }
     }
@@ -322,34 +318,13 @@ struct AIChatView: View {
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, aiChatMessageListHorizontalPadding)
         .accessibilityIdentifier(UITestIdentifier.aiEmptyState)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            self.isComposerFocused = false
-        }
     }
 
-    var messageList: some View {
+    var chatScrollSurface: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 12) {
-                ForEach(Array(self.chatStore.messages.enumerated()), id: \.element.id) { index, message in
-                    self.messageRow(
-                        message: message,
-                        repairStatus: self.repairStatus(for: message),
-                        showsTypingIndicator: aiChatShouldShowTypingIndicator(
-                            message: message,
-                            isLastMessage: index == self.chatStore.messages.indices.last,
-                            isStreaming: self.chatStore.isStreaming
-                        )
-                    )
-                    .id(message.id)
-                }
-            }
-            .scrollTargetLayout()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 12)
+            self.chatScrollContent
         }
         .defaultScrollAnchor(.bottom, for: .initialOffset)
         .defaultScrollAnchor(.bottom, for: .alignment)
@@ -359,7 +334,7 @@ struct AIChatView: View {
         .contentShape(Rectangle())
         .scrollDismissesKeyboard(.interactively)
         .onTapGesture {
-            self.isComposerFocused = false
+            self.dismissComposerFocus()
         }
         .onScrollPhaseChange { _, nextPhase, context in
             let nextScrollState = aiChatScrollState(
@@ -398,6 +373,37 @@ struct AIChatView: View {
 
             self.stopAutoScrollTask()
             self.scrollToBottomIfNeeded(isAnimated: true)
+        }
+    }
+
+    @ViewBuilder
+    var chatScrollContent: some View {
+        if self.chatStore.messages.isEmpty {
+            VStack {
+                self.emptyChatState
+            }
+            .scrollTargetLayout()
+            .frame(maxWidth: .infinity)
+            .containerRelativeFrame(.vertical, alignment: .center)
+            .padding(.vertical, 12)
+        } else {
+            LazyVStack(alignment: .leading, spacing: 12) {
+                ForEach(Array(self.chatStore.messages.enumerated()), id: \.element.id) { index, message in
+                    self.messageRow(
+                        message: message,
+                        repairStatus: self.repairStatus(for: message),
+                        showsTypingIndicator: aiChatShouldShowTypingIndicator(
+                            message: message,
+                            isLastMessage: index == self.chatStore.messages.indices.last,
+                            isStreaming: self.chatStore.isStreaming
+                        )
+                    )
+                    .id(message.id)
+                }
+            }
+            .scrollTargetLayout()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 12)
         }
     }
 
@@ -478,6 +484,10 @@ struct AIChatView: View {
         }
         self.chatStore.sendMessage()
         self.isComposerFocused = true
+    }
+
+    func dismissComposerFocus() {
+        self.isComposerFocused = false
     }
 
 }
