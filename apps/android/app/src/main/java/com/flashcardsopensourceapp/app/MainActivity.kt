@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?, application: FlashcardsApplication) {
-        val payload = intent?.let(::consumeReviewNotificationTapPayload) ?: return
-        application.appGraph.appHandoffCoordinator.requestReviewNotification(payload = payload)
+        val request = intent?.let(::consumeReviewNotificationTapPayload) ?: return
+        application.appGraph.appHandoffCoordinator.requestReviewNotification(request = request)
     }
 }

@@ -40,6 +40,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 messageController = appGraph.appMessageBus,
                 reviewNotificationsStore = appGraph.reviewNotificationsStore,
+                resolveReviewNotificationTapPayload = appGraph.reviewNotificationsManager::resolveReviewNotificationTapPayload,
                 shouldShowNotificationPermissionPrePrompt = {
                     hasNotificationPermission(context = context).not()
                 },
@@ -59,7 +60,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
 
         LaunchedEffect(reviewNotificationRequest?.requestId) {
             val request = reviewNotificationRequest ?: return@LaunchedEffect
-            reviewViewModel.handleReviewNotificationTap(payload = request.payload)
+            reviewViewModel.handleReviewNotificationTap(request = request.request)
             appGraph.appHandoffCoordinator.consumeReviewNotification(requestId = request.requestId)
         }
 
@@ -119,6 +120,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 messageController = appGraph.appMessageBus,
                 reviewNotificationsStore = appGraph.reviewNotificationsStore,
+                resolveReviewNotificationTapPayload = appGraph.reviewNotificationsManager::resolveReviewNotificationTapPayload,
                 shouldShowNotificationPermissionPrePrompt = {
                     false
                 },

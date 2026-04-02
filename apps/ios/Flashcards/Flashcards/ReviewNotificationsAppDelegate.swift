@@ -22,14 +22,14 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
-        guard let payload = parseReviewNotificationPayload(userInfo: response.notification.request.content.userInfo) else {
+        guard let request = parseReviewNotificationTapRequest(userInfo: response.notification.request.content.userInfo) else {
             return
         }
 
         Task { @MainActor in
             NotificationCenter.default.post(
-                name: reviewNotificationTapPayloadNotificationName,
-                object: payload
+                name: reviewNotificationTapRequestNotificationName,
+                object: request
             )
         }
     }
