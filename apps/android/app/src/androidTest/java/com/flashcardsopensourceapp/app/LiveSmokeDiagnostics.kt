@@ -154,7 +154,7 @@ internal fun LiveSmokeContext.waitForTagToExist(
         timeoutMillis = timeoutMillis,
         context = context
     ) {
-        composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+        hasTagInAnySemanticsTree(tag = tag)
     }
 }
 
@@ -167,7 +167,7 @@ internal fun LiveSmokeContext.waitForTagToDisappear(
         timeoutMillis = timeoutMillis,
         context = context
     ) {
-        composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty()
+        hasTagInAnySemanticsTree(tag = tag).not()
     }
 }
 
@@ -241,6 +241,16 @@ internal fun LiveSmokeContext.clickTag(tag: String, label: String) {
         dismissExternalSystemDialogIfPresent()
         failIfVisibleAppError(context = "after clicking $label")
     }
+}
+
+internal fun LiveSmokeContext.countNodesWithTagInAnySemanticsTree(tag: String): Int {
+    val mergedCount = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().size
+    val unmergedCount = composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().size
+    return maxOf(mergedCount, unmergedCount)
+}
+
+private fun LiveSmokeContext.hasTagInAnySemanticsTree(tag: String): Boolean {
+    return countNodesWithTagInAnySemanticsTree(tag = tag) > 0
 }
 
 internal fun LiveSmokeContext.clickContentDescription(contentDescription: String) {
