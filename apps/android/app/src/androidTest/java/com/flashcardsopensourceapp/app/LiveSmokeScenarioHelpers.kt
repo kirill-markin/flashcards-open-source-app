@@ -228,6 +228,11 @@ private fun LiveSmokeContext.waitForAiRunAcceptedOrCompleted(
 }
 
 internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
+    waitForEnabledTag(
+        tag = aiNewChatButtonTag,
+        label = "New chat",
+        context = "before resetting the AI conversation"
+    )
     clickTag(tag = aiNewChatButtonTag, label = "New chat")
     try {
         waitForAiPersistedState(
@@ -291,6 +296,11 @@ internal fun LiveSmokeContext.createGuestAiConversationForReset() {
     waitForAiConversationMaterialized(
         expectedUserText = aiResetPromptText,
         context = "while waiting for the AI reset conversation to materialize"
+    )
+    waitForEnabledTag(
+        tag = aiNewChatButtonTag,
+        label = "New chat",
+        context = "after the AI reset conversation completed"
     )
     waitForAiComposerButtonState(
         expectedLabel = "Send",
@@ -490,6 +500,28 @@ private fun LiveSmokeContext.waitForAiComposerButtonState(
     }
 }
 
+private fun LiveSmokeContext.waitForEnabledTag(
+    tag: String,
+    label: String,
+    context: String
+) {
+    try {
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for $label to become enabled $context"
+        ) {
+            tagIsEnabled(tag = tag)
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "$label was not enabled $context. " +
+                "PersistedState=${currentAiPersistedStateSummary()} " +
+                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+            error
+        )
+    }
+}
+
 private fun LiveSmokeContext.completedAiInsertToolCallCheck(): LiveSmokeAiToolCallCheck {
     return completedAiInsertToolCallCheck(state = currentAiPersistedState())
 }
@@ -642,6 +674,11 @@ private fun LiveSmokeContext.aiComposerSendButtonStateOrNull(expectedLabel: Stri
     } else {
         "enabled"
     }
+}
+
+private fun LiveSmokeContext.tagIsEnabled(tag: String): Boolean {
+    val node = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().singleOrNull() ?: return false
+    return node.config.contains(SemanticsProperties.Disabled).not()
 }
 
 private fun LiveSmokeContext.latestAssistantMessageTextOrNull(): String? {
