@@ -2,75 +2,94 @@ import Foundation
 
 @MainActor
 extension FlashcardsStore {
+    private func localMutationCloudSyncTrigger(now: Date) -> CloudSyncTrigger {
+        CloudSyncTrigger(
+            source: .localMutation,
+            now: now,
+            extendsFastPolling: true,
+            allowsVisibleChangeBanner: false,
+            surfacesGlobalErrorMessage: false
+        )
+    }
+
     func saveCard(input: CardEditorInput, editingCardId: String?) throws {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let now = Date()
         _ = try context.database.saveCard(
             workspaceId: context.workspaceId,
             input: input,
             cardId: editingCardId
         )
-        self.refreshLocalReadModels(now: Date())
-        self.triggerCloudSyncIfLinked()
+        self.refreshLocalReadModels(now: now)
+        self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
 
     func createCards(inputs: [CardEditorInput]) throws -> [Card] {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let now = Date()
         let createdCards = try context.database.createCards(workspaceId: context.workspaceId, inputs: inputs)
         try self.reload()
-        self.triggerCloudSyncIfLinked()
+        self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
         return createdCards
     }
 
     func deleteCard(cardId: String) throws {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let now = Date()
         _ = try context.database.deleteCard(workspaceId: context.workspaceId, cardId: cardId)
-        self.refreshLocalReadModels(now: Date())
-        self.triggerCloudSyncIfLinked()
+        self.refreshLocalReadModels(now: now)
+        self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
 
     func updateCards(updates: [CardUpdateInput]) throws -> [Card] {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let now = Date()
         let updatedCards = try context.database.updateCards(workspaceId: context.workspaceId, updates: updates)
         try self.reload()
-        self.triggerCloudSyncIfLinked()
+        self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
         return updatedCards
     }
 
     func deleteCards(cardIds: [String]) throws -> BulkDeleteCardsResult {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let now = Date()
         let result = try context.database.deleteCards(workspaceId: context.workspaceId, cardIds: cardIds)
         try self.reload()
-        self.triggerCloudSyncIfLinked()
+        self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
         return result
     }
 
     func createDeck(input: DeckEditorInput) throws {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let now = Date()
         _ = try context.database.createDeck(workspaceId: context.workspaceId, input: input)
-        self.refreshLocalReadModels(now: Date())
-        self.triggerCloudSyncIfLinked()
+        self.refreshLocalReadModels(now: now)
+        self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
 
     func updateDeck(deckId: String, input: DeckEditorInput) throws {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let now = Date()
         _ = try context.database.updateDeck(
             workspaceId: context.workspaceId,
             deckId: deckId,
             input: input
         )
-        self.refreshLocalReadModels(now: Date())
-        self.triggerCloudSyncIfLinked()
+        self.refreshLocalReadModels(now: now)
+        self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
 
     func deleteDeck(deckId: String) throws {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let now = Date()
         _ = try context.database.deleteDeck(workspaceId: context.workspaceId, deckId: deckId)
-        self.refreshLocalReadModels(now: Date())
-        self.triggerCloudSyncIfLinked()
+        self.refreshLocalReadModels(now: now)
+        self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
 
     func submitReview(cardId: String, rating: ReviewRating) throws {
         let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let now = Date()
         _ = try context.database.submitReview(
             workspaceId: context.workspaceId,
             reviewSubmission: ReviewSubmission(
@@ -79,8 +98,8 @@ extension FlashcardsStore {
                 reviewedAtClient: nowIsoTimestamp()
             )
         )
-        self.refreshLocalReadModels(now: Date())
-        self.triggerCloudSyncIfLinked()
+        self.refreshLocalReadModels(now: now)
+        self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
 
     func enqueueReviewSubmission(cardId: String, rating: ReviewRating) throws {
@@ -125,7 +144,7 @@ extension FlashcardsStore {
             enableFuzz: enableFuzz
         )
         try self.reload()
-        self.triggerCloudSyncIfLinked()
+        self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: Date()))
     }
 
     func loadAIReviewHistory(limit: Int, cardId: String?) throws -> [ReviewEvent] {

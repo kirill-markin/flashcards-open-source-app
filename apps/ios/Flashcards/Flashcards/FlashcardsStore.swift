@@ -6,6 +6,7 @@ let accountDeletionConfirmationText: String = "delete my account"
 let cloudSyncFastPollingIntervalSeconds: TimeInterval = 15
 let cloudSyncDefaultPollingIntervalSeconds: TimeInterval = 60
 let cloudSyncFastPollingDurationSeconds: TimeInterval = 120
+let cloudImmediateSyncDebounceIntervalSeconds: TimeInterval = 1
 
 func usesFastCloudSyncPolling(tab: AppTab) -> Bool {
     tab == .review || tab == .cards
@@ -89,6 +90,8 @@ final class FlashcardsStore {
     @ObservationIgnored var cloudRuntime: CloudSessionRuntime
     @ObservationIgnored var isAccountDeletionRunning: Bool
     @ObservationIgnored var cachedAIChatStore: AIChatStore?
+    @ObservationIgnored var currentVisibleTab: AppTab
+    @ObservationIgnored var lastImmediateCloudSyncTriggerAt: Date?
 
     var aiChatStore: AIChatStore {
         if let cachedAIChatStore {
@@ -304,6 +307,8 @@ final class FlashcardsStore {
             credentialStore: dependencies.credentialStore
         )
         self.isAccountDeletionRunning = false
+        self.currentVisibleTab = .review
+        self.lastImmediateCloudSyncTriggerAt = nil
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {

@@ -157,7 +157,8 @@ extension FlashcardsStore {
 
     private func performAuthenticatedSilentRestore(
         credentials: StoredCloudCredentials,
-        configuration: CloudServiceConfiguration
+        configuration: CloudServiceConfiguration,
+        trigger: CloudSyncTrigger
     ) async throws {
         let account = try await self.loadAuthenticatedCloudAccountSnapshot(
             credentials: credentials,
@@ -173,18 +174,21 @@ extension FlashcardsStore {
                 configurationMode: configuration.mode,
                 apiBaseUrl: configuration.apiBaseUrl,
                 authorization: .bearer(credentials.idToken)
-            )
+            ),
+            trigger: trigger
         )
     }
 
     private func restoreAuthenticatedCloudSessionAfterReinstall(
-        configuration: CloudServiceConfiguration
+        configuration: CloudServiceConfiguration,
+        trigger: CloudSyncTrigger
     ) async throws {
         do {
             let credentials = try await self.refreshCloudCredentials(forceRefresh: false)
             try await self.performAuthenticatedSilentRestore(
                 credentials: credentials,
-                configuration: configuration
+                configuration: configuration,
+                trigger: trigger
             )
             return
         } catch {
@@ -196,7 +200,8 @@ extension FlashcardsStore {
         let refreshedCredentials = try await self.refreshCloudCredentials(forceRefresh: true)
         try await self.performAuthenticatedSilentRestore(
             credentials: refreshedCredentials,
-            configuration: configuration
+            configuration: configuration,
+            trigger: trigger
         )
     }
 
@@ -340,7 +345,8 @@ extension FlashcardsStore {
                 configurationMode: configuration.mode,
                 apiBaseUrl: linkContext.apiBaseUrl,
                 authorization: .bearer(linkContext.credentials.idToken)
-            )
+            ),
+            trigger: self.manualCloudSyncTrigger(now: Date())
         )
         try self.clearGuestSessionIfNeeded()
         self.globalErrorMessage = ""
@@ -379,7 +385,8 @@ extension FlashcardsStore {
                 configurationMode: configuration.mode,
                 apiBaseUrl: linkContext.apiBaseUrl,
                 authorization: .bearer(linkContext.credentials.idToken)
-            )
+            ),
+            trigger: self.manualCloudSyncTrigger(now: Date())
         )
         try self.clearGuestSessionIfNeeded()
         self.globalErrorMessage = ""
@@ -450,18 +457,32 @@ extension FlashcardsStore {
         self.accountDeletionSuccessMessage = nil
     }
 
-    func syncCloudNow() async throws {
+    private func manualCloudSyncTrigger(now: Date) -> CloudSyncTrigger {
+        CloudSyncTrigger(
+            source: .manualSyncNow,
+            now: now,
+            extendsFastPolling: false,
+            allowsVisibleChangeBanner: false,
+            surfacesGlobalErrorMessage: true
+        )
+    }
+
+    func updateCurrentVisibleTab(tab: AppTab) {
+        self.currentVisibleTab = tab
+    }
+
+    func syncCloudNow(trigger: CloudSyncTrigger) async throws {
         if case .blocked(let message) = self.syncStatus {
             throw LocalStoreError.validation(message)
         }
         if self.cloudRuntime.activeCloudSession() == nil {
             if self.cloudSettings?.cloudState == .guest {
-                let restoredGuestSession = try await self.restoreGuestCloudSessionIfNeeded()
+                let restoredGuestSession = try await self.restoreGuestCloudSessionIfNeeded(trigger: trigger)
                 if restoredGuestSession.didRunSync {
                     return
                 }
             } else {
-                try await self.restoreCloudLinkFromStoredCredentials()
+                try await self.restoreCloudLinkFromStoredCredentials(trigger: trigger)
                 return
             }
         }
@@ -486,19 +507,22 @@ extension FlashcardsStore {
             let now = Date()
             try await self.applySyncResultWithoutBlockingReset(
                 syncResult: syncResult,
-                now: now
+                now: now,
+                trigger: trigger
             )
         } catch {
             self.syncStatus = self.syncStatusForCloudFailure(
                 error: error,
                 fallbackCloudState: failureStateCloudState
             )
-            self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            if trigger.surfacesGlobalErrorMessage {
+                self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            }
             throw error
         }
     }
 
-    func syncCloudIfLinked() async {
+    func syncCloudIfLinked(trigger: CloudSyncTrigger) async {
         if self.isCloudSyncBlocked {
             return
         }
@@ -508,7 +532,7 @@ extension FlashcardsStore {
         }
 
         do {
-            let reconciliationOutcome = try await self.reconcilePersistedCloudStateBeforeSync()
+            let reconciliationOutcome = try await self.reconcilePersistedCloudStateBeforeSync(trigger: trigger)
             let hasStoredCredentials: Bool
             let hasStoredGuestSession: Bool
             switch reconciliationOutcome {
@@ -533,18 +557,22 @@ extension FlashcardsStore {
                 return
             }
 
-            try await self.syncCloudNow()
+            try await self.syncCloudNow(trigger: trigger)
         } catch {
             if self.isCloudAccountDeletedError(error) {
                 self.handleRemoteAccountDeletedCleanup()
                 return
             }
 
-            self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            if trigger.surfacesGlobalErrorMessage {
+                self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            }
         }
     }
 
-    private func reconcilePersistedCloudStateBeforeSync() async throws -> PersistedCloudStateReconciliationOutcome {
+    private func reconcilePersistedCloudStateBeforeSync(
+        trigger: CloudSyncTrigger
+    ) async throws -> PersistedCloudStateReconciliationOutcome {
         let hasStoredCredentials = try self.cloudRuntime.loadCredentials() != nil
         let hasStoredGuestSession = try self.loadGuestSessionForCurrentConfiguration() != nil
         guard let cloudState = self.cloudSettings?.cloudState else {
@@ -580,7 +608,7 @@ extension FlashcardsStore {
             return .stopSync
         case .disconnected, .linkingReady:
             if hasStoredGuestSession && hasStoredCredentials == false {
-                _ = try await self.restoreGuestCloudSessionIfNeeded()
+                _ = try await self.restoreGuestCloudSessionIfNeeded(trigger: trigger)
                 self.globalErrorMessage = ""
                 return .stopSync
             }
@@ -594,7 +622,8 @@ extension FlashcardsStore {
                 ) {
                     do {
                         try await self.restoreAuthenticatedCloudSessionAfterReinstall(
-                            configuration: configuration
+                            configuration: configuration,
+                            trigger: trigger
                         )
                         self.globalErrorMessage = ""
                         return .stopSync
@@ -695,11 +724,21 @@ extension FlashcardsStore {
     }
 
     private func prepareGuestCloudSessionForAI() async throws -> CloudLinkedSession {
-        let restoredGuestSession = try await self.restoreGuestCloudSessionIfNeeded()
+        let restoredGuestSession = try await self.restoreGuestCloudSessionIfNeeded(
+            trigger: CloudSyncTrigger(
+                source: .manualSyncNow,
+                now: Date(),
+                extendsFastPolling: false,
+                allowsVisibleChangeBanner: false,
+                surfacesGlobalErrorMessage: true
+            )
+        )
         return restoredGuestSession.session
     }
 
-    private func restoreGuestCloudSessionIfNeeded() async throws -> (session: CloudLinkedSession, didRunSync: Bool) {
+    private func restoreGuestCloudSessionIfNeeded(
+        trigger: CloudSyncTrigger
+    ) async throws -> (session: CloudLinkedSession, didRunSync: Bool) {
         let guestSession = try await self.loadOrCreateGuestCloudSession()
         let isAlreadyGuestLinked = self.cloudSettings?.cloudState == .guest
             && self.workspace?.workspaceId == guestSession.workspaceId
@@ -710,7 +749,7 @@ extension FlashcardsStore {
             return (guestSession, false)
         }
 
-        try await self.finishCloudLink(linkedSession: guestSession)
+        try await self.finishCloudLink(linkedSession: guestSession, trigger: trigger)
         return (guestSession, true)
     }
 
@@ -764,7 +803,7 @@ extension FlashcardsStore {
         }
 
         if self.cloudRuntime.activeCloudSession() == nil {
-            try await self.restoreCloudLinkFromStoredCredentials()
+            try await self.restoreCloudLinkFromStoredCredentials(trigger: self.manualCloudSyncTrigger(now: Date()))
         }
 
         return try await self.withAuthenticatedCloudSession { session in
@@ -783,7 +822,7 @@ extension FlashcardsStore {
         }
 
         if self.cloudRuntime.activeCloudSession() == nil {
-            try await self.restoreCloudLinkFromStoredCredentials()
+            try await self.restoreCloudLinkFromStoredCredentials(trigger: self.manualCloudSyncTrigger(now: Date()))
         }
 
         let currentWorkspaceId = self.workspace?.workspaceId
@@ -833,7 +872,11 @@ extension FlashcardsStore {
 
         do {
             let syncResult = try await self.runLinkedSync(linkedSession: activeSession)
-            try await self.applySyncResultWithoutBlockingReset(syncResult: syncResult, now: Date())
+            try await self.applySyncResultWithoutBlockingReset(
+                syncResult: syncResult,
+                now: Date(),
+                trigger: self.manualCloudSyncTrigger(now: Date())
+            )
         } catch {
             self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
@@ -847,7 +890,7 @@ extension FlashcardsStore {
         }
 
         if self.cloudRuntime.activeCloudSession() == nil {
-            try await self.restoreCloudLinkFromStoredCredentials()
+            try await self.restoreCloudLinkFromStoredCredentials(trigger: self.manualCloudSyncTrigger(now: Date()))
         }
 
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -878,7 +921,7 @@ extension FlashcardsStore {
         }
 
         if self.cloudRuntime.activeCloudSession() == nil {
-            try await self.restoreCloudLinkFromStoredCredentials()
+            try await self.restoreCloudLinkFromStoredCredentials(trigger: self.manualCloudSyncTrigger(now: Date()))
         }
 
         let workspaceId = try requireWorkspaceId(workspace: self.workspace)
@@ -898,7 +941,7 @@ extension FlashcardsStore {
         }
 
         if self.cloudRuntime.activeCloudSession() == nil {
-            try await self.restoreCloudLinkFromStoredCredentials()
+            try await self.restoreCloudLinkFromStoredCredentials(trigger: self.manualCloudSyncTrigger(now: Date()))
         }
 
         let localWorkspaceId = try requireWorkspaceId(workspace: self.workspace)
@@ -934,7 +977,11 @@ extension FlashcardsStore {
             )
             self.cloudRuntime.setActiveCloudSession(linkedSession: replacementSession)
             let syncResult = try await self.runLinkedSync(linkedSession: replacementSession)
-            try await self.applySyncResultWithoutBlockingReset(syncResult: syncResult, now: Date())
+            try await self.applySyncResultWithoutBlockingReset(
+                syncResult: syncResult,
+                now: Date(),
+                trigger: self.manualCloudSyncTrigger(now: Date())
+            )
         } catch {
             self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
@@ -942,17 +989,17 @@ extension FlashcardsStore {
         }
     }
 
-    func finishCloudLink(linkedSession: CloudLinkedSession) async throws {
+    func finishCloudLink(linkedSession: CloudLinkedSession, trigger: CloudSyncTrigger) async throws {
         try await self.cloudRuntime.runCloudLinkTransition { [weak self] in
             guard let self else {
                 throw LocalStoreError.uninitialized("Flashcards store is unavailable")
             }
 
-            try await self.performCloudLink(linkedSession: linkedSession)
+            try await self.performCloudLink(linkedSession: linkedSession, trigger: trigger)
         }
     }
 
-    private func performCloudLink(linkedSession: CloudLinkedSession) async throws {
+    private func performCloudLink(linkedSession: CloudLinkedSession, trigger: CloudSyncTrigger) async throws {
         if self.cloudSettings?.cloudState == .linked
             && self.cloudSettings?.linkedUserId == linkedSession.userId {
             let database = try requireLocalDatabase(database: self.database)
@@ -965,9 +1012,9 @@ extension FlashcardsStore {
                     linkedEmail: linkedSession.email
                 )
                 try self.reload()
-                try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession)
+                try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession, trigger: trigger)
             } else {
-                try await self.performActiveWorkspaceCloudRestore(linkedSession: linkedSession)
+                try await self.performActiveWorkspaceCloudRestore(linkedSession: linkedSession, trigger: trigger)
             }
             return
         }
@@ -1003,10 +1050,12 @@ extension FlashcardsStore {
                 workspaceId: linkedSession.workspaceId,
                 installationId: self.cloudSettings?.installationId
             )
-            _ = try await self.runLinkedSync(linkedSession: linkedSession)
-            self.lastSuccessfulCloudSyncAt = nowIsoTimestamp()
-            self.syncStatus = .idle
-            self.globalErrorMessage = ""
+            let syncResult = try await self.runLinkedSync(linkedSession: linkedSession)
+            try await self.applySyncResultWithoutBlockingReset(
+                syncResult: syncResult,
+                now: Date(),
+                trigger: trigger
+            )
             self.userDefaults.removeObject(forKey: pendingCloudServerBootstrapUserDefaultsKey)
             logCloudFlowPhase(
                 phase: .linkedSync,
@@ -1033,7 +1082,9 @@ extension FlashcardsStore {
                 errorMessage: Flashcards.errorMessage(error: error)
             )
             self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
-            self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            if trigger.surfacesGlobalErrorMessage {
+                self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            }
             throw error
         }
     }
@@ -1043,7 +1094,10 @@ extension FlashcardsStore {
      resetting review UI state. This keeps the locally rendered card visible
      unless the sync result produces an actual review data change.
      */
-    private func performSameWorkspaceCloudRestore(linkedSession: CloudLinkedSession) async throws {
+    private func performSameWorkspaceCloudRestore(
+        linkedSession: CloudLinkedSession,
+        trigger: CloudSyncTrigger
+    ) async throws {
         self.syncStatus = .syncing
 
         do {
@@ -1051,7 +1105,8 @@ extension FlashcardsStore {
             let syncResult = try await self.runLinkedSync(linkedSession: linkedSession)
             try await self.applySyncResultWithoutBlockingReset(
                 syncResult: syncResult,
-                now: Date()
+                now: Date(),
+                trigger: trigger
             )
             self.userDefaults.removeObject(forKey: pendingCloudServerBootstrapUserDefaultsKey)
         } catch {
@@ -1063,12 +1118,17 @@ extension FlashcardsStore {
                 errorMessage: Flashcards.errorMessage(error: error)
             )
             self.syncStatus = self.transitionSyncStatusForCloudFailure(error: error)
-            self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            if trigger.surfacesGlobalErrorMessage {
+                self.globalErrorMessage = Flashcards.errorMessage(error: error)
+            }
             throw error
         }
     }
 
-    private func performActiveWorkspaceCloudRestore(linkedSession: CloudLinkedSession) async throws {
+    private func performActiveWorkspaceCloudRestore(
+        linkedSession: CloudLinkedSession,
+        trigger: CloudSyncTrigger
+    ) async throws {
         let database = try requireLocalDatabase(database: self.database)
         let cachedWorkspace = try database.loadCachedWorkspaces().first { workspace in
             workspace.workspaceId == linkedSession.workspaceId
@@ -1085,7 +1145,7 @@ extension FlashcardsStore {
         try database.switchActiveWorkspace(workspace: workspaceSummary, linkedSession: linkedSession)
         self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
         try self.reload()
-        try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession)
+        try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession, trigger: trigger)
     }
 
     /**
@@ -1094,19 +1154,31 @@ extension FlashcardsStore {
      */
     private func applySyncResultWithoutBlockingReset(
         syncResult: CloudSyncResult,
-        now: Date
+        now: Date,
+        trigger: CloudSyncTrigger
     ) async throws {
-        let didRefreshBootstrapSnapshot = try self.refreshBootstrapSnapshotWithoutReset(now: now)
+        let bootstrapRefreshOutcome = try self.refreshBootstrapSnapshotWithoutReset(now: now)
         let didRefreshReviewState: Bool
         if syncResult.reviewDataChanged {
+            let reviewRefreshMode: ReviewRefreshMode
+            if trigger.allowsVisibleChangeBanner {
+                reviewRefreshMode = .backgroundReconcileWithVisibleChangeBanner
+            } else {
+                reviewRefreshMode = .backgroundReconcileSilently
+            }
             didRefreshReviewState = try await self.refreshReviewState(
                 now: now,
-                mode: .backgroundReconcile
+                mode: reviewRefreshMode
             )
         } else {
             didRefreshReviewState = false
         }
-        if didRefreshBootstrapSnapshot || didRefreshReviewState {
+        if trigger.allowsVisibleChangeBanner {
+            self.enqueueBackgroundSyncVisibleChangeBannerIfNeeded(
+                bootstrapRefreshOutcome: bootstrapRefreshOutcome
+            )
+        }
+        if bootstrapRefreshOutcome.didChange || didRefreshReviewState {
             self.localReadVersion += 1
         }
         self.lastSuccessfulCloudSyncAt = nowIsoTimestamp()
@@ -1130,7 +1202,7 @@ extension FlashcardsStore {
                     throw LocalStoreError.uninitialized("Flashcards store is unavailable")
                 }
 
-                try await self.restoreCloudLinkFromStoredCredentials()
+                try await self.restoreCloudLinkFromStoredCredentials(trigger: self.manualCloudSyncTrigger(now: Date()))
             },
             resolveSession: { [weak self] in
                 guard let self else {
@@ -1144,13 +1216,13 @@ extension FlashcardsStore {
         )
     }
 
-    func restoreCloudLinkFromStoredCredentials() async throws {
+    func restoreCloudLinkFromStoredCredentials(trigger: CloudSyncTrigger) async throws {
         try await self.cloudRuntime.runCloudLinkTransition { [weak self] in
             guard let self else {
                 throw LocalStoreError.uninitialized("Flashcards store is unavailable")
             }
 
-            try await self.performRestoreCloudLinkFromStoredCredentials()
+            try await self.performRestoreCloudLinkFromStoredCredentials(trigger: trigger)
         }
     }
 
@@ -1159,7 +1231,7 @@ extension FlashcardsStore {
      stored workspace already matches the local workspace, it reuses the
      non-blocking restore path; otherwise it falls back to the full relink flow.
      */
-    private func performRestoreCloudLinkFromStoredCredentials() async throws {
+    private func performRestoreCloudLinkFromStoredCredentials(trigger: CloudSyncTrigger) async throws {
         let configuration = try self.currentCloudServiceConfiguration()
 
         do {
@@ -1176,9 +1248,9 @@ extension FlashcardsStore {
                 bearerToken: credentials.idToken
             )
             if self.workspace?.workspaceId == linkedSession.workspaceId {
-                try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession)
+                try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession, trigger: trigger)
             } else {
-                try await self.performActiveWorkspaceCloudRestore(linkedSession: linkedSession)
+                try await self.performActiveWorkspaceCloudRestore(linkedSession: linkedSession, trigger: trigger)
             }
             return
         } catch {
@@ -1206,9 +1278,9 @@ extension FlashcardsStore {
                 bearerToken: refreshedCredentials.idToken
             )
             if self.workspace?.workspaceId == linkedSession.workspaceId {
-                try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession)
+                try await self.performSameWorkspaceCloudRestore(linkedSession: linkedSession, trigger: trigger)
             } else {
-                try await self.performActiveWorkspaceCloudRestore(linkedSession: linkedSession)
+                try await self.performActiveWorkspaceCloudRestore(linkedSession: linkedSession, trigger: trigger)
             }
         } catch {
             if self.isCloudAccountDeletedError(error) {
@@ -1366,11 +1438,43 @@ extension FlashcardsStore {
         try await self.cloudRuntime.runLinkedSync(linkedSession: linkedSession)
     }
 
-    func triggerCloudSyncIfLinked() {
-        self.extendCloudSyncFastPolling(now: Date())
-        Task { @MainActor in
-            await self.syncCloudIfLinked()
+    func triggerCloudSyncIfLinked(trigger: CloudSyncTrigger) {
+        if trigger.extendsFastPolling {
+            self.extendCloudSyncFastPolling(now: trigger.now)
         }
+        if self.shouldSkipImmediateCloudSyncStart(trigger: trigger) {
+            return
+        }
+        Task { @MainActor in
+            await self.syncCloudIfLinked(trigger: trigger)
+        }
+    }
+
+    private func shouldSkipImmediateCloudSyncStart(trigger: CloudSyncTrigger) -> Bool {
+        guard trigger.source.usesImmediateStartDebounce else {
+            return false
+        }
+        if let lastImmediateCloudSyncTriggerAt,
+           trigger.now.timeIntervalSince(lastImmediateCloudSyncTriggerAt) < cloudImmediateSyncDebounceIntervalSeconds {
+            return true
+        }
+
+        self.lastImmediateCloudSyncTriggerAt = trigger.now
+        return false
+    }
+
+    private func enqueueBackgroundSyncVisibleChangeBannerIfNeeded(
+        bootstrapRefreshOutcome: BootstrapSnapshotRefreshOutcome
+    ) {
+        guard self.currentVisibleTab == .cards else {
+            return
+        }
+        guard bootstrapRefreshOutcome.workspaceChanged
+            || bootstrapRefreshOutcome.cardsChanged else {
+            return
+        }
+
+        self.enqueueTransientBanner(banner: makeCardsUpdatedFromCloudBanner())
     }
 
     private func switchCloudServer(override: CloudServerOverride?) throws {

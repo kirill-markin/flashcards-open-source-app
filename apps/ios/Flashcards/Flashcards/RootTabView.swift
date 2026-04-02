@@ -81,6 +81,9 @@ struct RootTabView: View {
             .tag(AppTab.settings)
         }
         .tabBarMinimizeBehavior(.never)
+        .task {
+            store.updateCurrentVisibleTab(tab: navigation.selectedTab)
+        }
         .overlay {
             ZStack {
                 GlobalTransientBannerHost()
@@ -92,11 +95,22 @@ struct RootTabView: View {
             }
         }
         .onChange(of: navigation.selectedTab) { _, nextTab in
+            store.updateCurrentVisibleTab(tab: nextTab)
+
             guard usesFastCloudSyncPolling(tab: nextTab) else {
                 return
             }
 
-            store.extendCloudSyncFastPolling(now: Date())
+            let triggerSource: CloudSyncTriggerSource = nextTab == .review ? .reviewTabSelected : .cardsTabSelected
+            store.triggerCloudSyncIfLinked(
+                trigger: CloudSyncTrigger(
+                    source: triggerSource,
+                    now: Date(),
+                    extendsFastPolling: true,
+                    allowsVisibleChangeBanner: true,
+                    surfacesGlobalErrorMessage: false
+                )
+            )
         }
         .alert(
             "Account deleted",

@@ -150,7 +150,15 @@ struct AccountStatusView: View {
     private func syncNow() {
         Task { @MainActor in
             do {
-                try await store.syncCloudNow()
+                try await store.syncCloudNow(
+                    trigger: CloudSyncTrigger(
+                        source: .manualSyncNow,
+                        now: Date(),
+                        extendsFastPolling: false,
+                        allowsVisibleChangeBanner: false,
+                        surfacesGlobalErrorMessage: true
+                    )
+                )
                 self.screenErrorMessage = ""
             } catch {
                 self.screenErrorMessage = Flashcards.errorMessage(error: error)

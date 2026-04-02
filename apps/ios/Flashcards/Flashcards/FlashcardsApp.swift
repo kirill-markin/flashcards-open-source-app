@@ -69,16 +69,34 @@ struct FlashcardsApp: App {
                 .environment(store)
                 .environment(navigation)
                 .task {
+                    store.updateCurrentVisibleTab(tab: navigation.selectedTab)
                     await store.resumePendingAccountDeletionIfNeeded()
-                    await store.syncCloudIfLinked()
-                    store.markReviewNotificationsAppActive(now: Date())
+                    let now = Date()
+                    store.triggerCloudSyncIfLinked(
+                        trigger: CloudSyncTrigger(
+                            source: .appLaunch,
+                            now: now,
+                            extendsFastPolling: usesFastCloudSyncPolling(tab: navigation.selectedTab),
+                            allowsVisibleChangeBanner: true,
+                            surfacesGlobalErrorMessage: false
+                        )
+                    )
+                    store.markReviewNotificationsAppActive(now: now)
                 }
                 .onChange(of: scenePhase) { _, nextPhase in
                     if nextPhase == .active {
-                        Task { @MainActor in
-                            await store.syncCloudIfLinked()
-                            store.markReviewNotificationsAppActive(now: Date())
-                        }
+                        let now = Date()
+                        store.updateCurrentVisibleTab(tab: navigation.selectedTab)
+                        store.triggerCloudSyncIfLinked(
+                            trigger: CloudSyncTrigger(
+                                source: .appForeground,
+                                now: now,
+                                extendsFastPolling: usesFastCloudSyncPolling(tab: navigation.selectedTab),
+                                allowsVisibleChangeBanner: true,
+                                surfacesGlobalErrorMessage: false
+                            )
+                        )
+                        store.markReviewNotificationsAppActive(now: now)
                     } else if nextPhase == .background || nextPhase == .inactive {
                         store.markReviewNotificationsAppBackground(now: Date())
                     }
@@ -136,7 +154,15 @@ struct FlashcardsApp: App {
                 return
             }
 
-            await self.store.syncCloudIfLinked()
+            await self.store.syncCloudIfLinked(
+                trigger: CloudSyncTrigger(
+                    source: .polling,
+                    now: Date(),
+                    extendsFastPolling: false,
+                    allowsVisibleChangeBanner: true,
+                    surfacesGlobalErrorMessage: false
+                )
+            )
         }
     }
 }
