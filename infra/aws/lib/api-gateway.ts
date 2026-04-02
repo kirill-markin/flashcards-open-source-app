@@ -57,6 +57,15 @@ interface BackendFunctionProps {
   guestAiWeightedMonthlyTokenCap: string | undefined;
 }
 
+const chatResumeCorsHeaders = [
+  "content-type",
+  "authorization",
+  "x-csrf-token",
+  "x-chat-resume-attempt-id",
+  "x-client-platform",
+  "x-client-version",
+] as const;
+
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
   minify: true,
   sourceMap: true,
@@ -291,7 +300,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     cors: {
       allowedOrigins: allowedOrigins,
       allowedMethods: [lambda.HttpMethod.GET],
-      allowedHeaders: ["content-type", "authorization"],
+      allowedHeaders: [...chatResumeCorsHeaders],
       allowCredentials: true,
     },
   });
@@ -320,14 +329,14 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     defaultCorsPreflightOptions: {
       allowOrigins: allowedOrigins,
       allowMethods: ["GET", "POST", "OPTIONS"],
-      allowHeaders: ["content-type", "authorization", "x-csrf-token"],
+      allowHeaders: [...chatResumeCorsHeaders],
       allowCredentials: true,
     },
   });
   const gatewayErrorCorsOrigin = `'https://app.${props.baseDomain}'`;
   const gatewayErrorResponseHeaders = {
     "Access-Control-Allow-Origin": gatewayErrorCorsOrigin,
-    "Access-Control-Allow-Headers": "'content-type,authorization,x-csrf-token'",
+    "Access-Control-Allow-Headers": `'${chatResumeCorsHeaders.join(",")}'`,
     "Access-Control-Allow-Methods": "'GET,POST,OPTIONS'",
     "Access-Control-Allow-Credentials": "'true'",
   };
