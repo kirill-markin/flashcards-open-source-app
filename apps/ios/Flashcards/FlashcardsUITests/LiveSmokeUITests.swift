@@ -226,10 +226,12 @@ private let smokeLogger = Logger(
 )
 private let aiComposerPlaceholderText: String = "Ask about cards, review history, or propose a change..."
 private let aiCreatePromptText: String = "I give you all permissions. Please create one test flashcard now."
-private let aiResetPromptText: String = "Please reply with one short sentence so I can verify this chat resets."
+private let aiResetPromptText: String = "reset smoke 7"
 private let aiCreatePromptMaximumAttempts: Int = 3
+private let aiResetPromptMaximumAttempts: Int = 3
 private let aiCreateRunCompletionTimeoutSeconds: TimeInterval = 90
 private let liveSmokeFocusPollIntervalSeconds: TimeInterval = 0.2
+private let aiConsentRetryTapIntervalSeconds: TimeInterval = 1
 
 private struct LiveSmokeBreadcrumb {
     let line: String
@@ -836,8 +838,8 @@ final class LiveSmokeUITests: XCTestCase {
             identifier: LiveSmokeIdentifier.aiComposerTextField,
             timeout: self.longUiTimeoutSeconds
         )
-        try self.assertTextExists(
-            "Try asking",
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.aiEmptyState,
             timeout: self.longUiTimeoutSeconds
         )
         try self.assertElementDisabled(
@@ -873,12 +875,18 @@ final class LiveSmokeUITests: XCTestCase {
             .matching(identifier: LiveSmokeIdentifier.aiComposerTextField)
             .firstMatch
         let deadline = Date().addingTimeInterval(self.longUiTimeoutSeconds)
+        var nextConsentRetryTapAt = Date()
 
         while Date() < deadline {
             _ = self.dismissKnownBlockingAlertIfVisible()
 
             if consentButton.exists == false && composerTextField.exists {
                 return
+            }
+
+            if consentButton.exists && consentButton.isHittable && Date() >= nextConsentRetryTapAt {
+                consentButton.tap()
+                nextConsentRetryTapAt = Date().addingTimeInterval(aiConsentRetryTapIntervalSeconds)
             }
 
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
@@ -921,10 +929,10 @@ final class LiveSmokeUITests: XCTestCase {
             identifier: LiveSmokeIdentifier.aiComposerSendButton,
             timeout: self.shortUiTimeoutSeconds
         )
-        try self.replaceAiComposerText(
-            aiResetPromptText,
-            timeout: self.shortUiTimeoutSeconds
-        )
+        let messageRowsBeforeSend = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
+            .count
+        try self.prepareAiComposerForResetConversation(timeout: self.shortUiTimeoutSeconds)
         let completedMarkerCountBeforeWait = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
             .count
@@ -944,8 +952,8 @@ final class LiveSmokeUITests: XCTestCase {
             errorMarkerCountBeforeWait: errorMarkerCountBeforeWait,
             assistantTextCountBeforeWait: assistantTextCountBeforeWait
         )
-        try self.assertTextExists(
-            aiResetPromptText,
+        try self.waitForUserAiMessageRowCountIncrease(
+            previousCount: messageRowsBeforeSend,
             timeout: self.longUiTimeoutSeconds
         )
         try self.assertElementEnabled(
@@ -1758,6 +1766,29 @@ final class LiveSmokeUITests: XCTestCase {
     }
 
     @MainActor
+    private func prepareAiComposerForResetConversation(timeout: TimeInterval) throws {
+        let element = self.aiComposerTextFieldElement()
+
+        for _ in 1...aiResetPromptMaximumAttempts {
+            try self.clearAndTypeAiComposerTextWithoutExactValueAssertion(
+                aiResetPromptText,
+                element: element,
+                timeout: timeout
+            )
+
+            if self.waitForAiComposerSendEnabled(timeout: timeout) {
+                return
+            }
+        }
+
+        throw LiveSmokeFailure.unexpectedAiConversationState(
+            message: "AI composer did not become sendable for the reset conversation after \(aiResetPromptMaximumAttempts) attempts.",
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+
+    @MainActor
     private func aiComposerTextFieldElement() -> XCUIElement {
         let predicate = NSPredicate(
             format: "identifier == %@ OR value == %@ OR label == %@",
@@ -1766,6 +1797,113 @@ final class LiveSmokeUITests: XCTestCase {
             aiComposerPlaceholderText
         )
         return self.app.descendants(matching: .any).matching(predicate).firstMatch
+    }
+
+    @MainActor
+    private func clearAndTypeAiComposerTextWithoutExactValueAssertion(
+        _ text: String,
+        element: XCUIElement,
+        timeout: TimeInterval
+    ) throws {
+        try self.runWithInlineRawScreenStateOnFailure(
+            action: "replace_text_without_exact_match.\(LiveSmokeIdentifier.aiComposerTextField)"
+        ) {
+            try self.focusElementForTextInput(
+                element,
+                identifier: LiveSmokeIdentifier.aiComposerTextField,
+                timeout: timeout
+            )
+
+            let existingValue = self.elementValue(element: element)
+            if existingValue.isEmpty == false && existingValue != aiComposerPlaceholderText {
+                let deleteSequence = String(repeating: XCUIKeyboardKey.delete.rawValue, count: existingValue.count)
+                element.typeText(deleteSequence)
+            }
+
+            element.typeText(text)
+            _ = self.dismissKnownBlockingAlertIfVisible()
+        }
+    }
+
+    @MainActor
+    private func waitForAiComposerSendEnabled(timeout: TimeInterval) -> Bool {
+        let sendButton = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiComposerSendButton)
+            .firstMatch
+        let deadline = Date().addingTimeInterval(timeout)
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+
+            if sendButton.exists && sendButton.isEnabled {
+                return true
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+        }
+
+        return false
+    }
+
+    @MainActor
+    private func waitForUserAiMessageRowCountIncrease(
+        previousCount: Int,
+        timeout: TimeInterval
+    ) throws {
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+
+        self.logSmokeBreadcrumb(
+            event: "wait_start",
+            action: "wait_for_user_ai_message_row",
+            identifier: LiveSmokeIdentifier.aiMessageRow,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: "-",
+            result: "start",
+            note: "waiting for a new user AI message row"
+        )
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+
+            let currentCount = self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
+                .count
+            if currentCount > previousCount {
+                let durationSeconds = Date().timeIntervalSince(startedAt)
+                self.logSmokeBreadcrumb(
+                    event: "wait_end",
+                    action: "wait_for_user_ai_message_row",
+                    identifier: LiveSmokeIdentifier.aiMessageRow,
+                    timeoutSeconds: formatDuration(seconds: timeout),
+                    durationSeconds: formatDuration(seconds: durationSeconds),
+                    result: "success",
+                    note: "user AI message row count increased"
+                )
+                return
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+        }
+
+        let currentCount = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
+            .count
+        let durationSeconds = Date().timeIntervalSince(startedAt)
+        self.logSmokeBreadcrumb(
+            event: "wait_end",
+            action: "wait_for_user_ai_message_row",
+            identifier: LiveSmokeIdentifier.aiMessageRow,
+            timeoutSeconds: formatDuration(seconds: timeout),
+            durationSeconds: formatDuration(seconds: durationSeconds),
+            result: "failure",
+            note: "previous=\(previousCount) current=\(currentCount)"
+        )
+        throw LiveSmokeFailure.unexpectedAiConversationState(
+            message: "Expected at least one new user AI message row before reset, but the count stayed at \(currentCount).",
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
     }
 
     @MainActor

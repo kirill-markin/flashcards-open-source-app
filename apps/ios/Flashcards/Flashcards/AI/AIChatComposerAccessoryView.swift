@@ -78,6 +78,7 @@ extension AIChatView {
                         axis: .vertical
                     )
                     .disabled(self.composerTextFieldDisabled)
+                    .autocorrectionDisabled(true)
                     .focused(self.$isComposerFocused)
                     .onTapGesture {
                         self.isComposerFocused = true
