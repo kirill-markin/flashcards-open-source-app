@@ -143,18 +143,37 @@ export {
   useChatLayoutMock,
 };
 
+export function createChatActiveRun(
+  overrides?: Partial<NonNullable<ChatSessionSnapshot["activeRun"]>>,
+): NonNullable<ChatSessionSnapshot["activeRun"]> {
+  return {
+    runId: "run-1",
+    status: "running",
+    live: {
+      cursor: null,
+      stream: {
+        url: "https://chat-live.example.com",
+        authorization: "Live mock-token",
+        expiresAt: Date.now() + 60_000,
+      },
+    },
+    ...overrides,
+  };
+}
+
 export function createChatSnapshot(
   overrides?: Partial<ChatSessionSnapshot>,
 ): ChatSessionSnapshot {
   return {
     sessionId: "session-1",
-    runState: "idle",
-    updatedAt: 1,
-    mainContentInvalidationVersion: 0,
-    liveCursor: null,
-    liveStream: null,
+    conversationScopeId: "session-1",
+    conversation: {
+      updatedAt: 1,
+      mainContentInvalidationVersion: 0,
+      messages: [],
+    },
     chatConfig: defaultChatConfig,
-    messages: [],
+    activeRun: null,
     ...overrides,
   };
 }
@@ -340,17 +359,16 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     });
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot());
     startChatRunMock.mockResolvedValue({
-      ok: true,
+      accepted: true,
       sessionId: "session-1",
-      runId: "run-1",
-      clientRequestId: "client-request-1",
-      runState: "running",
-      liveStream: {
-        url: "https://chat-live.example.com",
-        authorization: "Live mock-token",
-        expiresAt: Date.now() + 60_000,
+      conversationScopeId: "session-1",
+      conversation: {
+        updatedAt: 1,
+        mainContentInvalidationVersion: 0,
+        messages: [],
       },
       chatConfig: defaultChatConfig,
+      activeRun: createChatActiveRun(),
     });
     createNewChatSessionMock.mockResolvedValue({
       ok: true,
@@ -358,8 +376,8 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       chatConfig: defaultChatConfig,
     });
     stopChatRunMock.mockResolvedValue({
-      ok: true,
       sessionId: "session-1",
+      conversationScopeId: "session-1",
       runId: "run-1",
       stopped: true,
       stillRunning: false,

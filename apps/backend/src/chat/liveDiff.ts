@@ -3,7 +3,8 @@
  * Compares two snapshots of an in-progress assistant item's content array
  * and produces the SSE events representing new content since the last emission.
  */
-import type { ContentPart, LiveSSEEvent } from "./types";
+import type { ChatLiveEventPayload } from "./contract";
+import type { ContentPart } from "./types";
 
 function getToolCallOutputIndex(part: Extract<ContentPart, { type: "tool_call" }>): number {
   return part.streamPosition?.outputIndex ?? 0;
@@ -55,8 +56,8 @@ export function diffAssistantContent(
   current: ReadonlyArray<ContentPart>,
   cursor: string,
   itemId: string,
-): ReadonlyArray<LiveSSEEvent> {
-  const events: LiveSSEEvent[] = [];
+): ReadonlyArray<Extract<ChatLiveEventPayload, Readonly<{ cursor: string }>>> {
+  const events: Array<Extract<ChatLiveEventPayload, Readonly<{ cursor: string }>>> = [];
 
   for (let i = 0; i < current.length; i += 1) {
     const currentPart = current[i]!;

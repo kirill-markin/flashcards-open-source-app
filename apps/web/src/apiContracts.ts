@@ -441,6 +441,56 @@ function parseNullableChatLiveStream(
   return parseChatLiveStream(value, endpoint, path);
 }
 
+function parseChatConversation(value: unknown, endpoint: string, path: string): ChatSessionSnapshot["conversation"] {
+  const objectValue = parseObject(value, endpoint, path);
+
+  return {
+    messages: parseRequiredField(objectValue, "messages", endpoint, path, parseChatSessionHistoryMessageArray),
+    updatedAt: parseRequiredField(objectValue, "updatedAt", endpoint, path, parseNumber),
+    mainContentInvalidationVersion: parseRequiredField(
+      objectValue,
+      "mainContentInvalidationVersion",
+      endpoint,
+      path,
+      parseNumber,
+    ),
+    hasOlder: parseOptionalField(objectValue, "hasOlder", endpoint, path, parseBoolean),
+    oldestCursor: parseOptionalField(objectValue, "oldestCursor", endpoint, path, parseNullableString),
+  };
+}
+
+function parseChatActiveRun(value: unknown, endpoint: string, path: string): NonNullable<ChatSessionSnapshot["activeRun"]> {
+  const objectValue = parseObject(value, endpoint, path);
+  const liveValue = parseRequiredField(objectValue, "live", endpoint, path, parseObject);
+
+  return {
+    runId: parseRequiredField(objectValue, "runId", endpoint, path, parseString),
+    status: parseLiteral(
+      parseRequiredField(objectValue, "status", endpoint, path, parseString),
+      endpoint,
+      joinPath(path, "status"),
+      "running",
+    ),
+    live: {
+      cursor: parseRequiredField(liveValue, "cursor", endpoint, joinPath(path, "live"), parseNullableString),
+      stream: parseRequiredField(liveValue, "stream", endpoint, joinPath(path, "live"), parseChatLiveStream),
+    },
+    lastHeartbeatAt: parseOptionalField(objectValue, "lastHeartbeatAt", endpoint, path, parseNumber),
+  };
+}
+
+function parseNullableChatActiveRun(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ChatSessionSnapshot["activeRun"] {
+  if (value === null) {
+    return null;
+  }
+
+  return parseChatActiveRun(value, endpoint, path);
+}
+
 function parseChatStreamPosition(value: unknown, endpoint: string, path: string): Readonly<{
   itemId: string;
   responseIndex?: number;
@@ -571,10 +621,6 @@ function parseContentPartType(
 
 function parseToolCallStatus(value: unknown, endpoint: string, path: string): "started" | "completed" {
   return parseEnum(value, endpoint, path, ["started", "completed"]);
-}
-
-function parseChatRunState(value: unknown, endpoint: string, path: string): "idle" | "running" | "interrupted" {
-  return parseEnum(value, endpoint, path, ["idle", "running", "interrupted"]);
 }
 
 export function parseSessionInfoResponse(value: unknown, endpoint: string): SessionInfo {
@@ -828,13 +874,10 @@ export function parseChatSessionSnapshotResponse(value: unknown, endpoint: strin
   const objectValue = parseObject(value, endpoint, "");
   return {
     sessionId: parseRequiredField(objectValue, "sessionId", endpoint, "", parseString),
-    runState: parseRequiredField(objectValue, "runState", endpoint, "", parseChatRunState),
-    updatedAt: parseRequiredField(objectValue, "updatedAt", endpoint, "", parseNumber),
-    mainContentInvalidationVersion: parseRequiredField(objectValue, "mainContentInvalidationVersion", endpoint, "", parseNumber),
-    liveCursor: parseRequiredField(objectValue, "liveCursor", endpoint, "", parseNullableString),
-    liveStream: parseRequiredField(objectValue, "liveStream", endpoint, "", parseNullableChatLiveStream),
+    conversationScopeId: parseRequiredField(objectValue, "conversationScopeId", endpoint, "", parseString),
+    conversation: parseRequiredField(objectValue, "conversation", endpoint, "", parseChatConversation),
     chatConfig: parseRequiredField(objectValue, "chatConfig", endpoint, "", parseChatConfig),
-    messages: parseRequiredField(objectValue, "messages", endpoint, "", parseChatSessionHistoryMessageArray),
+    activeRun: parseRequiredField(objectValue, "activeRun", endpoint, "", parseNullableChatActiveRun),
   };
 }
 
@@ -849,13 +892,12 @@ function parseChatSessionHistoryMessageArray(
 export function parseStartChatRunResponse(value: unknown, endpoint: string): StartChatRunResponse {
   const objectValue = parseObject(value, endpoint, "");
   return {
-    ok: parseLiteral(parseRequiredField(objectValue, "ok", endpoint, "", parseBoolean), endpoint, "ok", true),
+    accepted: parseLiteral(parseRequiredField(objectValue, "accepted", endpoint, "", parseBoolean), endpoint, "accepted", true),
     sessionId: parseRequiredField(objectValue, "sessionId", endpoint, "", parseString),
-    runId: parseRequiredField(objectValue, "runId", endpoint, "", parseString),
-    clientRequestId: parseRequiredField(objectValue, "clientRequestId", endpoint, "", parseString),
-    runState: parseRequiredField(objectValue, "runState", endpoint, "", parseChatRunState),
-    liveStream: parseRequiredField(objectValue, "liveStream", endpoint, "", parseNullableChatLiveStream),
+    conversationScopeId: parseRequiredField(objectValue, "conversationScopeId", endpoint, "", parseString),
+    conversation: parseRequiredField(objectValue, "conversation", endpoint, "", parseChatConversation),
     chatConfig: parseRequiredField(objectValue, "chatConfig", endpoint, "", parseChatConfig),
+    activeRun: parseRequiredField(objectValue, "activeRun", endpoint, "", parseNullableChatActiveRun),
     deduplicated: parseOptionalField(objectValue, "deduplicated", endpoint, "", parseBoolean),
   };
 }
@@ -872,8 +914,8 @@ export function parseNewChatSessionResponse(value: unknown, endpoint: string): N
 export function parseStopChatRunResponse(value: unknown, endpoint: string): StopChatRunResponse {
   const objectValue = parseObject(value, endpoint, "");
   return {
-    ok: parseLiteral(parseRequiredField(objectValue, "ok", endpoint, "", parseBoolean), endpoint, "ok", true),
     sessionId: parseRequiredField(objectValue, "sessionId", endpoint, "", parseString),
+    conversationScopeId: parseRequiredField(objectValue, "conversationScopeId", endpoint, "", parseString),
     runId: parseRequiredField(objectValue, "runId", endpoint, "", parseNullableString),
     stopped: parseRequiredField(objectValue, "stopped", endpoint, "", parseBoolean),
     stillRunning: parseRequiredField(objectValue, "stillRunning", endpoint, "", parseBoolean),

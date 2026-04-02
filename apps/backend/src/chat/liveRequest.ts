@@ -4,6 +4,7 @@ import { verifyChatLiveAuthorizationHeader } from "./liveAuth";
 
 export type LiveStreamParams = Readonly<{
   sessionId: string;
+  runId: string;
   afterCursor: number | undefined;
   userId: string;
   workspaceId: string;
@@ -44,6 +45,10 @@ export async function handleLiveRequest(
   if (sessionId === null || sessionId === "") {
     throw new Error("Missing sessionId parameter");
   }
+  const runId = url.searchParams.get("runId");
+  if (runId === null || runId === "") {
+    throw new Error("Missing runId parameter");
+  }
 
   const afterCursorParam = url.searchParams.get("afterCursor");
   const afterCursor = afterCursorParam !== null
@@ -55,9 +60,10 @@ export async function handleLiveRequest(
 
   const tokenParam = url.searchParams.get("token");
   if (authorizationHeader !== undefined && authorizationHeader.startsWith("Live ")) {
-    const verifiedLiveAuth = await verifyChatLiveAuthorizationHeader(authorizationHeader, sessionId);
+    const verifiedLiveAuth = await verifyChatLiveAuthorizationHeader(authorizationHeader, sessionId, runId);
     return {
       sessionId,
+      runId,
       afterCursor,
       userId: verifiedLiveAuth.userId,
       workspaceId: verifiedLiveAuth.workspaceId,
@@ -84,6 +90,7 @@ export async function handleLiveRequest(
 
   return {
     sessionId,
+    runId,
     afterCursor,
     userId: authResult.userId,
     workspaceId,

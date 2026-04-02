@@ -2,10 +2,20 @@ import { parseContentPartArray } from "../apiContracts";
 import { webAppVersion } from "../clientIdentity";
 import type { ChatLiveStream, ContentPart } from "../types";
 
+type ChatRunTerminalOutcome = "completed" | "stopped" | "error" | "reset_required";
+
+type ChatLiveEventMetadata<CursorValue extends string | null> = Readonly<{
+  sessionId: string;
+  conversationScopeId: string;
+  runId: string;
+  cursor: CursorValue;
+  sequenceNumber: number;
+  streamEpoch: string;
+}>;
+
 export type ChatLiveEvent =
-  | Readonly<{ type: "run_state"; runState: "idle" | "running" | "interrupted"; sessionId: string }>
-  | Readonly<{ type: "assistant_delta"; text: string; cursor: string; itemId: string }>
-  | Readonly<{
+  | (ChatLiveEventMetadata<string> & Readonly<{ type: "assistant_delta"; text: string; itemId: string }>)
+  | (ChatLiveEventMetadata<string> & Readonly<{
     type: "assistant_tool_call";
     toolCallId: string;
     name: string;
@@ -13,29 +23,55 @@ export type ChatLiveEvent =
     input: string | null;
     output: string | null;
     providerStatus?: string | null;
-    cursor: string;
     itemId: string;
     outputIndex: number;
-  }>
-  | Readonly<{ type: "assistant_reasoning_started"; reasoningId: string; cursor: string; itemId: string; outputIndex: number }>
-  | Readonly<{ type: "assistant_reasoning_summary"; reasoningId: string; summary: string; cursor: string; itemId: string; outputIndex: number }>
-  | Readonly<{ type: "assistant_reasoning_done"; reasoningId: string; cursor: string; itemId: string; outputIndex: number }>
-  | Readonly<{
+  }>)
+  | (ChatLiveEventMetadata<string> & Readonly<{
+    type: "assistant_reasoning_started";
+    reasoningId: string;
+    itemId: string;
+    outputIndex: number;
+  }>)
+  | (ChatLiveEventMetadata<string> & Readonly<{
+    type: "assistant_reasoning_summary";
+    reasoningId: string;
+    summary: string;
+    itemId: string;
+    outputIndex: number;
+  }>)
+  | (ChatLiveEventMetadata<string> & Readonly<{
+    type: "assistant_reasoning_done";
+    reasoningId: string;
+    itemId: string;
+    outputIndex: number;
+  }>)
+  | (ChatLiveEventMetadata<string> & Readonly<{
     type: "assistant_message_done";
-    cursor: string;
     itemId: string;
     content: ReadonlyArray<ContentPart>;
     isError: boolean;
     isStopped: boolean;
-  }>
-  | Readonly<{ type: "repair_status"; message: string; attempt: number; maxAttempts: number; toolName: string | null }>
-  | Readonly<{ type: "error"; message: string }>
-  | Readonly<{ type: "stop_ack"; sessionId: string }>
-  | Readonly<{ type: "reset_required" }>;
+  }>)
+  | (ChatLiveEventMetadata<string | null> & Readonly<{
+    type: "repair_status";
+    message: string;
+    attempt: number;
+    maxAttempts: number;
+    toolName: string | null;
+  }>)
+  | (ChatLiveEventMetadata<string | null> & Readonly<{
+    type: "run_terminal";
+    outcome: ChatRunTerminalOutcome;
+    message?: string;
+    assistantItemId?: string;
+    isError?: boolean;
+    isStopped?: boolean;
+  }>);
 
 type ConsumeChatLiveStreamParams = Readonly<{
   liveStream: ChatLiveStream;
   sessionId: string;
+  runId: string;
   afterCursor: string | null;
   resumeAttemptId: number | null;
   signal: AbortSignal;
@@ -74,6 +110,15 @@ function readStringField(objectValue: JsonObject, key: string): string | null {
   return typeof value === "string" ? value : null;
 }
 
+function readNullableStringField(objectValue: JsonObject, key: string): string | null | undefined {
+  const value = objectValue[key];
+  if (value === null) {
+    return null;
+  }
+
+  return typeof value === "string" ? value : undefined;
+}
+
 function readBooleanField(objectValue: JsonObject, key: string): boolean | null {
   const value = objectValue[key];
   return typeof value === "boolean" ? value : null;
@@ -89,6 +134,24 @@ function requireStringField(
   if (value === null) {
     throw new ChatLiveContractError(
       `AI live stream event is invalid: ${key} must be a string.`,
+      eventType,
+      payload,
+    );
+  }
+
+  return value;
+}
+
+function requireNullableStringField(
+  objectValue: JsonObject,
+  key: string,
+  eventType: string | null,
+  payload: string,
+): string | null {
+  const value = readNullableStringField(objectValue, key);
+  if (value === undefined) {
+    throw new ChatLiveContractError(
+      `AI live stream event is invalid: ${key} must be a string or null.`,
       eventType,
       payload,
     );
@@ -149,6 +212,33 @@ function requireType(
   return value;
 }
 
+function parseEventMetadata(
+  objectValue: JsonObject,
+  eventType: string | null,
+  payload: string,
+): ChatLiveEventMetadata<string | null> {
+  return {
+    sessionId: requireStringField(objectValue, "sessionId", eventType, payload),
+    conversationScopeId: requireStringField(objectValue, "conversationScopeId", eventType, payload),
+    runId: requireStringField(objectValue, "runId", eventType, payload),
+    cursor: requireNullableStringField(objectValue, "cursor", eventType, payload),
+    sequenceNumber: requireNumberField(objectValue, "sequenceNumber", eventType, payload),
+    streamEpoch: requireStringField(objectValue, "streamEpoch", eventType, payload),
+  };
+}
+
+function requireCursor(metadata: ChatLiveEventMetadata<string | null>, eventType: string | null, payload: string): ChatLiveEventMetadata<string> {
+  if (metadata.cursor === null) {
+    throw new ChatLiveContractError(
+      "AI live stream event is invalid: cursor must be a string.",
+      eventType,
+      payload,
+    );
+  }
+
+  return metadata as ChatLiveEventMetadata<string>;
+}
+
 /**
  * Validates one SSE payload against the browser live-stream contract and
  * returns the typed event expected by the chat lifecycle layer.
@@ -167,26 +257,13 @@ export function parseChatLiveEvent(
   }
 
   const type = requireType(eventType ?? readStringField(objectValue, "type"), eventType, payload);
-
-  if (type === "run_state") {
-    const runState = requireStringField(objectValue, "runState", type, payload);
-    const sessionId = requireStringField(objectValue, "sessionId", type, payload);
-    if (runState !== "idle" && runState !== "running" && runState !== "interrupted") {
-      throw new ChatLiveContractError(
-        `AI live stream event is invalid: unsupported runState "${runState}".`,
-        type,
-        payload,
-      );
-    }
-
-    return { type, runState, sessionId };
-  }
+  const metadata = parseEventMetadata(objectValue, type, payload);
 
   if (type === "assistant_delta") {
     return {
+      ...requireCursor(metadata, type, payload),
       type,
       text: requireStringField(objectValue, "text", type, payload),
-      cursor: requireStringField(objectValue, "cursor", type, payload),
       itemId: requireStringField(objectValue, "itemId", type, payload),
     };
   }
@@ -202,14 +279,14 @@ export function parseChatLiveEvent(
     }
 
     return {
+      ...requireCursor(metadata, type, payload),
       type,
       toolCallId: requireStringField(objectValue, "toolCallId", type, payload),
       name: requireStringField(objectValue, "name", type, payload),
       status,
-      input: readStringField(objectValue, "input"),
-      output: readStringField(objectValue, "output"),
-      providerStatus: readStringField(objectValue, "providerStatus"),
-      cursor: requireStringField(objectValue, "cursor", type, payload),
+      input: readNullableStringField(objectValue, "input") ?? null,
+      output: readNullableStringField(objectValue, "output") ?? null,
+      providerStatus: readNullableStringField(objectValue, "providerStatus") ?? null,
       itemId: requireStringField(objectValue, "itemId", type, payload),
       outputIndex: requireNumberField(objectValue, "outputIndex", type, payload),
     };
@@ -217,9 +294,9 @@ export function parseChatLiveEvent(
 
   if (type === "assistant_reasoning_started") {
     return {
+      ...requireCursor(metadata, type, payload),
       type,
       reasoningId: requireStringField(objectValue, "reasoningId", type, payload),
-      cursor: requireStringField(objectValue, "cursor", type, payload),
       itemId: requireStringField(objectValue, "itemId", type, payload),
       outputIndex: requireNumberField(objectValue, "outputIndex", type, payload),
     };
@@ -227,10 +304,10 @@ export function parseChatLiveEvent(
 
   if (type === "assistant_reasoning_summary") {
     return {
+      ...requireCursor(metadata, type, payload),
       type,
       reasoningId: requireStringField(objectValue, "reasoningId", type, payload),
       summary: requireStringField(objectValue, "summary", type, payload),
-      cursor: requireStringField(objectValue, "cursor", type, payload),
       itemId: requireStringField(objectValue, "itemId", type, payload),
       outputIndex: requireNumberField(objectValue, "outputIndex", type, payload),
     };
@@ -238,9 +315,9 @@ export function parseChatLiveEvent(
 
   if (type === "assistant_reasoning_done") {
     return {
+      ...requireCursor(metadata, type, payload),
       type,
       reasoningId: requireStringField(objectValue, "reasoningId", type, payload),
-      cursor: requireStringField(objectValue, "cursor", type, payload),
       itemId: requireStringField(objectValue, "itemId", type, payload),
       outputIndex: requireNumberField(objectValue, "outputIndex", type, payload),
     };
@@ -248,8 +325,8 @@ export function parseChatLiveEvent(
 
   if (type === "assistant_message_done") {
     return {
+      ...requireCursor(metadata, type, payload),
       type,
-      cursor: requireStringField(objectValue, "cursor", type, payload),
       itemId: requireStringField(objectValue, "itemId", type, payload),
       content: parseContentPartArray(objectValue.content, type, "content"),
       isError: requireBooleanField(objectValue, "isError", type, payload),
@@ -259,27 +336,39 @@ export function parseChatLiveEvent(
 
   if (type === "repair_status") {
     return {
+      ...metadata,
       type,
       message: requireStringField(objectValue, "message", type, payload),
       attempt: requireNumberField(objectValue, "attempt", type, payload),
       maxAttempts: requireNumberField(objectValue, "maxAttempts", type, payload),
-      toolName: readStringField(objectValue, "toolName"),
+      toolName: readNullableStringField(objectValue, "toolName") ?? null,
     };
   }
 
-  if (type === "error") {
-    return { type, message: requireStringField(objectValue, "message", type, payload) };
-  }
+  if (type === "run_terminal") {
+    const outcome = requireStringField(objectValue, "outcome", type, payload);
+    if (
+      outcome !== "completed"
+      && outcome !== "stopped"
+      && outcome !== "error"
+      && outcome !== "reset_required"
+    ) {
+      throw new ChatLiveContractError(
+        `AI live stream event is invalid: unsupported terminal outcome "${outcome}".`,
+        type,
+        payload,
+      );
+    }
 
-  if (type === "stop_ack") {
     return {
+      ...metadata,
       type,
-      sessionId: requireStringField(objectValue, "sessionId", type, payload),
+      outcome,
+      ...(readStringField(objectValue, "message") === null ? {} : { message: readStringField(objectValue, "message") as string }),
+      ...(readStringField(objectValue, "assistantItemId") === null ? {} : { assistantItemId: readStringField(objectValue, "assistantItemId") as string }),
+      ...(readBooleanField(objectValue, "isError") === null ? {} : { isError: readBooleanField(objectValue, "isError") as boolean }),
+      ...(readBooleanField(objectValue, "isStopped") === null ? {} : { isStopped: readBooleanField(objectValue, "isStopped") as boolean }),
     };
-  }
-
-  if (type === "reset_required") {
-    return { type };
   }
 
   throw new ChatLiveContractError(
@@ -292,10 +381,12 @@ export function parseChatLiveEvent(
 function buildLiveStreamUrl(
   liveStream: ChatLiveStream,
   sessionId: string,
+  runId: string,
   afterCursor: string | null,
 ): string {
   const url = new URL(liveStream.url);
   url.searchParams.set("sessionId", sessionId);
+  url.searchParams.set("runId", runId);
   if (afterCursor !== null && afterCursor !== "") {
     url.searchParams.set("afterCursor", afterCursor);
   } else {
@@ -330,6 +421,7 @@ function consumeSSEBlock(
   if (dataLines.length === 0) {
     return;
   }
+
   onEvent(parseChatLiveEvent(eventType, dataLines.join("\n")));
 }
 
@@ -353,6 +445,7 @@ export async function consumeChatLiveStream(
   const response = await fetch(buildLiveStreamUrl(
     params.liveStream,
     params.sessionId,
+    params.runId,
     params.afterCursor,
   ), {
     method: "GET",
@@ -419,6 +512,7 @@ export async function consumeChatLiveStream(
         currentEventType = line.slice(7);
         continue;
       }
+
       if (line.startsWith("data: ")) {
         currentDataLines.push(line.slice(6));
       }

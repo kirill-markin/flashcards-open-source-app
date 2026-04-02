@@ -1,17 +1,22 @@
 /**
  * SSE live stream handler for the chat surface.
- * The chat snapshot/bootstrap response remains the source of truth for full UI
- * state. This loop only provides a temporary live overlay while a run is
- * actively streaming, and clients must resume from snapshot/bootstrap instead
- * of depending on long-lived reconnect semantics.
+ * Snapshot/bootstrap remains the source of truth. The live handler only
+ * provides a run-scoped overlay for one known run and always terminates with a
+ * single run_terminal event.
  */
 import type { Writable } from "node:stream";
-import { getErrorLogContext, logCloudRouteEvent } from "../server/logging";
 import {
+  buildConversationScopeId,
+  createChatLiveEventSerializer,
+  type ChatLiveEventPayload,
+} from "./contract";
+import { getErrorLogContext, logCloudRouteEvent } from "../server/logging";
+import { getChatRunSnapshot, type ChatRunSnapshot } from "./runs";
+import {
+  getChatSessionSnapshot,
   listChatMessagesAfterCursor,
   listChatMessagesLatest,
   stripBase64FromContentParts,
-  type ChatSessionRunState,
   type PersistedChatMessageItem,
 } from "./store";
 import { diffAssistantContent } from "./liveDiff";
@@ -23,19 +28,40 @@ import {
   isStreamWritable,
   waitForNextPollInterval,
 } from "./liveTransport";
-import type { ContentPart, LiveSSEEvent } from "./types";
+import type { ContentPart } from "./types";
 
 const LIVE_POLL_INTERVAL_MS = 750;
 const KEEPALIVE_INTERVAL_MS = 15_000;
 const MAX_CONNECTION_DURATION_MS = 9 * 60 * 1000;
 
 type ChatLiveStreamDependencies = Readonly<{
+  getChatSessionSnapshot: typeof getChatSessionSnapshot;
+  getChatRunSnapshot: typeof getChatRunSnapshot;
   listChatMessagesAfterCursor: typeof listChatMessagesAfterCursor;
   listChatMessagesLatest: typeof listChatMessagesLatest;
   waitForNextPollInterval: typeof waitForNextPollInterval;
 }>;
 
+type AssistantMessageDonePayload = Extract<ChatLiveEventPayload, Readonly<{ type: "assistant_message_done" }>>;
+type AssistantReasoningDonePayload = Extract<ChatLiveEventPayload, Readonly<{ type: "assistant_reasoning_done" }>>;
+type RunTerminalPayload = Extract<ChatLiveEventPayload, Readonly<{ type: "run_terminal" }>>;
+
+type ContentEmissionState = Readonly<{
+  lastEmittedCursor: number;
+  previousAssistantContent: ReadonlyArray<ContentPart>;
+  disconnected: boolean;
+}>;
+
+type BacklogReplayState = Readonly<{
+  lastEmittedCursor: number;
+  previousAssistantContent: ReadonlyArray<ContentPart>;
+  shouldStop: boolean;
+  terminationReason: string | null;
+}>;
+
 const defaultChatLiveStreamDependencies: ChatLiveStreamDependencies = {
+  getChatSessionSnapshot,
+  getChatRunSnapshot,
   listChatMessagesAfterCursor,
   listChatMessagesLatest,
   waitForNextPollInterval,
@@ -50,6 +76,7 @@ function logLiveLifecycleEvent(
   logCloudRouteEvent(action, {
     requestId: params.requestId ?? null,
     sessionId: params.sessionId,
+    runId: params.runId,
     userId: params.userId,
     workspaceId: params.workspaceId,
     afterCursor: params.afterCursor ?? null,
@@ -60,59 +87,24 @@ function logLiveLifecycleEvent(
   }, isError);
 }
 
-/**
- * Finds the in-progress assistant item from a list of messages.
- */
-function findInProgressAssistantItem(
+function cursorOrNull(lastEmittedCursor: number): string | null {
+  return lastEmittedCursor > 0 ? String(lastEmittedCursor) : null;
+}
+
+function isOpenRunStatus(status: ChatRunSnapshot["status"]): boolean {
+  return status === "queued" || status === "running";
+}
+
+function findAssistantMessageByItemId(
   messages: ReadonlyArray<PersistedChatMessageItem>,
+  assistantItemId: string,
 ): PersistedChatMessageItem | null {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const message = messages[i]!;
-    if (message.role === "assistant" && message.state === "in_progress") {
-      return message;
-    }
-  }
-  return null;
+  return messages.find((message) => message.role === "assistant" && message.itemId === assistantItemId) ?? null;
 }
 
-function findLatestAssistantItem(
-  messages: ReadonlyArray<PersistedChatMessageItem>,
-): PersistedChatMessageItem | null {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const message = messages[i]!;
-    if (message.role === "assistant") {
-      return message;
-    }
-  }
-  return null;
-}
-
-function filterAssistantMessages(
-  messages: ReadonlyArray<PersistedChatMessageItem>,
-): ReadonlyArray<PersistedChatMessageItem> {
-  return messages.filter((message) => message.role === "assistant");
-}
-
-function buildAssistantDiagnostics(
-  message: PersistedChatMessageItem | null,
-  prefix: "latestAssistant" | "inProgressAssistant",
-): Record<string, unknown> {
-  return {
-    [`${prefix}ItemId`]: message?.itemId ?? null,
-    [`${prefix}ItemOrder`]: message?.itemOrder ?? null,
-    [`${prefix}State`]: message?.state ?? null,
-  };
-}
-
-function collectInProgressAssistantMessages(
-  messages: ReadonlyArray<PersistedChatMessageItem>,
-): ReadonlyArray<PersistedChatMessageItem> {
-  return messages.filter((message) => message.role === "assistant" && message.state === "in_progress");
-}
-
-function buildAssistantMessageDoneEvent(
+function buildAssistantMessageDonePayload(
   message: PersistedChatMessageItem,
-): Extract<LiveSSEEvent, { type: "assistant_message_done" }> {
+): AssistantMessageDonePayload {
   return {
     type: "assistant_message_done",
     cursor: String(message.itemOrder),
@@ -123,17 +115,17 @@ function buildAssistantMessageDoneEvent(
   };
 }
 
-function buildReasoningDoneEvents(
+function buildReasoningDonePayloads(
   previousContent: ReadonlyArray<ContentPart>,
   content: ReadonlyArray<ContentPart>,
   cursor: string,
   itemId: string,
-): ReadonlyArray<Extract<LiveSSEEvent, { type: "assistant_reasoning_done" }>> {
-  const events: Array<Extract<LiveSSEEvent, { type: "assistant_reasoning_done" }>> = [];
+): ReadonlyArray<AssistantReasoningDonePayload> {
+  const payloads: AssistantReasoningDonePayload[] = [];
 
   for (let index = 0; index < content.length; index += 1) {
     const part = content[index];
-    if (part.type !== "reasoning_summary") {
+    if (part?.type !== "reasoning_summary") {
       continue;
     }
 
@@ -151,7 +143,7 @@ function buildReasoningDoneEvents(
       continue;
     }
 
-    events.push({
+    payloads.push({
       type: "assistant_reasoning_done",
       reasoningId: part.streamPosition.itemId,
       cursor,
@@ -160,39 +152,152 @@ function buildReasoningDoneEvents(
     });
   }
 
-  return events;
+  return payloads;
 }
 
-/**
- * Replays assistant terminal events after the caller's cursor before the live
- * polling loop starts. Clients use this to bridge the gap between their last
- * snapshot/bootstrap cursor and the moment they reattached the live stream.
- */
+function mapRunOutcome(run: ChatRunSnapshot): "completed" | "stopped" | "error" {
+  switch (run.status) {
+    case "completed":
+      return "completed";
+    case "cancelled":
+      return "stopped";
+    case "failed":
+    case "interrupted":
+      return "error";
+    case "queued":
+    case "running":
+      throw new Error(`Run ${run.runId} is not terminal`);
+  }
+}
+
+function buildRunTerminalPayload(
+  run: ChatRunSnapshot,
+  lastEmittedCursor: number,
+): RunTerminalPayload {
+  const outcome = mapRunOutcome(run);
+
+  return {
+    type: "run_terminal",
+    cursor: cursorOrNull(lastEmittedCursor),
+    outcome,
+    assistantItemId: run.assistantItemId,
+    ...(run.lastErrorMessage === null ? {} : { message: run.lastErrorMessage }),
+    ...(outcome === "error" ? { isError: true } : {}),
+    ...(outcome === "stopped" ? { isStopped: true } : {}),
+  };
+}
+
+function buildResetRequiredPayload(
+  lastEmittedCursor: number,
+  assistantItemId?: string,
+): RunTerminalPayload {
+  return {
+    type: "run_terminal",
+    cursor: cursorOrNull(lastEmittedCursor),
+    outcome: "reset_required",
+    ...(assistantItemId === undefined ? {} : { assistantItemId }),
+  };
+}
+
+function hasConflictingAssistantMessage(
+  messages: ReadonlyArray<PersistedChatMessageItem>,
+  assistantItemId: string,
+): boolean {
+  return messages.some((message) =>
+    message.role === "assistant" && message.itemId !== assistantItemId,
+  );
+}
+
+function hasConflictingInProgressAssistantMessage(
+  messages: ReadonlyArray<PersistedChatMessageItem>,
+  assistantItemId: string,
+): boolean {
+  return messages.some((message) =>
+    message.role === "assistant"
+    && message.state === "in_progress"
+    && message.itemId !== assistantItemId,
+  );
+}
+
+function emitAssistantMessageEvents(
+  message: PersistedChatMessageItem,
+  previousAssistantContent: ReadonlyArray<ContentPart>,
+  emitPayload: (payload: ChatLiveEventPayload) => boolean,
+): ContentEmissionState {
+  const strippedContent = stripBase64FromContentParts(message.content);
+  const deltaEvents = diffAssistantContent(
+    previousAssistantContent,
+    strippedContent,
+    String(message.itemOrder),
+    message.itemId,
+  );
+
+  for (const event of deltaEvents) {
+    if (emitPayload(event) === false) {
+      return {
+        lastEmittedCursor: message.itemOrder,
+        previousAssistantContent,
+        disconnected: true,
+      };
+    }
+  }
+
+  if (message.state === "in_progress") {
+    return {
+      lastEmittedCursor: message.itemOrder,
+      previousAssistantContent: strippedContent,
+      disconnected: false,
+    };
+  }
+
+  for (const event of buildReasoningDonePayloads(
+    previousAssistantContent,
+    strippedContent,
+    String(message.itemOrder),
+    message.itemId,
+  )) {
+    if (emitPayload(event) === false) {
+      return {
+        lastEmittedCursor: message.itemOrder,
+        previousAssistantContent,
+        disconnected: true,
+      };
+    }
+  }
+
+  if (emitPayload(buildAssistantMessageDonePayload(message)) === false) {
+    return {
+      lastEmittedCursor: message.itemOrder,
+      previousAssistantContent,
+      disconnected: true,
+    };
+  }
+
+  return {
+    lastEmittedCursor: message.itemOrder,
+    previousAssistantContent: [],
+    disconnected: false,
+  };
+}
+
 async function replayBacklogEvents(
-  stream: Writable,
-  connectionState: ReturnType<typeof createLiveConnectionState>,
   params: LiveStreamParams,
-  write: (data: string) => boolean,
-  connectionStart: number,
+  assistantItemId: string,
+  lastEmittedCursor: number,
+  previousAssistantContent: ReadonlyArray<ContentPart>,
+  emitPayload: (payload: ChatLiveEventPayload) => boolean,
+  emitTerminal: (payload: RunTerminalPayload) => boolean,
   dependencies: ChatLiveStreamDependencies,
-): Promise<Readonly<{
-  lastEmittedCursor: number;
-  previousAssistantContent: ReadonlyArray<ContentPart>;
-  previousAssistantItemId: string | null;
-  shouldStop: boolean;
-  terminationReason: string | null;
-}>> {
+): Promise<BacklogReplayState> {
   if (params.afterCursor === undefined) {
     return {
-      lastEmittedCursor: params.afterCursor ?? 0,
-      previousAssistantContent: [],
-      previousAssistantItemId: null,
+      lastEmittedCursor,
+      previousAssistantContent,
       shouldStop: false,
       terminationReason: null,
     };
   }
 
-  let lastEmittedCursor = params.afterCursor;
   try {
     const backlogMessages = await dependencies.listChatMessagesAfterCursor(
       params.userId,
@@ -200,101 +305,56 @@ async function replayBacklogEvents(
       params.sessionId,
       params.afterCursor,
     );
-    const backlogAssistantMessages = filterAssistantMessages(backlogMessages);
-    const latestAssistantMessage = findLatestAssistantItem(backlogAssistantMessages);
-    const inProgressAssistantMessages = collectInProgressAssistantMessages(backlogAssistantMessages);
-
-    if (inProgressAssistantMessages.length > 1) {
-      logLiveLifecycleEvent("chat_live_resume_contract_violation", params, {
-        connectionDurationMs: Date.now() - connectionStart,
-        violationReason: "multiple_in_progress_items_after_cursor",
-        ...buildAssistantDiagnostics(latestAssistantMessage, "latestAssistant"),
-        ...buildAssistantDiagnostics(
-          inProgressAssistantMessages[inProgressAssistantMessages.length - 1] ?? null,
-          "inProgressAssistant",
-        ),
-      }, true);
-      write(formatSSEEvent({ type: "reset_required" }));
+    const inProgressAssistantMessages = backlogMessages.filter((message) =>
+      message.role === "assistant" && message.state === "in_progress",
+    );
+    if (
+      inProgressAssistantMessages.length > 1
+      || hasConflictingAssistantMessage(backlogMessages, assistantItemId)
+    ) {
+      emitTerminal(buildResetRequiredPayload(lastEmittedCursor, assistantItemId));
       return {
         lastEmittedCursor,
-        previousAssistantContent: [],
-        previousAssistantItemId: null,
+        previousAssistantContent,
         shouldStop: true,
-        terminationReason: "multiple_in_progress_items_after_cursor",
+        terminationReason: "backlog_reset_required",
       };
     }
 
-    const terminalAssistantMessages = backlogAssistantMessages.filter((message) => message.state !== "in_progress");
-    for (const message of terminalAssistantMessages) {
-      if (isStreamWritable(stream, connectionState) === false) {
+    const runMessages = backlogMessages.filter((message) =>
+      message.role === "assistant" && message.itemId === assistantItemId,
+    );
+    let nextCursor = lastEmittedCursor;
+    let nextPreviousContent = previousAssistantContent;
+
+    for (const message of runMessages) {
+      const emission = emitAssistantMessageEvents(message, nextPreviousContent, emitPayload);
+      nextCursor = emission.lastEmittedCursor;
+      nextPreviousContent = emission.previousAssistantContent;
+      if (emission.disconnected) {
         return {
-          lastEmittedCursor,
-          previousAssistantContent: [],
-          previousAssistantItemId: null,
+          lastEmittedCursor: nextCursor,
+          previousAssistantContent: nextPreviousContent,
           shouldStop: true,
           terminationReason: "client_disconnect",
         };
       }
-      const event: LiveSSEEvent = buildAssistantMessageDoneEvent(message);
-      if (write(formatSSEEvent(event)) === false) {
-        return {
-          lastEmittedCursor,
-          previousAssistantContent: [],
-          previousAssistantItemId: null,
-          shouldStop: true,
-          terminationReason: "client_disconnect",
-        };
-      }
-      lastEmittedCursor = message.itemOrder;
-    }
-
-    const inProgressAssistantMessage = inProgressAssistantMessages[0] ?? null;
-    if (inProgressAssistantMessage !== null) {
-      const seededContent = stripBase64FromContentParts(inProgressAssistantMessage.content);
-      const seededEvents = diffAssistantContent(
-        [],
-        seededContent,
-        String(inProgressAssistantMessage.itemOrder),
-        inProgressAssistantMessage.itemId,
-      );
-      for (const event of seededEvents) {
-        if (write(formatSSEEvent(event)) === false) {
-          return {
-            lastEmittedCursor,
-            previousAssistantContent: [],
-            previousAssistantItemId: null,
-            shouldStop: true,
-            terminationReason: "client_disconnect",
-          };
-        }
-      }
-      lastEmittedCursor = inProgressAssistantMessage.itemOrder;
-      return {
-        lastEmittedCursor,
-        previousAssistantContent: seededContent,
-        previousAssistantItemId: inProgressAssistantMessage.itemId,
-        shouldStop: false,
-        terminationReason: null,
-      };
     }
 
     return {
-      lastEmittedCursor,
-      previousAssistantContent: [],
-      previousAssistantItemId: null,
+      lastEmittedCursor: nextCursor,
+      previousAssistantContent: nextPreviousContent,
       shouldStop: false,
       terminationReason: null,
     };
   } catch (error) {
     logLiveLifecycleEvent("chat_live_backlog_failed", params, {
-      connectionDurationMs: Date.now() - connectionStart,
       ...getErrorLogContext(error),
     }, true);
-    write(formatSSEEvent({ type: "reset_required" }));
+    emitTerminal(buildResetRequiredPayload(lastEmittedCursor, assistantItemId));
     return {
       lastEmittedCursor,
-      previousAssistantContent: [],
-      previousAssistantItemId: null,
+      previousAssistantContent,
       shouldStop: true,
       terminationReason: "backlog_reset_required",
     };
@@ -303,9 +363,6 @@ async function replayBacklogEvents(
 
 /**
  * Runs the live SSE orchestration loop for one attached client.
- * Attach is only meaningful while a run is actively streaming. Once the run is
- * no longer running, or the client disconnects, the loop closes and leaves
- * recovery to the next snapshot/bootstrap fetch.
  */
 export async function runLiveStream(
   stream: Writable,
@@ -319,19 +376,21 @@ export async function runLiveStreamWithDependencies(
   params: LiveStreamParams,
   dependencies: ChatLiveStreamDependencies,
 ): Promise<void> {
-  const { sessionId, userId, workspaceId } = params;
   const connectionState = createLiveConnectionState(stream);
-  let lastEmittedCursor = params.afterCursor ?? 0;
-  let previousAssistantContent: ReadonlyArray<ContentPart> = [];
-  let previousAssistantItemId: string | null = null;
-  let previousRunState: ChatSessionRunState | null = null;
-  let lastObservedRunState: ChatSessionRunState | null = null;
+  const serialize = createChatLiveEventSerializer({
+    sessionId: params.sessionId,
+    conversationScopeId: buildConversationScopeId(params.sessionId),
+    runId: params.runId,
+    streamEpoch: params.runId,
+  });
   const connectionStart = Date.now();
   let lastKeepalive = Date.now();
-  let shouldEmitInitialRunState = true;
+  let lastEmittedCursor = params.afterCursor ?? 0;
+  let previousAssistantContent: ReadonlyArray<ContentPart> = [];
   let terminationReason = "completed";
+  let terminalEventEmitted = false;
 
-  const write = (data: string): boolean => {
+  const emit = (data: string): boolean => {
     if (isStreamWritable(stream, connectionState) === false) {
       return false;
     }
@@ -341,7 +400,6 @@ export async function runLiveStreamWithDependencies(
       return true;
     } catch (error) {
       logLiveLifecycleEvent("chat_live_write_failed", params, {
-        lastObservedRunState,
         connectionDurationMs: Date.now() - connectionStart,
         closeReason: "write_error",
         ...getErrorLogContext(error),
@@ -350,208 +408,209 @@ export async function runLiveStreamWithDependencies(
     }
   };
 
+  const emitPayload = (payload: ChatLiveEventPayload): boolean =>
+    emit(formatSSEEvent(serialize(payload)));
+
+  const emitTerminal = (payload: RunTerminalPayload): boolean => {
+    if (terminalEventEmitted) {
+      return false;
+    }
+
+    const didEmit = emitPayload(payload);
+    if (didEmit) {
+      terminalEventEmitted = true;
+    }
+    return didEmit;
+  };
+
   try {
-    const backlogResult = await replayBacklogEvents(
-      stream,
-      connectionState,
-      params,
-      write,
-      connectionStart,
-      dependencies,
+    const initialRun = await dependencies.getChatRunSnapshot(
+      params.userId,
+      params.workspaceId,
+      params.runId,
     );
-    lastEmittedCursor = backlogResult.lastEmittedCursor;
-    previousAssistantContent = backlogResult.previousAssistantContent;
-    previousAssistantItemId = backlogResult.previousAssistantItemId;
-    if (backlogResult.shouldStop) {
-      terminationReason = backlogResult.terminationReason ?? terminationReason;
+    if (initialRun === null || initialRun.sessionId !== params.sessionId) {
+      emitTerminal(buildResetRequiredPayload(lastEmittedCursor));
+      terminationReason = "missing_run";
       return;
     }
 
-    // Live phase: poll the database and emit delta events until the run ends.
+    const backlogState = await replayBacklogEvents(
+      params,
+      initialRun.assistantItemId,
+      lastEmittedCursor,
+      previousAssistantContent,
+      emitPayload,
+      emitTerminal,
+      dependencies,
+    );
+    lastEmittedCursor = backlogState.lastEmittedCursor;
+    previousAssistantContent = backlogState.previousAssistantContent;
+    if (backlogState.shouldStop) {
+      terminationReason = backlogState.terminationReason ?? terminationReason;
+      return;
+    }
+
     while (isStreamWritable(stream, connectionState)) {
-      const elapsed = Date.now() - connectionStart;
-      if (elapsed >= MAX_CONNECTION_DURATION_MS) {
-        terminationReason = "max_duration";
-        logLiveLifecycleEvent("chat_live_max_duration_reached", params, {
-          connectionDurationMs: elapsed,
-          lastObservedRunState,
-        }, true);
+      if (Date.now() - connectionStart >= MAX_CONNECTION_DURATION_MS) {
+        emitTerminal(buildResetRequiredPayload(lastEmittedCursor, initialRun.assistantItemId));
+        terminationReason = "max_duration_reset_required";
         break;
       }
 
       if (Date.now() - lastKeepalive >= KEEPALIVE_INTERVAL_MS) {
-        if (write(formatSSEComment("keepalive")) === false) {
+        if (emit(formatSSEComment("keepalive")) === false) {
           terminationReason = "client_disconnect";
           break;
         }
         lastKeepalive = Date.now();
       }
 
-      try {
-        const page = await dependencies.listChatMessagesLatest(userId, workspaceId, sessionId, 4);
-        const latestAssistantMessage = findLatestAssistantItem(page.messages);
-        const inProgressAssistantItem = findInProgressAssistantItem(page.messages);
-        const currentRunState = inProgressAssistantItem === null
-          ? "idle" as const
-          : "running" as const;
-        lastObservedRunState = currentRunState;
+      const run = await dependencies.getChatRunSnapshot(
+        params.userId,
+        params.workspaceId,
+        params.runId,
+      );
+      if (run === null || run.sessionId !== params.sessionId) {
+        emitTerminal(buildResetRequiredPayload(lastEmittedCursor, initialRun.assistantItemId));
+        terminationReason = "missing_run";
+        break;
+      }
 
-        if (latestAssistantMessage !== null && latestAssistantMessage.itemOrder > lastEmittedCursor) {
-          const newMessages = await dependencies.listChatMessagesAfterCursor(
-            userId,
-            workspaceId,
-            sessionId,
-            lastEmittedCursor,
-          );
-          const assistantMessages = filterAssistantMessages(newMessages);
-
-          for (const message of assistantMessages) {
-            if (isStreamWritable(stream, connectionState) === false) {
-              terminationReason = "client_disconnect";
-              break;
-            }
-
-            if (message.state === "in_progress") {
-              const nextContent = stripBase64FromContentParts(message.content);
-              const prevContent = message.itemId === previousAssistantItemId
-                ? previousAssistantContent
-                : [];
-              const deltaEvents = diffAssistantContent(
-                prevContent,
-                nextContent,
-                String(message.itemOrder),
-                message.itemId,
-              );
-              for (const event of deltaEvents) {
-                if (write(formatSSEEvent(event)) === false) {
-                  terminationReason = "client_disconnect";
-                  break;
-                }
-              }
-              if (terminationReason === "client_disconnect") {
-                break;
-              }
-              previousAssistantContent = nextContent;
-              previousAssistantItemId = message.itemId;
-            } else {
-              if (message.itemId === previousAssistantItemId) {
-                const strippedContent = stripBase64FromContentParts(message.content);
-                const deltaEvents = diffAssistantContent(
-                  previousAssistantContent,
-                  strippedContent,
-                  String(message.itemOrder),
-                  message.itemId,
-                );
-                for (const event of deltaEvents) {
-                  if (write(formatSSEEvent(event)) === false) {
-                    terminationReason = "client_disconnect";
-                    break;
-                  }
-                }
-                if (terminationReason === "client_disconnect") {
-                  break;
-                }
-                for (const event of buildReasoningDoneEvents(
-                  previousAssistantContent,
-                  strippedContent,
-                  String(message.itemOrder),
-                  message.itemId,
-                )) {
-                  const alreadyEmittedReasoningDone = deltaEvents.some((deltaEvent) => {
-                    if (deltaEvent.type !== "assistant_reasoning_done") {
-                      return false;
-                    }
-
-                    return deltaEvent.reasoningId === event.reasoningId;
-                  });
-                  if (alreadyEmittedReasoningDone) {
-                    continue;
-                  }
-                  if (write(formatSSEEvent(event)) === false) {
-                    terminationReason = "client_disconnect";
-                    break;
-                  }
-                }
-                if (terminationReason === "client_disconnect") {
-                  break;
-                }
-              }
-              if (write(formatSSEEvent(buildAssistantMessageDoneEvent(message))) === false) {
-                terminationReason = "client_disconnect";
-                break;
-              }
-              lastEmittedCursor = message.itemOrder;
-              previousAssistantContent = [];
-              previousAssistantItemId = null;
-            }
-          }
-        } else if (
-          inProgressAssistantItem !== null
-          && inProgressAssistantItem.itemId === previousAssistantItemId
-        ) {
-          const strippedContent = stripBase64FromContentParts(inProgressAssistantItem.content);
-          const deltaEvents = diffAssistantContent(
-            previousAssistantContent,
-            strippedContent,
-            String(inProgressAssistantItem.itemOrder),
-            inProgressAssistantItem.itemId,
-          );
-          for (const event of deltaEvents) {
-            if (write(formatSSEEvent(event)) === false) {
-              terminationReason = "client_disconnect";
-              break;
-            }
-          }
-          if (terminationReason === "client_disconnect") {
-            break;
-          }
-          previousAssistantContent = strippedContent;
+      if (isOpenRunStatus(run.status)) {
+        const snapshot = await dependencies.getChatSessionSnapshot(
+          params.userId,
+          params.workspaceId,
+          params.sessionId,
+        );
+        if (snapshot.activeRunId !== params.runId || snapshot.runState !== "running") {
+          emitTerminal(buildResetRequiredPayload(lastEmittedCursor, run.assistantItemId));
+          terminationReason = "stale_run_attach";
+          break;
         }
 
-        if (shouldEmitInitialRunState || (previousRunState !== null && currentRunState !== previousRunState)) {
-          if (write(formatSSEEvent({ type: "run_state", runState: currentRunState, sessionId })) === false) {
+        const newMessages = await dependencies.listChatMessagesAfterCursor(
+          params.userId,
+          params.workspaceId,
+          params.sessionId,
+          lastEmittedCursor,
+        );
+        if (hasConflictingInProgressAssistantMessage(newMessages, run.assistantItemId)) {
+          emitTerminal(buildResetRequiredPayload(lastEmittedCursor, run.assistantItemId));
+          terminationReason = "conflicting_in_progress_item";
+          break;
+        }
+
+        const runMessages = newMessages.filter((message) =>
+          message.role === "assistant" && message.itemId === run.assistantItemId,
+        );
+        for (const message of runMessages) {
+          const emission = emitAssistantMessageEvents(message, previousAssistantContent, emitPayload);
+          previousAssistantContent = emission.previousAssistantContent;
+          if (message.state !== "in_progress") {
+            lastEmittedCursor = emission.lastEmittedCursor;
+          }
+          if (emission.disconnected) {
             terminationReason = "client_disconnect";
             break;
           }
         }
-        shouldEmitInitialRunState = false;
-        previousRunState = currentRunState;
-
-        if (currentRunState !== "running") {
-          terminationReason = "run_complete";
+        if (terminationReason === "client_disconnect") {
           break;
         }
 
-        const shouldContinue = await dependencies.waitForNextPollInterval(connectionState, LIVE_POLL_INTERVAL_MS);
-        if (shouldContinue === false) {
-          terminationReason = "client_disconnect";
+        if (runMessages.length === 0) {
+          const latestMessagesPage = await dependencies.listChatMessagesLatest(
+            params.userId,
+            params.workspaceId,
+            params.sessionId,
+            4,
+          );
+          const inProgressMessage = findAssistantMessageByItemId(
+            latestMessagesPage.messages,
+            run.assistantItemId,
+          );
+          if (inProgressMessage !== null && inProgressMessage.state === "in_progress") {
+            const emission = emitAssistantMessageEvents(
+              inProgressMessage,
+              previousAssistantContent,
+              emitPayload,
+            );
+            previousAssistantContent = emission.previousAssistantContent;
+            if (emission.disconnected) {
+              terminationReason = "client_disconnect";
+              break;
+            }
+          }
+        }
+      } else {
+        const terminalMessages = await dependencies.listChatMessagesAfterCursor(
+          params.userId,
+          params.workspaceId,
+          params.sessionId,
+          lastEmittedCursor,
+        );
+        if (hasConflictingAssistantMessage(terminalMessages, run.assistantItemId)) {
+          emitTerminal(buildResetRequiredPayload(lastEmittedCursor, run.assistantItemId));
+          terminationReason = "terminal_reset_required";
           break;
         }
-      } catch (error) {
-        terminationReason = "poll_error";
-        logLiveLifecycleEvent("chat_live_poll_failed", params, {
-          connectionDurationMs: Date.now() - connectionStart,
-          lastObservedRunState,
-          ...getErrorLogContext(error),
-        }, true);
-        write(formatSSEEvent({ type: "error", message: "Failed to poll session state" }));
+
+        const terminalAssistantMessage = terminalMessages.find((message) =>
+          message.role === "assistant" && message.itemId === run.assistantItemId,
+        ) ?? null;
+        if (terminalAssistantMessage !== null) {
+          const emission = emitAssistantMessageEvents(
+            terminalAssistantMessage,
+            previousAssistantContent,
+            emitPayload,
+          );
+          previousAssistantContent = emission.previousAssistantContent;
+          lastEmittedCursor = emission.lastEmittedCursor;
+          if (emission.disconnected) {
+            terminationReason = "client_disconnect";
+            break;
+          }
+        }
+
+        emitTerminal(buildRunTerminalPayload(run, lastEmittedCursor));
+        terminationReason = "run_complete";
+        break;
+      }
+
+      const shouldContinue = await dependencies.waitForNextPollInterval(connectionState, LIVE_POLL_INTERVAL_MS);
+      if (shouldContinue === false) {
+        terminationReason = "client_disconnect";
         break;
       }
     }
+  } catch (error) {
+    terminationReason = "poll_error";
+    logLiveLifecycleEvent("chat_live_poll_failed", params, {
+      connectionDurationMs: Date.now() - connectionStart,
+      ...getErrorLogContext(error),
+    }, true);
+    emitTerminal({
+      type: "run_terminal",
+      cursor: cursorOrNull(lastEmittedCursor),
+      outcome: "error",
+      assistantItemId: undefined,
+      message: "Failed to poll session state",
+      isError: true,
+    });
   } finally {
     const connectionDurationMs = Date.now() - connectionStart;
     const closeReason = connectionState.closeReason();
     const closeError = connectionState.closeError();
-    connectionState.dispose();
 
     if (isStreamWritable(stream, connectionState)) {
       stream.end();
     }
+    connectionState.dispose();
 
-    if (terminationReason === "client_disconnect" && lastObservedRunState === "running") {
-      logLiveLifecycleEvent("chat_live_client_disconnected_while_running", params, {
+    if (terminationReason === "client_disconnect") {
+      logLiveLifecycleEvent("chat_live_client_disconnected", params, {
         connectionDurationMs,
-        lastObservedRunState,
         closeReason,
         ...(closeError === null ? {} : getErrorLogContext(closeError)),
       }, true);
@@ -561,9 +620,8 @@ export async function runLiveStreamWithDependencies(
     logLiveLifecycleEvent("chat_live_stream_closed", params, {
       connectionDurationMs,
       terminationReason,
-      lastObservedRunState,
       closeReason,
       ...(closeError === null ? {} : getErrorLogContext(closeError)),
-    }, terminationReason === "max_duration" || terminationReason === "poll_error");
+    }, terminationReason === "poll_error" || terminationReason === "max_duration_reset_required");
   }
 }

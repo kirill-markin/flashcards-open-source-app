@@ -111,6 +111,16 @@ export type ChatRunStopState = Readonly<{
   runId: string | null;
 }>;
 
+export type ChatRunSnapshot = Readonly<{
+  runId: string;
+  sessionId: string;
+  assistantItemId: string;
+  status: ChatRunStatus;
+  startedAt: number | null;
+  finishedAt: number | null;
+  lastErrorMessage: string | null;
+}>;
+
 const SELECT_CHAT_RUN_SQL = `
   SELECT
     run_id,
@@ -577,8 +587,7 @@ export async function getRecoveredChatSessionSnapshot(
 }
 
 export type RecoveredPaginatedSession = Readonly<{
-  sessionId: string;
-  runState: ChatSessionRunState;
+  snapshot: ChatSessionSnapshot;
   page: PaginatedChatMessages;
 }>;
 
@@ -612,8 +621,7 @@ export async function getRecoveredPaginatedSession(
       : await listChatMessagesBeforeWithExecutor(executor, scope, resolvedSession.session_id, beforeCursor, limit);
 
     return {
-      sessionId: resolvedSession.session_id,
-      runState: resolvedSession.status,
+      snapshot: await getChatSessionSnapshotWithExecutor(executor, scope, resolvedSession.session_id),
       page,
     };
   });
@@ -1009,6 +1017,54 @@ export async function markQueuedChatRunDispatchFailed(
     }
 
     await finalizeInterruptedRunWithExecutor(executor, scope, run, errorMessage);
+  });
+}
+
+/**
+ * Interrupts a queued or running chat run when the API cannot provide an attachable live stream.
+ */
+export async function interruptPreparedChatRun(
+  userId: string,
+  workspaceId: string,
+  runId: string,
+  errorMessage: string,
+): Promise<void> {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+    const scope = { userId, workspaceId };
+    const run = await selectChatRunForUpdateWithExecutor(executor, scope, runId);
+    if (run === null) {
+      return;
+    }
+
+    if (run.status !== "queued" && run.status !== "running") {
+      return;
+    }
+
+    await finalizeInterruptedRunWithExecutor(executor, scope, run, errorMessage);
+  });
+}
+
+export async function getChatRunSnapshot(
+  userId: string,
+  workspaceId: string,
+  runId: string,
+): Promise<ChatRunSnapshot | null> {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+    const scope = { userId, workspaceId };
+    const run = await selectChatRunWithExecutor(executor, scope, runId);
+    if (run === null) {
+      return null;
+    }
+
+    return {
+      runId: run.run_id,
+      sessionId: run.session_id,
+      assistantItemId: run.assistant_item_id,
+      status: run.status,
+      startedAt: run.started_at === null ? null : new Date(run.started_at).getTime(),
+      finishedAt: run.finished_at === null ? null : new Date(run.finished_at).getTime(),
+      lastErrorMessage: run.last_error_message,
+    };
   });
 }
 

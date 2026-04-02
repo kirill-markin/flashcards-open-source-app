@@ -2,10 +2,10 @@ import { parseChatSessionSnapshotResponse } from "../apiContracts";
 import type { ChatConfig, ChatSessionSnapshot } from "../types";
 
 const CHAT_SESSION_WARM_START_STORAGE_KEY = "flashcards-chat-session-snapshot";
-const CHAT_SESSION_WARM_START_VERSION = 1;
+const CHAT_SESSION_WARM_START_VERSION = 2;
 
 type PersistedChatSessionWarmStartSnapshot = Readonly<{
-  version: 1;
+  version: 2;
   workspaceId: string;
   snapshot: ChatSessionSnapshot;
   savedAt: string;
@@ -17,7 +17,7 @@ export type WarmStartChatSessionSnapshot = Readonly<{
   updatedAt: number;
   mainContentInvalidationVersion: number;
   chatConfig: ChatConfig;
-  messages: ChatSessionSnapshot["messages"];
+  messages: ChatSessionSnapshot["conversation"]["messages"];
 }>;
 
 type JsonRecord = Record<string, unknown>;
@@ -60,7 +60,7 @@ function parsePersistedChatSessionWarmStartSnapshot(
 
     const snapshot = parseChatSessionSnapshotResponse(parsedValue.snapshot, "local chat warm start snapshot");
     return {
-      version: 1,
+      version: 2,
       workspaceId: parsedValue.workspaceId,
       snapshot,
       savedAt: parsedValue.savedAt,
@@ -76,10 +76,10 @@ function toWarmStartChatSessionSnapshot(
   return {
     workspaceId: persistedSnapshot.workspaceId,
     sessionId: persistedSnapshot.snapshot.sessionId,
-    updatedAt: persistedSnapshot.snapshot.updatedAt,
-    mainContentInvalidationVersion: persistedSnapshot.snapshot.mainContentInvalidationVersion,
+    updatedAt: persistedSnapshot.snapshot.conversation.updatedAt,
+    mainContentInvalidationVersion: persistedSnapshot.snapshot.conversation.mainContentInvalidationVersion,
     chatConfig: persistedSnapshot.snapshot.chatConfig,
-    messages: persistedSnapshot.snapshot.messages,
+    messages: persistedSnapshot.snapshot.conversation.messages,
   };
 }
 
@@ -115,14 +115,12 @@ export function storeChatSessionWarmStartSnapshot(
   }
 
   const persistedSnapshot: PersistedChatSessionWarmStartSnapshot = {
-    version: 1,
+    version: 2,
     workspaceId,
     savedAt: new Date().toISOString(),
     snapshot: {
       ...snapshot,
-      runState: "idle",
-      liveCursor: null,
-      liveStream: null,
+      activeRun: null,
     },
   };
 

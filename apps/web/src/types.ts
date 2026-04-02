@@ -126,15 +126,30 @@ export type ChatLiveStream = Readonly<{
   expiresAt: number;
 }>;
 
-export type ChatSessionSnapshot = Readonly<{
-  sessionId: string;
-  runState: "idle" | "running" | "interrupted";
+export type ChatConversation = Readonly<{
+  messages: ReadonlyArray<ChatSessionHistoryMessage>;
   updatedAt: number;
   mainContentInvalidationVersion: number;
-  liveCursor: string | null;
-  liveStream: ChatLiveStream | null;
+  hasOlder?: boolean;
+  oldestCursor?: string | null;
+}>;
+
+export type ChatActiveRun = Readonly<{
+  runId: string;
+  status: "running";
+  live: Readonly<{
+    cursor: string | null;
+    stream: ChatLiveStream;
+  }>;
+  lastHeartbeatAt?: number;
+}>;
+
+export type ChatSessionSnapshot = Readonly<{
+  sessionId: string;
+  conversationScopeId: string;
+  conversation: ChatConversation;
   chatConfig: ChatConfig;
-  messages: ReadonlyArray<ChatSessionHistoryMessage>;
+  activeRun: ChatActiveRun | null;
 }>;
 
 export type StartChatRunRequestBody = Readonly<{
@@ -144,14 +159,8 @@ export type StartChatRunRequestBody = Readonly<{
   timezone: string;
 }>;
 
-export type StartChatRunResponse = Readonly<{
-  ok: true;
-  sessionId: string;
-  runId: string;
-  clientRequestId: string;
-  runState: "idle" | "running" | "interrupted";
-  liveStream: ChatLiveStream | null;
-  chatConfig: ChatConfig;
+export type StartChatRunResponse = ChatSessionSnapshot & Readonly<{
+  accepted: true;
   deduplicated?: boolean;
 }>;
 
@@ -162,8 +171,8 @@ export type NewChatSessionResponse = Readonly<{
 }>;
 
 export type StopChatRunResponse = Readonly<{
-  ok: true;
   sessionId: string;
+  conversationScopeId: string;
   runId: string | null;
   stopped: boolean;
   stillRunning: boolean;
@@ -609,10 +618,3 @@ export type ChatMessage = Readonly<{
   role: ChatRole;
   content: ReadonlyArray<ContentPart>;
 }>;
-
-export type ChatStreamEvent =
-  | Readonly<{ type: "delta"; text: string }>
-  | Readonly<{ type: "tool_call"; name: string; status: "started" | "completed"; input?: string; output?: string }>
-  | Readonly<{ type: "reasoning_summary"; summary: string }>
-  | Readonly<{ type: "done" }>
-  | Readonly<{ type: "error"; message: string }>;

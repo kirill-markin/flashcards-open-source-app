@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ApiErrorMock,
   consumeChatLiveStreamMock,
+  createChatActiveRun,
   createChatSnapshot,
   createNewChatSessionMock,
   getChatSnapshotMock,
@@ -12,7 +13,6 @@ import {
   useAppDataMock,
 } from "./ChatPanelTestSupport";
 import { storeChatSessionWarmStartSnapshot } from "./chatSessionWarmStart";
-import { defaultChatConfig } from "./chatConfig";
 
 const {
   flushAsync,
@@ -26,13 +26,17 @@ describe("ChatPanel new chat", () => {
   it("clears the conversation after a successful new-session response", async () => {
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
       sessionId: "session-1",
-      messages: [{
-        role: "assistant",
-        content: [{ type: "text", text: "Existing response" }],
-        timestamp: 1,
-        isError: false,
-        isStopped: false,
-      }],
+      conversation: {
+        updatedAt: 1,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "assistant",
+          content: [{ type: "text", text: "Existing response" }],
+          timestamp: 1,
+          isError: false,
+          isStopped: false,
+        }],
+      },
     }));
 
     await renderChatPanel();
@@ -61,13 +65,17 @@ describe("ChatPanel new chat", () => {
     });
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
       sessionId: "session-1",
-      messages: [{
-        role: "assistant",
-        content: [{ type: "text", text: "Existing response" }],
-        timestamp: 1,
-        isError: false,
-        isStopped: false,
-      }],
+      conversation: {
+        updatedAt: 1,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "assistant",
+          content: [{ type: "text", text: "Existing response" }],
+          timestamp: 1,
+          isError: false,
+          isStopped: false,
+        }],
+      },
     }));
     createNewChatSessionMock.mockRejectedValue(new Error("Request failed with status 500"));
 
@@ -96,34 +104,35 @@ describe("ChatPanel send lifecycle", () => {
   it("preserves the visible transcript while the session is revalidating without showing a restore notice", async () => {
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
       sessionId: "session-1",
-      messages: [{
-        role: "assistant",
-        content: [{ type: "text", text: "Existing response" }],
-        timestamp: 1,
-        isError: false,
-        isStopped: false,
-      }],
+      conversation: {
+        updatedAt: 1,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "assistant",
+          content: [{ type: "text", text: "Existing response" }],
+          timestamp: 1,
+          isError: false,
+          isStopped: false,
+        }],
+      },
     }));
 
     await renderChatPanel();
     await flushAsync();
 
-    storeChatSessionWarmStartSnapshot("workspace-1", {
-      sessionId: "session-1",
-      runState: "idle",
-      updatedAt: 1,
-      mainContentInvalidationVersion: 0,
-      liveCursor: null,
-      liveStream: null,
-      chatConfig: defaultChatConfig,
-      messages: [{
-        role: "assistant",
-        content: [{ type: "text", text: "Existing response" }],
-        timestamp: 1,
-        isError: false,
-        isStopped: false,
-      }],
-    });
+    storeChatSessionWarmStartSnapshot("workspace-1", createChatSnapshot({
+      conversation: {
+        updatedAt: 1,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "assistant",
+          content: [{ type: "text", text: "Existing response" }],
+          timestamp: 1,
+          isError: false,
+          isStopped: false,
+        }],
+      },
+    }));
 
     useAppDataMock.mockReturnValue({
       sessionVerificationState: "unverified",
@@ -190,13 +199,17 @@ describe("ChatPanel send lifecycle", () => {
   it("does not restart initial hydration when switching between sidebar and fullscreen chat surfaces", async () => {
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
       sessionId: "session-1",
-      messages: [{
-        role: "assistant",
-        content: [{ type: "text", text: "Existing response" }],
-        timestamp: 1,
-        isError: false,
-        isStopped: false,
-      }],
+      conversation: {
+        updatedAt: 1,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "assistant",
+          content: [{ type: "text", text: "Existing response" }],
+          timestamp: 1,
+          isError: false,
+          isStopped: false,
+        }],
+      },
     }));
 
     await renderChatPanel("sidebar");
@@ -214,22 +227,19 @@ describe("ChatPanel send lifecycle", () => {
   });
 
   it("uses the persisted chat snapshot as the first paint while refresh is pending", async () => {
-    storeChatSessionWarmStartSnapshot("workspace-1", {
-      sessionId: "session-1",
-      runState: "idle",
-      updatedAt: 1,
-      mainContentInvalidationVersion: 0,
-      liveCursor: null,
-      liveStream: null,
-      chatConfig: defaultChatConfig,
-      messages: [{
-        role: "assistant",
-        content: [{ type: "text", text: "Warm start response" }],
-        timestamp: 1,
-        isError: false,
-        isStopped: false,
-      }],
-    });
+    storeChatSessionWarmStartSnapshot("workspace-1", createChatSnapshot({
+      conversation: {
+        updatedAt: 1,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "assistant",
+          content: [{ type: "text", text: "Warm start response" }],
+          timestamp: 1,
+          isError: false,
+          isStopped: false,
+        }],
+      },
+    }));
     getChatSnapshotMock.mockImplementation(() => new Promise(() => undefined));
     useAppDataMock.mockReturnValue({
       sessionVerificationState: "unverified",
@@ -304,17 +314,8 @@ describe("ChatPanel send lifecycle", () => {
     let resolveStartRun: (() => void) | null = null;
     startChatRunMock.mockImplementation(() => new Promise((resolve) => {
       resolveStartRun = () => resolve({
-        ok: true,
-        sessionId: "session-1",
-        runId: "run-1",
-        clientRequestId: "client-request-1",
-        runState: "running",
-        liveStream: {
-          url: "https://chat-live.example.com",
-          authorization: "Live mock-token",
-          expiresAt: Date.now() + 60_000,
-        },
-        chatConfig: createChatSnapshot().chatConfig,
+        ...createChatSnapshot({ activeRun: createChatActiveRun() }),
+        accepted: true,
       });
     }));
 
@@ -336,12 +337,7 @@ describe("ChatPanel send lifecycle", () => {
       .mockResolvedValueOnce(createChatSnapshot())
       .mockResolvedValue(createChatSnapshot({
         sessionId: "session-1",
-        runState: "running",
-        liveStream: {
-          url: "https://chat-live.example.com",
-          authorization: "Live mock-token",
-          expiresAt: Date.now() + 60_000,
-        },
+        activeRun: createChatActiveRun(),
       }));
 
     await renderChatPanel();
@@ -361,17 +357,8 @@ describe("ChatPanel send lifecycle", () => {
     let resolveStartRun: (() => void) | null = null;
     startChatRunMock.mockImplementation(() => new Promise((resolve) => {
       resolveStartRun = () => resolve({
-        ok: true,
-        sessionId: "session-1",
-        runId: "run-1",
-        clientRequestId: "client-request-1",
-        runState: "running",
-        liveStream: {
-          url: "https://chat-live.example.com",
-          authorization: "Live mock-token",
-          expiresAt: Date.now() + 60_000,
-        },
-        chatConfig: createChatSnapshot().chatConfig,
+        ...createChatSnapshot({ activeRun: createChatActiveRun() }),
+        accepted: true,
       });
     }));
 
@@ -430,12 +417,22 @@ describe("ChatPanel send lifecycle", () => {
     consumeChatLiveStreamMock.mockImplementation(async ({ onEvent }) => {
       onEvent({
         type: "assistant_delta",
+        sessionId: "session-1",
+        conversationScopeId: "session-1",
+        runId: "run-1",
+        sequenceNumber: 1,
+        streamEpoch: "epoch-1",
         text: "All set.",
         cursor: "cursor-1",
         itemId: "item-1",
       });
       onEvent({
         type: "assistant_message_done",
+        sessionId: "session-1",
+        conversationScopeId: "session-1",
+        runId: "run-1",
+        sequenceNumber: 2,
+        streamEpoch: "epoch-1",
         cursor: "cursor-1",
         itemId: "item-1",
         content: [{ type: "text", text: "All set." }],
@@ -461,7 +458,7 @@ describe("ChatPanel send lifecycle", () => {
       .mockResolvedValueOnce(createChatSnapshot())
       .mockResolvedValueOnce(createChatSnapshot({
         sessionId: "session-1",
-        runState: "idle",
+        activeRun: null,
       }));
     consumeChatLiveStreamMock.mockResolvedValue(undefined);
 
@@ -481,12 +478,7 @@ describe("ChatPanel send lifecycle", () => {
       .mockResolvedValueOnce(createChatSnapshot())
       .mockResolvedValueOnce(createChatSnapshot({
         sessionId: "session-1",
-        runState: "running",
-        liveStream: {
-          url: "https://chat-live.example.com",
-          authorization: "Live mock-token",
-          expiresAt: Date.now() + 60_000,
-        },
+        activeRun: createChatActiveRun(),
       }));
     consumeChatLiveStreamMock.mockResolvedValue(undefined);
 
@@ -523,91 +515,20 @@ describe("ChatPanel send lifecycle", () => {
     expect(getChatSnapshotMock).toHaveBeenCalledTimes(1);
   });
 
-  it("clears a stale visible-resume error after a newer successful resumed attach", async () => {
-    let visibilityState: DocumentVisibilityState = "visible";
-    Object.defineProperty(document, "visibilityState", {
-      configurable: true,
-      get: () => visibilityState,
-    });
-
-    getChatSnapshotMock
-      .mockResolvedValueOnce(createChatSnapshot({
-        sessionId: "session-1",
-        runState: "running",
-        liveStream: {
-          url: "https://chat-live.example.com",
-          authorization: "Live mock-token",
-          expiresAt: Date.now() + 60_000,
-        },
-      }))
-      .mockResolvedValueOnce(createChatSnapshot({
-        sessionId: "session-1",
-        runState: "running",
-        liveStream: null,
-        liveCursor: "5",
-      }))
-      .mockResolvedValueOnce(createChatSnapshot({
-        sessionId: "session-1",
-        runState: "running",
-        liveStream: {
-          url: "https://chat-live.example.com",
-          authorization: "Live mock-token",
-          expiresAt: Date.now() + 60_000,
-        },
-        liveCursor: "6",
-      }));
-    consumeChatLiveStreamMock
-      .mockImplementationOnce(() => new Promise(() => undefined))
-      .mockImplementationOnce(async ({ onEvent }) => {
-        onEvent({
-          type: "assistant_delta",
-          text: "resumed",
-          cursor: "7",
-          itemId: "item-1",
-        });
-      });
-
-    await renderChatPanel();
-    await flushAsync();
-    await flushAsync();
-
-    visibilityState = "hidden";
-    document.dispatchEvent(new Event("visibilitychange"));
-    await flushAsync();
-
-    visibilityState = "visible";
-    document.dispatchEvent(new Event("visibilitychange"));
-    await flushAsync();
-    await flushAsync();
-
-    expect(getContainer().querySelector('[role="dialog"]')).not.toBeNull();
-    expect(getContainer().textContent).toContain("AI live stream is unavailable for the active run.");
-
-    visibilityState = "hidden";
-    document.dispatchEvent(new Event("visibilitychange"));
-    await flushAsync();
-
-    visibilityState = "visible";
-    document.dispatchEvent(new Event("visibilitychange"));
-    await flushAsync();
-    await flushAsync();
-
-    expect(getContainer().querySelector('[role="dialog"]')).toBeNull();
-    expect(getChatSnapshotMock.mock.calls[1]?.[1]).toEqual({ resumeAttemptId: 1 });
-    expect(getChatSnapshotMock.mock.calls[2]?.[1]).toEqual({ resumeAttemptId: 2 });
-    expect(consumeChatLiveStreamMock.mock.calls[1]?.[0]?.resumeAttemptId).toBe(2);
-  });
-
   it("renders completed reasoning summaries with the completed tool-call styling", async () => {
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
       sessionId: "session-1",
-      messages: [{
-        role: "assistant",
-        content: [{ type: "reasoning_summary", summary: "Compared due cards and queued a search." }],
-        timestamp: 1,
-        isError: false,
-        isStopped: false,
-      }],
+      conversation: {
+        updatedAt: 1,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "assistant",
+          content: [{ type: "reasoning_summary", summary: "Compared due cards and queued a search.", status: "completed" }],
+          timestamp: 1,
+          isError: false,
+          isStopped: false,
+        }],
+      },
     }));
 
     await renderChatPanel();
