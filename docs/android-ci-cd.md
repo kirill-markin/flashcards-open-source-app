@@ -53,13 +53,13 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 - Runs `:app:lintDebug`
 - Uploads the debug APK, Android test APK, and lint report as workflow artifacts
 - Validates the Firebase Test Lab configuration whenever the reusable workflow is called with live smoke enabled
-- Runs Firebase Test Lab against the native stateful live smoke class `com.flashcardsopensourceapp.app.LiveSmokeTest`
+- Runs Firebase Test Lab against the full `apps/android/app/src/androidTest` instrumentation suite
 - Fails the workflow instead of silently skipping the live smoke gate when the required repository variables are missing
 
 The intended Android release order is:
 
 1. Native build and lint checks in GitHub Actions
-2. Native Firebase Test Lab live smoke on the configured Android 16 device
+2. Native Firebase Test Lab app instrumentation suite on the configured Android 16 device
 3. Google Play production release from `android-release.yml`
 
 After pushing to `main`, watch `Android Release` separately when Android-impacting files changed.
@@ -318,7 +318,7 @@ cd apps/android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstru
 
 Note: `connectedDebugAndroidTest` does not support the `--tests` flag. Use `-Pandroid.testInstrumentationRunnerArguments.class=` to filter by test class.
 
-Run Firebase Test Lab directly after authenticating with `gcloud`:
+Run the app instrumentation suite in Firebase Test Lab directly after authenticating with `gcloud`:
 
 ```bash
 bash scripts/run-android-firebase-test-lab.sh \
@@ -327,7 +327,6 @@ bash scripts/run-android-firebase-test-lab.sh \
   --device-version "36" \
   --app-path "apps/android/app/build/outputs/apk/debug/app-debug.apk" \
   --test-path "apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk" \
-  --test-targets "class com.flashcardsopensourceapp.app.LiveSmokeTest" \
   --results-bucket "gs://flashcards-open-source-app-test-lab-results" \
   --results-dir "manual/local"
 ```
