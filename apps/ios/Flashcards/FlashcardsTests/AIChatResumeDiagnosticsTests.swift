@@ -83,7 +83,11 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Client-Platform"), aiChatClientPlatform)
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Client-Version"), aiChatAppVersion())
             expectation.fulfill()
-            let body = "event: run_state\ndata: {\"type\":\"run_state\",\"runState\":\"idle\",\"sessionId\":\"session-1\"}\n\n"
+            let body = """
+            event: run_terminal
+            data: {"type":"run_terminal","sessionId":"session-1","conversationScopeId":"session-1","runId":"run-1","cursor":"5","sequenceNumber":1,"streamEpoch":"epoch-1","outcome":"completed"}
+
+            """
             return (
                 HTTPURLResponse(
                     url: try XCTUnwrap(request.url),
@@ -127,7 +131,14 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
     private static let bootstrapResponseJSON: String = """
     {
       "sessionId": "session-1",
-      "runState": "running",
+      "conversationScopeId": "session-1",
+      "conversation": {
+        "messages": [],
+        "updatedAt": 123,
+        "mainContentInvalidationVersion": 1,
+        "hasOlder": false,
+        "oldestCursor": null
+      },
       "chatConfig": {
         "provider": { "id": "openai", "label": "OpenAI" },
         "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
@@ -139,15 +150,19 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         },
         "liveUrl": "https://api.example.com/chat/live"
       },
-      "liveStream": {
-        "url": "https://api.example.com/chat/live",
-        "authorization": "Live token",
-        "expiresAt": 123
-      },
-      "messages": [],
-      "hasOlder": false,
-      "oldestCursor": null,
-      "liveCursor": "5"
+      "activeRun": {
+        "runId": "run-1",
+        "status": "running",
+        "live": {
+          "cursor": "5",
+          "stream": {
+            "url": "https://api.example.com/chat/live",
+            "authorization": "Live token",
+            "expiresAt": 123
+          }
+        },
+        "lastHeartbeatAt": 123
+      }
     }
     """
 }

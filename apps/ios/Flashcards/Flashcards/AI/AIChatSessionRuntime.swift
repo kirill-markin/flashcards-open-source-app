@@ -1,28 +1,9 @@
 import Foundation
 
-private let aiChatRunTimeoutSeconds: TimeInterval = 600
-
 enum AIChatLiveAttachTermination: Sendable {
     case sawTerminalEvent
     case endedWithoutTerminalEvent
     case failed(message: String)
-}
-
-private enum AIChatRuntimeError: LocalizedError {
-    case runTimedOut(sessionId: String, timeoutSeconds: TimeInterval)
-    case liveStreamUnavailable(sessionId: String)
-    case liveStreamEndedBeforeCompletion(sessionId: String)
-
-    var errorDescription: String? {
-        switch self {
-        case .runTimedOut(let sessionId, let timeoutSeconds):
-            return "AI chat run timed out after \(Int(timeoutSeconds)) seconds for session \(sessionId)."
-        case .liveStreamUnavailable(let sessionId):
-            return "AI live stream is unavailable for session \(sessionId)."
-        case .liveStreamEndedBeforeCompletion(let sessionId):
-            return "AI live stream ended before message completion for session \(sessionId)."
-        }
-    }
 }
 
 actor AIChatSessionRuntime {
@@ -44,8 +25,8 @@ actor AIChatSessionRuntime {
     /**
      * Starts a new run request and reports the accepted response back to the
      * store. Snapshot/bootstrap remains the source of truth for session state.
-     * This method only kicks off the run; the store reconciles accepted
-     * responses that are not immediately streamable.
+     * This method only kicks off the run; the store applies the accepted
+     * canonical envelope and attaches live only when the surface is visible.
      */
     func run(
         session: CloudLinkedSession,
@@ -90,7 +71,7 @@ actor AIChatSessionRuntime {
                 action: "ai_run_started",
                 metadata: [
                     "sessionId": startResponse.sessionId,
-                    "runState": startResponse.runState
+                    "hasActiveRun": startResponse.activeRun == nil ? "false" : "true"
                 ]
             )
         } catch is CancellationError {
@@ -193,35 +174,22 @@ actor AIChatSessionRuntime {
             resumeAttemptDiagnostics: resumeAttemptDiagnostics
         )
 
-        var sawTerminalMessage = false
-        var sawExplicitFailure = false
-
         for try await event in stream {
             try Task.checkCancellation()
             await eventHandler(event)
 
             switch event {
-            case .assistantMessageDone:
-                sawTerminalMessage = true
+            case .runTerminal:
                 return .sawTerminalEvent
-            case .error, .resetRequired:
-                sawExplicitFailure = true
-                return .sawTerminalEvent
-            case .runState:
-                break
             case .assistantDelta,
                     .assistantToolCall,
                     .assistantReasoningStarted,
                     .assistantReasoningSummary,
                     .assistantReasoningDone,
                     .repairStatus,
-                    .stopAck:
+                    .assistantMessageDone:
                 break
             }
-        }
-
-        if sawTerminalMessage || sawExplicitFailure {
-            return .sawTerminalEvent
         }
 
         return .endedWithoutTerminalEvent

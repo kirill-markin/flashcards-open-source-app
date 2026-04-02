@@ -78,30 +78,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
 
         do {
             let payload = try self.decoder.decode(AIChatSessionSnapshotPayload.self, from: data)
-            return AIChatSessionSnapshot(
-                sessionId: payload.sessionId,
-                runState: payload.runState,
-                updatedAt: payload.updatedAt,
-                mainContentInvalidationVersion: payload.mainContentInvalidationVersion,
-                chatConfig: payload.chatConfig,
-                messages: payload.messages.enumerated().map { index, message in
-                    AIChatMessage(
-                        id: makeAIChatSnapshotMessageId(
-                            sessionId: payload.sessionId,
-                            index: index,
-                            role: message.role,
-                            timestamp: message.timestamp
-                        ),
-                        role: message.role,
-                        content: message.content,
-                        timestamp: message.timestamp,
-                        isError: message.isError,
-                        isStopped: false,
-                        cursor: nil,
-                        itemId: message.itemId
-                    )
-                }
-            )
+            return mapConversationEnvelope(payload)
         } catch {
             let diagnostics = AIChatFailureDiagnostics(
                 clientRequestId: clientRequestId,
@@ -150,27 +127,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
 
         do {
             let payload = try self.decoder.decode(AIChatBootstrapResponsePayload.self, from: data)
-            return AIChatBootstrapResponse(
-                sessionId: payload.sessionId,
-                runState: payload.runState,
-                chatConfig: payload.chatConfig,
-                liveStream: payload.liveStream,
-                messages: payload.messages.enumerated().map { index, message in
-                    AIChatMessage(
-                        id: "\(payload.sessionId)-\(index)-\(message.cursor)",
-                        role: message.role,
-                        content: message.content,
-                        timestamp: message.timestamp,
-                        isError: message.isError,
-                        isStopped: message.isStopped,
-                        cursor: message.cursor,
-                        itemId: message.itemId
-                    )
-                },
-                hasOlder: payload.hasOlder,
-                oldestCursor: payload.oldestCursor,
-                liveCursor: payload.liveCursor
-            )
+            return mapConversationEnvelope(payload)
         } catch {
             let diagnostics = AIChatFailureDiagnostics(
                 clientRequestId: clientRequestId,
@@ -218,20 +175,15 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         do {
             let payload = try self.decoder.decode(AIChatBootstrapResponsePayload.self, from: data)
             return AIChatOlderMessagesResponse(
-                messages: payload.messages.enumerated().map { index, message in
-                    AIChatMessage(
-                        id: "\(payload.sessionId)-older-\(index)-\(message.cursor)",
-                        role: message.role,
-                        content: message.content,
-                        timestamp: message.timestamp,
-                        isError: message.isError,
-                        isStopped: message.isStopped,
-                        cursor: message.cursor,
-                        itemId: message.itemId
+                messages: payload.conversation.messages.enumerated().map { index, message in
+                    mapConversationMessage(
+                        sessionId: payload.sessionId,
+                        index: index,
+                        message: message
                     )
                 },
-                hasOlder: payload.hasOlder,
-                oldestCursor: payload.oldestCursor
+                hasOlder: payload.conversation.hasOlder ?? false,
+                oldestCursor: payload.conversation.oldestCursor
             )
         } catch {
             let diagnostics = AIChatFailureDiagnostics(
@@ -272,7 +224,8 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         )
 
         do {
-            return try self.decoder.decode(AIChatStartRunResponse.self, from: data)
+            let payload = try self.decoder.decode(AIChatAcceptedConversationEnvelopePayload.self, from: data)
+            return mapAcceptedConversationEnvelope(payload)
         } catch {
             let diagnostics = AIChatFailureDiagnostics(
                 clientRequestId: clientRequestId,
@@ -510,6 +463,86 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
 
         return url
     }
+}
+
+private func mapConversationEnvelope(
+    _ payload: AIChatConversationEnvelopePayload
+) -> AIChatConversationEnvelope {
+    AIChatConversationEnvelope(
+        sessionId: payload.sessionId,
+        conversationScopeId: payload.conversationScopeId,
+        conversation: AIChatConversation(
+            messages: payload.conversation.messages.enumerated().map { index, message in
+                mapConversationMessage(
+                    sessionId: payload.sessionId,
+                    index: index,
+                    message: message
+                )
+            },
+            updatedAt: payload.conversation.updatedAt,
+            mainContentInvalidationVersion: payload.conversation.mainContentInvalidationVersion,
+            hasOlder: payload.conversation.hasOlder ?? false,
+            oldestCursor: payload.conversation.oldestCursor
+        ),
+        chatConfig: payload.chatConfig,
+        activeRun: payload.activeRun.map(mapActiveRun)
+    )
+}
+
+private func mapAcceptedConversationEnvelope(
+    _ payload: AIChatAcceptedConversationEnvelopePayload
+) -> AIChatStartRunResponse {
+    AIChatStartRunResponse(
+        accepted: payload.accepted,
+        sessionId: payload.sessionId,
+        conversationScopeId: payload.conversationScopeId,
+        conversation: AIChatConversation(
+            messages: payload.conversation.messages.enumerated().map { index, message in
+                mapConversationMessage(
+                    sessionId: payload.sessionId,
+                    index: index,
+                    message: message
+                )
+            },
+            updatedAt: payload.conversation.updatedAt,
+            mainContentInvalidationVersion: payload.conversation.mainContentInvalidationVersion,
+            hasOlder: payload.conversation.hasOlder ?? false,
+            oldestCursor: payload.conversation.oldestCursor
+        ),
+        chatConfig: payload.chatConfig,
+        activeRun: payload.activeRun.map(mapActiveRun),
+        deduplicated: payload.deduplicated
+    )
+}
+
+private func mapConversationMessage(
+    sessionId: String,
+    index: Int,
+    message: AIChatConversationMessagePayload
+) -> AIChatMessage {
+    let stableCursor = message.cursor ?? "snapshot-\(index)"
+    return AIChatMessage(
+        id: "\(sessionId)-\(index)-\(stableCursor)",
+        role: message.role,
+        content: message.content,
+        timestamp: message.timestamp,
+        isError: message.isError,
+        isStopped: message.isStopped,
+        cursor: message.cursor,
+        itemId: message.itemId
+    )
+}
+
+private func mapActiveRun(_ payload: AIChatActiveRunPayload) -> AIChatActiveRun {
+    AIChatActiveRun(
+        runId: payload.runId,
+        status: payload.status,
+        live: AIChatActiveRunLive(
+            cursor: payload.live.cursor,
+            stream: payload.live.stream
+        ),
+        lastHeartbeatAt: payload.lastHeartbeatAt
+    )
 }
 
 private func extractChatRequestId(httpResponse: HTTPURLResponse) -> String? {

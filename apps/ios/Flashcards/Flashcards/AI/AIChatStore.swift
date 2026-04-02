@@ -113,6 +113,7 @@ final class AIChatStore {
     @ObservationIgnored private let audioTranscriber: any AIChatAudioTranscribing
     @ObservationIgnored let runtime: AIChatSessionRuntime
     @ObservationIgnored var chatSessionId: String
+    @ObservationIgnored var conversationScopeId: String
     @ObservationIgnored private var activeSendTask: Task<Void, Never>?
     @ObservationIgnored private var activeDictationTask: Task<Void, Never>?
     @ObservationIgnored private var activeWarmUpTask: Task<Void, Never>?
@@ -123,6 +124,8 @@ final class AIChatStore {
     @ObservationIgnored var oldestCursor: String?
     @ObservationIgnored var liveCursor: String?
     @ObservationIgnored var activeLiveStream: AIChatLiveStreamEnvelope?
+    @ObservationIgnored var activeRunId: String?
+    @ObservationIgnored var activeStreamEpoch: String?
     @ObservationIgnored var activeStreamingMessageId: String?
     @ObservationIgnored var activeStreamingItemId: String?
     @ObservationIgnored var shouldKeepLiveAttached: Bool
@@ -177,6 +180,7 @@ final class AIChatStore {
         self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
         self.hasExternalProviderConsent = hasAIChatExternalProviderConsent(userDefaults: flashcardsStore.userDefaults)
         self.chatSessionId = persistedState.chatSessionId
+        self.conversationScopeId = persistedState.chatSessionId
         self.composerPhase = .idle
         self.dictationState = .idle
         self.activeAlert = nil
@@ -192,6 +196,8 @@ final class AIChatStore {
         self.oldestCursor = nil
         self.liveCursor = nil
         self.activeLiveStream = nil
+        self.activeRunId = nil
+        self.activeStreamEpoch = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
         self.shouldKeepLiveAttached = false
@@ -332,7 +338,13 @@ final class AIChatStore {
                     self.completedDictationTranscript = nil
                     self.activeConversationId = nil
                     self.chatSessionId = response.sessionId
+                    self.conversationScopeId = response.sessionId
                     self.serverChatConfig = response.chatConfig
+                    self.activeLiveStream = nil
+                    self.activeRunId = nil
+                    self.activeStreamEpoch = nil
+                    self.activeStreamingMessageId = nil
+                    self.activeStreamingItemId = nil
                 }
                 await self.historyStore.saveState(state: AIChatPersistedState(
                     messages: [],
@@ -357,10 +369,13 @@ final class AIChatStore {
         self.repairStatus = nil
         self.completedDictationTranscript = nil
         self.activeConversationId = nil
+        self.conversationScopeId = ""
         self.hasOlderMessages = false
         self.oldestCursor = nil
         self.liveCursor = nil
         self.activeLiveStream = nil
+        self.activeRunId = nil
+        self.activeStreamEpoch = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
         self.activeResumeErrorAttemptSequence = nil
@@ -371,6 +386,7 @@ final class AIChatStore {
             lastKnownChatConfig: self.serverChatConfig
         )
         self.chatSessionId = clearedState.chatSessionId
+        self.conversationScopeId = ""
         Task {
             await self.historyStore.saveState(state: clearedState)
         }
@@ -387,8 +403,14 @@ final class AIChatStore {
         self.repairStatus = nil
         self.completedDictationTranscript = nil
         self.activeConversationId = nil
+        self.conversationScopeId = ""
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
+        self.activeLiveStream = nil
+        self.activeRunId = nil
+        self.activeStreamEpoch = nil
+        self.activeStreamingMessageId = nil
+        self.activeStreamingItemId = nil
         self.pendingAttachments = []
         self.inputText = ""
         self.bootstrapPhase = .loading
@@ -447,10 +469,22 @@ final class AIChatStore {
                 let stopResponse = try await self.chatService.stopRun(session: session, sessionId: sessionId)
                 if stopResponse.stopped, stopResponse.stillRunning == false {
                     self.finalizeStoppedAssistantMessageIfNeeded()
+                    self.activeLiveStream = nil
+                    self.activeRunId = nil
+                    self.activeStreamEpoch = nil
+                    self.activeStreamingMessageId = nil
+                    self.activeStreamingItemId = nil
                     self.composerPhase = .idle
                     self.repairStatus = nil
                 }
             } catch {
+                logAIChatStoreEvent(
+                    action: "ai_stop_failed",
+                    metadata: [
+                        "chatSessionId": sessionId,
+                        "error": Flashcards.errorMessage(error: error)
+                    ]
+                )
             }
         }
     }
@@ -829,6 +863,8 @@ final class AIChatStore {
         self.repairStatus = nil
         self.composerPhase = .idle
         self.activeLiveStream = nil
+        self.activeRunId = nil
+        self.activeStreamEpoch = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
 
@@ -937,6 +973,7 @@ final class AIChatStore {
         self.pendingAttachments = []
         self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
         self.chatSessionId = persistedState.chatSessionId
+        self.conversationScopeId = persistedState.chatSessionId
         self.composerPhase = .idle
         self.dictationState = .idle
         self.activeAlert = nil
@@ -947,6 +984,8 @@ final class AIChatStore {
         self.oldestCursor = nil
         self.liveCursor = nil
         self.activeLiveStream = nil
+        self.activeRunId = nil
+        self.activeStreamEpoch = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
         self.activeResumeErrorAttemptSequence = nil
@@ -1036,22 +1075,17 @@ final class AIChatStore {
 
         switch event {
         case .accepted(let response):
-            self.chatSessionId = response.sessionId
-            self.serverChatConfig = response.chatConfig
-            self.activeLiveStream = response.liveStream
+            self.applyEnvelope(response.envelope)
             self.inputText = ""
             self.pendingAttachments = []
-            if response.runState == "running" {
-                self.composerPhase = .running
+            self.repairStatus = nil
+            if response.activeRun != nil {
                 self.attachActiveLiveStreamIfPossible()
             } else {
-                self.composerPhase = .startingRun
-                self.reconcileAcceptedNonRunningResponse(sessionId: response.sessionId)
+                self.composerPhase = .idle
             }
         case .liveEvent(let liveEvent):
             self.handleLiveEvent(liveEvent)
-        case .applySnapshot(let snapshot):
-            self.applySnapshot(snapshot)
         case .appendAssistantAccountUpgradePrompt(let message, let buttonTitle):
             self.appendAssistantAccountUpgradePrompt(message: message, buttonTitle: buttonTitle)
         case .finish:
@@ -1068,17 +1102,30 @@ final class AIChatStore {
         }
     }
 
-    private func applySnapshot(_ snapshot: AIChatSessionSnapshot) {
-        self.messages = snapshot.messages
-        self.chatSessionId = snapshot.sessionId
-        self.serverChatConfig = snapshot.chatConfig
-        self.composerPhase = snapshot.runState == "running" ? .running : .idle
-        self.hasOlderMessages = false
-        self.oldestCursor = nil
-        self.liveCursor = nil
-        self.activeLiveStream = nil
-        self.activeStreamingMessageId = nil
-        self.activeStreamingItemId = nil
+    func applyEnvelope(_ envelope: AIChatConversationEnvelope) {
+        self.messages = envelope.conversation.messages
+        self.chatSessionId = envelope.sessionId
+        self.conversationScopeId = envelope.conversationScopeId
+        self.serverChatConfig = envelope.chatConfig
+        self.hasOlderMessages = envelope.conversation.hasOlder
+        self.oldestCursor = envelope.conversation.oldestCursor
+        self.liveCursor = envelope.activeRun?.live.cursor
+        self.activeLiveStream = envelope.activeRun?.live.stream
+        self.activeRunId = envelope.activeRun?.runId
+        self.activeStreamEpoch = nil
+        self.composerPhase = envelope.activeRun == nil ? .idle : .running
+        self.repairStatus = nil
+
+        if envelope.activeRun != nil,
+           let lastAssistantMessage = envelope.conversation.messages.last(where: { $0.role == .assistant })
+        {
+            self.activeStreamingMessageId = lastAssistantMessage.id
+            self.activeStreamingItemId = lastAssistantMessage.itemId
+        } else {
+            self.activeStreamingMessageId = nil
+            self.activeStreamingItemId = nil
+        }
+
         Task {
             await self.historyStore.saveState(state: self.currentPersistedState())
         }
@@ -1194,7 +1241,7 @@ final class AIChatStore {
         )
     }
 
-    private func finalizeStoppedAssistantMessageIfNeeded() {
+    func finalizeStoppedAssistantMessageIfNeeded() {
         guard let activeStreamingMessageId = self.activeStreamingMessageId,
               let messageIndex = self.messages.firstIndex(where: { $0.id == activeStreamingMessageId }) else {
             return
