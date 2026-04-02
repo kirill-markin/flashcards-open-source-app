@@ -265,8 +265,8 @@ internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
         throw AssertionError(
             "New chat did not reset the AI conversation. " +
                 "EmptyStateVisible=${composeRule.onAllNodesWithTag(aiEmptyStateTag).fetchSemanticsNodes().isNotEmpty()} " +
-                "AssistantMessages=${composeRule.onAllNodesWithTag(aiAssistantMessageBubbleTag).fetchSemanticsNodes().size} " +
-                "UserMessages=${composeRule.onAllNodesWithTag(aiUserMessageBubbleTag).fetchSemanticsNodes().size} " +
+                "AssistantMessages=${countNodesWithTagInAnySemanticsTree(tag = aiAssistantMessageBubbleTag)} " +
+                "UserMessages=${countNodesWithTagInAnySemanticsTree(tag = aiUserMessageBubbleTag)} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )
@@ -591,8 +591,8 @@ private fun LiveSmokeContext.waitForAiConversation(
                 "ExpectedUser='$expectedUserText' " +
                 "ExpectedAssistant='$expectedAssistantText' " +
                 "LatestAssistant='${latestAssistantMessageTextOrNull()}' " +
-                "UserMessages=${composeRule.onAllNodesWithTag(aiUserMessageBubbleTag).fetchSemanticsNodes().size} " +
-                "AssistantMessages=${composeRule.onAllNodesWithTag(aiAssistantMessageBubbleTag).fetchSemanticsNodes().size} " +
+                "UserMessages=${countNodesWithTagInAnySemanticsTree(tag = aiUserMessageBubbleTag)} " +
+                "AssistantMessages=${countNodesWithTagInAnySemanticsTree(tag = aiAssistantMessageBubbleTag)} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )
@@ -622,8 +622,8 @@ private fun LiveSmokeContext.waitForAiConversationMaterialized(
             "AI reset conversation did not materialize as expected. " +
                 "ExpectedUser='$expectedUserText' " +
                 "PersistedState=${currentAiPersistedStateSummary()} " +
-                "UserMessages=${composeRule.onAllNodesWithTag(aiUserMessageBubbleTag).fetchSemanticsNodes().size} " +
-                "AssistantMessages=${composeRule.onAllNodesWithTag(aiAssistantMessageBubbleTag).fetchSemanticsNodes().size} " +
+                "UserMessages=${countNodesWithTagInAnySemanticsTree(tag = aiUserMessageBubbleTag)} " +
+                "AssistantMessages=${countNodesWithTagInAnySemanticsTree(tag = aiAssistantMessageBubbleTag)} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )
