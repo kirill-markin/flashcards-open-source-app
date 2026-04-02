@@ -47,13 +47,15 @@ type AssistantReasoningDonePayload = Extract<ChatLiveEventPayload, Readonly<{ ty
 type RunTerminalPayload = Extract<ChatLiveEventPayload, Readonly<{ type: "run_terminal" }>>;
 
 type ContentEmissionState = Readonly<{
-  lastEmittedCursor: number;
+  lastObservedCursor: number;
+  lastDeliveredCursor: number;
   previousAssistantContent: ReadonlyArray<ContentPart>;
   disconnected: boolean;
 }>;
 
 type BacklogReplayState = Readonly<{
-  lastEmittedCursor: number;
+  lastObservedCursor: number;
+  lastDeliveredCursor: number;
   previousAssistantContent: ReadonlyArray<ContentPart>;
   shouldStop: boolean;
   terminationReason: string | null;
@@ -172,13 +174,13 @@ function mapRunOutcome(run: ChatRunSnapshot): "completed" | "stopped" | "error" 
 
 function buildRunTerminalPayload(
   run: ChatRunSnapshot,
-  lastEmittedCursor: number,
+  lastDeliveredCursor: number,
 ): RunTerminalPayload {
   const outcome = mapRunOutcome(run);
 
   return {
     type: "run_terminal",
-    cursor: cursorOrNull(lastEmittedCursor),
+    cursor: cursorOrNull(lastDeliveredCursor),
     outcome,
     assistantItemId: run.assistantItemId,
     ...(run.lastErrorMessage === null ? {} : { message: run.lastErrorMessage }),
@@ -188,12 +190,12 @@ function buildRunTerminalPayload(
 }
 
 function buildResetRequiredPayload(
-  lastEmittedCursor: number,
+  lastDeliveredCursor: number,
   assistantItemId?: string,
 ): RunTerminalPayload {
   return {
     type: "run_terminal",
-    cursor: cursorOrNull(lastEmittedCursor),
+    cursor: cursorOrNull(lastDeliveredCursor),
     outcome: "reset_required",
     ...(assistantItemId === undefined ? {} : { assistantItemId }),
   };
@@ -222,9 +224,11 @@ function hasConflictingInProgressAssistantMessage(
 function emitAssistantMessageEvents(
   message: PersistedChatMessageItem,
   previousAssistantContent: ReadonlyArray<ContentPart>,
+  lastDeliveredCursor: number,
   emitPayload: (payload: ChatLiveEventPayload) => boolean,
 ): ContentEmissionState {
   const strippedContent = stripBase64FromContentParts(message.content);
+  const nextObservedCursor = message.itemOrder;
   const deltaEvents = diffAssistantContent(
     previousAssistantContent,
     strippedContent,
@@ -235,7 +239,8 @@ function emitAssistantMessageEvents(
   for (const event of deltaEvents) {
     if (emitPayload(event) === false) {
       return {
-        lastEmittedCursor: message.itemOrder,
+        lastObservedCursor: nextObservedCursor,
+        lastDeliveredCursor,
         previousAssistantContent,
         disconnected: true,
       };
@@ -244,7 +249,8 @@ function emitAssistantMessageEvents(
 
   if (message.state === "in_progress") {
     return {
-      lastEmittedCursor: message.itemOrder,
+      lastObservedCursor: nextObservedCursor,
+      lastDeliveredCursor,
       previousAssistantContent: strippedContent,
       disconnected: false,
     };
@@ -258,7 +264,8 @@ function emitAssistantMessageEvents(
   )) {
     if (emitPayload(event) === false) {
       return {
-        lastEmittedCursor: message.itemOrder,
+        lastObservedCursor: nextObservedCursor,
+        lastDeliveredCursor,
         previousAssistantContent,
         disconnected: true,
       };
@@ -267,14 +274,16 @@ function emitAssistantMessageEvents(
 
   if (emitPayload(buildAssistantMessageDonePayload(message)) === false) {
     return {
-      lastEmittedCursor: message.itemOrder,
+      lastObservedCursor: nextObservedCursor,
+      lastDeliveredCursor,
       previousAssistantContent,
       disconnected: true,
     };
   }
 
   return {
-    lastEmittedCursor: message.itemOrder,
+    lastObservedCursor: nextObservedCursor,
+    lastDeliveredCursor: nextObservedCursor,
     previousAssistantContent: [],
     disconnected: false,
   };
@@ -283,7 +292,8 @@ function emitAssistantMessageEvents(
 async function replayBacklogEvents(
   params: LiveStreamParams,
   assistantItemId: string,
-  lastEmittedCursor: number,
+  lastObservedCursor: number,
+  lastDeliveredCursor: number,
   previousAssistantContent: ReadonlyArray<ContentPart>,
   emitPayload: (payload: ChatLiveEventPayload) => boolean,
   emitTerminal: (payload: RunTerminalPayload) => boolean,
@@ -291,7 +301,8 @@ async function replayBacklogEvents(
 ): Promise<BacklogReplayState> {
   if (params.afterCursor === undefined) {
     return {
-      lastEmittedCursor,
+      lastObservedCursor,
+      lastDeliveredCursor,
       previousAssistantContent,
       shouldStop: false,
       terminationReason: null,
@@ -312,9 +323,10 @@ async function replayBacklogEvents(
       inProgressAssistantMessages.length > 1
       || hasConflictingAssistantMessage(backlogMessages, assistantItemId)
     ) {
-      emitTerminal(buildResetRequiredPayload(lastEmittedCursor, assistantItemId));
+      emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, assistantItemId));
       return {
-        lastEmittedCursor,
+        lastObservedCursor,
+        lastDeliveredCursor,
         previousAssistantContent,
         shouldStop: true,
         terminationReason: "backlog_reset_required",
@@ -324,16 +336,24 @@ async function replayBacklogEvents(
     const runMessages = backlogMessages.filter((message) =>
       message.role === "assistant" && message.itemId === assistantItemId,
     );
-    let nextCursor = lastEmittedCursor;
+    let nextObservedCursor = lastObservedCursor;
+    let nextDeliveredCursor = lastDeliveredCursor;
     let nextPreviousContent = previousAssistantContent;
 
     for (const message of runMessages) {
-      const emission = emitAssistantMessageEvents(message, nextPreviousContent, emitPayload);
-      nextCursor = emission.lastEmittedCursor;
+      const emission = emitAssistantMessageEvents(
+        message,
+        nextPreviousContent,
+        nextDeliveredCursor,
+        emitPayload,
+      );
+      nextObservedCursor = emission.lastObservedCursor;
+      nextDeliveredCursor = emission.lastDeliveredCursor;
       nextPreviousContent = emission.previousAssistantContent;
       if (emission.disconnected) {
         return {
-          lastEmittedCursor: nextCursor,
+          lastObservedCursor: nextObservedCursor,
+          lastDeliveredCursor: nextDeliveredCursor,
           previousAssistantContent: nextPreviousContent,
           shouldStop: true,
           terminationReason: "client_disconnect",
@@ -342,7 +362,8 @@ async function replayBacklogEvents(
     }
 
     return {
-      lastEmittedCursor: nextCursor,
+      lastObservedCursor: nextObservedCursor,
+      lastDeliveredCursor: nextDeliveredCursor,
       previousAssistantContent: nextPreviousContent,
       shouldStop: false,
       terminationReason: null,
@@ -351,9 +372,10 @@ async function replayBacklogEvents(
     logLiveLifecycleEvent("chat_live_backlog_failed", params, {
       ...getErrorLogContext(error),
     }, true);
-    emitTerminal(buildResetRequiredPayload(lastEmittedCursor, assistantItemId));
+    emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, assistantItemId));
     return {
-      lastEmittedCursor,
+      lastObservedCursor,
+      lastDeliveredCursor,
       previousAssistantContent,
       shouldStop: true,
       terminationReason: "backlog_reset_required",
@@ -385,7 +407,8 @@ export async function runLiveStreamWithDependencies(
   });
   const connectionStart = Date.now();
   let lastKeepalive = Date.now();
-  let lastEmittedCursor = params.afterCursor ?? 0;
+  let lastObservedCursor = params.afterCursor ?? 0;
+  let lastDeliveredCursor = params.afterCursor ?? 0;
   let previousAssistantContent: ReadonlyArray<ContentPart> = [];
   let terminationReason = "completed";
   let terminalEventEmitted = false;
@@ -430,7 +453,7 @@ export async function runLiveStreamWithDependencies(
       params.runId,
     );
     if (initialRun === null || initialRun.sessionId !== params.sessionId) {
-      emitTerminal(buildResetRequiredPayload(lastEmittedCursor));
+      emitTerminal(buildResetRequiredPayload(lastDeliveredCursor));
       terminationReason = "missing_run";
       return;
     }
@@ -438,13 +461,15 @@ export async function runLiveStreamWithDependencies(
     const backlogState = await replayBacklogEvents(
       params,
       initialRun.assistantItemId,
-      lastEmittedCursor,
+      lastObservedCursor,
+      lastDeliveredCursor,
       previousAssistantContent,
       emitPayload,
       emitTerminal,
       dependencies,
     );
-    lastEmittedCursor = backlogState.lastEmittedCursor;
+    lastObservedCursor = backlogState.lastObservedCursor;
+    lastDeliveredCursor = backlogState.lastDeliveredCursor;
     previousAssistantContent = backlogState.previousAssistantContent;
     if (backlogState.shouldStop) {
       terminationReason = backlogState.terminationReason ?? terminationReason;
@@ -453,7 +478,7 @@ export async function runLiveStreamWithDependencies(
 
     while (isStreamWritable(stream, connectionState)) {
       if (Date.now() - connectionStart >= MAX_CONNECTION_DURATION_MS) {
-        emitTerminal(buildResetRequiredPayload(lastEmittedCursor, initialRun.assistantItemId));
+        emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, initialRun.assistantItemId));
         terminationReason = "max_duration_reset_required";
         break;
       }
@@ -472,7 +497,7 @@ export async function runLiveStreamWithDependencies(
         params.runId,
       );
       if (run === null || run.sessionId !== params.sessionId) {
-        emitTerminal(buildResetRequiredPayload(lastEmittedCursor, initialRun.assistantItemId));
+        emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, initialRun.assistantItemId));
         terminationReason = "missing_run";
         break;
       }
@@ -484,7 +509,7 @@ export async function runLiveStreamWithDependencies(
           params.sessionId,
         );
         if (snapshot.activeRunId !== params.runId || snapshot.runState !== "running") {
-          emitTerminal(buildResetRequiredPayload(lastEmittedCursor, run.assistantItemId));
+          emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, run.assistantItemId));
           terminationReason = "stale_run_attach";
           break;
         }
@@ -493,10 +518,10 @@ export async function runLiveStreamWithDependencies(
           params.userId,
           params.workspaceId,
           params.sessionId,
-          lastEmittedCursor,
+          lastObservedCursor,
         );
         if (hasConflictingInProgressAssistantMessage(newMessages, run.assistantItemId)) {
-          emitTerminal(buildResetRequiredPayload(lastEmittedCursor, run.assistantItemId));
+          emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, run.assistantItemId));
           terminationReason = "conflicting_in_progress_item";
           break;
         }
@@ -505,11 +530,15 @@ export async function runLiveStreamWithDependencies(
           message.role === "assistant" && message.itemId === run.assistantItemId,
         );
         for (const message of runMessages) {
-          const emission = emitAssistantMessageEvents(message, previousAssistantContent, emitPayload);
+          const emission = emitAssistantMessageEvents(
+            message,
+            previousAssistantContent,
+            lastDeliveredCursor,
+            emitPayload,
+          );
           previousAssistantContent = emission.previousAssistantContent;
-          if (message.state !== "in_progress") {
-            lastEmittedCursor = emission.lastEmittedCursor;
-          }
+          lastObservedCursor = emission.lastObservedCursor;
+          lastDeliveredCursor = emission.lastDeliveredCursor;
           if (emission.disconnected) {
             terminationReason = "client_disconnect";
             break;
@@ -534,9 +563,12 @@ export async function runLiveStreamWithDependencies(
             const emission = emitAssistantMessageEvents(
               inProgressMessage,
               previousAssistantContent,
+              lastDeliveredCursor,
               emitPayload,
             );
             previousAssistantContent = emission.previousAssistantContent;
+            lastObservedCursor = emission.lastObservedCursor;
+            lastDeliveredCursor = emission.lastDeliveredCursor;
             if (emission.disconnected) {
               terminationReason = "client_disconnect";
               break;
@@ -548,10 +580,10 @@ export async function runLiveStreamWithDependencies(
           params.userId,
           params.workspaceId,
           params.sessionId,
-          lastEmittedCursor,
+          lastDeliveredCursor,
         );
         if (hasConflictingAssistantMessage(terminalMessages, run.assistantItemId)) {
-          emitTerminal(buildResetRequiredPayload(lastEmittedCursor, run.assistantItemId));
+          emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, run.assistantItemId));
           terminationReason = "terminal_reset_required";
           break;
         }
@@ -563,17 +595,23 @@ export async function runLiveStreamWithDependencies(
           const emission = emitAssistantMessageEvents(
             terminalAssistantMessage,
             previousAssistantContent,
+            lastDeliveredCursor,
             emitPayload,
           );
           previousAssistantContent = emission.previousAssistantContent;
-          lastEmittedCursor = emission.lastEmittedCursor;
+          lastObservedCursor = emission.lastObservedCursor;
+          lastDeliveredCursor = emission.lastDeliveredCursor;
           if (emission.disconnected) {
             terminationReason = "client_disconnect";
             break;
           }
+        } else if (previousAssistantContent.length > 0) {
+          emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, run.assistantItemId));
+          terminationReason = "terminal_reset_required";
+          break;
         }
 
-        emitTerminal(buildRunTerminalPayload(run, lastEmittedCursor));
+        emitTerminal(buildRunTerminalPayload(run, lastDeliveredCursor));
         terminationReason = "run_complete";
         break;
       }
@@ -592,7 +630,7 @@ export async function runLiveStreamWithDependencies(
     }, true);
     emitTerminal({
       type: "run_terminal",
-      cursor: cursorOrNull(lastEmittedCursor),
+      cursor: cursorOrNull(lastDeliveredCursor),
       outcome: "error",
       assistantItemId: undefined,
       message: "Failed to poll session state",
