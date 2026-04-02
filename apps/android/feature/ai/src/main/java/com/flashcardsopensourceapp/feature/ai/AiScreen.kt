@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -35,6 +36,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -74,6 +76,7 @@ internal fun AiRouteContent(
     onShowErrorMessage: (String) -> Unit
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? ComponentActivity
     val dictationRecorder = remember(context) {
@@ -87,6 +90,9 @@ internal fun AiRouteContent(
     val currentScreenVisibleAction by rememberUpdatedState(onScreenVisible)
     val currentScreenHiddenAction by rememberUpdatedState(onScreenHidden)
     val currentShowAlertAction by rememberUpdatedState(onShowAlert)
+    val dismissComposerFocus: () -> Unit = {
+        focusManager.clearFocus(force = false)
+    }
 
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
@@ -336,17 +342,20 @@ internal fun AiRouteContent(
             }
         }
     ) { innerPadding ->
+        val contentModifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)
+            .consumeWindowInsets(innerPadding)
+
         if (uiState.isConsentRequired) {
             ConsentGate(
                 currentWorkspaceName = uiState.currentWorkspaceName,
                 onAcceptConsent = onAcceptConsent,
-                modifier = Modifier.padding(innerPadding)
+                modifier = contentModifier
             )
         } else if (uiState.isConversationLoading) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+                modifier = contentModifier
             ) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -361,9 +370,7 @@ internal fun AiRouteContent(
             }
         } else if (uiState.isConversationReady.not()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+                modifier = contentModifier
             ) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -391,12 +398,12 @@ internal fun AiRouteContent(
                 currentWorkspaceName = uiState.currentWorkspaceName,
                 isStreaming = uiState.isStreaming,
                 onOpenAccountStatus = onOpenAccountStatus,
+                onDismissComposerFocus = dismissComposerFocus,
                 contentPadding = PaddingValues(
-                    start = 16.dp,
-                    top = innerPadding.calculateTopPadding() + 16.dp,
-                    end = 16.dp,
-                    bottom = innerPadding.calculateBottomPadding() + 16.dp
-                )
+                    horizontal = 16.dp,
+                    vertical = 16.dp
+                ),
+                modifier = contentModifier
             )
         }
     }
