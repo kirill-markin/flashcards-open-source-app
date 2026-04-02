@@ -605,6 +605,7 @@ struct AIChatSnapshotMessagePayload: Decodable, Hashable, Sendable {
     let content: [AIChatContentPart]
     let timestamp: String
     let isError: Bool
+    let itemId: String?
 
     private enum CodingKeys: String, CodingKey {
         case role
@@ -612,6 +613,7 @@ struct AIChatSnapshotMessagePayload: Decodable, Hashable, Sendable {
         case timestamp
         case timestampMillis
         case isError
+        case itemId
     }
 
     init(from decoder: Decoder) throws {
@@ -634,6 +636,7 @@ struct AIChatSnapshotMessagePayload: Decodable, Hashable, Sendable {
             )
         }
         self.isError = try container.decode(Bool.self, forKey: .isError)
+        self.itemId = try container.decodeIfPresent(String.self, forKey: .itemId)
     }
 }
 
@@ -681,6 +684,7 @@ struct AIChatBootstrapMessagePayload: Decodable, Sendable {
     let isError: Bool
     let isStopped: Bool
     let cursor: String
+    let itemId: String?
 
     private enum CodingKeys: String, CodingKey {
         case role
@@ -689,6 +693,7 @@ struct AIChatBootstrapMessagePayload: Decodable, Sendable {
         case isError
         case isStopped
         case cursor
+        case itemId
     }
 
     init(from decoder: Decoder) throws {
@@ -703,6 +708,7 @@ struct AIChatBootstrapMessagePayload: Decodable, Sendable {
         self.isError = try container.decode(Bool.self, forKey: .isError)
         self.isStopped = try container.decodeIfPresent(Bool.self, forKey: .isStopped) ?? false
         self.cursor = try container.decode(String.self, forKey: .cursor)
+        self.itemId = try container.decodeIfPresent(String.self, forKey: .itemId)
     }
 }
 
@@ -713,7 +719,13 @@ enum AIChatLiveEvent: Sendable {
     case assistantReasoningStarted(reasoningId: String, cursor: String, itemId: String)
     case assistantReasoningSummary(reasoningId: String, summary: String, cursor: String, itemId: String)
     case assistantReasoningDone(reasoningId: String, cursor: String, itemId: String)
-    case assistantMessageDone(cursor: String, itemId: String, isError: Bool, isStopped: Bool)
+    case assistantMessageDone(
+        cursor: String,
+        itemId: String,
+        content: [AIChatContentPart],
+        isError: Bool,
+        isStopped: Bool
+    )
     case repairStatus(AIChatRepairAttemptStatus)
     case error(String)
     case stopAck(sessionId: String)

@@ -95,6 +95,8 @@ export type ChatSessionHistoryMessage = Readonly<{
   timestamp: number;
   isError: boolean;
   isStopped: boolean;
+  cursor: string | null;
+  itemId: string | null;
 }>;
 
 export type ChatConfig = Readonly<{

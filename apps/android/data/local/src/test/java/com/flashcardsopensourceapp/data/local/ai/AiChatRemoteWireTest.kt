@@ -16,6 +16,7 @@ class AiChatRemoteWireTest {
             {
               "cursor": "12",
               "itemId": "item-1",
+              "content": [{ "type": "text", "text": "done" }],
               "isError": false,
               "isStopped": true,
               "futureField": "ignored"
@@ -26,6 +27,7 @@ class AiChatRemoteWireTest {
         require(event is com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent.AssistantMessageDone)
         assertEquals("12", event.cursor)
         assertEquals("item-1", event.itemId)
+        assertEquals(1, event.content.size)
         assertFalse(event.isError)
         assertTrue(event.isStopped)
     }
@@ -51,6 +53,7 @@ class AiChatRemoteWireTest {
             {
               "cursor": "12",
               "itemId": "item-1",
+              "content": [],
               "isError": "false",
               "isStopped": true
             }

@@ -237,23 +237,28 @@ internal fun completeAssistantReasoningSummary(
 
 internal fun finalizeAssistantMessage(
     state: AiChatPersistedState,
+    content: List<AiChatContentPart>,
     itemId: String,
     cursor: String,
     isError: Boolean,
     isStopped: Boolean
-): AiChatPersistedState {
-    val resolution = resolveStreamingAssistantMessage(
+): AiChatPersistedState? {
+    val resolution = resolveExistingStreamingAssistantMessage(
         state = state,
         itemId = itemId,
         cursor = cursor
-    )
+    ) ?: return null
+    val finalizedContent = finalizingAssistantContent(content = content)
+    if (shouldReconcileAssistantTerminalContent(content = finalizedContent, isError = isError, isStopped = isStopped)) {
+        return null
+    }
     val targetMessage = resolution.state.messages[resolution.index]
 
     return resolution.state.copy(
         messages = resolution.state.messages.replaceAt(
             index = resolution.index,
             value = targetMessage.copy(
-                content = finalizingAssistantContent(content = targetMessage.content),
+                content = finalizedContent,
                 isError = isError,
                 isStopped = isStopped,
                 cursor = cursor,
@@ -514,6 +519,37 @@ private fun resolveStreamingAssistantMessage(
     itemId: String,
     cursor: String
 ): StreamingAssistantMessageResolution {
+    val existingResolution = resolveExistingStreamingAssistantMessage(
+        state = state,
+        itemId = itemId,
+        cursor = cursor
+    )
+    if (existingResolution != null) {
+        return existingResolution
+    }
+
+    val message = AiChatMessage(
+        messageId = UUID.randomUUID().toString().lowercase(),
+        role = AiChatRole.ASSISTANT,
+        content = emptyList(),
+        timestampMillis = System.currentTimeMillis(),
+        isError = false,
+        isStopped = false,
+        cursor = cursor,
+        itemId = itemId
+    )
+    val nextMessages = state.messages + message
+    return StreamingAssistantMessageResolution(
+        state = state.copy(messages = nextMessages),
+        index = nextMessages.lastIndex
+    )
+}
+
+private fun resolveExistingStreamingAssistantMessage(
+    state: AiChatPersistedState,
+    itemId: String,
+    cursor: String
+): StreamingAssistantMessageResolution? {
     val existingIndex = state.messages.indexOfFirst { message ->
         message.role == AiChatRole.ASSISTANT && message.itemId == itemId
     }
@@ -546,21 +582,7 @@ private fun resolveStreamingAssistantMessage(
         )
     }
 
-    val message = AiChatMessage(
-        messageId = UUID.randomUUID().toString().lowercase(),
-        role = AiChatRole.ASSISTANT,
-        content = emptyList(),
-        timestampMillis = System.currentTimeMillis(),
-        isError = false,
-        isStopped = false,
-        cursor = cursor,
-        itemId = itemId
-    )
-    val nextMessages = state.messages + message
-    return StreamingAssistantMessageResolution(
-        state = state.copy(messages = nextMessages),
-        index = nextMessages.lastIndex
-    )
+    return null
 }
 
 private fun <T> List<T>.replaceAt(index: Int, value: T): List<T> {
@@ -569,6 +591,27 @@ private fun <T> List<T>.replaceAt(index: Int, value: T): List<T> {
             value
         } else {
             currentValue
+        }
+    }
+}
+
+private fun shouldReconcileAssistantTerminalContent(
+    content: List<AiChatContentPart>,
+    isError: Boolean,
+    isStopped: Boolean
+): Boolean {
+    if (isError || isStopped) {
+        return false
+    }
+
+    return content.none { part ->
+        when (part) {
+            is AiChatContentPart.Text -> part.text.isNotBlank()
+            is AiChatContentPart.ReasoningSummary -> part.reasoningSummary.summary.isNotBlank()
+            is AiChatContentPart.Image,
+            is AiChatContentPart.File,
+            is AiChatContentPart.ToolCall,
+            is AiChatContentPart.AccountUpgradePrompt -> true
         }
     }
 }

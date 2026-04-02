@@ -61,9 +61,10 @@ describe("parseChatLiveEvent", () => {
     expect(() => parseChatLiveEvent("assistant_message_done", JSON.stringify({
       cursor: "10",
       itemId: "item-1",
+      content: "not-an-array",
       isError: "false",
       isStopped: false,
-    }))).toThrow(ChatLiveContractError);
+    }))).toThrow("Invalid API response for assistant_message_done: content must be array");
   });
 
   it("rejects unknown enum values", () => {

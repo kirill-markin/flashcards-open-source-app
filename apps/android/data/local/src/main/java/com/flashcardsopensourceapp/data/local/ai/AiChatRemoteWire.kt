@@ -194,7 +194,8 @@ private data class AiChatSnapshotMessageWire(
     val content: List<AiChatContentPartWire>,
     val timestamp: StrictRemoteLong,
     val isError: StrictRemoteBoolean,
-    val isStopped: StrictRemoteBoolean
+    val isStopped: StrictRemoteBoolean,
+    val itemId: StrictRemoteString? = null
 )
 
 @Serializable
@@ -204,7 +205,8 @@ private data class AiChatBootstrapMessageWire(
     val timestamp: StrictRemoteLong,
     val isError: StrictRemoteBoolean,
     val isStopped: StrictRemoteBoolean,
-    val cursor: StrictRemoteString
+    val cursor: StrictRemoteString,
+    val itemId: StrictRemoteString? = null
 )
 
 @Serializable
@@ -310,6 +312,7 @@ private data class AiChatLiveAssistantReasoningDoneWireEvent(
 private data class AiChatLiveAssistantMessageDoneWireEvent(
     val cursor: StrictRemoteString,
     val itemId: StrictRemoteString,
+    val content: List<AiChatContentPartWire>,
     val isError: StrictRemoteBoolean,
     val isStopped: StrictRemoteBoolean
 )
@@ -461,6 +464,7 @@ internal fun decodeAiChatLiveEventPayload(eventType: String?, payload: String): 
             AiChatLiveEvent.AssistantMessageDone(
                 cursor = wire.cursor.value,
                 itemId = wire.itemId.value,
+                content = wire.content.map(::mapAiChatContentPart),
                 isError = wire.isError.value,
                 isStopped = wire.isStopped.value
             )
@@ -559,7 +563,7 @@ private fun AiChatSnapshotMessageWire.asSnapshotDomain(index: Int): AiChatMessag
         isError = this.isError.value,
         isStopped = this.isStopped.value,
         cursor = null,
-        itemId = this.content.firstNotNullOfOrNull(::extractAiChatItemId)
+        itemId = this.itemId?.value?.ifBlank { null } ?: this.content.firstNotNullOfOrNull(::extractAiChatItemId)
     )
 }
 
@@ -572,7 +576,7 @@ private fun AiChatBootstrapMessageWire.asBootstrapDomain(sessionId: String, inde
         isError = this.isError.value,
         isStopped = this.isStopped.value,
         cursor = this.cursor.value,
-        itemId = this.content.firstNotNullOfOrNull(::extractAiChatItemId)
+        itemId = this.itemId?.value?.ifBlank { null } ?: this.content.firstNotNullOfOrNull(::extractAiChatItemId)
     )
 }
 

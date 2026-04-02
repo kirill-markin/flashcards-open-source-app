@@ -196,33 +196,59 @@ extension AIChatStore {
                 )
             )
 
-        case .assistantMessageDone(let cursor, let itemId, let isError, let isStopped):
-            let messageIndex = self.resolveStreamingAssistantMessageIndex(
+        case .assistantMessageDone(let cursor, let itemId, let content, let isError, let isStopped):
+            let finalizedContent = finalizingAIChatContent(content: content)
+            let messageIndex = self.resolveTerminalAssistantMessageIndex(
                 itemId: itemId,
-                cursor: cursor,
-                allowsPlaceholderAdoption: false
+                cursor: cursor
             )
             guard messageIndex >= 0 else {
                 logAIChatStoreEvent(
-                    action: "ai_live_terminal_event_dropped",
+                    action: "ai_live_terminal_event_reconcile_required",
                     metadata: self.metadataForAppliedStreamingEvent(
                         eventType: "assistant_message_done",
                         cursor: cursor,
                         itemId: itemId,
                         messageIndex: messageIndex,
                         extra: [
+                            "reason": "message_not_found",
                             "isError": isError ? "true" : "false",
-                            "isStopped": isStopped ? "true" : "false"
+                            "isStopped": isStopped ? "true" : "false",
+                            "contentCount": String(finalizedContent.count)
                         ]
                     )
                 )
+                self.reloadConversationFromBootstrap()
+                return
+            }
+            guard aiChatTerminalEventHasRenderableContent(
+                content: finalizedContent,
+                isError: isError,
+                isStopped: isStopped
+            ) else {
+                logAIChatStoreEvent(
+                    action: "ai_live_terminal_event_reconcile_required",
+                    metadata: self.metadataForAppliedStreamingEvent(
+                        eventType: "assistant_message_done",
+                        cursor: cursor,
+                        itemId: itemId,
+                        messageIndex: messageIndex,
+                        extra: [
+                            "reason": "non_renderable_success_content",
+                            "isError": isError ? "true" : "false",
+                            "isStopped": isStopped ? "true" : "false",
+                            "contentCount": String(finalizedContent.count)
+                        ]
+                    )
+                )
+                self.reloadConversationFromBootstrap()
                 return
             }
             let message = self.messages[messageIndex]
             self.messages[messageIndex] = AIChatMessage(
                 id: message.id,
                 role: message.role,
-                content: finalizingAIChatContent(content: message.content),
+                content: finalizedContent,
                 timestamp: message.timestamp,
                 isError: isError,
                 isStopped: isStopped,
@@ -239,6 +265,9 @@ extension AIChatStore {
                     message: aiChatLatestAssistantErrorMessage(messages: self.messages) ?? "AI chat failed."
                 )
             }
+            Task {
+                await self.historyStore.saveState(state: self.currentPersistedState())
+            }
             logAIChatStoreEvent(
                 action: "ai_live_terminal_event_applied",
                 metadata: self.metadataForAppliedStreamingEvent(
@@ -248,7 +277,8 @@ extension AIChatStore {
                     messageIndex: messageIndex,
                     extra: [
                         "isError": isError ? "true" : "false",
-                        "isStopped": isStopped ? "true" : "false"
+                        "isStopped": isStopped ? "true" : "false",
+                        "contentCount": String(finalizedContent.count)
                     ]
                 )
             )
@@ -739,10 +769,11 @@ extension AIChatStore {
             metadata["cursor"] = cursor
             metadata["itemId"] = itemId
             metadata["reasoningId"] = reasoningId
-        case .assistantMessageDone(let cursor, let itemId, let isError, let isStopped):
+        case .assistantMessageDone(let cursor, let itemId, let content, let isError, let isStopped):
             metadata["eventType"] = "assistant_message_done"
             metadata["cursor"] = cursor
             metadata["itemId"] = itemId
+            metadata["contentCount"] = String(content.count)
             metadata["isError"] = isError ? "true" : "false"
             metadata["isStopped"] = isStopped ? "true" : "false"
         case .repairStatus(let status):
@@ -790,6 +821,60 @@ extension AIChatStore {
     }
 }
 
+private extension AIChatStore {
+    func resolveTerminalAssistantMessageIndex(itemId: String, cursor: String) -> Int {
+        if let existingIndex = self.messages.firstIndex(where: { message in
+            message.role == .assistant && message.itemId == itemId
+        }) {
+            self.activeStreamingMessageId = self.messages[existingIndex].id
+            self.activeStreamingItemId = itemId
+            return existingIndex
+        }
+
+        if let activeStreamingMessageId = self.activeStreamingMessageId,
+           let existingIndex = self.messages.firstIndex(where: { message in
+               message.id == activeStreamingMessageId && message.role == .assistant
+           })
+        {
+            let message = self.messages[existingIndex]
+            self.messages[existingIndex] = AIChatMessage(
+                id: message.id,
+                role: message.role,
+                content: message.content,
+                timestamp: message.timestamp,
+                isError: message.isError,
+                isStopped: message.isStopped,
+                cursor: cursor,
+                itemId: itemId
+            )
+            self.activeStreamingItemId = itemId
+            return existingIndex
+        }
+
+        if let existingIndex = self.messages.indices.reversed().first(where: { index in
+            let message = self.messages[index]
+            return message.role == .assistant && message.itemId == nil && message.isStopped == false
+        }) {
+            let message = self.messages[existingIndex]
+            self.messages[existingIndex] = AIChatMessage(
+                id: message.id,
+                role: message.role,
+                content: message.content,
+                timestamp: message.timestamp,
+                isError: message.isError,
+                isStopped: message.isStopped,
+                cursor: cursor,
+                itemId: itemId
+            )
+            self.activeStreamingMessageId = message.id
+            self.activeStreamingItemId = itemId
+            return existingIndex
+        }
+
+        return -1
+    }
+}
+
 private func aiChatLatestAssistantErrorMessage(messages: [AIChatMessage]) -> String? {
     guard let assistantMessage = messages.last(where: { $0.role == .assistant && $0.isError }) else {
         return nil
@@ -802,6 +887,27 @@ private func aiChatLatestAssistantErrorMessage(messages: [AIChatMessage]) -> Str
     }.trimmingCharacters(in: .whitespacesAndNewlines)
 
     return message.isEmpty ? nil : message
+}
+
+private func aiChatTerminalEventHasRenderableContent(
+    content: [AIChatContentPart],
+    isError: Bool,
+    isStopped: Bool
+) -> Bool {
+    if isError || isStopped {
+        return true
+    }
+
+    return content.contains { part in
+        switch part {
+        case .text(let text):
+            return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        case .reasoningSummary(let reasoningSummary):
+            return reasoningSummary.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        case .image, .file, .toolCall, .accountUpgradePrompt:
+            return true
+        }
+    }
 }
 
 private func aiChatHasEmptyAssistantPlaceholder(messages: [AIChatMessage]) -> Bool {

@@ -236,6 +236,8 @@ function areMessagesEqual(
       || leftMessage.timestamp !== rightMessage.timestamp
       || leftMessage.isError !== rightMessage.isError
       || leftMessage.isStopped !== rightMessage.isStopped
+      || leftMessage.itemId !== rightMessage.itemId
+      || leftMessage.cursor !== rightMessage.cursor
       || areContentPartsEqual(leftMessage.content, rightMessage.content) === false
     ) {
       return false;
@@ -426,6 +428,7 @@ export function useChatSessionController(
   const snapshotRequestVersionRef = useRef<number>(0);
   const visibilityResumePromiseRef = useRef<Promise<void> | null>(null);
   const refreshVisibleSnapshotRef = useRef<() => void>(() => {});
+  const reconcileTerminalSnapshotRef = useRef<() => void>(() => {});
   const liveCursorRef = useRef<string | null>(null);
 
   const isAssistantRunActive = isChatRunActive(runState);
@@ -489,37 +492,55 @@ export function useChatSessionController(
   const applyLiveEvent = useCallback((event: ChatLiveEvent): void => {
     if (event.type === "assistant_delta") {
       setKnownLiveCursor(event.cursor);
-      appendAssistantText(event.text);
+      appendAssistantText(event.text, event.itemId, event.cursor);
       return;
     }
 
     if (event.type === "assistant_tool_call") {
       setKnownLiveCursor(event.cursor);
-      upsertAssistantToolCall(toAssistantToolCallContentPart(event));
+      upsertAssistantToolCall(toAssistantToolCallContentPart(event), event.itemId, event.cursor);
       return;
     }
 
     if (event.type === "assistant_reasoning_summary") {
       setKnownLiveCursor(event.cursor);
-      upsertAssistantReasoningSummary(toAssistantReasoningSummaryContentPart(event));
+      upsertAssistantReasoningSummary(
+        toAssistantReasoningSummaryContentPart(event),
+        event.itemId,
+        event.cursor,
+      );
       return;
     }
 
     if (event.type === "assistant_reasoning_started") {
       setKnownLiveCursor(event.cursor);
-      upsertAssistantReasoningSummary(toAssistantReasoningSummaryContentPart(event));
+      upsertAssistantReasoningSummary(
+        toAssistantReasoningSummaryContentPart(event),
+        event.itemId,
+        event.cursor,
+      );
       return;
     }
 
     if (event.type === "assistant_reasoning_done") {
       setKnownLiveCursor(event.cursor);
-      completeAssistantReasoningSummary(event.reasoningId);
+      completeAssistantReasoningSummary(event.reasoningId, event.itemId, event.cursor);
       return;
     }
 
     if (event.type === "assistant_message_done") {
       setKnownLiveCursor(event.cursor);
-      finishAssistantMessage(event.isError, event.isStopped);
+      const didFinish = finishAssistantMessage(
+        event.content,
+        event.itemId,
+        event.cursor,
+        event.isError,
+        event.isStopped,
+      );
+      if (didFinish === false) {
+        reconcileTerminalSnapshotRef.current();
+        return;
+      }
       updateRunState(event.isError ? "interrupted" : "idle");
       setIsStopping(false);
       if (event.isError) {
@@ -712,6 +733,55 @@ export function useChatSessionController(
       throw error;
     }
   }, [debugLog, replaceMessages, setKnownLiveCursor, updateRunState, workspaceId]);
+
+  const reconcileTerminalSnapshot = useCallback((): void => {
+    if (workspaceId === null || isRemoteReady === false) {
+      return;
+    }
+
+    const requestVersion = snapshotRequestVersionRef.current + 1;
+    snapshotRequestVersionRef.current = requestVersion;
+
+    void (async (): Promise<void> => {
+      try {
+        const snapshot = await loadChatSnapshot(
+          currentSessionId ?? undefined,
+          true,
+          requestVersion,
+          "terminal_reconcile",
+        );
+        if (snapshot === null) {
+          return;
+        }
+
+        if (isDocumentVisibleRef.current && snapshot.runState === "running") {
+          startLiveStream(snapshot.sessionId, snapshot.liveStream, snapshot.liveCursor);
+          return;
+        }
+
+        detachLiveStream(snapshot.sessionId);
+      } catch (error) {
+        detachLiveStream(null);
+        updateRunState("interrupted");
+        setIsStopping(false);
+        showErrorDialog(`Chat refresh failed. ${toErrorMessage(error)}`);
+      }
+    })();
+  }, [
+    currentSessionId,
+    detachLiveStream,
+    isDocumentVisibleRef,
+    isRemoteReady,
+    loadChatSnapshot,
+    showErrorDialog,
+    startLiveStream,
+    updateRunState,
+    workspaceId,
+  ]);
+
+  useEffect(() => {
+    reconcileTerminalSnapshotRef.current = reconcileTerminalSnapshot;
+  }, [reconcileTerminalSnapshot]);
 
   const refreshVisibleSnapshot = useCallback((): void => {
     if (
@@ -983,7 +1053,7 @@ export function useChatSessionController(
     try {
       const response = await stopChatRun(currentSessionId);
       if (response.stopped && response.stillRunning === false && hasActiveLiveConnection() === false) {
-        finishAssistantMessage(false, true);
+        reconcileTerminalSnapshotRef.current();
         updateRunState("idle");
         setIsStopping(false);
       }
@@ -995,7 +1065,7 @@ export function useChatSessionController(
         setIsStopping(false);
       }
     }
-  }, [currentSessionId, finishAssistantMessage, hasActiveLiveConnection, isAssistantRunActive, isStopping, showErrorDialog, updateRunState]);
+  }, [currentSessionId, hasActiveLiveConnection, isAssistantRunActive, isStopping, showErrorDialog, updateRunState]);
 
   const clearConversation = useCallback(async (): Promise<void> => {
     if (workspaceId === null) {

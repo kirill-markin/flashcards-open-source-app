@@ -78,6 +78,19 @@ function filterAssistantMessages(
   return messages.filter((message) => message.role === "assistant");
 }
 
+function buildAssistantMessageDoneEvent(
+  message: PersistedChatMessageItem,
+): Extract<LiveSSEEvent, { type: "assistant_message_done" }> {
+  return {
+    type: "assistant_message_done",
+    cursor: String(message.itemOrder),
+    itemId: message.itemId,
+    content: stripBase64FromContentParts(message.content),
+    isError: message.isError,
+    isStopped: message.isStopped,
+  };
+}
+
 function buildReasoningDoneEvents(
   previousContent: ReadonlyArray<ContentPart>,
   content: ReadonlyArray<ContentPart>,
@@ -159,13 +172,7 @@ async function replayBacklogEvents(
           terminationReason: "client_disconnect",
         };
       }
-      const event: LiveSSEEvent = {
-        type: "assistant_message_done",
-        cursor: String(message.itemOrder),
-        itemId: message.itemId,
-        isError: message.isError,
-        isStopped: message.isStopped,
-      };
+      const event: LiveSSEEvent = buildAssistantMessageDoneEvent(message);
       if (write(formatSSEEvent(event)) === false) {
         return {
           lastEmittedCursor,
@@ -359,13 +366,7 @@ export async function runLiveStream(
                   break;
                 }
               }
-              if (write(formatSSEEvent({
-                type: "assistant_message_done",
-                cursor: String(message.itemOrder),
-                itemId: message.itemId,
-                isError: message.isError,
-                isStopped: message.isStopped,
-              })) === false) {
+              if (write(formatSSEEvent(buildAssistantMessageDoneEvent(message))) === false) {
                 terminationReason = "client_disconnect";
                 break;
               }

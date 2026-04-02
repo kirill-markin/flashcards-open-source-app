@@ -6,6 +6,7 @@ import { HttpError } from "./errors";
 import { createChatRoutes } from "./routes/chat";
 import type { ChatSessionSnapshot } from "./chat/store";
 import { ChatSessionConflictError } from "./chat/store";
+import type { RecoveredPaginatedSession } from "./chat/runs";
 import type { RequestContext } from "./server/requestContext";
 
 function createRequestContext(): RequestContext {
@@ -30,6 +31,30 @@ function createSnapshot(messages: ChatSessionSnapshot["messages"]): ChatSessionS
     activeRunHeartbeatAt: null,
     mainContentInvalidationVersion: 0,
     messages,
+  };
+}
+
+function createExpectedChatConfig(): Record<string, unknown> {
+  return {
+    provider: {
+      id: "openai",
+      label: "OpenAI",
+    },
+    model: {
+      id: "gpt-5.4",
+      label: "GPT-5.4",
+      badgeLabel: "GPT-5.4 · Medium",
+    },
+    reasoning: {
+      effort: "medium",
+      label: "Medium",
+    },
+    features: {
+      modelPickerEnabled: false,
+      dictationEnabled: true,
+      attachmentsEnabled: true,
+    },
+    liveUrl: null,
   };
 }
 
@@ -63,26 +88,7 @@ test("POST /chat/new returns the current session when history is empty", async (
   assert.deepEqual(await response.json(), {
     ok: true,
     sessionId: "session-1",
-    chatConfig: {
-      provider: {
-        id: "openai",
-        label: "OpenAI",
-      },
-      model: {
-        id: "gpt-5.4",
-        label: "GPT-5.4",
-        badgeLabel: "GPT-5.4 · Medium",
-      },
-      reasoning: {
-        effort: "medium",
-        label: "Medium",
-      },
-      features: {
-        modelPickerEnabled: false,
-        dictationEnabled: true,
-        attachmentsEnabled: true,
-      },
-    },
+    chatConfig: createExpectedChatConfig(),
   });
 });
 
@@ -134,26 +140,7 @@ test("POST /chat/new creates a fresh session when history is not empty", async (
   assert.deepEqual(await response.json(), {
     ok: true,
     sessionId: "session-2",
-    chatConfig: {
-      provider: {
-        id: "openai",
-        label: "OpenAI",
-      },
-      model: {
-        id: "gpt-5.4",
-        label: "GPT-5.4",
-        badgeLabel: "GPT-5.4 · Medium",
-      },
-      reasoning: {
-        effort: "medium",
-        label: "Medium",
-      },
-      features: {
-        modelPickerEnabled: false,
-        dictationEnabled: true,
-        attachmentsEnabled: true,
-      },
-    },
+    chatConfig: createExpectedChatConfig(),
   });
 });
 
@@ -171,6 +158,151 @@ test("DELETE /chat is no longer routed", async () => {
   });
 
   assert.equal(response.status, 404);
+});
+
+test("GET /chat returns assistant item ids in snapshot history and strips attachment payloads", async () => {
+  const app = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    resolveLiveCursorFn: async () => null,
+    getRecoveredChatSessionSnapshotFn: async () => createSnapshot([
+      {
+        role: "user",
+        content: [{ type: "text", text: "hello" }],
+        timestamp: 1,
+        isError: false,
+        isStopped: false,
+        itemId: null,
+      },
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "done" },
+          { type: "image", mediaType: "image/png", base64Data: "abc123" },
+        ],
+        timestamp: 2,
+        isError: false,
+        isStopped: false,
+        itemId: "assistant-item-1",
+      },
+    ]),
+  });
+
+  const response = await app.request("http://localhost/chat?sessionId=session-1");
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    sessionId: "session-1",
+    runState: "idle",
+    updatedAt: 1,
+    mainContentInvalidationVersion: 0,
+    liveCursor: null,
+    liveStream: null,
+    chatConfig: createExpectedChatConfig(),
+    messages: [
+      {
+        role: "user",
+        content: [{ type: "text", text: "hello" }],
+        timestamp: 1,
+        isError: false,
+        isStopped: false,
+        itemId: null,
+      },
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "done" },
+          { type: "image", mediaType: "image/png", base64Data: "" },
+        ],
+        timestamp: 2,
+        isError: false,
+        isStopped: false,
+        itemId: "assistant-item-1",
+      },
+    ],
+  });
+});
+
+test("GET /chat paginated history returns assistant item ids and sanitized content", async () => {
+  const paginatedSession: RecoveredPaginatedSession = {
+    sessionId: "session-1",
+    runState: "idle",
+    page: {
+      newestCursor: "8",
+      oldestCursor: "7",
+      hasOlder: true,
+      messages: [
+        {
+          sessionId: "session-1",
+          itemId: "user-item-1",
+          itemOrder: 7,
+          role: "user",
+          content: [{ type: "text", text: "hello" }],
+          state: "completed",
+          isError: false,
+          isStopped: false,
+          timestamp: 1,
+          updatedAt: 1,
+        },
+        {
+          sessionId: "session-1",
+          itemId: "assistant-item-1",
+          itemOrder: 8,
+          role: "assistant",
+          content: [{ type: "file", mediaType: "text/plain", base64Data: "abc123", fileName: "notes.txt" }],
+          state: "completed",
+          isError: false,
+          isStopped: false,
+          timestamp: 2,
+          updatedAt: 2,
+        },
+      ],
+    },
+  };
+
+  const app = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    getRecoveredPaginatedSessionFn: async () => paginatedSession,
+  });
+
+  const response = await app.request("http://localhost/chat?sessionId=session-1&limit=2");
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    sessionId: "session-1",
+    runState: "idle",
+    chatConfig: createExpectedChatConfig(),
+    liveCursor: "8",
+    oldestCursor: "7",
+    hasOlder: true,
+    messages: [
+      {
+        role: "user",
+        content: [{ type: "text", text: "hello" }],
+        timestamp: 1,
+        isError: false,
+        isStopped: false,
+        cursor: "7",
+        itemId: null,
+      },
+      {
+        role: "assistant",
+        content: [{ type: "file", mediaType: "text/plain", base64Data: "", fileName: "notes.txt" }],
+        timestamp: 2,
+        isError: false,
+        isStopped: false,
+        cursor: "8",
+        itemId: "assistant-item-1",
+      },
+    ],
+  });
 });
 
 test("POST /chat returns the canonical chat request id header and dedupe metadata", async () => {
@@ -206,6 +338,11 @@ test("POST /chat returns the canonical chat request id header and dedupe metadat
     invokeChatWorkerFn: async () => {
       invokeCallCount += 1;
     },
+    createChatLiveStreamEnvelopeFn: async () => ({
+      url: "https://chat-live.example.com",
+      authorization: "Live test-token",
+      expiresAt: 1_000,
+    }),
   });
 
   const response = await app.request("http://localhost/chat", {
@@ -231,25 +368,13 @@ test("POST /chat returns the canonical chat request id header and dedupe metadat
     runId: "run-1",
     clientRequestId: "client-request-1",
     runState: "running",
+    liveStream: {
+      url: "https://chat-live.example.com",
+      authorization: "Live test-token",
+      expiresAt: 1_000,
+    },
     chatConfig: {
-      provider: {
-        id: "openai",
-        label: "OpenAI",
-      },
-      model: {
-        id: "gpt-5.4",
-        label: "GPT-5.4",
-        badgeLabel: "GPT-5.4 · Medium",
-      },
-      reasoning: {
-        effort: "medium",
-        label: "Medium",
-      },
-      features: {
-        modelPickerEnabled: false,
-        dictationEnabled: true,
-        attachmentsEnabled: true,
-      },
+      ...createExpectedChatConfig(),
     },
     deduplicated: true,
   });
