@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.app.navigation
 
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
-import com.flashcardsopensourceapp.feature.review.ReviewNotificationTapPayload
+import com.flashcardsopensourceapp.feature.review.ReviewNotificationTapRequest
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +19,7 @@ data class CardEditorRequest(
 
 data class ReviewNotificationRequest(
     val requestId: Long,
-    val payload: ReviewNotificationTapPayload
+    val request: ReviewNotificationTapRequest
 )
 
 enum class SettingsNavigationTarget {
@@ -86,10 +86,10 @@ class AppHandoffCoordinator {
         cardEditorState.value = null
     }
 
-    fun requestReviewNotification(payload: ReviewNotificationTapPayload) {
+    fun requestReviewNotification(request: ReviewNotificationTapRequest) {
         reviewNotificationState.value = ReviewNotificationRequest(
             requestId = nextRequestId.incrementAndGet(),
-            payload = payload
+            request = request
         )
     }
 

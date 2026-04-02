@@ -14,8 +14,11 @@ let reviewNotificationPromptStateUserDefaultsKey: String = "review-notification-
 let reviewNotificationSuccessfulReviewCountUserDefaultsKey: String = "review-notification-successful-review-count"
 let reviewNotificationScheduledPayloadsUserDefaultsKeyPrefix: String = "review-notification-scheduled-payloads::"
 let reviewNotificationLastActiveAtUserDefaultsKey: String = "review-notification-last-active-at"
+let reviewNotificationTapMarkerUserInfoKey: String = "reviewNotificationTapMarker"
+let reviewNotificationTapMarkerValue: String = "review"
+let reviewNotificationPayloadUserInfoKey: String = "reviewNotificationPayload"
 
-let reviewNotificationTapPayloadNotificationName = Notification.Name("review-notification-tap-payload")
+let reviewNotificationTapRequestNotificationName = Notification.Name("review-notification-tap-request")
 let reviewQueueUpdatedBannerMessage: String = "Review queue updated. Continuing with the latest due card."
 
 enum ReviewNotificationMode: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
@@ -79,6 +82,33 @@ struct CurrentReviewNotificationCard: Hashable, Sendable {
     let reviewFilter: PersistedReviewFilter
     let cardId: String
     let frontText: String
+}
+
+struct ReviewNotificationTapFallback: Hashable, Sendable {
+    let stage: String
+    let reason: String
+    let workspaceId: String?
+    let currentWorkspaceId: String?
+    let cardId: String?
+    let requestId: String?
+    let details: String?
+}
+
+enum ReviewNotificationTapRequest: Hashable, Sendable {
+    case resolved(ScheduledReviewNotificationPayload)
+    case fallback(ReviewNotificationTapFallback)
+}
+
+struct ReviewNotificationTapValidationSnapshot: Sendable {
+    let databaseURL: URL?
+    let activeWorkspaceId: String?
+    let payload: ScheduledReviewNotificationPayload
+    let now: Date
+}
+
+enum ReviewNotificationTapValidationResult: Sendable {
+    case resolved(payload: ScheduledReviewNotificationPayload, reviewFilter: ReviewFilter)
+    case fallback(ReviewNotificationTapFallback)
 }
 
 struct ReviewNotificationSchedulingSnapshot: Sendable {
@@ -441,27 +471,170 @@ func buildReviewNotificationUserInfo(payload: ScheduledReviewNotificationPayload
     let encoder = JSONEncoder()
     let data = try? encoder.encode(requestPayload)
     return [
-        "reviewNotificationPayload": data ?? Data()
+        reviewNotificationTapMarkerUserInfoKey: reviewNotificationTapMarkerValue,
+        reviewNotificationPayloadUserInfoKey: data ?? Data()
     ]
 }
 
-func parseReviewNotificationPayload(userInfo: [AnyHashable: Any]) -> ScheduledReviewNotificationPayload? {
-    guard let data = userInfo["reviewNotificationPayload"] as? Data else {
+func parseReviewNotificationTapRequest(userInfo: [AnyHashable: Any]) -> ReviewNotificationTapRequest? {
+    let hasMarker = (userInfo[reviewNotificationTapMarkerUserInfoKey] as? String) == reviewNotificationTapMarkerValue
+    let hasLegacyPayload = userInfo[reviewNotificationPayloadUserInfoKey] != nil
+    guard hasMarker || hasLegacyPayload else {
         return nil
+    }
+    guard let data = userInfo[reviewNotificationPayloadUserInfoKey] as? Data else {
+        return .fallback(
+            ReviewNotificationTapFallback(
+                stage: "parse",
+                reason: "missing_payload_data",
+                workspaceId: nil,
+                currentWorkspaceId: nil,
+                cardId: nil,
+                requestId: nil,
+                details: nil
+            )
+        )
     }
 
     let decoder = JSONDecoder()
     guard let payload = try? decoder.decode(ReviewNotificationRequestPayload.self, from: data) else {
-        return nil
+        return .fallback(
+            ReviewNotificationTapFallback(
+                stage: "parse",
+                reason: "invalid_payload",
+                workspaceId: nil,
+                currentWorkspaceId: nil,
+                cardId: nil,
+                requestId: nil,
+                details: nil
+            )
+        )
     }
 
-    return ScheduledReviewNotificationPayload(
-        workspaceId: payload.workspaceId,
-        reviewFilter: payload.reviewFilter,
-        cardId: payload.cardId,
-        frontText: payload.frontText,
-        scheduledAtMillis: payload.scheduledAtMillis,
-        requestId: payload.requestId
+    return .resolved(
+        ScheduledReviewNotificationPayload(
+            workspaceId: payload.workspaceId,
+            reviewFilter: payload.reviewFilter,
+            cardId: payload.cardId,
+            frontText: payload.frontText,
+            scheduledAtMillis: payload.scheduledAtMillis,
+            requestId: payload.requestId
+        )
+    )
+}
+
+func resolveReviewNotificationTap(
+    snapshot: ReviewNotificationTapValidationSnapshot
+) async -> ReviewNotificationTapValidationResult {
+    guard snapshot.activeWorkspaceId == snapshot.payload.workspaceId else {
+        return .fallback(
+            ReviewNotificationTapFallback(
+                stage: "resolve",
+                reason: "workspace_mismatch",
+                workspaceId: snapshot.payload.workspaceId,
+                currentWorkspaceId: snapshot.activeWorkspaceId,
+                cardId: snapshot.payload.cardId,
+                requestId: snapshot.payload.requestId,
+                details: nil
+            )
+        )
+    }
+    guard let databaseURL = snapshot.databaseURL else {
+        return .fallback(
+            ReviewNotificationTapFallback(
+                stage: "resolve",
+                reason: "missing_database",
+                workspaceId: snapshot.payload.workspaceId,
+                currentWorkspaceId: snapshot.activeWorkspaceId,
+                cardId: snapshot.payload.cardId,
+                requestId: snapshot.payload.requestId,
+                details: nil
+            )
+        )
+    }
+
+    return await Task.detached(priority: .utility) {
+        do {
+            let reviewFilter = try makeReviewFilter(persistedReviewFilter: snapshot.payload.reviewFilter)
+            let database = try LocalDatabase(databaseURL: databaseURL)
+            defer {
+                try? database.close()
+            }
+            let currentCard = try database.loadCurrentReviewNotificationCard(
+                workspaceId: snapshot.payload.workspaceId,
+                reviewFilter: reviewFilter,
+                now: snapshot.now
+            )
+            guard let currentCard else {
+                return ReviewNotificationTapValidationResult.fallback(
+                    ReviewNotificationTapFallback(
+                        stage: "resolve",
+                        reason: "missing_current_card",
+                        workspaceId: snapshot.payload.workspaceId,
+                        currentWorkspaceId: snapshot.activeWorkspaceId,
+                        cardId: snapshot.payload.cardId,
+                        requestId: snapshot.payload.requestId,
+                        details: nil
+                    )
+                )
+            }
+            guard currentCard.cardId == snapshot.payload.cardId else {
+                return ReviewNotificationTapValidationResult.fallback(
+                    ReviewNotificationTapFallback(
+                        stage: "resolve",
+                        reason: "card_mismatch",
+                        workspaceId: snapshot.payload.workspaceId,
+                        currentWorkspaceId: snapshot.activeWorkspaceId,
+                        cardId: snapshot.payload.cardId,
+                        requestId: snapshot.payload.requestId,
+                        details: "currentCardId=\(currentCard.cardId)"
+                    )
+                )
+            }
+            return .resolved(
+                payload: snapshot.payload,
+                reviewFilter: reviewFilter
+            )
+        } catch {
+            return .fallback(
+                ReviewNotificationTapFallback(
+                    stage: "resolve",
+                    reason: "resolution_failed",
+                    workspaceId: snapshot.payload.workspaceId,
+                    currentWorkspaceId: snapshot.activeWorkspaceId,
+                    cardId: snapshot.payload.cardId,
+                    requestId: snapshot.payload.requestId,
+                    details: Flashcards.errorMessage(error: error)
+                )
+            )
+        }
+    }.value
+}
+
+func logReviewNotificationTapFallback(fallback: ReviewNotificationTapFallback) {
+    var metadata: [String: String] = [
+        "stage": fallback.stage,
+        "reason": fallback.reason
+    ]
+    if let workspaceId = fallback.workspaceId {
+        metadata["workspaceId"] = workspaceId
+    }
+    if let currentWorkspaceId = fallback.currentWorkspaceId {
+        metadata["currentWorkspaceId"] = currentWorkspaceId
+    }
+    if let cardId = fallback.cardId {
+        metadata["cardId"] = cardId
+    }
+    if let requestId = fallback.requestId {
+        metadata["requestId"] = requestId
+    }
+    if let details = fallback.details {
+        metadata["details"] = details
+    }
+    logFlashcardsError(
+        domain: "ios_notifications",
+        action: "notification_tap_fallback",
+        metadata: metadata
     )
 }
 

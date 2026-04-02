@@ -154,23 +154,39 @@ extension FlashcardsStore {
         }
     }
 
-    func handleReviewNotificationTap(payload: ScheduledReviewNotificationPayload, navigation: AppNavigationModel) {
-        if self.workspace?.workspaceId != payload.workspaceId {
-            navigation.selectTab(.review)
-            return
-        }
-
-        do {
-            let reviewFilter = try makeReviewFilter(persistedReviewFilter: payload.reviewFilter)
-            self.selectReviewFilter(reviewFilter: reviewFilter)
-        } catch {
-            navigation.selectTab(.review)
-            return
-        }
-
+    func handleReviewNotificationTap(request: ReviewNotificationTapRequest, navigation: AppNavigationModel) {
         navigation.selectTab(.review)
-        if self.effectiveReviewQueue.first?.cardId != payload.cardId {
-            self.enqueueTransientBanner(banner: makeReviewQueueUpdatedBanner())
+
+        switch request {
+        case .fallback(let fallback):
+            logReviewNotificationTapFallback(fallback: fallback)
+        case .resolved(let payload):
+            let workspaceIdAtTap = self.workspace?.workspaceId
+            let databaseURL = self.localDatabaseURL
+            Task { @MainActor in
+                let result = await resolveReviewNotificationTap(
+                    snapshot: ReviewNotificationTapValidationSnapshot(
+                        databaseURL: databaseURL,
+                        activeWorkspaceId: workspaceIdAtTap,
+                        payload: payload,
+                        now: Date()
+                    )
+                )
+
+                switch result {
+                case .fallback(let fallback):
+                    logReviewNotificationTapFallback(fallback: fallback)
+                case .resolved(let resolvedPayload, let reviewFilter):
+                    guard self.workspace?.workspaceId == resolvedPayload.workspaceId else {
+                        return
+                    }
+
+                    self.selectReviewFilter(reviewFilter: reviewFilter)
+                    if self.effectiveReviewQueue.first?.cardId != resolvedPayload.cardId {
+                        self.enqueueTransientBanner(banner: makeReviewQueueUpdatedBanner())
+                    }
+                }
+            }
         }
     }
 
