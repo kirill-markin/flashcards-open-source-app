@@ -84,27 +84,134 @@ struct AIChatCompletedDictationTranscript: Identifiable, Equatable {
     let transcript: String
 }
 
-private struct AIChatAccessContext: Equatable {
+struct AIChatAccessContext: Equatable {
     let workspaceId: String?
     let cloudState: CloudAccountState?
     let linkedUserId: String?
     let activeWorkspaceId: String?
 }
 
+struct AIChatSurfaceActivity: Equatable {
+    let isSceneActive: Bool
+    let isAITabSelected: Bool
+    let hasExternalProviderConsent: Bool
+    let workspaceId: String?
+    let cloudState: CloudAccountState?
+    let linkedUserId: String?
+    let activeWorkspaceId: String?
+
+    var isVisible: Bool {
+        self.isSceneActive && self.isAITabSelected && self.hasExternalProviderConsent
+    }
+
+    var accessContext: AIChatAccessContext {
+        AIChatAccessContext(
+            workspaceId: self.workspaceId,
+            cloudState: self.cloudState,
+            linkedUserId: self.linkedUserId,
+            activeWorkspaceId: self.activeWorkspaceId
+        )
+    }
+}
+
+private struct AIChatConversationState {
+    var messages: [AIChatMessage]
+    var hasOlderMessages: Bool
+    var oldestCursor: String?
+}
+
+private struct AIChatComposerState {
+    var inputText: String
+    var pendingAttachments: [AIChatAttachment]
+    var dictationState: AIChatDictationState
+    var completedDictationTranscript: AIChatCompletedDictationTranscript?
+}
+
+private struct AIChatSurfaceState {
+    var activity: AIChatSurfaceActivity
+    var activeAccessContext: AIChatAccessContext?
+    var bootstrapPhase: AIChatBootstrapPhase
+    var shouldKeepLiveAttached: Bool
+}
+
+struct AIChatActiveRunSession {
+    let sessionId: String
+    let conversationScopeId: String
+    let runId: String
+    let liveStream: AIChatLiveStreamEnvelope
+    var liveCursor: String?
+    var streamEpoch: String?
+}
+
+enum AIChatRunLifecycle {
+    case idle
+    case preparingSend
+    case starting
+    case streaming(AIChatActiveRunSession)
+    case stopping(previousRunId: String?)
+
+    var composerPhase: AIChatComposerPhase {
+        switch self {
+        case .idle:
+            return .idle
+        case .preparingSend:
+            return .preparingSend
+        case .starting:
+            return .startingRun
+        case .streaming:
+            return .running
+        case .stopping:
+            return .stopping
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class AIChatStore {
-    var inputText: String
-    var messages: [AIChatMessage]
-    private(set) var pendingAttachments: [AIChatAttachment]
+    private var conversationState: AIChatConversationState
+    private var composerState: AIChatComposerState
+    private var surfaceState: AIChatSurfaceState
+    private var runLifecycle: AIChatRunLifecycle
+    private var activeRunSession: AIChatActiveRunSession?
+
+    var inputText: String {
+        get { self.composerState.inputText }
+        set { self.composerState.inputText = newValue }
+    }
+
+    var messages: [AIChatMessage] {
+        get { self.conversationState.messages }
+        set { self.conversationState.messages = newValue }
+    }
+
+    private(set) var pendingAttachments: [AIChatAttachment] {
+        get { self.composerState.pendingAttachments }
+        set { self.composerState.pendingAttachments = newValue }
+    }
+
     var serverChatConfig: AIChatServerConfig
     var hasExternalProviderConsent: Bool
-    var composerPhase: AIChatComposerPhase
-    private(set) var dictationState: AIChatDictationState
+    var composerPhase: AIChatComposerPhase {
+        self.runLifecycle.composerPhase
+    }
+
+    private(set) var dictationState: AIChatDictationState {
+        get { self.composerState.dictationState }
+        set { self.composerState.dictationState = newValue }
+    }
+
     private(set) var activeAlert: AIChatAlert?
     var repairStatus: AIChatRepairAttemptStatus?
-    private(set) var completedDictationTranscript: AIChatCompletedDictationTranscript?
-    private(set) var bootstrapPhase: AIChatBootstrapPhase
+    private(set) var completedDictationTranscript: AIChatCompletedDictationTranscript? {
+        get { self.composerState.completedDictationTranscript }
+        set { self.composerState.completedDictationTranscript = newValue }
+    }
+
+    private(set) var bootstrapPhase: AIChatBootstrapPhase {
+        get { self.surfaceState.bootstrapPhase }
+        set { self.surfaceState.bootstrapPhase = newValue }
+    }
 
     @ObservationIgnored let flashcardsStore: FlashcardsStore
     @ObservationIgnored let historyStore: any AIChatHistoryStoring
@@ -118,20 +225,134 @@ final class AIChatStore {
     @ObservationIgnored private var activeDictationTask: Task<Void, Never>?
     @ObservationIgnored private var activeWarmUpTask: Task<Void, Never>?
     @ObservationIgnored var activeBootstrapTask: Task<Void, Never>?
+    @ObservationIgnored private var activePersistTask: Task<Void, Never>?
+    @ObservationIgnored private var pendingPersistState: AIChatPersistedState?
     @ObservationIgnored private var activeConversationId: String?
-    @ObservationIgnored private var activeAccessContext: AIChatAccessContext?
-    @ObservationIgnored var hasOlderMessages: Bool
-    @ObservationIgnored var oldestCursor: String?
-    @ObservationIgnored var liveCursor: String?
-    @ObservationIgnored var activeLiveStream: AIChatLiveStreamEnvelope?
-    @ObservationIgnored var activeRunId: String?
-    @ObservationIgnored var activeStreamEpoch: String?
     @ObservationIgnored var activeStreamingMessageId: String?
     @ObservationIgnored var activeStreamingItemId: String?
-    @ObservationIgnored var shouldKeepLiveAttached: Bool
     @ObservationIgnored var nextResumeAttemptSequence: Int
     @ObservationIgnored var activeResumeErrorAttemptSequence: Int?
     @ObservationIgnored var activeLiveResumeAttemptSequence: Int?
+
+    var hasOlderMessages: Bool {
+        get { self.conversationState.hasOlderMessages }
+        set { self.conversationState.hasOlderMessages = newValue }
+    }
+
+    var oldestCursor: String? {
+        get { self.conversationState.oldestCursor }
+        set { self.conversationState.oldestCursor = newValue }
+    }
+
+    var activeRunId: String? {
+        self.activeRunSession?.runId
+    }
+
+    var activeLiveStream: AIChatLiveStreamEnvelope? {
+        self.activeRunSession?.liveStream
+    }
+
+    var liveCursor: String? {
+        self.activeRunSession?.liveCursor
+    }
+
+    var activeStreamEpoch: String? {
+        self.activeRunSession?.streamEpoch
+    }
+
+    var shouldKeepLiveAttached: Bool {
+        get { self.surfaceState.shouldKeepLiveAttached }
+        set { self.surfaceState.shouldKeepLiveAttached = newValue }
+    }
+
+    func transitionToIdle() {
+        self.runLifecycle = .idle
+        self.activeRunSession = nil
+    }
+
+    func transitionToPreparingSend() {
+        self.runLifecycle = .preparingSend
+        self.activeRunSession = nil
+    }
+
+    func transitionToStartingRun() {
+        self.runLifecycle = .starting
+        self.activeRunSession = nil
+    }
+
+    func transitionToStreaming(activeRun: AIChatActiveRunSession) {
+        self.activeRunSession = activeRun
+        self.runLifecycle = .streaming(activeRun)
+    }
+
+    func transitionToStopping(runId: String?) {
+        self.runLifecycle = .stopping(previousRunId: runId)
+    }
+
+    func updateActiveRunSession(
+        _ transform: (AIChatActiveRunSession) -> AIChatActiveRunSession
+    ) {
+        guard let activeRunSession = self.activeRunSession else {
+            return
+        }
+
+        let updatedSession = transform(activeRunSession)
+        self.activeRunSession = updatedSession
+        if case .streaming = self.runLifecycle {
+            self.runLifecycle = .streaming(updatedSession)
+        }
+    }
+
+    func setActiveRunCursor(cursor: String?) {
+        self.updateActiveRunSession { activeRunSession in
+            var updatedSession = activeRunSession
+            updatedSession.liveCursor = cursor
+            return updatedSession
+        }
+    }
+
+    func setActiveRunStreamEpoch(streamEpoch: String?) {
+        self.updateActiveRunSession { activeRunSession in
+            var updatedSession = activeRunSession
+            updatedSession.streamEpoch = streamEpoch
+            return updatedSession
+        }
+    }
+
+    func clearActiveRunSession() {
+        self.activeRunSession = nil
+    }
+
+    func schedulePersistState(state: AIChatPersistedState) {
+        self.pendingPersistState = state
+        guard self.activePersistTask == nil else {
+            return
+        }
+
+        self.activePersistTask = Task { [weak self] in
+            while let self {
+                await Task.yield()
+                let nextState = await MainActor.run { () -> AIChatPersistedState? in
+                    let pendingState = self.pendingPersistState
+                    self.pendingPersistState = nil
+                    return pendingState
+                }
+                guard let nextState else {
+                    break
+                }
+
+                await self.historyStore.saveState(state: nextState)
+            }
+
+            await MainActor.run { [weak self] in
+                self?.activePersistTask = nil
+            }
+        }
+    }
+
+    func schedulePersistCurrentState() {
+        self.schedulePersistState(state: self.currentPersistedState())
+    }
 
     convenience init(
         flashcardsStore: FlashcardsStore,
@@ -174,37 +395,55 @@ final class AIChatStore {
         )
         historyStore.activateWorkspace(workspaceId: initialHistoryWorkspaceId)
         let persistedState = historyStore.loadState()
-        self.inputText = ""
-        self.messages = persistedState.messages
-        self.pendingAttachments = []
+        let initialConsentState = hasAIChatExternalProviderConsent(userDefaults: flashcardsStore.userDefaults)
+        self.conversationState = AIChatConversationState(
+            messages: persistedState.messages,
+            hasOlderMessages: false,
+            oldestCursor: nil
+        )
+        self.composerState = AIChatComposerState(
+            inputText: "",
+            pendingAttachments: [],
+            dictationState: .idle,
+            completedDictationTranscript: nil
+        )
+        self.surfaceState = AIChatSurfaceState(
+            activity: AIChatSurfaceActivity(
+                isSceneActive: false,
+                isAITabSelected: false,
+                hasExternalProviderConsent: initialConsentState,
+                workspaceId: flashcardsStore.workspace?.workspaceId,
+                cloudState: flashcardsStore.cloudSettings?.cloudState,
+                linkedUserId: flashcardsStore.cloudSettings?.linkedUserId,
+                activeWorkspaceId: flashcardsStore.cloudSettings?.activeWorkspaceId
+            ),
+            activeAccessContext: nil,
+            bootstrapPhase: .ready,
+            shouldKeepLiveAttached: false
+        )
+        self.runLifecycle = .idle
+        self.activeRunSession = nil
         self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
-        self.hasExternalProviderConsent = hasAIChatExternalProviderConsent(userDefaults: flashcardsStore.userDefaults)
+        self.hasExternalProviderConsent = initialConsentState
         self.chatSessionId = persistedState.chatSessionId
         self.conversationScopeId = persistedState.chatSessionId
-        self.composerPhase = .idle
-        self.dictationState = .idle
         self.activeAlert = nil
         self.repairStatus = nil
-        self.completedDictationTranscript = nil
-        self.bootstrapPhase = .ready
         self.activeDictationTask = nil
         self.activeWarmUpTask = nil
         self.activeBootstrapTask = nil
+        self.activePersistTask = nil
+        self.pendingPersistState = nil
         self.activeConversationId = nil
-        self.activeAccessContext = nil
-        self.hasOlderMessages = false
-        self.oldestCursor = nil
-        self.liveCursor = nil
-        self.activeLiveStream = nil
-        self.activeRunId = nil
-        self.activeStreamEpoch = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
-        self.shouldKeepLiveAttached = false
         self.nextResumeAttemptSequence = 0
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
-        self.activateAccessContext(force: true)
+        self.activateAccessContext(
+            force: true,
+            nextAccessContext: self.currentAccessContext()
+        )
     }
 
     var canSendMessage: Bool {
@@ -340,17 +579,19 @@ final class AIChatStore {
                     self.chatSessionId = response.sessionId
                     self.conversationScopeId = response.sessionId
                     self.serverChatConfig = response.chatConfig
-                    self.activeLiveStream = nil
-                    self.activeRunId = nil
-                    self.activeStreamEpoch = nil
+                    self.transitionToIdle()
                     self.activeStreamingMessageId = nil
                     self.activeStreamingItemId = nil
                 }
-                await self.historyStore.saveState(state: AIChatPersistedState(
-                    messages: [],
-                    chatSessionId: response.sessionId,
-                    lastKnownChatConfig: response.chatConfig
-                ))
+                await MainActor.run {
+                    self.schedulePersistState(
+                        state: AIChatPersistedState(
+                            messages: [],
+                            chatSessionId: response.sessionId,
+                            lastKnownChatConfig: response.chatConfig
+                        )
+                    )
+                }
             } catch {
                 await MainActor.run {
                     self.showGeneralError(message: Flashcards.errorMessage(error: error))
@@ -372,10 +613,7 @@ final class AIChatStore {
         self.conversationScopeId = ""
         self.hasOlderMessages = false
         self.oldestCursor = nil
-        self.liveCursor = nil
-        self.activeLiveStream = nil
-        self.activeRunId = nil
-        self.activeStreamEpoch = nil
+        self.transitionToIdle()
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
         self.activeResumeErrorAttemptSequence = nil
@@ -387,9 +625,7 @@ final class AIChatStore {
         )
         self.chatSessionId = clearedState.chatSessionId
         self.conversationScopeId = ""
-        Task {
-            await self.historyStore.saveState(state: clearedState)
-        }
+        self.schedulePersistState(state: clearedState)
     }
 
     func prepareForWorkspaceChange() {
@@ -406,9 +642,7 @@ final class AIChatStore {
         self.conversationScopeId = ""
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
-        self.activeLiveStream = nil
-        self.activeRunId = nil
-        self.activeStreamEpoch = nil
+        self.transitionToIdle()
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
         self.pendingAttachments = []
@@ -417,11 +651,17 @@ final class AIChatStore {
     }
 
     func activateWorkspace() {
-        self.activateAccessContext(force: true)
+        self.activateAccessContext(
+            force: true,
+            nextAccessContext: self.currentAccessContext()
+        )
     }
 
     func refreshAccessContextIfNeeded() {
-        self.activateAccessContext(force: false)
+        self.activateAccessContext(
+            force: false,
+            nextAccessContext: self.currentAccessContext()
+        )
     }
 
     func acceptExternalProviderConsent() {
@@ -435,6 +675,30 @@ final class AIChatStore {
         )
     }
 
+    func updateSurface(activity: AIChatSurfaceActivity) {
+        let previousActivity = self.surfaceState.activity
+        self.surfaceState.activity = activity
+        self.hasExternalProviderConsent = activity.hasExternalProviderConsent
+
+        if aiChatSurfaceShouldCancelDictation(activity: activity) {
+            self.cancelDictation()
+        }
+
+        self.activateAccessContext(
+            force: previousActivity.accessContext != activity.accessContext,
+            nextAccessContext: activity.accessContext
+        )
+        self.setChatVisibility(isVisible: activity.isVisible)
+
+        if aiChatSurfaceShouldWarmUp(
+            activity: activity,
+            bootstrapPhase: self.bootstrapPhase,
+            composerPhase: self.composerPhase
+        ) {
+            self.warmUpSessionIfNeeded()
+        }
+    }
+
     func retryLinkedBootstrap() {
         self.startLinkedBootstrap(forceReloadState: false, resumeAttemptDiagnostics: nil)
     }
@@ -445,36 +709,32 @@ final class AIChatStore {
         Task {
             await self.runtime.detach()
         }
-        self.composerPhase = .stopping
+        self.transitionToStopping(runId: self.activeRunId)
         self.repairStatus = nil
         self.clearOptimisticAssistantStatusIfNeeded()
 
         let sessionId = self.chatSessionId
         guard sessionId.isEmpty == false else {
-            self.composerPhase = .idle
-            let state = self.currentPersistedState()
-            Task { await self.historyStore.saveState(state: state) }
+            self.transitionToIdle()
+            self.schedulePersistCurrentState()
             return
         }
 
         Task {
             defer {
                 if self.composerPhase == .stopping {
-                    self.composerPhase = .idle
+                    self.transitionToIdle()
                 }
-                Task { await self.historyStore.saveState(state: self.currentPersistedState()) }
+                self.schedulePersistCurrentState()
             }
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
                 let stopResponse = try await self.chatService.stopRun(session: session, sessionId: sessionId)
                 if stopResponse.stopped, stopResponse.stillRunning == false {
                     self.finalizeStoppedAssistantMessageIfNeeded()
-                    self.activeLiveStream = nil
-                    self.activeRunId = nil
-                    self.activeStreamEpoch = nil
                     self.activeStreamingMessageId = nil
                     self.activeStreamingItemId = nil
-                    self.composerPhase = .idle
+                    self.transitionToIdle()
                     self.repairStatus = nil
                 }
             } catch {
@@ -599,7 +859,7 @@ final class AIChatStore {
 
         self.activeAlert = nil
         self.repairStatus = nil
-        self.composerPhase = .preparingSend
+        self.transitionToPreparingSend()
         let conversationId = UUID().uuidString.lowercased()
         let draftText = self.inputText
         let draftAttachments = self.pendingAttachments
@@ -635,7 +895,7 @@ final class AIChatStore {
                 self.activeStreamingMessageId = assistantMessage.id
                 self.activeStreamingItemId = nil
                 didAppendOptimisticMessages = true
-                self.composerPhase = .startingRun
+                self.transitionToStartingRun()
                 self.activeConversationId = conversationId
                 try await self.runtime.run(
                     session: session,
@@ -666,7 +926,7 @@ final class AIChatStore {
 
             if self.activeConversationId == conversationId {
                 if self.shouldResetComposerPhaseAfterSendTaskCompletion() {
-                    self.composerPhase = .idle
+                    self.transitionToIdle()
                 }
                 self.activeConversationId = nil
             }
@@ -774,7 +1034,7 @@ final class AIChatStore {
                     recordedAudio: recordedAudio
                 )
                 self.chatSessionId = transcription.sessionId
-                await self.historyStore.saveState(state: self.currentPersistedState())
+                self.schedulePersistCurrentState()
                 self.completedDictationTranscript = AIChatCompletedDictationTranscript(
                     id: UUID().uuidString.lowercased(),
                     transcript: transcription.text
@@ -861,10 +1121,7 @@ final class AIChatStore {
         let latestPersistedState = self.historyStore.loadState()
         self.chatSessionId = latestPersistedState.chatSessionId
         self.repairStatus = nil
-        self.composerPhase = .idle
-        self.activeLiveStream = nil
-        self.activeRunId = nil
-        self.activeStreamEpoch = nil
+        self.transitionToIdle()
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
 
@@ -913,23 +1170,19 @@ final class AIChatStore {
         )
     }
 
-    private func activateAccessContext(force: Bool) {
-        let nextAccessContext = self.currentAccessContext()
-        if force == false, self.activeAccessContext == nextAccessContext {
+    private func activateAccessContext(force: Bool, nextAccessContext: AIChatAccessContext) {
+        if force == false, self.surfaceState.activeAccessContext == nextAccessContext {
             return
         }
 
         if self.shouldPreserveActiveGuestSendDuringAccessContextChange(nextAccessContext: nextAccessContext) {
-            self.activeAccessContext = nextAccessContext
+            self.surfaceState.activeAccessContext = nextAccessContext
             self.historyStore.activateWorkspace(workspaceId: self.historyWorkspaceId())
-            let state = self.currentPersistedState()
-            Task {
-                await self.historyStore.saveState(state: state)
-            }
+            self.schedulePersistCurrentState()
             return
         }
 
-        self.activeAccessContext = nextAccessContext
+        self.surfaceState.activeAccessContext = nextAccessContext
         self.activeBootstrapTask?.cancel()
         self.activeBootstrapTask = nil
         self.cancelStreaming()
@@ -958,7 +1211,7 @@ final class AIChatStore {
         guard self.activeSendTask != nil else {
             return false
         }
-        guard let activeAccessContext = self.activeAccessContext else {
+        guard let activeAccessContext = self.surfaceState.activeAccessContext else {
             return false
         }
         guard activeAccessContext.cloudState != .linked else {
@@ -974,7 +1227,7 @@ final class AIChatStore {
         self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
         self.chatSessionId = persistedState.chatSessionId
         self.conversationScopeId = persistedState.chatSessionId
-        self.composerPhase = .idle
+        self.transitionToIdle()
         self.dictationState = .idle
         self.activeAlert = nil
         self.repairStatus = nil
@@ -982,10 +1235,6 @@ final class AIChatStore {
         self.activeConversationId = nil
         self.hasOlderMessages = false
         self.oldestCursor = nil
-        self.liveCursor = nil
-        self.activeLiveStream = nil
-        self.activeRunId = nil
-        self.activeStreamEpoch = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
         self.activeResumeErrorAttemptSequence = nil
@@ -1004,7 +1253,7 @@ final class AIChatStore {
         }
         self.bootstrapPhase = .loading
 
-        let bootstrapContext = self.currentAccessContext()
+        let bootstrapContext = self.surfaceState.activeAccessContext ?? self.currentAccessContext()
         self.activeBootstrapTask = Task {
             defer {
                 self.activeBootstrapTask = nil
@@ -1018,7 +1267,7 @@ final class AIChatStore {
                     limit: aiChatBootstrapPageLimit,
                     resumeAttemptDiagnostics: resumeAttemptDiagnostics
                 )
-                guard self.activeAccessContext == bootstrapContext else {
+                guard self.surfaceState.activeAccessContext == bootstrapContext else {
                     return
                 }
                 self.applyBootstrap(bootstrap)
@@ -1030,14 +1279,14 @@ final class AIChatStore {
                 )
             } catch is CancellationError {
             } catch {
-                guard self.activeAccessContext == bootstrapContext else {
+                guard self.surfaceState.activeAccessContext == bootstrapContext else {
                     return
                 }
                 self.messages = []
                 self.chatSessionId = ""
                 self.pendingAttachments = []
                 self.inputText = ""
-                self.composerPhase = .idle
+                self.transitionToIdle()
                 self.repairStatus = nil
                 self.bootstrapPhase = .failed(Flashcards.errorMessage(error: error))
             }
@@ -1082,7 +1331,7 @@ final class AIChatStore {
             if response.activeRun != nil {
                 self.attachActiveLiveStreamIfPossible()
             } else {
-                self.composerPhase = .idle
+                self.transitionToIdle()
             }
         case .liveEvent(let liveEvent):
             self.handleLiveEvent(liveEvent)
@@ -1091,13 +1340,13 @@ final class AIChatStore {
         case .finish:
             self.repairStatus = nil
             if self.activeConversationId == conversationId {
-                self.composerPhase = .idle
+                self.transitionToIdle()
             }
         case .fail(let message):
             self.repairStatus = nil
             self.showGeneralError(message: message)
             if self.activeConversationId == conversationId {
-                self.composerPhase = .idle
+                self.transitionToIdle()
             }
         }
     }
@@ -1109,12 +1358,22 @@ final class AIChatStore {
         self.serverChatConfig = envelope.chatConfig
         self.hasOlderMessages = envelope.conversation.hasOlder
         self.oldestCursor = envelope.conversation.oldestCursor
-        self.liveCursor = envelope.activeRun?.live.cursor
-        self.activeLiveStream = envelope.activeRun?.live.stream
-        self.activeRunId = envelope.activeRun?.runId
-        self.activeStreamEpoch = nil
-        self.composerPhase = envelope.activeRun == nil ? .idle : .running
         self.repairStatus = nil
+
+        if let activeRun = envelope.activeRun {
+            self.transitionToStreaming(
+                activeRun: AIChatActiveRunSession(
+                    sessionId: envelope.sessionId,
+                    conversationScopeId: envelope.conversationScopeId,
+                    runId: activeRun.runId,
+                    liveStream: activeRun.live.stream,
+                    liveCursor: activeRun.live.cursor,
+                    streamEpoch: nil
+                )
+            )
+        } else {
+            self.transitionToIdle()
+        }
 
         if envelope.activeRun != nil,
            let lastAssistantMessage = envelope.conversation.messages.last(where: { $0.role == .assistant })
@@ -1126,9 +1385,7 @@ final class AIChatStore {
             self.activeStreamingItemId = nil
         }
 
-        Task {
-            await self.historyStore.saveState(state: self.currentPersistedState())
-        }
+        self.schedulePersistCurrentState()
     }
 
     func markAssistantError(message: String) {
@@ -1214,7 +1471,7 @@ final class AIChatStore {
                 itemId: nil
             )
         )
-        await self.historyStore.saveState(state: self.currentPersistedState())
+        self.schedulePersistCurrentState()
     }
 
     private func clearOptimisticAssistantStatusIfNeeded() {
@@ -1297,6 +1554,28 @@ private func isAIChatOfflineSendError(error: Error) -> Bool {
 
 private func removingOptimisticAIChatStatus(content: [AIChatContentPart]) -> [AIChatContentPart] {
     return isOptimisticAIChatStatusContent(content: content) ? [] : content
+}
+
+private func aiChatSurfaceShouldCancelDictation(activity: AIChatSurfaceActivity) -> Bool {
+    activity.isSceneActive == false || activity.isAITabSelected == false
+}
+
+private func aiChatSurfaceShouldWarmUp(
+    activity: AIChatSurfaceActivity,
+    bootstrapPhase: AIChatBootstrapPhase,
+    composerPhase: AIChatComposerPhase
+) -> Bool {
+    guard activity.isVisible else {
+        return false
+    }
+    guard activity.cloudState == .linked else {
+        return false
+    }
+    guard bootstrapPhase == .ready else {
+        return false
+    }
+
+    return composerPhase != .preparingSend && composerPhase != .startingRun
 }
 
 func appendingAIChatText(content: [AIChatContentPart], text: String) -> [AIChatContentPart] {

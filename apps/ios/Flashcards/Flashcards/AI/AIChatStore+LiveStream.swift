@@ -299,9 +299,7 @@ extension AIChatStore {
                 cursor: cursor,
                 itemId: itemId
             )
-            Task {
-                await self.historyStore.saveState(state: self.currentPersistedState())
-            }
+            self.schedulePersistCurrentState()
             logAIChatStoreEvent(
                 action: "ai_live_terminal_event_applied",
                 metadata: self.metadataForAppliedStreamingEvent(
@@ -364,9 +362,7 @@ extension AIChatStore {
                 self.reloadConversationFromBootstrap()
             }
 
-            Task {
-                await self.historyStore.saveState(state: self.currentPersistedState())
-            }
+            self.schedulePersistCurrentState()
             logAIChatStoreEvent(
                 action: "ai_live_run_terminal_applied",
                 metadata: self.metadataForAppliedStreamingEvent(
@@ -594,7 +590,7 @@ extension AIChatStore {
             self.applyBootstrap(response)
 
             if let errorMessage = aiChatLatestAssistantErrorMessage(messages: response.conversation.messages) {
-                self.composerPhase = .idle
+                self.transitionToIdle()
                 self.showGeneralError(message: errorMessage)
                 return
             }
@@ -604,7 +600,7 @@ extension AIChatStore {
                 return
             }
 
-            self.composerPhase = .idle
+            self.transitionToIdle()
             if self.messages.last.map({ message in
                 message.role == .assistant && isOptimisticAIChatStatusContent(content: message.content)
             }) == true {
@@ -628,7 +624,7 @@ extension AIChatStore {
             self.applyBootstrap(response)
 
             if let errorMessage = aiChatLatestAssistantErrorMessage(messages: response.conversation.messages) {
-                self.composerPhase = .idle
+                self.transitionToIdle()
                 self.showGeneralError(message: errorMessage)
                 return
             }
@@ -883,22 +879,20 @@ private extension AIChatStore {
 
     func recordLiveMetadata(metadata: AIChatLiveEventMetadata) {
         if let cursor = metadata.cursor {
-            self.liveCursor = cursor
+            self.setActiveRunCursor(cursor: cursor)
         }
         if self.activeStreamEpoch == nil {
-            self.activeStreamEpoch = metadata.streamEpoch
+            self.setActiveRunStreamEpoch(streamEpoch: metadata.streamEpoch)
         }
     }
 
     func clearActiveRunTracking(resetComposer: Bool) {
-        self.activeLiveStream = nil
-        self.activeRunId = nil
-        self.activeStreamEpoch = nil
+        self.clearActiveRunSession()
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
         self.repairStatus = nil
         if resetComposer {
-            self.composerPhase = .idle
+            self.transitionToIdle()
         }
     }
 
