@@ -80,7 +80,7 @@ struct RootTabView: View {
             }
             .tag(AppTab.settings)
         }
-        .tabBarMinimizeBehavior(.onScrollDown)
+        .tabBarMinimizeBehavior(.never)
         .overlay {
             ZStack {
                 GlobalTransientBannerHost()
