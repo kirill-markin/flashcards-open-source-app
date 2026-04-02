@@ -6,6 +6,7 @@ struct CloudSessionRuntimeState {
     var activeCloudSyncTask: Task<CloudSyncResult, Error>?
     var pendingCloudResync: Bool
     var activeCloudLinkTask: CloudLinkTransitionState?
+    var activeWorkspaceCompletionTask: CloudWorkspaceCompletionState?
     var activeAIChatSessionPreparation: AIChatSessionPreparationState?
 }
 
@@ -29,6 +30,7 @@ final class CloudSessionRuntime {
             activeCloudSyncTask: nil,
             pendingCloudResync: false,
             activeCloudLinkTask: nil,
+            activeWorkspaceCompletionTask: nil,
             activeAIChatSessionPreparation: nil
         )
     }
@@ -204,6 +206,35 @@ final class CloudSessionRuntime {
         } catch {
             if self.state.activeCloudLinkTask?.id == linkTransition.id {
                 self.state.activeCloudLinkTask = nil
+            }
+            throw error
+        }
+    }
+
+    func runWorkspaceCompletion(
+        operation: @escaping @MainActor () async throws -> CloudWorkspaceSummary
+    ) async throws -> CloudWorkspaceSummary {
+        if let activeWorkspaceCompletionTask = self.state.activeWorkspaceCompletionTask {
+            return try await activeWorkspaceCompletionTask.task.value
+        }
+
+        let workspaceCompletion = CloudWorkspaceCompletionState(
+            id: UUID().uuidString.lowercased(),
+            task: Task { @MainActor in
+                try await operation()
+            }
+        )
+        self.state.activeWorkspaceCompletionTask = workspaceCompletion
+
+        do {
+            let workspace = try await workspaceCompletion.task.value
+            if self.state.activeWorkspaceCompletionTask?.id == workspaceCompletion.id {
+                self.state.activeWorkspaceCompletionTask = nil
+            }
+            return workspace
+        } catch {
+            if self.state.activeWorkspaceCompletionTask?.id == workspaceCompletion.id {
+                self.state.activeWorkspaceCompletionTask = nil
             }
             throw error
         }

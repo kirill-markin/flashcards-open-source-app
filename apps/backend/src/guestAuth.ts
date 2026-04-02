@@ -27,6 +27,12 @@ type GuestSessionRow = Readonly<{
   revoked_at: Date | string | null;
 }>;
 
+type GuestUpgradeHistoryReplayRow = Readonly<{
+  target_subject_user_id: string;
+  target_user_id: string;
+  target_workspace_id: string;
+}>;
+
 type GuestWorkspaceRow = Readonly<{
   workspace_id: string | null;
 }>;
@@ -139,6 +145,11 @@ export type GuestUpgradeCompletion = Readonly<{
     createdAt: string;
     isSelected: true;
   }>;
+  outcome: "fresh_completion" | "idempotent_replay";
+  guestSessionId: string;
+  targetSubjectUserId: string;
+  targetUserId: string;
+  targetWorkspaceId: string;
 }>;
 
 type GuestUpgradeHistoryWrite = Readonly<{
@@ -163,11 +174,11 @@ function hashGuestToken(token: string): string {
     .digest("hex");
 }
 
-async function loadGuestSessionInExecutor(
+async function loadGuestSessionRowInExecutor(
   executor: DatabaseExecutor,
   guestToken: string,
   lockForUpdate: boolean,
-): Promise<GuestSessionRow> {
+): Promise<GuestSessionRow | null> {
   const result = await executor.query<GuestSessionRow>(
     [
       "SELECT session_id, user_id, revoked_at",
@@ -178,12 +189,93 @@ async function loadGuestSessionInExecutor(
     [hashGuestToken(guestToken)],
   );
 
-  const row = result.rows[0];
-  if (row === undefined || row.revoked_at !== null) {
+  return result.rows[0] ?? null;
+}
+
+async function loadGuestSessionInExecutor(
+  executor: DatabaseExecutor,
+  guestToken: string,
+  lockForUpdate: boolean,
+): Promise<GuestSessionRow> {
+  const row = await loadGuestSessionRowInExecutor(executor, guestToken, lockForUpdate);
+  if (row === null || row.revoked_at !== null) {
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 
   return row;
+}
+
+async function loadGuestUpgradeHistoryBySessionInExecutor(
+  executor: DatabaseExecutor,
+  guestSessionId: string,
+): Promise<GuestUpgradeHistoryReplayRow | null> {
+  const result = await executor.query<GuestUpgradeHistoryReplayRow>(
+    [
+      "SELECT target_subject_user_id, target_user_id, target_workspace_id",
+      "FROM auth.guest_upgrade_history",
+      "WHERE source_guest_session_id = $1",
+      "LIMIT 1",
+    ].join(" "),
+    [guestSessionId],
+  );
+
+  return result.rows[0] ?? null;
+}
+
+function logSuspiciousGuestUpgradeReplay(
+  reason: "revoked_session_without_history" | "revoked_session_subject_mismatch",
+  guestSessionId: string,
+  targetSubjectUserId: string,
+  historyTargetSubjectUserId: string | null,
+): void {
+  console.error(JSON.stringify({
+    domain: "backend",
+    action: "guest_upgrade_complete_suspicious",
+    reason,
+    guestSessionId,
+    targetSubjectUserId,
+    historyTargetSubjectUserId,
+  }));
+}
+
+async function resolveRevokedGuestUpgradeReplayInExecutor(
+  executor: DatabaseExecutor,
+  guestSessionId: string,
+  cognitoSubject: string,
+): Promise<GuestUpgradeCompletion> {
+  const guestUpgradeHistory = await loadGuestUpgradeHistoryBySessionInExecutor(executor, guestSessionId);
+  if (guestUpgradeHistory === null) {
+    logSuspiciousGuestUpgradeReplay(
+      "revoked_session_without_history",
+      guestSessionId,
+      cognitoSubject,
+      null,
+    );
+    throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
+  }
+
+  if (guestUpgradeHistory.target_subject_user_id !== cognitoSubject) {
+    logSuspiciousGuestUpgradeReplay(
+      "revoked_session_subject_mismatch",
+      guestSessionId,
+      cognitoSubject,
+      guestUpgradeHistory.target_subject_user_id,
+    );
+    throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
+  }
+
+  return {
+    workspace: await loadWorkspaceSummaryInExecutor(
+      executor,
+      guestUpgradeHistory.target_user_id,
+      guestUpgradeHistory.target_workspace_id,
+    ),
+    outcome: "idempotent_replay",
+    guestSessionId,
+    targetSubjectUserId: guestUpgradeHistory.target_subject_user_id,
+    targetUserId: guestUpgradeHistory.target_user_id,
+    targetWorkspaceId: guestUpgradeHistory.target_workspace_id,
+  };
 }
 
 async function loadGuestWorkspaceIdInExecutor(
@@ -864,6 +956,11 @@ export async function authenticateGuestSession(guestToken: string): Promise<Read
 
 export async function createGuestSession(): Promise<GuestSessionSnapshot> {
   return transaction(async (executor) => {
+    // Guest session creation is intentionally always a fresh server-side
+    // identity. Clients clear stored guest sessions and regenerate their local
+    // installation identity on logout/account deletion before they can call
+    // this again, which keeps future guest-to-linked merges scoped to the
+    // current post-reset guest account only.
     const userId = randomUUID().toLowerCase();
     const guestToken = randomBytes(32).toString("hex");
 
@@ -952,16 +1049,29 @@ export async function completeGuestUpgradeInExecutor(
   cognitoSubject: string,
   selection: GuestUpgradeSelection,
 ): Promise<GuestUpgradeCompletion> {
-  const guestSession = await loadGuestSessionInExecutor(executor, guestToken, true);
+  const guestSession = await loadGuestSessionRowInExecutor(executor, guestToken, true);
+  if (guestSession === null) {
+    throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
+  }
+
   const targetUserId = await loadIdentityMappingInExecutor(executor, cognitoSubject);
   if (targetUserId === null) {
     throw new HttpError(409, "Create or sign in to the destination account first.", "GUEST_UPGRADE_ACCOUNT_REQUIRED");
+  }
+
+  if (guestSession.revoked_at !== null) {
+    return resolveRevokedGuestUpgradeReplayInExecutor(executor, guestSession.session_id, cognitoSubject);
   }
 
   if (targetUserId === guestSession.user_id) {
     const guestWorkspaceId = await loadGuestWorkspaceIdInExecutor(executor, guestSession.user_id);
     return {
       workspace: await loadWorkspaceSummaryInExecutor(executor, guestSession.user_id, guestWorkspaceId),
+      outcome: "fresh_completion",
+      guestSessionId: guestSession.session_id,
+      targetSubjectUserId: cognitoSubject,
+      targetUserId,
+      targetWorkspaceId: guestWorkspaceId,
     };
   }
 
@@ -1016,6 +1126,11 @@ export async function completeGuestUpgradeInExecutor(
 
   return {
     workspace: await loadWorkspaceSummaryInExecutor(executor, targetUserId, targetWorkspaceId),
+    outcome: "fresh_completion",
+    guestSessionId: guestSession.session_id,
+    targetSubjectUserId: cognitoSubject,
+    targetUserId,
+    targetWorkspaceId,
   };
 }
 

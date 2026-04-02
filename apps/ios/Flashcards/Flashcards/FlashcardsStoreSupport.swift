@@ -126,6 +126,11 @@ struct CloudLinkTransitionState {
     let task: Task<Void, Error>
 }
 
+struct CloudWorkspaceCompletionState {
+    let id: String
+    let task: Task<CloudWorkspaceSummary, Error>
+}
+
 struct FlashcardsStoreDependencies {
     let cloudAuthService: any CloudAuthServing
     let cloudSyncService: (any CloudSyncServing)?

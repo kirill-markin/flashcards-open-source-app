@@ -133,6 +133,7 @@ fun CloudPostAuthRoute(
                                 )
                             }
                         },
+                        enabled = uiState.mode == CloudPostAuthMode.CHOOSE_WORKSPACE,
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(
@@ -188,7 +189,7 @@ fun CloudPostAuthRoute(
                 item {
                     Button(
                         onClick = onRetry,
-                        enabled = uiState.canRetry,
+                        enabled = uiState.canRetry && uiState.mode == CloudPostAuthMode.FAILED,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Retry")
@@ -197,7 +198,7 @@ fun CloudPostAuthRoute(
                 item {
                     OutlinedButton(
                         onClick = onLogout,
-                        enabled = uiState.canLogout,
+                        enabled = uiState.canLogout && uiState.mode == CloudPostAuthMode.FAILED,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Log out")
