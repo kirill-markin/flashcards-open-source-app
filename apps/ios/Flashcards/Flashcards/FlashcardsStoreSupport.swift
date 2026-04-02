@@ -49,7 +49,7 @@ protocol CloudSyncServing {
     ) async throws -> (AgentApiKeyConnection, String)
     func isWorkspaceEmptyForBootstrap(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         workspaceId: String,
         installationId: String
     ) async throws -> Bool

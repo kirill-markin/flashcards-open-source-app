@@ -39,7 +39,21 @@ extension LocalDatabase {
         }
     }
 
-    func relinkWorkspace(localWorkspaceId: String, linkedSession: CloudLinkedSession) throws {
+    /**
+     Migrates the current local workspace shell into a linked workspace target.
+
+     `sync_state` belongs to the remote workspace identity, not to whichever
+     local rows currently happen to exist on device. When the workspace id
+     changes we therefore never carry hot/review cursors across. For an empty
+     remote workspace we preserve local cards/decks/reviews and recreate fresh
+     sync state. For a non-empty remote workspace we discard the old local shell
+     and rehydrate from the server.
+     */
+    func migrateLocalWorkspaceToLinkedWorkspace(
+        localWorkspaceId: String,
+        linkedSession: CloudLinkedSession,
+        remoteWorkspaceIsEmpty: Bool
+    ) throws {
         if localWorkspaceId == linkedSession.workspaceId {
             try self.updateCloudSettings(
                 cloudState: .linked,
@@ -52,58 +66,20 @@ extension LocalDatabase {
         }
 
         try self.core.inTransaction {
-            let existingWorkspaceCount = try self.core.scalarInt(
-                sql: "SELECT COUNT(*) FROM workspaces WHERE workspace_id = ?",
-                values: [.text(linkedSession.workspaceId)]
-            )
-
-            if existingWorkspaceCount == 0 {
-                let localWorkspace = try self.workspaceSettingsStore.loadWorkspace()
-                let currentSettings = try self.workspaceSettingsStore.loadWorkspaceSchedulerSettings(workspaceId: localWorkspaceId)
-                try self.insertWorkspaceFromLocalSettings(
-                    workspaceId: linkedSession.workspaceId,
-                    name: localWorkspace.name,
-                    createdAt: localWorkspace.createdAt,
-                    settings: currentSettings
+            if remoteWorkspaceIsEmpty {
+                try self.preserveLocalDataForEmptyRemoteWorkspace(
+                    sourceWorkspaceId: localWorkspaceId,
+                    destinationWorkspaceId: linkedSession.workspaceId
+                )
+            } else {
+                try self.replaceLocalShellForNonEmptyRemoteWorkspace(
+                    sourceWorkspaceId: localWorkspaceId,
+                    destinationWorkspaceId: linkedSession.workspaceId
                 )
             }
 
-            let workspaceScopedTables: [String] = ["user_settings", "cards", "decks", "review_events", "outbox", "sync_state"]
-            try self.updateWorkspaceReferences(
-                tableNames: workspaceScopedTables,
-                sourceWorkspaceId: localWorkspaceId,
-                destinationWorkspaceId: linkedSession.workspaceId
-            )
-
-            _ = try self.core.execute(
-                sql: "DELETE FROM workspaces WHERE workspace_id = ?",
-                values: [.text(localWorkspaceId)]
-            )
-
-            let syncStateCount = try self.core.scalarInt(
-                sql: "SELECT COUNT(*) FROM sync_state WHERE workspace_id = ?",
-                values: [.text(linkedSession.workspaceId)]
-            )
-            if syncStateCount == 0 {
-                try self.core.execute(
-                    sql: """
-                    INSERT INTO sync_state (
-                        workspace_id,
-                        last_applied_hot_change_id,
-                        last_applied_review_sequence_id,
-                        has_hydrated_hot_state,
-                        has_hydrated_review_history,
-                        updated_at
-                    )
-                    VALUES (?, 0, 0, 0, 0, ?)
-                    """,
-                    values: [
-                        .text(linkedSession.workspaceId),
-                        .text(nowIsoTimestamp())
-                    ]
-                )
-            }
-
+            try self.deleteOtherWorkspaces(exceptWorkspaceId: linkedSession.workspaceId)
+            try self.assertSingleWorkspaceInvariant(expectedWorkspaceId: linkedSession.workspaceId)
             try self.workspaceSettingsStore.updateCloudSettings(
                 cloudState: .linked,
                 linkedUserId: linkedSession.userId,
@@ -120,14 +96,13 @@ extension LocalDatabase {
         linkedSession: CloudLinkedSession
     ) throws {
         try self.core.inTransaction {
+            try self.deleteWorkspaceIfExists(workspaceId: replacementWorkspace.workspaceId)
             try self.ensureLinkedWorkspaceShell(workspace: replacementWorkspace)
-            try self.ensureSyncStateExists(workspaceId: replacementWorkspace.workspaceId)
+            try self.resetSyncState(workspaceId: replacementWorkspace.workspaceId)
             try self.updateAccountWorkspaceReference(workspaceId: replacementWorkspace.workspaceId)
-            _ = try self.core.execute(
-                sql: "DELETE FROM workspaces WHERE workspace_id = ?",
-                values: [.text(localWorkspaceId)]
-            )
-
+            try self.deleteWorkspaceIfExists(workspaceId: localWorkspaceId)
+            try self.deleteOtherWorkspaces(exceptWorkspaceId: replacementWorkspace.workspaceId)
+            try self.assertSingleWorkspaceInvariant(expectedWorkspaceId: replacementWorkspace.workspaceId)
             try self.workspaceSettingsStore.updateCloudSettings(
                 cloudState: .linked,
                 linkedUserId: linkedSession.userId,
@@ -277,6 +252,14 @@ extension LocalDatabase {
         }
     }
 
+    private func resetSyncState(workspaceId: String) throws {
+        _ = try self.core.execute(
+            sql: "DELETE FROM sync_state WHERE workspace_id = ?",
+            values: [.text(workspaceId)]
+        )
+        try self.ensureSyncStateExists(workspaceId: workspaceId)
+    }
+
     private func updateAccountWorkspaceReference(workspaceId: String) throws {
         _ = try self.core.execute(
             sql: """
@@ -299,6 +282,81 @@ extension LocalDatabase {
                     .text(destinationWorkspaceId),
                     .text(sourceWorkspaceId)
                 ]
+            )
+        }
+    }
+
+    private func preserveLocalDataForEmptyRemoteWorkspace(
+        sourceWorkspaceId: String,
+        destinationWorkspaceId: String
+    ) throws {
+        let localWorkspace = try self.workspaceSettingsStore.loadWorkspace()
+        let currentSettings = try self.workspaceSettingsStore.loadWorkspaceSchedulerSettings(workspaceId: sourceWorkspaceId)
+
+        try self.deleteWorkspaceIfExists(workspaceId: destinationWorkspaceId)
+        try self.insertWorkspaceFromLocalSettings(
+            workspaceId: destinationWorkspaceId,
+            name: localWorkspace.name,
+            createdAt: localWorkspace.createdAt,
+            settings: currentSettings
+        )
+
+        let workspaceScopedTables: [String] = ["user_settings", "cards", "decks", "review_events", "outbox", "card_tags"]
+        try self.updateWorkspaceReferences(
+            tableNames: workspaceScopedTables,
+            sourceWorkspaceId: sourceWorkspaceId,
+            destinationWorkspaceId: destinationWorkspaceId
+        )
+
+        try self.updateAccountWorkspaceReference(workspaceId: destinationWorkspaceId)
+        try self.deleteWorkspaceIfExists(workspaceId: sourceWorkspaceId)
+        try self.resetSyncState(workspaceId: destinationWorkspaceId)
+    }
+
+    private func replaceLocalShellForNonEmptyRemoteWorkspace(
+        sourceWorkspaceId: String,
+        destinationWorkspaceId: String
+    ) throws {
+        let sourceWorkspace = try self.workspaceSettingsStore.loadWorkspace()
+        try self.deleteWorkspaceIfExists(workspaceId: destinationWorkspaceId)
+        try self.insertWorkspaceShell(
+            workspace: CloudWorkspaceSummary(
+                workspaceId: destinationWorkspaceId,
+                name: sourceWorkspace.name,
+                createdAt: sourceWorkspace.createdAt,
+                isSelected: true
+            )
+        )
+        try self.resetSyncState(workspaceId: destinationWorkspaceId)
+        try self.updateAccountWorkspaceReference(workspaceId: destinationWorkspaceId)
+        try self.deleteWorkspaceIfExists(workspaceId: sourceWorkspaceId)
+    }
+
+    private func deleteWorkspaceIfExists(workspaceId: String) throws {
+        _ = try self.core.execute(
+            sql: "DELETE FROM workspaces WHERE workspace_id = ?",
+            values: [.text(workspaceId)]
+        )
+    }
+
+    private func deleteOtherWorkspaces(exceptWorkspaceId: String) throws {
+        _ = try self.core.execute(
+            sql: "DELETE FROM workspaces WHERE workspace_id <> ?",
+            values: [.text(exceptWorkspaceId)]
+        )
+    }
+
+    private func assertSingleWorkspaceInvariant(expectedWorkspaceId: String) throws {
+        let workspaceIds = try self.core.query(
+            sql: "SELECT workspace_id FROM workspaces ORDER BY created_at ASC",
+            values: []
+        ) { statement in
+            DatabaseCore.columnText(statement: statement, index: 0)
+        }
+
+        if workspaceIds.count != 1 || workspaceIds.first != expectedWorkspaceId {
+            throw LocalStoreError.database(
+                "Linked workspace migration left an invalid local workspace state: expected=\(expectedWorkspaceId) actual=\(workspaceIds)"
             )
         }
     }
