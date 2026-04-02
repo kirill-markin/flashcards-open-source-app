@@ -97,7 +97,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
                         isError: message.isError,
                         isStopped: false,
                         cursor: nil,
-                        itemId: nil
+                        itemId: message.itemId
                     )
                 }
             )
@@ -161,7 +161,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
                         isError: message.isError,
                         isStopped: message.isStopped,
                         cursor: message.cursor,
-                        itemId: nil
+                        itemId: message.itemId
                     )
                 },
                 hasOlder: payload.hasOlder,
@@ -223,7 +223,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
                         isError: message.isError,
                         isStopped: message.isStopped,
                         cursor: message.cursor,
-                        itemId: nil
+                        itemId: message.itemId
                     )
                 },
                 hasOlder: payload.hasOlder,

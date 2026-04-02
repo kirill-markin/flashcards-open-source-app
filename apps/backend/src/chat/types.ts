@@ -93,7 +93,14 @@ export type LiveSSEEvent =
     itemId: string;
     outputIndex: number;
   }>
-  | Readonly<{ type: "assistant_message_done"; cursor: string; itemId: string; isError: boolean; isStopped: boolean }>
+  | Readonly<{
+    type: "assistant_message_done";
+    cursor: string;
+    itemId: string;
+    content: ReadonlyArray<ContentPart>;
+    isError: boolean;
+    isStopped: boolean;
+  }>
   | Readonly<{ type: "repair_status"; message: string; attempt: number; maxAttempts: number; toolName: string | null }>
   | Readonly<{ type: "error"; message: string }>
   | Readonly<{ type: "stop_ack"; sessionId: string }>

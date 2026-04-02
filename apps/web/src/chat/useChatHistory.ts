@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { ContentPart, ReasoningSummaryContentPart, ToolCallContentPart } from "../types";
 
 export type StoredMessage = Readonly<{
@@ -7,6 +7,8 @@ export type StoredMessage = Readonly<{
   timestamp: number;
   isError: boolean;
   isStopped: boolean;
+  cursor: string | null;
+  itemId: string | null;
 }>;
 
 type ChatHistoryState = Readonly<{
@@ -14,11 +16,17 @@ type ChatHistoryState = Readonly<{
   replaceMessages: (messages: ReadonlyArray<StoredMessage>) => void;
   appendUserMessage: (content: ReadonlyArray<ContentPart>) => void;
   startAssistantMessage: (initialText: string | null) => void;
-  appendAssistantText: (text: string) => void;
-  upsertAssistantToolCall: (toolCall: ToolCallContentPart) => void;
-  upsertAssistantReasoningSummary: (reasoningSummary: ReasoningSummaryContentPart) => void;
-  completeAssistantReasoningSummary: (reasoningId: string) => void;
-  finishAssistantMessage: (isError: boolean, isStopped: boolean) => void;
+  appendAssistantText: (text: string, itemId: string, cursor: string) => void;
+  upsertAssistantToolCall: (toolCall: ToolCallContentPart, itemId: string, cursor: string) => void;
+  upsertAssistantReasoningSummary: (reasoningSummary: ReasoningSummaryContentPart, itemId: string, cursor: string) => void;
+  completeAssistantReasoningSummary: (reasoningId: string, itemId: string, cursor: string) => void;
+  finishAssistantMessage: (
+    content: ReadonlyArray<ContentPart>,
+    itemId: string,
+    cursor: string,
+    isError: boolean,
+    isStopped: boolean,
+  ) => boolean;
   markAssistantError: (errorText: string) => void;
   clearHistory: () => void;
 }>;
@@ -188,17 +196,136 @@ function finalizeAssistantContent(
   }, []);
 }
 
+type StreamingAssistantResolution = Readonly<{
+  messages: ReadonlyArray<StoredMessage>;
+  index: number;
+}>;
+
+function withAssistantStreamIdentity(
+  message: StoredMessage,
+  itemId: string,
+  cursor: string,
+): StoredMessage {
+  return {
+    ...message,
+    itemId,
+    cursor,
+  };
+}
+
+function resolveExistingStreamingAssistantMessage(
+  messages: ReadonlyArray<StoredMessage>,
+  itemId: string,
+  cursor: string,
+): StreamingAssistantResolution | null {
+  const existingIndex = messages.findIndex((message) => message.role === "assistant" && message.itemId === itemId);
+  if (existingIndex >= 0) {
+    const existingMessage = messages[existingIndex];
+    if (existingMessage === undefined) {
+      return null;
+    }
+
+    return {
+      messages: messages.map((message, index) => (
+        index === existingIndex ? withAssistantStreamIdentity(existingMessage, itemId, cursor) : message
+      )),
+      index: existingIndex,
+    };
+  }
+
+  const placeholderIndex = [...messages].reverse().findIndex((message) =>
+    message.role === "assistant" && message.itemId === null && message.isStopped === false,
+  );
+  if (placeholderIndex >= 0) {
+    const resolvedIndex = messages.length - 1 - placeholderIndex;
+    const placeholderMessage = messages[resolvedIndex];
+    if (placeholderMessage === undefined) {
+      return null;
+    }
+
+    return {
+      messages: messages.map((message, index) => (
+        index === resolvedIndex ? withAssistantStreamIdentity(placeholderMessage, itemId, cursor) : message
+      )),
+      index: resolvedIndex,
+    };
+  }
+
+  return null;
+}
+
+function resolveStreamingAssistantMessage(
+  messages: ReadonlyArray<StoredMessage>,
+  itemId: string,
+  cursor: string,
+): StreamingAssistantResolution {
+  const existingResolution = resolveExistingStreamingAssistantMessage(messages, itemId, cursor);
+  if (existingResolution !== null) {
+    return existingResolution;
+  }
+
+  const nextMessages = [
+    ...messages,
+    {
+      role: "assistant" as const,
+      content: [],
+      timestamp: Date.now(),
+      isError: false,
+      isStopped: false,
+      cursor,
+      itemId,
+    },
+  ];
+
+  return {
+    messages: nextMessages,
+    index: nextMessages.length - 1,
+  };
+}
+
+function shouldReconcileAssistantTerminalContent(
+  content: ReadonlyArray<ContentPart>,
+  isError: boolean,
+  isStopped: boolean,
+): boolean {
+  if (isError || isStopped) {
+    return false;
+  }
+
+  return content.every((part) => {
+    if (part.type === "text") {
+      return part.text.trim() === "";
+    }
+    if (part.type === "reasoning_summary") {
+      return part.summary.trim() === "";
+    }
+
+    return false;
+  });
+}
+
 export function useChatHistory(
   initialMessages?: ReadonlyArray<StoredMessage>,
 ): ChatHistoryState {
   const [messages, setMessages] = useState<ReadonlyArray<StoredMessage>>(initialMessages ?? []);
+  const messagesRef = useRef<ReadonlyArray<StoredMessage>>(initialMessages ?? []);
+
+  const commitMessages = useCallback((
+    updater: (currentMessages: ReadonlyArray<StoredMessage>) => ReadonlyArray<StoredMessage>,
+  ): ReadonlyArray<StoredMessage> => {
+    const nextMessages = updater(messagesRef.current);
+    messagesRef.current = nextMessages;
+    setMessages(nextMessages);
+    return nextMessages;
+  }, []);
 
   const replaceMessages = useCallback((nextMessages: ReadonlyArray<StoredMessage>): void => {
+    messagesRef.current = nextMessages;
     setMessages(nextMessages);
   }, []);
 
   const appendUserMessage = useCallback((content: ReadonlyArray<ContentPart>): void => {
-    setMessages((currentMessages) => [
+    commitMessages((currentMessages) => [
       ...currentMessages,
       {
         role: "user",
@@ -206,12 +333,14 @@ export function useChatHistory(
         timestamp: Date.now(),
         isError: false,
         isStopped: false,
+        cursor: null,
+        itemId: null,
       },
     ]);
-  }, []);
+  }, [commitMessages]);
 
   const startAssistantMessage = useCallback((initialText: string | null): void => {
-    setMessages((currentMessages) => [
+    commitMessages((currentMessages) => [
       ...currentMessages,
       {
         role: "assistant",
@@ -219,126 +348,132 @@ export function useChatHistory(
         timestamp: Date.now(),
         isError: false,
         isStopped: false,
+        cursor: null,
+        itemId: null,
       },
     ]);
-  }, []);
+  }, [commitMessages]);
 
-  const appendAssistantText = useCallback((text: string): void => {
-    setMessages((currentMessages) => {
-      const lastMessage = currentMessages[currentMessages.length - 1];
-      if (lastMessage === undefined || lastMessage.role !== "assistant") {
-        return [
-          ...currentMessages,
-          {
-            role: "assistant",
-            content: appendAssistantTextContent([], text),
-            timestamp: Date.now(),
-            isError: false,
-            isStopped: false,
-          },
-        ];
-      }
-
-      return [
-        ...currentMessages.slice(0, -1),
-        {
-          ...lastMessage,
-          content: appendAssistantTextContent(lastMessage.content, text),
-        },
-      ];
-    });
-  }, []);
-
-  const upsertAssistantToolCall = useCallback((toolCall: ToolCallContentPart): void => {
-    setMessages((currentMessages) => {
-      const lastMessage = currentMessages[currentMessages.length - 1];
-      if (lastMessage === undefined || lastMessage.role !== "assistant") {
-        return [
-          ...currentMessages,
-          {
-            role: "assistant",
-            content: upsertAssistantToolCallContent([], toolCall),
-            timestamp: Date.now(),
-            isError: false,
-            isStopped: false,
-          },
-        ];
-      }
-
-      return [
-        ...currentMessages.slice(0, -1),
-        {
-          ...lastMessage,
-          content: upsertAssistantToolCallContent(lastMessage.content, toolCall),
-        },
-      ];
-    });
-  }, []);
-
-  const upsertAssistantReasoningSummary = useCallback((reasoningSummary: ReasoningSummaryContentPart): void => {
-    setMessages((currentMessages) => {
-      const lastMessage = currentMessages[currentMessages.length - 1];
-      if (lastMessage === undefined || lastMessage.role !== "assistant") {
-        return [
-          ...currentMessages,
-          {
-            role: "assistant",
-            content: upsertAssistantReasoningSummaryContent([], reasoningSummary),
-            timestamp: Date.now(),
-            isError: false,
-            isStopped: false,
-          },
-        ];
-      }
-
-      return [
-        ...currentMessages.slice(0, -1),
-        {
-          ...lastMessage,
-          content: upsertAssistantReasoningSummaryContent(lastMessage.content, reasoningSummary),
-        },
-      ];
-    });
-  }, []);
-
-  const completeAssistantReasoningSummary = useCallback((reasoningId: string): void => {
-    setMessages((currentMessages) => {
-      const lastMessage = currentMessages[currentMessages.length - 1];
+  const appendAssistantText = useCallback((text: string, itemId: string, cursor: string): void => {
+    commitMessages((currentMessages) => {
+      const resolution = resolveStreamingAssistantMessage(currentMessages, itemId, cursor);
+      const lastMessage = resolution.messages[resolution.index];
       if (lastMessage === undefined || lastMessage.role !== "assistant") {
         return currentMessages;
       }
 
-      return [
-        ...currentMessages.slice(0, -1),
-        {
-          ...lastMessage,
-          content: completeAssistantReasoningSummaryContent(lastMessage.content, reasoningId),
-        },
-      ];
+      return resolution.messages.map((message, index) => (
+        index === resolution.index
+          ? {
+            ...lastMessage,
+            content: appendAssistantTextContent(lastMessage.content, text),
+          }
+          : message
+      ));
     });
-  }, []);
+  }, [commitMessages]);
 
-  const finishAssistantMessage = useCallback((isError: boolean, isStopped: boolean): void => {
-    setMessages((currentMessages) => {
-      const lastMessage = currentMessages[currentMessages.length - 1];
+  const upsertAssistantToolCall = useCallback((toolCall: ToolCallContentPart, itemId: string, cursor: string): void => {
+    commitMessages((currentMessages) => {
+      const resolution = resolveStreamingAssistantMessage(currentMessages, itemId, cursor);
+      const lastMessage = resolution.messages[resolution.index];
       if (lastMessage === undefined || lastMessage.role !== "assistant") {
         return currentMessages;
       }
 
-      return [
-        ...currentMessages.slice(0, -1),
-        {
+      return resolution.messages.map((message, index) => (
+        index === resolution.index
+          ? {
+            ...lastMessage,
+            content: upsertAssistantToolCallContent(lastMessage.content, toolCall),
+          }
+          : message
+      ));
+    });
+  }, [commitMessages]);
+
+  const upsertAssistantReasoningSummary = useCallback((
+    reasoningSummary: ReasoningSummaryContentPart,
+    itemId: string,
+    cursor: string,
+  ): void => {
+    commitMessages((currentMessages) => {
+      const resolution = resolveStreamingAssistantMessage(currentMessages, itemId, cursor);
+      const lastMessage = resolution.messages[resolution.index];
+      if (lastMessage === undefined || lastMessage.role !== "assistant") {
+        return currentMessages;
+      }
+
+      return resolution.messages.map((message, index) => (
+        index === resolution.index
+          ? {
+            ...lastMessage,
+            content: upsertAssistantReasoningSummaryContent(lastMessage.content, reasoningSummary),
+          }
+          : message
+      ));
+    });
+  }, [commitMessages]);
+
+  const completeAssistantReasoningSummary = useCallback((reasoningId: string, itemId: string, cursor: string): void => {
+    commitMessages((currentMessages) => {
+      const resolution = resolveStreamingAssistantMessage(currentMessages, itemId, cursor);
+      const lastMessage = resolution.messages[resolution.index];
+      if (lastMessage === undefined || lastMessage.role !== "assistant") {
+        return currentMessages;
+      }
+
+      return resolution.messages.map((message, index) => (
+        index === resolution.index
+          ? {
+            ...lastMessage,
+            content: completeAssistantReasoningSummaryContent(lastMessage.content, reasoningId),
+          }
+          : message
+      ));
+    });
+  }, [commitMessages]);
+
+  const finishAssistantMessage = useCallback((
+    content: ReadonlyArray<ContentPart>,
+    itemId: string,
+    cursor: string,
+    isError: boolean,
+    isStopped: boolean,
+  ): boolean => {
+    const currentMessages = messagesRef.current;
+    const resolution = resolveExistingStreamingAssistantMessage(currentMessages, itemId, cursor);
+    if (resolution === null) {
+      return false;
+    }
+
+    const lastMessage = resolution.messages[resolution.index];
+    if (lastMessage === undefined || lastMessage.role !== "assistant") {
+      return false;
+    }
+
+    const finalizedContent = finalizeAssistantContent(content);
+    if (shouldReconcileAssistantTerminalContent(finalizedContent, isError, isStopped)) {
+      return false;
+    }
+
+    const nextMessages = resolution.messages.map((message, index) => (
+      index === resolution.index
+        ? {
           ...lastMessage,
-          content: finalizeAssistantContent(lastMessage.content),
+          content: finalizedContent,
           isError,
           isStopped,
-        },
-      ];
-    });
+        }
+        : message
+    ));
+    messagesRef.current = nextMessages;
+    setMessages(nextMessages);
+    return true;
   }, []);
 
   const markAssistantError = useCallback((errorText: string): void => {
-    setMessages((currentMessages) => {
+    commitMessages((currentMessages) => {
       const lastMessage = currentMessages[currentMessages.length - 1];
       if (lastMessage === undefined || lastMessage.role !== "assistant") {
         return [
@@ -349,6 +484,8 @@ export function useChatHistory(
             timestamp: Date.now(),
             isError: true,
             isStopped: false,
+            cursor: null,
+            itemId: null,
           },
         ];
       }
@@ -362,9 +499,10 @@ export function useChatHistory(
         },
       ];
     });
-  }, []);
+  }, [commitMessages]);
 
   const clearHistory = useCallback((): void => {
+    messagesRef.current = [];
     setMessages([]);
   }, []);
 

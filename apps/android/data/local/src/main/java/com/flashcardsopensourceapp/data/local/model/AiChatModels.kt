@@ -303,7 +303,13 @@ sealed interface AiChatLiveEvent {
     data class AssistantReasoningStarted(val reasoningId: String, val cursor: String, val itemId: String) : AiChatLiveEvent
     data class AssistantReasoningSummary(val reasoningSummary: AiChatReasoningSummary, val cursor: String, val itemId: String) : AiChatLiveEvent
     data class AssistantReasoningDone(val reasoningId: String, val cursor: String, val itemId: String) : AiChatLiveEvent
-    data class AssistantMessageDone(val cursor: String, val itemId: String, val isError: Boolean, val isStopped: Boolean) : AiChatLiveEvent
+    data class AssistantMessageDone(
+        val cursor: String,
+        val itemId: String,
+        val content: List<AiChatContentPart>,
+        val isError: Boolean,
+        val isStopped: Boolean
+    ) : AiChatLiveEvent
     data class RepairStatus(val status: AiChatRepairAttemptStatus) : AiChatLiveEvent
     data class Error(val message: String) : AiChatLiveEvent
     data class StopAck(val sessionId: String) : AiChatLiveEvent

@@ -97,6 +97,8 @@ type ChatRoutesOptions = Readonly<{
   prepareChatRunFn?: typeof prepareChatRun;
   invokeChatWorkerFn?: typeof invokeChatWorkerOrPersistFailure;
   requestChatRunCancellationFn?: typeof requestChatRunCancellation;
+  createChatLiveStreamEnvelopeFn?: typeof createChatLiveStreamEnvelope;
+  resolveLiveCursorFn?: typeof resolveLiveCursor;
 }>;
 
 const UNSUPPORTED_CHAT_REQUEST_FIELDS = [
@@ -274,6 +276,7 @@ type ChatHistoryResponse = Readonly<{
     timestamp: number;
     isError: boolean;
     isStopped: boolean;
+    itemId: string | null;
   }>>;
 }>;
 
@@ -308,6 +311,7 @@ type ChatPaginatedHistoryResponse = Readonly<{
     isError: boolean;
     isStopped: boolean;
     cursor: string;
+    itemId: string | null;
   }>>;
 }>;
 
@@ -333,6 +337,7 @@ function toChatPaginatedHistoryResponse(
       isError: message.isError,
       isStopped: message.isStopped,
       cursor: String(message.itemOrder),
+      itemId: message.role === "assistant" ? message.itemId : null,
     })),
   };
 }
@@ -351,10 +356,11 @@ function toChatHistoryResponse(snapshot: ChatSessionSnapshot): ChatHistoryRespon
     chatConfig: getChatConfig(),
     messages: snapshot.messages.map((message) => ({
       role: message.role,
-      content: message.content,
+      content: stripBase64FromContentParts(message.content) as ReadonlyArray<ChatContentPart>,
       timestamp: message.timestamp,
       isError: message.isError,
       isStopped: message.isStopped,
+      itemId: message.itemId,
     })),
   };
 }
@@ -382,10 +388,12 @@ async function toChatHistoryResponseWithLiveStream(
   snapshot: ChatSessionSnapshot,
   userId: string,
   workspaceId: string,
+  createChatLiveStreamEnvelopeFn: typeof createChatLiveStreamEnvelope,
+  resolveLiveCursorFn: typeof resolveLiveCursor,
 ): Promise<ChatHistoryResponse> {
-  const liveCursor = await resolveLiveCursor(userId, workspaceId, snapshot.sessionId);
+  const liveCursor = await resolveLiveCursorFn(userId, workspaceId, snapshot.sessionId);
   const liveStream = snapshot.runState === "running"
-    ? await createChatLiveStreamEnvelope(userId, workspaceId, snapshot.sessionId)
+    ? await createChatLiveStreamEnvelopeFn(userId, workspaceId, snapshot.sessionId)
     : null;
 
   return {
@@ -439,6 +447,8 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const prepareChatRunFn = options.prepareChatRunFn ?? prepareChatRun;
   const invokeChatWorkerFn = options.invokeChatWorkerFn ?? invokeChatWorkerOrPersistFailure;
   const requestChatRunCancellationFn = options.requestChatRunCancellationFn ?? requestChatRunCancellation;
+  const createChatLiveStreamEnvelopeFn = options.createChatLiveStreamEnvelopeFn ?? createChatLiveStreamEnvelope;
+  const resolveLiveCursorFn = options.resolveLiveCursorFn ?? resolveLiveCursor;
 
   app.get("/chat", async (context) => {
     const requestContext = await loadSupportedRequestContext(
@@ -484,6 +494,8 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
           snapshot,
           requestContext.userId,
           workspaceId,
+          createChatLiveStreamEnvelopeFn,
+          resolveLiveCursorFn,
         ));
       } catch (error) {
         return mapStoreError(error);
@@ -529,7 +541,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       clientRequestId: preparedRun.clientRequestId,
       runState: preparedRun.runState,
       liveStream: preparedRun.runState === "running"
-        ? await createChatLiveStreamEnvelope(requestContext.userId, workspaceId, preparedRun.sessionId)
+        ? await createChatLiveStreamEnvelopeFn(requestContext.userId, workspaceId, preparedRun.sessionId)
         : null,
       chatConfig: getChatConfig(),
       deduplicated: preparedRun.deduplicated ? true : undefined,

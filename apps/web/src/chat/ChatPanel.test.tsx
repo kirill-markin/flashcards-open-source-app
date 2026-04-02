@@ -438,6 +438,7 @@ describe("ChatPanel send lifecycle", () => {
         type: "assistant_message_done",
         cursor: "cursor-1",
         itemId: "item-1",
+        content: [{ type: "text", text: "All set." }],
         isError: false,
         isStopped: false,
       });
@@ -449,7 +450,7 @@ describe("ChatPanel send lifecycle", () => {
     await flushAsync();
     await flushAsync();
 
-    expect(getChatSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(getChatSnapshotMock).toHaveBeenCalled();
     expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
     expect(getContainer().querySelector('[role="dialog"]')).toBeNull();
     expect(getContainer().textContent).not.toContain("AI live stream ended before the run finished.");

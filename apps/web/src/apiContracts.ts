@@ -520,10 +520,12 @@ function parseChatSessionHistoryMessage(
     timestamp: parseRequiredField(objectValue, "timestamp", endpoint, path, parseNumber),
     isError: parseRequiredField(objectValue, "isError", endpoint, path, parseBoolean),
     isStopped: parseRequiredField(objectValue, "isStopped", endpoint, path, parseBoolean),
+    cursor: parseOptionalField(objectValue, "cursor", endpoint, path, parseNullableString) ?? null,
+    itemId: parseOptionalField(objectValue, "itemId", endpoint, path, parseNullableString) ?? null,
   };
 }
 
-function parseContentPartArray(value: unknown, endpoint: string, path: string): ReadonlyArray<ContentPart> {
+export function parseContentPartArray(value: unknown, endpoint: string, path: string): ReadonlyArray<ContentPart> {
   return parseArray(value, endpoint, path, parseContentPart);
 }
 

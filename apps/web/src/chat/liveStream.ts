@@ -1,4 +1,5 @@
-import type { ChatLiveStream } from "../types";
+import { parseContentPartArray } from "../apiContracts";
+import type { ChatLiveStream, ContentPart } from "../types";
 
 export type ChatLiveEvent =
   | Readonly<{ type: "run_state"; runState: "idle" | "running" | "interrupted"; sessionId: string }>
@@ -18,7 +19,14 @@ export type ChatLiveEvent =
   | Readonly<{ type: "assistant_reasoning_started"; reasoningId: string; cursor: string; itemId: string; outputIndex: number }>
   | Readonly<{ type: "assistant_reasoning_summary"; reasoningId: string; summary: string; cursor: string; itemId: string; outputIndex: number }>
   | Readonly<{ type: "assistant_reasoning_done"; reasoningId: string; cursor: string; itemId: string; outputIndex: number }>
-  | Readonly<{ type: "assistant_message_done"; cursor: string; itemId: string; isError: boolean; isStopped: boolean }>
+  | Readonly<{
+    type: "assistant_message_done";
+    cursor: string;
+    itemId: string;
+    content: ReadonlyArray<ContentPart>;
+    isError: boolean;
+    isStopped: boolean;
+  }>
   | Readonly<{ type: "repair_status"; message: string; attempt: number; maxAttempts: number; toolName: string | null }>
   | Readonly<{ type: "error"; message: string }>
   | Readonly<{ type: "stop_ack"; sessionId: string }>
@@ -241,6 +249,7 @@ export function parseChatLiveEvent(
       type,
       cursor: requireStringField(objectValue, "cursor", type, payload),
       itemId: requireStringField(objectValue, "itemId", type, payload),
+      content: parseContentPartArray(objectValue.content, type, "content"),
       isError: requireBooleanField(objectValue, "isError", type, payload),
       isStopped: requireBooleanField(objectValue, "isStopped", type, payload),
     };

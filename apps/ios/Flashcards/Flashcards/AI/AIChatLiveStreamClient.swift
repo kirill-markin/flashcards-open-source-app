@@ -363,10 +363,11 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
             metadata["cursor"] = cursor
             metadata["itemId"] = itemId
             metadata["reasoningId"] = reasoningId
-        case .assistantMessageDone(let cursor, let itemId, let isError, let isStopped):
+        case .assistantMessageDone(let cursor, let itemId, let content, let isError, let isStopped):
             metadata["eventType"] = "assistant_message_done"
             metadata["cursor"] = cursor
             metadata["itemId"] = itemId
+            metadata["contentCount"] = String(content.count)
             metadata["isError"] = isError ? "true" : "false"
             metadata["isStopped"] = isStopped ? "true" : "false"
         case .repairStatus(let status):
@@ -555,6 +556,7 @@ private struct AIChatLiveAssistantReasoningDoneWireEvent: Decodable {
 private struct AIChatLiveAssistantMessageDoneWireEvent: Decodable {
     let cursor: String
     let itemId: String
+    let content: [AIChatContentPart]
     let isError: Bool
     let isStopped: Bool
 }
@@ -670,6 +672,7 @@ func decodeAIChatLiveEvent(
             return .assistantMessageDone(
                 cursor: event.cursor,
                 itemId: event.itemId,
+                content: event.content,
                 isError: event.isError,
                 isStopped: event.isStopped
             )

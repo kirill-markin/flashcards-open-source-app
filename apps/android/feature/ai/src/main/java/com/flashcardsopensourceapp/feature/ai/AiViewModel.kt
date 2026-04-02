@@ -827,15 +827,21 @@ class AiViewModel(
             }
 
             is AiChatLiveEvent.AssistantMessageDone -> {
+                val finalizedState = finalizeAssistantMessage(
+                    state = draftState.value.persistedState,
+                    content = event.content,
+                    itemId = event.itemId,
+                    cursor = event.cursor,
+                    isError = event.isError,
+                    isStopped = event.isStopped
+                )
+                if (finalizedState == null) {
+                    startConversationBootstrap(forceReloadState = true)
+                    return
+                }
                 draftState.update { state ->
                     state.copy(
-                        persistedState = finalizeAssistantMessage(
-                            state = state.persistedState,
-                            itemId = event.itemId,
-                            cursor = event.cursor,
-                            isError = event.isError,
-                            isStopped = event.isStopped
-                        ),
+                        persistedState = finalizedState,
                         liveCursor = event.cursor,
                         runState = if (event.isError) "failed" else if (event.isStopped) "stopped" else "idle",
                         isLiveAttached = false,
@@ -844,13 +850,7 @@ class AiViewModel(
                         activeAlert = if (event.isError) {
                             AiAlertState.GeneralError(
                                 message = latestAssistantErrorMessage(
-                                    messages = finalizeAssistantMessage(
-                                        state = state.persistedState,
-                                        itemId = event.itemId,
-                                        cursor = event.cursor,
-                                        isError = event.isError,
-                                        isStopped = event.isStopped
-                                    ).messages
+                                    messages = finalizedState.messages
                                 ) ?: "AI chat failed."
                             )
                         } else {

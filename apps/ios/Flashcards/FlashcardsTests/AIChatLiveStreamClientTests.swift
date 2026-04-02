@@ -9,6 +9,12 @@ final class AIChatLiveStreamClientTests: XCTestCase {
             {
               "cursor": "15",
               "itemId": "item-1",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "done"
+                }
+              ],
               "isError": false,
               "isStopped": true,
               "futureField": "ignored"
@@ -16,11 +22,12 @@ final class AIChatLiveStreamClientTests: XCTestCase {
             """
         )
 
-        guard case .assistantMessageDone(let cursor, let itemId, let isError, let isStopped) = event else {
+        guard case .assistantMessageDone(let cursor, let itemId, let content, let isError, let isStopped) = event else {
             return XCTFail("Expected assistant_message_done event.")
         }
         XCTAssertEqual(cursor, "15")
         XCTAssertEqual(itemId, "item-1")
+        XCTAssertEqual(content, [.text("done")])
         XCTAssertFalse(isError)
         XCTAssertTrue(isStopped)
     }
@@ -49,6 +56,7 @@ final class AIChatLiveStreamClientTests: XCTestCase {
                 {
                   "cursor": "15",
                   "itemId": "item-1",
+                  "content": [],
                   "isError": "false",
                   "isStopped": true
                 }
