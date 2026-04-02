@@ -336,62 +336,77 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
     }
 
     private func metadataForParsedEvent(_ event: AIChatLiveEvent) -> [String: String] {
+        let liveMetadata = aiChatLiveEventMetadata(event)
         var metadata: [String: String] = [
             "sessionId": self.sessionId,
-            "afterCursor": self.afterCursor ?? "-"
+            "afterCursor": self.afterCursor ?? "-",
+            "eventSessionId": liveMetadata.sessionId,
+            "conversationScopeId": liveMetadata.conversationScopeId,
+            "runId": liveMetadata.runId,
+            "cursor": liveMetadata.cursor ?? "-",
+            "sequenceNumber": String(liveMetadata.sequenceNumber),
+            "streamEpoch": liveMetadata.streamEpoch
         ]
 
         switch event {
-        case .runState(let runState):
-            metadata["eventType"] = "run_state"
-            metadata["runState"] = runState
-        case .assistantDelta(let text, let cursor, let itemId):
+        case .assistantDelta(metadata: _, text: let text, itemId: let itemId):
             metadata["eventType"] = "assistant_delta"
-            metadata["cursor"] = cursor
             metadata["itemId"] = itemId
             metadata["textLength"] = String(text.count)
-        case .assistantToolCall(let toolCall, let cursor, let itemId):
+        case .assistantToolCall(metadata: _, toolCall: let toolCall, itemId: let itemId):
             metadata["eventType"] = "assistant_tool_call"
-            metadata["cursor"] = cursor
             metadata["itemId"] = itemId
             metadata["toolName"] = toolCall.name
             metadata["toolStatus"] = toolCall.status.rawValue
-        case .assistantReasoningStarted(let reasoningId, let cursor, let itemId):
+        case .assistantReasoningStarted(metadata: _, reasoningId: let reasoningId, itemId: let itemId):
             metadata["eventType"] = "assistant_reasoning_started"
-            metadata["cursor"] = cursor
             metadata["itemId"] = itemId
             metadata["reasoningId"] = reasoningId
-        case .assistantReasoningSummary(let reasoningId, let summary, let cursor, let itemId):
+        case .assistantReasoningSummary(
+            metadata: _,
+            reasoningId: let reasoningId,
+            summary: let summary,
+            itemId: let itemId
+        ):
             metadata["eventType"] = "assistant_reasoning_summary"
-            metadata["cursor"] = cursor
             metadata["itemId"] = itemId
             metadata["reasoningId"] = reasoningId
             metadata["summaryLength"] = String(summary.count)
-        case .assistantReasoningDone(let reasoningId, let cursor, let itemId):
+        case .assistantReasoningDone(metadata: _, reasoningId: let reasoningId, itemId: let itemId):
             metadata["eventType"] = "assistant_reasoning_done"
-            metadata["cursor"] = cursor
             metadata["itemId"] = itemId
             metadata["reasoningId"] = reasoningId
-        case .assistantMessageDone(let cursor, let itemId, let content, let isError, let isStopped):
+        case .assistantMessageDone(
+            metadata: _,
+            itemId: let itemId,
+            content: let content,
+            isError: let isError,
+            isStopped: let isStopped
+        ):
             metadata["eventType"] = "assistant_message_done"
-            metadata["cursor"] = cursor
             metadata["itemId"] = itemId
             metadata["contentCount"] = String(content.count)
             metadata["isError"] = isError ? "true" : "false"
             metadata["isStopped"] = isStopped ? "true" : "false"
-        case .repairStatus(let status):
+        case .repairStatus(metadata: _, status: let status):
             metadata["eventType"] = "repair_status"
             metadata["attempt"] = String(status.attempt)
             metadata["maxAttempts"] = String(status.maxAttempts)
             metadata["toolName"] = status.toolName ?? "-"
-        case .error(let message):
-            metadata["eventType"] = "error"
-            metadata["message"] = message
-        case .stopAck(let sessionId):
-            metadata["eventType"] = "stop_ack"
-            metadata["ackSessionId"] = sessionId
-        case .resetRequired:
-            metadata["eventType"] = "reset_required"
+        case .runTerminal(
+            metadata: _,
+            outcome: let outcome,
+            message: let message,
+            assistantItemId: let assistantItemId,
+            isError: let isError,
+            isStopped: let isStopped
+        ):
+            metadata["eventType"] = "run_terminal"
+            metadata["outcome"] = outcome.rawValue
+            metadata["message"] = message ?? "-"
+            metadata["assistantItemId"] = assistantItemId ?? "-"
+            metadata["isError"] = isError.map { $0 ? "true" : "false" } ?? "-"
+            metadata["isStopped"] = isStopped.map { $0 ? "true" : "false" } ?? "-"
         }
 
         return metadata
@@ -501,7 +516,6 @@ private struct AIChatLiveEventTypeEnvelope: Decodable {
 }
 
 private enum AIChatLiveEventType: String, Decodable {
-    case runState = "run_state"
     case assistantDelta = "assistant_delta"
     case assistantToolCall = "assistant_tool_call"
     case assistantReasoningStarted = "assistant_reasoning_started"
@@ -509,80 +523,68 @@ private enum AIChatLiveEventType: String, Decodable {
     case assistantReasoningDone = "assistant_reasoning_done"
     case assistantMessageDone = "assistant_message_done"
     case repairStatus = "repair_status"
-    case error = "error"
-    case stopAck = "stop_ack"
-    case resetRequired = "reset_required"
+    case runTerminal = "run_terminal"
 }
 
-private enum AIChatLiveRunStateWire: String, Decodable {
-    case idle
-    case running
-    case completed
-    case failed
-    case stopped
-    case interrupted
+private struct AIChatLiveEventMetadataWire: Decodable {
+    let sessionId: String
+    let conversationScopeId: String
+    let runId: String
+    let cursor: String?
+    let sequenceNumber: Int
+    let streamEpoch: String
 }
 
-private struct AIChatLiveRunStateWireEvent: Decodable {
-    let runState: AIChatLiveRunStateWire
-}
-
-private struct AIChatLiveAssistantDeltaWireEvent: Decodable {
+private struct AIChatLiveAssistantDeltaWirePayload: Decodable {
     let text: String
-    let cursor: String
     let itemId: String
 }
 
-private struct AIChatLiveAssistantToolCallWireEvent: Decodable {
+private struct AIChatLiveAssistantToolCallWirePayload: Decodable {
     let toolCallId: String
     let name: String
     let status: AIChatToolCallStatus
     let input: String?
     let output: String?
-    let cursor: String
     let itemId: String
 }
 
-private struct AIChatLiveAssistantReasoningStartedWireEvent: Decodable {
+private struct AIChatLiveAssistantReasoningStartedWirePayload: Decodable {
     let reasoningId: String
-    let cursor: String
     let itemId: String
 }
 
-private struct AIChatLiveAssistantReasoningSummaryWireEvent: Decodable {
+private struct AIChatLiveAssistantReasoningSummaryWirePayload: Decodable {
     let reasoningId: String
     let summary: String
-    let cursor: String
     let itemId: String
 }
 
-private struct AIChatLiveAssistantReasoningDoneWireEvent: Decodable {
+private struct AIChatLiveAssistantReasoningDoneWirePayload: Decodable {
     let reasoningId: String
-    let cursor: String
     let itemId: String
 }
 
-private struct AIChatLiveAssistantMessageDoneWireEvent: Decodable {
-    let cursor: String
+private struct AIChatLiveAssistantMessageDoneWirePayload: Decodable {
     let itemId: String
     let content: [AIChatContentPart]
     let isError: Bool
     let isStopped: Bool
 }
 
-private struct AIChatLiveRepairStatusWireEvent: Decodable {
+private struct AIChatLiveRepairStatusWirePayload: Decodable {
     let message: String
     let attempt: Int
     let maxAttempts: Int
     let toolName: String?
 }
 
-private struct AIChatLiveErrorWireEvent: Decodable {
-    let message: String
-}
-
-private struct AIChatLiveStopAckWireEvent: Decodable {
-    let sessionId: String
+private struct AIChatLiveRunTerminalWirePayload: Decodable {
+    let outcome: AIChatRunTerminalOutcome
+    let message: String?
+    let assistantItemId: String?
+    let isError: Bool?
+    let isStopped: Bool?
 }
 
 func decodeAIChatLiveEvent(
@@ -633,76 +635,93 @@ func decodeAIChatLiveEvent(
         )
     }
 
+    let metadata: AIChatLiveEventMetadataWire
+    do {
+        metadata = try decoder.decode(AIChatLiveEventMetadataWire.self, from: data)
+    } catch {
+        throw makeAIChatLiveStreamContractError(
+            eventType: resolvedType.rawValue,
+            payload: payload,
+            context: context,
+            summary: "AI live stream event metadata is missing required fields or contains invalid values.",
+            underlyingError: error
+        )
+    }
+
     do {
         switch resolvedType {
-        case .runState:
-            let event = try decoder.decode(AIChatLiveRunStateWireEvent.self, from: data)
-            return .runState(event.runState.rawValue)
         case .assistantDelta:
-            let event = try decoder.decode(AIChatLiveAssistantDeltaWireEvent.self, from: data)
-            return .assistantDelta(text: event.text, cursor: event.cursor, itemId: event.itemId)
+            let event = try decoder.decode(AIChatLiveAssistantDeltaWirePayload.self, from: data)
+            return .assistantDelta(
+                metadata: mapAIChatLiveEventMetadata(metadata),
+                text: event.text,
+                itemId: event.itemId
+            )
         case .assistantToolCall:
-            let event = try decoder.decode(AIChatLiveAssistantToolCallWireEvent.self, from: data)
+            let event = try decoder.decode(AIChatLiveAssistantToolCallWirePayload.self, from: data)
             return .assistantToolCall(
-                AIChatToolCall(
+                metadata: mapAIChatLiveEventMetadata(metadata),
+                toolCall: AIChatToolCall(
                     id: event.toolCallId,
                     name: event.name,
                     status: event.status,
                     input: event.input,
                     output: event.output
                 ),
-                cursor: event.cursor,
                 itemId: event.itemId
             )
         case .assistantReasoningStarted:
-            let event = try decoder.decode(AIChatLiveAssistantReasoningStartedWireEvent.self, from: data)
+            let event = try decoder.decode(AIChatLiveAssistantReasoningStartedWirePayload.self, from: data)
             return .assistantReasoningStarted(
+                metadata: mapAIChatLiveEventMetadata(metadata),
                 reasoningId: event.reasoningId,
-                cursor: event.cursor,
                 itemId: event.itemId
             )
         case .assistantReasoningSummary:
-            let event = try decoder.decode(AIChatLiveAssistantReasoningSummaryWireEvent.self, from: data)
+            let event = try decoder.decode(AIChatLiveAssistantReasoningSummaryWirePayload.self, from: data)
             return .assistantReasoningSummary(
+                metadata: mapAIChatLiveEventMetadata(metadata),
                 reasoningId: event.reasoningId,
                 summary: event.summary,
-                cursor: event.cursor,
                 itemId: event.itemId
             )
         case .assistantReasoningDone:
-            let event = try decoder.decode(AIChatLiveAssistantReasoningDoneWireEvent.self, from: data)
+            let event = try decoder.decode(AIChatLiveAssistantReasoningDoneWirePayload.self, from: data)
             return .assistantReasoningDone(
+                metadata: mapAIChatLiveEventMetadata(metadata),
                 reasoningId: event.reasoningId,
-                cursor: event.cursor,
                 itemId: event.itemId
             )
         case .assistantMessageDone:
-            let event = try decoder.decode(AIChatLiveAssistantMessageDoneWireEvent.self, from: data)
+            let event = try decoder.decode(AIChatLiveAssistantMessageDoneWirePayload.self, from: data)
             return .assistantMessageDone(
-                cursor: event.cursor,
+                metadata: mapAIChatLiveEventMetadata(metadata),
                 itemId: event.itemId,
                 content: event.content,
                 isError: event.isError,
                 isStopped: event.isStopped
             )
         case .repairStatus:
-            let event = try decoder.decode(AIChatLiveRepairStatusWireEvent.self, from: data)
+            let event = try decoder.decode(AIChatLiveRepairStatusWirePayload.self, from: data)
             return .repairStatus(
-                AIChatRepairAttemptStatus(
+                metadata: mapAIChatLiveEventMetadata(metadata),
+                status: AIChatRepairAttemptStatus(
                     message: event.message,
                     attempt: event.attempt,
                     maxAttempts: event.maxAttempts,
                     toolName: event.toolName
                 )
             )
-        case .error:
-            let event = try decoder.decode(AIChatLiveErrorWireEvent.self, from: data)
-            return .error(event.message)
-        case .stopAck:
-            let event = try decoder.decode(AIChatLiveStopAckWireEvent.self, from: data)
-            return .stopAck(sessionId: event.sessionId)
-        case .resetRequired:
-            return .resetRequired
+        case .runTerminal:
+            let event = try decoder.decode(AIChatLiveRunTerminalWirePayload.self, from: data)
+            return .runTerminal(
+                metadata: mapAIChatLiveEventMetadata(metadata),
+                outcome: event.outcome,
+                message: event.message,
+                assistantItemId: event.assistantItemId,
+                isError: event.isError,
+                isStopped: event.isStopped
+            )
         }
     } catch {
         throw makeAIChatLiveStreamContractError(
@@ -741,4 +760,43 @@ private func makeAIChatLiveStreamContractError(
             continuationToolCallIds: []
         )
     )
+}
+
+private func mapAIChatLiveEventMetadata(_ metadata: AIChatLiveEventMetadataWire) -> AIChatLiveEventMetadata {
+    AIChatLiveEventMetadata(
+        sessionId: metadata.sessionId,
+        conversationScopeId: metadata.conversationScopeId,
+        runId: metadata.runId,
+        cursor: metadata.cursor,
+        sequenceNumber: metadata.sequenceNumber,
+        streamEpoch: metadata.streamEpoch
+    )
+}
+
+private func aiChatLiveEventMetadata(_ event: AIChatLiveEvent) -> AIChatLiveEventMetadata {
+    switch event {
+    case .assistantDelta(metadata: let metadata, text: _, itemId: _):
+        return metadata
+    case .assistantToolCall(metadata: let metadata, toolCall: _, itemId: _):
+        return metadata
+    case .assistantReasoningStarted(metadata: let metadata, reasoningId: _, itemId: _):
+        return metadata
+    case .assistantReasoningSummary(metadata: let metadata, reasoningId: _, summary: _, itemId: _):
+        return metadata
+    case .assistantReasoningDone(metadata: let metadata, reasoningId: _, itemId: _):
+        return metadata
+    case .assistantMessageDone(metadata: let metadata, itemId: _, content: _, isError: _, isStopped: _):
+        return metadata
+    case .repairStatus(metadata: let metadata, status: _):
+        return metadata
+    case .runTerminal(
+        metadata: let metadata,
+        outcome: _,
+        message: _,
+        assistantItemId: _,
+        isError: _,
+        isStopped: _
+    ):
+        return metadata
+    }
 }

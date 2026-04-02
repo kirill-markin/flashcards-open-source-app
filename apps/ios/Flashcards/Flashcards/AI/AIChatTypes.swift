@@ -583,29 +583,92 @@ enum AIChatBootstrapPhase: Hashable, Sendable {
     case failed(String)
 }
 
-struct AIChatSessionSnapshot: Hashable, Sendable {
-    let sessionId: String
-    let runState: String
-    let updatedAt: Int
-    let mainContentInvalidationVersion: Int
-    let chatConfig: AIChatServerConfig
+struct AIChatConversation: Hashable, Sendable {
     let messages: [AIChatMessage]
-}
-
-struct AIChatSessionSnapshotPayload: Decodable, Hashable, Sendable {
-    let sessionId: String
-    let runState: String
     let updatedAt: Int
     let mainContentInvalidationVersion: Int
-    let chatConfig: AIChatServerConfig
-    let messages: [AIChatSnapshotMessagePayload]
+    let hasOlder: Bool
+    let oldestCursor: String?
 }
 
-struct AIChatSnapshotMessagePayload: Decodable, Hashable, Sendable {
+struct AIChatActiveRunLive: Hashable, Sendable {
+    let cursor: String?
+    let stream: AIChatLiveStreamEnvelope
+}
+
+struct AIChatActiveRun: Hashable, Sendable {
+    let runId: String
+    let status: String
+    let live: AIChatActiveRunLive
+    let lastHeartbeatAt: Int?
+}
+
+struct AIChatConversationEnvelope: Hashable, Sendable {
+    let sessionId: String
+    let conversationScopeId: String
+    let conversation: AIChatConversation
+    let chatConfig: AIChatServerConfig
+    let activeRun: AIChatActiveRun?
+}
+
+typealias AIChatSessionSnapshot = AIChatConversationEnvelope
+typealias AIChatBootstrapResponse = AIChatConversationEnvelope
+
+struct AIChatConversationPayload: Decodable, Hashable, Sendable {
+    let messages: [AIChatConversationMessagePayload]
+    let updatedAt: Int
+    let mainContentInvalidationVersion: Int
+    let hasOlder: Bool?
+    let oldestCursor: String?
+}
+
+struct AIChatActiveRunLivePayload: Decodable, Hashable, Sendable {
+    let cursor: String?
+    let stream: AIChatLiveStreamEnvelope
+}
+
+struct AIChatActiveRunPayload: Decodable, Hashable, Sendable {
+    let runId: String
+    let status: String
+    let live: AIChatActiveRunLivePayload
+    let lastHeartbeatAt: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case runId
+        case status
+        case live
+        case lastHeartbeatAt
+        case lastHeartbeatAtMillis
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.runId = try container.decode(String.self, forKey: .runId)
+        self.status = try container.decode(String.self, forKey: .status)
+        self.live = try container.decode(AIChatActiveRunLivePayload.self, forKey: .live)
+        self.lastHeartbeatAt = try container.decodeIfPresent(Int.self, forKey: .lastHeartbeatAt)
+            ?? container.decodeIfPresent(Int.self, forKey: .lastHeartbeatAtMillis)
+    }
+}
+
+struct AIChatConversationEnvelopePayload: Decodable, Hashable, Sendable {
+    let sessionId: String
+    let conversationScopeId: String
+    let conversation: AIChatConversationPayload
+    let chatConfig: AIChatServerConfig
+    let activeRun: AIChatActiveRunPayload?
+}
+
+typealias AIChatSessionSnapshotPayload = AIChatConversationEnvelopePayload
+typealias AIChatBootstrapResponsePayload = AIChatConversationEnvelopePayload
+
+struct AIChatConversationMessagePayload: Decodable, Hashable, Sendable {
     let role: AIChatRole
     let content: [AIChatContentPart]
     let timestamp: String
     let isError: Bool
+    let isStopped: Bool
+    let cursor: String?
     let itemId: String?
 
     private enum CodingKeys: String, CodingKey {
@@ -614,6 +677,8 @@ struct AIChatSnapshotMessagePayload: Decodable, Hashable, Sendable {
         case timestamp
         case timestampMillis
         case isError
+        case isStopped
+        case cursor
         case itemId
     }
 
@@ -637,29 +702,13 @@ struct AIChatSnapshotMessagePayload: Decodable, Hashable, Sendable {
             )
         }
         self.isError = try container.decode(Bool.self, forKey: .isError)
+        self.isStopped = try container.decodeIfPresent(Bool.self, forKey: .isStopped) ?? false
+        self.cursor = try container.decodeIfPresent(String.self, forKey: .cursor)
         self.itemId = try container.decodeIfPresent(String.self, forKey: .itemId)
     }
 }
 
 // MARK: - Thin Live Chat Types
-
-struct AIChatAttachmentReference: Codable, Hashable, Sendable {
-    let id: String
-    let kind: String
-    let displayName: String
-    let mediaType: String
-}
-
-struct AIChatBootstrapResponse: Sendable {
-    let sessionId: String
-    let runState: String
-    let chatConfig: AIChatServerConfig
-    let liveStream: AIChatLiveStreamEnvelope?
-    let messages: [AIChatMessage]
-    let hasOlder: Bool
-    let oldestCursor: String?
-    let liveCursor: String?
-}
 
 struct AIChatOlderMessagesResponse: Sendable {
     let messages: [AIChatMessage]
@@ -667,115 +716,74 @@ struct AIChatOlderMessagesResponse: Sendable {
     let oldestCursor: String?
 }
 
-struct AIChatBootstrapResponsePayload: Decodable, Sendable {
-    let sessionId: String
-    let runState: String
-    let chatConfig: AIChatServerConfig
-    let liveStream: AIChatLiveStreamEnvelope?
-    let messages: [AIChatBootstrapMessagePayload]
-    let hasOlder: Bool
-    let oldestCursor: String?
-    let liveCursor: String?
+enum AIChatRunTerminalOutcome: String, Decodable, Hashable, Sendable {
+    case completed
+    case stopped
+    case error
+    case resetRequired = "reset_required"
 }
 
-struct AIChatBootstrapMessagePayload: Decodable, Sendable {
-    let role: AIChatRole
-    let content: [AIChatContentPart]
-    let timestamp: String
-    let isError: Bool
-    let isStopped: Bool
-    let cursor: String
-    let itemId: String?
-
-    private enum CodingKeys: String, CodingKey {
-        case role
-        case content
-        case timestamp
-        case isError
-        case isStopped
-        case cursor
-        case itemId
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.role = try container.decode(AIChatRole.self, forKey: .role)
-        self.content = try decodeAIChatContentParts(container: container, key: .content)
-        if let timestampMillis = try? container.decode(Int.self, forKey: .timestamp) {
-            self.timestamp = isoTimestampFromMilliseconds(timestampMillis)
-        } else {
-            self.timestamp = try container.decode(String.self, forKey: .timestamp)
-        }
-        self.isError = try container.decode(Bool.self, forKey: .isError)
-        self.isStopped = try container.decodeIfPresent(Bool.self, forKey: .isStopped) ?? false
-        self.cursor = try container.decode(String.self, forKey: .cursor)
-        self.itemId = try container.decodeIfPresent(String.self, forKey: .itemId)
-    }
+struct AIChatLiveEventMetadata: Hashable, Sendable {
+    let sessionId: String
+    let conversationScopeId: String
+    let runId: String
+    let cursor: String?
+    let sequenceNumber: Int
+    let streamEpoch: String
 }
 
 enum AIChatLiveEvent: Sendable {
-    case runState(String)
-    case assistantDelta(text: String, cursor: String, itemId: String)
-    case assistantToolCall(AIChatToolCall, cursor: String, itemId: String)
-    case assistantReasoningStarted(reasoningId: String, cursor: String, itemId: String)
-    case assistantReasoningSummary(reasoningId: String, summary: String, cursor: String, itemId: String)
-    case assistantReasoningDone(reasoningId: String, cursor: String, itemId: String)
+    case assistantDelta(metadata: AIChatLiveEventMetadata, text: String, itemId: String)
+    case assistantToolCall(metadata: AIChatLiveEventMetadata, toolCall: AIChatToolCall, itemId: String)
+    case assistantReasoningStarted(metadata: AIChatLiveEventMetadata, reasoningId: String, itemId: String)
+    case assistantReasoningSummary(metadata: AIChatLiveEventMetadata, reasoningId: String, summary: String, itemId: String)
+    case assistantReasoningDone(metadata: AIChatLiveEventMetadata, reasoningId: String, itemId: String)
     case assistantMessageDone(
-        cursor: String,
+        metadata: AIChatLiveEventMetadata,
         itemId: String,
         content: [AIChatContentPart],
         isError: Bool,
         isStopped: Bool
     )
-    case repairStatus(AIChatRepairAttemptStatus)
-    case error(String)
-    case stopAck(sessionId: String)
-    case resetRequired
+    case repairStatus(metadata: AIChatLiveEventMetadata, status: AIChatRepairAttemptStatus)
+    case runTerminal(
+        metadata: AIChatLiveEventMetadata,
+        outcome: AIChatRunTerminalOutcome,
+        message: String?,
+        assistantItemId: String?,
+        isError: Bool?,
+        isStopped: Bool?
+    )
 }
 
-struct AIChatConversationWindow: Sendable {
-    var messages: [AIChatMessage]
-    var hasOlder: Bool
-    var oldestCursor: String?
-    var liveCursor: String?
-    var runState: String
-    var isBootstrapping: Bool
-    var isLoadingOlder: Bool
-    var isLiveAttached: Bool
+struct AIChatAcceptedConversationEnvelopePayload: Decodable, Hashable, Sendable {
+    let accepted: Bool
+    let sessionId: String
+    let conversationScopeId: String
+    let conversation: AIChatConversationPayload
+    let chatConfig: AIChatServerConfig
+    let activeRun: AIChatActiveRunPayload?
+    let deduplicated: Bool?
+}
 
-    static func empty() -> AIChatConversationWindow {
-        AIChatConversationWindow(
-            messages: [],
-            hasOlder: false,
-            oldestCursor: nil,
-            liveCursor: nil,
-            runState: "idle",
-            isBootstrapping: true,
-            isLoadingOlder: false,
-            isLiveAttached: false
+struct AIChatStartRunResponse: Hashable, Sendable {
+    let accepted: Bool
+    let sessionId: String
+    let conversationScopeId: String
+    let conversation: AIChatConversation
+    let chatConfig: AIChatServerConfig
+    let activeRun: AIChatActiveRun?
+    let deduplicated: Bool?
+
+    var envelope: AIChatConversationEnvelope {
+        AIChatConversationEnvelope(
+            sessionId: self.sessionId,
+            conversationScopeId: self.conversationScopeId,
+            conversation: self.conversation,
+            chatConfig: self.chatConfig,
+            activeRun: self.activeRun
         )
     }
-}
-
-struct AIChatMinimalPersistedState: Codable, Hashable, Sendable {
-    let lastSessionId: String
-    let draftText: String
-
-    init(lastSessionId: String, draftText: String) {
-        self.lastSessionId = lastSessionId
-        self.draftText = draftText
-    }
-}
-
-struct AIChatStartRunResponse: Codable, Hashable, Sendable {
-    let ok: Bool
-    let sessionId: String
-    let runId: String
-    let clientRequestId: String
-    let runState: String
-    let liveStream: AIChatLiveStreamEnvelope?
-    let chatConfig: AIChatServerConfig
-    let deduplicated: Bool?
 }
 
 struct AIChatLiveStreamEnvelope: Codable, Hashable, Sendable {
@@ -794,10 +802,10 @@ struct AIChatNewSessionResponse: Codable, Hashable, Sendable {
     let chatConfig: AIChatServerConfig
 }
 
-struct AIChatStopRunResponse: Codable, Hashable, Sendable {
-    let ok: Bool
+struct AIChatStopRunResponse: Decodable, Hashable, Sendable {
     let sessionId: String
-    let runId: String
+    let conversationScopeId: String
+    let runId: String?
     let stopped: Bool
     let stillRunning: Bool
 }
@@ -865,97 +873,9 @@ struct AIChatRepairAttemptStatus: Hashable, Sendable {
     }
 }
 
-struct AIChatBackendError: Decodable, Hashable, Sendable {
-    let message: String
-    let code: String
-    let stage: String
-    let requestId: String
-}
-
-enum AIChatBackendStreamEvent: Decodable, Hashable, Sendable {
-    case delta(String)
-    case toolCall(AIChatToolCall)
-    case toolCallRequest(AIToolCallRequest)
-    case repairAttempt(AIChatRepairAttemptStatus)
-    case done
-    case error(AIChatBackendError)
-
-    private enum CodingKeys: String, CodingKey {
-        case type
-        case text
-        case id
-        case name
-        case status
-        case input
-        case output
-        case message
-        case attempt
-        case maxAttempts
-        case toolName
-        case code
-        case stage
-        case requestId
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let type = try container.decode(String.self, forKey: .type)
-
-        switch type {
-        case "delta":
-            self = .delta(try container.decode(String.self, forKey: .text))
-        case "tool_call":
-            self = .toolCall(
-                AIChatToolCall(
-                    id: try container.decode(String.self, forKey: .id),
-                    name: try container.decode(String.self, forKey: .name),
-                    status: try container.decode(AIChatToolCallStatus.self, forKey: .status),
-                    input: try container.decodeIfPresent(String.self, forKey: .input),
-                    output: try container.decodeIfPresent(String.self, forKey: .output)
-                )
-            )
-        case "tool_call_request":
-            self = .toolCallRequest(
-                AIToolCallRequest(
-                    toolCallId: try container.decode(String.self, forKey: .id),
-                    name: try container.decode(String.self, forKey: .name),
-                    input: try container.decode(String.self, forKey: .input)
-                )
-            )
-        case "repair_attempt":
-            self = .repairAttempt(
-                AIChatRepairAttemptStatus(
-                    message: try container.decode(String.self, forKey: .message),
-                    attempt: try container.decode(Int.self, forKey: .attempt),
-                    maxAttempts: try container.decode(Int.self, forKey: .maxAttempts),
-                    toolName: try container.decodeIfPresent(String.self, forKey: .toolName)
-                )
-            )
-        case "done":
-            self = .done
-        case "error":
-            self = .error(
-                AIChatBackendError(
-                    message: try container.decode(String.self, forKey: .message),
-                    code: try container.decode(String.self, forKey: .code),
-                    stage: try container.decode(String.self, forKey: .stage),
-                    requestId: try container.decode(String.self, forKey: .requestId)
-                )
-            )
-        default:
-            throw DecodingError.dataCorruptedError(
-                forKey: .type,
-                in: container,
-                debugDescription: "Unsupported chat stream event type: \(type)"
-            )
-        }
-    }
-}
-
 enum AIChatRuntimeEvent: Sendable {
     case accepted(AIChatStartRunResponse)
     case liveEvent(AIChatLiveEvent)
-    case applySnapshot(AIChatSessionSnapshot)
     case appendAssistantAccountUpgradePrompt(message: String, buttonTitle: String)
     case finish
     case fail(String)
