@@ -252,7 +252,7 @@ class CloudSignInViewModel(
 
     suspend fun completePendingPostAuthIfNeeded() {
         val selection = draftState.value.pendingSelection ?: return
-        if (draftState.value.processingTitle.isNotEmpty() || draftState.value.postAuthErrorMessage.isNotEmpty()) {
+        if (isPostAuthProcessing(state = draftState.value) || draftState.value.postAuthErrorMessage.isNotEmpty()) {
             return
         }
         completePostAuth(selection = selection)
@@ -283,7 +283,15 @@ class CloudSignInViewModel(
         }
     }
 
+    private fun isPostAuthProcessing(state: CloudSignInDraftState): Boolean {
+        return state.processingTitle.isNotEmpty()
+    }
+
     private suspend fun completePostAuth(selection: CloudWorkspaceLinkSelection) {
+        if (isPostAuthProcessing(state = draftState.value)) {
+            return
+        }
+
         val linkContext = requireNotNull(draftState.value.linkContext) {
             "Cloud workspace setup is unavailable."
         }
@@ -334,6 +342,10 @@ class CloudSignInViewModel(
     }
 
     private suspend fun runPostAuthSyncOnly(workspaceTitle: String) {
+        if (isPostAuthProcessing(state = draftState.value) && draftState.value.processingTitle == "Syncing workspace") {
+            return
+        }
+
         draftState.update { state ->
             state.copy(
                 processingTitle = "Syncing workspace",

@@ -21,6 +21,15 @@ class CloudIdentityResetCoordinator(
 ) {
     private val resetMutex = Mutex()
 
+    /**
+     * Clears every persisted account-scoped identity boundary.
+     *
+     * This reset is intentionally stronger than a normal disconnect: logout and
+     * account deletion must produce a fresh local installation id and remove any
+     * stored guest session so the next guest restore starts from a brand new
+     * guest user/workspace on the server instead of reusing a pre-reset guest
+     * identity when linking to another account later.
+     */
     suspend fun resetLocalStateForCloudIdentityChange() {
         withContext(Dispatchers.IO) {
             resetMutex.withLock {

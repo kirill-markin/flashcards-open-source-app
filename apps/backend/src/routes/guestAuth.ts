@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { AuthError, authenticateRequest } from "../auth";
+import { authenticateRequest } from "../auth";
 import { HttpError } from "../errors";
 import {
   completeGuestUpgrade,
@@ -12,6 +12,7 @@ import {
   expectRecord,
   parseJsonBody,
 } from "../server/requestParsing";
+import { logCloudRouteEvent, summarizeValidationIssues } from "../server/logging";
 import { extractRequestAuthInputs, toAuthRequest } from "../requestSecurity";
 import type { AppEnv } from "../app";
 
@@ -83,14 +84,41 @@ export function createGuestAuthRoutes(): Hono<AppEnv> {
       throw new HttpError(403, "Sign in before upgrading this guest session.", "GUEST_UPGRADE_HUMAN_AUTH_REQUIRED");
     }
 
+    const requestId = context.get("requestId");
     const body = expectRecord(await parseJsonBody(context.req.raw));
     const guestToken = expectNonEmptyString(body.guestToken, "guestToken");
     const selection = parseGuestUpgradeSelection(body.selection);
-    const result = await completeGuestUpgrade(guestToken, auth.subjectUserId, selection);
 
-    return context.json({
-      workspace: result.workspace,
-    } satisfies GuestUpgradeCompleteEnvelope);
+    try {
+      const result = await completeGuestUpgrade(guestToken, auth.subjectUserId, selection);
+      logCloudRouteEvent("guest_upgrade_complete", {
+        requestId,
+        route: context.req.path,
+        statusCode: 200,
+        selectionType: selection.type,
+        targetSubjectUserId: result.targetSubjectUserId,
+        guestSessionId: result.guestSessionId,
+        targetUserId: result.targetUserId,
+        targetWorkspaceId: result.targetWorkspaceId,
+        completionKind: result.outcome,
+      }, false);
+
+      return context.json({
+        workspace: result.workspace,
+      } satisfies GuestUpgradeCompleteEnvelope);
+    } catch (error) {
+      logCloudRouteEvent("guest_upgrade_complete_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        selectionType: selection.type,
+        targetSubjectUserId: auth.subjectUserId,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        message: error instanceof Error ? error.message : String(error),
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
   });
 
   return app;

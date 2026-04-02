@@ -202,6 +202,11 @@ class CloudGuestSessionCoordinator(
             require(createSessionIfMissing) {
                 "Guest AI session is unavailable."
             }
+            // A missing stored session here means we already crossed a full
+            // local identity reset boundary such as logout or account deletion.
+            // The recreated guest session must therefore be treated as a brand
+            // new guest identity, not as a continuation of any older guest
+            // account that may have been linked previously.
             aiChatRemoteService.createGuestSession(
                 apiBaseUrl = configuration.apiBaseUrl,
                 configurationMode = configuration.mode

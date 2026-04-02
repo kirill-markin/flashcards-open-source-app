@@ -40,6 +40,12 @@ extension FlashcardsStore {
     /**
      Clears all account-scoped local state so the next cloud link starts from a
      fresh local database and a freshly generated sync device id.
+     
+     This reset is the boundary that intentionally breaks identity continuity
+     across logout and account deletion. The next guest cloud restore creates a
+     brand new server-side guest session with a new guest user/workspace, so we
+     never try to merge a future guest account into another linked account as if
+     it were the same pre-reset guest identity.
      */
     private func resetLocalStateForCloudIdentityChange() throws {
         let database = try requireLocalDatabase(database: self.database)
@@ -311,85 +317,99 @@ extension FlashcardsStore {
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection
     ) async throws {
-        guard let workspace else {
-            throw LocalStoreError.uninitialized("Workspace is unavailable")
-        }
-
-        let linkedWorkspace = try await self.cloudRuntime.selectOrCreateWorkspace(
-            linkContext: linkContext,
-            selection: selection,
-            localWorkspaceName: workspace.name
-        )
-
-        if try await self.shouldValidateEmptyRemoteWorkspaceBeforeBootstrap() {
-            let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
-            let cloudSettings = try requireCloudSettings(cloudSettings: self.cloudSettings)
-            let isWorkspaceEmpty = try await cloudSyncService.isWorkspaceEmptyForBootstrap(
-                apiBaseUrl: linkContext.apiBaseUrl,
-                bearerToken: linkContext.credentials.idToken,
-                workspaceId: linkedWorkspace.workspaceId,
-                installationId: cloudSettings.installationId
-            )
-            if isWorkspaceEmpty == false {
-                throw CloudBootstrapEligibilityError.remoteWorkspaceIsNotEmpty
+        _ = try await self.cloudRuntime.runWorkspaceCompletion { [weak self] in
+            guard let self else {
+                throw LocalStoreError.uninitialized("Flashcards store is unavailable")
             }
-        }
 
-        try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
-        let configuration = try self.currentCloudServiceConfiguration()
-        try await self.finishCloudLink(
-            linkedSession: CloudLinkedSession(
-                userId: linkContext.userId,
-                workspaceId: linkedWorkspace.workspaceId,
-                email: linkContext.email,
-                configurationMode: configuration.mode,
-                apiBaseUrl: linkContext.apiBaseUrl,
-                authorization: .bearer(linkContext.credentials.idToken)
-            ),
-            trigger: self.manualCloudSyncTrigger(now: Date())
-        )
-        try self.clearGuestSessionIfNeeded()
-        self.globalErrorMessage = ""
+            guard let workspace = self.workspace else {
+                throw LocalStoreError.uninitialized("Workspace is unavailable")
+            }
+
+            let linkedWorkspace = try await self.cloudRuntime.selectOrCreateWorkspace(
+                linkContext: linkContext,
+                selection: selection,
+                localWorkspaceName: workspace.name
+            )
+
+            if try await self.shouldValidateEmptyRemoteWorkspaceBeforeBootstrap() {
+                let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+                let cloudSettings = try requireCloudSettings(cloudSettings: self.cloudSettings)
+                let isWorkspaceEmpty = try await cloudSyncService.isWorkspaceEmptyForBootstrap(
+                    apiBaseUrl: linkContext.apiBaseUrl,
+                    bearerToken: linkContext.credentials.idToken,
+                    workspaceId: linkedWorkspace.workspaceId,
+                    installationId: cloudSettings.installationId
+                )
+                if isWorkspaceEmpty == false {
+                    throw CloudBootstrapEligibilityError.remoteWorkspaceIsNotEmpty
+                }
+            }
+
+            try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
+            let configuration = try self.currentCloudServiceConfiguration()
+            try await self.finishCloudLink(
+                linkedSession: CloudLinkedSession(
+                    userId: linkContext.userId,
+                    workspaceId: linkedWorkspace.workspaceId,
+                    email: linkContext.email,
+                    configurationMode: configuration.mode,
+                    apiBaseUrl: linkContext.apiBaseUrl,
+                    authorization: .bearer(linkContext.credentials.idToken)
+                ),
+                trigger: self.manualCloudSyncTrigger(now: Date())
+            )
+            try self.clearGuestSessionIfNeeded()
+            self.globalErrorMessage = ""
+            return linkedWorkspace
+        }
     }
 
     func completeGuestCloudLink(
         linkContext: CloudWorkspaceLinkContext,
         selection: CloudWorkspaceLinkSelection
     ) async throws {
-        guard let guestSession = try self.loadGuestSessionForCurrentConfiguration() else {
-            throw LocalStoreError.uninitialized("Guest AI session is unavailable")
-        }
+        _ = try await self.cloudRuntime.runWorkspaceCompletion { [weak self] in
+            guard let self else {
+                throw LocalStoreError.uninitialized("Flashcards store is unavailable")
+            }
 
-        let guestSelection: CloudGuestUpgradeSelection
-        switch selection {
-        case .existing(let workspaceId):
-            guestSelection = .existing(workspaceId: workspaceId)
-        case .createNew:
-            guestSelection = .createNew
-        }
+            guard let guestSession = try self.loadGuestSessionForCurrentConfiguration() else {
+                throw LocalStoreError.uninitialized("Guest AI session is unavailable")
+            }
 
-        let linkedWorkspace = try await self.dependencies.guestCloudAuthService.completeGuestUpgrade(
-            apiBaseUrl: linkContext.apiBaseUrl,
-            bearerToken: linkContext.credentials.idToken,
-            guestToken: guestSession.guestToken,
-            selection: guestSelection
-        )
+            let guestSelection: CloudGuestUpgradeSelection
+            switch selection {
+            case .existing(let workspaceId):
+                guestSelection = .existing(workspaceId: workspaceId)
+            case .createNew:
+                guestSelection = .createNew
+            }
 
-        try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
-        let configuration = try self.currentCloudServiceConfiguration()
-        try await self.finishCloudLink(
-            linkedSession: CloudLinkedSession(
-                userId: linkContext.userId,
-                workspaceId: linkedWorkspace.workspaceId,
-                email: linkContext.email,
-                configurationMode: configuration.mode,
+            let linkedWorkspace = try await self.dependencies.guestCloudAuthService.completeGuestUpgrade(
                 apiBaseUrl: linkContext.apiBaseUrl,
-                authorization: .bearer(linkContext.credentials.idToken)
-            ),
-            trigger: self.manualCloudSyncTrigger(now: Date())
-        )
-        try self.clearGuestSessionIfNeeded()
-        self.globalErrorMessage = ""
+                bearerToken: linkContext.credentials.idToken,
+                guestToken: guestSession.guestToken,
+                selection: guestSelection
+            )
+
+            try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
+            let configuration = try self.currentCloudServiceConfiguration()
+            try await self.finishCloudLink(
+                linkedSession: CloudLinkedSession(
+                    userId: linkContext.userId,
+                    workspaceId: linkedWorkspace.workspaceId,
+                    email: linkContext.email,
+                    configurationMode: configuration.mode,
+                    apiBaseUrl: linkContext.apiBaseUrl,
+                    authorization: .bearer(linkContext.credentials.idToken)
+                ),
+                trigger: self.manualCloudSyncTrigger(now: Date())
+            )
+            try self.clearGuestSessionIfNeeded()
+            self.globalErrorMessage = ""
+            return linkedWorkspace
+        }
     }
 
     func logoutCloudAccount() throws {
@@ -691,6 +711,9 @@ extension FlashcardsStore {
         if let existingGuestSession = try self.loadGuestSessionForCurrentConfiguration() {
             storedGuestSession = existingGuestSession
         } else {
+            // After logout/account deletion the stored guest session is gone and
+            // the local installation id has already been regenerated. Creating
+            // a session here intentionally starts a brand new guest identity.
             let configuration = try self.currentCloudServiceConfiguration()
             let createdGuestSession = try await self.dependencies.guestCloudAuthService.createGuestSession(
                 apiBaseUrl: configuration.apiBaseUrl,

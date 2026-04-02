@@ -4,6 +4,7 @@ import test from "node:test";
 import type pg from "pg";
 import type { DatabaseExecutor } from "./db";
 import { completeGuestUpgradeInExecutor } from "./guestAuth";
+import { HttpError } from "./errors";
 
 type GuestSessionState = Readonly<{
   session_id: string;
@@ -122,6 +123,22 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
           user_id: guestSession.user_id,
           revoked_at: guestSession.revoked_at,
         } as unknown as Row] : [];
+        return createQueryResult<Row>(rows);
+      }
+
+      if (
+        text.includes("FROM auth.guest_upgrade_history")
+        && text.includes("WHERE source_guest_session_id = $1")
+      ) {
+        const guestSessionId = params[0];
+        const guestUpgradeHistory = typeof guestSessionId === "string"
+          ? state.guestUpgradeHistory.find((row) => row.source_guest_session_id === guestSessionId)
+          : undefined;
+        const rows = guestUpgradeHistory === undefined ? [] : [{
+          target_subject_user_id: guestUpgradeHistory.target_subject_user_id,
+          target_user_id: guestUpgradeHistory.target_user_id,
+          target_workspace_id: guestUpgradeHistory.target_workspace_id,
+        } as unknown as Row];
         return createQueryResult<Row>(rows);
       }
 
@@ -446,6 +463,8 @@ test("completeGuestUpgradeInExecutor reassigns guest installation ownership duri
   assert.equal(state.guestUpgradeHistory.length, 1);
   assert.equal(state.guestReplicaAliases.length, 1);
   assert.equal(state.guestReplicaAliases[0]?.source_guest_replica_id, guestReplicaId);
+  assert.equal(result.outcome, "fresh_completion");
+  assert.equal(result.targetWorkspaceId, targetWorkspaceId);
 
   const targetReplica = state.workspaceReplicas.find((replica) => (
     replica.workspace_id === targetWorkspaceId
@@ -453,4 +472,233 @@ test("completeGuestUpgradeInExecutor reassigns guest installation ownership duri
   ));
   assert.ok(targetReplica);
   assert.equal(targetReplica?.user_id, targetUserId);
+});
+
+test("completeGuestUpgradeInExecutor replays a revoked guest upgrade for the same subject", async () => {
+  const guestToken = "guest-token-2";
+  const guestUserId = "guest-user";
+  const guestWorkspaceId = "guest-workspace";
+  const targetUserId = "linked-user";
+  const targetWorkspaceId = "target-workspace";
+  const guestReplicaId = "guest-replica";
+  const installationId = "installation-2";
+  const targetSubject = "cognito-subject-2";
+
+  const state: MutableState = {
+    currentUserId: null,
+    currentWorkspaceId: null,
+    guestSession: {
+      session_id: "guest-session-2",
+      session_secret_hash: hashGuestToken(guestToken),
+      user_id: guestUserId,
+      revoked_at: null,
+    },
+    identityMappings: new Map<string, string>([[targetSubject, targetUserId]]),
+    userSettings: new Map<string, UserSettingsState>([
+      [guestUserId, { user_id: guestUserId, workspace_id: guestWorkspaceId }],
+      [targetUserId, { user_id: targetUserId, workspace_id: targetWorkspaceId }],
+    ]),
+    workspaces: new Map<string, WorkspaceState>([
+      [guestWorkspaceId, {
+        workspace_id: guestWorkspaceId,
+        name: "Guest workspace",
+        created_at: "2026-04-02T14:00:00.000Z",
+        fsrs_algorithm: "fsrs-6",
+        fsrs_desired_retention: 0.9,
+        fsrs_learning_steps_minutes: [1, 10],
+        fsrs_relearning_steps_minutes: [10],
+        fsrs_maximum_interval_days: 36500,
+        fsrs_enable_fuzz: true,
+        fsrs_client_updated_at: "2026-04-02T14:00:00.000Z",
+        fsrs_last_modified_by_replica_id: guestReplicaId,
+        fsrs_last_operation_id: "guest-op",
+        fsrs_updated_at: "2026-04-02T14:00:00.000Z",
+      }],
+      [targetWorkspaceId, {
+        workspace_id: targetWorkspaceId,
+        name: "Target workspace",
+        created_at: "2026-04-02T13:00:00.000Z",
+        fsrs_algorithm: "fsrs-6",
+        fsrs_desired_retention: 0.9,
+        fsrs_learning_steps_minutes: [1, 10],
+        fsrs_relearning_steps_minutes: [10],
+        fsrs_maximum_interval_days: 36500,
+        fsrs_enable_fuzz: true,
+        fsrs_client_updated_at: "2026-04-02T14:05:00.000Z",
+        fsrs_last_modified_by_replica_id: "target-replica-existing",
+        fsrs_last_operation_id: "target-op",
+        fsrs_updated_at: "2026-04-02T14:05:00.000Z",
+      }],
+    ]),
+    workspaceMemberships: new Set<string>([
+      membershipKey(guestUserId, guestWorkspaceId),
+      membershipKey(targetUserId, targetWorkspaceId),
+    ]),
+    workspaceReplicas: [{
+      replica_id: guestReplicaId,
+      workspace_id: guestWorkspaceId,
+      user_id: guestUserId,
+      actor_kind: "client_installation",
+      installation_id: installationId,
+      actor_key: null,
+      platform: "ios",
+      app_version: "1.2.3",
+      created_at: "2026-04-02T14:00:01.000Z",
+      last_seen_at: "2026-04-02T14:01:09.591Z",
+    }],
+    installations: new Map<string, InstallationState>([[
+      installationId,
+      {
+        installation_id: installationId,
+        user_id: guestUserId,
+        platform: "ios",
+        app_version: "1.2.3",
+      },
+    ]]),
+    guestUpgradeHistory: [],
+    guestReplicaAliases: [],
+  };
+
+  const executor = createGuestUpgradeExecutor(state);
+  const firstResult = await completeGuestUpgradeInExecutor(
+    executor,
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+  );
+  const secondResult = await completeGuestUpgradeInExecutor(
+    executor,
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+  );
+
+  assert.equal(firstResult.outcome, "fresh_completion");
+  assert.equal(secondResult.outcome, "idempotent_replay");
+  assert.equal(secondResult.workspace.workspaceId, targetWorkspaceId);
+  assert.equal(secondResult.targetUserId, targetUserId);
+  assert.equal(state.guestUpgradeHistory.length, 1);
+});
+
+test("completeGuestUpgradeInExecutor rejects a replay from a different subject", async () => {
+  const guestToken = "guest-token-3";
+  const guestSessionId = "guest-session-3";
+  const guestUserId = "guest-user";
+  const targetWorkspaceId = "target-workspace";
+
+  const state: MutableState = {
+    currentUserId: null,
+    currentWorkspaceId: null,
+    guestSession: {
+      session_id: guestSessionId,
+      session_secret_hash: hashGuestToken(guestToken),
+      user_id: guestUserId,
+      revoked_at: "2026-04-02T14:01:16.000Z",
+    },
+    identityMappings: new Map<string, string>([["different-subject", "linked-user"]]),
+    userSettings: new Map<string, UserSettingsState>([
+      ["linked-user", { user_id: "linked-user", workspace_id: targetWorkspaceId }],
+    ]),
+    workspaces: new Map<string, WorkspaceState>([
+      [targetWorkspaceId, {
+        workspace_id: targetWorkspaceId,
+        name: "Target workspace",
+        created_at: "2026-04-02T13:00:00.000Z",
+        fsrs_algorithm: "fsrs-6",
+        fsrs_desired_retention: 0.9,
+        fsrs_learning_steps_minutes: [1, 10],
+        fsrs_relearning_steps_minutes: [10],
+        fsrs_maximum_interval_days: 36500,
+        fsrs_enable_fuzz: true,
+        fsrs_client_updated_at: "2026-04-02T14:05:00.000Z",
+        fsrs_last_modified_by_replica_id: "target-replica-existing",
+        fsrs_last_operation_id: "target-op",
+        fsrs_updated_at: "2026-04-02T14:05:00.000Z",
+      }],
+    ]),
+    workspaceMemberships: new Set<string>([
+      membershipKey("linked-user", targetWorkspaceId),
+    ]),
+    workspaceReplicas: [],
+    installations: new Map<string, InstallationState>(),
+    guestUpgradeHistory: [{
+      upgrade_id: "upgrade-1",
+      source_guest_user_id: guestUserId,
+      source_guest_workspace_id: "guest-workspace",
+      source_guest_session_id: guestSessionId,
+      target_subject_user_id: "original-subject",
+      target_user_id: "linked-user",
+      target_workspace_id: targetWorkspaceId,
+      selection_type: "existing",
+    }],
+    guestReplicaAliases: [],
+  };
+
+  const executor = createGuestUpgradeExecutor(state);
+
+  await assert.rejects(
+    completeGuestUpgradeInExecutor(
+      executor,
+      guestToken,
+      "different-subject",
+      {
+        type: "existing",
+        workspaceId: targetWorkspaceId,
+      },
+    ),
+    (error: unknown) => (
+      error instanceof HttpError
+      && error.statusCode === 401
+      && error.code === "GUEST_AUTH_INVALID"
+    ),
+  );
+});
+
+test("completeGuestUpgradeInExecutor rejects a revoked guest session without replay history", async () => {
+  const guestToken = "guest-token-4";
+  const guestSessionId = "guest-session-4";
+  const guestUserId = "guest-user";
+
+  const state: MutableState = {
+    currentUserId: null,
+    currentWorkspaceId: null,
+    guestSession: {
+      session_id: guestSessionId,
+      session_secret_hash: hashGuestToken(guestToken),
+      user_id: guestUserId,
+      revoked_at: "2026-04-02T14:01:16.000Z",
+    },
+    identityMappings: new Map<string, string>([["target-subject", "linked-user"]]),
+    userSettings: new Map<string, UserSettingsState>(),
+    workspaces: new Map<string, WorkspaceState>(),
+    workspaceMemberships: new Set<string>(),
+    workspaceReplicas: [],
+    installations: new Map<string, InstallationState>(),
+    guestUpgradeHistory: [],
+    guestReplicaAliases: [],
+  };
+
+  const executor = createGuestUpgradeExecutor(state);
+
+  await assert.rejects(
+    completeGuestUpgradeInExecutor(
+      executor,
+      guestToken,
+      "target-subject",
+      {
+        type: "create_new",
+      },
+    ),
+    (error: unknown) => (
+      error instanceof HttpError
+      && error.statusCode === 401
+      && error.code === "GUEST_AUTH_INVALID"
+    ),
+  );
 });
