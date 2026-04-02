@@ -10,6 +10,7 @@ export interface NetworkingResult {
 export function networking(scope: Construct): NetworkingResult {
   const natProvider = ec2.NatProvider.instanceV2({
     instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
+    defaultAllowedTraffic: ec2.NatTrafficDirection.OUTBOUND_ONLY,
   });
 
   const vpc = new ec2.Vpc(scope, "Vpc", {
@@ -21,6 +22,13 @@ export function networking(scope: Construct): NetworkingResult {
       { name: "private", subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS, cidrMask: 24 },
     ],
   });
+
+  // NAT instances should only accept routed traffic from workloads inside this VPC.
+  natProvider.connections.allowFrom(
+    ec2.Peer.ipv4(vpc.vpcCidrBlock),
+    ec2.Port.allTraffic(),
+    "Allow routed traffic from this VPC",
+  );
 
   const dbSg = new ec2.SecurityGroup(scope, "DbSg", {
     vpc,
