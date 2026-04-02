@@ -8,7 +8,6 @@ import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStopRunResponse
-import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.CardDraft
@@ -153,18 +152,15 @@ interface AiChatRepository {
     suspend fun startRun(
         workspaceId: String?,
         state: AiChatPersistedState,
-        content: List<com.flashcardsopensourceapp.data.local.model.AiChatContentPart>,
-        onAccepted: suspend (AiChatStartRunResponse) -> Unit,
-        onEvent: suspend (AiChatLiveEvent) -> Unit
-    ): AiChatStreamOutcome
-    suspend fun attachLiveRun(
+        content: List<com.flashcardsopensourceapp.data.local.model.AiChatContentPart>
+    ): AiChatStartRunResponse
+    fun attachLiveRun(
         workspaceId: String?,
         sessionId: String,
         runId: String,
         liveStream: AiChatLiveStreamEnvelope,
         afterCursor: String?,
-        resumeDiagnostics: AiChatResumeDiagnostics?,
-        onEvent: suspend (AiChatLiveEvent) -> Unit
-    )
+        resumeDiagnostics: AiChatResumeDiagnostics?
+    ): Flow<AiChatLiveEvent>
     suspend fun stopRun(workspaceId: String?, sessionId: String): AiChatStopRunResponse
 }

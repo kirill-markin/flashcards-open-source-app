@@ -11,7 +11,6 @@ import com.flashcardsopensourceapp.data.local.cloud.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
 import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
@@ -31,7 +30,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatStopRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -52,13 +51,15 @@ class AiChatRemoteException(
     val responseBody: String?
 ) : Exception(message)
 
-class AiChatRemoteService {
-    private val liveRemoteService = AiChatLiveRemoteService()
+class AiChatRemoteService(
+    private val dispatchers: AiCoroutineDispatchers,
+    private val liveRemoteService: AiChatLiveRemoteService
+) {
 
     suspend fun createGuestSession(
         apiBaseUrl: String,
         configurationMode: CloudServiceConfigurationMode
-    ): StoredGuestAiSession = withContext(Dispatchers.IO) {
+    ): StoredGuestAiSession = withContext(dispatchers.io) {
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
             path = "/guest-auth/session",
@@ -81,10 +82,8 @@ class AiChatRemoteService {
     suspend fun startRun(
         apiBaseUrl: String,
         authorizationHeader: String,
-        request: AiChatStartRunRequest,
-        onAccepted: suspend (AiChatStartRunResponse) -> Unit,
-        onEvent: suspend (AiChatLiveEvent) -> Unit
-    ): AiChatStreamOutcome = withContext(Dispatchers.IO) {
+        request: AiChatStartRunRequest
+    ): AiChatStartRunResponse = withContext(dispatchers.io) {
         val startConnection = openConnection(
             apiBaseUrl = apiBaseUrl,
             path = "/chat",
@@ -93,7 +92,6 @@ class AiChatRemoteService {
         )
 
         val startResponse: AiChatStartRunResponse
-        val requestId: String?
 
         try {
             startConnection.setRequestProperty("Content-Type", "application/json")
@@ -103,25 +101,19 @@ class AiChatRemoteService {
             }
 
             val responseBody = readResponseBody(connection = startConnection)
-            requestId = startConnection.getHeaderField(chatRequestIdHeaderName)
             startResponse = decodeAiChatStartRunResponse(responseBody)
         } finally {
             startConnection.disconnect()
         }
 
-        onAccepted(startResponse)
-        return@withContext AiChatStreamOutcome(
-            requestId = requestId,
-            chatSessionId = startResponse.sessionId,
-            chatConfig = startResponse.chatConfig
-        )
+        return@withContext startResponse
     }
 
     suspend fun loadSnapshot(
         apiBaseUrl: String,
         authorizationHeader: String,
         sessionId: String?
-    ): AiChatSessionSnapshot = withContext(Dispatchers.IO) {
+    ): AiChatSessionSnapshot = withContext(dispatchers.io) {
         val path = if (sessionId.isNullOrBlank()) {
             "/chat"
         } else {
@@ -148,7 +140,7 @@ class AiChatRemoteService {
         sessionId: String?,
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
-    ): AiChatBootstrapResponse = withContext(Dispatchers.IO) {
+    ): AiChatBootstrapResponse = withContext(dispatchers.io) {
         val path = buildString {
             append("/chat?limit=$limit")
             if (!sessionId.isNullOrBlank()) {
@@ -177,7 +169,7 @@ class AiChatRemoteService {
         sessionId: String,
         beforeCursor: String,
         limit: Int
-    ): AiChatOlderMessagesResponse = withContext(Dispatchers.IO) {
+    ): AiChatOlderMessagesResponse = withContext(dispatchers.io) {
         val path = "/chat?sessionId=$sessionId&limit=$limit&before=$beforeCursor"
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
@@ -199,24 +191,22 @@ class AiChatRemoteService {
         }
     }
 
-    suspend fun attachLiveRun(
+    fun attachLiveRun(
         apiBaseUrl: String,
         authorizationHeader: String,
         sessionId: String,
         runId: String,
         liveStream: AiChatLiveStreamEnvelope,
         afterCursor: String?,
-        resumeDiagnostics: AiChatResumeDiagnostics?,
-        onEvent: suspend (AiChatLiveEvent) -> Unit
-    ) {
-        liveRemoteService.attachLiveRun(
+        resumeDiagnostics: AiChatResumeDiagnostics?
+    ): Flow<AiChatLiveEvent> {
+        return liveRemoteService.attachLiveRun(
             authorizationHeader = authorizationHeader,
             sessionId = sessionId,
             runId = runId,
             liveStream = liveStream,
             afterCursor = afterCursor,
-            resumeDiagnostics = resumeDiagnostics,
-            onEvent = onEvent
+            resumeDiagnostics = resumeDiagnostics
         )
     }
 
@@ -224,7 +214,7 @@ class AiChatRemoteService {
         apiBaseUrl: String,
         authorizationHeader: String,
         sessionId: String?
-    ): AiChatSessionSnapshot = withContext(Dispatchers.IO) {
+    ): AiChatSessionSnapshot = withContext(dispatchers.io) {
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
             path = "/chat/new",
@@ -254,7 +244,7 @@ class AiChatRemoteService {
         apiBaseUrl: String,
         authorizationHeader: String,
         sessionId: String
-    ): AiChatStopRunResponse = withContext(Dispatchers.IO) {
+    ): AiChatStopRunResponse = withContext(dispatchers.io) {
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
             path = "/chat/stop",
@@ -287,7 +277,7 @@ class AiChatRemoteService {
         fileName: String,
         mediaType: String,
         audioBytes: ByteArray
-    ): AiChatTranscriptionResult = withContext(Dispatchers.IO) {
+    ): AiChatTranscriptionResult = withContext(dispatchers.io) {
         val boundary = "flashcards-${UUID.randomUUID()}"
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,

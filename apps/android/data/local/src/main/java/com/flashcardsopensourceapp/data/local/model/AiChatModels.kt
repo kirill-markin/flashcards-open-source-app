@@ -269,12 +269,6 @@ data class AiChatAcceptedConversationEnvelope(
 
 typealias AiChatStartRunResponse = AiChatAcceptedConversationEnvelope
 
-data class AiChatStreamOutcome(
-    val requestId: String?,
-    val chatSessionId: String,
-    val chatConfig: AiChatServerConfig?
-)
-
 data class AiChatTranscriptionResult(
     val text: String,
     val sessionId: String

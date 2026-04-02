@@ -47,6 +47,8 @@ internal data class AiDraftState(
     val errorMessage: String
 )
 
+internal typealias AiChatRuntimeState = AiDraftState
+
 internal fun makeDefaultAiDraftState(): AiDraftState {
     return AiDraftState(
         workspaceId = null,

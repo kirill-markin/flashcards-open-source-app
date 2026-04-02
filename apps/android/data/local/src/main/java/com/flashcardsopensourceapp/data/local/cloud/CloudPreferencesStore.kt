@@ -3,8 +3,6 @@ package com.flashcardsopensourceapp.data.local.cloud
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.AppLocalSettingsEntity
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
@@ -41,12 +39,9 @@ class CloudPreferencesStore(
 ) {
     private val metadataPreferences: SharedPreferences =
         context.getSharedPreferences(cloudMetadataPreferencesName, Context.MODE_PRIVATE)
-    private val securePreferences: SharedPreferences = EncryptedSharedPreferences.create(
-        context,
+    private val securePreferences: SharedPreferences = context.getSharedPreferences(
         cloudSecretPreferencesName,
-        MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        Context.MODE_PRIVATE
     )
 
     private val cloudSettingsState = MutableStateFlow(loadLegacyCloudSettingsEntity().toCloudSettings())

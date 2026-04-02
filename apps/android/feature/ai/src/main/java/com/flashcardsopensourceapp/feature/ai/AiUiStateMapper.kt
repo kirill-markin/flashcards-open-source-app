@@ -34,48 +34,48 @@ internal fun mapToAiUiState(
     cloudState: CloudAccountState,
     isCloudIdentityBlocked: Boolean,
     hasConsent: Boolean,
-    draft: AiDraftState
+    runtimeState: AiChatRuntimeState
 ): AiUiState {
     val isLinked = cloudState == CloudAccountState.LINKED
-    val hasMessages = draft.persistedState.messages.isNotEmpty()
-    val hasDraftText = draft.draftMessage.trim().isNotEmpty()
-    val isConversationReady = draft.conversationBootstrapState == AiConversationBootstrapState.READY
-    val isConversationLoading = draft.conversationBootstrapState == AiConversationBootstrapState.LOADING
-    val hasActiveRun = draft.activeRun != null
-    val isStreaming = hasActiveRun || draft.composerPhase == AiComposerPhase.STOPPING
-    val isComposerBusy = draft.composerPhase != AiComposerPhase.IDLE || isConversationLoading || hasActiveRun
+    val hasMessages = runtimeState.persistedState.messages.isNotEmpty()
+    val hasDraftText = runtimeState.draftMessage.trim().isNotEmpty()
+    val isConversationReady = runtimeState.conversationBootstrapState == AiConversationBootstrapState.READY
+    val isConversationLoading = runtimeState.conversationBootstrapState == AiConversationBootstrapState.LOADING
+    val hasActiveRun = runtimeState.activeRun != null
+    val isStreaming = hasActiveRun || runtimeState.composerPhase == AiComposerPhase.STOPPING
+    val isComposerBusy = runtimeState.composerPhase != AiComposerPhase.IDLE || isConversationLoading || hasActiveRun
     val canEditConversation = isComposerBusy.not()
         && isConversationReady
-        && draft.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
+        && runtimeState.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
 
     return AiUiState(
         currentWorkspaceName = metadata.currentWorkspaceName,
-        messages = draft.persistedState.messages,
-        pendingAttachments = draft.pendingAttachments,
-        draftMessage = draft.draftMessage,
-        chatConfig = effectiveAiChatServerConfig(draft.persistedState.lastKnownChatConfig),
+        messages = runtimeState.persistedState.messages,
+        pendingAttachments = runtimeState.pendingAttachments,
+        draftMessage = runtimeState.draftMessage,
+        chatConfig = effectiveAiChatServerConfig(runtimeState.persistedState.lastKnownChatConfig),
         isConsentRequired = hasConsent.not(),
         isLinked = isLinked,
         isConversationReady = isConversationReady,
         isConversationLoading = isConversationLoading,
-        conversationErrorMessage = draft.conversationBootstrapErrorMessage,
+        conversationErrorMessage = runtimeState.conversationBootstrapErrorMessage,
         canRetryConversationLoad = isCloudIdentityBlocked.not(),
         showOpenAccountStatusForConversationError = isCloudIdentityBlocked,
         isComposerBusy = isComposerBusy,
         isStreaming = isStreaming,
-        canStopStreaming = hasActiveRun && draft.composerPhase != AiComposerPhase.STOPPING,
-        dictationState = draft.dictationState,
+        canStopStreaming = hasActiveRun && runtimeState.composerPhase != AiComposerPhase.STOPPING,
+        dictationState = runtimeState.dictationState,
         canSend = hasConsent
             && isConversationReady
-            && draft.composerPhase == AiComposerPhase.IDLE
+            && runtimeState.composerPhase == AiComposerPhase.IDLE
             && hasActiveRun.not()
-            && draft.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
-            && (hasDraftText || draft.pendingAttachments.isNotEmpty()),
+            && runtimeState.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
+            && (hasDraftText || runtimeState.pendingAttachments.isNotEmpty()),
         canStartNewChat = canEditConversation
-            && (hasMessages || hasDraftText || draft.pendingAttachments.isNotEmpty()),
-        repairStatus = draft.repairStatus,
-        activeAlert = draft.activeAlert,
-        errorMessage = draft.errorMessage
+            && (hasMessages || hasDraftText || runtimeState.pendingAttachments.isNotEmpty()),
+        repairStatus = runtimeState.repairStatus,
+        activeAlert = runtimeState.activeAlert,
+        errorMessage = runtimeState.errorMessage
     )
 }
 

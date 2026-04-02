@@ -9,6 +9,8 @@ import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMod
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicReference
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,6 +19,21 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AiChatRemoteWireTest {
+    private fun makeDispatchers(): AiCoroutineDispatchers {
+        return AiCoroutineDispatchers(io = Dispatchers.IO)
+    }
+
+    private fun makeLiveRemoteService(): AiChatLiveRemoteService {
+        return AiChatLiveRemoteService(dispatchers = makeDispatchers())
+    }
+
+    private fun makeRemoteService(): AiChatRemoteService {
+        return AiChatRemoteService(
+            dispatchers = makeDispatchers(),
+            liveRemoteService = makeLiveRemoteService()
+        )
+    }
+
     @Test
     fun loadBootstrapIncludesResumeDiagnosticsHeaders() = runBlocking {
         val headersRef = AtomicReference<Map<String, String>>(emptyMap())
@@ -70,7 +87,7 @@ class AiChatRemoteWireTest {
         server.start()
 
         try {
-            val service = AiChatRemoteService()
+            val service = makeRemoteService()
             val response = service.loadBootstrap(
                 apiBaseUrl = "http://127.0.0.1:${server.address.port}",
                 authorizationHeader = "Bearer token-1",
@@ -206,8 +223,8 @@ class AiChatRemoteWireTest {
         server.start()
 
         try {
-            val service = AiChatLiveRemoteService()
-            service.attachLiveRun(
+            val service = makeLiveRemoteService()
+            val events = service.attachLiveRun(
                 authorizationHeader = "Bearer token-1",
                 sessionId = "session-1",
                 runId = "run-1",
@@ -221,9 +238,8 @@ class AiChatRemoteWireTest {
                     resumeAttemptId = 42L,
                     clientPlatform = "android",
                     clientVersion = "1.0.0"
-                ),
-                onEvent = {}
-            )
+                )
+            ).toList()
 
             assertEquals("42", headersRef.get()["X-chat-resume-attempt-id"])
             assertEquals("android", headersRef.get()["X-client-platform"])
@@ -232,6 +248,8 @@ class AiChatRemoteWireTest {
             assertTrue(queryRef.get().contains("sessionId=session-1"))
             assertTrue(queryRef.get().contains("runId=run-1"))
             assertTrue(queryRef.get().contains("afterCursor=5"))
+            assertEquals(1, events.size)
+            require(events.single() is AiChatLiveEvent.RunTerminal)
         } finally {
             server.stop(0)
         }

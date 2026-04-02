@@ -3,9 +3,10 @@ package com.flashcardsopensourceapp.data.local.ai
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
@@ -16,16 +17,17 @@ import java.nio.charset.StandardCharsets
  * temporary live overlay, validates the SSE wire payloads, and stops when the
  * caller no longer wants more events.
  */
-class AiChatLiveRemoteService {
-    suspend fun attachLiveRun(
+class AiChatLiveRemoteService(
+    private val dispatchers: AiCoroutineDispatchers
+) {
+    fun attachLiveRun(
         authorizationHeader: String,
         sessionId: String,
         runId: String,
         liveStream: AiChatLiveStreamEnvelope,
         afterCursor: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?,
-        onEvent: suspend (AiChatLiveEvent) -> Unit
-    ) {
+    ): Flow<AiChatLiveEvent> = flow {
         val authorization = if (liveStream.authorization.startsWith(prefix = "Live ")) {
             liveStream.authorization
         } else {
@@ -38,35 +40,22 @@ class AiChatLiveRemoteService {
             runId = runId,
             afterCursor = afterCursor,
             resumeDiagnostics = resumeDiagnostics,
-            onEvent = { event ->
-                onEvent(event)
-                when (event) {
-                    is AiChatLiveEvent.RunTerminal -> false
-                    is AiChatLiveEvent.AssistantDelta,
-                    is AiChatLiveEvent.AssistantReasoningDone,
-                    is AiChatLiveEvent.AssistantReasoningStarted,
-                    is AiChatLiveEvent.AssistantReasoningSummary,
-                    is AiChatLiveEvent.AssistantToolCall,
-                    is AiChatLiveEvent.AssistantMessageDone,
-                    is AiChatLiveEvent.RepairStatus -> true
-                }
+            emitEvent = { event ->
+                emit(event)
+                event !is AiChatLiveEvent.RunTerminal
             }
         )
-    }
+    }.flowOn(dispatchers.io)
 
-    /**
-     * Opens one SSE connection and forwards typed events until the caller asks
-     * to stop, the server terminates the run, or the socket closes.
-     */
-    suspend fun connectLiveStream(
+    private suspend fun connectLiveStream(
         liveUrl: String,
         authorization: String,
         sessionId: String,
         runId: String,
         afterCursor: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?,
-        onEvent: suspend (AiChatLiveEvent) -> Boolean
-    ): Unit = withContext(Dispatchers.IO) {
+        emitEvent: suspend (AiChatLiveEvent) -> Boolean
+    ) {
         val urlString = buildString {
             append(liveUrl.removeSuffix("/"))
             append("?sessionId=$sessionId")
@@ -114,9 +103,9 @@ class AiChatLiveRemoteService {
                     dataLines.clear()
                     val event = decodeAiChatLiveEventPayload(currentEventType, payload)
                     currentEventType = null
-                    val shouldContinue = runBlocking { onEvent(event) }
+                    val shouldContinue = emitEvent(event)
                     if (shouldContinue.not()) {
-                        return@withContext
+                        return
                     }
                 }
                 line = reader.readLine()
@@ -125,8 +114,10 @@ class AiChatLiveRemoteService {
             if (dataLines.isNotEmpty()) {
                 val payload = dataLines.joinToString(separator = "\n")
                 val event = decodeAiChatLiveEventPayload(currentEventType, payload)
-                runBlocking { onEvent(event) }
+                emitEvent(event)
             }
+        } catch (error: CancellationException) {
+            throw error
         } finally {
             connection.disconnect()
         }
