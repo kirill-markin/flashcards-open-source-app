@@ -7,6 +7,8 @@ import {
   createChatSnapshot,
   createNewChatSessionMock,
   getChatSnapshotMock,
+  pressTextareaKey,
+  setTextareaSelection,
   setTextareaValue,
   setupChatPanelTest,
   startChatRunMock,
@@ -19,6 +21,7 @@ const {
   getContainer,
   renderChatPanel,
   clickNewConversation,
+  setMobileViewport,
   sendMessage,
 } = setupChatPanelTest();
 
@@ -88,6 +91,27 @@ describe("ChatPanel new chat", () => {
     expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
     expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
     expect(setErrorMessage).toHaveBeenCalledWith("New chat failed. Request failed with status 500");
+  });
+
+  it("returns focus to the composer after a successful new chat reset", async () => {
+    await renderChatPanel();
+    await flushAsync();
+
+    const newButton = [...getContainer().querySelectorAll(".chat-close-btn")]
+      .find((button) => button.textContent === "New") as HTMLButtonElement | undefined;
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+
+    expect(newButton).toBeDefined();
+    expect(textarea).not.toBeNull();
+
+    newButton?.focus();
+    expect(document.activeElement).toBe(newButton);
+
+    await clickNewConversation();
+    await flushAsync();
+    await flushAsync();
+
+    expect(document.activeElement).toBe(textarea);
   });
 });
 
@@ -171,6 +195,89 @@ describe("ChatPanel send lifecycle", () => {
     await flushAsync();
 
     expect(sendButton?.disabled).toBe(false);
+  });
+
+  it("returns focus to the composer after a successful send", async () => {
+    await renderChatPanel();
+    await flushAsync();
+
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(textarea).not.toBeNull();
+
+    await sendMessage("hello");
+    await flushAsync();
+    await flushAsync();
+
+    expect(textarea?.value).toBe("");
+    expect(document.activeElement).toBe(textarea);
+  });
+
+  it("sends on desktop Enter", async () => {
+    await renderChatPanel();
+    await flushAsync();
+
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(textarea).not.toBeNull();
+
+    await setTextareaValue(textarea as HTMLTextAreaElement, "hello");
+    await flushAsync();
+    setTextareaSelection(textarea as HTMLTextAreaElement, 5, 5);
+
+    pressTextareaKey(textarea as HTMLTextAreaElement, {
+      key: "Enter",
+      shiftKey: false,
+      repeat: false,
+    });
+    await flushAsync();
+    await flushAsync();
+
+    expect(startChatRunMock).toHaveBeenCalledTimes(1);
+    expect(textarea?.value).toBe("");
+  });
+
+  it("does not send on desktop Shift+Enter and keeps multiline draft input", async () => {
+    await renderChatPanel();
+    await flushAsync();
+
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(textarea).not.toBeNull();
+
+    await setTextareaValue(textarea as HTMLTextAreaElement, "hello");
+    await flushAsync();
+    setTextareaSelection(textarea as HTMLTextAreaElement, 5, 5);
+
+    pressTextareaKey(textarea as HTMLTextAreaElement, {
+      key: "Enter",
+      shiftKey: true,
+      repeat: false,
+    });
+    await flushAsync();
+
+    expect(startChatRunMock).not.toHaveBeenCalled();
+    expect(textarea?.value).toBe("hello\n");
+  });
+
+  it("does not send on mobile Enter and keeps multiline draft input", async () => {
+    setMobileViewport(true);
+    await renderChatPanel();
+    await flushAsync();
+
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(textarea).not.toBeNull();
+
+    await setTextareaValue(textarea as HTMLTextAreaElement, "hello");
+    await flushAsync();
+    setTextareaSelection(textarea as HTMLTextAreaElement, 5, 5);
+
+    pressTextareaKey(textarea as HTMLTextAreaElement, {
+      key: "Enter",
+      shiftKey: false,
+      repeat: false,
+    });
+    await flushAsync();
+
+    expect(startChatRunMock).not.toHaveBeenCalled();
+    expect(textarea?.value).toBe("hello\n");
   });
 
   it("does not fetch remote chat history until the browser session is verified", async () => {

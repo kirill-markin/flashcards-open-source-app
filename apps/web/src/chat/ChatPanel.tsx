@@ -48,6 +48,15 @@ type Props = Readonly<{
 }>;
 
 type ChatSendPhase = "idle" | "preparingSend" | "startingRun";
+const MOBILE_CHAT_BREAKPOINT_QUERY = "(max-width: 768px)";
+
+function matchesMobileChatBreakpoint(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+
+  return window.matchMedia(MOBILE_CHAT_BREAKPOINT_QUERY).matches;
+}
 
 function stopMediaStream(stream: MediaStream | null): void {
   if (stream === null) {
@@ -134,6 +143,7 @@ export function ChatPanel(props: Props): ReactElement {
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const [dictationState, setDictationState] = useState<ChatDictationState>("idle");
   const [sendPhase, setSendPhase] = useState<ChatSendPhase>("idle");
+  const [isMobileChatLayout, setIsMobileChatLayout] = useState<boolean>(matchesMobileChatBreakpoint);
   const inputText = draft.inputText;
   const pendingAttachments = draft.pendingAttachments;
 
@@ -165,6 +175,7 @@ export function ChatPanel(props: Props): ReactElement {
   const recordedChunksRef = useRef<Array<Blob>>([]);
   const draftSelectionRef = useRef<ChatDraftSelection | null>(null);
   const pendingTextareaSelectionRef = useRef<ChatDraftSelection | null>(null);
+  const pendingComposerFocusRestoreRef = useRef<boolean>(false);
   const shouldRestoreTextareaFocusAfterDictationRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
 
@@ -211,6 +222,35 @@ export function ChatPanel(props: Props): ReactElement {
   }, [pendingAttachments]);
 
   useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const mediaQueryList = window.matchMedia(MOBILE_CHAT_BREAKPOINT_QUERY);
+    const handleChange = (event: MediaQueryListEvent): void => {
+      setIsMobileChatLayout(event.matches);
+    };
+
+    setIsMobileChatLayout(mediaQueryList.matches);
+    mediaQueryList.addEventListener("change", handleChange);
+    return () => mediaQueryList.removeEventListener("change", handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (pendingComposerFocusRestoreRef.current === false || dictationState !== "idle") {
+      return;
+    }
+
+    const textarea = textareaRef.current;
+    if (textarea === null) {
+      return;
+    }
+
+    pendingComposerFocusRestoreRef.current = false;
+    textarea.focus();
+  });
+
+  useEffect(() => {
     if (dictationState !== "idle") {
       return;
     }
@@ -250,6 +290,10 @@ export function ChatPanel(props: Props): ReactElement {
       start: textarea.selectionStart,
       end: textarea.selectionEnd,
     };
+  }
+
+  function requestComposerFocusRestore(): void {
+    pendingComposerFocusRestoreRef.current = true;
   }
 
   useEffect(() => {
@@ -560,6 +604,7 @@ export function ChatPanel(props: Props): ReactElement {
         pendingAttachmentsRef.current = [];
         draftSelectionRef.current = null;
         pendingTextareaSelectionRef.current = null;
+        requestComposerFocusRestore();
       }
     } finally {
       setSendPhase("idle");
@@ -567,16 +612,22 @@ export function ChatPanel(props: Props): ReactElement {
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
-    if (event.key === "Enter" && !event.shiftKey && !event.repeat) {
-      event.preventDefault();
-
-      if (composerAction === "stop") {
-        void stopMessage();
-        return;
-      }
-
-      void sendPendingMessage();
+    if (event.key !== "Enter") {
+      return;
     }
+
+    if (isMobileChatLayout || event.shiftKey || event.repeat) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (composerAction === "stop") {
+      void stopMessage();
+      return;
+    }
+
+    void sendPendingMessage();
   }
 
   const rootClassName = mode === "sidebar" ? "chat-sidebar" : "chat-sidebar-fullscreen";
@@ -650,6 +701,7 @@ export function ChatPanel(props: Props): ReactElement {
                 pendingAttachmentsRef.current = [];
                 draftSelectionRef.current = null;
                 pendingTextareaSelectionRef.current = null;
+                requestComposerFocusRestore();
               }).catch((error: unknown) => {
                 const message = error instanceof Error ? error.message : String(error);
                 appData.setErrorMessage(`New chat failed. ${message}`);

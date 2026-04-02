@@ -119,12 +119,19 @@ type ChatPanelTestHarness = Readonly<{
   getScrollToMock: () => ReturnType<typeof vi.fn>;
   getClipboardWriteTextMock: () => ReturnType<typeof vi.fn>;
   getAlertMock: () => ReturnType<typeof vi.fn>;
+  setMobileViewport: (isMobile: boolean) => void;
   flushAsync: () => Promise<void>;
   renderChatPanel: (mode?: "sidebar" | "fullscreen") => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
   clickNewConversation: () => Promise<void>;
   clickStop: () => Promise<void>;
   clickAddAttachment: () => Promise<void>;
+}>;
+
+type TextareaKeyboardParams = Readonly<{
+  key: string;
+  shiftKey: boolean;
+  repeat: boolean;
 }>;
 
 export {
@@ -188,6 +195,34 @@ export function setTextareaSelection(textarea: HTMLTextAreaElement, start: numbe
   textarea.focus();
   textarea.setSelectionRange(start, end);
   textarea.dispatchEvent(new Event("select", { bubbles: true }));
+}
+
+export function pressTextareaKey(
+  textarea: HTMLTextAreaElement,
+  params: TextareaKeyboardParams,
+): KeyboardEvent {
+  const keyboardEvent = new KeyboardEvent("keydown", {
+    key: params.key,
+    shiftKey: params.shiftKey,
+    repeat: params.repeat,
+    bubbles: true,
+    cancelable: true,
+  });
+
+  textarea.dispatchEvent(keyboardEvent);
+
+  if (keyboardEvent.defaultPrevented || params.key !== "Enter") {
+    return keyboardEvent;
+  }
+
+  const selectionStart = textarea.selectionStart;
+  const selectionEnd = textarea.selectionEnd;
+  const nextValue = `${textarea.value.slice(0, selectionStart)}\n${textarea.value.slice(selectionEnd)}`;
+  setTextareaValue(textarea, nextValue);
+  const nextSelection = selectionStart + 1;
+  textarea.setSelectionRange(nextSelection, nextSelection);
+  textarea.dispatchEvent(new Event("select", { bubbles: true }));
+  return keyboardEvent;
 }
 
 export function configureMessagesScroller(element: HTMLDivElement): void {
@@ -281,8 +316,12 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
   let scrollToMock: ReturnType<typeof vi.fn> | null = null;
   let clipboardWriteTextMock: ReturnType<typeof vi.fn> | null = null;
   let alertMock: ReturnType<typeof vi.fn> | null = null;
+  let isMobileViewport = false;
+  const matchMediaListeners = new Set<(event: MediaQueryListEvent) => void>();
 
   beforeEach(() => {
+    isMobileViewport = false;
+    matchMediaListeners.clear();
     const localStorageState = new Map<string, string>();
     const localStorageMock: Storage = {
       get length(): number {
@@ -310,6 +349,52 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     Object.defineProperty(window, "localStorage", {
       configurable: true,
       value: localStorageMock,
+    });
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: (query: string): MediaQueryList => ({
+        matches: query === "(max-width: 768px)" ? isMobileViewport : false,
+        media: query,
+        onchange: null,
+        addEventListener: (eventName: string, listener: EventListenerOrEventListenerObject): void => {
+          if (eventName !== "change") {
+            return;
+          }
+
+          const callback = typeof listener === "function"
+            ? listener
+            : (event: Event) => listener.handleEvent(event);
+          matchMediaListeners.add(callback as (event: MediaQueryListEvent) => void);
+        },
+        removeEventListener: (eventName: string, listener: EventListenerOrEventListenerObject): void => {
+          if (eventName !== "change") {
+            return;
+          }
+
+          const callback = typeof listener === "function"
+            ? listener
+            : (event: Event) => listener.handleEvent(event);
+          matchMediaListeners.delete(callback as (event: MediaQueryListEvent) => void);
+        },
+        addListener: (listener: ((event: MediaQueryListEvent) => void) | null): void => {
+          if (listener === null) {
+            return;
+          }
+
+          matchMediaListeners.add(listener);
+        },
+        removeListener: (listener: ((event: MediaQueryListEvent) => void) | null): void => {
+          if (listener === null) {
+            return;
+          }
+
+          matchMediaListeners.delete(listener);
+        },
+        dispatchEvent: (event: Event): boolean => {
+          matchMediaListeners.forEach((listener) => listener(event as MediaQueryListEvent));
+          return true;
+        },
+      }),
     });
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -483,6 +568,12 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     return alertMock;
   }
 
+  function setMobileViewport(nextIsMobile: boolean): void {
+    isMobileViewport = nextIsMobile;
+    const changeEvent = { matches: isMobileViewport, media: "(max-width: 768px)" } as MediaQueryListEvent;
+    matchMediaListeners.forEach((listener) => listener(changeEvent));
+  }
+
   async function flushAsync(): Promise<void> {
     await act(async () => {
       await Promise.resolve();
@@ -519,6 +610,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     });
 
     await act(async () => {
+      (sendButton as HTMLButtonElement | null)?.focus();
       sendButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       await Promise.resolve();
     });
@@ -531,6 +623,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     expect(newButton).toBeDefined();
 
     await act(async () => {
+      (newButton as HTMLButtonElement | undefined)?.focus();
       newButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       await Promise.resolve();
     });
@@ -563,6 +656,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     getScrollToMock,
     getClipboardWriteTextMock,
     getAlertMock,
+    setMobileViewport,
     flushAsync,
     renderChatPanel,
     sendMessage,
