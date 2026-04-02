@@ -48,7 +48,7 @@ android {
         targetSdk = 36
         versionCode = androidVersionCode ?: 1
         versionName = "1.0.0"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.flashcardsopensourceapp.app.FlashcardsAndroidTestRunner"
     }
 
     signingConfigs {
@@ -127,6 +127,8 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
+
+    testImplementation(libs.junit4)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

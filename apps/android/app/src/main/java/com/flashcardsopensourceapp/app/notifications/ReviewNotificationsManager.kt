@@ -355,21 +355,23 @@ fun reviewNotificationWorkspaceTag(workspaceId: String): String {
     return "review-notification::$workspaceId"
 }
 
-fun parseReviewNotificationTapPayload(intent: android.content.Intent): ReviewNotificationTapPayload? {
-    val workspaceId = intent.getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationWorkspaceIdDataKey")
+internal fun parseReviewNotificationTapPayload(
+    getStringExtra: (String) -> String?
+): ReviewNotificationTapPayload? {
+    val workspaceId = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationWorkspaceIdDataKey")
         ?: return null
-    val cardId = intent.getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationCardIdDataKey")
+    val cardId = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationCardIdDataKey")
         ?: return null
-    val frontText = intent.getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFrontTextDataKey")
+    val frontText = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFrontTextDataKey")
         ?: return null
-    val requestId = intent.getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationRequestIdDataKey")
+    val requestId = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationRequestIdDataKey")
         ?: return null
-    val filterKind = intent.getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFilterKindDataKey")
+    val filterKind = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFilterKindDataKey")
         ?: return null
     val persistedFilter = com.flashcardsopensourceapp.data.local.notifications.PersistedReviewFilter(
         kind = filterKind,
-        deckId = intent.getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFilterDeckIdDataKey"),
-        tag = intent.getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFilterTagDataKey")
+        deckId = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFilterDeckIdDataKey"),
+        tag = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFilterTagDataKey")
     )
 
     return ReviewNotificationTapPayload(
@@ -381,12 +383,26 @@ fun parseReviewNotificationTapPayload(intent: android.content.Intent): ReviewNot
     )
 }
 
-fun consumeReviewNotificationTapPayload(intent: android.content.Intent): ReviewNotificationTapPayload? {
-    val payload = parseReviewNotificationTapPayload(intent = intent) ?: return null
-    clearReviewNotificationTapExtras(intent = intent)
+fun parseReviewNotificationTapPayload(intent: android.content.Intent): ReviewNotificationTapPayload? {
+    return parseReviewNotificationTapPayload(getStringExtra = intent::getStringExtra)
+}
+
+internal fun consumeReviewNotificationTapPayload(
+    getStringExtra: (String) -> String?,
+    removeExtra: (String) -> Unit
+): ReviewNotificationTapPayload? {
+    val payload = parseReviewNotificationTapPayload(getStringExtra = getStringExtra) ?: return null
+    clearReviewNotificationTapExtras(removeExtra = removeExtra)
     return payload
 }
 
-private fun clearReviewNotificationTapExtras(intent: android.content.Intent) {
-    reviewNotificationTapIntentExtraKeys.forEach(intent::removeExtra)
+fun consumeReviewNotificationTapPayload(intent: android.content.Intent): ReviewNotificationTapPayload? {
+    return consumeReviewNotificationTapPayload(
+        getStringExtra = intent::getStringExtra,
+        removeExtra = intent::removeExtra
+    )
+}
+
+private fun clearReviewNotificationTapExtras(removeExtra: (String) -> Unit) {
+    reviewNotificationTapIntentExtraKeys.forEach(removeExtra)
 }

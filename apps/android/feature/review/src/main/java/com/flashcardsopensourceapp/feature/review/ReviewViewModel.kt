@@ -6,19 +6,23 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
+import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
+import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.data.local.model.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.SyncStatus
-import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.notifications.NotificationPermissionPromptState
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.defaultNotificationPermissionPromptState
 import com.flashcardsopensourceapp.data.local.notifications.reviewNotificationPermissionPromptThreshold
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncCompletion
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncOutcome
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
-import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,30 +61,33 @@ private data class ObservedReviewSessionState(
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReviewViewModel(
     private val reviewRepository: ReviewRepository,
-    private val syncRepository: SyncRepository,
+    private val autoSyncEventRepository: AutoSyncEventRepository,
     private val messageController: TransientMessageController,
     private val reviewNotificationsStore: ReviewNotificationsStore,
     private val shouldShowNotificationPermissionPrePrompt: () -> Boolean,
     private val onReviewNotificationsChanged: () -> Unit,
     private val onNotificationPermissionGranted: () -> Unit,
     private val reviewPreferencesStore: ReviewPreferencesStore,
+    visibleAppScreenRepository: VisibleAppScreenRepository,
     workspaceRepository: WorkspaceRepository
 ) : ViewModel() {
     constructor(
         reviewRepository: ReviewRepository,
-        syncRepository: SyncRepository,
+        autoSyncEventRepository: AutoSyncEventRepository,
         messageController: TransientMessageController,
         reviewPreferencesStore: ReviewPreferencesStore,
+        visibleAppScreenRepository: VisibleAppScreenRepository,
         workspaceRepository: WorkspaceRepository
     ) : this(
         reviewRepository = reviewRepository,
-        syncRepository = syncRepository,
+        autoSyncEventRepository = autoSyncEventRepository,
         messageController = messageController,
         reviewNotificationsStore = NoOpReviewNotificationsStore,
         shouldShowNotificationPermissionPrePrompt = { false },
         onReviewNotificationsChanged = {},
         onNotificationPermissionGranted = {},
         reviewPreferencesStore = reviewPreferencesStore,
+        visibleAppScreenRepository = visibleAppScreenRepository,
         workspaceRepository = workspaceRepository
     )
 
@@ -119,15 +126,10 @@ class ReviewViewModel(
             sessionSnapshot = loadingReviewSessionSnapshot()
         )
     )
-
-    private val syncStatusState = syncRepository.observeSyncStatus().stateIn(
+    private val visibleAppScreenState = visibleAppScreenRepository.observeVisibleAppScreen().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-        initialValue = SyncStatusSnapshot(
-            status = SyncStatus.Idle,
-            lastSuccessfulSyncAtMillis = null,
-            lastErrorMessage = ""
-        )
+        initialValue = VisibleAppScreen.OTHER
     )
     private val workspaceState = workspaceRepository.observeWorkspace().stateIn(
         scope = viewModelScope,
@@ -147,9 +149,9 @@ class ReviewViewModel(
         )
     )
 
-    private var previousSyncStatus: SyncStatus = SyncStatus.Idle
-    private var reviewCardIdsAtSyncStart: List<String>? = null
-    private var lastHandledSuccessfulSyncAtMillis: Long? = null
+    private var pendingAutoSyncRequestId: String? = null
+    private var reviewCardIdsAtAutoSyncStart: List<String>? = null
+    private var lastVisibleAutoSyncChangeSignature: List<String>? = null
     private var activeWorkspaceId: String? = null
     private var workspaceGeneration: Long = 0L
 
@@ -243,7 +245,7 @@ class ReviewViewModel(
     init {
         observeWorkspaceChanges()
         observeResolvedFilterChanges()
-        observeSyncDrivenReviewChanges()
+        observeAutoSyncDrivenReviewChanges()
     }
 
     fun selectFilter(reviewFilter: ReviewFilter) {
@@ -493,15 +495,18 @@ class ReviewViewModel(
         }
     }
 
-    private fun observeSyncDrivenReviewChanges() {
+    private fun observeAutoSyncDrivenReviewChanges() {
         viewModelScope.launch {
-            combine(reviewSessionState, syncStatusState) { reviewSessionState, syncStatusSnapshot ->
-                reviewSessionState.sessionSnapshot to syncStatusSnapshot
-            }.collect { (sessionSnapshot, syncStatusSnapshot) ->
-                handleSyncStatusTransition(
-                    sessionSnapshot = sessionSnapshot,
-                    syncStatusSnapshot = syncStatusSnapshot
-                )
+            autoSyncEventRepository.observeAutoSyncEvents().collect { event ->
+                when (event) {
+                    is AutoSyncEvent.Requested -> {
+                        handleAutoSyncRequested(request = event.request)
+                    }
+
+                    is AutoSyncEvent.Completed -> {
+                        handleAutoSyncCompleted(completion = event.completion)
+                    }
+                }
             }
         }
     }
@@ -559,42 +564,55 @@ class ReviewViewModel(
         }
     }
 
-    private fun handleSyncStatusTransition(
-        sessionSnapshot: ReviewSessionSnapshot,
-        syncStatusSnapshot: SyncStatusSnapshot
-    ) {
-        val currentSyncStatus = syncStatusSnapshot.status
-
-        if (currentSyncStatus is SyncStatus.Syncing && previousSyncStatus !is SyncStatus.Syncing) {
-            reviewCardIdsAtSyncStart = sessionSnapshot.cards.map(ReviewCard::cardId)
+    private fun handleAutoSyncRequested(request: AutoSyncRequest) {
+        if (request.allowsVisibleChangeMessage.not()) {
+            return
+        }
+        if (visibleAppScreenState.value != VisibleAppScreen.REVIEW) {
+            return
         }
 
-        val completedSuccessfulSync = currentSyncStatus is SyncStatus.Idle
-            && previousSyncStatus is SyncStatus.Syncing
-            && syncStatusSnapshot.lastSuccessfulSyncAtMillis != null
-            && syncStatusSnapshot.lastSuccessfulSyncAtMillis != lastHandledSuccessfulSyncAtMillis
-
-        if (completedSuccessfulSync) {
-            reconcileReviewAfterSuccessfulSync(sessionSnapshot = sessionSnapshot)
-            lastHandledSuccessfulSyncAtMillis = syncStatusSnapshot.lastSuccessfulSyncAtMillis
-            reviewCardIdsAtSyncStart = null
-        }
-
-        if (
-            (currentSyncStatus is SyncStatus.Failed || currentSyncStatus is SyncStatus.Blocked) &&
-            previousSyncStatus is SyncStatus.Syncing
-        ) {
-            reviewCardIdsAtSyncStart = null
-        }
-
-        previousSyncStatus = currentSyncStatus
+        pendingAutoSyncRequestId = request.requestId
+        reviewCardIdsAtAutoSyncStart = reviewSessionState.value.sessionSnapshot.cards.map(ReviewCard::cardId)
     }
 
-    private fun reconcileReviewAfterSuccessfulSync(sessionSnapshot: ReviewSessionSnapshot) {
-        val reviewCardIdsBeforeSync = reviewCardIdsAtSyncStart ?: return
-        val reviewCardIdsAfterSync = sessionSnapshot.cards.map(ReviewCard::cardId)
+    private fun handleAutoSyncCompleted(completion: AutoSyncCompletion) {
+        if (completion.request.requestId != pendingAutoSyncRequestId) {
+            return
+        }
 
+        pendingAutoSyncRequestId = null
+        val reviewCardIdsBeforeSync = reviewCardIdsAtAutoSyncStart
+        reviewCardIdsAtAutoSyncStart = null
+
+        if (completion.outcome !is AutoSyncOutcome.Succeeded) {
+            return
+        }
+        if (completion.request.allowsVisibleChangeMessage.not()) {
+            return
+        }
+        if (visibleAppScreenState.value != VisibleAppScreen.REVIEW) {
+            return
+        }
+
+        reconcileReviewAfterSuccessfulAutoSync(
+            reviewCardIdsBeforeSync = reviewCardIdsBeforeSync,
+            sessionSnapshot = reviewSessionState.value.sessionSnapshot
+        )
+    }
+
+    private fun reconcileReviewAfterSuccessfulAutoSync(
+        reviewCardIdsBeforeSync: List<String>?,
+        sessionSnapshot: ReviewSessionSnapshot
+    ) {
+        val reviewCardIdsAfterSync = sessionSnapshot.cards.map(ReviewCard::cardId)
+        if (reviewCardIdsBeforeSync == null) {
+            return
+        }
         if (reviewCardIdsBeforeSync == reviewCardIdsAfterSync) {
+            return
+        }
+        if (reviewCardIdsAfterSync == lastVisibleAutoSyncChangeSignature) {
             return
         }
 
@@ -618,6 +636,7 @@ class ReviewViewModel(
                 previewErrorMessage = ""
             )
         }
+        lastVisibleAutoSyncChangeSignature = reviewCardIdsAfterSync
         messageController.showMessage(message = reviewUpdatedOnAnotherDeviceMessage)
     }
 }
@@ -638,26 +657,28 @@ private object NoOpReviewNotificationsStore : ReviewNotificationsStore {
 
 fun createReviewViewModelFactory(
     reviewRepository: ReviewRepository,
-    syncRepository: SyncRepository,
+    autoSyncEventRepository: AutoSyncEventRepository,
     messageController: TransientMessageController,
     reviewNotificationsStore: ReviewNotificationsStore,
     shouldShowNotificationPermissionPrePrompt: () -> Boolean,
     onReviewNotificationsChanged: () -> Unit,
     onNotificationPermissionGranted: () -> Unit,
     reviewPreferencesStore: ReviewPreferencesStore,
+    visibleAppScreenRepository: VisibleAppScreenRepository,
     workspaceRepository: WorkspaceRepository
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             ReviewViewModel(
                 reviewRepository = reviewRepository,
-                syncRepository = syncRepository,
+                autoSyncEventRepository = autoSyncEventRepository,
                 messageController = messageController,
                 reviewNotificationsStore = reviewNotificationsStore,
                 shouldShowNotificationPermissionPrePrompt = shouldShowNotificationPermissionPrePrompt,
                 onReviewNotificationsChanged = onReviewNotificationsChanged,
                 onNotificationPermissionGranted = onNotificationPermissionGranted,
                 reviewPreferencesStore = reviewPreferencesStore,
+                visibleAppScreenRepository = visibleAppScreenRepository,
                 workspaceRepository = workspaceRepository
             )
         }

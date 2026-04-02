@@ -34,6 +34,7 @@ import com.flashcardsopensourceapp.data.local.model.makeCustomCloudServiceConfig
 import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
@@ -744,13 +745,17 @@ class LocalSyncRepository(
     private val resetCoordinator: CloudIdentityResetCoordinator,
     private val guestSessionStore: GuestAiSessionStore,
     private val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator
-) : SyncRepository {
+) : SyncRepository, AutoSyncEventRepository {
     private val syncStatusState = MutableStateFlow(
         SyncStatusSnapshot(
             status = SyncStatus.Idle,
             lastSuccessfulSyncAtMillis = null,
             lastErrorMessage = ""
         )
+    )
+    private val autoSyncEventsFlow = MutableSharedFlow<AutoSyncEvent>(
+        replay = 0,
+        extraBufferCapacity = 32
     )
 
     override fun observeSyncStatus(): Flow<SyncStatusSnapshot> {
@@ -762,13 +767,31 @@ class LocalSyncRepository(
     }
 
     override suspend fun syncNow() {
+        performSync(autoSyncRequest = null)
+    }
+
+    override fun observeAutoSyncEvents(): Flow<AutoSyncEvent> {
+        return autoSyncEventsFlow
+    }
+
+    override suspend fun runAutoSync(request: AutoSyncRequest) {
+        performSync(autoSyncRequest = request)
+    }
+
+    private suspend fun performSync(autoSyncRequest: AutoSyncRequest?) {
         operationCoordinator.runExclusive {
             val currentCloudSettings = preferencesStore.currentCloudSettings()
             val previousCloudState = currentCloudSettings.cloudState
             val currentStatus = syncStatusState.value.status
+            emitAutoSyncRequested(autoSyncRequest = autoSyncRequest)
             if (currentStatus is SyncStatus.Blocked) {
                 if (currentStatus.installationId == currentCloudSettings.installationId) {
-                    throw IllegalStateException(currentStatus.message)
+                    val error = IllegalStateException(currentStatus.message)
+                    emitAutoSyncFailure(
+                        autoSyncRequest = autoSyncRequest,
+                        error = error
+                    )
+                    throw error
                 }
                 syncStatusState.value = SyncStatusSnapshot(
                     status = SyncStatus.Idle,
@@ -777,6 +800,7 @@ class LocalSyncRepository(
                 )
             }
             if (preferencesStore.currentAccountDeletionState() != AccountDeletionState.Hidden) {
+                emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)
                 return@runExclusive
             }
             val reconciliation = cloudGuestSessionCoordinator.reconcilePersistedCloudStateLocked()
@@ -788,6 +812,7 @@ class LocalSyncRepository(
                     lastSuccessfulSyncAtMillis = System.currentTimeMillis(),
                     lastErrorMessage = ""
                 )
+                emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)
                 return@runExclusive
             }
             if (
@@ -800,6 +825,7 @@ class LocalSyncRepository(
                     lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
                     lastErrorMessage = ""
                 )
+                emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)
                 return@runExclusive
             }
             syncStatusState.value = syncStatusState.value.copy(status = SyncStatus.Syncing, lastErrorMessage = "")
@@ -819,6 +845,7 @@ class LocalSyncRepository(
                     lastSuccessfulSyncAtMillis = System.currentTimeMillis(),
                     lastErrorMessage = ""
                 )
+                emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)
             } catch (error: CancellationException) {
                 syncStatusState.value = SyncStatusSnapshot(
                     status = SyncStatus.Idle,
@@ -834,6 +861,7 @@ class LocalSyncRepository(
                         lastSuccessfulSyncAtMillis = null,
                         lastErrorMessage = ""
                     )
+                    emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)
                     return@runExclusive
                 }
                 if (isCloudIdentityConflictError(error = error)) {
@@ -845,6 +873,10 @@ class LocalSyncRepository(
                         ),
                         lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
                         lastErrorMessage = message
+                    )
+                    emitAutoSyncFailure(
+                        autoSyncRequest = autoSyncRequest,
+                        error = error
                     )
                     throw error
                 }
@@ -860,9 +892,60 @@ class LocalSyncRepository(
                     lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
                     lastErrorMessage = error.message ?: "Cloud sync failed."
                 )
+                emitAutoSyncFailure(
+                    autoSyncRequest = autoSyncRequest,
+                    error = error
+                )
                 throw error
             }
         }
+    }
+
+    private fun emitAutoSyncRequested(autoSyncRequest: AutoSyncRequest?) {
+        if (autoSyncRequest == null) {
+            return
+        }
+
+        autoSyncEventsFlow.tryEmit(
+            AutoSyncEvent.Requested(request = autoSyncRequest)
+        )
+    }
+
+    private fun emitAutoSyncSuccess(autoSyncRequest: AutoSyncRequest?) {
+        if (autoSyncRequest == null) {
+            return
+        }
+
+        autoSyncEventsFlow.tryEmit(
+            AutoSyncEvent.Completed(
+                completion = AutoSyncCompletion(
+                    request = autoSyncRequest,
+                    completedAtMillis = System.currentTimeMillis(),
+                    outcome = AutoSyncOutcome.Succeeded
+                )
+            )
+        )
+    }
+
+    private fun emitAutoSyncFailure(
+        autoSyncRequest: AutoSyncRequest?,
+        error: Exception
+    ) {
+        if (autoSyncRequest == null) {
+            return
+        }
+
+        autoSyncEventsFlow.tryEmit(
+            AutoSyncEvent.Completed(
+                completion = AutoSyncCompletion(
+                    request = autoSyncRequest,
+                    completedAtMillis = System.currentTimeMillis(),
+                    outcome = AutoSyncOutcome.Failed(
+                        message = error.message ?: "Cloud sync failed."
+                    )
+                )
+            )
+        )
     }
 
     private suspend fun resolveSyncTarget(cloudSettings: CloudSettings): CloudSyncTarget {

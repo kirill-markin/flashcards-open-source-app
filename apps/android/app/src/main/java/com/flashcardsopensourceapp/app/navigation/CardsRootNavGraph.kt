@@ -19,7 +19,10 @@ internal fun NavGraphBuilder.registerCardsRootDestination(
         val cardsViewModel = viewModel<com.flashcardsopensourceapp.feature.cards.CardsViewModel>(
             factory = createCardsViewModelFactory(
                 cardsRepository = appGraph.cardsRepository,
-                workspaceRepository = appGraph.workspaceRepository
+                workspaceRepository = appGraph.workspaceRepository,
+                autoSyncEventRepository = appGraph.autoSyncEventRepository,
+                messageController = appGraph.appMessageBus,
+                visibleAppScreenRepository = appGraph.visibleAppScreenController
             )
         )
         val uiState by cardsViewModel.uiState.collectAsStateWithLifecycle()

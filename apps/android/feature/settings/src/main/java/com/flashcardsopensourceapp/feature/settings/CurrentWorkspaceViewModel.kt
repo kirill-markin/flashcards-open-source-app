@@ -6,11 +6,17 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
+import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
+import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncCompletion
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncOutcome
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
-import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,8 +44,9 @@ private data class CurrentWorkspaceDraftState(
 
 class CurrentWorkspaceViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
-    syncRepository: SyncRepository,
+    private val autoSyncEventRepository: AutoSyncEventRepository,
     private val messageController: TransientMessageController,
+    visibleAppScreenRepository: VisibleAppScreenRepository,
     workspaceRepository: WorkspaceRepository
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
@@ -52,6 +59,14 @@ class CurrentWorkspaceViewModel(
             workspaces = emptyList()
         )
     )
+    private val visibleAppScreenState = visibleAppScreenRepository.observeVisibleAppScreen().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = VisibleAppScreen.OTHER
+    )
+    private var pendingAutoSyncRequestId: String? = null
+    private var currentWorkspaceSignatureAtAutoSyncStart: CurrentWorkspaceVisibleSignature? = null
+    private var lastVisibleAutoSyncChangeSignature: CurrentWorkspaceVisibleSignature? = null
 
     val uiState: StateFlow<CurrentWorkspaceUiState> = combine(
         workspaceRepository.observeAppMetadata(),
@@ -121,6 +136,10 @@ class CurrentWorkspaceViewModel(
             workspaces = emptyList()
         )
     )
+
+    init {
+        observeAutoSyncDrivenWorkspaceChanges()
+    }
 
     suspend fun loadWorkspaces() {
         val cloudSettings = cloudAccountRepository.observeCloudSettings().first()
@@ -244,6 +263,98 @@ class CurrentWorkspaceViewModel(
         }
     }
 
+    private fun observeAutoSyncDrivenWorkspaceChanges() {
+        viewModelScope.launch {
+            autoSyncEventRepository.observeAutoSyncEvents().collect { event ->
+                when (event) {
+                    is AutoSyncEvent.Requested -> {
+                        handleAutoSyncRequested(request = event.request)
+                    }
+
+                    is AutoSyncEvent.Completed -> {
+                        handleAutoSyncCompleted(completion = event.completion)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun handleAutoSyncRequested(request: AutoSyncRequest) {
+        if (request.allowsVisibleChangeMessage.not()) {
+            return
+        }
+        if (visibleAppScreenState.value != VisibleAppScreen.SETTINGS_CURRENT_WORKSPACE) {
+            return
+        }
+
+        pendingAutoSyncRequestId = request.requestId
+        currentWorkspaceSignatureAtAutoSyncStart = buildCurrentWorkspaceVisibleSignature(uiState = uiState.value)
+    }
+
+    private fun handleAutoSyncCompleted(completion: AutoSyncCompletion) {
+        if (completion.request.requestId != pendingAutoSyncRequestId) {
+            return
+        }
+
+        pendingAutoSyncRequestId = null
+        val currentWorkspaceSignatureBeforeSync = currentWorkspaceSignatureAtAutoSyncStart
+        currentWorkspaceSignatureAtAutoSyncStart = null
+
+        if (completion.outcome !is AutoSyncOutcome.Succeeded) {
+            return
+        }
+        if (completion.request.allowsVisibleChangeMessage.not()) {
+            return
+        }
+        if (visibleAppScreenState.value != VisibleAppScreen.SETTINGS_CURRENT_WORKSPACE) {
+            return
+        }
+
+        val currentWorkspaceSignature = buildCurrentWorkspaceVisibleSignature(uiState = uiState.value)
+        if (
+            currentWorkspaceSignatureBeforeSync == null ||
+            currentWorkspaceSignatureBeforeSync == currentWorkspaceSignature
+        ) {
+            return
+        }
+        if (currentWorkspaceSignature == lastVisibleAutoSyncChangeSignature) {
+            return
+        }
+
+        lastVisibleAutoSyncChangeSignature = currentWorkspaceSignature
+        messageController.showMessage(message = workspaceUpdatedOnAnotherDeviceMessage)
+    }
+
+}
+
+private data class CurrentWorkspaceItemVisibleSignature(
+    val workspaceId: String,
+    val title: String,
+    val subtitle: String,
+    val isSelected: Boolean
+)
+
+private data class CurrentWorkspaceVisibleSignature(
+    val currentWorkspaceName: String,
+    val linkedEmail: String?,
+    val workspaces: List<CurrentWorkspaceItemVisibleSignature>
+)
+
+private fun buildCurrentWorkspaceVisibleSignature(
+    uiState: CurrentWorkspaceUiState
+): CurrentWorkspaceVisibleSignature {
+    return CurrentWorkspaceVisibleSignature(
+        currentWorkspaceName = uiState.currentWorkspaceName,
+        linkedEmail = uiState.linkedEmail,
+        workspaces = uiState.workspaces.map { workspace ->
+            CurrentWorkspaceItemVisibleSignature(
+                workspaceId = workspace.workspaceId,
+                title = workspace.title,
+                subtitle = workspace.subtitle,
+                isSelected = workspace.isSelected
+            )
+        }
+    )
 }
 
 private fun applyOptimisticWorkspaceSelection(
@@ -281,15 +392,17 @@ private fun workspaceReconciliationErrorMessage(
 fun createCurrentWorkspaceViewModelFactory(
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
-    syncRepository: SyncRepository,
-    messageController: TransientMessageController
+    autoSyncEventRepository: AutoSyncEventRepository,
+    messageController: TransientMessageController,
+    visibleAppScreenRepository: VisibleAppScreenRepository
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             CurrentWorkspaceViewModel(
                 cloudAccountRepository = cloudAccountRepository,
-                syncRepository = syncRepository,
+                autoSyncEventRepository = autoSyncEventRepository,
                 messageController = messageController,
+                visibleAppScreenRepository = visibleAppScreenRepository,
                 workspaceRepository = workspaceRepository
             )
         }

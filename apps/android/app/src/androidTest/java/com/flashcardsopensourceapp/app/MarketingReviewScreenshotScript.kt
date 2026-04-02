@@ -1,13 +1,13 @@
 package com.flashcardsopensourceapp.app
 
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.runner.RunWith
 
 private const val mitigateScreenshotFileName: String = "review-card-result-google-play-mitigate.png"
 
@@ -20,8 +20,9 @@ private const val mitigateBackText: String =
         "even if they do not remove the problem completely.\n\n" +
         "Example: Better planning can mitigate unnecessary stress."
 
+@ManualOnlyAndroidTest
 @RunWith(AndroidJUnit4::class)
-class MarketingReviewScreenshotTest {
+class MarketingReviewScreenshotScript {
     private val appStateResetRule = AppStateResetRule()
     private val composeRule = createAndroidComposeRule<MainActivity>()
 
@@ -31,7 +32,7 @@ class MarketingReviewScreenshotTest {
         .around(composeRule)
 
     @Test
-    fun capturesMitigateReviewScreenshot() {
+    fun generateMitigateReviewScreenshot() {
         val robot = MarketingScreenshotRobot(composeRule = composeRule)
 
         robot.waitForCardsEmptyState()

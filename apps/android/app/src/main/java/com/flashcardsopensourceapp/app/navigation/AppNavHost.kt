@@ -11,6 +11,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 
 @Composable
 fun AppNavHost(
@@ -89,5 +90,21 @@ fun currentTopLevelDestination(navController: NavHostController): TopLevelDestin
         route.startsWith(AiDestination.route) -> AiDestination
         route.startsWith(SettingsDestination.route) -> SettingsDestination
         else -> ReviewDestination
+    }
+}
+
+@Composable
+fun currentVisibleAppScreen(navController: NavHostController): VisibleAppScreen {
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val route = backStackEntry?.destination?.route
+
+    return when {
+        route == null -> VisibleAppScreen.OTHER
+        route == ReviewDestination.route || route == ReviewPreviewDestination.route -> VisibleAppScreen.REVIEW
+        route == CardsDestination.route -> VisibleAppScreen.CARDS
+        route == SettingsDestination.route -> VisibleAppScreen.SETTINGS_ROOT
+        route == SettingsCurrentWorkspaceDestination.route -> VisibleAppScreen.SETTINGS_CURRENT_WORKSPACE
+        route == SettingsWorkspaceOverviewDestination.route -> VisibleAppScreen.SETTINGS_WORKSPACE_OVERVIEW
+        else -> VisibleAppScreen.OTHER
     }
 }

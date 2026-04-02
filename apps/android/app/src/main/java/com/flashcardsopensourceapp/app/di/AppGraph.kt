@@ -1,7 +1,9 @@
 package com.flashcardsopensourceapp.app.di
 
 import android.content.Context
+import com.flashcardsopensourceapp.app.AutoSyncController
 import com.flashcardsopensourceapp.core.ui.AppMessageBus
+import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
 import com.flashcardsopensourceapp.app.notifications.ReviewNotificationsManager
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
@@ -22,6 +24,7 @@ import com.flashcardsopensourceapp.data.local.notifications.SharedPreferencesRev
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.CloudGuestSessionCoordinator
@@ -64,6 +67,7 @@ class AppGraph(
     private var startupJob: Job? = null
 
     val appMessageBus = AppMessageBus()
+    val visibleAppScreenController = VisibleAppScreenController()
     val appHandoffCoordinator = AppHandoffCoordinator()
     val database: AppDatabase = buildAppDatabase(context = context)
     private val cloudPreferencesStore = CloudPreferencesStore(context = context, database = database)
@@ -111,7 +115,7 @@ class AppGraph(
         resetCoordinator = cloudIdentityResetCoordinator,
         guestSessionStore = guestAiSessionStore
     )
-    val syncRepository: SyncRepository = LocalSyncRepository(
+    private val localSyncRepository = LocalSyncRepository(
         database = database,
         preferencesStore = cloudPreferencesStore,
         remoteService = cloudRemoteService,
@@ -120,6 +124,12 @@ class AppGraph(
         resetCoordinator = cloudIdentityResetCoordinator,
         guestSessionStore = guestAiSessionStore,
         cloudGuestSessionCoordinator = cloudGuestSessionCoordinator
+    )
+    val syncRepository: SyncRepository = localSyncRepository
+    val autoSyncEventRepository: AutoSyncEventRepository = localSyncRepository
+    val autoSyncController = AutoSyncController(
+        appScope = appScope,
+        autoSyncEventRepository = autoSyncEventRepository
     )
     val cardsRepository: CardsRepository = LocalCardsRepository(
         database = database,

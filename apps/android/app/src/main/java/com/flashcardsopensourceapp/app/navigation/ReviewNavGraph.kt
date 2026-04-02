@@ -37,7 +37,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
         val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
             factory = createReviewViewModelFactory(
                 reviewRepository = appGraph.reviewRepository,
-                syncRepository = appGraph.syncRepository,
+                autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 messageController = appGraph.appMessageBus,
                 reviewNotificationsStore = appGraph.reviewNotificationsStore,
                 shouldShowNotificationPermissionPrePrompt = {
@@ -50,6 +50,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     appGraph.reviewNotificationsManager.enableDefaultDailyForCurrentWorkspace()
                 },
                 reviewPreferencesStore = appGraph.reviewPreferencesStore,
+                visibleAppScreenRepository = appGraph.visibleAppScreenController,
                 workspaceRepository = appGraph.workspaceRepository
             )
         )
@@ -115,7 +116,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             viewModelStoreOwner = reviewBackStackEntry,
             factory = createReviewViewModelFactory(
                 reviewRepository = appGraph.reviewRepository,
-                syncRepository = appGraph.syncRepository,
+                autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 messageController = appGraph.appMessageBus,
                 reviewNotificationsStore = appGraph.reviewNotificationsStore,
                 shouldShowNotificationPermissionPrePrompt = {
@@ -128,6 +129,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     appGraph.reviewNotificationsManager.enableDefaultDailyForCurrentWorkspace()
                 },
                 reviewPreferencesStore = appGraph.reviewPreferencesStore,
+                visibleAppScreenRepository = appGraph.visibleAppScreenController,
                 workspaceRepository = appGraph.workspaceRepository
             )
         )

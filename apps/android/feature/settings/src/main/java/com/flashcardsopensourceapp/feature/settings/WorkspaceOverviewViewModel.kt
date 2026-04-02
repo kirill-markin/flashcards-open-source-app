@@ -6,10 +6,16 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
+import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
+import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncCompletion
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncOutcome
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
-import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -37,8 +43,9 @@ private data class WorkspaceOverviewDraftState(
 class WorkspaceOverviewViewModel(
     workspaceRepository: WorkspaceRepository,
     private val cloudAccountRepository: CloudAccountRepository,
-    private val syncRepository: SyncRepository,
-    private val messageController: TransientMessageController
+    private val autoSyncEventRepository: AutoSyncEventRepository,
+    private val messageController: TransientMessageController,
+    visibleAppScreenRepository: VisibleAppScreenRepository
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = WorkspaceOverviewDraftState(
@@ -56,6 +63,14 @@ class WorkspaceOverviewViewModel(
             deletePreview = null
         )
     )
+    private val visibleAppScreenState = visibleAppScreenRepository.observeVisibleAppScreen().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = VisibleAppScreen.OTHER
+    )
+    private var pendingAutoSyncRequestId: String? = null
+    private var workspaceOverviewSignatureAtAutoSyncStart: WorkspaceOverviewVisibleSignature? = null
+    private var lastVisibleAutoSyncChangeSignature: WorkspaceOverviewVisibleSignature? = null
 
     val uiState: StateFlow<WorkspaceOverviewUiState> = combine(
         workspaceRepository.observeWorkspaceOverview(),
@@ -115,6 +130,10 @@ class WorkspaceOverviewViewModel(
             deletePreview = null
         )
     )
+
+    init {
+        observeAutoSyncDrivenWorkspaceOverviewChanges()
+    }
 
     fun updateWorkspaceNameDraft(name: String) {
         draftState.update { state ->
@@ -312,21 +331,109 @@ class WorkspaceOverviewViewModel(
             deleteWorkspace()
         }
     }
+
+    private fun observeAutoSyncDrivenWorkspaceOverviewChanges() {
+        viewModelScope.launch {
+            autoSyncEventRepository.observeAutoSyncEvents().collect { event ->
+                when (event) {
+                    is AutoSyncEvent.Requested -> {
+                        handleAutoSyncRequested(request = event.request)
+                    }
+
+                    is AutoSyncEvent.Completed -> {
+                        handleAutoSyncCompleted(completion = event.completion)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun handleAutoSyncRequested(request: AutoSyncRequest) {
+        if (request.allowsVisibleChangeMessage.not()) {
+            return
+        }
+        if (visibleAppScreenState.value != VisibleAppScreen.SETTINGS_WORKSPACE_OVERVIEW) {
+            return
+        }
+
+        pendingAutoSyncRequestId = request.requestId
+        workspaceOverviewSignatureAtAutoSyncStart = buildWorkspaceOverviewVisibleSignature(uiState = uiState.value)
+    }
+
+    private fun handleAutoSyncCompleted(completion: AutoSyncCompletion) {
+        if (completion.request.requestId != pendingAutoSyncRequestId) {
+            return
+        }
+
+        pendingAutoSyncRequestId = null
+        val workspaceOverviewSignatureBeforeSync = workspaceOverviewSignatureAtAutoSyncStart
+        workspaceOverviewSignatureAtAutoSyncStart = null
+
+        if (completion.outcome !is AutoSyncOutcome.Succeeded) {
+            return
+        }
+        if (completion.request.allowsVisibleChangeMessage.not()) {
+            return
+        }
+        if (visibleAppScreenState.value != VisibleAppScreen.SETTINGS_WORKSPACE_OVERVIEW) {
+            return
+        }
+
+        val currentWorkspaceOverviewSignature = buildWorkspaceOverviewVisibleSignature(uiState = uiState.value)
+        if (
+            workspaceOverviewSignatureBeforeSync == null ||
+            workspaceOverviewSignatureBeforeSync == currentWorkspaceOverviewSignature
+        ) {
+            return
+        }
+        if (currentWorkspaceOverviewSignature == lastVisibleAutoSyncChangeSignature) {
+            return
+        }
+
+        lastVisibleAutoSyncChangeSignature = currentWorkspaceOverviewSignature
+        messageController.showMessage(message = workspaceUpdatedOnAnotherDeviceMessage)
+    }
+}
+
+private data class WorkspaceOverviewVisibleSignature(
+    val workspaceName: String,
+    val totalCards: Int,
+    val deckCount: Int,
+    val tagCount: Int,
+    val dueCount: Int,
+    val newCount: Int,
+    val reviewedCount: Int
+)
+
+private fun buildWorkspaceOverviewVisibleSignature(
+    uiState: WorkspaceOverviewUiState
+): WorkspaceOverviewVisibleSignature {
+    return WorkspaceOverviewVisibleSignature(
+        workspaceName = uiState.workspaceName,
+        totalCards = uiState.totalCards,
+        deckCount = uiState.deckCount,
+        tagCount = uiState.tagCount,
+        dueCount = uiState.dueCount,
+        newCount = uiState.newCount,
+        reviewedCount = uiState.reviewedCount
+    )
 }
 
 fun createWorkspaceOverviewViewModelFactory(
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
-    syncRepository: SyncRepository,
-    messageController: TransientMessageController
+    autoSyncEventRepository: AutoSyncEventRepository,
+    messageController: TransientMessageController,
+    visibleAppScreenRepository: VisibleAppScreenRepository
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             WorkspaceOverviewViewModel(
                 workspaceRepository = workspaceRepository,
                 cloudAccountRepository = cloudAccountRepository,
-                syncRepository = syncRepository,
-                messageController = messageController
+                autoSyncEventRepository = autoSyncEventRepository,
+                messageController = messageController,
+                visibleAppScreenRepository = visibleAppScreenRepository
             )
         }
     }
