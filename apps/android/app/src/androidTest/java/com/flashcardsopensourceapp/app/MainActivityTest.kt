@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.app
 
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -18,6 +20,8 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
+import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateContentTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
 import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
@@ -326,6 +330,19 @@ class MainActivityTest {
         composeRule.onNodeWithTag(aiEmptyStateContentTag).fetchSemanticsNode()
         assertAiEmptyStateIsCentered()
         composeRule.onNodeWithText("Message").fetchSemanticsNode()
+    }
+
+    @Test
+    fun aiConversationSurfaceTapClearsComposerFocus() {
+        waitForAiEmptyState()
+
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performClick()
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).assertIsFocused()
+
+        composeRule.onNodeWithTag(aiConversationSurfaceTag).performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).assertIsNotFocused()
     }
 
     @Test

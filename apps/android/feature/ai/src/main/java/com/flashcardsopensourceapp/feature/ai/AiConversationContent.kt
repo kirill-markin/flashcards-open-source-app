@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -27,6 +30,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import kotlinx.coroutines.delay
 
 private val aiEmptyStateMaxWidth = 420.dp
+const val aiConversationSurfaceTag: String = "ai_conversation_surface"
 
 @Composable
 internal fun AiConversation(
@@ -34,27 +38,14 @@ internal fun AiConversation(
     currentWorkspaceName: String,
     isStreaming: Boolean,
     onOpenAccountStatus: () -> Unit,
-    contentPadding: PaddingValues
+    onDismissComposerFocus: () -> Unit,
+    contentPadding: PaddingValues,
+    modifier: Modifier
 ) {
-    if (messages.isEmpty()) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(contentPadding)
-                .testTag(aiEmptyStateTag)
-        ) {
-            AiConversationEmptyState(
-                currentWorkspaceName = currentWorkspaceName,
-                modifier = Modifier
-            )
-        }
-        return
-    }
-
     val listState = rememberLazyListState()
     val currentMessages by rememberUpdatedState(messages)
     val currentStreamingState by rememberUpdatedState(isStreaming)
+    val interactionSource = remember { MutableInteractionSource() }
     val autoScrollKey = remember(messages) {
         buildString {
             append(messages.size)
@@ -81,23 +72,8 @@ internal fun AiConversation(
         }
     }
 
-    LaunchedEffect(autoScrollKey) {
-        val layoutInfo = listState.layoutInfo
-        val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-        val scrollState = aiConversationScrollState(
-            totalItemsCount = layoutInfo.totalItemsCount,
-            lastVisibleItemIndex = lastVisibleItemIndex,
-            isUserScrolling = listState.isScrollInProgress,
-            bottomThreshold = 1
-        )
-        if (scrollState.isNearBottom && scrollState.isUserScrolling.not()) {
-            listState.animateScrollToItem(index = conversationLastItemIndex(messages = messages))
-        }
-    }
-
-    LaunchedEffect(isStreaming) {
-        while (currentStreamingState) {
-            delay(250L)
+    LaunchedEffect(autoScrollKey, messages.isEmpty()) {
+        if (messages.isNotEmpty()) {
             val layoutInfo = listState.layoutInfo
             val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
             val scrollState = aiConversationScrollState(
@@ -107,24 +83,69 @@ internal fun AiConversation(
                 bottomThreshold = 1
             )
             if (scrollState.isNearBottom && scrollState.isUserScrolling.not()) {
-                listState.animateScrollToItem(index = conversationLastItemIndex(messages = currentMessages))
+                listState.animateScrollToItem(index = conversationLastItemIndex(messages = messages))
             }
         }
     }
 
-    LazyColumn(
-        state = listState,
-        contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        items(items = messages, key = { message -> message.messageId }) { message ->
-            MessageRow(
-                message = message,
-                isStreaming = isStreaming,
-                isLastMessage = messages.lastOrNull()?.messageId == message.messageId,
-                onOpenAccountStatus = onOpenAccountStatus
+    LaunchedEffect(isStreaming, messages.isEmpty()) {
+        if (messages.isNotEmpty()) {
+            while (currentStreamingState) {
+                delay(250L)
+                val layoutInfo = listState.layoutInfo
+                val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                val scrollState = aiConversationScrollState(
+                    totalItemsCount = layoutInfo.totalItemsCount,
+                    lastVisibleItemIndex = lastVisibleItemIndex,
+                    isUserScrolling = listState.isScrollInProgress,
+                    bottomThreshold = 1
+                )
+                if (scrollState.isNearBottom && scrollState.isUserScrolling.not()) {
+                    listState.animateScrollToItem(index = conversationLastItemIndex(messages = currentMessages))
+                }
+            }
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .clipToBounds()
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onDismissComposerFocus
             )
+            .testTag(aiConversationSurfaceTag)
+    ) {
+        if (messages.isEmpty()) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(contentPadding)
+                    .testTag(aiEmptyStateTag)
+            ) {
+                AiConversationEmptyState(
+                    currentWorkspaceName = currentWorkspaceName,
+                    modifier = Modifier
+                )
+            }
+        } else {
+            LazyColumn(
+                state = listState,
+                contentPadding = contentPadding,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(items = messages, key = { message -> message.messageId }) { message ->
+                    MessageRow(
+                        message = message,
+                        isStreaming = isStreaming,
+                        isLastMessage = messages.lastOrNull()?.messageId == message.messageId,
+                        onOpenAccountStatus = onOpenAccountStatus
+                    )
+                }
+            }
         }
     }
 }
