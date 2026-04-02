@@ -13,7 +13,6 @@ import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStopRunResponse
-import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
@@ -25,6 +24,8 @@ import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteService
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import java.util.TimeZone
 
 private data class AuthorizedAiChatSession(
@@ -174,10 +175,8 @@ class LocalAiChatRepository(
     override suspend fun startRun(
         workspaceId: String?,
         state: AiChatPersistedState,
-        content: List<AiChatContentPart>,
-        onAccepted: suspend (AiChatStartRunResponse) -> Unit,
-        onEvent: suspend (AiChatLiveEvent) -> Unit
-    ): AiChatStreamOutcome {
+        content: List<AiChatContentPart>
+    ): AiChatStartRunResponse {
         val session = authorizedSession(workspaceId = workspaceId)
         val isLinkedSession = session.authorizationHeader.startsWith(prefix = "Bearer ")
         val resolvedSessionId = state.chatSessionId.ifBlank {
@@ -215,9 +214,7 @@ class LocalAiChatRepository(
             aiChatRemoteService.startRun(
                 apiBaseUrl = session.apiBaseUrl,
                 authorizationHeader = session.authorizationHeader,
-                request = request,
-                onAccepted = onAccepted,
-                onEvent = onEvent
+                request = request
             )
         } catch (error: AiChatRemoteException) {
             AiChatDiagnosticsLogger.error(
@@ -240,26 +237,28 @@ class LocalAiChatRepository(
         }
     }
 
-    override suspend fun attachLiveRun(
+    override fun attachLiveRun(
         workspaceId: String?,
         sessionId: String,
         runId: String,
         liveStream: AiChatLiveStreamEnvelope,
         afterCursor: String?,
-        resumeDiagnostics: AiChatResumeDiagnostics?,
-        onEvent: suspend (AiChatLiveEvent) -> Unit
-    ) {
-        val session = authorizedSession(workspaceId = workspaceId)
-        aiChatRemoteService.attachLiveRun(
-            apiBaseUrl = session.apiBaseUrl,
-            authorizationHeader = session.authorizationHeader,
-            sessionId = sessionId,
-            runId = runId,
-            liveStream = liveStream,
-            afterCursor = afterCursor,
-            resumeDiagnostics = resumeDiagnostics,
-            onEvent = onEvent
-        )
+        resumeDiagnostics: AiChatResumeDiagnostics?
+    ): Flow<AiChatLiveEvent> {
+        return flow {
+            val session = authorizedSession(workspaceId = workspaceId)
+            emitAll(
+                aiChatRemoteService.attachLiveRun(
+                    apiBaseUrl = session.apiBaseUrl,
+                    authorizationHeader = session.authorizationHeader,
+                    sessionId = sessionId,
+                    runId = runId,
+                    liveStream = liveStream,
+                    afterCursor = afterCursor,
+                    resumeDiagnostics = resumeDiagnostics
+                )
+            )
+        }
     }
 
     override suspend fun stopRun(workspaceId: String?, sessionId: String): AiChatStopRunResponse {

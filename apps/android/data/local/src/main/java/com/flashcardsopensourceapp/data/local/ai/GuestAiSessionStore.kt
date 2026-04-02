@@ -1,9 +1,8 @@
 package com.flashcardsopensourceapp.data.local.ai
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.core.content.edit
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
@@ -16,12 +15,9 @@ private const val guestAiWorkspaceSessionPrefix: String = "guest-ai-session::"
 class GuestAiSessionStore(
     context: Context
 ) {
-    private val preferences = EncryptedSharedPreferences.create(
-        context,
+    private val preferences: SharedPreferences = context.getSharedPreferences(
         guestAiSessionPreferencesName,
-        MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        Context.MODE_PRIVATE
     )
 
     fun loadSession(

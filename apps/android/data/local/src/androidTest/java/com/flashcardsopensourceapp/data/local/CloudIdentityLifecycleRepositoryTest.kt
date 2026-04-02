@@ -6,7 +6,9 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
+import com.flashcardsopensourceapp.data.local.ai.AiChatLiveRemoteService
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
+import com.flashcardsopensourceapp.data.local.ai.AiCoroutineDispatchers
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
@@ -57,6 +59,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.Dispatchers
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -93,7 +96,11 @@ class CloudIdentityLifecycleRepositoryTest {
         aiChatHistoryStore = AiChatHistoryStore(context = context)
         guestAiSessionStore = GuestAiSessionStore(context = context)
         operationCoordinator = CloudOperationCoordinator()
-        aiChatRemoteService = AiChatRemoteService()
+        val dispatchers = AiCoroutineDispatchers(io = Dispatchers.IO)
+        aiChatRemoteService = AiChatRemoteService(
+            dispatchers = dispatchers,
+            liveRemoteService = AiChatLiveRemoteService(dispatchers = dispatchers)
+        )
         ensureLocalWorkspaceShell(
             database = database,
             currentTimeMillis = 100L

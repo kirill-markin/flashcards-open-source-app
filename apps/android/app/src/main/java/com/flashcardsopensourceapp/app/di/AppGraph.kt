@@ -5,8 +5,10 @@ import com.flashcardsopensourceapp.core.ui.AppMessageBus
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
 import com.flashcardsopensourceapp.app.notifications.ReviewNotificationsManager
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
+import com.flashcardsopensourceapp.data.local.ai.AiChatLiveRemoteService
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
+import com.flashcardsopensourceapp.data.local.ai.AiCoroutineDispatchers
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
@@ -71,7 +73,12 @@ class AppGraph(
     private val guestAiSessionStore = GuestAiSessionStore(context = context)
     val reviewPreferencesStore: ReviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
     val reviewNotificationsStore: ReviewNotificationsStore = SharedPreferencesReviewNotificationsStore(context = context)
-    private val aiChatRemoteService = AiChatRemoteService()
+    private val aiCoroutineDispatchers = AiCoroutineDispatchers(io = Dispatchers.IO)
+    private val aiChatLiveRemoteService = AiChatLiveRemoteService(dispatchers = aiCoroutineDispatchers)
+    private val aiChatRemoteService = AiChatRemoteService(
+        dispatchers = aiCoroutineDispatchers,
+        liveRemoteService = aiChatLiveRemoteService
+    )
     private val syncLocalStore = SyncLocalStore(
         database = database,
         preferencesStore = cloudPreferencesStore
