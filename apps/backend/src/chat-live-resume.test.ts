@@ -230,6 +230,170 @@ test("resume replay seeds in-progress assistant content and continues live delta
   ]);
 });
 
+test("terminal replay emits assistant_message_done before run_terminal when the same item finishes in place", async () => {
+  let runSnapshotReadCount = 0;
+
+  const output = await collectStreamOutput(async (stream) => {
+    await runLiveStreamWithDependencies(stream, {
+      sessionId: "session-1",
+      runId: "run-1",
+      userId: "user-1",
+      workspaceId: "workspace-1",
+      afterCursor: 5,
+      requestId: "request-4",
+    }, {
+      getChatRunSnapshot: async () => {
+        runSnapshotReadCount += 1;
+        return runSnapshotReadCount === 1
+          ? createRunSnapshot("running", "assistant-5")
+          : createRunSnapshot("completed", "assistant-5");
+      },
+      getChatSessionSnapshot: async () => createRunningSessionSnapshot(),
+      listChatMessagesAfterCursor: async (_userId, _workspaceId, _sessionId, afterCursor) => {
+        if (afterCursor === 5) {
+          return [
+            makeAssistantMessage({
+              itemId: "assistant-5",
+              itemOrder: 6,
+              state: runSnapshotReadCount < 2 ? "in_progress" : "completed",
+              content: [{ type: "text", text: runSnapshotReadCount < 2 ? "hello" : "hello world" }],
+            }),
+          ];
+        }
+
+        return [];
+      },
+      listChatMessagesLatest: async () => ({
+        messages: [],
+        oldestCursor: null,
+        newestCursor: null,
+        hasOlder: false,
+      }),
+      waitForNextPollInterval: async () => true,
+    });
+  });
+
+  assert.deepEqual(parseLiveEvents(output), [
+    {
+      type: "assistant_delta",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
+      text: "hello",
+      cursor: "6",
+      sequenceNumber: 1,
+      streamEpoch: "run-1",
+      itemId: "assistant-5",
+    },
+    {
+      type: "assistant_delta",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
+      text: " world",
+      cursor: "6",
+      sequenceNumber: 2,
+      streamEpoch: "run-1",
+      itemId: "assistant-5",
+    },
+    {
+      type: "assistant_message_done",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
+      cursor: "6",
+      sequenceNumber: 3,
+      streamEpoch: "run-1",
+      itemId: "assistant-5",
+      content: [{ type: "text", text: "hello world" }],
+      isError: false,
+      isStopped: false,
+    },
+    {
+      type: "run_terminal",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
+      cursor: "6",
+      sequenceNumber: 4,
+      streamEpoch: "run-1",
+      outcome: "completed",
+      assistantItemId: "assistant-5",
+    },
+  ]);
+});
+
+test("terminal replay falls back to reset_required when a completed run has only unfinished streamed content", async () => {
+  let runSnapshotReadCount = 0;
+
+  const output = await collectStreamOutput(async (stream) => {
+    await runLiveStreamWithDependencies(stream, {
+      sessionId: "session-1",
+      runId: "run-1",
+      userId: "user-1",
+      workspaceId: "workspace-1",
+      afterCursor: 5,
+      requestId: "request-5",
+    }, {
+      getChatRunSnapshot: async () => {
+        runSnapshotReadCount += 1;
+        return runSnapshotReadCount === 1
+          ? createRunSnapshot("running", "assistant-6")
+          : createRunSnapshot("completed", "assistant-6");
+      },
+      getChatSessionSnapshot: async () => createRunningSessionSnapshot(),
+      listChatMessagesAfterCursor: async (_userId, _workspaceId, _sessionId, afterCursor) => {
+        if (afterCursor === 5) {
+          return runSnapshotReadCount < 2
+            ? [
+              makeAssistantMessage({
+                itemId: "assistant-6",
+                itemOrder: 6,
+                state: "in_progress",
+                content: [{ type: "text", text: "partial" }],
+              }),
+            ]
+            : [];
+        }
+
+        return [];
+      },
+      listChatMessagesLatest: async () => ({
+        messages: [],
+        oldestCursor: null,
+        newestCursor: null,
+        hasOlder: false,
+      }),
+      waitForNextPollInterval: async () => true,
+    });
+  });
+
+  assert.deepEqual(parseLiveEvents(output), [
+    {
+      type: "assistant_delta",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
+      text: "partial",
+      cursor: "6",
+      sequenceNumber: 1,
+      streamEpoch: "run-1",
+      itemId: "assistant-6",
+    },
+    {
+      type: "run_terminal",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
+      cursor: "5",
+      sequenceNumber: 2,
+      streamEpoch: "run-1",
+      outcome: "reset_required",
+      assistantItemId: "assistant-6",
+    },
+  ]);
+});
+
 test("resume replay emits reset_required when backlog contains multiple in-progress assistant items", async () => {
   const output = await collectStreamOutput(async (stream) => {
     await runLiveStreamWithDependencies(stream, {
