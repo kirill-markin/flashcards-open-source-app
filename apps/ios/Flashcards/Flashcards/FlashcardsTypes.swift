@@ -532,6 +532,33 @@ enum SyncStatus: Hashable {
     case failed(message: String)
 }
 
+enum CloudSyncTriggerSource: Hashable, Sendable {
+    case appLaunch
+    case appForeground
+    case reviewTabSelected
+    case cardsTabSelected
+    case polling
+    case localMutation
+    case manualSyncNow
+
+    var usesImmediateStartDebounce: Bool {
+        switch self {
+        case .appLaunch, .appForeground, .reviewTabSelected, .cardsTabSelected:
+            return true
+        case .polling, .localMutation, .manualSyncNow:
+            return false
+        }
+    }
+}
+
+struct CloudSyncTrigger: Hashable, Sendable {
+    let source: CloudSyncTriggerSource
+    let now: Date
+    let extendsFastPolling: Bool
+    let allowsVisibleChangeBanner: Bool
+    let surfacesGlobalErrorMessage: Bool
+}
+
 struct CloudSyncResult: Hashable, Sendable {
     let appliedPullChangeCount: Int
     let changedEntityTypes: Set<SyncEntityType>
@@ -573,7 +600,8 @@ struct CloudSyncResult: Hashable, Sendable {
 
 enum ReviewRefreshMode: Hashable, Sendable {
     case blockingReset
-    case backgroundReconcile
+    case backgroundReconcileSilently
+    case backgroundReconcileWithVisibleChangeBanner
 }
 
 struct CardSyncPayload: Codable, Hashable {
@@ -898,6 +926,13 @@ struct HomeSnapshot: Codable, Hashable, Sendable {
     let dueCount: Int
     let newCount: Int
     let reviewedCount: Int
+}
+
+struct BootstrapSnapshotRefreshOutcome: Hashable, Sendable {
+    let didChange: Bool
+    let workspaceChanged: Bool
+    let cardsChanged: Bool
+    let homeSnapshotChanged: Bool
 }
 
 struct CardsListSnapshot: Hashable, Sendable {

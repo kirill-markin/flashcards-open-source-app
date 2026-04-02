@@ -98,7 +98,7 @@ extension FlashcardsStore {
     }
 
     @discardableResult
-    func refreshBootstrapSnapshotWithoutReset(now: Date) throws -> Bool {
+    func refreshBootstrapSnapshotWithoutReset(now: Date) throws -> BootstrapSnapshotRefreshOutcome {
         let database = try requireLocalDatabase(database: self.database)
         let bootstrapSnapshot = try database.loadBootstrapSnapshot()
         let nextCards = try database.loadActiveCards(workspaceId: bootstrapSnapshot.workspace.workspaceId)
@@ -117,14 +117,17 @@ extension FlashcardsStore {
             reviewedCount: nextHomeSnapshot.reviewedCount
         )
 
-        let didChange = self.workspace != bootstrapSnapshot.workspace
+        let workspaceChanged = self.workspace != bootstrapSnapshot.workspace
+        let cardsChanged = self.cards != nextCards
+        let didChange = workspaceChanged
             || self.userSettings != bootstrapSnapshot.userSettings
             || self.schedulerSettings != bootstrapSnapshot.schedulerSettings
             || self.cloudSettings != bootstrapSnapshot.cloudSettings
-            || self.cards != nextCards
+            || cardsChanged
             || self.decks != nextDecks
             || self.deckItems != nextDeckItems
             || self.homeSnapshot != resolvedHomeSnapshot
+        let homeSnapshotChanged = self.homeSnapshot != resolvedHomeSnapshot
 
         self.workspace = bootstrapSnapshot.workspace
         self.userSettings = bootstrapSnapshot.userSettings
@@ -138,7 +141,12 @@ extension FlashcardsStore {
         self.reloadReviewNotificationsSettings()
         self.refreshReviewNotificationsScheduling(now: now)
 
-        return didChange
+        return BootstrapSnapshotRefreshOutcome(
+            didChange: didChange,
+            workspaceChanged: workspaceChanged,
+            cardsChanged: cardsChanged,
+            homeSnapshotChanged: homeSnapshotChanged
+        )
     }
 
     func applyReviewPublishedState(reviewState: ReviewQueuePublishedState) {

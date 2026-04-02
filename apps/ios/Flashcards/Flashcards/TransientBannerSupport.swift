@@ -3,6 +3,7 @@ import SwiftUI
 let transientBannerDefaultDismissDelayNanoseconds: UInt64 = 3_000_000_000
 let settingsWorkspaceLockedBannerMessage: String = "Workspace changes are available only after you create an account."
 let reviewUpdatedOnAnotherDeviceBannerMessage: String = "This review updated on another device."
+let cardsUpdatedFromCloudBannerMessage: String = "Cards updated from the cloud."
 let aiChatOfflineBannerMessage: String = "No internet connection. AI chat requires internet access."
 let aiChatActiveRunBannerMessage: String = "A response is already in progress. Wait for it to finish or stop it before sending another message."
 
@@ -10,6 +11,7 @@ enum TransientBannerKind: Hashable, Sendable {
     case aiChatOffline
     case aiChatActiveRun
     case reviewUpdatedOnAnotherDevice
+    case cardsUpdatedFromCloud
     case workspaceChangesRequireAccount
 
     var iconSystemName: String {
@@ -20,6 +22,8 @@ enum TransientBannerKind: Hashable, Sendable {
             return "hourglass"
         case .reviewUpdatedOnAnotherDevice:
             return "arrow.triangle.2.circlepath.circle.fill"
+        case .cardsUpdatedFromCloud:
+            return "rectangle.stack.badge.person.crop"
         case .workspaceChangesRequireAccount:
             return "gearshape.fill"
         }
@@ -65,6 +69,15 @@ func makeReviewUpdatedOnAnotherDeviceBanner() -> TransientBanner {
         id: UUID().uuidString.lowercased(),
         message: reviewUpdatedOnAnotherDeviceBannerMessage,
         kind: .reviewUpdatedOnAnotherDevice,
+        dismissDelayNanoseconds: transientBannerDefaultDismissDelayNanoseconds
+    )
+}
+
+func makeCardsUpdatedFromCloudBanner() -> TransientBanner {
+    TransientBanner(
+        id: UUID().uuidString.lowercased(),
+        message: cardsUpdatedFromCloudBannerMessage,
+        kind: .cardsUpdatedFromCloud,
         dismissDelayNanoseconds: transientBannerDefaultDismissDelayNanoseconds
     )
 }

@@ -417,7 +417,15 @@ struct CloudSignInSheet: View {
                         selection: selection
                     )
                 case .syncOnly:
-                    try await self.store.syncCloudNow()
+                    try await self.store.syncCloudNow(
+                        trigger: CloudSyncTrigger(
+                            source: .manualSyncNow,
+                            now: Date(),
+                            extendsFastPolling: false,
+                            allowsVisibleChangeBanner: false,
+                            surfacesGlobalErrorMessage: true
+                        )
+                    )
                 }
 
                 guard self.postAuthSyncState?.id == syncState.id else {
