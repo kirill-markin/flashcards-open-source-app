@@ -11,15 +11,27 @@ import com.flashcardsopensourceapp.data.local.model.SyncStatus
 const val fastForegroundSyncPollingIntervalMillis: Long = 15_000L
 const val defaultForegroundSyncPollingIntervalMillis: Long = 60_000L
 
+fun canRunForegroundAutoSync(
+    cloudState: CloudAccountState,
+    accountDeletionState: AccountDeletionState,
+    syncStatus: SyncStatus
+): Boolean {
+    return cloudState == CloudAccountState.LINKED
+        && accountDeletionState == AccountDeletionState.Hidden
+        && syncStatus !is SyncStatus.Blocked
+}
+
 fun shouldRunForegroundSyncPolling(
     cloudState: CloudAccountState,
     accountDeletionState: AccountDeletionState,
     destination: TopLevelDestination,
     syncStatus: SyncStatus
 ): Boolean {
-    return cloudState == CloudAccountState.LINKED
-        && accountDeletionState == AccountDeletionState.Hidden
-        && syncStatus !is SyncStatus.Blocked
+    return canRunForegroundAutoSync(
+        cloudState = cloudState,
+        accountDeletionState = accountDeletionState,
+        syncStatus = syncStatus
+    )
         && destination != SettingsDestination
 }
 

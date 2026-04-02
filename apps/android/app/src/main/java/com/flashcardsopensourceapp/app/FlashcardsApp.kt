@@ -23,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,6 +39,9 @@ import androidx.navigation.compose.rememberNavController
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.di.AppStartupState
 import com.flashcardsopensourceapp.app.navigation.AppNavHost
+import com.flashcardsopensourceapp.app.navigation.CardsDestination
+import com.flashcardsopensourceapp.app.navigation.ReviewDestination
+import com.flashcardsopensourceapp.app.navigation.currentVisibleAppScreen
 import com.flashcardsopensourceapp.app.navigation.currentTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.topLevelDestinations
@@ -46,9 +50,9 @@ import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncSource
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 private const val startupLoadingTag: String = "app.startupLoading"
@@ -80,6 +84,7 @@ fun FlashcardsApp(appGraph: AppGraph) {
         val navController = rememberNavController()
         val lifecycleOwner = LocalLifecycleOwner.current
         val currentDestination = currentTopLevelDestination(navController = navController)
+        val currentVisibleAppScreen = currentVisibleAppScreen(navController = navController)
         val snackbarHostState = remember { SnackbarHostState() }
         val cloudSettings by appGraph.cloudAccountRepository.observeCloudSettings().collectAsStateWithLifecycle(
             initialValue = CloudSettings(
@@ -107,6 +112,18 @@ fun FlashcardsApp(appGraph: AppGraph) {
                 value = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
             )
         }
+        var hasTriggeredLaunchAutoSync by remember {
+            mutableStateOf(value = false)
+        }
+        val pollingResetAtMillis by appGraph.autoSyncController.observePollingResetAtMillis().collectAsStateWithLifecycle(
+            initialValue = 0L
+        )
+        val canRunImmediateAutoSync = canRunForegroundAutoSync(
+            cloudState = cloudSettings.cloudState,
+            accountDeletionState = accountDeletionState,
+            syncStatus = syncStatusSnapshot.status
+        )
+        val currentCanRunImmediateAutoSync by rememberUpdatedState(newValue = canRunImmediateAutoSync)
 
         LaunchedEffect(appGraph.appMessageBus, snackbarHostState) {
             appGraph.appMessageBus.messages.collect { message ->
@@ -114,23 +131,27 @@ fun FlashcardsApp(appGraph: AppGraph) {
             }
         }
 
-        LaunchedEffect(appGraph.syncRepository) {
-            var previousStatus: SyncStatus? = null
-            appGraph.syncRepository.observeSyncStatus().collect { snapshot ->
-                if (snapshot.status is SyncStatus.Failed && previousStatus !is SyncStatus.Failed) {
-                    val failedStatus = snapshot.status as SyncStatus.Failed
-                    appGraph.appMessageBus.showMessage(
-                        message = "Sync failed: ${failedStatus.message}"
-                    )
-                }
-                if (snapshot.status is SyncStatus.Blocked && previousStatus !is SyncStatus.Blocked) {
-                    val blockedStatus = snapshot.status as SyncStatus.Blocked
-                    appGraph.appMessageBus.showMessage(
-                        message = blockedStatus.message
-                    )
-                }
-                previousStatus = snapshot.status
+        LaunchedEffect(currentVisibleAppScreen) {
+            appGraph.visibleAppScreenController.updateVisibleAppScreen(
+                screen = currentVisibleAppScreen
+            )
+        }
+
+        LaunchedEffect(
+            canRunImmediateAutoSync,
+            hasTriggeredLaunchAutoSync
+        ) {
+            if (hasTriggeredLaunchAutoSync || canRunImmediateAutoSync.not()) {
+                return@LaunchedEffect
             }
+
+            hasTriggeredLaunchAutoSync = true
+            appGraph.autoSyncController.triggerImmediateAutoSync(
+                source = AutoSyncSource.APP_LAUNCH,
+                currentTimeMillis = System.currentTimeMillis(),
+                shouldExtendPolling = true,
+                allowsVisibleChangeMessage = true
+            )
         }
 
         DisposableEffect(lifecycleOwner) {
@@ -141,6 +162,14 @@ fun FlashcardsApp(appGraph: AppGraph) {
                         appGraph.reviewNotificationsManager.markAppResumed(
                             nowMillis = System.currentTimeMillis()
                         )
+                        if (currentCanRunImmediateAutoSync) {
+                            appGraph.autoSyncController.triggerImmediateAutoSync(
+                                source = AutoSyncSource.APP_FOREGROUND,
+                                currentTimeMillis = System.currentTimeMillis(),
+                                shouldExtendPolling = true,
+                                allowsVisibleChangeMessage = true
+                            )
+                        }
                     }
 
                     Lifecycle.Event.ON_PAUSE -> {
@@ -167,32 +196,10 @@ fun FlashcardsApp(appGraph: AppGraph) {
         LaunchedEffect(
             isAppResumed,
             cloudSettings.cloudState,
-            syncStatusSnapshot.status,
+            syncStatusSnapshot.status is SyncStatus.Blocked,
             accountDeletionState,
-            currentDestination.route
-        ) {
-            if (
-                isAppResumed.not() || shouldRunForegroundSyncPolling(
-                    cloudState = cloudSettings.cloudState,
-                    accountDeletionState = accountDeletionState,
-                    destination = currentDestination,
-                    syncStatus = syncStatusSnapshot.status
-                ).not()
-            ) {
-                return@LaunchedEffect
-            }
-
-            runCatching {
-                appGraph.syncRepository.syncNow()
-            }
-        }
-
-        LaunchedEffect(
-            isAppResumed,
-            cloudSettings.cloudState,
-            syncStatusSnapshot.status,
-            accountDeletionState,
-            currentDestination.route
+            currentDestination.route,
+            pollingResetAtMillis
         ) {
             if (
                 isAppResumed.not() || shouldRunForegroundSyncPolling(
@@ -219,6 +226,25 @@ fun FlashcardsApp(appGraph: AppGraph) {
                     item(
                         selected = currentDestination.route == destination.route,
                         onClick = {
+                            val isDestinationChange = currentDestination.route != destination.route
+                            if (isDestinationChange && canRunImmediateAutoSync) {
+                                if (destination == ReviewDestination) {
+                                    appGraph.autoSyncController.triggerImmediateAutoSync(
+                                        source = AutoSyncSource.REVIEW_TAB_SELECTED,
+                                        currentTimeMillis = System.currentTimeMillis(),
+                                        shouldExtendPolling = true,
+                                        allowsVisibleChangeMessage = true
+                                    )
+                                }
+                                if (destination == CardsDestination) {
+                                    appGraph.autoSyncController.triggerImmediateAutoSync(
+                                        source = AutoSyncSource.CARDS_TAB_SELECTED,
+                                        currentTimeMillis = System.currentTimeMillis(),
+                                        shouldExtendPolling = true,
+                                        allowsVisibleChangeMessage = true
+                                    )
+                                }
+                            }
                             navigateToTopLevelDestination(
                                 navController = navController,
                                 destination = destination

@@ -42,7 +42,10 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
                 viewModelStoreOwner = settingsRootBackStackEntry,
                 factory = createSettingsViewModelFactory(
                     workspaceRepository = appGraph.workspaceRepository,
-                    cloudAccountRepository = appGraph.cloudAccountRepository
+                    cloudAccountRepository = appGraph.cloudAccountRepository,
+                    autoSyncEventRepository = appGraph.autoSyncEventRepository,
+                    messageController = appGraph.appMessageBus,
+                    visibleAppScreenRepository = appGraph.visibleAppScreenController
                 )
             )
             val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()

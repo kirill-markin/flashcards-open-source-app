@@ -1,14 +1,14 @@
 package com.flashcardsopensourceapp.app
 
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 import org.junit.runner.RunWith
-import androidx.test.ext.junit.runners.AndroidJUnit4
 
 private const val cardsScreenshotFileName: String = "cards-list-google-play-vocabulary.png"
 
@@ -36,8 +36,9 @@ private val marketingVocabularyCards: List<MarketingVocabularyCard> = listOf(
     )
 )
 
+@ManualOnlyAndroidTest
 @RunWith(AndroidJUnit4::class)
-class MarketingCardsScreenshotTest {
+class MarketingCardsScreenshotScript {
     private val appStateResetRule = AppStateResetRule()
     private val composeRule = createAndroidComposeRule<MainActivity>()
 
@@ -47,7 +48,7 @@ class MarketingCardsScreenshotTest {
         .around(composeRule)
 
     @Test
-    fun capturesVocabularyCardsListScreenshot() {
+    fun generateVocabularyCardsListScreenshot() {
         val robot = MarketingScreenshotRobot(composeRule = composeRule)
 
         robot.waitForCardsEmptyState()

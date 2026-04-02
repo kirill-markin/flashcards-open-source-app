@@ -5,7 +5,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 android_dir="$repo_root/apps/android"
 output_path="$repo_root/apps/android/docs/media/play-store-screenshots/cards-list-google-play-vocabulary.png"
-test_class="com.flashcardsopensourceapp.app.MarketingCardsScreenshotTest"
+script_class="com.flashcardsopensourceapp.app.MarketingCardsScreenshotScript"
 remote_screenshot_path="/sdcard/Download/flashcards-marketing-screenshots/cards-list-google-play-vocabulary.png"
 
 if [[ "$(adb get-state 2>/dev/null)" != "device" ]]; then
@@ -20,7 +20,10 @@ if [[ "$device_sdk" != "36" ]]; then
 fi
 
 cd "$android_dir"
-./gradlew :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=$test_class"
+echo "Running manual Android marketing screenshot script for the Cards screen."
+./gradlew :app:connectedDebugAndroidTest \
+  "-Pandroid.testInstrumentationRunnerArguments.includeManualOnly=true" \
+  "-Pandroid.testInstrumentationRunnerArguments.class=$script_class"
 
 mkdir -p "$(dirname "$output_path")"
 temp_output_path="$(mktemp)"

@@ -5,12 +5,20 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.TransientMessageController
+import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
+import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.normalizeTags
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncCompletion
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncOutcome
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -28,6 +36,9 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalCoroutinesApi::class)
 class CardsViewModel(
     private val cardsRepository: CardsRepository,
+    private val autoSyncEventRepository: AutoSyncEventRepository,
+    private val messageController: TransientMessageController,
+    visibleAppScreenRepository: VisibleAppScreenRepository,
     workspaceRepository: WorkspaceRepository
 ) : ViewModel() {
     private val searchQuery = MutableStateFlow(value = "")
@@ -49,6 +60,14 @@ class CardsViewModel(
             filter = filter
         )
     }
+    private val visibleAppScreenState = visibleAppScreenRepository.observeVisibleAppScreen().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
+        initialValue = VisibleAppScreen.OTHER
+    )
+    private var pendingAutoSyncRequestId: String? = null
+    private var cardsSignatureAtAutoSyncStart: CardsVisibleSignature? = null
+    private var lastVisibleAutoSyncChangeSignature: CardsVisibleSignature? = null
 
     val uiState: StateFlow<CardsUiState> = combine(
         cardsFlow,
@@ -75,6 +94,10 @@ class CardsViewModel(
         )
     )
 
+    init {
+        observeAutoSyncDrivenCardsChanges()
+    }
+
     fun updateSearchQuery(query: String) {
         searchQuery.value = query
     }
@@ -89,6 +112,97 @@ class CardsViewModel(
             effort = emptyList()
         )
     }
+
+    private fun observeAutoSyncDrivenCardsChanges() {
+        viewModelScope.launch {
+            autoSyncEventRepository.observeAutoSyncEvents().collect { event ->
+                when (event) {
+                    is AutoSyncEvent.Requested -> {
+                        handleAutoSyncRequested(request = event.request)
+                    }
+
+                    is AutoSyncEvent.Completed -> {
+                        handleAutoSyncCompleted(completion = event.completion)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun handleAutoSyncRequested(request: AutoSyncRequest) {
+        if (request.allowsVisibleChangeMessage.not()) {
+            return
+        }
+        if (visibleAppScreenState.value != VisibleAppScreen.CARDS) {
+            return
+        }
+
+        pendingAutoSyncRequestId = request.requestId
+        cardsSignatureAtAutoSyncStart = buildCardsVisibleSignature(uiState = uiState.value)
+    }
+
+    private fun handleAutoSyncCompleted(completion: AutoSyncCompletion) {
+        if (completion.request.requestId != pendingAutoSyncRequestId) {
+            return
+        }
+
+        pendingAutoSyncRequestId = null
+        val cardsSignatureBeforeSync = cardsSignatureAtAutoSyncStart
+        cardsSignatureAtAutoSyncStart = null
+
+        if (completion.outcome !is AutoSyncOutcome.Succeeded) {
+            return
+        }
+        if (completion.request.allowsVisibleChangeMessage.not()) {
+            return
+        }
+        if (visibleAppScreenState.value != VisibleAppScreen.CARDS) {
+            return
+        }
+
+        val currentCardsSignature = buildCardsVisibleSignature(uiState = uiState.value)
+        if (cardsSignatureBeforeSync == null || cardsSignatureBeforeSync == currentCardsSignature) {
+            return
+        }
+        if (currentCardsSignature == lastVisibleAutoSyncChangeSignature) {
+            return
+        }
+
+        lastVisibleAutoSyncChangeSignature = currentCardsSignature
+        messageController.showMessage(message = cardsUpdatedOnAnotherDeviceMessage)
+    }
+}
+
+private data class VisibleCardSignature(
+    val cardId: String,
+    val frontText: String,
+    val effortLevel: EffortLevel,
+    val tags: List<String>,
+    val dueAtMillis: Long?
+)
+
+private data class CardsVisibleSignature(
+    val searchQuery: String,
+    val activeFilter: CardFilter,
+    val cards: List<VisibleCardSignature>
+)
+
+private const val cardsUpdatedOnAnotherDeviceMessage: String = "Cards updated on another device."
+
+private fun buildCardsVisibleSignature(uiState: CardsUiState): CardsVisibleSignature {
+    return CardsVisibleSignature(
+        searchQuery = uiState.searchQuery,
+        activeFilter = uiState.activeFilter,
+        cards = uiState.cards.map { card ->
+            VisibleCardSignature(
+                cardId = card.cardId,
+                frontText = card.frontText,
+                effortLevel = card.effortLevel,
+                tags = card.tags,
+                dueAtMillis = card.dueAtMillis
+            )
+        }
+    )
 }
 
 private data class CardEditorDraftState(
@@ -338,12 +452,18 @@ class CardEditorViewModel(
 
 fun createCardsViewModelFactory(
     cardsRepository: CardsRepository,
-    workspaceRepository: WorkspaceRepository
+    workspaceRepository: WorkspaceRepository,
+    autoSyncEventRepository: AutoSyncEventRepository,
+    messageController: TransientMessageController,
+    visibleAppScreenRepository: VisibleAppScreenRepository
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             CardsViewModel(
                 cardsRepository = cardsRepository,
+                autoSyncEventRepository = autoSyncEventRepository,
+                messageController = messageController,
+                visibleAppScreenRepository = visibleAppScreenRepository,
                 workspaceRepository = workspaceRepository
             )
         }

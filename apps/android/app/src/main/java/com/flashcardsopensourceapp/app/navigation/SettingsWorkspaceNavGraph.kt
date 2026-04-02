@@ -115,8 +115,9 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 factory = createWorkspaceOverviewViewModelFactory(
                     workspaceRepository = appGraph.workspaceRepository,
                     cloudAccountRepository = appGraph.cloudAccountRepository,
-                    syncRepository = appGraph.syncRepository,
-                    messageController = appGraph.appMessageBus
+                    autoSyncEventRepository = appGraph.autoSyncEventRepository,
+                    messageController = appGraph.appMessageBus,
+                    visibleAppScreenRepository = appGraph.visibleAppScreenController
                 )
             )
             val uiState by workspaceOverviewViewModel.uiState.collectAsStateWithLifecycle()

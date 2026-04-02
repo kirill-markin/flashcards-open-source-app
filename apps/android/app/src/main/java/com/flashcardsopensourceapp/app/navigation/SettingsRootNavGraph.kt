@@ -28,13 +28,16 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             navController = navController,
             currentBackStackEntry = backStackEntry
         )
-        val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
-            viewModelStoreOwner = settingsRootBackStackEntry,
-            factory = createSettingsViewModelFactory(
-                workspaceRepository = appGraph.workspaceRepository,
-                cloudAccountRepository = appGraph.cloudAccountRepository
+            val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
+                viewModelStoreOwner = settingsRootBackStackEntry,
+                factory = createSettingsViewModelFactory(
+                    workspaceRepository = appGraph.workspaceRepository,
+                    cloudAccountRepository = appGraph.cloudAccountRepository,
+                    autoSyncEventRepository = appGraph.autoSyncEventRepository,
+                    messageController = appGraph.appMessageBus,
+                    visibleAppScreenRepository = appGraph.visibleAppScreenController
+                )
             )
-        )
         val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
 
         SettingsRoute(
@@ -62,8 +65,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             factory = createCurrentWorkspaceViewModelFactory(
                 workspaceRepository = appGraph.workspaceRepository,
                 cloudAccountRepository = appGraph.cloudAccountRepository,
-                syncRepository = appGraph.syncRepository,
-                messageController = appGraph.appMessageBus
+                autoSyncEventRepository = appGraph.autoSyncEventRepository,
+                messageController = appGraph.appMessageBus,
+                visibleAppScreenRepository = appGraph.visibleAppScreenController
             )
         )
         val uiState by currentWorkspaceViewModel.uiState.collectAsStateWithLifecycle()
