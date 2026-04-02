@@ -56,6 +56,7 @@ vi.mock("./ChatLayoutContext", () => ({
 vi.mock("../api", () => ({
   ApiError: ApiErrorMock,
   getChatSnapshot: getChatSnapshotMock,
+  getChatSnapshotWithResumeDiagnostics: getChatSnapshotMock,
   startChatRun: startChatRunMock,
   createNewChatSession: createNewChatSessionMock,
   stopChatRun: stopChatRunMock,

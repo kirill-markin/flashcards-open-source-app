@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
+import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
@@ -113,14 +114,16 @@ class LocalAiChatRepository(
     override suspend fun loadBootstrap(
         workspaceId: String?,
         sessionId: String?,
-        limit: Int
+        limit: Int,
+        resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse {
         val session = authorizedSession(workspaceId = workspaceId)
         return aiChatRemoteService.loadBootstrap(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader,
             sessionId = sessionId,
-            limit = limit
+            limit = limit,
+            resumeDiagnostics = resumeDiagnostics
         )
     }
 
@@ -185,7 +188,8 @@ class LocalAiChatRepository(
                 apiBaseUrl = session.apiBaseUrl,
                 authorizationHeader = session.authorizationHeader,
                 sessionId = null,
-                limit = 1
+                limit = 1,
+                resumeDiagnostics = null
             ).sessionId
         }
         val request = AiChatStartRunRequest(
@@ -240,6 +244,7 @@ class LocalAiChatRepository(
         sessionId: String,
         liveStream: AiChatLiveStreamEnvelope,
         afterCursor: String?,
+        resumeDiagnostics: AiChatResumeDiagnostics?,
         onEvent: suspend (AiChatLiveEvent) -> Unit
     ) {
         val session = authorizedSession(workspaceId = workspaceId)
@@ -249,6 +254,7 @@ class LocalAiChatRepository(
             sessionId = sessionId,
             liveStream = liveStream,
             afterCursor = afterCursor,
+            resumeDiagnostics = resumeDiagnostics,
             onEvent = onEvent
         )
     }

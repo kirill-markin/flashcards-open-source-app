@@ -126,6 +126,7 @@ actor AIChatSessionRuntime {
         sessionId: String,
         afterCursor: String?,
         configurationMode: CloudServiceConfigurationMode,
+        resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?,
         eventHandler: @escaping @Sendable (AIChatLiveEvent) async -> Void,
         completionHandler: @escaping @Sendable (AIChatLiveAttachTermination) async -> Void
     ) {
@@ -144,6 +145,7 @@ actor AIChatSessionRuntime {
                     sessionId: sessionId,
                     afterCursor: afterCursor,
                     configurationMode: configurationMode,
+                    resumeAttemptDiagnostics: resumeAttemptDiagnostics,
                     eventHandler: eventHandler
                 )
                 await completionHandler(termination)
@@ -179,6 +181,7 @@ actor AIChatSessionRuntime {
         sessionId: String,
         afterCursor: String?,
         configurationMode: CloudServiceConfigurationMode,
+        resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?,
         eventHandler: @escaping @Sendable (AIChatLiveEvent) async -> Void
     ) async throws -> AIChatLiveAttachTermination {
         let stream = await self.liveStreamClient.connect(
@@ -186,7 +189,8 @@ actor AIChatSessionRuntime {
             authorization: liveStream.authorization,
             sessionId: sessionId,
             afterCursor: afterCursor,
-            configurationMode: configurationMode
+            configurationMode: configurationMode,
+            resumeAttemptDiagnostics: resumeAttemptDiagnostics
         )
 
         var sawTerminalMessage = false

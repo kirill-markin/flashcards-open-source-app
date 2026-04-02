@@ -39,6 +39,7 @@ import {
   parseJsonBody,
 } from "../server/requestParsing";
 import type { AppEnv } from "../app";
+import { logCloudRouteEvent } from "../server/logging";
 
 type ChatTextContentPart = Readonly<{
   type: "text";
@@ -99,6 +100,15 @@ type ChatRoutesOptions = Readonly<{
   requestChatRunCancellationFn?: typeof requestChatRunCancellation;
   createChatLiveStreamEnvelopeFn?: typeof createChatLiveStreamEnvelope;
   resolveLiveCursorFn?: typeof resolveLiveCursor;
+  listChatMessagesLatestFn?: typeof listChatMessagesLatest;
+}>;
+
+const chatResumeContractViolationCode = "CHAT_LIVE_RESUME_CONTRACT_VIOLATION";
+
+type ChatResumeDiagnosticsHeaders = Readonly<{
+  resumeAttemptId: string | null;
+  clientPlatform: string | null;
+  clientVersion: string | null;
 }>;
 
 const UNSUPPORTED_CHAT_REQUEST_FIELDS = [
@@ -384,17 +394,154 @@ async function resolveLiveCursor(
   return previousMessage === null ? null : String(previousMessage.itemOrder);
 }
 
+function readOptionalRequestHeader(request: Request, headerName: string): string | null {
+  const value = request.headers.get(headerName);
+  if (value === null) {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue === "" ? null : trimmedValue;
+}
+
+function readChatResumeDiagnosticsHeaders(request: Request): ChatResumeDiagnosticsHeaders {
+  return {
+    resumeAttemptId: readOptionalRequestHeader(request, "X-Chat-Resume-Attempt-Id"),
+    clientPlatform: readOptionalRequestHeader(request, "X-Client-Platform"),
+    clientVersion: readOptionalRequestHeader(request, "X-Client-Version"),
+  };
+}
+
+function logChatResumeContractViolation(
+  request: Request,
+  diagnostics: ChatResumeDiagnosticsHeaders,
+  payload: Record<string, unknown>,
+): void {
+  logCloudRouteEvent("chat_resume_contract_violation", {
+    path: new URL(request.url).pathname,
+    method: request.method,
+    resumeAttemptId: diagnostics.resumeAttemptId,
+    clientPlatform: diagnostics.clientPlatform,
+    clientVersion: diagnostics.clientVersion,
+    ...payload,
+  }, true);
+}
+
+async function assertRunningSnapshotInvariant(
+  request: Request,
+  diagnostics: ChatResumeDiagnosticsHeaders,
+  snapshot: ChatSessionSnapshot,
+  userId: string,
+  workspaceId: string,
+  listChatMessagesLatestFn: typeof listChatMessagesLatest,
+): Promise<void> {
+  if (snapshot.runState !== "running") {
+    return;
+  }
+
+  const latestMessagesPage = await listChatMessagesLatestFn(userId, workspaceId, snapshot.sessionId, 2);
+  const latestAssistantMessage = [...latestMessagesPage.messages].reverse().find((message) => message.role === "assistant") ?? null;
+  if (latestAssistantMessage?.state === "in_progress") {
+    return;
+  }
+
+  logChatResumeContractViolation(request, diagnostics, {
+    violationReason: "running_without_in_progress_item",
+    requestId: null,
+    userId,
+    workspaceId,
+    sessionId: snapshot.sessionId,
+    resolvedLiveCursor: null,
+    snapshotRunState: snapshot.runState,
+    latestAssistantItemId: latestAssistantMessage?.itemId ?? null,
+    latestAssistantItemOrder: latestAssistantMessage?.itemOrder ?? null,
+    latestAssistantState: latestAssistantMessage?.state ?? null,
+    inProgressAssistantItemId: null,
+    inProgressAssistantItemOrder: null,
+    terminationReason: null,
+  });
+  throw new HttpError(500, "Chat live resume contract violation", chatResumeContractViolationCode);
+}
+
+function assertRunningLiveStreamInvariant(
+  request: Request,
+  diagnostics: ChatResumeDiagnosticsHeaders,
+  params: Readonly<{
+    requestId: string | null;
+    userId: string;
+    workspaceId: string;
+    sessionId: string;
+    resolvedLiveCursor: string | null;
+    snapshotRunState: string;
+    latestAssistantItemId: string | null;
+    latestAssistantItemOrder: number | null;
+    latestAssistantState: string | null;
+    inProgressAssistantItemId: string | null;
+    inProgressAssistantItemOrder: number | null;
+    liveStream: ChatLiveStreamEnvelope | null;
+  }>,
+): void {
+  if (params.snapshotRunState !== "running" || params.liveStream !== null) {
+    return;
+  }
+
+  logChatResumeContractViolation(request, diagnostics, {
+    violationReason: "missing_live_stream",
+    requestId: params.requestId,
+    userId: params.userId,
+    workspaceId: params.workspaceId,
+    sessionId: params.sessionId,
+    resolvedLiveCursor: params.resolvedLiveCursor,
+    snapshotRunState: params.snapshotRunState,
+    latestAssistantItemId: params.latestAssistantItemId,
+    latestAssistantItemOrder: params.latestAssistantItemOrder,
+    latestAssistantState: params.latestAssistantState,
+    inProgressAssistantItemId: params.inProgressAssistantItemId,
+    inProgressAssistantItemOrder: params.inProgressAssistantItemOrder,
+    terminationReason: null,
+  });
+  throw new HttpError(500, "Chat live resume contract violation", chatResumeContractViolationCode);
+}
+
 async function toChatHistoryResponseWithLiveStream(
   snapshot: ChatSessionSnapshot,
   userId: string,
   workspaceId: string,
   createChatLiveStreamEnvelopeFn: typeof createChatLiveStreamEnvelope,
   resolveLiveCursorFn: typeof resolveLiveCursor,
+  request: Request,
+  diagnostics: ChatResumeDiagnosticsHeaders,
+  listChatMessagesLatestFn: typeof listChatMessagesLatest,
 ): Promise<ChatHistoryResponse> {
   const liveCursor = await resolveLiveCursorFn(userId, workspaceId, snapshot.sessionId);
+  const latestMessagesPage = snapshot.runState === "running"
+    ? await listChatMessagesLatestFn(userId, workspaceId, snapshot.sessionId, 2)
+    : null;
+  const latestAssistantMessage = latestMessagesPage === null
+    ? null
+    : [...latestMessagesPage.messages].reverse().find((message) => message.role === "assistant") ?? null;
+  const inProgressAssistantMessage = latestMessagesPage === null
+    ? null
+    : [...latestMessagesPage.messages].reverse().find((message) =>
+      message.role === "assistant" && message.state === "in_progress",
+    ) ?? null;
   const liveStream = snapshot.runState === "running"
     ? await createChatLiveStreamEnvelopeFn(userId, workspaceId, snapshot.sessionId)
     : null;
+  assertRunningLiveStreamInvariant(request, diagnostics, {
+    requestId: null,
+    userId,
+    workspaceId,
+    sessionId: snapshot.sessionId,
+    resolvedLiveCursor: liveCursor,
+    snapshotRunState: snapshot.runState,
+    latestAssistantItemId: latestAssistantMessage?.itemId ?? null,
+    latestAssistantItemOrder: latestAssistantMessage?.itemOrder ?? null,
+    latestAssistantState: latestAssistantMessage?.state ?? null,
+    inProgressAssistantItemId: inProgressAssistantMessage?.itemId ?? null,
+    inProgressAssistantItemOrder: inProgressAssistantMessage?.itemOrder ?? null,
+    liveStream,
+  });
 
   return {
     ...toChatHistoryResponse(snapshot),
@@ -449,6 +596,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const requestChatRunCancellationFn = options.requestChatRunCancellationFn ?? requestChatRunCancellation;
   const createChatLiveStreamEnvelopeFn = options.createChatLiveStreamEnvelopeFn ?? createChatLiveStreamEnvelope;
   const resolveLiveCursorFn = options.resolveLiveCursorFn ?? resolveLiveCursor;
+  const listChatMessagesLatestFn = options.listChatMessagesLatestFn ?? listChatMessagesLatest;
 
   app.get("/chat", async (context) => {
     const requestContext = await loadSupportedRequestContext(
@@ -459,6 +607,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     const workspaceId = requireSelectedWorkspaceId(requestContext);
     const sessionId = context.req.query("sessionId") ?? undefined;
     const limitParam = context.req.query("limit") ?? undefined;
+    const resumeDiagnostics = readChatResumeDiagnosticsHeaders(context.req.raw);
 
     if (limitParam !== undefined) {
       const limit = Math.min(Math.max(Number.parseInt(limitParam, 10) || 7, 1), MAX_CHAT_PAGE_LIMIT);
@@ -490,12 +639,23 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
           workspaceId,
           sessionId,
         );
+        await assertRunningSnapshotInvariant(
+          context.req.raw,
+          resumeDiagnostics,
+          snapshot,
+          requestContext.userId,
+          workspaceId,
+          listChatMessagesLatestFn,
+        );
         return context.json(await toChatHistoryResponseWithLiveStream(
           snapshot,
           requestContext.userId,
           workspaceId,
           createChatLiveStreamEnvelopeFn,
           resolveLiveCursorFn,
+          context.req.raw,
+          resumeDiagnostics,
+          listChatMessagesLatestFn,
         ));
       } catch (error) {
         return mapStoreError(error);
@@ -510,6 +670,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     );
     const workspaceId = requireSelectedWorkspaceId(requestContext);
     const body = parseChatRequestBody(await parseJsonBody(context.req.raw));
+    const resumeDiagnostics = readChatResumeDiagnosticsHeaders(context.req.raw);
     context.header("X-Chat-Request-Id", body.clientRequestId);
 
     let preparedRun: PreparedChatRun;
@@ -534,15 +695,31 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       });
     }
 
+    const liveStream = preparedRun.runState === "running"
+      ? await createChatLiveStreamEnvelopeFn(requestContext.userId, workspaceId, preparedRun.sessionId)
+      : null;
+    assertRunningLiveStreamInvariant(context.req.raw, resumeDiagnostics, {
+      requestId: body.clientRequestId,
+      userId: requestContext.userId,
+      workspaceId,
+      sessionId: preparedRun.sessionId,
+      resolvedLiveCursor: null,
+      snapshotRunState: preparedRun.runState,
+      latestAssistantItemId: null,
+      latestAssistantItemOrder: null,
+      latestAssistantState: null,
+      inProgressAssistantItemId: null,
+      inProgressAssistantItemOrder: null,
+      liveStream,
+    });
+
     return context.json({
       ok: true,
       sessionId: preparedRun.sessionId,
       runId: preparedRun.runId,
       clientRequestId: preparedRun.clientRequestId,
       runState: preparedRun.runState,
-      liveStream: preparedRun.runState === "running"
-        ? await createChatLiveStreamEnvelopeFn(requestContext.userId, workspaceId, preparedRun.sessionId)
-        : null,
+      liveStream,
       chatConfig: getChatConfig(),
       deduplicated: preparedRun.deduplicated ? true : undefined,
     } satisfies ChatStartResponse);

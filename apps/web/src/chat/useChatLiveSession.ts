@@ -14,13 +14,19 @@ type UseChatLiveSessionParams = Readonly<{
   finalizeInterruptedRun: (message: string) => void;
   onVisibleResumeRequested: () => void;
   onUnexpectedStreamEnd: (sessionId: string) => void;
+  onLiveAttachConnected: (sessionId: string, resumeAttemptId: number | null) => void;
 }>;
 
 export type ChatLiveSessionState = Readonly<{
   isLiveStreamConnected: boolean;
   isDocumentVisibleRef: MutableRefObject<boolean>;
   hasActiveLiveConnection: () => boolean;
-  startLiveStream: (sessionId: string, liveStream: ChatLiveStream | null, afterCursor: string | null) => void;
+  startLiveStream: (
+    sessionId: string,
+    liveStream: ChatLiveStream | null,
+    afterCursor: string | null,
+    resumeAttemptId: number | null,
+  ) => void;
   detachLiveStream: (sessionId: string | null) => void;
 }>;
 
@@ -45,6 +51,7 @@ export function useChatLiveSession(
     finalizeInterruptedRun,
     onVisibleResumeRequested,
     onUnexpectedStreamEnd,
+    onLiveAttachConnected,
   } = params;
   const [isLiveStreamConnected, setIsLiveStreamConnected] = useState<boolean>(false);
   const activeLiveConnectionRef = useRef<ActiveLiveStreamConnection | null>(null);
@@ -53,6 +60,7 @@ export function useChatLiveSession(
   const finalizeInterruptedRunRef = useRef<(message: string) => void>(finalizeInterruptedRun);
   const onVisibleResumeRequestedRef = useRef<() => void>(onVisibleResumeRequested);
   const onUnexpectedStreamEndRef = useRef<(sessionId: string) => void>(onUnexpectedStreamEnd);
+  const onLiveAttachConnectedRef = useRef<(sessionId: string, resumeAttemptId: number | null) => void>(onLiveAttachConnected);
   const hasActiveLiveConnection = useCallback((): boolean => activeLiveConnectionRef.current !== null, []);
 
   const detachLiveStream = useCallback((sessionId: string | null): void => {
@@ -86,6 +94,10 @@ export function useChatLiveSession(
     onUnexpectedStreamEndRef.current = onUnexpectedStreamEnd;
   }, [onUnexpectedStreamEnd]);
 
+  useEffect(() => {
+    onLiveAttachConnectedRef.current = onLiveAttachConnected;
+  }, [onLiveAttachConnected]);
+
   /**
    * Attaches live SSE only while the chat surface is visible. Existing sessions
    * must provide the latest known cursor so the stream continues after the last
@@ -95,6 +107,7 @@ export function useChatLiveSession(
     sessionId: string,
     liveStream: ChatLiveStream | null,
     afterCursor: string | null,
+    resumeAttemptId: number | null,
   ): void => {
     detachLiveStream(null);
 
@@ -109,6 +122,7 @@ export function useChatLiveSession(
 
     const abortController = new AbortController();
     let liveStreamDisposition: LiveStreamDisposition = "pending";
+    let didReportConnected = false;
     activeLiveConnectionRef.current = { sessionId, abortController };
     setIsLiveStreamConnected(false);
 
@@ -116,6 +130,7 @@ export function useChatLiveSession(
       liveStream,
       sessionId,
       afterCursor,
+      resumeAttemptId,
       signal: abortController.signal,
       onEvent: (event) => {
         if (activeLiveConnectionRef.current?.sessionId !== sessionId) {
@@ -130,6 +145,10 @@ export function useChatLiveSession(
           liveStreamDisposition = "terminal";
         }
 
+        if (didReportConnected === false) {
+          didReportConnected = true;
+          onLiveAttachConnectedRef.current(sessionId, resumeAttemptId);
+        }
         setIsLiveStreamConnected(true);
         applyLiveEventRef.current(event);
       },

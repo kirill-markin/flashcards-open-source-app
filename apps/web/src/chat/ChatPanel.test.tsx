@@ -523,6 +523,81 @@ describe("ChatPanel send lifecycle", () => {
     expect(getChatSnapshotMock).toHaveBeenCalledTimes(1);
   });
 
+  it("clears a stale visible-resume error after a newer successful resumed attach", async () => {
+    let visibilityState: DocumentVisibilityState = "visible";
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => visibilityState,
+    });
+
+    getChatSnapshotMock
+      .mockResolvedValueOnce(createChatSnapshot({
+        sessionId: "session-1",
+        runState: "running",
+        liveStream: {
+          url: "https://chat-live.example.com",
+          authorization: "Live mock-token",
+          expiresAt: Date.now() + 60_000,
+        },
+      }))
+      .mockResolvedValueOnce(createChatSnapshot({
+        sessionId: "session-1",
+        runState: "running",
+        liveStream: null,
+        liveCursor: "5",
+      }))
+      .mockResolvedValueOnce(createChatSnapshot({
+        sessionId: "session-1",
+        runState: "running",
+        liveStream: {
+          url: "https://chat-live.example.com",
+          authorization: "Live mock-token",
+          expiresAt: Date.now() + 60_000,
+        },
+        liveCursor: "6",
+      }));
+    consumeChatLiveStreamMock
+      .mockImplementationOnce(() => new Promise(() => undefined))
+      .mockImplementationOnce(async ({ onEvent }) => {
+        onEvent({
+          type: "assistant_delta",
+          text: "resumed",
+          cursor: "7",
+          itemId: "item-1",
+        });
+      });
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    visibilityState = "hidden";
+    document.dispatchEvent(new Event("visibilitychange"));
+    await flushAsync();
+
+    visibilityState = "visible";
+    document.dispatchEvent(new Event("visibilitychange"));
+    await flushAsync();
+    await flushAsync();
+
+    expect(getContainer().querySelector('[role="dialog"]')).not.toBeNull();
+    expect(getContainer().textContent).toContain("AI live stream is unavailable for the active run.");
+
+    visibilityState = "hidden";
+    document.dispatchEvent(new Event("visibilitychange"));
+    await flushAsync();
+
+    visibilityState = "visible";
+    document.dispatchEvent(new Event("visibilitychange"));
+    await flushAsync();
+    await flushAsync();
+
+    expect(getContainer().querySelector('[role="dialog"]')).toBeNull();
+    expect(getChatSnapshotMock.mock.calls[1]?.[1]).toEqual({ resumeAttemptId: 1 });
+    expect(getChatSnapshotMock.mock.calls[2]?.[1]).toEqual({ resumeAttemptId: 2 });
+    expect(consumeChatLiveStreamMock.mock.calls[1]?.[0]?.resumeAttemptId).toBe(2);
+  });
+
   it("renders completed reasoning summaries with the completed tool-call styling", async () => {
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
       sessionId: "session-1",

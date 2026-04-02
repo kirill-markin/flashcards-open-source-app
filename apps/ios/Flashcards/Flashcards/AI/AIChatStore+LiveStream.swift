@@ -25,6 +25,10 @@ extension AIChatStore {
      * mutates the currently active assistant turn while the run is streaming.
      */
     func handleLiveEvent(_ event: AIChatLiveEvent) {
+        self.clearStaleResumeErrorIfNeeded(
+            connectedResumeAttemptSequence: self.activeLiveResumeAttemptSequence
+        )
+        self.activeLiveResumeAttemptSequence = nil
         logAIChatStoreEvent(
             action: "ai_live_event_handle_start",
             metadata: self.metadataForLiveEvent(event)
@@ -390,15 +394,18 @@ extension AIChatStore {
      */
     func attachBootstrapLiveIfNeeded(
         response: AIChatBootstrapResponse,
-        session: CloudLinkedSession
+        session: CloudLinkedSession,
+        resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
     ) {
         guard self.shouldKeepLiveAttached else {
+            self.activeLiveResumeAttemptSequence = nil
             Task {
                 await self.runtime.detach()
             }
             return
         }
         guard response.runState == "running" else {
+            self.activeLiveResumeAttemptSequence = nil
             Task {
                 await self.runtime.detach()
             }
@@ -406,11 +413,20 @@ extension AIChatStore {
         }
 
         guard let liveStream = response.liveStream else {
-            self.showGeneralError(message: "AI live stream is unavailable for the active run.")
+            self.activeLiveResumeAttemptSequence = nil
+            if let resumeAttemptDiagnostics {
+                self.showResumeGeneralError(
+                    message: "AI live stream is unavailable for the active run.",
+                    resumeAttemptSequence: resumeAttemptDiagnostics.sequence
+                )
+            } else {
+                self.showGeneralError(message: "AI live stream is unavailable for the active run.")
+            }
             self.composerPhase = .idle
             return
         }
 
+        self.activeLiveResumeAttemptSequence = resumeAttemptDiagnostics?.sequence
         Task {
             await self.runtime.detach()
             await self.runtime.attachLive(
@@ -418,6 +434,7 @@ extension AIChatStore {
                 sessionId: response.sessionId,
                 afterCursor: response.liveCursor,
                 configurationMode: session.configurationMode,
+                resumeAttemptDiagnostics: resumeAttemptDiagnostics,
                 eventHandler: { [weak self] event in
                     await self?.handleLiveEvent(event)
                 },
@@ -454,6 +471,7 @@ extension AIChatStore {
 
         let sessionId = self.chatSessionId
         let afterCursor = self.liveCursor
+        self.activeLiveResumeAttemptSequence = nil
         Task {
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
@@ -467,6 +485,7 @@ extension AIChatStore {
                     sessionId: sessionId,
                     afterCursor: afterCursor,
                     configurationMode: session.configurationMode,
+                    resumeAttemptDiagnostics: nil,
                     eventHandler: { [weak self] event in
                         await self?.handleLiveEvent(event)
                     },
@@ -509,7 +528,10 @@ extension AIChatStore {
             return
         }
 
-        self.startLinkedBootstrap(forceReloadState: false)
+        self.startLinkedBootstrap(
+            forceReloadState: false,
+            resumeAttemptDiagnostics: self.nextResumeAttemptDiagnostics()
+        )
     }
 
     func reloadConversationFromBootstrap() {
@@ -519,10 +541,11 @@ extension AIChatStore {
                 let response = try await self.chatService.loadBootstrap(
                     session: session,
                     sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
-                    limit: aiChatBootstrapPageLimit
+                    limit: aiChatBootstrapPageLimit,
+                    resumeAttemptDiagnostics: nil
                 )
                 self.applyBootstrap(response)
-                self.attachBootstrapLiveIfNeeded(response: response, session: session)
+                self.attachBootstrapLiveIfNeeded(response: response, session: session, resumeAttemptDiagnostics: nil)
             } catch {
                 self.showGeneralError(message: Flashcards.errorMessage(error: error))
                 self.composerPhase = .idle
@@ -537,7 +560,8 @@ extension AIChatStore {
                 let response = try await self.chatService.loadBootstrap(
                     session: session,
                     sessionId: sessionId,
-                    limit: aiChatBootstrapPageLimit
+                    limit: aiChatBootstrapPageLimit,
+                    resumeAttemptDiagnostics: nil
                 )
                 guard self.chatSessionId == sessionId else {
                     return
@@ -551,7 +575,7 @@ extension AIChatStore {
                 }
 
                 if response.runState == "running" {
-                    self.attachBootstrapLiveIfNeeded(response: response, session: session)
+                    self.attachBootstrapLiveIfNeeded(response: response, session: session, resumeAttemptDiagnostics: nil)
                     return
                 }
 
@@ -603,7 +627,8 @@ extension AIChatStore {
             let response = try await self.chatService.loadBootstrap(
                 session: session,
                 sessionId: sessionId,
-                limit: aiChatBootstrapPageLimit
+                limit: aiChatBootstrapPageLimit,
+                resumeAttemptDiagnostics: nil
             )
             self.applyBootstrap(response)
 
@@ -614,7 +639,7 @@ extension AIChatStore {
             }
 
             if response.runState == "running" {
-                self.attachBootstrapLiveIfNeeded(response: response, session: session)
+                self.attachBootstrapLiveIfNeeded(response: response, session: session, resumeAttemptDiagnostics: nil)
                 return
             }
 
@@ -636,7 +661,8 @@ extension AIChatStore {
             let response = try await self.chatService.loadBootstrap(
                 session: session,
                 sessionId: sessionId,
-                limit: aiChatBootstrapPageLimit
+                limit: aiChatBootstrapPageLimit,
+                resumeAttemptDiagnostics: nil
             )
             self.applyBootstrap(response)
 
@@ -647,7 +673,7 @@ extension AIChatStore {
             }
 
             if response.runState == "running" {
-                self.attachBootstrapLiveIfNeeded(response: response, session: session)
+                self.attachBootstrapLiveIfNeeded(response: response, session: session, resumeAttemptDiagnostics: nil)
                 return
             }
         } catch {

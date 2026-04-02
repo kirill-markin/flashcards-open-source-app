@@ -66,7 +66,8 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             session: session,
             path: path,
             method: "GET",
-            clientRequestId: clientRequestId
+            clientRequestId: clientRequestId,
+            additionalHeaders: [:]
         )
 
         let data = try await self.execute(
@@ -124,7 +125,8 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
     func loadBootstrap(
         session: CloudLinkedSession,
         sessionId: String?,
-        limit: Int
+        limit: Int,
+        resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
     ) async throws -> AIChatBootstrapResponse {
         let clientRequestId = UUID().uuidString.lowercased()
         var path = "/chat?limit=\(limit)"
@@ -137,7 +139,8 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             session: session,
             path: path,
             method: "GET",
-            clientRequestId: clientRequestId
+            clientRequestId: clientRequestId,
+            additionalHeaders: self.resumeAttemptHeaders(diagnostics: resumeAttemptDiagnostics)
         )
         let data = try await self.execute(
             session: session,
@@ -203,7 +206,8 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             session: session,
             path: path,
             method: "GET",
-            clientRequestId: clientRequestId
+            clientRequestId: clientRequestId,
+            additionalHeaders: [:]
         )
         let data = try await self.execute(
             session: session,
@@ -434,7 +438,8 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         session: CloudLinkedSession,
         path: String,
         method: String,
-        clientRequestId: String
+        clientRequestId: String,
+        additionalHeaders: [String: String]
     ) throws -> URLRequest {
         var request = URLRequest(url: try self.makeURL(
             apiBaseUrl: session.apiBaseUrl,
@@ -443,6 +448,9 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         ))
         request.httpMethod = method
         request.setValue(session.authorization.headerValue, forHTTPHeaderField: "Authorization")
+        for (headerName, headerValue) in additionalHeaders {
+            request.setValue(headerValue, forHTTPHeaderField: headerName)
+        }
         return request
     }
 
@@ -457,11 +465,26 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             session: session,
             path: path,
             method: method,
-            clientRequestId: clientRequestId
+            clientRequestId: clientRequestId,
+            additionalHeaders: [:]
         )
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try self.encoder.encode(body)
         return request
+    }
+
+    private func resumeAttemptHeaders(
+        diagnostics: AIChatResumeAttemptDiagnostics?
+    ) -> [String: String] {
+        guard let diagnostics else {
+            return [:]
+        }
+
+        return [
+            "X-Chat-Resume-Attempt-Id": diagnostics.headerValue,
+            "X-Client-Platform": aiChatClientPlatform,
+            "X-Client-Version": aiChatAppVersion(),
+        ]
     }
 
     private func makeURL(apiBaseUrl: String, path: String, clientRequestId: String) throws -> URL {

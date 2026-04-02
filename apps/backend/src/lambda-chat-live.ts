@@ -59,7 +59,7 @@ export const handler = awslambda.streamifyResponse(
     let params;
 
     try {
-      params = await handleLiveRequest(url, authorizationHeader);
+      params = await handleLiveRequest(url, authorizationHeader, event.headers ?? {});
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       logCloudRouteEvent("chat_live_request_error", {
@@ -71,6 +71,9 @@ export const handler = awslambda.streamifyResponse(
         afterCursor: url.searchParams.get("afterCursor"),
         origin,
         authScheme: getLiveAuthorizationScheme(authorizationHeader),
+        resumeAttemptId: event.headers?.["x-chat-resume-attempt-id"] ?? null,
+        clientPlatform: event.headers?.["x-client-platform"] ?? null,
+        clientVersion: event.headers?.["x-client-version"] ?? null,
         statusCode: 400,
         ...getErrorLogContext(error),
       }, true);
@@ -106,6 +109,9 @@ export const handler = awslambda.streamifyResponse(
       workspaceId: params.workspaceId,
       origin,
       authScheme: getLiveAuthorizationScheme(authorizationHeader),
+      resumeAttemptId: params.resumeAttemptId ?? null,
+      clientPlatform: params.clientPlatform ?? null,
+      clientVersion: params.clientVersion ?? null,
       statusCode: 200,
     }, false);
 
@@ -126,6 +132,9 @@ export const handler = awslambda.streamifyResponse(
         workspaceId: params.workspaceId,
         origin,
         authScheme: getLiveAuthorizationScheme(authorizationHeader),
+        resumeAttemptId: params.resumeAttemptId ?? null,
+        clientPlatform: params.clientPlatform ?? null,
+        clientVersion: params.clientVersion ?? null,
         statusCode: 500,
         ...getErrorLogContext(error),
       }, true);

@@ -22,6 +22,7 @@ import {
   parseWorkspacesEnvelopeResponse,
 } from "./apiContracts";
 import { getAppConfig } from "./config";
+import { webAppVersion } from "./clientIdentity";
 import type {
   AgentApiKeyConnection,
   AgentApiKeyConnectionsResponse,
@@ -75,6 +76,9 @@ export { ApiContractError };
 type SessionCsrfState = "unknown" | "session" | "non-session";
 type AuthRecoveryMode = "allow" | "skip";
 type NavigateToUrl = (url: string) => void;
+type ChatResumeRequestDiagnostics = Readonly<{
+  resumeAttemptId: number;
+}>;
 
 const collectionPageLimit = 100;
 
@@ -629,6 +633,24 @@ export async function getChatSnapshot(sessionId?: string): Promise<ChatSessionSn
 
   return parseChatSessionSnapshotResponse(await requestJson(pathname, {
     method: "GET",
+  }, allowAuthRecovery), "GET /chat");
+}
+
+export async function getChatSnapshotWithResumeDiagnostics(
+  sessionId: string | undefined,
+  diagnostics: ChatResumeRequestDiagnostics,
+): Promise<ChatSessionSnapshot> {
+  const pathname = sessionId === undefined
+    ? "/chat"
+    : `/chat?sessionId=${encodeURIComponent(sessionId)}`;
+
+  return parseChatSessionSnapshotResponse(await requestJson(pathname, {
+    method: "GET",
+    headers: {
+      "X-Chat-Resume-Attempt-Id": String(diagnostics.resumeAttemptId),
+      "X-Client-Platform": "web",
+      "X-Client-Version": webAppVersion,
+    },
   }, allowAuthRecovery), "GET /chat");
 }
 

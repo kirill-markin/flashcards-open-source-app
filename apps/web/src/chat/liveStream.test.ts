@@ -98,8 +98,35 @@ describe("consumeChatLiveStream", () => {
       },
       sessionId: "session-1",
       afterCursor: null,
+      resumeAttemptId: null,
       signal: new AbortController().signal,
       onEvent: vi.fn(),
     })).rejects.toBeInstanceOf(ChatLiveContractError);
+  });
+
+  it("sends resume diagnostics headers for resumed live attaches", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(createLiveStreamResponse(
+      "event: assistant_delta\n"
+        + "data: {\"type\":\"assistant_delta\",\"text\":\"hello\",\"cursor\":\"1\",\"itemId\":\"item-1\"}\n\n",
+    ));
+
+    await consumeChatLiveStream({
+      liveStream: {
+        url: "https://chat-live.example.com",
+        authorization: "Live token",
+        expiresAt: Date.now() + 60_000,
+      },
+      sessionId: "session-1",
+      afterCursor: "5",
+      resumeAttemptId: 3,
+      signal: new AbortController().signal,
+      onEvent: vi.fn(),
+    });
+
+    const [, init] = fetchSpy.mock.calls[0] ?? [];
+    const headers = new Headers(init?.headers);
+    expect(headers.get("X-Chat-Resume-Attempt-Id")).toBe("3");
+    expect(headers.get("X-Client-Platform")).toBe("web");
+    expect(headers.get("X-Client-Version")).toBeTruthy();
   });
 });

@@ -126,6 +126,9 @@ final class AIChatStore {
     @ObservationIgnored var activeStreamingMessageId: String?
     @ObservationIgnored var activeStreamingItemId: String?
     @ObservationIgnored var shouldKeepLiveAttached: Bool
+    @ObservationIgnored var nextResumeAttemptSequence: Int
+    @ObservationIgnored var activeResumeErrorAttemptSequence: Int?
+    @ObservationIgnored var activeLiveResumeAttemptSequence: Int?
 
     convenience init(
         flashcardsStore: FlashcardsStore,
@@ -192,6 +195,9 @@ final class AIChatStore {
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
         self.shouldKeepLiveAttached = false
+        self.nextResumeAttemptSequence = 0
+        self.activeResumeErrorAttemptSequence = nil
+        self.activeLiveResumeAttemptSequence = nil
         self.activateAccessContext(force: true)
     }
 
@@ -261,7 +267,38 @@ final class AIChatStore {
     }
 
     func showGeneralError(message: String) {
+        self.activeResumeErrorAttemptSequence = nil
         self.activeAlert = .generalError(message: message)
+    }
+
+    func showResumeGeneralError(message: String, resumeAttemptSequence: Int) {
+        self.activeResumeErrorAttemptSequence = resumeAttemptSequence
+        self.activeAlert = .generalError(message: message)
+    }
+
+    func nextResumeAttemptDiagnostics() -> AIChatResumeAttemptDiagnostics {
+        self.nextResumeAttemptSequence += 1
+        return AIChatResumeAttemptDiagnostics(sequence: self.nextResumeAttemptSequence)
+    }
+
+    func clearStaleResumeErrorIfNeeded(connectedResumeAttemptSequence: Int?) {
+        guard let connectedResumeAttemptSequence else {
+            return
+        }
+        guard let activeResumeErrorAttemptSequence = self.activeResumeErrorAttemptSequence else {
+            return
+        }
+        guard activeResumeErrorAttemptSequence < connectedResumeAttemptSequence else {
+            return
+        }
+        guard case .generalError(let message) = self.activeAlert,
+              message == "AI live stream is unavailable for the active run."
+        else {
+            return
+        }
+
+        self.activeResumeErrorAttemptSequence = nil
+        self.activeAlert = nil
     }
 
     func showMicrophoneSettingsAlert() {
@@ -326,6 +363,8 @@ final class AIChatStore {
         self.activeLiveStream = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
+        self.activeResumeErrorAttemptSequence = nil
+        self.activeLiveResumeAttemptSequence = nil
         let clearedState = AIChatPersistedState(
             messages: [],
             chatSessionId: "",
@@ -348,6 +387,8 @@ final class AIChatStore {
         self.repairStatus = nil
         self.completedDictationTranscript = nil
         self.activeConversationId = nil
+        self.activeResumeErrorAttemptSequence = nil
+        self.activeLiveResumeAttemptSequence = nil
         self.pendingAttachments = []
         self.inputText = ""
         self.bootstrapPhase = .loading
@@ -373,7 +414,7 @@ final class AIChatStore {
     }
 
     func retryLinkedBootstrap() {
-        self.startLinkedBootstrap(forceReloadState: false)
+        self.startLinkedBootstrap(forceReloadState: false, resumeAttemptDiagnostics: nil)
     }
 
     func cancelStreaming() {
@@ -867,7 +908,7 @@ final class AIChatStore {
         }
 
         if nextAccessContext.cloudState == .linked {
-            self.startLinkedBootstrap(forceReloadState: false)
+            self.startLinkedBootstrap(forceReloadState: false, resumeAttemptDiagnostics: nil)
             return
         }
 
@@ -908,9 +949,14 @@ final class AIChatStore {
         self.activeLiveStream = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
+        self.activeResumeErrorAttemptSequence = nil
+        self.activeLiveResumeAttemptSequence = nil
     }
 
-    func startLinkedBootstrap(forceReloadState: Bool) {
+    func startLinkedBootstrap(
+        forceReloadState: Bool,
+        resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
+    ) {
         self.activeBootstrapTask?.cancel()
         self.activeBootstrapTask = nil
         if forceReloadState {
@@ -930,14 +976,19 @@ final class AIChatStore {
                 let bootstrap = try await self.chatService.loadBootstrap(
                     session: session,
                     sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
-                    limit: aiChatBootstrapPageLimit
+                    limit: aiChatBootstrapPageLimit,
+                    resumeAttemptDiagnostics: resumeAttemptDiagnostics
                 )
                 guard self.activeAccessContext == bootstrapContext else {
                     return
                 }
                 self.applyBootstrap(bootstrap)
                 self.bootstrapPhase = .ready
-                self.attachBootstrapLiveIfNeeded(response: bootstrap, session: session)
+                self.attachBootstrapLiveIfNeeded(
+                    response: bootstrap,
+                    session: session,
+                    resumeAttemptDiagnostics: resumeAttemptDiagnostics
+                )
             } catch is CancellationError {
             } catch {
                 guard self.activeAccessContext == bootstrapContext else {
@@ -965,13 +1016,14 @@ final class AIChatStore {
                 let bootstrap = try await self.chatService.loadBootstrap(
                     session: session,
                     sessionId: baselineState.chatSessionId.isEmpty ? nil : baselineState.chatSessionId,
-                    limit: aiChatBootstrapPageLimit
+                    limit: aiChatBootstrapPageLimit,
+                    resumeAttemptDiagnostics: nil
                 )
                 guard self.currentPersistedState() == baselineState else {
                     return
                 }
                 self.applyBootstrap(bootstrap)
-                self.attachBootstrapLiveIfNeeded(response: bootstrap, session: session)
+                self.attachBootstrapLiveIfNeeded(response: bootstrap, session: session, resumeAttemptDiagnostics: nil)
             } catch {
             }
         }
