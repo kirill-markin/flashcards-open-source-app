@@ -297,6 +297,57 @@ function extractLatestAssistantMessageText(
   return messageText === "" ? null : messageText;
 }
 
+function isOptimisticAssistantPlaceholder(
+  content: ReadonlyArray<ContentPart>,
+): boolean {
+  return content.length === 1
+    && content[0]?.type === "text"
+    && content[0].text === OPTIMISTIC_ASSISTANT_STATUS_TEXT;
+}
+
+function findTerminalAssistantMessage(
+  messages: ReadonlyArray<StoredMessage>,
+  assistantItemId?: string,
+): StoredMessage | null {
+  if (assistantItemId !== undefined) {
+    const matchedMessage = [...messages].reverse().find((message) =>
+      message.role === "assistant"
+      && (message.itemId === assistantItemId || message.itemId === null),
+    );
+    if (matchedMessage !== undefined) {
+      return matchedMessage;
+    }
+  }
+
+  return [...messages].reverse().find((message) => message.role === "assistant") ?? null;
+}
+
+function isTerminalAssistantMaterializationMissing(
+  messages: ReadonlyArray<StoredMessage>,
+  assistantItemId?: string,
+): boolean {
+  const assistantMessage = findTerminalAssistantMessage(messages, assistantItemId);
+  if (assistantMessage === null) {
+    return true;
+  }
+
+  if (assistantMessage.content.length === 0 || isOptimisticAssistantPlaceholder(assistantMessage.content)) {
+    return true;
+  }
+
+  return assistantMessage.content.some((part) => {
+    if (part.type === "tool_call") {
+      return part.status !== "completed";
+    }
+
+    if (part.type === "reasoning_summary") {
+      return part.status !== "completed";
+    }
+
+    return false;
+  });
+}
+
 function createChatControllerDebugId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -560,6 +611,14 @@ export function useChatSessionController(
     }
 
     if (event.outcome === "reset_required") {
+      reconcileTerminalSnapshotRef.current();
+      return;
+    }
+
+    if (
+      (event.outcome === "completed" || event.outcome === "stopped")
+      && isTerminalAssistantMaterializationMissing(messagesRef.current, event.assistantItemId)
+    ) {
       reconcileTerminalSnapshotRef.current();
       return;
     }
