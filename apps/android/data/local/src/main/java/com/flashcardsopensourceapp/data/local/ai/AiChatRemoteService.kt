@@ -27,6 +27,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatOlderMessagesResponse
+import com.flashcardsopensourceapp.data.local.model.AiChatStopRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
@@ -189,9 +190,9 @@ class AiChatRemoteService {
             val responseBody = readResponseBody(connection = connection)
             val bootstrap = decodeAiChatBootstrapResponse(responseBody)
             return@withContext AiChatOlderMessagesResponse(
-                messages = bootstrap.messages,
-                hasOlder = bootstrap.hasOlder,
-                oldestCursor = bootstrap.oldestCursor
+                messages = bootstrap.conversation.messages,
+                hasOlder = bootstrap.conversation.hasOlder,
+                oldestCursor = bootstrap.conversation.oldestCursor
             )
         } finally {
             connection.disconnect()
@@ -202,6 +203,7 @@ class AiChatRemoteService {
         apiBaseUrl: String,
         authorizationHeader: String,
         sessionId: String,
+        runId: String,
         liveStream: AiChatLiveStreamEnvelope,
         afterCursor: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?,
@@ -210,6 +212,7 @@ class AiChatRemoteService {
         liveRemoteService.attachLiveRun(
             authorizationHeader = authorizationHeader,
             sessionId = sessionId,
+            runId = runId,
             liveStream = liveStream,
             afterCursor = afterCursor,
             resumeDiagnostics = resumeDiagnostics,
@@ -251,7 +254,7 @@ class AiChatRemoteService {
         apiBaseUrl: String,
         authorizationHeader: String,
         sessionId: String
-    ) = withContext(Dispatchers.IO) {
+    ): AiChatStopRunResponse = withContext(Dispatchers.IO) {
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
             path = "/chat/stop",
@@ -270,7 +273,8 @@ class AiChatRemoteService {
                         .toByteArray(StandardCharsets.UTF_8)
                 )
             }
-            readResponseBody(connection = connection)
+            val responseBody = readResponseBody(connection = connection)
+            return@withContext decodeAiChatStopRunResponse(responseBody)
         } finally {
             connection.disconnect()
         }
@@ -397,240 +401,6 @@ class AiChatRemoteService {
         }
     }
 
-    private fun decodeSnapshot(jsonObject: JSONObject): AiChatSessionSnapshot {
-        return AiChatSessionSnapshot(
-            sessionId = jsonObject.requireCloudString("sessionId", "sessionId"),
-            runState = decodeRunState(
-                value = jsonObject.requireCloudString("runState", "runState"),
-                fieldPath = "runState"
-            ),
-            updatedAtMillis = jsonObject.requireCloudLong("updatedAt", "updatedAt"),
-            mainContentInvalidationVersion = jsonObject.requireCloudLong(
-                "mainContentInvalidationVersion",
-                "mainContentInvalidationVersion"
-            ),
-            messages = decodeMessages(
-                jsonArray = jsonObject.requireCloudArray("messages", "messages"),
-                fieldPath = "messages"
-            ),
-            chatConfig = decodeChatConfig(jsonObject.requireCloudObject("chatConfig", "chatConfig"))
-        )
-    }
-
-    private fun decodeMessages(jsonArray: JSONArray, fieldPath: String): List<AiChatMessage> {
-        return buildList {
-            for (index in 0 until jsonArray.length()) {
-                val item = jsonArray.requireCloudObject(index = index, fieldPath = "$fieldPath[$index]")
-                val content = decodeContentParts(
-                    jsonArray = item.requireCloudArray("content", "$fieldPath[$index].content"),
-                    fieldPath = "$fieldPath[$index].content"
-                )
-                add(
-                    AiChatMessage(
-                        messageId = item.optCloudStringOrNull("messageId", "$fieldPath[$index].messageId")
-                            ?.ifBlank { null }
-                            ?: "snapshot-$index",
-                        role = decodeMessageRole(
-                            value = item.requireCloudString("role", "$fieldPath[$index].role"),
-                            fieldPath = "$fieldPath[$index].role"
-                        ),
-                        content = content,
-                        timestampMillis = item.requireCloudLong("timestamp", "$fieldPath[$index].timestamp"),
-                        isError = item.requireCloudBoolean("isError", "$fieldPath[$index].isError"),
-                        isStopped = item.optBoolean("isStopped", false),
-                        cursor = item.optCloudStringOrNull("cursor", "$fieldPath[$index].cursor")
-                            ?.ifBlank { null },
-                        itemId = decodeMessageItemId(
-                            jsonArray = item.requireCloudArray("content", "$fieldPath[$index].content"),
-                            fieldPath = "$fieldPath[$index].content"
-                        )
-                    )
-                )
-            }
-        }
-    }
-
-    private fun decodeContentParts(jsonArray: JSONArray, fieldPath: String): List<AiChatContentPart> {
-        return buildList {
-            for (index in 0 until jsonArray.length()) {
-                val item = jsonArray.requireCloudObject(index = index, fieldPath = "$fieldPath[$index]")
-                when (val type = item.requireCloudString("type", "$fieldPath[$index].type")) {
-                    "text" -> add(
-                        AiChatContentPart.Text(
-                            text = item.requireCloudString("text", "$fieldPath[$index].text")
-                        )
-                    )
-
-                    "reasoning_summary" -> add(
-                        AiChatContentPart.ReasoningSummary(
-                            reasoningSummary = AiChatReasoningSummary(
-                                reasoningId = decodeReasoningId(
-                                    jsonObject = item,
-                                    fieldPath = "$fieldPath[$index]"
-                                ),
-                                summary = item.requireCloudString("summary", "$fieldPath[$index].summary"),
-                                status = decodeReasoningStatus(
-                                    value = item.optCloudStringOrNull("status", "$fieldPath[$index].status")
-                                )
-                            )
-                        )
-                    )
-
-                    "image" -> add(
-                        AiChatContentPart.Image(
-                            fileName = item.optCloudStringOrNull("fileName", "$fieldPath[$index].fileName")
-                                ?.ifBlank { null },
-                            mediaType = item.requireCloudString("mediaType", "$fieldPath[$index].mediaType"),
-                            base64Data = item.requireCloudString("base64Data", "$fieldPath[$index].base64Data")
-                        )
-                    )
-
-                    "file" -> add(
-                        AiChatContentPart.File(
-                            fileName = item.requireCloudString("fileName", "$fieldPath[$index].fileName"),
-                            mediaType = item.requireCloudString("mediaType", "$fieldPath[$index].mediaType"),
-                            base64Data = item.requireCloudString("base64Data", "$fieldPath[$index].base64Data")
-                        )
-                    )
-
-                    "tool_call" -> add(
-                        AiChatContentPart.ToolCall(
-                            toolCall = AiChatToolCall(
-                                toolCallId = decodeToolCallId(
-                                    jsonObject = item,
-                                    fieldPath = "$fieldPath[$index]"
-                                ),
-                                name = item.requireCloudString("name", "$fieldPath[$index].name"),
-                                status = decodeToolCallStatus(
-                                    value = item.requireCloudString("status", "$fieldPath[$index].status"),
-                                    fieldPath = "$fieldPath[$index].status"
-                                ),
-                                input = item.optCloudStringOrNull("input", "$fieldPath[$index].input")?.ifBlank { null },
-                                output = item.optCloudStringOrNull("output", "$fieldPath[$index].output")?.ifBlank { null }
-                            )
-                        )
-                    )
-
-                    else -> throw CloudContractMismatchException(
-                        "Cloud contract mismatch for $fieldPath[$index].type: unsupported AI chat content part type \"$type\""
-                    )
-                }
-            }
-        }
-    }
-
-    private fun decodeChatConfig(jsonObject: JSONObject): AiChatServerConfig {
-        val provider = jsonObject.requireCloudObject("provider", "chatConfig.provider")
-        val model = jsonObject.requireCloudObject("model", "chatConfig.model")
-        val reasoning = jsonObject.requireCloudObject("reasoning", "chatConfig.reasoning")
-        val features = jsonObject.requireCloudObject("features", "chatConfig.features")
-
-        return AiChatServerConfig(
-            provider = com.flashcardsopensourceapp.data.local.model.AiChatProvider(
-                id = provider.requireCloudString("id", "chatConfig.provider.id"),
-                label = provider.requireCloudString("label", "chatConfig.provider.label")
-            ),
-            model = com.flashcardsopensourceapp.data.local.model.AiChatServerModel(
-                id = model.requireCloudString("id", "chatConfig.model.id"),
-                label = model.requireCloudString("label", "chatConfig.model.label"),
-                badgeLabel = model.requireCloudString("badgeLabel", "chatConfig.model.badgeLabel")
-            ),
-            reasoning = com.flashcardsopensourceapp.data.local.model.AiChatReasoning(
-                effort = reasoning.requireCloudString("effort", "chatConfig.reasoning.effort"),
-                label = reasoning.requireCloudString("label", "chatConfig.reasoning.label")
-            ),
-            features = com.flashcardsopensourceapp.data.local.model.AiChatFeatures(
-                modelPickerEnabled = features.requireCloudBoolean(
-                    "modelPickerEnabled",
-                    "chatConfig.features.modelPickerEnabled"
-                ),
-                dictationEnabled = features.requireCloudBoolean(
-                    "dictationEnabled",
-                    "chatConfig.features.dictationEnabled"
-                ),
-                attachmentsEnabled = features.requireCloudBoolean(
-                    "attachmentsEnabled",
-                    "chatConfig.features.attachmentsEnabled"
-                )
-            ),
-            liveUrl = jsonObject.optCloudStringOrNull("liveUrl", "chatConfig.liveUrl")
-                ?.ifBlank { null }
-        )
-    }
-
-    private fun decodeStartRunResponse(jsonObject: JSONObject): AiChatStartRunResponse {
-        return AiChatStartRunResponse(
-            sessionId = jsonObject.requireCloudString("sessionId", "sessionId"),
-            runState = decodeRunState(
-                value = jsonObject.requireCloudString("runState", "runState"),
-                fieldPath = "runState"
-            ),
-            chatConfig = decodeChatConfig(jsonObject.requireCloudObject("chatConfig", "chatConfig")),
-            liveStream = jsonObject.optCloudObjectOrNull("liveStream", "liveStream")
-                ?.let(::decodeLiveStreamEnvelope)
-        )
-    }
-
-    private fun decodeLiveStreamEnvelope(jsonObject: JSONObject): AiChatLiveStreamEnvelope {
-        return AiChatLiveStreamEnvelope(
-            url = jsonObject.requireCloudString("url", "liveStream.url"),
-            authorization = jsonObject.requireCloudString("authorization", "liveStream.authorization"),
-            expiresAt = jsonObject.requireCloudLong("expiresAt", "liveStream.expiresAt")
-        )
-    }
-
-    private fun decodeBootstrapResponse(jsonObject: JSONObject): AiChatBootstrapResponse {
-        val sessionId = jsonObject.requireCloudString("sessionId", "sessionId")
-        val messagesArray = jsonObject.requireCloudArray("messages", "messages")
-        val messages = buildList {
-            for (index in 0 until messagesArray.length()) {
-                val item = messagesArray.requireCloudObject(index = index, fieldPath = "messages[$index]")
-                val cursor = item.optCloudStringOrNull("cursor", "messages[$index].cursor")
-                    ?.ifBlank { null } ?: "bootstrap-$index"
-                val contentArray = item.requireCloudArray("content", "messages[$index].content")
-                val content = decodeContentParts(
-                    jsonArray = contentArray,
-                    fieldPath = "messages[$index].content"
-                )
-                add(
-                    AiChatMessage(
-                        messageId = "$sessionId-$index-$cursor",
-                        role = decodeMessageRole(
-                            value = item.requireCloudString("role", "messages[$index].role"),
-                            fieldPath = "messages[$index].role"
-                        ),
-                        content = content,
-                        timestampMillis = item.requireCloudLong("timestamp", "messages[$index].timestamp"),
-                        isError = item.requireCloudBoolean("isError", "messages[$index].isError"),
-                        isStopped = item.optBoolean("isStopped", false),
-                        cursor = cursor,
-                        itemId = decodeMessageItemId(
-                            jsonArray = contentArray,
-                            fieldPath = "messages[$index].content"
-                        )
-                    )
-                )
-            }
-        }
-
-        return AiChatBootstrapResponse(
-            sessionId = sessionId,
-            runState = decodeRunState(
-                value = jsonObject.requireCloudString("runState", "runState"),
-                fieldPath = "runState"
-            ),
-            chatConfig = decodeChatConfig(jsonObject.requireCloudObject("chatConfig", "chatConfig")),
-            messages = messages,
-            hasOlder = jsonObject.requireCloudBoolean("hasOlder", "hasOlder"),
-            oldestCursor = jsonObject.optCloudStringOrNull("oldestCursor", "oldestCursor")
-                ?.ifBlank { null },
-            liveCursor = jsonObject.optCloudStringOrNull("liveCursor", "liveCursor")
-                ?.ifBlank { null },
-            liveStream = jsonObject.optCloudObjectOrNull("liveStream", "liveStream")
-                ?.let(::decodeLiveStreamEnvelope)
-        )
-    }
-
     private fun encodeMultipartAudioBody(
         boundary: String,
         sessionId: String?,
@@ -705,44 +475,6 @@ internal fun readAiChatRemoteErrorResponse(connection: HttpURLConnection): AiCha
     )
 }
 
-private fun decodeToolCallId(jsonObject: JSONObject, fieldPath: String): String {
-    return jsonObject.optCloudStringOrNull("toolCallId", "$fieldPath.toolCallId")
-        ?.ifBlank { null }
-        ?: jsonObject.optCloudStringOrNull("id", "$fieldPath.id")
-        ?.ifBlank { null }
-        ?: throw CloudContractMismatchException(
-            "Cloud contract mismatch for $fieldPath: missing AI chat tool call id"
-        )
-}
-
-private fun decodeReasoningId(jsonObject: JSONObject, fieldPath: String): String {
-    return jsonObject.optCloudStringOrNull("reasoningId", "$fieldPath.reasoningId")
-        ?.ifBlank { null }
-        ?: jsonObject.optCloudStringOrNull("id", "$fieldPath.id")
-        ?.ifBlank { null }
-        ?: jsonObject.optCloudObjectOrNull("streamPosition", "$fieldPath.streamPosition")
-            ?.optCloudStringOrNull("itemId", "$fieldPath.streamPosition.itemId")
-            ?.ifBlank { null }
-        ?: throw CloudContractMismatchException(
-            "Cloud contract mismatch for $fieldPath: missing AI chat reasoning summary id"
-        )
-}
-
-private fun decodeMessageItemId(jsonArray: JSONArray, fieldPath: String): String? {
-    for (index in 0 until jsonArray.length()) {
-        val item = jsonArray.requireCloudObject(index = index, fieldPath = "$fieldPath[$index]")
-        val streamPosition = item.optCloudObjectOrNull("streamPosition", "$fieldPath[$index].streamPosition")
-            ?: continue
-        val itemId = streamPosition.optCloudStringOrNull("itemId", "$fieldPath[$index].streamPosition.itemId")
-            ?.ifBlank { null }
-        if (itemId != null) {
-            return itemId
-        }
-    }
-
-    return null
-}
-
 internal data class ParsedBackendError(
     val message: String,
     val code: String?,
@@ -784,16 +516,6 @@ internal fun parseBackendErrorPayload(rawBody: String?): ParsedBackendError? {
     }
 }
 
-private fun decodeReasoningStatus(value: String?): AiChatToolCallStatus {
-    return when (value) {
-        null, "", "completed", "COMPLETED" -> AiChatToolCallStatus.COMPLETED
-        "started", "STARTED" -> AiChatToolCallStatus.STARTED
-        else -> throw CloudContractMismatchException(
-            "Cloud contract mismatch for reasoning_summary.status: unsupported AI chat reasoning status \"$value\""
-        )
-    }
-}
-
 internal fun parseBackendErrorJson(jsonObject: JSONObject): ParsedBackendError? {
     if (jsonObject.optString("type") != "error") {
         return null
@@ -805,33 +527,4 @@ internal fun parseBackendErrorJson(jsonObject: JSONObject): ParsedBackendError? 
         stage = jsonObject.optString("stage", "").ifBlank { null },
         requestId = jsonObject.optString("requestId", "").ifBlank { null }
     )
-}
-
-private fun decodeRunState(value: String, fieldPath: String): String {
-    return when (value) {
-        "idle", "running", "completed", "failed", "stopped", "interrupted" -> value
-        else -> throw CloudContractMismatchException(
-            "Cloud contract mismatch for $fieldPath: unsupported AI chat run state \"$value\""
-        )
-    }
-}
-
-private fun decodeMessageRole(value: String, fieldPath: String): AiChatRole {
-    return when (value) {
-        "user" -> AiChatRole.USER
-        "assistant" -> AiChatRole.ASSISTANT
-        else -> throw CloudContractMismatchException(
-            "Cloud contract mismatch for $fieldPath: unsupported AI chat role \"$value\""
-        )
-    }
-}
-
-private fun decodeToolCallStatus(value: String, fieldPath: String): AiChatToolCallStatus {
-    return when (value) {
-        "started" -> AiChatToolCallStatus.STARTED
-        "completed" -> AiChatToolCallStatus.COMPLETED
-        else -> throw CloudContractMismatchException(
-            "Cloud contract mismatch for $fieldPath: unsupported AI chat tool call status \"$value\""
-        )
-    }
 }

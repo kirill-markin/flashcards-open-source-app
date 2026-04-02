@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.AiChatStopRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatStreamOutcome
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
@@ -242,6 +243,7 @@ class LocalAiChatRepository(
     override suspend fun attachLiveRun(
         workspaceId: String?,
         sessionId: String,
+        runId: String,
         liveStream: AiChatLiveStreamEnvelope,
         afterCursor: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?,
@@ -252,6 +254,7 @@ class LocalAiChatRepository(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader,
             sessionId = sessionId,
+            runId = runId,
             liveStream = liveStream,
             afterCursor = afterCursor,
             resumeDiagnostics = resumeDiagnostics,
@@ -259,9 +262,9 @@ class LocalAiChatRepository(
         )
     }
 
-    override suspend fun stopRun(workspaceId: String?, sessionId: String) {
+    override suspend fun stopRun(workspaceId: String?, sessionId: String): AiChatStopRunResponse {
         val session = authorizedSession(workspaceId = workspaceId)
-        aiChatRemoteService.stopRun(
+        return aiChatRemoteService.stopRun(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader,
             sessionId = sessionId
