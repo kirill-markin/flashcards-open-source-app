@@ -2360,24 +2360,22 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func elements(query: XCUIElementQuery) -> [XCUIElement] {
-        let count = query.count
-        guard count > 0 else {
+        let elements = query.allElementsBoundByIndex
+        guard elements.isEmpty == false else {
             return []
         }
 
-        return (0..<count).compactMap { index in
-            let element = query.element(boundBy: index)
-            return element.exists ? element : nil
-        }
+        return elements.filter(\.exists)
     }
 
     @MainActor
     private func elementLabel(query: XCUIElementQuery, index: Int) -> String {
-        guard index >= 0, index < query.count else {
+        let elements = query.allElementsBoundByIndex
+        guard index >= 0, index < elements.count else {
             return ""
         }
 
-        let element = query.element(boundBy: index)
+        let element = elements[index]
         guard element.exists else {
             return ""
         }
