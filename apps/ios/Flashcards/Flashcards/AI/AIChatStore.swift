@@ -677,24 +677,33 @@ final class AIChatStore {
 
     func updateSurface(activity: AIChatSurfaceActivity) {
         let previousActivity = self.surfaceState.activity
+        let didAccessContextChange = previousActivity.accessContext != activity.accessContext
+        let didVisibilityChange = previousActivity.isVisible != activity.isVisible
+        let didBecomeVisible = previousActivity.isVisible == false && activity.isVisible
+        let didBecomeHidden = previousActivity.isVisible && activity.isVisible == false
         self.surfaceState.activity = activity
         self.hasExternalProviderConsent = activity.hasExternalProviderConsent
 
-        if aiChatSurfaceShouldCancelDictation(activity: activity) {
+        if didBecomeHidden || aiChatSurfaceShouldCancelDictation(activity: activity) {
             self.cancelDictation()
         }
 
-        self.activateAccessContext(
-            force: previousActivity.accessContext != activity.accessContext,
-            nextAccessContext: activity.accessContext
-        )
-        self.setChatVisibility(isVisible: activity.isVisible)
+        if didAccessContextChange {
+            self.activateAccessContext(
+                force: true,
+                nextAccessContext: activity.accessContext
+            )
+        }
+
+        if didVisibilityChange {
+            self.setChatVisibility(isVisible: activity.isVisible)
+        }
 
         if aiChatSurfaceShouldWarmUp(
             activity: activity,
             bootstrapPhase: self.bootstrapPhase,
             composerPhase: self.composerPhase
-        ) {
+        ) && (didBecomeVisible || didAccessContextChange) {
             self.warmUpSessionIfNeeded()
         }
     }

@@ -7,6 +7,10 @@ extension AIChatStore {
      * the surface becomes visible again, recovery always starts from bootstrap.
      */
     func setChatVisibility(isVisible: Bool) {
+        if self.shouldKeepLiveAttached == isVisible {
+            return
+        }
+
         self.shouldKeepLiveAttached = isVisible
 
         if isVisible {
