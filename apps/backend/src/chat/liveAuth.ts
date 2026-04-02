@@ -10,6 +10,7 @@ type ChatLiveAuthPayload = Readonly<{
   userId: string;
   workspaceId: string;
   sessionId: string;
+  runId: string;
   expiresAt: number;
 }>;
 
@@ -23,6 +24,7 @@ type VerifiedChatLiveAuth = Readonly<{
   userId: string;
   workspaceId: string;
   sessionId: string;
+  runId: string;
 }>;
 
 function getChatLiveUrl(): string {
@@ -65,6 +67,8 @@ function decodePayload(encodedPayload: string): ChatLiveAuthPayload {
       || parsed.workspaceId.trim() === ""
       || typeof parsed.sessionId !== "string"
       || parsed.sessionId.trim() === ""
+      || typeof parsed.runId !== "string"
+      || parsed.runId.trim() === ""
       || typeof parsed.expiresAt !== "number"
       || Number.isFinite(parsed.expiresAt) === false
     ) {
@@ -76,6 +80,7 @@ function decodePayload(encodedPayload: string): ChatLiveAuthPayload {
       userId: parsed.userId,
       workspaceId: parsed.workspaceId,
       sessionId: parsed.sessionId,
+      runId: parsed.runId,
       expiresAt: parsed.expiresAt,
     };
   } catch {
@@ -95,6 +100,7 @@ export async function createChatLiveStreamEnvelope(
   userId: string,
   workspaceId: string,
   sessionId: string,
+  runId: string,
 ): Promise<ChatLiveStreamEnvelope> {
   const expiresAt = Date.now() + CHAT_LIVE_AUTH_TTL_MS;
   const payload: ChatLiveAuthPayload = {
@@ -102,6 +108,7 @@ export async function createChatLiveStreamEnvelope(
     userId,
     workspaceId,
     sessionId,
+    runId,
     expiresAt,
   };
   const secret = await getBackendChatLiveAuthSecret(getBackendChatLiveAuthSecretArn());
@@ -118,6 +125,7 @@ export async function createChatLiveStreamEnvelope(
 export async function verifyChatLiveAuthorizationHeader(
   authorizationHeader: string,
   sessionId: string,
+  runId: string,
 ): Promise<VerifiedChatLiveAuth> {
   if (authorizationHeader.startsWith("Live ") === false) {
     throw new HttpError(401, "Chat live auth header must use Live scheme", "CHAT_LIVE_AUTH_INVALID");
@@ -154,10 +162,14 @@ export async function verifyChatLiveAuthorizationHeader(
   if (payload.sessionId !== sessionId) {
     throw new HttpError(401, "Chat live auth session mismatch", "CHAT_LIVE_AUTH_INVALID");
   }
+  if (payload.runId !== runId) {
+    throw new HttpError(401, "Chat live auth run mismatch", "CHAT_LIVE_AUTH_INVALID");
+  }
 
   return {
     userId: payload.userId,
     workspaceId: payload.workspaceId,
     sessionId: payload.sessionId,
+    runId: payload.runId,
   };
 }

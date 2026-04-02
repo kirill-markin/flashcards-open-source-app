@@ -4,6 +4,7 @@ import { consumeChatLiveStream, type ChatLiveEvent } from "./liveStream";
 
 type ActiveLiveStreamConnection = Readonly<{
   sessionId: string;
+  runId: string;
   abortController: AbortController;
 }>;
 
@@ -13,8 +14,8 @@ type UseChatLiveSessionParams = Readonly<{
   applyLiveEvent: (event: ChatLiveEvent) => void;
   finalizeInterruptedRun: (message: string) => void;
   onVisibleResumeRequested: () => void;
-  onUnexpectedStreamEnd: (sessionId: string) => void;
-  onLiveAttachConnected: (sessionId: string, resumeAttemptId: number | null) => void;
+  onUnexpectedStreamEnd: (sessionId: string, runId: string) => void;
+  onLiveAttachConnected: (sessionId: string, runId: string, resumeAttemptId: number | null) => void;
 }>;
 
 export type ChatLiveSessionState = Readonly<{
@@ -23,11 +24,12 @@ export type ChatLiveSessionState = Readonly<{
   hasActiveLiveConnection: () => boolean;
   startLiveStream: (
     sessionId: string,
-    liveStream: ChatLiveStream | null,
+    runId: string,
+    liveStream: ChatLiveStream,
     afterCursor: string | null,
     resumeAttemptId: number | null,
   ) => void;
-  detachLiveStream: (sessionId: string | null) => void;
+  detachLiveStream: (sessionId: string | null, runId: string | null) => void;
 }>;
 
 function isDocumentVisible(): boolean {
@@ -59,17 +61,23 @@ export function useChatLiveSession(
   const applyLiveEventRef = useRef<(event: ChatLiveEvent) => void>(applyLiveEvent);
   const finalizeInterruptedRunRef = useRef<(message: string) => void>(finalizeInterruptedRun);
   const onVisibleResumeRequestedRef = useRef<() => void>(onVisibleResumeRequested);
-  const onUnexpectedStreamEndRef = useRef<(sessionId: string) => void>(onUnexpectedStreamEnd);
-  const onLiveAttachConnectedRef = useRef<(sessionId: string, resumeAttemptId: number | null) => void>(onLiveAttachConnected);
+  const onUnexpectedStreamEndRef = useRef<(sessionId: string, runId: string) => void>(onUnexpectedStreamEnd);
+  const onLiveAttachConnectedRef = useRef<(sessionId: string, runId: string, resumeAttemptId: number | null) => void>(
+    onLiveAttachConnected,
+  );
   const hasActiveLiveConnection = useCallback((): boolean => activeLiveConnectionRef.current !== null, []);
 
-  const detachLiveStream = useCallback((sessionId: string | null): void => {
+  const detachLiveStream = useCallback((sessionId: string | null, runId: string | null): void => {
     const activeConnection = activeLiveConnectionRef.current;
     if (activeConnection === null) {
       return;
     }
 
     if (sessionId !== null && activeConnection.sessionId !== sessionId) {
+      return;
+    }
+
+    if (runId !== null && activeConnection.runId !== runId) {
       return;
     }
 
@@ -105,50 +113,50 @@ export function useChatLiveSession(
    */
   const startLiveStream = useCallback((
     sessionId: string,
-    liveStream: ChatLiveStream | null,
+    runId: string,
+    liveStream: ChatLiveStream,
     afterCursor: string | null,
     resumeAttemptId: number | null,
   ): void => {
-    detachLiveStream(null);
+    detachLiveStream(null, null);
 
     if (isDocumentVisibleRef.current === false) {
-      return;
-    }
-
-    if (liveStream === null) {
-      finalizeInterruptedRunRef.current("AI live stream is unavailable for the active run.");
       return;
     }
 
     const abortController = new AbortController();
     let liveStreamDisposition: LiveStreamDisposition = "pending";
     let didReportConnected = false;
-    activeLiveConnectionRef.current = { sessionId, abortController };
+    activeLiveConnectionRef.current = { sessionId, runId, abortController };
     setIsLiveStreamConnected(false);
 
     void consumeChatLiveStream({
       liveStream,
       sessionId,
+      runId,
       afterCursor,
       resumeAttemptId,
       signal: abortController.signal,
       onEvent: (event) => {
-        if (activeLiveConnectionRef.current?.sessionId !== sessionId) {
+        const activeConnection = activeLiveConnectionRef.current;
+        if (
+          activeConnection?.sessionId !== sessionId
+          || activeConnection.runId !== runId
+          || event.sessionId !== sessionId
+          || event.runId !== runId
+        ) {
           return;
         }
 
-        if (
-          event.type === "assistant_message_done"
-          || event.type === "error"
-          || event.type === "reset_required"
-        ) {
+        if (event.type === "run_terminal") {
           liveStreamDisposition = "terminal";
         }
 
         if (didReportConnected === false) {
           didReportConnected = true;
-          onLiveAttachConnectedRef.current(sessionId, resumeAttemptId);
+          onLiveAttachConnectedRef.current(sessionId, runId, resumeAttemptId);
         }
+
         setIsLiveStreamConnected(true);
         applyLiveEventRef.current(event);
       },
@@ -157,7 +165,8 @@ export function useChatLiveSession(
         return;
       }
 
-      if (activeLiveConnectionRef.current?.sessionId !== sessionId) {
+      const activeConnection = activeLiveConnectionRef.current;
+      if (activeConnection?.sessionId !== sessionId || activeConnection.runId !== runId) {
         return;
       }
 
@@ -167,13 +176,14 @@ export function useChatLiveSession(
         return;
       }
 
-      onUnexpectedStreamEndRef.current(sessionId);
+      onUnexpectedStreamEndRef.current(sessionId, runId);
     }).catch((error: unknown) => {
       if (abortController.signal.aborted) {
         return;
       }
 
-      if (activeLiveConnectionRef.current?.sessionId !== sessionId) {
+      const activeConnection = activeLiveConnectionRef.current;
+      if (activeConnection?.sessionId !== sessionId || activeConnection.runId !== runId) {
         return;
       }
 
@@ -203,7 +213,7 @@ export function useChatLiveSession(
       }
 
       if (nextIsVisible === false) {
-        detachLiveStream(null);
+        detachLiveStream(null, null);
         return;
       }
 
@@ -218,7 +228,7 @@ export function useChatLiveSession(
 
   useEffect(() => {
     return () => {
-      detachLiveStream(null);
+      detachLiveStream(null, null);
     };
   }, [detachLiveStream]);
 

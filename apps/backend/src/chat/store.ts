@@ -387,6 +387,7 @@ function mapPersistedMessagesToStoredMessages(
     timestamp: message.timestamp,
     isError: message.isError,
     isStopped: message.isStopped,
+    cursor: String(message.itemOrder),
     itemId: message.role === "assistant" ? message.itemId : null,
   }));
 }

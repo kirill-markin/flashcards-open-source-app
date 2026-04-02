@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { PassThrough } from "node:stream";
 import { runLiveStreamWithDependencies } from "./chat/live";
+import type { ChatRunSnapshot } from "./chat/runs";
 import type { PersistedChatMessageItem } from "./chat/store";
 import type { ContentPart } from "./chat/types";
 
@@ -24,6 +25,33 @@ function makeAssistantMessage(
     isStopped: params.state === "cancelled",
     timestamp: 1,
     updatedAt: 1,
+  };
+}
+
+function createRunSnapshot(
+  status: ChatRunSnapshot["status"],
+  assistantItemId: string,
+): ChatRunSnapshot {
+  return {
+    runId: "run-1",
+    sessionId: "session-1",
+    assistantItemId,
+    status,
+    startedAt: 1,
+    finishedAt: status === "queued" || status === "running" ? null : 2,
+    lastErrorMessage: null,
+  };
+}
+
+function createRunningSessionSnapshot() {
+  return {
+    sessionId: "session-1",
+    runState: "running" as const,
+    activeRunId: "run-1",
+    updatedAt: 1,
+    activeRunHeartbeatAt: 1,
+    mainContentInvalidationVersion: 0,
+    messages: [],
   };
 }
 
@@ -65,19 +93,25 @@ test("resume replay emits terminal assistant backlog after afterCursor", async (
   const output = await collectStreamOutput(async (stream) => {
     await runLiveStreamWithDependencies(stream, {
       sessionId: "session-1",
+      runId: "run-1",
       userId: "user-1",
       workspaceId: "workspace-1",
       afterCursor: 5,
       requestId: "request-1",
     }, {
-      listChatMessagesAfterCursor: async () => [
-        makeAssistantMessage({
-          itemId: "assistant-1",
-          itemOrder: 6,
-          state: "completed",
-          content: [{ type: "text", text: "done" }],
-        }),
-      ],
+      getChatRunSnapshot: async () => createRunSnapshot("completed", "assistant-1"),
+      getChatSessionSnapshot: async () => createRunningSessionSnapshot(),
+      listChatMessagesAfterCursor: async (_userId, _workspaceId, _sessionId, afterCursor) =>
+        afterCursor === 5
+          ? [
+            makeAssistantMessage({
+              itemId: "assistant-1",
+              itemOrder: 6,
+              state: "completed",
+              content: [{ type: "text", text: "done" }],
+            }),
+          ]
+          : [],
       listChatMessagesLatest: async () => ({
         messages: [],
         oldestCursor: null,
@@ -90,17 +124,39 @@ test("resume replay emits terminal assistant backlog after afterCursor", async (
 
   assert.deepEqual(parseLiveEvents(output), [
     {
-      type: "assistant_message_done",
+      type: "assistant_delta",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
       cursor: "6",
+      sequenceNumber: 1,
+      streamEpoch: "run-1",
+      itemId: "assistant-1",
+      text: "done",
+    },
+    {
+      type: "assistant_message_done",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
+      cursor: "6",
+      sequenceNumber: 2,
+      streamEpoch: "run-1",
       itemId: "assistant-1",
       content: [{ type: "text", text: "done" }],
       isError: false,
       isStopped: false,
     },
     {
-      type: "run_state",
-      runState: "idle",
+      type: "run_terminal",
       sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
+      cursor: "6",
+      sequenceNumber: 3,
+      streamEpoch: "run-1",
+      outcome: "completed",
+      assistantItemId: "assistant-1",
     },
   ]);
 });
@@ -109,11 +165,14 @@ test("resume replay seeds in-progress assistant content and continues live delta
   const output = await collectStreamOutput(async (stream) => {
     await runLiveStreamWithDependencies(stream, {
       sessionId: "session-1",
+      runId: "run-1",
       userId: "user-1",
       workspaceId: "workspace-1",
       afterCursor: 5,
       requestId: "request-2",
     }, {
+      getChatRunSnapshot: async () => createRunSnapshot("running", "assistant-2"),
+      getChatSessionSnapshot: async () => createRunningSessionSnapshot(),
       listChatMessagesAfterCursor: async (_userId, _workspaceId, _sessionId, afterCursor) => {
         if (afterCursor === 5) {
           return [
@@ -148,20 +207,25 @@ test("resume replay seeds in-progress assistant content and continues live delta
   assert.deepEqual(parseLiveEvents(output), [
     {
       type: "assistant_delta",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
       text: "hello",
       cursor: "6",
+      sequenceNumber: 1,
+      streamEpoch: "run-1",
       itemId: "assistant-2",
     },
     {
       type: "assistant_delta",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
       text: " world",
       cursor: "6",
+      sequenceNumber: 2,
+      streamEpoch: "run-1",
       itemId: "assistant-2",
-    },
-    {
-      type: "run_state",
-      runState: "running",
-      sessionId: "session-1",
     },
   ]);
 });
@@ -170,11 +234,14 @@ test("resume replay emits reset_required when backlog contains multiple in-progr
   const output = await collectStreamOutput(async (stream) => {
     await runLiveStreamWithDependencies(stream, {
       sessionId: "session-1",
+      runId: "run-1",
       userId: "user-1",
       workspaceId: "workspace-1",
       afterCursor: 5,
       requestId: "request-3",
     }, {
+      getChatRunSnapshot: async () => createRunSnapshot("running", "assistant-3"),
+      getChatSessionSnapshot: async () => createRunningSessionSnapshot(),
       listChatMessagesAfterCursor: async () => [
         makeAssistantMessage({
           itemId: "assistant-3",
@@ -201,7 +268,15 @@ test("resume replay emits reset_required when backlog contains multiple in-progr
 
   assert.deepEqual(parseLiveEvents(output), [
     {
-      type: "reset_required",
+      type: "run_terminal",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
+      cursor: "5",
+      sequenceNumber: 1,
+      streamEpoch: "run-1",
+      outcome: "reset_required",
+      assistantItemId: "assistant-3",
     },
   ]);
 });

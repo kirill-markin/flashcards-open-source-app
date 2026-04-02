@@ -1,5 +1,5 @@
 import type { Writable } from "node:stream";
-import type { LiveSSEEvent } from "./types";
+import type { ChatLiveEvent } from "./contract";
 
 export type LiveDisconnectReason =
   | "close"
@@ -19,7 +19,7 @@ export type LiveConnectionState = Readonly<{
 /**
  * Serializes one typed live event into SSE wire framing.
  */
-export function formatSSEEvent(event: LiveSSEEvent): string {
+export function formatSSEEvent(event: ChatLiveEvent): string {
   return `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
 }
 

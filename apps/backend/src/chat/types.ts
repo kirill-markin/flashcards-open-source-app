@@ -56,56 +56,6 @@ export type ChatMessage = Readonly<{
   content: ReadonlyArray<ContentPart>;
 }>;
 
-export type LiveSSEEvent =
-  | Readonly<{ type: "run_state"; runState: string; sessionId: string }>
-  | Readonly<{ type: "assistant_delta"; text: string; cursor: string; itemId: string }>
-  | Readonly<{
-    type: "assistant_tool_call";
-    toolCallId: string;
-    name: string;
-    status: "started" | "completed";
-    input: string | null;
-    output: string | null;
-    providerStatus?: string | null;
-    cursor: string;
-    itemId: string;
-    outputIndex: number;
-  }>
-  | Readonly<{
-    type: "assistant_reasoning_started";
-    reasoningId: string;
-    cursor: string;
-    itemId: string;
-    outputIndex: number;
-  }>
-  | Readonly<{
-    type: "assistant_reasoning_summary";
-    reasoningId: string;
-    summary: string;
-    cursor: string;
-    itemId: string;
-    outputIndex: number;
-  }>
-  | Readonly<{
-    type: "assistant_reasoning_done";
-    reasoningId: string;
-    cursor: string;
-    itemId: string;
-    outputIndex: number;
-  }>
-  | Readonly<{
-    type: "assistant_message_done";
-    cursor: string;
-    itemId: string;
-    content: ReadonlyArray<ContentPart>;
-    isError: boolean;
-    isStopped: boolean;
-  }>
-  | Readonly<{ type: "repair_status"; message: string; attempt: number; maxAttempts: number; toolName: string | null }>
-  | Readonly<{ type: "error"; message: string }>
-  | Readonly<{ type: "stop_ack"; sessionId: string }>
-  | Readonly<{ type: "reset_required" }>;
-
 export type ChatStreamEvent =
   | Readonly<{
     type: "delta";

@@ -6,6 +6,27 @@ import {
   parseChatLiveEvent,
 } from "./liveStream";
 
+function createEventMetadata(
+  overrides?: Partial<{
+    sessionId: string;
+    conversationScopeId: string;
+    runId: string;
+    cursor: string | null;
+    sequenceNumber: number;
+    streamEpoch: string;
+  }>,
+): Record<string, string | number | null> {
+  return {
+    sessionId: "session-1",
+    conversationScopeId: "session-1",
+    runId: "run-1",
+    cursor: "10",
+    sequenceNumber: 1,
+    streamEpoch: "epoch-1",
+    ...overrides,
+  };
+}
+
 function createLiveStreamResponse(body: string): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
@@ -26,6 +47,7 @@ function createLiveStreamResponse(body: string): Response {
 describe("parseChatLiveEvent", () => {
   it("accepts valid assistant tool call payloads with extra fields", () => {
     expect(parseChatLiveEvent("assistant_tool_call", JSON.stringify({
+      ...createEventMetadata(),
       toolCallId: "tool-1",
       name: "sql",
       status: "completed",
@@ -37,6 +59,7 @@ describe("parseChatLiveEvent", () => {
       outputIndex: 0,
       ignoredFutureField: "ok",
     }))).toEqual({
+      ...createEventMetadata(),
       type: "assistant_tool_call",
       toolCallId: "tool-1",
       name: "sql",
@@ -52,6 +75,7 @@ describe("parseChatLiveEvent", () => {
 
   it("rejects missing required fields", () => {
     expect(() => parseChatLiveEvent("assistant_delta", JSON.stringify({
+      ...createEventMetadata(),
       cursor: "10",
       itemId: "item-1",
     }))).toThrow(ChatLiveContractError);
@@ -59,6 +83,7 @@ describe("parseChatLiveEvent", () => {
 
   it("rejects wrong runtime types", () => {
     expect(() => parseChatLiveEvent("assistant_message_done", JSON.stringify({
+      ...createEventMetadata(),
       cursor: "10",
       itemId: "item-1",
       content: "not-an-array",
@@ -69,6 +94,7 @@ describe("parseChatLiveEvent", () => {
 
   it("rejects unknown enum values", () => {
     expect(() => parseChatLiveEvent("assistant_tool_call", JSON.stringify({
+      ...createEventMetadata(),
       toolCallId: "tool-1",
       name: "sql",
       status: "pending",
@@ -97,6 +123,7 @@ describe("consumeChatLiveStream", () => {
         expiresAt: Date.now() + 60_000,
       },
       sessionId: "session-1",
+      runId: "run-1",
       afterCursor: null,
       resumeAttemptId: null,
       signal: new AbortController().signal,
@@ -107,7 +134,12 @@ describe("consumeChatLiveStream", () => {
   it("sends resume diagnostics headers for resumed live attaches", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(createLiveStreamResponse(
       "event: assistant_delta\n"
-        + "data: {\"type\":\"assistant_delta\",\"text\":\"hello\",\"cursor\":\"1\",\"itemId\":\"item-1\"}\n\n",
+        + `data: ${JSON.stringify({
+          ...createEventMetadata({ cursor: "1" }),
+          type: "assistant_delta",
+          text: "hello",
+          itemId: "item-1",
+        })}\n\n`,
     ));
 
     await consumeChatLiveStream({
@@ -117,6 +149,7 @@ describe("consumeChatLiveStream", () => {
         expiresAt: Date.now() + 60_000,
       },
       sessionId: "session-1",
+      runId: "run-1",
       afterCursor: "5",
       resumeAttemptId: 3,
       signal: new AbortController().signal,

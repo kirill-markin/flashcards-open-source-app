@@ -150,7 +150,16 @@ test("POST /chat fails with a stable contract code when a running response canno
       deduplicated: false,
       shouldInvokeWorker: false,
     }),
+    getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot(),
+    resolveLiveCursorFn: async () => "5",
+    listChatMessagesLatestFn: async () => ({
+      messages: [createAssistantItem("in_progress")],
+      oldestCursor: "6",
+      newestCursor: "6",
+      hasOlder: false,
+    }),
     createChatLiveStreamEnvelopeFn: async () => null as never,
+    interruptPreparedChatRunFn: async () => undefined,
   });
   const app = createRoutesWithHttpErrorJson();
   app.route("/", routes);

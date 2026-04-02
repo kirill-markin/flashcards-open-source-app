@@ -34,6 +34,18 @@ function createSnapshot(messages: ChatSessionSnapshot["messages"]): ChatSessionS
   };
 }
 
+function createRunningSnapshot(messages: ChatSessionSnapshot["messages"]): ChatSessionSnapshot {
+  return {
+    sessionId: "session-1",
+    runState: "running",
+    activeRunId: "run-1",
+    updatedAt: 1,
+    activeRunHeartbeatAt: 1,
+    mainContentInvalidationVersion: 0,
+    messages,
+  };
+}
+
 function createExpectedChatConfig(): Record<string, unknown> {
   return {
     provider: {
@@ -116,6 +128,7 @@ test("POST /chat/new creates a fresh session when history is not empty", async (
         timestamp: 1,
         isError: false,
         isStopped: false,
+        cursor: "1",
         itemId: null,
       }]);
     },
@@ -176,6 +189,7 @@ test("GET /chat returns assistant item ids in snapshot history and strips attach
         timestamp: 1,
         isError: false,
         isStopped: false,
+        cursor: "1",
         itemId: null,
       },
       {
@@ -187,6 +201,7 @@ test("GET /chat returns assistant item ids in snapshot history and strips attach
         timestamp: 2,
         isError: false,
         isStopped: false,
+        cursor: "2",
         itemId: "assistant-item-1",
       },
     ]),
@@ -197,40 +212,42 @@ test("GET /chat returns assistant item ids in snapshot history and strips attach
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
     sessionId: "session-1",
-    runState: "idle",
-    updatedAt: 1,
-    mainContentInvalidationVersion: 0,
-    liveCursor: null,
-    liveStream: null,
+    conversationScopeId: "session-1",
+    conversation: {
+      updatedAt: 1,
+      mainContentInvalidationVersion: 0,
+      messages: [
+        {
+          role: "user",
+          content: [{ type: "text", text: "hello" }],
+          timestamp: 1,
+          isError: false,
+          isStopped: false,
+          cursor: "1",
+          itemId: null,
+        },
+        {
+          role: "assistant",
+          content: [
+            { type: "text", text: "done" },
+            { type: "image", mediaType: "image/png", base64Data: "" },
+          ],
+          timestamp: 2,
+          isError: false,
+          isStopped: false,
+          cursor: "2",
+          itemId: "assistant-item-1",
+        },
+      ],
+    },
     chatConfig: createExpectedChatConfig(),
-    messages: [
-      {
-        role: "user",
-        content: [{ type: "text", text: "hello" }],
-        timestamp: 1,
-        isError: false,
-        isStopped: false,
-        itemId: null,
-      },
-      {
-        role: "assistant",
-        content: [
-          { type: "text", text: "done" },
-          { type: "image", mediaType: "image/png", base64Data: "" },
-        ],
-        timestamp: 2,
-        isError: false,
-        isStopped: false,
-        itemId: "assistant-item-1",
-      },
-    ],
+    activeRun: null,
   });
 });
 
 test("GET /chat paginated history returns assistant item ids and sanitized content", async () => {
   const paginatedSession: RecoveredPaginatedSession = {
-    sessionId: "session-1",
-    runState: "idle",
+    snapshot: createSnapshot([]),
     page: {
       newestCursor: "8",
       oldestCursor: "7",
@@ -278,31 +295,35 @@ test("GET /chat paginated history returns assistant item ids and sanitized conte
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
     sessionId: "session-1",
-    runState: "idle",
+    conversationScopeId: "session-1",
+    conversation: {
+      updatedAt: 1,
+      mainContentInvalidationVersion: 0,
+      hasOlder: true,
+      oldestCursor: "7",
+      messages: [
+        {
+          role: "user",
+          content: [{ type: "text", text: "hello" }],
+          timestamp: 1,
+          isError: false,
+          isStopped: false,
+          cursor: "7",
+          itemId: null,
+        },
+        {
+          role: "assistant",
+          content: [{ type: "file", mediaType: "text/plain", base64Data: "", fileName: "notes.txt" }],
+          timestamp: 2,
+          isError: false,
+          isStopped: false,
+          cursor: "8",
+          itemId: "assistant-item-1",
+        },
+      ],
+    },
     chatConfig: createExpectedChatConfig(),
-    liveCursor: "8",
-    oldestCursor: "7",
-    hasOlder: true,
-    messages: [
-      {
-        role: "user",
-        content: [{ type: "text", text: "hello" }],
-        timestamp: 1,
-        isError: false,
-        isStopped: false,
-        cursor: "7",
-        itemId: null,
-      },
-      {
-        role: "assistant",
-        content: [{ type: "file", mediaType: "text/plain", base64Data: "", fileName: "notes.txt" }],
-        timestamp: 2,
-        isError: false,
-        isStopped: false,
-        cursor: "8",
-        itemId: "assistant-item-1",
-      },
-    ],
+    activeRun: null,
   });
 });
 
@@ -339,6 +360,25 @@ test("POST /chat returns the canonical chat request id header and dedupe metadat
     invokeChatWorkerFn: async () => {
       invokeCallCount += 1;
     },
+    getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot([]),
+    resolveLiveCursorFn: async () => null,
+    listChatMessagesLatestFn: async () => ({
+      messages: [{
+        sessionId: "session-1",
+        itemId: "assistant-item-1",
+        itemOrder: 1,
+        role: "assistant",
+        content: [{ type: "text", text: "thinking" }],
+        state: "in_progress",
+        isError: false,
+        isStopped: false,
+        timestamp: 1,
+        updatedAt: 1,
+      }],
+      oldestCursor: "1",
+      newestCursor: "1",
+      hasOlder: false,
+    }),
     createChatLiveStreamEnvelopeFn: async () => ({
       url: "https://chat-live.example.com",
       authorization: "Live test-token",
@@ -364,15 +404,26 @@ test("POST /chat returns the canonical chat request id header and dedupe metadat
   assert.equal(invokeCallCount, 0);
   assert.equal(response.headers.get("X-Chat-Request-Id"), "client-request-1");
   assert.deepEqual(await response.json(), {
-    ok: true,
+    accepted: true,
     sessionId: "session-1",
-    runId: "run-1",
-    clientRequestId: "client-request-1",
-    runState: "running",
-    liveStream: {
-      url: "https://chat-live.example.com",
-      authorization: "Live test-token",
-      expiresAt: 1_000,
+    conversationScopeId: "session-1",
+    conversation: {
+      updatedAt: 1,
+      mainContentInvalidationVersion: 0,
+      messages: [],
+    },
+    activeRun: {
+      runId: "run-1",
+      status: "running",
+      live: {
+        cursor: null,
+        stream: {
+          url: "https://chat-live.example.com",
+          authorization: "Live test-token",
+          expiresAt: 1_000,
+        },
+      },
+      lastHeartbeatAt: 1,
     },
     chatConfig: {
       ...createExpectedChatConfig(),
