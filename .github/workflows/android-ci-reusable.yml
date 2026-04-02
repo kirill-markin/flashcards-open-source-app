@@ -165,6 +165,5 @@ jobs:
             --device-version "${ANDROID_FTL_DEVICE_VERSION}" \
             --app-path "${APP_APK_PATH}" \
             --test-path "${TEST_APK_PATH}" \
-            --test-targets "class com.flashcardsopensourceapp.app.LiveSmokeTest" \
             --results-bucket "${ANDROID_FTL_RESULTS_BUCKET}" \
             --results-dir "${results_dir}"
