@@ -67,20 +67,11 @@ struct AIChatView: View {
             }
         }
         .onAppear {
-            self.chatStore.refreshExternalProviderConsentState()
-            self.chatStore.refreshAccessContextIfNeeded()
+            self.syncChatSurface(refreshConsent: true)
             guard self.chatStore.hasExternalProviderConsent else {
-                self.chatStore.setChatVisibility(isVisible: false)
                 return
             }
-
             self.handleAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
-            self.chatStore.setChatVisibility(
-                isVisible: self.scenePhase == .active && self.navigation.selectedTab == .ai
-            )
-            if self.chatStore.isChatInteractive {
-                self.chatStore.warmUpSessionIfNeeded()
-            }
         }
         .onChange(of: self.navigation.aiChatPresentationRequest) { _, request in
             guard self.chatStore.hasExternalProviderConsent else {
@@ -92,56 +83,30 @@ struct AIChatView: View {
         .onChange(of: self.scenePhase) { _, nextPhase in
             guard nextPhase == .active else {
                 self.shouldRestoreComposerFocusAfterDictation = false
-                self.chatStore.cancelDictation()
-                self.chatStore.setChatVisibility(isVisible: false)
+                self.syncChatSurface(refreshConsent: false)
                 return
             }
-            self.chatStore.refreshExternalProviderConsentState()
-            guard self.chatStore.hasExternalProviderConsent else {
-                self.chatStore.setChatVisibility(isVisible: false)
-                return
-            }
-            guard self.navigation.selectedTab == .ai else {
-                self.chatStore.setChatVisibility(isVisible: false)
-                return
-            }
-
-            self.chatStore.refreshAccessContextIfNeeded()
-            self.chatStore.setChatVisibility(isVisible: true)
-            if self.chatStore.isChatInteractive {
-                self.chatStore.warmUpSessionIfNeeded()
-            }
+            self.syncChatSurface(refreshConsent: true)
         }
         .onChange(of: self.flashcardsStore.workspace?.workspaceId) { _, _ in
-            self.chatStore.refreshAccessContextIfNeeded()
+            self.syncChatSurface(refreshConsent: false)
         }
         .onChange(of: self.flashcardsStore.cloudSettings?.cloudState) { _, _ in
-            self.chatStore.refreshAccessContextIfNeeded()
+            self.syncChatSurface(refreshConsent: false)
         }
         .onChange(of: self.flashcardsStore.cloudSettings?.linkedUserId) { _, _ in
-            self.chatStore.refreshAccessContextIfNeeded()
+            self.syncChatSurface(refreshConsent: false)
         }
         .onChange(of: self.flashcardsStore.cloudSettings?.activeWorkspaceId) { _, _ in
-            self.chatStore.refreshAccessContextIfNeeded()
+            self.syncChatSurface(refreshConsent: false)
         }
         .onChange(of: self.navigation.selectedTab) { _, nextTab in
             guard nextTab == .ai else {
-                self.chatStore.setChatVisibility(isVisible: false)
                 self.shouldRestoreComposerFocusAfterDictation = false
-                self.chatStore.cancelDictation()
+                self.syncChatSurface(refreshConsent: false)
                 return
             }
-
-            guard self.scenePhase == .active && self.chatStore.hasExternalProviderConsent else {
-                self.chatStore.setChatVisibility(isVisible: false)
-                return
-            }
-
-            self.chatStore.refreshAccessContextIfNeeded()
-            self.chatStore.setChatVisibility(isVisible: true)
-            if self.chatStore.isChatInteractive {
-                self.chatStore.warmUpSessionIfNeeded()
-            }
+            self.syncChatSurface(refreshConsent: false)
         }
         .onChange(of: self.chatStore.dictationState) { _, nextState in
             self.handleDictationStateChange(nextState)
@@ -439,17 +404,33 @@ struct AIChatView: View {
     func acceptExternalAIConsent() {
         self.chatStore.acceptExternalProviderConsent()
         self.chatStore.activateWorkspace()
-        self.chatStore.setChatVisibility(
-            isVisible: self.scenePhase == .active && self.navigation.selectedTab == .ai
-        )
+        self.syncChatSurface(refreshConsent: false)
         self.handleAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
-        if self.chatStore.isChatInteractive {
-            self.chatStore.warmUpSessionIfNeeded()
-        }
     }
 
     func refreshExternalAIConsentState() {
         self.chatStore.refreshExternalProviderConsentState()
+        self.syncChatSurface(refreshConsent: false)
+    }
+
+    func syncChatSurface(refreshConsent: Bool) {
+        if refreshConsent {
+            self.chatStore.refreshExternalProviderConsentState()
+        }
+
+        self.chatStore.updateSurface(activity: self.currentSurfaceActivity())
+    }
+
+    func currentSurfaceActivity() -> AIChatSurfaceActivity {
+        AIChatSurfaceActivity(
+            isSceneActive: self.scenePhase == .active,
+            isAITabSelected: self.navigation.selectedTab == .ai,
+            hasExternalProviderConsent: self.chatStore.hasExternalProviderConsent,
+            workspaceId: self.flashcardsStore.workspace?.workspaceId,
+            cloudState: self.flashcardsStore.cloudSettings?.cloudState,
+            linkedUserId: self.flashcardsStore.cloudSettings?.linkedUserId,
+            activeWorkspaceId: self.flashcardsStore.cloudSettings?.activeWorkspaceId
+        )
     }
 
     func ensureExternalAIConsent() -> Bool {
