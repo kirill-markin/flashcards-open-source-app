@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai
 
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
@@ -30,10 +31,10 @@ internal data class AiAccessContext(
 internal data class AiDraftState(
     val workspaceId: String?,
     val persistedState: AiChatPersistedState,
+    val conversationScopeId: String?,
     val hasOlder: Boolean,
     val oldestCursor: String?,
-    val liveCursor: String?,
-    val runState: String,
+    val activeRun: AiChatActiveRun?,
     val isLiveAttached: Boolean,
     val draftMessage: String,
     val pendingAttachments: List<AiChatAttachment>,
@@ -50,10 +51,10 @@ internal fun makeDefaultAiDraftState(): AiDraftState {
     return AiDraftState(
         workspaceId = null,
         persistedState = makeDefaultAiChatPersistedState(),
+        conversationScopeId = null,
         hasOlder = false,
         oldestCursor = null,
-        liveCursor = null,
-        runState = "idle",
+        activeRun = null,
         isLiveAttached = false,
         draftMessage = "",
         pendingAttachments = emptyList(),
@@ -74,10 +75,10 @@ internal fun makeAiDraftState(
     return AiDraftState(
         workspaceId = workspaceId,
         persistedState = persistedState,
+        conversationScopeId = null,
         hasOlder = false,
         oldestCursor = null,
-        liveCursor = null,
-        runState = "idle",
+        activeRun = null,
         isLiveAttached = false,
         draftMessage = "",
         pendingAttachments = emptyList(),

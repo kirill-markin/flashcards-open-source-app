@@ -41,8 +41,9 @@ internal fun mapToAiUiState(
     val hasDraftText = draft.draftMessage.trim().isNotEmpty()
     val isConversationReady = draft.conversationBootstrapState == AiConversationBootstrapState.READY
     val isConversationLoading = draft.conversationBootstrapState == AiConversationBootstrapState.LOADING
-    val isComposerBusy = draft.composerPhase != AiComposerPhase.IDLE || isConversationLoading
-    val isStreaming = draft.composerPhase == AiComposerPhase.RUNNING || draft.composerPhase == AiComposerPhase.STOPPING
+    val hasActiveRun = draft.activeRun != null
+    val isStreaming = hasActiveRun || draft.composerPhase == AiComposerPhase.STOPPING
+    val isComposerBusy = draft.composerPhase != AiComposerPhase.IDLE || isConversationLoading || hasActiveRun
     val canEditConversation = isComposerBusy.not()
         && isConversationReady
         && draft.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
@@ -62,11 +63,12 @@ internal fun mapToAiUiState(
         showOpenAccountStatusForConversationError = isCloudIdentityBlocked,
         isComposerBusy = isComposerBusy,
         isStreaming = isStreaming,
-        canStopStreaming = draft.composerPhase == AiComposerPhase.RUNNING,
+        canStopStreaming = hasActiveRun && draft.composerPhase != AiComposerPhase.STOPPING,
         dictationState = draft.dictationState,
         canSend = hasConsent
             && isConversationReady
             && draft.composerPhase == AiComposerPhase.IDLE
+            && hasActiveRun.not()
             && draft.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
             && (hasDraftText || draft.pendingAttachments.isNotEmpty()),
         canStartNewChat = canEditConversation

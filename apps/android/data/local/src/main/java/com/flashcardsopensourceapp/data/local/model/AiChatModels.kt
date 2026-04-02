@@ -71,14 +71,35 @@ data class AiChatLiveStreamEnvelope(
     val expiresAt: Long
 )
 
-data class AiChatSessionSnapshot(
-    val sessionId: String,
-    val runState: String,
+data class AiChatConversation(
+    val messages: List<AiChatMessage>,
     val updatedAtMillis: Long,
     val mainContentInvalidationVersion: Long,
-    val messages: List<AiChatMessage>,
-    val chatConfig: AiChatServerConfig
+    val hasOlder: Boolean,
+    val oldestCursor: String?
 )
+
+data class AiChatActiveRunLive(
+    val cursor: String?,
+    val stream: AiChatLiveStreamEnvelope
+)
+
+data class AiChatActiveRun(
+    val runId: String,
+    val status: String,
+    val live: AiChatActiveRunLive,
+    val lastHeartbeatAtMillis: Long?
+)
+
+data class AiChatConversationEnvelope(
+    val sessionId: String,
+    val conversationScopeId: String,
+    val conversation: AiChatConversation,
+    val chatConfig: AiChatServerConfig,
+    val activeRun: AiChatActiveRun?
+)
+
+typealias AiChatSessionSnapshot = AiChatConversationEnvelope
 
 val defaultAiChatServerConfig: AiChatServerConfig = AiChatServerConfig(
     provider = AiChatProvider(
@@ -236,12 +257,17 @@ data class AiChatRepairAttemptStatus(
     val toolName: String?
 )
 
-data class AiChatStartRunResponse(
+data class AiChatAcceptedConversationEnvelope(
+    val accepted: Boolean,
     val sessionId: String,
-    val runState: String,
+    val conversationScopeId: String,
+    val conversation: AiChatConversation,
     val chatConfig: AiChatServerConfig,
-    val liveStream: AiChatLiveStreamEnvelope?
+    val activeRun: AiChatActiveRun?,
+    val deduplicated: Boolean?
 )
+
+typealias AiChatStartRunResponse = AiChatAcceptedConversationEnvelope
 
 data class AiChatStreamOutcome(
     val requestId: String?,
@@ -270,8 +296,6 @@ fun makeDefaultAiChatPersistedState(): AiChatPersistedState {
     )
 }
 
-// Thin Live Chat Types
-
 data class AiChatAttachmentReference(
     val id: String,
     val kind: String,
@@ -279,15 +303,14 @@ data class AiChatAttachmentReference(
     val mediaType: String
 )
 
-data class AiChatBootstrapResponse(
+typealias AiChatBootstrapResponse = AiChatConversationEnvelope
+
+data class AiChatStopRunResponse(
     val sessionId: String,
-    val runState: String,
-    val chatConfig: AiChatServerConfig,
-    val messages: List<AiChatMessage>,
-    val hasOlder: Boolean,
-    val oldestCursor: String?,
-    val liveCursor: String?,
-    val liveStream: AiChatLiveStreamEnvelope?
+    val conversationScopeId: String,
+    val runId: String?,
+    val stopped: Boolean,
+    val stillRunning: Boolean
 )
 
 data class AiChatOlderMessagesResponse(
@@ -296,48 +319,79 @@ data class AiChatOlderMessagesResponse(
     val oldestCursor: String?
 )
 
+enum class AiChatRunTerminalOutcome {
+    COMPLETED,
+    STOPPED,
+    ERROR,
+    RESET_REQUIRED
+}
+
+data class AiChatLiveEventMetadata(
+    val sessionId: String,
+    val conversationScopeId: String,
+    val runId: String,
+    val cursor: String?,
+    val sequenceNumber: Int,
+    val streamEpoch: String
+)
+
 sealed interface AiChatLiveEvent {
-    data class RunState(val runState: String) : AiChatLiveEvent
-    data class AssistantDelta(val text: String, val cursor: String, val itemId: String) : AiChatLiveEvent
-    data class AssistantToolCall(val toolCall: AiChatToolCall, val cursor: String, val itemId: String) : AiChatLiveEvent
-    data class AssistantReasoningStarted(val reasoningId: String, val cursor: String, val itemId: String) : AiChatLiveEvent
-    data class AssistantReasoningSummary(val reasoningSummary: AiChatReasoningSummary, val cursor: String, val itemId: String) : AiChatLiveEvent
-    data class AssistantReasoningDone(val reasoningId: String, val cursor: String, val itemId: String) : AiChatLiveEvent
+    data class AssistantDelta(
+        val metadata: AiChatLiveEventMetadata,
+        val text: String,
+        val itemId: String
+    ) : AiChatLiveEvent
+
+    data class AssistantToolCall(
+        val metadata: AiChatLiveEventMetadata,
+        val toolCall: AiChatToolCall,
+        val itemId: String,
+        val outputIndex: Int,
+        val providerStatus: String?
+    ) : AiChatLiveEvent
+
+    data class AssistantReasoningStarted(
+        val metadata: AiChatLiveEventMetadata,
+        val reasoningId: String,
+        val itemId: String,
+        val outputIndex: Int
+    ) : AiChatLiveEvent
+
+    data class AssistantReasoningSummary(
+        val metadata: AiChatLiveEventMetadata,
+        val reasoningSummary: AiChatReasoningSummary,
+        val itemId: String,
+        val outputIndex: Int
+    ) : AiChatLiveEvent
+
+    data class AssistantReasoningDone(
+        val metadata: AiChatLiveEventMetadata,
+        val reasoningId: String,
+        val itemId: String,
+        val outputIndex: Int
+    ) : AiChatLiveEvent
+
     data class AssistantMessageDone(
-        val cursor: String,
+        val metadata: AiChatLiveEventMetadata,
         val itemId: String,
         val content: List<AiChatContentPart>,
         val isError: Boolean,
         val isStopped: Boolean
     ) : AiChatLiveEvent
-    data class RepairStatus(val status: AiChatRepairAttemptStatus) : AiChatLiveEvent
-    data class Error(val message: String) : AiChatLiveEvent
-    data class StopAck(val sessionId: String) : AiChatLiveEvent
-    data object ResetRequired : AiChatLiveEvent
-}
 
-data class AiChatConversationWindow(
-    val messages: List<AiChatMessage>,
-    val hasOlder: Boolean,
-    val oldestCursor: String?,
-    val liveCursor: String?,
-    val runState: String,
-    val isBootstrapping: Boolean,
-    val isLoadingOlder: Boolean,
-    val isLiveAttached: Boolean
-) {
-    companion object {
-        fun empty(): AiChatConversationWindow = AiChatConversationWindow(
-            messages = emptyList(),
-            hasOlder = false,
-            oldestCursor = null,
-            liveCursor = null,
-            runState = "idle",
-            isBootstrapping = true,
-            isLoadingOlder = false,
-            isLiveAttached = false
-        )
-    }
+    data class RepairStatus(
+        val metadata: AiChatLiveEventMetadata,
+        val status: AiChatRepairAttemptStatus
+    ) : AiChatLiveEvent
+
+    data class RunTerminal(
+        val metadata: AiChatLiveEventMetadata,
+        val outcome: AiChatRunTerminalOutcome,
+        val message: String?,
+        val assistantItemId: String?,
+        val isError: Boolean?,
+        val isStopped: Boolean?
+    ) : AiChatLiveEvent
 }
 
 data class AiChatMinimalPersistedState(

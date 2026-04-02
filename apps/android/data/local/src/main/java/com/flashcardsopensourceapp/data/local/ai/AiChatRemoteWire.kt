@@ -4,8 +4,14 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudContractMismatchExcepti
 import com.flashcardsopensourceapp.data.local.cloud.buildRemoteContractMismatch
 import com.flashcardsopensourceapp.data.local.cloud.strictRemoteJson
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.model.AiChatConversation
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.AiChatConversationEnvelope
+import com.flashcardsopensourceapp.data.local.model.AiChatAcceptedConversationEnvelope
+import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
+import com.flashcardsopensourceapp.data.local.model.AiChatActiveRunLive
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
+import com.flashcardsopensourceapp.data.local.model.AiChatLiveEventMetadata
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatOlderMessagesResponse
@@ -14,9 +20,11 @@ import com.flashcardsopensourceapp.data.local.model.AiChatReasoning
 import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
+import com.flashcardsopensourceapp.data.local.model.AiChatRunTerminalOutcome
 import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.AiChatServerModel
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.AiChatStopRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
@@ -55,16 +63,6 @@ private value class StrictRemoteInt(val value: Int)
 @JvmInline
 @Serializable(with = StrictRemoteLongSerializer::class)
 private value class StrictRemoteLong(val value: Long)
-
-@Serializable
-private enum class AiChatRunStateWire {
-    @SerialName("idle") IDLE,
-    @SerialName("running") RUNNING,
-    @SerialName("completed") COMPLETED,
-    @SerialName("failed") FAILED,
-    @SerialName("stopped") STOPPED,
-    @SerialName("interrupted") INTERRUPTED,
-}
 
 @Serializable
 private enum class AiChatRoleWire {
@@ -128,11 +126,55 @@ private data class AiChatGuestSessionWire(
 )
 
 @Serializable
-private data class AiChatStartRunResponseWire(
+private data class AiChatConversationWire(
+    val messages: List<AiChatConversationMessageWire>,
+    val updatedAt: StrictRemoteLong,
+    val mainContentInvalidationVersion: StrictRemoteLong,
+    val hasOlder: StrictRemoteBoolean? = null,
+    val oldestCursor: StrictRemoteString? = null
+)
+
+@Serializable
+private data class AiChatActiveRunLiveWire(
+    val cursor: StrictRemoteString? = null,
+    val stream: AiChatLiveStreamEnvelopeWire
+)
+
+@Serializable
+private data class AiChatActiveRunWire(
+    val runId: StrictRemoteString,
+    val status: StrictRemoteString,
+    val live: AiChatActiveRunLiveWire,
+    val lastHeartbeatAt: StrictRemoteLong? = null
+)
+
+@Serializable
+private data class AiChatConversationEnvelopeWire(
     val sessionId: StrictRemoteString,
-    val runState: AiChatRunStateWire,
+    val conversationScopeId: StrictRemoteString,
+    val conversation: AiChatConversationWire,
     val chatConfig: AiChatServerConfigWire,
-    val liveStream: AiChatLiveStreamEnvelopeWire? = null
+    val activeRun: AiChatActiveRunWire? = null
+)
+
+@Serializable
+private data class AiChatAcceptedConversationEnvelopeWire(
+    val accepted: StrictRemoteBoolean,
+    val sessionId: StrictRemoteString,
+    val conversationScopeId: StrictRemoteString,
+    val conversation: AiChatConversationWire,
+    val chatConfig: AiChatServerConfigWire,
+    val activeRun: AiChatActiveRunWire? = null,
+    val deduplicated: StrictRemoteBoolean? = null
+)
+
+@Serializable
+private data class AiChatStopRunResponseWire(
+    val sessionId: StrictRemoteString,
+    val conversationScopeId: StrictRemoteString,
+    val runId: StrictRemoteString? = null,
+    val stopped: StrictRemoteBoolean,
+    val stillRunning: StrictRemoteBoolean
 )
 
 @Serializable
@@ -188,47 +230,14 @@ private data class AiChatToolCallContentPartWire(
 ) : AiChatContentPartWire
 
 @Serializable
-private data class AiChatSnapshotMessageWire(
-    val messageId: StrictRemoteString? = null,
+private data class AiChatConversationMessageWire(
     val role: AiChatRoleWire,
     val content: List<AiChatContentPartWire>,
     val timestamp: StrictRemoteLong,
     val isError: StrictRemoteBoolean,
     val isStopped: StrictRemoteBoolean,
+    val cursor: StrictRemoteString? = null,
     val itemId: StrictRemoteString? = null
-)
-
-@Serializable
-private data class AiChatBootstrapMessageWire(
-    val role: AiChatRoleWire,
-    val content: List<AiChatContentPartWire>,
-    val timestamp: StrictRemoteLong,
-    val isError: StrictRemoteBoolean,
-    val isStopped: StrictRemoteBoolean,
-    val cursor: StrictRemoteString,
-    val itemId: StrictRemoteString? = null
-)
-
-@Serializable
-private data class AiChatSessionSnapshotWire(
-    val sessionId: StrictRemoteString,
-    val runState: AiChatRunStateWire,
-    val updatedAt: StrictRemoteLong,
-    val mainContentInvalidationVersion: StrictRemoteLong,
-    val messages: List<AiChatSnapshotMessageWire>,
-    val chatConfig: AiChatServerConfigWire
-)
-
-@Serializable
-private data class AiChatBootstrapResponseWire(
-    val sessionId: StrictRemoteString,
-    val runState: AiChatRunStateWire,
-    val chatConfig: AiChatServerConfigWire,
-    val messages: List<AiChatBootstrapMessageWire>,
-    val hasOlder: StrictRemoteBoolean,
-    val oldestCursor: StrictRemoteString? = null,
-    val liveCursor: StrictRemoteString? = null,
-    val liveStream: AiChatLiveStreamEnvelopeWire? = null
 )
 
 @Serializable
@@ -250,7 +259,6 @@ private data class AiChatLiveEventTypeEnvelopeWire(
 
 @Serializable
 private enum class AiChatLiveEventTypeWire {
-    @SerialName("run_state") RUN_STATE,
     @SerialName("assistant_delta") ASSISTANT_DELTA,
     @SerialName("assistant_tool_call") ASSISTANT_TOOL_CALL,
     @SerialName("assistant_reasoning_started") ASSISTANT_REASONING_STARTED,
@@ -258,59 +266,97 @@ private enum class AiChatLiveEventTypeWire {
     @SerialName("assistant_reasoning_done") ASSISTANT_REASONING_DONE,
     @SerialName("assistant_message_done") ASSISTANT_MESSAGE_DONE,
     @SerialName("repair_status") REPAIR_STATUS,
-    @SerialName("error") ERROR,
-    @SerialName("stop_ack") STOP_ACK,
-    @SerialName("reset_required") RESET_REQUIRED,
+    @SerialName("run_terminal") RUN_TERMINAL,
 }
 
 @Serializable
-private data class AiChatLiveRunStateWireEvent(
-    val runState: AiChatRunStateWire
+private data class AiChatLiveEventMetadataWire(
+    val sessionId: StrictRemoteString,
+    val conversationScopeId: StrictRemoteString,
+    val runId: StrictRemoteString,
+    val cursor: StrictRemoteString? = null,
+    val sequenceNumber: StrictRemoteInt,
+    val streamEpoch: StrictRemoteString
 )
 
 @Serializable
 private data class AiChatLiveAssistantDeltaWireEvent(
-    val text: StrictRemoteString,
+    val sessionId: StrictRemoteString,
+    val conversationScopeId: StrictRemoteString,
+    val runId: StrictRemoteString,
     val cursor: StrictRemoteString,
+    val sequenceNumber: StrictRemoteInt,
+    val streamEpoch: StrictRemoteString,
+    val text: StrictRemoteString,
     val itemId: StrictRemoteString
 )
 
 @Serializable
 private data class AiChatLiveAssistantToolCallWireEvent(
+    val sessionId: StrictRemoteString,
+    val conversationScopeId: StrictRemoteString,
+    val runId: StrictRemoteString,
+    val cursor: StrictRemoteString,
+    val sequenceNumber: StrictRemoteInt,
+    val streamEpoch: StrictRemoteString,
     val toolCallId: StrictRemoteString,
     val name: StrictRemoteString,
     val status: AiChatToolCallStatusWire,
     val input: StrictRemoteString? = null,
     val output: StrictRemoteString? = null,
-    val cursor: StrictRemoteString,
-    val itemId: StrictRemoteString
+    val providerStatus: StrictRemoteString? = null,
+    val itemId: StrictRemoteString,
+    val outputIndex: StrictRemoteInt
 )
 
 @Serializable
 private data class AiChatLiveAssistantReasoningStartedWireEvent(
-    val reasoningId: StrictRemoteString,
+    val sessionId: StrictRemoteString,
+    val conversationScopeId: StrictRemoteString,
+    val runId: StrictRemoteString,
     val cursor: StrictRemoteString,
-    val itemId: StrictRemoteString
+    val sequenceNumber: StrictRemoteInt,
+    val streamEpoch: StrictRemoteString,
+    val reasoningId: StrictRemoteString,
+    val itemId: StrictRemoteString,
+    val outputIndex: StrictRemoteInt
 )
 
 @Serializable
 private data class AiChatLiveAssistantReasoningSummaryWireEvent(
+    val sessionId: StrictRemoteString,
+    val conversationScopeId: StrictRemoteString,
+    val runId: StrictRemoteString,
+    val cursor: StrictRemoteString,
+    val sequenceNumber: StrictRemoteInt,
+    val streamEpoch: StrictRemoteString,
     val reasoningId: StrictRemoteString,
     val summary: StrictRemoteString,
-    val cursor: StrictRemoteString,
-    val itemId: StrictRemoteString
+    val itemId: StrictRemoteString,
+    val outputIndex: StrictRemoteInt
 )
 
 @Serializable
 private data class AiChatLiveAssistantReasoningDoneWireEvent(
-    val reasoningId: StrictRemoteString,
+    val sessionId: StrictRemoteString,
+    val conversationScopeId: StrictRemoteString,
+    val runId: StrictRemoteString,
     val cursor: StrictRemoteString,
-    val itemId: StrictRemoteString
+    val sequenceNumber: StrictRemoteInt,
+    val streamEpoch: StrictRemoteString,
+    val reasoningId: StrictRemoteString,
+    val itemId: StrictRemoteString,
+    val outputIndex: StrictRemoteInt
 )
 
 @Serializable
 private data class AiChatLiveAssistantMessageDoneWireEvent(
+    val sessionId: StrictRemoteString,
+    val conversationScopeId: StrictRemoteString,
+    val runId: StrictRemoteString,
     val cursor: StrictRemoteString,
+    val sequenceNumber: StrictRemoteInt,
+    val streamEpoch: StrictRemoteString,
     val itemId: StrictRemoteString,
     val content: List<AiChatContentPartWire>,
     val isError: StrictRemoteBoolean,
@@ -319,6 +365,12 @@ private data class AiChatLiveAssistantMessageDoneWireEvent(
 
 @Serializable
 private data class AiChatLiveRepairStatusWireEvent(
+    val sessionId: StrictRemoteString,
+    val conversationScopeId: StrictRemoteString,
+    val runId: StrictRemoteString,
+    val cursor: StrictRemoteString? = null,
+    val sequenceNumber: StrictRemoteInt,
+    val streamEpoch: StrictRemoteString,
     val message: StrictRemoteString,
     val attempt: StrictRemoteInt,
     val maxAttempts: StrictRemoteInt,
@@ -326,13 +378,26 @@ private data class AiChatLiveRepairStatusWireEvent(
 )
 
 @Serializable
-private data class AiChatLiveErrorWireEvent(
-    val message: StrictRemoteString
-)
+private enum class AiChatRunTerminalOutcomeWire {
+    @SerialName("completed") COMPLETED,
+    @SerialName("stopped") STOPPED,
+    @SerialName("error") ERROR,
+    @SerialName("reset_required") RESET_REQUIRED,
+}
 
 @Serializable
-private data class AiChatLiveStopAckWireEvent(
-    val sessionId: StrictRemoteString
+private data class AiChatLiveRunTerminalWireEvent(
+    val sessionId: StrictRemoteString,
+    val conversationScopeId: StrictRemoteString,
+    val runId: StrictRemoteString,
+    val cursor: StrictRemoteString? = null,
+    val sequenceNumber: StrictRemoteInt,
+    val streamEpoch: StrictRemoteString,
+    val outcome: AiChatRunTerminalOutcomeWire,
+    val message: StrictRemoteString? = null,
+    val assistantItemId: StrictRemoteString? = null,
+    val isError: StrictRemoteBoolean? = null,
+    val isStopped: StrictRemoteBoolean? = null
 )
 
 internal fun decodeAiChatGuestSession(
@@ -351,50 +416,34 @@ internal fun decodeAiChatGuestSession(
 }
 
 internal fun decodeAiChatStartRunResponse(payload: String): AiChatStartRunResponse {
-    val wire = decodeAiChatWire<AiChatStartRunResponseWire>(payload = payload, context = "chat.start")
-    return AiChatStartRunResponse(
-        sessionId = wire.sessionId.value,
-        runState = wire.runState.asDomain(),
-        chatConfig = wire.chatConfig.asDomain(),
-        liveStream = wire.liveStream?.asDomain()
-    )
+    val wire = decodeAiChatWire<AiChatAcceptedConversationEnvelopeWire>(payload = payload, context = "chat.start")
+    return wire.asAcceptedConversationEnvelope()
 }
 
 internal fun decodeAiChatSessionSnapshot(payload: String): AiChatSessionSnapshot {
-    val wire = decodeAiChatWire<AiChatSessionSnapshotWire>(payload = payload, context = "chat.snapshot")
-    return AiChatSessionSnapshot(
-        sessionId = wire.sessionId.value,
-        runState = wire.runState.asDomain(),
-        updatedAtMillis = wire.updatedAt.value,
-        mainContentInvalidationVersion = wire.mainContentInvalidationVersion.value,
-        messages = wire.messages.mapIndexed { index, message -> message.asSnapshotDomain(index = index) },
-        chatConfig = wire.chatConfig.asDomain()
-    )
+    val wire = decodeAiChatWire<AiChatConversationEnvelopeWire>(payload = payload, context = "chat.snapshot")
+    return wire.asConversationEnvelope()
 }
 
 internal fun decodeAiChatBootstrapResponse(payload: String): AiChatBootstrapResponse {
-    val wire = decodeAiChatWire<AiChatBootstrapResponseWire>(payload = payload, context = "chat.bootstrap")
-    return AiChatBootstrapResponse(
-        sessionId = wire.sessionId.value,
-        runState = wire.runState.asDomain(),
-        chatConfig = wire.chatConfig.asDomain(),
-        messages = wire.messages.mapIndexed { index, message -> message.asBootstrapDomain(sessionId = wire.sessionId.value, index = index) },
-        hasOlder = wire.hasOlder.value,
-        oldestCursor = wire.oldestCursor?.value?.ifBlank { null },
-        liveCursor = wire.liveCursor?.value?.ifBlank { null },
-        liveStream = wire.liveStream?.asDomain()
-    )
+    val wire = decodeAiChatWire<AiChatConversationEnvelopeWire>(payload = payload, context = "chat.bootstrap")
+    return wire.asConversationEnvelope()
 }
 
 internal fun decodeAiChatNewSession(payload: String): AiChatSessionSnapshot {
     val wire = decodeAiChatWire<AiChatNewSessionWire>(payload = payload, context = "chat.new")
-    return AiChatSessionSnapshot(
+    return AiChatConversationEnvelope(
         sessionId = wire.sessionId.value,
-        runState = AiChatRunStateWire.IDLE.asDomain(),
-        updatedAtMillis = 0L,
-        mainContentInvalidationVersion = 0L,
-        messages = emptyList(),
-        chatConfig = wire.chatConfig.asDomain()
+        conversationScopeId = wire.sessionId.value,
+        conversation = AiChatConversation(
+            messages = emptyList(),
+            updatedAtMillis = 0L,
+            mainContentInvalidationVersion = 0L,
+            hasOlder = false,
+            oldestCursor = null
+        ),
+        chatConfig = wire.chatConfig.asDomain(),
+        activeRun = null
     )
 }
 
@@ -403,6 +452,17 @@ internal fun decodeAiChatTranscription(payload: String): AiChatTranscriptionResu
     return AiChatTranscriptionResult(
         text = wire.text.value,
         sessionId = wire.sessionId.value
+    )
+}
+
+internal fun decodeAiChatStopRunResponse(payload: String): AiChatStopRunResponse {
+    val wire = decodeAiChatWire<AiChatStopRunResponseWire>(payload = payload, context = "chat.stop")
+    return AiChatStopRunResponse(
+        sessionId = wire.sessionId.value,
+        conversationScopeId = wire.conversationScopeId.value,
+        runId = wire.runId?.value?.ifBlank { null },
+        stopped = wire.stopped.value,
+        stillRunning = wire.stillRunning.value
     )
 }
 
@@ -417,17 +477,18 @@ internal fun decodeAiChatLiveEventPayload(eventType: String?, payload: String): 
     }
 
     return when (resolvedType) {
-        AiChatLiveEventTypeWire.RUN_STATE -> {
-            val wire = decodeAiChatWire<AiChatLiveRunStateWireEvent>(payload = payload, context = "chat.live.run_state")
-            AiChatLiveEvent.RunState(runState = wire.runState.asDomain())
-        }
         AiChatLiveEventTypeWire.ASSISTANT_DELTA -> {
             val wire = decodeAiChatWire<AiChatLiveAssistantDeltaWireEvent>(payload = payload, context = "chat.live.assistant_delta")
-            AiChatLiveEvent.AssistantDelta(text = wire.text.value, cursor = wire.cursor.value, itemId = wire.itemId.value)
+            AiChatLiveEvent.AssistantDelta(
+                metadata = wire.asMetadata(),
+                text = wire.text.value,
+                itemId = wire.itemId.value
+            )
         }
         AiChatLiveEventTypeWire.ASSISTANT_TOOL_CALL -> {
             val wire = decodeAiChatWire<AiChatLiveAssistantToolCallWireEvent>(payload = payload, context = "chat.live.assistant_tool_call")
             AiChatLiveEvent.AssistantToolCall(
+                metadata = wire.asMetadata(),
                 toolCall = AiChatToolCall(
                     toolCallId = wire.toolCallId.value,
                     name = wire.name.value,
@@ -435,34 +496,46 @@ internal fun decodeAiChatLiveEventPayload(eventType: String?, payload: String): 
                     input = wire.input?.value?.ifBlank { null },
                     output = wire.output?.value?.ifBlank { null }
                 ),
-                cursor = wire.cursor.value,
-                itemId = wire.itemId.value
+                itemId = wire.itemId.value,
+                outputIndex = wire.outputIndex.value,
+                providerStatus = wire.providerStatus?.value?.ifBlank { null }
             )
         }
         AiChatLiveEventTypeWire.ASSISTANT_REASONING_STARTED -> {
             val wire = decodeAiChatWire<AiChatLiveAssistantReasoningStartedWireEvent>(payload = payload, context = "chat.live.assistant_reasoning_started")
-            AiChatLiveEvent.AssistantReasoningStarted(reasoningId = wire.reasoningId.value, cursor = wire.cursor.value, itemId = wire.itemId.value)
+            AiChatLiveEvent.AssistantReasoningStarted(
+                metadata = wire.asMetadata(),
+                reasoningId = wire.reasoningId.value,
+                itemId = wire.itemId.value,
+                outputIndex = wire.outputIndex.value
+            )
         }
         AiChatLiveEventTypeWire.ASSISTANT_REASONING_SUMMARY -> {
             val wire = decodeAiChatWire<AiChatLiveAssistantReasoningSummaryWireEvent>(payload = payload, context = "chat.live.assistant_reasoning_summary")
             AiChatLiveEvent.AssistantReasoningSummary(
+                metadata = wire.asMetadata(),
                 reasoningSummary = AiChatReasoningSummary(
                     reasoningId = wire.reasoningId.value,
                     summary = wire.summary.value,
                     status = AiChatToolCallStatus.STARTED
                 ),
-                cursor = wire.cursor.value,
-                itemId = wire.itemId.value
+                itemId = wire.itemId.value,
+                outputIndex = wire.outputIndex.value
             )
         }
         AiChatLiveEventTypeWire.ASSISTANT_REASONING_DONE -> {
             val wire = decodeAiChatWire<AiChatLiveAssistantReasoningDoneWireEvent>(payload = payload, context = "chat.live.assistant_reasoning_done")
-            AiChatLiveEvent.AssistantReasoningDone(reasoningId = wire.reasoningId.value, cursor = wire.cursor.value, itemId = wire.itemId.value)
+            AiChatLiveEvent.AssistantReasoningDone(
+                metadata = wire.asMetadata(),
+                reasoningId = wire.reasoningId.value,
+                itemId = wire.itemId.value,
+                outputIndex = wire.outputIndex.value
+            )
         }
         AiChatLiveEventTypeWire.ASSISTANT_MESSAGE_DONE -> {
             val wire = decodeAiChatWire<AiChatLiveAssistantMessageDoneWireEvent>(payload = payload, context = "chat.live.assistant_message_done")
             AiChatLiveEvent.AssistantMessageDone(
-                cursor = wire.cursor.value,
+                metadata = wire.asMetadata(),
                 itemId = wire.itemId.value,
                 content = wire.content.map(::mapAiChatContentPart),
                 isError = wire.isError.value,
@@ -472,6 +545,7 @@ internal fun decodeAiChatLiveEventPayload(eventType: String?, payload: String): 
         AiChatLiveEventTypeWire.REPAIR_STATUS -> {
             val wire = decodeAiChatWire<AiChatLiveRepairStatusWireEvent>(payload = payload, context = "chat.live.repair_status")
             AiChatLiveEvent.RepairStatus(
+                metadata = wire.asMetadata(),
                 status = AiChatRepairAttemptStatus(
                     message = wire.message.value,
                     attempt = wire.attempt.value,
@@ -480,15 +554,17 @@ internal fun decodeAiChatLiveEventPayload(eventType: String?, payload: String): 
                 )
             )
         }
-        AiChatLiveEventTypeWire.ERROR -> {
-            val wire = decodeAiChatWire<AiChatLiveErrorWireEvent>(payload = payload, context = "chat.live.error")
-            AiChatLiveEvent.Error(message = wire.message.value)
+        AiChatLiveEventTypeWire.RUN_TERMINAL -> {
+            val wire = decodeAiChatWire<AiChatLiveRunTerminalWireEvent>(payload = payload, context = "chat.live.run_terminal")
+            AiChatLiveEvent.RunTerminal(
+                metadata = wire.asMetadata(),
+                outcome = wire.outcome.asDomain(),
+                message = wire.message?.value?.ifBlank { null },
+                assistantItemId = wire.assistantItemId?.value?.ifBlank { null },
+                isError = wire.isError?.value,
+                isStopped = wire.isStopped?.value
+            )
         }
-        AiChatLiveEventTypeWire.STOP_ACK -> {
-            val wire = decodeAiChatWire<AiChatLiveStopAckWireEvent>(payload = payload, context = "chat.live.stop_ack")
-            AiChatLiveEvent.StopAck(sessionId = wire.sessionId.value)
-        }
-        AiChatLiveEventTypeWire.RESET_REQUIRED -> AiChatLiveEvent.ResetRequired
     }
 }
 
@@ -497,17 +573,6 @@ private inline fun <reified T> decodeAiChatWire(payload: String, context: String
         strictRemoteJson.decodeFromString<T>(payload)
     } catch (error: Throwable) {
         throw buildRemoteContractMismatch(context = context, rawBody = payload, error = error)
-    }
-}
-
-private fun AiChatRunStateWire.asDomain(): String {
-    return when (this) {
-        AiChatRunStateWire.IDLE -> "idle"
-        AiChatRunStateWire.RUNNING -> "running"
-        AiChatRunStateWire.COMPLETED -> "completed"
-        AiChatRunStateWire.FAILED -> "failed"
-        AiChatRunStateWire.STOPPED -> "stopped"
-        AiChatRunStateWire.INTERRUPTED -> "interrupted"
     }
 }
 
@@ -554,29 +619,71 @@ private fun AiChatLiveStreamEnvelopeWire.asDomain(): AiChatLiveStreamEnvelope {
     )
 }
 
-private fun AiChatSnapshotMessageWire.asSnapshotDomain(index: Int): AiChatMessage {
+private fun AiChatConversationMessageWire.asDomain(sessionId: String, index: Int): AiChatMessage {
+    val cursor = this.cursor?.value?.ifBlank { null }
     return AiChatMessage(
-        messageId = this.messageId?.value?.ifBlank { null } ?: "snapshot-$index",
+        messageId = cursor?.let { "$sessionId-$index-$it" } ?: "snapshot-$index",
         role = this.role.asDomain(),
         content = this.content.map(::mapAiChatContentPart),
         timestampMillis = this.timestamp.value,
         isError = this.isError.value,
         isStopped = this.isStopped.value,
-        cursor = null,
+        cursor = cursor,
         itemId = this.itemId?.value?.ifBlank { null } ?: this.content.firstNotNullOfOrNull(::extractAiChatItemId)
     )
 }
 
-private fun AiChatBootstrapMessageWire.asBootstrapDomain(sessionId: String, index: Int): AiChatMessage {
-    return AiChatMessage(
-        messageId = "$sessionId-$index-${this.cursor.value}",
-        role = this.role.asDomain(),
-        content = this.content.map(::mapAiChatContentPart),
-        timestampMillis = this.timestamp.value,
-        isError = this.isError.value,
-        isStopped = this.isStopped.value,
-        cursor = this.cursor.value,
-        itemId = this.itemId?.value?.ifBlank { null } ?: this.content.firstNotNullOfOrNull(::extractAiChatItemId)
+private fun AiChatConversationWire.asDomain(sessionId: String): AiChatConversation {
+    return AiChatConversation(
+        messages = this.messages.mapIndexed { index, message -> message.asDomain(sessionId = sessionId, index = index) },
+        updatedAtMillis = this.updatedAt.value,
+        mainContentInvalidationVersion = this.mainContentInvalidationVersion.value,
+        hasOlder = this.hasOlder?.value ?: false,
+        oldestCursor = this.oldestCursor?.value?.ifBlank { null }
+    )
+}
+
+private fun AiChatActiveRunLiveWire.asDomain(): AiChatActiveRunLive {
+    return AiChatActiveRunLive(
+        cursor = this.cursor?.value?.ifBlank { null },
+        stream = this.stream.asDomain()
+    )
+}
+
+private fun AiChatActiveRunWire.asDomain(): AiChatActiveRun {
+    val status = this.status.value
+    if (status != "running") {
+        throw CloudContractMismatchException(
+            "Cloud contract mismatch for activeRun.status: unsupported AI chat active run status \"$status\""
+        )
+    }
+    return AiChatActiveRun(
+        runId = this.runId.value,
+        status = status,
+        live = this.live.asDomain(),
+        lastHeartbeatAtMillis = this.lastHeartbeatAt?.value
+    )
+}
+
+private fun AiChatConversationEnvelopeWire.asConversationEnvelope(): AiChatConversationEnvelope {
+    return AiChatConversationEnvelope(
+        sessionId = this.sessionId.value,
+        conversationScopeId = this.conversationScopeId.value,
+        conversation = this.conversation.asDomain(sessionId = this.sessionId.value),
+        chatConfig = this.chatConfig.asDomain(),
+        activeRun = this.activeRun?.asDomain()
+    )
+}
+
+private fun AiChatAcceptedConversationEnvelopeWire.asAcceptedConversationEnvelope(): AiChatAcceptedConversationEnvelope {
+    return AiChatAcceptedConversationEnvelope(
+        accepted = this.accepted.value,
+        sessionId = this.sessionId.value,
+        conversationScopeId = this.conversationScopeId.value,
+        conversation = this.conversation.asDomain(sessionId = this.sessionId.value),
+        chatConfig = this.chatConfig.asDomain(),
+        activeRun = this.activeRun?.asDomain(),
+        deduplicated = this.deduplicated?.value
     )
 }
 
@@ -629,6 +736,114 @@ private fun extractAiChatItemId(part: AiChatContentPartWire): String? {
         is AiChatImageContentPartWire,
         is AiChatTextContentPartWire -> null
     }
+}
+
+private fun AiChatRunTerminalOutcomeWire.asDomain(): AiChatRunTerminalOutcome {
+    return when (this) {
+        AiChatRunTerminalOutcomeWire.COMPLETED -> AiChatRunTerminalOutcome.COMPLETED
+        AiChatRunTerminalOutcomeWire.STOPPED -> AiChatRunTerminalOutcome.STOPPED
+        AiChatRunTerminalOutcomeWire.ERROR -> AiChatRunTerminalOutcome.ERROR
+        AiChatRunTerminalOutcomeWire.RESET_REQUIRED -> AiChatRunTerminalOutcome.RESET_REQUIRED
+    }
+}
+
+private fun AiChatLiveEventMetadataWire.asDomain(): AiChatLiveEventMetadata {
+    return AiChatLiveEventMetadata(
+        sessionId = this.sessionId.value,
+        conversationScopeId = this.conversationScopeId.value,
+        runId = this.runId.value,
+        cursor = this.cursor?.value?.ifBlank { null },
+        sequenceNumber = this.sequenceNumber.value,
+        streamEpoch = this.streamEpoch.value
+    )
+}
+
+private fun AiChatLiveAssistantDeltaWireEvent.asMetadata(): AiChatLiveEventMetadata {
+    return AiChatLiveEventMetadataWire(
+        sessionId = this.sessionId,
+        conversationScopeId = this.conversationScopeId,
+        runId = this.runId,
+        cursor = this.cursor,
+        sequenceNumber = this.sequenceNumber,
+        streamEpoch = this.streamEpoch
+    ).asDomain()
+}
+
+private fun AiChatLiveAssistantToolCallWireEvent.asMetadata(): AiChatLiveEventMetadata {
+    return AiChatLiveEventMetadataWire(
+        sessionId = this.sessionId,
+        conversationScopeId = this.conversationScopeId,
+        runId = this.runId,
+        cursor = this.cursor,
+        sequenceNumber = this.sequenceNumber,
+        streamEpoch = this.streamEpoch
+    ).asDomain()
+}
+
+private fun AiChatLiveAssistantReasoningStartedWireEvent.asMetadata(): AiChatLiveEventMetadata {
+    return AiChatLiveEventMetadataWire(
+        sessionId = this.sessionId,
+        conversationScopeId = this.conversationScopeId,
+        runId = this.runId,
+        cursor = this.cursor,
+        sequenceNumber = this.sequenceNumber,
+        streamEpoch = this.streamEpoch
+    ).asDomain()
+}
+
+private fun AiChatLiveAssistantReasoningSummaryWireEvent.asMetadata(): AiChatLiveEventMetadata {
+    return AiChatLiveEventMetadataWire(
+        sessionId = this.sessionId,
+        conversationScopeId = this.conversationScopeId,
+        runId = this.runId,
+        cursor = this.cursor,
+        sequenceNumber = this.sequenceNumber,
+        streamEpoch = this.streamEpoch
+    ).asDomain()
+}
+
+private fun AiChatLiveAssistantReasoningDoneWireEvent.asMetadata(): AiChatLiveEventMetadata {
+    return AiChatLiveEventMetadataWire(
+        sessionId = this.sessionId,
+        conversationScopeId = this.conversationScopeId,
+        runId = this.runId,
+        cursor = this.cursor,
+        sequenceNumber = this.sequenceNumber,
+        streamEpoch = this.streamEpoch
+    ).asDomain()
+}
+
+private fun AiChatLiveAssistantMessageDoneWireEvent.asMetadata(): AiChatLiveEventMetadata {
+    return AiChatLiveEventMetadataWire(
+        sessionId = this.sessionId,
+        conversationScopeId = this.conversationScopeId,
+        runId = this.runId,
+        cursor = this.cursor,
+        sequenceNumber = this.sequenceNumber,
+        streamEpoch = this.streamEpoch
+    ).asDomain()
+}
+
+private fun AiChatLiveRepairStatusWireEvent.asMetadata(): AiChatLiveEventMetadata {
+    return AiChatLiveEventMetadataWire(
+        sessionId = this.sessionId,
+        conversationScopeId = this.conversationScopeId,
+        runId = this.runId,
+        cursor = this.cursor,
+        sequenceNumber = this.sequenceNumber,
+        streamEpoch = this.streamEpoch
+    ).asDomain()
+}
+
+private fun AiChatLiveRunTerminalWireEvent.asMetadata(): AiChatLiveEventMetadata {
+    return AiChatLiveEventMetadataWire(
+        sessionId = this.sessionId,
+        conversationScopeId = this.conversationScopeId,
+        runId = this.runId,
+        cursor = this.cursor,
+        sequenceNumber = this.sequenceNumber,
+        streamEpoch = this.streamEpoch
+    ).asDomain()
 }
 
 private object StrictRemoteStringSerializer : KSerializer<StrictRemoteString> {
@@ -725,7 +940,6 @@ private fun describeRemotePrimitive(primitive: JsonPrimitive): String {
 
 private val AiChatLiveEventTypeWire.serialName: String
     get() = when (this) {
-        AiChatLiveEventTypeWire.RUN_STATE -> "run_state"
         AiChatLiveEventTypeWire.ASSISTANT_DELTA -> "assistant_delta"
         AiChatLiveEventTypeWire.ASSISTANT_TOOL_CALL -> "assistant_tool_call"
         AiChatLiveEventTypeWire.ASSISTANT_REASONING_STARTED -> "assistant_reasoning_started"
@@ -733,7 +947,5 @@ private val AiChatLiveEventTypeWire.serialName: String
         AiChatLiveEventTypeWire.ASSISTANT_REASONING_DONE -> "assistant_reasoning_done"
         AiChatLiveEventTypeWire.ASSISTANT_MESSAGE_DONE -> "assistant_message_done"
         AiChatLiveEventTypeWire.REPAIR_STATUS -> "repair_status"
-        AiChatLiveEventTypeWire.ERROR -> "error"
-        AiChatLiveEventTypeWire.STOP_ACK -> "stop_ack"
-        AiChatLiveEventTypeWire.RESET_REQUIRED -> "reset_required"
+        AiChatLiveEventTypeWire.RUN_TERMINAL -> "run_terminal"
     }

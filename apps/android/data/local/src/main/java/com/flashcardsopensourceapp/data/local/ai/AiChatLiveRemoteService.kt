@@ -20,6 +20,7 @@ class AiChatLiveRemoteService {
     suspend fun attachLiveRun(
         authorizationHeader: String,
         sessionId: String,
+        runId: String,
         liveStream: AiChatLiveStreamEnvelope,
         afterCursor: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?,
@@ -34,21 +35,19 @@ class AiChatLiveRemoteService {
             liveUrl = liveStream.url,
             authorization = authorization,
             sessionId = sessionId,
+            runId = runId,
             afterCursor = afterCursor,
             resumeDiagnostics = resumeDiagnostics,
             onEvent = { event ->
                 onEvent(event)
                 when (event) {
-                    is AiChatLiveEvent.RunState -> event.runState == "running"
-                    is AiChatLiveEvent.AssistantMessageDone,
-                    is AiChatLiveEvent.Error,
-                    is AiChatLiveEvent.StopAck,
-                    AiChatLiveEvent.ResetRequired -> false
+                    is AiChatLiveEvent.RunTerminal -> false
                     is AiChatLiveEvent.AssistantDelta,
                     is AiChatLiveEvent.AssistantReasoningDone,
                     is AiChatLiveEvent.AssistantReasoningStarted,
                     is AiChatLiveEvent.AssistantReasoningSummary,
                     is AiChatLiveEvent.AssistantToolCall,
+                    is AiChatLiveEvent.AssistantMessageDone,
                     is AiChatLiveEvent.RepairStatus -> true
                 }
             }
@@ -63,6 +62,7 @@ class AiChatLiveRemoteService {
         liveUrl: String,
         authorization: String,
         sessionId: String,
+        runId: String,
         afterCursor: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?,
         onEvent: suspend (AiChatLiveEvent) -> Boolean
@@ -70,6 +70,7 @@ class AiChatLiveRemoteService {
         val urlString = buildString {
             append(liveUrl.removeSuffix("/"))
             append("?sessionId=$sessionId")
+            append("&runId=$runId")
             if (afterCursor != null) {
                 append("&afterCursor=$afterCursor")
             }
