@@ -88,11 +88,6 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             XCTAssertEqual(queryItems.first(where: { $0.name == "runId" })?.value, "run-1")
             XCTAssertEqual(queryItems.first(where: { $0.name == "afterCursor" })?.value, "5")
             expectation.fulfill()
-            let body = """
-            event: run_terminal
-            data: {"type":"run_terminal","sessionId":"session-1","conversationScopeId":"session-1","runId":"run-1","cursor":"5","sequenceNumber":1,"streamEpoch":"epoch-1","outcome":"completed"}
-
-            """
             return (
                 HTTPURLResponse(
                     url: try XCTUnwrap(request.url),
@@ -100,7 +95,9 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
                     httpVersion: nil,
                     headerFields: ["Content-Type": "text/event-stream"]
                 )!,
-                Data(body.utf8)
+                // Request composition is the contract under test here.
+                // Payload decoding is covered separately in AIChatLiveStreamClientTests.
+                Data()
             )
         }
 
@@ -114,9 +111,7 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics(sequence: 12)
         )
         await self.fulfillment(of: [expectation], timeout: 1.0)
-        var iterator = stream.makeAsyncIterator()
-        let firstEvent = try await iterator.next()
-        XCTAssertNotNil(firstEvent)
+        withExtendedLifetime(stream) {}
     }
 
     func testLiveStreamErrorAlertUsesReadableSummaryAndDetails() {
