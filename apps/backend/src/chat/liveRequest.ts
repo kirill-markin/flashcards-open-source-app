@@ -1,5 +1,12 @@
 import { authenticateRequest, type AuthResult } from "../auth";
+import { HttpError } from "../errors";
 import { ensureUserProfile } from "../ensureUser";
+import {
+  CHAT_LIVE_AFTER_CURSOR_INVALID_CODE,
+  CHAT_LIVE_RUN_ID_REQUIRED_CODE,
+  CHAT_LIVE_SESSION_ID_REQUIRED_CODE,
+  CHAT_LIVE_WORKSPACE_SELECTION_REQUIRED_CODE,
+} from "./liveErrors";
 import { verifyChatLiveAuthorizationHeader } from "./liveAuth";
 
 export type LiveStreamParams = Readonly<{
@@ -43,11 +50,11 @@ export async function handleLiveRequest(
 ): Promise<LiveStreamParams> {
   const sessionId = url.searchParams.get("sessionId");
   if (sessionId === null || sessionId === "") {
-    throw new Error("Missing sessionId parameter");
+    throw new HttpError(400, "AI live stream request is missing sessionId.", CHAT_LIVE_SESSION_ID_REQUIRED_CODE);
   }
   const runId = url.searchParams.get("runId");
   if (runId === null || runId === "") {
-    throw new Error("Missing runId parameter");
+    throw new HttpError(400, "AI live stream request is missing runId.", CHAT_LIVE_RUN_ID_REQUIRED_CODE);
   }
 
   const afterCursorParam = url.searchParams.get("afterCursor");
@@ -55,7 +62,7 @@ export async function handleLiveRequest(
     ? Number.parseInt(afterCursorParam, 10)
     : undefined;
   if (afterCursor !== undefined && (!Number.isSafeInteger(afterCursor) || afterCursor < 0)) {
-    throw new Error("Invalid afterCursor parameter");
+    throw new HttpError(400, "AI live stream request has an invalid afterCursor.", CHAT_LIVE_AFTER_CURSOR_INVALID_CODE);
   }
 
   const tokenParam = url.searchParams.get("token");
@@ -85,7 +92,7 @@ export async function handleLiveRequest(
     : (await ensureUserProfile(authResult.userId, null)).selectedWorkspaceId;
 
   if (workspaceId === null) {
-    throw new Error("No workspace selected");
+    throw new HttpError(409, "No workspace selected.", CHAT_LIVE_WORKSPACE_SELECTION_REQUIRED_CODE);
   }
 
   return {

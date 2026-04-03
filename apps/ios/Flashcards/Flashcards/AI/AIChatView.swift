@@ -156,7 +156,7 @@ struct AIChatView: View {
                 },
                 onFailure: { error in
                     self.isCameraPresented = false
-                    self.chatStore.showGeneralError(message: Flashcards.errorMessage(error: error))
+                    self.chatStore.showGeneralError(error: error)
                 },
                 onCancel: {
                     self.isCameraPresented = false

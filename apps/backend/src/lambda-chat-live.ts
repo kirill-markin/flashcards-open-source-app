@@ -7,6 +7,7 @@ import { randomUUID } from "node:crypto";
 import type { Writable } from "node:stream";
 import type { APIGatewayProxyEventV2 } from "aws-lambda";
 import { runLiveStream } from "./chat/live";
+import { createChatLiveErrorResponse } from "./chat/liveErrors";
 import { handleLiveRequest } from "./chat/liveRequest";
 import { getErrorLogContext, logCloudRouteEvent } from "./server/logging";
 import { initializeLangfuseTelemetry } from "./telemetry/langfuse";
@@ -61,7 +62,7 @@ export const handler = awslambda.streamifyResponse(
     try {
       params = await handleLiveRequest(url, authorizationHeader, event.headers ?? {});
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const errorResponse = createChatLiveErrorResponse(error, requestId);
       logCloudRouteEvent("chat_live_request_error", {
         requestId,
         path: event.rawPath,
@@ -75,15 +76,16 @@ export const handler = awslambda.streamifyResponse(
         resumeAttemptId: event.headers?.["x-chat-resume-attempt-id"] ?? null,
         clientPlatform: event.headers?.["x-client-platform"] ?? null,
         clientVersion: event.headers?.["x-client-version"] ?? null,
-        statusCode: 400,
+        statusCode: errorResponse.statusCode,
+        code: errorResponse.body.code,
         ...getErrorLogContext(error),
       }, true);
       const metadata = {
-        statusCode: 400,
+        statusCode: errorResponse.statusCode,
         headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
       };
       const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
-      stream.write(JSON.stringify({ error: message, requestId }));
+      stream.write(JSON.stringify(errorResponse.body));
       stream.end();
       return;
     }

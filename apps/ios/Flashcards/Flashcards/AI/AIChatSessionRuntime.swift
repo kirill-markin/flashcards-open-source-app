@@ -105,6 +105,7 @@ actor AIChatSessionRuntime {
     func attachLive(
         liveStream: AIChatLiveStreamEnvelope,
         sessionId: String,
+        runId: String,
         afterCursor: String?,
         configurationMode: CloudServiceConfigurationMode,
         resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?,
@@ -117,13 +118,18 @@ actor AIChatSessionRuntime {
                 action: "ai_live_attach",
                 metadata: [
                     "sessionId": sessionId,
+                    "runId": runId,
                     "afterCursor": afterCursor ?? "-"
                 ]
+                .merging(
+                    resumeAttemptDiagnostics.map { ["resumeAttempt": $0.headerValue] } ?? [:]
+                ) { _, newValue in newValue }
             )
             do {
                 let termination = try await self.consumeLiveStream(
                     liveStream: liveStream,
                     sessionId: sessionId,
+                    runId: runId,
                     afterCursor: afterCursor,
                     configurationMode: configurationMode,
                     resumeAttemptDiagnostics: resumeAttemptDiagnostics,
@@ -134,10 +140,13 @@ actor AIChatSessionRuntime {
             } catch {
                 logAIChatRuntimeEvent(
                     action: "ai_live_error",
-                    metadata: [
-                        "sessionId": sessionId,
-                        "error": error.localizedDescription
-                    ]
+                    metadata: aiChatRuntimeErrorMetadata(
+                        error: error,
+                        sessionId: sessionId,
+                        runId: runId,
+                        afterCursor: afterCursor,
+                        resumeAttemptDiagnostics: resumeAttemptDiagnostics
+                    )
                 )
                 await completionHandler(.failed(message: Flashcards.errorMessage(error: error)))
             }
@@ -160,15 +169,25 @@ actor AIChatSessionRuntime {
     private func consumeLiveStream(
         liveStream: AIChatLiveStreamEnvelope,
         sessionId: String,
+        runId: String,
         afterCursor: String?,
         configurationMode: CloudServiceConfigurationMode,
         resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?,
         eventHandler: @escaping @Sendable (AIChatLiveEvent) async -> Void
     ) async throws -> AIChatLiveAttachTermination {
+        if runId.isEmpty {
+            throw AIChatLiveStreamSetupError.missingRunId(
+                sessionId: sessionId,
+                afterCursor: afterCursor,
+                resumeAttemptSequence: resumeAttemptDiagnostics?.sequence
+            )
+        }
+
         let stream = await self.liveStreamClient.connect(
             liveUrl: liveStream.url,
             authorization: liveStream.authorization,
             sessionId: sessionId,
+            runId: runId,
             afterCursor: afterCursor,
             configurationMode: configurationMode,
             resumeAttemptDiagnostics: resumeAttemptDiagnostics
@@ -211,4 +230,61 @@ private func isGuestAiLimitError(error: Error) -> Bool {
 
 private func logAIChatRuntimeEvent(action: String, metadata: [String: String]) {
     logFlashcardsError(domain: "ios_ai_runtime", action: action, metadata: metadata)
+}
+
+enum AIChatLiveStreamSetupError: LocalizedError, AIChatFailureDiagnosticProviding {
+    case missingRunId(sessionId: String, afterCursor: String?, resumeAttemptSequence: Int?)
+
+    var diagnostics: AIChatFailureDiagnostics {
+        switch self {
+        case .missingRunId(let sessionId, let afterCursor, let resumeAttemptSequence):
+            let snippet = afterCursor.map { cursor in
+                "sessionId=\(sessionId)&afterCursor=\(cursor)"
+            } ?? "sessionId=\(sessionId)"
+            return AIChatFailureDiagnostics(
+                clientRequestId: sessionId,
+                backendRequestId: nil,
+                stage: .requestBuild,
+                errorKind: .invalidStreamContract,
+                statusCode: nil,
+                eventType: nil,
+                toolName: nil,
+                toolCallId: nil,
+                lineNumber: nil,
+                rawSnippet: snippet,
+                decoderSummary: "AI live attach started without a runId.",
+                continuationAttempt: resumeAttemptSequence,
+                continuationToolCallIds: []
+            )
+        }
+    }
+
+    var errorDescription: String? {
+        return "AI live stream is missing the active run identifier."
+    }
+}
+
+private func aiChatRuntimeErrorMetadata(
+    error: Error,
+    sessionId: String,
+    runId: String,
+    afterCursor: String?,
+    resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
+) -> [String: String] {
+    var metadata: [String: String] = [
+        "sessionId": sessionId,
+        "runId": runId.isEmpty ? "-" : runId,
+        "afterCursor": afterCursor ?? "-",
+        "error": error.localizedDescription,
+    ]
+
+    if let resumeAttemptDiagnostics {
+        metadata["resumeAttempt"] = resumeAttemptDiagnostics.headerValue
+    }
+
+    for (key, value) in aiChatErrorLogMetadata(error: error) {
+        metadata[key] = value
+    }
+
+    return metadata
 }

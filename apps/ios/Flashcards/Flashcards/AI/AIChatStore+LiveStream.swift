@@ -425,6 +425,7 @@ extension AIChatStore {
             await self.runtime.attachLive(
                 liveStream: activeRun.live.stream,
                 sessionId: response.sessionId,
+                runId: activeRun.runId,
                 afterCursor: activeRun.live.cursor,
                 configurationMode: session.configurationMode,
                 resumeAttemptDiagnostics: resumeAttemptDiagnostics,
@@ -486,6 +487,7 @@ extension AIChatStore {
                 await self.runtime.attachLive(
                     liveStream: liveStream,
                     sessionId: sessionId,
+                    runId: activeRunId,
                     afterCursor: afterCursor,
                     configurationMode: session.configurationMode,
                     resumeAttemptDiagnostics: nil,
@@ -501,7 +503,7 @@ extension AIChatStore {
                     return
                 }
                 self.clearActiveRunTracking(resetComposer: true)
-                self.showGeneralError(message: Flashcards.errorMessage(error: error))
+                self.showGeneralError(error: error)
             }
         }
     }
@@ -551,7 +553,7 @@ extension AIChatStore {
                 self.attachBootstrapLiveIfNeeded(response: response, session: session, resumeAttemptDiagnostics: nil)
             } catch {
                 self.clearActiveRunTracking(resetComposer: true)
-                self.showGeneralError(message: Flashcards.errorMessage(error: error))
+                self.showGeneralError(error: error)
             }
         }
     }
@@ -612,7 +614,7 @@ extension AIChatStore {
             }
         } catch {
             self.clearActiveRunTracking(resetComposer: true)
-            self.showGeneralError(message: Flashcards.errorMessage(error: error))
+            self.showGeneralError(error: error)
         }
     }
 
@@ -639,7 +641,7 @@ extension AIChatStore {
             }
         } catch {
             self.clearActiveRunTracking(resetComposer: true)
-            self.showGeneralError(message: Flashcards.errorMessage(error: error))
+            self.showGeneralError(error: error)
         }
     }
 
