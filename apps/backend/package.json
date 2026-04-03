@@ -10,17 +10,17 @@
     "test": "npm run bundle --prefix ../../api && node --test --import tsx src/*.test.ts src/**/*.test.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-cognito-identity-provider": "^3.1009.0",
-    "@aws-sdk/client-lambda": "^3.1014.0",
-    "@aws-sdk/client-secrets-manager": "^3.1009.0",
-    "@hono/node-server": "^1.19.11",
-    "@langfuse/openai": "^5.0.1",
-    "@langfuse/otel": "^5.0.1",
-    "@langfuse/tracing": "^5.0.1",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1023.0",
+    "@aws-sdk/client-lambda": "^3.1023.0",
+    "@aws-sdk/client-secrets-manager": "^3.1023.0",
+    "@hono/node-server": "^1.19.12",
+    "@langfuse/openai": "^5.0.2",
+    "@langfuse/otel": "^5.0.2",
+    "@langfuse/tracing": "^5.0.2",
     "@opentelemetry/sdk-node": "^0.214.0",
     "aws-jwt-verify": "^5.1.1",
-    "hono": "^4.12.8",
-    "openai": "^6.29.0",
+    "hono": "^4.12.10",
+    "openai": "^6.33.0",
     "pg": "^8.20.0",
     "zod": "^4.3.6"
   },
@@ -29,7 +29,7 @@
     "@types/node": "^25.5.0",
     "@types/pg": "^8.18.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.2"
   },
   "engines": {
     "node": "24.x"
