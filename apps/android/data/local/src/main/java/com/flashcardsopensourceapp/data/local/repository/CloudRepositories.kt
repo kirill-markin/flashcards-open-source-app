@@ -101,7 +101,6 @@ class LocalCloudAccountRepository(
     override suspend fun prepareVerifiedSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext {
         return operationCoordinator.runExclusive {
             val configuration = preferencesStore.currentServerConfiguration()
-            preferencesStore.saveCredentials(credentials)
             buildCloudWorkspaceLinkContext(
                 credentials = credentials,
                 configuration = configuration
@@ -117,7 +116,6 @@ class LocalCloudAccountRepository(
                 code = code,
                 authBaseUrl = configuration.authBaseUrl
             )
-            preferencesStore.saveCredentials(credentials)
             buildCloudWorkspaceLinkContext(
                 credentials = credentials,
                 configuration = configuration
@@ -148,34 +146,27 @@ class LocalCloudAccountRepository(
                 guestToken = guestSession.guestToken
             )
         }
-        val currentCloudSettings = preferencesStore.currentCloudSettings()
-        val currentLocalWorkspaceId = loadCurrentWorkspaceOrNull(
-            database = database,
-            preferencesStore = preferencesStore
-        )?.workspaceId
         val preferredWorkspaceId = resolvePreferredPostAuthWorkspaceId(
             workspaces = accountSnapshot.workspaces
-        )
-        preferencesStore.updateCloudSettings(
-            cloudState = CloudAccountState.LINKING_READY,
-            linkedUserId = accountSnapshot.userId,
-            linkedWorkspaceId = null,
-            linkedEmail = accountSnapshot.email,
-            activeWorkspaceId = currentLocalWorkspaceId ?: currentCloudSettings.activeWorkspaceId
         )
         return CloudWorkspaceLinkContext(
             userId = accountSnapshot.userId,
             email = accountSnapshot.email,
+            credentials = credentials,
             workspaces = accountSnapshot.workspaces,
             guestUpgradeMode = guestUpgradeMode,
             preferredWorkspaceId = preferredWorkspaceId
         )
     }
 
-    override suspend fun completeCloudLink(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
+    override suspend fun completeCloudLink(
+        linkContext: CloudWorkspaceLinkContext,
+        selection: CloudWorkspaceLinkSelection
+    ): CloudWorkspaceSummary {
         return operationCoordinator.runExclusive {
-            val authenticatedSession = authenticatedSession()
+            val authenticatedSession = authenticatedSession(linkContext = linkContext)
             val selectedWorkspace = resolveWorkspaceSelection(
+                linkContext = linkContext,
                 authenticatedSession = authenticatedSession,
                 selection = selection
             )
@@ -185,22 +176,30 @@ class LocalCloudAccountRepository(
                 bearerToken = authenticatedSession.credentials.idToken,
                 selectedWorkspace = selectedWorkspace
             )
+            preferencesStore.saveCredentials(authenticatedSession.credentials)
             selectedWorkspace
         }
     }
 
-    override suspend fun completeGuestUpgrade(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
+    override suspend fun completeGuestUpgrade(
+        linkContext: CloudWorkspaceLinkContext,
+        selection: CloudWorkspaceLinkSelection
+    ): CloudWorkspaceSummary {
         return operationCoordinator.runExclusive {
-            val authenticatedSession = authenticatedSession()
+            val authenticatedSession = authenticatedSession(linkContext = linkContext)
             val configuration = preferencesStore.currentServerConfiguration()
             val guestSession = requireNotNull(activeGuestSession(configuration = configuration)) {
                 "Guest AI session is unavailable."
             }
+            val validatedSelection = validateWorkspaceSelection(
+                linkContext = linkContext,
+                selection = selection
+            )
             val selectedWorkspace = remoteService.completeGuestUpgrade(
                 apiBaseUrl = configuration.apiBaseUrl,
                 bearerToken = authenticatedSession.credentials.idToken,
                 guestToken = guestSession.guestToken,
-                selection = selection.toGuestUpgradeSelection()
+                selection = validatedSelection.toGuestUpgradeSelection()
             )
             clearGuestSessionsIfNeeded()
             applyLinkedWorkspace(
@@ -208,6 +207,7 @@ class LocalCloudAccountRepository(
                 bearerToken = authenticatedSession.credentials.idToken,
                 selectedWorkspace = selectedWorkspace
             )
+            preferencesStore.saveCredentials(authenticatedSession.credentials)
             selectedWorkspace
         }
     }
@@ -217,10 +217,26 @@ class LocalCloudAccountRepository(
     ): CloudWorkspaceSummary {
         return operationCoordinator.runExclusive {
             val authenticatedSession = authenticatedSession()
-            val selectedWorkspace = resolveWorkspaceSelection(
-                authenticatedSession = authenticatedSession,
-                selection = selection
-            )
+            val selectedWorkspace = when (selection) {
+                is CloudWorkspaceLinkSelection.Existing -> {
+                    require(authenticatedSession.accountSnapshot.workspaces.any { workspace ->
+                        workspace.workspaceId == selection.workspaceId
+                    }) {
+                        "Selected workspace is unavailable. Refresh the workspace list and try again."
+                    }
+                    remoteService.selectWorkspace(
+                        apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                        bearerToken = authenticatedSession.credentials.idToken,
+                        workspaceId = selection.workspaceId
+                    )
+                }
+
+                CloudWorkspaceLinkSelection.CreateNew -> remoteService.createWorkspace(
+                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                    bearerToken = authenticatedSession.credentials.idToken,
+                    name = "Personal"
+                )
+            }
             applyLinkedWorkspaceAndSync(
                 authenticatedSession = authenticatedSession,
                 selectedWorkspace = selectedWorkspace
@@ -482,6 +498,41 @@ class LocalCloudAccountRepository(
         }
     }
 
+    private suspend fun authenticatedSession(linkContext: CloudWorkspaceLinkContext): AuthenticatedCloudSession {
+        try {
+            val configuration = preferencesStore.currentServerConfiguration()
+            val refreshedCredentials = if (
+                shouldRefreshCloudIdToken(
+                    idTokenExpiresAtMillis = linkContext.credentials.idTokenExpiresAtMillis,
+                    nowMillis = System.currentTimeMillis()
+                )
+            ) {
+                remoteService.refreshIdToken(
+                    refreshToken = linkContext.credentials.refreshToken,
+                    authBaseUrl = configuration.authBaseUrl
+                )
+            } else {
+                linkContext.credentials
+            }
+            val accountSnapshot = fetchCloudAccount(refreshedCredentials, configuration)
+            require(accountSnapshot.userId == linkContext.userId) {
+                "Cloud account changed during workspace setup. Start sign-in again."
+            }
+
+            return AuthenticatedCloudSession(
+                configuration = configuration,
+                credentials = refreshedCredentials,
+                accountSnapshot = accountSnapshot
+            )
+        } catch (error: Exception) {
+            if (isRemoteAccountDeletedError(error = error)) {
+                resetCoordinator.resetLocalStateForCloudIdentityChange()
+                throw IllegalStateException("Your account has already been deleted.")
+            }
+            throw error
+        }
+    }
+
     private suspend fun fetchCloudAccount(
         credentials: StoredCloudCredentials,
         configuration: CloudServiceConfiguration
@@ -493,14 +544,20 @@ class LocalCloudAccountRepository(
     }
 
     private suspend fun resolveWorkspaceSelection(
+        linkContext: CloudWorkspaceLinkContext,
         authenticatedSession: AuthenticatedCloudSession,
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {
-        return when (selection) {
+        val validatedSelection = validateWorkspaceSelection(
+            linkContext = linkContext,
+            selection = selection
+        )
+
+        return when (validatedSelection) {
             is CloudWorkspaceLinkSelection.Existing -> remoteService.selectWorkspace(
                 apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
                 bearerToken = authenticatedSession.credentials.idToken,
-                workspaceId = selection.workspaceId
+                workspaceId = validatedSelection.workspaceId
             )
 
             CloudWorkspaceLinkSelection.CreateNew -> remoteService.createWorkspace(
@@ -710,6 +767,22 @@ class LocalCloudAccountRepository(
 
     private fun clearGuestSessionsIfNeeded() {
         guestSessionStore.clearAllSessions()
+    }
+}
+
+private fun validateWorkspaceSelection(
+    linkContext: CloudWorkspaceLinkContext,
+    selection: CloudWorkspaceLinkSelection
+): CloudWorkspaceLinkSelection {
+    return when (selection) {
+        is CloudWorkspaceLinkSelection.Existing -> {
+            require(linkContext.workspaces.any { workspace -> workspace.workspaceId == selection.workspaceId }) {
+                "Selected workspace is unavailable for this sign-in attempt. Start sign-in again."
+            }
+            selection
+        }
+
+        CloudWorkspaceLinkSelection.CreateNew -> CloudWorkspaceLinkSelection.CreateNew
     }
 }
 

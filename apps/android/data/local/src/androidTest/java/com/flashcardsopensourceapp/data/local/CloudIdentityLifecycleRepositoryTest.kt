@@ -323,10 +323,11 @@ class CloudIdentityLifecycleRepositoryTest {
         )
 
         assertEquals(CloudGuestUpgradeMode.BOUND, linkContext.guestUpgradeMode)
-        assertEquals(CloudAccountState.LINKING_READY, cloudPreferencesStore.currentCloudSettings().cloudState)
-        assertEquals("user-1", cloudPreferencesStore.currentCloudSettings().linkedUserId)
+        assertEquals(CloudAccountState.GUEST, cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(null, cloudPreferencesStore.currentCloudSettings().linkedUserId)
         assertNull(cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
         assertEquals(localWorkspaceId, cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
+        assertNull(cloudPreferencesStore.loadCredentials())
         assertEquals(1, remoteGateway.prepareGuestUpgradeCalls)
     }
 
@@ -709,9 +710,83 @@ class CloudIdentityLifecycleRepositoryTest {
             )
         )
 
-        assertEquals(CloudAccountState.LINKING_READY, cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(CloudAccountState.DISCONNECTED, cloudPreferencesStore.currentCloudSettings().cloudState)
         assertEquals(localWorkspaceId, cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
         assertEquals("workspace-2", linkContext.preferredWorkspaceId)
+        assertNull(cloudPreferencesStore.loadCredentials())
+    }
+
+    @Test
+    fun reconcilePersistedCloudStateNormalizesLegacyLinkingReadyWithoutResettingLocalWorkspace() = runBlocking {
+        val localWorkspaceId = requireLocalWorkspaceId()
+        val coordinator = createCloudGuestSessionCoordinator(remoteGateway = FakeCloudRemoteGateway())
+        cloudPreferencesStore.saveCredentials(
+            credentials = StoredCloudCredentials(
+                refreshToken = "refresh-token",
+                idToken = "id-token",
+                idTokenExpiresAtMillis = Long.MAX_VALUE
+            )
+        )
+        cloudPreferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.LINKING_READY,
+            linkedUserId = "user-1",
+            linkedWorkspaceId = null,
+            linkedEmail = "user@example.com",
+            activeWorkspaceId = localWorkspaceId
+        )
+
+        coordinator.reconcilePersistedCloudState()
+
+        assertEquals(CloudAccountState.DISCONNECTED, cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(localWorkspaceId, cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
+        assertNull(cloudPreferencesStore.currentCloudSettings().linkedUserId)
+        assertNull(cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
+        assertNull(cloudPreferencesStore.currentCloudSettings().linkedEmail)
+        assertNull(cloudPreferencesStore.loadCredentials())
+        assertEquals(localWorkspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+    }
+
+    @Test
+    fun completeCloudLinkRejectsWorkspaceOutsideCurrentLinkContextBeforeRemoteSelection() = runBlocking {
+        val remoteGateway = FakeCloudRemoteGateway(
+            accountSnapshot = CloudAccountSnapshot(
+                userId = "user-1",
+                email = "user@example.com",
+                workspaces = listOf(
+                    CloudWorkspaceSummary(
+                        workspaceId = "workspace-1",
+                        name = "Personal",
+                        createdAtMillis = 100L,
+                        isSelected = true
+                    )
+                )
+            )
+        )
+        val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
+        val linkContext = repository.prepareVerifiedSignIn(
+            credentials = StoredCloudCredentials(
+                refreshToken = "refresh-token",
+                idToken = "id-token",
+                idTokenExpiresAtMillis = Long.MAX_VALUE
+            )
+        )
+
+        try {
+            repository.completeCloudLink(
+                linkContext = linkContext,
+                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = "workspace-stale")
+            )
+            throw AssertionError("Expected completeCloudLink to reject a stale workspace selection.")
+        } catch (error: IllegalArgumentException) {
+            assertEquals(
+                "Selected workspace is unavailable for this sign-in attempt. Start sign-in again.",
+                error.message
+            )
+        }
+
+        assertEquals(0, remoteGateway.selectWorkspaceCalls)
+        assertNull(cloudPreferencesStore.loadCredentials())
+        assertEquals(CloudAccountState.DISCONNECTED, cloudPreferencesStore.currentCloudSettings().cloudState)
     }
 
     @Test
@@ -838,7 +913,7 @@ class CloudIdentityLifecycleRepositoryTest {
                 apiBaseUrl = "https://api.flashcards-open-source-app.com/v1"
             )
         )
-        repository.verifyCode(
+        val linkContext = repository.verifyCode(
             challenge = CloudOtpChallenge(
                 email = "user@example.com",
                 csrfToken = "csrf",
@@ -848,6 +923,7 @@ class CloudIdentityLifecycleRepositoryTest {
         )
 
         val linkedWorkspace = repository.completeGuestUpgrade(
+            linkContext = linkContext,
             selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
         )
 
@@ -856,6 +932,7 @@ class CloudIdentityLifecycleRepositoryTest {
         assertEquals(selectedWorkspace.workspaceId, cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
         assertEquals("user@example.com", cloudPreferencesStore.currentCloudSettings().linkedEmail)
         assertEquals(selectedWorkspace.workspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertNotNull(cloudPreferencesStore.loadCredentials())
         assertNull(
             guestAiSessionStore.loadAnySession(configuration = makeOfficialCloudServiceConfiguration())
         )
@@ -906,7 +983,7 @@ class CloudIdentityLifecycleRepositoryTest {
                 apiBaseUrl = "https://api.flashcards-open-source-app.com/v1"
             )
         )
-        repository.verifyCode(
+        val linkContext = repository.verifyCode(
             challenge = CloudOtpChallenge(
                 email = "user@example.com",
                 csrfToken = "csrf",
@@ -916,6 +993,7 @@ class CloudIdentityLifecycleRepositoryTest {
         )
 
         repository.completeGuestUpgrade(
+            linkContext = linkContext,
             selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
         )
 
@@ -981,7 +1059,7 @@ class CloudIdentityLifecycleRepositoryTest {
                 apiBaseUrl = "https://api.flashcards-open-source-app.com/v1"
             )
         )
-        repository.verifyCode(
+        val linkContext = repository.verifyCode(
             challenge = CloudOtpChallenge(
                 email = "user@example.com",
                 csrfToken = "csrf",
@@ -991,6 +1069,7 @@ class CloudIdentityLifecycleRepositoryTest {
         )
 
         repository.completeGuestUpgrade(
+            linkContext = linkContext,
             selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
         )
 
@@ -1082,7 +1161,7 @@ class CloudIdentityLifecycleRepositoryTest {
         )
         val repository = createCloudAccountRepository(remoteGateway = remoteGateway)
 
-        repository.verifyCode(
+        val linkContext = repository.verifyCode(
             challenge = CloudOtpChallenge(
                 email = "user@example.com",
                 csrfToken = "csrf",
@@ -1091,6 +1170,7 @@ class CloudIdentityLifecycleRepositoryTest {
             code = "123456"
         )
         repository.completeCloudLink(
+            linkContext = linkContext,
             selection = CloudWorkspaceLinkSelection.Existing(workspaceId = linkedWorkspace.workspaceId)
         )
 
@@ -1099,6 +1179,7 @@ class CloudIdentityLifecycleRepositoryTest {
         assertEquals(linkedWorkspace.workspaceId, cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
         assertEquals(linkedWorkspace.workspaceId, cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
         assertEquals(linkedWorkspace.workspaceId, database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertNotNull(cloudPreferencesStore.loadCredentials())
         assertEquals(linkedWorkspace.workspaceId, remoteGateway.renameWorkspaceIds.single())
         assertEquals("Renamed Linked Workspace", renamedWorkspace.name)
     }
@@ -1379,6 +1460,7 @@ private class FakeCloudRemoteGateway(
     var prepareGuestUpgradeCalls: Int = 0
     var completeGuestUpgradeCalls: Int = 0
     var createWorkspaceCalls: Int = 0
+    var selectWorkspaceCalls: Int = 0
     val renameWorkspaceIds = mutableListOf<String>()
     val bootstrapPullWorkspaceIds = mutableListOf<String>()
     val createdWorkspaceId: String = createdWorkspace.workspaceId
@@ -1452,6 +1534,7 @@ private class FakeCloudRemoteGateway(
     }
 
     override suspend fun selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceSummary {
+        selectWorkspaceCalls += 1
         return accountSnapshot.workspaces.first { workspace ->
             workspace.workspaceId == workspaceId
         }
@@ -1509,17 +1592,27 @@ private class FakeCloudRemoteGateway(
         throw UnsupportedOperationException()
     }
 
-    override suspend fun push(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePushResponse {
+    override suspend fun push(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        body: JSONObject
+    ): RemotePushResponse {
         return RemotePushResponse(operations = emptyList())
     }
 
-    override suspend fun pull(apiBaseUrl: String, bearerToken: String, workspaceId: String, body: JSONObject): RemotePullResponse {
+    override suspend fun pull(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        workspaceId: String,
+        body: JSONObject
+    ): RemotePullResponse {
         return RemotePullResponse(changes = emptyList(), nextHotChangeId = 0L, hasMore = false)
     }
 
     override suspend fun bootstrapPull(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteBootstrapPullResponse {
@@ -1538,7 +1631,7 @@ private class FakeCloudRemoteGateway(
 
     override suspend fun bootstrapPush(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteBootstrapPushResponse {
@@ -1550,7 +1643,7 @@ private class FakeCloudRemoteGateway(
 
     override suspend fun pullReviewHistory(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteReviewHistoryPullResponse {
@@ -1563,7 +1656,7 @@ private class FakeCloudRemoteGateway(
 
     override suspend fun importReviewHistory(
         apiBaseUrl: String,
-        bearerToken: String,
+        authorizationHeader: String,
         workspaceId: String,
         body: JSONObject
     ): RemoteReviewHistoryImportResponse {
