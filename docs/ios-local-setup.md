@@ -70,6 +70,74 @@ If Xcode Cloud should pin the live smoke flow to the standard review/demo accoun
 
 `FLASHCARDS_LIVE_REVIEW_EMAIL` remains optional.
 
+## Local App Store archive
+
+Xcode Cloud remains the canonical iOS release path, but a local signed archive can
+be used when Xcode Cloud is unavailable or when an urgent manual upload is needed.
+
+Before creating a local App Store archive:
+
+1. Regenerate `apps/ios/Flashcards/Config/Local.xcconfig` from the repo-root `.env`:
+
+```bash
+sh apps/ios/Flashcards/ci_scripts/ci_post_clone.sh
+```
+
+2. Make sure the local values match the intended Xcode Cloud release values,
+including at least:
+
+- `DEVELOPMENT_TEAM`
+- `APP_BUNDLE_IDENTIFIER`
+- `API_BASE_URL`
+- `AUTH_BASE_URL`
+- `PRIVACY_POLICY_URL`
+- `TERMS_OF_SERVICE_URL`
+- `SUPPORT_URL`
+- `SUPPORT_EMAIL_ADDRESS`
+
+3. Set a local-only iOS build number override in
+`apps/ios/Flashcards/Config/Local.xcconfig` with `APP_CURRENT_PROJECT_VERSION`.
+
+The local signed build number must be higher than the latest relevant build number
+that could conflict in App Store Connect, including queued or recently uploaded
+Xcode Cloud builds for the same app version.
+
+Example local override:
+
+```xcconfig
+APP_CURRENT_PROJECT_VERSION = 204
+```
+
+The repository default build number in `Base.xcconfig` is only a stable fallback.
+Do not treat it as the signed release build number.
+
+Archive and export example:
+
+```bash
+xcodebuild \
+  -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
+  -scheme "Flashcards Open Source App" \
+  -configuration Release \
+  -destination "generic/platform=iOS" \
+  -archivePath "tmp/ios-archives/Flashcards-Review.xcarchive" \
+  -allowProvisioningUpdates \
+  archive
+```
+
+Export example:
+
+```bash
+xcodebuild \
+  -exportArchive \
+  -archivePath "tmp/ios-archives/Flashcards-Review.xcarchive" \
+  -exportPath "tmp/ios-export" \
+  -exportOptionsPlist "tmp/ios-export-options-app-store-connect.plist" \
+  -allowProvisioningUpdates
+```
+
+Use `method = app-store-connect` in the export options plist for App Store Connect
+distribution.
+
 ## Local Testing Rules
 
 The iOS Xcode project is file-synchronized, so new Swift files can be added without manual `project.pbxproj` edits.
