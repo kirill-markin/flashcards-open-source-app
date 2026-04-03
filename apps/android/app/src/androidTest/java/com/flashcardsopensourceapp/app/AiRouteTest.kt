@@ -329,7 +329,7 @@ class AiRouteTest {
 
         val rootBounds = composeRule.onRoot().fetchSemanticsNode().boundsInRoot
         val bubbleBounds = composeRule
-            .onNodeWithTag(aiUserMessageBubbleTag)
+            .onNodeWithTag(aiUserMessageBubbleTag, useUnmergedTree = true)
             .fetchSemanticsNode()
             .boundsInRoot
         val rootCenterX = (rootBounds.left + rootBounds.right) / 2f
