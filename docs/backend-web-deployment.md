@@ -92,6 +92,18 @@ bash scripts/setup-github.sh
 
 Run only the secret setup scripts you actually need. `setup-github.sh` rediscovers the current AWS ARNs and fills in any missing matching GitHub variables afterward, leaving existing values untouched.
 
+## Optional review/demo auth
+
+`DEMO_EMAIL_DOSTIP` enables insecure instant sign-in only for listed review/demo emails in the `example.com` domain. `DEMO_PASSWORD_DOSTIP` stores the shared review/demo password. Keep both values as explicit deploy config and store the shared password in AWS Secrets Manager for deployed environments.
+
+If review/demo access is enabled, create the matching `@example.com` Cognito users manually and keep their emails and shared password aligned with the deployed allowlist and demo password secret. The intended setup flow is:
+
+1. keep `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` in the local root `.env`
+2. run `bash scripts/setup-auth-secrets.sh --region <aws-region>`
+3. run `bash scripts/setup-github.sh`
+
+We intentionally keep Cognito user creation manual instead of adding an automated provisioning script for these insecure review-only accounts.
+
 ## CI/CD
 
 GitHub Actions uses one dedicated `AWS/Web Release` workflow on push to `main`. The repository stores:

@@ -1,69 +1,34 @@
 # Flashcards Open Source App
 
-![iOS app screenshots](docs/images/ios-app-screenshots.jpeg)
-
-Flashcards are a simple study format: the front side shows a question or prompt, and the back side shows the answer. People use them to study languages, facts, definitions, code, and other material they want to remember. This project is an open-source Anki-like flashcards app focused on iOS, Android, web, and offline-first sync.
-
 Open-source offline-first flashcards app for iOS, Android, and web.
 
-## Clients
+![Flashcards Open Source App screenshots](docs/images/ios-app-screenshots.jpeg)
 
-- iOS app in `apps/ios`
-- Android app in `apps/android`
-- Web client in `apps/web`
-- AI agents support through the external agent API: [https://api.flashcards-open-source-app.com/v1/](https://api.flashcards-open-source-app.com/v1/)
+Flashcards Open Source App is an open-source Anki-like flashcards app built for fast daily study on iOS, Android, and the web. It is offline-first, so you can create cards, review with spaced repetition, and keep studying locally before syncing with the backend. The project also includes an external agent API for terminal and AI-agent workflows.
 
-## Features
+## Available on
 
-- Offline-first: browser local database on web, SQLite on iOS and Android
-- Auto-sync: clients write locally first and sync with the backend when online
-
-## Release Gates
-
-Production delivery on `main` now uses one GitHub Actions release orchestrator:
-
-- it detects which areas changed
-- deploys AWS when `api`, `auth`, `backend`, `web`, `infra`, `db`, or deploy scripts changed
-- runs the web Playwright live smoke after deploy
-- keeps the new AWS release only if the smoke passes
-- rolls the whole AWS runtime back to the previous retained AWS SHA when the smoke fails and the release did not include DB migrations
-- fails loudly and requires fix-forward when the smoke fails after DB migrations
-
-Native client gates still use native stacks:
-
-- iOS uses XCTest and XCUITest, including the stateful live smoke in [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`](apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift), and the main orchestrator waits on the matching Xcode Cloud checks for the same SHA when `apps/ios` changed
-- Android uses JUnit plus native Compose instrumentation, including the stateful live smoke in [`apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`](apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt); pull requests use the standalone Android CI entry workflow, and the main orchestrator runs the same reusable Android CI before publishing to Google Play
-- Web uses targeted Vitest checks and Playwright, including the stateful live smoke in [`apps/web/e2e/live-smoke.spec.ts`](apps/web/e2e/live-smoke.spec.ts)
-
-The repository does not aim for exhaustive test coverage, and we do not add unit tests for every small detail by default. We allow targeted integration or module-boundary tests when they verify a real interaction, but the most trusted checks are the native/browser live smoke flows that exercise the real app on a simulator, emulator, managed device, or deployed environment closest to production.
-
-After every push to `main`, watch the single main release orchestrator until it either retains the AWS release, rolls it back, or fails clearly on a non-rollbackable migration path.
+- [iOS](https://apps.apple.com/us/app/flashcards-open-source-app/id6760538964)
+- [Android](https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&pcampaignid=web_share)
+- [Web](https://app.flashcards-open-source-app.com/review)
+- Agent API: https://api.flashcards-open-source-app.com/v1/
 
 ## Card scheduling
 
-- Review scheduling uses FSRS-6 with pinned default weights
-- The full scheduler is implemented in backend and iOS and must stay behaviorally identical
-- The web app mirrors the scheduler data contract and review flow, but does not contain a third FSRS implementation
-- Cards appear in review when they are due: `due_at <= now()`
-- Detailed scheduling rules live in [`docs/fsrs-scheduling-logic.md`](docs/fsrs-scheduling-logic.md)
+Card scheduling uses FSRS-based spaced repetition. Detailed scheduling rules live in [docs/fsrs-scheduling-logic.md](docs/fsrs-scheduling-logic.md).
 
+## Docs
 
-## Setup Docs
-
+- [iOS app](apps/ios/README.md)
+- [Android app](apps/android/README.md)
+- [Web app](apps/web/README.md)
+- [Architecture](docs/architecture.md)
+- [Backend and web deployment](docs/backend-web-deployment.md)
+- [Release gates and monitoring](docs/release-gates.md)
 - [iOS local setup](docs/ios-local-setup.md)
 - [iOS CI/CD](docs/ios-ci-cd.md)
 - [Android CI/CD](docs/android-ci-cd.md)
-- [Web app notes](apps/web/README.md)
-- [Backend and web deployment](docs/backend-web-deployment.md)
-- [More architecture details](docs/architecture.md)
-
-Android CI/CD setup uses separate GitHub repository variables for Google Cloud and Firebase Test Lab. The required variable names and the helper sync script are documented in [`docs/android-ci-cd.md`](docs/android-ci-cd.md).
-
-## Review Demo Accounts
-
-The optional `DEMO_EMAIL_DOSTIP` auth setting only enables insecure instant sign-in for listed review/demo emails in the `example.com` domain. For deployed auth, keep the allowlist as normal deploy config and keep the shared demo password in AWS Secrets Manager.
-
-If review/demo access is enabled, create the matching `@example.com` Cognito users manually and keep their emails and shared password aligned with the deployed allowlist and demo password secret. The intended setup flow is: keep `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` in the local root `.env`, run `bash scripts/setup-auth-secrets.sh --region <aws-region>`, then run `bash scripts/setup-github.sh`. We intentionally keep Cognito user creation manual instead of adding an automated provisioning script for these insecure review-only accounts.
+- [Agent API](https://api.flashcards-open-source-app.com/v1/)
 
 ## License
 
