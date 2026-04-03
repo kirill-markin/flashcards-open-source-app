@@ -7,7 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.flashcardsopensourceapp.app.di.AppStartupState
-import com.flashcardsopensourceapp.app.notifications.consumeReviewNotificationTapPayload
+import com.flashcardsopensourceapp.app.notifications.consumeAppNotificationTapRequest
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?, application: FlashcardsApplication) {
-        val request = intent?.let(::consumeReviewNotificationTapPayload) ?: return
-        application.appGraph.appHandoffCoordinator.requestReviewNotification(request = request)
+        val request = intent?.let(::consumeAppNotificationTapRequest) ?: return
+        application.appGraph.appHandoffCoordinator.requestAppNotificationTap(request = request)
     }
 }

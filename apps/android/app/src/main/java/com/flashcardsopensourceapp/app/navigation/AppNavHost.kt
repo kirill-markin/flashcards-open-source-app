@@ -11,6 +11,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.notifications.AppNotificationTapType
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 
 @Composable
@@ -21,7 +22,7 @@ fun AppNavHost(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val cardEditorRequest by appGraph.appHandoffCoordinator.observeCardEditor().collectAsStateWithLifecycle()
-    val reviewNotificationRequest by appGraph.appHandoffCoordinator.observeReviewNotification().collectAsStateWithLifecycle()
+    val appNotificationTapRequest by appGraph.appHandoffCoordinator.observeAppNotificationTap().collectAsStateWithLifecycle()
     val settingsNavigationRequest by appGraph.appHandoffCoordinator.observeSettingsNavigation().collectAsStateWithLifecycle()
     val packageInfo = remember(context) {
         loadPackageInfo(context = context)
@@ -36,12 +37,17 @@ fun AppNavHost(
         appGraph.appHandoffCoordinator.consumeCardEditor(requestId = request.requestId)
     }
 
-    LaunchedEffect(reviewNotificationRequest?.requestId) {
-        val request = reviewNotificationRequest ?: return@LaunchedEffect
-        navigateToTopLevelDestination(
-            navController = navController,
-            destination = ReviewDestination
-        )
+    LaunchedEffect(appNotificationTapRequest?.requestId) {
+        val request = appNotificationTapRequest ?: return@LaunchedEffect
+        when (request.request.type) {
+            AppNotificationTapType.REVIEW_REMINDER -> {
+                navigateToTopLevelDestination(
+                    navController = navController,
+                    destination = ReviewDestination
+                )
+            }
+        }
+        appGraph.appHandoffCoordinator.consumeAppNotificationTap(requestId = request.requestId)
     }
 
     LaunchedEffect(settingsNavigationRequest?.requestId) {

@@ -29,33 +29,16 @@ class ReviewNotificationWorker(
 
         val workspaceId = inputData.getString(reviewNotificationWorkspaceIdDataKey)
             ?: return Result.failure()
-        val cardId = inputData.getString(reviewNotificationCardIdDataKey)
-            ?: return Result.failure()
         val frontText = inputData.getString(reviewNotificationFrontTextDataKey)
             ?: return Result.failure()
         val requestId = inputData.getString(reviewNotificationRequestIdDataKey)
-            ?: return Result.failure()
-        val filterKind = inputData.getString(reviewNotificationFilterKindDataKey)
             ?: return Result.failure()
 
         val intent = Intent(applicationContext, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra(
-                "$reviewNotificationTapExtraPrefix::$reviewNotificationTapMarkerDataKey",
-                reviewNotificationTapMarkerValue
-            )
-            putExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationWorkspaceIdDataKey", workspaceId)
-            putExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationCardIdDataKey", cardId)
-            putExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFrontTextDataKey", frontText)
-            putExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationRequestIdDataKey", requestId)
-            putExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFilterKindDataKey", filterKind)
-            putExtra(
-                "$reviewNotificationTapExtraPrefix::$reviewNotificationFilterDeckIdDataKey",
-                inputData.getString(reviewNotificationFilterDeckIdDataKey)
-            )
-            putExtra(
-                "$reviewNotificationTapExtraPrefix::$reviewNotificationFilterTagDataKey",
-                inputData.getString(reviewNotificationFilterTagDataKey)
+                "$appNotificationTapExtraPrefix::$appNotificationTapTypeDataKey",
+                AppNotificationTapType.REVIEW_REMINDER.rawValue
             )
         }
         val pendingIntent = PendingIntent.getActivity(
