@@ -2,9 +2,9 @@
  * Worker entrypoint for backend-owned chat runs.
  * The HTTP route prepares and persists the run; the worker claims it and executes the model loop independently of the client connection.
  */
-import { logCloudRouteEvent } from "../server/logging";
 import { claimChatRun } from "./runs";
-import { runPersistedChatSession } from "./runtime";
+import { runPersistedChatSession, type ChatWorkerRunResult } from "./runtime";
+import { logChatWorkerLifecycleEvent } from "./workerLogging";
 
 export type ChatWorkerEvent = Readonly<{
   runId: string;
@@ -12,28 +12,69 @@ export type ChatWorkerEvent = Readonly<{
   workspaceId: string;
 }>;
 
+type ChatWorkerExecutionContext = Readonly<{
+  lambdaRequestId: string | null;
+}>;
+
 /**
  * Claims and executes one persisted chat run if it is still pending.
  */
-export async function handleChatWorkerEvent(event: ChatWorkerEvent): Promise<void> {
+export async function handleChatWorkerEvent(
+  event: ChatWorkerEvent,
+  executionContext: ChatWorkerExecutionContext,
+): Promise<void> {
   const claimedRun = await claimChatRun(event.userId, event.workspaceId, event.runId);
   if (claimedRun === null) {
-    logCloudRouteEvent("chat_worker_skip", {
+    logChatWorkerLifecycleEvent("chat_worker_skip", {
+      lambdaRequestId: executionContext.lambdaRequestId,
+      chatRequestId: null,
       runId: event.runId,
+      sessionId: null,
       userId: event.userId,
       workspaceId: event.workspaceId,
+    }, {
+      abortReason: null,
+      signalAborted: false,
+      cancellationRequested: false,
+      ownershipLost: false,
+      runStatus: null,
+      sessionState: null,
+      providerErrorClass: null,
+      providerErrorMessage: null,
+      providerRequestId: null,
+      heartbeatAt: null,
+      startedAt: null,
+      finishedAt: null,
     }, false);
     return;
   }
 
-  logCloudRouteEvent("chat_worker_start", {
+  const logContext = {
+    lambdaRequestId: executionContext.lambdaRequestId,
+    chatRequestId: claimedRun.requestId,
     runId: claimedRun.runId,
     sessionId: claimedRun.sessionId,
     userId: claimedRun.userId,
     workspaceId: claimedRun.workspaceId,
+  } as const;
+
+  logChatWorkerLifecycleEvent("chat_worker_claimed", logContext, {
+    abortReason: null,
+    signalAborted: false,
+    cancellationRequested: false,
+    ownershipLost: false,
+    runStatus: null,
+    sessionState: null,
+    providerErrorClass: null,
+    providerErrorMessage: null,
+    providerRequestId: null,
+    heartbeatAt: null,
+    startedAt: null,
+    finishedAt: null,
   }, false);
 
-  await runPersistedChatSession({
+  const result: ChatWorkerRunResult = await runPersistedChatSession({
+    lambdaRequestId: executionContext.lambdaRequestId,
     runId: claimedRun.runId,
     requestId: claimedRun.requestId,
     userId: claimedRun.userId,
@@ -46,10 +87,19 @@ export async function handleChatWorkerEvent(event: ChatWorkerEvent): Promise<voi
     diagnostics: claimedRun.diagnostics,
   });
 
-  logCloudRouteEvent("chat_worker_finish", {
-    runId: claimedRun.runId,
-    sessionId: claimedRun.sessionId,
-    userId: claimedRun.userId,
-    workspaceId: claimedRun.workspaceId,
+  logChatWorkerLifecycleEvent("chat_worker_finish", logContext, {
+    abortReason: result.abortReason,
+    signalAborted: result.abortReason !== null,
+    cancellationRequested: result.abortReason === "user_cancelled" || result.abortReason === "initial_cancel_state",
+    ownershipLost: result.abortReason === "ownership_lost",
+    runStatus: result.runStatus,
+    sessionState: result.sessionState,
+    providerErrorClass: null,
+    providerErrorMessage: null,
+    providerRequestId: null,
+    heartbeatAt: null,
+    startedAt: null,
+    finishedAt: null,
+    outcome: result.outcome,
   }, false);
 }

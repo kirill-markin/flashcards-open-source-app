@@ -507,6 +507,12 @@ async function finalizeInterruptedRunWithExecutor(
   );
 }
 
+/**
+ * Repairs a run only after its heartbeat is stale enough that no worker is
+ * expected to still own it.
+ * This is the only by-design recovery path that may finalize an abandoned run
+ * after a real worker disappearance.
+ */
 async function recoverStaleRunWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
@@ -789,7 +795,10 @@ export async function claimChatRun(
 }
 
 /**
- * Refreshes worker ownership for a claimed run and reports whether cancellation or ownership loss occurred.
+ * Refreshes worker ownership for a claimed run and reports whether cancellation
+ * or ownership loss occurred.
+ * The worker that loses ownership must stop mutating state immediately and must
+ * not persist a terminal state, because another worker may already own the run.
  */
 export async function touchClaimedChatRunHeartbeat(
   userId: string,

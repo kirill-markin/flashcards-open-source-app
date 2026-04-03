@@ -49,14 +49,13 @@ type OpenAILoopDependencies = Readonly<{
   }>) => Promise<ExecutedChatToolCall>;
 }>;
 
-type OpenAIStreamResult = Readonly<{
-  events: AsyncGenerator<ChatStreamEvent>;
-  completion: Promise<OpenAILoopCompletion>;
-}>;
-
 export type OpenAILoopCompletion = Readonly<{
   openaiItems: ReadonlyArray<StoredOpenAIReplayItem>;
 }>;
+
+export type OpenAILoopEventSink = (
+  event: ChatStreamEvent,
+) => Promise<void> | void;
 
 type ParsedFunctionToolCall = OpenAI.Responses.ResponseFunctionToolCall & Readonly<{
   parsed_arguments?: unknown;
@@ -91,12 +90,6 @@ export type StartOpenAILoopParams = Readonly<{
   signal?: AbortSignal;
 }>;
 
-type QueueState = {
-  readonly events: Array<ChatStreamEvent>;
-  resolver: ((result: IteratorResult<ChatStreamEvent>) => void) | null;
-  closed: boolean;
-};
-
 type ModelCallResult = Readonly<{
   finalResponse: OpenAI.Responses.Response;
   functionCalls: ReadonlyArray<ParsedFunctionToolCall>;
@@ -104,69 +97,6 @@ type ModelCallResult = Readonly<{
   streamedText: string;
   toolStates: ReturnType<typeof createToolCallStateMap>;
 }>;
-
-function createQueueState(): QueueState {
-  return {
-    events: [],
-    resolver: null,
-    closed: false,
-  };
-}
-
-function pushQueueEvent(queue: QueueState, event: ChatStreamEvent): void {
-  if (queue.closed) {
-    return;
-  }
-
-  if (queue.resolver !== null) {
-    const resolver = queue.resolver;
-    queue.resolver = null;
-    resolver({ done: false, value: event });
-    return;
-  }
-
-  queue.events.push(event);
-}
-
-function closeQueue(queue: QueueState): void {
-  if (queue.closed) {
-    return;
-  }
-
-  queue.closed = true;
-  if (queue.resolver !== null) {
-    const resolver = queue.resolver;
-    queue.resolver = null;
-    resolver({ done: true, value: undefined });
-  }
-}
-
-function createEventIterator(queue: QueueState): AsyncGenerator<ChatStreamEvent> {
-  return (async function* (): AsyncGenerator<ChatStreamEvent> {
-    while (true) {
-      if (queue.events.length > 0) {
-        const nextEvent = queue.events.shift();
-        if (nextEvent === undefined) {
-          throw new Error("OpenAI chat event queue unexpectedly returned no event");
-        }
-        yield nextEvent;
-        continue;
-      }
-
-      if (queue.closed) {
-        return;
-      }
-
-      const next = await new Promise<IteratorResult<ChatStreamEvent>>((resolve) => {
-        queue.resolver = resolve;
-      });
-      if (next.done) {
-        return;
-      }
-      yield next.value;
-    }
-  })();
-}
 
 function createToolCallPosition(
   event: OpenAI.Responses.ResponseOutputItemAddedEvent,
@@ -307,12 +237,16 @@ function createAssistantReplayMessage(text: string): StoredOpenAIReplayMessage {
   };
 }
 
-function pushSyntheticAssistantDelta(queue: QueueState, text: string, responseIndex: number): void {
+async function emitSyntheticAssistantDelta(
+  onEvent: OpenAILoopEventSink,
+  text: string,
+  responseIndex: number,
+): Promise<void> {
   if (text.trim().length === 0) {
     return;
   }
 
-  pushQueueEvent(queue, {
+  await onEvent({
     type: "delta",
     text,
     itemId: TOOL_LIMIT_FALLBACK_ITEM_ID,
@@ -366,7 +300,7 @@ function buildOpenAIResponsesRequest(
 async function runOneModelCall(
   client: OpenAI,
   params: StartOpenAILoopParams,
-  queue: QueueState,
+  onEvent: OpenAILoopEventSink,
   request: OpenAIResponsesRequest,
   callIndex: number,
 ): Promise<ModelCallResult> {
@@ -388,7 +322,7 @@ async function runOneModelCall(
 
     if (isOutputTextDelta(event)) {
       streamedText = `${streamedText}${event.delta}`;
-      pushQueueEvent(queue, {
+      await onEvent({
         type: "delta",
         text: event.delta,
         itemId: event.item_id,
@@ -409,7 +343,7 @@ async function runOneModelCall(
       );
       toolStates = update.toolStates;
       if (update.event !== null) {
-        pushQueueEvent(queue, update.event);
+        await onEvent(update.event);
       }
       continue;
     }
@@ -423,7 +357,7 @@ async function runOneModelCall(
       });
       toolStates = update.toolStates;
       if (update.event !== null) {
-        pushQueueEvent(queue, update.event);
+        await onEvent(update.event);
       }
       continue;
     }
@@ -437,7 +371,7 @@ async function runOneModelCall(
       });
       toolStates = update.toolStates;
       if (update.event !== null) {
-        pushQueueEvent(queue, update.event);
+        await onEvent(update.event);
       }
       continue;
     }
@@ -454,7 +388,7 @@ async function runOneModelCall(
       }
 
       reasoningSummaries.set(event.item_id, reasoningSummaries.get(event.item_id) ?? "");
-      pushQueueEvent(queue, {
+      await onEvent({
         type: "reasoning_summary",
         itemId: event.item_id,
         responseIndex: callIndex - 1,
@@ -478,7 +412,7 @@ async function runOneModelCall(
 
       const nextSummary = `${reasoningSummaries.get(event.item_id) ?? ""}${event.delta}`;
       reasoningSummaries.set(event.item_id, nextSummary);
-      pushQueueEvent(queue, {
+      await onEvent({
         type: "reasoning_summary",
         itemId: event.item_id,
         responseIndex: callIndex - 1,
@@ -503,7 +437,7 @@ async function runOneModelCall(
 
 async function completeToolLimitSummaryTurn(
   params: StartOpenAILoopParams,
-  queue: QueueState,
+  onEvent: OpenAILoopEventSink,
   client: OpenAI,
   baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>,
   continuationItems: Array<StoredOpenAIReplayItem>,
@@ -512,7 +446,7 @@ async function completeToolLimitSummaryTurn(
   const summaryCall = await runOneModelCall(
     client,
     params,
-    queue,
+    onEvent,
     buildOpenAIResponsesRequest(
       baseInput,
       continuationItems,
@@ -531,9 +465,9 @@ async function completeToolLimitSummaryTurn(
   if (summaryCall.functionCalls.length === 0 && finalAssistantText.length > 0) {
     continuationItems.push(...summaryCall.replayItems);
     if (summaryCall.streamedText.length === 0) {
-      pushSyntheticAssistantDelta(queue, finalAssistantText, summaryCallIndex - 1);
+      await emitSyntheticAssistantDelta(onEvent, finalAssistantText, summaryCallIndex - 1);
     }
-    pushQueueEvent(queue, { type: "done" });
+    await onEvent({ type: "done" });
     return {
       openaiItems: continuationItems,
     };
@@ -542,9 +476,9 @@ async function completeToolLimitSummaryTurn(
   const fallbackText = buildToolLimitFallbackText();
   continuationItems.push(createAssistantReplayMessage(fallbackText));
   if (summaryCall.streamedText.length === 0) {
-    pushSyntheticAssistantDelta(queue, fallbackText, summaryCallIndex - 1);
+    await emitSyntheticAssistantDelta(onEvent, fallbackText, summaryCallIndex - 1);
   }
-  pushQueueEvent(queue, { type: "done" });
+  await onEvent({ type: "done" });
   return {
     openaiItems: continuationItems,
   };
@@ -552,7 +486,7 @@ async function completeToolLimitSummaryTurn(
 
 async function runLoopWithDeps(
   params: StartOpenAILoopParams,
-  queue: QueueState,
+  onEvent: OpenAILoopEventSink,
   dependencies: OpenAILoopDependencies,
 ): Promise<OpenAILoopCompletion> {
   const client = dependencies.getObservedOpenAIClient();
@@ -567,7 +501,7 @@ async function runLoopWithDeps(
     const modelCall = await runOneModelCall(
       client,
       params,
-      queue,
+      onEvent,
       buildOpenAIResponsesRequest(baseInput, continuationItems, params.sessionId),
       callIndex,
     );
@@ -575,7 +509,7 @@ async function runLoopWithDeps(
     continuationItems.push(...modelCall.replayItems);
 
     if (modelCall.functionCalls.length === 0) {
-      pushQueueEvent(queue, { type: "done" });
+      await onEvent({ type: "done" });
       return {
         openaiItems: continuationItems,
       };
@@ -603,7 +537,7 @@ async function runLoopWithDeps(
       );
       toolStates = update.toolStates;
       if (update.event !== null) {
-        pushQueueEvent(queue, update.event);
+        await onEvent(update.event);
       }
       continuationItems.push(toStoredOpenAIReplayItem(
         toFunctionCallOutputInputItem(functionCall.call_id, output.output),
@@ -613,7 +547,7 @@ async function runLoopWithDeps(
     if (callIndex === CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS) {
       return completeToolLimitSummaryTurn(
         params,
-        queue,
+        onEvent,
         client,
         baseInput,
         continuationItems,
@@ -625,28 +559,23 @@ async function runLoopWithDeps(
 }
 
 /**
- * Starts the OpenAI loop with injectable dependencies for tests and worker orchestration.
+ * Runs the OpenAI loop inside one awaited control flow so provider aborts
+ * cannot escape through an unobserved background promise.
  */
 export async function startOpenAILoopWithDeps(
   params: StartOpenAILoopParams,
+  onEvent: OpenAILoopEventSink,
   dependencies: OpenAILoopDependencies,
-): Promise<OpenAIStreamResult> {
-  const queue = createQueueState();
-  const completion = runLoopWithDeps(params, queue, dependencies).finally(() => {
-    closeQueue(queue);
-  });
-
-  return {
-    events: createEventIterator(queue),
-    completion,
-  };
+): Promise<OpenAILoopCompletion> {
+  return runLoopWithDeps(params, onEvent, dependencies);
 }
 
 /**
- * Starts the OpenAI loop with the production dependency set.
+ * Runs the OpenAI loop with the production dependency set.
  */
 export async function startOpenAILoop(
   params: StartOpenAILoopParams,
-): Promise<OpenAIStreamResult> {
-  return startOpenAILoopWithDeps(params, DEFAULT_OPENAI_LOOP_DEPENDENCIES);
+  onEvent: OpenAILoopEventSink,
+): Promise<OpenAILoopCompletion> {
+  return startOpenAILoopWithDeps(params, onEvent, DEFAULT_OPENAI_LOOP_DEPENDENCIES);
 }

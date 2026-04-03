@@ -4,6 +4,8 @@ import { initializeLangfuseTelemetry } from "./telemetry/langfuse";
 
 initializeLangfuseTelemetry();
 
-export const handler: Handler<ChatWorkerEvent, void> = async (event) => {
-  await handleChatWorkerEvent(event);
+export const handler: Handler<ChatWorkerEvent, void> = async (event, context) => {
+  await handleChatWorkerEvent(event, {
+    lambdaRequestId: context.awsRequestId ?? null,
+  });
 };
