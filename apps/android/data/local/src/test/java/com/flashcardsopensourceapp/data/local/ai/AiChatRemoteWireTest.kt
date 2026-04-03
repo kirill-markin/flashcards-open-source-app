@@ -96,7 +96,7 @@ class AiChatRemoteWireTest {
                 resumeDiagnostics = AiChatResumeDiagnostics(
                     resumeAttemptId = 41L,
                     clientPlatform = "android",
-                    clientVersion = "1.0.0"
+                    clientVersion = "1.1.0"
                 )
             )
 
@@ -106,7 +106,7 @@ class AiChatRemoteWireTest {
             assertEquals("5", response.activeRun?.live?.cursor)
             assertEquals("41", headersRef.get()["X-chat-resume-attempt-id"])
             assertEquals("android", headersRef.get()["X-client-platform"])
-            assertEquals("1.0.0", headersRef.get()["X-client-version"])
+            assertEquals("1.1.0", headersRef.get()["X-client-version"])
         } finally {
             server.stop(0)
         }
@@ -237,13 +237,13 @@ class AiChatRemoteWireTest {
                 resumeDiagnostics = AiChatResumeDiagnostics(
                     resumeAttemptId = 42L,
                     clientPlatform = "android",
-                    clientVersion = "1.0.0"
+                    clientVersion = "1.1.0"
                 )
             ).toList()
 
             assertEquals("42", headersRef.get()["X-chat-resume-attempt-id"])
             assertEquals("android", headersRef.get()["X-client-platform"])
-            assertEquals("1.0.0", headersRef.get()["X-client-version"])
+            assertEquals("1.1.0", headersRef.get()["X-client-version"])
             assertEquals("Live token-2", headersRef.get()["Authorization"])
             assertTrue(queryRef.get().contains("sessionId=session-1"))
             assertTrue(queryRef.get().contains("runId=run-1"))

@@ -13,7 +13,7 @@ struct CloudSyncTransport {
 
     func appVersion() -> String {
         let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-        return shortVersion ?? "1.0.1"
+        return shortVersion ?? "1.1.0"
     }
 
     func paginatedPath(basePath: String, cursor: String?) -> String {
