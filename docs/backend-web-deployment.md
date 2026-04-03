@@ -116,15 +116,16 @@ The release workflow assembles its own `cdk.context.local.json` inside the job f
 For AWS-backed changes, the main-branch order is:
 
 1. detect whether AWS-related paths changed
-2. run the pre-deploy API/auth/backend/web/infra checks inside `AWS/Web Release`
+2. run the pre-deploy API/auth/backend/web/infra checks inside `AWS/Web Release`, including the auth route tests
 3. deploy backend, auth, infra, and web to production
 4. run the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts`
-5. finish green if the smoke passes
-6. finish red if the smoke fails, without rolling production back
+5. run the external agent API smoke in `scripts/check-agent-api-smoke.sh`
+6. finish green only if both post-deploy checks pass
+7. finish red if either post-deploy smoke fails, without rolling production back
 
 Manual `workflow_dispatch` runs use the same embedded pre-deploy checks before the release starts.
 
-This repository does not try to prove backend and web correctness with exhaustive test coverage before deploy. The highest-confidence automated signal is the real Playwright live smoke that runs against the deployed environment closest to production, and any additional non-smoke tests should stay targeted to important module boundaries or contracts.
+This repository does not try to prove backend and web correctness with exhaustive test coverage before deploy. The highest-confidence automated signals are the real Playwright web smoke and the real agent API smoke that run against the deployed environment closest to production, and any additional non-smoke tests should stay targeted to important module boundaries or contracts.
 
 After pushing to `main`, watch `AWS/Web Release` until the release either finishes green or fails clearly after deploy. This pipeline is intentionally fix-forward only: a failed post-deploy smoke leaves the deployed AWS/Web release in place, marks that run failed, and the next push must still be allowed to deploy.
 

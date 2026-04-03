@@ -25,5 +25,6 @@ jobs:
         env:
           FLASHCARDS_LIVE_E2E_REVIEW_EMAILS: "apple-review@example.com,google-review@example.com"
           FLASHCARDS_LIVE_E2E_WORKSPACE_PREFIX: "E2E "
+          FLASHCARDS_LIVE_E2E_AGENT_CONNECTION_LABEL_PREFIX: "E2E agent api "
           FLASHCARDS_LIVE_E2E_WORKSPACE_TTL_HOURS: "48"
         run: node scripts/cleanup-live-e2e-workspaces.mjs
