@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 private const val noSpeechRecordedMessage: String = "No speech was recorded."
 private const val aiChatBootstrapPageLimit: Int = 20
 private const val aiChatClientPlatform: String = "android"
-private const val aiChatClientVersion: String = "1.0.0"
+private const val aiChatClientVersion: String = "1.1.0"
 
 private enum class AiServerSnapshotApplyMode {
     ACTIVE,

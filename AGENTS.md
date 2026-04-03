@@ -22,6 +22,7 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 
 We support the web app, the iOS app, the Android app, and the terminal-first AI-agent API flow. When making changes, we try to keep all supported clients aligned where relevant.
 The platform READMEs are part of the working agreement for client work: [apps/web/README.md](apps/web/README.md) for web changes, [apps/ios/README.md](apps/ios/README.md) for iOS changes, and [apps/android/README.md](apps/android/README.md) for Android changes.
+Before bumping release versions anywhere in the repo, read [docs/version-bump.md](docs/version-bump.md) and follow that flow so backend, web, Android, iOS, runtime-reported versions, and release metadata stay aligned.
 
 ## Testing Philosophy
 

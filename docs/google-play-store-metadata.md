@@ -22,9 +22,9 @@ The app is open source, and the same stack can be self-hosted. Support, privacy 
 
 ## Release Notes
 
-### 1.0.0
+### 1.1.0
 
-First public Android release with offline-first flashcards, FSRS review, decks and tags, optional cloud sync, and optional AI chat.
+Minor release that keeps backend, web, Android, and iOS app versions aligned at 1.1.0.
 
 ## App Access And Reviewer Notes
 
