@@ -75,6 +75,28 @@ If store or release metadata includes the current app version, update it in the 
 
 - `docs/google-play-store-metadata.md`
 
+## App Store release notes
+
+When preparing iOS App Store release notes for a new version, compare the new
+release against the previous version that was actually released to users.
+
+Do not write the notes from branch history, technical implementation detail, or
+internal infrastructure changes alone. Start from the commit range between the
+previous released version tag and the new release version, then summarize only
+the user-visible changes.
+
+The preferred tone is short, plain English from the user's point of view:
+
+- describe visible improvements or new behavior
+- group technical work under concise wording such as `minor bug fixes` or
+  `performance improvements`
+- omit internal refactors, test-only work, CI/CD changes, and backend-only
+  plumbing unless users would notice the result directly
+
+For this repository, a `git log` review of commit titles across the version range
+is usually enough for a first draft, and deeper code inspection is only needed
+when the user-facing effect is unclear.
+
 ## Expected Flow
 
 1. Choose the next semantic version.
