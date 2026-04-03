@@ -4,7 +4,7 @@ Open-source offline-first flashcards app for iOS, Android, and web.
 
 ![Flashcards Open Source App screenshots](docs/images/ios-app-screenshots.jpeg)
 
-Flashcards Open Source App is an open-source Anki-like flashcards app built for fast daily study on iOS, Android, and the web. It is offline-first, so you can create cards, review with spaced repetition, and keep studying locally before syncing with the backend. The project also includes an external agent API for terminal and AI-agent workflows.
+Flashcards Open Source App is an open-source Anki-like flashcards app built for fast daily study on iOS, Android, and the web. Use it to learn vocabulary, technical terms, definitions, facts, code concepts, and other material you want to remember. It is offline-first, so you can create cards, review with spaced repetition, and keep studying locally before syncing with the backend. The project also includes an external agent API for terminal and AI-agent workflows.
 
 ## Available on
 
