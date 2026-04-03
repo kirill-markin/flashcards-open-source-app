@@ -10,6 +10,17 @@ cp apps/ios/Flashcards/Config/Local.xcconfig.example apps/ios/Flashcards/Config/
 
 `Local.xcconfig` is gitignored and must be filled on each machine that builds the iOS app.
 
+If you want local signed archives to reuse the same values as Xcode Cloud, keep
+the `XCODE_CLOUD_*` keys in the repo-root `.env` and regenerate
+`Local.xcconfig` with:
+
+```bash
+sh apps/ios/Flashcards/ci_scripts/ci_post_clone.sh
+```
+
+The script reads the same `XCODE_CLOUD_*` keys from Xcode Cloud workflow
+environment variables in CI and from the local root `.env` outside Xcode Cloud.
+
 ## Required values
 
 The app reads hosted service and legal/support values from `Local.xcconfig`.
@@ -46,6 +57,8 @@ Set the same values in the Xcode Cloud workflow environment. These values are ma
 - `XCODE_CLOUD_SUPPORT_EMAIL_ADDRESS`
 
 `apps/ios/Flashcards/ci_scripts/ci_post_clone.sh` writes those values into the generated `Config/Local.xcconfig` file during Xcode Cloud builds.
+The same script can be run locally and will read the repo-root `.env` when those
+keys are present there.
 
 Xcode Cloud builds now fail in `ci_post_clone.sh` before `xcodebuild` starts if any required value is missing or if any URL value does not start with `https:/$()/`.
 
