@@ -115,12 +115,12 @@ func aiChatCameraPresentationResult(
         case .blocked, .askEveryTime:
             return .stopSilently
         case .limited, .unavailable:
-            return .showAlert(.generalError(message: "Camera is not available on this device."))
+            return .showAlert(.generalError(title: "Error", message: "Camera is not available on this device."))
         }
     case .blocked, .limited:
         return .showAlert(.attachmentSettings(source: .camera))
     case .unavailable:
-        return .showAlert(.generalError(message: "Camera is not available on this device."))
+        return .showAlert(.generalError(title: "Error", message: "Camera is not available on this device."))
     }
 }
 
@@ -142,12 +142,12 @@ func aiChatPhotoPresentationResult(
         case .blocked, .askEveryTime:
             return .stopSilently
         case .unavailable:
-            return .showAlert(.generalError(message: "Photo access is not available on this device."))
+            return .showAlert(.generalError(title: "Error", message: "Photo access is not available on this device."))
         }
     case .blocked:
         return .showAlert(.attachmentSettings(source: .photos))
     case .unavailable:
-        return .showAlert(.generalError(message: "Photo access is not available on this device."))
+        return .showAlert(.generalError(title: "Error", message: "Photo access is not available on this device."))
     }
 }
 
@@ -156,7 +156,7 @@ func aiChatFileImportAlert(error: Error) -> AIChatAlert {
         return .attachmentSettings(source: .files)
     }
 
-    return .generalError(message: Flashcards.errorMessage(error: error))
+    return aiChatGeneralErrorAlert(error: error, resumeAttemptSequence: nil)
 }
 
 func aiChatIsFilePermissionError(error: Error) -> Bool {

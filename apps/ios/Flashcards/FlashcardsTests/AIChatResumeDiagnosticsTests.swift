@@ -82,6 +82,11 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Chat-Resume-Attempt-Id"), "12")
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Client-Platform"), aiChatClientPlatform)
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Client-Version"), aiChatAppVersion())
+            let components = URLComponents(url: try XCTUnwrap(request.url), resolvingAgainstBaseURL: false)
+            let queryItems = components?.queryItems ?? []
+            XCTAssertEqual(queryItems.first(where: { $0.name == "sessionId" })?.value, "session-1")
+            XCTAssertEqual(queryItems.first(where: { $0.name == "runId" })?.value, "run-1")
+            XCTAssertEqual(queryItems.first(where: { $0.name == "afterCursor" })?.value, "5")
             expectation.fulfill()
             let body = """
             event: run_terminal
@@ -103,12 +108,41 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             liveUrl: "https://api.example.com/chat/live",
             authorization: "Live token",
             sessionId: "session-1",
+            runId: "run-1",
             afterCursor: "5",
             configurationMode: .official,
             resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics(sequence: 12)
         )
         await self.fulfillment(of: [expectation], timeout: 1.0)
-        withExtendedLifetime(stream) {}
+        var iterator = stream.makeAsyncIterator()
+        let firstEvent = try await iterator.next()
+        XCTAssertNotNil(firstEvent)
+    }
+
+    func testLiveStreamErrorAlertUsesReadableSummaryAndDetails() {
+        let error = AIChatLiveStreamError.invalidStatusCode(
+            httpStatusCode: 400,
+            errorDetails: CloudApiErrorDetails(
+                message: "AI live stream request is missing runId.",
+                requestId: "request-400",
+                code: "CHAT_LIVE_RUN_ID_REQUIRED"
+            ),
+            configurationMode: .official
+        )
+
+        let alert = aiChatGeneralErrorAlert(error: error, resumeAttemptSequence: 4)
+
+        XCTAssertEqual(alert.title, "Couldn't Continue the AI Response")
+        XCTAssertEqual(
+            alert.message,
+            [
+                "AI live stream request is missing runId.",
+                "Reference: request-400",
+                "Status: 400",
+                "Code: CHAT_LIVE_RUN_ID_REQUIRED",
+                "Resume Attempt: 4",
+            ].joined(separator: "\n")
+        )
     }
 
     private func makeURLSession() -> URLSession {

@@ -21,6 +21,7 @@ actor AIChatLiveStreamClient {
         liveUrl: String,
         authorization: String,
         sessionId: String,
+        runId: String,
         afterCursor: String?,
         configurationMode: CloudServiceConfigurationMode,
         resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
@@ -32,15 +33,20 @@ actor AIChatLiveStreamClient {
                 let url = try makeAIChatLiveStreamURL(
                     liveUrl: liveUrl,
                     sessionId: sessionId,
+                    runId: runId,
                     afterCursor: afterCursor
                 )
                 logAIChatLiveClientEvent(
                     action: "ai_live_connect_start",
                     metadata: [
                         "sessionId": sessionId,
+                        "runId": runId,
                         "afterCursor": afterCursor ?? "-",
                         "liveUrl": liveUrl
                     ]
+                    .merging(
+                        resumeAttemptDiagnostics.map { ["resumeAttempt": $0.headerValue] } ?? [:]
+                    ) { _, newValue in newValue }
                 )
 
                 var request = URLRequest(url: url)
@@ -61,6 +67,7 @@ actor AIChatLiveStreamClient {
                 let delegate = AIChatLiveStreamTaskDelegate(
                     continuation: continuation,
                     sessionId: sessionId,
+                    runId: runId,
                     afterCursor: afterCursor,
                     configurationMode: configurationMode,
                     decoder: decoder
@@ -92,6 +99,7 @@ actor AIChatLiveStreamClient {
 private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
     private let continuation: AsyncThrowingStream<AIChatLiveEvent, Error>.Continuation
     private let sessionId: String
+    private let runId: String
     private let afterCursor: String?
     private let configurationMode: CloudServiceConfigurationMode
     private let decoder: JSONDecoder
@@ -107,12 +115,14 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
     init(
         continuation: AsyncThrowingStream<AIChatLiveEvent, Error>.Continuation,
         sessionId: String,
+        runId: String,
         afterCursor: String?,
         configurationMode: CloudServiceConfigurationMode,
         decoder: JSONDecoder
     ) {
         self.continuation = continuation
         self.sessionId = sessionId
+        self.runId = runId
         self.afterCursor = afterCursor
         self.configurationMode = configurationMode
         self.decoder = decoder
@@ -140,6 +150,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
             action: "ai_live_http_response",
             metadata: [
                 "sessionId": self.sessionId,
+                "runId": self.runId,
                 "afterCursor": self.afterCursor ?? "-",
                 "statusCode": String(httpResponse.statusCode),
                 "requestId": extractAIChatLiveRequestId(httpResponse: httpResponse) ?? "-"
@@ -183,6 +194,17 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
         if let error {
             let nsError = error as NSError
             if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                logAIChatLiveClientEvent(
+                    action: "ai_live_cancelled",
+                    metadata: [
+                        "sessionId": self.sessionId,
+                        "runId": self.runId,
+                        "afterCursor": self.afterCursor ?? "-",
+                        "statusCode": self.httpResponse.map { String($0.statusCode) } ?? "-",
+                        "requestId": self.httpResponse.flatMap(extractAIChatLiveRequestId(httpResponse:)) ?? "-",
+                        "failureKind": "cancelled"
+                    ]
+                )
                 self.finish()
                 return
             }
@@ -282,6 +304,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
                 action: "ai_live_event_parse_failed",
                 metadata: [
                     "sessionId": self.sessionId,
+                    "runId": self.runId,
                     "afterCursor": self.afterCursor ?? "-",
                     "eventType": self.currentEventType ?? "-",
                     "payloadSnippet": aiChatLiveTruncatedSnippet(payload),
@@ -313,11 +336,13 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
                 action: "ai_live_finish_error",
                 metadata: [
                     "sessionId": self.sessionId,
+                    "runId": self.runId,
                     "afterCursor": self.afterCursor ?? "-",
                     "statusCode": self.httpResponse.map { String($0.statusCode) } ?? "-",
                     "requestId": self.httpResponse.flatMap(extractAIChatLiveRequestId(httpResponse:)) ?? "-",
                     "error": error.localizedDescription
                 ]
+                .merging(aiChatErrorLogMetadata(error: error)) { _, newValue in newValue }
             )
             self.continuation.finish(throwing: error)
             return
@@ -327,6 +352,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
             action: "ai_live_finish",
             metadata: [
                 "sessionId": self.sessionId,
+                "runId": self.runId,
                 "afterCursor": self.afterCursor ?? "-",
                 "statusCode": self.httpResponse.map { String($0.statusCode) } ?? "-",
                 "requestId": self.httpResponse.flatMap(extractAIChatLiveRequestId(httpResponse:)) ?? "-"
@@ -339,10 +365,11 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
         let liveMetadata = aiChatLiveEventMetadata(event)
         var metadata: [String: String] = [
             "sessionId": self.sessionId,
+            "requestedRunId": self.runId,
             "afterCursor": self.afterCursor ?? "-",
             "eventSessionId": liveMetadata.sessionId,
             "conversationScopeId": liveMetadata.conversationScopeId,
-            "runId": liveMetadata.runId,
+            "eventRunId": liveMetadata.runId,
             "cursor": liveMetadata.cursor ?? "-",
             "sequenceNumber": String(liveMetadata.sequenceNumber),
             "streamEpoch": liveMetadata.streamEpoch
@@ -444,6 +471,7 @@ enum AIChatLiveStreamError: LocalizedError {
 private func makeAIChatLiveStreamURL(
     liveUrl: String,
     sessionId: String,
+    runId: String,
     afterCursor: String?
 ) throws -> URL {
     guard var components = URLComponents(string: liveUrl) else {
@@ -452,9 +480,10 @@ private func makeAIChatLiveStreamURL(
 
     var queryItems = components.queryItems ?? []
     queryItems.removeAll { item in
-        item.name == "sessionId" || item.name == "afterCursor"
+        item.name == "sessionId" || item.name == "runId" || item.name == "afterCursor"
     }
     queryItems.append(URLQueryItem(name: "sessionId", value: sessionId))
+    queryItems.append(URLQueryItem(name: "runId", value: runId))
     if let afterCursor, afterCursor.isEmpty == false {
         queryItems.append(URLQueryItem(name: "afterCursor", value: afterCursor))
     }
@@ -492,6 +521,67 @@ private func aiChatLiveTruncatedSnippet(_ value: String) -> String {
 
 private func logAIChatLiveClientEvent(action: String, metadata: [String: String]) {
     logFlashcardsError(domain: "ios_ai_live", action: action, metadata: metadata)
+}
+
+func aiChatErrorLogMetadata(error: Error) -> [String: String] {
+    if let liveStreamError = error as? AIChatLiveStreamError {
+        switch liveStreamError {
+        case .invalidUrl:
+            return [
+                "failureKind": "local_contract_failure",
+                "stage": AIChatFailureStage.requestBuild.rawValue,
+                "errorKind": AIChatFailureKind.invalidBaseUrl.rawValue,
+            ]
+        case .invalidResponse:
+            return [
+                "failureKind": "transport_failure",
+                "stage": AIChatFailureStage.invalidHttpResponse.rawValue,
+                "errorKind": AIChatFailureKind.invalidHttpResponse.rawValue,
+            ]
+        case .invalidStatusCode(let httpStatusCode, let errorDetails, _):
+            var metadata: [String: String] = [
+                "failureKind": "backend_http_failure",
+                "statusCode": String(httpStatusCode),
+                "stage": AIChatFailureStage.responseNotOk.rawValue,
+                "errorKind": AIChatFailureKind.invalidHttpResponse.rawValue,
+            ]
+            if let requestId = errorDetails.requestId, requestId.isEmpty == false {
+                metadata["backendRequestId"] = requestId
+            }
+            if let code = errorDetails.code, code.isEmpty == false {
+                metadata["backendCode"] = code
+            }
+            return metadata
+        }
+    }
+
+    if let diagnosticError = error as? AIChatFailureDiagnosticProviding {
+        var metadata: [String: String] = [
+            "failureKind": diagnosticError is AIChatLiveStreamSetupError
+                ? "local_contract_failure"
+                : "invalid_sse_payload",
+            "stage": diagnosticError.diagnostics.stage.rawValue,
+            "errorKind": diagnosticError.diagnostics.errorKind.rawValue,
+        ]
+        if let statusCode = diagnosticError.diagnostics.statusCode {
+            metadata["statusCode"] = String(statusCode)
+        }
+        if let backendRequestId = diagnosticError.diagnostics.backendRequestId,
+           backendRequestId.isEmpty == false {
+            metadata["backendRequestId"] = backendRequestId
+        }
+        if let continuationAttempt = diagnosticError.diagnostics.continuationAttempt {
+            metadata["resumeAttempt"] = String(continuationAttempt)
+        }
+        return metadata
+    }
+
+    let nsError = error as NSError
+    return [
+        "failureKind": "transport_failure",
+        "errorDomain": nsError.domain,
+        "errorCode": String(nsError.code),
+    ]
 }
 
 struct AIChatLiveEventDecodingContext: Sendable {

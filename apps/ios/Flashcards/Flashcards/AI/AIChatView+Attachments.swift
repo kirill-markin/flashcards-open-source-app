@@ -23,7 +23,7 @@ extension AIChatView {
             )
             self.chatStore.appendAttachment(attachment)
         } catch {
-            self.chatStore.showGeneralError(message: Flashcards.errorMessage(error: error))
+            self.chatStore.showGeneralError(error: error)
         }
 
         self.selectedPhotoItem = nil
@@ -41,7 +41,7 @@ extension AIChatView {
             )
             self.chatStore.appendAttachment(attachment)
         } catch {
-            self.chatStore.showGeneralError(message: Flashcards.errorMessage(error: error))
+            self.chatStore.showGeneralError(error: error)
         }
     }
 

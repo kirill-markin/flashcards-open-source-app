@@ -34,7 +34,7 @@ enum AIChatAttachmentSettingsSource: String, Equatable {
 enum AIChatAlert: Identifiable, Equatable {
     case microphoneSettings
     case attachmentSettings(source: AIChatAttachmentSettingsSource)
-    case generalError(message: String)
+    case generalError(title: String, message: String)
 
     var id: String {
         switch self {
@@ -42,8 +42,8 @@ enum AIChatAlert: Identifiable, Equatable {
             return "microphone-settings"
         case .attachmentSettings(let source):
             return "attachment-settings-\(source.rawValue)"
-        case .generalError(let message):
-            return "general-error-\(message)"
+        case .generalError(let title, let message):
+            return "general-error-\(title)-\(message)"
         }
     }
 
@@ -53,8 +53,8 @@ enum AIChatAlert: Identifiable, Equatable {
             return "Microphone Access Needed"
         case .attachmentSettings(let source):
             return source.title
-        case .generalError:
-            return "Error"
+        case .generalError(let title, _):
+            return title
         }
     }
 
@@ -64,7 +64,7 @@ enum AIChatAlert: Identifiable, Equatable {
             return "Microphone access is turned off for Flashcards Open Source App. Open Settings to allow it."
         case .attachmentSettings(let source):
             return source.message
-        case .generalError(let message):
+        case .generalError(_, let message):
             return message
         }
     }
@@ -513,12 +513,20 @@ final class AIChatStore {
 
     func showGeneralError(message: String) {
         self.activeResumeErrorAttemptSequence = nil
-        self.activeAlert = .generalError(message: message)
+        self.activeAlert = .generalError(title: "Error", message: message)
+    }
+
+    func showGeneralError(error: Error) {
+        self.activeResumeErrorAttemptSequence = nil
+        self.activeAlert = aiChatGeneralErrorAlert(
+            error: error,
+            resumeAttemptSequence: self.activeLiveResumeAttemptSequence
+        )
     }
 
     func showResumeGeneralError(message: String, resumeAttemptSequence: Int) {
         self.activeResumeErrorAttemptSequence = resumeAttemptSequence
-        self.activeAlert = .generalError(message: message)
+        self.activeAlert = .generalError(title: "Error", message: message)
     }
 
     func nextResumeAttemptDiagnostics() -> AIChatResumeAttemptDiagnostics {
@@ -536,7 +544,7 @@ final class AIChatStore {
         guard activeResumeErrorAttemptSequence < connectedResumeAttemptSequence else {
             return
         }
-        guard case .generalError(let message) = self.activeAlert,
+        guard case .generalError(_, let message) = self.activeAlert,
               message == "AI live stream is unavailable for the active run."
         else {
             return
@@ -594,7 +602,7 @@ final class AIChatStore {
                 }
             } catch {
                 await MainActor.run {
-                    self.showGeneralError(message: Flashcards.errorMessage(error: error))
+                    self.showGeneralError(error: error)
                 }
             }
         }
@@ -1009,7 +1017,7 @@ final class AIChatStore {
                 self.handleStartDictationError(recorderError)
             } catch {
                 self.dictationState = .idle
-                self.showGeneralError(message: Flashcards.errorMessage(error: error))
+                self.showGeneralError(error: error)
             }
         }
     }
@@ -1059,10 +1067,10 @@ final class AIChatStore {
                         buttonTitle: aiChatGuestQuotaButtonTitle
                     )
                 default:
-                    self.showGeneralError(message: Flashcards.errorMessage(error: transcriptionError))
+                    self.showGeneralError(error: transcriptionError)
                 }
             } catch {
-                self.showGeneralError(message: Flashcards.errorMessage(error: error))
+                self.showGeneralError(error: error)
             }
 
             self.dictationState = .idle
@@ -1076,7 +1084,7 @@ final class AIChatStore {
         case .microphoneBlocked:
             self.showMicrophoneSettingsAlert()
         default:
-            self.showGeneralError(message: Flashcards.errorMessage(error: error))
+            self.showGeneralError(error: error)
         }
     }
 
@@ -1087,7 +1095,7 @@ final class AIChatStore {
         case .microphoneBlocked:
             self.showMicrophoneSettingsAlert()
         default:
-            self.showGeneralError(message: Flashcards.errorMessage(error: error))
+            self.showGeneralError(error: error)
         }
     }
 
@@ -1141,7 +1149,7 @@ final class AIChatStore {
         }
 
         if didAcceptRun == false && isAIChatOfflineSendError(error: error) {
-            self.showGeneralError(message: Flashcards.errorMessage(error: error))
+            self.showGeneralError(error: error)
             return
         }
 
@@ -1156,11 +1164,11 @@ final class AIChatStore {
         }
 
         if didAcceptRun == false {
-            self.showGeneralError(message: Flashcards.errorMessage(error: error))
+            self.showGeneralError(error: error)
             return
         }
 
-        self.showGeneralError(message: Flashcards.errorMessage(error: error))
+        self.showGeneralError(error: error)
     }
 
     private func currentAccessContext() -> AIChatAccessContext {
@@ -1542,6 +1550,168 @@ func isOptimisticAIChatStatusContent(content: [AIChatContentPart]) -> Bool {
 
 func logAIChatStoreEvent(action: String, metadata: [String: String]) {
     logFlashcardsError(domain: "ios_ai_store", action: action, metadata: metadata)
+}
+
+private struct AIChatAlertPresentation {
+    let title: String
+    let message: String
+}
+
+func aiChatGeneralErrorAlert(
+    error: Error,
+    resumeAttemptSequence: Int?
+) -> AIChatAlert {
+    let presentation = aiChatAlertPresentation(
+        error: error,
+        resumeAttemptSequence: resumeAttemptSequence
+    )
+    return .generalError(title: presentation.title, message: presentation.message)
+}
+
+private func aiChatAlertPresentation(
+    error: Error,
+    resumeAttemptSequence: Int?
+) -> AIChatAlertPresentation {
+    if let liveError = error as? AIChatLiveStreamError {
+        return aiChatAlertPresentation(
+            liveError: liveError,
+            resumeAttemptSequence: resumeAttemptSequence
+        )
+    }
+
+    if let diagnosticError = error as? AIChatFailureDiagnosticProviding {
+        return aiChatAlertPresentation(
+            diagnostics: diagnosticError.diagnostics,
+            summary: aiChatFailureSummary(error: error),
+            rawDetails: nil,
+            code: nil,
+            statusCode: nil,
+            requestId: nil,
+            resumeAttemptSequence: resumeAttemptSequence
+        )
+    }
+
+    return AIChatAlertPresentation(
+        title: "Error",
+        message: Flashcards.errorMessage(error: error)
+    )
+}
+
+private func aiChatAlertPresentation(
+    liveError: AIChatLiveStreamError,
+    resumeAttemptSequence: Int?
+) -> AIChatAlertPresentation {
+    switch liveError {
+    case .invalidStatusCode(let httpStatusCode, let errorDetails, _):
+        let summary = "Couldn't Continue the AI Response"
+        let rawDetails = errorDetails.message
+        return aiChatAlertPresentation(
+            diagnostics: nil,
+            summary: summary,
+            rawDetails: rawDetails,
+            code: errorDetails.code,
+            statusCode: httpStatusCode,
+            requestId: errorDetails.requestId,
+            resumeAttemptSequence: resumeAttemptSequence
+        )
+    case .invalidResponse:
+        return aiChatAlertPresentation(
+            diagnostics: nil,
+            summary: "Couldn't Continue the AI Response",
+            rawDetails: "The AI live stream did not receive an HTTP response.",
+            code: nil,
+            statusCode: nil,
+            requestId: nil,
+            resumeAttemptSequence: resumeAttemptSequence
+        )
+    case .invalidUrl:
+        return aiChatAlertPresentation(
+            diagnostics: nil,
+            summary: "AI Configuration Error",
+            rawDetails: "The AI live stream URL is invalid.",
+            code: nil,
+            statusCode: nil,
+            requestId: nil,
+            resumeAttemptSequence: resumeAttemptSequence
+        )
+    }
+}
+
+private func aiChatAlertPresentation(
+    diagnostics: AIChatFailureDiagnostics?,
+    summary: String,
+    rawDetails: String?,
+    code: String?,
+    statusCode: Int?,
+    requestId: String?,
+    resumeAttemptSequence: Int?
+) -> AIChatAlertPresentation {
+    var detailLines: [String] = []
+
+    if let rawDetails, rawDetails.isEmpty == false {
+        detailLines.append(rawDetails)
+    }
+
+    let effectiveRequestId = requestId ?? diagnostics?.backendRequestId
+    if let effectiveRequestId, effectiveRequestId.isEmpty == false {
+        detailLines.append("Reference: \(effectiveRequestId)")
+    } else if let clientRequestId = diagnostics?.clientRequestId, clientRequestId.isEmpty == false {
+        detailLines.append("Debug: \(clientRequestId)")
+    }
+
+    let effectiveStatusCode = statusCode ?? diagnostics?.statusCode
+    if let effectiveStatusCode {
+        detailLines.append("Status: \(effectiveStatusCode)")
+    }
+
+    let effectiveCode = code
+    if let effectiveCode, effectiveCode.isEmpty == false {
+        detailLines.append("Code: \(effectiveCode)")
+    }
+
+    if let stage = diagnostics?.stage {
+        detailLines.append("Stage: \(stage.rawValue)")
+    }
+
+    if let resumeAttemptSequence {
+        detailLines.append("Resume Attempt: \(resumeAttemptSequence)")
+    }
+
+    if let decoderSummary = diagnostics?.decoderSummary, decoderSummary.isEmpty == false {
+        detailLines.append("Details: \(decoderSummary)")
+    }
+
+    if let rawSnippet = diagnostics?.rawSnippet, rawSnippet.isEmpty == false {
+        detailLines.append("Payload: \(rawSnippet)")
+    }
+
+    return AIChatAlertPresentation(
+        title: summary,
+        message: detailLines.joined(separator: "\n")
+    )
+}
+
+private func aiChatFailureSummary(error: Error) -> String {
+    if error is AIChatLiveStreamSetupError {
+        return "Couldn't Continue the AI Response"
+    }
+
+    if error is AIChatLiveStreamContractError {
+        return "Received an Invalid AI Response"
+    }
+
+    if let serviceError = error as? AIChatServiceError {
+        switch serviceError {
+        case .invalidBaseUrl:
+            return "AI Configuration Error"
+        case .invalidHttpResponse, .invalidResponse:
+            return "Couldn't Continue the AI Response"
+        case .invalidPayload:
+            return "Received an Invalid AI Response"
+        }
+    }
+
+    return "Error"
 }
 
 private func isAIChatOfflineSendError(error: Error) -> Bool {
