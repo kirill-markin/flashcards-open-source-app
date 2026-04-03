@@ -107,8 +107,14 @@ interface CloudAccountRepository {
     suspend fun sendCode(email: String): CloudSendCodeResult
     suspend fun prepareVerifiedSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext
     suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext
-    suspend fun completeCloudLink(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary
-    suspend fun completeGuestUpgrade(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary
+    suspend fun completeCloudLink(
+        linkContext: CloudWorkspaceLinkContext,
+        selection: CloudWorkspaceLinkSelection
+    ): CloudWorkspaceSummary
+    suspend fun completeGuestUpgrade(
+        linkContext: CloudWorkspaceLinkContext,
+        selection: CloudWorkspaceLinkSelection
+    ): CloudWorkspaceSummary
     suspend fun completeLinkedWorkspaceTransition(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary
     suspend fun logout()
     suspend fun renameCurrentWorkspace(name: String): CloudWorkspaceSummary

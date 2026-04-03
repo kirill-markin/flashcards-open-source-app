@@ -121,6 +121,7 @@ sealed interface CloudWorkspaceLinkSelection {
 data class CloudWorkspaceLinkContext(
     val userId: String,
     val email: String?,
+    val credentials: StoredCloudCredentials,
     val workspaces: List<CloudWorkspaceSummary>,
     val guestUpgradeMode: CloudGuestUpgradeMode?,
     val preferredWorkspaceId: String?

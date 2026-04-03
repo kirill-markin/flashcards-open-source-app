@@ -77,6 +77,10 @@ class CloudGuestSessionCoordinator(
             )
         }
 
+        if (currentCloudSettings.cloudState == CloudAccountState.LINKING_READY) {
+            normalizeLegacyLinkingReadyStateLocked(cloudSettings = currentCloudSettings)
+        }
+
         val configuration = preferencesStore.currentServerConfiguration()
         val storedCredentials = preferencesStore.loadCredentials()
         val storedGuestSession = guestSessionStore.loadAnySession(configuration = configuration)
@@ -92,8 +96,7 @@ class CloudGuestSessionCoordinator(
 
         val reconciledCloudSettings = preferencesStore.currentCloudSettings()
         return when (reconciledCloudSettings.cloudState) {
-            CloudAccountState.LINKED,
-            CloudAccountState.LINKING_READY -> {
+            CloudAccountState.LINKED -> {
                 if (storedCredentials == null) {
                     resetCoordinator.resetLocalStateForCloudIdentityChange()
                     CloudIdentityReconciliationResult(
@@ -172,6 +175,10 @@ class CloudGuestSessionCoordinator(
                         didRunSync = false
                     )
                 }
+            }
+
+            CloudAccountState.LINKING_READY -> {
+                error("Legacy linking-ready cloud state must be normalized before reconciliation.")
             }
         }
     }
@@ -302,8 +309,7 @@ class CloudGuestSessionCoordinator(
             return false
         }
         if (
-            cloudSettings.cloudState != CloudAccountState.DISCONNECTED &&
-            cloudSettings.cloudState != CloudAccountState.LINKING_READY
+            cloudSettings.cloudState != CloudAccountState.DISCONNECTED
         ) {
             return false
         }
@@ -537,5 +543,16 @@ class CloudGuestSessionCoordinator(
     private suspend fun hasInvalidActiveWorkspaceId(cloudSettings: CloudSettings): Boolean {
         val activeWorkspaceId = cloudSettings.activeWorkspaceId ?: return false
         return database.workspaceDao().loadWorkspaceById(activeWorkspaceId) == null
+    }
+
+    private suspend fun normalizeLegacyLinkingReadyStateLocked(cloudSettings: CloudSettings) {
+        preferencesStore.clearCredentials()
+        preferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.DISCONNECTED,
+            linkedUserId = null,
+            linkedWorkspaceId = null,
+            linkedEmail = null,
+            activeWorkspaceId = cloudSettings.activeWorkspaceId
+        )
     }
 }

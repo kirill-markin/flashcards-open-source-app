@@ -24,19 +24,25 @@ import kotlinx.coroutines.flow.update
 
 private sealed interface CloudPostAuthRetryAction {
     data class CompleteCloudLink(
+        val authAttemptId: Long,
+        val linkContext: CloudWorkspaceLinkContext,
         val selection: CloudWorkspaceLinkSelection
     ) : CloudPostAuthRetryAction
 
     data class CompleteGuestUpgrade(
+        val authAttemptId: Long,
+        val linkContext: CloudWorkspaceLinkContext,
         val selection: CloudWorkspaceLinkSelection
     ) : CloudPostAuthRetryAction
 
     data class SyncOnly(
+        val authAttemptId: Long,
         val workspaceTitle: String
     ) : CloudPostAuthRetryAction
 }
 
 private data class CloudSignInDraftState(
+    val authAttemptId: Long,
     val email: String,
     val code: String,
     val challenge: CloudOtpChallenge?,
@@ -59,6 +65,7 @@ class CloudSignInViewModel(
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = CloudSignInDraftState(
+            authAttemptId = 0L,
             email = "",
             code = "",
             challenge = null,
@@ -155,6 +162,14 @@ class CloudSignInViewModel(
         draftState.update { state -> state.copy(code = code, errorMessage = "") }
     }
 
+    private fun nextAuthAttemptId(state: CloudSignInDraftState): Long {
+        return state.authAttemptId + 1L
+    }
+
+    private fun isCurrentAuthAttempt(authAttemptId: Long): Boolean {
+        return draftState.value.authAttemptId == authAttemptId
+    }
+
     private fun buildPendingSelection(linkContext: CloudWorkspaceLinkContext): CloudWorkspaceLinkSelection? {
         return buildAutomaticWorkspaceSelection(
             preferredWorkspaceId = linkContext.preferredWorkspaceId,
@@ -163,11 +178,19 @@ class CloudSignInViewModel(
     }
 
     private fun publishVerifiedLinkContext(
+        authAttemptId: Long,
         linkContext: CloudWorkspaceLinkContext,
         isSendingCode: Boolean,
         isVerifyingCode: Boolean
-    ) {
+    ): Boolean {
+        if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+            return false
+        }
+
         draftState.update { state ->
+            if (state.authAttemptId != authAttemptId) {
+                return@update state
+            }
             state.copy(
                 isSendingCode = isSendingCode,
                 isVerifyingCode = isVerifyingCode,
@@ -182,14 +205,38 @@ class CloudSignInViewModel(
                 completionToken = null
             )
         }
+        return true
     }
 
     suspend fun sendCode(): CloudSendCodeNavigationOutcome {
-        draftState.update { state -> state.copy(isSendingCode = true, errorMessage = "") }
+        val authAttemptId = nextAuthAttemptId(draftState.value)
+        draftState.update { state ->
+            state.copy(
+                authAttemptId = authAttemptId,
+                code = "",
+                challenge = null,
+                linkContext = null,
+                isSendingCode = true,
+                isVerifyingCode = false,
+                errorMessage = "",
+                pendingSelection = null,
+                processingTitle = "",
+                processingMessage = "",
+                postAuthErrorMessage = "",
+                retryAction = null,
+                completionToken = null
+            )
+        }
         return try {
             when (val result = cloudAccountRepository.sendCode(draftState.value.email)) {
                 is CloudSendCodeResult.OtpRequired -> {
+                    if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+                        return CloudSendCodeNavigationOutcome.NoNavigation
+                    }
                     draftState.update { state ->
+                        if (state.authAttemptId != authAttemptId) {
+                            return@update state
+                        }
                         state.copy(
                             isSendingCode = false,
                             errorMessage = "",
@@ -204,16 +251,27 @@ class CloudSignInViewModel(
 
                 is CloudSendCodeResult.Verified -> {
                     val linkContext = cloudAccountRepository.prepareVerifiedSignIn(result.credentials)
-                    publishVerifiedLinkContext(
+                    val didPublish = publishVerifiedLinkContext(
+                        authAttemptId = authAttemptId,
                         linkContext = linkContext,
                         isSendingCode = false,
                         isVerifyingCode = false
                     )
-                    CloudSendCodeNavigationOutcome.Verified
+                    if (didPublish) {
+                        CloudSendCodeNavigationOutcome.Verified
+                    } else {
+                        CloudSendCodeNavigationOutcome.NoNavigation
+                    }
                 }
             }
         } catch (error: Exception) {
+            if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+                return CloudSendCodeNavigationOutcome.NoNavigation
+            }
             draftState.update { state ->
+                if (state.authAttemptId != authAttemptId) {
+                    return@update state
+                }
                 state.copy(
                     isSendingCode = false,
                     errorMessage = error.message ?: "Could not send the sign-in code."
@@ -227,20 +285,41 @@ class CloudSignInViewModel(
         val challenge = requireNotNull(draftState.value.challenge) {
             "Request a sign-in code first."
         }
-        draftState.update { state -> state.copy(isVerifyingCode = true, errorMessage = "") }
+        val authAttemptId = nextAuthAttemptId(draftState.value)
+        draftState.update { state ->
+            state.copy(
+                authAttemptId = authAttemptId,
+                linkContext = null,
+                isSendingCode = false,
+                isVerifyingCode = true,
+                errorMessage = "",
+                pendingSelection = null,
+                processingTitle = "",
+                processingMessage = "",
+                postAuthErrorMessage = "",
+                retryAction = null,
+                completionToken = null
+            )
+        }
         return try {
             val linkContext = cloudAccountRepository.verifyCode(
                 challenge = challenge,
                 code = draftState.value.code
             )
             publishVerifiedLinkContext(
+                authAttemptId = authAttemptId,
                 linkContext = linkContext,
                 isSendingCode = false,
                 isVerifyingCode = false
             )
-            true
         } catch (error: Exception) {
+            if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+                return false
+            }
             draftState.update { state ->
+                if (state.authAttemptId != authAttemptId) {
+                    return@update state
+                }
                 state.copy(
                     isVerifyingCode = false,
                     errorMessage = error.message ?: "Could not verify the code."
@@ -251,23 +330,62 @@ class CloudSignInViewModel(
     }
 
     suspend fun completePendingPostAuthIfNeeded() {
-        val selection = draftState.value.pendingSelection ?: return
-        if (isPostAuthProcessing(state = draftState.value) || draftState.value.postAuthErrorMessage.isNotEmpty()) {
+        val state = draftState.value
+        val selection = state.pendingSelection ?: return
+        val linkContext = state.linkContext ?: return
+        if (isPostAuthProcessing(state = state) || state.postAuthErrorMessage.isNotEmpty()) {
             return
         }
-        completePostAuth(selection = selection)
+        completePostAuth(
+            authAttemptId = state.authAttemptId,
+            linkContext = linkContext,
+            selection = selection
+        )
     }
 
     suspend fun selectPostAuthWorkspace(selection: CloudWorkspaceLinkSelection) {
-        completePostAuth(selection = selection)
+        val state = draftState.value
+        val linkContext = state.linkContext ?: return
+        completePostAuth(
+            authAttemptId = state.authAttemptId,
+            linkContext = linkContext,
+            selection = selection
+        )
     }
 
     suspend fun retryPostAuth() {
+        val currentAttemptId = draftState.value.authAttemptId
         when (val retryAction = draftState.value.retryAction) {
             null -> Unit
-            is CloudPostAuthRetryAction.CompleteCloudLink -> completePostAuth(selection = retryAction.selection)
-            is CloudPostAuthRetryAction.CompleteGuestUpgrade -> completePostAuth(selection = retryAction.selection)
-            is CloudPostAuthRetryAction.SyncOnly -> runPostAuthSyncOnly(workspaceTitle = retryAction.workspaceTitle)
+            is CloudPostAuthRetryAction.CompleteCloudLink -> {
+                if (retryAction.authAttemptId != currentAttemptId) {
+                    return
+                }
+                completePostAuth(
+                    authAttemptId = retryAction.authAttemptId,
+                    linkContext = retryAction.linkContext,
+                    selection = retryAction.selection
+                )
+            }
+            is CloudPostAuthRetryAction.CompleteGuestUpgrade -> {
+                if (retryAction.authAttemptId != currentAttemptId) {
+                    return
+                }
+                completePostAuth(
+                    authAttemptId = retryAction.authAttemptId,
+                    linkContext = retryAction.linkContext,
+                    selection = retryAction.selection
+                )
+            }
+            is CloudPostAuthRetryAction.SyncOnly -> {
+                if (retryAction.authAttemptId != currentAttemptId) {
+                    return
+                }
+                runPostAuthSyncOnly(
+                    authAttemptId = retryAction.authAttemptId,
+                    workspaceTitle = retryAction.workspaceTitle
+                )
+            }
         }
     }
 
@@ -287,17 +405,25 @@ class CloudSignInViewModel(
         return state.processingTitle.isNotEmpty()
     }
 
-    private suspend fun completePostAuth(selection: CloudWorkspaceLinkSelection) {
+    private suspend fun completePostAuth(
+        authAttemptId: Long,
+        linkContext: CloudWorkspaceLinkContext,
+        selection: CloudWorkspaceLinkSelection
+    ) {
+        if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+            return
+        }
+
         if (isPostAuthProcessing(state = draftState.value)) {
             return
         }
 
-        val linkContext = requireNotNull(draftState.value.linkContext) {
-            "Cloud workspace setup is unavailable."
-        }
         val requiresGuestUpgrade = linkContext.guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED
         val isGuestUpgrade = linkContext.guestUpgradeMode != null
         draftState.update { state ->
+            if (state.authAttemptId != authAttemptId) {
+                return@update state
+            }
             state.copy(
                 pendingSelection = null,
                 processingTitle = if (isGuestUpgrade) {
@@ -312,22 +438,49 @@ class CloudSignInViewModel(
                 },
                 postAuthErrorMessage = "",
                 retryAction = if (requiresGuestUpgrade) {
-                    CloudPostAuthRetryAction.CompleteGuestUpgrade(selection = selection)
+                    CloudPostAuthRetryAction.CompleteGuestUpgrade(
+                        authAttemptId = authAttemptId,
+                        linkContext = linkContext,
+                        selection = selection
+                    )
                 } else {
-                    CloudPostAuthRetryAction.CompleteCloudLink(selection = selection)
+                    CloudPostAuthRetryAction.CompleteCloudLink(
+                        authAttemptId = authAttemptId,
+                        linkContext = linkContext,
+                        selection = selection
+                    )
                 }
             )
         }
 
+        if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+            return
+        }
+
         try {
             val workspace = if (requiresGuestUpgrade) {
-                cloudAccountRepository.completeGuestUpgrade(selection = selection)
+                cloudAccountRepository.completeGuestUpgrade(
+                    linkContext = linkContext,
+                    selection = selection
+                )
             } else {
-                cloudAccountRepository.completeCloudLink(selection = selection)
+                cloudAccountRepository.completeCloudLink(
+                    linkContext = linkContext,
+                    selection = selection
+                )
             }
-            runPostAuthSyncOnly(workspaceTitle = workspace.name)
+            runPostAuthSyncOnly(
+                authAttemptId = authAttemptId,
+                workspaceTitle = workspace.name
+            )
         } catch (error: Exception) {
+            if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+                return
+            }
             draftState.update { state ->
+                if (state.authAttemptId != authAttemptId) {
+                    return@update state
+                }
                 state.copy(
                     processingTitle = "",
                     processingMessage = "",
@@ -341,23 +494,46 @@ class CloudSignInViewModel(
         }
     }
 
-    private suspend fun runPostAuthSyncOnly(workspaceTitle: String) {
+    private suspend fun runPostAuthSyncOnly(
+        authAttemptId: Long,
+        workspaceTitle: String
+    ) {
+        if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+            return
+        }
+
         if (isPostAuthProcessing(state = draftState.value) && draftState.value.processingTitle == "Syncing workspace") {
             return
         }
 
         draftState.update { state ->
+            if (state.authAttemptId != authAttemptId) {
+                return@update state
+            }
             state.copy(
                 processingTitle = "Syncing workspace",
                 processingMessage = "Keep this screen open while Android finishes the initial cloud sync.",
                 postAuthErrorMessage = "",
-                retryAction = CloudPostAuthRetryAction.SyncOnly(workspaceTitle = workspaceTitle)
+                retryAction = CloudPostAuthRetryAction.SyncOnly(
+                    authAttemptId = authAttemptId,
+                    workspaceTitle = workspaceTitle
+                )
             )
+        }
+
+        if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+            return
         }
 
         try {
             syncRepository.syncNow()
+            if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+                return
+            }
             draftState.update { state ->
+                if (state.authAttemptId != authAttemptId) {
+                    return@update state
+                }
                 state.copy(
                     email = "",
                     code = "",
@@ -373,7 +549,13 @@ class CloudSignInViewModel(
             }
             messageController.showMessage(message = "Signed in and synced $workspaceTitle.")
         } catch (error: Exception) {
+            if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
+                return
+            }
             draftState.update { state ->
+                if (state.authAttemptId != authAttemptId) {
+                    return@update state
+                }
                 state.copy(
                     processingTitle = "",
                     processingMessage = "",
@@ -386,10 +568,13 @@ class CloudSignInViewModel(
     private fun clearPostAuthState() {
         draftState.update { state ->
             state.copy(
+                authAttemptId = nextAuthAttemptId(state),
                 email = "",
                 code = "",
                 challenge = null,
                 linkContext = null,
+                isSendingCode = false,
+                isVerifyingCode = false,
                 pendingSelection = null,
                 processingTitle = "",
                 processingMessage = "",
