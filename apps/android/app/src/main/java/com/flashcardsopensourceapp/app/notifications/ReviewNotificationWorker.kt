@@ -27,8 +27,6 @@ class ReviewNotificationWorker(
 
         ensureNotificationChannel(context = applicationContext)
 
-        val workspaceId = inputData.getString(reviewNotificationWorkspaceIdDataKey)
-            ?: return Result.failure()
         val frontText = inputData.getString(reviewNotificationFrontTextDataKey)
             ?: return Result.failure()
         val requestId = inputData.getString(reviewNotificationRequestIdDataKey)

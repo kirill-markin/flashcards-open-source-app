@@ -1,7 +1,6 @@
 package com.flashcardsopensourceapp.app.notifications
 
 import android.util.Log
-import org.json.JSONObject
 
 const val appNotificationTapTypeDataKey: String = "notificationType"
 const val appNotificationTapExtraPrefix: String = "app-notification-extra"
@@ -38,13 +37,18 @@ data class AppNotificationTapFallback(
 private const val appNotificationLogTag: String = "FlashcardsAppNotification"
 
 fun logAppNotificationTapFallback(fallback: AppNotificationTapFallback) {
-    val record = JSONObject().apply {
-        put("domain", "android_notifications")
-        put("action", "notification_tap_fallback")
-        put("stage", fallback.stage)
-        put("reason", fallback.reason)
-        put("notificationType", fallback.notificationType)
-        put("details", fallback.details)
+    val message = buildAppNotificationTapLogMessage(fallback = fallback)
+    try {
+        Log.e(appNotificationLogTag, message)
+    } catch (error: RuntimeException) {
+        System.err.println(message)
     }
-    Log.e(appNotificationLogTag, record.toString())
+}
+
+private fun buildAppNotificationTapLogMessage(fallback: AppNotificationTapFallback): String {
+    val notificationType = fallback.notificationType ?: "null"
+    val details = fallback.details ?: "null"
+    return "domain=android_notifications action=notification_tap_fallback " +
+        "stage=${fallback.stage} reason=${fallback.reason} " +
+        "notificationType=$notificationType details=$details"
 }
