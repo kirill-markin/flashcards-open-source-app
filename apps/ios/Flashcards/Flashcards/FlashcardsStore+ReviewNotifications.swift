@@ -154,39 +154,12 @@ extension FlashcardsStore {
         }
     }
 
-    func handleReviewNotificationTap(request: ReviewNotificationTapRequest, navigation: AppNavigationModel) {
-        navigation.selectTab(.review)
-
+    func handleAppNotificationTap(request: AppNotificationTapRequest, navigation: AppNavigationModel) {
         switch request {
         case .fallback(let fallback):
-            logReviewNotificationTapFallback(fallback: fallback)
-        case .resolved(let payload):
-            let workspaceIdAtTap = self.workspace?.workspaceId
-            let databaseURL = self.localDatabaseURL
-            Task { @MainActor in
-                let result = await resolveReviewNotificationTap(
-                    snapshot: ReviewNotificationTapValidationSnapshot(
-                        databaseURL: databaseURL,
-                        activeWorkspaceId: workspaceIdAtTap,
-                        payload: payload,
-                        now: Date()
-                    )
-                )
-
-                switch result {
-                case .fallback(let fallback):
-                    logReviewNotificationTapFallback(fallback: fallback)
-                case .resolved(let resolvedPayload, let reviewFilter):
-                    guard self.workspace?.workspaceId == resolvedPayload.workspaceId else {
-                        return
-                    }
-
-                    self.selectReviewFilter(reviewFilter: reviewFilter)
-                    if self.effectiveReviewQueue.first?.cardId != resolvedPayload.cardId {
-                        self.enqueueTransientBanner(banner: makeReviewQueueUpdatedBanner())
-                    }
-                }
-            }
+            logAppNotificationTapFallback(fallback: fallback)
+        case .openReviewReminder:
+            navigation.selectTab(.review)
         }
     }
 
@@ -319,16 +292,12 @@ extension FlashcardsStore {
             return
         }
 
-        let mode = self.reviewNotificationsSettings.selectedMode
         for payload in payloads {
             let content = UNMutableNotificationContent()
             content.title = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Flashcards"
             content.body = payload.frontText
             content.sound = .default
-            content.userInfo = buildReviewNotificationUserInfo(
-                payload: payload,
-                kind: mode
-            )
+            content.userInfo = buildReviewNotificationUserInfo(notificationType: .reviewReminder)
 
             let interval = max(1, TimeInterval(payload.scheduledAtMillis) / 1000 - now.timeIntervalSince1970)
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
@@ -355,13 +324,4 @@ extension FlashcardsStore {
             self.userDefaults.removeObject(forKey: makeScheduledReviewNotificationsUserDefaultsKey(workspaceId: workspaceId))
         }
     }
-}
-
-func makeReviewQueueUpdatedBanner() -> TransientBanner {
-    TransientBanner(
-        id: UUID().uuidString.lowercased(),
-        message: reviewQueueUpdatedBannerMessage,
-        kind: .reviewUpdatedOnAnotherDevice,
-        dismissDelayNanoseconds: transientBannerDefaultDismissDelayNanoseconds
-    )
 }

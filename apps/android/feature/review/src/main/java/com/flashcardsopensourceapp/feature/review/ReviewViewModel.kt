@@ -64,7 +64,6 @@ class ReviewViewModel(
     private val autoSyncEventRepository: AutoSyncEventRepository,
     private val messageController: TransientMessageController,
     private val reviewNotificationsStore: ReviewNotificationsStore,
-    private val resolveReviewNotificationTapPayload: suspend (ReviewNotificationTapPayload) -> ReviewNotificationTapFallback?,
     private val shouldShowNotificationPermissionPrePrompt: () -> Boolean,
     private val onReviewNotificationsChanged: () -> Unit,
     private val onNotificationPermissionGranted: () -> Unit,
@@ -84,7 +83,6 @@ class ReviewViewModel(
         autoSyncEventRepository = autoSyncEventRepository,
         messageController = messageController,
         reviewNotificationsStore = NoOpReviewNotificationsStore,
-        resolveReviewNotificationTapPayload = { null },
         shouldShowNotificationPermissionPrePrompt = { false },
         onReviewNotificationsChanged = {},
         onNotificationPermissionGranted = {},
@@ -313,34 +311,6 @@ class ReviewViewModel(
 
     fun handleNotificationPermissionGranted() {
         onNotificationPermissionGranted()
-    }
-
-    fun handleReviewNotificationTap(request: ReviewNotificationTapRequest) {
-        when (request) {
-            is ReviewNotificationTapRequest.Fallback -> {
-                logReviewNotificationTapFallback(fallback = request.fallback)
-            }
-
-            is ReviewNotificationTapRequest.Resolved -> {
-                val operationWorkspaceGeneration = workspaceGeneration
-                viewModelScope.launch {
-                    val fallback = resolveReviewNotificationTapPayload(request.payload)
-                    if (operationWorkspaceGeneration != workspaceGeneration) {
-                        return@launch
-                    }
-                    if (fallback != null) {
-                        logReviewNotificationTapFallback(fallback = fallback)
-                        return@launch
-                    }
-
-                    selectFilter(reviewFilter = request.payload.reviewFilter)
-                    val currentCardId = uiState.value.preparedCurrentCard?.card?.cardId
-                    if (currentCardId != null && currentCardId != request.payload.cardId) {
-                        messageController.showMessage(message = "Review queue updated. Continuing with the latest due card.")
-                    }
-                }
-            }
-        }
     }
 
     fun startPreview() {
@@ -682,7 +652,6 @@ fun createReviewViewModelFactory(
     autoSyncEventRepository: AutoSyncEventRepository,
     messageController: TransientMessageController,
     reviewNotificationsStore: ReviewNotificationsStore,
-    resolveReviewNotificationTapPayload: suspend (ReviewNotificationTapPayload) -> ReviewNotificationTapFallback?,
     shouldShowNotificationPermissionPrePrompt: () -> Boolean,
     onReviewNotificationsChanged: () -> Unit,
     onNotificationPermissionGranted: () -> Unit,
@@ -697,7 +666,6 @@ fun createReviewViewModelFactory(
                 autoSyncEventRepository = autoSyncEventRepository,
                 messageController = messageController,
                 reviewNotificationsStore = reviewNotificationsStore,
-                resolveReviewNotificationTapPayload = resolveReviewNotificationTapPayload,
                 shouldShowNotificationPermissionPrePrompt = shouldShowNotificationPermissionPrePrompt,
                 onReviewNotificationsChanged = onReviewNotificationsChanged,
                 onNotificationPermissionGranted = onNotificationPermissionGranted,

@@ -1,7 +1,7 @@
 package com.flashcardsopensourceapp.app.navigation
 
+import com.flashcardsopensourceapp.app.notifications.AppNotificationTapRequest
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
-import com.flashcardsopensourceapp.feature.review.ReviewNotificationTapRequest
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,9 +17,9 @@ data class CardEditorRequest(
     val cardId: String?
 )
 
-data class ReviewNotificationRequest(
+data class AppNotificationTapHandoffRequest(
     val requestId: Long,
-    val request: ReviewNotificationTapRequest
+    val request: AppNotificationTapRequest
 )
 
 enum class SettingsNavigationTarget {
@@ -37,7 +37,7 @@ class AppHandoffCoordinator {
     private val nextRequestId = AtomicLong(0L)
     private val aiEntryPrefillState = MutableStateFlow<AiEntryPrefillRequest?>(value = null)
     private val cardEditorState = MutableStateFlow<CardEditorRequest?>(value = null)
-    private val reviewNotificationState = MutableStateFlow<ReviewNotificationRequest?>(value = null)
+    private val appNotificationTapState = MutableStateFlow<AppNotificationTapHandoffRequest?>(value = null)
     private val settingsNavigationState = MutableStateFlow<SettingsNavigationRequest?>(value = null)
 
     fun observeAiEntryPrefill(): StateFlow<AiEntryPrefillRequest?> {
@@ -48,8 +48,8 @@ class AppHandoffCoordinator {
         return cardEditorState.asStateFlow()
     }
 
-    fun observeReviewNotification(): StateFlow<ReviewNotificationRequest?> {
-        return reviewNotificationState.asStateFlow()
+    fun observeAppNotificationTap(): StateFlow<AppNotificationTapHandoffRequest?> {
+        return appNotificationTapState.asStateFlow()
     }
 
     fun observeSettingsNavigation(): StateFlow<SettingsNavigationRequest?> {
@@ -86,19 +86,19 @@ class AppHandoffCoordinator {
         cardEditorState.value = null
     }
 
-    fun requestReviewNotification(request: ReviewNotificationTapRequest) {
-        reviewNotificationState.value = ReviewNotificationRequest(
+    fun requestAppNotificationTap(request: AppNotificationTapRequest) {
+        appNotificationTapState.value = AppNotificationTapHandoffRequest(
             requestId = nextRequestId.incrementAndGet(),
             request = request
         )
     }
 
-    fun consumeReviewNotification(requestId: Long) {
-        if (reviewNotificationState.value?.requestId != requestId) {
+    fun consumeAppNotificationTap(requestId: Long) {
+        if (appNotificationTapState.value?.requestId != requestId) {
             return
         }
 
-        reviewNotificationState.value = null
+        appNotificationTapState.value = null
     }
 
     fun requestSettingsNavigation(target: SettingsNavigationTarget) {

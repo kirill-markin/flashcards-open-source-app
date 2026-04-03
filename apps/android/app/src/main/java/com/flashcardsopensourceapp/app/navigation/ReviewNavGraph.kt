@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,7 +39,6 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 messageController = appGraph.appMessageBus,
                 reviewNotificationsStore = appGraph.reviewNotificationsStore,
-                resolveReviewNotificationTapPayload = appGraph.reviewNotificationsManager::resolveReviewNotificationTapPayload,
                 shouldShowNotificationPermissionPrePrompt = {
                     hasNotificationPermission(context = context).not()
                 },
@@ -56,13 +54,6 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             )
         )
         val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
-        val reviewNotificationRequest by appGraph.appHandoffCoordinator.observeReviewNotification().collectAsStateWithLifecycle()
-
-        LaunchedEffect(reviewNotificationRequest?.requestId) {
-            val request = reviewNotificationRequest ?: return@LaunchedEffect
-            reviewViewModel.handleReviewNotificationTap(request = request.request)
-            appGraph.appHandoffCoordinator.consumeReviewNotification(requestId = request.requestId)
-        }
 
         ReviewRoute(
             uiState = uiState,
@@ -120,7 +111,6 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 messageController = appGraph.appMessageBus,
                 reviewNotificationsStore = appGraph.reviewNotificationsStore,
-                resolveReviewNotificationTapPayload = appGraph.reviewNotificationsManager::resolveReviewNotificationTapPayload,
                 shouldShowNotificationPermissionPrePrompt = {
                     false
                 },

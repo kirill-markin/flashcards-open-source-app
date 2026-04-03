@@ -14,12 +14,9 @@ let reviewNotificationPromptStateUserDefaultsKey: String = "review-notification-
 let reviewNotificationSuccessfulReviewCountUserDefaultsKey: String = "review-notification-successful-review-count"
 let reviewNotificationScheduledPayloadsUserDefaultsKeyPrefix: String = "review-notification-scheduled-payloads::"
 let reviewNotificationLastActiveAtUserDefaultsKey: String = "review-notification-last-active-at"
-let reviewNotificationTapMarkerUserInfoKey: String = "reviewNotificationTapMarker"
-let reviewNotificationTapMarkerValue: String = "review"
-let reviewNotificationPayloadUserInfoKey: String = "reviewNotificationPayload"
+let appNotificationTapTypeUserInfoKey: String = "appNotificationTapType"
 
-let reviewNotificationTapRequestNotificationName = Notification.Name("review-notification-tap-request")
-let reviewQueueUpdatedBannerMessage: String = "Review queue updated. Continuing with the latest due card."
+let appNotificationTapRequestNotificationName = Notification.Name("app-notification-tap-request")
 
 enum ReviewNotificationMode: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
     case daily
@@ -84,31 +81,20 @@ struct CurrentReviewNotificationCard: Hashable, Sendable {
     let frontText: String
 }
 
-struct ReviewNotificationTapFallback: Hashable, Sendable {
+enum AppNotificationTapType: String, Codable, Hashable, Sendable {
+    case reviewReminder
+}
+
+struct AppNotificationTapFallback: Hashable, Sendable {
     let stage: String
     let reason: String
-    let workspaceId: String?
-    let currentWorkspaceId: String?
-    let cardId: String?
-    let requestId: String?
+    let notificationType: String?
     let details: String?
 }
 
-enum ReviewNotificationTapRequest: Hashable, Sendable {
-    case resolved(ScheduledReviewNotificationPayload)
-    case fallback(ReviewNotificationTapFallback)
-}
-
-struct ReviewNotificationTapValidationSnapshot: Sendable {
-    let databaseURL: URL?
-    let activeWorkspaceId: String?
-    let payload: ScheduledReviewNotificationPayload
-    let now: Date
-}
-
-enum ReviewNotificationTapValidationResult: Sendable {
-    case resolved(payload: ScheduledReviewNotificationPayload, reviewFilter: ReviewFilter)
-    case fallback(ReviewNotificationTapFallback)
+enum AppNotificationTapRequest: Hashable, Sendable {
+    case openReviewReminder
+    case fallback(AppNotificationTapFallback)
 }
 
 struct ReviewNotificationSchedulingSnapshot: Sendable {
@@ -144,21 +130,6 @@ enum ReviewNotificationPermissionStatus: Hashable, Sendable {
             return "Allow Notifications"
         }
     }
-}
-
-private enum ReviewNotificationRequestKind: String, Codable {
-    case daily
-    case inactivity
-}
-
-private struct ReviewNotificationRequestPayload: Codable {
-    let workspaceId: String
-    let reviewFilter: PersistedReviewFilter
-    let cardId: String
-    let frontText: String
-    let scheduledAtMillis: Int64
-    let requestId: String
-    let kind: ReviewNotificationRequestKind
 }
 
 func makeDefaultReviewNotificationsSettings() -> ReviewNotificationsSettings {
@@ -458,175 +429,40 @@ func loadScheduledReviewNotificationPayloads(
     }.value
 }
 
-func buildReviewNotificationUserInfo(payload: ScheduledReviewNotificationPayload, kind: ReviewNotificationMode) -> [AnyHashable: Any] {
-    let requestPayload = ReviewNotificationRequestPayload(
-        workspaceId: payload.workspaceId,
-        reviewFilter: payload.reviewFilter,
-        cardId: payload.cardId,
-        frontText: payload.frontText,
-        scheduledAtMillis: payload.scheduledAtMillis,
-        requestId: payload.requestId,
-        kind: kind == .daily ? .daily : .inactivity
-    )
-    let encoder = JSONEncoder()
-    let data = try? encoder.encode(requestPayload)
+func buildReviewNotificationUserInfo(notificationType: AppNotificationTapType) -> [AnyHashable: Any] {
     return [
-        reviewNotificationTapMarkerUserInfoKey: reviewNotificationTapMarkerValue,
-        reviewNotificationPayloadUserInfoKey: data ?? Data()
+        appNotificationTapTypeUserInfoKey: notificationType.rawValue
     ]
 }
 
-func parseReviewNotificationTapRequest(userInfo: [AnyHashable: Any]) -> ReviewNotificationTapRequest? {
-    let hasMarker = (userInfo[reviewNotificationTapMarkerUserInfoKey] as? String) == reviewNotificationTapMarkerValue
-    let hasLegacyPayload = userInfo[reviewNotificationPayloadUserInfoKey] != nil
-    guard hasMarker || hasLegacyPayload else {
+func parseAppNotificationTapRequest(userInfo: [AnyHashable: Any]) -> AppNotificationTapRequest? {
+    guard let rawNotificationType = userInfo[appNotificationTapTypeUserInfoKey] as? String else {
         return nil
     }
-    guard let data = userInfo[reviewNotificationPayloadUserInfoKey] as? Data else {
+    guard let notificationType = AppNotificationTapType(rawValue: rawNotificationType) else {
         return .fallback(
-            ReviewNotificationTapFallback(
+            AppNotificationTapFallback(
                 stage: "parse",
-                reason: "missing_payload_data",
-                workspaceId: nil,
-                currentWorkspaceId: nil,
-                cardId: nil,
-                requestId: nil,
+                reason: "unsupported_notification_type",
+                notificationType: rawNotificationType,
                 details: nil
             )
         )
     }
 
-    let decoder = JSONDecoder()
-    guard let payload = try? decoder.decode(ReviewNotificationRequestPayload.self, from: data) else {
-        return .fallback(
-            ReviewNotificationTapFallback(
-                stage: "parse",
-                reason: "invalid_payload",
-                workspaceId: nil,
-                currentWorkspaceId: nil,
-                cardId: nil,
-                requestId: nil,
-                details: nil
-            )
-        )
+    switch notificationType {
+    case .reviewReminder:
+        return .openReviewReminder
     }
-
-    return .resolved(
-        ScheduledReviewNotificationPayload(
-            workspaceId: payload.workspaceId,
-            reviewFilter: payload.reviewFilter,
-            cardId: payload.cardId,
-            frontText: payload.frontText,
-            scheduledAtMillis: payload.scheduledAtMillis,
-            requestId: payload.requestId
-        )
-    )
 }
 
-func resolveReviewNotificationTap(
-    snapshot: ReviewNotificationTapValidationSnapshot
-) async -> ReviewNotificationTapValidationResult {
-    guard snapshot.activeWorkspaceId == snapshot.payload.workspaceId else {
-        return .fallback(
-            ReviewNotificationTapFallback(
-                stage: "resolve",
-                reason: "workspace_mismatch",
-                workspaceId: snapshot.payload.workspaceId,
-                currentWorkspaceId: snapshot.activeWorkspaceId,
-                cardId: snapshot.payload.cardId,
-                requestId: snapshot.payload.requestId,
-                details: nil
-            )
-        )
-    }
-    guard let databaseURL = snapshot.databaseURL else {
-        return .fallback(
-            ReviewNotificationTapFallback(
-                stage: "resolve",
-                reason: "missing_database",
-                workspaceId: snapshot.payload.workspaceId,
-                currentWorkspaceId: snapshot.activeWorkspaceId,
-                cardId: snapshot.payload.cardId,
-                requestId: snapshot.payload.requestId,
-                details: nil
-            )
-        )
-    }
-
-    return await Task.detached(priority: .utility) {
-        do {
-            let reviewFilter = try makeReviewFilter(persistedReviewFilter: snapshot.payload.reviewFilter)
-            let database = try LocalDatabase(databaseURL: databaseURL)
-            defer {
-                try? database.close()
-            }
-            let currentCard = try database.loadCurrentReviewNotificationCard(
-                workspaceId: snapshot.payload.workspaceId,
-                reviewFilter: reviewFilter,
-                now: snapshot.now
-            )
-            guard let currentCard else {
-                return ReviewNotificationTapValidationResult.fallback(
-                    ReviewNotificationTapFallback(
-                        stage: "resolve",
-                        reason: "missing_current_card",
-                        workspaceId: snapshot.payload.workspaceId,
-                        currentWorkspaceId: snapshot.activeWorkspaceId,
-                        cardId: snapshot.payload.cardId,
-                        requestId: snapshot.payload.requestId,
-                        details: nil
-                    )
-                )
-            }
-            guard currentCard.cardId == snapshot.payload.cardId else {
-                return ReviewNotificationTapValidationResult.fallback(
-                    ReviewNotificationTapFallback(
-                        stage: "resolve",
-                        reason: "card_mismatch",
-                        workspaceId: snapshot.payload.workspaceId,
-                        currentWorkspaceId: snapshot.activeWorkspaceId,
-                        cardId: snapshot.payload.cardId,
-                        requestId: snapshot.payload.requestId,
-                        details: "currentCardId=\(currentCard.cardId)"
-                    )
-                )
-            }
-            return .resolved(
-                payload: snapshot.payload,
-                reviewFilter: reviewFilter
-            )
-        } catch {
-            return .fallback(
-                ReviewNotificationTapFallback(
-                    stage: "resolve",
-                    reason: "resolution_failed",
-                    workspaceId: snapshot.payload.workspaceId,
-                    currentWorkspaceId: snapshot.activeWorkspaceId,
-                    cardId: snapshot.payload.cardId,
-                    requestId: snapshot.payload.requestId,
-                    details: Flashcards.errorMessage(error: error)
-                )
-            )
-        }
-    }.value
-}
-
-func logReviewNotificationTapFallback(fallback: ReviewNotificationTapFallback) {
+func logAppNotificationTapFallback(fallback: AppNotificationTapFallback) {
     var metadata: [String: String] = [
         "stage": fallback.stage,
         "reason": fallback.reason
     ]
-    if let workspaceId = fallback.workspaceId {
-        metadata["workspaceId"] = workspaceId
-    }
-    if let currentWorkspaceId = fallback.currentWorkspaceId {
-        metadata["currentWorkspaceId"] = currentWorkspaceId
-    }
-    if let cardId = fallback.cardId {
-        metadata["cardId"] = cardId
-    }
-    if let requestId = fallback.requestId {
-        metadata["requestId"] = requestId
+    if let notificationType = fallback.notificationType {
+        metadata["notificationType"] = notificationType
     }
     if let details = fallback.details {
         metadata["details"] = details

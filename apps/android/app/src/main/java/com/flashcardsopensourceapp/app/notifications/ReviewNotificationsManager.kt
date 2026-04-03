@@ -24,13 +24,9 @@ import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsS
 import com.flashcardsopensourceapp.data.local.notifications.ScheduledReviewNotificationPayload
 import com.flashcardsopensourceapp.data.local.notifications.buildDailyReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.buildInactivityReminderPayloads
-import com.flashcardsopensourceapp.data.local.notifications.decodePersistedReviewFilter
 import com.flashcardsopensourceapp.data.local.notifications.makePersistedReviewFilter
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.repository.loadCurrentWorkspaceOrNull
-import com.flashcardsopensourceapp.feature.review.ReviewNotificationTapFallback
-import com.flashcardsopensourceapp.feature.review.ReviewNotificationTapPayload
-import com.flashcardsopensourceapp.feature.review.ReviewNotificationTapRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -39,26 +35,8 @@ import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
 const val reviewNotificationChannelId: String = "review-reminders"
-const val reviewNotificationWorkspaceIdDataKey: String = "workspaceId"
-const val reviewNotificationCardIdDataKey: String = "cardId"
 const val reviewNotificationFrontTextDataKey: String = "frontText"
 const val reviewNotificationRequestIdDataKey: String = "requestId"
-const val reviewNotificationFilterKindDataKey: String = "reviewFilterKind"
-const val reviewNotificationFilterDeckIdDataKey: String = "reviewFilterDeckId"
-const val reviewNotificationFilterTagDataKey: String = "reviewFilterTag"
-const val reviewNotificationTapMarkerDataKey: String = "reviewNotificationTapMarker"
-const val reviewNotificationTapMarkerValue: String = "review"
-const val reviewNotificationTapExtraPrefix: String = "review-notification-extra"
-private val reviewNotificationTapIntentExtraKeys: List<String> = listOf(
-    "$reviewNotificationTapExtraPrefix::$reviewNotificationTapMarkerDataKey",
-    "$reviewNotificationTapExtraPrefix::$reviewNotificationWorkspaceIdDataKey",
-    "$reviewNotificationTapExtraPrefix::$reviewNotificationCardIdDataKey",
-    "$reviewNotificationTapExtraPrefix::$reviewNotificationFrontTextDataKey",
-    "$reviewNotificationTapExtraPrefix::$reviewNotificationRequestIdDataKey",
-    "$reviewNotificationTapExtraPrefix::$reviewNotificationFilterKindDataKey",
-    "$reviewNotificationTapExtraPrefix::$reviewNotificationFilterDeckIdDataKey",
-    "$reviewNotificationTapExtraPrefix::$reviewNotificationFilterTagDataKey"
-)
 
 class ReviewNotificationsManager(
     private val context: Context,

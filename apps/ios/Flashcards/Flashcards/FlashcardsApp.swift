@@ -101,12 +101,12 @@ struct FlashcardsApp: App {
                         store.markReviewNotificationsAppBackground(now: Date())
                     }
                 }
-                .onReceive(NotificationCenter.default.publisher(for: reviewNotificationTapRequestNotificationName)) { notification in
-                    guard let request = notification.object as? ReviewNotificationTapRequest else {
+                .onReceive(NotificationCenter.default.publisher(for: appNotificationTapRequestNotificationName)) { notification in
+                    guard let request = notification.object as? AppNotificationTapRequest else {
                         return
                     }
 
-                    store.handleReviewNotificationTap(request: request, navigation: navigation)
+                    store.handleAppNotificationTap(request: request, navigation: navigation)
                 }
                 .task(id: self.cloudSyncPollingTaskID) {
                     await self.runCloudSyncPollingLoop()
