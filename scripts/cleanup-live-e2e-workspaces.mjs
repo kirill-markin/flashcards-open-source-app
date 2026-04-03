@@ -1,6 +1,7 @@
 const authBaseUrl = process.env.FLASHCARDS_LIVE_E2E_AUTH_BASE_URL ?? "https://auth.flashcards-open-source-app.com";
 const apiBaseUrl = process.env.FLASHCARDS_LIVE_E2E_API_BASE_URL ?? "https://api.flashcards-open-source-app.com/v1";
 const workspacePrefix = process.env.FLASHCARDS_LIVE_E2E_WORKSPACE_PREFIX ?? "E2E ";
+const agentConnectionLabelPrefix = process.env.FLASHCARDS_LIVE_E2E_AGENT_CONNECTION_LABEL_PREFIX ?? "E2E agent api ";
 const ttlHours = parsePositiveInteger(
   process.env.FLASHCARDS_LIVE_E2E_WORKSPACE_TTL_HOURS ?? "48",
   "FLASHCARDS_LIVE_E2E_WORKSPACE_TTL_HOURS",
@@ -19,12 +20,21 @@ async function main() {
     try {
       const idToken = await signInWithReviewEmail(email);
       const workspaces = await listAllWorkspaces(idToken);
+      const agentConnections = await listAllAgentConnections(idToken);
       const staleWorkspaces = workspaces.filter((workspace) => shouldDeleteWorkspace(workspace));
+      const staleAgentConnections = agentConnections.filter((connection) => shouldRevokeAgentConnection(connection));
 
-      console.log(`[cleanup] email=${email} workspaces=${workspaces.length} stale=${staleWorkspaces.length}`);
+      console.log(
+        `[cleanup] email=${email} workspaces=${workspaces.length} stale_workspaces=${staleWorkspaces.length} `
+        + `connections=${agentConnections.length} stale_connections=${staleAgentConnections.length}`,
+      );
 
       for (const workspace of staleWorkspaces) {
         await deleteWorkspace(idToken, workspace);
+      }
+
+      for (const connection of staleAgentConnections) {
+        await revokeAgentConnection(idToken, connection);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -106,6 +116,32 @@ async function listAllWorkspaces(idToken) {
   return workspaces;
 }
 
+async function listAllAgentConnections(idToken) {
+  const connections = [];
+  let nextCursor = null;
+
+  do {
+    const url = new URL(`${apiBaseUrl}/agent-api-keys`);
+    url.searchParams.set("limit", "100");
+    if (nextCursor !== null) {
+      url.searchParams.set("cursor", nextCursor);
+    }
+
+    const payload = await authenticatedJsonRequest(idToken, url.toString(), {
+      method: "GET",
+    });
+
+    if (Array.isArray(payload.connections) === false) {
+      throw new Error(`Agent connections payload is invalid: ${JSON.stringify(payload)}`);
+    }
+
+    connections.push(...payload.connections);
+    nextCursor = typeof payload.nextCursor === "string" && payload.nextCursor !== "" ? payload.nextCursor : null;
+  } while (nextCursor !== null);
+
+  return connections;
+}
+
 function shouldDeleteWorkspace(workspace) {
   if (typeof workspace.name !== "string" || workspace.name.startsWith(workspacePrefix) === false) {
     return false;
@@ -118,6 +154,32 @@ function shouldDeleteWorkspace(workspace) {
   const createdAtMillis = Date.parse(workspace.createdAt);
   if (Number.isNaN(createdAtMillis)) {
     throw new Error(`Workspace ${workspace.name} has invalid createdAt=${workspace.createdAt}`);
+  }
+
+  const ageHours = (Date.now() - createdAtMillis) / (60 * 60 * 1000);
+  return ageHours >= ttlHours;
+}
+
+function shouldRevokeAgentConnection(connection) {
+  if (typeof connection.label !== "string" || connection.label.startsWith(agentConnectionLabelPrefix) === false) {
+    return false;
+  }
+
+  if (connection.revokedAt !== null) {
+    return false;
+  }
+
+  if (typeof connection.createdAt !== "string" || connection.createdAt === "") {
+    throw new Error(`Agent connection ${JSON.stringify(connection)} is missing createdAt`);
+  }
+
+  if (typeof connection.connectionId !== "string" || connection.connectionId === "") {
+    throw new Error(`Agent connection ${JSON.stringify(connection)} is missing connectionId`);
+  }
+
+  const createdAtMillis = Date.parse(connection.createdAt);
+  if (Number.isNaN(createdAtMillis)) {
+    throw new Error(`Agent connection ${connection.connectionId} has invalid createdAt=${connection.createdAt}`);
   }
 
   const ageHours = (Date.now() - createdAtMillis) / (60 * 60 * 1000);
@@ -154,6 +216,18 @@ async function deleteWorkspace(idToken, workspace) {
   );
 
   console.log(`[cleanup] deleted workspace name=${workspace.name} id=${workspace.workspaceId}`);
+}
+
+async function revokeAgentConnection(idToken, connection) {
+  await authenticatedJsonRequest(
+    idToken,
+    `${apiBaseUrl}/agent-api-keys/${connection.connectionId}/revoke`,
+    {
+      method: "POST",
+    },
+  );
+
+  console.log(`[cleanup] revoked agent connection label=${connection.label} id=${connection.connectionId}`);
 }
 
 async function authenticatedJsonRequest(idToken, url, init) {

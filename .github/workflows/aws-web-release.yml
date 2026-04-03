@@ -169,6 +169,10 @@ jobs:
         if: ${{ needs.changes.outputs.auth_changed == 'true' }}
         run: npm run build --prefix apps/auth
 
+      - name: Test auth app
+        if: ${{ needs.changes.outputs.auth_changed == 'true' }}
+        run: npm run test --prefix apps/auth
+
       - name: Lint backend
         if: ${{ needs.changes.outputs.backend_changed == 'true' }}
         run: npm run lint --prefix apps/backend
@@ -282,6 +286,7 @@ jobs:
             echo ""
             echo "- Deployed SHA: \`${GITHUB_SHA}\`"
             echo "- Web post-deploy smoke: pending next job"
+            echo "- Agent API post-deploy smoke: pending next job"
           } >> "${GITHUB_STEP_SUMMARY}"
 
   web_smoke:
@@ -396,6 +401,38 @@ jobs:
             echo "- Artifacts: \`web-playwright-report\`, \`web-playwright-test-results\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
+  agent_api_smoke:
+    name: Agent API post-deploy smoke
+    needs:
+      - changes
+      - aws_deploy
+    if: ${{ needs.changes.outputs.aws_changed == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run agent API smoke test
+        id: agent_smoke
+        env:
+          FLASHCARDS_AGENT_SMOKE_AUTH_BASE_URL: https://auth.flashcards-open-source-app.com
+          FLASHCARDS_AGENT_SMOKE_API_BASE_URL: https://api.flashcards-open-source-app.com/v1
+          FLASHCARDS_AGENT_SMOKE_DEMO_EMAIL: google-review@example.com
+          FLASHCARDS_AGENT_SMOKE_WORKSPACE_PREFIX: "E2E agent api "
+          FLASHCARDS_AGENT_SMOKE_CONNECTION_LABEL_PREFIX: "E2E agent api "
+        run: bash scripts/check-agent-api-smoke.sh
+
+      - name: Summarize smoke result
+        if: always()
+        run: |
+          {
+            echo "## Agent API post-deploy smoke"
+            echo ""
+            echo "- Deployed SHA: \`${GITHUB_SHA}\`"
+            echo "- Result: \`${{ steps.agent_smoke.outcome }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
   aws_release_status:
     name: Resolve AWS release outcome
     needs:
@@ -403,6 +440,7 @@ jobs:
       - pre_deploy_checks
       - aws_deploy
       - web_smoke
+      - agent_api_smoke
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     outputs:
@@ -421,10 +459,12 @@ jobs:
               aws_release_status="pre_deploy_checks_failed"
             elif [[ "${{ needs.aws_deploy.result }}" != "success" ]]; then
               aws_release_status="deployment_failed"
-            elif [[ "${{ needs.web_smoke.result }}" == "success" ]]; then
-              aws_release_status="released"
+            elif [[ "${{ needs.web_smoke.result }}" != "success" ]]; then
+              aws_release_status="web_smoke_failed"
+            elif [[ "${{ needs.agent_api_smoke.result }}" != "success" ]]; then
+              aws_release_status="agent_api_smoke_failed"
             else
-              aws_release_status="smoke_failed"
+              aws_release_status="released"
             fi
           fi
 
@@ -446,6 +486,7 @@ jobs:
       - pre_deploy_checks
       - aws_deploy
       - web_smoke
+      - agent_api_smoke
       - aws_release_status
     runs-on: ubuntu-24.04
 
@@ -460,6 +501,7 @@ jobs:
             echo "- AWS release status: \`${{ needs.aws_release_status.outputs.aws_release_status }}\`"
             echo "- AWS deploy job: \`${{ needs.aws_deploy.result }}\`"
             echo "- Web smoke job: \`${{ needs.web_smoke.result }}\`"
+            echo "- Agent API smoke job: \`${{ needs.agent_api_smoke.result }}\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
 

@@ -7,6 +7,7 @@ import { Hono } from "hono";
 import { initiateEmailOtp } from "../server/cognitoAuth.js";
 import { type AuthAppEnv, getRequestId } from "../server/apiErrors.js";
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../server/agentEnvelope.js";
+import { getDemoEmailPassword } from "../server/demoEmailAccess.js";
 import {
   createAgentOtpChallenge,
   reissueLatestAgentOtpChallenge,
@@ -23,6 +24,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type AgentSendCodeDependencies = Readonly<{
   initiateEmailOtp: (email: string) => Promise<Readonly<{ session: string }>>;
+  getDemoEmailPassword: (email: string) => Promise<string | null>;
   decideOtpRateLimit: (email: string, ipAddress: string) => Promise<OtpRateLimitDecision>;
   recordOtpSendDecision: (
     email: string,
@@ -34,6 +36,10 @@ type AgentSendCodeDependencies = Readonly<{
   reissueLatestAgentOtpChallenge: (email: string, nowMs: number) => Promise<string | null>;
   now: () => number;
 }>;
+
+function createDemoAgentSession(email: string): string {
+  return `demo-agent-session:${email}`;
+}
 
 function normalizeEmail(value: unknown): string {
   if (typeof value !== "string") {
@@ -138,8 +144,11 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
       await dependencies.recordOtpSendDecision(email, ipAddress, "suppressed_email_limit", null);
     } else {
       try {
-        const result = await dependencies.initiateEmailOtp(email);
-        otpSessionToken = await dependencies.createAgentOtpChallenge(email, result.session, dependencies.now());
+        const demoPassword = await dependencies.getDemoEmailPassword(email);
+        const session = demoPassword === null
+          ? (await dependencies.initiateEmailOtp(email)).session
+          : createDemoAgentSession(email);
+        otpSessionToken = await dependencies.createAgentOtpChallenge(email, session, dependencies.now());
         await dependencies.recordOtpSendDecision(email, ipAddress, "sent", null);
       } catch (error) {
         log({
@@ -190,6 +199,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
 
 const app = createAgentSendCodeApp({
   initiateEmailOtp,
+  getDemoEmailPassword,
   decideOtpRateLimit,
   recordOtpSendDecision,
   createAgentOtpChallenge,

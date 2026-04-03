@@ -10,12 +10,13 @@ import {
   type CreatedAgentApiKey,
 } from "../server/agentApiKeys.js";
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../server/agentEnvelope.js";
+import { getDemoEmailPassword } from "../server/demoEmailAccess.js";
 import {
   lookupAgentOtpChallenge,
   markAgentOtpChallengeUsed,
   type AgentOtpChallengeLookup,
 } from "../server/agentOtpChallenges.js";
-import { verifyEmailOtp, type TokenResult } from "../server/cognitoAuth.js";
+import { signInWithPassword, verifyEmailOtp, type TokenResult } from "../server/cognitoAuth.js";
 import { log } from "../server/logger.js";
 import { getPublicApiBaseUrl } from "../server/publicUrls.js";
 import {
@@ -44,6 +45,8 @@ type AgentVerifyCodeDependencies = Readonly<{
     maxAttempts: number,
   ) => Promise<OtpVerifyFailureRecordResult>;
   verifyEmailOtp: (email: string, code: string, session: string) => Promise<TokenResult>;
+  signInWithPassword: (email: string, password: string) => Promise<TokenResult>;
+  getDemoEmailPassword: (email: string) => Promise<string | null>;
   markAgentOtpChallengeUsed: (email: string, cognitoSession: string, nowMs: number) => Promise<void>;
   normalizeAgentApiKeyLabel: (label: string) => string;
   createAgentApiKeyFromIdToken: (idToken: string, label: string) => Promise<CreatedAgentApiKey>;
@@ -192,7 +195,10 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
     }
 
     try {
-      const tokens = await dependencies.verifyEmailOtp(challenge.email, code, challenge.cognitoSession);
+      const demoPassword = await dependencies.getDemoEmailPassword(challenge.email);
+      const tokens = demoPassword === null
+        ? await dependencies.verifyEmailOtp(challenge.email, code, challenge.cognitoSession)
+        : await dependencies.signInWithPassword(challenge.email, demoPassword);
       await dependencies.markAgentOtpChallengeUsed(challenge.email, challenge.cognitoSession, dependencies.now());
       const createdKey = await dependencies.createAgentApiKeyFromIdToken(tokens.idToken, label);
       const apiBaseUrl = getPublicApiBaseUrl(c.req.url);
@@ -311,6 +317,8 @@ const app = createAgentVerifyCodeApp({
   getOtpVerifyAttemptState,
   recordOtpVerifyFailure,
   verifyEmailOtp,
+  signInWithPassword,
+  getDemoEmailPassword,
   markAgentOtpChallengeUsed,
   normalizeAgentApiKeyLabel,
   createAgentApiKeyFromIdToken,
