@@ -154,13 +154,8 @@ class ReviewNotificationsManager(
     private fun enqueuePayload(payload: ScheduledReviewNotificationPayload, nowMillis: Long) {
         val delayMillis = maxOf(1L, payload.scheduledAtMillis - nowMillis)
         val inputData = Data.Builder()
-            .putString(reviewNotificationWorkspaceIdDataKey, payload.workspaceId)
-            .putString(reviewNotificationCardIdDataKey, payload.cardId)
             .putString(reviewNotificationFrontTextDataKey, payload.frontText)
             .putString(reviewNotificationRequestIdDataKey, payload.requestId)
-            .putString(reviewNotificationFilterKindDataKey, payload.reviewFilter.kind)
-            .putString(reviewNotificationFilterDeckIdDataKey, payload.reviewFilter.deckId)
-            .putString(reviewNotificationFilterTagDataKey, payload.reviewFilter.tag)
             .build()
         val request = OneTimeWorkRequestBuilder<ReviewNotificationWorker>()
             .setInitialDelay(delayMillis, TimeUnit.MILLISECONDS)
@@ -219,62 +214,6 @@ class ReviewNotificationsManager(
                 nowMillis = nowMillis
             )
         }
-    }
-
-    suspend fun resolveReviewNotificationTapPayload(
-        payload: ReviewNotificationTapPayload,
-        nowMillis: Long = System.currentTimeMillis()
-    ): ReviewNotificationTapFallback? {
-        val workspace = loadCurrentWorkspaceOrNull(
-            database = database,
-            preferencesStore = preferencesStore
-        ) ?: return ReviewNotificationTapFallback(
-            stage = "resolve",
-            reason = "missing_active_workspace",
-            workspaceId = payload.workspaceId,
-            currentWorkspaceId = null,
-            cardId = payload.cardId,
-            requestId = payload.requestId,
-            details = null
-        )
-        if (workspace.workspaceId != payload.workspaceId) {
-            return ReviewNotificationTapFallback(
-                stage = "resolve",
-                reason = "workspace_mismatch",
-                workspaceId = payload.workspaceId,
-                currentWorkspaceId = workspace.workspaceId,
-                cardId = payload.cardId,
-                requestId = payload.requestId,
-                details = null
-            )
-        }
-
-        val currentCard = loadCurrentReviewNotificationCard(
-            workspaceId = payload.workspaceId,
-            reviewFilter = payload.reviewFilter,
-            nowMillis = nowMillis
-        ) ?: return ReviewNotificationTapFallback(
-            stage = "resolve",
-            reason = "missing_current_card",
-            workspaceId = payload.workspaceId,
-            currentWorkspaceId = workspace.workspaceId,
-            cardId = payload.cardId,
-            requestId = payload.requestId,
-            details = null
-        )
-        if (currentCard.cardId != payload.cardId) {
-            return ReviewNotificationTapFallback(
-                stage = "resolve",
-                reason = "card_mismatch",
-                workspaceId = payload.workspaceId,
-                currentWorkspaceId = workspace.workspaceId,
-                cardId = payload.cardId,
-                requestId = payload.requestId,
-                details = "currentCardId=${currentCard.cardId}"
-            )
-        }
-
-        return null
     }
 
     private suspend fun loadCurrentAllCardsReviewNotificationCard(
@@ -405,141 +344,47 @@ fun reviewNotificationWorkspaceTag(workspaceId: String): String {
     return "review-notification::$workspaceId"
 }
 
-internal fun parseReviewNotificationTapPayload(
+internal fun parseAppNotificationTapRequest(
     getStringExtra: (String) -> String?
-): ReviewNotificationTapRequest? {
-    val marker = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationTapMarkerDataKey")
-    val workspaceId = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationWorkspaceIdDataKey")
-    val cardId = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationCardIdDataKey")
-    val frontText = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFrontTextDataKey")
-    val requestId = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationRequestIdDataKey")
-    val filterKind = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFilterKindDataKey")
-    val isReviewNotificationTap = marker == reviewNotificationTapMarkerValue
-        || workspaceId != null
-        || cardId != null
-        || frontText != null
-        || requestId != null
-        || filterKind != null
-    if (isReviewNotificationTap.not()) {
+): AppNotificationTapRequest? {
+    val rawNotificationType = getStringExtra("$appNotificationTapExtraPrefix::$appNotificationTapTypeDataKey")
+        ?: return null
+    val notificationType = AppNotificationTapType.fromRawValue(rawValue = rawNotificationType)
+    if (notificationType == null) {
+        logAppNotificationTapFallback(
+            fallback = AppNotificationTapFallback(
+                stage = "parse",
+                reason = "unsupported_notification_type",
+                notificationType = rawNotificationType,
+                details = null
+            )
+        )
         return null
     }
-    if (workspaceId == null) {
-        return ReviewNotificationTapRequest.Fallback(
-            fallback = ReviewNotificationTapFallback(
-                stage = "parse",
-                reason = "missing_workspace_id",
-                workspaceId = null,
-                currentWorkspaceId = null,
-                cardId = cardId,
-                requestId = requestId,
-                details = null
-            )
-        )
-    }
-    if (cardId == null) {
-        return ReviewNotificationTapRequest.Fallback(
-            fallback = ReviewNotificationTapFallback(
-                stage = "parse",
-                reason = "missing_card_id",
-                workspaceId = workspaceId,
-                currentWorkspaceId = null,
-                cardId = null,
-                requestId = requestId,
-                details = null
-            )
-        )
-    }
-    if (frontText == null) {
-        return ReviewNotificationTapRequest.Fallback(
-            fallback = ReviewNotificationTapFallback(
-                stage = "parse",
-                reason = "missing_front_text",
-                workspaceId = workspaceId,
-                currentWorkspaceId = null,
-                cardId = cardId,
-                requestId = requestId,
-                details = null
-            )
-        )
-    }
-    if (requestId == null) {
-        return ReviewNotificationTapRequest.Fallback(
-            fallback = ReviewNotificationTapFallback(
-                stage = "parse",
-                reason = "missing_request_id",
-                workspaceId = workspaceId,
-                currentWorkspaceId = null,
-                cardId = cardId,
-                requestId = null,
-                details = null
-            )
-        )
-    }
-    if (filterKind == null) {
-        return ReviewNotificationTapRequest.Fallback(
-            fallback = ReviewNotificationTapFallback(
-                stage = "parse",
-                reason = "missing_filter_kind",
-                workspaceId = workspaceId,
-                currentWorkspaceId = null,
-                cardId = cardId,
-                requestId = requestId,
-                details = null
-            )
-        )
-    }
-    val persistedFilter = com.flashcardsopensourceapp.data.local.notifications.PersistedReviewFilter(
-        kind = filterKind,
-        deckId = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFilterDeckIdDataKey"),
-        tag = getStringExtra("$reviewNotificationTapExtraPrefix::$reviewNotificationFilterTagDataKey")
-    )
-    val reviewFilter = try {
-        decodePersistedReviewFilter(filter = persistedFilter)
-    } catch (error: IllegalArgumentException) {
-        return ReviewNotificationTapRequest.Fallback(
-            fallback = ReviewNotificationTapFallback(
-                stage = "parse",
-                reason = "invalid_review_filter",
-                workspaceId = workspaceId,
-                currentWorkspaceId = null,
-                cardId = cardId,
-                requestId = requestId,
-                details = error.message
-            )
-        )
-    }
 
-    return ReviewNotificationTapRequest.Resolved(
-        payload = ReviewNotificationTapPayload(
-            workspaceId = workspaceId,
-            cardId = cardId,
-            requestId = requestId,
-            frontText = frontText,
-            reviewFilter = reviewFilter
-        )
-    )
+    return AppNotificationTapRequest(type = notificationType)
 }
 
-fun parseReviewNotificationTapPayload(intent: android.content.Intent): ReviewNotificationTapRequest? {
-    return parseReviewNotificationTapPayload(getStringExtra = intent::getStringExtra)
+fun parseAppNotificationTapRequest(intent: android.content.Intent): AppNotificationTapRequest? {
+    return parseAppNotificationTapRequest(getStringExtra = intent::getStringExtra)
 }
 
-internal fun consumeReviewNotificationTapPayload(
+internal fun consumeAppNotificationTapRequest(
     getStringExtra: (String) -> String?,
     removeExtra: (String) -> Unit
-): ReviewNotificationTapRequest? {
-    val payload = parseReviewNotificationTapPayload(getStringExtra = getStringExtra) ?: return null
-    clearReviewNotificationTapExtras(removeExtra = removeExtra)
-    return payload
+): AppNotificationTapRequest? {
+    val request = parseAppNotificationTapRequest(getStringExtra = getStringExtra) ?: return null
+    clearAppNotificationTapExtras(removeExtra = removeExtra)
+    return request
 }
 
-fun consumeReviewNotificationTapPayload(intent: android.content.Intent): ReviewNotificationTapRequest? {
-    return consumeReviewNotificationTapPayload(
+fun consumeAppNotificationTapRequest(intent: android.content.Intent): AppNotificationTapRequest? {
+    return consumeAppNotificationTapRequest(
         getStringExtra = intent::getStringExtra,
         removeExtra = intent::removeExtra
     )
 }
 
-private fun clearReviewNotificationTapExtras(removeExtra: (String) -> Unit) {
-    reviewNotificationTapIntentExtraKeys.forEach(removeExtra)
+private fun clearAppNotificationTapExtras(removeExtra: (String) -> Unit) {
+    appNotificationTapIntentExtraKeys.forEach(removeExtra)
 }
