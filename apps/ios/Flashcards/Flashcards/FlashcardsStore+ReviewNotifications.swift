@@ -137,7 +137,7 @@ extension FlashcardsStore {
     }
 
     func markReviewNotificationsAppActive(now: Date) {
-        self.userDefaults.set(now.timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
+        self.userDefaults.removeObject(forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.refreshReviewNotificationsScheduling(now: now)
     }
 
@@ -145,12 +145,22 @@ extension FlashcardsStore {
         guard self.reviewNotificationsSettings.selectedMode == .inactivity else {
             return
         }
+        self.userDefaults.set(now.timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.refreshReviewNotificationsScheduling(now: now)
     }
 
     func refreshReviewNotificationsScheduling(now: Date) {
-        Task { @MainActor in
-            await self.rescheduleReviewNotifications(now: now)
+        self.reviewNotificationsRescheduleGeneration += 1
+        let generation = self.reviewNotificationsRescheduleGeneration
+        self.activeReviewNotificationsRescheduleTask?.cancel()
+        self.activeReviewNotificationsRescheduleTask = Task { @MainActor in
+            await self.rescheduleReviewNotifications(
+                now: now,
+                generation: generation
+            )
+            if self.reviewNotificationsRescheduleGeneration == generation {
+                self.activeReviewNotificationsRescheduleTask = nil
+            }
         }
     }
 
@@ -234,7 +244,13 @@ extension FlashcardsStore {
         self.persistReviewNotificationsSettings()
     }
 
-    private func rescheduleReviewNotifications(now: Date) async {
+    private func rescheduleReviewNotifications(now: Date, generation: Int) async {
+        guard self.reviewNotificationsRescheduleGeneration == generation else {
+            return
+        }
+        guard Task.isCancelled == false else {
+            return
+        }
         guard let workspaceId = self.workspace?.workspaceId else {
             return
         }
@@ -258,6 +274,12 @@ extension FlashcardsStore {
         }
         guard await resolveReviewNotificationPermissionStatus() == .allowed else {
             self.persistScheduledReviewNotifications(payloads: [])
+            return
+        }
+        guard self.reviewNotificationsRescheduleGeneration == generation else {
+            return
+        }
+        guard Task.isCancelled == false else {
             return
         }
 
@@ -291,8 +313,20 @@ extension FlashcardsStore {
             self.persistScheduledReviewNotifications(payloads: [])
             return
         }
+        guard self.reviewNotificationsRescheduleGeneration == generation else {
+            return
+        }
+        guard Task.isCancelled == false else {
+            return
+        }
 
         for payload in payloads {
+            guard self.reviewNotificationsRescheduleGeneration == generation else {
+                return
+            }
+            guard Task.isCancelled == false else {
+                return
+            }
             let content = UNMutableNotificationContent()
             content.title = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Flashcards"
             content.body = payload.frontText
@@ -309,6 +343,12 @@ extension FlashcardsStore {
             try? await center.add(request)
         }
 
+        guard self.reviewNotificationsRescheduleGeneration == generation else {
+            return
+        }
+        guard Task.isCancelled == false else {
+            return
+        }
         self.persistScheduledReviewNotifications(payloads: payloads)
     }
 

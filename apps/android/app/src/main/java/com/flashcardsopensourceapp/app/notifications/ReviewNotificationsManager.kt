@@ -29,9 +29,12 @@ import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.repository.loadCurrentWorkspaceOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import java.time.ZoneId
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.TimeUnit
 
 const val reviewNotificationChannelId: String = "review-reminders"
@@ -47,19 +50,27 @@ class ReviewNotificationsManager(
 ) {
     private val workManager: WorkManager = WorkManager.getInstance(context)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var activeRescheduleJob: Job? = null
+    private val rescheduleGeneration = AtomicLong(0)
 
     fun markAppResumed(nowMillis: Long) {
-        reviewNotificationsStore.saveLastActiveAtMillis(timestampMillis = nowMillis)
+        reviewNotificationsStore.clearLastActiveAtMillis()
         refreshCurrentWorkspaceScheduling(nowMillis = nowMillis)
     }
 
     fun markAppPaused(nowMillis: Long) {
+        reviewNotificationsStore.saveLastActiveAtMillis(timestampMillis = nowMillis)
         refreshCurrentWorkspaceScheduling(nowMillis = nowMillis)
     }
 
     fun refreshCurrentWorkspaceScheduling(nowMillis: Long = System.currentTimeMillis()) {
-        scope.launch {
-            rescheduleCurrentWorkspace(nowMillis = nowMillis)
+        val generation = rescheduleGeneration.incrementAndGet()
+        activeRescheduleJob?.cancel()
+        activeRescheduleJob = scope.launch {
+            rescheduleCurrentWorkspace(
+                nowMillis = nowMillis,
+                generation = generation
+            )
         }
     }
 
@@ -82,7 +93,10 @@ class ReviewNotificationsManager(
                     inactivity = currentSettings.inactivity
                 )
             )
-            rescheduleCurrentWorkspace(nowMillis = System.currentTimeMillis())
+            rescheduleCurrentWorkspace(
+                nowMillis = System.currentTimeMillis(),
+                generation = rescheduleGeneration.incrementAndGet()
+            )
         }
     }
 
@@ -96,11 +110,22 @@ class ReviewNotificationsManager(
         }
     }
 
-    private suspend fun rescheduleCurrentWorkspace(nowMillis: Long) {
+    fun close() {
+        activeRescheduleJob?.cancel()
+        scope.cancel()
+    }
+
+    private suspend fun rescheduleCurrentWorkspace(nowMillis: Long, generation: Long) {
+        if (isLatestRescheduleGeneration(generation).not()) {
+            return
+        }
         val workspace = loadCurrentWorkspaceOrNull(
             database = database,
             preferencesStore = preferencesStore
         ) ?: return
+        if (isLatestRescheduleGeneration(generation).not()) {
+            return
+        }
         cancelWorkspaceScheduling(workspaceId = workspace.workspaceId)
 
         val settings = reviewNotificationsStore.loadSettings(workspaceId = workspace.workspaceId)
@@ -112,6 +137,9 @@ class ReviewNotificationsManager(
             reviewNotificationsStore.saveScheduledPayloads(workspaceId = workspace.workspaceId, payloads = emptyList())
             return
         }
+        if (isLatestRescheduleGeneration(generation).not()) {
+            return
+        }
 
         val currentCard = loadCurrentReviewNotificationCard(
             workspaceId = workspace.workspaceId,
@@ -119,6 +147,9 @@ class ReviewNotificationsManager(
         )
         if (currentCard == null) {
             reviewNotificationsStore.saveScheduledPayloads(workspaceId = workspace.workspaceId, payloads = emptyList())
+            return
+        }
+        if (isLatestRescheduleGeneration(generation).not()) {
             return
         }
 
@@ -144,11 +175,24 @@ class ReviewNotificationsManager(
                 )
             }
         }
+        if (isLatestRescheduleGeneration(generation).not()) {
+            return
+        }
 
         payloads.forEach { payload ->
+            if (isLatestRescheduleGeneration(generation).not()) {
+                return
+            }
             enqueuePayload(payload = payload, nowMillis = nowMillis)
         }
+        if (isLatestRescheduleGeneration(generation).not()) {
+            return
+        }
         reviewNotificationsStore.saveScheduledPayloads(workspaceId = workspace.workspaceId, payloads = payloads)
+    }
+
+    private fun isLatestRescheduleGeneration(generation: Long): Boolean {
+        return rescheduleGeneration.get() == generation
     }
 
     private fun enqueuePayload(payload: ScheduledReviewNotificationPayload, nowMillis: Long) {

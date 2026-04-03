@@ -6,6 +6,7 @@ let reviewNotificationPermissionPromptThreshold: Int = 3
 let defaultDailyReminderHour: Int = 10
 let defaultDailyReminderMinute: Int = 0
 let dailyReminderSchedulingHorizonDays: Int = 7
+let reviewNotificationPendingRequestsLimit: Int = 64
 let defaultInactivityReminderWindowEndHour: Int = 19
 let defaultInactivityReminderWindowEndMinute: Int = 0
 
@@ -226,6 +227,14 @@ func makeReviewNotificationRequestIdentifier(workspaceId: String, kind: String, 
     "review-notification::\(workspaceId)::\(kind)::\(suffix)"
 }
 
+func makeReviewNotificationRequestSuffix(scheduledAt: Date, calendar: Calendar) -> String {
+    let dateFormatter = DateFormatter()
+    dateFormatter.calendar = calendar
+    dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+    dateFormatter.dateFormat = "yyyy-MM-dd-HH-mm"
+    return dateFormatter.string(from: scheduledAt)
+}
+
 func makeReviewNotificationRequestIdentifiers(
     workspaceId: String,
     scheduledPayloads: [ScheduledReviewNotificationPayload]
@@ -322,10 +331,10 @@ func buildInactivityReviewNotificationDates(
 
     let firstScheduledDay = calendar.startOfDay(for: firstScheduledAt)
 
-    return (0..<dailyReminderSchedulingHorizonDays).compactMap { offset in
-        let scheduledAt: Date
+    return (0..<dailyReminderSchedulingHorizonDays).flatMap { offset -> [Date] in
+        let firstScheduledAtForDay: Date
         if offset == 0 {
-            scheduledAt = firstScheduledAt
+            firstScheduledAtForDay = firstScheduledAt
         } else {
             guard
                 let day = calendar.date(byAdding: .day, value: offset, to: firstScheduledDay),
@@ -336,15 +345,17 @@ func buildInactivityReviewNotificationDates(
                     of: day
                 )
             else {
-                return nil
+                return [Date]()
             }
-            scheduledAt = nextScheduledAt
+            firstScheduledAtForDay = nextScheduledAt
         }
 
-        guard scheduledAt > now else {
-            return nil
-        }
-        return scheduledAt
+        return buildRepeatedInactivityReviewNotificationDatesForDay(
+            firstScheduledAt: firstScheduledAtForDay,
+            now: now,
+            calendar: calendar,
+            settings: settings
+        )
     }
 }
 
@@ -355,11 +366,6 @@ func buildRepeatedReviewNotificationPayloads(
     calendar: Calendar,
     mode: ReviewNotificationMode
 ) -> [ScheduledReviewNotificationPayload] {
-    let dateFormatter = DateFormatter()
-    dateFormatter.calendar = calendar
-    dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-    dateFormatter.dateFormat = "yyyy-MM-dd"
-
     return scheduledDates.map { scheduledAt in
         ScheduledReviewNotificationPayload(
             workspaceId: workspaceId,
@@ -370,7 +376,10 @@ func buildRepeatedReviewNotificationPayloads(
             requestId: makeReviewNotificationRequestIdentifier(
                 workspaceId: workspaceId,
                 kind: mode.rawValue,
-                suffix: dateFormatter.string(from: scheduledAt)
+                suffix: makeReviewNotificationRequestSuffix(
+                    scheduledAt: scheduledAt,
+                    calendar: calendar
+                )
             )
         )
     }
@@ -419,14 +428,54 @@ func loadScheduledReviewNotificationPayloads(
             )
         }
 
+        let limitedScheduledDates = Array(scheduledDates.prefix(reviewNotificationPendingRequestsLimit))
         return buildRepeatedReviewNotificationPayloads(
             workspaceId: snapshot.workspaceId,
             currentCard: currentCard,
-            scheduledDates: scheduledDates,
+            scheduledDates: limitedScheduledDates,
             calendar: calendar,
             mode: mode
         )
     }.value
+}
+
+private func buildRepeatedInactivityReviewNotificationDatesForDay(
+    firstScheduledAt: Date,
+    now: Date,
+    calendar: Calendar,
+    settings: InactivityReviewNotificationsSettings
+) -> [Date] {
+    guard settings.idleMinutes > 0 else {
+        return []
+    }
+    guard
+        let windowEnd = calendar.date(
+            bySettingHour: settings.windowEndHour,
+            minute: settings.windowEndMinute,
+            second: 0,
+            of: firstScheduledAt
+        ),
+        firstScheduledAt <= windowEnd
+    else {
+        return []
+    }
+
+    var scheduledDates: [Date] = []
+    var nextScheduledAt: Date? = firstScheduledAt
+
+    while let currentScheduledAt = nextScheduledAt, currentScheduledAt <= windowEnd {
+        if currentScheduledAt > now {
+            scheduledDates.append(currentScheduledAt)
+        }
+
+        nextScheduledAt = calendar.date(
+            byAdding: .minute,
+            value: settings.idleMinutes,
+            to: currentScheduledAt
+        )
+    }
+
+    return scheduledDates
 }
 
 func buildReviewNotificationUserInfo(notificationType: AppNotificationTapType) -> [AnyHashable: Any] {

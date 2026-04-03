@@ -195,7 +195,7 @@ fun ReviewNotificationsRoute(
                                 Text("Inactivity reminder")
                             },
                             supportingContent = {
-                                Text("Example: between ${formatTimeLabel(hour = uiState.settings.inactivity.windowStartHour, minute = uiState.settings.inactivity.windowStartMinute)} and ${formatTimeLabel(hour = uiState.settings.inactivity.windowEndHour, minute = uiState.settings.inactivity.windowEndMinute)}, remind me after ${formatIdleMinutes(minutes = uiState.settings.inactivity.idleMinutes)} away from the app, and keep reminding me on later days inside that window until I return.")
+                                Text("Example: between ${formatTimeLabel(hour = uiState.settings.inactivity.windowStartHour, minute = uiState.settings.inactivity.windowStartMinute)} and ${formatTimeLabel(hour = uiState.settings.inactivity.windowEndHour, minute = uiState.settings.inactivity.windowEndMinute)}, remind me after ${formatIdleMinutes(minutes = uiState.settings.inactivity.idleMinutes)} away from the app, keep reminding me every ${formatIdleMinutes(minutes = uiState.settings.inactivity.idleMinutes)} inside that window, and repeat that pattern on later days until I return.")
                             }
                         )
                     }
