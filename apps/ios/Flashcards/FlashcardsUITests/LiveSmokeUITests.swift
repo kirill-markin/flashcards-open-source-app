@@ -1325,23 +1325,29 @@ final class LiveSmokeUITests: XCTestCase {
             .filter { label in
                 label.isEmpty == false && ignoredExactLabels.contains(label) == false
             }
-        let assistantTextLabels = self.elements(
-            query: self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
-        )
-            .map { element in
-                let label = element.label.trimmingCharacters(in: .whitespacesAndNewlines)
-                if label.isEmpty == false {
-                    return label
-                }
-
-                return self.elementValue(element: element).trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-            .filter { label in
-                label.isEmpty == false && ignoredExactLabels.contains(label) == false
-            }
+        let assistantTextLabels = self.visibleAssistantRowTexts(ignoredExactLabels: ignoredExactLabels)
 
         return staticTextLabels + assistantTextLabels
+    }
+
+    @MainActor
+    private func visibleAssistantRowTexts(ignoredExactLabels: Set<String>) -> [String] {
+        self.elements(
+            query: self.app.otherElements
+                .matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
+        )
+        .compactMap { element in
+            let value = self.elementValue(element: element).trimmingCharacters(in: .whitespacesAndNewlines)
+            if value.isEmpty == false {
+                return value
+            }
+
+            let label = element.label.trimmingCharacters(in: .whitespacesAndNewlines)
+            return label.isEmpty ? nil : label
+        }
+        .filter { text in
+            text.isEmpty == false && ignoredExactLabels.contains(text) == false
+        }
     }
 
     @MainActor
@@ -1360,24 +1366,22 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func visibleCompletedAiSqlToolCallSummaries() -> [String] {
-        let assistantToolLabels = self.elements(
+        self.elements(
             query: self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
+                .matching(identifier: LiveSmokeIdentifier.aiToolCallSummary)
         )
-        .compactMap { element in
-            let label = element.label.trimmingCharacters(in: .whitespacesAndNewlines)
-            if label.isEmpty == false {
-                return label
-            }
-
-            let value = self.elementValue(element: element)
-            return value.isEmpty ? nil : value
+        .map(\.label)
+        .map { label in
+            label.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         .filter { label in
-            label.contains("SQL:") && label.contains("Done")
+            label.contains("SQL:")
         }
-
-        return Array(Set(assistantToolLabels)).sorted()
+        .reduce(into: [String]()) { partialResult, label in
+            if partialResult.contains(label) == false {
+                partialResult.append(label)
+            }
+        }
     }
 
     @MainActor
@@ -1437,9 +1441,10 @@ final class LiveSmokeUITests: XCTestCase {
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
         }
 
-        let completedSqlSummaries = self.visibleCompletedAiSqlToolCallSummaries()
+        let toolCallCheck = try self.completedAiInsertToolCallCheck()
+        let assistantMessages = self.visibleMeaningfulAssistantTextMessages()
         throw LiveSmokeFailure.unexpectedAiConversationState(
-            message: "AI create flow did not surface a completed SQL INSERT INTO cards within \(formatDuration(seconds: timeout)). CompletedSqlToolCalls: \(completedSqlSummaries)",
+            message: "AI create flow did not surface a completed SQL INSERT INTO cards within \(formatDuration(seconds: timeout)). CompletedSqlToolCalls: \(toolCallCheck.completedSqlSummaries). AssistantMessages: \(assistantMessages)",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
@@ -1448,22 +1453,12 @@ final class LiveSmokeUITests: XCTestCase {
     @MainActor
     private func visibleMeaningfulAssistantTextMessages() -> [String] {
         var seenMessages: Set<String> = []
-        return self.elements(
-            query: self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
-        )
-        .compactMap { element in
-            let label = element.label.trimmingCharacters(in: .whitespacesAndNewlines)
-            if label.isEmpty == false {
-                return label
-            }
-
-            return self.elementValue(element: element).trimmingCharacters(in: .whitespacesAndNewlines)
-        }
+        return self.visibleAssistantRowTexts(ignoredExactLabels: [])
         .filter { message in
             message.isEmpty == false
                 && message != "Assistant"
                 && message != "Looking through your cards..."
+                && message != "Assistant is typing"
         }
         .filter { message in
             seenMessages.insert(message).inserted
@@ -2275,6 +2270,8 @@ final class LiveSmokeUITests: XCTestCase {
             Root screen queries: \(self.rootScreenQuerySnapshot())
             Active alerts: \(self.activeAlertsSnapshot())
             Visible text snapshot: \(self.visibleTextSnapshot())
+            Assistant transcript snapshot: \(self.visibleMeaningfulAssistantTextMessages())
+            Tool call snapshot: \(self.visibleCompletedAiSqlToolCallSummaries())
             Breadcrumbs:
             \(self.recentBreadcrumbLines())
             """
@@ -3014,8 +3011,6 @@ final class LiveSmokeUITests: XCTestCase {
 
     @MainActor
     private func completedAiInsertToolCallCheck() throws -> LiveSmokeAIToolCallCheck {
-        try self.expandAllVisibleAiToolCallSummaries()
-
         let summaryTexts = self.elements(
             query: self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.aiToolCallSummary)
@@ -3058,32 +3053,5 @@ final class LiveSmokeUITests: XCTestCase {
             matchingInsertFound: matchingInsertFound,
             completedSqlSummaries: completedSqlSummaries
         )
-    }
-
-    @MainActor
-    private func expandAllVisibleAiToolCallSummaries() throws {
-        let summaryElements = self.elements(
-            query: self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.aiToolCallSummary)
-        )
-
-        for (index, summaryElement) in summaryElements.enumerated() {
-            guard summaryElement.exists, summaryElement.isHittable else {
-                continue
-            }
-
-            self.logActionStart(
-                action: "tap_tool_call_summary",
-                identifier: "\(LiveSmokeIdentifier.aiToolCallSummary).\(index)"
-            )
-            summaryElement.tap()
-            _ = self.dismissKnownBlockingAlertIfVisible()
-            self.logActionEnd(
-                action: "tap_tool_call_summary",
-                identifier: "\(LiveSmokeIdentifier.aiToolCallSummary).\(index)",
-                result: "success",
-                note: "tool call summary toggled"
-            )
-        }
     }
 }
