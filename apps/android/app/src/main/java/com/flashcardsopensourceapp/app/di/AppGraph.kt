@@ -223,6 +223,7 @@ class AppGraph(
 
     fun close() {
         startupJob?.cancel()
+        reviewNotificationsManager.close()
         appScope.cancel()
         closeAppDatabase(database = database)
     }

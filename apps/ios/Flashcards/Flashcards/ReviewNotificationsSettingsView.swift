@@ -87,7 +87,7 @@ struct ReviewNotificationsSettingsView: View {
                 }
             } else {
                 Section("Inactivity Reminder") {
-                    Text("Example: between the selected local times, remind me after I have been away from the app for the chosen interval, and keep reminding me on later days inside that window until I come back.")
+                    Text("Example: between the selected local times, remind me after I have been away from the app for the chosen interval, keep reminding me every chosen interval inside that window, and repeat that pattern on later days until I come back.")
                         .foregroundStyle(.secondary)
 
                     DatePicker(

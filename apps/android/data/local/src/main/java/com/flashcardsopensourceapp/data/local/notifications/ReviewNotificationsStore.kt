@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -381,7 +382,7 @@ fun buildInactivityReminderPayloads(
             requestId = makeNotificationRequestId(
                 workspaceId = workspaceId,
                 mode = ReviewNotificationMode.INACTIVITY,
-                suffix = scheduledAtDateTime.toLocalDate().toString()
+                suffix = makeNotificationRequestSuffix(scheduledAtDateTime = scheduledAtDateTime)
             )
         )
     }
@@ -403,7 +404,7 @@ fun buildInactivityReminderTimestampMillisList(
     val firstScheduledAtDay = firstScheduledAt.toLocalDate()
 
     return (0 until dailyReminderSchedulingHorizonDays).mapNotNull { dayOffset ->
-        val scheduledAt = if (dayOffset == 0) {
+        val firstScheduledAtForDay = if (dayOffset == 0) {
             firstScheduledAt
         } else {
             val day = firstScheduledAtDay.plusDays(dayOffset.toLong())
@@ -419,13 +420,12 @@ fun buildInactivityReminderTimestampMillisList(
             )
         }
 
-        val scheduledAtMillis = scheduledAt.toInstant().toEpochMilli()
-        if (scheduledAtMillis <= nowMillis) {
-            null
-        } else {
-            scheduledAtMillis
-        }
-    }
+        buildRepeatedInactivityReminderTimestampMillisForDay(
+            firstScheduledAt = firstScheduledAtForDay,
+            nowMillis = nowMillis,
+            settings = settings
+        )
+    }.flatten()
 }
 
 fun makeNotificationRequestId(
@@ -435,6 +435,44 @@ fun makeNotificationRequestId(
 ): String {
     return "review-notification::$workspaceId::${mode.name.lowercase()}::$suffix"
 }
+
+fun makeNotificationRequestSuffix(scheduledAtDateTime: ZonedDateTime): String {
+    return scheduledAtDateTime.format(notificationRequestIdDateTimeFormatter)
+}
+
+private fun buildRepeatedInactivityReminderTimestampMillisForDay(
+    firstScheduledAt: ZonedDateTime,
+    nowMillis: Long,
+    settings: InactivityReviewNotificationsSettings
+): List<Long> {
+    if (settings.idleMinutes <= 0) {
+        return emptyList()
+    }
+
+    val windowEnd = firstScheduledAt.withHour(settings.windowEndHour)
+        .withMinute(settings.windowEndMinute)
+        .withSecond(0)
+        .withNano(0)
+    if (firstScheduledAt > windowEnd) {
+        return emptyList()
+    }
+
+    val scheduledAtMillisList = mutableListOf<Long>()
+    var currentScheduledAt: ZonedDateTime? = firstScheduledAt
+
+    while (currentScheduledAt != null && currentScheduledAt <= windowEnd) {
+        val currentScheduledAtMillis = currentScheduledAt.toInstant().toEpochMilli()
+        if (currentScheduledAtMillis > nowMillis) {
+            scheduledAtMillisList += currentScheduledAtMillis
+        }
+
+        currentScheduledAt = currentScheduledAt.plusMinutes(settings.idleMinutes.toLong())
+    }
+
+    return scheduledAtMillisList
+}
+
+private val notificationRequestIdDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
 
 private fun makeSettingsKey(workspaceId: String): String {
     return "$reviewNotificationsSettingsKeyPrefix$workspaceId"

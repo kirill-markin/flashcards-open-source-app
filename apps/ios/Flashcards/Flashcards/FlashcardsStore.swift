@@ -92,6 +92,8 @@ final class FlashcardsStore {
     @ObservationIgnored var cachedAIChatStore: AIChatStore?
     @ObservationIgnored var currentVisibleTab: AppTab
     @ObservationIgnored var lastImmediateCloudSyncTriggerAt: Date?
+    @ObservationIgnored var activeReviewNotificationsRescheduleTask: Task<Void, Never>?
+    @ObservationIgnored var reviewNotificationsRescheduleGeneration: Int
 
     var aiChatStore: AIChatStore {
         if let cachedAIChatStore {
@@ -309,6 +311,8 @@ final class FlashcardsStore {
         self.isAccountDeletionRunning = false
         self.currentVisibleTab = .review
         self.lastImmediateCloudSyncTriggerAt = nil
+        self.activeReviewNotificationsRescheduleTask = nil
+        self.reviewNotificationsRescheduleGeneration = 0
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {
