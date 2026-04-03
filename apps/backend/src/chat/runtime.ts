@@ -3,6 +3,8 @@
  * The worker uses this module to consume provider events, update the assistant item incrementally, and finalize run state independently of client connections.
  */
 import OpenAI from "openai";
+import { getAIProviderFailureMetadata } from "./providerFailure";
+import { getErrorLogContext } from "../server/logging";
 import { startChatTurnObservation } from "../telemetry/langfuse";
 import {
   appendAssistantTextContent,
@@ -23,6 +25,7 @@ import {
   updateAssistantMessageItem,
   updateAssistantMessageItemAndInvalidateMainContent,
 } from "./store";
+import { logChatWorkerLifecycleEvent, type ChatWorkerLogContext } from "./workerLogging";
 import type {
   ChatStreamEvent,
   ContentPart,
@@ -45,6 +48,7 @@ type ChatRunDiagnostics = Readonly<{
 }>;
 
 export type StartPersistedChatRunParams = Readonly<{
+  lambdaRequestId: string | null;
   runId: string;
   requestId: string;
   userId: string;
@@ -55,6 +59,18 @@ export type StartPersistedChatRunParams = Readonly<{
   localMessages: ReadonlyArray<ServerChatMessage>;
   turnInput: ReadonlyArray<ContentPart>;
   diagnostics: ChatRunDiagnostics;
+}>;
+
+type ChatWorkerAbortReason =
+  | "user_cancelled"
+  | "ownership_lost"
+  | "initial_cancel_state";
+
+export type ChatWorkerRunResult = Readonly<{
+  outcome: "completed" | "cancelled" | "ownership_lost" | "failed";
+  abortReason: ChatWorkerAbortReason | null;
+  runStatus: "completed" | "cancelled" | "failed" | null;
+  sessionState: "idle" | null;
 }>;
 
 export class ChatRunOwnershipLostError extends Error {
@@ -89,6 +105,121 @@ const DEFAULT_CHAT_RUNTIME_DEPENDENCIES: ChatRuntimeDependencies = {
   beginTaskProtection: async (): Promise<void> => undefined,
   endTaskProtection: async (): Promise<void> => undefined,
 };
+
+function createWorkerLogContext(params: StartPersistedChatRunParams): ChatWorkerLogContext {
+  return {
+    lambdaRequestId: params.lambdaRequestId,
+    chatRequestId: params.requestId,
+    runId: params.runId,
+    sessionId: params.sessionId,
+    userId: params.userId,
+    workspaceId: params.workspaceId,
+  };
+}
+
+function toIsoStringOrNull(value: Date | null): string | null {
+  return value === null ? null : value.toISOString();
+}
+
+function logAbortRequested(
+  context: ChatWorkerLogContext,
+  reason: ChatWorkerAbortReason,
+  heartbeatAt: Date | null,
+  cancellationRequested: boolean,
+  ownershipLost: boolean,
+  signalAborted: boolean,
+): void {
+  logChatWorkerLifecycleEvent("chat_worker_abort_requested", context, {
+    abortReason: reason,
+    signalAborted,
+    cancellationRequested,
+    ownershipLost,
+    runStatus: null,
+    sessionState: null,
+    providerErrorClass: null,
+    providerErrorMessage: null,
+    providerRequestId: null,
+    heartbeatAt: toIsoStringOrNull(heartbeatAt),
+    startedAt: null,
+    finishedAt: null,
+  }, false);
+}
+
+function logProviderCallStarted(
+  context: ChatWorkerLogContext,
+  startedAt: Date,
+  signalAborted: boolean,
+): void {
+  logChatWorkerLifecycleEvent("chat_worker_provider_call_started", context, {
+    abortReason: null,
+    signalAborted,
+    cancellationRequested: false,
+    ownershipLost: false,
+    runStatus: null,
+    sessionState: null,
+    providerErrorClass: null,
+    providerErrorMessage: null,
+    providerRequestId: null,
+    heartbeatAt: null,
+    startedAt: startedAt.toISOString(),
+    finishedAt: null,
+  }, false);
+}
+
+function logProviderCallAborted(
+  context: ChatWorkerLogContext,
+  error: unknown,
+  abortReason: ChatWorkerAbortReason,
+  cancellationRequested: boolean,
+  ownershipLost: boolean,
+  signalAborted: boolean,
+): void {
+  const errorContext = getErrorLogContext(error);
+  const providerMetadata = getAIProviderFailureMetadata(error);
+  logChatWorkerLifecycleEvent("chat_worker_provider_call_aborted", context, {
+    abortReason,
+    signalAborted,
+    cancellationRequested,
+    ownershipLost,
+    runStatus: null,
+    sessionState: null,
+    providerErrorClass: errorContext.errorClass,
+    providerErrorMessage: errorContext.errorMessage,
+    providerRequestId: providerMetadata.upstreamRequestId,
+    heartbeatAt: null,
+    startedAt: null,
+    finishedAt: null,
+  }, false);
+}
+
+function logTerminalStatePersisted(
+  context: ChatWorkerLogContext,
+  error: unknown | null,
+  abortReason: ChatWorkerAbortReason | null,
+  runStatus: "completed" | "cancelled" | "failed",
+  sessionState: "idle",
+  cancellationRequested: boolean,
+  ownershipLost: boolean,
+  startedAt: Date,
+  finishedAt: Date,
+): void {
+  const errorContext = error === null ? null : getErrorLogContext(error);
+  const providerMetadata = error === null ? null : getAIProviderFailureMetadata(error);
+
+  logChatWorkerLifecycleEvent("chat_worker_terminal_state_persisted", context, {
+    abortReason,
+    signalAborted: abortReason !== null,
+    cancellationRequested,
+    ownershipLost,
+    runStatus,
+    sessionState,
+    providerErrorClass: errorContext?.errorClass ?? null,
+    providerErrorMessage: errorContext?.errorMessage ?? null,
+    providerRequestId: providerMetadata?.upstreamRequestId ?? null,
+    startedAt: startedAt.toISOString(),
+    finishedAt: finishedAt.toISOString(),
+  }, runStatus === "failed");
+}
 
 /**
  * Narrows the provider abort case used when a user stop request interrupts the active run.
@@ -238,52 +369,204 @@ function finalizeAssistantToolCalls(
 }
 
 /**
- * Runs one persisted chat session using injectable dependencies for tests and worker orchestration.
+ * Runs one persisted chat session using a single awaited provider-control flow.
+ * User cancellation is terminal and persists exactly once.
+ * Ownership loss is non-terminal for the losing worker because another worker
+ * may already own the run and is the only worker allowed to finalize it.
  */
 export async function runPersistedChatSessionWithDeps(
   params: StartPersistedChatRunParams,
   dependencies: ChatRuntimeDependencies,
-): Promise<void> {
+): Promise<ChatWorkerRunResult> {
+  const logContext = createWorkerLogContext(params);
   let assistantContent: ReadonlyArray<ContentPart> = [];
   let isFinalized = false;
   let stopRequestedByUser = false;
   let ownershipLost = false;
+  let abortReason: ChatWorkerAbortReason | null = null;
+  let runtimeResult: ChatWorkerRunResult | null = null;
   const seenInvalidationVersions = new Map<string, number>();
   const abortController = new AbortController();
+  const startedAt = new Date();
+
+  const persistCancelled = async (
+    reason: ChatWorkerAbortReason,
+  ): Promise<ChatWorkerRunResult> => {
+    assistantContent = finalizeAssistantToolCalls(assistantContent);
+    const finishedAt = new Date();
+    await dependencies.persistAssistantCancelled(params.userId, params.workspaceId, {
+      runId: params.runId,
+      sessionId: params.sessionId,
+      assistantItemId: params.assistantItemId,
+      assistantContent,
+    });
+    isFinalized = true;
+    logTerminalStatePersisted(
+      logContext,
+      null,
+      reason,
+      "cancelled",
+      "idle",
+      stopRequestedByUser,
+      ownershipLost,
+      startedAt,
+      finishedAt,
+    );
+    return {
+      outcome: "cancelled",
+      abortReason: reason,
+      runStatus: "cancelled",
+      sessionState: "idle",
+    };
+  };
+
+  const persistFailed = async (
+    error: unknown,
+  ): Promise<ChatWorkerRunResult> => {
+    const message = error instanceof Error ? error.message : String(error);
+    assistantContent = finalizeAssistantToolCalls(assistantContent);
+    const finishedAt = new Date();
+    await dependencies.persistAssistantTerminalError(params.userId, params.workspaceId, {
+      runId: params.runId,
+      sessionId: params.sessionId,
+      assistantItemId: params.assistantItemId,
+      assistantContent,
+      errorMessage: message,
+      sessionState: "idle",
+    });
+    isFinalized = true;
+    logTerminalStatePersisted(
+      logContext,
+      error,
+      abortReason,
+      "failed",
+      "idle",
+      stopRequestedByUser,
+      ownershipLost,
+      startedAt,
+      finishedAt,
+    );
+    return {
+      outcome: "failed",
+      abortReason,
+      runStatus: "failed",
+      sessionState: "idle",
+    };
+  };
+
+  const persistCompleted = async (
+    assistantOpenAIItems: ReadonlyArray<import("./openai/replayItems").StoredOpenAIReplayItem>,
+  ): Promise<ChatWorkerRunResult> => {
+    assistantContent = finalizeAssistantToolCalls(assistantContent);
+    const finishedAt = new Date();
+    await dependencies.completeChatRun(params.userId, params.workspaceId, {
+      runId: params.runId,
+      sessionId: params.sessionId,
+      assistantItemId: params.assistantItemId,
+      assistantContent,
+      assistantOpenAIItems,
+    });
+    isFinalized = true;
+    logTerminalStatePersisted(
+      logContext,
+      null,
+      null,
+      "completed",
+      "idle",
+      stopRequestedByUser,
+      ownershipLost,
+      startedAt,
+      finishedAt,
+    );
+    return {
+      outcome: "completed",
+      abortReason: null,
+      runStatus: "completed",
+      sessionState: "idle",
+    };
+  };
+
+  const recordAbortRequest = (
+    reason: ChatWorkerAbortReason,
+    heartbeatAt: Date | null,
+    cancellationRequested: boolean,
+    ownershipLostState: boolean,
+  ): void => {
+    if (abortReason !== null) {
+      return;
+    }
+
+    abortReason = reason;
+    abortController.abort();
+    logAbortRequested(
+      logContext,
+      reason,
+      heartbeatAt,
+      cancellationRequested,
+      ownershipLostState,
+      abortController.signal.aborted,
+    );
+  };
+
   const heartbeatTimer = setInterval(() => {
+    const heartbeatAt = new Date();
     void dependencies.touchChatRunHeartbeat(
       params.userId,
       params.workspaceId,
       params.runId,
-      new Date(),
+      heartbeatAt,
     ).then((state) => {
       if (state.ownershipLost) {
         ownershipLost = true;
-        abortController.abort();
+        recordAbortRequest(
+          "ownership_lost",
+          heartbeatAt,
+          state.cancellationRequested,
+          true,
+        );
         return;
       }
 
       if (state.cancellationRequested) {
         stopRequestedByUser = true;
-        abortController.abort();
+        recordAbortRequest(
+          "user_cancelled",
+          heartbeatAt,
+          true,
+          ownershipLost,
+        );
       }
     }).catch((): void => undefined);
   }, CHAT_RUN_HEARTBEAT_INTERVAL_MS);
 
   try {
     await dependencies.beginTaskProtection();
+    const initialHeartbeatAt = new Date();
     const initialHeartbeatState = await dependencies.touchChatRunHeartbeat(
       params.userId,
       params.workspaceId,
       params.runId,
-      new Date(),
+      initialHeartbeatAt,
     );
     if (initialHeartbeatState.ownershipLost) {
-      throw new ChatRunOwnershipLostError(params.runId);
+      ownershipLost = true;
+      recordAbortRequest(
+        "ownership_lost",
+        initialHeartbeatAt,
+        initialHeartbeatState.cancellationRequested,
+        true,
+      );
+      return {
+        outcome: "ownership_lost",
+        abortReason: "ownership_lost",
+        runStatus: null,
+        sessionState: null,
+      };
     }
     stopRequestedByUser = initialHeartbeatState.cancellationRequested;
     if (stopRequestedByUser) {
-      abortController.abort();
+      recordAbortRequest("initial_cancel_state", initialHeartbeatAt, true, false);
+      return persistCancelled("initial_cancel_state");
     }
 
     await dependencies.startChatTurnObservation(
@@ -298,7 +581,8 @@ export async function runPersistedChatSessionWithDeps(
         turnInput: params.turnInput,
       },
       async (rootObservation): Promise<void> => {
-        const started = await dependencies.startOpenAILoop({
+        logProviderCallStarted(logContext, new Date(), abortController.signal.aborted);
+        const completion = await dependencies.startOpenAILoop({
           requestId: params.requestId,
           userId: params.userId,
           workspaceId: params.workspaceId,
@@ -308,11 +592,9 @@ export async function runPersistedChatSessionWithDeps(
           turnInput: params.turnInput,
           rootObservation,
           signal: abortController.signal,
-        });
-
-        for await (const event of started.events) {
+        }, async (event): Promise<void> => {
           if (stopRequestedByUser || ownershipLost) {
-            break;
+            return;
           }
 
           if (event.type === "delta") {
@@ -348,17 +630,12 @@ export async function runPersistedChatSessionWithDeps(
               assistantContent,
             );
           } else if (event.type === "error") {
-            assistantContent = finalizeAssistantToolCalls(assistantContent);
-            await dependencies.persistAssistantTerminalError(params.userId, params.workspaceId, {
-              runId: params.runId,
-              sessionId: params.sessionId,
-              assistantItemId: params.assistantItemId,
-              assistantContent,
-              errorMessage: event.message,
-              sessionState: "idle",
-            });
-            isFinalized = true;
+            runtimeResult = await persistFailed(new Error(event.message));
           }
+        });
+
+        if (runtimeResult !== null) {
+          return;
         }
 
         if (ownershipLost) {
@@ -366,57 +643,85 @@ export async function runPersistedChatSessionWithDeps(
         }
 
         if (stopRequestedByUser) {
-          assistantContent = finalizeAssistantToolCalls(assistantContent);
-          await dependencies.persistAssistantCancelled(params.userId, params.workspaceId, {
-            runId: params.runId,
-            sessionId: params.sessionId,
-            assistantItemId: params.assistantItemId,
-            assistantContent,
-          });
-          isFinalized = true;
+          runtimeResult = await persistCancelled(abortReason ?? "user_cancelled");
           return;
         }
 
         if (!isFinalized) {
-          const completion = await started.completion;
-          assistantContent = finalizeAssistantToolCalls(assistantContent);
-          await dependencies.completeChatRun(params.userId, params.workspaceId, {
-            runId: params.runId,
-            sessionId: params.sessionId,
-            assistantItemId: params.assistantItemId,
-            assistantContent,
-            assistantOpenAIItems: completion.openaiItems,
-          });
-          isFinalized = true;
+          runtimeResult = await persistCompleted(completion.openaiItems);
+          return;
         }
       },
     );
-  } catch (error) {
-    if (ownershipLost || error instanceof ChatRunOwnershipLostError) {
-      return;
+    if (runtimeResult !== null) {
+      return runtimeResult;
+    }
+    if (isFinalized) {
+      if (abortReason === "initial_cancel_state" || abortReason === "user_cancelled") {
+        return {
+          outcome: "cancelled",
+          abortReason,
+          runStatus: "cancelled",
+          sessionState: "idle",
+        };
+      }
+
+      return {
+        outcome: "completed",
+        abortReason: null,
+        runStatus: "completed",
+        sessionState: "idle",
+      };
     }
 
-    if (stopRequestedByUser && isUserAbortError(error)) {
-      assistantContent = finalizeAssistantToolCalls(assistantContent);
-      await dependencies.persistAssistantCancelled(params.userId, params.workspaceId, {
-        runId: params.runId,
-        sessionId: params.sessionId,
-        assistantItemId: params.assistantItemId,
-        assistantContent,
-      });
-      return;
+    if (ownershipLost) {
+      return {
+        outcome: "ownership_lost",
+        abortReason: abortReason ?? "ownership_lost",
+        runStatus: null,
+        sessionState: null,
+      };
     }
 
-    const message = error instanceof Error ? error.message : String(error);
-    assistantContent = finalizeAssistantToolCalls(assistantContent);
-    await dependencies.persistAssistantTerminalError(params.userId, params.workspaceId, {
-      runId: params.runId,
-      sessionId: params.sessionId,
-      assistantItemId: params.assistantItemId,
-      assistantContent,
-      errorMessage: message,
+    return {
+      outcome: "completed",
+      abortReason: null,
+      runStatus: "completed",
       sessionState: "idle",
-    });
+    };
+  } catch (error) {
+    if (abortReason !== null && isUserAbortError(error)) {
+      logProviderCallAborted(
+        logContext,
+        error,
+        abortReason,
+        stopRequestedByUser,
+        ownershipLost,
+        abortController.signal.aborted,
+      );
+
+      if (abortReason === "ownership_lost") {
+        return {
+          outcome: "ownership_lost",
+          abortReason,
+          runStatus: null,
+          sessionState: null,
+        };
+      }
+
+      return persistCancelled(abortReason);
+    }
+
+    if (ownershipLost || error instanceof ChatRunOwnershipLostError) {
+      return {
+        outcome: "ownership_lost",
+        abortReason: abortReason ?? "ownership_lost",
+        runStatus: null,
+        sessionState: null,
+      };
+    }
+
+    return persistFailed(error);
   } finally {
     clearInterval(heartbeatTimer);
     await dependencies.endTaskProtection();
@@ -428,6 +733,6 @@ export async function runPersistedChatSessionWithDeps(
  */
 export async function runPersistedChatSession(
   params: StartPersistedChatRunParams,
-): Promise<void> {
+): Promise<ChatWorkerRunResult> {
   return runPersistedChatSessionWithDeps(params, DEFAULT_CHAT_RUNTIME_DEPENDENCIES);
 }
