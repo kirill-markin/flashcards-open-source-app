@@ -16,6 +16,7 @@ class LiveSmokeTestCase: XCTestCase {
     let reviewEmailEnvironmentKey: String = "FLASHCARDS_LIVE_REVIEW_EMAIL"
     let resetStateEnvironmentKey: String = "FLASHCARDS_UI_TEST_RESET_STATE"
     let selectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
+    let appNotificationTapTypeEnvironmentKey: String = "FLASHCARDS_UI_TEST_APP_NOTIFICATION_TAP_TYPE"
     let maximumStoredBreadcrumbCount: Int = 30
 
     var app: XCUIApplication!
@@ -142,6 +143,30 @@ class LiveSmokeTestCase: XCTestCase {
         _ = self.dismissKnownBlockingAlertIfVisible()
         try self.waitForSelectedTabScreen(selectedTab: selectedTab, timeout: self.shortUiTimeoutSeconds)
         self.logActionEnd(action: "launch_app", identifier: "application", result: "success", note: "application launched")
+    }
+
+    @MainActor
+    func launchApplicationWithAppNotificationTap(
+        resetState: LiveSmokeLaunchResetState?,
+        selectedTab: LiveSmokeSelectedTab,
+        appNotificationTapType: LiveSmokeAppNotificationTapType
+    ) throws {
+        self.app = XCUIApplication()
+        self.configureLaunchEnvironmentWithAppNotificationTap(
+            resetState: resetState,
+            selectedTab: selectedTab,
+            appNotificationTapType: appNotificationTapType
+        )
+        self.logActionStart(action: "launch_app_notification_tap", identifier: "application")
+        self.app.launch()
+        try self.waitForApplicationToReachForeground(timeout: self.shortUiTimeoutSeconds)
+        _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionEnd(
+            action: "launch_app_notification_tap",
+            identifier: "application",
+            result: "success",
+            note: "application launched with app notification tap"
+        )
     }
 
     @MainActor
@@ -1241,10 +1266,21 @@ class LiveSmokeTestCase: XCTestCase {
         selectedTab: LiveSmokeSelectedTab
     ) {
         self.app.launchEnvironment.removeValue(forKey: self.resetStateEnvironmentKey)
+        self.app.launchEnvironment.removeValue(forKey: self.appNotificationTapTypeEnvironmentKey)
         self.app.launchEnvironment[self.selectedTabEnvironmentKey] = selectedTab.rawValue
         if let resetState {
             self.app.launchEnvironment[self.resetStateEnvironmentKey] = resetState.rawValue
         }
+    }
+
+    @MainActor
+    func configureLaunchEnvironmentWithAppNotificationTap(
+        resetState: LiveSmokeLaunchResetState?,
+        selectedTab: LiveSmokeSelectedTab,
+        appNotificationTapType: LiveSmokeAppNotificationTapType
+    ) {
+        self.configureLaunchEnvironment(resetState: resetState, selectedTab: selectedTab)
+        self.app.launchEnvironment[self.appNotificationTapTypeEnvironmentKey] = appNotificationTapType.rawValue
     }
 
     @MainActor

@@ -2,6 +2,9 @@ import SwiftUI
 
 private let flashcardsUITestResetStateEnvironmentKey: String = "FLASHCARDS_UI_TEST_RESET_STATE"
 private let flashcardsUITestSelectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
+private let flashcardsUITestAppNotificationTapTypeEnvironmentKey: String = "FLASHCARDS_UI_TEST_APP_NOTIFICATION_TAP_TYPE"
+@MainActor
+private var hasConsumedFlashcardsUITestAppNotificationTapEnvironment: Bool = false
 
 private enum FlashcardsUITestSelectedTab: String {
     case review
@@ -30,16 +33,39 @@ private struct CloudSyncPollingTaskID: Hashable {
     let isSyncBlocked: Bool
 }
 
+private struct AppNotificationTapTaskID: Hashable {
+    let isSceneActive: Bool
+    let pendingRequest: AppNotificationTapRequest?
+}
+
+@MainActor
+private func consumeFlashcardsUITestAppNotificationTapRequest(processInfo: ProcessInfo) -> AppNotificationTapRequest? {
+    guard hasConsumedFlashcardsUITestAppNotificationTapEnvironment == false else {
+        return nil
+    }
+    guard let appNotificationTapType = processInfo.environment[flashcardsUITestAppNotificationTapTypeEnvironmentKey] else {
+        return nil
+    }
+
+    hasConsumedFlashcardsUITestAppNotificationTapEnvironment = true
+    let userInfo: [AnyHashable: Any] = [
+        appNotificationTapTypeUserInfoKey: appNotificationTapType
+    ]
+    return parseAppNotificationTapRequest(userInfo: userInfo)
+}
+
 @main
 struct FlashcardsApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @UIApplicationDelegateAdaptor(ReviewNotificationsAppDelegate.self) private var reviewNotificationsAppDelegate
     @State private var store: FlashcardsStore
     @State private var navigation: AppNavigationModel
+    @State private var appNotificationTapCoordinator: AppNotificationTapCoordinator
 
     @MainActor
     init() {
         let store = FlashcardsStore()
+        let appNotificationTapCoordinator = AppNotificationTapCoordinator.shared
         let selectedTab = ProcessInfo.processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey]
             .flatMap(FlashcardsUITestSelectedTab.init(rawValue:))
             .map(\.appTab) ?? .review
@@ -51,8 +77,12 @@ struct FlashcardsApp: App {
                 store.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
+        if let request = consumeFlashcardsUITestAppNotificationTapRequest(processInfo: ProcessInfo.processInfo) {
+            appNotificationTapCoordinator.request(request: request)
+        }
 
         _store = State(initialValue: store)
+        _appNotificationTapCoordinator = State(initialValue: appNotificationTapCoordinator)
         _navigation = State(
             initialValue: AppNavigationModel(
                 selectedTab: selectedTab,
@@ -68,6 +98,7 @@ struct FlashcardsApp: App {
             RootTabView()
                 .environment(store)
                 .environment(navigation)
+                .environment(appNotificationTapCoordinator)
                 .task {
                     store.updateCurrentVisibleTab(tab: navigation.selectedTab)
                     await store.resumePendingAccountDeletionIfNeeded()
@@ -101,12 +132,8 @@ struct FlashcardsApp: App {
                         store.markReviewNotificationsAppBackground(now: Date())
                     }
                 }
-                .onReceive(NotificationCenter.default.publisher(for: appNotificationTapRequestNotificationName)) { notification in
-                    guard let request = notification.object as? AppNotificationTapRequest else {
-                        return
-                    }
-
-                    store.handleAppNotificationTap(request: request, navigation: navigation)
+                .task(id: self.appNotificationTapTaskID) {
+                    self.consumePendingAppNotificationTapIfNeeded()
                 }
                 .task(id: self.cloudSyncPollingTaskID) {
                     await self.runCloudSyncPollingLoop()
@@ -121,6 +148,25 @@ struct FlashcardsApp: App {
             fastPollingUntil: self.store.cloudSyncFastPollingUntil,
             isSyncBlocked: self.store.isCloudSyncBlocked
         )
+    }
+
+    private var appNotificationTapTaskID: AppNotificationTapTaskID {
+        AppNotificationTapTaskID(
+            isSceneActive: self.scenePhase == .active,
+            pendingRequest: self.appNotificationTapCoordinator.pendingRequest
+        )
+    }
+
+    @MainActor
+    private func consumePendingAppNotificationTapIfNeeded() {
+        guard self.scenePhase == .active else {
+            return
+        }
+        guard let request = self.appNotificationTapCoordinator.consumePendingRequest() else {
+            return
+        }
+
+        self.store.handleAppNotificationTap(request: request, navigation: self.navigation)
     }
 
     @MainActor

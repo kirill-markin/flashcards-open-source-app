@@ -27,10 +27,7 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
         }
 
         Task { @MainActor in
-            NotificationCenter.default.post(
-                name: appNotificationTapRequestNotificationName,
-                object: request
-            )
+            AppNotificationTapCoordinator.shared.request(request: request)
         }
     }
 }
