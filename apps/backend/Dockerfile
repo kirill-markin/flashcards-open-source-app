@@ -1,4 +1,4 @@
-FROM node:24-alpine AS builder
+FROM node:24.14.1-alpine AS builder
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ COPY tsconfig.json ./
 COPY src/ src/
 RUN npx tsc
 
-FROM node:24-alpine
+FROM node:24.14.1-alpine
 
 WORKDIR /app
 
