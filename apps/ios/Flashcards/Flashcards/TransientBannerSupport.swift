@@ -6,6 +6,7 @@ let reviewUpdatedOnAnotherDeviceBannerMessage: String = "This review updated on 
 let cardsUpdatedFromCloudBannerMessage: String = "Cards updated from the cloud."
 let aiChatOfflineBannerMessage: String = "No internet connection. AI chat requires internet access."
 let aiChatActiveRunBannerMessage: String = "A response is already in progress. Wait for it to finish or stop it before sending another message."
+let reviewSpeechUnavailableBannerMessage: String = "Speech is unavailable on this device."
 
 enum TransientBannerKind: Hashable, Sendable {
     case aiChatOffline
@@ -13,6 +14,7 @@ enum TransientBannerKind: Hashable, Sendable {
     case reviewUpdatedOnAnotherDevice
     case cardsUpdatedFromCloud
     case workspaceChangesRequireAccount
+    case reviewSpeechUnavailable
 
     var iconSystemName: String {
         switch self {
@@ -26,6 +28,8 @@ enum TransientBannerKind: Hashable, Sendable {
             return "rectangle.stack.badge.person.crop"
         case .workspaceChangesRequireAccount:
             return "gearshape.fill"
+        case .reviewSpeechUnavailable:
+            return "speaker.slash.fill"
         }
     }
 }
@@ -78,6 +82,15 @@ func makeCardsUpdatedFromCloudBanner() -> TransientBanner {
         id: UUID().uuidString.lowercased(),
         message: cardsUpdatedFromCloudBannerMessage,
         kind: .cardsUpdatedFromCloud,
+        dismissDelayNanoseconds: transientBannerDefaultDismissDelayNanoseconds
+    )
+}
+
+func makeReviewSpeechUnavailableBanner(message: String) -> TransientBanner {
+    TransientBanner(
+        id: UUID().uuidString.lowercased(),
+        message: message.isEmpty ? reviewSpeechUnavailableBannerMessage : message,
+        kind: .reviewSpeechUnavailable,
         dismissDelayNanoseconds: transientBannerDefaultDismissDelayNanoseconds
     )
 }

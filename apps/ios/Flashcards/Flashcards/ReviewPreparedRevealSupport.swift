@@ -4,6 +4,8 @@ struct PreparedReviewRevealState {
     let id: String
     let frontContent: ReviewRenderedContent
     let backContent: ReviewRenderedContent
+    let frontSpeakableText: String
+    let backSpeakableText: String
     let reviewAnswerGridOptions: ReviewAnswerGridOptions?
     let reviewAnswerOptionsErrorMessage: String?
 }
@@ -38,12 +40,16 @@ func makePreparedReviewRevealState(
     let frontContent = makeReviewRenderedContent(text: card.frontText)
     let backText = card.backText.isEmpty ? emptyBackTextPlaceholder : card.backText
     let backContent = makeReviewRenderedContent(text: backText)
+    let frontSpeakableText = makeReviewSpeakableText(text: card.frontText)
+    let backSpeakableText = makeReviewSpeakableText(text: card.backText)
 
     guard let schedulerSettings else {
         return PreparedReviewRevealState(
             id: makePreparedReviewRevealStateId(card: card, schedulerSettings: nil),
             frontContent: frontContent,
             backContent: backContent,
+            frontSpeakableText: frontSpeakableText,
+            backSpeakableText: backSpeakableText,
             reviewAnswerGridOptions: nil,
             reviewAnswerOptionsErrorMessage: "Scheduler settings are unavailable"
         )
@@ -55,6 +61,8 @@ func makePreparedReviewRevealState(
             id: makePreparedReviewRevealStateId(card: card, schedulerSettings: schedulerSettings),
             frontContent: frontContent,
             backContent: backContent,
+            frontSpeakableText: frontSpeakableText,
+            backSpeakableText: backSpeakableText,
             reviewAnswerGridOptions: try ReviewAnswerGridOptions(options: options),
             reviewAnswerOptionsErrorMessage: nil
         )
@@ -63,6 +71,8 @@ func makePreparedReviewRevealState(
             id: makePreparedReviewRevealStateId(card: card, schedulerSettings: schedulerSettings),
             frontContent: frontContent,
             backContent: backContent,
+            frontSpeakableText: frontSpeakableText,
+            backSpeakableText: backSpeakableText,
             reviewAnswerGridOptions: nil,
             reviewAnswerOptionsErrorMessage: Flashcards.errorMessage(error: error)
         )

@@ -3,11 +3,24 @@ import SwiftUI
 struct ReviewCardSideView: View {
     let label: String
     let content: ReviewRenderedContent
+    let isSpeechPlaying: Bool
+    let onToggleSpeech: () -> Void
+    let showsSpeechButton: Bool
     let surfaceStyle: ReviewCardSurfaceStyle
 
-    init(label: String, content: ReviewRenderedContent, surfaceStyle: ReviewCardSurfaceStyle) {
+    init(
+        label: String,
+        content: ReviewRenderedContent,
+        isSpeechPlaying: Bool,
+        onToggleSpeech: @escaping () -> Void,
+        showsSpeechButton: Bool,
+        surfaceStyle: ReviewCardSurfaceStyle
+    ) {
         self.label = label
         self.content = content
+        self.isSpeechPlaying = isSpeechPlaying
+        self.onToggleSpeech = onToggleSpeech
+        self.showsSpeechButton = showsSpeechButton
         self.surfaceStyle = surfaceStyle
     }
 
@@ -18,8 +31,24 @@ struct ReviewCardSideView: View {
                 .textCase(.uppercase)
                 .foregroundStyle(.secondary)
 
-            contentView
-                .frame(maxWidth: .infinity, alignment: .leading)
+            ZStack(alignment: .bottomTrailing) {
+                contentView
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.trailing, self.showsSpeechButton ? 32 : 0)
+                    .padding(.bottom, self.showsSpeechButton ? 32 : 0)
+
+                if self.showsSpeechButton {
+                    Button(action: self.onToggleSpeech) {
+                        Image(systemName: self.isSpeechPlaying ? "speaker.wave.2.fill" : "speaker.wave.2")
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 32, height: 32)
+                            .background(.thinMaterial, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(self.isSpeechPlaying ? "Stop \(self.label) speech" : "Speak \(self.label)")
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(24)
