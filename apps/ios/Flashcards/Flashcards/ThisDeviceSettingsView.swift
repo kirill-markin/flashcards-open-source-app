@@ -15,8 +15,7 @@ struct ThisDeviceSettingsView: View {
     }
 
     private var appVersion: String {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-        return version ?? "Unavailable"
+        appMarketingVersion()
     }
 
     private var buildNumber: String {

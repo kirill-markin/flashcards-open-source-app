@@ -71,9 +71,7 @@ func isGuestAiLimitCode(_ code: String?) -> Bool {
 }
 
 func aiChatAppVersion() -> String {
-    let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-    let trimmedVersion = shortVersion?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-    return trimmedVersion.isEmpty ? "1.1.1" : trimmedVersion
+    appMarketingVersion()
 }
 
 func makeAIChatSessionId() -> String {
