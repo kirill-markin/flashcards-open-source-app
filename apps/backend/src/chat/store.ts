@@ -10,6 +10,7 @@ import {
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
 } from "../db";
+import { ChatItemRowNotFoundError, ChatSessionRowNotFoundError } from "./errors";
 import { finalizePendingToolCallContent, type StoredMessage } from "./history";
 import type {
   ServerChatMessage,
@@ -427,7 +428,7 @@ function requireSessionRow(
   operation: string,
 ): ChatSessionRow {
   if (row === undefined) {
-    throw new Error(`Chat session ${operation} failed: query returned no row`);
+    throw new ChatSessionRowNotFoundError(operation);
   }
 
   return row;
@@ -438,7 +439,7 @@ function requireChatItemRow(
   operation: string,
 ): ChatItemRow {
   if (row === undefined) {
-    throw new Error(`Chat item ${operation} failed: query returned no row`);
+    throw new ChatItemRowNotFoundError(operation);
   }
 
   return row;
@@ -530,7 +531,7 @@ async function updateChatItemAndInvalidateMainContentWithExecutor(
     ]);
     const row = rows[0];
     if (row === undefined) {
-      throw new Error("Chat item update+invalidate failed: query returned no row");
+      throw new ChatItemRowNotFoundError("update+invalidate");
     }
 
     return {

@@ -4,6 +4,7 @@ import {
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
 } from "../../db";
+import { ChatRunRowNotFoundError, ChatSessionRowNotFoundError } from "../errors";
 import {
   CHAT_MODEL_ID,
   CHAT_MODEL_REASONING_EFFORT,
@@ -227,7 +228,7 @@ function toDateOrNull(value: string | null): Date | null {
 
 export function requireSessionRow(row: ChatSessionRow | undefined, operation: string): ChatSessionRow {
   if (row === undefined) {
-    throw new Error(`Chat session ${operation} failed: query returned no row`);
+    throw new ChatSessionRowNotFoundError(operation);
   }
 
   return row;
@@ -235,7 +236,7 @@ export function requireSessionRow(row: ChatSessionRow | undefined, operation: st
 
 export function requireRunRow(row: ChatRunRow | undefined, operation: string): ChatRunRow {
   if (row === undefined) {
-    throw new Error(`Chat run ${operation} failed: query returned no row`);
+    throw new ChatRunRowNotFoundError(operation);
   }
 
   return row;

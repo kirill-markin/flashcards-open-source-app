@@ -3,6 +3,7 @@
  * The worker uses this module to consume provider events, update the assistant item incrementally, and finalize run state independently of client connections.
  */
 import OpenAI from "openai";
+import { isChatStorageEntityNotFoundError } from "./errors";
 import { getAIProviderFailureMetadata } from "./providerFailure";
 import { getErrorLogContext } from "../server/logging";
 import { startChatTurnObservation } from "../telemetry/langfuse";
@@ -716,6 +717,15 @@ export async function runPersistedChatSessionWithDeps(
       return {
         outcome: "ownership_lost",
         abortReason: abortReason ?? "ownership_lost",
+        runStatus: null,
+        sessionState: null,
+      };
+    }
+
+    if (isChatStorageEntityNotFoundError(error)) {
+      return {
+        outcome: "ownership_lost",
+        abortReason: "ownership_lost",
         runStatus: null,
         sessionState: null,
       };
