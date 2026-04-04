@@ -611,6 +611,8 @@ final class ReviewSpeechController: NSObject, ObservableObject, @preconcurrency 
     @Published private(set) var activeSide: ReviewSpeechSide? = nil
 
     private let synthesizer = AVSpeechSynthesizer()
+    private let audioSession = AVAudioSession.sharedInstance()
+    private var isAudioSessionActive: Bool = false
 
     override init() {
         super.init()
@@ -643,6 +645,14 @@ final class ReviewSpeechController: NSObject, ObservableObject, @preconcurrency 
             return reviewSpeechUnavailableBannerMessage
         }
 
+        do {
+            try self.configureReviewSpeechAudioSession()
+            try self.activateReviewSpeechAudioSession()
+        } catch {
+            self.deactivateReviewSpeechAudioSession()
+            return "Couldn't prepare audio for speech. Check your audio settings and try again."
+        }
+
         let utterance = AVSpeechUtterance(string: speakableText)
         utterance.voice = voice
 
@@ -655,19 +665,53 @@ final class ReviewSpeechController: NSObject, ObservableObject, @preconcurrency 
         self.activeSide = nil
         if self.synthesizer.isSpeaking || self.synthesizer.isPaused {
             self.synthesizer.stopSpeaking(at: .immediate)
+        } else {
+            self.deactivateReviewSpeechAudioSession()
         }
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         Task { @MainActor in
             self.activeSide = nil
+            self.deactivateReviewSpeechAudioSession()
         }
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         Task { @MainActor in
             self.activeSide = nil
+            self.deactivateReviewSpeechAudioSession()
         }
+    }
+
+    private func configureReviewSpeechAudioSession() throws {
+        try self.audioSession.setCategory(
+            .playback,
+            mode: .spokenAudio,
+            options: [.duckOthers, .interruptSpokenAudioAndMixWithOthers]
+        )
+    }
+
+    private func activateReviewSpeechAudioSession() throws {
+        if self.isAudioSessionActive {
+            return
+        }
+
+        try self.audioSession.setActive(true)
+        self.isAudioSessionActive = true
+    }
+
+    private func deactivateReviewSpeechAudioSession() {
+        if self.isAudioSessionActive == false {
+            return
+        }
+
+        do {
+            try self.audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            // Keep deactivation best-effort so review UI never fails on stop/cancel cleanup.
+        }
+        self.isAudioSessionActive = false
     }
 }
 
