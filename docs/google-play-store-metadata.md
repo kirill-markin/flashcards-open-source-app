@@ -22,9 +22,7 @@ The app is open source, and the same stack can be self-hosted. Support, privacy 
 
 ## Release Notes
 
-### 1.1.0
-
-Minor release that keeps backend, web, Android, and iOS app versions aligned at 1.1.0.
+Keep release notes user-visible and platform-specific. Do not describe cross-client version alignment here.
 
 ## App Access And Reviewer Notes
 
