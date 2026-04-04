@@ -14,7 +14,7 @@ enum CloudFlowPhase: String {
 }
 
 private let cloudLogger = Logger(
-    subsystem: Bundle.main.bundleIdentifier ?? "flashcards-open-source-app",
+    subsystem: appBundleIdentifier(),
     category: "cloud"
 )
 

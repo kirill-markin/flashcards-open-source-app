@@ -3,7 +3,7 @@ import OSLog
 import XCTest
 
 let smokeLogger = Logger(
-    subsystem: Bundle.main.bundleIdentifier ?? "flashcards-open-source-app",
+    subsystem: uiTestBundleIdentifier(),
     category: "ui-smoke"
 )
 

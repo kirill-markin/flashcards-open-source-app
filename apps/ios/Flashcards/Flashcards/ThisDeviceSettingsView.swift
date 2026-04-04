@@ -19,8 +19,7 @@ struct ThisDeviceSettingsView: View {
     }
 
     private var buildNumber: String {
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
-        return build ?? "Unavailable"
+        appBuildNumber()
     }
 
     private var installationId: String {
