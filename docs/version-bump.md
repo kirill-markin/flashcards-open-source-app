@@ -64,10 +64,11 @@ The iOS marketing version lives in:
 
 `Info.plist` reads that marketing version indirectly, so do not replace the variable wiring there unless the build system changes.
 
-Runtime fallbacks that must stay aligned with the iOS marketing version live in:
+The runtime-reported iOS app version must be read from bundle metadata (`CFBundleShortVersionString`) through:
 
-- `apps/ios/Flashcards/Flashcards/CloudSync/CloudSyncTransport.swift`
-- `apps/ios/Flashcards/Flashcards/AI/AIChatTypes.swift`
+- `apps/ios/Flashcards/Flashcards/CloudSupport.swift`
+
+Do not introduce aligned literals, overrides, or fallbacks for the iOS app version; a missing or blank bundle version is a configuration error that should fail explicitly.
 
 Under the current release process, the repo-tracked iOS build number is intentionally left alone during normal version bumps. Xcode Cloud handles signed archive and distribution separately, and the repository documentation does not define an in-repo build-number bump workflow.
 
@@ -102,7 +103,7 @@ when the user-facing effect is unclear.
 ## Expected Flow
 
 1. Choose the next semantic version for the platform or package you are releasing.
-2. Search the repo for the current version strings so you can see every manifest, runtime fallback, and test expectation that still reports the old value for that target.
+2. Search the repo for the current version strings so you can see every manifest, runtime reader, and test expectation that still reports the old value for that target.
 3. Update only the touched platform or package version surfaces, and keep that platform's runtime-reported version aligned with its checked-in version source.
 4. Update release metadata that names the current app version for the touched platform.
 5. Re-run targeted searches to confirm the old app version strings are gone from the intended version surfaces.
@@ -116,4 +117,4 @@ After a version bump, use targeted checks instead of broad test runs:
 - `npm run build --prefix apps/web`
 - `./gradlew :app:assembleDebug` from `apps/android/`
 
-For iOS, verify by code inspection and targeted search that the marketing version and runtime fallbacks are aligned, unless a specific iOS build or test run is needed for the change.
+For iOS, verify by code inspection and targeted search that the marketing version and bundle-based runtime version reader are aligned, unless a specific iOS build or test run is needed for the change.
