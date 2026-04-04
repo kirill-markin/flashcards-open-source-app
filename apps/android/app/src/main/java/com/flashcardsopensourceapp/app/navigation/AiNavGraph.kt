@@ -21,7 +21,8 @@ internal fun NavGraphBuilder.registerAiNavGraph(
                 aiChatRepository = appGraph.aiChatRepository,
                 syncRepository = appGraph.syncRepository,
                 workspaceRepository = appGraph.workspaceRepository,
-                cloudAccountRepository = appGraph.cloudAccountRepository
+                cloudAccountRepository = appGraph.cloudAccountRepository,
+                appVersion = appGraph.appPackageInfo.versionName
             )
         )
         val uiState by aiViewModel.uiState.collectAsStateWithLifecycle()

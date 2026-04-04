@@ -19,6 +19,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AiChatRemoteWireTest {
+    private val appVersion: String = "1.1.0"
+
     private fun makeDispatchers(): AiCoroutineDispatchers {
         return AiCoroutineDispatchers(io = Dispatchers.IO)
     }
@@ -96,7 +98,7 @@ class AiChatRemoteWireTest {
                 resumeDiagnostics = AiChatResumeDiagnostics(
                     resumeAttemptId = 41L,
                     clientPlatform = "android",
-                    clientVersion = "1.1.0"
+                    clientVersion = appVersion
                 )
             )
 
@@ -106,7 +108,7 @@ class AiChatRemoteWireTest {
             assertEquals("5", response.activeRun?.live?.cursor)
             assertEquals("41", headersRef.get()["X-chat-resume-attempt-id"])
             assertEquals("android", headersRef.get()["X-client-platform"])
-            assertEquals("1.1.0", headersRef.get()["X-client-version"])
+            assertEquals(appVersion, headersRef.get()["X-client-version"])
         } finally {
             server.stop(0)
         }
@@ -237,13 +239,13 @@ class AiChatRemoteWireTest {
                 resumeDiagnostics = AiChatResumeDiagnostics(
                     resumeAttemptId = 42L,
                     clientPlatform = "android",
-                    clientVersion = "1.1.0"
+                    clientVersion = appVersion
                 )
             ).toList()
 
             assertEquals("42", headersRef.get()["X-chat-resume-attempt-id"])
             assertEquals("android", headersRef.get()["X-client-platform"])
-            assertEquals("1.1.0", headersRef.get()["X-client-version"])
+            assertEquals(appVersion, headersRef.get()["X-client-version"])
             assertEquals("Live token-2", headersRef.get()["Authorization"])
             assertTrue(queryRef.get().contains("sessionId=session-1"))
             assertTrue(queryRef.get().contains("runId=run-1"))

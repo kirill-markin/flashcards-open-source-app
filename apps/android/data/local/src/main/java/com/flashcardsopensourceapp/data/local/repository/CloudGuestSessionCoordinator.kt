@@ -41,7 +41,8 @@ class CloudGuestSessionCoordinator(
     private val operationCoordinator: CloudOperationCoordinator,
     private val resetCoordinator: CloudIdentityResetCoordinator,
     private val guestSessionStore: GuestAiSessionStore,
-    private val aiChatRemoteService: AiChatRemoteService
+    private val aiChatRemoteService: AiChatRemoteService,
+    private val appVersion: String
 ) {
     suspend fun reconcilePersistedCloudStateForStartup() {
         reconcilePersistedCloudState()
@@ -426,8 +427,8 @@ class CloudGuestSessionCoordinator(
             body = org.json.JSONObject()
                 .put("mode", "pull")
                 .put("installationId", preferencesStore.currentCloudSettings().installationId)
-                .put("platform", "android")
-                .put("appVersion", "1.1.0")
+                .put("platform", androidClientPlatform)
+                .put("appVersion", appVersion)
                 .put("cursor", org.json.JSONObject.NULL)
                 .put("limit", 1)
         )
@@ -453,6 +454,7 @@ class CloudGuestSessionCoordinator(
                 apiBaseUrl = configuration.apiBaseUrl,
                 authorizationHeader = "Bearer ${credentials.idToken}"
             ),
+            appVersion = appVersion,
             remoteService = remoteService,
             syncLocalStore = syncLocalStore
         )
@@ -491,8 +493,8 @@ class CloudGuestSessionCoordinator(
             body = org.json.JSONObject()
                 .put("mode", "pull")
                 .put("installationId", installationId)
-                .put("platform", "android")
-                .put("appVersion", "1.1.0")
+                .put("platform", androidClientPlatform)
+                .put("appVersion", appVersion)
                 .put("cursor", org.json.JSONObject.NULL)
                 .put("limit", 1)
         )

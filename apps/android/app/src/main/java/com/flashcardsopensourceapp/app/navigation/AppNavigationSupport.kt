@@ -69,9 +69,13 @@ internal fun loadPackageInfo(context: Context): AppPackageInfo {
         context.packageName,
         PackageManager.PackageInfoFlags.of(0L)
     )
+    val versionName = packageInfo.versionName?.trim().orEmpty()
+    require(versionName.isNotEmpty()) {
+        "Android package versionName is missing from PackageInfo."
+    }
 
     return AppPackageInfo(
-        versionName = packageInfo.versionName ?: "Unavailable",
+        versionName = versionName,
         longVersionCode = packageInfo.longVersionCode
     )
 }

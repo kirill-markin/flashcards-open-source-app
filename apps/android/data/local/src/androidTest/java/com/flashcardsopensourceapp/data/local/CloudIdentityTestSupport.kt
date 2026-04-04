@@ -64,6 +64,8 @@ internal class CloudIdentityTestEnvironment private constructor(
     val resetCoordinator: CloudIdentityResetCoordinator,
     val aiChatRemoteService: AiChatRemoteService
 ) {
+    private val appVersion: String = "1.1.0"
+
     companion object {
         suspend fun create(): CloudIdentityTestEnvironment {
             val context = ApplicationProvider.getApplicationContext<Context>()
@@ -121,7 +123,8 @@ internal class CloudIdentityTestEnvironment private constructor(
             syncLocalStore = createSyncLocalStore(),
             operationCoordinator = operationCoordinator,
             resetCoordinator = resetCoordinator,
-            guestSessionStore = guestAiSessionStore
+            guestSessionStore = guestAiSessionStore,
+            appVersion = appVersion
         )
     }
 
@@ -134,7 +137,8 @@ internal class CloudIdentityTestEnvironment private constructor(
             operationCoordinator = operationCoordinator,
             resetCoordinator = resetCoordinator,
             guestSessionStore = guestAiSessionStore,
-            cloudGuestSessionCoordinator = createCloudGuestSessionCoordinator(remoteGateway = remoteGateway)
+            cloudGuestSessionCoordinator = createCloudGuestSessionCoordinator(remoteGateway = remoteGateway),
+            appVersion = appVersion
         )
     }
 
@@ -147,7 +151,8 @@ internal class CloudIdentityTestEnvironment private constructor(
             operationCoordinator = operationCoordinator,
             resetCoordinator = resetCoordinator,
             guestSessionStore = guestAiSessionStore,
-            aiChatRemoteService = aiChatRemoteService
+            aiChatRemoteService = aiChatRemoteService,
+            appVersion = appVersion
         )
     }
 
