@@ -38,7 +38,7 @@ final class GuestCloudCredentialStore {
     init(
         encoder: JSONEncoder = JSONEncoder(),
         decoder: JSONDecoder = JSONDecoder(),
-        service: String = (Bundle.main.bundleIdentifier ?? "flashcards-open-source-app") + ".guest-cloud-auth",
+        service: String = appBundleIdentifier() + ".guest-cloud-auth",
         account: String = "primary",
         bundle: Bundle = .main,
         userDefaults: UserDefaults = .standard

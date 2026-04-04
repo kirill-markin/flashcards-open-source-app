@@ -59,14 +59,20 @@ var flashcardsSupportEmailUrl: String {
     "mailto:\(flashcardsSupportEmailAddress)"
 }
 
+func appBundleIdentifier() -> String {
+    loadRequiredAppConfigurationString(key: "CFBundleIdentifier")
+}
+
+func appDisplayName() -> String {
+    loadRequiredAppConfigurationString(key: "CFBundleDisplayName")
+}
+
+func appBuildNumber() -> String {
+    loadRequiredAppConfigurationString(key: "CFBundleVersion")
+}
+
 func appMarketingVersion() -> String {
-    do {
-        return try loadAppMarketingVersion(bundle: .main)
-    } catch {
-        preconditionFailure(
-            "Flashcards app configuration is invalid: \(Flashcards.errorMessage(error: error))"
-        )
-    }
+    loadRequiredAppConfigurationString(key: "CFBundleShortVersionString")
 }
 
 func loadCloudServiceConfiguration(
@@ -213,15 +219,24 @@ private func loadCloudString(bundle: Bundle, key: String) throws -> String {
     return trimmedValue
 }
 
-private func loadAppMarketingVersion(bundle: Bundle) throws -> String {
-    let versionKey = "CFBundleShortVersionString"
-    guard let rawValue = bundle.object(forInfoDictionaryKey: versionKey) as? String else {
-        throw AppConfigurationError.missingValue(versionKey)
+private func loadRequiredAppConfigurationString(key: String) -> String {
+    do {
+        return try loadAppConfigurationString(bundle: .main, key: key)
+    } catch {
+        preconditionFailure(
+            "Flashcards app configuration is invalid: \(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+private func loadAppConfigurationString(bundle: Bundle, key: String) throws -> String {
+    guard let rawValue = bundle.object(forInfoDictionaryKey: key) as? String else {
+        throw AppConfigurationError.missingValue(key)
     }
 
     let trimmedValue = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
     guard trimmedValue.isEmpty == false else {
-        throw AppConfigurationError.missingValue(versionKey)
+        throw AppConfigurationError.missingValue(key)
     }
 
     return trimmedValue

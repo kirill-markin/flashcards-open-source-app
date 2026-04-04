@@ -27,7 +27,7 @@ final class CloudCredentialStore {
     init(
         encoder: JSONEncoder = JSONEncoder(),
         decoder: JSONDecoder = JSONDecoder(),
-        service: String = (Bundle.main.bundleIdentifier ?? "flashcards-open-source-app") + ".cloud-auth",
+        service: String = appBundleIdentifier() + ".cloud-auth",
         account: String = "primary"
     ) {
         self.encoder = encoder

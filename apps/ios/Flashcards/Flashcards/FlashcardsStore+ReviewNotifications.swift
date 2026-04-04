@@ -328,7 +328,7 @@ extension FlashcardsStore {
                 return
             }
             let content = UNMutableNotificationContent()
-            content.title = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "Flashcards"
+            content.title = appDisplayName()
             content.body = payload.frontText
             content.sound = .default
             content.userInfo = buildReviewNotificationUserInfo(notificationType: .reviewReminder)
