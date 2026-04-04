@@ -24,6 +24,17 @@ enum CloudConfigurationError: LocalizedError, Equatable {
     }
 }
 
+enum AppConfigurationError: LocalizedError, Equatable {
+    case missingValue(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .missingValue(let key):
+            return "App configuration is missing \(key)"
+        }
+    }
+}
+
 let customCloudServerOverrideUserDefaultsKey: String = "custom-cloud-server-override"
 let pendingCloudServerBootstrapUserDefaultsKey: String = "pending-cloud-server-bootstrap"
 let flashcardsRepositoryUrl: String = "https://github.com/kirill-markin/flashcards-open-source-app"
@@ -46,6 +57,16 @@ var flashcardsSupportEmailAddress: String {
 
 var flashcardsSupportEmailUrl: String {
     "mailto:\(flashcardsSupportEmailAddress)"
+}
+
+func appMarketingVersion() -> String {
+    do {
+        return try loadAppMarketingVersion(bundle: .main)
+    } catch {
+        preconditionFailure(
+            "Flashcards app configuration is invalid: \(Flashcards.errorMessage(error: error))"
+        )
+    }
 }
 
 func loadCloudServiceConfiguration(
@@ -187,6 +208,20 @@ private func loadCloudString(bundle: Bundle, key: String) throws -> String {
     let trimmedValue = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
     guard trimmedValue.isEmpty == false else {
         throw CloudConfigurationError.missingValue(key)
+    }
+
+    return trimmedValue
+}
+
+private func loadAppMarketingVersion(bundle: Bundle) throws -> String {
+    let versionKey = "CFBundleShortVersionString"
+    guard let rawValue = bundle.object(forInfoDictionaryKey: versionKey) as? String else {
+        throw AppConfigurationError.missingValue(versionKey)
+    }
+
+    let trimmedValue = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedValue.isEmpty == false else {
+        throw AppConfigurationError.missingValue(versionKey)
     }
 
     return trimmedValue
