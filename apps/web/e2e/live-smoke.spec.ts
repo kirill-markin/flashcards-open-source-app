@@ -55,6 +55,11 @@ type AiTransportObservation = Readonly<{
   snapshotPollRequestCount: number;
 }>;
 
+type AiCreateAttemptResolution = Readonly<{
+  completionState: "idle" | "inserted";
+  matchedInsertToolCall: CompletedSqlToolCall | null;
+}>;
+
 type AiTransportObserver = Readonly<{
   start: () => void;
   stop: () => AiTransportObservation;
@@ -532,6 +537,7 @@ async function runAiCardCreationWithConfirmation(
       );
       transportObserver.start();
       let transportObservation: AiTransportObservation;
+      let attemptResolution: AiCreateAttemptResolution | null = null;
 
       try {
         await trackedClick(diagnostics, `send AI create prompt attempt ${String(attempt)}`, sendButton);
@@ -572,16 +578,22 @@ async function runAiCardCreationWithConfirmation(
             }
           },
         );
-        await diagnostics.runAction(
+        attemptResolution = await diagnostics.runAction(
           `wait for AI create prompt attempt ${String(attempt)} run to finish and return send action`,
-          async () => {
+          async (): Promise<AiCreateAttemptResolution> => {
             const timeoutAt = Date.now() + externalUiTimeoutMs;
-            let runCompletionState: "running" | "idle" | "error" = "running";
+            let runCompletionState: "running" | "idle" | "inserted" | "error" = "running";
+            let matchedInsertToolCall: CompletedSqlToolCall | null = await findCompletedCardInsertToolCall(page);
 
             while (Date.now() < timeoutAt) {
               const assistantErrorCount = await page.locator(".chat-msg-error").count();
               if (assistantErrorCount > previousAssistantErrorCount) {
                 runCompletionState = "error";
+                break;
+              }
+
+              if (matchedInsertToolCall !== null) {
+                runCompletionState = "inserted";
                 break;
               }
 
@@ -591,6 +603,7 @@ async function runAiCardCreationWithConfirmation(
                 break;
               }
 
+              matchedInsertToolCall = await findCompletedCardInsertToolCall(page);
               await page.waitForTimeout(250);
             }
 
@@ -601,6 +614,10 @@ async function runAiCardCreationWithConfirmation(
             if (runCompletionState === "error") {
               throw new Error(`AI create prompt attempt ${String(attempt)} reported an assistant error before the run completed.`);
             }
+            return {
+              completionState: runCompletionState,
+              matchedInsertToolCall,
+            };
           },
         );
       } finally {
@@ -614,6 +631,28 @@ async function runAiCardCreationWithConfirmation(
           expect(transportObservation.snapshotPollRequestCount).toBe(0);
         },
       );
+
+      if (attemptResolution === null) {
+        throw new Error(`AI create prompt attempt ${String(attempt)} did not record a completion state.`);
+      }
+
+      if (attemptResolution.completionState === "inserted") {
+        const stopButton = page.getByRole("button", { name: "Stop response" });
+        const stopButtonVisible = await trackedIsVisible(
+          diagnostics,
+          `check whether AI create prompt attempt ${String(attempt)} still shows an active stop action after insert`,
+          stopButton,
+        );
+
+        if (stopButtonVisible) {
+          await trackedClick(
+            diagnostics,
+            `stop AI create prompt attempt ${String(attempt)} after confirmed insert`,
+            stopButton,
+          );
+        }
+      }
+
       await trackedWaitForComposerState(
         diagnostics,
         `confirm AI create prompt attempt ${String(attempt)} returns to empty draft with disabled send action`,
@@ -624,7 +663,7 @@ async function runAiCardCreationWithConfirmation(
         externalUiTimeoutMs,
       );
 
-      const matchedInsertToolCall = await waitForCompletedCardInsertToolCall(
+      const matchedInsertToolCall = attemptResolution.matchedInsertToolCall ?? await waitForCompletedCardInsertToolCall(
         page,
         diagnostics,
         `wait for completed SQL card insert tool call after AI create attempt ${String(attempt)}`,
