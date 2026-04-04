@@ -1,4 +1,4 @@
-APP_DISPLAY_NAME = Flashcards Open Source App
+APP_DISPLAY_NAME = Flashcards
 APP_BUNDLE_IDENTIFIER = com.flashcards-open-source-app.app
 APP_MARKETING_VERSION = 1.1.1
 // Keep the repository default build number stable. Signed archives should
