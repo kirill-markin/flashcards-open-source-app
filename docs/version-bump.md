@@ -1,10 +1,10 @@
 # Version Bump Guide
 
-Use this guide when bumping release versions across the repository.
+Use this guide when bumping release versions in the repository.
 
 ## Scope
 
-The project has separate version surfaces for backend-related Node packages, the web app, Android, and iOS. A version bump is not complete until the manifest values and the runtime-reported client versions are aligned.
+The project has separate version surfaces for backend-related Node packages, the web app, Android, and iOS. A version bump is not complete until the version surfaces for the platforms you are changing stay aligned within that platform.
 
 Do not change `/v1` API paths, OpenAPI `info.version: v1`, or API Gateway stage names as part of an app release bump. Those values describe the public API contract version, not the app release version.
 
@@ -71,7 +71,7 @@ Under the current release process, the repo-tracked iOS build number is intentio
 
 ## Release Metadata
 
-If store or release metadata includes the current app version, update it in the same change. Today that includes:
+If store or release metadata for the touched platform includes the current app version, update it in the same change. Today that includes:
 
 - `docs/google-play-store-metadata.md`
 
@@ -99,15 +99,12 @@ when the user-facing effect is unclear.
 
 ## Expected Flow
 
-1. Choose the next semantic version.
-2. Search the repo for the current version strings so you can see every manifest, runtime fallback, and test expectation that still reports the old value.
-3. Update backend-related package manifests and their top-level lockfile version entries.
-4. Update web package versioning and keep the runtime fallback aligned in `apps/web/src/clientIdentity.ts`.
-5. Update Android `versionName`, Android request payload version strings, and Android version assertions in tests.
-6. Update iOS `APP_MARKETING_VERSION` and any iOS runtime fallback strings that still report the old version.
-7. Update release metadata that names the current app version.
-8. Re-run targeted searches to confirm the old app version strings are gone from the intended version surfaces.
-9. Run the smallest useful verification commands for the touched platforms.
+1. Choose the next semantic version for the platform or package you are releasing.
+2. Search the repo for the current version strings so you can see every manifest, runtime fallback, and test expectation that still reports the old value for that target.
+3. Update only the touched platform or package version surfaces, and keep that platform's runtime-reported version aligned with its checked-in version source.
+4. Update release metadata that names the current app version for the touched platform.
+5. Re-run targeted searches to confirm the old app version strings are gone from the intended version surfaces.
+6. Run the smallest useful verification commands for the touched platforms.
 
 ## Minimum Verification
 
