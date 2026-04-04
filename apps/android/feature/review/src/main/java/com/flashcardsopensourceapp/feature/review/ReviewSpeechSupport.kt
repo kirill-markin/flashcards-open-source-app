@@ -20,6 +20,7 @@ enum class ReviewSpeechSide {
 }
 
 private enum class ReviewSpeechInitState {
+    NOT_INITIALIZED,
     PENDING,
     READY,
     FAILED
@@ -71,14 +72,78 @@ class ReviewSpeechController(
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var textToSpeech: TextToSpeech? = null
-    private var initState: ReviewSpeechInitState = ReviewSpeechInitState.PENDING
+    private var initState: ReviewSpeechInitState = ReviewSpeechInitState.NOT_INITIALIZED
     private var pendingRequest: PendingReviewSpeechRequest? = null
     private var activeUtteranceId: String? = null
+    private var isReleased: Boolean = false
 
     var activeSide: ReviewSpeechSide? by mutableStateOf(value = null)
         private set
 
-    init {
+    fun toggleSpeech(
+        side: ReviewSpeechSide,
+        sourceText: String,
+        fallbackLanguageTag: String,
+        onError: (String) -> Unit
+    ) {
+        val speakableText = makeReviewSpeakableText(text = sourceText)
+        if (speakableText.isEmpty()) {
+            return
+        }
+
+        if (activeSide == side || pendingRequest?.side == side) {
+            stop()
+            return
+        }
+
+        val request = PendingReviewSpeechRequest(
+            side = side,
+            speakableText = speakableText,
+            fallbackLanguageTag = fallbackLanguageTag,
+            onError = onError
+        )
+
+        when (initState) {
+            ReviewSpeechInitState.NOT_INITIALIZED -> {
+                pendingRequest = request
+                initializeTextToSpeech()
+            }
+
+            ReviewSpeechInitState.PENDING -> {
+                pendingRequest = request
+            }
+
+            ReviewSpeechInitState.FAILED -> {
+                onError(reviewSpeechUnavailableMessage)
+            }
+
+            ReviewSpeechInitState.READY -> {
+                speak(request = request)
+            }
+        }
+    }
+
+    fun stop() {
+        pendingRequest = null
+        activeUtteranceId = null
+        activeSide = null
+        textToSpeech?.stop()
+    }
+
+    fun release() {
+        isReleased = true
+        stop()
+        textToSpeech?.shutdown()
+        textToSpeech = null
+        initState = ReviewSpeechInitState.FAILED
+    }
+
+    private fun initializeTextToSpeech() {
+        if (isReleased || initState != ReviewSpeechInitState.NOT_INITIALIZED) {
+            return
+        }
+
+        initState = ReviewSpeechInitState.PENDING
         val controller = TextToSpeech(applicationContext) { status ->
             handleInitialization(status = status)
         }
@@ -107,58 +172,6 @@ class ReviewSpeechController(
         )
     }
 
-    fun toggleSpeech(
-        side: ReviewSpeechSide,
-        sourceText: String,
-        fallbackLanguageTag: String,
-        onError: (String) -> Unit
-    ) {
-        val speakableText = makeReviewSpeakableText(text = sourceText)
-        if (speakableText.isEmpty()) {
-            return
-        }
-
-        if (activeSide == side || pendingRequest?.side == side) {
-            stop()
-            return
-        }
-
-        val request = PendingReviewSpeechRequest(
-            side = side,
-            speakableText = speakableText,
-            fallbackLanguageTag = fallbackLanguageTag,
-            onError = onError
-        )
-
-        when (initState) {
-            ReviewSpeechInitState.PENDING -> {
-                pendingRequest = request
-            }
-
-            ReviewSpeechInitState.FAILED -> {
-                onError(reviewSpeechUnavailableMessage)
-            }
-
-            ReviewSpeechInitState.READY -> {
-                speak(request = request)
-            }
-        }
-    }
-
-    fun stop() {
-        pendingRequest = null
-        activeUtteranceId = null
-        activeSide = null
-        textToSpeech?.stop()
-    }
-
-    fun release() {
-        stop()
-        textToSpeech?.shutdown()
-        textToSpeech = null
-        initState = ReviewSpeechInitState.FAILED
-    }
-
     private fun clearActiveUtterance(utteranceId: String) {
         mainHandler.post {
             if (activeUtteranceId == utteranceId) {
@@ -169,6 +182,12 @@ class ReviewSpeechController(
     }
 
     private fun handleInitialization(status: Int) {
+        if (isReleased) {
+            textToSpeech?.shutdown()
+            textToSpeech = null
+            return
+        }
+
         if (status == TextToSpeech.SUCCESS) {
             initState = ReviewSpeechInitState.READY
             val request = pendingRequest
