@@ -190,12 +190,13 @@ struct CloudSignInSheet: View {
             .navigationTitle("Sign in")
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier(UITestIdentifier.cloudSignInScreen)
+            .interactiveDismissDisabled(self.isPostAuthActionInFlight)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") {
                         self.dismiss()
                     }
-                    .disabled(self.isSendingCode)
+                    .disabled(self.isSendingCode || self.isPostAuthActionInFlight)
                 }
             }
             .sheet(item: self.$otpSheetState) { otpState in
@@ -217,12 +218,14 @@ struct CloudSignInSheet: View {
             }
             .sheet(item: self.$postAuthLoadingState) { loadingState in
                 CloudPostAuthLoadingSheet()
+                    .interactiveDismissDisabled(true)
                     .task(id: loadingState.id) {
                         await self.prepareCloudLink(verifiedContext: loadingState.verifiedContext)
                     }
             }
             .sheet(item: self.$postAuthSyncState) { syncState in
                 CloudPostAuthSyncSheet()
+                    .interactiveDismissDisabled(true)
                     .task(id: syncState.id) {
                         await self.runPostAuthSync(syncState)
                     }

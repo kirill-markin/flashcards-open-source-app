@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,8 +48,15 @@ fun CloudPostAuthRoute(
         }
     }
 
+    val shouldBlockBack = uiState.mode == CloudPostAuthMode.PROCESSING
+        || uiState.mode == CloudPostAuthMode.READY_TO_AUTO_LINK
     val isBackEnabled = uiState.mode != CloudPostAuthMode.PROCESSING &&
         uiState.mode != CloudPostAuthMode.READY_TO_AUTO_LINK
+
+    BackHandler(enabled = shouldBlockBack) {
+        // Keep the post-auth cloud setup flow on screen until it either
+        // finishes successfully or reaches an explicit failure state.
+    }
 
     SettingsScreenScaffold(
         title = "Cloud sync",
