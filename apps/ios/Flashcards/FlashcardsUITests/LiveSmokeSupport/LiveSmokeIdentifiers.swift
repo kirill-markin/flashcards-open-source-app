@@ -82,6 +82,11 @@ enum LiveSmokeSelectedTab: String {
     }
 }
 
+enum LiveSmokeAppNotificationTapType: String {
+    case reviewReminder = "reviewReminder"
+    case unsupported = "unsupported"
+}
+
 enum LiveSmokeScreen: CaseIterable {
     case review
     case cards

@@ -17,8 +17,6 @@ let reviewNotificationScheduledPayloadsUserDefaultsKeyPrefix: String = "review-n
 let reviewNotificationLastActiveAtUserDefaultsKey: String = "review-notification-last-active-at"
 let appNotificationTapTypeUserInfoKey: String = "appNotificationTapType"
 
-let appNotificationTapRequestNotificationName = Notification.Name("app-notification-tap-request")
-
 enum ReviewNotificationMode: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
     case daily
     case inactivity
