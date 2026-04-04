@@ -2,6 +2,8 @@ package com.flashcardsopensourceapp.app.di
 
 import android.content.Context
 import com.flashcardsopensourceapp.app.AutoSyncController
+import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
+import com.flashcardsopensourceapp.app.navigation.loadPackageInfo
 import com.flashcardsopensourceapp.core.ui.AppMessageBus
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
@@ -66,6 +68,7 @@ class AppGraph(
     private val startupStateMutable = MutableStateFlow<AppStartupState>(AppStartupState.Loading)
     private var startupJob: Job? = null
 
+    internal val appPackageInfo: AppPackageInfo = loadPackageInfo(context = context)
     val appMessageBus = AppMessageBus()
     val visibleAppScreenController = VisibleAppScreenController()
     val appHandoffCoordinator = AppHandoffCoordinator()
@@ -103,7 +106,8 @@ class AppGraph(
         operationCoordinator = cloudOperationCoordinator,
         resetCoordinator = cloudIdentityResetCoordinator,
         guestSessionStore = guestAiSessionStore,
-        aiChatRemoteService = aiChatRemoteService
+        aiChatRemoteService = aiChatRemoteService,
+        appVersion = appPackageInfo.versionName
     )
 
     val cloudAccountRepository: CloudAccountRepository = LocalCloudAccountRepository(
@@ -113,7 +117,8 @@ class AppGraph(
         syncLocalStore = syncLocalStore,
         operationCoordinator = cloudOperationCoordinator,
         resetCoordinator = cloudIdentityResetCoordinator,
-        guestSessionStore = guestAiSessionStore
+        guestSessionStore = guestAiSessionStore,
+        appVersion = appPackageInfo.versionName
     )
     private val localSyncRepository = LocalSyncRepository(
         database = database,
@@ -123,7 +128,8 @@ class AppGraph(
         operationCoordinator = cloudOperationCoordinator,
         resetCoordinator = cloudIdentityResetCoordinator,
         guestSessionStore = guestAiSessionStore,
-        cloudGuestSessionCoordinator = cloudGuestSessionCoordinator
+        cloudGuestSessionCoordinator = cloudGuestSessionCoordinator,
+        appVersion = appPackageInfo.versionName
     )
     val syncRepository: SyncRepository = localSyncRepository
     val autoSyncEventRepository: AutoSyncEventRepository = localSyncRepository

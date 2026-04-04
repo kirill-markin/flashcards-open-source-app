@@ -39,6 +39,8 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AiChatRuntimeTest {
+    private val appVersion: String = "1.1.0"
+
     @Test
     fun bootstrapWhileVisibleWithActiveRunStartsLiveCollection() = runTest {
         val repository = FakeAiChatRepository()
@@ -167,6 +169,7 @@ class AiChatRuntimeTest {
             scope = scope,
             aiChatRepository = repository,
             syncRepository = FakeSyncRepository(),
+            appVersion = appVersion,
             hasConsent = { repository.consent.value },
             currentCloudState = { CloudAccountState.GUEST },
             currentServerConfiguration = { com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration() },

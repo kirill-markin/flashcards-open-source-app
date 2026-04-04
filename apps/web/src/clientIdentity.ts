@@ -3,8 +3,17 @@ import packageMetadata from "../package.json";
 export const LEGACY_DEVICE_ID_STORAGE_KEY = "flashcards-sync-device-id";
 export const INSTALLATION_ID_STORAGE_KEY = "flashcards-sync-installation-id";
 
-export const webAppVersion = import.meta.env.VITE_APP_VERSION ?? packageMetadata.version;
+export const webAppVersion = loadWebAppVersion();
 export const webAppBuild: string | null = import.meta.env.VITE_APP_BUILD ?? null;
+
+function loadWebAppVersion(): string {
+  const packageVersion = packageMetadata.version?.trim() ?? "";
+  if (packageVersion === "") {
+    throw new Error("Web app version is missing from apps/web/package.json.");
+  }
+
+  return packageVersion;
+}
 
 function loadStoredInstallationId(): string | null {
   const installationId = window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY);

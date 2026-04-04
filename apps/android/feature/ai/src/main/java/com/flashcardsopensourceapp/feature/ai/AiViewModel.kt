@@ -24,7 +24,8 @@ class AiViewModel(
     private val aiChatRepository: AiChatRepository,
     private val syncRepository: SyncRepository,
     workspaceRepository: WorkspaceRepository,
-    cloudAccountRepository: CloudAccountRepository
+    cloudAccountRepository: CloudAccountRepository,
+    appVersion: String
 ) : ViewModel() {
     private val workspaceState = workspaceRepository.observeWorkspace().stateIn(
         scope = viewModelScope,
@@ -64,6 +65,7 @@ class AiViewModel(
         scope = viewModelScope,
         aiChatRepository = aiChatRepository,
         syncRepository = syncRepository,
+        appVersion = appVersion,
         hasConsent = { consentState.value },
         currentCloudState = { cloudSettingsState.value.cloudState },
         currentServerConfiguration = { serverConfigurationState.value },
@@ -204,7 +206,8 @@ fun createAiViewModelFactory(
     aiChatRepository: AiChatRepository,
     syncRepository: SyncRepository,
     workspaceRepository: WorkspaceRepository,
-    cloudAccountRepository: CloudAccountRepository
+    cloudAccountRepository: CloudAccountRepository,
+    appVersion: String
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
@@ -212,7 +215,8 @@ fun createAiViewModelFactory(
                 aiChatRepository = aiChatRepository,
                 syncRepository = syncRepository,
                 workspaceRepository = workspaceRepository,
-                cloudAccountRepository = cloudAccountRepository
+                cloudAccountRepository = cloudAccountRepository,
+                appVersion = appVersion
             )
         }
     }

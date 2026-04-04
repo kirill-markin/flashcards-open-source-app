@@ -33,7 +33,6 @@ import kotlinx.coroutines.launch
 private const val noSpeechRecordedMessage: String = "No speech was recorded."
 private const val aiChatBootstrapPageLimit: Int = 20
 private const val aiChatClientPlatform: String = "android"
-private const val aiChatClientVersion: String = "1.1.0"
 
 private enum class AiServerSnapshotApplyMode {
     ACTIVE,
@@ -49,6 +48,7 @@ internal class AiChatRuntime(
     private val scope: CoroutineScope,
     private val aiChatRepository: AiChatRepository,
     private val syncRepository: SyncRepository,
+    private val appVersion: String,
     private val hasConsent: () -> Boolean,
     private val currentCloudState: () -> CloudAccountState,
     private val currentServerConfiguration: () -> CloudServiceConfiguration,
@@ -687,7 +687,7 @@ internal class AiChatRuntime(
         return AiChatResumeDiagnostics(
             resumeAttemptId = nextResumeAttemptId,
             clientPlatform = aiChatClientPlatform,
-            clientVersion = aiChatClientVersion
+            clientVersion = appVersion
         )
     }
 

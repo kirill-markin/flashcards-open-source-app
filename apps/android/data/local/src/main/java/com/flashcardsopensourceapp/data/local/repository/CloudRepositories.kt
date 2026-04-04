@@ -43,6 +43,7 @@ import org.json.JSONObject
 private const val syncPullPageLimit: Int = 200
 private const val bootstrapPageLimit: Int = 200
 private const val accountDeletionConfirmationTextForCloudApi: String = "delete my account"
+internal const val androidClientPlatform: String = "android"
 
 class LocalCloudAccountRepository(
     private val database: AppDatabase,
@@ -51,7 +52,8 @@ class LocalCloudAccountRepository(
     private val syncLocalStore: SyncLocalStore,
     private val operationCoordinator: CloudOperationCoordinator,
     private val resetCoordinator: CloudIdentityResetCoordinator,
-    private val guestSessionStore: GuestAiSessionStore
+    private val guestSessionStore: GuestAiSessionStore,
+    private val appVersion: String
 ) : CloudAccountRepository {
     private var isAccountDeletionRunning: Boolean = false
 
@@ -581,8 +583,8 @@ class LocalCloudAccountRepository(
             body = JSONObject()
                 .put("mode", "pull")
                 .put("installationId", preferencesStore.currentCloudSettings().installationId)
-                .put("platform", "android")
-                .put("appVersion", "1.1.0")
+                .put("platform", androidClientPlatform)
+                .put("appVersion", appVersion)
                 .put("cursor", JSONObject.NULL)
                 .put("limit", 1)
         )
@@ -662,6 +664,7 @@ class LocalCloudAccountRepository(
                     apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
                     authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}"
                 ),
+                appVersion = appVersion,
                 remoteService = remoteService,
                 syncLocalStore = syncLocalStore
             )
@@ -817,7 +820,8 @@ class LocalSyncRepository(
     private val operationCoordinator: CloudOperationCoordinator,
     private val resetCoordinator: CloudIdentityResetCoordinator,
     private val guestSessionStore: GuestAiSessionStore,
-    private val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator
+    private val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator,
+    private val appVersion: String
 ) : SyncRepository, AutoSyncEventRepository {
     private val syncStatusState = MutableStateFlow(
         SyncStatusSnapshot(
@@ -910,6 +914,7 @@ class LocalSyncRepository(
                     cloudSettings = cloudSettings,
                     workspaceId = syncTarget.workspaceId,
                     syncSession = syncTarget.session,
+                    appVersion = appVersion,
                     remoteService = remoteService,
                     syncLocalStore = syncLocalStore
                 )
@@ -1105,6 +1110,7 @@ internal suspend fun runCloudSyncCore(
     cloudSettings: CloudSettings,
     workspaceId: String,
     syncSession: CloudSyncSession,
+    appVersion: String,
     remoteService: CloudRemoteGateway,
     syncLocalStore: SyncLocalStore
 ) {
@@ -1124,8 +1130,8 @@ internal suspend fun runCloudSyncCore(
             body = JSONObject()
                 .put("mode", "pull")
                 .put("installationId", cloudSettings.installationId)
-                .put("platform", "android")
-                .put("appVersion", "1.1.0")
+                .put("platform", androidClientPlatform)
+                .put("appVersion", appVersion)
                 .put("cursor", JSONObject.NULL)
                 .put("limit", bootstrapPageLimit)
         )
@@ -1140,8 +1146,8 @@ internal suspend fun runCloudSyncCore(
                     body = JSONObject()
                         .put("mode", "push")
                         .put("installationId", cloudSettings.installationId)
-                        .put("platform", "android")
-                        .put("appVersion", "1.1.0")
+                        .put("platform", androidClientPlatform)
+                        .put("appVersion", appVersion)
                         .put("entries", bootstrapEntries)
                 )
                 lastHotCursor = bootstrapPushResponse.bootstrapHotChangeId ?: lastHotCursor
@@ -1159,8 +1165,8 @@ internal suspend fun runCloudSyncCore(
                     body = JSONObject()
                         .put("mode", "pull")
                         .put("installationId", cloudSettings.installationId)
-                        .put("platform", "android")
-                        .put("appVersion", "1.1.0")
+                        .put("platform", androidClientPlatform)
+                        .put("appVersion", appVersion)
                         .put("cursor", nextCursor)
                         .put("limit", bootstrapPageLimit)
                 )
@@ -1186,8 +1192,8 @@ internal suspend fun runCloudSyncCore(
                     workspaceId = workspaceId,
                     body = JSONObject()
                         .put("installationId", cloudSettings.installationId)
-                        .put("platform", "android")
-                        .put("appVersion", "1.1.0")
+                        .put("platform", androidClientPlatform)
+                        .put("appVersion", appVersion)
                         .put("reviewEvents", reviewEvents)
                 )
                 lastReviewSequenceId = importResponse.nextReviewSequenceId ?: lastReviewSequenceId
@@ -1201,8 +1207,8 @@ internal suspend fun runCloudSyncCore(
                     workspaceId = workspaceId,
                     body = JSONObject()
                         .put("installationId", cloudSettings.installationId)
-                        .put("platform", "android")
-                        .put("appVersion", "1.1.0")
+                        .put("platform", androidClientPlatform)
+                        .put("appVersion", appVersion)
                         .put("afterReviewSequenceId", lastReviewSequenceId)
                         .put("limit", syncPullPageLimit)
                 )
@@ -1224,7 +1230,8 @@ internal suspend fun runCloudSyncCore(
                 workspaceId = workspaceId,
                 body = buildPushRequest(
                     installationId = cloudSettings.installationId,
-                    outboxEntries = outboxEntries
+                    outboxEntries = outboxEntries,
+                    appVersion = appVersion
                 )
             )
             syncLocalStore.deleteOutboxEntries(pushResponse.operations.map { result -> result.operationId })
@@ -1249,8 +1256,8 @@ internal suspend fun runCloudSyncCore(
             workspaceId = workspaceId,
                 body = JSONObject()
                     .put("installationId", cloudSettings.installationId)
-                    .put("platform", "android")
-                    .put("appVersion", "1.1.0")
+                    .put("platform", androidClientPlatform)
+                    .put("appVersion", appVersion)
                     .put("afterHotChangeId", lastHotCursor)
                 .put("limit", syncPullPageLimit)
         )
@@ -1267,8 +1274,8 @@ internal suspend fun runCloudSyncCore(
             workspaceId = workspaceId,
             body = JSONObject()
                 .put("installationId", cloudSettings.installationId)
-                .put("platform", "android")
-                .put("appVersion", "1.1.0")
+                .put("platform", androidClientPlatform)
+                .put("appVersion", appVersion)
                 .put("afterReviewSequenceId", lastReviewSequenceId)
                 .put("limit", syncPullPageLimit)
         )
@@ -1315,11 +1322,15 @@ private data class CloudSyncTarget(
     val session: CloudSyncSession
 )
 
-private fun buildPushRequest(installationId: String, outboxEntries: List<PersistedOutboxEntry>): JSONObject {
+private fun buildPushRequest(
+    installationId: String,
+    outboxEntries: List<PersistedOutboxEntry>,
+    appVersion: String
+): JSONObject {
     return JSONObject()
         .put("installationId", installationId)
-        .put("platform", "android")
-        .put("appVersion", "1.1.0")
+        .put("platform", androidClientPlatform)
+        .put("appVersion", appVersion)
         .put(
             "operations",
             JSONArray().apply {

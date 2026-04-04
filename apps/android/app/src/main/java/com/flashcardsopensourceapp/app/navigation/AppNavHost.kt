@@ -3,9 +3,7 @@ package com.flashcardsopensourceapp.app.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -19,14 +17,11 @@ fun AppNavHost(
     appGraph: AppGraph,
     navController: NavHostController
 ) {
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val cardEditorRequest by appGraph.appHandoffCoordinator.observeCardEditor().collectAsStateWithLifecycle()
     val appNotificationTapRequest by appGraph.appHandoffCoordinator.observeAppNotificationTap().collectAsStateWithLifecycle()
     val settingsNavigationRequest by appGraph.appHandoffCoordinator.observeSettingsNavigation().collectAsStateWithLifecycle()
-    val packageInfo = remember(context) {
-        loadPackageInfo(context = context)
-    }
+    val packageInfo = appGraph.appPackageInfo
 
     LaunchedEffect(cardEditorRequest?.requestId) {
         val request = cardEditorRequest ?: return@LaunchedEffect

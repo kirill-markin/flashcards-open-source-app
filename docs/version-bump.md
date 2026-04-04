@@ -32,7 +32,7 @@ The runtime-reported web client version is read through:
 
 - `apps/web/src/clientIdentity.ts`
 
-Keep the runtime fallback aligned with the checked-in package version so builds still report the correct version when `VITE_APP_VERSION` is not injected by CI or the local shell.
+Read the web runtime version directly from `apps/web/package.json` through that helper. Do not introduce runtime overrides or fallbacks for the app version; a missing or blank checked-in package version is a configuration error that should fail explicitly.
 
 Web request headers and device reporting reuse that same runtime value, including `X-Client-Version`.
 
@@ -42,7 +42,9 @@ The Android app semantic version lives in:
 
 - `apps/android/app/build.gradle.kts`
 
-Android currently sends its app version from hardcoded request payloads and AI runtime diagnostics in:
+Android runtime-reported app version must be derived from installed package metadata (`PackageInfo.versionName`) and reused in request payloads, AI runtime diagnostics, and device diagnostics. Do not hardcode aligned literals for these surfaces; a missing or blank runtime package version is a configuration error that should fail explicitly.
+
+The main Android consumers of that runtime value are:
 
 - `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/CloudRepositories.kt`
 - `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/CloudGuestSessionCoordinator.kt`

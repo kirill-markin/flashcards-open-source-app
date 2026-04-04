@@ -72,7 +72,7 @@ function buildWebDeviceInfo(installationId: string): WebDeviceInfo {
   return {
     operatingSystem: formatUnavailable(detectOperatingSystem(userAgent)),
     browser: formatUnavailable(detectBrowser(userAgent)),
-    version: formatUnavailable(webAppVersion),
+    version: webAppVersion,
     build: formatUnavailable(webAppBuild),
     client: "Browser",
     storage: "IndexedDB + localStorage",
