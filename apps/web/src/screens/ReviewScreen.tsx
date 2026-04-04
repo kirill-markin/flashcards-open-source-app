@@ -9,10 +9,12 @@ import { classifyReviewContentPresentation } from "./reviewContentPresentation";
 import { cardsRoute, chatRoute } from "../routes";
 import { ReviewEditorModal } from "./ReviewEditorModal";
 import { ReviewFilterMenu } from "./ReviewFilterMenu";
+import { useTransientMessage } from "../useTransientMessage";
 import { formatQueueBadge, useReviewFilterMenu } from "./useReviewFilterMenu";
 import { useReviewCardEditor } from "./useReviewCardEditor";
 import { useReviewKeyboardShortcuts } from "./useReviewKeyboardShortcuts";
 import { useReviewScreenData } from "./useReviewScreenData";
+import { makeReviewSpeakableText, type ReviewSpeechSide, useReviewSpeech } from "./reviewSpeech";
 
 type ReviewButtonOption = Readonly<{
   intervalDescription: string;
@@ -39,7 +41,10 @@ const reviewAnswerOptions: ReadonlyArray<Readonly<{
 
 type ReviewCardSideProps = Readonly<{
   contentClassName: string;
+  isSpeaking: boolean;
   label: string;
+  onToggleSpeech: () => void;
+  showSpeechButton: boolean;
   surfaceClassName?: string;
   text: string;
 }>;
@@ -221,7 +226,7 @@ function ReviewCardMarkdown({ text }: Readonly<{ text: string }>): ReactElement 
 }
 
 function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
-  const { contentClassName, label, surfaceClassName, text } = props;
+  const { contentClassName, isSpeaking, label, onToggleSpeech, showSpeechButton, surfaceClassName, text } = props;
   const presentationMode = classifyReviewContentPresentation(text);
 
   return (
@@ -238,6 +243,20 @@ function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
         >
           {presentationMode === "markdown" ? <ReviewCardMarkdown text={text} /> : text}
         </div>
+        {showSpeechButton ? (
+          <button
+            type="button"
+            className={`review-card-speech-btn${isSpeaking ? " review-card-speech-btn-active" : ""}`}
+            onClick={onToggleSpeech}
+            aria-label={isSpeaking ? `Stop speaking ${label.toLowerCase()}` : `Speak ${label.toLowerCase()}`}
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 14H2V10H5L10 6V18L5 14Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M14 9C15.333 10.2 15.333 13.8 14 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M17.5 6.5C20.5 9.4 20.5 14.6 17.5 17.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -259,6 +278,7 @@ export function ReviewScreen(): ReactElement {
   } = useAppData();
   const [isAnswerVisible, setIsAnswerVisible] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { message: reviewSpeechMessage, showMessage: showReviewSpeechMessage } = useTransientMessage(3000);
   const {
     activeReviewQueue,
     deckSummaries,
@@ -279,6 +299,13 @@ export function ReviewScreen(): ReactElement {
     selectedReviewFilter,
     setErrorMessage,
     submitReviewItem,
+  });
+  const {
+    activeSide: activeSpeechSide,
+    stopSpeech,
+    toggleSpeech,
+  } = useReviewSpeech({
+    showMessage: showReviewSpeechMessage,
   });
   const {
     handleCloseMenu,
@@ -321,6 +348,8 @@ export function ReviewScreen(): ReactElement {
   });
   const nowTimestamp = Date.now();
   const selectedCard = currentReviewCard(activeReviewQueue);
+  const selectedFrontSpeakableText = selectedCard === null ? "" : makeReviewSpeakableText(selectedCard.frontText);
+  const selectedBackSpeakableText = selectedCard === null ? "" : makeReviewSpeakableText(selectedCard.backText);
   const hasCards = localCardCount > 0;
   const shouldShowSwitchToAllCardsAction = resolvedReviewFilter.kind !== "allCards";
   const loadingReviewCurrentCard = reviewLoadingSnapshot?.currentCard ?? reviewLoadingSnapshot?.queuePreview[0] ?? null;
@@ -339,7 +368,14 @@ export function ReviewScreen(): ReactElement {
 
   useEffect(() => {
     setIsAnswerVisible(false);
-  }, [selectedCard?.cardId]);
+    stopSpeech();
+  }, [selectedCard?.cardId, stopSpeech]);
+
+  useEffect(() => {
+    return () => {
+      stopSpeech();
+    };
+  }, [stopSpeech]);
 
   useReviewKeyboardShortcuts({
     handleReview: async (card, rating) => {
@@ -390,6 +426,7 @@ export function ReviewScreen(): ReactElement {
             <h1 className="title">Review</h1>
             <p className="subtitle">Queue table plus a focused flip flow.</p>
             {reviewLoadErrorMessage !== "" ? <p className="error-banner">{reviewLoadErrorMessage}</p> : null}
+            {reviewSpeechMessage !== "" ? <p className="review-transient-message" role="status">{reviewSpeechMessage}</p> : null}
             {reviewLoadErrorMessage !== "" && hasLoadedReviewData === false ? (
               <button className="primary-btn review-loading-retry-btn" type="button" onClick={() => void refreshLocalData()}>
                 Retry
@@ -453,6 +490,9 @@ export function ReviewScreen(): ReactElement {
                       label="Front"
                       text={loadingReviewCurrentCard.frontText}
                       contentClassName="review-front"
+                      isSpeaking={false}
+                      onToggleSpeech={() => undefined}
+                      showSpeechButton={false}
                       surfaceClassName="review-card-surface review-card-surface-front"
                     />
                   ) : (
@@ -541,6 +581,9 @@ export function ReviewScreen(): ReactElement {
                     label="Front"
                     text={selectedCard.frontText}
                     contentClassName="review-front"
+                    isSpeaking={activeSpeechSide === "front"}
+                    onToggleSpeech={() => toggleSpeech("front", selectedCard.frontText)}
+                    showSpeechButton={selectedFrontSpeakableText !== ""}
                     surfaceClassName="review-card-surface review-card-surface-front"
                   />
 
@@ -549,6 +592,9 @@ export function ReviewScreen(): ReactElement {
                       label="Back"
                       text={selectedCard.backText === "" ? EMPTY_BACK_TEXT_PLACEHOLDER : selectedCard.backText}
                       contentClassName="review-back"
+                      isSpeaking={activeSpeechSide === "back"}
+                      onToggleSpeech={() => toggleSpeech("back", selectedCard.backText)}
+                      showSpeechButton={selectedBackSpeakableText !== ""}
                       surfaceClassName="review-card-surface review-card-answer"
                     />
                   ) : null}

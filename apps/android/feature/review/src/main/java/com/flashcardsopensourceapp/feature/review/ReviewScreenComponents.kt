@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Autorenew
@@ -85,6 +86,9 @@ private val reviewEditButtonSize = 26.dp
 private val reviewEditIconSize = 14.dp
 private val reviewTopBarFilterMaxWidth = 160.dp
 private val reviewEmptyStateMaxWidth = 420.dp
+private val reviewSpeechButtonSize = 32.dp
+private val reviewSpeechIconSize = 18.dp
+private val reviewSpeechContentInset = 40.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -155,10 +159,13 @@ internal fun reviewContentBottomPadding(hasCurrentCard: Boolean, isAnswerVisible
 @Composable
 internal fun ReviewContent(
     uiState: ReviewUiState,
+    activeSpeechSide: ReviewSpeechSide?,
     onOpenCurrentCard: (String) -> Unit,
     onCreateCard: () -> Unit,
     onCreateCardWithAi: () -> Unit,
     onSwitchToAllCards: () -> Unit,
+    onToggleFrontSpeech: () -> Unit,
+    onToggleBackSpeech: () -> Unit,
     contentPadding: PaddingValues
 ) {
     if (uiState.isLoading.not() && uiState.preparedCurrentCard == null && uiState.emptyState != null) {
@@ -195,9 +202,12 @@ internal fun ReviewContent(
                     ReviewCardContent(
                         currentCard = uiState.preparedCurrentCard,
                         isAnswerVisible = uiState.isAnswerVisible,
+                        activeSpeechSide = activeSpeechSide,
                         onOpenCurrentCard = {
                             uiState.currentCardIdForEditing?.let(onOpenCurrentCard)
-                        }
+                        },
+                        onToggleFrontSpeech = onToggleFrontSpeech,
+                        onToggleBackSpeech = onToggleBackSpeech
                     )
                 }
 
@@ -300,7 +310,10 @@ private fun ActionableEmptyReviewState(
 private fun ReviewCardContent(
     currentCard: PreparedReviewCardPresentation,
     isAnswerVisible: Boolean,
-    onOpenCurrentCard: () -> Unit
+    activeSpeechSide: ReviewSpeechSide?,
+    onOpenCurrentCard: () -> Unit,
+    onToggleFrontSpeech: () -> Unit,
+    onToggleBackSpeech: () -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -356,14 +369,20 @@ private fun ReviewCardContent(
                 ReviewCardSideSection(
                     label = "Front",
                     content = currentCard.frontContent,
-                    contentModifier = Modifier.testTag(reviewCurrentCardFrontContentTag)
+                    contentModifier = Modifier.testTag(reviewCurrentCardFrontContentTag),
+                    isSpeechPlaying = activeSpeechSide == ReviewSpeechSide.FRONT,
+                    onToggleSpeech = onToggleFrontSpeech,
+                    showSpeechButton = currentCard.frontSpeakableText.isNotEmpty()
                 )
                 if (isAnswerVisible) {
                     HorizontalDivider()
                     ReviewCardSideSection(
                         label = "Back",
                         content = currentCard.backContent,
-                        contentModifier = Modifier
+                        contentModifier = Modifier,
+                        isSpeechPlaying = activeSpeechSide == ReviewSpeechSide.BACK,
+                        onToggleSpeech = onToggleBackSpeech,
+                        showSpeechButton = currentCard.backSpeakableText.isNotEmpty()
                     )
                 }
             }
@@ -394,7 +413,10 @@ private fun ReviewCardContent(
 private fun ReviewCardSideSection(
     label: String,
     content: ReviewRenderedContent,
-    contentModifier: Modifier
+    contentModifier: Modifier,
+    isSpeechPlaying: Boolean,
+    onToggleSpeech: () -> Unit,
+    showSpeechButton: Boolean
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -405,7 +427,48 @@ private fun ReviewCardSideSection(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        ReviewRenderedContentView(content = content, modifier = contentModifier)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            ReviewRenderedContentView(
+                content = content,
+                modifier = contentModifier.then(
+                    if (showSpeechButton) {
+                        Modifier.padding(
+                            end = reviewSpeechContentInset,
+                            bottom = reviewSpeechContentInset
+                        )
+                    } else {
+                        Modifier
+                    }
+                )
+            )
+
+            if (showSpeechButton) {
+                FilledIconButton(
+                    onClick = onToggleSpeech,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = if (isSpeechPlaying) {
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainer
+                        },
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(reviewSpeechButtonSize)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
+                        contentDescription = if (isSpeechPlaying) {
+                            "Stop $label speech"
+                        } else {
+                            "Speak $label"
+                        },
+                        modifier = Modifier.size(reviewSpeechIconSize)
+                    )
+                }
+            }
+        }
     }
 }
 

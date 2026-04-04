@@ -1,3 +1,4 @@
+import AVFAudio
 import SwiftUI
 
 private let reviewBottomBarHorizontalPadding: CGFloat = 20
@@ -13,6 +14,7 @@ struct ReviewView: View {
     @Environment(FlashcardsStore.self) var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
+    @StateObject private var reviewSpeechController = ReviewSpeechController()
     @State var isAnswerVisible: Bool = false
     @State var preparedRevealState: PreparedReviewRevealState? = nil
     // Keep the next review card warm so the next front can appear immediately after rating.
@@ -118,6 +120,10 @@ struct ReviewView: View {
         .navigationTitle("Review")
         .onChange(of: currentCard?.cardId) { _, _ in
             isAnswerVisible = false
+            self.reviewSpeechController.stopSpeech()
+        }
+        .onDisappear {
+            self.reviewSpeechController.stopSpeech()
         }
         .task(id: preparedRevealStatesTaskId) {
             await self.refreshPreparedRevealStates(reviewQueue: store.effectiveReviewQueue)
@@ -342,6 +348,11 @@ struct ReviewView: View {
             ReviewCardSideView(
                 label: "Front",
                 content: preparedRevealState.frontContent,
+                isSpeechPlaying: self.reviewSpeechController.activeSide == .front,
+                onToggleSpeech: {
+                    self.toggleSpeech(side: .front, sourceText: card.frontText)
+                },
+                showsSpeechButton: preparedRevealState.frontSpeakableText.isEmpty == false,
                 surfaceStyle: .front
             )
 
@@ -349,6 +360,11 @@ struct ReviewView: View {
                 ReviewCardSideView(
                     label: "Back",
                     content: preparedRevealState.backContent,
+                    isSpeechPlaying: self.reviewSpeechController.activeSide == .back,
+                    onToggleSpeech: {
+                        self.toggleSpeech(side: .back, sourceText: card.backText)
+                    },
+                    showsSpeechButton: preparedRevealState.backSpeakableText.isEmpty == false,
                     surfaceStyle: .back
                 )
             }
@@ -520,6 +536,21 @@ struct ReviewView: View {
         }
     }
 
+    private func toggleSpeech(side: ReviewSpeechSide, sourceText: String) {
+        let fallbackLanguageTag = Locale.autoupdatingCurrent.identifier.replacingOccurrences(of: "_", with: "-")
+        let errorMessage = self.reviewSpeechController.toggleSpeech(
+            side: side,
+            sourceText: sourceText,
+            fallbackLanguageTag: fallbackLanguageTag
+        )
+
+        if let errorMessage {
+            self.store.enqueueTransientBanner(
+                banner: makeReviewSpeechUnavailableBanner(message: errorMessage)
+            )
+        }
+    }
+
 }
 
 private func reviewAnswerButtonIdentifier(rating: ReviewRating) -> String {
@@ -536,4 +567,213 @@ private func reviewAnswerButtonIdentifier(rating: ReviewRating) -> String {
             .environment(FlashcardsStore())
             .environment(AppNavigationModel())
     }
+}
+
+enum ReviewSpeechSide {
+    case front
+    case back
+}
+
+private struct ReviewSpeechLanguageHeuristic {
+    let languageTag: String
+    let markers: [String]
+}
+
+private let reviewSpeechLatinLanguageHeuristics: [ReviewSpeechLanguageHeuristic] = [
+    ReviewSpeechLanguageHeuristic(
+        languageTag: "es-ES",
+        markers: [" el ", " la ", " que ", " de ", " y ", " por ", " para ", " hola ", " gracias ", " cómo "]
+    ),
+    ReviewSpeechLanguageHeuristic(
+        languageTag: "fr-FR",
+        markers: [" le ", " la ", " les ", " des ", " une ", " bonjour ", " merci ", " avec ", " pour ", " est "]
+    ),
+    ReviewSpeechLanguageHeuristic(
+        languageTag: "de-DE",
+        markers: [" der ", " die ", " das ", " und ", " nicht ", " danke ", " bitte ", " ist ", " wie ", " ich "]
+    ),
+    ReviewSpeechLanguageHeuristic(
+        languageTag: "it-IT",
+        markers: [" il ", " lo ", " gli ", " una ", " ciao ", " grazie ", " per ", " non ", " come ", " che "]
+    ),
+    ReviewSpeechLanguageHeuristic(
+        languageTag: "pt-PT",
+        markers: [" não ", " você ", " obrigado ", " olá ", " para ", " com ", " uma ", " que ", " está "]
+    ),
+    ReviewSpeechLanguageHeuristic(
+        languageTag: "en-US",
+        markers: [" the ", " and ", " you ", " are ", " with ", " this ", " that ", " hello ", " thanks ", " what "]
+    )
+]
+
+@MainActor
+final class ReviewSpeechController: NSObject, ObservableObject, @preconcurrency AVSpeechSynthesizerDelegate {
+    @Published private(set) var activeSide: ReviewSpeechSide? = nil
+
+    private let synthesizer = AVSpeechSynthesizer()
+
+    override init() {
+        super.init()
+        self.synthesizer.delegate = self
+    }
+
+    func toggleSpeech(
+        side: ReviewSpeechSide,
+        sourceText: String,
+        fallbackLanguageTag: String
+    ) -> String? {
+        let speakableText = makeReviewSpeakableText(text: sourceText)
+        if speakableText.isEmpty {
+            return nil
+        }
+
+        if self.activeSide == side && self.synthesizer.isSpeaking {
+            self.stopSpeech()
+            return nil
+        }
+
+        self.stopSpeech()
+
+        let languageTag = detectReviewSpeechLanguage(
+            text: speakableText,
+            fallbackLanguageTag: fallbackLanguageTag
+        )
+
+        guard let voice = selectReviewSpeechVoice(languageTag: languageTag) else {
+            return reviewSpeechUnavailableBannerMessage
+        }
+
+        let utterance = AVSpeechUtterance(string: speakableText)
+        utterance.voice = voice
+
+        self.activeSide = side
+        self.synthesizer.speak(utterance)
+        return nil
+    }
+
+    func stopSpeech() {
+        self.activeSide = nil
+        if self.synthesizer.isSpeaking || self.synthesizer.isPaused {
+            self.synthesizer.stopSpeaking(at: .immediate)
+        }
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.activeSide = nil
+        }
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            self.activeSide = nil
+        }
+    }
+}
+
+private func selectReviewSpeechVoice(languageTag: String) -> AVSpeechSynthesisVoice? {
+    let normalizedTag = sanitizeReviewSpeechLanguageTag(languageTag: languageTag).lowercased()
+    let primaryLanguage = normalizedTag.split(separator: "-").first.map(String.init) ?? normalizedTag
+
+    if let directVoice = AVSpeechSynthesisVoice(language: normalizedTag) {
+        return directVoice
+    }
+
+    let availableVoices = AVSpeechSynthesisVoice.speechVoices()
+
+    if let exactVoice = availableVoices.first(where: { voice in
+        voice.language.lowercased() == normalizedTag
+    }) {
+        return exactVoice
+    }
+
+    if let prefixVoice = availableVoices.first(where: { voice in
+        voice.language.lowercased().hasPrefix("\(primaryLanguage)-")
+    }) {
+        return prefixVoice
+    }
+
+    return availableVoices.first(where: { voice in
+        voice.language.lowercased() == primaryLanguage
+    })
+}
+
+private func detectReviewSpeechLanguage(text: String, fallbackLanguageTag: String) -> String {
+    let normalizedText = " \(text.lowercased()) "
+
+    if reviewSpeechContains(pattern: #"[぀-ヿ]"#, text: normalizedText) {
+        return "ja-JP"
+    }
+    if reviewSpeechContains(pattern: #"[가-힯]"#, text: normalizedText) {
+        return "ko-KR"
+    }
+    if reviewSpeechContains(pattern: #"[一-鿿]"#, text: normalizedText) {
+        return "zh-CN"
+    }
+    if reviewSpeechContains(pattern: #"[Ѐ-ӿ]"#, text: normalizedText) {
+        return "ru-RU"
+    }
+    if reviewSpeechContains(pattern: #"[Ͱ-Ͽ]"#, text: normalizedText) {
+        return "el-GR"
+    }
+    if reviewSpeechContains(pattern: #"[֐-׿]"#, text: normalizedText) {
+        return "he-IL"
+    }
+    if reviewSpeechContains(pattern: #"[؀-ۿ]"#, text: normalizedText) {
+        return "ar-SA"
+    }
+    if reviewSpeechContains(pattern: #"[฀-๿]"#, text: normalizedText) {
+        return "th-TH"
+    }
+    if reviewSpeechContains(pattern: #"[ऀ-ॿ]"#, text: normalizedText) {
+        return "hi-IN"
+    }
+    if reviewSpeechContains(pattern: #"[¿¡ñ]"#, text: normalizedText) {
+        return "es-ES"
+    }
+    if reviewSpeechContains(pattern: #"[äöüß]"#, text: normalizedText) {
+        return "de-DE"
+    }
+    if reviewSpeechContains(pattern: #"[ãõ]"#, text: normalizedText) {
+        return "pt-PT"
+    }
+    if reviewSpeechContains(pattern: #"[àèìòù]"#, text: normalizedText) {
+        return "it-IT"
+    }
+    if reviewSpeechContains(pattern: #"[çœæ]"#, text: normalizedText) {
+        return "fr-FR"
+    }
+
+    var bestLanguageTag: String? = nil
+    var bestScore = 0
+
+    for heuristic in reviewSpeechLatinLanguageHeuristics {
+        let score = heuristic.markers.reduce(into: 0) { currentScore, marker in
+            if normalizedText.contains(marker) {
+                currentScore += 1
+            }
+        }
+
+        if score > bestScore {
+            bestScore = score
+            bestLanguageTag = heuristic.languageTag
+        }
+    }
+
+    if let bestLanguageTag, bestScore > 0 {
+        return bestLanguageTag
+    }
+
+    return sanitizeReviewSpeechLanguageTag(languageTag: fallbackLanguageTag)
+}
+
+private func sanitizeReviewSpeechLanguageTag(languageTag: String) -> String {
+    let normalizedTag = languageTag.replacingOccurrences(of: "_", with: "-")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+
+    return normalizedTag.isEmpty ? "en-US" : normalizedTag
+}
+
+private func reviewSpeechContains(pattern: String, text: String) -> Bool {
+    text.range(of: pattern, options: .regularExpression) != nil
 }
