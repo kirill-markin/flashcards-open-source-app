@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app
 
 import android.content.Context
+import androidx.core.app.NotificationManagerCompat
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
@@ -29,6 +30,7 @@ class AppStateResetRule : ExternalResource() {
             application.awaitAppGraphStartup()
             application.appGraph.cloudAccountRepository.logout()
         }
+        NotificationManagerCompat.from(context).cancelAll()
         clearTestOnlySharedPreferences(context = context)
     }
 

@@ -166,5 +166,6 @@ jobs:
             --app-path "${APP_APK_PATH}" \
             --test-path "${TEST_APK_PATH}" \
             --test-targets "class com.flashcardsopensourceapp.app.LiveSmokeTest" \
+            --test-targets "class com.flashcardsopensourceapp.app.NotificationTapSmokeTest" \
             --results-bucket "${ANDROID_FTL_RESULTS_BUCKET}" \
             --results-dir "${results_dir}"
