@@ -1,20 +1,38 @@
 import Foundation
-import Observation
 
-@MainActor
-@Observable
-final class AppNotificationTapCoordinator {
-    static let shared = AppNotificationTapCoordinator()
-
-    private(set) var pendingRequest: AppNotificationTapRequest?
-
-    func request(request: AppNotificationTapRequest) {
-        self.pendingRequest = request
+enum AppNotificationTapCoordinator {
+    static func persist(
+        request: AppNotificationTapRequest,
+        source: AppNotificationTapSource,
+        userDefaults: UserDefaults
+    ) throws -> PendingAppNotificationTapEnvelope {
+        let envelope = PendingAppNotificationTapEnvelope(
+            schemaVersion: pendingAppNotificationTapSchemaVersion,
+            request: request,
+            receivedAtMillis: Int64(Date().timeIntervalSince1970 * 1_000),
+            source: source
+        )
+        try savePendingAppNotificationTap(
+            envelope: envelope,
+            userDefaults: userDefaults,
+            encoder: JSONEncoder()
+        )
+        return envelope
     }
 
-    func consumePendingRequest() -> AppNotificationTapRequest? {
-        let request = self.pendingRequest
-        self.pendingRequest = nil
-        return request
+    static func takePendingEnvelope(userDefaults: UserDefaults) throws -> PendingAppNotificationTapEnvelope? {
+        do {
+            let envelope = try loadPendingAppNotificationTap(
+                userDefaults: userDefaults,
+                decoder: JSONDecoder()
+            )
+            if envelope != nil {
+                clearPendingAppNotificationTap(userDefaults: userDefaults)
+            }
+            return envelope
+        } catch {
+            clearPendingAppNotificationTap(userDefaults: userDefaults)
+            throw error
+        }
     }
 }
