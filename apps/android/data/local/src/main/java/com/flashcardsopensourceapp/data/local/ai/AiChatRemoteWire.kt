@@ -154,7 +154,7 @@ private data class AiChatConversationEnvelopeWire(
     val sessionId: StrictRemoteString,
     val conversationScopeId: StrictRemoteString,
     val conversation: AiChatConversationWire,
-    val composerSuggestions: List<AiChatComposerSuggestionWire>,
+    val composerSuggestions: List<AiChatComposerSuggestionWire> = emptyList(),
     val chatConfig: AiChatServerConfigWire,
     val activeRun: AiChatActiveRunWire? = null
 )
@@ -165,7 +165,7 @@ private data class AiChatAcceptedConversationEnvelopeWire(
     val sessionId: StrictRemoteString,
     val conversationScopeId: StrictRemoteString,
     val conversation: AiChatConversationWire,
-    val composerSuggestions: List<AiChatComposerSuggestionWire>,
+    val composerSuggestions: List<AiChatComposerSuggestionWire> = emptyList(),
     val chatConfig: AiChatServerConfigWire,
     val activeRun: AiChatActiveRunWire? = null,
     val deduplicated: StrictRemoteBoolean? = null
@@ -246,7 +246,7 @@ private data class AiChatConversationMessageWire(
 @Serializable
 private data class AiChatNewSessionWire(
     val sessionId: StrictRemoteString,
-    val composerSuggestions: List<AiChatComposerSuggestionWire>,
+    val composerSuggestions: List<AiChatComposerSuggestionWire> = emptyList(),
     val chatConfig: AiChatServerConfigWire
 )
 
@@ -398,7 +398,7 @@ private data class AiChatLiveComposerSuggestionsUpdatedWireEvent(
     val cursor: StrictRemoteString? = null,
     val sequenceNumber: StrictRemoteInt,
     val streamEpoch: StrictRemoteString,
-    val suggestions: List<AiChatComposerSuggestionWire>
+    val suggestions: List<AiChatComposerSuggestionWire> = emptyList()
 )
 
 @Serializable
@@ -596,9 +596,11 @@ internal fun decodeAiChatLiveEventPayloadResult(
         }
         AiChatLiveEventTypeWire.COMPOSER_SUGGESTIONS_UPDATED -> {
             val wire = decodeAiChatWire<AiChatLiveComposerSuggestionsUpdatedWireEvent>(payload = payload, context = "chat.live.composer_suggestions_updated")
-            AiChatLiveEvent.ComposerSuggestionsUpdated(
-                metadata = wire.asMetadata(),
-                suggestions = wire.suggestions.map(AiChatComposerSuggestionWire::asDomain)
+            AiChatLiveEventPayloadDecodeResult.Event(
+                AiChatLiveEvent.ComposerSuggestionsUpdated(
+                    metadata = wire.asMetadata(),
+                    suggestions = wire.suggestions.map(AiChatComposerSuggestionWire::asDomain)
+                )
             )
         }
         AiChatLiveEventTypeWire.REPAIR_STATUS -> {
