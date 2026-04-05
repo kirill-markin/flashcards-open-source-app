@@ -158,8 +158,9 @@
   color: var(--text);
 }
 
-.chat-empty-title:not(:first-child) {
-  margin-top: 18px;
+.chat-empty-copy {
+  margin: 0;
+  line-height: 1.6;
 }
 
 .chat-empty-loading {
@@ -690,6 +691,28 @@
   flex-wrap: wrap;
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.chat-composer-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chat-composer-suggestion {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(196, 75, 45, 0.22);
+  border-radius: var(--radius-pill);
+  background: rgba(196, 75, 45, 0.08);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.chat-composer-suggestion:hover {
+  background: rgba(196, 75, 45, 0.14);
+  border-color: rgba(196, 75, 45, 0.34);
 }
 
 .chat-attachment-chip {

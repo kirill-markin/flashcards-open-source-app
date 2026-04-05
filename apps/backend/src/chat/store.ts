@@ -10,6 +10,14 @@ import {
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
 } from "../db";
+import {
+  buildInitialChatComposerSuggestions,
+  emptyChatComposerSuggestions,
+  parsePersistedChatComposerSuggestions,
+  type ChatComposerSuggestion,
+  type ChatComposerSuggestionInvalidationReason,
+  type ChatComposerSuggestionSource,
+} from "./composerSuggestions";
 import { ChatItemRowNotFoundError, ChatSessionRowNotFoundError } from "./errors";
 import { finalizePendingToolCallContent, type StoredMessage } from "./history";
 import type {
@@ -30,8 +38,26 @@ export type ChatSessionRow = Readonly<{
   status: ChatSessionRunState;
   active_run_id: string | null;
   active_run_heartbeat_at: string | null;
+  composer_suggestions: unknown;
+  active_composer_suggestion_generation_id: string | null;
+  active_generation_suggestions: unknown | null;
   main_content_invalidation_version: string | number;
   updated_at: string;
+}>;
+
+type InsertedChatSessionRow = Readonly<{
+  session_id: string;
+}>;
+
+type ChatComposerSuggestionGenerationRow = Readonly<{
+  generation_id: string;
+  session_id: string;
+  assistant_item_id: string | null;
+  source: ChatComposerSuggestionSource;
+  suggestions: unknown;
+  invalidated_at: string | null;
+  invalidated_reason: ChatComposerSuggestionInvalidationReason | null;
+  created_at: string;
 }>;
 
 type ChatItemPayload = Readonly<{
@@ -100,6 +126,7 @@ type CompleteChatRunParams = Readonly<{
   assistantItemId: string;
   assistantContent: ReadonlyArray<ContentPart>;
   assistantOpenAIItems?: ReadonlyArray<StoredOpenAIReplayItem>;
+  composerSuggestions?: ReadonlyArray<ChatComposerSuggestion>;
 }>;
 
 type UserStoppedChatRunUpdatePlan = Readonly<{
@@ -143,31 +170,65 @@ export type ChatSessionSnapshot = Readonly<{
   activeRunId: string | null;
   updatedAt: number;
   activeRunHeartbeatAt: number | null;
+  composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   mainContentInvalidationVersion: number;
   messages: ReadonlyArray<StoredMessage>;
 }>;
 
 const SELECT_SESSION_SQL = `
-  SELECT session_id, status, active_run_id, active_run_heartbeat_at, main_content_invalidation_version, updated_at
-  FROM ai.chat_sessions
-  WHERE user_id = $1
-    AND workspace_id = $2
-    AND session_id = $3
+  SELECT
+    chat_sessions.session_id,
+    chat_sessions.status,
+    chat_sessions.active_run_id,
+    chat_sessions.active_run_heartbeat_at,
+    chat_sessions.composer_suggestions,
+    chat_sessions.active_composer_suggestion_generation_id,
+    active_generation.suggestions AS active_generation_suggestions,
+    chat_sessions.main_content_invalidation_version,
+    chat_sessions.updated_at
+  FROM ai.chat_sessions AS chat_sessions
+  LEFT JOIN ai.chat_composer_suggestion_generations AS active_generation
+    ON active_generation.generation_id = chat_sessions.active_composer_suggestion_generation_id
+  WHERE chat_sessions.user_id = $1
+    AND chat_sessions.workspace_id = $2
+    AND chat_sessions.session_id = $3
 `;
 
 const SELECT_SESSION_FOR_UPDATE_SQL = `
-  SELECT session_id, status, active_run_id, active_run_heartbeat_at, main_content_invalidation_version, updated_at
-  FROM ai.chat_sessions
-  WHERE session_id = $1
-  FOR UPDATE
+  SELECT
+    chat_sessions.session_id,
+    chat_sessions.status,
+    chat_sessions.active_run_id,
+    chat_sessions.active_run_heartbeat_at,
+    chat_sessions.composer_suggestions,
+    chat_sessions.active_composer_suggestion_generation_id,
+    active_generation.suggestions AS active_generation_suggestions,
+    chat_sessions.main_content_invalidation_version,
+    chat_sessions.updated_at
+  FROM ai.chat_sessions AS chat_sessions
+  LEFT JOIN ai.chat_composer_suggestion_generations AS active_generation
+    ON active_generation.generation_id = chat_sessions.active_composer_suggestion_generation_id
+  WHERE chat_sessions.session_id = $1
+  FOR UPDATE OF chat_sessions
 `;
 
 const SELECT_LATEST_SESSION_SQL = `
-  SELECT session_id, status, active_run_id, active_run_heartbeat_at, main_content_invalidation_version, updated_at
-  FROM ai.chat_sessions
-  WHERE user_id = $1
-    AND workspace_id = $2
-  ORDER BY created_at DESC, session_id DESC
+  SELECT
+    chat_sessions.session_id,
+    chat_sessions.status,
+    chat_sessions.active_run_id,
+    chat_sessions.active_run_heartbeat_at,
+    chat_sessions.composer_suggestions,
+    chat_sessions.active_composer_suggestion_generation_id,
+    active_generation.suggestions AS active_generation_suggestions,
+    chat_sessions.main_content_invalidation_version,
+    chat_sessions.updated_at
+  FROM ai.chat_sessions AS chat_sessions
+  LEFT JOIN ai.chat_composer_suggestion_generations AS active_generation
+    ON active_generation.generation_id = chat_sessions.active_composer_suggestion_generation_id
+  WHERE chat_sessions.user_id = $1
+    AND chat_sessions.workspace_id = $2
+  ORDER BY chat_sessions.created_at DESC, chat_sessions.session_id DESC
   LIMIT 1
 `;
 
@@ -178,11 +239,12 @@ const INSERT_SESSION_SQL = `
     status,
     active_run_id,
     active_run_heartbeat_at,
+    composer_suggestions,
     main_content_invalidation_version,
     updated_at
   )
-  VALUES ($1, $2, 'idle', NULL, NULL, 0, now())
-  RETURNING session_id, status, active_run_id, active_run_heartbeat_at, main_content_invalidation_version, updated_at
+  VALUES ($1, $2, 'idle', NULL, NULL, '[]'::jsonb, 0, now())
+  RETURNING session_id
 `;
 
 const LIST_CHAT_ITEMS_SQL = `
@@ -295,7 +357,70 @@ const UPDATE_CHAT_SESSION_STATUS_SQL = `
       active_run_heartbeat_at = $4,
       updated_at = now()
   WHERE session_id = $1
-  RETURNING session_id, status, active_run_id, active_run_heartbeat_at, main_content_invalidation_version, updated_at
+  RETURNING
+    session_id,
+    status,
+    active_run_id,
+    active_run_heartbeat_at,
+    composer_suggestions,
+    active_composer_suggestion_generation_id,
+    NULL::jsonb AS active_generation_suggestions,
+    main_content_invalidation_version,
+    updated_at
+`;
+
+const INSERT_CHAT_COMPOSER_SUGGESTION_GENERATION_SQL = `
+  INSERT INTO ai.chat_composer_suggestion_generations (
+    session_id,
+    assistant_item_id,
+    source,
+    suggestions
+  )
+  VALUES ($1, $2, $3, $4::jsonb)
+  RETURNING
+    generation_id,
+    session_id,
+    assistant_item_id,
+    source,
+    suggestions,
+    invalidated_at,
+    invalidated_reason,
+    created_at
+`;
+
+const INVALIDATE_CHAT_COMPOSER_SUGGESTION_GENERATION_SQL = `
+  UPDATE ai.chat_composer_suggestion_generations
+  SET invalidated_at = now(),
+      invalidated_reason = $2
+  WHERE generation_id = $1
+    AND invalidated_at IS NULL
+  RETURNING
+    generation_id,
+    session_id,
+    assistant_item_id,
+    source,
+    suggestions,
+    invalidated_at,
+    invalidated_reason,
+    created_at
+`;
+
+const UPDATE_CHAT_SESSION_ACTIVE_COMPOSER_SUGGESTION_GENERATION_SQL = `
+  UPDATE ai.chat_sessions
+  SET active_composer_suggestion_generation_id = $2::uuid,
+      composer_suggestions = $3::jsonb,
+      updated_at = now()
+  WHERE session_id = $1
+  RETURNING
+    session_id,
+    status,
+    active_run_id,
+    active_run_heartbeat_at,
+    composer_suggestions,
+    active_composer_suggestion_generation_id,
+    NULL::jsonb AS active_generation_suggestions,
+    main_content_invalidation_version,
+    updated_at
 `;
 
 const UPDATE_CHAT_ITEM_AND_INVALIDATE_MAIN_CONTENT_SQL = `
@@ -340,6 +465,15 @@ function parseMainContentInvalidationVersion(
 }
 
 function mapSessionRow(row: ChatSessionRow): Omit<ChatSessionSnapshot, "messages"> {
+  if (
+    row.active_composer_suggestion_generation_id !== null
+    && row.active_generation_suggestions === null
+  ) {
+    throw new Error(
+      `Chat session ${row.session_id} is missing active composer suggestion generation ${row.active_composer_suggestion_generation_id}`,
+    );
+  }
+
   return {
     sessionId: row.session_id,
     runState: row.status,
@@ -348,6 +482,12 @@ function mapSessionRow(row: ChatSessionRow): Omit<ChatSessionSnapshot, "messages
     activeRunHeartbeatAt: row.active_run_heartbeat_at === null
       ? null
       : new Date(row.active_run_heartbeat_at).getTime(),
+    composerSuggestions: row.active_composer_suggestion_generation_id === null
+      ? emptyChatComposerSuggestions()
+      : parsePersistedChatComposerSuggestions(
+        row.active_generation_suggestions,
+        `session ${row.session_id} active generation ${row.active_composer_suggestion_generation_id}`,
+      ),
     mainContentInvalidationVersion: parseMainContentInvalidationVersion(
       row.main_content_invalidation_version,
       "read",
@@ -440,6 +580,17 @@ function requireChatItemRow(
 ): ChatItemRow {
   if (row === undefined) {
     throw new ChatItemRowNotFoundError(operation);
+  }
+
+  return row;
+}
+
+function requireChatComposerSuggestionGenerationRow(
+  row: ChatComposerSuggestionGenerationRow | undefined,
+  operation: string,
+): ChatComposerSuggestionGenerationRow {
+  if (row === undefined) {
+    throw new Error(`Chat composer suggestion generation not found during ${operation}`);
   }
 
   return row;
@@ -549,11 +700,215 @@ async function createChatSessionWithExecutor(
   scope: WorkspaceDatabaseScope,
 ): Promise<ChatSessionRow> {
   return withScopedExecutor(executor, scope, async () => {
-    const rows = await executeQuery<ChatSessionRow>(executor, INSERT_SESSION_SQL, [
+    const rows = await executeQuery<InsertedChatSessionRow>(executor, INSERT_SESSION_SQL, [
       scope.userId,
       scope.workspaceId,
     ]);
-    return requireSessionRow(rows[0], "insert");
+    const insertedSession = rows[0];
+    if (insertedSession === undefined) {
+      throw new ChatSessionRowNotFoundError("insert");
+    }
+
+    await createInitialChatComposerSuggestionGenerationWithExecutor(
+      executor,
+      scope,
+      insertedSession.session_id,
+    );
+    return resolveRequestedChatSessionWithExecutor(executor, scope, insertedSession.session_id);
+  });
+}
+
+function requireNonEmptyChatComposerSuggestions(
+  suggestions: ReadonlyArray<ChatComposerSuggestion>,
+  operation: string,
+): void {
+  if (suggestions.length === 0) {
+    throw new Error(`Chat composer suggestions must not be empty during ${operation}`);
+  }
+}
+
+async function insertChatComposerSuggestionGenerationWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  params: Readonly<{
+    sessionId: string;
+    assistantItemId: string | null;
+    source: ChatComposerSuggestionSource;
+    suggestions: ReadonlyArray<ChatComposerSuggestion>;
+  }>,
+): Promise<ChatComposerSuggestionGenerationRow> {
+  requireNonEmptyChatComposerSuggestions(params.suggestions, "generation insert");
+  return withScopedExecutor(executor, scope, async () => {
+    const rows = await executeQuery<ChatComposerSuggestionGenerationRow>(
+      executor,
+      INSERT_CHAT_COMPOSER_SUGGESTION_GENERATION_SQL,
+      [
+        params.sessionId,
+        params.assistantItemId,
+        params.source,
+        JSON.stringify(params.suggestions),
+      ],
+    );
+    return requireChatComposerSuggestionGenerationRow(rows[0], "insert");
+  });
+}
+
+async function updateChatSessionActiveComposerSuggestionGenerationWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+  generationId: string | null,
+  composerSuggestions: ReadonlyArray<ChatComposerSuggestion>,
+): Promise<void> {
+  return withScopedExecutor(executor, scope, async () => {
+    const rows = await executeQuery<ChatSessionRow>(
+      executor,
+      UPDATE_CHAT_SESSION_ACTIVE_COMPOSER_SUGGESTION_GENERATION_SQL,
+      [
+        sessionId,
+        generationId,
+        JSON.stringify(composerSuggestions),
+      ],
+    );
+    if (rows.length === 0) {
+      throw new ChatSessionNotFoundError(sessionId);
+    }
+  });
+}
+
+/**
+ * Activates one generation for UI reads and mirrors its suggestions into the
+ * legacy session JSONB column so a rollback can still read the latest state.
+ */
+export async function activateChatComposerSuggestionGenerationWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+  generationId: string,
+  composerSuggestions: ReadonlyArray<ChatComposerSuggestion>,
+): Promise<void> {
+  requireNonEmptyChatComposerSuggestions(composerSuggestions, "generation activation");
+  return withScopedExecutor(executor, scope, async () => {
+    const lockedRows = await executeQuery<ChatSessionRow>(executor, SELECT_SESSION_FOR_UPDATE_SQL, [sessionId]);
+    const lockedSession = requireSessionRow(lockedRows[0], "activate-generation");
+    if (lockedSession.active_composer_suggestion_generation_id !== null) {
+      throw new Error(
+        `Chat session ${sessionId} already has active composer suggestion generation ${lockedSession.active_composer_suggestion_generation_id}`,
+      );
+    }
+
+    await updateChatSessionActiveComposerSuggestionGenerationWithExecutor(
+      executor,
+      scope,
+      sessionId,
+      generationId,
+      composerSuggestions,
+    );
+  });
+}
+
+/**
+ * Clears the active suggestion pointer and records why the previous active
+ * generation stopped being the current UI projection.
+ */
+export async function clearActiveChatComposerSuggestionGenerationWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+  invalidationReason: ChatComposerSuggestionInvalidationReason,
+): Promise<void> {
+  return withScopedExecutor(executor, scope, async () => {
+    const lockedRows = await executeQuery<ChatSessionRow>(executor, SELECT_SESSION_FOR_UPDATE_SQL, [sessionId]);
+    const lockedSession = requireSessionRow(lockedRows[0], "clear-generation");
+    const activeGenerationId = lockedSession.active_composer_suggestion_generation_id;
+
+    if (activeGenerationId !== null) {
+      const invalidatedRows = await executeQuery<ChatComposerSuggestionGenerationRow>(
+        executor,
+        INVALIDATE_CHAT_COMPOSER_SUGGESTION_GENERATION_SQL,
+        [activeGenerationId, invalidationReason],
+      );
+      requireChatComposerSuggestionGenerationRow(invalidatedRows[0], "invalidate");
+    }
+
+    await updateChatSessionActiveComposerSuggestionGenerationWithExecutor(
+      executor,
+      scope,
+      sessionId,
+      null,
+      emptyChatComposerSuggestions(),
+    );
+  });
+}
+
+/**
+ * Creates and activates the initial suggestion generation for a fresh session.
+ */
+export async function createInitialChatComposerSuggestionGenerationWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+): Promise<void> {
+  const suggestions = buildInitialChatComposerSuggestions();
+  const generation = await insertChatComposerSuggestionGenerationWithExecutor(executor, scope, {
+    sessionId,
+    assistantItemId: null,
+    source: "initial",
+    suggestions,
+  });
+  await activateChatComposerSuggestionGenerationWithExecutor(
+    executor,
+    scope,
+    sessionId,
+    generation.generation_id,
+    suggestions,
+  );
+}
+
+/**
+ * Creates and activates a follow-up suggestion generation when a completed
+ * assistant turn produced suggestions for the next user reply.
+ */
+export async function createFollowUpChatComposerSuggestionGenerationWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+  assistantItemId: string,
+  suggestions: ReadonlyArray<ChatComposerSuggestion>,
+): Promise<void> {
+  return withScopedExecutor(executor, scope, async () => {
+    if (suggestions.length === 0) {
+      const lockedRows = await executeQuery<ChatSessionRow>(executor, SELECT_SESSION_FOR_UPDATE_SQL, [sessionId]);
+      const lockedSession = requireSessionRow(lockedRows[0], "complete-without-generation");
+      if (lockedSession.active_composer_suggestion_generation_id !== null) {
+        throw new Error(
+          `Chat session ${sessionId} still has active composer suggestion generation ${lockedSession.active_composer_suggestion_generation_id} during empty follow-up completion`,
+        );
+      }
+
+      await updateChatSessionActiveComposerSuggestionGenerationWithExecutor(
+        executor,
+        scope,
+        sessionId,
+        null,
+        emptyChatComposerSuggestions(),
+      );
+      return;
+    }
+
+    const generation = await insertChatComposerSuggestionGenerationWithExecutor(executor, scope, {
+      sessionId,
+      assistantItemId,
+      source: "assistant_follow_up",
+      suggestions,
+    });
+    await activateChatComposerSuggestionGenerationWithExecutor(
+      executor,
+      scope,
+      sessionId,
+      generation.generation_id,
+      suggestions,
+    );
   });
 }
 
@@ -852,6 +1207,26 @@ export const createFreshChatSession = async (
     createFreshChatSessionWithExecutor(executor, { userId, workspaceId }));
 
 /**
+ * Invalidates the previous session's active generation and creates a fresh
+ * session in the same transaction so "new chat" rollover is atomic.
+ */
+export const rolloverToFreshChatSession = async (
+  userId: string,
+  workspaceId: string,
+  previousSessionId: string,
+): Promise<string> =>
+  transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+    const scope = { userId, workspaceId };
+    await clearActiveChatComposerSuggestionGenerationWithExecutor(
+      executor,
+      scope,
+      previousSessionId,
+      "new_chat_rollover",
+    );
+    return createFreshChatSessionWithExecutor(executor, scope);
+  });
+
+/**
  * Lists persisted chat items for a session through the public store surface.
  */
 export const listChatMessages = async (
@@ -981,6 +1356,13 @@ export const completeChatRun = async (
       null,
       null,
     );
+    await createFollowUpChatComposerSuggestionGenerationWithExecutor(
+      executor,
+      { userId, workspaceId },
+      params.sessionId,
+      params.assistantItemId,
+      params.composerSuggestions ?? emptyChatComposerSuggestions(),
+    );
   });
 
 /**
@@ -1072,6 +1454,12 @@ export const persistAssistantTerminalError = async (
       null,
       null,
     );
+    await clearActiveChatComposerSuggestionGenerationWithExecutor(
+      executor,
+      { userId, workspaceId },
+      params.sessionId,
+      params.sessionState === "interrupted" ? "run_interrupted" : "run_failed",
+    );
   });
 
 export const persistAssistantCancelled = async (
@@ -1094,6 +1482,12 @@ export const persistAssistantCancelled = async (
       "idle",
       null,
       null,
+    );
+    await clearActiveChatComposerSuggestionGenerationWithExecutor(
+      executor,
+      { userId, workspaceId },
+      params.sessionId,
+      "run_cancelled",
     );
   });
 
@@ -1135,6 +1529,12 @@ export const cancelActiveChatRunByUserWithExecutor = async (
       null,
       null,
     );
+    await clearActiveChatComposerSuggestionGenerationWithExecutor(
+      executor,
+      scope,
+      sessionId,
+      "run_cancelled",
+    );
     return true;
   });
 
@@ -1145,3 +1545,20 @@ export const cancelActiveChatRunByUser = async (
 ): Promise<boolean> =>
   transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
     cancelActiveChatRunByUserWithExecutor(executor, { userId, workspaceId }, sessionId));
+
+/**
+ * Clears the active composer suggestion generation through the public store surface.
+ */
+export const clearActiveChatComposerSuggestionGeneration = async (
+  userId: string,
+  workspaceId: string,
+  sessionId: string,
+  invalidationReason: ChatComposerSuggestionInvalidationReason,
+): Promise<void> =>
+  transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
+    clearActiveChatComposerSuggestionGenerationWithExecutor(
+      executor,
+      { userId, workspaceId },
+      sessionId,
+      invalidationReason,
+    ));

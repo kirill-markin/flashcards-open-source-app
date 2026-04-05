@@ -95,6 +95,7 @@ data class AiChatConversationEnvelope(
     val sessionId: String,
     val conversationScopeId: String,
     val conversation: AiChatConversation,
+    val composerSuggestions: List<AiChatComposerSuggestion>,
     val chatConfig: AiChatServerConfig,
     val activeRun: AiChatActiveRun?
 )
@@ -149,6 +150,13 @@ data class AiChatAttachment(
     val isImage: Boolean
         get() = mediaType.startsWith(prefix = "image/")
 }
+
+data class AiChatComposerSuggestion(
+    val id: String,
+    val text: String,
+    val source: String,
+    val assistantItemId: String?
+)
 
 data class AiChatToolCall(
     val toolCallId: String,
@@ -262,6 +270,7 @@ data class AiChatAcceptedConversationEnvelope(
     val sessionId: String,
     val conversationScopeId: String,
     val conversation: AiChatConversation,
+    val composerSuggestions: List<AiChatComposerSuggestion>,
     val chatConfig: AiChatServerConfig,
     val activeRun: AiChatActiveRun?,
     val deduplicated: Boolean?
@@ -371,6 +380,11 @@ sealed interface AiChatLiveEvent {
         val content: List<AiChatContentPart>,
         val isError: Boolean,
         val isStopped: Boolean
+    ) : AiChatLiveEvent
+
+    data class ComposerSuggestionsUpdated(
+        val metadata: AiChatLiveEventMetadata,
+        val suggestions: List<AiChatComposerSuggestion>
     ) : AiChatLiveEvent
 
     data class RepairStatus(

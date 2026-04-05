@@ -57,6 +57,7 @@ class AiChatRemoteWireTest {
                     "hasOlder": false,
                     "oldestCursor": null
                   },
+                  "composerSuggestions": [],
                   "chatConfig": {
                     "provider": { "id": "openai", "label": "OpenAI" },
                     "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
@@ -129,6 +130,7 @@ class AiChatRemoteWireTest {
                 "hasOlder": false,
                 "oldestCursor": null
               },
+              "composerSuggestions": [],
               "chatConfig": {
                 "provider": { "id": "openai", "label": "OpenAI" },
                 "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
@@ -179,6 +181,7 @@ class AiChatRemoteWireTest {
                 "hasOlder": false,
                 "oldestCursor": null
               },
+              "composerSuggestions": [],
               "chatConfig": {
                 "provider": { "id": "openai", "label": "OpenAI" },
                 "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },

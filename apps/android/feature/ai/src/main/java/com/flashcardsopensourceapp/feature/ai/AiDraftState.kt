@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.ai
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
@@ -38,6 +39,7 @@ internal data class AiDraftState(
     val isLiveAttached: Boolean,
     val draftMessage: String,
     val pendingAttachments: List<AiChatAttachment>,
+    val serverComposerSuggestions: List<AiChatComposerSuggestion>,
     val composerPhase: AiComposerPhase,
     val dictationState: AiChatDictationState,
     val conversationBootstrapState: AiConversationBootstrapState,
@@ -60,6 +62,7 @@ internal fun makeDefaultAiDraftState(): AiDraftState {
         isLiveAttached = false,
         draftMessage = "",
         pendingAttachments = emptyList(),
+        serverComposerSuggestions = emptyList(),
         composerPhase = AiComposerPhase.IDLE,
         dictationState = AiChatDictationState.IDLE,
         conversationBootstrapState = AiConversationBootstrapState.READY,
@@ -84,6 +87,7 @@ internal fun makeAiDraftState(
         isLiveAttached = false,
         draftMessage = "",
         pendingAttachments = emptyList(),
+        serverComposerSuggestions = emptyList(),
         composerPhase = AiComposerPhase.IDLE,
         dictationState = AiChatDictationState.IDLE,
         conversationBootstrapState = AiConversationBootstrapState.READY,

@@ -37,6 +37,7 @@ import type { ChatLiveEvent } from "./liveStream";
 import { useChatLiveSession } from "./useChatLiveSession";
 import type {
   ChatConfig,
+  ChatComposerSuggestion,
   ContentPart,
   ReasoningSummaryContentPart,
   ToolCallContentPart,
@@ -71,6 +72,7 @@ export type ChatSessionController = Readonly<{
   currentSessionId: string | null;
   mainContentInvalidationVersion: number;
   chatConfig: ChatConfig;
+  composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   composerAction: ChatComposerAction;
   composerNotice: string | null;
   errorDialogMessage: string | null;
@@ -259,6 +261,34 @@ function areChatConfigsEqual(left: ChatConfig, right: ChatConfig): boolean {
     && left.features.attachmentsEnabled === right.features.attachmentsEnabled;
 }
 
+function areComposerSuggestionsEqual(
+  left: ReadonlyArray<ChatComposerSuggestion>,
+  right: ReadonlyArray<ChatComposerSuggestion>,
+): boolean {
+  if (left === right) {
+    return true;
+  }
+
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  for (let index = 0; index < left.length; index += 1) {
+    const leftSuggestion = left[index];
+    const rightSuggestion = right[index];
+    if (
+      leftSuggestion?.id !== rightSuggestion?.id
+      || leftSuggestion.text !== rightSuggestion.text
+      || leftSuggestion.source !== rightSuggestion.source
+      || leftSuggestion.assistantItemId !== rightSuggestion.assistantItemId
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function extractStoredMessageTextContent(message: StoredMessage): string {
   return message.content.reduce<string>((result, part) => {
     if (part.type !== "text") {
@@ -412,6 +442,7 @@ export function useChatSessionController(
   const [chatConfig, setChatConfig] = useState<ChatConfig>(
     initialWarmStartSnapshot?.chatConfig ?? loadStoredChatConfig(),
   );
+  const [composerSuggestions, setComposerSuggestions] = useState<ReadonlyArray<ChatComposerSuggestion>>([]);
   const [composerNotice, setComposerNotice] = useState<string | null>(null);
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
 
@@ -458,6 +489,14 @@ export function useChatSessionController(
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  const applyComposerSuggestions = useCallback((
+    _nextSessionId: string | null,
+    nextSuggestions: ReadonlyArray<ChatComposerSuggestion>,
+  ): void => {
+    setComposerSuggestions((currentSuggestions) =>
+      areComposerSuggestionsEqual(currentSuggestions, nextSuggestions) ? currentSuggestions : nextSuggestions);
+  }, []);
 
   useEffect(() => {
     chatConfigRef.current = chatConfig;
@@ -555,6 +594,11 @@ export function useChatSessionController(
       return;
     }
 
+    if (event.type === "composer_suggestions_updated") {
+      applyComposerSuggestions(event.sessionId, event.suggestions);
+      return;
+    }
+
     if (event.type === "repair_status") {
       return;
     }
@@ -577,6 +621,7 @@ export function useChatSessionController(
         ?? "AI chat failed.",
     );
   }, [
+    applyComposerSuggestions,
     appendAssistantText,
     finishAssistantMessage,
     showErrorDialog,
@@ -665,6 +710,7 @@ export function useChatSessionController(
     detachLiveStream(null, null);
     replaceMessages(warmStartSnapshot.messages);
     setCurrentSessionId(warmStartSnapshot.sessionId);
+    applyComposerSuggestions(warmStartSnapshot.sessionId, []);
     updateRunState("idle");
     setIsStopping(false);
     setMainContentInvalidationVersion(warmStartSnapshot.mainContentInvalidationVersion);
@@ -676,7 +722,7 @@ export function useChatSessionController(
     hydratedWorkspaceIdRef.current = nextWorkspaceId;
     setKnownLiveCursor(null);
     return true;
-  }, [detachLiveStream, replaceMessages, setKnownLiveCursor, updateRunState]);
+  }, [applyComposerSuggestions, detachLiveStream, replaceMessages, setKnownLiveCursor, updateRunState]);
 
   const loadChatSnapshot = useCallback(async (
     sessionId: string | undefined,
@@ -708,6 +754,7 @@ export function useChatSessionController(
       const shouldUpdateChatConfig = areChatConfigsEqual(chatConfigRef.current, snapshot.chatConfig) === false;
 
       setCurrentSessionId(snapshot.sessionId);
+      applyComposerSuggestions(snapshot.sessionId, snapshot.composerSuggestions);
       setKnownLiveCursor(snapshot.activeRun?.live.cursor ?? null);
       updateRunState(nextRunState);
       setMainContentInvalidationVersion(nextMainContentInvalidationVersion);
@@ -742,6 +789,7 @@ export function useChatSessionController(
         trigger,
         runState: nextRunState,
         messageCount: snapshot.conversation.messages.length,
+        composerSuggestionCount: snapshot.composerSuggestions.length,
       });
 
       return snapshot;
@@ -756,7 +804,7 @@ export function useChatSessionController(
       });
       throw error;
     }
-  }, [debugLog, replaceMessages, setKnownLiveCursor, updateRunState, workspaceId]);
+  }, [applyComposerSuggestions, debugLog, replaceMessages, setKnownLiveCursor, updateRunState, workspaceId]);
 
   const reconcileTerminalSnapshot = useCallback((): void => {
     if (workspaceId === null || isRemoteReady === false) {
@@ -880,6 +928,7 @@ export function useChatSessionController(
 
   const resetControllerState = useCallback((clearHistoryImmediately: boolean): void => {
     setCurrentSessionId(null);
+    applyComposerSuggestions(null, []);
     updateRunState("idle");
     setIsStopping(false);
     setMainContentInvalidationVersion(0);
@@ -895,7 +944,7 @@ export function useChatSessionController(
       replaceMessages([]);
       setIsHistoryLoaded(false);
     }
-  }, [detachLiveStream, replaceMessages, setKnownLiveCursor, updateRunState]);
+  }, [applyComposerSuggestions, detachLiveStream, replaceMessages, setKnownLiveCursor, updateRunState]);
 
   useEffect(() => {
     let isDisposed = false;
@@ -989,6 +1038,7 @@ export function useChatSessionController(
         mainContentInvalidationVersion,
         messages,
       },
+      composerSuggestions: [],
       chatConfig,
       activeRun: null,
     });
@@ -1035,6 +1085,7 @@ export function useChatSessionController(
       updateRunState(response.activeRun === null ? "idle" : "running");
       setIsStopping(false);
       setCurrentSessionId(response.sessionId);
+      applyComposerSuggestions(response.sessionId, response.composerSuggestions);
       setChatConfig(response.chatConfig);
       storeChatConfig(response.chatConfig);
       setKnownLiveCursor(response.activeRun?.live.cursor ?? null);
@@ -1064,6 +1115,7 @@ export function useChatSessionController(
     }
   }, [
     appendUserMessage,
+    applyComposerSuggestions,
     currentSessionId,
     isAssistantRunActive,
     isHistoryLoaded,
@@ -1124,6 +1176,7 @@ export function useChatSessionController(
     lastSnapshotUpdatedAtRef.current = null;
     setKnownLiveCursor(null);
     setCurrentSessionId(response.sessionId);
+    applyComposerSuggestions(response.sessionId, response.composerSuggestions);
     updateRunState("idle");
     setIsStopping(false);
     setMainContentInvalidationVersion(0);
@@ -1131,7 +1184,7 @@ export function useChatSessionController(
     setComposerNotice(null);
     setErrorDialogMessage(null);
     storeChatConfig(response.chatConfig);
-  }, [clearHistory, currentSessionId, detachLiveStream, isAssistantRunActive, setKnownLiveCursor, updateRunState, workspaceId]);
+  }, [applyComposerSuggestions, clearHistory, currentSessionId, detachLiveStream, isAssistantRunActive, setKnownLiveCursor, updateRunState, workspaceId]);
 
   return {
     messages,
@@ -1143,6 +1196,7 @@ export function useChatSessionController(
     currentSessionId,
     mainContentInvalidationVersion,
     chatConfig: chatConfig ?? defaultChatConfig,
+    composerSuggestions,
     composerAction,
     composerNotice,
     errorDialogMessage,

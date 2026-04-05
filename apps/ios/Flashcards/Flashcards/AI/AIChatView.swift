@@ -307,14 +307,10 @@ struct AIChatView: View {
 
     var emptyChatState: some View {
         ContentUnavailableView {
-            Text("Try asking")
+            Text("Start a new AI chat")
                 .accessibilityIdentifier(UITestIdentifier.aiEmptyState)
         } description: {
-            VStack(spacing: 8) {
-                Text("Summarize weak areas from my due cards.")
-                Text("Find cards tagged with grammar and suggest cleanup.")
-                Text("Propose a new deck filter and explain the exact change.")
-            }
+            Text("Ask about cards, review history, or attach notes for extraction.")
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
         }

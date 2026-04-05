@@ -47,12 +47,25 @@ internal fun mapToAiUiState(
     val canEditConversation = isComposerBusy.not()
         && isConversationReady
         && runtimeState.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
+    val composerSuggestions = if (
+        isConversationReady
+        && runtimeState.composerPhase == AiComposerPhase.IDLE
+        && hasActiveRun.not()
+        && runtimeState.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
+        && runtimeState.pendingAttachments.isEmpty()
+        && runtimeState.draftMessage.trim().isEmpty()
+    ) {
+        runtimeState.serverComposerSuggestions
+    } else {
+        emptyList()
+    }
 
     return AiUiState(
         currentWorkspaceName = metadata.currentWorkspaceName,
         messages = runtimeState.persistedState.messages,
         pendingAttachments = runtimeState.pendingAttachments,
         draftMessage = runtimeState.draftMessage,
+        composerSuggestions = composerSuggestions,
         chatConfig = effectiveAiChatServerConfig(runtimeState.persistedState.lastKnownChatConfig),
         isConsentRequired = hasConsent.not(),
         isLinked = isLinked,
@@ -85,6 +98,7 @@ internal fun makeInitialAiUiState(hasConsent: Boolean): AiUiState {
         messages = emptyList(),
         pendingAttachments = emptyList(),
         draftMessage = "",
+        composerSuggestions = emptyList(),
         chatConfig = defaultAiChatServerConfig,
         isConsentRequired = hasConsent.not(),
         isLinked = false,

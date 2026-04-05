@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { HttpError } from "./errors";
 import { createChatRoutes } from "./routes/chat";
+import { buildInitialChatComposerSuggestions } from "./chat/composerSuggestions";
 import type { ChatSessionSnapshot } from "./chat/store";
 import { ChatSessionConflictError } from "./chat/store";
 import type { RecoveredPaginatedSession } from "./chat/runs";
@@ -29,6 +30,7 @@ function createSnapshot(messages: ChatSessionSnapshot["messages"]): ChatSessionS
     activeRunId: null,
     updatedAt: 1,
     activeRunHeartbeatAt: null,
+    composerSuggestions: [],
     mainContentInvalidationVersion: 0,
     messages,
   };
@@ -41,6 +43,7 @@ function createRunningSnapshot(messages: ChatSessionSnapshot["messages"]): ChatS
     activeRunId: "run-1",
     updatedAt: 1,
     activeRunHeartbeatAt: 1,
+    composerSuggestions: [],
     mainContentInvalidationVersion: 0,
     messages,
   };
@@ -71,16 +74,19 @@ function createExpectedChatConfig(): Record<string, unknown> {
 }
 
 test("POST /chat/new returns the current session when history is empty", async () => {
-  let createFreshChatSessionCallCount = 0;
+  let rolloverCallCount = 0;
   const app = createChatRoutes({
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
     }),
-    getRecoveredChatSessionSnapshotFn: async () => createSnapshot([]),
-    createFreshChatSessionFn: async () => {
-      createFreshChatSessionCallCount += 1;
+    getRecoveredChatSessionSnapshotFn: async () => ({
+      ...createSnapshot([]),
+      composerSuggestions: buildInitialChatComposerSuggestions(),
+    }),
+    rolloverToFreshChatSessionFn: async () => {
+      rolloverCallCount += 1;
       return "session-2";
     },
   });
@@ -96,17 +102,19 @@ test("POST /chat/new returns the current session when history is empty", async (
   });
 
   assert.equal(response.status, 200);
-  assert.equal(createFreshChatSessionCallCount, 0);
+  assert.equal(rolloverCallCount, 0);
   assert.deepEqual(await response.json(), {
     ok: true,
     sessionId: "session-1",
+    composerSuggestions: buildInitialChatComposerSuggestions(),
     chatConfig: createExpectedChatConfig(),
   });
 });
 
 test("POST /chat/new creates a fresh session when history is not empty", async () => {
-  let requestedSessionId: string | undefined;
-  let createFreshChatSessionCallCount = 0;
+  const requestedSessionIds: Array<string | undefined> = [];
+  let rolloverCallCount = 0;
+  let rolledOverSessionId: string | null = null;
   const app = createChatRoutes({
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
@@ -118,7 +126,15 @@ test("POST /chat/new creates a fresh session when history is not empty", async (
       _workspaceId: string,
       sessionId?: string,
     ) => {
-      requestedSessionId = sessionId;
+      requestedSessionIds.push(sessionId);
+      if (sessionId === "session-2") {
+        return {
+          ...createSnapshot([]),
+          sessionId: "session-2",
+          composerSuggestions: buildInitialChatComposerSuggestions(),
+        };
+      }
+
       return createSnapshot([{
         role: "user",
         content: [{
@@ -132,8 +148,13 @@ test("POST /chat/new creates a fresh session when history is not empty", async (
         itemId: null,
       }]);
     },
-    createFreshChatSessionFn: async () => {
-      createFreshChatSessionCallCount += 1;
+    rolloverToFreshChatSessionFn: async (
+      _userId: string,
+      _workspaceId: string,
+      sessionId: string,
+    ) => {
+      rolloverCallCount += 1;
+      rolledOverSessionId = sessionId;
       return "session-2";
     },
   });
@@ -149,11 +170,13 @@ test("POST /chat/new creates a fresh session when history is not empty", async (
   });
 
   assert.equal(response.status, 200);
-  assert.equal(requestedSessionId, "session-1");
-  assert.equal(createFreshChatSessionCallCount, 1);
+  assert.deepEqual(requestedSessionIds, ["session-1", "session-2"]);
+  assert.equal(rolloverCallCount, 1);
+  assert.equal(rolledOverSessionId, "session-1");
   assert.deepEqual(await response.json(), {
     ok: true,
     sessionId: "session-2",
+    composerSuggestions: buildInitialChatComposerSuggestions(),
     chatConfig: createExpectedChatConfig(),
   });
 });
@@ -240,6 +263,7 @@ test("GET /chat returns assistant item ids in snapshot history and strips attach
         },
       ],
     },
+    composerSuggestions: [],
     chatConfig: createExpectedChatConfig(),
     activeRun: null,
   });
@@ -322,6 +346,7 @@ test("GET /chat paginated history returns assistant item ids and sanitized conte
         },
       ],
     },
+    composerSuggestions: [],
     chatConfig: createExpectedChatConfig(),
     activeRun: null,
   });
@@ -425,6 +450,7 @@ test("POST /chat returns the canonical chat request id header and dedupe metadat
       },
       lastHeartbeatAt: 1,
     },
+    composerSuggestions: [],
     chatConfig: {
       ...createExpectedChatConfig(),
     },

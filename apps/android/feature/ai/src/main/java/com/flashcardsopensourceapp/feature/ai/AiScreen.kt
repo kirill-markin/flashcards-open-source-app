@@ -43,6 +43,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.feature.settings.AccessCapability
 import com.flashcardsopensourceapp.feature.settings.AccessStatus
@@ -56,6 +57,7 @@ internal fun AiRouteContent(
     uiState: AiUiState,
     onAcceptConsent: () -> Unit,
     onDraftMessageChange: (String) -> Unit,
+    onApplyComposerSuggestion: (AiChatComposerSuggestion) -> Unit,
     onSendMessage: () -> Unit,
     onCancelStreaming: () -> Unit,
     onNewChat: () -> Unit,
@@ -318,6 +320,7 @@ internal fun AiRouteContent(
                 AiComposer(
                     uiState = uiState,
                     onDraftMessageChange = onDraftMessageChange,
+                    onApplyComposerSuggestion = onApplyComposerSuggestion,
                     onSendMessage = onSendMessage,
                     onCancelStreaming = onCancelStreaming,
                     onRemovePendingAttachment = onRemovePendingAttachment,

@@ -42,6 +42,7 @@ const val aiComposerSendButtonTag: String = "ai_composer_send_button"
 internal fun AiComposer(
     uiState: AiUiState,
     onDraftMessageChange: (String) -> Unit,
+    onApplyComposerSuggestion: (com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion) -> Unit,
     onSendMessage: () -> Unit,
     onCancelStreaming: () -> Unit,
     onRemovePendingAttachment: (String) -> Unit,
@@ -132,6 +133,27 @@ internal fun AiComposer(
                                     )
                                 }
                             }
+                        )
+                    }
+                }
+            }
+
+            if (uiState.composerSuggestions.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(tag = aiComposerSuggestionRowTag)
+                ) {
+                    uiState.composerSuggestions.forEachIndexed { index, suggestion ->
+                        AssistChip(
+                            onClick = {
+                                onApplyComposerSuggestion(suggestion)
+                            },
+                            label = {
+                                Text(suggestion.text)
+                            },
+                            modifier = Modifier.testTag(tag = "$aiComposerSuggestionPrefixTag$index")
                         )
                     }
                 }

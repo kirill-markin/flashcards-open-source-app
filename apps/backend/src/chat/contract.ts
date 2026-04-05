@@ -1,6 +1,7 @@
 import { getChatConfig, type ChatConfig } from "./config";
 import type { ChatLiveStreamEnvelope } from "./liveAuth";
 import type { PaginatedChatMessages, PersistedChatMessageItem, ChatSessionSnapshot } from "./store";
+import type { ChatComposerSuggestion } from "./composerSuggestions";
 import type { ContentPart } from "./types";
 
 type ChatConversationMessage = Readonly<{
@@ -35,6 +36,7 @@ export type ChatConversationEnvelope = Readonly<{
   sessionId: string;
   conversationScopeId: string;
   conversation: ChatConversation;
+  composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   chatConfig: ChatConfig;
   activeRun: ChatActiveRun | null;
 }>;
@@ -111,6 +113,10 @@ export type ChatLiveEvent =
     isStopped: boolean;
   }>)
   | (ChatLiveEventMetadata & Readonly<{
+    type: "composer_suggestions_updated";
+    suggestions: ReadonlyArray<ChatComposerSuggestion>;
+  }>)
+  | (ChatLiveEventMetadata & Readonly<{
     type: "repair_status";
     message: string;
     attempt: number;
@@ -174,6 +180,11 @@ export type ChatLiveEventPayload =
     content: ReadonlyArray<ContentPart>;
     isError: boolean;
     isStopped: boolean;
+  }>
+  | Readonly<{
+    type: "composer_suggestions_updated";
+    cursor: string | null;
+    suggestions: ReadonlyArray<ChatComposerSuggestion>;
   }>
   | Readonly<{
     type: "repair_status";
@@ -264,6 +275,7 @@ export function buildConversationEnvelope(
     updatedAt: number;
     mainContentInvalidationVersion: number;
     messages: ReadonlyArray<ChatConversationMessage>;
+    composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
     activeRun: ChatActiveRun | null;
     hasOlder?: boolean;
     oldestCursor?: string | null;
@@ -280,6 +292,7 @@ export function buildConversationEnvelope(
       ...(params.hasOlder === undefined ? {} : { hasOlder: params.hasOlder }),
       ...(params.oldestCursor === undefined ? {} : { oldestCursor: params.oldestCursor }),
     },
+    composerSuggestions: params.composerSuggestions,
     chatConfig: params.chatConfig ?? getChatConfig(),
     activeRun: params.activeRun,
   };
@@ -294,6 +307,7 @@ export function buildConversationEnvelopeFromSnapshot(
     updatedAt: snapshot.updatedAt,
     mainContentInvalidationVersion: snapshot.mainContentInvalidationVersion,
     messages: snapshot.messages.map((message) => toConversationMessage(message)),
+    composerSuggestions: snapshot.composerSuggestions,
     activeRun,
   });
 }
@@ -308,6 +322,7 @@ export function buildConversationEnvelopeFromPaginatedSession(
     updatedAt: snapshot.updatedAt,
     mainContentInvalidationVersion: snapshot.mainContentInvalidationVersion,
     messages: page.messages.map((message) => toConversationMessageFromPersisted(message)),
+    composerSuggestions: snapshot.composerSuggestions,
     activeRun,
     hasOlder: page.hasOlder,
     oldestCursor: page.oldestCursor,

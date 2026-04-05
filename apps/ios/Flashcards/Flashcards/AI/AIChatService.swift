@@ -484,6 +484,7 @@ private func mapConversationEnvelope(
             hasOlder: payload.conversation.hasOlder ?? false,
             oldestCursor: payload.conversation.oldestCursor
         ),
+        composerSuggestions: payload.composerSuggestions,
         chatConfig: payload.chatConfig,
         activeRun: payload.activeRun.map(mapActiveRun)
     )
@@ -509,6 +510,7 @@ private func mapAcceptedConversationEnvelope(
             hasOlder: payload.conversation.hasOlder ?? false,
             oldestCursor: payload.conversation.oldestCursor
         ),
+        composerSuggestions: payload.composerSuggestions,
         chatConfig: payload.chatConfig,
         activeRun: payload.activeRun.map(mapActiveRun),
         deduplicated: payload.deduplicated

@@ -11,6 +11,9 @@ import {
   type ChatConversationEnvelope,
   type ChatStopResponse,
 } from "../chat/contract";
+import {
+  type ChatComposerSuggestion,
+} from "../chat/composerSuggestions";
 import { getChatConfig } from "../chat/config";
 import {
   getRecoveredChatSessionSnapshot,
@@ -25,8 +28,8 @@ import {
 import {
   ChatSessionConflictError,
   ChatSessionNotFoundError,
-  createFreshChatSession,
   listChatMessagesLatest,
+  rolloverToFreshChatSession,
   type ChatSessionSnapshot,
 } from "../chat/store";
 import { invokeChatWorkerOrPersistFailure } from "../chat/workerInvoke";
@@ -102,7 +105,7 @@ type ChatRoutesOptions = Readonly<{
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
   getRecoveredChatSessionSnapshotFn?: typeof getRecoveredChatSessionSnapshot;
   getRecoveredPaginatedSessionFn?: typeof getRecoveredPaginatedSession;
-  createFreshChatSessionFn?: typeof createFreshChatSession;
+  rolloverToFreshChatSessionFn?: typeof rolloverToFreshChatSession;
   prepareChatRunFn?: typeof prepareChatRun;
   interruptPreparedChatRunFn?: typeof interruptPreparedChatRun;
   invokeChatWorkerFn?: typeof invokeChatWorkerOrPersistFailure;
@@ -284,6 +287,7 @@ function assertSupportedTransport(requestContext: RequestContext): void {
 type ChatNewResponse = Readonly<{
   ok: true;
   sessionId: string;
+  composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   chatConfig: ReturnType<typeof getChatConfig>;
 }>;
 
@@ -587,7 +591,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
   const getRecoveredChatSessionSnapshotFn = options.getRecoveredChatSessionSnapshotFn ?? getRecoveredChatSessionSnapshot;
   const getRecoveredPaginatedSessionFn = options.getRecoveredPaginatedSessionFn ?? getRecoveredPaginatedSession;
-  const createFreshChatSessionFn = options.createFreshChatSessionFn ?? createFreshChatSession;
+  const rolloverToFreshChatSessionFn = options.rolloverToFreshChatSessionFn ?? rolloverToFreshChatSession;
   const prepareChatRunFn = options.prepareChatRunFn ?? prepareChatRun;
   const interruptPreparedChatRunFn = options.interruptPreparedChatRunFn ?? interruptPreparedChatRun;
   const invokeChatWorkerFn = options.invokeChatWorkerFn ?? invokeChatWorkerOrPersistFailure;
@@ -750,18 +754,31 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       return context.json({
         ok: true,
         sessionId: snapshot.sessionId,
+        composerSuggestions: snapshot.composerSuggestions,
         chatConfig: getChatConfig(),
       } satisfies ChatNewResponse);
     }
 
-    const newSessionId = await createFreshChatSessionFn(
-      requestContext.userId,
-      workspaceId,
-    );
+    let newSnapshot: ChatSessionSnapshot;
+    try {
+      const newSessionId = await rolloverToFreshChatSessionFn(
+        requestContext.userId,
+        workspaceId,
+        snapshot.sessionId,
+      );
+      newSnapshot = await getRecoveredChatSessionSnapshotFn(
+        requestContext.userId,
+        workspaceId,
+        newSessionId,
+      );
+    } catch (error) {
+      return mapStoreError(error);
+    }
 
     return context.json({
       ok: true,
-      sessionId: newSessionId,
+      sessionId: newSnapshot.sessionId,
+      composerSuggestions: newSnapshot.composerSuggestions,
       chatConfig: getChatConfig(),
     } satisfies ChatNewResponse);
   });

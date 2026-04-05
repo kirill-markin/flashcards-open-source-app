@@ -10,6 +10,7 @@ import {
   createChatLiveEventSerializer,
   type ChatLiveEventPayload,
 } from "./contract";
+import type { ChatComposerSuggestion } from "./composerSuggestions";
 import { getErrorLogContext, logCloudRouteEvent } from "../server/logging";
 import { getChatRunSnapshot, type ChatRunSnapshot } from "./runs";
 import {
@@ -43,6 +44,7 @@ type ChatLiveStreamDependencies = Readonly<{
 }>;
 
 type AssistantMessageDonePayload = Extract<ChatLiveEventPayload, Readonly<{ type: "assistant_message_done" }>>;
+type ComposerSuggestionsUpdatedPayload = Extract<ChatLiveEventPayload, Readonly<{ type: "composer_suggestions_updated" }>>;
 type AssistantReasoningDonePayload = Extract<ChatLiveEventPayload, Readonly<{ type: "assistant_reasoning_done" }>>;
 type RunTerminalPayload = Extract<ChatLiveEventPayload, Readonly<{ type: "run_terminal" }>>;
 
@@ -198,6 +200,17 @@ function buildResetRequiredPayload(
     cursor: cursorOrNull(lastDeliveredCursor),
     outcome: "reset_required",
     ...(assistantItemId === undefined ? {} : { assistantItemId }),
+  };
+}
+
+function buildComposerSuggestionsUpdatedPayload(
+  suggestions: ReadonlyArray<ChatComposerSuggestion>,
+  lastDeliveredCursor: number,
+): ComposerSuggestionsUpdatedPayload {
+  return {
+    type: "composer_suggestions_updated",
+    cursor: cursorOrNull(lastDeliveredCursor),
+    suggestions,
   };
 }
 
@@ -410,6 +423,7 @@ export async function runLiveStreamWithDependencies(
   let lastObservedCursor = params.afterCursor ?? 0;
   let lastDeliveredCursor = params.afterCursor ?? 0;
   let previousAssistantContent: ReadonlyArray<ContentPart> = [];
+  let hasEmittedComposerSuggestions = false;
   let terminationReason = "completed";
   let terminalEventEmitted = false;
 
@@ -609,6 +623,27 @@ export async function runLiveStreamWithDependencies(
           emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, run.assistantItemId));
           terminationReason = "terminal_reset_required";
           break;
+        }
+
+        if (!hasEmittedComposerSuggestions) {
+          const sessionSnapshot = await dependencies.getChatSessionSnapshot(
+            params.userId,
+            params.workspaceId,
+            params.sessionId,
+          );
+          const composerSuggestions = Array.isArray(sessionSnapshot.composerSuggestions)
+            ? sessionSnapshot.composerSuggestions
+            : [];
+          if (composerSuggestions.length > 0) {
+            if (emitPayload(buildComposerSuggestionsUpdatedPayload(
+              composerSuggestions,
+              lastDeliveredCursor,
+            )) === false) {
+              terminationReason = "client_disconnect";
+              break;
+            }
+            hasEmittedComposerSuggestions = true;
+          }
         }
 
         emitTerminal(buildRunTerminalPayload(run, lastDeliveredCursor));

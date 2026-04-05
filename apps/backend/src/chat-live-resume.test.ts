@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { PassThrough } from "node:stream";
 import { runLiveStreamWithDependencies } from "./chat/live";
+import type { ChatComposerSuggestion } from "./chat/composerSuggestions";
 import type { ChatRunSnapshot } from "./chat/runs";
 import type { PersistedChatMessageItem } from "./chat/store";
 import type { ContentPart } from "./chat/types";
@@ -43,13 +44,16 @@ function createRunSnapshot(
   };
 }
 
-function createRunningSessionSnapshot() {
+function createRunningSessionSnapshot(
+  composerSuggestions: ReadonlyArray<ChatComposerSuggestion> = [],
+) {
   return {
     sessionId: "session-1",
     runState: "running" as const,
     activeRunId: "run-1",
     updatedAt: 1,
     activeRunHeartbeatAt: 1,
+    composerSuggestions,
     mainContentInvalidationVersion: 0,
     messages: [],
   };
@@ -154,6 +158,76 @@ test("resume replay emits terminal assistant backlog after afterCursor", async (
       runId: "run-1",
       cursor: "6",
       sequenceNumber: 3,
+      streamEpoch: "run-1",
+      outcome: "completed",
+      assistantItemId: "assistant-1",
+    },
+  ]);
+});
+
+test("completed live replay emits composer suggestions before the terminal event", async () => {
+  const composerSuggestions = [
+    {
+      id: "assistant-1-1",
+      text: "Make it shorter",
+      source: "assistant_follow_up",
+      assistantItemId: "assistant-1",
+    },
+    {
+      id: "assistant-1-2",
+      text: "Give me one example",
+      source: "assistant_follow_up",
+      assistantItemId: "assistant-1",
+    },
+  ] as const;
+
+  const output = await collectStreamOutput(async (stream) => {
+    await runLiveStreamWithDependencies(stream, {
+      sessionId: "session-1",
+      runId: "run-1",
+      userId: "user-1",
+      workspaceId: "workspace-1",
+      afterCursor: undefined,
+      requestId: "request-1b",
+    }, {
+      getChatRunSnapshot: async () => createRunSnapshot("completed", "assistant-1"),
+      getChatSessionSnapshot: async () => createRunningSessionSnapshot(composerSuggestions),
+      listChatMessagesAfterCursor: async () => [],
+      listChatMessagesLatest: async () => ({
+        messages: [
+          makeAssistantMessage({
+            itemId: "assistant-1",
+            itemOrder: 6,
+            state: "completed",
+            content: [{ type: "text", text: "done" }],
+          }),
+        ],
+        oldestCursor: "6",
+        newestCursor: "6",
+        hasOlder: false,
+      }),
+      waitForNextPollInterval: async () => false,
+    });
+  });
+
+  assert.deepEqual(parseLiveEvents(output), [
+    {
+      type: "composer_suggestions_updated",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
+      cursor: null,
+      sequenceNumber: 1,
+      streamEpoch: "run-1",
+      suggestions: composerSuggestions,
+    },
+    {
+      type: "run_terminal",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
+      cursor: null,
+      sequenceNumber: 2,
       streamEpoch: "run-1",
       outcome: "completed",
       assistantItemId: "assistant-1",

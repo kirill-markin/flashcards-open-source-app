@@ -3,6 +3,7 @@ import {
   test,
   type Browser,
   type BrowserContext,
+  type Locator,
   type Page,
   type Request,
   type TestInfo,
@@ -885,6 +886,7 @@ async function assertNewChatResetsConversation(
   const fullscreenChat = page.locator(".chat-sidebar-fullscreen");
   const messageField = fullscreenChat.getByPlaceholder("Ask about cards, review history, or attach notes...");
   const sendButton = fullscreenChat.getByRole("button", { name: "Send message" });
+  const suggestionButtons = fullscreenChat.locator(".chat-composer-suggestion");
   await trackedClick(
     diagnostics,
     "start a fresh AI chat from the top bar",
@@ -893,7 +895,7 @@ async function assertNewChatResetsConversation(
   await trackedExpectVisible(
     diagnostics,
     "confirm AI chat empty state is visible after starting a new chat",
-    page.getByText("Try asking:", { exact: true }),
+    page.getByText("Start a new AI chat", { exact: true }),
     externalUiTimeoutMs,
   );
   await diagnostics.runAction("confirm AI chat has no remaining messages or message-level errors", async () => {
@@ -911,6 +913,181 @@ async function assertNewChatResetsConversation(
     false,
     externalUiTimeoutMs,
   );
+
+  const initialSuggestions = await diagnostics.runAction(
+    "confirm AI chat reset shows two backend composer suggestions",
+    async (): Promise<ReadonlyArray<string>> => {
+      await expect.poll(async () => suggestionButtons.count(), { timeout: externalUiTimeoutMs }).toBe(2);
+      const texts = await readComposerSuggestionTexts(fullscreenChat);
+      expect(texts.length).toBe(2);
+      return texts;
+    },
+  );
+
+  await trackedClick(
+    diagnostics,
+    "apply the first backend composer suggestion",
+    suggestionButtons.nth(0),
+  );
+  await trackedWaitForComposerReady(
+    diagnostics,
+    "confirm the first backend composer suggestion fills the draft",
+    messageField,
+    sendButton,
+    initialSuggestions[0] ?? "",
+    externalUiTimeoutMs,
+  );
+  await diagnostics.runAction("confirm composer suggestions hide while the draft is non-empty", async () => {
+    await expect.poll(async () => suggestionButtons.count(), { timeout: externalUiTimeoutMs }).toBe(0);
+  });
+
+  await trackedFill(
+    diagnostics,
+    "clear the composer draft after applying the first backend suggestion",
+    messageField,
+    "",
+  );
+  await trackedWaitForComposerState(
+    diagnostics,
+    "confirm clearing the composer draft disables send again",
+    messageField,
+    sendButton,
+    "",
+    false,
+    externalUiTimeoutMs,
+  );
+
+  const suggestionPrompt = await diagnostics.runAction(
+    "confirm both backend composer suggestions return when the draft is cleared",
+    async (): Promise<string> => {
+      await expect.poll(async () => suggestionButtons.count(), { timeout: externalUiTimeoutMs }).toBe(2);
+      const texts = await readComposerSuggestionTexts(fullscreenChat);
+      expect(texts).toEqual(initialSuggestions);
+      return texts[0] ?? "";
+    },
+  );
+
+  const previousUserMessageCount = await diagnostics.runAction(
+    "read user message count before sending the backend suggestion",
+    async () => page.locator(".chat-msg.chat-msg-user").count(),
+  );
+  const previousAssistantErrorCount = await diagnostics.runAction(
+    "read assistant error count before sending the backend suggestion",
+    async () => page.locator(".chat-msg-error").count(),
+  );
+
+  await trackedClick(
+    diagnostics,
+    "apply the backend composer suggestion after clearing the draft",
+    suggestionButtons.nth(0),
+  );
+  await trackedWaitForComposerReady(
+    diagnostics,
+    "confirm the backend composer suggestion fills the draft after clearing the draft",
+    messageField,
+    sendButton,
+    suggestionPrompt,
+    externalUiTimeoutMs,
+  );
+  await trackedClick(
+    diagnostics,
+    "send the backend composer suggestion",
+    sendButton,
+  );
+
+  await diagnostics.runAction(
+    "confirm the assistant run accepts the backend composer suggestion",
+    async () => {
+      const timeoutAt = Date.now() + externalUiTimeoutMs;
+
+      while (Date.now() < timeoutAt) {
+        const assistantErrorCount = await page.locator(".chat-msg-error").count();
+        if (assistantErrorCount > previousAssistantErrorCount) {
+          throw new Error("The assistant reported an error before the suggestion run was accepted.");
+        }
+
+        const stopVisible = await fullscreenChat.getByRole("button", { name: "Stop response" }).isVisible().catch(() => false);
+        if (stopVisible) {
+          return;
+        }
+
+        const currentUserMessageCount = await page.locator(".chat-msg.chat-msg-user").count();
+        if (currentUserMessageCount > previousUserMessageCount) {
+          return;
+        }
+
+        await page.waitForTimeout(250);
+      }
+
+      throw new Error("The assistant run did not accept the suggestion message before timeout.");
+    },
+  );
+
+  await diagnostics.runAction(
+    "confirm the assistant run finishes and returns the composer to idle after the backend suggestion",
+    async () => {
+      const timeoutAt = Date.now() + externalUiTimeoutMs;
+
+      while (Date.now() < timeoutAt) {
+        const assistantErrorCount = await page.locator(".chat-msg-error").count();
+        if (assistantErrorCount > previousAssistantErrorCount) {
+          throw new Error("The assistant reported an error before the suggestion run completed.");
+        }
+
+        const sendVisible = await sendButton.isVisible().catch(() => false);
+        if (sendVisible) {
+          return;
+        }
+
+        await page.waitForTimeout(250);
+      }
+
+      throw new Error("The assistant run did not complete before timeout.");
+    },
+  );
+
+  await trackedWaitForComposerState(
+    diagnostics,
+    "confirm the completed suggestion run returns to an empty draft with disabled send action",
+    messageField,
+    sendButton,
+    "",
+    false,
+    externalUiTimeoutMs,
+  );
+
+  const dynamicSuggestions = await diagnostics.runAction(
+    "confirm the completed assistant reply surfaces two follow-up composer suggestions",
+    async (): Promise<ReadonlyArray<string>> => {
+      await expect.poll(async () => suggestionButtons.count(), { timeout: externalUiTimeoutMs }).toBe(2);
+      const texts = await readComposerSuggestionTexts(fullscreenChat);
+      expect(texts.length).toBe(2);
+      return texts;
+    },
+  );
+
+  await trackedClick(
+    diagnostics,
+    "apply the first follow-up composer suggestion",
+    suggestionButtons.nth(0),
+  );
+  await trackedWaitForComposerReady(
+    diagnostics,
+    "confirm the first follow-up composer suggestion fills the draft",
+    messageField,
+    sendButton,
+    dynamicSuggestions[0] ?? "",
+    externalUiTimeoutMs,
+  );
+}
+
+async function readComposerSuggestionTexts(
+  chatRoot: Locator,
+): Promise<ReadonlyArray<string>> {
+  return chatRoot.locator(".chat-composer-suggestion").evaluateAll((elements) =>
+    elements
+      .map((element) => element.textContent?.trim() ?? "")
+      .filter((text) => text.length > 0));
 }
 
 async function assertCardReachableInReview(
