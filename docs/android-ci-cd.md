@@ -53,13 +53,13 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 - Runs `:app:lintDebug`
 - Uploads the debug APK, Android test APK, and lint report as workflow artifacts
 - Validates the Firebase Test Lab configuration whenever the reusable workflow is called with live smoke enabled
-- Runs Firebase Test Lab against the native stateful live smoke class `com.flashcardsopensourceapp.app.LiveSmokeTest`
+- Runs Firebase Test Lab against the native stateful smoke classes `com.flashcardsopensourceapp.app.LiveSmokeTest` and `com.flashcardsopensourceapp.app.NotificationTapSmokeTest`
 - Fails the workflow instead of silently skipping the live smoke gate when the required repository variables are missing
 
 The intended Android release order is:
 
 1. Native build and lint checks in GitHub Actions
-2. Native Firebase Test Lab live smoke on the configured Android 16 device
+2. Native Firebase Test Lab smoke suite on the configured Android 16 device
 3. Google Play production release from `android-release.yml`
 
 After pushing to `main`, watch `Android Release` separately when Android-impacting files changed.
@@ -69,6 +69,7 @@ After pushing to `main`, watch `Android Release` separately when Android-impacti
 Cross-client live smoke references:
 
 - Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
+- Android notification tap gate: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/NotificationTapSmokeTest.kt`
 - iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
 - Web: `apps/web/e2e/live-smoke.spec.ts`
 
@@ -318,6 +319,12 @@ cd apps/android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstru
 
 Note: `connectedDebugAndroidTest` does not support the `--tests` flag. Use `-Pandroid.testInstrumentationRunnerArguments.class=` to filter by test class.
 
+Run the notification tap smoke test on a local emulator:
+
+```bash
+cd apps/android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.flashcardsopensourceapp.app.NotificationTapSmokeTest
+```
+
 Run the live smoke test in Firebase Test Lab directly after authenticating with `gcloud`:
 
 ```bash
@@ -328,6 +335,7 @@ bash scripts/run-android-firebase-test-lab.sh \
   --app-path "apps/android/app/build/outputs/apk/debug/app-debug.apk" \
   --test-path "apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk" \
   --test-targets "class com.flashcardsopensourceapp.app.LiveSmokeTest" \
+  --test-targets "class com.flashcardsopensourceapp.app.NotificationTapSmokeTest" \
   --results-bucket "gs://flashcards-open-source-app-test-lab-results" \
   --results-dir "manual/local"
 ```
