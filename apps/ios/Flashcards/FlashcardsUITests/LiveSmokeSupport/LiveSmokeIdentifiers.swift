@@ -169,7 +169,7 @@ enum LiveSmokeSeededData {
 
 let aiComposerPlaceholderText: String = "Ask about cards, review history, or propose a change..."
 let aiCreatePromptText: String = "I give you all permissions. Please create one test flashcard now."
-let aiResetPromptText: String = "reset smoke 7"
+let aiResetPromptText: String = "Reply with exactly: reset ok"
 let aiCreatePromptMaximumAttempts: Int = 3
 let aiResetPromptMaximumAttempts: Int = 3
 let aiCreateRunCompletionTimeoutSeconds: TimeInterval = 90
