@@ -47,6 +47,41 @@ class AiChatLiveRemoteService(
         )
     }.flowOn(dispatchers.io)
 
+    private fun truncatedPayloadSnippet(payload: String): String {
+        val trimmedPayload = payload.trim()
+        return if (trimmedPayload.length <= 240) {
+            trimmedPayload
+        } else {
+            trimmedPayload.take(n = 240)
+        }
+    }
+
+    private suspend fun emitDecodedPayload(
+        currentEventType: String?,
+        payload: String,
+        sessionId: String,
+        runId: String,
+        afterCursor: String?,
+        emitEvent: suspend (AiChatLiveEvent) -> Boolean
+    ): Boolean {
+        return when (val decodingResult = decodeAiChatLiveEventPayloadResult(eventType = currentEventType, payload = payload)) {
+            is AiChatLiveEventPayloadDecodeResult.Event -> emitEvent(decodingResult.event)
+            is AiChatLiveEventPayloadDecodeResult.IgnoredUnknownType -> {
+                AiChatDiagnosticsLogger.warn(
+                    event = "ai_live_event_skipped_unknown_type",
+                    fields = listOf(
+                        "sessionId" to sessionId,
+                        "runId" to runId,
+                        "afterCursor" to afterCursor,
+                        "eventType" to decodingResult.eventType,
+                        "payloadSnippet" to truncatedPayloadSnippet(payload = payload)
+                    )
+                )
+                true
+            }
+        }
+    }
+
     private suspend fun connectLiveStream(
         liveUrl: String,
         authorization: String,
@@ -101,9 +136,15 @@ class AiChatLiveRemoteService(
                 } else if (line.isEmpty() && dataLines.isNotEmpty()) {
                     val payload = dataLines.joinToString(separator = "\n")
                     dataLines.clear()
-                    val event = decodeAiChatLiveEventPayload(currentEventType, payload)
+                    val shouldContinue = emitDecodedPayload(
+                        currentEventType = currentEventType,
+                        payload = payload,
+                        sessionId = sessionId,
+                        runId = runId,
+                        afterCursor = afterCursor,
+                        emitEvent = emitEvent
+                    )
                     currentEventType = null
-                    val shouldContinue = emitEvent(event)
                     if (shouldContinue.not()) {
                         return
                     }
@@ -113,8 +154,14 @@ class AiChatLiveRemoteService(
 
             if (dataLines.isNotEmpty()) {
                 val payload = dataLines.joinToString(separator = "\n")
-                val event = decodeAiChatLiveEventPayload(currentEventType, payload)
-                emitEvent(event)
+                emitDecodedPayload(
+                    currentEventType = currentEventType,
+                    payload = payload,
+                    sessionId = sessionId,
+                    runId = runId,
+                    afterCursor = afterCursor,
+                    emitEvent = emitEvent
+                )
             }
         } catch (error: CancellationException) {
             throw error
