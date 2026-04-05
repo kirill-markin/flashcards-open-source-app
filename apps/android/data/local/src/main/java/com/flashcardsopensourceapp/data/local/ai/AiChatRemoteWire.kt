@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatConversationEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatAcceptedConversationEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRunLive
+import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEventMetadata
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
@@ -153,6 +154,7 @@ private data class AiChatConversationEnvelopeWire(
     val sessionId: StrictRemoteString,
     val conversationScopeId: StrictRemoteString,
     val conversation: AiChatConversationWire,
+    val composerSuggestions: List<AiChatComposerSuggestionWire>,
     val chatConfig: AiChatServerConfigWire,
     val activeRun: AiChatActiveRunWire? = null
 )
@@ -163,6 +165,7 @@ private data class AiChatAcceptedConversationEnvelopeWire(
     val sessionId: StrictRemoteString,
     val conversationScopeId: StrictRemoteString,
     val conversation: AiChatConversationWire,
+    val composerSuggestions: List<AiChatComposerSuggestionWire>,
     val chatConfig: AiChatServerConfigWire,
     val activeRun: AiChatActiveRunWire? = null,
     val deduplicated: StrictRemoteBoolean? = null
@@ -243,7 +246,16 @@ private data class AiChatConversationMessageWire(
 @Serializable
 private data class AiChatNewSessionWire(
     val sessionId: StrictRemoteString,
+    val composerSuggestions: List<AiChatComposerSuggestionWire>,
     val chatConfig: AiChatServerConfigWire
+)
+
+@Serializable
+private data class AiChatComposerSuggestionWire(
+    val id: StrictRemoteString,
+    val text: StrictRemoteString,
+    val source: StrictRemoteString,
+    val assistantItemId: StrictRemoteString? = null
 )
 
 @Serializable
@@ -270,6 +282,7 @@ private enum class AiChatLiveEventTypeWire {
     @SerialName("assistant_reasoning_summary") ASSISTANT_REASONING_SUMMARY,
     @SerialName("assistant_reasoning_done") ASSISTANT_REASONING_DONE,
     @SerialName("assistant_message_done") ASSISTANT_MESSAGE_DONE,
+    @SerialName("composer_suggestions_updated") COMPOSER_SUGGESTIONS_UPDATED,
     @SerialName("repair_status") REPAIR_STATUS,
     @SerialName("run_terminal") RUN_TERMINAL,
 }
@@ -378,6 +391,17 @@ private data class AiChatLiveAssistantMessageDoneWireEvent(
 )
 
 @Serializable
+private data class AiChatLiveComposerSuggestionsUpdatedWireEvent(
+    val sessionId: StrictRemoteString,
+    val conversationScopeId: StrictRemoteString,
+    val runId: StrictRemoteString,
+    val cursor: StrictRemoteString? = null,
+    val sequenceNumber: StrictRemoteInt,
+    val streamEpoch: StrictRemoteString,
+    val suggestions: List<AiChatComposerSuggestionWire>
+)
+
+@Serializable
 private data class AiChatLiveRepairStatusWireEvent(
     val sessionId: StrictRemoteString,
     val conversationScopeId: StrictRemoteString,
@@ -456,6 +480,7 @@ internal fun decodeAiChatNewSession(payload: String): AiChatSessionSnapshot {
             hasOlder = false,
             oldestCursor = null
         ),
+        composerSuggestions = wire.composerSuggestions.map(AiChatComposerSuggestionWire::asDomain),
         chatConfig = wire.chatConfig.asDomain(),
         activeRun = null
     )
@@ -568,6 +593,13 @@ internal fun decodeAiChatLiveEventPayloadResult(
                 isError = wire.isError.value,
                 isStopped = wire.isStopped.value
             ))
+        }
+        AiChatLiveEventTypeWire.COMPOSER_SUGGESTIONS_UPDATED -> {
+            val wire = decodeAiChatWire<AiChatLiveComposerSuggestionsUpdatedWireEvent>(payload = payload, context = "chat.live.composer_suggestions_updated")
+            AiChatLiveEvent.ComposerSuggestionsUpdated(
+                metadata = wire.asMetadata(),
+                suggestions = wire.suggestions.map(AiChatComposerSuggestionWire::asDomain)
+            )
         }
         AiChatLiveEventTypeWire.REPAIR_STATUS -> {
             val wire = decodeAiChatWire<AiChatLiveRepairStatusWireEvent>(payload = payload, context = "chat.live.repair_status")
@@ -697,6 +729,7 @@ private fun AiChatConversationEnvelopeWire.asConversationEnvelope(): AiChatConve
         sessionId = this.sessionId.value,
         conversationScopeId = this.conversationScopeId.value,
         conversation = this.conversation.asDomain(sessionId = this.sessionId.value),
+        composerSuggestions = this.composerSuggestions.map(AiChatComposerSuggestionWire::asDomain),
         chatConfig = this.chatConfig.asDomain(),
         activeRun = this.activeRun?.asDomain()
     )
@@ -708,9 +741,19 @@ private fun AiChatAcceptedConversationEnvelopeWire.asAcceptedConversationEnvelop
         sessionId = this.sessionId.value,
         conversationScopeId = this.conversationScopeId.value,
         conversation = this.conversation.asDomain(sessionId = this.sessionId.value),
+        composerSuggestions = this.composerSuggestions.map(AiChatComposerSuggestionWire::asDomain),
         chatConfig = this.chatConfig.asDomain(),
         activeRun = this.activeRun?.asDomain(),
         deduplicated = this.deduplicated?.value
+    )
+}
+
+private fun AiChatComposerSuggestionWire.asDomain(): AiChatComposerSuggestion {
+    return AiChatComposerSuggestion(
+        id = this.id.value,
+        text = this.text.value,
+        source = this.source.value,
+        assistantItemId = this.assistantItemId?.value?.ifBlank { null }
     )
 }
 
@@ -851,6 +894,17 @@ private fun AiChatLiveAssistantMessageDoneWireEvent.asMetadata(): AiChatLiveEven
     ).asDomain()
 }
 
+private fun AiChatLiveComposerSuggestionsUpdatedWireEvent.asMetadata(): AiChatLiveEventMetadata {
+    return AiChatLiveEventMetadataWire(
+        sessionId = this.sessionId,
+        conversationScopeId = this.conversationScopeId,
+        runId = this.runId,
+        cursor = this.cursor,
+        sequenceNumber = this.sequenceNumber,
+        streamEpoch = this.streamEpoch
+    ).asDomain()
+}
+
 private fun AiChatLiveRepairStatusWireEvent.asMetadata(): AiChatLiveEventMetadata {
     return AiChatLiveEventMetadataWire(
         sessionId = this.sessionId,
@@ -973,6 +1027,7 @@ private val AiChatLiveEventTypeWire.serialName: String
         AiChatLiveEventTypeWire.ASSISTANT_REASONING_SUMMARY -> "assistant_reasoning_summary"
         AiChatLiveEventTypeWire.ASSISTANT_REASONING_DONE -> "assistant_reasoning_done"
         AiChatLiveEventTypeWire.ASSISTANT_MESSAGE_DONE -> "assistant_message_done"
+        AiChatLiveEventTypeWire.COMPOSER_SUGGESTIONS_UPDATED -> "composer_suggestions_updated"
         AiChatLiveEventTypeWire.REPAIR_STATUS -> "repair_status"
         AiChatLiveEventTypeWire.RUN_TERMINAL -> "run_terminal"
     }

@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
@@ -137,6 +138,30 @@ internal class AiChatRuntime(
                 errorMessage = ""
             )
         }
+    }
+
+    fun applyComposerSuggestion(suggestion: AiChatComposerSuggestion) {
+        runtimeStateMutable.update { state ->
+            val separator = if (state.draftMessage.isBlank() || state.draftMessage.endsWith(" ")) {
+                ""
+            } else {
+                " "
+            }
+            state.copy(
+                draftMessage = state.draftMessage + separator + suggestion.text,
+                activeAlert = null,
+                errorMessage = ""
+            )
+        }
+    }
+
+    private fun updateComposerSuggestions(
+        state: AiChatRuntimeState,
+        nextSuggestions: List<AiChatComposerSuggestion>
+    ): AiChatRuntimeState {
+        return state.copy(
+            serverComposerSuggestions = nextSuggestions
+        )
     }
 
     fun addPendingAttachment(attachment: AiChatAttachment) {
@@ -310,6 +335,7 @@ internal class AiChatRuntime(
                 isLiveAttached = false,
                 draftMessage = "",
                 pendingAttachments = emptyList(),
+                serverComposerSuggestions = emptyList(),
                 composerPhase = AiComposerPhase.IDLE,
                 dictationState = AiChatDictationState.IDLE,
                 conversationBootstrapState = AiConversationBootstrapState.READY,
@@ -341,6 +367,7 @@ internal class AiChatRuntime(
                         isLiveAttached = false,
                         draftMessage = "",
                         pendingAttachments = emptyList(),
+                        serverComposerSuggestions = snapshot.composerSuggestions,
                         composerPhase = AiComposerPhase.IDLE,
                         dictationState = AiChatDictationState.IDLE,
                         conversationBootstrapState = AiConversationBootstrapState.READY,
@@ -709,6 +736,7 @@ internal class AiChatRuntime(
             is AiChatLiveEvent.AssistantReasoningSummary -> event.metadata
             is AiChatLiveEvent.AssistantReasoningDone -> event.metadata
             is AiChatLiveEvent.AssistantMessageDone -> event.metadata
+            is AiChatLiveEvent.ComposerSuggestionsUpdated -> event.metadata
             is AiChatLiveEvent.RepairStatus -> event.metadata
             is AiChatLiveEvent.RunTerminal -> event.metadata
         }
@@ -737,7 +765,8 @@ internal class AiChatRuntime(
 
     private suspend fun applyAcceptedRunResponse(response: AiChatStartRunResponse) {
         runtimeStateMutable.update { state ->
-            state.copy(
+            updateComposerSuggestions(
+                state = state.copy(
                 persistedState = state.persistedState.copy(
                     messages = response.conversation.messages,
                     chatSessionId = response.sessionId,
@@ -758,6 +787,8 @@ internal class AiChatRuntime(
                 dictationState = AiChatDictationState.IDLE,
                 activeAlert = null,
                 errorMessage = ""
+                ),
+                nextSuggestions = response.composerSuggestions
             )
         }
         if (response.activeRun != null) {
@@ -892,6 +923,15 @@ internal class AiChatRuntime(
                 }
             }
 
+            is AiChatLiveEvent.ComposerSuggestionsUpdated -> {
+                runtimeStateMutable.update { state ->
+                    updateComposerSuggestions(
+                        state = state,
+                        nextSuggestions = event.suggestions
+                    )
+                }
+            }
+
             is AiChatLiveEvent.RepairStatus -> {
                 runtimeStateMutable.update { state ->
                     state.copy(
@@ -932,6 +972,7 @@ internal class AiChatRuntime(
                         state.copy(
                             activeRun = null,
                             isLiveAttached = false,
+                            serverComposerSuggestions = emptyList(),
                             composerPhase = AiComposerPhase.IDLE,
                             repairStatus = null,
                             activeAlert = AiAlertState.GeneralError(
@@ -1451,7 +1492,8 @@ internal class AiChatRuntime(
                 applyMode == AiServerSnapshotApplyMode.PASSIVE
                     && state.composerPhase == AiComposerPhase.IDLE
                     && state.conversationBootstrapState == AiConversationBootstrapState.READY
-            state.copy(
+            updateComposerSuggestions(
+                state = state.copy(
                 persistedState = state.persistedState.copy(
                     messages = response.conversation.messages,
                     chatSessionId = response.sessionId,
@@ -1479,6 +1521,8 @@ internal class AiChatRuntime(
                 repairStatus = null,
                 activeAlert = null,
                 errorMessage = ""
+                ),
+                nextSuggestions = response.composerSuggestions
             )
         }
         persistCurrentState()
@@ -1490,6 +1534,7 @@ internal class AiChatRuntime(
                 persistedState = clearOptimisticAssistantStatusIfNeeded(state = state.persistedState),
                 activeRun = null,
                 isLiveAttached = false,
+                serverComposerSuggestions = emptyList(),
                 composerPhase = AiComposerPhase.IDLE,
                 repairStatus = null
             )

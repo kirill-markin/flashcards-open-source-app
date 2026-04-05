@@ -123,6 +123,51 @@ extension LiveSmokeTestCase {
                 step: self.currentStepTitle
             )
         }
+
+        try self.waitForAiComposerSuggestionCount(expectedCount: 2, timeout: self.longUiTimeoutSeconds)
+        let firstSuggestionText = try self.tapAiComposerSuggestion(index: 0, timeout: self.shortUiTimeoutSeconds)
+        try self.waitForAiComposerValue(firstSuggestionText, timeout: self.shortUiTimeoutSeconds)
+
+        try self.clearAiComposerText(timeout: self.shortUiTimeoutSeconds)
+        try self.assertElementDisabled(
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
+            timeout: self.shortUiTimeoutSeconds
+        )
+        try self.waitForAiComposerSuggestionCount(expectedCount: 2, timeout: self.longUiTimeoutSeconds)
+
+        let suggestionPrompt = try self.tapAiComposerSuggestion(index: 0, timeout: self.shortUiTimeoutSeconds)
+        try self.waitForAiComposerValue(suggestionPrompt, timeout: self.shortUiTimeoutSeconds)
+        let messageRowsBeforeSend = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
+            .count
+        let completedMarkerCountBeforeWait = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
+            .count
+        let errorMarkerCountBeforeWait = self.visibleAssistantErrorMessageCount()
+        let assistantTextCountBeforeWait = self.visibleMeaningfulAssistantTextMessages().count
+
+        try self.tapElement(
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
+            timeout: self.shortUiTimeoutSeconds
+        )
+        try self.assertAiRunStartedOrFinished(
+            timeout: self.longUiTimeoutSeconds,
+            completedMarkerCountBeforeWait: completedMarkerCountBeforeWait,
+            errorMarkerCountBeforeWait: errorMarkerCountBeforeWait,
+            assistantTextCountBeforeWait: assistantTextCountBeforeWait
+        )
+        try self.waitForUserAiMessageRowCountIncrease(
+            previousCount: messageRowsBeforeSend,
+            timeout: self.longUiTimeoutSeconds
+        )
+        try self.assertElementDisabled(
+            identifier: LiveSmokeIdentifier.aiComposerSendButton,
+            timeout: self.longUiTimeoutSeconds
+        )
+        try self.waitForAiComposerSuggestionCount(expectedCount: 2, timeout: self.longUiTimeoutSeconds)
+
+        let dynamicSuggestionText = try self.tapAiComposerSuggestion(index: 0, timeout: self.shortUiTimeoutSeconds)
+        try self.waitForAiComposerValue(dynamicSuggestionText, timeout: self.shortUiTimeoutSeconds)
     }
 
     @MainActor
@@ -309,6 +354,97 @@ extension LiveSmokeTestCase {
         }
 
         return false
+    }
+
+    @MainActor
+    func aiComposerSuggestionButton(index: Int) -> XCUIElement {
+        self.app.descendants(matching: .any)
+            .matching(identifier: "\(LiveSmokeIdentifier.aiComposerSuggestionPrefix)\(index)")
+            .firstMatch
+    }
+
+    @MainActor
+    func tapAiComposerSuggestion(index: Int, timeout: TimeInterval) throws -> String {
+        let button = self.aiComposerSuggestionButton(index: index)
+        let identifier = "\(LiveSmokeIdentifier.aiComposerSuggestionPrefix)\(index)"
+        if self.waitForOptionalElement(
+            button,
+            identifier: identifier,
+            timeout: timeout
+        ) == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        let text = button.label.trimmingCharacters(in: .whitespacesAndNewlines)
+        button.tap()
+        return text
+    }
+
+    @MainActor
+    func waitForAiComposerSuggestionCount(expectedCount: Int, timeout: TimeInterval) throws {
+        let predicate = NSPredicate(
+            format: "identifier BEGINSWITH %@",
+            LiveSmokeIdentifier.aiComposerSuggestionPrefix
+        )
+        let startedAt = Date()
+        let deadline = startedAt.addingTimeInterval(timeout)
+
+        while Date() < deadline {
+            _ = self.dismissKnownBlockingAlertIfVisible()
+
+            let currentCount = self.app.descendants(matching: .any)
+                .matching(predicate)
+                .count
+            if currentCount == expectedCount {
+                return
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+        }
+
+        let currentCount = self.app.descendants(matching: .any)
+            .matching(predicate)
+            .count
+        throw LiveSmokeFailure.unexpectedAiConversationState(
+            message: "Expected \(expectedCount) AI composer suggestions, found \(currentCount).",
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+
+    @MainActor
+    func waitForAiComposerValue(_ expectedValue: String, timeout: TimeInterval) throws {
+        let element = self.aiComposerTextFieldElement()
+        if try self.waitForElementValueContaining(
+            element,
+            identifier: LiveSmokeIdentifier.aiComposerTextField,
+            expectedValue: expectedValue,
+            timeout: timeout
+        ) == false {
+            throw LiveSmokeFailure.unexpectedElementValue(
+                identifier: LiveSmokeIdentifier.aiComposerTextField,
+                expectedValue: expectedValue,
+                actualValue: self.elementValue(element: element),
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
+    func clearAiComposerText(timeout: TimeInterval) throws {
+        let element = self.aiComposerTextFieldElement()
+        try self.clearAndTypeAiComposerTextWithoutExactValueAssertion(
+            "",
+            element: element,
+            timeout: timeout
+        )
     }
 
     @MainActor

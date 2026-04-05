@@ -227,6 +227,7 @@ class AiChatRuntimeTest {
                 hasOlder = false,
                 oldestCursor = null
             ),
+            composerSuggestions = emptyList(),
             chatConfig = defaultAiChatServerConfig,
             activeRun = activeRun
         )
@@ -248,6 +249,7 @@ class AiChatRuntimeTest {
                 hasOlder = false,
                 oldestCursor = null
             ),
+            composerSuggestions = emptyList(),
             chatConfig = defaultAiChatServerConfig,
             activeRun = activeRun,
             deduplicated = false
@@ -273,6 +275,7 @@ private class FakeAiChatRepository : AiChatRepository {
             hasOlder = false,
             oldestCursor = null
         ),
+        composerSuggestions = emptyList(),
         chatConfig = defaultAiChatServerConfig,
         activeRun = null,
         deduplicated = false
@@ -331,6 +334,7 @@ private class FakeAiChatRepository : AiChatRepository {
                 hasOlder = false,
                 oldestCursor = null
             ),
+            composerSuggestions = emptyList(),
             chatConfig = defaultAiChatServerConfig,
             activeRun = null
         )

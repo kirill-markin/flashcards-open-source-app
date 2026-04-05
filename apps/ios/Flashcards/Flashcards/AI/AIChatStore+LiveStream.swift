@@ -319,6 +319,16 @@ extension AIChatStore {
                 )
             )
 
+        case .composerSuggestionsUpdated(metadata: _, suggestions: let suggestions):
+            self.applyComposerSuggestions(suggestions)
+            logAIChatStoreEvent(
+                action: "ai_live_composer_suggestions_applied",
+                metadata: [
+                    "chatSessionId": self.chatSessionId.isEmpty ? "-" : self.chatSessionId,
+                    "count": String(suggestions.count)
+                ]
+            )
+
         case .repairStatus(metadata: _, status: let status):
             self.repairStatus = status
             logAIChatStoreEvent(
@@ -777,6 +787,9 @@ extension AIChatStore {
             values["contentCount"] = String(content.count)
             values["isError"] = isError ? "true" : "false"
             values["isStopped"] = isStopped ? "true" : "false"
+        case .composerSuggestionsUpdated(metadata: _, suggestions: let suggestions):
+            values["eventType"] = "composer_suggestions_updated"
+            values["suggestionCount"] = String(suggestions.count)
         case .repairStatus(metadata: _, status: let status):
             values["eventType"] = "repair_status"
             values["attempt"] = String(status.attempt)
@@ -845,6 +858,8 @@ private extension AIChatStore {
         case .assistantReasoningDone(metadata: let metadata, reasoningId: _, itemId: _):
             return metadata
         case .assistantMessageDone(metadata: let metadata, itemId: _, content: _, isError: _, isStopped: _):
+            return metadata
+        case .composerSuggestionsUpdated(metadata: let metadata, suggestions: _):
             return metadata
         case .repairStatus(metadata: let metadata, status: _):
             return metadata

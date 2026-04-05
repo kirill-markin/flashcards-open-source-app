@@ -3,6 +3,11 @@
  * The worker uses this module to consume provider events, update the assistant item incrementally, and finalize run state independently of client connections.
  */
 import OpenAI from "openai";
+import {
+  emptyChatComposerSuggestions,
+  generateFollowUpChatComposerSuggestions,
+  type ChatComposerSuggestion,
+} from "./composerSuggestions";
 import { isChatStorageEntityNotFoundError } from "./errors";
 import { getAIProviderFailureMetadata } from "./providerFailure";
 import { getErrorLogContext } from "../server/logging";
@@ -356,6 +361,36 @@ async function persistToolCallProgress(
   seenInvalidationVersions.set(event.id, mainContentInvalidationVersion);
 }
 
+async function generateTerminalComposerSuggestions(
+  params: StartPersistedChatRunParams,
+  assistantContent: ReadonlyArray<ContentPart>,
+  logContext: ChatWorkerLogContext,
+): Promise<ReadonlyArray<ChatComposerSuggestion>> {
+  try {
+    return await generateFollowUpChatComposerSuggestions(
+      params.turnInput,
+      assistantContent,
+      params.assistantItemId,
+    );
+  } catch (error) {
+    const errorContext = getErrorLogContext(error);
+    logChatWorkerLifecycleEvent("chat_worker_composer_suggestions_failed", logContext, {
+      abortReason: null,
+      signalAborted: false,
+      cancellationRequested: false,
+      ownershipLost: false,
+      runStatus: null,
+      sessionState: null,
+      providerErrorClass: errorContext.errorClass,
+      providerErrorMessage: errorContext.errorMessage,
+      providerRequestId: null,
+      startedAt: null,
+      finishedAt: null,
+    }, true);
+    return emptyChatComposerSuggestions();
+  }
+}
+
 /**
  * Finalizes any open tool calls when the run stops before a terminal provider event arrives.
  */
@@ -459,6 +494,11 @@ export async function runPersistedChatSessionWithDeps(
     assistantOpenAIItems: ReadonlyArray<import("./openai/replayItems").StoredOpenAIReplayItem>,
   ): Promise<ChatWorkerRunResult> => {
     assistantContent = finalizeAssistantToolCalls(assistantContent);
+    const composerSuggestions = await generateTerminalComposerSuggestions(
+      params,
+      assistantContent,
+      logContext,
+    );
     const finishedAt = new Date();
     await dependencies.completeChatRun(params.userId, params.workspaceId, {
       runId: params.runId,
@@ -466,6 +506,7 @@ export async function runPersistedChatSessionWithDeps(
       assistantItemId: params.assistantItemId,
       assistantContent,
       assistantOpenAIItems,
+      composerSuggestions,
     });
     isFinalized = true;
     logTerminalStatePersisted(

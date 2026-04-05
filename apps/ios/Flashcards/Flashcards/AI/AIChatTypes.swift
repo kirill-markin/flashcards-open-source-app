@@ -605,6 +605,7 @@ struct AIChatConversationEnvelope: Hashable, Sendable {
     let sessionId: String
     let conversationScopeId: String
     let conversation: AIChatConversation
+    let composerSuggestions: [AIChatComposerSuggestion]
     let chatConfig: AIChatServerConfig
     let activeRun: AIChatActiveRun?
 }
@@ -653,6 +654,7 @@ struct AIChatConversationEnvelopePayload: Decodable, Hashable, Sendable {
     let sessionId: String
     let conversationScopeId: String
     let conversation: AIChatConversationPayload
+    let composerSuggestions: [AIChatComposerSuggestion]
     let chatConfig: AIChatServerConfig
     let activeRun: AIChatActiveRunPayload?
 }
@@ -730,6 +732,13 @@ struct AIChatLiveEventMetadata: Hashable, Sendable {
     let streamEpoch: String
 }
 
+struct AIChatComposerSuggestion: Codable, Hashable, Sendable, Identifiable {
+    let id: String
+    let text: String
+    let source: String
+    let assistantItemId: String?
+}
+
 enum AIChatLiveEvent: Sendable {
     case assistantDelta(metadata: AIChatLiveEventMetadata, text: String, itemId: String)
     case assistantToolCall(metadata: AIChatLiveEventMetadata, toolCall: AIChatToolCall, itemId: String)
@@ -742,6 +751,10 @@ enum AIChatLiveEvent: Sendable {
         content: [AIChatContentPart],
         isError: Bool,
         isStopped: Bool
+    )
+    case composerSuggestionsUpdated(
+        metadata: AIChatLiveEventMetadata,
+        suggestions: [AIChatComposerSuggestion]
     )
     case repairStatus(metadata: AIChatLiveEventMetadata, status: AIChatRepairAttemptStatus)
     case runTerminal(
@@ -759,6 +772,7 @@ struct AIChatAcceptedConversationEnvelopePayload: Decodable, Hashable, Sendable 
     let sessionId: String
     let conversationScopeId: String
     let conversation: AIChatConversationPayload
+    let composerSuggestions: [AIChatComposerSuggestion]
     let chatConfig: AIChatServerConfig
     let activeRun: AIChatActiveRunPayload?
     let deduplicated: Bool?
@@ -769,6 +783,7 @@ struct AIChatStartRunResponse: Hashable, Sendable {
     let sessionId: String
     let conversationScopeId: String
     let conversation: AIChatConversation
+    let composerSuggestions: [AIChatComposerSuggestion]
     let chatConfig: AIChatServerConfig
     let activeRun: AIChatActiveRun?
     let deduplicated: Bool?
@@ -778,6 +793,7 @@ struct AIChatStartRunResponse: Hashable, Sendable {
             sessionId: self.sessionId,
             conversationScopeId: self.conversationScopeId,
             conversation: self.conversation,
+            composerSuggestions: self.composerSuggestions,
             chatConfig: self.chatConfig,
             activeRun: self.activeRun
         )
@@ -797,6 +813,7 @@ struct AIChatNewSessionRequestBody: Codable, Hashable, Sendable {
 struct AIChatNewSessionResponse: Codable, Hashable, Sendable {
     let ok: Bool
     let sessionId: String
+    let composerSuggestions: [AIChatComposerSuggestion]
     let chatConfig: AIChatServerConfig
 }
 

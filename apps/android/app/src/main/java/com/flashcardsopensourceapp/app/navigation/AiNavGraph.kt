@@ -38,6 +38,7 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             uiState = uiState,
             onAcceptConsent = aiViewModel::acceptConsent,
             onDraftMessageChange = aiViewModel::updateDraftMessage,
+            onApplyComposerSuggestion = aiViewModel::applyComposerSuggestion,
             onSendMessage = aiViewModel::sendMessage,
             onCancelStreaming = aiViewModel::cancelStreaming,
             onNewChat = aiViewModel::clearConversation,

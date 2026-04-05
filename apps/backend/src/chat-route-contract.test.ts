@@ -49,6 +49,7 @@ function createRunningSnapshot(): ChatSessionSnapshot {
     activeRunId: "run-1",
     updatedAt: 1,
     activeRunHeartbeatAt: 1,
+    composerSuggestions: [],
     mainContentInvalidationVersion: 0,
     messages: [],
   };

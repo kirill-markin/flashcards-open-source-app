@@ -179,6 +179,7 @@ export function createChatSnapshot(
       mainContentInvalidationVersion: 0,
       messages: [],
     },
+    composerSuggestions: [],
     chatConfig: defaultChatConfig,
     activeRun: null,
     ...overrides,

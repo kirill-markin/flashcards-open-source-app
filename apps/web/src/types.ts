@@ -144,10 +144,18 @@ export type ChatActiveRun = Readonly<{
   lastHeartbeatAt?: number;
 }>;
 
+export type ChatComposerSuggestion = Readonly<{
+  id: string;
+  text: string;
+  source: "initial" | "assistant_follow_up";
+  assistantItemId: string | null;
+}>;
+
 export type ChatSessionSnapshot = Readonly<{
   sessionId: string;
   conversationScopeId: string;
   conversation: ChatConversation;
+  composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   chatConfig: ChatConfig;
   activeRun: ChatActiveRun | null;
 }>;
@@ -167,6 +175,7 @@ export type StartChatRunResponse = ChatSessionSnapshot & Readonly<{
 export type NewChatSessionResponse = Readonly<{
   ok: true;
   sessionId: string;
+  composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   chatConfig: ChatConfig;
 }>;
 

@@ -70,6 +70,33 @@ extension AIChatView {
                     }
                 }
 
+                if self.chatStore.visibleComposerSuggestions.isEmpty == false {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(Array(self.chatStore.visibleComposerSuggestions.enumerated()), id: \.element.id) { index, suggestion in
+                                Button {
+                                    self.chatStore.applyComposerSuggestion(suggestion)
+                                    self.isComposerFocused = true
+                                } label: {
+                                    Text(suggestion.text)
+                                        .font(.footnote)
+                                        .foregroundStyle(.primary)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 9)
+                                }
+                                .buttonStyle(.plain)
+                                .background(.thinMaterial, in: Capsule())
+                                .overlay {
+                                    Capsule()
+                                        .strokeBorder(Color.accentColor.opacity(0.18), lineWidth: 1)
+                                }
+                                .accessibilityIdentifier("\(UITestIdentifier.aiComposerSuggestionPrefix)\(index)")
+                            }
+                        }
+                    }
+                    .accessibilityIdentifier(UITestIdentifier.aiComposerSuggestionRow)
+                }
+
                 ZStack(alignment: .bottomTrailing) {
                     TextField(
                         "Ask about cards, review history, or propose a change...",

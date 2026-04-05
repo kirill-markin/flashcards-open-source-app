@@ -123,6 +123,7 @@ private struct AIChatConversationState {
 private struct AIChatComposerState {
     var inputText: String
     var pendingAttachments: [AIChatAttachment]
+    var serverSuggestions: [AIChatComposerSuggestion]
     var dictationState: AIChatDictationState
     var completedDictationTranscript: AIChatCompletedDictationTranscript?
 }
@@ -188,6 +189,11 @@ final class AIChatStore {
     private(set) var pendingAttachments: [AIChatAttachment] {
         get { self.composerState.pendingAttachments }
         set { self.composerState.pendingAttachments = newValue }
+    }
+
+    private(set) var composerSuggestions: [AIChatComposerSuggestion] {
+        get { self.composerState.serverSuggestions }
+        set { self.composerState.serverSuggestions = newValue }
     }
 
     var serverChatConfig: AIChatServerConfig
@@ -404,6 +410,7 @@ final class AIChatStore {
         self.composerState = AIChatComposerState(
             inputText: "",
             pendingAttachments: [],
+            serverSuggestions: [],
             dictationState: .idle,
             completedDictationTranscript: nil
         )
@@ -463,6 +470,25 @@ final class AIChatStore {
         self.bootstrapPhase == .loading || self.composerPhase != .idle
     }
 
+    var visibleComposerSuggestions: [AIChatComposerSuggestion] {
+        guard self.isChatInteractive else {
+            return []
+        }
+        guard self.composerPhase == .idle else {
+            return []
+        }
+        guard self.dictationState == .idle else {
+            return []
+        }
+        guard self.pendingAttachments.isEmpty else {
+            return []
+        }
+        guard self.trimmedInputText().isEmpty else {
+            return []
+        }
+        return self.composerSuggestions
+    }
+
     var isStreaming: Bool {
         self.composerPhase == .startingRun || self.composerPhase == .running || self.composerPhase == .stopping
     }
@@ -496,6 +522,21 @@ final class AIChatStore {
         }
 
         self.pendingAttachments.append(attachment)
+    }
+
+    func applyComposerSuggestions(_ suggestions: [AIChatComposerSuggestion]) {
+        self.composerState.serverSuggestions = suggestions
+    }
+
+    func applyComposerSuggestion(_ suggestion: AIChatComposerSuggestion) {
+        let trimmedInputText = self.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedInputText.isEmpty {
+            self.inputText = suggestion.text
+            return
+        }
+
+        let separator = self.inputText.hasSuffix(" ") ? "" : " "
+        self.inputText += separator + suggestion.text
     }
 
     func removeAttachment(id: String) {
@@ -580,6 +621,7 @@ final class AIChatStore {
                     self.inputText = ""
                     self.messages = []
                     self.pendingAttachments = []
+                    self.applyComposerSuggestions(response.composerSuggestions)
                     self.activeAlert = nil
                     self.repairStatus = nil
                     self.completedDictationTranscript = nil
@@ -614,6 +656,7 @@ final class AIChatStore {
         self.inputText = ""
         self.messages = []
         self.pendingAttachments = []
+        self.applyComposerSuggestions([])
         self.activeAlert = nil
         self.repairStatus = nil
         self.completedDictationTranscript = nil
@@ -648,6 +691,7 @@ final class AIChatStore {
         self.completedDictationTranscript = nil
         self.activeConversationId = nil
         self.conversationScopeId = ""
+        self.applyComposerSuggestions([])
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
         self.transitionToIdle()
@@ -1373,6 +1417,7 @@ final class AIChatStore {
         self.chatSessionId = envelope.sessionId
         self.conversationScopeId = envelope.conversationScopeId
         self.serverChatConfig = envelope.chatConfig
+        self.applyComposerSuggestions(envelope.composerSuggestions)
         self.hasOlderMessages = envelope.conversation.hasOlder
         self.oldestCursor = envelope.conversation.oldestCursor
         self.repairStatus = nil

@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.ai
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -10,6 +11,7 @@ fun AiRoute(
     uiState: AiUiState,
     onAcceptConsent: () -> Unit,
     onDraftMessageChange: (String) -> Unit,
+    onApplyComposerSuggestion: (AiChatComposerSuggestion) -> Unit,
     onSendMessage: () -> Unit,
     onCancelStreaming: () -> Unit,
     onNewChat: () -> Unit,
@@ -33,6 +35,7 @@ fun AiRoute(
         uiState = uiState,
         onAcceptConsent = onAcceptConsent,
         onDraftMessageChange = onDraftMessageChange,
+        onApplyComposerSuggestion = onApplyComposerSuggestion,
         onSendMessage = onSendMessage,
         onCancelStreaming = onCancelStreaming,
         onNewChat = onNewChat,

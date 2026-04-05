@@ -155,6 +155,7 @@ export function ChatPanel(props: Props): ReactElement {
     isStopping,
     currentSessionId,
     chatConfig,
+    composerSuggestions,
     composerAction,
     errorDialogMessage,
     dismissErrorDialog,
@@ -644,6 +645,16 @@ export function ChatPanel(props: Props): ReactElement {
     && !isChatActionLocked
     && dictationState === "idle"
     && (inputText.trim().length > 0 || pendingAttachments.length > 0);
+  const canShowComposerSuggestions = isHistoryLoaded
+    && composerAction === "send"
+    && sendPhase === "idle"
+    && !isAssistantRunActive
+    && !isStopping
+    && !isChatActionLocked
+    && dictationState === "idle"
+    && pendingAttachments.length === 0
+    && inputText.trim().length === 0
+    && composerSuggestions.length > 0;
   const microphoneAriaLabel = dictationState === "recording" ? "Stop dictation" : "Start dictation";
   const dictationStatusLabel = dictationState === "requesting_permission"
     ? "Waiting for microphone access..."
@@ -741,18 +752,8 @@ export function ChatPanel(props: Props): ReactElement {
 
         {!isInitialHistoryLoading && messages.length === 0 ? (
           <div className="chat-empty">
-            <p className="chat-empty-title">Try asking:</p>
-            <ul className="chat-empty-list">
-              <li>Draft 10 Spanish verb flashcards for beginners.</li>
-              <li>Find due cards about biology and summarize weak areas.</li>
-              <li>Clean up duplicated tags and propose a rename plan.</li>
-            </ul>
-            <p className="chat-empty-title">Attachments:</p>
-            <ul className="chat-empty-list">
-              <li>Paste screenshots of notes and ask for card extraction.</li>
-              <li>Upload PDFs or text files and ask for flashcard drafts.</li>
-              <li>Ask the assistant to propose edits before applying them.</li>
-            </ul>
+            <p className="chat-empty-title">Start a new AI chat</p>
+            <p className="chat-empty-copy">Ask about cards, review history, or attach notes for extraction.</p>
           </div>
         ) : null}
 
@@ -789,6 +790,27 @@ export function ChatPanel(props: Props): ReactElement {
                   &times;
                 </button>
               </span>
+            ))}
+          </div>
+        ) : null}
+
+        {canShowComposerSuggestions ? (
+          <div className="chat-composer-suggestions" aria-label="Suggested replies">
+            {composerSuggestions.map((suggestion) => (
+              <button
+                key={suggestion.id}
+                type="button"
+                className="chat-composer-suggestion"
+                onClick={() => {
+                  updateInputText((currentText) =>
+                    currentText.length === 0
+                      ? suggestion.text
+                      : `${currentText}${currentText.endsWith(" ") ? "" : " "}${suggestion.text}`);
+                  requestComposerFocusRestore();
+                }}
+              >
+                {suggestion.text}
+              </button>
             ))}
           </div>
         ) : null}

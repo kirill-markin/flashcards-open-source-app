@@ -122,7 +122,7 @@ describe("ChatPanel send lifecycle", () => {
     await renderChatPanel();
 
     expect(getContainer().textContent).toContain("Loading AI chat");
-    expect(getContainer().textContent).not.toContain("Try asking:");
+    expect(getContainer().textContent).not.toContain("Start a new AI chat");
   });
 
   it("preserves the visible transcript while the session is revalidating without showing a restore notice", async () => {
@@ -178,7 +178,7 @@ describe("ChatPanel send lifecycle", () => {
 
     expect(getContainer().textContent).toContain("Existing response");
     expect(getContainer().textContent).not.toContain("Restoring session...");
-    expect(getContainer().textContent).not.toContain("Try asking:");
+    expect(getContainer().textContent).not.toContain("Start a new AI chat");
   });
 
   it("shows a disabled send button until the draft has text or attachments", async () => {
@@ -367,7 +367,7 @@ describe("ChatPanel send lifecycle", () => {
 
     expect(getContainer().textContent).toContain("Warm start response");
     expect(getContainer().textContent).not.toContain("Loading AI chat");
-    expect(getContainer().textContent).not.toContain("Try asking:");
+    expect(getContainer().textContent).not.toContain("Start a new AI chat");
   });
 
   it("does not restart initial hydration for the same workspace after a failed snapshot refresh", async () => {

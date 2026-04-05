@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
@@ -114,6 +115,10 @@ class AiViewModel(
 
     fun updateDraftMessage(draftMessage: String) {
         chatRuntime.updateDraftMessage(draftMessage = draftMessage)
+    }
+
+    fun applyComposerSuggestion(suggestion: AiChatComposerSuggestion) {
+        chatRuntime.applyComposerSuggestion(suggestion = suggestion)
     }
 
     fun sendMessage() {

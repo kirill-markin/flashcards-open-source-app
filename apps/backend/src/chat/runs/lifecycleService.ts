@@ -6,9 +6,14 @@ import {
 import type { StoredOpenAIReplayItem } from "../openai/replayItems";
 import type { ChatSessionRunState } from "../store";
 import {
+  type ChatComposerSuggestion,
+} from "../composerSuggestions";
+import {
   buildLocalChatMessages,
   buildUserStoppedAssistantContent,
   ChatSessionConflictError,
+  clearActiveChatComposerSuggestionGenerationWithExecutor,
+  createFollowUpChatComposerSuggestionGenerationWithExecutor,
   insertChatItemWithExecutor,
   listChatMessagesWithExecutor,
   resolveLatestOrCreateChatSessionWithExecutor,
@@ -115,6 +120,12 @@ export async function prepareChatRun(
       "running",
       run.run_id,
       new Date(),
+    );
+    await clearActiveChatComposerSuggestionGenerationWithExecutor(
+      executor,
+      scope,
+      session.session_id,
+      "run_started",
     );
 
     return {
@@ -288,6 +299,7 @@ export async function completeClaimedChatRun(
     assistantItemId: string;
     assistantContent: ReadonlyArray<ContentPart>;
     assistantOpenAIItems?: ReadonlyArray<StoredOpenAIReplayItem>;
+    composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   }>,
 ): Promise<void> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
@@ -315,6 +327,13 @@ export async function completeClaimedChatRun(
     );
 
     await updateChatSessionRunStateWithExecutor(executor, scope, params.sessionId, "idle", null, null);
+    await createFollowUpChatComposerSuggestionGenerationWithExecutor(
+      executor,
+      scope,
+      params.sessionId,
+      params.assistantItemId,
+      params.composerSuggestions,
+    );
   });
 }
 
@@ -386,6 +405,12 @@ export async function persistClaimedChatRunTerminalError(
       null,
       null,
     );
+    await clearActiveChatComposerSuggestionGenerationWithExecutor(
+      executor,
+      scope,
+      params.sessionId,
+      params.sessionState === "interrupted" ? "run_interrupted" : "run_failed",
+    );
   });
 }
 
@@ -429,6 +454,12 @@ export async function persistClaimedChatRunCancelled(
     );
 
     await updateChatSessionRunStateWithExecutor(executor, scope, params.sessionId, "idle", null, null);
+    await clearActiveChatComposerSuggestionGenerationWithExecutor(
+      executor,
+      scope,
+      params.sessionId,
+      "run_cancelled",
+    );
   });
 }
 
@@ -499,6 +530,12 @@ export async function requestChatRunCancellation(
     const run = await selectChatRunForUpdateWithExecutor(executor, scope, session.active_run_id);
     if (run === null) {
       await updateChatSessionRunStateWithExecutor(executor, scope, sessionId, "interrupted", null, null);
+      await clearActiveChatComposerSuggestionGenerationWithExecutor(
+        executor,
+        scope,
+        sessionId,
+        "run_interrupted",
+      );
       return {
         sessionId,
         stopped: true,

@@ -2,10 +2,10 @@ import { parseChatSessionSnapshotResponse } from "../apiContracts";
 import type { ChatConfig, ChatSessionSnapshot } from "../types";
 
 const CHAT_SESSION_WARM_START_STORAGE_KEY = "flashcards-chat-session-snapshot";
-const CHAT_SESSION_WARM_START_VERSION = 2;
+const CHAT_SESSION_WARM_START_VERSION = 3;
 
 type PersistedChatSessionWarmStartSnapshot = Readonly<{
-  version: 2;
+  version: 3;
   workspaceId: string;
   snapshot: ChatSessionSnapshot;
   savedAt: string;
@@ -60,7 +60,7 @@ function parsePersistedChatSessionWarmStartSnapshot(
 
     const snapshot = parseChatSessionSnapshotResponse(parsedValue.snapshot, "local chat warm start snapshot");
     return {
-      version: 2,
+      version: 3,
       workspaceId: parsedValue.workspaceId,
       snapshot,
       savedAt: parsedValue.savedAt,
@@ -115,11 +115,12 @@ export function storeChatSessionWarmStartSnapshot(
   }
 
   const persistedSnapshot: PersistedChatSessionWarmStartSnapshot = {
-    version: 2,
+    version: 3,
     workspaceId,
     savedAt: new Date().toISOString(),
     snapshot: {
       ...snapshot,
+      composerSuggestions: [],
       activeRun: null,
     },
   };
