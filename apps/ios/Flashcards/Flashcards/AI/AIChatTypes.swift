@@ -657,6 +657,28 @@ struct AIChatConversationEnvelopePayload: Decodable, Hashable, Sendable {
     let composerSuggestions: [AIChatComposerSuggestion]
     let chatConfig: AIChatServerConfig
     let activeRun: AIChatActiveRunPayload?
+
+    private enum CodingKeys: String, CodingKey {
+        case sessionId
+        case conversationScopeId
+        case conversation
+        case composerSuggestions
+        case chatConfig
+        case activeRun
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.sessionId = try container.decode(String.self, forKey: .sessionId)
+        self.conversationScopeId = try container.decode(String.self, forKey: .conversationScopeId)
+        self.conversation = try container.decode(AIChatConversationPayload.self, forKey: .conversation)
+        self.composerSuggestions = try container.decodeIfPresent(
+            [AIChatComposerSuggestion].self,
+            forKey: .composerSuggestions
+        ) ?? []
+        self.chatConfig = try container.decode(AIChatServerConfig.self, forKey: .chatConfig)
+        self.activeRun = try container.decodeIfPresent(AIChatActiveRunPayload.self, forKey: .activeRun)
+    }
 }
 
 typealias AIChatSessionSnapshotPayload = AIChatConversationEnvelopePayload
@@ -776,6 +798,32 @@ struct AIChatAcceptedConversationEnvelopePayload: Decodable, Hashable, Sendable 
     let chatConfig: AIChatServerConfig
     let activeRun: AIChatActiveRunPayload?
     let deduplicated: Bool?
+
+    private enum CodingKeys: String, CodingKey {
+        case accepted
+        case sessionId
+        case conversationScopeId
+        case conversation
+        case composerSuggestions
+        case chatConfig
+        case activeRun
+        case deduplicated
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.accepted = try container.decode(Bool.self, forKey: .accepted)
+        self.sessionId = try container.decode(String.self, forKey: .sessionId)
+        self.conversationScopeId = try container.decode(String.self, forKey: .conversationScopeId)
+        self.conversation = try container.decode(AIChatConversationPayload.self, forKey: .conversation)
+        self.composerSuggestions = try container.decodeIfPresent(
+            [AIChatComposerSuggestion].self,
+            forKey: .composerSuggestions
+        ) ?? []
+        self.chatConfig = try container.decode(AIChatServerConfig.self, forKey: .chatConfig)
+        self.activeRun = try container.decodeIfPresent(AIChatActiveRunPayload.self, forKey: .activeRun)
+        self.deduplicated = try container.decodeIfPresent(Bool.self, forKey: .deduplicated)
+    }
 }
 
 struct AIChatStartRunResponse: Hashable, Sendable {
@@ -815,6 +863,24 @@ struct AIChatNewSessionResponse: Codable, Hashable, Sendable {
     let sessionId: String
     let composerSuggestions: [AIChatComposerSuggestion]
     let chatConfig: AIChatServerConfig
+
+    private enum CodingKeys: String, CodingKey {
+        case ok
+        case sessionId
+        case composerSuggestions
+        case chatConfig
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.ok = try container.decode(Bool.self, forKey: .ok)
+        self.sessionId = try container.decode(String.self, forKey: .sessionId)
+        self.composerSuggestions = try container.decodeIfPresent(
+            [AIChatComposerSuggestion].self,
+            forKey: .composerSuggestions
+        ) ?? []
+        self.chatConfig = try container.decode(AIChatServerConfig.self, forKey: .chatConfig)
+    }
 }
 
 struct AIChatStopRunResponse: Decodable, Hashable, Sendable {

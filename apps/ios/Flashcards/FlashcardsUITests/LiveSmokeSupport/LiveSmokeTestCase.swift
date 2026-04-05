@@ -415,13 +415,21 @@ class LiveSmokeTestCase: XCTestCase {
                 )
             }
 
-            if element.isEnabled == false {
-                throw LiveSmokeFailure.disabledElement(
-                    identifier: identifier,
-                    screen: self.currentScreenSummary(),
-                    step: self.currentStepTitle
-                )
+            let deadline = Date().addingTimeInterval(timeout)
+            while Date() < deadline {
+                if element.isEnabled {
+                    return
+                }
+
+                _ = self.dismissKnownBlockingAlertIfVisible()
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
             }
+
+            throw LiveSmokeFailure.disabledElement(
+                identifier: identifier,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
         }
     }
 
@@ -442,13 +450,21 @@ class LiveSmokeTestCase: XCTestCase {
                 )
             }
 
-            if element.isEnabled {
-                throw LiveSmokeFailure.unexpectedAiConversationState(
-                    message: "Expected \(identifier) to be disabled.",
-                    screen: self.currentScreenSummary(),
-                    step: self.currentStepTitle
-                )
+            let deadline = Date().addingTimeInterval(timeout)
+            while Date() < deadline {
+                if element.isEnabled == false {
+                    return
+                }
+
+                _ = self.dismissKnownBlockingAlertIfVisible()
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
             }
+
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "Expected \(identifier) to be disabled.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
         }
     }
 
