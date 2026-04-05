@@ -258,8 +258,48 @@ class AiChatRemoteWireTest {
     }
 
     @Test
+    fun liveAttachSkipsUnknownEventTypesAndContinues() = runBlocking {
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/live") { exchange ->
+            val body = """
+                event: service_side_event_v2
+                data: {"ignored":true}
+
+                event: run_terminal
+                data: {"type":"run_terminal","sessionId":"session-1","conversationScopeId":"session-1","runId":"run-1","cursor":"12","sequenceNumber":3,"streamEpoch":"run-1","outcome":"completed"}
+
+            """.trimIndent().toByteArray()
+            exchange.responseHeaders.add("Content-Type", "text/event-stream")
+            exchange.sendResponseHeaders(200, body.size.toLong())
+            exchange.responseBody.use { outputStream -> outputStream.write(body) }
+        }
+        server.start()
+
+        try {
+            val service = makeLiveRemoteService()
+            val events = service.attachLiveRun(
+                authorizationHeader = "Bearer token-1",
+                sessionId = "session-1",
+                runId = "run-1",
+                liveStream = AiChatLiveStreamEnvelope(
+                    url = "http://127.0.0.1:${server.address.port}/live",
+                    authorization = "Live token-2",
+                    expiresAt = 123L
+                ),
+                afterCursor = "5",
+                resumeDiagnostics = null
+            ).toList()
+
+            assertEquals(1, events.size)
+            require(events.single() is AiChatLiveEvent.RunTerminal)
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
     fun decodeAiChatLiveEventPayloadAcceptsUnknownFields() {
-        val event = decodeAiChatLiveEventPayload(
+        val event = requireNotNull(decodeAiChatLiveEventPayload(
             eventType = "assistant_message_done",
             payload = """
             {
@@ -276,7 +316,7 @@ class AiChatRemoteWireTest {
               "futureField": "ignored"
             }
             """.trimIndent()
-        )
+        ))
 
         require(event is AiChatLiveEvent.AssistantMessageDone)
         assertEquals("session-1", event.metadata.sessionId)
@@ -290,7 +330,7 @@ class AiChatRemoteWireTest {
 
     @Test
     fun decodeRunTerminalCompleted() {
-        val event = decodeAiChatLiveEventPayload(
+        val event = requireNotNull(decodeAiChatLiveEventPayload(
             eventType = "run_terminal",
             payload = """
             {
@@ -303,7 +343,7 @@ class AiChatRemoteWireTest {
               "outcome": "completed"
             }
             """.trimIndent()
-        )
+        ))
 
         require(event is AiChatLiveEvent.RunTerminal)
         assertEquals(AiChatRunTerminalOutcome.COMPLETED, event.outcome)
@@ -312,7 +352,7 @@ class AiChatRemoteWireTest {
 
     @Test
     fun decodeRunTerminalStopped() {
-        val event = decodeAiChatLiveEventPayload(
+        val event = requireNotNull(decodeAiChatLiveEventPayload(
             eventType = "run_terminal",
             payload = """
             {
@@ -327,7 +367,7 @@ class AiChatRemoteWireTest {
               "isStopped": true
             }
             """.trimIndent()
-        )
+        ))
 
         require(event is AiChatLiveEvent.RunTerminal)
         assertEquals(AiChatRunTerminalOutcome.STOPPED, event.outcome)
@@ -337,7 +377,7 @@ class AiChatRemoteWireTest {
 
     @Test
     fun decodeRunTerminalError() {
-        val event = decodeAiChatLiveEventPayload(
+        val event = requireNotNull(decodeAiChatLiveEventPayload(
             eventType = "run_terminal",
             payload = """
             {
@@ -352,7 +392,7 @@ class AiChatRemoteWireTest {
               "isError": true
             }
             """.trimIndent()
-        )
+        ))
 
         require(event is AiChatLiveEvent.RunTerminal)
         assertEquals(AiChatRunTerminalOutcome.ERROR, event.outcome)
@@ -362,7 +402,7 @@ class AiChatRemoteWireTest {
 
     @Test
     fun decodeRunTerminalResetRequired() {
-        val event = decodeAiChatLiveEventPayload(
+        val event = requireNotNull(decodeAiChatLiveEventPayload(
             eventType = "run_terminal",
             payload = """
             {
@@ -376,11 +416,40 @@ class AiChatRemoteWireTest {
               "message": "refresh"
             }
             """.trimIndent()
-        )
+        ))
 
         require(event is AiChatLiveEvent.RunTerminal)
         assertEquals(AiChatRunTerminalOutcome.RESET_REQUIRED, event.outcome)
         assertEquals("refresh", event.message)
+    }
+
+    @Test
+    fun decodeAiChatLiveEventPayloadIgnoresUnknownExplicitEventType() {
+        val event = decodeAiChatLiveEventPayload(
+            eventType = "service_side_event_v2",
+            payload = """
+            {
+              "ignored": true
+            }
+            """.trimIndent()
+        )
+
+        assertNull(event)
+    }
+
+    @Test
+    fun decodeAiChatLiveEventPayloadIgnoresUnknownPayloadTypeWhenEventHeaderIsMissing() {
+        val event = decodeAiChatLiveEventPayload(
+            eventType = null,
+            payload = """
+            {
+              "type": "service_side_event_v3",
+              "ignored": true
+            }
+            """.trimIndent()
+        )
+
+        assertNull(event)
     }
 
     @Test(expected = CloudContractMismatchException::class)
@@ -444,9 +513,9 @@ class AiChatRemoteWireTest {
         )
     }
 
-    @Test(expected = CloudContractMismatchException::class)
-    fun decodeAiChatLiveEventPayloadRejectsOldTerminalContract() {
-        decodeAiChatLiveEventPayload(
+    @Test
+    fun decodeAiChatLiveEventPayloadIgnoresUnknownLegacyEventType() {
+        val event = decodeAiChatLiveEventPayload(
             eventType = "stop_ack",
             payload = """
             {
@@ -454,6 +523,8 @@ class AiChatRemoteWireTest {
             }
             """.trimIndent()
         )
+
+        assertNull(event)
     }
 
     @Test(expected = CloudContractMismatchException::class)

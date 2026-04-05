@@ -233,6 +233,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
         }
 
         self.processBufferedLines(flushIncompleteLine: true)
+        self.emitCurrentEventIfNeeded()
         self.finish()
     }
 
@@ -284,7 +285,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
 
         let payload = self.currentDataLines.joined(separator: "\n")
         do {
-            let event = try decodeAIChatLiveEvent(
+            let decodingResult = try decodeAIChatLiveEventResult(
                 eventType: self.currentEventType,
                 payload: payload,
                 decoder: self.decoder,
@@ -294,11 +295,25 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
                     requestId: self.httpResponse.flatMap(extractAIChatLiveRequestId(httpResponse:))
                 )
             )
-            logAIChatLiveClientEvent(
-                action: "ai_live_event_received",
-                metadata: self.metadataForParsedEvent(event)
-            )
-            self.continuation.yield(event)
+            switch decodingResult {
+            case .event(let event):
+                logAIChatLiveClientEvent(
+                    action: "ai_live_event_received",
+                    metadata: self.metadataForParsedEvent(event)
+                )
+                self.continuation.yield(event)
+            case .ignoredUnknownType(let ignoredEventType):
+                logAIChatLiveClientEvent(
+                    action: "ai_live_event_skipped_unknown_type",
+                    metadata: [
+                        "sessionId": self.sessionId,
+                        "runId": self.runId,
+                        "afterCursor": self.afterCursor ?? "-",
+                        "eventType": ignoredEventType,
+                        "payloadSnippet": aiChatLiveTruncatedSnippet(payload)
+                    ]
+                )
+            }
         } catch {
             logAIChatLiveClientEvent(
                 action: "ai_live_event_parse_failed",
@@ -605,6 +620,10 @@ private struct AIChatLiveEventTypeEnvelope: Decodable {
     let type: AIChatLiveEventType
 }
 
+private struct AIChatLiveUnknownEventTypeEnvelope: Decodable {
+    let type: String
+}
+
 private enum AIChatLiveEventType: String, Decodable {
     case assistantDelta = "assistant_delta"
     case assistantToolCall = "assistant_tool_call"
@@ -677,6 +696,16 @@ private struct AIChatLiveRunTerminalWirePayload: Decodable {
     let isStopped: Bool?
 }
 
+/**
+ * Unknown live event types are forward-compatible extension points and must be
+ * skipped. Known event types remain strict: any invalid payload is a contract
+ * error that fails the stream.
+ */
+private enum AIChatLiveEventDecodingResult {
+    case event(AIChatLiveEvent)
+    case ignoredUnknownType(eventType: String)
+}
+
 func decodeAIChatLiveEvent(
     eventType: String?,
     payload: String,
@@ -686,7 +715,26 @@ func decodeAIChatLiveEvent(
         afterCursor: nil,
         requestId: nil
     )
-) throws -> AIChatLiveEvent {
+) throws -> AIChatLiveEvent? {
+    switch try decodeAIChatLiveEventResult(
+        eventType: eventType,
+        payload: payload,
+        decoder: decoder,
+        context: context
+    ) {
+    case .event(let event):
+        return event
+    case .ignoredUnknownType:
+        return nil
+    }
+}
+
+private func decodeAIChatLiveEventResult(
+    eventType: String?,
+    payload: String,
+    decoder: JSONDecoder,
+    context: AIChatLiveEventDecodingContext
+) throws -> AIChatLiveEventDecodingResult {
     guard let data = payload.data(using: .utf8) else {
         throw makeAIChatLiveStreamContractError(
             eventType: eventType,
@@ -701,17 +749,15 @@ func decodeAIChatLiveEvent(
     do {
         if let eventType {
             guard let parsedEventType = AIChatLiveEventType(rawValue: eventType) else {
-                throw makeAIChatLiveStreamContractError(
-                    eventType: eventType,
-                    payload: payload,
-                    context: context,
-                    summary: "AI live stream event type is unsupported.",
-                    underlyingError: nil
-                )
+                return .ignoredUnknownType(eventType: eventType)
             }
             resolvedType = parsedEventType
         } else {
-            resolvedType = try decoder.decode(AIChatLiveEventTypeEnvelope.self, from: data).type
+            let rawType = try decoder.decode(AIChatLiveUnknownEventTypeEnvelope.self, from: data).type
+            guard let parsedEventType = AIChatLiveEventType(rawValue: rawType) else {
+                return .ignoredUnknownType(eventType: rawType)
+            }
+            resolvedType = parsedEventType
         }
     } catch let error as AIChatLiveStreamContractError {
         throw error
@@ -742,14 +788,14 @@ func decodeAIChatLiveEvent(
         switch resolvedType {
         case .assistantDelta:
             let event = try decoder.decode(AIChatLiveAssistantDeltaWirePayload.self, from: data)
-            return .assistantDelta(
+            return .event(.assistantDelta(
                 metadata: mapAIChatLiveEventMetadata(metadata),
                 text: event.text,
                 itemId: event.itemId
-            )
+            ))
         case .assistantToolCall:
             let event = try decoder.decode(AIChatLiveAssistantToolCallWirePayload.self, from: data)
-            return .assistantToolCall(
+            return .event(.assistantToolCall(
                 metadata: mapAIChatLiveEventMetadata(metadata),
                 toolCall: AIChatToolCall(
                     id: event.toolCallId,
@@ -759,41 +805,41 @@ func decodeAIChatLiveEvent(
                     output: event.output
                 ),
                 itemId: event.itemId
-            )
+            ))
         case .assistantReasoningStarted:
             let event = try decoder.decode(AIChatLiveAssistantReasoningStartedWirePayload.self, from: data)
-            return .assistantReasoningStarted(
+            return .event(.assistantReasoningStarted(
                 metadata: mapAIChatLiveEventMetadata(metadata),
                 reasoningId: event.reasoningId,
                 itemId: event.itemId
-            )
+            ))
         case .assistantReasoningSummary:
             let event = try decoder.decode(AIChatLiveAssistantReasoningSummaryWirePayload.self, from: data)
-            return .assistantReasoningSummary(
+            return .event(.assistantReasoningSummary(
                 metadata: mapAIChatLiveEventMetadata(metadata),
                 reasoningId: event.reasoningId,
                 summary: event.summary,
                 itemId: event.itemId
-            )
+            ))
         case .assistantReasoningDone:
             let event = try decoder.decode(AIChatLiveAssistantReasoningDoneWirePayload.self, from: data)
-            return .assistantReasoningDone(
+            return .event(.assistantReasoningDone(
                 metadata: mapAIChatLiveEventMetadata(metadata),
                 reasoningId: event.reasoningId,
                 itemId: event.itemId
-            )
+            ))
         case .assistantMessageDone:
             let event = try decoder.decode(AIChatLiveAssistantMessageDoneWirePayload.self, from: data)
-            return .assistantMessageDone(
+            return .event(.assistantMessageDone(
                 metadata: mapAIChatLiveEventMetadata(metadata),
                 itemId: event.itemId,
                 content: event.content,
                 isError: event.isError,
                 isStopped: event.isStopped
-            )
+            ))
         case .repairStatus:
             let event = try decoder.decode(AIChatLiveRepairStatusWirePayload.self, from: data)
-            return .repairStatus(
+            return .event(.repairStatus(
                 metadata: mapAIChatLiveEventMetadata(metadata),
                 status: AIChatRepairAttemptStatus(
                     message: event.message,
@@ -801,17 +847,17 @@ func decodeAIChatLiveEvent(
                     maxAttempts: event.maxAttempts,
                     toolName: event.toolName
                 )
-            )
+            ))
         case .runTerminal:
             let event = try decoder.decode(AIChatLiveRunTerminalWirePayload.self, from: data)
-            return .runTerminal(
+            return .event(.runTerminal(
                 metadata: mapAIChatLiveEventMetadata(metadata),
                 outcome: event.outcome,
                 message: event.message,
                 assistantItemId: event.assistantItemId,
                 isError: event.isError,
                 isStopped: event.isStopped
-            )
+            ))
         }
     } catch {
         throw makeAIChatLiveStreamContractError(

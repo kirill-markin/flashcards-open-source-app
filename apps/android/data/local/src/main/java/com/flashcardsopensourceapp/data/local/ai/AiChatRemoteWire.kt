@@ -258,6 +258,11 @@ private data class AiChatLiveEventTypeEnvelopeWire(
 )
 
 @Serializable
+private data class AiChatLiveUnknownEventTypeEnvelopeWire(
+    val type: StrictRemoteString
+)
+
+@Serializable
 private enum class AiChatLiveEventTypeWire {
     @SerialName("assistant_delta") ASSISTANT_DELTA,
     @SerialName("assistant_tool_call") ASSISTANT_TOOL_CALL,
@@ -267,6 +272,15 @@ private enum class AiChatLiveEventTypeWire {
     @SerialName("assistant_message_done") ASSISTANT_MESSAGE_DONE,
     @SerialName("repair_status") REPAIR_STATUS,
     @SerialName("run_terminal") RUN_TERMINAL,
+}
+
+/**
+ * Unknown live event types are forward-compatible extension points and must be
+ * ignored. Known event types remain strict and still fail on invalid payloads.
+ */
+internal sealed interface AiChatLiveEventPayloadDecodeResult {
+    data class Event(val event: AiChatLiveEvent) : AiChatLiveEventPayloadDecodeResult
+    data class IgnoredUnknownType(val eventType: String) : AiChatLiveEventPayloadDecodeResult
 }
 
 @Serializable
@@ -466,28 +480,41 @@ internal fun decodeAiChatStopRunResponse(payload: String): AiChatStopRunResponse
     )
 }
 
-internal fun decodeAiChatLiveEventPayload(eventType: String?, payload: String): AiChatLiveEvent {
+internal fun decodeAiChatLiveEventPayload(eventType: String?, payload: String): AiChatLiveEvent? {
+    return when (val decodingResult = decodeAiChatLiveEventPayloadResult(eventType = eventType, payload = payload)) {
+        is AiChatLiveEventPayloadDecodeResult.Event -> decodingResult.event
+        is AiChatLiveEventPayloadDecodeResult.IgnoredUnknownType -> null
+    }
+}
+
+internal fun decodeAiChatLiveEventPayloadResult(
+    eventType: String?,
+    payload: String
+): AiChatLiveEventPayloadDecodeResult {
     val resolvedType = if (eventType == null) {
-        decodeAiChatWire<AiChatLiveEventTypeEnvelopeWire>(payload = payload, context = "chat.live.event.type").type
+        val rawType = decodeAiChatWire<AiChatLiveUnknownEventTypeEnvelopeWire>(
+            payload = payload,
+            context = "chat.live.event.type"
+        ).type.value
+        AiChatLiveEventTypeWire.entries.firstOrNull { candidate -> candidate.serialName == rawType }
+            ?: return AiChatLiveEventPayloadDecodeResult.IgnoredUnknownType(eventType = rawType)
     } else {
         AiChatLiveEventTypeWire.entries.firstOrNull { candidate -> candidate.serialName == eventType }
-            ?: throw CloudContractMismatchException(
-                "Cloud contract mismatch for chat.live.event.type: unsupported AI chat event type \"$eventType\""
-            )
+            ?: return AiChatLiveEventPayloadDecodeResult.IgnoredUnknownType(eventType = eventType)
     }
 
     return when (resolvedType) {
         AiChatLiveEventTypeWire.ASSISTANT_DELTA -> {
             val wire = decodeAiChatWire<AiChatLiveAssistantDeltaWireEvent>(payload = payload, context = "chat.live.assistant_delta")
-            AiChatLiveEvent.AssistantDelta(
+            AiChatLiveEventPayloadDecodeResult.Event(AiChatLiveEvent.AssistantDelta(
                 metadata = wire.asMetadata(),
                 text = wire.text.value,
                 itemId = wire.itemId.value
-            )
+            ))
         }
         AiChatLiveEventTypeWire.ASSISTANT_TOOL_CALL -> {
             val wire = decodeAiChatWire<AiChatLiveAssistantToolCallWireEvent>(payload = payload, context = "chat.live.assistant_tool_call")
-            AiChatLiveEvent.AssistantToolCall(
+            AiChatLiveEventPayloadDecodeResult.Event(AiChatLiveEvent.AssistantToolCall(
                 metadata = wire.asMetadata(),
                 toolCall = AiChatToolCall(
                     toolCallId = wire.toolCallId.value,
@@ -499,20 +526,20 @@ internal fun decodeAiChatLiveEventPayload(eventType: String?, payload: String): 
                 itemId = wire.itemId.value,
                 outputIndex = wire.outputIndex.value,
                 providerStatus = wire.providerStatus?.value?.ifBlank { null }
-            )
+            ))
         }
         AiChatLiveEventTypeWire.ASSISTANT_REASONING_STARTED -> {
             val wire = decodeAiChatWire<AiChatLiveAssistantReasoningStartedWireEvent>(payload = payload, context = "chat.live.assistant_reasoning_started")
-            AiChatLiveEvent.AssistantReasoningStarted(
+            AiChatLiveEventPayloadDecodeResult.Event(AiChatLiveEvent.AssistantReasoningStarted(
                 metadata = wire.asMetadata(),
                 reasoningId = wire.reasoningId.value,
                 itemId = wire.itemId.value,
                 outputIndex = wire.outputIndex.value
-            )
+            ))
         }
         AiChatLiveEventTypeWire.ASSISTANT_REASONING_SUMMARY -> {
             val wire = decodeAiChatWire<AiChatLiveAssistantReasoningSummaryWireEvent>(payload = payload, context = "chat.live.assistant_reasoning_summary")
-            AiChatLiveEvent.AssistantReasoningSummary(
+            AiChatLiveEventPayloadDecodeResult.Event(AiChatLiveEvent.AssistantReasoningSummary(
                 metadata = wire.asMetadata(),
                 reasoningSummary = AiChatReasoningSummary(
                     reasoningId = wire.reasoningId.value,
@@ -521,30 +548,30 @@ internal fun decodeAiChatLiveEventPayload(eventType: String?, payload: String): 
                 ),
                 itemId = wire.itemId.value,
                 outputIndex = wire.outputIndex.value
-            )
+            ))
         }
         AiChatLiveEventTypeWire.ASSISTANT_REASONING_DONE -> {
             val wire = decodeAiChatWire<AiChatLiveAssistantReasoningDoneWireEvent>(payload = payload, context = "chat.live.assistant_reasoning_done")
-            AiChatLiveEvent.AssistantReasoningDone(
+            AiChatLiveEventPayloadDecodeResult.Event(AiChatLiveEvent.AssistantReasoningDone(
                 metadata = wire.asMetadata(),
                 reasoningId = wire.reasoningId.value,
                 itemId = wire.itemId.value,
                 outputIndex = wire.outputIndex.value
-            )
+            ))
         }
         AiChatLiveEventTypeWire.ASSISTANT_MESSAGE_DONE -> {
             val wire = decodeAiChatWire<AiChatLiveAssistantMessageDoneWireEvent>(payload = payload, context = "chat.live.assistant_message_done")
-            AiChatLiveEvent.AssistantMessageDone(
+            AiChatLiveEventPayloadDecodeResult.Event(AiChatLiveEvent.AssistantMessageDone(
                 metadata = wire.asMetadata(),
                 itemId = wire.itemId.value,
                 content = wire.content.map(::mapAiChatContentPart),
                 isError = wire.isError.value,
                 isStopped = wire.isStopped.value
-            )
+            ))
         }
         AiChatLiveEventTypeWire.REPAIR_STATUS -> {
             val wire = decodeAiChatWire<AiChatLiveRepairStatusWireEvent>(payload = payload, context = "chat.live.repair_status")
-            AiChatLiveEvent.RepairStatus(
+            AiChatLiveEventPayloadDecodeResult.Event(AiChatLiveEvent.RepairStatus(
                 metadata = wire.asMetadata(),
                 status = AiChatRepairAttemptStatus(
                     message = wire.message.value,
@@ -552,18 +579,18 @@ internal fun decodeAiChatLiveEventPayload(eventType: String?, payload: String): 
                     maxAttempts = wire.maxAttempts.value,
                     toolName = wire.toolName?.value?.ifBlank { null }
                 )
-            )
+            ))
         }
         AiChatLiveEventTypeWire.RUN_TERMINAL -> {
             val wire = decodeAiChatWire<AiChatLiveRunTerminalWireEvent>(payload = payload, context = "chat.live.run_terminal")
-            AiChatLiveEvent.RunTerminal(
+            AiChatLiveEventPayloadDecodeResult.Event(AiChatLiveEvent.RunTerminal(
                 metadata = wire.asMetadata(),
                 outcome = wire.outcome.asDomain(),
                 message = wire.message?.value?.ifBlank { null },
                 assistantItemId = wire.assistantItemId?.value?.ifBlank { null },
                 isError = wire.isError?.value,
                 isStopped = wire.isStopped?.value
-            )
+            ))
         }
     }
 }
