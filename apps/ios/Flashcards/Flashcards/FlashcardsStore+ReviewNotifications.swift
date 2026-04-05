@@ -137,15 +137,10 @@ extension FlashcardsStore {
     }
 
     func markReviewNotificationsAppActive(now: Date) {
-        self.userDefaults.removeObject(forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.refreshReviewNotificationsScheduling(now: now)
     }
 
     func markReviewNotificationsAppBackground(now: Date) {
-        guard self.reviewNotificationsSettings.selectedMode == .inactivity else {
-            return
-        }
-        self.userDefaults.set(now.timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.refreshReviewNotificationsScheduling(now: now)
     }
 
@@ -176,6 +171,7 @@ extension FlashcardsStore {
     func handleSuccessfulReviewNotificationTrigger() {
         let nextCount = self.userDefaults.integer(forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey) + 1
         self.userDefaults.set(nextCount, forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey)
+        self.userDefaults.set(Date().timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.refreshReviewNotificationsScheduling(now: Date())
         Task { @MainActor in
             let permissionStatus = await resolveReviewNotificationPermissionStatus()
@@ -256,17 +252,10 @@ extension FlashcardsStore {
         }
 
         let center = UNUserNotificationCenter.current()
-        let existingPayloads = loadScheduledReviewNotifications(
-            userDefaults: self.userDefaults,
-            decoder: self.decoder,
-            workspaceId: workspaceId
-        )
-        center.removePendingNotificationRequests(
-            withIdentifiers: makeReviewNotificationRequestIdentifiers(
-                workspaceId: workspaceId,
-                scheduledPayloads: existingPayloads
-            )
-        )
+        let pendingRequestIdentifiers = await pendingReviewNotificationRequestIdentifiers(center: center)
+        if pendingRequestIdentifiers.isEmpty == false {
+            center.removePendingNotificationRequests(withIdentifiers: pendingRequestIdentifiers)
+        }
 
         guard self.reviewNotificationsSettings.isEnabled else {
             self.persistScheduledReviewNotifications(payloads: [])
