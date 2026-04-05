@@ -95,12 +95,14 @@ final class AIChatStore {
     @ObservationIgnored var activeDictationTask: Task<Void, Never>?
     @ObservationIgnored var activeWarmUpTask: Task<Void, Never>?
     @ObservationIgnored var activeBootstrapTask: Task<Void, Never>?
+    @ObservationIgnored var activeNewSessionTask: Task<Void, Never>?
     @ObservationIgnored var activePersistTask: Task<Void, Never>?
     @ObservationIgnored var pendingPersistState: AIChatPersistedState?
     @ObservationIgnored var activeConversationId: String?
     @ObservationIgnored var activeStreamingMessageId: String?
     @ObservationIgnored var activeStreamingItemId: String?
     @ObservationIgnored var nextResumeAttemptSequence: Int
+    @ObservationIgnored var nextNewSessionRequestSequence: Int
     @ObservationIgnored var activeResumeErrorAttemptSequence: Int?
     @ObservationIgnored var activeLiveResumeAttemptSequence: Int?
 
@@ -323,12 +325,14 @@ final class AIChatStore {
         self.activeDictationTask = nil
         self.activeWarmUpTask = nil
         self.activeBootstrapTask = nil
+        self.activeNewSessionTask = nil
         self.activePersistTask = nil
         self.pendingPersistState = nil
         self.activeConversationId = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
         self.nextResumeAttemptSequence = 0
+        self.nextNewSessionRequestSequence = 0
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
         self.activateAccessContext(

@@ -176,6 +176,7 @@ extension AIChatStore {
         self.activeBootstrapTask = nil
         self.activeWarmUpTask?.cancel()
         self.activeWarmUpTask = nil
+        self.invalidatePendingNewSessionRequest()
         self.cancelStreaming()
         self.cancelDictation()
     }
