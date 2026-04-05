@@ -40,6 +40,7 @@ import java.util.concurrent.TimeUnit
 const val reviewNotificationChannelId: String = "review-reminders"
 const val reviewNotificationFrontTextDataKey: String = "frontText"
 const val reviewNotificationRequestIdDataKey: String = "requestId"
+const val reviewNotificationWorkTag: String = "review-notification"
 
 class ReviewNotificationsManager(
     private val context: Context,
@@ -54,12 +55,10 @@ class ReviewNotificationsManager(
     private val rescheduleGeneration = AtomicLong(0)
 
     fun markAppResumed(nowMillis: Long) {
-        reviewNotificationsStore.clearLastActiveAtMillis()
         refreshCurrentWorkspaceScheduling(nowMillis = nowMillis)
     }
 
     fun markAppPaused(nowMillis: Long) {
-        reviewNotificationsStore.saveLastActiveAtMillis(timestampMillis = nowMillis)
         refreshCurrentWorkspaceScheduling(nowMillis = nowMillis)
     }
 
@@ -164,7 +163,11 @@ class ReviewNotificationsManager(
             )
 
             ReviewNotificationMode.INACTIVITY -> {
-                val lastActiveAtMillis = reviewNotificationsStore.loadLastActiveAtMillis() ?: nowMillis
+                val lastActiveAtMillis = reviewNotificationsStore.loadLastActiveAtMillis()
+                    ?: return reviewNotificationsStore.saveScheduledPayloads(
+                        workspaceId = workspace.workspaceId,
+                        payloads = emptyList()
+                    )
                 buildInactivityReminderPayloads(
                     workspaceId = workspace.workspaceId,
                     currentCard = currentCard,
@@ -210,7 +213,7 @@ class ReviewNotificationsManager(
                     .build()
             )
             .addTag(reviewNotificationWorkspaceTag(workspaceId = payload.workspaceId))
-            .addTag("review-notification")
+            .addTag(reviewNotificationWorkTag)
             .build()
 
         workManager.enqueueUniqueWork(
@@ -221,7 +224,7 @@ class ReviewNotificationsManager(
     }
 
     private fun cancelWorkspaceScheduling(workspaceId: String) {
-        workManager.cancelAllWorkByTag(reviewNotificationWorkspaceTag(workspaceId = workspaceId))
+        workManager.cancelAllWorkByTag(reviewNotificationWorkTag)
         reviewNotificationsStore.saveScheduledPayloads(workspaceId = workspaceId, payloads = emptyList())
     }
 

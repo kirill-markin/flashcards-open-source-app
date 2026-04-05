@@ -239,6 +239,28 @@ func makeReviewNotificationRequestIdentifier(workspaceId: String, kind: String, 
     "review-notification::\(workspaceId)::\(kind)::\(suffix)"
 }
 
+func isReviewNotificationRequestIdentifier(identifier: String) -> Bool {
+    identifier.hasPrefix("review-notification::")
+}
+
+func pendingReviewNotificationRequestIdentifiers(
+    center: UNUserNotificationCenter
+) async -> [String] {
+    await withCheckedContinuation { continuation in
+        center.getPendingNotificationRequests { requests in
+            continuation.resume(
+                returning: requests.compactMap { request in
+                    let identifier = request.identifier
+                    guard isReviewNotificationRequestIdentifier(identifier: identifier) else {
+                        return nil
+                    }
+                    return identifier
+                }
+            )
+        }
+    }
+}
+
 func makeReviewNotificationRequestSuffix(scheduledAt: Date, calendar: Calendar) -> String {
     let dateFormatter = DateFormatter()
     dateFormatter.calendar = calendar
