@@ -65,7 +65,6 @@ class AiViewModel(
     private val chatRuntime = AiChatRuntime(
         scope = viewModelScope,
         aiChatRepository = aiChatRepository,
-        syncRepository = syncRepository,
         appVersion = appVersion,
         hasConsent = { consentState.value },
         currentCloudState = { cloudSettingsState.value.cloudState },

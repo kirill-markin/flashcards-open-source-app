@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.ai
 import com.flashcardsopensourceapp.data.local.model.AiChatAcceptedConversationEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRunLive
+import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
@@ -22,6 +23,8 @@ import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
+import java.util.ArrayDeque
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -168,7 +171,6 @@ class AiChatRuntimeTest {
         return AiChatRuntime(
             scope = scope,
             aiChatRepository = repository,
-            syncRepository = FakeSyncRepository(),
             appVersion = appVersion,
             hasConsent = { repository.consent.value },
             currentCloudState = { CloudAccountState.GUEST },
@@ -177,9 +179,9 @@ class AiChatRuntimeTest {
         )
     }
 
-    private fun makeAccessContext(): AiAccessContext {
+    private fun makeAccessContext(workspaceId: String = "workspace-1"): AiAccessContext {
         return AiAccessContext(
-            workspaceId = "workspace-1",
+            workspaceId = workspaceId,
             cloudState = CloudAccountState.GUEST,
             linkedUserId = null,
             activeWorkspaceId = null
@@ -255,14 +257,143 @@ class AiChatRuntimeTest {
             deduplicated = false
         )
     }
+
+    @Test
+    fun accessContextSwitchCancelsBootstrapAndRestoresNewWorkspaceBaseline() = runTest {
+        val repository = FakeAiChatRepository()
+        val firstBootstrapGate = CompletableDeferred<Unit>()
+        val secondBootstrapGate = CompletableDeferred<Unit>()
+        repository.loadBootstrapGates += firstBootstrapGate
+        repository.loadBootstrapGates += secondBootstrapGate
+        repository.setPersistedState(
+            workspaceId = "workspace-1",
+            state = makeDefaultAiChatPersistedState().copy(chatSessionId = "persisted-session-1")
+        )
+        repository.setPersistedState(
+            workspaceId = "workspace-2",
+            state = makeDefaultAiChatPersistedState().copy(chatSessionId = "persisted-session-2")
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-2",
+            activeRun = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.onScreenVisible()
+        runtime.updateAccessContext(makeAccessContext(workspaceId = "workspace-1"))
+        advanceUntilIdle()
+
+        runtime.updateAccessContext(makeAccessContext(workspaceId = "workspace-2"))
+        advanceUntilIdle()
+
+        assertEquals("workspace-2", runtime.state.value.workspaceId)
+        assertEquals("persisted-session-2", runtime.state.value.persistedState.chatSessionId)
+        assertEquals(AiConversationBootstrapState.LOADING, runtime.state.value.conversationBootstrapState)
+
+        secondBootstrapGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals("workspace-2", runtime.state.value.workspaceId)
+        assertEquals("session-2", runtime.state.value.persistedState.chatSessionId)
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+        assertEquals(2, repository.loadBootstrapCalls)
+    }
+
+    @Test
+    fun passiveBootstrapPreservesLocalDraftAndAttachmentsWhenIdle() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.setPersistedState(
+            workspaceId = "workspace-1",
+            state = makeDefaultAiChatPersistedState().copy(chatSessionId = "session-1")
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+        val attachment = AiChatAttachment(
+            id = "attachment-1",
+            fileName = "notes.txt",
+            mediaType = "text/plain",
+            base64Data = "ZmlsZQ=="
+        )
+
+        runtime.onScreenVisible()
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+
+        runtime.updateDraftMessage(draftMessage = "Preserve me")
+        runtime.addPendingAttachment(attachment = attachment)
+        runtime.warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
+        advanceUntilIdle()
+
+        assertEquals("Preserve me", runtime.state.value.draftMessage)
+        assertEquals(listOf(attachment), runtime.state.value.pendingAttachments)
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+    }
+
+    @Test
+    fun acceptedRunDoesNotAttachLiveWhenScreenIsHidden() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.startRunResponse = makeAcceptedStartRunResponse(
+            sessionId = "session-1",
+            activeRun = makeActiveRun(runId = "run-1", cursor = "0"),
+            messages = listOf(
+                makeUserMessage(
+                    content = listOf(AiChatContentPart.Text(text = "Hello")),
+                    timestampMillis = 1L
+                ),
+                makeAssistantStatusMessage(timestampMillis = 2L)
+            )
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateDraftMessage(draftMessage = "Hello")
+        runtime.sendMessage()
+        advanceUntilIdle()
+
+        assertEquals("run-1", runtime.state.value.activeRun?.runId)
+        assertFalse(runtime.state.value.isLiveAttached)
+        assertTrue(repository.attachRunIds.isEmpty())
+    }
+
+    @Test
+    fun unexpectedLiveDetachTriggersBootstrapRecoveryError() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = makeActiveRun(runId = "run-1", cursor = "5")
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = makeActiveRun(runId = "run-1", cursor = "6")
+        )
+        repository.liveFlows["run-1"] = emptyFlow()
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.onScreenVisible()
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+
+        val alert = runtime.state.value.activeAlert as AiAlertState.GeneralError
+        assertEquals("AI live stream ended before message completion.", alert.message)
+        assertNull(runtime.state.value.activeRun)
+        assertFalse(runtime.state.value.isLiveAttached)
+        assertEquals(2, repository.loadBootstrapCalls)
+    }
 }
 
 private class FakeAiChatRepository : AiChatRepository {
     val consent = MutableStateFlow(value = true)
     val bootstrapResponses = ArrayDeque<AiChatBootstrapResponse>()
+    val loadBootstrapGates = ArrayDeque<CompletableDeferred<Unit>>()
     val liveFlows = mutableMapOf<String, Flow<AiChatLiveEvent>>()
     val attachRunIds = mutableListOf<String>()
-    var persistedState: AiChatPersistedState = makeDefaultAiChatPersistedState()
+    private val persistedStates = mutableMapOf<String?, AiChatPersistedState>()
     var loadBootstrapCalls: Int = 0
     var startRunResponse: AiChatStartRunResponse = AiChatAcceptedConversationEnvelope(
         accepted = true,
@@ -298,15 +429,15 @@ private class FakeAiChatRepository : AiChatRepository {
     }
 
     override suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState {
-        return persistedState
+        return persistedStates[workspaceId] ?: makeDefaultAiChatPersistedState()
     }
 
     override suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState) {
-        persistedState = state
+        persistedStates[workspaceId] = state
     }
 
     override suspend fun clearPersistedState(workspaceId: String?) {
-        persistedState = makeDefaultAiChatPersistedState()
+        persistedStates[workspaceId] = makeDefaultAiChatPersistedState()
     }
 
     override suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot? {
@@ -320,6 +451,9 @@ private class FakeAiChatRepository : AiChatRepository {
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse {
         loadBootstrapCalls += 1
+        if (loadBootstrapGates.isNotEmpty()) {
+            loadBootstrapGates.removeFirst().await()
+        }
         return bootstrapResponses.removeFirst()
     }
 
@@ -382,6 +516,13 @@ private class FakeAiChatRepository : AiChatRepository {
             stopped = true,
             stillRunning = false
         )
+    }
+
+    fun setPersistedState(
+        workspaceId: String?,
+        state: AiChatPersistedState
+    ) {
+        persistedStates[workspaceId] = state
     }
 }
 
