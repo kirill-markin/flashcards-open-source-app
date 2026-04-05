@@ -49,17 +49,11 @@ internal fun LiveSmokeContext.clearAppNotifications(context: Context) {
 internal fun LiveSmokeContext.pressHomeAndWaitForLauncher() {
     val didPressHome = device.pressHome()
     if (didPressHome.not()) {
-        throw AssertionError("Failed to press Home before opening the notification shade.")
+        runInstrumentationShellCommand(command = "input keyevent KEYCODE_HOME")
     }
 
-    val launcherPackageName = device.launcherPackageName
-    val launcherAppeared = device.wait(
-        Until.hasObject(By.pkg(launcherPackageName).depth(0)),
-        externalUiTimeoutMillis
-    )
-    if (launcherAppeared.not()) {
-        throw AssertionError("Launcher package '$launcherPackageName' did not appear after pressing Home.")
-    }
+    val launcherPackageName = resolveHomeLauncherPackageNameOrThrow()
+    waitForLauncherPackageAfterHomeOrThrow(launcherPackageName = launcherPackageName)
 }
 
 internal fun LiveSmokeContext.postReviewReminderNotification(
@@ -132,6 +126,42 @@ private fun activeNotificationIds(context: Context): Set<Int> {
     return notificationManager.activeNotifications
         .map { statusBarNotification -> statusBarNotification.id }
         .toSet()
+}
+
+private fun resolveHomeLauncherPackageNameOrThrow(): String {
+    val shellOutput = runInstrumentationShellCommand(
+        command = "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME"
+    )
+    val resolvedActivityLine = shellOutput.lineSequence()
+        .map { line -> line.trim() }
+        .lastOrNull { line -> line.contains("/") }
+        ?: throw AssertionError(
+            "Failed to resolve the Android HOME activity package before notification smoke. shellOutput=$shellOutput"
+        )
+    return resolvedActivityLine.substringBefore("/")
+        .takeIf { packageName -> packageName.isNotBlank() }
+        ?: throw AssertionError(
+            "Resolved Android HOME activity without a valid package name before notification smoke. shellOutput=$shellOutput"
+        )
+}
+
+private fun LiveSmokeContext.waitForLauncherPackageAfterHomeOrThrow(launcherPackageName: String) {
+    val launcherSelector = By.pkg(launcherPackageName).depth(0)
+    val deadlineMillis = System.currentTimeMillis() + externalUiTimeoutMillis
+
+    while (System.currentTimeMillis() < deadlineMillis) {
+        dismissExternalSystemDialogIfPresent()
+        if (device.hasObject(launcherSelector)) {
+            return
+        }
+        Thread.sleep(100L)
+    }
+
+    val blockingSystemDialogSummary = currentBlockingSystemDialogSummaryOrNull() ?: "none"
+    throw AssertionError(
+        "Launcher package '$launcherPackageName' did not appear after pressing Home. " +
+            "blockingSystemDialog=$blockingSystemDialogSummary"
+    )
 }
 
 private fun waitForNotificationCondition(
