@@ -33,11 +33,6 @@ private struct CloudSyncPollingTaskID: Hashable {
     let isSyncBlocked: Bool
 }
 
-private struct AppNotificationTapTaskID: Hashable {
-    let isSceneActive: Bool
-    let pendingRequest: AppNotificationTapRequest?
-}
-
 @MainActor
 private func consumeFlashcardsUITestAppNotificationTapRequest(processInfo: ProcessInfo) -> AppNotificationTapRequest? {
     guard hasConsumedFlashcardsUITestAppNotificationTapEnvironment == false else {
@@ -60,12 +55,10 @@ struct FlashcardsApp: App {
     @UIApplicationDelegateAdaptor(ReviewNotificationsAppDelegate.self) private var reviewNotificationsAppDelegate
     @State private var store: FlashcardsStore
     @State private var navigation: AppNavigationModel
-    @State private var appNotificationTapCoordinator: AppNotificationTapCoordinator
 
     @MainActor
     init() {
         let store = FlashcardsStore()
-        let appNotificationTapCoordinator = AppNotificationTapCoordinator.shared
         let selectedTab = ProcessInfo.processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey]
             .flatMap(FlashcardsUITestSelectedTab.init(rawValue:))
             .map(\.appTab) ?? .review
@@ -78,11 +71,51 @@ struct FlashcardsApp: App {
             }
         }
         if let request = consumeFlashcardsUITestAppNotificationTapRequest(processInfo: ProcessInfo.processInfo) {
-            appNotificationTapCoordinator.request(request: request)
+            let receivedMetadata = makeAppNotificationTapLogMetadata(
+                request: request,
+                source: .uiTestEnvironment,
+                appState: "ui_test_launch",
+                scenePhase: nil,
+                receivedAtMillis: nil,
+                stage: "receive",
+                reason: nil,
+                details: nil
+            )
+            logAppNotificationTapEvent(action: "notification_tap_received", metadata: receivedMetadata)
+
+            do {
+                let envelope = try AppNotificationTapCoordinator.persist(
+                    request: request,
+                    source: .uiTestEnvironment,
+                    userDefaults: .standard
+                )
+                let persistedMetadata = makeAppNotificationTapLogMetadata(
+                    request: request,
+                    source: envelope.source,
+                    appState: "ui_test_launch",
+                    scenePhase: nil,
+                    receivedAtMillis: envelope.receivedAtMillis,
+                    stage: "persist",
+                    reason: nil,
+                    details: nil
+                )
+                logAppNotificationTapEvent(action: "notification_tap_persisted", metadata: persistedMetadata)
+            } catch {
+                let droppedMetadata = makeAppNotificationTapLogMetadata(
+                    request: request,
+                    source: .uiTestEnvironment,
+                    appState: "ui_test_launch",
+                    scenePhase: nil,
+                    receivedAtMillis: nil,
+                    stage: "persist",
+                    reason: "persistence_failed",
+                    details: Flashcards.errorMessage(error: error)
+                )
+                logAppNotificationTapEvent(action: "notification_tap_dropped", metadata: droppedMetadata)
+            }
         }
 
         _store = State(initialValue: store)
-        _appNotificationTapCoordinator = State(initialValue: appNotificationTapCoordinator)
         _navigation = State(
             initialValue: AppNavigationModel(
                 selectedTab: selectedTab,
@@ -98,7 +131,6 @@ struct FlashcardsApp: App {
             RootTabView()
                 .environment(store)
                 .environment(navigation)
-                .environment(appNotificationTapCoordinator)
                 .task {
                     store.updateCurrentVisibleTab(tab: navigation.selectedTab)
                     await store.resumePendingAccountDeletionIfNeeded()
@@ -132,8 +164,8 @@ struct FlashcardsApp: App {
                         store.markReviewNotificationsAppBackground(now: Date())
                     }
                 }
-                .task(id: self.appNotificationTapTaskID) {
-                    self.consumePendingAppNotificationTapIfNeeded()
+                .task(id: self.isAppNotificationTapConsumptionReady) {
+                    await self.consumePendingAppNotificationTapIfNeeded()
                 }
                 .task(id: self.cloudSyncPollingTaskID) {
                     await self.runCloudSyncPollingLoop()
@@ -150,23 +182,61 @@ struct FlashcardsApp: App {
         )
     }
 
-    private var appNotificationTapTaskID: AppNotificationTapTaskID {
-        AppNotificationTapTaskID(
-            isSceneActive: self.scenePhase == .active,
-            pendingRequest: self.appNotificationTapCoordinator.pendingRequest
-        )
+    private var isAppNotificationTapConsumptionReady: Bool {
+        self.scenePhase == .active
     }
 
     @MainActor
-    private func consumePendingAppNotificationTapIfNeeded() {
+    private func consumePendingAppNotificationTapIfNeeded() async {
         guard self.scenePhase == .active else {
             return
         }
-        guard let request = self.appNotificationTapCoordinator.consumePendingRequest() else {
+
+        await Task.yield()
+        guard self.scenePhase == .active else {
             return
         }
 
-        self.store.handleAppNotificationTap(request: request, navigation: self.navigation)
+        let envelope: PendingAppNotificationTapEnvelope
+        do {
+            guard let loadedEnvelope = try AppNotificationTapCoordinator.takePendingEnvelope(userDefaults: .standard) else {
+                return
+            }
+            envelope = loadedEnvelope
+        } catch {
+            let droppedMetadata = makeAppNotificationTapLogMetadata(
+                request: .fallback(
+                    AppNotificationTapFallback(
+                        stage: "consume",
+                        reason: "invalid_pending_envelope",
+                        notificationType: nil,
+                        details: Flashcards.errorMessage(error: error)
+                    )
+                ),
+                source: nil,
+                appState: nil,
+                scenePhase: "active",
+                receivedAtMillis: nil,
+                stage: "consume",
+                reason: "invalid_pending_envelope",
+                details: Flashcards.errorMessage(error: error)
+            )
+            logAppNotificationTapEvent(action: "notification_tap_dropped", metadata: droppedMetadata)
+            return
+        }
+
+        self.store.handleAppNotificationTap(request: envelope.request, navigation: self.navigation)
+        let consumedMetadata = makeAppNotificationTapLogMetadata(
+            request: envelope.request,
+            source: envelope.source,
+            appState: nil,
+            scenePhase: "active",
+            receivedAtMillis: envelope.receivedAtMillis,
+            stage: "consume",
+            reason: nil,
+            details: nil
+        )
+        logAppNotificationTapEvent(action: "notification_tap_consumed", metadata: consumedMetadata)
     }
 
     @MainActor

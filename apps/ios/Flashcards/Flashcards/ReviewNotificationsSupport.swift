@@ -16,6 +16,8 @@ let reviewNotificationSuccessfulReviewCountUserDefaultsKey: String = "review-not
 let reviewNotificationScheduledPayloadsUserDefaultsKeyPrefix: String = "review-notification-scheduled-payloads::"
 let reviewNotificationLastActiveAtUserDefaultsKey: String = "review-notification-last-active-at"
 let appNotificationTapTypeUserInfoKey: String = "appNotificationTapType"
+let pendingAppNotificationTapUserDefaultsKey: String = "pending-app-notification-tap"
+let pendingAppNotificationTapSchemaVersion: Int = 1
 
 enum ReviewNotificationMode: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
     case daily
@@ -84,16 +86,28 @@ enum AppNotificationTapType: String, Codable, Hashable, Sendable {
     case reviewReminder
 }
 
-struct AppNotificationTapFallback: Hashable, Sendable {
+enum AppNotificationTapSource: String, Codable, Hashable, Sendable {
+    case notificationResponse = "notification_response"
+    case uiTestEnvironment = "ui_test_environment"
+}
+
+struct AppNotificationTapFallback: Codable, Hashable, Sendable {
     let stage: String
     let reason: String
     let notificationType: String?
     let details: String?
 }
 
-enum AppNotificationTapRequest: Hashable, Sendable {
+enum AppNotificationTapRequest: Codable, Hashable, Sendable {
     case openReviewReminder
     case fallback(AppNotificationTapFallback)
+}
+
+struct PendingAppNotificationTapEnvelope: Codable, Hashable, Sendable {
+    let schemaVersion: Int
+    let request: AppNotificationTapRequest
+    let receivedAtMillis: Int64
+    let source: AppNotificationTapSource
 }
 
 struct ReviewNotificationSchedulingSnapshot: Sendable {
@@ -482,6 +496,103 @@ func buildReviewNotificationUserInfo(notificationType: AppNotificationTapType) -
     ]
 }
 
+func appNotificationTapType(request: AppNotificationTapRequest) -> String {
+    switch request {
+    case .openReviewReminder:
+        return AppNotificationTapType.reviewReminder.rawValue
+    case .fallback(let fallback):
+        return fallback.notificationType ?? "fallback"
+    }
+}
+
+func savePendingAppNotificationTap(
+    envelope: PendingAppNotificationTapEnvelope,
+    userDefaults: UserDefaults,
+    encoder: JSONEncoder
+) throws {
+    do {
+        let data = try encoder.encode(envelope)
+        userDefaults.set(data, forKey: pendingAppNotificationTapUserDefaultsKey)
+    } catch {
+        throw LocalStoreError.validation(
+            "Pending app notification tap could not be saved: \(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+func loadPendingAppNotificationTap(
+    userDefaults: UserDefaults,
+    decoder: JSONDecoder
+) throws -> PendingAppNotificationTapEnvelope? {
+    guard let data = userDefaults.data(forKey: pendingAppNotificationTapUserDefaultsKey) else {
+        return nil
+    }
+
+    do {
+        let envelope = try decoder.decode(PendingAppNotificationTapEnvelope.self, from: data)
+        guard envelope.schemaVersion == pendingAppNotificationTapSchemaVersion else {
+            throw LocalStoreError.validation(
+                "Pending app notification tap schema is unsupported: \(envelope.schemaVersion)"
+            )
+        }
+        return envelope
+    } catch {
+        throw LocalStoreError.validation(
+            "Pending app notification tap is invalid: \(Flashcards.errorMessage(error: error))"
+        )
+    }
+}
+
+func clearPendingAppNotificationTap(userDefaults: UserDefaults) {
+    userDefaults.removeObject(forKey: pendingAppNotificationTapUserDefaultsKey)
+}
+
+func logAppNotificationTapEvent(action: String, metadata: [String: String]) {
+    logFlashcardsError(
+        domain: "ios_notifications",
+        action: action,
+        metadata: metadata
+    )
+}
+
+func makeAppNotificationTapLogMetadata(
+    request: AppNotificationTapRequest,
+    source: AppNotificationTapSource?,
+    appState: String?,
+    scenePhase: String?,
+    receivedAtMillis: Int64?,
+    stage: String?,
+    reason: String?,
+    details: String?
+) -> [String: String] {
+    var metadata: [String: String] = [
+        "build": appBuildNumber(),
+        "notificationType": appNotificationTapType(request: request)
+    ]
+    if let source {
+        metadata["source"] = source.rawValue
+    }
+    if let appState {
+        metadata["appState"] = appState
+    }
+    if let scenePhase {
+        metadata["scenePhaseAtConsume"] = scenePhase
+    }
+    if let receivedAtMillis {
+        metadata["receivedAt"] = String(receivedAtMillis)
+    }
+    if let stage {
+        metadata["stage"] = stage
+    }
+    if let reason {
+        metadata["reason"] = reason
+    }
+    if let details {
+        metadata["details"] = details
+    }
+    return metadata
+}
+
 func parseAppNotificationTapRequest(userInfo: [AnyHashable: Any]) -> AppNotificationTapRequest? {
     guard let rawNotificationType = userInfo[appNotificationTapTypeUserInfoKey] as? String else {
         return nil
@@ -504,21 +615,18 @@ func parseAppNotificationTapRequest(userInfo: [AnyHashable: Any]) -> AppNotifica
 }
 
 func logAppNotificationTapFallback(fallback: AppNotificationTapFallback) {
-    var metadata: [String: String] = [
-        "stage": fallback.stage,
-        "reason": fallback.reason
-    ]
-    if let notificationType = fallback.notificationType {
-        metadata["notificationType"] = notificationType
-    }
-    if let details = fallback.details {
-        metadata["details"] = details
-    }
-    logFlashcardsError(
-        domain: "ios_notifications",
-        action: "notification_tap_fallback",
-        metadata: metadata
+    let request = AppNotificationTapRequest.fallback(fallback)
+    let metadata = makeAppNotificationTapLogMetadata(
+        request: request,
+        source: nil,
+        appState: nil,
+        scenePhase: nil,
+        receivedAtMillis: nil,
+        stage: fallback.stage,
+        reason: fallback.reason,
+        details: fallback.details
     )
+    logAppNotificationTapEvent(action: "notification_tap_fallback", metadata: metadata)
 }
 
 func reviewNotificationPermissionStatus(authorizationStatus: UNAuthorizationStatus) -> ReviewNotificationPermissionStatus {
