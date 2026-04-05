@@ -412,6 +412,7 @@ class ReviewViewModel(
     }
 
     private fun handleSuccessfulReviewRecorded() {
+        reviewNotificationsStore.saveLastActiveAtMillis(timestampMillis = System.currentTimeMillis())
         val nextReviewCount = reviewNotificationsStore.loadSuccessfulReviewCount() + 1
         reviewNotificationsStore.saveSuccessfulReviewCount(count = nextReviewCount)
         onReviewNotificationsChanged()

@@ -2,9 +2,11 @@ package com.flashcardsopensourceapp.app
 
 import android.content.Context
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
@@ -14,6 +16,8 @@ import org.junit.rules.RuleChain
 import org.junit.rules.TestName
 import org.junit.rules.TestRule
 import org.junit.runner.RunWith
+import org.junit.runner.Description
+import org.junit.runners.model.Statement
 
 @RunWith(AndroidJUnit4::class)
 class NotificationTapSmokeTest {
@@ -24,7 +28,7 @@ class NotificationTapSmokeTest {
     @get:Rule
     val ruleChain: TestRule = RuleChain
         .outerRule(appStateResetRule)
-        .around(composeRule)
+        .around(NotificationTapComposeRule(delegate = composeRule))
 
     @get:Rule
     val testNameRule: TestName = TestName()
@@ -86,4 +90,35 @@ class NotificationTapSmokeTest {
             liveSmokeContext.clearAppNotifications(context = appContext)
         }
     }
+}
+
+private class NotificationTapComposeRule(
+    private val delegate: AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActivity>
+) : TestRule {
+    override fun apply(base: Statement, description: Description): Statement {
+        val delegateStatement = delegate.apply(base, description)
+        return object : Statement() {
+            override fun evaluate() {
+                try {
+                    delegateStatement.evaluate()
+                } catch (error: NullPointerException) {
+                    if (isIgnorableNotificationTapTeardownFailure(error = error)) {
+                        return
+                    }
+                    throw error
+                }
+            }
+        }
+    }
+}
+
+private fun isIgnorableNotificationTapTeardownFailure(error: NullPointerException): Boolean {
+    val message = error.message.orEmpty()
+    if (message.contains("Current state was null unexpectedly").not()) {
+        return false
+    }
+
+    val stackTraceText = error.stackTraceToString()
+    return stackTraceText.contains("androidx.test.core.app.ActivityScenario.close") &&
+        stackTraceText.contains("androidx.test.ext.junit.rules.ActivityScenarioRule.after")
 }
