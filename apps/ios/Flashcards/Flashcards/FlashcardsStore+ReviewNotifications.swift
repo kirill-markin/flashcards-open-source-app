@@ -14,7 +14,7 @@ extension FlashcardsStore {
     func updateReviewNotificationsSettings(settings: ReviewNotificationsSettings) {
         self.reviewNotificationsSettings = settings
         self.persistReviewNotificationsSettings()
-        self.refreshReviewNotificationsScheduling(now: Date())
+        self.reconcileReviewNotifications(trigger: .settingsChanged, now: Date())
     }
 
     func updateReviewNotificationsEnabled(isEnabled: Bool) {
@@ -108,7 +108,7 @@ extension FlashcardsStore {
         if currentPermissionStatus == .allowed {
             if autoEnableDefaultIfAllowed {
                 self.enableDefaultDailyReviewNotificationsIfNeeded()
-                self.refreshReviewNotificationsScheduling(now: now)
+                self.reconcileReviewNotifications(trigger: .permissionChanged, now: now)
             }
             return .allowed
         }
@@ -129,27 +129,25 @@ extension FlashcardsStore {
             if autoEnableDefaultIfAllowed {
                 self.enableDefaultDailyReviewNotificationsIfNeeded()
             }
-            self.refreshReviewNotificationsScheduling(now: now)
+            self.reconcileReviewNotifications(trigger: .permissionChanged, now: now)
             return .allowed
         }
 
         return .blocked
     }
 
-    func markReviewNotificationsAppActive(now: Date) {
-        self.refreshReviewNotificationsScheduling(now: now)
-    }
-
-    func markReviewNotificationsAppBackground(now: Date) {
-        self.refreshReviewNotificationsScheduling(now: now)
-    }
-
-    func refreshReviewNotificationsScheduling(now: Date) {
+    /// Reconciles review notifications to the current app state.
+    ///
+    /// The reconciler is idempotent and safe to call from multiple triggers. It clears
+    /// pending review reminders before rescheduling, and it clears already delivered
+    /// review reminders only when the app becomes active.
+    func reconcileReviewNotifications(trigger: ReviewNotificationsReconcileTrigger, now: Date) {
         self.reviewNotificationsRescheduleGeneration += 1
         let generation = self.reviewNotificationsRescheduleGeneration
         self.activeReviewNotificationsRescheduleTask?.cancel()
         self.activeReviewNotificationsRescheduleTask = Task { @MainActor in
             await self.rescheduleReviewNotifications(
+                trigger: trigger,
                 now: now,
                 generation: generation
             )
@@ -172,7 +170,7 @@ extension FlashcardsStore {
         let nextCount = self.userDefaults.integer(forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey) + 1
         self.userDefaults.set(nextCount, forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey)
         self.userDefaults.set(Date().timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
-        self.refreshReviewNotificationsScheduling(now: Date())
+        self.reconcileReviewNotifications(trigger: .reviewRecorded, now: Date())
         Task { @MainActor in
             let permissionStatus = await resolveReviewNotificationPermissionStatus()
             guard permissionStatus == .notRequested else {
@@ -240,7 +238,11 @@ extension FlashcardsStore {
         self.persistReviewNotificationsSettings()
     }
 
-    private func rescheduleReviewNotifications(now: Date, generation: Int) async {
+    private func rescheduleReviewNotifications(
+        trigger: ReviewNotificationsReconcileTrigger,
+        now: Date,
+        generation: Int
+    ) async {
         guard self.reviewNotificationsRescheduleGeneration == generation else {
             return
         }
@@ -255,6 +257,9 @@ extension FlashcardsStore {
         let pendingRequestIdentifiers = await pendingReviewNotificationRequestIdentifiers(center: center)
         if pendingRequestIdentifiers.isEmpty == false {
             center.removePendingNotificationRequests(withIdentifiers: pendingRequestIdentifiers)
+        }
+        if trigger.shouldClearDeliveredReviewNotifications {
+            await removeDeliveredReviewNotifications(center: center)
         }
 
         guard self.reviewNotificationsSettings.isEnabled else {

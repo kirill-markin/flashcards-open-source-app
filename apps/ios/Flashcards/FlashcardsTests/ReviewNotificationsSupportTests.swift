@@ -102,6 +102,22 @@ final class ReviewNotificationsSupportTests: XCTestCase {
         XCTAssertEqual(replacementPayloads.map { $0.frontText }, ["Front B", "Front B"])
         XCTAssertEqual(Set(replacementPayloads.map { $0.requestId }).count, replacementPayloads.count)
     }
+
+    func testFilterReviewNotificationRequestIdentifiersKeepsOnlyReviewNotifications() {
+        let identifiers = [
+            "review-notification::workspace-1::daily::2026-04-03-10-00",
+            "other-notification::workspace-1::daily::2026-04-03-10-00",
+            "review-notification::workspace-2::inactivity::2026-04-03-12-00"
+        ]
+
+        XCTAssertEqual(
+            filterReviewNotificationRequestIdentifiers(identifiers: identifiers),
+            [
+                "review-notification::workspace-1::daily::2026-04-03-10-00",
+                "review-notification::workspace-2::inactivity::2026-04-03-12-00"
+            ]
+        )
+    }
 }
 
 private func makeCalendar() -> Calendar {

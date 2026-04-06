@@ -75,6 +75,10 @@ internal fun LiveSmokeContext.postReviewReminderNotification(
     return notificationId
 }
 
+internal fun LiveSmokeContext.activeAppNotificationIds(context: Context): Set<Int> {
+    return activeNotificationIds(context = context)
+}
+
 internal fun LiveSmokeContext.openNotificationShadeAndTap(frontText: String) {
     val didOpenNotificationShade = device.openNotification()
     if (didOpenNotificationShade.not()) {
