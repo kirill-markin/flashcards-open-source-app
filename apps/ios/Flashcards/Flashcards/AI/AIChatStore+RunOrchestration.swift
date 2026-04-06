@@ -5,6 +5,9 @@ extension AIChatStore {
         guard self.isChatInteractive else {
             return
         }
+        guard self.activeNewSessionTask == nil else {
+            return
+        }
         guard self.composerPhase != .preparingSend && self.composerPhase != .startingRun else {
             return
         }

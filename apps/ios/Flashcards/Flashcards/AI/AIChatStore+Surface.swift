@@ -6,8 +6,7 @@ extension AIChatStore {
             return
         }
 
-        self.startNewSession(
-            sessionId: makeAIChatSessionId(),
+        self.startFreshLocalSession(
             inputText: "",
             pendingAttachments: []
         )
@@ -29,6 +28,13 @@ extension AIChatStore {
             inputText: self.inputText,
             pendingAttachments: self.pendingAttachments
         )
+        if self.shouldAutoStartFreshLocalSession(persistedState: self.currentPersistedState()) {
+            self.startFreshLocalSession(
+                inputText: "",
+                pendingAttachments: [attachment]
+            )
+            return true
+        }
         if aiChatShouldReuseCurrentSessionForHandoff(
             messages: self.messages,
             composerDraft: draft,
@@ -36,8 +42,7 @@ extension AIChatStore {
             activeRunId: self.activeRunId,
             currentSessionId: self.chatSessionId
         ) == false {
-            self.startNewSession(
-                sessionId: makeAIChatSessionId(),
+            self.startFreshLocalSession(
                 inputText: "",
                 pendingAttachments: [attachment]
             )
@@ -49,6 +54,18 @@ extension AIChatStore {
         self.activeAlert = nil
         self.repairStatus = nil
         return true
+    }
+
+    func startFreshLocalSession(
+        inputText: String,
+        pendingAttachments: [AIChatAttachment]
+    ) {
+        self.bootstrapPhase = .ready
+        self.startNewSession(
+            sessionId: makeAIChatSessionId(),
+            inputText: inputText,
+            pendingAttachments: pendingAttachments
+        )
     }
 
     func clearLocalHistory() {
@@ -175,6 +192,14 @@ extension AIChatStore {
             return
         }
 
+        if self.shouldAutoStartFreshLocalSession(persistedState: persistedState) {
+            self.startFreshLocalSession(
+                inputText: "",
+                pendingAttachments: []
+            )
+            return
+        }
+
         if nextAccessContext.cloudState == .linked {
             self.startLinkedBootstrap(forceReloadState: false, resumeAttemptDiagnostics: nil)
             return
@@ -229,6 +254,25 @@ extension AIChatStore {
         self.activeStreamingItemId = nil
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
+    }
+
+    func canAutoStartFreshLocalSession() -> Bool {
+        self.isChatInteractive
+            && self.composerPhase == .idle
+            && self.dictationState == .idle
+            && self.activeSendTask == nil
+            && self.activeDictationTask == nil
+            && self.activeWarmUpTask == nil
+            && self.activeBootstrapTask == nil
+            && self.activeNewSessionTask == nil
+    }
+
+    func shouldAutoStartFreshLocalSession(persistedState: AIChatPersistedState) -> Bool {
+        guard self.canAutoStartFreshLocalSession() else {
+            return false
+        }
+
+        return aiChatShouldOpenFreshLocalSession(messages: persistedState.messages, now: Date())
     }
 
     func beginNewSessionRequestSequence() -> Int {

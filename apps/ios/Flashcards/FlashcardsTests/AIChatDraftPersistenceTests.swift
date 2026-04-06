@@ -206,4 +206,62 @@ final class AIChatDraftPersistenceTests: XCTestCase {
             )
         )
     }
+
+    func testAIChatShouldOpenFreshLocalSessionWhenLastUserMessageIsOlderThanSixHours() {
+        let staleNow = Date(timeIntervalSince1970: 6 * 60 * 60 + 1)
+        let messages = [
+            AIChatMessage(
+                id: "message-1",
+                role: .user,
+                content: [.text("hello")],
+                timestamp: "1970-01-01T00:00:00Z",
+                isError: false,
+                isStopped: false,
+                cursor: nil,
+                itemId: nil
+            )
+        ]
+
+        XCTAssertTrue(aiChatShouldOpenFreshLocalSession(messages: messages, now: staleNow))
+    }
+
+    func testAIChatShouldNotOpenFreshLocalSessionWhenLatestUserMessageIsRecent() {
+        let recentNow = Date(timeIntervalSince1970: (6 * 60 * 60) - 1)
+        let messages = [
+            AIChatMessage(
+                id: "message-1",
+                role: .user,
+                content: [.text("hello")],
+                timestamp: "1970-01-01T00:00:00Z",
+                isError: false,
+                isStopped: false,
+                cursor: nil,
+                itemId: nil
+            )
+        ]
+
+        XCTAssertFalse(aiChatShouldOpenFreshLocalSession(messages: messages, now: recentNow))
+    }
+
+    func testAIChatShouldNotOpenFreshLocalSessionWithoutUserMessages() {
+        let messages = [
+            AIChatMessage(
+                id: "message-1",
+                role: .assistant,
+                content: [.text("hello")],
+                timestamp: "1970-01-01T00:00:00Z",
+                isError: false,
+                isStopped: false,
+                cursor: nil,
+                itemId: nil
+            )
+        ]
+
+        XCTAssertFalse(
+            aiChatShouldOpenFreshLocalSession(
+                messages: messages,
+                now: Date(timeIntervalSince1970: 24 * 60 * 60)
+            )
+        )
+    }
 }
