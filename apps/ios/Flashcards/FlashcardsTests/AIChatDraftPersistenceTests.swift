@@ -3,7 +3,7 @@ import XCTest
 @testable import Flashcards
 
 final class AIChatDraftPersistenceTests: XCTestCase {
-    func testAIChatHistoryStorePersistsDraftsByWorkspaceAndSessionAndPrunesEmptyDrafts() async {
+    func testAIChatHistoryStorePersistsDraftsOnlyForExplicitSessionIdsAndPrunesEmptyDrafts() async {
         let suiteName = "ai-chat-draft-persistence-\(UUID().uuidString)"
         let userDefaults = UserDefaults(suiteName: suiteName)!
         defer {
@@ -41,14 +41,10 @@ final class AIChatDraftPersistenceTests: XCTestCase {
         )
         XCTAssertEqual(
             store.loadDraft(workspaceId: "workspace-1", sessionId: nil),
-            pendingDraft
+            AIChatComposerDraft(inputText: "", pendingAttachments: [])
         )
         XCTAssertEqual(
             store.loadDraft(workspaceId: "workspace-1", sessionId: "session-1"),
-            pendingDraft
-        )
-        XCTAssertEqual(
-            store.loadDraft(workspaceId: "workspace-1", sessionId: nil),
             AIChatComposerDraft(inputText: "", pendingAttachments: [])
         )
 
@@ -77,7 +73,7 @@ final class AIChatDraftPersistenceTests: XCTestCase {
         )
     }
 
-    func testAIChatHistoryStoreClearsPendingDraftWhenResolvedSessionDraftIsSavedAndRemoved() async {
+    func testAIChatHistoryStoreIgnoresNilSessionDraftStorage() async {
         let suiteName = "ai-chat-draft-persistence-\(UUID().uuidString)"
         let userDefaults = UserDefaults(suiteName: suiteName)!
         defer {
@@ -91,40 +87,39 @@ final class AIChatDraftPersistenceTests: XCTestCase {
         )
         store.activateWorkspace(workspaceId: "workspace-1")
 
-        let pendingDraft = AIChatComposerDraft(
-            inputText: "pending draft",
-            pendingAttachments: []
-        )
-        let resolvedDraft = AIChatComposerDraft(
-            inputText: "resolved draft",
-            pendingAttachments: []
-        )
+        let draft = AIChatComposerDraft(inputText: "draft", pendingAttachments: [])
 
         await store.saveDraft(
             workspaceId: "workspace-1",
             sessionId: nil,
-            draft: pendingDraft
-        )
-        await store.saveDraft(
-            workspaceId: "workspace-1",
-            sessionId: "session-1",
-            draft: resolvedDraft
-        )
-
-        let pendingKey = "ai-chat-draft::workspace-1::pending"
-        XCTAssertFalse(userDefaults.dictionaryRepresentation().keys.contains(pendingKey))
-
-        await store.saveDraft(
-            workspaceId: "workspace-1",
-            sessionId: "session-1",
-            draft: AIChatComposerDraft(inputText: "", pendingAttachments: [])
+            draft: draft
         )
 
         XCTAssertEqual(
-            store.loadDraft(workspaceId: "workspace-1", sessionId: "session-1"),
+            store.loadDraft(workspaceId: "workspace-1", sessionId: nil),
             AIChatComposerDraft(inputText: "", pendingAttachments: [])
         )
-        XCTAssertFalse(userDefaults.dictionaryRepresentation().keys.contains(pendingKey))
+        XCTAssertFalse(
+            userDefaults.dictionaryRepresentation().keys.contains("ai-chat-draft::workspace-1")
+        )
+    }
+
+    func testAIChatResolvedSessionIdKeepsMissingWorkspaceSessionIdEmpty() {
+        let resolvedSessionId = aiChatResolvedSessionId(
+            workspaceId: "workspace-1",
+            sessionId: ""
+        )
+
+        XCTAssertEqual(resolvedSessionId, "")
+    }
+
+    func testAIChatResolvedSessionIdKeepsNoWorkspaceSessionIdEmpty() {
+        let resolvedSessionId = aiChatResolvedSessionId(
+            workspaceId: nil,
+            sessionId: ""
+        )
+
+        XCTAssertEqual(resolvedSessionId, "")
     }
 
     func testAIChatShouldReuseCurrentSessionForHandoffRequiresEmptyMessagesDraftAndIdleComposer() {
@@ -152,7 +147,17 @@ final class AIChatDraftPersistenceTests: XCTestCase {
                 messages: [],
                 composerDraft: emptyDraft,
                 composerPhase: .idle,
-                activeRunId: nil
+                activeRunId: nil,
+                currentSessionId: "session-1"
+            )
+        )
+        XCTAssertFalse(
+            aiChatShouldReuseCurrentSessionForHandoff(
+                messages: [],
+                composerDraft: emptyDraft,
+                composerPhase: .idle,
+                activeRunId: nil,
+                currentSessionId: ""
             )
         )
         XCTAssertFalse(
@@ -169,7 +174,8 @@ final class AIChatDraftPersistenceTests: XCTestCase {
                 )],
                 composerDraft: emptyDraft,
                 composerPhase: .idle,
-                activeRunId: nil
+                activeRunId: nil,
+                currentSessionId: "session-1"
             )
         )
         XCTAssertFalse(
@@ -177,7 +183,8 @@ final class AIChatDraftPersistenceTests: XCTestCase {
                 messages: [],
                 composerDraft: cardDraft,
                 composerPhase: .idle,
-                activeRunId: nil
+                activeRunId: nil,
+                currentSessionId: "session-1"
             )
         )
         XCTAssertFalse(
@@ -185,7 +192,8 @@ final class AIChatDraftPersistenceTests: XCTestCase {
                 messages: [],
                 composerDraft: emptyDraft,
                 composerPhase: .running,
-                activeRunId: nil
+                activeRunId: nil,
+                currentSessionId: "session-1"
             )
         )
         XCTAssertFalse(
@@ -193,7 +201,8 @@ final class AIChatDraftPersistenceTests: XCTestCase {
                 messages: [],
                 composerDraft: emptyDraft,
                 composerPhase: .idle,
-                activeRunId: "run-1"
+                activeRunId: "run-1",
+                currentSessionId: "session-1"
             )
         )
     }

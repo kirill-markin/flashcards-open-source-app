@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
+import java.util.UUID
 
 internal enum class AiComposerPhase {
     IDLE,
@@ -79,9 +80,13 @@ internal fun makeAiDraftState(
     workspaceId: String?,
     persistedState: AiChatPersistedState
 ): AiDraftState {
+    val normalizedPersistedState = normalizeAiChatPersistedStateForWorkspace(
+        workspaceId = workspaceId,
+        persistedState = persistedState
+    )
     return AiDraftState(
         workspaceId = workspaceId,
-        persistedState = persistedState,
+        persistedState = normalizedPersistedState,
         conversationScopeId = null,
         hasOlder = false,
         oldestCursor = null,
@@ -99,4 +104,34 @@ internal fun makeAiDraftState(
         activeAlert = null,
         errorMessage = ""
     )
+}
+
+internal fun resolveAiChatSessionIdForWorkspace(
+    workspaceId: String?,
+    sessionId: String?
+): String? {
+    @Suppress("UNUSED_VARIABLE")
+    val ignoredWorkspaceId = workspaceId
+    return sessionId?.trim()?.takeIf { value -> value.isNotEmpty() }
+}
+
+internal fun normalizeAiChatPersistedStateForWorkspace(
+    workspaceId: String?,
+    persistedState: AiChatPersistedState
+): AiChatPersistedState {
+    val normalizedSessionId = resolveAiChatSessionIdForWorkspace(
+        workspaceId = workspaceId,
+        sessionId = persistedState.chatSessionId
+    )
+    if (normalizedSessionId == persistedState.chatSessionId) {
+        return persistedState
+    }
+
+    return normalizedSessionId?.let { sessionId ->
+        persistedState.copy(chatSessionId = sessionId)
+    } ?: persistedState
+}
+
+internal fun makeAiChatSessionId(): String {
+    return UUID.randomUUID().toString().lowercase()
 }

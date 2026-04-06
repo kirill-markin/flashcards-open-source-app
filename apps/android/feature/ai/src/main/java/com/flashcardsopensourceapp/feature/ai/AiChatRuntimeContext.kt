@@ -59,21 +59,27 @@ internal class AiChatRuntimeContext(
                 workspaceId = snapshot.workspaceId,
                 state = snapshot.persistedState
             )
-            aiChatRepository.saveDraftState(
-                workspaceId = snapshot.workspaceId,
-                sessionId = snapshot.persistedState.chatSessionId.ifBlank { null },
-                state = snapshot.toDraftState()
-            )
+            val chatSessionId = snapshot.persistedState.chatSessionId.ifBlank { null }
+            if (chatSessionId != null) {
+                aiChatRepository.saveDraftState(
+                    workspaceId = snapshot.workspaceId,
+                    sessionId = chatSessionId,
+                    state = snapshot.toDraftState()
+                )
+            }
         }
     }
 
     fun persistDraft(snapshot: AiChatRuntimeState) {
         scope.launch {
-            aiChatRepository.saveDraftState(
-                workspaceId = snapshot.workspaceId,
-                sessionId = snapshot.persistedState.chatSessionId.ifBlank { null },
-                state = snapshot.toDraftState()
-            )
+            val chatSessionId = snapshot.persistedState.chatSessionId.ifBlank { null }
+            if (chatSessionId != null) {
+                aiChatRepository.saveDraftState(
+                    workspaceId = snapshot.workspaceId,
+                    sessionId = chatSessionId,
+                    state = snapshot.toDraftState()
+                )
+            }
         }
     }
 }

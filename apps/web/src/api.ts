@@ -663,13 +663,11 @@ export async function startChatRun(body: StartChatRunRequestBody): Promise<Start
 
 export async function createNewChatSession(
   sessionId: string | undefined,
-  forceFresh: boolean,
 ): Promise<NewChatSessionResponse> {
   return parseNewChatSessionResponse(await requestJson("/chat/new", {
     method: "POST",
     body: JSON.stringify({
       sessionId,
-      forceFresh,
     }),
   }, allowAuthRecovery), "POST /chat/new");
 }

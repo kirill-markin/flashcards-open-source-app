@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRunLive
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
@@ -23,6 +24,7 @@ import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeAiChatCardAttachment
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
+import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import java.util.ArrayDeque
@@ -35,6 +37,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -82,7 +85,8 @@ class AiChatRuntimeTest {
                     timestampMillis = 1L
                 ),
                 makeAssistantStatusMessage(timestampMillis = 2L)
-            )
+            ),
+            composerSuggestions = emptyList()
         )
         repository.liveFlows["run-1"] = liveEvents
         val runtime = makeRuntime(scope = this, repository = repository)
@@ -240,7 +244,8 @@ class AiChatRuntimeTest {
     private fun makeAcceptedStartRunResponse(
         sessionId: String,
         activeRun: AiChatActiveRun?,
-        messages: List<com.flashcardsopensourceapp.data.local.model.AiChatMessage>
+        messages: List<com.flashcardsopensourceapp.data.local.model.AiChatMessage>,
+        composerSuggestions: List<AiChatComposerSuggestion>
     ): AiChatStartRunResponse {
         return AiChatAcceptedConversationEnvelope(
             accepted = true,
@@ -253,7 +258,7 @@ class AiChatRuntimeTest {
                 hasOlder = false,
                 oldestCursor = null
             ),
-            composerSuggestions = emptyList(),
+            composerSuggestions = composerSuggestions,
             chatConfig = defaultAiChatServerConfig,
             activeRun = activeRun,
             deduplicated = false
@@ -350,7 +355,8 @@ class AiChatRuntimeTest {
                     timestampMillis = 1L
                 ),
                 makeAssistantStatusMessage(timestampMillis = 2L)
-            )
+            ),
+            composerSuggestions = emptyList()
         )
         val runtime = makeRuntime(scope = this, repository = repository)
 
@@ -461,7 +467,6 @@ class AiChatRuntimeTest {
             draftMessage = "Unsaved note",
             pendingAttachments = emptyList()
         )
-        repository.nextCreateNewSessionSessionId = "session-2"
         repository.bootstrapResponses += makeBootstrapResponse(
             sessionId = "session-1",
             activeRun = null
@@ -481,17 +486,267 @@ class AiChatRuntimeTest {
         advanceUntilIdle()
 
         assertTrue(didHandoff)
-        assertEquals(listOf("session-1"), repository.createNewSessionRequests)
-        assertEquals(listOf(true), repository.createNewSessionForceFreshRequests)
-        assertEquals("session-2", runtime.state.value.persistedState.chatSessionId)
+        assertEquals(1, repository.createNewSessionRequests.size)
+        val newSessionId = repository.createNewSessionRequests.single()
+        assertTrue(newSessionId.isNotBlank())
+        assertFalse(newSessionId == "session-1")
+        assertEquals(newSessionId, runtime.state.value.persistedState.chatSessionId)
         assertEquals("Unsaved note", repository.draftStates["workspace-1" to "session-1"]?.draftMessage)
         assertEquals(
             listOf("card-1"),
-            repository.draftStates["workspace-1" to "session-2"]?.pendingAttachments?.map { attachment ->
+            repository.draftStates["workspace-1" to newSessionId]?.pendingAttachments?.map { attachment ->
                 (attachment as AiChatAttachment.Card).cardId
             }
         )
-        assertEquals("", repository.draftStates["workspace-1" to "session-2"]?.draftMessage)
+        assertEquals("", repository.draftStates["workspace-1" to newSessionId]?.draftMessage)
+    }
+
+    @Test
+    fun bootstrapWithoutPersistedSessionIdUsesLatestOrCreateBeforeCardHandoff() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-from-server",
+            activeRun = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.onScreenVisible()
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+
+        assertEquals(listOf<String?>(null), repository.loadBootstrapSessionIds)
+        val didHandoff = runtime.handoffCardToChat(
+            cardId = "card-1",
+            frontText = "Front",
+            backText = "Back",
+            tags = listOf("tag"),
+            effortLevel = com.flashcardsopensourceapp.data.local.model.EffortLevel.FAST
+        )
+        advanceUntilIdle()
+
+        assertTrue(didHandoff)
+        assertTrue(repository.createNewSessionRequests.isEmpty())
+        assertEquals("session-from-server", runtime.state.value.persistedState.chatSessionId)
+        assertEquals(1, runtime.state.value.pendingAttachments.size)
+        assertEquals("card-1", (runtime.state.value.pendingAttachments.single() as AiChatAttachment.Card).cardId)
+    }
+
+    @Test
+    fun bootstrapWithPersistedSessionIdReusesThatExactSessionId() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates["workspace-1"] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+
+        assertEquals(listOf<String?>("session-1"), repository.loadBootstrapSessionIds)
+        assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
+    }
+
+    @Test
+    fun missingSessionSendFailureKeepsSessionIdAndRestoresDraft() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates["workspace-1"] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        repository.startRunError = AiChatRemoteException(
+            message = "Chat session not found: session-1",
+            statusCode = 404,
+            code = "CHAT_SESSION_NOT_FOUND",
+            stage = null,
+            requestId = null,
+            responseBody = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+
+        runtime.updateDraftMessage(draftMessage = "retry me")
+        runtime.sendMessage()
+        advanceUntilIdle()
+
+        assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
+        assertTrue(runtime.state.value.persistedState.messages.isEmpty())
+        assertEquals("retry me", runtime.state.value.draftMessage)
+        assertEquals(AiComposerPhase.IDLE, runtime.state.value.composerPhase)
+        assertFalse(runtime.state.value.isLiveAttached)
+        val alert = runtime.state.value.activeAlert as AiAlertState.GeneralError
+        assertTrue(alert.message.isNotEmpty())
+    }
+
+    @Test
+    fun clearConversationSwitchesToLocalSessionBeforeServerEnsureCompletes() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates["workspace-1"] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val createSessionGate = CompletableDeferred<Unit>()
+        repository.createNewSessionGates += createSessionGate
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+
+        runtime.clearConversation()
+        runCurrent()
+
+        assertEquals(1, repository.createNewSessionRequests.size)
+        val localSessionId = repository.createNewSessionRequests.single()
+        assertTrue(localSessionId.isNotBlank())
+        assertFalse(localSessionId == "session-1")
+        assertEquals(localSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertTrue(runtime.state.value.persistedState.messages.isEmpty())
+
+        createSessionGate.complete(Unit)
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun clearConversationIgnoresMismatchedEnsuredSessionResponse() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates["workspace-1"] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        repository.createNewSessionResponses += makeSessionSnapshot(
+            sessionId = "server-session-2",
+            composerSuggestions = listOf(
+                AiChatComposerSuggestion(
+                    id = "suggestion-1",
+                    text = "Server suggestion",
+                    source = "server",
+                    assistantItemId = null
+                )
+            )
+        )
+        val createSessionGate = CompletableDeferred<Unit>()
+        repository.createNewSessionGates += createSessionGate
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+
+        runtime.clearConversation()
+        runCurrent()
+
+        val localSessionId = repository.createNewSessionRequests.single()
+        createSessionGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(localSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertEquals(localSessionId, runtime.state.value.conversationScopeId)
+        assertTrue(runtime.state.value.serverComposerSuggestions.isEmpty())
+        assertEquals(defaultAiChatServerConfig, runtime.state.value.persistedState.lastKnownChatConfig)
+    }
+
+    @Test
+    fun lateEnsureResponseDoesNotOverwriteFreshSuggestionsAfterSend() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates["workspace-1"] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val createSessionGate = CompletableDeferred<Unit>()
+        repository.createNewSessionGates += createSessionGate
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+
+        runtime.clearConversation()
+        runCurrent()
+
+        val newSessionId = repository.createNewSessionRequests.single()
+        repository.createNewSessionResponses += makeSessionSnapshot(
+            sessionId = newSessionId,
+            composerSuggestions = listOf(
+                AiChatComposerSuggestion(
+                    id = "stale-suggestion",
+                    text = "Stale ensure suggestion",
+                    source = "server",
+                    assistantItemId = null
+                )
+            )
+        )
+        repository.startRunResponse = makeAcceptedStartRunResponse(
+            sessionId = newSessionId,
+            activeRun = null,
+            messages = listOf(
+                makeUserMessage(
+                    content = listOf(AiChatContentPart.Text(text = "Hello")),
+                    timestampMillis = 1L
+                ),
+                makeAssistantStatusMessage(timestampMillis = 2L)
+            ),
+            composerSuggestions = listOf(
+                AiChatComposerSuggestion(
+                    id = "fresh-suggestion",
+                    text = "Fresh run suggestion",
+                    source = "assistant_follow_up",
+                    assistantItemId = null
+                )
+            )
+        )
+
+        runtime.updateDraftMessage(draftMessage = "Hello")
+        runtime.sendMessage()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("fresh-suggestion"),
+            runtime.state.value.serverComposerSuggestions.map { suggestion -> suggestion.id }
+        )
+
+        createSessionGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("fresh-suggestion"),
+            runtime.state.value.serverComposerSuggestions.map { suggestion -> suggestion.id }
+        )
+    }
+
+    private fun makeSessionSnapshot(
+        sessionId: String,
+        composerSuggestions: List<AiChatComposerSuggestion>
+    ): AiChatSessionSnapshot {
+        return com.flashcardsopensourceapp.data.local.model.AiChatConversationEnvelope(
+            sessionId = sessionId,
+            conversationScopeId = sessionId,
+            conversation = com.flashcardsopensourceapp.data.local.model.AiChatConversation(
+                messages = emptyList(),
+                updatedAtMillis = 100L,
+                mainContentInvalidationVersion = 0L,
+                hasOlder = false,
+                oldestCursor = null
+            ),
+            composerSuggestions = composerSuggestions,
+            chatConfig = defaultAiChatServerConfig,
+            activeRun = null
+        )
     }
 }
 
@@ -501,12 +756,14 @@ private class FakeAiChatRepository : AiChatRepository {
     val loadBootstrapGates = ArrayDeque<CompletableDeferred<Unit>>()
     val liveFlows = mutableMapOf<String, Flow<AiChatLiveEvent>>()
     val attachRunIds = mutableListOf<String>()
-    val createNewSessionRequests = mutableListOf<String?>()
-    val createNewSessionForceFreshRequests = mutableListOf<Boolean>()
+    val loadBootstrapSessionIds = mutableListOf<String?>()
+    val createNewSessionRequests = mutableListOf<String>()
+    val createNewSessionGates = ArrayDeque<CompletableDeferred<Unit>>()
+    val createNewSessionResponses = ArrayDeque<AiChatSessionSnapshot>()
     val persistedStates = mutableMapOf<String?, AiChatPersistedState>()
     val draftStates = mutableMapOf<Pair<String?, String?>, AiChatDraftState>()
+    var startRunError: Exception? = null
     var loadBootstrapCalls: Int = 0
-    var nextCreateNewSessionSessionId: String? = null
     var startRunResponse: AiChatStartRunResponse = AiChatAcceptedConversationEnvelope(
         accepted = true,
         sessionId = "session-1",
@@ -584,6 +841,7 @@ private class FakeAiChatRepository : AiChatRepository {
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse {
         loadBootstrapCalls += 1
+        loadBootstrapSessionIds += sessionId
         if (loadBootstrapGates.isNotEmpty()) {
             loadBootstrapGates.removeFirst().await()
         }
@@ -592,16 +850,18 @@ private class FakeAiChatRepository : AiChatRepository {
 
     override suspend fun createNewSession(
         workspaceId: String?,
-        sessionId: String?,
-        forceFresh: Boolean
+        sessionId: String
     ): AiChatSessionSnapshot {
         createNewSessionRequests += sessionId
-        createNewSessionForceFreshRequests += forceFresh
-        val resolvedSessionId = nextCreateNewSessionSessionId ?: sessionId ?: "session-new"
-        nextCreateNewSessionSessionId = null
+        if (createNewSessionGates.isNotEmpty()) {
+            createNewSessionGates.removeFirst().await()
+        }
+        if (createNewSessionResponses.isNotEmpty()) {
+            return createNewSessionResponses.removeFirst()
+        }
         return com.flashcardsopensourceapp.data.local.model.AiChatConversationEnvelope(
-            sessionId = resolvedSessionId,
-            conversationScopeId = resolvedSessionId,
+            sessionId = sessionId,
+            conversationScopeId = sessionId,
             conversation = com.flashcardsopensourceapp.data.local.model.AiChatConversation(
                 messages = emptyList(),
                 updatedAtMillis = 100L,
@@ -634,6 +894,9 @@ private class FakeAiChatRepository : AiChatRepository {
         state: AiChatPersistedState,
         content: List<AiChatContentPart>
     ): AiChatStartRunResponse {
+        startRunError?.let { error ->
+            throw error
+        }
         return startRunResponse
     }
 

@@ -1,8 +1,7 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { useAppData } from "../appData";
 import type { PendingAttachment } from "./FileAttachment";
 import {
-  adoptPendingChatDraftIfNeeded,
   createChatDraftContent,
   loadChatDraftWorkspaceState,
   readChatDraftForSession,
@@ -36,6 +35,11 @@ type Props = Readonly<{
   children: ReactNode;
 }>;
 
+type TransientChatDraft = Readonly<{
+  workspaceId: string | null;
+  draft: ChatDraftContent;
+}>;
+
 const ChatDraftContext = createContext<ChatDraftContextValue | null>(null);
 
 function createEmptyChatDraft(workspaceId: string | null): ChatDraft {
@@ -55,47 +59,54 @@ export function ChatDraftProvider(props: Props): ReactElement {
   const activeSessionId = session?.currentSessionId ?? null;
   const [draftsBySessionId, setDraftsBySessionId] = useState<Record<string, StoredChatDraft>>(() =>
     loadChatDraftWorkspaceState(activeWorkspaceId));
+  const [transientDraft, setTransientDraft] = useState<TransientChatDraft | null>(null);
   const [focusComposerRequestVersion, setFocusComposerRequestVersion] = useState<number>(0);
-  const didAdoptPendingDraftRef = useRef<boolean>(false);
 
   useEffect(() => {
     setDraftsBySessionId(loadChatDraftWorkspaceState(activeWorkspaceId));
-    didAdoptPendingDraftRef.current = false;
+    setTransientDraft(null);
   }, [activeWorkspaceId]);
-
-  useEffect(() => {
-    if (activeSessionId === null) {
-      didAdoptPendingDraftRef.current = false;
-      return;
-    }
-
-    if (activeWorkspaceId === null || didAdoptPendingDraftRef.current) {
-      return;
-    }
-
-    setDraftsBySessionId((currentDrafts) => {
-      const nextDrafts = adoptPendingChatDraftIfNeeded(currentDrafts, activeSessionId);
-      if (nextDrafts === currentDrafts) {
-        didAdoptPendingDraftRef.current = true;
-        return currentDrafts;
-      }
-
-      didAdoptPendingDraftRef.current = true;
-      return nextDrafts;
-    });
-  }, [activeSessionId, activeWorkspaceId]);
 
   useEffect(() => {
     storeChatDraftWorkspaceState(activeWorkspaceId, draftsBySessionId);
   }, [activeWorkspaceId, draftsBySessionId]);
 
-  const draft = getActiveDraft(activeWorkspaceId, activeSessionId, draftsBySessionId);
+  useEffect(() => {
+    if (activeWorkspaceId === null || activeSessionId === null || transientDraft === null) {
+      return;
+    }
+
+    if (transientDraft.workspaceId !== activeWorkspaceId) {
+      return;
+    }
+
+    setDraftsBySessionId((currentDrafts) => replaceChatDraftForSession(currentDrafts, activeSessionId, transientDraft.draft));
+    setTransientDraft(null);
+  }, [activeSessionId, activeWorkspaceId, transientDraft]);
+
+  const draft = getActiveDraft(activeWorkspaceId, activeSessionId, draftsBySessionId, transientDraft);
 
   function replaceDraftForSession(sessionId: string | null, nextDraft: ChatDraftContent): void {
+    if (sessionId === null) {
+      setTransientDraft(isChatDraftContentEmpty(nextDraft)
+        ? null
+        : { workspaceId: activeWorkspaceId, draft: nextDraft });
+      return;
+    }
+
+    if (transientDraft !== null && transientDraft.workspaceId === activeWorkspaceId) {
+      setTransientDraft(null);
+    }
+
     setDraftsBySessionId((currentDrafts) => replaceChatDraftForSession(currentDrafts, sessionId, nextDraft));
   }
 
   function clearDraftForSession(sessionId: string | null): void {
+    if (sessionId === null) {
+      setTransientDraft(null);
+      return;
+    }
+
     replaceDraftForSession(sessionId, createChatDraftContent("", []));
   }
 
@@ -142,9 +153,19 @@ function getActiveDraft(
   workspaceId: string | null,
   sessionId: string | null,
   draftsBySessionId: Readonly<Record<string, StoredChatDraft>>,
+  transientDraft: TransientChatDraft | null,
 ): ChatDraft {
   if (workspaceId === null) {
     return createEmptyChatDraft(null);
+  }
+
+  if (transientDraft !== null && transientDraft.workspaceId === workspaceId) {
+    return {
+      workspaceId,
+      sessionId,
+      inputText: transientDraft.draft.inputText,
+      pendingAttachments: transientDraft.draft.pendingAttachments,
+    };
   }
 
   const resolvedDraft = readChatDraftForSession(draftsBySessionId, sessionId);
@@ -158,6 +179,10 @@ function getActiveDraft(
   }
 
   return createEmptyChatDraft(workspaceId);
+}
+
+function isChatDraftContentEmpty(draft: ChatDraftContent): boolean {
+  return draft.inputText.trim() === "" && draft.pendingAttachments.length === 0;
 }
 
 export function useChatDraft(): ChatDraftContextValue {

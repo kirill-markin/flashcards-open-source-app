@@ -150,7 +150,7 @@ interface AiChatRepository {
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse
-    suspend fun createNewSession(workspaceId: String?, sessionId: String?, forceFresh: Boolean): AiChatSessionSnapshot
+    suspend fun createNewSession(workspaceId: String?, sessionId: String): AiChatSessionSnapshot
     suspend fun transcribeAudio(
         workspaceId: String?,
         sessionId: String?,

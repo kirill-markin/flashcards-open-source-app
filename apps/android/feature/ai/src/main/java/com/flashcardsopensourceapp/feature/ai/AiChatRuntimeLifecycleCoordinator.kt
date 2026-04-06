@@ -46,10 +46,17 @@ internal class AiChatRuntimeLifecycleCoordinator(
         }
 
         context.scope.launch {
-            val persistedState = context.aiChatRepository.loadPersistedState(workspaceId = accessContext.workspaceId)
+            val persistedState = normalizeAiChatPersistedStateForWorkspace(
+                workspaceId = accessContext.workspaceId,
+                persistedState = context.aiChatRepository.loadPersistedState(workspaceId = accessContext.workspaceId)
+            )
+            val persistedSessionId = resolveAiChatSessionIdForWorkspace(
+                workspaceId = accessContext.workspaceId,
+                sessionId = persistedState.chatSessionId
+            )
             val draftState = context.aiChatRepository.loadDraftState(
                 workspaceId = accessContext.workspaceId,
-                sessionId = persistedState.chatSessionId.ifBlank { null }
+                sessionId = persistedSessionId
             )
             context.runtimeStateMutable.value = makeAiDraftState(
                 workspaceId = accessContext.workspaceId,

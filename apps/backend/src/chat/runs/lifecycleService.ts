@@ -17,7 +17,7 @@ import {
   insertChatItemWithExecutor,
   listChatMessagesWithExecutor,
   resolveLatestOrCreateChatSessionWithExecutor,
-  resolveRequestedChatSessionWithExecutor,
+  resolveRequestedOrCreateChatSessionWithExecutor,
   STOPPED_BY_USER_TOOL_OUTPUT,
   updateChatItemWithExecutor,
   updateChatSessionRunStateWithExecutor,
@@ -64,7 +64,7 @@ export async function prepareChatRun(
     const scope = { userId, workspaceId };
     const session = requestedSessionId === undefined
       ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
-      : await resolveRequestedChatSessionWithExecutor(executor, scope, requestedSessionId);
+      : await resolveRequestedOrCreateChatSessionWithExecutor(executor, scope, requestedSessionId);
     const lockedSession = await selectSessionForUpdateWithExecutor(executor, scope, session.session_id);
     const existingRun = await selectChatRunBySessionRequestWithExecutor(
       executor,

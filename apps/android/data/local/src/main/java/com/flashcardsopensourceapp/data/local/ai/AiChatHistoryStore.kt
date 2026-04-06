@@ -33,7 +33,6 @@ private const val aiChatDefaultHistoryKey: String = "ai-chat-history"
 private const val aiChatWorkspaceHistoryPrefix: String = "ai-chat-history::"
 private const val aiChatDefaultDraftKey: String = "ai-chat-draft"
 private const val aiChatWorkspaceDraftPrefix: String = "ai-chat-draft::"
-private const val aiChatPendingDraftSessionId: String = "__pending__"
 private const val aiChatMaxMessages: Int = 200
 
 fun makeAiChatHistoryScopedWorkspaceId(
@@ -109,6 +108,7 @@ class AiChatHistoryStore(
 
     suspend fun loadDraftState(workspaceId: String?, sessionId: String?): AiChatDraftState = withContext(Dispatchers.IO) {
         val resolvedSessionId = normalizeSessionId(sessionId = sessionId)
+            ?: return@withContext makeDefaultAiChatDraftState()
         val draftKey = draftStorageKey(workspaceId = workspaceId, sessionId = resolvedSessionId)
         val rawValue = preferences.getString(draftKey, null)
         if (rawValue != null) {
@@ -129,69 +129,30 @@ class AiChatHistoryStore(
                 makeDefaultAiChatDraftState()
             }
         }
-
-        if (resolvedSessionId == aiChatPendingDraftSessionId) {
-            return@withContext makeDefaultAiChatDraftState()
-        }
-
-        val pendingKey = draftStorageKey(workspaceId = workspaceId, sessionId = aiChatPendingDraftSessionId)
-        val pendingValue = preferences.getString(pendingKey, null)
-            ?: return@withContext makeDefaultAiChatDraftState()
-
-        val draftState = try {
-            decodeDraftState(rawValue = pendingValue)
-        } catch (error: Exception) {
-            AiChatDiagnosticsLogger.error(
-                event = "ai_chat_draft_load_failed",
-                fields = listOf(
-                    "workspaceId" to workspaceId,
-                    "sessionId" to sessionId,
-                    "storageKey" to pendingKey,
-                    "message" to error.message
-                ),
-                throwable = error
-            )
-            clearDraftStorageKey(workspaceId = workspaceId, sessionId = aiChatPendingDraftSessionId)
-            return@withContext makeDefaultAiChatDraftState()
-        }
-
-        if (draftState.isEmpty().not()) {
-            preferences.edit(commit = true) {
-                putString(draftKey, encodeDraftState(draftState = draftState).toString())
-                remove(pendingKey)
-            }
-        } else {
-            clearDraftStorageKey(workspaceId = workspaceId, sessionId = aiChatPendingDraftSessionId)
-        }
-        return@withContext draftState
+        return@withContext makeDefaultAiChatDraftState()
     }
 
     suspend fun saveDraftState(workspaceId: String?, sessionId: String?, state: AiChatDraftState) = withContext(Dispatchers.IO) {
         val normalizedSessionId = normalizeSessionId(sessionId = sessionId)
+            ?: throw IllegalArgumentException("AI chat draft state requires a sessionId.")
         val storageKey = draftStorageKey(workspaceId = workspaceId, sessionId = normalizedSessionId)
-        val pendingKey = draftStorageKey(workspaceId = workspaceId, sessionId = aiChatPendingDraftSessionId)
         if (state.isEmpty()) {
             preferences.edit(commit = true) {
                 remove(storageKey)
-                if (normalizedSessionId != aiChatPendingDraftSessionId) {
-                    remove(pendingKey)
-                }
             }
             return@withContext
         }
 
         preferences.edit(commit = true) {
             putString(storageKey, encodeDraftState(draftState = state).toString())
-            if (normalizedSessionId != aiChatPendingDraftSessionId) {
-                remove(pendingKey)
-            }
         }
     }
 
     suspend fun clearDraftState(workspaceId: String?, sessionId: String?) = withContext(Dispatchers.IO) {
+        val normalizedSessionId = normalizeSessionId(sessionId = sessionId) ?: return@withContext
         clearDraftStorageKey(
             workspaceId = workspaceId,
-            sessionId = normalizeSessionId(sessionId = sessionId)
+            sessionId = normalizedSessionId
         )
     }
 
@@ -233,8 +194,8 @@ class AiChatHistoryStore(
         return aiChatWorkspaceDraftPrefix + workspaceId + "::" + sessionId
     }
 
-    private fun normalizeSessionId(sessionId: String?): String {
-        return sessionId?.trim()?.takeIf { value -> value.isNotEmpty() } ?: aiChatPendingDraftSessionId
+    private fun normalizeSessionId(sessionId: String?): String? {
+        return sessionId?.trim()?.takeIf { value -> value.isNotEmpty() }
     }
 
     private fun encodeState(state: AiChatPersistedState): JSONObject {

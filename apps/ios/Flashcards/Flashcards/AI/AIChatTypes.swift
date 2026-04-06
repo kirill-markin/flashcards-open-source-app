@@ -78,6 +78,19 @@ func makeAIChatSessionId() -> String {
     UUID().uuidString.lowercased()
 }
 
+func aiChatResolvedSessionId(
+    workspaceId: String?,
+    sessionId: String
+) -> String {
+    let trimmedSessionId = sessionId.trimmingCharacters(in: .whitespacesAndNewlines)
+    if trimmedSessionId.isEmpty == false {
+        return trimmedSessionId
+    }
+
+    _ = workspaceId
+    return ""
+}
+
 func makeAIChatClientRequestId() -> String {
     UUID().uuidString.lowercased()
 }
@@ -997,7 +1010,6 @@ struct AIChatLiveStreamEnvelope: Codable, Hashable, Sendable {
 
 struct AIChatNewSessionRequestBody: Codable, Hashable, Sendable {
     let sessionId: String?
-    let forceFresh: Bool
 }
 
 struct AIChatNewSessionResponse: Codable, Hashable, Sendable {
@@ -1154,8 +1166,7 @@ protocol AIChatSessionServicing: Sendable {
 
     func createNewSession(
         session: CloudLinkedSession,
-        sessionId: String?,
-        forceFresh: Bool
+        sessionId: String?
     ) async throws -> AIChatNewSessionResponse
 
     func stopRun(

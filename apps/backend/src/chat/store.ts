@@ -18,7 +18,11 @@ import {
   type ChatComposerSuggestionInvalidationReason,
   type ChatComposerSuggestionSource,
 } from "./composerSuggestions";
-import { ChatItemRowNotFoundError, ChatSessionRowNotFoundError } from "./errors";
+import {
+  ChatItemRowNotFoundError,
+  ChatSessionRowNotFoundError,
+  createChatSessionRequestedSessionIdConflictError,
+} from "./errors";
 import { finalizePendingToolCallContent, type StoredMessage } from "./history";
 import type {
   ServerChatMessage,
@@ -244,6 +248,23 @@ const INSERT_SESSION_SQL = `
     updated_at
   )
   VALUES ($1, $2, 'idle', NULL, NULL, '[]'::jsonb, 0, now())
+  RETURNING session_id
+`;
+
+const INSERT_REQUESTED_SESSION_SQL = `
+  INSERT INTO ai.chat_sessions (
+    session_id,
+    user_id,
+    workspace_id,
+    status,
+    active_run_id,
+    active_run_heartbeat_at,
+    composer_suggestions,
+    main_content_invalidation_version,
+    updated_at
+  )
+  VALUES ($1::uuid, $2, $3, 'idle', NULL, NULL, '[]'::jsonb, 0, now())
+  ON CONFLICT (session_id) DO NOTHING
   RETURNING session_id
 `;
 
@@ -698,13 +719,30 @@ async function updateChatItemAndInvalidateMainContentWithExecutor(
 async function createChatSessionWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
+  requestedSessionId?: string,
 ): Promise<ChatSessionRow> {
   return withScopedExecutor(executor, scope, async () => {
-    const rows = await executeQuery<InsertedChatSessionRow>(executor, INSERT_SESSION_SQL, [
-      scope.userId,
-      scope.workspaceId,
-    ]);
+    const rows = requestedSessionId === undefined
+      ? await executeQuery<InsertedChatSessionRow>(executor, INSERT_SESSION_SQL, [
+        scope.userId,
+        scope.workspaceId,
+      ])
+      : await executeQuery<InsertedChatSessionRow>(executor, INSERT_REQUESTED_SESSION_SQL, [
+        requestedSessionId,
+        scope.userId,
+        scope.workspaceId,
+      ]);
     const insertedSession = rows[0];
+
+    if (insertedSession === undefined && requestedSessionId !== undefined) {
+      const existingSession = await selectRequestedChatSessionWithExecutor(executor, scope, requestedSessionId);
+      if (existingSession !== null) {
+        return existingSession;
+      }
+
+      throw createChatSessionRequestedSessionIdConflictError(requestedSessionId);
+    }
+
     if (insertedSession === undefined) {
       throw new ChatSessionRowNotFoundError("insert");
     }
@@ -960,12 +998,30 @@ export async function resolveRequestedChatSessionWithExecutor(
 }
 
 /**
+ * Resolves the requested session or creates it with the exact explicit session id when missing.
+ */
+export async function resolveRequestedOrCreateChatSessionWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+): Promise<ChatSessionRow> {
+  const row = await selectRequestedChatSessionWithExecutor(executor, scope, sessionId);
+  if (row !== null) {
+    return row;
+  }
+
+  return createChatSessionWithExecutor(executor, scope, sessionId);
+}
+
+/**
  * Resolves the latest session for the workspace or creates a fresh one when none exists yet.
  */
 export async function resolveLatestOrCreateChatSessionWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
 ): Promise<ChatSessionRow> {
+  // Legacy callers may still omit sessionId. Keep resolving the latest-or-create
+  // behavior for backward compatibility while newer clients pass an explicit id.
   const latestSession = await selectLatestChatSessionWithExecutor(executor, scope);
   if (latestSession !== null) {
     return latestSession;
@@ -1005,9 +1061,10 @@ export const getLatestChatSessionIdWithExecutor = async (
 export const createFreshChatSessionWithExecutor = async (
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
+  requestedSessionId?: string,
 ): Promise<string> =>
   withScopedExecutor(executor, scope, async () => {
-    const row = await createChatSessionWithExecutor(executor, scope);
+    const row = await createChatSessionWithExecutor(executor, scope, requestedSessionId);
     return row.session_id;
   });
 
@@ -1112,9 +1169,11 @@ export const getChatSessionSnapshotWithExecutor = async (
   sessionId?: string,
 ): Promise<ChatSessionSnapshot> =>
   withScopedExecutor(executor, scope, async () => {
+    // sessionId === undefined is a backward-compatible branch for older clients
+    // that still omit session selection. Newer clients should send an explicit id.
     const sessionRow = sessionId === undefined
       ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
-      : await resolveRequestedChatSessionWithExecutor(executor, scope, sessionId);
+      : await resolveRequestedOrCreateChatSessionWithExecutor(executor, scope, sessionId);
     const rows = await executeQuery<ChatItemRow>(executor, LIST_CHAT_ITEMS_SQL, [sessionRow.session_id]);
     const messages = rows.map((row) => mapChatItemRow(row));
 
@@ -1202,9 +1261,10 @@ export const getLatestChatSessionId = async (
 export const createFreshChatSession = async (
   userId: string,
   workspaceId: string,
+  requestedSessionId?: string,
 ): Promise<string> =>
   transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
-    createFreshChatSessionWithExecutor(executor, { userId, workspaceId }));
+    createFreshChatSessionWithExecutor(executor, { userId, workspaceId }, requestedSessionId));
 
 /**
  * Invalidates the previous session's active generation and creates a fresh

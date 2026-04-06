@@ -3,6 +3,7 @@
  * The endpoint stays thin: it authenticates, enforces guest quota, and delegates upload parsing and transcription to the chat module.
  */
 import { Hono } from "hono";
+import { isChatSessionRequestedSessionIdConflictError } from "../chat/errors";
 import { getRecoveredChatSessionSnapshot } from "../chat/runs";
 import {
   parseChatTranscriptionUpload,
@@ -10,7 +11,6 @@ import {
   type ChatTranscriptionRequestContext,
   type ChatTranscriptionUpload,
 } from "../chat/transcriptions";
-import { ChatSessionNotFoundError } from "../chat/store";
 import { HttpError } from "../errors";
 import { startChatTranscriptionObservation } from "../telemetry/langfuse";
 import {
@@ -35,19 +35,31 @@ type ChatTranscriptionRouteResponse = Readonly<{
   sessionId: string;
 }>;
 
+const chatSessionIdConflictCode = "CHAT_SESSION_ID_CONFLICT";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 async function resolveChatTranscriptionSessionId(
   userId: string,
   workspaceId: string,
   requestedSessionId: string | undefined,
   getRecoveredChatSessionSnapshotFn: typeof getRecoveredChatSessionSnapshot,
 ): Promise<string> {
+  if (requestedSessionId !== undefined && !UUID_PATTERN.test(requestedSessionId)) {
+    throw new HttpError(400, "sessionId must be a UUID", "CHAT_SESSION_ID_INVALID");
+  }
+
+  // Older clients may still omit sessionId here. Keep that path for backward
+  // compatibility even though the preferred current flow is an explicit id.
   try {
-    return await getRecoveredChatSessionSnapshotFn(userId, workspaceId, requestedSessionId)
-      .then((snapshot) => snapshot.sessionId);
+    const snapshot = await getRecoveredChatSessionSnapshotFn(userId, workspaceId, requestedSessionId);
+    return snapshot.sessionId;
   } catch (error) {
-    if (requestedSessionId !== undefined && error instanceof ChatSessionNotFoundError) {
-      return getRecoveredChatSessionSnapshotFn(userId, workspaceId)
-        .then((snapshot) => snapshot.sessionId);
+    if (isChatSessionRequestedSessionIdConflictError(error)) {
+      throw new HttpError(
+        409,
+        "Requested chat session id is already in use.",
+        chatSessionIdConflictCode,
+      );
     }
 
     throw error;
