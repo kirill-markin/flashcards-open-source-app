@@ -13,6 +13,7 @@ import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.notifications.NotificationPermissionPromptState
+import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.defaultNotificationPermissionPromptState
 import com.flashcardsopensourceapp.data.local.notifications.reviewNotificationPermissionPromptThreshold
@@ -65,7 +66,7 @@ class ReviewViewModel(
     private val messageController: TransientMessageController,
     private val reviewNotificationsStore: ReviewNotificationsStore,
     private val shouldShowNotificationPermissionPrePrompt: () -> Boolean,
-    private val onReviewNotificationsChanged: () -> Unit,
+    private val onReviewNotificationsChanged: (ReviewNotificationsReconcileTrigger) -> Unit,
     private val onNotificationPermissionGranted: () -> Unit,
     private val reviewPreferencesStore: ReviewPreferencesStore,
     visibleAppScreenRepository: VisibleAppScreenRepository,
@@ -84,7 +85,7 @@ class ReviewViewModel(
         messageController = messageController,
         reviewNotificationsStore = NoOpReviewNotificationsStore,
         shouldShowNotificationPermissionPrePrompt = { false },
-        onReviewNotificationsChanged = {},
+        onReviewNotificationsChanged = { _ -> },
         onNotificationPermissionGranted = {},
         reviewPreferencesStore = reviewPreferencesStore,
         visibleAppScreenRepository = visibleAppScreenRepository,
@@ -256,7 +257,7 @@ class ReviewViewModel(
             )
         }
         persistSelectedReviewFilter(reviewFilter = reviewFilter)
-        onReviewNotificationsChanged()
+        onReviewNotificationsChanged(ReviewNotificationsReconcileTrigger.FILTER_CHANGED)
     }
 
     private fun persistSelectedReviewFilter(reviewFilter: ReviewFilter) {
@@ -415,7 +416,7 @@ class ReviewViewModel(
         reviewNotificationsStore.saveLastActiveAtMillis(timestampMillis = System.currentTimeMillis())
         val nextReviewCount = reviewNotificationsStore.loadSuccessfulReviewCount() + 1
         reviewNotificationsStore.saveSuccessfulReviewCount(count = nextReviewCount)
-        onReviewNotificationsChanged()
+        onReviewNotificationsChanged(ReviewNotificationsReconcileTrigger.REVIEW_RECORDED)
 
         val promptState = reviewNotificationsStore.loadPromptState()
         if (nextReviewCount < reviewNotificationPermissionPromptThreshold) {
@@ -654,7 +655,7 @@ fun createReviewViewModelFactory(
     messageController: TransientMessageController,
     reviewNotificationsStore: ReviewNotificationsStore,
     shouldShowNotificationPermissionPrePrompt: () -> Boolean,
-    onReviewNotificationsChanged: () -> Unit,
+    onReviewNotificationsChanged: (ReviewNotificationsReconcileTrigger) -> Unit,
     onNotificationPermissionGranted: () -> Unit,
     reviewPreferencesStore: ReviewPreferencesStore,
     visibleAppScreenRepository: VisibleAppScreenRepository,

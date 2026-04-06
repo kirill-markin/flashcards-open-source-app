@@ -30,6 +30,7 @@ import com.flashcardsopensourceapp.feature.settings.createWorkspaceExportViewMod
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceOverviewViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceTagsViewModelFactory
+import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -85,7 +86,10 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                     workspaceRepository = appGraph.workspaceRepository,
                     reviewNotificationsStore = appGraph.reviewNotificationsStore,
                     onSettingsChanged = {
-                        appGraph.reviewNotificationsManager.refreshCurrentWorkspaceScheduling()
+                        appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
+                            trigger = ReviewNotificationsReconcileTrigger.SETTINGS_CHANGED,
+                            nowMillis = System.currentTimeMillis()
+                        )
                     }
                 )
             )
@@ -102,7 +106,6 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 onMarkSystemPermissionRequested = reviewNotificationsViewModel::markSystemPermissionRequested,
                 onPermissionGranted = {
                     appGraph.reviewNotificationsManager.enableDefaultDailyForCurrentWorkspace()
-                    appGraph.reviewNotificationsManager.refreshCurrentWorkspaceScheduling()
                 },
                 onBack = {
                     navController.popBackStack()

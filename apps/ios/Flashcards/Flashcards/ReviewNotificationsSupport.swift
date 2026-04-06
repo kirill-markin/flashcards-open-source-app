@@ -37,6 +37,27 @@ enum ReviewNotificationMode: String, Codable, CaseIterable, Identifiable, Hashab
     }
 }
 
+enum ReviewNotificationsReconcileTrigger: Hashable, Sendable {
+    case appActive
+    case appBackground
+    case settingsChanged
+    case permissionChanged
+    case reviewRecorded
+    case filterChanged
+    case workspaceChanged
+
+    /// Only `appActive` clears delivered reminders because the user has already returned
+    /// to the app and the old reminders have served their purpose.
+    var shouldClearDeliveredReviewNotifications: Bool {
+        switch self {
+        case .appActive:
+            return true
+        case .appBackground, .settingsChanged, .permissionChanged, .reviewRecorded, .filterChanged, .workspaceChanged:
+            return false
+        }
+    }
+}
+
 struct DailyReviewNotificationsSettings: Codable, Hashable, Sendable {
     let hour: Int
     let minute: Int
@@ -239,26 +260,56 @@ func makeReviewNotificationRequestIdentifier(workspaceId: String, kind: String, 
     "review-notification::\(workspaceId)::\(kind)::\(suffix)"
 }
 
+/// Review reminders are identified by the shared `review-notification::` identifier prefix.
 func isReviewNotificationRequestIdentifier(identifier: String) -> Bool {
     identifier.hasPrefix("review-notification::")
 }
 
+/// Keeps only identifiers that belong to review reminders.
+func filterReviewNotificationRequestIdentifiers(identifiers: [String]) -> [String] {
+    identifiers.filter(isReviewNotificationRequestIdentifier)
+}
+
+/// Returns the identifiers of pending review reminders queued by the app.
 func pendingReviewNotificationRequestIdentifiers(
     center: UNUserNotificationCenter
 ) async -> [String] {
     await withCheckedContinuation { continuation in
         center.getPendingNotificationRequests { requests in
             continuation.resume(
-                returning: requests.compactMap { request in
-                    let identifier = request.identifier
-                    guard isReviewNotificationRequestIdentifier(identifier: identifier) else {
-                        return nil
-                    }
-                    return identifier
-                }
+                returning: filterReviewNotificationRequestIdentifiers(
+                    identifiers: requests.map(\.identifier)
+                )
             )
         }
     }
+}
+
+/// Returns the identifiers of delivered review reminders currently shown by Notification Center.
+func deliveredReviewNotificationRequestIdentifiers(
+    center: UNUserNotificationCenter
+) async -> [String] {
+    await withCheckedContinuation { continuation in
+        center.getDeliveredNotifications { notifications in
+            continuation.resume(
+                returning: filterReviewNotificationRequestIdentifiers(
+                    identifiers: notifications.map(\.request.identifier)
+                )
+            )
+        }
+    }
+}
+
+/// Removes delivered review reminders from Notification Center.
+func removeDeliveredReviewNotifications(
+    center: UNUserNotificationCenter
+) async {
+    let deliveredRequestIdentifiers = await deliveredReviewNotificationRequestIdentifiers(center: center)
+    guard deliveredRequestIdentifiers.isEmpty == false else {
+        return
+    }
+
+    center.removeDeliveredNotifications(withIdentifiers: deliveredRequestIdentifiers)
 }
 
 func makeReviewNotificationRequestSuffix(scheduledAt: Date, calendar: Calendar) -> String {

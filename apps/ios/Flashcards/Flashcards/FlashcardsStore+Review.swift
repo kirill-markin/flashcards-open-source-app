@@ -11,7 +11,7 @@ extension FlashcardsStore {
     func selectReviewFilter(reviewFilter: ReviewFilter) {
         self.extendCloudSyncFastPolling(now: Date())
         self.startReviewLoad(reviewFilter: reviewFilter, now: Date())
-        self.refreshReviewNotificationsScheduling(now: Date())
+        self.reconcileReviewNotifications(trigger: .filterChanged, now: Date())
     }
 
     func startReviewLoad(reviewFilter: ReviewFilter, now: Date) {

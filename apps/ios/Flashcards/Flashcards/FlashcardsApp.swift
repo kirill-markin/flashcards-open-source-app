@@ -144,7 +144,7 @@ struct FlashcardsApp: App {
                             surfacesGlobalErrorMessage: false
                         )
                     )
-                    store.markReviewNotificationsAppActive(now: now)
+                    store.reconcileReviewNotifications(trigger: .appActive, now: now)
                 }
                 .onChange(of: scenePhase) { _, nextPhase in
                     if nextPhase == .active {
@@ -159,9 +159,9 @@ struct FlashcardsApp: App {
                                 surfacesGlobalErrorMessage: false
                             )
                         )
-                        store.markReviewNotificationsAppActive(now: now)
+                        store.reconcileReviewNotifications(trigger: .appActive, now: now)
                     } else if nextPhase == .background || nextPhase == .inactive {
-                        store.markReviewNotificationsAppBackground(now: Date())
+                        store.reconcileReviewNotifications(trigger: .appBackground, now: Date())
                     }
                 }
                 .task(id: self.isAppNotificationTapConsumptionReady) {
