@@ -4,15 +4,23 @@ package com.flashcardsopensourceapp.data.local.model
 // - apps/ios/Flashcards/Flashcards/ReviewQuerySupport.swift::compareCardsForReviewOrder
 // - apps/ios/Flashcards/Flashcards/Database/CardStore+ReadSQL.swift review queue ORDER BY
 // - apps/web/src/appData/domain.ts::compareCardsForReviewOrder
-// Ordering contract: due cards first, then earlier dueAt, then newer createdAt, then cardId ascending.
+// Ordering contract: timed due cards first, then null due/new cards, then future cards,
+// followed by earlier dueAt, newer createdAt, then cardId ascending.
 // If this changes, mirror the same change across all three clients in the same change.
-private fun sortCardsForReviewQueue(cards: List<CardSummary>): List<CardSummary> {
+private fun reviewOrderRank(card: CardSummary, nowMillis: Long): Int {
+    return when {
+        card.dueAtMillis != null && card.dueAtMillis <= nowMillis -> 0
+        card.dueAtMillis == null -> 1
+        else -> 2
+    }
+}
+
+private fun sortCardsForReviewQueue(cards: List<CardSummary>, nowMillis: Long): List<CardSummary> {
     return cards.sortedWith(
         compareBy<CardSummary> { card ->
-            when {
-                card.dueAtMillis == null -> 0L
-                else -> card.dueAtMillis
-            }
+            reviewOrderRank(card = card, nowMillis = nowMillis)
+        }.thenBy { card ->
+            card.dueAtMillis ?: Long.MIN_VALUE
         }.thenByDescending { card ->
             card.createdAtMillis
         }.thenBy { card ->
@@ -98,6 +106,7 @@ private fun dueCardsMatchingReviewFilter(
     reviewedAtMillis: Long
 ): List<CardSummary> {
     return sortCardsForReviewQueue(
+        nowMillis = reviewedAtMillis,
         cards = cards.filter { card ->
             matchesReviewFilter(
                 filter = selectedFilter,
@@ -248,11 +257,13 @@ fun buildReviewTimelinePage(
         cards = cards
     )
     val dueCards = sortCardsForReviewQueue(
+        nowMillis = reviewedAtMillis,
         cards = matchingCards.filter { card ->
             isCardDue(card = card, nowMillis = reviewedAtMillis)
         }
     )
     val futureCards = sortCardsForReviewQueue(
+        nowMillis = reviewedAtMillis,
         cards = matchingCards.filter { card ->
             isCardDue(card = card, nowMillis = reviewedAtMillis).not()
         }

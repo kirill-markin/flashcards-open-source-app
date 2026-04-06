@@ -153,8 +153,9 @@ interface CardDao {
             AND (dueAtMillis IS NULL OR dueAtMillis <= :nowMillis)
         ORDER BY
             CASE
-                WHEN dueAtMillis IS NULL THEN 0
-                ELSE 1
+                WHEN dueAtMillis <= :nowMillis THEN 0
+                WHEN dueAtMillis IS NULL THEN 1
+                ELSE 2
             END ASC,
             dueAtMillis ASC,
             createdAtMillis DESC,
@@ -173,8 +174,9 @@ interface CardDao {
             AND effortLevel IN (:effortLevels)
         ORDER BY
             CASE
-                WHEN dueAtMillis IS NULL THEN 0
-                ELSE 1
+                WHEN dueAtMillis <= :nowMillis THEN 0
+                WHEN dueAtMillis IS NULL THEN 1
+                ELSE 2
             END ASC,
             dueAtMillis ASC,
             createdAtMillis DESC,
@@ -204,8 +206,9 @@ interface CardDao {
             )
         ORDER BY
             CASE
-                WHEN dueAtMillis IS NULL THEN 0
-                ELSE 1
+                WHEN dueAtMillis <= :nowMillis THEN 0
+                WHEN dueAtMillis IS NULL THEN 1
+                ELSE 2
             END ASC,
             dueAtMillis ASC,
             createdAtMillis DESC,
@@ -233,11 +236,12 @@ interface CardDao {
                 WHERE card_tags.cardId = cards.cardId
                     AND tags.workspaceId = cards.workspaceId
                     AND LOWER(tags.name) IN (:normalizedTagNames)
-            )
+        )
         ORDER BY
             CASE
-                WHEN dueAtMillis IS NULL THEN 0
-                ELSE 1
+                WHEN dueAtMillis <= :nowMillis THEN 0
+                WHEN dueAtMillis IS NULL THEN 1
+                ELSE 2
             END ASC,
             dueAtMillis ASC,
             createdAtMillis DESC,
