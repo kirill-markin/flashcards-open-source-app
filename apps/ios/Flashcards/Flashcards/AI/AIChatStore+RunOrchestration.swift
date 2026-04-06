@@ -220,15 +220,20 @@ extension AIChatStore {
 
     func makeOutgoingContent() -> [AIChatContentPart] {
         var content: [AIChatContentPart] = self.pendingAttachments.map { attachment in
-            if attachment.isImage {
-                return .image(mediaType: attachment.mediaType, base64Data: attachment.base64Data)
-            }
+            switch attachment.payload {
+            case .binary(let fileName, let mediaType, let base64Data):
+                if attachment.isImage {
+                    return .image(mediaType: mediaType, base64Data: base64Data)
+                }
 
-            return .file(
-                fileName: attachment.fileName,
-                mediaType: attachment.mediaType,
-                base64Data: attachment.base64Data
-            )
+                return .file(
+                    fileName: fileName,
+                    mediaType: mediaType,
+                    base64Data: base64Data
+                )
+            case .card(let card):
+                return .card(card)
+            }
         }
 
         let trimmedText = self.trimmedInputText()
@@ -255,8 +260,10 @@ extension AIChatStore {
 
         if didAcceptRun == false && didAppendOptimisticMessages {
             self.messages = latestPersistedState.messages
-            self.inputText = draftText
-            self.pendingAttachments = draftAttachments
+            self.applyComposerDraft(
+                inputText: draftText,
+                pendingAttachments: draftAttachments
+            )
         }
 
         if didAcceptRun == false && isAIChatOfflineSendError(error: error) {
@@ -328,8 +335,8 @@ extension AIChatStore {
                 }
                 self.messages = []
                 self.chatSessionId = ""
-                self.pendingAttachments = []
-                self.inputText = ""
+                self.applyComposerDraft(inputText: "", pendingAttachments: [])
+                self.schedulePersistCurrentDraftState()
                 self.transitionToIdle()
                 self.repairStatus = nil
                 self.bootstrapPhase = .failed(Flashcards.errorMessage(error: error))
@@ -345,8 +352,8 @@ extension AIChatStore {
         switch event {
         case .accepted(let response):
             self.applyEnvelope(response.envelope)
-            self.inputText = ""
-            self.pendingAttachments = []
+            self.applyComposerDraft(inputText: "", pendingAttachments: [])
+            self.schedulePersistCurrentDraftState()
             self.repairStatus = nil
             if response.activeRun != nil {
                 self.attachActiveLiveStreamIfPossible()

@@ -2,6 +2,8 @@ import Foundation
 
 let aiChatHistoryStorageKey: String = "ai-chat-history"
 let aiChatHistoryStorageKeyPrefix: String = "ai-chat-history::"
+let aiChatDraftStorageKeyPrefix: String = "ai-chat-draft::"
+private let aiChatDraftPendingSessionId: String = "pending"
 private let aiChatMaxMessages: Int = 200
 private let aiChatHistoryMigrationCleanupVersionKey: String = "ai-chat-history-cleanup-version"
 private let aiChatHistoryMigrationCleanupVersion: Int = 2
@@ -39,6 +41,10 @@ func clearStoredAIChatHistories(userDefaults: UserDefaults) {
     for key in userDefaults.dictionaryRepresentation().keys where key.hasPrefix(aiChatHistoryStorageKeyPrefix) {
         userDefaults.removeObject(forKey: key)
     }
+
+    for key in userDefaults.dictionaryRepresentation().keys where key.hasPrefix(aiChatDraftStorageKeyPrefix) {
+        userDefaults.removeObject(forKey: key)
+    }
 }
 
 func storeAIChatHistoryStateSynchronously(
@@ -55,6 +61,44 @@ func storeAIChatHistoryStateSynchronously(
     )
     let data = try encoder.encode(trimmedState)
     userDefaults.set(data, forKey: aiChatHistoryStorageKeyForWorkspace(workspaceId: workspaceId))
+}
+
+func storeAIChatDraftSynchronously(
+    userDefaults: UserDefaults,
+    encoder: JSONEncoder,
+    workspaceId: String?,
+    sessionId: String?,
+    draft: AIChatComposerDraft
+) throws {
+    runAIChatHistoryMigrationCleanupIfNeeded(userDefaults: userDefaults)
+    let normalizedSessionId = normalizedAIChatDraftSessionId(sessionId: sessionId)
+    let key = aiChatDraftStorageKeyForWorkspace(
+        workspaceId: workspaceId,
+        sessionId: normalizedSessionId
+    )
+    if draft.isEmpty {
+        userDefaults.removeObject(forKey: key)
+        if normalizedSessionId != aiChatDraftPendingSessionId {
+            userDefaults.removeObject(
+                forKey: aiChatDraftStorageKeyForWorkspace(
+                    workspaceId: workspaceId,
+                    sessionId: nil
+                )
+            )
+        }
+        return
+    }
+
+    let data = try encoder.encode(draft)
+    userDefaults.set(data, forKey: key)
+    if normalizedSessionId != aiChatDraftPendingSessionId {
+        userDefaults.removeObject(
+            forKey: aiChatDraftStorageKeyForWorkspace(
+                workspaceId: workspaceId,
+                sessionId: nil
+            )
+        )
+    }
 }
 
 final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
@@ -129,6 +173,67 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
 
     func clearState() async {
         self.userDefaults.removeObject(forKey: self.storageKey())
+        removeStoredAIChatDrafts(
+            userDefaults: self.userDefaults,
+            workspaceId: self.currentWorkspaceId
+        )
+    }
+
+    func loadDraft(workspaceId: String?, sessionId: String?) -> AIChatComposerDraft {
+        runAIChatHistoryMigrationCleanupIfNeeded(userDefaults: self.userDefaults)
+        let resolvedKey = aiChatDraftStorageKeyForWorkspace(
+            workspaceId: workspaceId,
+            sessionId: sessionId
+        )
+
+        if let data = self.userDefaults.data(forKey: resolvedKey) {
+            do {
+                return try self.decoder.decode(AIChatComposerDraft.self, from: data)
+            } catch {
+                self.userDefaults.removeObject(forKey: resolvedKey)
+                return AIChatComposerDraft(inputText: "", pendingAttachments: [])
+            }
+        }
+
+        let pendingKey = aiChatDraftStorageKeyForWorkspace(
+            workspaceId: workspaceId,
+            sessionId: nil
+        )
+        guard resolvedKey != pendingKey else {
+            return AIChatComposerDraft(inputText: "", pendingAttachments: [])
+        }
+        guard let pendingData = self.userDefaults.data(forKey: pendingKey) else {
+            return AIChatComposerDraft(inputText: "", pendingAttachments: [])
+        }
+
+        do {
+            let draft = try self.decoder.decode(AIChatComposerDraft.self, from: pendingData)
+            self.userDefaults.set(pendingData, forKey: resolvedKey)
+            self.userDefaults.removeObject(forKey: pendingKey)
+            return draft
+        } catch {
+            self.userDefaults.removeObject(forKey: pendingKey)
+            return AIChatComposerDraft(inputText: "", pendingAttachments: [])
+        }
+    }
+
+    func saveDraft(workspaceId: String?, sessionId: String?, draft: AIChatComposerDraft) async {
+        do {
+            try storeAIChatDraftSynchronously(
+                userDefaults: self.userDefaults,
+                encoder: self.encoder,
+                workspaceId: workspaceId,
+                sessionId: sessionId,
+                draft: draft
+            )
+        } catch {
+            self.userDefaults.removeObject(
+                forKey: aiChatDraftStorageKeyForWorkspace(
+                    workspaceId: workspaceId,
+                    sessionId: sessionId
+                )
+            )
+        }
     }
 
     private func storageKey() -> String {
@@ -142,6 +247,49 @@ private func aiChatHistoryStorageKeyForWorkspace(workspaceId: String?) -> String
     }
 
     return makeAIChatHistoryStorageKey(workspaceId: workspaceId)
+}
+
+private func aiChatDraftStorageKeyForWorkspace(
+    workspaceId: String?,
+    sessionId: String?
+) -> String {
+    let sessionKey = normalizedAIChatDraftSessionId(sessionId: sessionId)
+    guard let workspaceId, workspaceId.isEmpty == false else {
+        return "\(aiChatDraftStorageKeyPrefix)\(sessionKey)"
+    }
+
+    return "\(aiChatDraftStorageKeyPrefix)\(workspaceId)::\(sessionKey)"
+}
+
+private func normalizedAIChatDraftSessionId(sessionId: String?) -> String {
+    let normalizedSessionId = sessionId?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return normalizedSessionId?.isEmpty == false ? normalizedSessionId! : aiChatDraftPendingSessionId
+}
+
+private func removeStoredAIChatDrafts(
+    userDefaults: UserDefaults,
+    workspaceId: String?
+) {
+    for key in userDefaults.dictionaryRepresentation().keys
+        where aiChatDraftStorageKeyMatchesWorkspace(key: key, workspaceId: workspaceId) {
+        userDefaults.removeObject(forKey: key)
+    }
+}
+
+private func aiChatDraftStorageKeyMatchesWorkspace(
+    key: String,
+    workspaceId: String?
+) -> Bool {
+    if let workspaceId, workspaceId.isEmpty == false {
+        return key.hasPrefix("\(aiChatDraftStorageKeyPrefix)\(workspaceId)::")
+    }
+
+    guard key.hasPrefix(aiChatDraftStorageKeyPrefix) else {
+        return false
+    }
+
+    let suffix = key.dropFirst(aiChatDraftStorageKeyPrefix.count)
+    return suffix.contains("::") == false
 }
 
 private func runAIChatHistoryMigrationCleanupIfNeeded(userDefaults: UserDefaults) {

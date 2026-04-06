@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.makeAiChatHistoryScopedWorkspaceId
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
@@ -70,6 +71,28 @@ class LocalAiChatRepository(
         historyStore.clearState(workspaceId = historyScopeId(workspaceId = workspaceId))
     }
 
+    override suspend fun loadDraftState(workspaceId: String?, sessionId: String?): AiChatDraftState {
+        return historyStore.loadDraftState(
+            workspaceId = historyScopeId(workspaceId = workspaceId),
+            sessionId = sessionId
+        )
+    }
+
+    override suspend fun saveDraftState(workspaceId: String?, sessionId: String?, state: AiChatDraftState) {
+        historyStore.saveDraftState(
+            workspaceId = historyScopeId(workspaceId = workspaceId),
+            sessionId = sessionId,
+            state = state
+        )
+    }
+
+    override suspend fun clearDraftState(workspaceId: String?, sessionId: String?) {
+        historyStore.clearDraftState(
+            workspaceId = historyScopeId(workspaceId = workspaceId),
+            sessionId = sessionId
+        )
+    }
+
     override suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot? {
         val session = authorizedSession(workspaceId = workspaceId)
         return try {
@@ -129,12 +152,17 @@ class LocalAiChatRepository(
         )
     }
 
-    override suspend fun createNewSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot {
+    override suspend fun createNewSession(
+        workspaceId: String?,
+        sessionId: String?,
+        forceFresh: Boolean
+    ): AiChatSessionSnapshot {
         val session = authorizedSession(workspaceId = workspaceId)
         return aiChatRemoteService.createNewSession(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader,
-            sessionId = sessionId
+            sessionId = sessionId,
+            forceFresh = forceFresh
         )
     }
 

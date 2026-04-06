@@ -138,10 +138,13 @@ extension AIChatStore {
         self.completedDictationTranscript = nil
     }
 
-    func applyPresentationRequest(request: AIChatPresentationRequest) {
+    func applyPresentationRequest(request: AIChatPresentationRequest) -> Bool {
         switch request {
         case .createCard:
             self.inputText = aiChatCreateCardDraftPrompt
+            return true
+        case .attachCard(let card):
+            return self.prepareCardHandoff(card: card)
         }
     }
 

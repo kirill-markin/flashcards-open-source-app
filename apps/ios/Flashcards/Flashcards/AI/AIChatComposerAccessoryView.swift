@@ -49,11 +49,20 @@ extension AIChatView {
                         HStack(spacing: 8) {
                             ForEach(self.chatStore.pendingAttachments) { attachment in
                                 HStack(spacing: 6) {
-                                    Image(systemName: attachment.isImage ? "photo" : "doc")
-                                        .foregroundStyle(.secondary)
-                                    Text(attachment.fileName)
-                                        .font(.caption)
-                                        .lineLimit(1)
+                                    switch attachment.payload {
+                                    case .binary(let fileName, _, _):
+                                        Image(systemName: attachment.isImage ? "photo" : "doc")
+                                            .foregroundStyle(.secondary)
+                                        Text(fileName)
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                    case .card(let card):
+                                        Image(systemName: "square.stack")
+                                            .foregroundStyle(.secondary)
+                                        Text(aiChatCardAttachmentLabel(card: card))
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                    }
                                     Button {
                                         self.chatStore.removeAttachment(id: attachment.id)
                                     } label: {
@@ -65,6 +74,7 @@ extension AIChatView {
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 8)
                                 .background(.thinMaterial, in: Capsule())
+                                .accessibilityIdentifier(aiChatComposerAttachmentIdentifier(attachment: attachment))
                             }
                         }
                     }
@@ -220,5 +230,14 @@ extension AIChatView {
 
     var composerTextFieldDisabled: Bool {
         self.chatStore.isChatInteractive == false || self.chatStore.dictationState != .idle
+    }
+}
+
+private func aiChatComposerAttachmentIdentifier(attachment: AIChatAttachment) -> String {
+    switch attachment.payload {
+    case .binary:
+        return attachment.id
+    case .card:
+        return UITestIdentifier.aiComposerCardAttachmentChip
     }
 }

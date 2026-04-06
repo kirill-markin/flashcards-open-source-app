@@ -47,10 +47,16 @@ internal class AiChatRuntimeLifecycleCoordinator(
 
         context.scope.launch {
             val persistedState = context.aiChatRepository.loadPersistedState(workspaceId = accessContext.workspaceId)
+            val draftState = context.aiChatRepository.loadDraftState(
+                workspaceId = accessContext.workspaceId,
+                sessionId = persistedState.chatSessionId.ifBlank { null }
+            )
             context.runtimeStateMutable.value = makeAiDraftState(
                 workspaceId = accessContext.workspaceId,
                 persistedState = persistedState
             ).copy(
+                draftMessage = draftState.draftMessage,
+                pendingAttachments = draftState.pendingAttachments,
                 conversationBootstrapState = if (
                     accessContext.workspaceId != null
                     && context.hasConsent()

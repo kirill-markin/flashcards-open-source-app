@@ -248,14 +248,15 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
 
     func createNewSession(
         session: CloudLinkedSession,
-        sessionId: String?
+        sessionId: String?,
+        forceFresh: Bool
     ) async throws -> AIChatNewSessionResponse {
         let clientRequestId = UUID().uuidString.lowercased()
         let request = try self.makeJsonRequest(
             session: session,
             path: "/chat/new",
             method: "POST",
-            body: AIChatNewSessionRequestBody(sessionId: sessionId),
+            body: AIChatNewSessionRequestBody(sessionId: sessionId, forceFresh: forceFresh),
             clientRequestId: clientRequestId
         )
         let data = try await self.execute(

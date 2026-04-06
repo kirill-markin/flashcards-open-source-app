@@ -177,6 +177,15 @@ internal class AiChatBootstrapCoordinator(
         response: AiChatBootstrapResponse,
         preserveLocalComposerState: Boolean
     ) {
+        val workspaceId = context.runtimeStateMutable.value.workspaceId
+        val draftState = if (preserveLocalComposerState) {
+            null
+        } else {
+            context.aiChatRepository.loadDraftState(
+                workspaceId = workspaceId,
+                sessionId = response.sessionId
+            )
+        }
         context.runtimeStateMutable.update { state ->
             updateComposerSuggestions(
                 state = state.copy(
@@ -193,12 +202,12 @@ internal class AiChatBootstrapCoordinator(
                     draftMessage = if (preserveLocalComposerState) {
                         state.draftMessage
                     } else {
-                        ""
+                        draftState?.draftMessage ?: ""
                     },
                     pendingAttachments = if (preserveLocalComposerState) {
                         state.pendingAttachments
                     } else {
-                        emptyList()
+                        draftState?.pendingAttachments ?: emptyList()
                     },
                     composerPhase = if (response.activeRun != null) {
                         AiComposerPhase.RUNNING

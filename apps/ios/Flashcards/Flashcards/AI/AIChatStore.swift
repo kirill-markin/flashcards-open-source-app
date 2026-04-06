@@ -1,6 +1,11 @@
 import Foundation
 import Observation
 
+fileprivate struct AIChatDraftPersistKey: Hashable, Sendable {
+    let workspaceId: String?
+    let sessionId: String?
+}
+
 @MainActor
 @Observable
 final class AIChatStore {
@@ -16,6 +21,7 @@ final class AIChatStore {
             var updatedState = self.composerState
             updatedState.inputText = newValue
             self.composerState = updatedState
+            self.schedulePersistCurrentDraftState()
         }
     }
 
@@ -34,6 +40,7 @@ final class AIChatStore {
             var updatedState = self.composerState
             updatedState.pendingAttachments = newValue
             self.composerState = updatedState
+            self.schedulePersistCurrentDraftState()
         }
     }
 
@@ -98,6 +105,8 @@ final class AIChatStore {
     @ObservationIgnored var activeNewSessionTask: Task<Void, Never>?
     @ObservationIgnored var activePersistTask: Task<Void, Never>?
     @ObservationIgnored var pendingPersistState: AIChatPersistedState?
+    @ObservationIgnored var activeDraftPersistTask: Task<Void, Never>?
+    @ObservationIgnored fileprivate var pendingDraftPersistStates: [AIChatDraftPersistKey: AIChatComposerDraft]
     @ObservationIgnored var activeConversationId: String?
     @ObservationIgnored var activeStreamingMessageId: String?
     @ObservationIgnored var activeStreamingItemId: String?
@@ -238,12 +247,90 @@ final class AIChatStore {
         self.schedulePersistState(state: self.currentPersistedState())
     }
 
+    func schedulePersistCurrentDraftState() {
+        self.schedulePersistDraftState(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
+            draft: self.currentComposerDraft()
+        )
+    }
+
+    func cancelPendingDraftPersistence() {
+        self.activeDraftPersistTask?.cancel()
+        self.activeDraftPersistTask = nil
+        self.pendingDraftPersistStates.removeAll()
+    }
+
+    func schedulePersistDraftState(
+        workspaceId: String?,
+        sessionId: String?,
+        draft: AIChatComposerDraft
+    ) {
+        let key = AIChatDraftPersistKey(workspaceId: workspaceId, sessionId: sessionId)
+        self.pendingDraftPersistStates[key] = draft
+        guard self.activeDraftPersistTask == nil else {
+            return
+        }
+
+        self.activeDraftPersistTask = Task { [weak self] in
+            while let self {
+                await Task.yield()
+                guard Task.isCancelled == false else {
+                    break
+                }
+                let nextDraftState = await MainActor.run { () -> (AIChatDraftPersistKey, AIChatComposerDraft)? in
+                    guard let nextKey = self.pendingDraftPersistStates.keys.first,
+                          let nextDraft = self.pendingDraftPersistStates.removeValue(forKey: nextKey)
+                    else {
+                        return nil
+                    }
+
+                    return (nextKey, nextDraft)
+                }
+                guard let nextDraftState else {
+                    break
+                }
+
+                let (nextKey, nextDraft) = nextDraftState
+                guard Task.isCancelled == false else {
+                    break
+                }
+                await self.historyStore.saveDraft(
+                    workspaceId: nextKey.workspaceId,
+                    sessionId: nextKey.sessionId,
+                    draft: nextDraft
+                )
+            }
+
+            await MainActor.run { [weak self] in
+                self?.activeDraftPersistTask = nil
+            }
+        }
+    }
+
     func currentPersistedState() -> AIChatPersistedState {
         return AIChatPersistedState(
             messages: self.messages,
             chatSessionId: self.chatSessionId,
             lastKnownChatConfig: self.serverChatConfig
         )
+    }
+
+    func currentComposerDraft() -> AIChatComposerDraft {
+        AIChatComposerDraft(
+            inputText: self.inputText,
+            pendingAttachments: self.pendingAttachments
+        )
+    }
+
+    func applyComposerDraft(
+        inputText: String,
+        pendingAttachments: [AIChatAttachment]
+    ) {
+        var updatedState = self.composerState
+        updatedState.inputText = inputText
+        updatedState.pendingAttachments = pendingAttachments
+        self.composerState = updatedState
     }
 
     convenience init(
@@ -320,6 +407,17 @@ final class AIChatStore {
         self.hasExternalProviderConsent = initialConsentState
         self.chatSessionId = persistedState.chatSessionId
         self.conversationScopeId = persistedState.chatSessionId
+        let initialDraft = historyStore.loadDraft(
+            workspaceId: initialHistoryWorkspaceId,
+            sessionId: persistedState.chatSessionId.isEmpty ? nil : persistedState.chatSessionId
+        )
+        self.composerState = AIChatComposerState(
+            inputText: initialDraft.inputText,
+            pendingAttachments: initialDraft.pendingAttachments,
+            serverSuggestions: [],
+            dictationState: .idle,
+            completedDictationTranscript: nil
+        )
         self.activeAlert = nil
         self.repairStatus = nil
         self.activeDictationTask = nil
@@ -328,6 +426,8 @@ final class AIChatStore {
         self.activeNewSessionTask = nil
         self.activePersistTask = nil
         self.pendingPersistState = nil
+        self.activeDraftPersistTask = nil
+        self.pendingDraftPersistStates = [:]
         self.activeConversationId = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil

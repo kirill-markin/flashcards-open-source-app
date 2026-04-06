@@ -135,18 +135,10 @@ test("POST /chat/new creates a fresh session when history is not empty", async (
         };
       }
 
-      return createSnapshot([{
-        role: "user",
-        content: [{
-          type: "text",
-          text: "hello",
-        }],
-        timestamp: 1,
-        isError: false,
-        isStopped: false,
-        cursor: "1",
-        itemId: null,
-      }]);
+      return {
+        ...createRunningSnapshot([]),
+        composerSuggestions: buildInitialChatComposerSuggestions(),
+      };
     },
     rolloverToFreshChatSessionFn: async (
       _userId: string,
@@ -173,6 +165,111 @@ test("POST /chat/new creates a fresh session when history is not empty", async (
   assert.deepEqual(requestedSessionIds, ["session-1", "session-2"]);
   assert.equal(rolloverCallCount, 1);
   assert.equal(rolledOverSessionId, "session-1");
+  assert.deepEqual(await response.json(), {
+    ok: true,
+    sessionId: "session-2",
+    composerSuggestions: buildInitialChatComposerSuggestions(),
+    chatConfig: createExpectedChatConfig(),
+  });
+});
+
+test("POST /chat/new creates a fresh session when run state is active even if history is empty", async () => {
+  let rolloverCallCount = 0;
+  const app = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    getRecoveredChatSessionSnapshotFn: async (
+      _userId: string,
+      _workspaceId: string,
+      sessionId?: string,
+    ) => {
+      if (sessionId === "session-2") {
+        return {
+          ...createSnapshot([]),
+          sessionId: "session-2",
+          composerSuggestions: buildInitialChatComposerSuggestions(),
+        };
+      }
+
+      return {
+        ...createRunningSnapshot([]),
+        composerSuggestions: buildInitialChatComposerSuggestions(),
+      };
+    },
+    rolloverToFreshChatSessionFn: async () => {
+      rolloverCallCount += 1;
+      return "session-2";
+    },
+  });
+
+  const response = await app.request("http://localhost/chat/new", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId: "session-1",
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(rolloverCallCount, 1);
+  assert.deepEqual(await response.json(), {
+    ok: true,
+    sessionId: "session-2",
+    composerSuggestions: buildInitialChatComposerSuggestions(),
+    chatConfig: createExpectedChatConfig(),
+  });
+});
+
+test("POST /chat/new creates a fresh session when forceFresh is true even if history is empty and idle", async () => {
+  let rolloverCallCount = 0;
+  const app = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    getRecoveredChatSessionSnapshotFn: async (
+      _userId: string,
+      _workspaceId: string,
+      sessionId?: string,
+    ) => {
+      if (sessionId === "session-2") {
+        return {
+          ...createSnapshot([]),
+          sessionId: "session-2",
+          composerSuggestions: buildInitialChatComposerSuggestions(),
+        };
+      }
+
+      return {
+        ...createSnapshot([]),
+        composerSuggestions: buildInitialChatComposerSuggestions(),
+      };
+    },
+    rolloverToFreshChatSessionFn: async () => {
+      rolloverCallCount += 1;
+      return "session-2";
+    },
+  });
+
+  const response = await app.request("http://localhost/chat/new", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId: "session-1",
+      forceFresh: true,
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(rolloverCallCount, 1);
   assert.deepEqual(await response.json(), {
     ok: true,
     sessionId: "session-2",
@@ -260,6 +357,68 @@ test("GET /chat returns assistant item ids in snapshot history and strips attach
           isStopped: false,
           cursor: "2",
           itemId: "assistant-item-1",
+        },
+      ],
+    },
+    composerSuggestions: [],
+    chatConfig: createExpectedChatConfig(),
+    activeRun: null,
+  });
+});
+
+test("GET /chat preserves card content parts in snapshot history", async () => {
+  const app = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    resolveLiveCursorFn: async () => null,
+    getRecoveredChatSessionSnapshotFn: async () => createSnapshot([
+      {
+        role: "user",
+        content: [{
+          type: "card",
+          cardId: "card-1",
+          frontText: "What is Rust?",
+          backText: "A systems programming language.",
+          tags: ["lang", "systems"],
+          effortLevel: "medium",
+        }],
+        timestamp: 1,
+        isError: false,
+        isStopped: false,
+        cursor: "1",
+        itemId: null,
+      },
+    ]),
+  });
+
+  const response = await app.request("http://localhost/chat?sessionId=session-1");
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    sessionId: "session-1",
+    conversationScopeId: "session-1",
+    conversation: {
+      updatedAt: 1,
+      mainContentInvalidationVersion: 0,
+      messages: [
+        {
+          role: "user",
+          content: [{
+            type: "card",
+            cardId: "card-1",
+            frontText: "What is Rust?",
+            backText: "A systems programming language.",
+            tags: ["lang", "systems"],
+            effortLevel: "medium",
+          }],
+          timestamp: 1,
+          isError: false,
+          isStopped: false,
+          cursor: "1",
+          itemId: null,
         },
       ],
     },

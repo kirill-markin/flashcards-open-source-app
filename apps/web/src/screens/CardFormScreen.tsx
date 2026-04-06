@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../appData";
-import { CardFormFields, toCardFormState, type CardFormState } from "./CardForm";
+import { useAiCardHandoff } from "../chat/useAiCardHandoff";
+import { CardFormFields, isCardFormStateDirty, toCardFormState, type CardFormState } from "./CardForm";
 import type { Card, CreateCardInput, TagSuggestion, UpdateCardInput } from "../types";
 import { loadWorkspaceTagsSummary } from "../localDb/workspace";
 import { cardsRoute } from "../routes";
@@ -27,6 +28,7 @@ export function CardFormScreen(): ReactElement {
   const [loadErrorMessage, setLoadErrorMessage] = useState<string>("");
   const [actionErrorMessage, setActionErrorMessage] = useState<string>("");
   const isCreateMode = cardId === undefined;
+  const handoffCardToAi = useAiCardHandoff();
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
     setLoadErrorMessage("");
@@ -58,6 +60,38 @@ export function CardFormScreen(): ReactElement {
     void loadScreenData();
   }, [loadScreenData, localReadVersion]);
 
+  function buildUpdatePayload(): UpdateCardInput {
+    return {
+      frontText: formState.frontText,
+      backText: formState.backText,
+      tags: formState.tags,
+      effortLevel: formState.effortLevel,
+    };
+  }
+
+  async function saveCurrentCard(): Promise<Card | null> {
+    if (cardId === undefined) {
+      setActionErrorMessage("Card ID is required");
+      return null;
+    }
+
+    setIsSaving(true);
+    setActionErrorMessage("");
+    setErrorMessage("");
+
+    try {
+      const savedCard = await updateCardItem(cardId, buildUpdatePayload());
+      setCurrentCard(savedCard);
+      setFormState(toCardFormState(savedCard));
+      return savedCard;
+    } catch (error) {
+      setActionErrorMessage(error instanceof Error ? error.message : String(error));
+      return null;
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   async function handleSubmit(): Promise<void> {
     setIsSaving(true);
     setActionErrorMessage("");
@@ -73,13 +107,7 @@ export function CardFormScreen(): ReactElement {
         };
         await createCardItem(payload);
       } else if (cardId !== undefined) {
-        const payload: UpdateCardInput = {
-          frontText: formState.frontText,
-          backText: formState.backText,
-          tags: formState.tags,
-          effortLevel: formState.effortLevel,
-        };
-        await updateCardItem(cardId, payload);
+        await updateCardItem(cardId, buildUpdatePayload());
       }
 
       navigate(cardsRoute);
@@ -88,6 +116,24 @@ export function CardFormScreen(): ReactElement {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function handleEditWithAi(): Promise<void> {
+    if (currentCard === null) {
+      return;
+    }
+
+    if (isCardFormStateDirty(currentCard, formState) === false) {
+      await handoffCardToAi(currentCard);
+      return;
+    }
+
+    const savedCard = await saveCurrentCard();
+    if (savedCard === null) {
+      return;
+    }
+
+    await handoffCardToAi(savedCard);
   }
 
   async function handleDelete(): Promise<void> {
@@ -150,6 +196,16 @@ export function CardFormScreen(): ReactElement {
           </div>
           <div className="screen-actions">
             <Link className="ghost-btn" to={cardsRoute}>Back</Link>
+            {!isCreateMode && currentCard !== null ? (
+              <button
+                type="button"
+                className="ghost-btn review-editor-ai-btn"
+                disabled={isSaving || isDeleting}
+                onClick={() => void handleEditWithAi()}
+              >
+                Edit with AI
+              </button>
+            ) : null}
             {!isCreateMode ? (
               <button
                 type="button"

@@ -83,6 +83,28 @@ struct AIChatCompletedDictationTranscript: Identifiable, Equatable {
     let transcript: String
 }
 
+struct AIChatComposerDraft: Codable, Hashable, Sendable {
+    let inputText: String
+    let pendingAttachments: [AIChatAttachment]
+
+    var isEmpty: Bool {
+        self.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && self.pendingAttachments.isEmpty
+    }
+}
+
+func aiChatShouldReuseCurrentSessionForHandoff(
+    messages: [AIChatMessage],
+    composerDraft: AIChatComposerDraft,
+    composerPhase: AIChatComposerPhase,
+    activeRunId: String?
+) -> Bool {
+    messages.isEmpty
+        && composerDraft.isEmpty
+        && composerPhase == .idle
+        && activeRunId == nil
+}
+
 struct AIChatAccessContext: Equatable {
     let workspaceId: String?
     let cloudState: CloudAccountState?

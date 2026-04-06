@@ -29,6 +29,13 @@ fun ReviewRoute(
     onSelectFilter: (ReviewFilter) -> Unit,
     onOpenPreview: () -> Unit,
     onOpenCurrentCard: (String) -> Unit,
+    onOpenCurrentCardWithAi: (
+        cardId: String,
+        frontText: String,
+        backText: String,
+        tags: List<String>,
+        effortLevel: com.flashcardsopensourceapp.data.local.model.EffortLevel
+    ) -> Unit,
     onOpenDeckManagement: () -> Unit,
     onCreateCard: () -> Unit,
     onCreateCardWithAi: () -> Unit,
@@ -106,6 +113,7 @@ fun ReviewRoute(
                 uiState = uiState,
                 activeSpeechSide = reviewSpeechController.activeSide,
                 onOpenCurrentCard = onOpenCurrentCard,
+                onOpenCurrentCardWithAi = onOpenCurrentCardWithAi,
                 onCreateCard = onCreateCard,
                 onCreateCardWithAi = onCreateCardWithAi,
                 onSwitchToAllCards = onSwitchToAllCards,

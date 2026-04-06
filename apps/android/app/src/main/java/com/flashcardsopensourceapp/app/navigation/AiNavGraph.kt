@@ -27,11 +27,26 @@ internal fun NavGraphBuilder.registerAiNavGraph(
         )
         val uiState by aiViewModel.uiState.collectAsStateWithLifecycle()
         val entryPrefillRequest by appGraph.appHandoffCoordinator.observeAiEntryPrefill().collectAsStateWithLifecycle()
+        val cardHandoffRequest by appGraph.appHandoffCoordinator.observeAiCardHandoff().collectAsStateWithLifecycle()
 
         LaunchedEffect(entryPrefillRequest?.requestId) {
             val request = entryPrefillRequest ?: return@LaunchedEffect
             aiViewModel.applyEntryPrefill(prefill = request.prefill)
             appGraph.appHandoffCoordinator.consumeAiEntryPrefill(requestId = request.requestId)
+        }
+
+        LaunchedEffect(cardHandoffRequest?.requestId, uiState.isConversationReady, uiState.dictationState) {
+            val request = cardHandoffRequest ?: return@LaunchedEffect
+            val didApplyRequest = aiViewModel.handoffCardToChat(
+                cardId = request.cardId,
+                frontText = request.frontText,
+                backText = request.backText,
+                tags = request.tags,
+                effortLevel = request.effortLevel
+            )
+            if (didApplyRequest) {
+                appGraph.appHandoffCoordinator.consumeAiCardHandoff(requestId = request.requestId)
+            }
         }
 
         AiRoute(

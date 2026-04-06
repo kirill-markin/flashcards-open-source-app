@@ -5,6 +5,7 @@
 import type OpenAI from "openai";
 import type { ContentPart, FileContentPart, ImageContentPart } from "../types";
 import { buildSystemInstructions } from "../shared";
+import { buildCardContextXml } from "../cardContext";
 import {
   normalizeStoredOpenAIReplayItems,
   toOpenAIResponseInputItem,
@@ -63,6 +64,10 @@ async function mapMessagePart(part: ContentPart): Promise<ReadonlyArray<OpenAIIn
 
   if (part.type === "image" || part.type === "file") {
     return mapAttachmentPart(part);
+  }
+
+  if (part.type === "card") {
+    return [{ type: "input_text", text: buildCardContextXml(part) }];
   }
 
   if (part.type === "tool_call") {

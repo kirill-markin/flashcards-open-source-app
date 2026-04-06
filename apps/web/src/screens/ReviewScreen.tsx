@@ -9,12 +9,14 @@ import { classifyReviewContentPresentation } from "./reviewContentPresentation";
 import { cardsRoute, chatRoute } from "../routes";
 import { ReviewEditorModal } from "./ReviewEditorModal";
 import { ReviewFilterMenu } from "./ReviewFilterMenu";
+import { useAiCardHandoff } from "../chat/useAiCardHandoff";
 import { useTransientMessage } from "../useTransientMessage";
 import { formatQueueBadge, useReviewFilterMenu } from "./useReviewFilterMenu";
 import { useReviewCardEditor } from "./useReviewCardEditor";
 import { useReviewKeyboardShortcuts } from "./useReviewKeyboardShortcuts";
 import { useReviewScreenData } from "./useReviewScreenData";
 import { makeReviewSpeakableText, type ReviewSpeechSide, useReviewSpeech } from "./reviewSpeech";
+import { isCardFormStateDirty } from "./CardForm";
 
 type ReviewButtonOption = Readonly<{
   intervalDescription: string;
@@ -333,6 +335,7 @@ export function ReviewScreen(): ReactElement {
     editingCard,
     editorFormState,
     handleEditorDelete,
+    handleEditorSaveForAiHandoff,
     handleEditorSave,
     handleOpenEditor,
     isEditorPresented,
@@ -346,6 +349,7 @@ export function ReviewScreen(): ReactElement {
     setErrorMessage,
     updateCardItem,
   });
+  const handoffCardToAi = useAiCardHandoff();
   const nowTimestamp = Date.now();
   const selectedCard = currentReviewCard(activeReviewQueue);
   const selectedFrontSpeakableText = selectedCard === null ? "" : makeReviewSpeakableText(selectedCard.frontText);
@@ -483,6 +487,13 @@ export function ReviewScreen(): ReactElement {
                   >
                     Edit
                   </button>
+                  <button
+                    type="button"
+                    className="primary-btn review-pane-ai-btn"
+                    disabled
+                  >
+                    AI
+                  </button>
                 </div>
                 <div className="review-card-stack">
                   {loadingReviewCurrentCard !== null ? (
@@ -574,6 +585,13 @@ export function ReviewScreen(): ReactElement {
                     onClick={() => handleOpenEditor(selectedCard)}
                   >
                     Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="primary-btn review-pane-ai-btn"
+                    onClick={() => void handoffCardToAi(selectedCard)}
+                  >
+                    AI
                   </button>
                 </div>
                 <div className="review-card-stack">
@@ -731,6 +749,23 @@ export function ReviewScreen(): ReactElement {
         formState={editorFormState}
         isEditorPresented={isEditorPresented}
         isEditorSaving={isEditorSaving}
+        onEditWithAi={async () => {
+          if (editingCard === null) {
+            return;
+          }
+
+          const cardForHandoff = isCardFormStateDirty(editingCard, editorFormState)
+            ? await handleEditorSaveForAiHandoff()
+            : editingCard;
+          if (cardForHandoff === null) {
+            return;
+          }
+
+          const didHandoff = await handoffCardToAi(cardForHandoff);
+          if (didHandoff) {
+            setIsEditorPresented(false);
+          }
+        }}
         onChange={setEditorFormState}
         onClose={() => setIsEditorPresented(false)}
         onDelete={handleEditorDelete}

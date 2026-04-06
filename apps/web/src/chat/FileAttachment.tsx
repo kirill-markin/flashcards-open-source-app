@@ -1,10 +1,24 @@
 import { useRef, type ReactElement } from "react";
+import type { EffortLevel } from "../types";
 
-export type PendingAttachment = Readonly<{
+export type BinaryPendingAttachment = Readonly<{
+  type: "binary";
   fileName: string;
   mediaType: string;
   base64Data: string;
 }>;
+
+export type CardPendingAttachment = Readonly<{
+  type: "card";
+  attachmentId: string;
+  cardId: string;
+  frontText: string;
+  backText: string;
+  tags: ReadonlyArray<string>;
+  effortLevel: EffortLevel;
+}>;
+
+export type PendingAttachment = BinaryPendingAttachment | CardPendingAttachment;
 
 type Props = Readonly<{
   onAttach: (attachment: PendingAttachment) => Promise<void> | void;
@@ -41,6 +55,10 @@ export const EXTRA_AGGRESSIVE_IMAGE_COMPRESSION: ImageCompressionOptions = {
 
 function isImageMediaType(mediaType: string): boolean {
   return mediaType.startsWith(IMAGE_MEDIA_TYPE_PREFIX);
+}
+
+export function isBinaryPendingAttachment(attachment: PendingAttachment): attachment is BinaryPendingAttachment {
+  return attachment.type === "binary";
 }
 
 function isHeicMediaType(mediaType: string): boolean {
@@ -219,6 +237,7 @@ async function prepareImageAttachment(
   const compressedImage = await compressImageBlob(imageBlob, file.name, options);
 
   return {
+    type: "binary",
     fileName: file.name,
     mediaType: compressedImage.mediaType,
     base64Data: compressedImage.base64Data,
@@ -229,14 +248,15 @@ export async function recompressImageAttachment(
   attachment: PendingAttachment,
   options: ImageCompressionOptions,
 ): Promise<PendingAttachment> {
-  if (!isImageMediaType(attachment.mediaType)) {
-    throw new Error(`Cannot recompress non-image attachment: ${attachment.fileName}`);
+  if (attachment.type !== "binary" || !isImageMediaType(attachment.mediaType)) {
+    throw new Error("Cannot recompress a non-image attachment");
   }
 
   const sourceBlob = base64DataToBlob(attachment.base64Data, attachment.mediaType);
   const compressedImage = await compressImageBlob(sourceBlob, attachment.fileName, options);
 
   return {
+    type: "binary",
     fileName: attachment.fileName,
     mediaType: compressedImage.mediaType,
     base64Data: compressedImage.base64Data,
@@ -256,6 +276,7 @@ export async function prepareAttachment(file: File): Promise<PendingAttachment> 
   }
 
   return {
+    type: "binary",
     fileName: file.name,
     mediaType: file.type || "application/octet-stream",
     base64Data: await readFileAsBase64(file),

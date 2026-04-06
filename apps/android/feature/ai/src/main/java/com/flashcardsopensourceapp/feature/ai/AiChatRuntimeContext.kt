@@ -46,12 +46,41 @@ internal class AiChatRuntimeContext(
     }
 
     fun persistCurrentState() {
-        val snapshot = runtimeStateMutable.value
+        persistState(snapshot = runtimeStateMutable.value)
+    }
+
+    fun persistCurrentDraft() {
+        persistDraft(snapshot = runtimeStateMutable.value)
+    }
+
+    fun persistState(snapshot: AiChatRuntimeState) {
         scope.launch {
             aiChatRepository.savePersistedState(
                 workspaceId = snapshot.workspaceId,
                 state = snapshot.persistedState
             )
+            aiChatRepository.saveDraftState(
+                workspaceId = snapshot.workspaceId,
+                sessionId = snapshot.persistedState.chatSessionId.ifBlank { null },
+                state = snapshot.toDraftState()
+            )
         }
     }
+
+    fun persistDraft(snapshot: AiChatRuntimeState) {
+        scope.launch {
+            aiChatRepository.saveDraftState(
+                workspaceId = snapshot.workspaceId,
+                sessionId = snapshot.persistedState.chatSessionId.ifBlank { null },
+                state = snapshot.toDraftState()
+            )
+        }
+    }
+}
+
+private fun AiChatRuntimeState.toDraftState(): com.flashcardsopensourceapp.data.local.model.AiChatDraftState {
+    return com.flashcardsopensourceapp.data.local.model.AiChatDraftState(
+        draftMessage = draftMessage,
+        pendingAttachments = pendingAttachments
+    )
 }

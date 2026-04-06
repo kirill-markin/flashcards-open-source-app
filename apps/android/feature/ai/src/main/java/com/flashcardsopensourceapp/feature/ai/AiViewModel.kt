@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
@@ -179,6 +180,22 @@ class AiViewModel(
 
     fun applyEntryPrefill(prefill: AiEntryPrefill) {
         chatRuntime.applyEntryPrefill(prefill = prefill)
+    }
+
+    fun handoffCardToChat(
+        cardId: String,
+        frontText: String,
+        backText: String,
+        tags: List<String>,
+        effortLevel: EffortLevel
+    ): Boolean {
+        return chatRuntime.handoffCardToChat(
+            cardId = cardId,
+            frontText = frontText,
+            backText = backText,
+            tags = tags,
+            effortLevel = effortLevel
+        )
     }
 
     fun showAlert(alert: AiAlertState) {
