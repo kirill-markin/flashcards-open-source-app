@@ -261,8 +261,8 @@ extension CardStore {
             WHERE workspace_id = ? AND deleted_at IS NULL\(querySQL.clause)
             ORDER BY
                 CASE
-                    WHEN due_at IS NULL THEN 0
-                    WHEN due_at <= ? THEN 1
+                    WHEN due_at <= ? THEN 0
+                    WHEN due_at IS NULL THEN 1
                     ELSE 2
                 END ASC,
                 due_at ASC,
