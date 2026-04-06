@@ -36,7 +36,7 @@ class AiChatHistoryStoreTest {
     }
 
     @Test
-    fun loadDraftStateMigratesPendingSlotIntoResolvedSession() = runBlocking {
+    fun saveDraftStateStoresOnlyResolvedSessionIds() = runBlocking {
         val draftState = AiChatDraftState(
             draftMessage = "Draft note",
             pendingAttachments = listOf(
@@ -53,7 +53,7 @@ class AiChatHistoryStoreTest {
 
         store.saveDraftState(
             workspaceId = "workspace-1",
-            sessionId = null,
+            sessionId = "session-1",
             state = draftState
         )
 
@@ -65,8 +65,17 @@ class AiChatHistoryStoreTest {
         assertEquals(draftState, loadedDraftState)
 
         val preferences = context.getSharedPreferences("flashcards-ai-chat-history", Context.MODE_PRIVATE)
-        assertFalse(preferences.contains(draftKey(workspaceId = "workspace-1", sessionId = "__pending__")))
         assertTrue(preferences.contains(draftKey(workspaceId = "workspace-1", sessionId = "session-1")))
+    }
+
+    @Test
+    fun loadDraftStateReturnsDefaultWhenSessionIdIsMissing() = runBlocking {
+        val loadedDraftState = store.loadDraftState(
+            workspaceId = "workspace-1",
+            sessionId = null
+        )
+
+        assertEquals(AiChatDraftState(draftMessage = "", pendingAttachments = emptyList()), loadedDraftState)
     }
 
     @Test

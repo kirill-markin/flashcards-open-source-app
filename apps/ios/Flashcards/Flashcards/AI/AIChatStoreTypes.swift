@@ -97,12 +97,14 @@ func aiChatShouldReuseCurrentSessionForHandoff(
     messages: [AIChatMessage],
     composerDraft: AIChatComposerDraft,
     composerPhase: AIChatComposerPhase,
-    activeRunId: String?
+    activeRunId: String?,
+    currentSessionId: String
 ) -> Bool {
     messages.isEmpty
         && composerDraft.isEmpty
         && composerPhase == .idle
         && activeRunId == nil
+        && currentSessionId.isEmpty == false
 }
 
 struct AIChatAccessContext: Equatable {

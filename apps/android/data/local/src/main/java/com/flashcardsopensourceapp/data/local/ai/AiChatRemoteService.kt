@@ -213,8 +213,7 @@ class AiChatRemoteService(
     suspend fun createNewSession(
         apiBaseUrl: String,
         authorizationHeader: String,
-        sessionId: String?,
-        forceFresh: Boolean
+        sessionId: String
     ): AiChatSessionSnapshot = withContext(dispatchers.io) {
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
@@ -230,7 +229,6 @@ class AiChatRemoteService(
                 outputStream.write(
                     JSONObject()
                         .put("sessionId", sessionId)
-                        .put("forceFresh", forceFresh)
                         .toString()
                         .toByteArray(StandardCharsets.UTF_8)
                 )

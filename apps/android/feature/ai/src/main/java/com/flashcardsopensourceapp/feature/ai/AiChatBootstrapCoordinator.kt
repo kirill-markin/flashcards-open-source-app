@@ -33,6 +33,14 @@ internal class AiChatBootstrapCoordinator(
         )
         var bootstrapJob: Job? = null
         bootstrapJob = context.scope.launch {
+            val persistedState = normalizeAiChatPersistedStateForWorkspace(
+                workspaceId = workspaceId,
+                persistedState = context.aiChatRepository.loadPersistedState(workspaceId = workspaceId)
+            )
+            val persistedSessionId = resolveAiChatSessionIdForWorkspace(
+                workspaceId = workspaceId,
+                sessionId = persistedState.chatSessionId
+            )
             try {
                 val canPreserveLocalComposerState =
                     forceReloadState.not()
@@ -43,7 +51,6 @@ internal class AiChatBootstrapCoordinator(
                 )
                 context.activeLiveJob = null
                 if (forceReloadState) {
-                    val persistedState = context.aiChatRepository.loadPersistedState(workspaceId = workspaceId)
                     context.runtimeStateMutable.update { state ->
                         state.copy(
                             workspaceId = workspaceId,
@@ -90,10 +97,9 @@ internal class AiChatBootstrapCoordinator(
                     return@launch
                 }
 
-                val persistedState = context.aiChatRepository.loadPersistedState(workspaceId = workspaceId)
                 val bootstrap = context.aiChatRepository.loadBootstrap(
                     workspaceId = workspaceId,
-                    sessionId = persistedState.chatSessionId.ifBlank { null },
+                    sessionId = persistedSessionId,
                     limit = aiChatBootstrapPageLimit,
                     resumeDiagnostics = resumeDiagnostics
                 )
@@ -135,11 +141,15 @@ internal class AiChatBootstrapCoordinator(
                     ) + remoteErrorFields(error = error as? AiChatRemoteException),
                     throwable = error
                 )
+                val currentSessionId = resolveAiChatSessionIdForWorkspace(
+                    workspaceId = workspaceId,
+                    sessionId = context.runtimeStateMutable.value.persistedState.chatSessionId
+                )
                 context.runtimeStateMutable.update { state ->
                     state.copy(
                         persistedState = state.persistedState.copy(
                             messages = emptyList(),
-                            chatSessionId = ""
+                            chatSessionId = currentSessionId ?: persistedState.chatSessionId
                         ),
                         conversationScopeId = null,
                         hasOlder = false,
@@ -178,12 +188,20 @@ internal class AiChatBootstrapCoordinator(
         preserveLocalComposerState: Boolean
     ) {
         val workspaceId = context.runtimeStateMutable.value.workspaceId
+        val resolvedSessionId = resolveAiChatSessionIdForWorkspace(
+            workspaceId = workspaceId,
+            sessionId = response.sessionId
+        ) ?: response.sessionId
+        val resolvedConversationScopeId = resolveAiChatSessionIdForWorkspace(
+            workspaceId = workspaceId,
+            sessionId = response.conversationScopeId
+        ) ?: resolvedSessionId
         val draftState = if (preserveLocalComposerState) {
             null
         } else {
             context.aiChatRepository.loadDraftState(
                 workspaceId = workspaceId,
-                sessionId = response.sessionId
+                sessionId = resolvedSessionId
             )
         }
         context.runtimeStateMutable.update { state ->
@@ -191,10 +209,10 @@ internal class AiChatBootstrapCoordinator(
                 state = state.copy(
                     persistedState = state.persistedState.copy(
                         messages = response.conversation.messages,
-                        chatSessionId = response.sessionId,
+                        chatSessionId = resolvedSessionId,
                         lastKnownChatConfig = response.chatConfig
                     ),
-                    conversationScopeId = response.conversationScopeId,
+                    conversationScopeId = resolvedConversationScopeId,
                     hasOlder = response.conversation.hasOlder,
                     oldestCursor = response.conversation.oldestCursor,
                     activeRun = response.activeRun,

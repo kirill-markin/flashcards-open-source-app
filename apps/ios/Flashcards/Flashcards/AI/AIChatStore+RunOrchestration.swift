@@ -48,6 +48,12 @@ extension AIChatStore {
 
         self.activeAlert = nil
         self.repairStatus = nil
+        let resolvedSessionId = aiChatResolvedSessionId(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: self.chatSessionId
+        )
+        self.chatSessionId = resolvedSessionId
+        self.conversationScopeId = resolvedSessionId
         self.transitionToPreparingSend()
         let conversationId = UUID().uuidString.lowercased()
         let draftText = self.inputText
@@ -88,7 +94,7 @@ extension AIChatStore {
                 self.activeConversationId = conversationId
                 try await self.runtime.run(
                     session: session,
-                    sessionId: self.chatSessionId,
+                    sessionId: resolvedSessionId,
                     afterCursor: self.liveCursor,
                     outgoingContent: content,
                     eventHandler: { [weak self] event in
@@ -135,7 +141,12 @@ extension AIChatStore {
         self.repairStatus = nil
         self.clearOptimisticAssistantStatusIfNeeded()
 
-        let sessionId = self.chatSessionId
+        let sessionId = aiChatResolvedSessionId(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: self.chatSessionId
+        )
+        self.chatSessionId = sessionId
+        self.conversationScopeId = sessionId
         guard sessionId.isEmpty == false else {
             self.transitionToIdle()
             self.schedulePersistCurrentState()
@@ -252,7 +263,12 @@ extension AIChatStore {
         draftAttachments: [AIChatAttachment]
     ) {
         let latestPersistedState = self.historyStore.loadState()
-        self.chatSessionId = latestPersistedState.chatSessionId
+        let resolvedSessionId = aiChatResolvedSessionId(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: latestPersistedState.chatSessionId
+        )
+        self.chatSessionId = resolvedSessionId
+        self.conversationScopeId = resolvedSessionId
         self.repairStatus = nil
         self.transitionToIdle()
         self.activeStreamingMessageId = nil
@@ -299,6 +315,12 @@ extension AIChatStore {
             self.historyStore.activateWorkspace(workspaceId: self.historyWorkspaceId())
             self.restorePersistedState(self.historyStore.loadState())
         }
+        let resolvedSessionId = aiChatResolvedSessionId(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: self.chatSessionId
+        )
+        self.chatSessionId = resolvedSessionId
+        self.conversationScopeId = resolvedSessionId
         self.bootstrapPhase = .loading
 
         let bootstrapContext = self.surfaceState.activeAccessContext ?? self.currentAccessContext()
@@ -311,7 +333,7 @@ extension AIChatStore {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
                 let bootstrap = try await self.chatService.loadBootstrap(
                     session: session,
-                    sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
+                    sessionId: resolvedSessionId.isEmpty ? nil : resolvedSessionId,
                     limit: aiChatBootstrapPageLimit,
                     resumeAttemptDiagnostics: resumeAttemptDiagnostics
                 )
@@ -334,7 +356,12 @@ extension AIChatStore {
                     return
                 }
                 self.messages = []
-                self.chatSessionId = ""
+                let resolvedSessionId = aiChatResolvedSessionId(
+                    workspaceId: self.historyWorkspaceId(),
+                    sessionId: self.chatSessionId
+                )
+                self.chatSessionId = resolvedSessionId
+                self.conversationScopeId = resolvedSessionId
                 self.applyComposerDraft(inputText: "", pendingAttachments: [])
                 self.schedulePersistCurrentDraftState()
                 self.transitionToIdle()

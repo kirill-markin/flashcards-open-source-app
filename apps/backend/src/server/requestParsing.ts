@@ -29,6 +29,16 @@ export function expectNonEmptyString(value: unknown, fieldName: string): string 
   return trimmed;
 }
 
+export function expectUuidString(value: unknown, fieldName: string): string {
+  const trimmedValue = expectNonEmptyString(value, fieldName);
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidPattern.test(trimmedValue)) {
+    throw new HttpError(400, `${fieldName} must be a UUID`);
+  }
+
+  return trimmedValue.toLowerCase();
+}
+
 export function expectNullableNonEmptyString(value: unknown, fieldName: string): string | null {
   if (value === null) {
     return null;

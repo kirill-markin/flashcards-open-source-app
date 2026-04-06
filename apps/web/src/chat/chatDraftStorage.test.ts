@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  adoptPendingChatDraftIfNeeded,
   loadChatDraftWorkspaceState,
   readChatDraftForSession,
   replaceChatDraftForSession,
@@ -38,18 +37,22 @@ beforeEach(() => {
 });
 
 describe("chatDraftStorage", () => {
-  it("adopts the pending draft into the first resolved session and prunes empty drafts", () => {
-    const pendingDrafts = replaceChatDraftForSession({}, null, {
+  it("prunes empty drafts and ignores unresolved null session ids", () => {
+    const ignoredDrafts = replaceChatDraftForSession({}, null, {
       inputText: "pending draft",
       pendingAttachments: [],
     });
 
-    const adoptedDrafts = adoptPendingChatDraftIfNeeded(pendingDrafts, "session-1");
+    expect(readChatDraftForSession(ignoredDrafts, null)).toBeNull();
 
-    expect(readChatDraftForSession(adoptedDrafts, null)).toBeNull();
-    expect(readChatDraftForSession(adoptedDrafts, "session-1")?.inputText).toBe("pending draft");
+    const storedDrafts = replaceChatDraftForSession(ignoredDrafts, "session-1", {
+      inputText: "saved draft",
+      pendingAttachments: [],
+    });
 
-    const prunedDrafts = replaceChatDraftForSession(adoptedDrafts, "session-1", {
+    expect(readChatDraftForSession(storedDrafts, "session-1")?.inputText).toBe("saved draft");
+
+    const prunedDrafts = replaceChatDraftForSession(storedDrafts, "session-1", {
       inputText: "",
       pendingAttachments: [],
     });

@@ -19,18 +19,16 @@ export function useAiCardHandoff(): (card: Card) => Promise<boolean> {
     }
 
     const sourceSessionId = session.currentSessionId;
-    const sourceDraft = draftContext.draft;
     const isDirtyConversation = session.messages.length > 0
-      || sourceDraft.inputText.trim() !== ""
-      || sourceDraft.pendingAttachments.length > 0
+      || draftContext.draft.inputText.trim() !== ""
+      || draftContext.draft.pendingAttachments.length > 0
       || session.isAssistantRunActive
       || session.isStopping;
-    const shouldRestorePendingDraft = sourceSessionId === null && isDirtyConversation;
     let targetSessionId = sourceSessionId;
 
     try {
-      if (isDirtyConversation) {
-        const clearedSessionId = await session.clearConversation({ forceFresh: true });
+      if (sourceSessionId === null || isDirtyConversation) {
+        const clearedSessionId = await session.clearConversation();
         if (clearedSessionId !== null) {
           targetSessionId = clearedSessionId;
         }
@@ -41,8 +39,8 @@ export function useAiCardHandoff(): (card: Card) => Promise<boolean> {
       return false;
     }
 
-    if (shouldRestorePendingDraft) {
-      draftContext.replaceDraftForSession(null, sourceDraft);
+    if (targetSessionId === null) {
+      return false;
     }
 
     draftContext.replaceDraftForSession(

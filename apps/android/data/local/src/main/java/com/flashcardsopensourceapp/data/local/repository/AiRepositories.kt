@@ -154,15 +154,13 @@ class LocalAiChatRepository(
 
     override suspend fun createNewSession(
         workspaceId: String?,
-        sessionId: String?,
-        forceFresh: Boolean
+        sessionId: String
     ): AiChatSessionSnapshot {
         val session = authorizedSession(workspaceId = workspaceId)
         return aiChatRemoteService.createNewSession(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader,
-            sessionId = sessionId,
-            forceFresh = forceFresh
+            sessionId = sessionId
         )
     }
 

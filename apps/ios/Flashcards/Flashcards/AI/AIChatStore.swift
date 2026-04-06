@@ -405,11 +405,14 @@ final class AIChatStore {
         self.activeRunSession = nil
         self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
         self.hasExternalProviderConsent = initialConsentState
-        self.chatSessionId = persistedState.chatSessionId
-        self.conversationScopeId = persistedState.chatSessionId
+        self.chatSessionId = aiChatResolvedSessionId(
+            workspaceId: initialHistoryWorkspaceId,
+            sessionId: persistedState.chatSessionId
+        )
+        self.conversationScopeId = self.chatSessionId
         let initialDraft = historyStore.loadDraft(
             workspaceId: initialHistoryWorkspaceId,
-            sessionId: persistedState.chatSessionId.isEmpty ? nil : persistedState.chatSessionId
+            sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId
         )
         self.composerState = AIChatComposerState(
             inputText: initialDraft.inputText,

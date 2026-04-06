@@ -17,7 +17,6 @@ type StoredChatDraftWorkspaceState = Readonly<{
 
 const CHAT_DRAFT_STORAGE_KEY_PREFIX = "flashcards-chat-drafts::";
 const CHAT_DRAFT_STORAGE_VERSION = 1;
-export const CHAT_DRAFT_PENDING_SESSION_KEY = "__pending__";
 
 function getBrowserStorage(): Storage | null {
   if (typeof window === "undefined") {
@@ -251,9 +250,16 @@ function storeWorkspaceDraftState(
 }
 
 export function buildChatDraftSessionKey(sessionId: string | null): string {
-  return sessionId === null || sessionId.trim() === ""
-    ? CHAT_DRAFT_PENDING_SESSION_KEY
-    : sessionId;
+  if (sessionId === null) {
+    throw new Error("Chat draft sessionId is required");
+  }
+
+  const trimmedSessionId = sessionId.trim();
+  if (trimmedSessionId === "") {
+    throw new Error("Chat draft sessionId must not be empty");
+  }
+
+  return trimmedSessionId;
 }
 
 export function createChatDraftContent(
@@ -285,6 +291,10 @@ export function replaceChatDraftForSession(
   sessionId: string | null,
   draft: ChatDraftContent,
 ): Readonly<Record<string, StoredChatDraft>> {
+  if (sessionId === null) {
+    return draftsBySessionId;
+  }
+
   const sessionKey = buildChatDraftSessionKey(sessionId);
   const nextDraftsBySessionId = { ...draftsBySessionId };
 
@@ -305,6 +315,10 @@ export function readChatDraftForSession(
   draftsBySessionId: Readonly<Record<string, StoredChatDraft>>,
   sessionId: string | null,
 ): ChatDraftContent | null {
+  if (sessionId === null) {
+    return null;
+  }
+
   const draft = draftsBySessionId[buildChatDraftSessionKey(sessionId)];
   if (draft === undefined) {
     return null;
@@ -314,24 +328,4 @@ export function readChatDraftForSession(
     inputText: draft.inputText,
     pendingAttachments: draft.pendingAttachments,
   };
-}
-
-export function adoptPendingChatDraftIfNeeded(
-  draftsBySessionId: Readonly<Record<string, StoredChatDraft>>,
-  currentSessionId: string,
-): Readonly<Record<string, StoredChatDraft>> {
-  const pendingDraft = draftsBySessionId[CHAT_DRAFT_PENDING_SESSION_KEY];
-  if (pendingDraft === undefined) {
-    return draftsBySessionId;
-  }
-
-  const currentSessionDraft = draftsBySessionId[currentSessionId];
-  if (currentSessionDraft !== undefined) {
-    return draftsBySessionId;
-  }
-
-  const nextDraftsBySessionId = { ...draftsBySessionId };
-  delete nextDraftsBySessionId[CHAT_DRAFT_PENDING_SESSION_KEY];
-  nextDraftsBySessionId[currentSessionId] = pendingDraft;
-  return nextDraftsBySessionId;
 }

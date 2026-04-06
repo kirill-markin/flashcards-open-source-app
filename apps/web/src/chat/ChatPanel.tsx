@@ -138,7 +138,6 @@ export function ChatPanel(props: Props): ReactElement {
     replaceInputText,
     updateInputText,
     replacePendingAttachments,
-    replaceDraftForSession,
     clearDraftForSession,
   } = useChatDraft();
   const { setIsOpen, chatWidth, setChatWidth } = useChatLayout();
@@ -723,32 +722,17 @@ export function ChatPanel(props: Props): ReactElement {
             type="button"
             className="chat-close-btn"
             onClick={() => {
-              const sourceSessionId = currentSessionId;
-              const sourceDraft = draft;
               discardDictation();
-              if (sourceSessionId === null) {
+              if (currentSessionId === null) {
                 clearDraftForSession(null);
               }
-              void clearConversation({ forceFresh: false })
+              void clearConversation()
                 .then((nextSessionId) => {
                   clearDraftForSession(nextSessionId);
                   pendingAttachmentsRef.current = [];
                   draftSelectionRef.current = null;
                   pendingTextareaSelectionRef.current = null;
                   requestComposerFocusRestore();
-                })
-                .catch((error: unknown) => {
-                  if (sourceSessionId === null) {
-                    replaceDraftForSession(
-                      null,
-                      {
-                        inputText: sourceDraft.inputText,
-                        pendingAttachments: sourceDraft.pendingAttachments,
-                      },
-                    );
-                  }
-                  const message = error instanceof Error ? error.message : String(error);
-                  appData.setErrorMessage(`New chat failed. ${message}`);
                 });
             }}
             disabled={isComposerTransientBusy || isStopping}

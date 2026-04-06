@@ -7,10 +7,9 @@ extension AIChatStore {
         }
 
         self.startNewSession(
-            requestedSessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
+            sessionId: makeAIChatSessionId(),
             inputText: "",
-            pendingAttachments: [],
-            forceFresh: false
+            pendingAttachments: []
         )
     }
 
@@ -34,14 +33,13 @@ extension AIChatStore {
             messages: self.messages,
             composerDraft: draft,
             composerPhase: self.composerPhase,
-            activeRunId: self.activeRunId
+            activeRunId: self.activeRunId,
+            currentSessionId: self.chatSessionId
         ) == false {
-            self.schedulePersistCurrentDraftState()
             self.startNewSession(
-                requestedSessionId: nil,
+                sessionId: makeAIChatSessionId(),
                 inputText: "",
-                pendingAttachments: [attachment],
-                forceFresh: true
+                pendingAttachments: [attachment]
             )
             return true
         }
@@ -59,11 +57,10 @@ extension AIChatStore {
         self.resetLocalHistoryState()
         let clearedState = AIChatPersistedState(
             messages: [],
-            chatSessionId: "",
+            chatSessionId: self.chatSessionId,
             lastKnownChatConfig: self.serverChatConfig
         )
-        self.chatSessionId = clearedState.chatSessionId
-        self.conversationScopeId = ""
+        self.conversationScopeId = self.chatSessionId
         self.schedulePersistState(state: clearedState)
     }
 
@@ -205,11 +202,15 @@ extension AIChatStore {
     func restorePersistedState(_ persistedState: AIChatPersistedState) {
         self.messages = persistedState.messages
         self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
-        self.chatSessionId = persistedState.chatSessionId
-        self.conversationScopeId = persistedState.chatSessionId
+        let resolvedSessionId = aiChatResolvedSessionId(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: persistedState.chatSessionId
+        )
+        self.chatSessionId = resolvedSessionId
+        self.conversationScopeId = resolvedSessionId
         let persistedDraft = self.historyStore.loadDraft(
             workspaceId: self.historyWorkspaceId(),
-            sessionId: persistedState.chatSessionId.isEmpty ? nil : persistedState.chatSessionId
+            sessionId: resolvedSessionId.isEmpty ? nil : resolvedSessionId
         )
         self.applyComposerDraft(
             inputText: persistedDraft.inputText,
@@ -258,6 +259,12 @@ extension AIChatStore {
         self.activeWarmUpTask = nil
         self.cancelStreaming()
         self.cancelDictation()
+        let resolvedSessionId = aiChatResolvedSessionId(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: ""
+        )
+        self.chatSessionId = resolvedSessionId
+        self.conversationScopeId = resolvedSessionId
         self.applyComposerDraft(inputText: "", pendingAttachments: [])
         self.schedulePersistCurrentDraftState()
         self.messages = []
@@ -266,7 +273,6 @@ extension AIChatStore {
         self.repairStatus = nil
         self.completedDictationTranscript = nil
         self.activeConversationId = nil
-        self.conversationScopeId = ""
         self.hasOlderMessages = false
         self.oldestCursor = nil
         self.transitionToIdle()
@@ -274,11 +280,10 @@ extension AIChatStore {
         self.activeStreamingItemId = nil
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
-        self.chatSessionId = ""
-        self.conversationScopeId = ""
     }
 
     func resetConversationForNewSession(
+        sessionId: String,
         inputText: String,
         pendingAttachments: [AIChatAttachment]
     ) {
@@ -286,8 +291,14 @@ extension AIChatStore {
         self.activeBootstrapTask = nil
         self.activeWarmUpTask?.cancel()
         self.activeWarmUpTask = nil
-        self.cancelStreaming()
+        self.activeSendTask?.cancel()
+        self.activeSendTask = nil
+        Task {
+            await self.runtime.detach()
+        }
         self.cancelDictation()
+        self.chatSessionId = sessionId
+        self.conversationScopeId = sessionId
         self.applyComposerDraft(
             inputText: inputText,
             pendingAttachments: pendingAttachments
@@ -299,7 +310,6 @@ extension AIChatStore {
         self.repairStatus = nil
         self.completedDictationTranscript = nil
         self.activeConversationId = nil
-        self.conversationScopeId = ""
         self.hasOlderMessages = false
         self.oldestCursor = nil
         self.transitionToIdle()
@@ -307,8 +317,13 @@ extension AIChatStore {
         self.activeStreamingItemId = nil
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
-        self.chatSessionId = ""
-        self.conversationScopeId = ""
+        self.schedulePersistState(
+            state: AIChatPersistedState(
+                messages: [],
+                chatSessionId: sessionId,
+                lastKnownChatConfig: self.serverChatConfig
+            )
+        )
     }
 
     func isConversationDirtyForPresentation() -> Bool {
@@ -319,15 +334,26 @@ extension AIChatStore {
     }
 
     func startNewSession(
-        requestedSessionId: String?,
+        sessionId: String,
         inputText: String,
-        pendingAttachments: [AIChatAttachment],
-        forceFresh: Bool
+        pendingAttachments: [AIChatAttachment]
     ) {
         let requestSequence = self.beginNewSessionRequestSequence()
         let shouldKeepLiveAttached = self.surfaceState.activity.isVisible
         let requestedAccessContext = self.surfaceState.activeAccessContext ?? self.currentAccessContext()
+        let previousSessionId = self.chatSessionId.isEmpty ? nil : self.chatSessionId
+        let previousDraft = self.currentComposerDraft()
         self.shouldKeepLiveAttached = false
+        self.schedulePersistDraftState(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: previousSessionId,
+            draft: previousDraft
+        )
+        self.resetConversationForNewSession(
+            sessionId: sessionId,
+            inputText: inputText,
+            pendingAttachments: pendingAttachments
+        )
 
         let task = Task {
             defer {
@@ -340,8 +366,7 @@ extension AIChatStore {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
                 let response = try await self.chatService.createNewSession(
                     session: session,
-                    sessionId: requestedSessionId,
-                    forceFresh: forceFresh
+                    sessionId: sessionId
                 )
                 guard self.isCurrentNewSessionRequest(
                     sequence: requestSequence,
@@ -349,46 +374,21 @@ extension AIChatStore {
                 ) else {
                     return
                 }
+                guard response.sessionId == sessionId else {
+                    self.shouldKeepLiveAttached = shouldKeepLiveAttached
+                    return
+                }
+                guard self.chatSessionId == sessionId else {
+                    self.shouldKeepLiveAttached = shouldKeepLiveAttached
+                    return
+                }
 
-                self.activeBootstrapTask?.cancel()
-                self.activeBootstrapTask = nil
-                self.activeWarmUpTask?.cancel()
-                self.activeWarmUpTask = nil
-                self.activeConversationId = nil
-                let activeSendTask = self.activeSendTask
-                self.activeSendTask = nil
-                activeSendTask?.cancel()
-                await self.runtime.detach()
-
-                self.messages = []
-                self.applyComposerSuggestions(response.composerSuggestions)
-                self.activeAlert = nil
-                self.repairStatus = nil
-                self.completedDictationTranscript = nil
-                self.chatSessionId = response.sessionId
-                self.conversationScopeId = response.sessionId
-                self.applyComposerDraft(
-                    inputText: inputText,
-                    pendingAttachments: pendingAttachments
-                )
-                self.schedulePersistCurrentDraftState()
-                self.hasOlderMessages = false
-                self.oldestCursor = nil
                 self.serverChatConfig = response.chatConfig
-                self.transitionToIdle()
-                self.dictationState = .idle
+                if self.messages.isEmpty && self.activeRunId == nil {
+                    self.applyComposerSuggestions(response.composerSuggestions)
+                }
                 self.shouldKeepLiveAttached = shouldKeepLiveAttached
-                self.activeStreamingMessageId = nil
-                self.activeStreamingItemId = nil
-                self.activeResumeErrorAttemptSequence = nil
-                self.activeLiveResumeAttemptSequence = nil
-                self.schedulePersistState(
-                    state: AIChatPersistedState(
-                        messages: [],
-                        chatSessionId: response.sessionId,
-                        lastKnownChatConfig: response.chatConfig
-                    )
-                )
+                self.schedulePersistCurrentState()
             } catch is CancellationError {
             } catch {
                 if isAIChatRequestCancellationError(error: error) {

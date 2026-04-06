@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 private const val noSpeechRecordedMessage: String = "No speech was recorded."
 
@@ -276,13 +277,11 @@ internal class AiChatRuntime(
             return
         }
 
-        val requestedSessionId = runtimeStateMutable.value.persistedState.chatSessionId.ifBlank { null }
         startFreshConversation(
-            requestedSessionId = requestedSessionId,
+            targetSessionId = makeClientChatSessionId(),
             draftMessage = "",
             pendingAttachments = emptyList(),
-            shouldFocusComposer = false,
-            forceFresh = false
+            shouldFocusComposer = false
         )
     }
 
@@ -389,14 +388,16 @@ internal class AiChatRuntime(
             effortLevel = effortLevel
         )
 
-        if (requiresFreshSessionForCardHandoff(state = currentState)) {
+        if (
+            requiresFreshSessionForCardHandoff(state = currentState)
+            || currentState.persistedState.chatSessionId.isBlank()
+        ) {
             persistCurrentDraft(snapshot = currentState)
             startFreshConversation(
-                requestedSessionId = currentState.persistedState.chatSessionId.ifBlank { null },
+                targetSessionId = makeClientChatSessionId(),
                 draftMessage = "",
                 pendingAttachments = listOf(pendingCardAttachment),
-                shouldFocusComposer = true,
-                forceFresh = true
+                shouldFocusComposer = true
             )
             return true
         }
@@ -717,27 +718,20 @@ internal class AiChatRuntime(
             surface = AiErrorSurface.CHAT,
             configuration = currentServerConfiguration()
         )
-        val previousState = runtimeStateMutable.value.persistedState
-        val repairedState = clearMissingChatSessionIdIfNeeded(
-            state = previousState,
-            error = error
-        )
+        val currentState = runtimeStateMutable.value
         AiChatDiagnosticsLogger.error(
             event = "send_failure_handled",
             fields = listOf(
-                "workspaceId" to runtimeStateMutable.value.workspaceId,
+                "workspaceId" to currentState.workspaceId,
                 "cloudState" to currentCloudState().name,
-                "previousChatSessionId" to previousState.chatSessionId,
-                "repairedChatSessionId" to repairedState.chatSessionId,
-                "clearedMissingChatSessionId" to (previousState.chatSessionId != repairedState.chatSessionId).toString(),
-                "messageCount" to previousState.messages.size.toString(),
+                "chatSessionId" to currentState.persistedState.chatSessionId,
+                "messageCount" to currentState.persistedState.messages.size.toString(),
                 "userFacingMessage" to message
             ) + remoteErrorFields(error = remoteError),
             throwable = error
         )
         runtimeStateMutable.update { state ->
             state.copy(
-                persistedState = repairedState,
                 activeRun = null,
                 isLiveAttached = false,
                 composerPhase = AiComposerPhase.IDLE,
@@ -791,49 +785,78 @@ internal class AiChatRuntime(
             || state.composerPhase != AiComposerPhase.IDLE
     }
 
+    private fun canApplyFreshSessionEnsureResponse(
+        state: AiChatRuntimeState,
+        targetSessionId: String
+    ): Boolean {
+        return state.persistedState.chatSessionId == targetSessionId
+            && state.persistedState.messages.isEmpty()
+            && state.activeRun == null
+            && state.composerPhase == AiComposerPhase.IDLE
+    }
+
     private fun startFreshConversation(
-        requestedSessionId: String?,
+        targetSessionId: String,
         draftMessage: String,
         pendingAttachments: List<AiChatAttachment>,
-        shouldFocusComposer: Boolean,
-        forceFresh: Boolean
+        shouldFocusComposer: Boolean
     ) {
         context.scope.launch {
             try {
-                persistCurrentDraft()
-                val snapshot = context.aiChatRepository.createNewSession(
-                    workspaceId = runtimeStateMutable.value.workspaceId,
-                    sessionId = requestedSessionId,
-                    forceFresh = forceFresh
-                )
+                val previousState = runtimeStateMutable.value
+                persistCurrentDraft(snapshot = previousState)
                 context.activeSendJob?.cancelAndJoin()
                 context.activeSendJob = null
                 liveStreamCoordinator.detachLiveStream(reason = "AI live stream detached because a new chat was requested.")
                 runtimeStateMutable.update { state ->
+                    state.copy(
+                        persistedState = state.persistedState.copy(
+                            messages = emptyList(),
+                            chatSessionId = targetSessionId
+                        ),
+                        conversationScopeId = targetSessionId,
+                        hasOlder = false,
+                        oldestCursor = null,
+                        activeRun = null,
+                        isLiveAttached = false,
+                        draftMessage = draftMessage,
+                        pendingAttachments = pendingAttachments,
+                        focusComposerRequestVersion = if (shouldFocusComposer) {
+                            state.focusComposerRequestVersion + 1L
+                        } else {
+                            state.focusComposerRequestVersion
+                        },
+                        serverComposerSuggestions = emptyList(),
+                        composerPhase = AiComposerPhase.IDLE,
+                        dictationState = AiChatDictationState.IDLE,
+                        conversationBootstrapState = AiConversationBootstrapState.READY,
+                        conversationBootstrapErrorMessage = "",
+                        repairStatus = null,
+                        activeAlert = null,
+                        errorMessage = ""
+                    )
+                }
+                persistCurrentState()
+                val snapshot = context.aiChatRepository.createNewSession(
+                    workspaceId = previousState.workspaceId,
+                    sessionId = targetSessionId
+                )
+                if (
+                    snapshot.sessionId != targetSessionId
+                    || canApplyFreshSessionEnsureResponse(
+                        state = runtimeStateMutable.value,
+                        targetSessionId = targetSessionId
+                    ).not()
+                ) {
+                    return@launch
+                }
+                runtimeStateMutable.update { state ->
                     updateComposerSuggestions(
                         state = state.copy(
                             persistedState = state.persistedState.copy(
-                                messages = emptyList(),
-                                chatSessionId = snapshot.sessionId,
                                 lastKnownChatConfig = snapshot.chatConfig
                             ),
                             conversationScopeId = snapshot.conversationScopeId,
-                            hasOlder = false,
-                            oldestCursor = null,
-                            activeRun = null,
-                            isLiveAttached = false,
-                            draftMessage = draftMessage,
-                            pendingAttachments = pendingAttachments,
-                            focusComposerRequestVersion = if (shouldFocusComposer) {
-                                state.focusComposerRequestVersion + 1L
-                            } else {
-                                state.focusComposerRequestVersion
-                            },
-                            composerPhase = AiComposerPhase.IDLE,
-                            dictationState = AiChatDictationState.IDLE,
-                            conversationBootstrapState = AiConversationBootstrapState.READY,
-                            conversationBootstrapErrorMessage = "",
-                            repairStatus = null,
                             activeAlert = null,
                             errorMessage = ""
                         ),
@@ -873,4 +896,8 @@ internal class AiChatRuntime(
     private fun persistCurrentDraft(snapshot: AiChatRuntimeState = runtimeStateMutable.value) {
         context.persistDraft(snapshot = snapshot)
     }
+}
+
+private fun makeClientChatSessionId(): String {
+    return UUID.randomUUID().toString().lowercase()
 }
