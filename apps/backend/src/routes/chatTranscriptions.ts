@@ -17,13 +17,17 @@ import {
   assertGuestAiLimitAllowsTranscription,
   recordGuestDictationUsage,
 } from "../guestAiQuota";
-import { loadRequestContextFromRequest } from "../server/requestContext";
+import {
+  loadRequestContextFromRequest,
+  requireAccessibleSelectedWorkspaceIdForAiDictation,
+} from "../server/requestContext";
 import type { AppEnv } from "../app";
 
 type ChatTranscriptionsRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
   getRecoveredChatSessionSnapshotFn?: typeof getRecoveredChatSessionSnapshot;
+  requireAccessibleSelectedWorkspaceIdForAiDictationFn?: typeof requireAccessibleSelectedWorkspaceIdForAiDictation;
   transcribeAudioFn?: (
     upload: ChatTranscriptionUpload,
     requestContext: ChatTranscriptionRequestContext,
@@ -73,16 +77,25 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
   const getRecoveredChatSessionSnapshotFn = options.getRecoveredChatSessionSnapshotFn ?? getRecoveredChatSessionSnapshot;
+  const requireAccessibleSelectedWorkspaceIdForAiDictationFn = options.requireAccessibleSelectedWorkspaceIdForAiDictationFn
+    ?? (options.loadRequestContextFromRequestFn === undefined
+      ? requireAccessibleSelectedWorkspaceIdForAiDictation
+      : async (requestContext): Promise<string> => {
+        // Route tests often stub request context directly and do not exercise
+        // the real workspace access path, so keep a minimal local fallback.
+        if (requestContext.selectedWorkspaceId === null) {
+          throw new HttpError(403, "A workspace must be selected before using AI dictation.", "AI_WORKSPACE_REQUIRED");
+        }
+
+        return requestContext.selectedWorkspaceId;
+      });
   const transcribeAudioFn = options.transcribeAudioFn
     ?? (async (upload, requestContext) => transcribeChatAudioUpload(upload, requestContext));
 
   app.post("/chat/transcriptions", async (context) => {
     const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     const upload = await parseChatTranscriptionUpload(context.req.raw);
-    const workspaceId = requestContext.selectedWorkspaceId;
-    if (workspaceId === null) {
-      throw new HttpError(403, "A workspace must be selected before using AI dictation.", "AI_WORKSPACE_REQUIRED");
-    }
+    const workspaceId = await requireAccessibleSelectedWorkspaceIdForAiDictationFn(requestContext);
     const sessionId = await resolveChatTranscriptionSessionId(
       requestContext.userId,
       workspaceId,

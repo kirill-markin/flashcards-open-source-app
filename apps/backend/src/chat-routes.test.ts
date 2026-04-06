@@ -514,6 +514,54 @@ test("GET /chat returns a stable conflict when the requested session id is owned
   });
 });
 
+test("GET /chat stops before store access when the selected workspace is no longer accessible", async () => {
+  let snapshotRequested = false;
+  const routes = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    requireAccessibleSelectedWorkspaceIdFn: async () => {
+      throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
+    },
+    getRecoveredChatSessionSnapshotFn: async () => {
+      snapshotRequested = true;
+      return createSnapshot([]);
+    },
+  });
+  const app = new Hono();
+  app.onError((error, context) => {
+    const httpError = toHttpErrorLike(error);
+    if (httpError !== null) {
+      context.status(httpError.statusCode as ContentfulStatusCode);
+      return context.json({
+        error: httpError.message,
+        requestId: null,
+        code: httpError.code,
+      });
+    }
+
+    context.status(500);
+    return context.json({
+      error: "Request failed. Try again.",
+      requestId: null,
+      code: "INTERNAL_ERROR",
+    });
+  });
+  app.route("/", routes);
+
+  const response = await app.request(`http://localhost/chat?sessionId=${SESSION_ONE}`);
+
+  assert.equal(snapshotRequested, false);
+  assert.equal(response.status, 404);
+  assert.deepEqual(await response.json(), {
+    error: "Workspace not found",
+    requestId: null,
+    code: "WORKSPACE_NOT_FOUND",
+  });
+});
+
 test("GET /chat preserves card content parts in snapshot history", async () => {
   const app = createChatRoutes({
     allowedOrigins: [],

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { query, type DatabaseExecutor } from "./db";
+import type { DatabaseExecutor } from "./db";
+import { unsafeQuery } from "./dbUnsafe";
 
 type DeletedSubjectRow = Readonly<{
   subject_sha256: string;
@@ -13,7 +14,7 @@ export function hashDeletedSubject(userId: string): string {
 
 export async function isDeletedSubject(userId: string): Promise<boolean> {
   const subjectHash = hashDeletedSubject(userId);
-  const result = await query<DeletedSubjectRow>(
+  const result = await unsafeQuery<DeletedSubjectRow>(
     "SELECT subject_sha256 FROM auth.deleted_subjects WHERE subject_sha256 = $1 LIMIT 1",
     [subjectHash],
   );

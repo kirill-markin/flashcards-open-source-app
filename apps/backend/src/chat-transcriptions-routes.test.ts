@@ -133,3 +133,74 @@ test("POST /chat/transcriptions returns a stable conflict when the requested ses
     code: "CHAT_SESSION_ID_CONFLICT",
   });
 });
+
+test("POST /chat/transcriptions stops before session recovery when the selected workspace is no longer accessible", async () => {
+  let sessionRecoveryRequested = false;
+  let transcriptionStarted = false;
+  const routes = createChatTranscriptionsRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    requireAccessibleSelectedWorkspaceIdForAiDictationFn: async () => {
+      throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
+    },
+    getRecoveredChatSessionSnapshotFn: async () => {
+      sessionRecoveryRequested = true;
+      return {
+        sessionId: SESSION_ONE,
+        runState: "idle",
+        activeRunId: null,
+        updatedAt: 1,
+        activeRunHeartbeatAt: null,
+        composerSuggestions: [],
+        mainContentInvalidationVersion: 0,
+        messages: [],
+      };
+    },
+    transcribeAudioFn: async () => {
+      transcriptionStarted = true;
+      return "hello";
+    },
+  });
+  const app = new Hono();
+  app.onError((error, context) => {
+    const httpError = toHttpErrorLike(error);
+    if (httpError !== null) {
+      context.status(httpError.statusCode as ContentfulStatusCode);
+      return context.json({
+        error: httpError.message,
+        requestId: null,
+        code: httpError.code,
+      });
+    }
+
+    context.status(500);
+    return context.json({
+      error: "Request failed. Try again.",
+      requestId: null,
+      code: "INTERNAL_ERROR",
+    });
+  });
+  app.route("/", routes);
+
+  const formData = new FormData();
+  formData.set("file", new File(["audio"], "note.m4a", { type: "audio/m4a" }));
+  formData.set("source", "web");
+  formData.set("sessionId", SESSION_ONE);
+
+  const response = await app.request("http://localhost/chat/transcriptions", {
+    method: "POST",
+    body: formData,
+  });
+
+  assert.equal(sessionRecoveryRequested, false);
+  assert.equal(transcriptionStarted, false);
+  assert.equal(response.status, 404);
+  assert.deepEqual(await response.json(), {
+    error: "Workspace not found",
+    requestId: null,
+    code: "WORKSPACE_NOT_FOUND",
+  });
+});

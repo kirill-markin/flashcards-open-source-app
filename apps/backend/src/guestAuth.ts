@@ -2,10 +2,9 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import {
   applyUserDatabaseScopeInExecutor,
   applyWorkspaceDatabaseScopeInExecutor,
-  query,
-  transaction,
   type DatabaseExecutor,
 } from "./db";
+import { unsafeQuery, unsafeTransaction } from "./dbUnsafe";
 import { HttpError } from "./errors";
 import { compareLwwMetadata } from "./lww";
 import { insertSyncChange } from "./syncChanges";
@@ -162,6 +161,12 @@ type GuestUpgradeHistoryWrite = Readonly<{
   targetWorkspaceId: string;
   selectionType: GuestUpgradeSelectionType;
   replicaIdMap: ReadonlyMap<string, string>;
+}>;
+
+type GuestUpgradeResolution = Readonly<{
+  guestWorkspaceId: string;
+  targetUserId: string;
+  targetWorkspaceId: string;
 }>;
 
 function toIsoString(value: Date | string): string {
@@ -934,7 +939,7 @@ async function mergeGuestWorkspaceIntoTargetInExecutor(
 export async function authenticateGuestSession(guestToken: string): Promise<Readonly<{
   userId: string;
 }>> {
-  const result = await query<GuestSessionRow>(
+  const result = await unsafeQuery<GuestSessionRow>(
     [
       "SELECT session_id, user_id, revoked_at",
       "FROM auth.guest_sessions",
@@ -955,7 +960,7 @@ export async function authenticateGuestSession(guestToken: string): Promise<Read
 }
 
 export async function createGuestSession(): Promise<GuestSessionSnapshot> {
-  return transaction(async (executor) => {
+  return unsafeTransaction(async (executor) => {
     // Guest session creation is intentionally always a fresh server-side
     // identity. Clients clear stored guest sessions and regenerate their local
     // installation identity on logout/account deletion before they can call
@@ -1033,7 +1038,75 @@ export async function prepareGuestUpgrade(
   cognitoSubject: string,
   email: string | null,
 ): Promise<GuestUpgradePreparation> {
-  return transaction(async (executor) => prepareGuestUpgradeInExecutor(executor, guestToken, cognitoSubject, email));
+  return unsafeTransaction(async (executor) => prepareGuestUpgradeInExecutor(executor, guestToken, cognitoSubject, email));
+}
+
+async function resolveGuestUpgradeTargetInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+  targetUserId: string,
+  selection: GuestUpgradeSelection,
+): Promise<GuestUpgradeResolution> {
+  // Resolve both source and destination up front so the later merge stage can
+  // operate on explicit scopes instead of mixing resolution with writes.
+  const guestWorkspaceId = await loadGuestWorkspaceIdInExecutor(executor, guestUserId);
+  const targetWorkspaceId = selection.type === "existing"
+    ? selection.workspaceId
+    : await (async (): Promise<string> => {
+      const guestWorkspaceName = await loadWorkspaceNameInExecutor(executor, guestUserId, guestWorkspaceId);
+      await applyUserDatabaseScopeInExecutor(executor, { userId: targetUserId });
+      const nextWorkspaceId = await createWorkspaceInExecutor(executor, targetUserId, guestWorkspaceName);
+      await executor.query(
+        "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
+        [nextWorkspaceId, targetUserId],
+      );
+      return nextWorkspaceId;
+    })();
+
+  await assertTargetWorkspaceAccessInExecutor(executor, targetUserId, targetWorkspaceId);
+
+  return {
+    guestWorkspaceId,
+    targetUserId,
+    targetWorkspaceId,
+  };
+}
+
+async function persistGuestUpgradeTargetSelectionInExecutor(
+  executor: DatabaseExecutor,
+  targetUserId: string,
+  targetWorkspaceId: string,
+): Promise<void> {
+  // Keep the target account pointed at the post-merge workspace before guest
+  // cleanup starts so replay/idempotency stays anchored to the same selection.
+  await applyUserDatabaseScopeInExecutor(executor, { userId: targetUserId });
+  await executor.query(
+    "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
+    [targetWorkspaceId, targetUserId],
+  );
+}
+
+async function cleanupGuestUpgradeSourceInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+  guestSessionId: string,
+  guestWorkspaceId: string,
+): Promise<void> {
+  // Cleanup stays in one source-scoped phase so destructive guest-side work is
+  // not interleaved with target writes.
+  await applyUserDatabaseScopeInExecutor(executor, { userId: guestUserId });
+  await executor.query(
+    "UPDATE auth.guest_sessions SET revoked_at = now() WHERE session_id = $1",
+    [guestSessionId],
+  );
+  await executor.query(
+    "DELETE FROM org.workspaces WHERE workspace_id = $1",
+    [guestWorkspaceId],
+  );
+  await executor.query(
+    "DELETE FROM org.user_settings WHERE user_id = $1",
+    [guestUserId],
+  );
 }
 
 /**
@@ -1075,62 +1148,48 @@ export async function completeGuestUpgradeInExecutor(
     };
   }
 
-  const guestWorkspaceId = await loadGuestWorkspaceIdInExecutor(executor, guestSession.user_id);
-  const targetWorkspaceId = selection.type === "existing"
-    ? selection.workspaceId
-    : await (async () => {
-      const guestWorkspaceName = await loadWorkspaceNameInExecutor(executor, guestSession.user_id, guestWorkspaceId);
-      await applyUserDatabaseScopeInExecutor(executor, { userId: targetUserId });
-      const nextWorkspaceId = await createWorkspaceInExecutor(executor, targetUserId, guestWorkspaceName);
-      await executor.query(
-        "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
-        [nextWorkspaceId, targetUserId],
-      );
-      return nextWorkspaceId;
-    })();
-
-  await assertTargetWorkspaceAccessInExecutor(executor, targetUserId, targetWorkspaceId);
+  const guestUpgradeResolution = await resolveGuestUpgradeTargetInExecutor(
+    executor,
+    guestSession.user_id,
+    targetUserId,
+    selection,
+  );
   const guestUpgradeHistory = await mergeGuestWorkspaceIntoTargetInExecutor(
     executor,
     {
       guestSessionId: guestSession.session_id,
       guestUserId: guestSession.user_id,
-      guestWorkspaceId,
+      guestWorkspaceId: guestUpgradeResolution.guestWorkspaceId,
       targetSubjectUserId: cognitoSubject,
-      targetUserId,
-      targetWorkspaceId,
+      targetUserId: guestUpgradeResolution.targetUserId,
+      targetWorkspaceId: guestUpgradeResolution.targetWorkspaceId,
       selectionType: selection.type,
     },
   );
   await recordGuestUpgradeHistoryInExecutor(executor, guestUpgradeHistory);
-
-  await applyUserDatabaseScopeInExecutor(executor, { userId: targetUserId });
-  await executor.query(
-    "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
-    [targetWorkspaceId, targetUserId],
+  await persistGuestUpgradeTargetSelectionInExecutor(
+    executor,
+    guestUpgradeResolution.targetUserId,
+    guestUpgradeResolution.targetWorkspaceId,
   );
-
-  await applyUserDatabaseScopeInExecutor(executor, { userId: guestSession.user_id });
-  await executor.query(
-    "UPDATE auth.guest_sessions SET revoked_at = now() WHERE session_id = $1",
-    [guestSession.session_id],
-  );
-  await executor.query(
-    "DELETE FROM org.workspaces WHERE workspace_id = $1",
-    [guestWorkspaceId],
-  );
-  await executor.query(
-    "DELETE FROM org.user_settings WHERE user_id = $1",
-    [guestSession.user_id],
+  await cleanupGuestUpgradeSourceInExecutor(
+    executor,
+    guestSession.user_id,
+    guestSession.session_id,
+    guestUpgradeResolution.guestWorkspaceId,
   );
 
   return {
-    workspace: await loadWorkspaceSummaryInExecutor(executor, targetUserId, targetWorkspaceId),
+    workspace: await loadWorkspaceSummaryInExecutor(
+      executor,
+      guestUpgradeResolution.targetUserId,
+      guestUpgradeResolution.targetWorkspaceId,
+    ),
     outcome: "fresh_completion",
     guestSessionId: guestSession.session_id,
     targetSubjectUserId: cognitoSubject,
-    targetUserId,
-    targetWorkspaceId,
+    targetUserId: guestUpgradeResolution.targetUserId,
+    targetWorkspaceId: guestUpgradeResolution.targetWorkspaceId,
   };
 }
 
@@ -1139,5 +1198,7 @@ export async function completeGuestUpgrade(
   cognitoSubject: string,
   selection: GuestUpgradeSelection,
 ): Promise<GuestUpgradeCompletion> {
-  return transaction(async (executor) => completeGuestUpgradeInExecutor(executor, guestToken, cognitoSubject, selection));
+  return unsafeTransaction(
+    async (executor) => completeGuestUpgradeInExecutor(executor, guestToken, cognitoSubject, selection),
+  );
 }
