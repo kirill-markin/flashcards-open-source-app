@@ -141,14 +141,27 @@ enum class AiChatDictationState {
     TRANSCRIBING
 }
 
-data class AiChatAttachment(
-    val id: String,
-    val fileName: String,
-    val mediaType: String,
-    val base64Data: String
-) {
-    val isImage: Boolean
-        get() = mediaType.startsWith(prefix = "image/")
+sealed interface AiChatAttachment {
+    val id: String
+
+    data class Binary(
+        override val id: String,
+        val fileName: String,
+        val mediaType: String,
+        val base64Data: String
+    ) : AiChatAttachment {
+        val isImage: Boolean
+            get() = mediaType.startsWith(prefix = "image/")
+    }
+
+    data class Card(
+        override val id: String,
+        val cardId: String,
+        val frontText: String,
+        val backText: String,
+        val tags: List<String>,
+        val effortLevel: EffortLevel
+    ) : AiChatAttachment
 }
 
 data class AiChatComposerSuggestion(
@@ -193,6 +206,14 @@ sealed interface AiChatContentPart {
         val base64Data: String
     ) : AiChatContentPart
 
+    data class Card(
+        val cardId: String,
+        val frontText: String,
+        val backText: String,
+        val tags: List<String>,
+        val effortLevel: EffortLevel
+    ) : AiChatContentPart
+
     data class ToolCall(
         val toolCall: AiChatToolCall
     ) : AiChatContentPart
@@ -220,6 +241,11 @@ data class AiChatPersistedState(
     val lastKnownChatConfig: AiChatServerConfig?
 )
 
+data class AiChatDraftState(
+    val draftMessage: String,
+    val pendingAttachments: List<AiChatAttachment>
+)
+
 sealed interface AiChatWireContentPart {
     data class Text(
         val text: String
@@ -234,6 +260,14 @@ sealed interface AiChatWireContentPart {
         val fileName: String,
         val mediaType: String,
         val base64Data: String
+    ) : AiChatWireContentPart
+
+    data class Card(
+        val cardId: String,
+        val frontText: String,
+        val backText: String,
+        val tags: List<String>,
+        val effortLevel: EffortLevel
     ) : AiChatWireContentPart
 
     data class ToolCall(
@@ -297,6 +331,17 @@ fun makeDefaultAiChatPersistedState(): AiChatPersistedState {
         chatSessionId = "",
         lastKnownChatConfig = null
     )
+}
+
+fun makeDefaultAiChatDraftState(): AiChatDraftState {
+    return AiChatDraftState(
+        draftMessage = "",
+        pendingAttachments = emptyList()
+    )
+}
+
+fun AiChatDraftState.isEmpty(): Boolean {
+    return draftMessage.isBlank() && pendingAttachments.isEmpty()
 }
 
 data class AiChatAttachmentReference(
@@ -423,6 +468,14 @@ fun buildAiChatRequestContent(content: List<AiChatContentPart>): List<AiChatWire
                 base64Data = part.base64Data
             )
 
+            is AiChatContentPart.Card -> AiChatWireContentPart.Card(
+                cardId = part.cardId,
+                frontText = part.frontText,
+                backText = part.backText,
+                tags = part.tags,
+                effortLevel = part.effortLevel
+            )
+
             is AiChatContentPart.ToolCall -> AiChatWireContentPart.ToolCall(
                 toolCallId = part.toolCall.toolCallId,
                 name = part.toolCall.name,
@@ -441,12 +494,84 @@ fun makeAiChatAttachment(
     mediaType: String,
     base64Data: String
 ): AiChatAttachment {
-    return AiChatAttachment(
+    return AiChatAttachment.Binary(
         id = UUID.randomUUID().toString().lowercase(),
         fileName = fileName,
         mediaType = mediaType,
         base64Data = base64Data
     )
+}
+
+fun makeAiChatCardAttachment(
+    cardId: String,
+    frontText: String,
+    backText: String,
+    tags: List<String>,
+    effortLevel: EffortLevel
+): AiChatAttachment.Card {
+    return AiChatAttachment.Card(
+        id = UUID.randomUUID().toString().lowercase(),
+        cardId = cardId,
+        frontText = frontText,
+        backText = backText,
+        tags = tags,
+        effortLevel = effortLevel
+    )
+}
+
+fun aiChatEffortLevelWireValue(effortLevel: EffortLevel): String {
+    return effortLevel.name.lowercase()
+}
+
+fun formatAiChatCardAttachmentLabel(frontText: String): String {
+    val trimmedFrontText = frontText.trim()
+    if (trimmedFrontText.isEmpty()) {
+        return "Card"
+    }
+
+    return "Card · " + trimmedFrontText.take(n = 72)
+}
+
+fun buildAiChatCardContextXml(
+    cardId: String,
+    frontText: String,
+    backText: String,
+    tags: List<String>,
+    effortLevel: EffortLevel
+): String {
+    val escapedTags = tags.joinToString(separator = "") { tag ->
+        "<tag>${escapeAiChatCardXmlValue(value = tag)}</tag>"
+    }
+
+    // Keep this byte-for-byte aligned with apps/backend/src/chat/cardContext.ts::buildCardContextXml.
+    return buildString {
+        append("<attached_card>\n")
+        append("<card_id>")
+        append(escapeAiChatCardXmlValue(value = cardId))
+        append("</card_id>\n")
+        append("<effort_level>")
+        append(escapeAiChatCardXmlValue(value = aiChatEffortLevelWireValue(effortLevel = effortLevel)))
+        append("</effort_level>\n")
+        append("<front_text>\n")
+        append(escapeAiChatCardXmlValue(value = frontText))
+        append("\n</front_text>\n")
+        append("<back_text>\n")
+        append(escapeAiChatCardXmlValue(value = backText))
+        append("\n</back_text>\n")
+        append("<tags>")
+        append(escapedTags)
+        append("</tags>\n")
+        append("</attached_card>")
+    }
+}
+
+private fun escapeAiChatCardXmlValue(value: String): String {
+    return value
+        .replace(oldValue = "&", newValue = "&amp;")
+        .replace(oldValue = "<", newValue = "&lt;")
+        .replace(oldValue = ">", newValue = "&gt;")
+        .replace(oldValue = "\"", newValue = "&quot;")
+        .replace(oldValue = "'", newValue = "&apos;")
 }
 
 fun requireAiChatAttachmentSize(byteCount: Int) {

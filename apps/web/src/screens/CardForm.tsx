@@ -44,6 +44,15 @@ export function toCardFormState(card: Card | null): CardFormState {
   };
 }
 
+export function isCardFormStateDirty(card: Card | null, formState: CardFormState): boolean {
+  const currentState = toCardFormState(card);
+  return currentState.frontText !== formState.frontText
+    || currentState.backText !== formState.backText
+    || currentState.effortLevel !== formState.effortLevel
+    || currentState.tags.length !== formState.tags.length
+    || currentState.tags.some((tag, index) => tag !== formState.tags[index]);
+}
+
 export function CardFormFields(props: Props): ReactElement {
   const { tagSuggestions, currentCard, formState, formIdPrefix, isSaving, onChange } = props;
   const frontFieldId = `${formIdPrefix}-front-text`;

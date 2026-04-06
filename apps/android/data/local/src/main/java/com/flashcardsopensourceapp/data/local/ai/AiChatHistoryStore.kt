@@ -3,7 +3,9 @@ package com.flashcardsopensourceapp.data.local.ai
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
@@ -13,8 +15,11 @@ import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.isEmpty
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -26,6 +31,9 @@ import org.json.JSONObject
 private const val aiChatHistoryPreferencesName: String = "flashcards-ai-chat-history"
 private const val aiChatDefaultHistoryKey: String = "ai-chat-history"
 private const val aiChatWorkspaceHistoryPrefix: String = "ai-chat-history::"
+private const val aiChatDefaultDraftKey: String = "ai-chat-draft"
+private const val aiChatWorkspaceDraftPrefix: String = "ai-chat-draft::"
+private const val aiChatPendingDraftSessionId: String = "__pending__"
 private const val aiChatMaxMessages: Int = 200
 
 fun makeAiChatHistoryScopedWorkspaceId(
@@ -71,7 +79,16 @@ class AiChatHistoryStore(
 
         return@withContext try {
             decodeState(rawValue = rawValue)
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            AiChatDiagnosticsLogger.error(
+                event = "ai_chat_history_load_failed",
+                fields = listOf(
+                    "workspaceId" to workspaceId,
+                    "storageKey" to storageKey(workspaceId = workspaceId),
+                    "message" to error.message
+                ),
+                throwable = error
+            )
             clearState(workspaceId = workspaceId)
             makeDefaultAiChatPersistedState()
         }
@@ -88,6 +105,94 @@ class AiChatHistoryStore(
         preferences.edit(commit = true) {
             remove(storageKey(workspaceId = workspaceId))
         }
+    }
+
+    suspend fun loadDraftState(workspaceId: String?, sessionId: String?): AiChatDraftState = withContext(Dispatchers.IO) {
+        val resolvedSessionId = normalizeSessionId(sessionId = sessionId)
+        val draftKey = draftStorageKey(workspaceId = workspaceId, sessionId = resolvedSessionId)
+        val rawValue = preferences.getString(draftKey, null)
+        if (rawValue != null) {
+            return@withContext try {
+                decodeDraftState(rawValue = rawValue)
+            } catch (error: Exception) {
+                AiChatDiagnosticsLogger.error(
+                    event = "ai_chat_draft_load_failed",
+                    fields = listOf(
+                        "workspaceId" to workspaceId,
+                        "sessionId" to sessionId,
+                        "storageKey" to draftKey,
+                        "message" to error.message
+                    ),
+                    throwable = error
+                )
+                clearDraftStorageKey(workspaceId = workspaceId, sessionId = resolvedSessionId)
+                makeDefaultAiChatDraftState()
+            }
+        }
+
+        if (resolvedSessionId == aiChatPendingDraftSessionId) {
+            return@withContext makeDefaultAiChatDraftState()
+        }
+
+        val pendingKey = draftStorageKey(workspaceId = workspaceId, sessionId = aiChatPendingDraftSessionId)
+        val pendingValue = preferences.getString(pendingKey, null)
+            ?: return@withContext makeDefaultAiChatDraftState()
+
+        val draftState = try {
+            decodeDraftState(rawValue = pendingValue)
+        } catch (error: Exception) {
+            AiChatDiagnosticsLogger.error(
+                event = "ai_chat_draft_load_failed",
+                fields = listOf(
+                    "workspaceId" to workspaceId,
+                    "sessionId" to sessionId,
+                    "storageKey" to pendingKey,
+                    "message" to error.message
+                ),
+                throwable = error
+            )
+            clearDraftStorageKey(workspaceId = workspaceId, sessionId = aiChatPendingDraftSessionId)
+            return@withContext makeDefaultAiChatDraftState()
+        }
+
+        if (draftState.isEmpty().not()) {
+            preferences.edit(commit = true) {
+                putString(draftKey, encodeDraftState(draftState = draftState).toString())
+                remove(pendingKey)
+            }
+        } else {
+            clearDraftStorageKey(workspaceId = workspaceId, sessionId = aiChatPendingDraftSessionId)
+        }
+        return@withContext draftState
+    }
+
+    suspend fun saveDraftState(workspaceId: String?, sessionId: String?, state: AiChatDraftState) = withContext(Dispatchers.IO) {
+        val normalizedSessionId = normalizeSessionId(sessionId = sessionId)
+        val storageKey = draftStorageKey(workspaceId = workspaceId, sessionId = normalizedSessionId)
+        val pendingKey = draftStorageKey(workspaceId = workspaceId, sessionId = aiChatPendingDraftSessionId)
+        if (state.isEmpty()) {
+            preferences.edit(commit = true) {
+                remove(storageKey)
+                if (normalizedSessionId != aiChatPendingDraftSessionId) {
+                    remove(pendingKey)
+                }
+            }
+            return@withContext
+        }
+
+        preferences.edit(commit = true) {
+            putString(storageKey, encodeDraftState(draftState = state).toString())
+            if (normalizedSessionId != aiChatPendingDraftSessionId) {
+                remove(pendingKey)
+            }
+        }
+    }
+
+    suspend fun clearDraftState(workspaceId: String?, sessionId: String?) = withContext(Dispatchers.IO) {
+        clearDraftStorageKey(
+            workspaceId = workspaceId,
+            sessionId = normalizeSessionId(sessionId = sessionId)
+        )
     }
 
     suspend fun clearAllState() = withContext(Dispatchers.IO) {
@@ -118,6 +223,18 @@ class AiChatHistoryStore(
         }
 
         return aiChatWorkspaceHistoryPrefix + workspaceId
+    }
+
+    private fun draftStorageKey(workspaceId: String?, sessionId: String): String {
+        if (workspaceId.isNullOrBlank()) {
+            return aiChatDefaultDraftKey + "::" + sessionId
+        }
+
+        return aiChatWorkspaceDraftPrefix + workspaceId + "::" + sessionId
+    }
+
+    private fun normalizeSessionId(sessionId: String?): String {
+        return sessionId?.trim()?.takeIf { value -> value.isNotEmpty() } ?: aiChatPendingDraftSessionId
     }
 
     private fun encodeState(state: AiChatPersistedState): JSONObject {
@@ -265,6 +382,14 @@ class AiChatHistoryStore(
                 .put("mediaType", contentPart.mediaType)
                 .put("base64Data", contentPart.base64Data)
 
+            is AiChatContentPart.Card -> JSONObject()
+                .put("type", "card")
+                .put("cardId", contentPart.cardId)
+                .put("frontText", contentPart.frontText)
+                .put("backText", contentPart.backText)
+                .put("tags", JSONArray(contentPart.tags))
+                .put("effortLevel", contentPart.effortLevel.name)
+
             is AiChatContentPart.ToolCall -> JSONObject()
                 .put("type", "tool_call")
                 .put("id", contentPart.toolCall.toolCallId)
@@ -319,6 +444,14 @@ class AiChatHistoryStore(
                 base64Data = jsonObject.getString("base64Data")
             )
 
+            "card" -> AiChatContentPart.Card(
+                cardId = jsonObject.getString("cardId"),
+                frontText = jsonObject.getString("frontText"),
+                backText = jsonObject.getString("backText"),
+                tags = jsonObject.optJSONArray("tags")?.let(::decodeStringArray) ?: emptyList(),
+                effortLevel = decodeEffortLevel(jsonObject = jsonObject)
+            )
+
             "tool_call" -> AiChatContentPart.ToolCall(
                 toolCall = AiChatToolCall(
                     toolCallId = jsonObject.getString("id"),
@@ -338,6 +471,85 @@ class AiChatHistoryStore(
         }
     }
 
+    private fun encodeDraftState(draftState: AiChatDraftState): JSONObject {
+        return JSONObject()
+            .put("draftMessage", draftState.draftMessage)
+            .put("pendingAttachments", JSONArray(draftState.pendingAttachments.map(::encodeAttachment)))
+    }
+
+    private fun decodeDraftState(rawValue: String): AiChatDraftState {
+        val jsonObject = JSONObject(rawValue)
+        val draftMessage = jsonObject.optString("draftMessage", "")
+        val pendingAttachments = jsonObject.optJSONArray("pendingAttachments")
+            ?.let(::decodeAttachments)
+            ?: emptyList()
+
+        return AiChatDraftState(
+            draftMessage = draftMessage,
+            pendingAttachments = pendingAttachments
+        )
+    }
+
+    private fun encodeAttachment(attachment: AiChatAttachment): JSONObject {
+        return when (attachment) {
+            is AiChatAttachment.Binary -> JSONObject()
+                .put("type", "binary")
+                .put("id", attachment.id)
+                .put("fileName", attachment.fileName)
+                .put("mediaType", attachment.mediaType)
+                .put("base64Data", attachment.base64Data)
+
+            is AiChatAttachment.Card -> JSONObject()
+                .put("type", "card")
+                .put("id", attachment.id)
+                .put("cardId", attachment.cardId)
+                .put("frontText", attachment.frontText)
+                .put("backText", attachment.backText)
+                .put("tags", JSONArray(attachment.tags))
+                .put("effortLevel", attachment.effortLevel.name)
+        }
+    }
+
+    private fun decodeAttachments(jsonArray: JSONArray): List<AiChatAttachment> {
+        return buildList {
+            for (index in 0 until jsonArray.length()) {
+                add(decodeAttachment(jsonObject = jsonArray.getJSONObject(index)))
+            }
+        }
+    }
+
+    private fun decodeAttachment(jsonObject: JSONObject): AiChatAttachment {
+        return when (jsonObject.getString("type")) {
+            "binary" -> AiChatAttachment.Binary(
+                id = jsonObject.getString("id"),
+                fileName = jsonObject.getString("fileName"),
+                mediaType = jsonObject.getString("mediaType"),
+                base64Data = jsonObject.getString("base64Data")
+            )
+
+            "card" -> AiChatAttachment.Card(
+                id = jsonObject.getString("id"),
+                cardId = jsonObject.getString("cardId"),
+                frontText = jsonObject.getString("frontText"),
+                backText = jsonObject.getString("backText"),
+                tags = jsonObject.optJSONArray("tags")?.let(::decodeStringArray) ?: emptyList(),
+                effortLevel = decodeEffortLevel(jsonObject = jsonObject)
+            )
+
+            else -> throw IllegalArgumentException("Unsupported AI chat attachment type.")
+        }
+    }
+
+    private fun decodeEffortLevel(jsonObject: JSONObject): EffortLevel {
+        val rawValue = jsonObject.getString("effortLevel").trim()
+        return when (rawValue) {
+            EffortLevel.FAST.name -> EffortLevel.FAST
+            EffortLevel.MEDIUM.name -> EffortLevel.MEDIUM
+            EffortLevel.LONG.name -> EffortLevel.LONG
+            else -> throw IllegalArgumentException("Invalid AI chat card effort level: $rawValue")
+        }
+    }
+
     private fun currentState(workspaceId: String?): AiChatPersistedState {
         val rawValue = preferences.getString(storageKey(workspaceId = workspaceId), null)
             ?: return makeDefaultAiChatPersistedState()
@@ -346,6 +558,20 @@ class AiChatHistoryStore(
             decodeState(rawValue = rawValue)
         } catch (_: Exception) {
             makeDefaultAiChatPersistedState()
+        }
+    }
+
+    private fun clearDraftStorageKey(workspaceId: String?, sessionId: String) {
+        preferences.edit(commit = true) {
+            remove(draftStorageKey(workspaceId = workspaceId, sessionId = sessionId))
+        }
+    }
+
+    private fun decodeStringArray(jsonArray: JSONArray): List<String> {
+        return buildList {
+            for (index in 0 until jsonArray.length()) {
+                add(jsonArray.getString(index))
+            }
         }
     }
 }

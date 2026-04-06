@@ -20,10 +20,12 @@ import {
   checkFileSize,
   EXTRA_AGGRESSIVE_IMAGE_COMPRESSION,
   FileAttachment,
+  isBinaryPendingAttachment,
   prepareAttachment,
   recompressImageAttachment,
   type PendingAttachment,
 } from "./FileAttachment";
+import { formatCardAttachmentLabel } from "./chatCardParts";
 import {
   ATTACHMENT_LIMIT_ERROR_MESSAGE,
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
@@ -132,10 +134,12 @@ export function ChatPanel(props: Props): ReactElement {
   const appData = useAppData();
   const {
     draft,
+    focusComposerRequestVersion,
     replaceInputText,
     updateInputText,
     replacePendingAttachments,
-    clearDraft,
+    replaceDraftForSession,
+    clearDraftForSession,
   } = useChatDraft();
   const { setIsOpen, chatWidth, setChatWidth } = useChatLayout();
   const [localWidth, setLocalWidth] = useState<number>(chatWidth);
@@ -256,6 +260,14 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
 
+    textareaRef.current?.focus();
+  }, [dictationState, focusComposerRequestVersion]);
+
+  useEffect(() => {
+    if (dictationState !== "idle") {
+      return;
+    }
+
     const textarea = textareaRef.current;
     const pendingSelection = pendingTextareaSelectionRef.current;
     if (textarea === null || pendingSelection === null) {
@@ -347,6 +359,7 @@ export function ChatPanel(props: Props): ReactElement {
 
     if (
       projectedSizeBytes > ATTACHMENT_PAYLOAD_LIMIT_BYTES
+      && isBinaryPendingAttachment(attachment)
       && attachment.mediaType.startsWith(IMAGE_MEDIA_TYPE_PREFIX)
     ) {
       try {
@@ -560,6 +573,7 @@ export function ChatPanel(props: Props): ReactElement {
 
     const nextText = inputText;
     const nextAttachments = pendingAttachmentsRef.current;
+    const sourceSessionId = currentSessionId;
     const contentParts = buildContentParts(nextText, nextAttachments);
     if (contentParts.length === 0) {
       return;
@@ -601,7 +615,10 @@ export function ChatPanel(props: Props): ReactElement {
       });
 
       if (result.accepted) {
-        clearDraft();
+        clearDraftForSession(sourceSessionId);
+        if (result.sessionId !== null && result.sessionId !== sourceSessionId) {
+          clearDraftForSession(result.sessionId);
+        }
         pendingAttachmentsRef.current = [];
         draftSelectionRef.current = null;
         pendingTextareaSelectionRef.current = null;
@@ -706,17 +723,33 @@ export function ChatPanel(props: Props): ReactElement {
             type="button"
             className="chat-close-btn"
             onClick={() => {
+              const sourceSessionId = currentSessionId;
+              const sourceDraft = draft;
               discardDictation();
-              void clearConversation().then(() => {
-                clearDraft();
-                pendingAttachmentsRef.current = [];
-                draftSelectionRef.current = null;
-                pendingTextareaSelectionRef.current = null;
-                requestComposerFocusRestore();
-              }).catch((error: unknown) => {
-                const message = error instanceof Error ? error.message : String(error);
-                appData.setErrorMessage(`New chat failed. ${message}`);
-              });
+              if (sourceSessionId === null) {
+                clearDraftForSession(null);
+              }
+              void clearConversation({ forceFresh: false })
+                .then((nextSessionId) => {
+                  clearDraftForSession(nextSessionId);
+                  pendingAttachmentsRef.current = [];
+                  draftSelectionRef.current = null;
+                  pendingTextareaSelectionRef.current = null;
+                  requestComposerFocusRestore();
+                })
+                .catch((error: unknown) => {
+                  if (sourceSessionId === null) {
+                    replaceDraftForSession(
+                      null,
+                      {
+                        inputText: sourceDraft.inputText,
+                        pendingAttachments: sourceDraft.pendingAttachments,
+                      },
+                    );
+                  }
+                  const message = error instanceof Error ? error.message : String(error);
+                  appData.setErrorMessage(`New chat failed. ${message}`);
+                });
             }}
             disabled={isComposerTransientBusy || isStopping}
           >
@@ -779,8 +812,15 @@ export function ChatPanel(props: Props): ReactElement {
         {pendingAttachments.length > 0 ? (
           <div className="chat-attachment-preview">
             {pendingAttachments.map((attachment, index) => (
-              <span key={`${attachment.fileName}-${index}`} className="chat-attachment-chip">
-                {attachment.fileName}
+              <span
+                key={isBinaryPendingAttachment(attachment)
+                  ? `${attachment.fileName}-${index}`
+                  : `${attachment.attachmentId}-${index}`}
+                className={`chat-attachment-chip${isBinaryPendingAttachment(attachment) ? "" : " chat-attachment-chip-card"}`}
+              >
+                {isBinaryPendingAttachment(attachment)
+                  ? attachment.fileName
+                  : `Card · ${formatCardAttachmentLabel(attachment)}`}
                 <button
                   type="button"
                   className="chat-attachment-remove"

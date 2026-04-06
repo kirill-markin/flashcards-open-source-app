@@ -64,6 +64,19 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             onOpenCurrentCard = { cardId ->
                 appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
             },
+            onOpenCurrentCardWithAi = { cardId, frontText, backText, tags, effortLevel ->
+                appGraph.appHandoffCoordinator.requestAiCardHandoff(
+                    cardId = cardId,
+                    frontText = frontText,
+                    backText = backText,
+                    tags = tags,
+                    effortLevel = effortLevel
+                )
+                navigateToTopLevelDestination(
+                    navController = navController,
+                    destination = AiDestination
+                )
+            },
             onOpenDeckManagement = {
                 appGraph.appHandoffCoordinator.requestSettingsNavigation(
                     target = SettingsNavigationTarget.WORKSPACE_DECKS

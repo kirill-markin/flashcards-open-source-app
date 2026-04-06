@@ -74,9 +74,11 @@ func aiChatMakeAttachmentFromFile(url: URL) throws -> AIChatAttachment {
 
     return AIChatAttachment(
         id: UUID().uuidString.lowercased(),
-        fileName: url.lastPathComponent,
-        mediaType: contentType?.preferredMIMEType ?? "application/octet-stream",
-        base64Data: data.base64EncodedString()
+        payload: .binary(
+            fileName: url.lastPathComponent,
+            mediaType: contentType?.preferredMIMEType ?? "application/octet-stream",
+            base64Data: data.base64EncodedString()
+        )
     )
 }
 
@@ -85,9 +87,11 @@ func aiChatMakeImageAttachment(data: Data, fileName: String, mediaType: String) 
 
     return AIChatAttachment(
         id: UUID().uuidString.lowercased(),
-        fileName: fileName,
-        mediaType: mediaType,
-        base64Data: data.base64EncodedString()
+        payload: .binary(
+            fileName: fileName,
+            mediaType: mediaType,
+            base64Data: data.base64EncodedString()
+        )
     )
 }
 

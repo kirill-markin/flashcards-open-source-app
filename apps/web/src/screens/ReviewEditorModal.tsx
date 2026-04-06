@@ -8,6 +8,7 @@ type ReviewEditorModalProps = Readonly<{
   formState: CardFormState;
   isEditorPresented: boolean;
   isEditorSaving: boolean;
+  onEditWithAi: () => Promise<void>;
   onChange: (nextFormState: CardFormState) => void;
   onClose: () => void;
   onDelete: () => Promise<void>;
@@ -22,6 +23,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
     formState,
     isEditorPresented,
     isEditorSaving,
+    onEditWithAi,
     onChange,
     onClose,
     onDelete,
@@ -42,6 +44,14 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
             <p className="subtitle">Update the current review card without leaving review.</p>
           </div>
           <div className="screen-actions">
+            <button
+              type="button"
+              className="ghost-btn review-editor-ai-btn"
+              disabled={isEditorSaving}
+              onClick={() => void onEditWithAi()}
+            >
+              Edit with AI
+            </button>
             <button
               type="button"
               className="ghost-btn"

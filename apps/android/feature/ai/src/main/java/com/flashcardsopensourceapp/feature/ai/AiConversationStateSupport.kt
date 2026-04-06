@@ -56,17 +56,29 @@ internal fun makeUserContent(
 }
 
 private fun makeAttachmentContentPart(attachment: AiChatAttachment): AiChatContentPart {
-    return if (attachment.isImage) {
-        AiChatContentPart.Image(
-            fileName = attachment.fileName,
-            mediaType = attachment.mediaType,
-            base64Data = attachment.base64Data
-        )
-    } else {
-        AiChatContentPart.File(
-            fileName = attachment.fileName,
-            mediaType = attachment.mediaType,
-            base64Data = attachment.base64Data
+    return when (attachment) {
+        is AiChatAttachment.Binary -> {
+            if (attachment.isImage) {
+                AiChatContentPart.Image(
+                    fileName = attachment.fileName,
+                    mediaType = attachment.mediaType,
+                    base64Data = attachment.base64Data
+                )
+            } else {
+                AiChatContentPart.File(
+                    fileName = attachment.fileName,
+                    mediaType = attachment.mediaType,
+                    base64Data = attachment.base64Data
+                )
+            }
+        }
+
+        is AiChatAttachment.Card -> AiChatContentPart.Card(
+            cardId = attachment.cardId,
+            frontText = attachment.frontText,
+            backText = attachment.backText,
+            tags = attachment.tags,
+            effortLevel = attachment.effortLevel
         )
     }
 }
@@ -609,6 +621,7 @@ private fun shouldReconcileAssistantTerminalContent(
             is AiChatContentPart.Text -> part.text.isNotBlank()
             is AiChatContentPart.ReasoningSummary -> part.reasoningSummary.summary.isNotBlank()
             is AiChatContentPart.Image,
+            is AiChatContentPart.Card,
             is AiChatContentPart.File,
             is AiChatContentPart.ToolCall,
             is AiChatContentPart.AccountUpgradePrompt -> true

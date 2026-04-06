@@ -41,6 +41,7 @@ fun CardEditorRoute(
     onOpenFrontTextEditor: () -> Unit,
     onOpenBackTextEditor: () -> Unit,
     onOpenTagsEditor: () -> Unit,
+    onEditWithAi: (() -> Unit)?,
     onRemoveTag: (String) -> Unit,
     onEffortLevelChange: (EffortLevel) -> Unit,
     onSave: () -> Unit,
@@ -92,6 +93,17 @@ fun CardEditorRoute(
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.padding(16.dp)
                         )
+                    }
+                }
+            }
+
+            if (onEditWithAi != null) {
+                item {
+                    OutlinedButton(
+                        onClick = onEditWithAi,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Edit with AI")
                     }
                 }
             }

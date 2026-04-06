@@ -700,7 +700,7 @@ private func aiChatTerminalEventHasRenderableContent(
             return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
         case .reasoningSummary(let reasoningSummary):
             return reasoningSummary.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-        case .image, .file, .toolCall, .accountUpgradePrompt:
+        case .image, .file, .card, .toolCall, .accountUpgradePrompt:
             return true
         }
     }

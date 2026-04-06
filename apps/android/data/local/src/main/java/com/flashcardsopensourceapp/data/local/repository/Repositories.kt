@@ -4,6 +4,7 @@ import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
+import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
@@ -139,6 +140,9 @@ interface AiChatRepository {
     suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState
     suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState)
     suspend fun clearPersistedState(workspaceId: String?)
+    suspend fun loadDraftState(workspaceId: String?, sessionId: String?): AiChatDraftState
+    suspend fun saveDraftState(workspaceId: String?, sessionId: String?, state: AiChatDraftState)
+    suspend fun clearDraftState(workspaceId: String?, sessionId: String?)
     suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot?
     suspend fun loadBootstrap(
         workspaceId: String?,
@@ -146,7 +150,7 @@ interface AiChatRepository {
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse
-    suspend fun createNewSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot
+    suspend fun createNewSession(workspaceId: String?, sessionId: String?, forceFresh: Boolean): AiChatSessionSnapshot
     suspend fun transcribeAudio(
         workspaceId: String?,
         sessionId: String?,

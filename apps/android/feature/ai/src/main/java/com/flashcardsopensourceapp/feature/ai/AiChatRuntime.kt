@@ -5,16 +5,18 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.aiChatConsentRequiredMessage
 import com.flashcardsopensourceapp.data.local.model.aiChatGuestQuotaButtonTitle
 import com.flashcardsopensourceapp.data.local.model.aiChatGuestQuotaReachedMessage
+import com.flashcardsopensourceapp.data.local.model.makeAiChatCardAttachment
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -98,6 +100,7 @@ internal class AiChatRuntime(
                 errorMessage = ""
             )
         }
+        persistCurrentDraft()
     }
 
     fun applyComposerSuggestion(suggestion: AiChatComposerSuggestion) {
@@ -113,6 +116,7 @@ internal class AiChatRuntime(
                 errorMessage = ""
             )
         }
+        persistCurrentDraft()
     }
 
     fun addPendingAttachment(attachment: AiChatAttachment) {
@@ -126,6 +130,7 @@ internal class AiChatRuntime(
                 errorMessage = ""
             )
         }
+        persistCurrentDraft()
     }
 
     fun removePendingAttachment(attachmentId: String) {
@@ -141,6 +146,7 @@ internal class AiChatRuntime(
                 errorMessage = ""
             )
         }
+        persistCurrentDraft()
     }
 
     fun startDictationPermissionRequest() {
@@ -271,81 +277,13 @@ internal class AiChatRuntime(
         }
 
         val requestedSessionId = runtimeStateMutable.value.persistedState.chatSessionId.ifBlank { null }
-        liveStreamCoordinator.detachLiveStream(reason = "AI live stream detached because a new chat was requested.")
-        runtimeStateMutable.update { state ->
-            state.copy(
-                persistedState = state.persistedState.copy(
-                    messages = emptyList(),
-                    chatSessionId = "",
-                    lastKnownChatConfig = state.persistedState.lastKnownChatConfig
-                ),
-                conversationScopeId = null,
-                hasOlder = false,
-                oldestCursor = null,
-                activeRun = null,
-                isLiveAttached = false,
-                draftMessage = "",
-                pendingAttachments = emptyList(),
-                serverComposerSuggestions = emptyList(),
-                composerPhase = AiComposerPhase.IDLE,
-                dictationState = AiChatDictationState.IDLE,
-                conversationBootstrapState = AiConversationBootstrapState.READY,
-                conversationBootstrapErrorMessage = "",
-                repairStatus = null,
-                activeAlert = null,
-                errorMessage = ""
-            )
-        }
-        persistCurrentState()
-
-        context.scope.launch {
-            try {
-                val snapshot = context.aiChatRepository.createNewSession(
-                    workspaceId = runtimeStateMutable.value.workspaceId,
-                    sessionId = requestedSessionId
-                )
-                runtimeStateMutable.update { state ->
-                    updateComposerSuggestions(
-                        state = state.copy(
-                            persistedState = state.persistedState.copy(
-                                messages = emptyList(),
-                                chatSessionId = snapshot.sessionId,
-                                lastKnownChatConfig = snapshot.chatConfig
-                            ),
-                            conversationScopeId = snapshot.conversationScopeId,
-                            hasOlder = false,
-                            oldestCursor = null,
-                            activeRun = null,
-                            isLiveAttached = false,
-                            draftMessage = "",
-                            pendingAttachments = emptyList(),
-                            composerPhase = AiComposerPhase.IDLE,
-                            dictationState = AiChatDictationState.IDLE,
-                            conversationBootstrapState = AiConversationBootstrapState.READY,
-                            conversationBootstrapErrorMessage = "",
-                            repairStatus = null,
-                            activeAlert = null,
-                            errorMessage = ""
-                        ),
-                        nextSuggestions = snapshot.composerSuggestions
-                    )
-                }
-                persistCurrentState()
-            } catch (error: CancellationException) {
-                AiChatDiagnosticsLogger.info(
-                    event = "new_chat_cancelled",
-                    fields = listOf(
-                        "workspaceId" to runtimeStateMutable.value.workspaceId,
-                        "cloudState" to currentCloudState().name,
-                        "chatSessionId" to runtimeStateMutable.value.persistedState.chatSessionId,
-                        "message" to error.message
-                    )
-                )
-                throw error
-            } catch (error: Exception) {
-                handleNewChatFailure(error = error)
-            }
-        }
+        startFreshConversation(
+            requestedSessionId = requestedSessionId,
+            draftMessage = "",
+            pendingAttachments = emptyList(),
+            shouldFocusComposer = false,
+            forceFresh = false
+        )
     }
 
     fun dismissErrorMessage() {
@@ -420,10 +358,60 @@ internal class AiChatRuntime(
         runtimeStateMutable.update { state ->
             state.copy(
                 draftMessage = aiEntryPrefillPrompt(prefill = prefill),
+                focusComposerRequestVersion = state.focusComposerRequestVersion + 1L,
                 activeAlert = null,
                 errorMessage = ""
             )
         }
+        persistCurrentDraft()
+    }
+
+    fun handoffCardToChat(
+        cardId: String,
+        frontText: String,
+        backText: String,
+        tags: List<String>,
+        effortLevel: EffortLevel
+    ): Boolean {
+        val currentState = runtimeStateMutable.value
+        if (
+            currentState.conversationBootstrapState != AiConversationBootstrapState.READY
+            || currentState.dictationState != AiChatDictationState.IDLE
+        ) {
+            return false
+        }
+
+        val pendingCardAttachment = makeAiChatCardAttachment(
+            cardId = cardId,
+            frontText = frontText,
+            backText = backText,
+            tags = tags,
+            effortLevel = effortLevel
+        )
+
+        if (requiresFreshSessionForCardHandoff(state = currentState)) {
+            persistCurrentDraft(snapshot = currentState)
+            startFreshConversation(
+                requestedSessionId = currentState.persistedState.chatSessionId.ifBlank { null },
+                draftMessage = "",
+                pendingAttachments = listOf(pendingCardAttachment),
+                shouldFocusComposer = true,
+                forceFresh = true
+            )
+            return true
+        }
+
+        runtimeStateMutable.update { state ->
+            state.copy(
+                draftMessage = "",
+                pendingAttachments = listOf(pendingCardAttachment),
+                focusComposerRequestVersion = state.focusComposerRequestVersion + 1L,
+                activeAlert = null,
+                errorMessage = ""
+            )
+        }
+        persistCurrentDraft()
+        return true
     }
 
     fun showAlert(alert: AiAlertState) {
@@ -791,6 +779,85 @@ internal class AiChatRuntime(
         return context.hasConsent()
     }
 
+    private fun isConversationDirty(state: AiChatRuntimeState): Boolean {
+        return state.persistedState.messages.isNotEmpty()
+            || state.draftMessage.trim().isNotEmpty()
+            || state.pendingAttachments.isNotEmpty()
+    }
+
+    private fun requiresFreshSessionForCardHandoff(state: AiChatRuntimeState): Boolean {
+        return isConversationDirty(state = state)
+            || state.activeRun != null
+            || state.composerPhase != AiComposerPhase.IDLE
+    }
+
+    private fun startFreshConversation(
+        requestedSessionId: String?,
+        draftMessage: String,
+        pendingAttachments: List<AiChatAttachment>,
+        shouldFocusComposer: Boolean,
+        forceFresh: Boolean
+    ) {
+        context.scope.launch {
+            try {
+                persistCurrentDraft()
+                val snapshot = context.aiChatRepository.createNewSession(
+                    workspaceId = runtimeStateMutable.value.workspaceId,
+                    sessionId = requestedSessionId,
+                    forceFresh = forceFresh
+                )
+                context.activeSendJob?.cancelAndJoin()
+                context.activeSendJob = null
+                liveStreamCoordinator.detachLiveStream(reason = "AI live stream detached because a new chat was requested.")
+                runtimeStateMutable.update { state ->
+                    updateComposerSuggestions(
+                        state = state.copy(
+                            persistedState = state.persistedState.copy(
+                                messages = emptyList(),
+                                chatSessionId = snapshot.sessionId,
+                                lastKnownChatConfig = snapshot.chatConfig
+                            ),
+                            conversationScopeId = snapshot.conversationScopeId,
+                            hasOlder = false,
+                            oldestCursor = null,
+                            activeRun = null,
+                            isLiveAttached = false,
+                            draftMessage = draftMessage,
+                            pendingAttachments = pendingAttachments,
+                            focusComposerRequestVersion = if (shouldFocusComposer) {
+                                state.focusComposerRequestVersion + 1L
+                            } else {
+                                state.focusComposerRequestVersion
+                            },
+                            composerPhase = AiComposerPhase.IDLE,
+                            dictationState = AiChatDictationState.IDLE,
+                            conversationBootstrapState = AiConversationBootstrapState.READY,
+                            conversationBootstrapErrorMessage = "",
+                            repairStatus = null,
+                            activeAlert = null,
+                            errorMessage = ""
+                        ),
+                        nextSuggestions = snapshot.composerSuggestions
+                    )
+                }
+                persistCurrentState()
+            } catch (error: CancellationException) {
+                AiChatDiagnosticsLogger.info(
+                    event = "new_chat_cancelled",
+                    fields = listOf(
+                        "workspaceId" to runtimeStateMutable.value.workspaceId,
+                        "cloudState" to currentCloudState().name,
+                        "chatSessionId" to runtimeStateMutable.value.persistedState.chatSessionId,
+                        "message" to error.message
+                    )
+                )
+                throw error
+            } catch (error: Exception) {
+                handleNewChatFailure(error = error)
+            }
+        }
+    }
+
     private fun currentCloudState(): CloudAccountState {
         return context.currentCloudState()
     }
@@ -801,5 +868,9 @@ internal class AiChatRuntime(
 
     private fun persistCurrentState() {
         context.persistCurrentState()
+    }
+
+    private fun persistCurrentDraft(snapshot: AiChatRuntimeState = runtimeStateMutable.value) {
+        context.persistDraft(snapshot = snapshot)
     }
 }

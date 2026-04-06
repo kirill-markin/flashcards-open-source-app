@@ -28,6 +28,70 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
+    func openFirstCardForEditing() throws {
+        try self.assertScreenVisible(screen: .cards, timeout: self.shortUiTimeoutSeconds)
+        try self.tapElement(identifier: LiveSmokeIdentifier.cardsCardRow, timeout: self.longUiTimeoutSeconds)
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.cardEditorEditWithAIButton,
+            timeout: self.longUiTimeoutSeconds
+        )
+    }
+
+    @MainActor
+    func handoffEditedCardToAIAndAssertDraftAttachment() throws {
+        try self.tapElement(
+            identifier: LiveSmokeIdentifier.cardEditorEditWithAIButton,
+            timeout: self.longUiTimeoutSeconds
+        )
+        try self.assertScreenVisible(screen: .ai, timeout: self.longUiTimeoutSeconds)
+        try self.assertAiEntrySurfaceVisible()
+
+        let consentButton = self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton]
+        if self.waitForOptionalElement(
+            consentButton,
+            identifier: LiveSmokeIdentifier.aiConsentAcceptButton,
+            timeout: self.optionalProbeTimeoutSeconds
+        ) {
+            try self.tapElement(
+                identifier: LiveSmokeIdentifier.aiConsentAcceptButton,
+                timeout: self.shortUiTimeoutSeconds
+            )
+            try self.waitForAiComposerAfterConsent()
+        }
+
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.aiComposerTextField,
+            timeout: self.longUiTimeoutSeconds
+        )
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.aiComposerCardAttachmentChip,
+            timeout: self.longUiTimeoutSeconds
+        )
+
+        let cardAttachmentChipCount = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiComposerCardAttachmentChip)
+            .count
+        if cardAttachmentChipCount != 1 {
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "Expected exactly one AI card attachment chip, found \(cardAttachmentChipCount).",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        let messageRows = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
+            .count
+        if messageRows != 0 {
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "Expected no sent AI user messages after card handoff, found \(messageRows).",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
     func reviewCurrentCard(expectedFrontText: String) throws {
         try self.assertScreenVisible(screen: .review, timeout: self.shortUiTimeoutSeconds)
         try self.assertTextExists(

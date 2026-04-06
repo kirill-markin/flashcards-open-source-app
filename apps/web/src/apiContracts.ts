@@ -566,6 +566,17 @@ function parseContentPart(value: unknown, endpoint: string, path: string): Conte
     };
   }
 
+  if (type === "card") {
+    return {
+      type,
+      cardId: parseRequiredField(objectValue, "cardId", endpoint, path, parseString),
+      frontText: parseRequiredField(objectValue, "frontText", endpoint, path, parseString),
+      backText: parseRequiredField(objectValue, "backText", endpoint, path, parseString),
+      tags: parseRequiredField(objectValue, "tags", endpoint, path, parseStringArray),
+      effortLevel: parseRequiredField(objectValue, "effortLevel", endpoint, path, parseEffortLevel),
+    };
+  }
+
   if (type === "tool_call") {
     return {
       type,
@@ -643,8 +654,8 @@ function parseContentPartType(
   value: unknown,
   endpoint: string,
   path: string,
-): "text" | "image" | "file" | "tool_call" | "reasoning_summary" {
-  return parseEnum(value, endpoint, path, ["text", "image", "file", "tool_call", "reasoning_summary"]);
+): "text" | "image" | "file" | "card" | "tool_call" | "reasoning_summary" {
+  return parseEnum(value, endpoint, path, ["text", "image", "file", "card", "tool_call", "reasoning_summary"]);
 }
 
 function parseToolCallStatus(value: unknown, endpoint: string, path: string): "started" | "completed" {

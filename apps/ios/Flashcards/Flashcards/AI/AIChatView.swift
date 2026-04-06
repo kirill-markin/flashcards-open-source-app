@@ -20,6 +20,7 @@ struct AIChatView: View {
     @State var shouldRestoreComposerFocusAfterDictation: Bool
     @State var composerSelection: TextSelection?
     @State var composerDictationInsertionSelection: AIChatDictationInsertionSelection?
+    @State var deferredPresentationRequest: AIChatPresentationRequest?
     @FocusState var isComposerFocused: Bool
 
     @MainActor
@@ -36,6 +37,7 @@ struct AIChatView: View {
         self.shouldRestoreComposerFocusAfterDictation = false
         self.composerSelection = nil
         self.composerDictationInsertionSelection = nil
+        self.deferredPresentationRequest = nil
     }
 
     var body: some View {
@@ -68,17 +70,26 @@ struct AIChatView: View {
         }
         .onAppear {
             self.syncChatSurface(refreshConsent: true)
-            guard self.chatStore.hasExternalProviderConsent else {
-                return
-            }
-            self.handleAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
+            self.captureAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
+            self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
         }
         .onChange(of: self.navigation.aiChatPresentationRequest) { _, request in
-            guard self.chatStore.hasExternalProviderConsent else {
+            self.captureAIChatPresentationRequest(request: request)
+            self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+        }
+        .onChange(of: self.chatStore.bootstrapPhase) { _, nextPhase in
+            guard nextPhase == .ready else {
                 return
             }
 
-            self.handleAIChatPresentationRequest(request: request)
+            self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+        }
+        .onChange(of: self.chatStore.composerPhase) { _, nextPhase in
+            guard nextPhase == .idle else {
+                return
+            }
+
+            self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
         }
         .onChange(of: self.scenePhase) { _, nextPhase in
             guard nextPhase == .active else {
@@ -110,6 +121,10 @@ struct AIChatView: View {
         }
         .onChange(of: self.chatStore.dictationState) { _, nextState in
             self.handleDictationStateChange(nextState)
+            guard nextState == .idle else {
+                return
+            }
+            self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
         }
         .onChange(of: self.chatStore.completedDictationTranscript) { _, nextTranscript in
             guard let nextTranscript else {
@@ -407,7 +422,7 @@ struct AIChatView: View {
         self.chatStore.acceptExternalProviderConsent()
         self.chatStore.activateWorkspace()
         self.syncChatSurface(refreshConsent: false)
-        self.handleAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
+        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
     }
 
     func refreshExternalAIConsentState() {
@@ -445,12 +460,31 @@ struct AIChatView: View {
         return true
     }
 
-    func handleAIChatPresentationRequest(request: AIChatPresentationRequest?) {
+    func captureAIChatPresentationRequest(request: AIChatPresentationRequest?) {
         guard let request else {
             return
         }
 
-        self.chatStore.applyPresentationRequest(request: request)
+        self.deferredPresentationRequest = request
+    }
+
+    func handleAIChatPresentationRequest(request: AIChatPresentationRequest?) {
+        guard let request else {
+            return
+        }
+        guard self.chatStore.hasExternalProviderConsent else {
+            return
+        }
+        guard self.chatStore.isChatInteractive else {
+            return
+        }
+
+        let didApplyRequest = self.chatStore.applyPresentationRequest(request: request)
+        guard didApplyRequest else {
+            return
+        }
+        self.deferredPresentationRequest = nil
+        self.isComposerFocused = true
         self.navigation.clearAIChatPresentationRequest()
     }
 

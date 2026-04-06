@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRunLive
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
+import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEventMetadata
@@ -20,6 +21,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.makeAiChatCardAttachment
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
@@ -315,7 +317,7 @@ class AiChatRuntimeTest {
             activeRun = null
         )
         val runtime = makeRuntime(scope = this, repository = repository)
-        val attachment = AiChatAttachment(
+        val attachment = AiChatAttachment.Binary(
             id = "attachment-1",
             fileName = "notes.txt",
             mediaType = "text/plain",
@@ -385,6 +387,112 @@ class AiChatRuntimeTest {
         assertFalse(runtime.state.value.isLiveAttached)
         assertEquals(2, repository.loadBootstrapCalls)
     }
+
+    @Test
+    fun accessContextRestoresSessionScopedDraftState() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates["workspace-1"] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.draftStates["workspace-1" to "session-1"] = AiChatDraftState(
+            draftMessage = "Keep this draft",
+            pendingAttachments = listOf(
+                makeAiChatCardAttachment(
+                    cardId = "card-1",
+                    frontText = "Front",
+                    backText = "Back",
+                    tags = listOf("tag"),
+                    effortLevel = com.flashcardsopensourceapp.data.local.model.EffortLevel.MEDIUM
+                )
+            )
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+
+        assertEquals("Keep this draft", runtime.state.value.draftMessage)
+        assertEquals(1, runtime.state.value.pendingAttachments.size)
+        assertEquals("card-1", (runtime.state.value.pendingAttachments.single() as AiChatAttachment.Card).cardId)
+    }
+
+    @Test
+    fun cleanCardHandoffReusesCurrentSessionAndAddsCardDraft() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates["workspace-1"] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+
+        val didHandoff = runtime.handoffCardToChat(
+            cardId = "card-1",
+            frontText = "Front",
+            backText = "Back",
+            tags = listOf("tag"),
+            effortLevel = com.flashcardsopensourceapp.data.local.model.EffortLevel.FAST
+        )
+        advanceUntilIdle()
+
+        assertTrue(didHandoff)
+        assertTrue(repository.createNewSessionRequests.isEmpty())
+        assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
+        assertEquals(1, runtime.state.value.pendingAttachments.size)
+        assertEquals("card-1", (runtime.state.value.pendingAttachments.single() as AiChatAttachment.Card).cardId)
+    }
+
+    @Test
+    fun dirtyCardHandoffCreatesFreshSessionAndPreservesOldDraftState() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates["workspace-1"] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.draftStates["workspace-1" to "session-1"] = AiChatDraftState(
+            draftMessage = "Unsaved note",
+            pendingAttachments = emptyList()
+        )
+        repository.nextCreateNewSessionSessionId = "session-2"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+
+        val didHandoff = runtime.handoffCardToChat(
+            cardId = "card-1",
+            frontText = "Front",
+            backText = "Back",
+            tags = listOf("tag"),
+            effortLevel = com.flashcardsopensourceapp.data.local.model.EffortLevel.LONG
+        )
+        advanceUntilIdle()
+
+        assertTrue(didHandoff)
+        assertEquals(listOf("session-1"), repository.createNewSessionRequests)
+        assertEquals(listOf(true), repository.createNewSessionForceFreshRequests)
+        assertEquals("session-2", runtime.state.value.persistedState.chatSessionId)
+        assertEquals("Unsaved note", repository.draftStates["workspace-1" to "session-1"]?.draftMessage)
+        assertEquals(
+            listOf("card-1"),
+            repository.draftStates["workspace-1" to "session-2"]?.pendingAttachments?.map { attachment ->
+                (attachment as AiChatAttachment.Card).cardId
+            }
+        )
+        assertEquals("", repository.draftStates["workspace-1" to "session-2"]?.draftMessage)
+    }
 }
 
 private class FakeAiChatRepository : AiChatRepository {
@@ -393,8 +501,12 @@ private class FakeAiChatRepository : AiChatRepository {
     val loadBootstrapGates = ArrayDeque<CompletableDeferred<Unit>>()
     val liveFlows = mutableMapOf<String, Flow<AiChatLiveEvent>>()
     val attachRunIds = mutableListOf<String>()
-    private val persistedStates = mutableMapOf<String?, AiChatPersistedState>()
+    val createNewSessionRequests = mutableListOf<String?>()
+    val createNewSessionForceFreshRequests = mutableListOf<Boolean>()
+    val persistedStates = mutableMapOf<String?, AiChatPersistedState>()
+    val draftStates = mutableMapOf<Pair<String?, String?>, AiChatDraftState>()
     var loadBootstrapCalls: Int = 0
+    var nextCreateNewSessionSessionId: String? = null
     var startRunResponse: AiChatStartRunResponse = AiChatAcceptedConversationEnvelope(
         accepted = true,
         sessionId = "session-1",
@@ -440,6 +552,27 @@ private class FakeAiChatRepository : AiChatRepository {
         persistedStates[workspaceId] = makeDefaultAiChatPersistedState()
     }
 
+    override suspend fun loadDraftState(workspaceId: String?, sessionId: String?): AiChatDraftState {
+        return draftStates[workspaceId to sessionId] ?: AiChatDraftState(
+            draftMessage = "",
+            pendingAttachments = emptyList()
+        )
+    }
+
+    override suspend fun saveDraftState(workspaceId: String?, sessionId: String?, state: AiChatDraftState) {
+        val key = workspaceId to sessionId
+        if (state.draftMessage.isBlank() && state.pendingAttachments.isEmpty()) {
+            draftStates.remove(key)
+            return
+        }
+
+        draftStates[key] = state
+    }
+
+    override suspend fun clearDraftState(workspaceId: String?, sessionId: String?) {
+        draftStates.remove(workspaceId to sessionId)
+    }
+
     override suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot? {
         return null
     }
@@ -457,10 +590,18 @@ private class FakeAiChatRepository : AiChatRepository {
         return bootstrapResponses.removeFirst()
     }
 
-    override suspend fun createNewSession(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot {
+    override suspend fun createNewSession(
+        workspaceId: String?,
+        sessionId: String?,
+        forceFresh: Boolean
+    ): AiChatSessionSnapshot {
+        createNewSessionRequests += sessionId
+        createNewSessionForceFreshRequests += forceFresh
+        val resolvedSessionId = nextCreateNewSessionSessionId ?: sessionId ?: "session-new"
+        nextCreateNewSessionSessionId = null
         return com.flashcardsopensourceapp.data.local.model.AiChatConversationEnvelope(
-            sessionId = sessionId ?: "session-new",
-            conversationScopeId = sessionId ?: "session-new",
+            sessionId = resolvedSessionId,
+            conversationScopeId = resolvedSessionId,
             conversation = com.flashcardsopensourceapp.data.local.model.AiChatConversation(
                 messages = emptyList(),
                 updatedAtMillis = 100L,

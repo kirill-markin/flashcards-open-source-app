@@ -45,6 +45,7 @@ import {
   type RequestContext,
 } from "../server/requestContext";
 import {
+  expectBoolean,
   expectNonEmptyString,
   expectRecord,
   parseJsonBody,
@@ -70,6 +71,15 @@ type ChatFileContentPart = Readonly<{
   fileName: string;
 }>;
 
+type ChatCardContentPart = Readonly<{
+  type: "card";
+  cardId: string;
+  frontText: string;
+  backText: string;
+  tags: ReadonlyArray<string>;
+  effortLevel: "fast" | "medium" | "long";
+}>;
+
 type ChatToolCallContentPart = Readonly<{
   type: "tool_call";
   id: string;
@@ -83,6 +93,7 @@ export type ChatContentPart =
   | ChatTextContentPart
   | ChatImageContentPart
   | ChatFileContentPart
+  | ChatCardContentPart
   | ChatToolCallContentPart;
 
 export type ChatRequestBody = Readonly<{
@@ -94,6 +105,7 @@ export type ChatRequestBody = Readonly<{
 
 type NewChatRequestBody = Readonly<{
   sessionId?: string;
+  forceFresh: boolean;
 }>;
 
 type StopChatRequestBody = Readonly<{
@@ -150,6 +162,14 @@ function expectNullableString(value: unknown, fieldName: string): string | null 
   return expectNonEmptyString(value, fieldName);
 }
 
+function expectString(value: unknown, fieldName: string): string {
+  if (typeof value !== "string") {
+    throw new HttpError(400, `${fieldName} must be a string`);
+  }
+
+  return value;
+}
+
 /**
  * Parses one content part from the backend-owned chat request contract.
  */
@@ -178,6 +198,27 @@ function parseChatContentPart(value: unknown, context: string): ChatContentPart 
       mediaType: expectNonEmptyString(body.mediaType, `${context}.mediaType`),
       base64Data: expectNonEmptyString(body.base64Data, `${context}.base64Data`),
       fileName: expectNonEmptyString(body.fileName, `${context}.fileName`),
+    };
+  }
+
+  if (type === "card") {
+    const tagsValue = body.tags;
+    if (!Array.isArray(tagsValue)) {
+      throw new HttpError(400, `${context}.tags must be an array`);
+    }
+
+    const effortLevel = expectNonEmptyString(body.effortLevel, `${context}.effortLevel`);
+    if (effortLevel !== "fast" && effortLevel !== "medium" && effortLevel !== "long") {
+      throw new HttpError(400, `${context}.effortLevel is invalid`);
+    }
+
+    return {
+      type: "card",
+      cardId: expectNonEmptyString(body.cardId, `${context}.cardId`),
+      frontText: expectString(body.frontText, `${context}.frontText`),
+      backText: expectString(body.backText, `${context}.backText`),
+      tags: tagsValue.map((tag, index) => expectNonEmptyString(tag, `${context}.tags[${index}]`)),
+      effortLevel,
     };
   }
 
@@ -248,12 +289,13 @@ export function parseChatRequestBody(value: unknown): ChatRequestBody {
 export function parseNewChatRequestBody(value: unknown): NewChatRequestBody {
   const body = expectRecord(value);
 
-  if (body.sessionId === undefined) {
-    return {};
-  }
-
   return {
-    sessionId: expectNonEmptyString(body.sessionId, "sessionId"),
+    sessionId: body.sessionId === undefined
+      ? undefined
+      : expectNonEmptyString(body.sessionId, "sessionId"),
+    forceFresh: body.forceFresh === undefined
+      ? false
+      : expectBoolean(body.forceFresh, "forceFresh"),
   };
 }
 
@@ -750,7 +792,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       return mapStoreError(error);
     }
 
-    if (snapshot.messages.length === 0) {
+    if (body.forceFresh === false && snapshot.messages.length === 0 && snapshot.runState === "idle") {
       return context.json({
         ok: true,
         sessionId: snapshot.sessionId,

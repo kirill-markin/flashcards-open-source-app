@@ -31,6 +31,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.AiChatFeatures
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import kotlinx.serialization.KSerializer
@@ -218,6 +219,16 @@ private data class AiChatFileContentPartWire(
     val fileName: StrictRemoteString,
     val mediaType: StrictRemoteString,
     val base64Data: StrictRemoteString
+) : AiChatContentPartWire
+
+@Serializable
+@SerialName("card")
+private data class AiChatCardContentPartWire(
+    val cardId: StrictRemoteString,
+    val frontText: StrictRemoteString,
+    val backText: StrictRemoteString,
+    val tags: List<StrictRemoteString>,
+    val effortLevel: StrictRemoteString
 ) : AiChatContentPartWire
 
 @Serializable
@@ -784,6 +795,13 @@ private fun mapAiChatContentPart(part: AiChatContentPartWire): AiChatContentPart
             mediaType = part.mediaType.value,
             base64Data = part.base64Data.value
         )
+        is AiChatCardContentPartWire -> AiChatContentPart.Card(
+            cardId = part.cardId.value,
+            frontText = part.frontText.value,
+            backText = part.backText.value,
+            tags = part.tags.map(StrictRemoteString::value),
+            effortLevel = part.effortLevel.value.toEffortLevel()
+        )
         is AiChatToolCallContentPartWire -> AiChatContentPart.ToolCall(
             toolCall = AiChatToolCall(
                 toolCallId = part.toolCallId?.value?.ifBlank { null }
@@ -805,8 +823,20 @@ private fun extractAiChatItemId(part: AiChatContentPartWire): String? {
         is AiChatReasoningSummaryContentPartWire -> part.streamPosition?.itemId?.value?.ifBlank { null }
         is AiChatToolCallContentPartWire -> part.streamPosition?.itemId?.value?.ifBlank { null }
         is AiChatFileContentPartWire,
+        is AiChatCardContentPartWire,
         is AiChatImageContentPartWire,
         is AiChatTextContentPartWire -> null
+    }
+}
+
+private fun String.toEffortLevel(): EffortLevel {
+    return when (this) {
+        "fast" -> EffortLevel.FAST
+        "medium" -> EffortLevel.MEDIUM
+        "long" -> EffortLevel.LONG
+        else -> throw CloudContractMismatchException(
+            "Cloud contract mismatch for chat.content.card.effortLevel: unsupported effort level"
+        )
     }
 }
 

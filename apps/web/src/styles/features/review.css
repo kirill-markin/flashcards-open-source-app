@@ -239,6 +239,12 @@
   flex-shrink: 0;
 }
 
+.review-pane-ai-btn {
+  flex-shrink: 0;
+  min-width: 52px;
+  padding-inline: 14px;
+}
+
 .review-loading-retry-btn {
   margin-top: 12px;
 }
@@ -727,6 +733,10 @@
 
 .review-editor-delete-btn {
   color: #ffaea9;
+}
+
+.review-editor-ai-btn {
+  color: var(--accent-strong);
 }
 
 @media (max-width: 1024px) {

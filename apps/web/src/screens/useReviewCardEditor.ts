@@ -20,6 +20,7 @@ export type UseReviewCardEditorResult = Readonly<{
   editingCard: Card | null;
   editorFormState: CardFormState;
   handleEditorDelete: () => Promise<void>;
+  handleEditorSaveForAiHandoff: () => Promise<Card | null>;
   handleEditorSave: () => Promise<void>;
   handleOpenEditor: (card: Card) => void;
   isEditorPresented: boolean;
@@ -75,6 +76,32 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
     }
   }
 
+  async function handleEditorSaveForAiHandoff(): Promise<Card | null> {
+    if (editingCardId === "") {
+      setEditorErrorMessage("Card not found");
+      return null;
+    }
+
+    setIsEditorSaving(true);
+    setEditorErrorMessage("");
+    setErrorMessage("");
+
+    try {
+      const savedCard = await updateCardItem(editingCardId, {
+        frontText: editorFormState.frontText,
+        backText: editorFormState.backText,
+        tags: editorFormState.tags,
+        effortLevel: editorFormState.effortLevel,
+      });
+      return savedCard;
+    } catch (error) {
+      setEditorErrorMessage(error instanceof Error ? error.message : String(error));
+      return null;
+    } finally {
+      setIsEditorSaving(false);
+    }
+  }
+
   async function handleEditorDelete(): Promise<void> {
     if (editingCardId === "") {
       setEditorErrorMessage("Card not found");
@@ -104,6 +131,7 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
     editingCard,
     editorFormState,
     handleEditorDelete,
+    handleEditorSaveForAiHandoff,
     handleEditorSave,
     handleOpenEditor,
     isEditorPresented,

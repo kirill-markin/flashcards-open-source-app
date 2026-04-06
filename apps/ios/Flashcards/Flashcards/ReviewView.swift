@@ -182,6 +182,31 @@ struct ReviewView: View {
                     errorMessage: screenErrorMessage,
                     availableTagSuggestions: self.availableTagSuggestions,
                     formState: self.$cardFormState,
+                    onEditWithAI: {
+                        let cardReference: AIChatCardReference?
+                        if self.isEditedCardDirty() {
+                            cardReference = self.saveEditedCardForAIHandoff()
+                        } else if let editingCardId = self.editingCardId {
+                            let normalizedInput = self.normalizedEditedCardInput()
+                            cardReference = AIChatCardReference(
+                                cardId: editingCardId,
+                                frontText: normalizedInput.frontText,
+                                backText: normalizedInput.backText,
+                                tags: normalizedInput.tags,
+                                effortLevel: normalizedInput.effortLevel
+                            )
+                        } else {
+                            cardReference = nil
+                        }
+
+                        guard let cardReference else {
+                            return
+                        }
+                        self.navigation.openAICardHandoff(
+                            card: cardReference
+                        )
+                        self.isEditorPresented = false
+                    },
                     onCancel: {
                         self.isEditorPresented = false
                     },
@@ -333,6 +358,19 @@ struct ReviewView: View {
                 }
 
                 Spacer(minLength: 12)
+
+                Button {
+                    self.navigation.openAICardHandoff(card: makeAIChatCardReference(card: card))
+                } label: {
+                    Text("AI")
+                        .font(.caption.weight(.bold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(Color.accentColor, in: Capsule())
+                        .foregroundStyle(Color.white)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Open card in AI chat")
 
                 Button {
                     self.beginEditing(card: card)

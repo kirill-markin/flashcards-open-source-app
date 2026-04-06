@@ -60,6 +60,7 @@ export type SendChatMessageParams = Readonly<{
 
 export type SendChatMessageResult = Readonly<{
   accepted: boolean;
+  sessionId: string | null;
 }>;
 
 export type ChatSessionController = Readonly<{
@@ -80,7 +81,7 @@ export type ChatSessionController = Readonly<{
   acceptServerSessionId: (sessionId: string) => void;
   sendMessage: (params: SendChatMessageParams) => Promise<SendChatMessageResult>;
   stopMessage: () => Promise<void>;
-  clearConversation: () => Promise<void>;
+  clearConversation: (options: Readonly<{ forceFresh: boolean }>) => Promise<string | null>;
 }>;
 
 type ChatDebugDetailValue = string | number | boolean | null;
@@ -179,6 +180,19 @@ function areContentPartsEqual(
           || leftPart.mediaType !== rightPart.mediaType
           || leftPart.base64Data !== rightPart.base64Data
           || leftPart.fileName !== rightPart.fileName
+        ) {
+          return false;
+        }
+        break;
+      case "card":
+        if (
+          rightPart.type !== "card"
+          || leftPart.cardId !== rightPart.cardId
+          || leftPart.frontText !== rightPart.frontText
+          || leftPart.backText !== rightPart.backText
+          || leftPart.effortLevel !== rightPart.effortLevel
+          || leftPart.tags.length !== rightPart.tags.length
+          || leftPart.tags.some((tag, index) => tag !== rightPart.tags[index])
         ) {
           return false;
         }
@@ -1055,12 +1069,12 @@ export function useChatSessionController(
     sendParams: SendChatMessageParams,
   ): Promise<SendChatMessageResult> => {
     if (workspaceId === null || !isRemoteReady || !isHistoryLoaded || isAssistantRunActive || isStopping) {
-      return { accepted: false };
+      return { accepted: false, sessionId: currentSessionId };
     }
 
     const contentParts: ReadonlyArray<ContentPart> = buildContentParts(sendParams.text, sendParams.attachments);
     if (contentParts.length === 0) {
-      return { accepted: false };
+      return { accepted: false, sessionId: currentSessionId };
     }
 
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -1073,7 +1087,7 @@ export function useChatSessionController(
 
     if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
       showErrorDialog(ATTACHMENT_LIMIT_ERROR_MESSAGE);
-      return { accepted: false };
+      return { accepted: false, sessionId: currentSessionId };
     }
     setComposerNotice(null);
     setErrorDialogMessage(null);
@@ -1102,16 +1116,16 @@ export function useChatSessionController(
           null,
         );
       }
-      return { accepted: true };
+      return { accepted: true, sessionId: response.sessionId };
     } catch (error) {
       if (isChatApiError(error) && error.code === "CHAT_ACTIVE_RUN_IN_PROGRESS") {
         showErrorDialog("A response is already in progress. Wait for it to finish or stop it before sending another message.");
-        return { accepted: false };
+        return { accepted: false, sessionId: currentSessionId };
       }
 
       showErrorDialog(`Chat request failed. ${toErrorMessage(error)}`);
       updateRunState("idle");
-      return { accepted: false };
+      return { accepted: false, sessionId: currentSessionId };
     }
   }, [
     appendUserMessage,
@@ -1153,23 +1167,21 @@ export function useChatSessionController(
     }
   }, [currentSessionId, hasActiveLiveConnection, isAssistantRunActive, isStopping, showErrorDialog, updateRunState]);
 
-  const clearConversation = useCallback(async (): Promise<void> => {
+  const clearConversation = useCallback(async (
+    options: Readonly<{ forceFresh: boolean }>,
+  ): Promise<string | null> => {
     if (workspaceId === null) {
       detachLiveStream(null, null);
       snapshotRequestVersionRef.current += 1;
       clearHistory();
       setCurrentSessionId(null);
       updateRunState("idle");
-      return;
+      return null;
     }
 
-    if (currentSessionId !== null && isAssistantRunActive) {
-      await stopChatRun(currentSessionId);
-    }
-
+    const response = await createNewChatSession(currentSessionId ?? undefined, options.forceFresh);
     snapshotRequestVersionRef.current += 1;
     detachLiveStream(null, null);
-    const response = await createNewChatSession(currentSessionId ?? undefined);
     clearHistory();
     hasObservedMainContentInvalidationVersionRef.current = false;
     lastMainContentInvalidationVersionRef.current = 0;
@@ -1184,7 +1196,8 @@ export function useChatSessionController(
     setComposerNotice(null);
     setErrorDialogMessage(null);
     storeChatConfig(response.chatConfig);
-  }, [applyComposerSuggestions, clearHistory, currentSessionId, detachLiveStream, isAssistantRunActive, setKnownLiveCursor, updateRunState, workspaceId]);
+    return response.sessionId;
+  }, [applyComposerSuggestions, clearHistory, currentSessionId, detachLiveStream, setKnownLiveCursor, updateRunState, workspaceId]);
 
   return {
     messages,

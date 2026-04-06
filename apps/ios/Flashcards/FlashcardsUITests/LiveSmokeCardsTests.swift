@@ -10,4 +10,14 @@ extension LiveSmokeUITests {
             try self.createManualCard(frontText: context.manualFrontText, backText: context.manualBackText)
         }
     }
+
+    @MainActor
+    func testLiveSmokeCardsEditorAiHandoffFlow() throws {
+        try self.launchApplication(resetState: .localGuestSeededManualReviewCard, selectedTab: .cards)
+
+        try self.step("open the seeded card editor and hand off to AI") {
+            try self.openFirstCardForEditing()
+            try self.handoffEditedCardToAIAndAssertDraftAttachment()
+        }
+    }
 }

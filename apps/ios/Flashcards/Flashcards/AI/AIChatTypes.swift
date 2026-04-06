@@ -92,6 +92,41 @@ func aiChatTruncatedSnippet(_ value: String) -> String {
     return String(trimmed[..<endIndex]) + "..."
 }
 
+func aiChatCardAttachmentLabel(card: AIChatCardReference) -> String {
+    let snippet = aiChatTruncatedSnippet(card.frontText)
+    return snippet.isEmpty ? "Card" : "Card · \(snippet)"
+}
+
+func buildAIChatCardContextXML(card: AIChatCardReference) -> String {
+    let tagsXML = card.tags.map { tag in
+        "<tag>\(escapeAIChatCardXMLValue(tag))</tag>"
+    }.joined()
+
+    // Keep this byte-for-byte aligned with apps/backend/src/chat/cardContext.ts::buildCardContextXml.
+    return [
+        "<attached_card>",
+        "<card_id>\(escapeAIChatCardXMLValue(card.cardId))</card_id>",
+        "<effort_level>\(escapeAIChatCardXMLValue(card.effortLevel.rawValue))</effort_level>",
+        "<front_text>",
+        escapeAIChatCardXMLValue(card.frontText),
+        "</front_text>",
+        "<back_text>",
+        escapeAIChatCardXMLValue(card.backText),
+        "</back_text>",
+        "<tags>\(tagsXML)</tags>",
+        "</attached_card>",
+    ].joined(separator: "\n")
+}
+
+private func escapeAIChatCardXMLValue(_ value: String) -> String {
+    value
+        .replacingOccurrences(of: "&", with: "&amp;")
+        .replacingOccurrences(of: "<", with: "&lt;")
+        .replacingOccurrences(of: ">", with: "&gt;")
+        .replacingOccurrences(of: "\"", with: "&quot;")
+        .replacingOccurrences(of: "'", with: "&apos;")
+}
+
 func aiChatDecoderSummary(error: Error) -> String {
     if let decodingError = error as? DecodingError {
         switch decodingError {
@@ -219,12 +254,80 @@ private struct AIChatStreamPositionPayload: Decodable {
 
 struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
     let id: String
-    let fileName: String
-    let mediaType: String
-    let base64Data: String
+    let payload: Payload
+
+    enum Payload: Codable, Hashable, Sendable {
+        case binary(fileName: String, mediaType: String, base64Data: String)
+        case card(AIChatCardReference)
+
+        private enum CodingKeys: String, CodingKey {
+            case type
+            case fileName
+            case mediaType
+            case base64Data
+            case cardId
+            case frontText
+            case backText
+            case tags
+            case effortLevel
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            let type = try container.decode(String.self, forKey: .type)
+
+            switch type {
+            case "binary":
+                self = .binary(
+                    fileName: try container.decode(String.self, forKey: .fileName),
+                    mediaType: try container.decode(String.self, forKey: .mediaType),
+                    base64Data: try container.decode(String.self, forKey: .base64Data)
+                )
+            case "card":
+                self = .card(
+                    AIChatCardReference(
+                        cardId: try container.decode(String.self, forKey: .cardId),
+                        frontText: try container.decode(String.self, forKey: .frontText),
+                        backText: try container.decode(String.self, forKey: .backText),
+                        tags: try container.decode([String].self, forKey: .tags),
+                        effortLevel: try container.decode(EffortLevel.self, forKey: .effortLevel)
+                    )
+                )
+            default:
+                throw DecodingError.dataCorruptedError(
+                    forKey: .type,
+                    in: container,
+                    debugDescription: "Unsupported AI chat attachment type: \(type)"
+                )
+            }
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+
+            switch self {
+            case .binary(let fileName, let mediaType, let base64Data):
+                try container.encode("binary", forKey: .type)
+                try container.encode(fileName, forKey: .fileName)
+                try container.encode(mediaType, forKey: .mediaType)
+                try container.encode(base64Data, forKey: .base64Data)
+            case .card(let card):
+                try container.encode("card", forKey: .type)
+                try container.encode(card.cardId, forKey: .cardId)
+                try container.encode(card.frontText, forKey: .frontText)
+                try container.encode(card.backText, forKey: .backText)
+                try container.encode(card.tags, forKey: .tags)
+                try container.encode(card.effortLevel, forKey: .effortLevel)
+            }
+        }
+    }
 
     var isImage: Bool {
-        self.mediaType.hasPrefix("image/")
+        guard case .binary(_, let mediaType, _) = self.payload else {
+            return false
+        }
+
+        return mediaType.hasPrefix("image/")
     }
 }
 
@@ -232,6 +335,7 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
     case text(String)
     case image(mediaType: String, base64Data: String)
     case file(fileName: String, mediaType: String, base64Data: String)
+    case card(AIChatCardReference)
     case toolCall(AIChatToolCall)
     case reasoningSummary(AIChatReasoningSummary)
     case accountUpgradePrompt(message: String, buttonTitle: String)
@@ -242,6 +346,11 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
         case mediaType
         case base64Data
         case fileName
+        case cardId
+        case frontText
+        case backText
+        case tags
+        case effortLevel
         case id
         case name
         case status
@@ -269,6 +378,16 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
                 fileName: try container.decode(String.self, forKey: .fileName),
                 mediaType: try container.decode(String.self, forKey: .mediaType),
                 base64Data: try container.decode(String.self, forKey: .base64Data)
+            )
+        case "card":
+            self = .card(
+                AIChatCardReference(
+                    cardId: try container.decode(String.self, forKey: .cardId),
+                    frontText: try container.decode(String.self, forKey: .frontText),
+                    backText: try container.decode(String.self, forKey: .backText),
+                    tags: try container.decode([String].self, forKey: .tags),
+                    effortLevel: try container.decode(EffortLevel.self, forKey: .effortLevel)
+                )
             )
         case "tool_call":
             self = .toolCall(
@@ -323,6 +442,13 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
             try container.encode(fileName, forKey: .fileName)
             try container.encode(mediaType, forKey: .mediaType)
             try container.encode(base64Data, forKey: .base64Data)
+        case .card(let card):
+            try container.encode("card", forKey: .type)
+            try container.encode(card.cardId, forKey: .cardId)
+            try container.encode(card.frontText, forKey: .frontText)
+            try container.encode(card.backText, forKey: .backText)
+            try container.encode(card.tags, forKey: .tags)
+            try container.encode(card.effortLevel, forKey: .effortLevel)
         case .toolCall(let toolCall):
             try container.encode("tool_call", forKey: .type)
             try container.encode(toolCall.id, forKey: .id)
@@ -379,6 +505,11 @@ private struct AIChatDecodableContentPartPayload: Decodable {
         case mediaType
         case base64Data
         case fileName
+        case cardId
+        case frontText
+        case backText
+        case tags
+        case effortLevel
         case id
         case name
         case status
@@ -406,6 +537,16 @@ private struct AIChatDecodableContentPartPayload: Decodable {
                 fileName: try container.decode(String.self, forKey: .fileName),
                 mediaType: try container.decode(String.self, forKey: .mediaType),
                 base64Data: try container.decode(String.self, forKey: .base64Data)
+            )
+        case "card":
+            self.value = .card(
+                AIChatCardReference(
+                    cardId: try container.decode(String.self, forKey: .cardId),
+                    frontText: try container.decode(String.self, forKey: .frontText),
+                    backText: try container.decode(String.self, forKey: .backText),
+                    tags: try container.decode([String].self, forKey: .tags),
+                    effortLevel: try container.decode(EffortLevel.self, forKey: .effortLevel)
+                )
             )
         case "tool_call":
             self.value = .toolCall(
@@ -856,6 +997,7 @@ struct AIChatLiveStreamEnvelope: Codable, Hashable, Sendable {
 
 struct AIChatNewSessionRequestBody: Codable, Hashable, Sendable {
     let sessionId: String?
+    let forceFresh: Bool
 }
 
 struct AIChatNewSessionResponse: Codable, Hashable, Sendable {
@@ -981,6 +1123,8 @@ protocol AIChatHistoryStoring: Sendable {
     func loadState() -> AIChatPersistedState
     func saveState(state: AIChatPersistedState) async
     func clearState() async
+    func loadDraft(workspaceId: String?, sessionId: String?) -> AIChatComposerDraft
+    func saveDraft(workspaceId: String?, sessionId: String?, draft: AIChatComposerDraft) async
 }
 
 protocol AIChatSessionServicing: Sendable {
@@ -1010,7 +1154,8 @@ protocol AIChatSessionServicing: Sendable {
 
     func createNewSession(
         session: CloudLinkedSession,
-        sessionId: String?
+        sessionId: String?,
+        forceFresh: Bool
     ) async throws -> AIChatNewSessionResponse
 
     func stopRun(

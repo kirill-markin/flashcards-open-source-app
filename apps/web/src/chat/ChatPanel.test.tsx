@@ -14,6 +14,10 @@ import {
   startChatRunMock,
   useAppDataMock,
 } from "./ChatPanelTestSupport";
+import {
+  loadChatDraftWorkspaceState,
+  readChatDraftForSession,
+} from "./chatDraftStorage";
 import { storeChatSessionWarmStartSnapshot } from "./chatSessionWarmStart";
 
 const {
@@ -49,6 +53,64 @@ describe("ChatPanel new chat", () => {
     expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
     expect(getContainer().querySelectorAll(".chat-msg").length).toBe(0);
     expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
+  });
+
+  it("keeps the previous session draft when rolling to a fresh chat", async () => {
+    getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
+      sessionId: "session-1",
+      conversation: {
+        updatedAt: 1,
+        mainContentInvalidationVersion: 0,
+        messages: [],
+      },
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(textarea).not.toBeNull();
+
+    await setTextareaValue(textarea as HTMLTextAreaElement, "keep this draft");
+    await flushAsync();
+
+    const draftsBeforeNew = loadChatDraftWorkspaceState("workspace-1");
+    expect(readChatDraftForSession(draftsBeforeNew, "session-1")?.inputText).toBe("keep this draft");
+
+    await clickNewConversation();
+    await flushAsync();
+    await flushAsync();
+
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
+    expect(textarea?.value).toBe("");
+
+    const draftsAfterNew = loadChatDraftWorkspaceState("workspace-1");
+    expect(readChatDraftForSession(draftsAfterNew, "session-1")?.inputText).toBe("keep this draft");
+    expect(readChatDraftForSession(draftsAfterNew, "session-reset")).toBeNull();
+  });
+
+  it("does not carry a provisional draft into the first resolved session when starting a new chat", async () => {
+    getChatSnapshotMock.mockImplementation(() => new Promise(() => undefined));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(textarea).not.toBeNull();
+
+    await setTextareaValue(textarea as HTMLTextAreaElement, "pending draft");
+    await flushAsync();
+
+    const draftsBeforeNew = loadChatDraftWorkspaceState("workspace-1");
+    expect(readChatDraftForSession(draftsBeforeNew, null)?.inputText).toBe("pending draft");
+
+    await clickNewConversation();
+    await flushAsync();
+    await flushAsync();
+
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
+    expect(readChatDraftForSession(loadChatDraftWorkspaceState("workspace-1"), null)).toBeNull();
+    expect(readChatDraftForSession(loadChatDraftWorkspaceState("workspace-1"), "session-reset")).toBeNull();
   });
 
   it("keeps the conversation and reports a top-level error when new-session fails", async () => {

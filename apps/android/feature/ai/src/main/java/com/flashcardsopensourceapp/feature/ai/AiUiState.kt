@@ -12,6 +12,7 @@ data class AiUiState(
     val messages: List<AiChatMessage>,
     val pendingAttachments: List<AiChatAttachment>,
     val draftMessage: String,
+    val focusComposerRequestVersion: Long,
     val composerSuggestions: List<AiChatComposerSuggestion>,
     val chatConfig: AiChatServerConfig,
     val isConsentRequired: Boolean,

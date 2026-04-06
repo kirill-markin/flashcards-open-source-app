@@ -50,3 +50,7 @@ export function useChatSession(): ChatSessionController {
 
   return context;
 }
+
+export function useOptionalChatSession(): ChatSessionController | null {
+  return useContext(ChatSessionControllerContext);
+}

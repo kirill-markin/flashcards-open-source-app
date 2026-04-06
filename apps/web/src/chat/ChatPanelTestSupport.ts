@@ -453,12 +453,14 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
         mainContentInvalidationVersion: 0,
         messages: [],
       },
+      composerSuggestions: [],
       chatConfig: defaultChatConfig,
       activeRun: createChatActiveRun(),
     });
     createNewChatSessionMock.mockResolvedValue({
       ok: true,
       sessionId: "session-reset",
+      composerSuggestions: [],
       chatConfig: defaultChatConfig,
     });
     stopChatRunMock.mockResolvedValue({
