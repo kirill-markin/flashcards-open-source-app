@@ -3,7 +3,8 @@ import type {
   WorkspaceDatabaseScope,
 } from "../../db";
 import { finalizePendingToolCallContent } from "../history";
-import type { ChatSessionRow, PersistedChatMessageItem } from "../store";
+import type { PersistedChatMessageItem } from "../store";
+import type { ChatSessionRow } from "../store/repository";
 import {
   buildUserStoppedAssistantContent,
   clearActiveChatComposerSuggestionGenerationWithExecutor,
