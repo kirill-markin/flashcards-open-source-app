@@ -97,10 +97,56 @@ final class ReviewNotificationsSupportTests: XCTestCase {
             mode: .inactivity
         )
 
-        XCTAssertEqual(originalPayloads.map { $0.cardId }, ["card-a", "card-a"])
-        XCTAssertEqual(replacementPayloads.map { $0.cardId }, ["card-b", "card-b"])
-        XCTAssertEqual(replacementPayloads.map { $0.frontText }, ["Front B", "Front B"])
+        XCTAssertEqual(originalPayloads.compactMap { $0.cardId }, ["card-a", "card-a"])
+        XCTAssertEqual(replacementPayloads.compactMap { $0.cardId }, ["card-b", "card-b"])
+        XCTAssertEqual(replacementPayloads.map { $0.notificationBodyText }, ["Front B", "Front B"])
         XCTAssertEqual(Set(replacementPayloads.map { $0.requestId }).count, replacementPayloads.count)
+    }
+
+    func testFallbackPayloadsUseGenericStudySessionText() throws {
+        let calendar = makeCalendar()
+        let scheduledDates = [
+            try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 12, minute: 15, calendar: calendar)),
+            try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 14, minute: 15, calendar: calendar))
+        ]
+
+        let fallbackPayloads = buildFallbackReviewNotificationPayloads(
+            workspaceId: "workspace-1",
+            reviewFilter: .allCards,
+            scheduledDates: scheduledDates,
+            calendar: calendar,
+            mode: .daily
+        )
+
+        XCTAssertEqual(
+            fallbackPayloads.map { $0.notificationBodyText },
+            [
+                reviewNotificationFallbackBodyText,
+                reviewNotificationFallbackBodyText
+            ]
+        )
+        XCTAssertEqual(fallbackPayloads.compactMap { $0.cardId }, [] as [String])
+        XCTAssertEqual(Set(fallbackPayloads.map { $0.requestId }).count, fallbackPayloads.count)
+    }
+
+    func testFallbackPayloadsRoundTripThroughCodable() throws {
+        let calendar = makeCalendar()
+        let scheduledAt = try XCTUnwrap(makeDate(year: 2026, month: 4, day: 3, hour: 12, minute: 15, calendar: calendar))
+        let payload = buildFallbackReviewNotificationPayloads(
+            workspaceId: "workspace-1",
+            reviewFilter: .allCards,
+            scheduledDates: [scheduledAt],
+            calendar: calendar,
+            mode: .daily
+        ).first
+
+        let encodedPayload = try XCTUnwrap(payload)
+        let data = try JSONEncoder().encode(encodedPayload)
+        let decodedPayload = try JSONDecoder().decode(ScheduledReviewNotificationPayload.self, from: data)
+
+        XCTAssertEqual(decodedPayload.notificationBodyText, reviewNotificationFallbackBodyText)
+        XCTAssertNil(decodedPayload.cardId)
+        XCTAssertEqual(decodedPayload.requestId, encodedPayload.requestId)
     }
 
     func testFilterReviewNotificationRequestIdentifiersKeepsOnlyReviewNotifications() {

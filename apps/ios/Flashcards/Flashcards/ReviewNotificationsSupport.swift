@@ -9,6 +9,7 @@ let dailyReminderSchedulingHorizonDays: Int = 7
 let reviewNotificationPendingRequestsLimit: Int = 64
 let defaultInactivityReminderWindowEndHour: Int = 19
 let defaultInactivityReminderWindowEndMinute: Int = 0
+let reviewNotificationFallbackBodyText: String = "Continue your study session in Flashcards."
 
 let reviewNotificationsSettingsUserDefaultsKeyPrefix: String = "review-notifications-settings::"
 let reviewNotificationPromptStateUserDefaultsKey: String = "review-notification-prompt-state"
@@ -84,16 +85,122 @@ struct NotificationPermissionPromptState: Codable, Hashable, Sendable {
     let hasDismissedPrePrompt: Bool
 }
 
-struct ScheduledReviewNotificationPayload: Codable, Hashable, Sendable, Identifiable {
+struct ScheduledReviewNotificationPayload: Hashable, Sendable, Identifiable {
     let workspaceId: String
     let reviewFilter: PersistedReviewFilter
-    let cardId: String
-    let frontText: String
+    let content: ScheduledReviewNotificationPayloadContent
     let scheduledAtMillis: Int64
     let requestId: String
 
     var id: String {
         self.requestId
+    }
+
+    var notificationBodyText: String {
+        self.content.notificationBodyText
+    }
+
+    var cardId: String? {
+        self.content.cardId
+    }
+}
+
+enum ScheduledReviewNotificationPayloadContent: Hashable, Sendable {
+    case card(cardId: String, frontText: String)
+    case fallback
+
+    var cardId: String? {
+        switch self {
+        case .card(let cardId, _):
+            return cardId
+        case .fallback:
+            return nil
+        }
+    }
+
+    var notificationBodyText: String {
+        switch self {
+        case .card(_, let frontText):
+            return frontText
+        case .fallback:
+            return reviewNotificationFallbackBodyText
+        }
+    }
+}
+
+extension ScheduledReviewNotificationPayloadContent: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case kind
+        case cardId
+        case frontText
+    }
+
+    private enum Kind: String, Codable {
+        case card
+        case fallback
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let kind = try container.decode(Kind.self, forKey: .kind)
+        switch kind {
+        case .card:
+            let cardId = try container.decode(String.self, forKey: .cardId)
+            let frontText = try container.decode(String.self, forKey: .frontText)
+            self = .card(cardId: cardId, frontText: frontText)
+        case .fallback:
+            self = .fallback
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .card(let cardId, let frontText):
+            try container.encode(Kind.card, forKey: .kind)
+            try container.encode(cardId, forKey: .cardId)
+            try container.encode(frontText, forKey: .frontText)
+        case .fallback:
+            try container.encode(Kind.fallback, forKey: .kind)
+        }
+    }
+}
+
+extension ScheduledReviewNotificationPayload: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case workspaceId
+        case reviewFilter
+        case content
+        case scheduledAtMillis
+        case requestId
+        case cardId
+        case frontText
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.workspaceId = try container.decode(String.self, forKey: .workspaceId)
+        self.reviewFilter = try container.decode(PersistedReviewFilter.self, forKey: .reviewFilter)
+        self.scheduledAtMillis = try container.decode(Int64.self, forKey: .scheduledAtMillis)
+        self.requestId = try container.decode(String.self, forKey: .requestId)
+
+        if let content = try container.decodeIfPresent(ScheduledReviewNotificationPayloadContent.self, forKey: .content) {
+            self.content = content
+            return
+        }
+
+        let cardId = try container.decode(String.self, forKey: .cardId)
+        let frontText = try container.decode(String.self, forKey: .frontText)
+        self.content = .card(cardId: cardId, frontText: frontText)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.workspaceId, forKey: .workspaceId)
+        try container.encode(self.reviewFilter, forKey: .reviewFilter)
+        try container.encode(self.content, forKey: .content)
+        try container.encode(self.scheduledAtMillis, forKey: .scheduledAtMillis)
+        try container.encode(self.requestId, forKey: .requestId)
     }
 }
 
@@ -451,12 +558,46 @@ func buildRepeatedReviewNotificationPayloads(
     calendar: Calendar,
     mode: ReviewNotificationMode
 ) -> [ScheduledReviewNotificationPayload] {
+    return buildRepeatedReviewNotificationPayloads(
+        workspaceId: workspaceId,
+        reviewFilter: currentCard.reviewFilter,
+        content: .card(cardId: currentCard.cardId, frontText: currentCard.frontText),
+        scheduledDates: scheduledDates,
+        calendar: calendar,
+        mode: mode
+    )
+}
+
+func buildFallbackReviewNotificationPayloads(
+    workspaceId: String,
+    reviewFilter: PersistedReviewFilter,
+    scheduledDates: [Date],
+    calendar: Calendar,
+    mode: ReviewNotificationMode
+) -> [ScheduledReviewNotificationPayload] {
+    return buildRepeatedReviewNotificationPayloads(
+        workspaceId: workspaceId,
+        reviewFilter: reviewFilter,
+        content: .fallback,
+        scheduledDates: scheduledDates,
+        calendar: calendar,
+        mode: mode
+    )
+}
+
+private func buildRepeatedReviewNotificationPayloads(
+    workspaceId: String,
+    reviewFilter: PersistedReviewFilter,
+    content: ScheduledReviewNotificationPayloadContent,
+    scheduledDates: [Date],
+    calendar: Calendar,
+    mode: ReviewNotificationMode
+) -> [ScheduledReviewNotificationPayload] {
     return scheduledDates.map { scheduledAt in
         ScheduledReviewNotificationPayload(
             workspaceId: workspaceId,
-            reviewFilter: currentCard.reviewFilter,
-            cardId: currentCard.cardId,
-            frontText: currentCard.frontText,
+            reviewFilter: reviewFilter,
+            content: content,
             scheduledAtMillis: Int64(scheduledAt.timeIntervalSince1970 * 1000),
             requestId: makeReviewNotificationRequestIdentifier(
                 workspaceId: workspaceId,
@@ -483,13 +624,11 @@ func loadScheduledReviewNotificationPayloads(
             try? database.close()
         }
 
-        guard let currentCard = try database.loadCurrentReviewNotificationCard(
+        let currentCard = try database.loadCurrentReviewNotificationCard(
             workspaceId: snapshot.workspaceId,
             reviewFilter: snapshot.reviewFilter,
             now: snapshot.now
-        ) else {
-            return []
-        }
+        )
 
         let calendar = Calendar.autoupdatingCurrent
         let scheduledDates: [Date]
@@ -514,9 +653,19 @@ func loadScheduledReviewNotificationPayloads(
         }
 
         let limitedScheduledDates = Array(scheduledDates.prefix(reviewNotificationPendingRequestsLimit))
-        return buildRepeatedReviewNotificationPayloads(
+        if let currentCard {
+            return buildRepeatedReviewNotificationPayloads(
+                workspaceId: snapshot.workspaceId,
+                currentCard: currentCard,
+                scheduledDates: limitedScheduledDates,
+                calendar: calendar,
+                mode: mode
+            )
+        }
+
+        return buildFallbackReviewNotificationPayloads(
             workspaceId: snapshot.workspaceId,
-            currentCard: currentCard,
+            reviewFilter: makePersistedReviewFilter(reviewFilter: snapshot.reviewFilter),
             scheduledDates: limitedScheduledDates,
             calendar: calendar,
             mode: mode
