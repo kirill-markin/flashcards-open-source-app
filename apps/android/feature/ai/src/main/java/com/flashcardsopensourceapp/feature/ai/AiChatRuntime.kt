@@ -72,6 +72,12 @@ internal class AiChatRuntime(
         )
         lifecycleCoordinator = AiChatRuntimeLifecycleCoordinator(
             context = context,
+            startFreshConversationForEntry = { workspaceId, shouldFocusComposer ->
+                startFreshConversationForEntry(
+                    workspaceId = workspaceId,
+                    shouldFocusComposer = shouldFocusComposer
+                )
+            },
             startConversationBootstrap = { forceReloadState, resumeDiagnostics ->
                 bootstrapCoordinator.startConversationBootstrap(
                     forceReloadState = forceReloadState,
@@ -278,7 +284,6 @@ internal class AiChatRuntime(
         }
 
         startFreshConversation(
-            targetSessionId = makeClientChatSessionId(),
             draftMessage = "",
             pendingAttachments = emptyList(),
             shouldFocusComposer = false
@@ -389,12 +394,13 @@ internal class AiChatRuntime(
         )
 
         if (
-            requiresFreshSessionForCardHandoff(state = currentState)
-            || currentState.persistedState.chatSessionId.isBlank()
+            requiresFreshSessionForCardHandoff(
+                state = currentState,
+                nowMillis = System.currentTimeMillis()
+            ) || currentState.persistedState.chatSessionId.isBlank()
         ) {
             persistCurrentDraft(snapshot = currentState)
             startFreshConversation(
-                targetSessionId = makeClientChatSessionId(),
                 draftMessage = "",
                 pendingAttachments = listOf(pendingCardAttachment),
                 shouldFocusComposer = true
@@ -779,10 +785,17 @@ internal class AiChatRuntime(
             || state.pendingAttachments.isNotEmpty()
     }
 
-    private fun requiresFreshSessionForCardHandoff(state: AiChatRuntimeState): Boolean {
+    private fun requiresFreshSessionForCardHandoff(
+        state: AiChatRuntimeState,
+        nowMillis: Long
+    ): Boolean {
         return isConversationDirty(state = state)
             || state.activeRun != null
             || state.composerPhase != AiComposerPhase.IDLE
+            || isAiChatConversationStale(
+                messages = state.persistedState.messages,
+                nowMillis = nowMillis
+            )
     }
 
     private fun canApplyFreshSessionEnsureResponse(
@@ -795,7 +808,37 @@ internal class AiChatRuntime(
             && state.composerPhase == AiComposerPhase.IDLE
     }
 
+    fun startFreshConversationForEntry(
+        workspaceId: String?,
+        shouldFocusComposer: Boolean
+    ) {
+        initializeFreshConversation(
+            workspaceId = workspaceId,
+            targetSessionId = makeClientChatSessionId(),
+            draftMessage = "",
+            pendingAttachments = emptyList(),
+            shouldFocusComposer = shouldFocusComposer
+        )
+    }
+
     private fun startFreshConversation(
+        draftMessage: String,
+        pendingAttachments: List<AiChatAttachment>,
+        shouldFocusComposer: Boolean
+    ) {
+        val currentState = runtimeStateMutable.value
+        persistCurrentDraft(snapshot = currentState)
+        initializeFreshConversation(
+            workspaceId = currentState.workspaceId,
+            targetSessionId = makeClientChatSessionId(),
+            draftMessage = draftMessage,
+            pendingAttachments = pendingAttachments,
+            shouldFocusComposer = shouldFocusComposer
+        )
+    }
+
+    private fun initializeFreshConversation(
+        workspaceId: String?,
         targetSessionId: String,
         draftMessage: String,
         pendingAttachments: List<AiChatAttachment>,
@@ -803,13 +846,20 @@ internal class AiChatRuntime(
     ) {
         context.scope.launch {
             try {
-                val previousState = runtimeStateMutable.value
-                persistCurrentDraft(snapshot = previousState)
                 context.activeSendJob?.cancelAndJoin()
                 context.activeSendJob = null
+                context.activeBootstrapJob?.cancel(
+                    cause = CancellationException("AI bootstrap cancelled because a new chat was requested.")
+                )
+                context.activeBootstrapJob = null
+                context.activeWarmUpJob?.cancel(
+                    cause = CancellationException("AI warm-up cancelled because a new chat was requested.")
+                )
+                context.activeWarmUpJob = null
                 liveStreamCoordinator.detachLiveStream(reason = "AI live stream detached because a new chat was requested.")
                 runtimeStateMutable.update { state ->
                     state.copy(
+                        workspaceId = workspaceId,
                         persistedState = state.persistedState.copy(
                             messages = emptyList(),
                             chatSessionId = targetSessionId
@@ -838,7 +888,7 @@ internal class AiChatRuntime(
                 }
                 persistCurrentState()
                 val snapshot = context.aiChatRepository.createNewSession(
-                    workspaceId = previousState.workspaceId,
+                    workspaceId = workspaceId,
                     sessionId = targetSessionId
                 )
                 if (

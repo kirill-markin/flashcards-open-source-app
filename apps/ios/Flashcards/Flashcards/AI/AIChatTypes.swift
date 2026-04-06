@@ -14,6 +14,7 @@ let aiChatAccuracyWarningText: String = "AI responses can be inaccurate or incom
 let aiChatGuestQuotaReachedMessage: String = "Your free guest AI limit for this month is used up. Create an account or log in to keep using AI."
 let aiChatGuestQuotaButtonTitle: String = "Create account or Log in"
 let aiChatMaximumAttachmentBytes: Int = 20 * 1024 * 1024
+let aiChatLocalSessionStalenessThreshold: TimeInterval = 6 * 60 * 60
 let aiChatSupportedFileExtensions: Set<String> = [
     "pdf",
     "txt",
@@ -89,6 +90,32 @@ func aiChatResolvedSessionId(
 
     _ = workspaceId
     return ""
+}
+
+func aiChatLastLocalUserMessageTimestamp(messages: [AIChatMessage]) -> Date? {
+    for message in messages.reversed() {
+        guard message.role == .user else {
+            continue
+        }
+        guard let timestamp = parseIsoTimestamp(value: message.timestamp) else {
+            continue
+        }
+
+        return timestamp
+    }
+
+    return nil
+}
+
+func aiChatShouldOpenFreshLocalSession(
+    messages: [AIChatMessage],
+    now: Date
+) -> Bool {
+    guard let lastUserMessageTimestamp = aiChatLastLocalUserMessageTimestamp(messages: messages) else {
+        return false
+    }
+
+    return now.timeIntervalSince(lastUserMessageTimestamp) > aiChatLocalSessionStalenessThreshold
 }
 
 func makeAIChatClientRequestId() -> String {

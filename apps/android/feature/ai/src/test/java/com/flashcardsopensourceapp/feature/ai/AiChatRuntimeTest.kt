@@ -344,6 +344,180 @@ class AiChatRuntimeTest {
     }
 
     @Test
+    fun stalePersistedChatOpensFreshLocalSessionAndSkipsBootstrap() = runTest {
+        val repository = FakeAiChatRepository()
+        val nowMillis = System.currentTimeMillis()
+        val staleTimestamp = nowMillis - aiChatStalenessThresholdMillis - 1_000L
+        val oldSessionId = "session-old"
+        repository.setPersistedState(
+            workspaceId = "workspace-1",
+            state = makeDefaultAiChatPersistedState().copy(
+                chatSessionId = oldSessionId,
+                messages = listOf(
+                    makeUserMessage(
+                        content = listOf(AiChatContentPart.Text(text = "Stale question")),
+                        timestampMillis = staleTimestamp
+                    ),
+                    makeAssistantStatusMessage(timestampMillis = staleTimestamp + 1L)
+                )
+            )
+        )
+        repository.draftStates["workspace-1" to oldSessionId] = AiChatDraftState(
+            draftMessage = "Keep me here",
+            pendingAttachments = listOf(
+                makeAiChatCardAttachment(
+                    cardId = "card-keep",
+                    frontText = "Front",
+                    backText = "Back",
+                    tags = listOf("tag"),
+                    effortLevel = com.flashcardsopensourceapp.data.local.model.EffortLevel.MEDIUM
+                )
+            )
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+
+        assertEquals(0, repository.loadBootstrapCalls)
+        assertEquals(1, repository.createNewSessionRequests.size)
+        val newSessionId = repository.createNewSessionRequests.single()
+        assertTrue(newSessionId.isNotBlank())
+        assertFalse(newSessionId == oldSessionId)
+        assertEquals(newSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertTrue(runtime.state.value.persistedState.messages.isEmpty())
+        assertEquals("", runtime.state.value.draftMessage)
+        assertTrue(runtime.state.value.pendingAttachments.isEmpty())
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+        assertEquals(
+            "Keep me here",
+            repository.draftStates["workspace-1" to oldSessionId]?.draftMessage
+        )
+        assertNull(repository.draftStates["workspace-1" to newSessionId])
+    }
+
+    @Test
+    fun nonStalePersistedChatPreservesCurrentBootstrapPath() = runTest {
+        val repository = FakeAiChatRepository()
+        val nowMillis = System.currentTimeMillis()
+        val recentTimestamp = nowMillis - 1_000L
+        repository.setPersistedState(
+            workspaceId = "workspace-1",
+            state = makeDefaultAiChatPersistedState().copy(
+                chatSessionId = "session-1",
+                messages = listOf(
+                    makeUserMessage(
+                        content = listOf(AiChatContentPart.Text(text = "Recent question")),
+                        timestampMillis = recentTimestamp
+                    ),
+                    makeAssistantStatusMessage(timestampMillis = recentTimestamp + 1L)
+                )
+            )
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+
+        assertEquals(1, repository.loadBootstrapCalls)
+        assertTrue(repository.createNewSessionRequests.isEmpty())
+        assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+    }
+
+    @Test
+    fun staleCardHandoffCreatesFreshSessionAndPreservesOldDraftState() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.consent.value = false
+        val nowMillis = System.currentTimeMillis()
+        val staleTimestamp = nowMillis - aiChatStalenessThresholdMillis - 1_000L
+        val oldSessionId = "session-old"
+        repository.setPersistedState(
+            workspaceId = "workspace-1",
+            state = makeDefaultAiChatPersistedState().copy(
+                chatSessionId = oldSessionId,
+                messages = listOf(
+                    makeUserMessage(
+                        content = listOf(AiChatContentPart.Text(text = "Very old question")),
+                        timestampMillis = staleTimestamp
+                    )
+                )
+            )
+        )
+        repository.draftStates["workspace-1" to oldSessionId] = AiChatDraftState(
+            draftMessage = "Unsaved review note",
+            pendingAttachments = emptyList()
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.startDictationRecording()
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+
+        val didHandoff = runtime.handoffCardToChat(
+            cardId = "card-1",
+            frontText = "Front",
+            backText = "Back",
+            tags = listOf("tag"),
+            effortLevel = com.flashcardsopensourceapp.data.local.model.EffortLevel.LONG
+        )
+        advanceUntilIdle()
+
+        assertTrue(didHandoff)
+        assertEquals(1, repository.createNewSessionRequests.size)
+        val newSessionId = repository.createNewSessionRequests.single()
+        assertTrue(newSessionId.isNotBlank())
+        assertFalse(newSessionId == oldSessionId)
+        assertEquals(newSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertEquals(1, runtime.state.value.pendingAttachments.size)
+        assertEquals("card-1", (runtime.state.value.pendingAttachments.single() as AiChatAttachment.Card).cardId)
+        assertEquals(
+            "Unsaved review note",
+            repository.draftStates["workspace-1" to oldSessionId]?.draftMessage
+        )
+        assertEquals(
+            listOf("card-1"),
+            repository.draftStates["workspace-1" to newSessionId]?.pendingAttachments?.map { attachment ->
+                (attachment as AiChatAttachment.Card).cardId
+            }
+        )
+        assertEquals("", repository.draftStates["workspace-1" to newSessionId]?.draftMessage)
+    }
+
+    @Test
+    fun assistantOnlyHistoryDoesNotAutoRollOver() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.setPersistedState(
+            workspaceId = "workspace-1",
+            state = makeDefaultAiChatPersistedState().copy(
+                chatSessionId = "session-1",
+                messages = listOf(
+                    makeAssistantStatusMessage(
+                        timestampMillis = System.currentTimeMillis() - aiChatStalenessThresholdMillis - 1_000L
+                    )
+                )
+            )
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext())
+        advanceUntilIdle()
+
+        assertEquals(1, repository.loadBootstrapCalls)
+        assertTrue(repository.createNewSessionRequests.isEmpty())
+        assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+    }
+
+    @Test
     fun acceptedRunDoesNotAttachLiveWhenScreenIsHidden() = runTest {
         val repository = FakeAiChatRepository()
         repository.startRunResponse = makeAcceptedStartRunResponse(

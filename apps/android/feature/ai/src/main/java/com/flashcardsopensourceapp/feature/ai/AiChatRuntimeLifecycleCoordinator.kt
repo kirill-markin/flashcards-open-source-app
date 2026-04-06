@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 
 internal class AiChatRuntimeLifecycleCoordinator(
     private val context: AiChatRuntimeContext,
+    private val startFreshConversationForEntry: (String?, Boolean) -> Unit,
     private val startConversationBootstrap: (Boolean, com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?) -> Unit,
     private val detachLiveStream: (String) -> Unit
 ) {
@@ -50,6 +51,18 @@ internal class AiChatRuntimeLifecycleCoordinator(
                 workspaceId = accessContext.workspaceId,
                 persistedState = context.aiChatRepository.loadPersistedState(workspaceId = accessContext.workspaceId)
             )
+            val currentState = context.runtimeStateMutable.value
+            if (shouldAutoOpenFreshConversationForEntry(
+                    currentState = currentState,
+                    persistedMessages = persistedState.messages,
+                    nowMillis = System.currentTimeMillis()
+                )
+            ) {
+                context.persistDraft(snapshot = currentState)
+                startFreshConversationForEntry(accessContext.workspaceId, false)
+                return@launch
+            }
+
             val persistedSessionId = resolveAiChatSessionIdForWorkspace(
                 workspaceId = accessContext.workspaceId,
                 sessionId = persistedState.chatSessionId
@@ -58,7 +71,7 @@ internal class AiChatRuntimeLifecycleCoordinator(
                 workspaceId = accessContext.workspaceId,
                 sessionId = persistedSessionId
             )
-            context.runtimeStateMutable.value = makeAiDraftState(
+            val nextState = makeAiDraftState(
                 workspaceId = accessContext.workspaceId,
                 persistedState = persistedState
             ).copy(
@@ -74,6 +87,8 @@ internal class AiChatRuntimeLifecycleCoordinator(
                     AiConversationBootstrapState.READY
                 }
             )
+
+            context.runtimeStateMutable.value = nextState
             context.persistCurrentState()
             if (accessContext.workspaceId == null) {
                 return@launch
@@ -90,6 +105,15 @@ internal class AiChatRuntimeLifecycleCoordinator(
 
     fun onScreenVisible() {
         context.isScreenVisible = true
+        if (shouldAutoOpenFreshConversation(
+                state = context.runtimeStateMutable.value,
+                nowMillis = System.currentTimeMillis()
+            )
+        ) {
+            context.persistDraft(snapshot = context.runtimeStateMutable.value)
+            startFreshConversationForEntry(context.activeAccessContext?.workspaceId, false)
+            return
+        }
         warmUpLinkedSessionIfNeeded(resumeDiagnostics = context.nextResumeDiagnostics())
     }
 

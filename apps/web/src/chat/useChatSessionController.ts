@@ -29,6 +29,9 @@ import {
 import { defaultChatConfig, loadStoredChatConfig, storeChatConfig } from "./chatConfig";
 import type { ChatSessionSnapshot } from "./chatSessionSnapshot";
 import {
+  isChatSessionStale,
+} from "./chatSessionFreshness";
+import {
   loadChatSessionWarmStartSnapshot,
   storeChatSessionWarmStartSnapshot,
   type WarmStartChatSessionSnapshot,
@@ -39,6 +42,7 @@ import type {
   ChatConfig,
   ChatComposerSuggestion,
   ContentPart,
+  NewChatSessionResponse,
   ReasoningSummaryContentPart,
   ToolCallContentPart,
 } from "../types";
@@ -453,9 +457,17 @@ export function useChatSessionController(
     loadChatSessionWarmStartSnapshot(workspaceId),
   );
   const initialWarmStartSnapshot = initialWarmStartSnapshotRef.current;
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(() =>
-    initialWarmStartSnapshot?.sessionId ?? null
-  );
+  const initialWarmStartSnapshotIsStale = initialWarmStartSnapshot === null
+    ? false
+    : isChatSessionStale(initialWarmStartSnapshot.messages, Date.now());
+  const initialFreshSessionIdRef = useRef<string>(createClientChatSessionId());
+  const initialCurrentSessionId = initialWarmStartSnapshot === null
+    ? null
+    : initialWarmStartSnapshotIsStale
+      ? initialFreshSessionIdRef.current
+      : initialWarmStartSnapshot.sessionId;
+  const shouldBootstrapFreshLocalSessionRef = useRef<boolean>(initialWarmStartSnapshotIsStale);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(initialCurrentSessionId);
   const {
     messages,
     replaceMessages,
@@ -467,24 +479,36 @@ export function useChatSessionController(
     completeAssistantReasoningSummary,
     finishAssistantMessage,
     clearHistory,
-  } = useChatHistory(initialWarmStartSnapshot?.messages ?? []);
+  } = useChatHistory(
+    initialWarmStartSnapshot !== null && initialWarmStartSnapshotIsStale === false
+      ? initialWarmStartSnapshot.messages
+      : [],
+  );
 
   const [isHistoryLoaded, setIsHistoryLoaded] = useState<boolean>(
-    initialWarmStartSnapshot !== null || workspaceId === null,
+    workspaceId === null || initialWarmStartSnapshot !== null,
   );
   const [runState, setRunState] = useState<ChatRunState>("idle");
   const [isStopping, setIsStopping] = useState<boolean>(false);
   const [mainContentInvalidationVersion, setMainContentInvalidationVersion] = useState<number>(
-    initialWarmStartSnapshot?.mainContentInvalidationVersion ?? 0,
+    initialWarmStartSnapshot !== null && initialWarmStartSnapshotIsStale === false
+      ? initialWarmStartSnapshot.mainContentInvalidationVersion
+      : 0,
   );
   const [chatConfig, setChatConfig] = useState<ChatConfig>(
-    initialWarmStartSnapshot?.chatConfig ?? loadStoredChatConfig(),
+    initialWarmStartSnapshot !== null && initialWarmStartSnapshotIsStale === false
+      ? initialWarmStartSnapshot.chatConfig
+      : loadStoredChatConfig(),
   );
   const [composerSuggestions, setComposerSuggestions] = useState<ReadonlyArray<ChatComposerSuggestion>>([]);
   const [composerNotice, setComposerNotice] = useState<string | null>(null);
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
 
-  const lastSnapshotUpdatedAtRef = useRef<number | null>(initialWarmStartSnapshot?.updatedAt ?? null);
+  const lastSnapshotUpdatedAtRef = useRef<number | null>(
+    initialWarmStartSnapshot !== null && initialWarmStartSnapshotIsStale === false
+      ? initialWarmStartSnapshot.updatedAt
+      : null,
+  );
   const hasObservedMainContentInvalidationVersionRef = useRef<boolean>(false);
   const lastMainContentInvalidationVersionRef = useRef<number>(0);
   const clearConversationRequestSequenceRef = useRef<number>(0);
@@ -492,7 +516,7 @@ export function useChatSessionController(
   const hydratedWorkspaceIdRef = useRef<string | null>(initialWarmStartSnapshot?.workspaceId ?? null);
   const runStateRef = useRef<ChatRunState>("idle");
   const messagesRef = useRef<ReadonlyArray<StoredMessage>>(messages);
-  const currentSessionIdRef = useRef<string | null>(initialWarmStartSnapshot?.sessionId ?? null);
+  const currentSessionIdRef = useRef<string | null>(initialCurrentSessionId);
   const chatConfigRef = useRef<ChatConfig>(chatConfig);
   const onMainContentInvalidatedRef = useRef<(mainContentInvalidationVersion: number) => void>(onMainContentInvalidated);
   const snapshotRequestVersionRef = useRef<number>(0);
@@ -558,6 +582,58 @@ export function useChatSessionController(
   const setKnownLiveCursor = useCallback((cursor: string | null): void => {
     liveCursorRef.current = cursor;
   }, []);
+
+  const beginFreshSessionRequestSequence = useCallback((): number => {
+    const nextSequence = clearConversationRequestSequenceRef.current + 1;
+    clearConversationRequestSequenceRef.current = nextSequence;
+    return nextSequence;
+  }, []);
+
+  const isFreshSessionEnsureCurrent = useCallback((
+    sessionId: string,
+    requestSequence: number,
+  ): boolean => {
+    return clearConversationRequestSequenceRef.current === requestSequence
+      && currentWorkspaceIdRef.current === workspaceId
+      && currentSessionIdRef.current === sessionId
+      && messagesRef.current.length === 0
+      && runStateRef.current === "idle";
+  }, [workspaceId]);
+
+  const applyFreshSessionResponse = useCallback((
+    response: NewChatSessionResponse,
+    sessionId: string,
+    requestSequence: number,
+  ): boolean => {
+    if (response.sessionId !== sessionId) {
+      return false;
+    }
+
+    if (isFreshSessionEnsureCurrent(sessionId, requestSequence) === false) {
+      return false;
+    }
+
+    applyComposerSuggestions(sessionId, response.composerSuggestions);
+    setChatConfig(response.chatConfig);
+    storeChatConfig(response.chatConfig);
+    return true;
+  }, [applyComposerSuggestions, isFreshSessionEnsureCurrent]);
+
+  const requestFreshSessionEnsure = useCallback((
+    sessionId: string,
+    requestSequence: number,
+  ): void => {
+    void (async (): Promise<void> => {
+      try {
+        const response = await createNewChatSession(sessionId);
+        applyFreshSessionResponse(response, sessionId, requestSequence);
+      } catch (error) {
+        if (isFreshSessionEnsureCurrent(sessionId, requestSequence)) {
+          setErrorDialogMessage(`New chat failed. ${toErrorMessage(error)}`);
+        }
+      }
+    })();
+  }, [applyFreshSessionResponse, isFreshSessionEnsureCurrent]);
 
   const dismissErrorDialog = useCallback((): void => {
     setErrorDialogMessage(null);
@@ -754,6 +830,27 @@ export function useChatSessionController(
     const warmStartSnapshot = loadChatSessionWarmStartSnapshot(nextWorkspaceId);
     if (warmStartSnapshot === null) {
       return false;
+    }
+
+    const isStaleWarmStart = isChatSessionStale(warmStartSnapshot.messages, Date.now());
+    if (isStaleWarmStart) {
+      const nextSessionId = createClientChatSessionId();
+      detachLiveStream(null, null);
+      replaceMessages([]);
+      setCurrentSessionId(nextSessionId);
+      applyComposerSuggestions(nextSessionId, []);
+      updateRunState("idle");
+      setIsStopping(false);
+      setMainContentInvalidationVersion(0);
+      setChatConfig(loadStoredChatConfig());
+      setComposerNotice(null);
+      setErrorDialogMessage(null);
+      setIsHistoryLoaded(true);
+      lastSnapshotUpdatedAtRef.current = null;
+      hydratedWorkspaceIdRef.current = nextWorkspaceId;
+      setKnownLiveCursor(null);
+      shouldBootstrapFreshLocalSessionRef.current = true;
+      return true;
     }
 
     detachLiveStream(null, null);
@@ -1010,6 +1107,31 @@ export function useChatSessionController(
       };
     }
 
+    if (isWorkspaceTransition) {
+      shouldBootstrapFreshLocalSessionRef.current = false;
+    }
+
+    if (shouldBootstrapFreshLocalSessionRef.current) {
+      snapshotRequestVersionRef.current += 1;
+      hydratedWorkspaceIdRef.current = workspaceId;
+      if (isRemoteReady === false) {
+        return () => {
+          isDisposed = true;
+        };
+      }
+
+      shouldBootstrapFreshLocalSessionRef.current = false;
+      const requestSequence = beginFreshSessionRequestSequence();
+      requestFreshSessionEnsure(
+        currentSessionIdRef.current ?? initialFreshSessionIdRef.current,
+        requestSequence,
+      );
+      setIsHistoryLoaded(true);
+      return () => {
+        isDisposed = true;
+      };
+    }
+
     if (!isRemoteReady) {
       if (isWorkspaceTransition) {
         const didApplyWarmStartSnapshot = applyWarmStartSnapshot(workspaceId);
@@ -1076,10 +1198,12 @@ export function useChatSessionController(
     };
   }, [
     applyWarmStartSnapshot,
+    beginFreshSessionRequestSequence,
     isRemoteReady,
     loadChatSnapshot,
     replaceMessages,
     resetControllerState,
+    requestFreshSessionEnsure,
     showErrorDialog,
     startSnapshotLiveStream,
     workspaceId,
@@ -1224,8 +1348,7 @@ export function useChatSessionController(
     }
 
     const nextSessionId = createClientChatSessionId();
-    const requestSequence = clearConversationRequestSequenceRef.current + 1;
-    clearConversationRequestSequenceRef.current = requestSequence;
+    const requestSequence = beginFreshSessionRequestSequence();
     snapshotRequestVersionRef.current += 1;
     detachLiveStream(null, null);
     clearHistory();
@@ -1240,36 +1363,10 @@ export function useChatSessionController(
     setMainContentInvalidationVersion(0);
     setComposerNotice(null);
     setErrorDialogMessage(null);
-
-    void (async (): Promise<void> => {
-      try {
-        const response = await createNewChatSession(nextSessionId);
-        const isConversationStillInitial = messagesRef.current.length === 0
-          && runStateRef.current === "idle";
-        const isStaleResponse = clearConversationRequestSequenceRef.current !== requestSequence
-          || currentWorkspaceIdRef.current !== workspaceId
-          || currentSessionIdRef.current !== nextSessionId
-          || response.sessionId !== nextSessionId
-          || isConversationStillInitial === false;
-        if (isStaleResponse) {
-          return;
-        }
-
-        applyComposerSuggestions(response.sessionId, response.composerSuggestions);
-        setChatConfig(response.chatConfig);
-        storeChatConfig(response.chatConfig);
-      } catch (error) {
-        const isActiveTarget = clearConversationRequestSequenceRef.current === requestSequence
-          && currentWorkspaceIdRef.current === workspaceId
-          && currentSessionIdRef.current === nextSessionId;
-        if (isActiveTarget) {
-          showErrorDialog(`New chat failed. ${toErrorMessage(error)}`);
-        }
-      }
-    })();
+    requestFreshSessionEnsure(nextSessionId, requestSequence);
 
     return nextSessionId;
-  }, [applyComposerSuggestions, clearHistory, detachLiveStream, setKnownLiveCursor, showErrorDialog, updateRunState, workspaceId]);
+  }, [beginFreshSessionRequestSequence, clearHistory, detachLiveStream, requestFreshSessionEnsure, setKnownLiveCursor, updateRunState, workspaceId]);
 
   return {
     messages,

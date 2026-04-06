@@ -9,6 +9,13 @@ extension AIChatStore {
         self.shouldKeepLiveAttached = isVisible
 
         if isVisible {
+            if self.shouldAutoStartFreshLocalSession(persistedState: self.currentPersistedState()) {
+                self.startFreshLocalSession(
+                    inputText: "",
+                    pendingAttachments: []
+                )
+                return
+            }
             self.resumeVisibleSessionIfNeeded()
             return
         }
@@ -160,6 +167,9 @@ extension AIChatStore {
             return
         }
         guard self.isChatInteractive else {
+            return
+        }
+        guard self.activeNewSessionTask == nil else {
             return
         }
         let cloudState = self.flashcardsStore.cloudSettings?.cloudState

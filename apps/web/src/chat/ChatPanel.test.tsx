@@ -366,6 +366,85 @@ describe("ChatPanel send lifecycle", () => {
     expect(getChatSnapshotMock).toHaveBeenCalledWith("session-local-fresh");
   });
 
+  it("opens a stale warm-start session as a fresh local chat without loading the stale session", async () => {
+    const staleTimestamp = Date.UTC(2026, 0, 1, 0, 0, 0);
+    vi.setSystemTime(new Date(staleTimestamp + (6 * 60 * 60 * 1000) + 1_000));
+    storeChatSessionWarmStartSnapshot("workspace-1", createChatSnapshot({
+      sessionId: "session-stale",
+      conversationScopeId: "session-stale",
+      conversation: {
+        updatedAt: staleTimestamp,
+        mainContentInvalidationVersion: 0,
+        messages: [
+          {
+            role: "user",
+            content: [{ type: "text", text: "Old question" }],
+            timestamp: staleTimestamp,
+            isError: false,
+            isStopped: false,
+          },
+          {
+            role: "assistant",
+            content: [{ type: "text", text: "Old answer" }],
+            timestamp: staleTimestamp + 1,
+            isError: false,
+            isStopped: false,
+          },
+        ],
+      },
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).not.toHaveBeenCalled();
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
+    expect(createNewChatSessionMock.mock.calls[0]?.[0]).not.toBe("session-stale");
+    expect(getContainer().textContent).not.toContain("Old question");
+    expect(getContainer().textContent).not.toContain("Old answer");
+  });
+
+  it("does not stale-roll over an assistant-only warm-start transcript", async () => {
+    const staleTimestamp = Date.UTC(2026, 0, 1, 0, 0, 0);
+    vi.setSystemTime(new Date(staleTimestamp + (6 * 60 * 60 * 1000) + 1_000));
+    storeChatSessionWarmStartSnapshot("workspace-1", createChatSnapshot({
+      sessionId: "session-assistant-only",
+      conversationScopeId: "session-assistant-only",
+      conversation: {
+        updatedAt: staleTimestamp,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "assistant",
+          content: [{ type: "text", text: "Assistant only" }],
+          timestamp: staleTimestamp,
+          isError: false,
+          isStopped: false,
+        }],
+      },
+    }));
+    getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
+      sessionId: "session-assistant-only",
+      conversationScopeId: "session-assistant-only",
+      conversation: {
+        updatedAt: staleTimestamp,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "assistant",
+          content: [{ type: "text", text: "Assistant only" }],
+          timestamp: staleTimestamp,
+          isError: false,
+          isStopped: false,
+        }],
+      },
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-assistant-only");
+    expect(createNewChatSessionMock).not.toHaveBeenCalled();
+  });
+
   it("preserves latest-or-create bootstrap when no warm-start session id exists", async () => {
     await renderChatPanel();
     await flushAsync();
