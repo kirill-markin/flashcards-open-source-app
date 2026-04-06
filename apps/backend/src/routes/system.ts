@@ -3,8 +3,8 @@ import { authenticateRequest } from "../auth";
 import { deleteAccountForAuthenticatedUser } from "../accountDeletion";
 import { createAgentDiscoveryEnvelope } from "../agentDiscovery";
 import { createAgentAccountEnvelope, shouldUseAgentSetupEnvelope } from "../agentSetup";
-import { query } from "../db";
 import { HttpError } from "../errors";
+import { unsafeQuery } from "../dbUnsafe";
 import { loadOpenApiDocument } from "../openapi";
 import {
   enforceSessionCsrfProtection,
@@ -30,7 +30,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   app.get("/swagger.json", async (context) => context.json(loadOpenApiDocument()));
 
   app.get("/health", async (context) => {
-    const result = await query<Readonly<{ now: Date | string }>>("SELECT now() AS now", []);
+    const result = await unsafeQuery<Readonly<{ now: Date | string }>>("SELECT now() AS now", []);
     return context.json({
       status: "ok",
       service: "flashcards-open-source-app-backend",

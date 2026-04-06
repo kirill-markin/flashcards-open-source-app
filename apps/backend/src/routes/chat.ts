@@ -43,7 +43,7 @@ import {
 } from "../chat/liveAuth";
 import {
   loadRequestContextFromRequest,
-  requireSelectedWorkspaceId,
+  requireAccessibleSelectedWorkspaceId,
   type RequestContext,
 } from "../server/requestContext";
 import {
@@ -129,6 +129,7 @@ type ChatRoutesOptions = Readonly<{
   createChatLiveStreamEnvelopeFn?: typeof createChatLiveStreamEnvelope;
   resolveLiveCursorFn?: typeof resolveLiveCursor;
   listChatMessagesLatestFn?: typeof listChatMessagesLatest;
+  requireAccessibleSelectedWorkspaceIdFn?: typeof requireAccessibleSelectedWorkspaceId;
 }>;
 
 const chatResumeContractViolationCode = "CHAT_LIVE_RESUME_CONTRACT_VIOLATION";
@@ -660,6 +661,22 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const createChatLiveStreamEnvelopeFn = options.createChatLiveStreamEnvelopeFn ?? createChatLiveStreamEnvelope;
   const resolveLiveCursorFn = options.resolveLiveCursorFn ?? resolveLiveCursor;
   const listChatMessagesLatestFn = options.listChatMessagesLatestFn ?? listChatMessagesLatest;
+  const requireAccessibleSelectedWorkspaceIdFn = options.requireAccessibleSelectedWorkspaceIdFn
+    ?? (options.loadRequestContextFromRequestFn === undefined
+      ? requireAccessibleSelectedWorkspaceId
+      : async (requestContext: RequestContext): Promise<string> => {
+        // Route tests often stub request context directly and do not exercise
+        // the real workspace access path, so keep a minimal local fallback.
+        if (requestContext.selectedWorkspaceId === null) {
+          throw new HttpError(
+            409,
+            "Select a workspace before using this endpoint",
+            "WORKSPACE_SELECTION_REQUIRED",
+          );
+        }
+
+        return requestContext.selectedWorkspaceId;
+      });
 
   app.get("/chat", async (context) => {
     const requestContext = await loadSupportedRequestContext(
@@ -667,7 +684,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       options.allowedOrigins,
       loadRequestContextFromRequestFn,
     );
-    const workspaceId = requireSelectedWorkspaceId(requestContext);
+    const workspaceId = await requireAccessibleSelectedWorkspaceIdFn(requestContext);
     const sessionId = parseOptionalSessionIdQuery(context.req.query("sessionId") ?? undefined);
     const limitParam = context.req.query("limit") ?? undefined;
     const resumeDiagnostics = readChatResumeDiagnosticsHeaders(context.req.raw);
@@ -740,7 +757,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       options.allowedOrigins,
       loadRequestContextFromRequestFn,
     );
-    const workspaceId = requireSelectedWorkspaceId(requestContext);
+    const workspaceId = await requireAccessibleSelectedWorkspaceIdFn(requestContext);
     const body = parseChatRequestBody(await parseJsonBody(context.req.raw));
     const resumeDiagnostics = readChatResumeDiagnosticsHeaders(context.req.raw);
     context.header("X-Chat-Request-Id", body.clientRequestId);
@@ -797,7 +814,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       options.allowedOrigins,
       loadRequestContextFromRequestFn,
     );
-    const workspaceId = requireSelectedWorkspaceId(requestContext);
+    const workspaceId = await requireAccessibleSelectedWorkspaceIdFn(requestContext);
     const body = parseNewChatRequestBody(await parseJsonBody(context.req.raw));
 
     // Preferred modern flow: clients send an explicit client-generated sessionId.
@@ -909,7 +926,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       options.allowedOrigins,
       loadRequestContextFromRequestFn,
     );
-    const workspaceId = requireSelectedWorkspaceId(requestContext);
+    const workspaceId = await requireAccessibleSelectedWorkspaceIdFn(requestContext);
     const body = parseStopChatRequestBody(await parseJsonBody(context.req.raw));
 
     let sessionId: string | null;

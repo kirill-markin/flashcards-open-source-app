@@ -1,6 +1,8 @@
 import { authenticateRequest, type AuthResult } from "../auth";
 import { HttpError } from "../errors";
-import { ensureUserProfile } from "../ensureUser";
+import { ensureUserProfile, type UserProfile } from "../ensureUser";
+import { requireAccessibleSelectedWorkspaceId } from "../server/requestContext";
+import { assertChatLiveRunAccess } from "./liveAccess";
 import {
   CHAT_LIVE_AFTER_CURSOR_INVALID_CODE,
   CHAT_LIVE_RUN_ID_REQUIRED_CODE,
@@ -20,6 +22,22 @@ export type LiveStreamParams = Readonly<{
   clientPlatform?: string;
   clientVersion?: string;
 }>;
+
+type HandleLiveRequestDependencies = Readonly<{
+  authenticateRequestFn: typeof authenticateRequest;
+  ensureUserProfileFn: typeof ensureUserProfile;
+  verifyChatLiveAuthorizationHeaderFn: typeof verifyChatLiveAuthorizationHeader;
+  requireAccessibleSelectedWorkspaceIdFn: typeof requireAccessibleSelectedWorkspaceId;
+  assertChatLiveRunAccessFn: typeof assertChatLiveRunAccess;
+}>;
+
+const defaultHandleLiveRequestDependencies: HandleLiveRequestDependencies = {
+  authenticateRequestFn: authenticateRequest,
+  ensureUserProfileFn: ensureUserProfile,
+  verifyChatLiveAuthorizationHeaderFn: verifyChatLiveAuthorizationHeader,
+  requireAccessibleSelectedWorkspaceIdFn: requireAccessibleSelectedWorkspaceId,
+  assertChatLiveRunAccessFn: assertChatLiveRunAccess,
+};
 
 function readOptionalHeader(headers: Headers | Record<string, string | undefined>, name: string): string | undefined {
   if (headers instanceof Headers) {
@@ -47,7 +65,9 @@ export async function handleLiveRequest(
   url: URL,
   authorizationHeader: string | undefined,
   headers: Headers | Record<string, string | undefined>,
+  dependencies?: HandleLiveRequestDependencies,
 ): Promise<LiveStreamParams> {
+  const liveRequestDependencies = dependencies ?? defaultHandleLiveRequestDependencies;
   const sessionId = url.searchParams.get("sessionId");
   if (sessionId === null || sessionId === "") {
     throw new HttpError(400, "AI live stream request is missing sessionId.", CHAT_LIVE_SESSION_ID_REQUIRED_CODE);
@@ -67,7 +87,17 @@ export async function handleLiveRequest(
 
   const tokenParam = url.searchParams.get("token");
   if (authorizationHeader !== undefined && authorizationHeader.startsWith("Live ")) {
-    const verifiedLiveAuth = await verifyChatLiveAuthorizationHeader(authorizationHeader, sessionId, runId);
+    const verifiedLiveAuth = await liveRequestDependencies.verifyChatLiveAuthorizationHeaderFn(
+      authorizationHeader,
+      sessionId,
+      runId,
+    );
+    await liveRequestDependencies.assertChatLiveRunAccessFn(
+      verifiedLiveAuth.userId,
+      verifiedLiveAuth.workspaceId,
+      sessionId,
+      runId,
+    );
     return {
       sessionId,
       runId,
@@ -82,18 +112,36 @@ export async function handleLiveRequest(
 
   const effectiveAuth = authorizationHeader ?? (tokenParam !== null ? `Bearer ${tokenParam}` : undefined);
 
-  const authResult: AuthResult = await authenticateRequest({
+  const authResult: AuthResult = await liveRequestDependencies.authenticateRequestFn({
     authorizationHeader: effectiveAuth,
     sessionToken: undefined,
   });
 
-  const workspaceId = authResult.transport === "api_key"
-    ? authResult.selectedWorkspaceId
-    : (await ensureUserProfile(authResult.userId, null)).selectedWorkspaceId;
+  const userProfile: UserProfile | null = authResult.transport === "api_key"
+    ? null
+    : await liveRequestDependencies.ensureUserProfileFn(authResult.userId, null);
 
-  if (workspaceId === null) {
-    throw new HttpError(409, "No workspace selected.", CHAT_LIVE_WORKSPACE_SELECTION_REQUIRED_CODE);
+  let workspaceId: string;
+  try {
+    workspaceId = await liveRequestDependencies.requireAccessibleSelectedWorkspaceIdFn({
+      userId: authResult.userId,
+      selectedWorkspaceId: authResult.transport === "api_key"
+        ? authResult.selectedWorkspaceId
+        : userProfile?.selectedWorkspaceId ?? null,
+    });
+  } catch (error) {
+    if (
+      error instanceof HttpError
+      && error.statusCode === 409
+      && error.code === "WORKSPACE_SELECTION_REQUIRED"
+    ) {
+      throw new HttpError(409, "No workspace selected.", CHAT_LIVE_WORKSPACE_SELECTION_REQUIRED_CODE);
+    }
+
+    throw error;
   }
+
+  await liveRequestDependencies.assertChatLiveRunAccessFn(authResult.userId, workspaceId, sessionId, runId);
 
   return {
     sessionId,

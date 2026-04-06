@@ -1,7 +1,7 @@
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { authenticateAgentApiKey } from "./agentApiKeys";
 import { getAuthConfig } from "./authConfig";
-import { query } from "./db";
+import { unsafeQuery } from "./dbUnsafe";
 import { authenticateGuestSession } from "./guestAuth";
 
 export type AuthTransport = "none" | "bearer" | "session" | "api_key" | "guest";
@@ -126,7 +126,7 @@ async function verifyIdToken(token: string): Promise<AuthenticatedUserIdentity> 
 }
 
 async function resolveMappedCognitoUserId(providerSubject: string): Promise<string | null> {
-  const result = await query<IdentityMappingRow>(
+  const result = await unsafeQuery<IdentityMappingRow>(
     [
       "SELECT user_id",
       "FROM auth.user_identities",
