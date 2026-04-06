@@ -9,7 +9,8 @@ import {
   CHAT_MODEL_ID,
   CHAT_MODEL_REASONING_EFFORT,
 } from "../config";
-import type { ChatSessionRow, ChatSessionRunState } from "../store";
+import type { ChatSessionRunState } from "../store";
+import type { ChatSessionRow } from "../store/repository";
 import type { ContentPart } from "../types";
 import type { ChatRunStatus } from "./types";
 
