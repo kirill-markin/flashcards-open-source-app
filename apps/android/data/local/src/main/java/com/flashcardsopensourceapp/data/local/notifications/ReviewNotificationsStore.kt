@@ -16,6 +16,7 @@ const val defaultDailyReminderMinute: Int = 0
 const val dailyReminderSchedulingHorizonDays: Int = 7
 const val defaultInactivityReminderWindowEndHour: Int = 19
 const val defaultInactivityReminderWindowEndMinute: Int = 0
+const val fallbackReviewNotificationFrontText: String = "Continue your study session in Flashcards."
 
 private const val reviewNotificationsPreferencesName: String = "flashcards-review-notifications"
 private const val reviewNotificationsSettingsKeyPrefix: String = "review-notifications-settings::"
@@ -72,7 +73,7 @@ data class PersistedReviewFilter(
 data class ScheduledReviewNotificationPayload(
     val workspaceId: String,
     val reviewFilter: PersistedReviewFilter,
-    val cardId: String,
+    val cardId: String?,
     val frontText: String,
     val scheduledAtMillis: Long,
     val requestId: String
@@ -281,30 +282,41 @@ fun buildDailyReminderPayloads(
     zoneId: ZoneId,
     settings: DailyReviewNotificationsSettings
 ): List<ScheduledReviewNotificationPayload> {
-    val now = Instant.ofEpochMilli(nowMillis).atZone(zoneId)
+    val scheduledAtDateTimes = buildDailyReminderScheduledAtDateTimes(
+        nowMillis = nowMillis,
+        zoneId = zoneId,
+        settings = settings
+    )
+    return buildScheduledReviewNotificationPayloads(
+        workspaceId = workspaceId,
+        reviewFilter = currentCard.reviewFilter,
+        cardId = currentCard.cardId,
+        frontText = currentCard.frontText,
+        scheduledAtDateTimes = scheduledAtDateTimes,
+        mode = ReviewNotificationMode.DAILY
+    )
+}
 
-    return (0 until dailyReminderSchedulingHorizonDays).mapNotNull { dayOffset ->
-        val candidateDateTime = now.toLocalDate()
-            .plusDays(dayOffset.toLong())
-            .atTime(settings.hour, settings.minute)
-            .atZone(zoneId)
-        if (candidateDateTime.toInstant().toEpochMilli() <= nowMillis) {
-            return@mapNotNull null
-        }
-
-        ScheduledReviewNotificationPayload(
-            workspaceId = workspaceId,
-            reviewFilter = currentCard.reviewFilter,
-            cardId = currentCard.cardId,
-            frontText = currentCard.frontText,
-            scheduledAtMillis = candidateDateTime.toInstant().toEpochMilli(),
-            requestId = makeNotificationRequestId(
-                workspaceId = workspaceId,
-                mode = ReviewNotificationMode.DAILY,
-                suffix = candidateDateTime.toLocalDate().toString()
-            )
-        )
-    }
+fun buildFallbackDailyReminderPayloads(
+    workspaceId: String,
+    reviewFilter: PersistedReviewFilter,
+    nowMillis: Long,
+    zoneId: ZoneId,
+    settings: DailyReviewNotificationsSettings
+): List<ScheduledReviewNotificationPayload> {
+    val scheduledAtDateTimes = buildDailyReminderScheduledAtDateTimes(
+        nowMillis = nowMillis,
+        zoneId = zoneId,
+        settings = settings
+    )
+    return buildScheduledReviewNotificationPayloads(
+        workspaceId = workspaceId,
+        reviewFilter = reviewFilter,
+        cardId = null,
+        frontText = fallbackReviewNotificationFrontText,
+        scheduledAtDateTimes = scheduledAtDateTimes,
+        mode = ReviewNotificationMode.DAILY
+    )
 }
 
 fun computeInactivityReminderTimestampMillis(
@@ -370,22 +382,48 @@ fun buildInactivityReminderPayloads(
         return emptyList()
     }
 
-    return scheduledAtMillisList.mapNotNull { scheduledAtMillis ->
-        val scheduledAtDateTime = Instant.ofEpochMilli(scheduledAtMillis).atZone(zoneId)
-
-        ScheduledReviewNotificationPayload(
-            workspaceId = workspaceId,
-            reviewFilter = currentCard.reviewFilter,
-            cardId = currentCard.cardId,
-            frontText = currentCard.frontText,
-            scheduledAtMillis = scheduledAtMillis,
-            requestId = makeNotificationRequestId(
-                workspaceId = workspaceId,
-                mode = ReviewNotificationMode.INACTIVITY,
-                suffix = makeNotificationRequestSuffix(scheduledAtDateTime = scheduledAtDateTime)
-            )
-        )
+    val scheduledAtDateTimes = scheduledAtMillisList.map { scheduledAtMillis ->
+        Instant.ofEpochMilli(scheduledAtMillis).atZone(zoneId)
     }
+    return buildScheduledReviewNotificationPayloads(
+        workspaceId = workspaceId,
+        reviewFilter = currentCard.reviewFilter,
+        cardId = currentCard.cardId,
+        frontText = currentCard.frontText,
+        scheduledAtDateTimes = scheduledAtDateTimes,
+        mode = ReviewNotificationMode.INACTIVITY
+    )
+}
+
+fun buildFallbackInactivityReminderPayloads(
+    workspaceId: String,
+    reviewFilter: PersistedReviewFilter,
+    nowMillis: Long,
+    lastActiveAtMillis: Long,
+    zoneId: ZoneId,
+    settings: InactivityReviewNotificationsSettings
+): List<ScheduledReviewNotificationPayload> {
+    val scheduledAtMillisList = buildInactivityReminderTimestampMillisList(
+        settings = settings,
+        lastActiveAtMillis = lastActiveAtMillis,
+        nowMillis = nowMillis,
+        zoneId = zoneId
+    )
+    if (scheduledAtMillisList.isEmpty()) {
+        return emptyList()
+    }
+
+    val scheduledAtDateTimes = scheduledAtMillisList.map { scheduledAtMillis ->
+        Instant.ofEpochMilli(scheduledAtMillis).atZone(zoneId)
+    }
+    return buildScheduledReviewNotificationPayloads(
+        workspaceId = workspaceId,
+        reviewFilter = reviewFilter,
+        cardId = null,
+        frontText = fallbackReviewNotificationFrontText,
+        scheduledAtDateTimes = scheduledAtDateTimes,
+        mode = ReviewNotificationMode.INACTIVITY
+    )
 }
 
 fun buildInactivityReminderTimestampMillisList(
@@ -470,6 +508,50 @@ private fun buildRepeatedInactivityReminderTimestampMillisForDay(
     }
 
     return scheduledAtMillisList
+}
+
+private fun buildDailyReminderScheduledAtDateTimes(
+    nowMillis: Long,
+    zoneId: ZoneId,
+    settings: DailyReviewNotificationsSettings
+): List<ZonedDateTime> {
+    val now = Instant.ofEpochMilli(nowMillis).atZone(zoneId)
+
+    return (0 until dailyReminderSchedulingHorizonDays).mapNotNull { dayOffset ->
+        val candidateDateTime = now.toLocalDate()
+            .plusDays(dayOffset.toLong())
+            .atTime(settings.hour, settings.minute)
+            .atZone(zoneId)
+        if (candidateDateTime.toInstant().toEpochMilli() <= nowMillis) {
+            return@mapNotNull null
+        }
+
+        candidateDateTime
+    }
+}
+
+private fun buildScheduledReviewNotificationPayloads(
+    workspaceId: String,
+    reviewFilter: PersistedReviewFilter,
+    cardId: String?,
+    frontText: String,
+    scheduledAtDateTimes: List<ZonedDateTime>,
+    mode: ReviewNotificationMode
+): List<ScheduledReviewNotificationPayload> {
+    return scheduledAtDateTimes.map { scheduledAtDateTime ->
+        ScheduledReviewNotificationPayload(
+            workspaceId = workspaceId,
+            reviewFilter = reviewFilter,
+            cardId = cardId,
+            frontText = frontText,
+            scheduledAtMillis = scheduledAtDateTime.toInstant().toEpochMilli(),
+            requestId = makeNotificationRequestId(
+                workspaceId = workspaceId,
+                mode = mode,
+                suffix = makeNotificationRequestSuffix(scheduledAtDateTime = scheduledAtDateTime)
+            )
+        )
+    }
 }
 
 private val notificationRequestIdDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm")
@@ -562,7 +644,9 @@ private fun encodeScheduledPayloads(payloads: List<ScheduledReviewNotificationPa
                 JSONObject().apply {
                     put("workspaceId", payload.workspaceId)
                     put("reviewFilter", encodePersistedReviewFilter(filter = payload.reviewFilter))
-                    put("cardId", payload.cardId)
+                    if (payload.cardId != null) {
+                        put("cardId", payload.cardId)
+                    }
                     put("frontText", payload.frontText)
                     put("scheduledAtMillis", payload.scheduledAtMillis)
                     put("requestId", payload.requestId)
@@ -579,7 +663,11 @@ private fun decodeScheduledPayloads(rawValue: String): List<ScheduledReviewNotif
         ScheduledReviewNotificationPayload(
             workspaceId = payload.getString("workspaceId"),
             reviewFilter = decodePersistedReviewFilterPayload(payload = payload.getJSONObject("reviewFilter")),
-            cardId = payload.getString("cardId"),
+            cardId = if (payload.isNull("cardId")) {
+                null
+            } else {
+                payload.getString("cardId")
+            },
             frontText = payload.getString("frontText"),
             scheduledAtMillis = payload.getLong("scheduledAtMillis"),
             requestId = payload.getString("requestId")

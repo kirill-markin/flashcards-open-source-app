@@ -323,7 +323,7 @@ extension FlashcardsStore {
             }
             let content = UNMutableNotificationContent()
             content.title = appDisplayName()
-            content.body = payload.frontText
+            content.body = payload.notificationBodyText
             content.sound = .default
             content.userInfo = buildReviewNotificationUserInfo(notificationType: .reviewReminder)
 

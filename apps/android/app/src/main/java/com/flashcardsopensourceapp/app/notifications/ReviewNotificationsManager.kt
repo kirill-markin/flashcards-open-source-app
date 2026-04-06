@@ -26,6 +26,8 @@ import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsR
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsSettings
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.ScheduledReviewNotificationPayload
+import com.flashcardsopensourceapp.data.local.notifications.buildFallbackDailyReminderPayloads
+import com.flashcardsopensourceapp.data.local.notifications.buildFallbackInactivityReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.buildDailyReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.buildInactivityReminderPayloads
 import com.flashcardsopensourceapp.data.local.notifications.makePersistedReviewFilter
@@ -157,45 +159,68 @@ class ReviewNotificationsManager(
             return
         }
 
+        val selectedReviewFilter = reviewPreferencesStore.loadSelectedReviewFilter(
+            workspaceId = workspace.workspaceId
+        )
         val currentCard = loadCurrentReviewNotificationCard(
             workspaceId = workspace.workspaceId,
+            reviewFilter = selectedReviewFilter,
             nowMillis = nowMillis
         )
-        if (currentCard == null) {
-            reviewNotificationsStore.saveScheduledPayloads(
-                workspaceId = workspace.workspaceId,
-                payloads = emptyList()
-            )
-            return
-        }
-        if (isLatestReconcileGeneration(generation = generation).not()) {
-            return
-        }
 
         val zoneId = ZoneId.systemDefault()
-        val payloads = when (settings.selectedMode) {
-            ReviewNotificationMode.DAILY -> buildDailyReminderPayloads(
-                workspaceId = workspace.workspaceId,
-                currentCard = currentCard,
-                nowMillis = nowMillis,
-                zoneId = zoneId,
-                settings = settings.daily
-            )
-
-            ReviewNotificationMode.INACTIVITY -> {
-                val lastActiveAtMillis = reviewNotificationsStore.loadLastActiveAtMillis()
-                    ?: return reviewNotificationsStore.saveScheduledPayloads(
-                        workspaceId = workspace.workspaceId,
-                        payloads = emptyList()
-                    )
-                buildInactivityReminderPayloads(
+        val payloads = if (currentCard != null) {
+            when (settings.selectedMode) {
+                ReviewNotificationMode.DAILY -> buildDailyReminderPayloads(
                     workspaceId = workspace.workspaceId,
                     currentCard = currentCard,
                     nowMillis = nowMillis,
-                    lastActiveAtMillis = lastActiveAtMillis,
                     zoneId = zoneId,
-                    settings = settings.inactivity
+                    settings = settings.daily
                 )
+
+                ReviewNotificationMode.INACTIVITY -> {
+                    val lastActiveAtMillis = reviewNotificationsStore.loadLastActiveAtMillis()
+                        ?: return reviewNotificationsStore.saveScheduledPayloads(
+                            workspaceId = workspace.workspaceId,
+                            payloads = emptyList()
+                        )
+                    buildInactivityReminderPayloads(
+                        workspaceId = workspace.workspaceId,
+                        currentCard = currentCard,
+                        nowMillis = nowMillis,
+                        lastActiveAtMillis = lastActiveAtMillis,
+                        zoneId = zoneId,
+                        settings = settings.inactivity
+                    )
+                }
+            }
+        } else {
+            val persistedReviewFilter = makePersistedReviewFilter(reviewFilter = selectedReviewFilter)
+            when (settings.selectedMode) {
+                ReviewNotificationMode.DAILY -> buildFallbackDailyReminderPayloads(
+                    workspaceId = workspace.workspaceId,
+                    reviewFilter = persistedReviewFilter,
+                    nowMillis = nowMillis,
+                    zoneId = zoneId,
+                    settings = settings.daily
+                )
+
+                ReviewNotificationMode.INACTIVITY -> {
+                    val lastActiveAtMillis = reviewNotificationsStore.loadLastActiveAtMillis()
+                        ?: return reviewNotificationsStore.saveScheduledPayloads(
+                            workspaceId = workspace.workspaceId,
+                            payloads = emptyList()
+                        )
+                    buildFallbackInactivityReminderPayloads(
+                        workspaceId = workspace.workspaceId,
+                        reviewFilter = persistedReviewFilter,
+                        nowMillis = nowMillis,
+                        lastActiveAtMillis = lastActiveAtMillis,
+                        zoneId = zoneId,
+                        settings = settings.inactivity
+                    )
+                }
             }
         }
         if (isLatestReconcileGeneration(generation = generation).not()) {
@@ -290,18 +315,6 @@ class ReviewNotificationsManager(
     private fun clearCurrentWorkspaceReviewScheduling(workspaceId: String) {
         workManager.cancelAllWorkByTag(reviewNotificationWorkTag)
         reviewNotificationsStore.saveScheduledPayloads(workspaceId = workspaceId, payloads = emptyList())
-    }
-
-    private suspend fun loadCurrentReviewNotificationCard(
-        workspaceId: String,
-        nowMillis: Long
-    ): CurrentReviewNotificationCard? {
-        val selectedFilter = reviewPreferencesStore.loadSelectedReviewFilter(workspaceId = workspaceId)
-        return loadCurrentReviewNotificationCard(
-            workspaceId = workspaceId,
-            reviewFilter = selectedFilter,
-            nowMillis = nowMillis
-        )
     }
 
     private suspend fun loadCurrentReviewNotificationCard(
