@@ -1,6 +1,6 @@
 import XCTest
 
-extension LiveSmokeUITests {
+final class LiveSmokeAiTests: LiveSmokeTestCase {
     @MainActor
     func testLiveSmokeGuestAiCardCreationFlow() throws {
         try self.launchApplication(resetState: .localGuest, selectedTab: .ai)

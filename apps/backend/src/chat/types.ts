@@ -27,6 +27,15 @@ export type FileContentPart = Readonly<{
   fileName: string;
 }>;
 
+export type CardContentPart = Readonly<{
+  type: "card";
+  cardId: string;
+  frontText: string;
+  backText: string;
+  tags: ReadonlyArray<string>;
+  effortLevel: "fast" | "medium" | "long";
+}>;
+
 export type ToolCallContentPart = Readonly<{
   type: "tool_call";
   id?: string;
@@ -48,6 +57,7 @@ export type ContentPart =
   | TextContentPart
   | ImageContentPart
   | FileContentPart
+  | CardContentPart
   | ToolCallContentPart
   | ReasoningSummaryContentPart;
 

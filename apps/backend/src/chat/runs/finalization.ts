@@ -3,9 +3,11 @@ import type {
   WorkspaceDatabaseScope,
 } from "../../db";
 import { finalizePendingToolCallContent } from "../history";
-import type { ChatSessionRow, PersistedChatMessageItem } from "../store";
+import type { PersistedChatMessageItem } from "../store";
+import type { ChatSessionRow } from "../store/repository";
 import {
   buildUserStoppedAssistantContent,
+  clearActiveChatComposerSuggestionGenerationWithExecutor,
   insertChatItemWithExecutor,
   INTERRUPTED_TOOL_CALL_OUTPUT,
   listChatMessagesWithExecutor,
@@ -63,6 +65,12 @@ export async function finalizeCancelledRunWithExecutor(
     "idle",
     null,
     null,
+  );
+  await clearActiveChatComposerSuggestionGenerationWithExecutor(
+    executor,
+    scope,
+    run.session_id,
+    "run_cancelled",
   );
 }
 
@@ -122,6 +130,12 @@ export async function finalizeInterruptedRunWithExecutor(
     null,
     null,
   );
+  await clearActiveChatComposerSuggestionGenerationWithExecutor(
+    executor,
+    scope,
+    run.session_id,
+    "run_interrupted",
+  );
 }
 
 /**
@@ -149,6 +163,12 @@ export async function recoverStaleRunWithExecutor(
   const run = await selectChatRunForUpdateWithExecutor(executor, scope, session.active_run_id);
   if (run === null || (run.status !== "queued" && run.status !== "running")) {
     await updateChatSessionRunStateWithExecutor(executor, scope, session.session_id, "interrupted", null, null);
+    await clearActiveChatComposerSuggestionGenerationWithExecutor(
+      executor,
+      scope,
+      session.session_id,
+      "run_interrupted",
+    );
     return true;
   }
 

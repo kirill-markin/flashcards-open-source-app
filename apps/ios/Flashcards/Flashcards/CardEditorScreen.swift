@@ -15,6 +15,7 @@ struct CardEditorScreen: View {
     let errorMessage: String
     let availableTagSuggestions: [TagSuggestion]
     @Binding var formState: CardFormState
+    let onEditWithAI: (() -> Void)?
     let onCancel: () -> Void
     let onSave: () -> Void
     let onDelete: () -> Void
@@ -29,6 +30,13 @@ struct CardEditorScreen: View {
                     Section {
                         Text(errorMessage)
                             .foregroundStyle(.red)
+                    }
+                }
+
+                if let onEditWithAI {
+                    Section {
+                        Button("Edit with AI", action: onEditWithAI)
+                            .accessibilityIdentifier(UITestIdentifier.cardEditorEditWithAIButton)
                     }
                 }
 

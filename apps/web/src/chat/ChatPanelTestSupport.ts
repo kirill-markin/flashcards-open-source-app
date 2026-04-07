@@ -20,6 +20,7 @@ const {
   checkFileSizeMock,
   prepareAttachmentMock,
   recompressImageAttachmentMock,
+  isBinaryPendingAttachmentMock,
 } = vi.hoisted(() => ({
   ApiErrorMock: class ApiError extends Error {
     readonly statusCode: number;
@@ -43,6 +44,7 @@ const {
   checkFileSizeMock: vi.fn(),
   prepareAttachmentMock: vi.fn(),
   recompressImageAttachmentMock: vi.fn(),
+  isBinaryPendingAttachmentMock: vi.fn(),
 }));
 
 vi.mock("../appData", () => ({
@@ -75,6 +77,7 @@ vi.mock("./FileAttachment", () => ({
   checkFileSize: checkFileSizeMock,
   prepareAttachment: prepareAttachmentMock,
   recompressImageAttachment: recompressImageAttachmentMock,
+  isBinaryPendingAttachment: isBinaryPendingAttachmentMock,
   EXTRA_AGGRESSIVE_IMAGE_COMPRESSION: {
     maxSidePixels: 1_280,
     quality: 0.55,
@@ -96,6 +99,7 @@ vi.mock("./FileAttachment", () => ({
       disabled: disabled === true,
       onClick: () => {
         void onAttach({
+          type: "binary",
           fileName: "attached.txt",
           mediaType: "text/plain",
           base64Data: "YXR0YWNoZWQ=",
@@ -179,6 +183,7 @@ export function createChatSnapshot(
       mainContentInvalidationVersion: 0,
       messages: [],
     },
+    composerSuggestions: [],
     chatConfig: defaultChatConfig,
     activeRun: null,
     ...overrides,
@@ -421,6 +426,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     checkFileSizeMock.mockReset();
     prepareAttachmentMock.mockReset();
     recompressImageAttachmentMock.mockReset();
+    isBinaryPendingAttachmentMock.mockReset();
 
     useChatLayoutMock.mockReturnValue({
       isOpen: true,
@@ -452,14 +458,16 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
         mainContentInvalidationVersion: 0,
         messages: [],
       },
+      composerSuggestions: [],
       chatConfig: defaultChatConfig,
       activeRun: createChatActiveRun(),
     });
-    createNewChatSessionMock.mockResolvedValue({
+    createNewChatSessionMock.mockImplementation(async (sessionId: string) => ({
       ok: true,
-      sessionId: "session-reset",
+      sessionId,
+      composerSuggestions: [],
       chatConfig: defaultChatConfig,
-    });
+    }));
     stopChatRunMock.mockResolvedValue({
       sessionId: "session-1",
       conversationScopeId: "session-1",
@@ -484,6 +492,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       mediaType: "image/jpeg",
       base64Data: "dGVzdA==",
     });
+    isBinaryPendingAttachmentMock.mockImplementation((attachment) => attachment.type === "binary");
 
     scrollToMock = vi.fn(function thisBoundScrollTo(
       this: HTMLElement,

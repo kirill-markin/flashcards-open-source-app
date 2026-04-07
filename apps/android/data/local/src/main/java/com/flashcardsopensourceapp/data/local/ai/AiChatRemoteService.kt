@@ -213,7 +213,7 @@ class AiChatRemoteService(
     suspend fun createNewSession(
         apiBaseUrl: String,
         authorizationHeader: String,
-        sessionId: String?
+        sessionId: String
     ): AiChatSessionSnapshot = withContext(dispatchers.io) {
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
@@ -380,6 +380,14 @@ class AiChatRemoteService(
                 .put("fileName", part.fileName)
                 .put("mediaType", part.mediaType)
                 .put("base64Data", part.base64Data)
+
+            is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.Card -> JSONObject()
+                .put("type", "card")
+                .put("cardId", part.cardId)
+                .put("frontText", part.frontText)
+                .put("backText", part.backText)
+                .put("tags", JSONArray(part.tags))
+                .put("effortLevel", com.flashcardsopensourceapp.data.local.model.aiChatEffortLevelWireValue(part.effortLevel))
 
             is com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart.ToolCall -> JSONObject()
                 .put("type", "tool_call")

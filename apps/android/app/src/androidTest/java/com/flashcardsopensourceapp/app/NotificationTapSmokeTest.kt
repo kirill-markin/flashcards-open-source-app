@@ -46,7 +46,11 @@ class NotificationTapSmokeTest {
         val appContext = ApplicationProvider.getApplicationContext<Context>()
         val markerSuffix = System.currentTimeMillis().toString()
         val requestId = "android-notification-smoke-$markerSuffix"
-        val markerText = "Android notif $markerSuffix"
+        val secondaryRequestId = "android-notification-smoke-secondary-$markerSuffix"
+        val tertiaryRequestId = "android-notification-smoke-tertiary-$markerSuffix"
+        val markerText = "Android notif primary $markerSuffix"
+        val secondaryMarkerText = "Android notif secondary $markerSuffix"
+        val tertiaryMarkerText = "Android notif tertiary $markerSuffix"
 
         try {
             liveSmokeContext.step("prepare cards as the current visible screen") {
@@ -69,12 +73,22 @@ class NotificationTapSmokeTest {
                 liveSmokeContext.clearAppNotifications(context = appContext)
             }
 
-            liveSmokeContext.step("background app and post a real review reminder notification") {
+            liveSmokeContext.step("background app and post three real review reminder notifications") {
                 liveSmokeContext.pressHomeAndWaitForLauncher()
                 liveSmokeContext.postReviewReminderNotification(
                     context = appContext,
                     frontText = markerText,
                     requestId = requestId
+                )
+                liveSmokeContext.postReviewReminderNotification(
+                    context = appContext,
+                    frontText = secondaryMarkerText,
+                    requestId = secondaryRequestId
+                )
+                liveSmokeContext.postReviewReminderNotification(
+                    context = appContext,
+                    frontText = tertiaryMarkerText,
+                    requestId = tertiaryRequestId
                 )
             }
 
@@ -85,6 +99,15 @@ class NotificationTapSmokeTest {
             liveSmokeContext.step("verify the app returns to review without unexpected navigation") {
                 liveSmokeContext.waitForAppToReachForeground(packageName = appContext.packageName)
                 liveSmokeContext.waitForReviewScreenAfterNotificationTap()
+            }
+
+            liveSmokeContext.step("verify the remaining review reminders are removed after the app becomes active") {
+                liveSmokeContext.waitUntilWithMitigation(
+                    timeoutMillis = externalUiTimeoutMillis,
+                    context = "while waiting for review notifications to clear after foregrounding the app"
+                ) {
+                    liveSmokeContext.activeAppNotificationIds(context = appContext).isEmpty()
+                }
             }
         } finally {
             liveSmokeContext.clearAppNotifications(context = appContext)

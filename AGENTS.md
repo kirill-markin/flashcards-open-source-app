@@ -102,6 +102,6 @@ Details and key files: [docs/auth-service.md](docs/auth-service.md).
 - For live SSE issues, correlate the CloudWatch structured log, the `X-Request-Id` response header, and the client-visible error body.
 - Prioritize clear, actionable errors.
 
-We do not support backward compatibility. Instead, we migrate old data and aim to keep only one correct solution working, avoiding the accumulation of legacy behavior.
+Backend changes must remain backward-compatible with already released client versions by default. Do not break backend-facing contracts or behavior that shipped clients rely on unless the user explicitly asks for a breaking change.
 
 Card reappearance and FSRS scheduling logic are documented in `docs/fsrs-scheduling-logic.md`.

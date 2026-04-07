@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.ai
 
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
@@ -11,6 +12,8 @@ data class AiUiState(
     val messages: List<AiChatMessage>,
     val pendingAttachments: List<AiChatAttachment>,
     val draftMessage: String,
+    val focusComposerRequestVersion: Long,
+    val composerSuggestions: List<AiChatComposerSuggestion>,
     val chatConfig: AiChatServerConfig,
     val isConsentRequired: Boolean,
     val isLinked: Boolean,

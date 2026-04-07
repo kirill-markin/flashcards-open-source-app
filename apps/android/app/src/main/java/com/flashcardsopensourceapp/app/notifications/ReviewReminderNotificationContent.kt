@@ -13,11 +13,23 @@ import androidx.core.app.NotificationManagerCompat
 import com.flashcardsopensourceapp.app.MainActivity
 import com.flashcardsopensourceapp.app.R
 
+/**
+ * Prefix used to identify review reminder notifications for cleanup.
+ */
+const val reviewReminderNotificationTagPrefix: String = "review-notification::"
+
 data class ReviewReminderNotificationContent(
+    val notificationTag: String,
     val notificationId: Int,
     val notification: Notification
 )
 
+/**
+ * Builds the payload used for one review reminder notification.
+ *
+ * The request id is also used as the notification tag so the app can later
+ * clear only review reminders and leave other notification types untouched.
+ */
 fun buildReviewReminderNotificationContent(
     context: Context,
     frontText: String,
@@ -40,11 +52,15 @@ fun buildReviewReminderNotificationContent(
         .build()
 
     return ReviewReminderNotificationContent(
+        notificationTag = requestId,
         notificationId = reviewReminderNotificationId(requestId = requestId),
         notification = notification
     )
 }
 
+/**
+ * Posts a review reminder notification for the supplied request id.
+ */
 fun showReviewReminderNotification(
     context: Context,
     frontText: String,
@@ -72,6 +88,7 @@ private fun notifyReviewReminder(
     notificationContent: ReviewReminderNotificationContent
 ) {
     NotificationManagerCompat.from(context).notify(
+        notificationContent.notificationTag,
         notificationContent.notificationId,
         notificationContent.notification
     )

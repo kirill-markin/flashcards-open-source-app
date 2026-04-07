@@ -200,7 +200,7 @@ extension CardStore {
         // - apps/ios/Flashcards/Flashcards/ReviewQuerySupport.swift::compareCardsForReviewOrder
         // - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/ReviewSupport.kt::sortCardsForReviewQueue
         // - apps/web/src/appData/domain.ts::compareCardsForReviewOrder
-        // Ordering contract: due cards first, then earlier dueAt, then newer createdAt, then cardId ascending.
+        // Ordering contract: timed due cards first, then nil dueAt new cards, then future cards.
         // If this changes, mirror the same change across all three clients in the same change.
         return try self.core.query(
             sql: """
@@ -212,8 +212,8 @@ extension CardStore {
                 AND (due_at IS NULL OR due_at <= ?)\(querySQL.clause)\(excludedCardIdsClause)
             ORDER BY
                 CASE
-                    WHEN due_at IS NULL THEN 0
-                    WHEN due_at <= ? THEN 1
+                    WHEN due_at <= ? THEN 0
+                    WHEN due_at IS NULL THEN 1
                     ELSE 2
                 END ASC,
                 due_at ASC,

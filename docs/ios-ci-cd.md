@@ -7,7 +7,7 @@ We do not aim for exhaustive iOS test coverage in this pipeline. The most truste
 
 The intended iOS release order is:
 
-1. Native XCUITest grouped live smoke in `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
+1. Native XCUITest grouped live smoke in the grouped `apps/ios/Flashcards/FlashcardsUITests/LiveSmoke*Tests.swift` files
 2. Archive and distribution from Xcode Cloud
 
 The live smoke coverage is split into independent grouped flows across Review, Cards, AI, and Settings. Only one grouped smoke signs into the linked demo account, creates an isolated linked workspace, verifies relaunch persistence, and deletes that workspace before exit. The remaining grouped smokes stay guest/local and do not perform login.
@@ -16,7 +16,7 @@ Guest AI availability is part of the iOS release contract. The guest AI smoke mu
 
 The grouped smoke suite still maps to the same top-level live-smoke contract as the other clients:
 
-- iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
+- iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmoke*Tests.swift`
 - Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
 - Web: `apps/web/e2e/live-smoke.spec.ts`
 

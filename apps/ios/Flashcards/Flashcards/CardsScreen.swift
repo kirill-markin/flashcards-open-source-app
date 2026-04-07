@@ -107,6 +107,7 @@ struct CardsScreen: View {
                             CardRow(card: card)
                                 .contentShape(Rectangle())
                         }
+                        .accessibilityIdentifier(UITestIdentifier.cardsCardRow)
                         .buttonStyle(.plain)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
@@ -158,6 +159,30 @@ struct CardsScreen: View {
                     errorMessage: self.screenErrorMessage,
                     availableTagSuggestions: self.availableTagSuggestions,
                     formState: self.$cardFormState,
+                    onEditWithAI: presentation.editingCardId.map { editingCardId in
+                        {
+                            let cardReference: AIChatCardReference?
+                            if self.isEditingCardDirty() {
+                                cardReference = self.saveEditingCardForAIHandoff()
+                            } else {
+                                let normalizedInput = self.normalizedCardEditorInput()
+                                cardReference = AIChatCardReference(
+                                    cardId: editingCardId,
+                                    frontText: normalizedInput.frontText,
+                                    backText: normalizedInput.backText,
+                                    tags: normalizedInput.tags,
+                                    effortLevel: normalizedInput.effortLevel
+                                )
+                            }
+                            guard let cardReference else {
+                                return
+                            }
+                            self.editorPresentation = nil
+                            Task { @MainActor in
+                                self.navigation.openAICardHandoff(card: cardReference)
+                            }
+                        }
+                    },
                     onCancel: {
                         self.editorPresentation = nil
                     },
@@ -230,6 +255,70 @@ struct CardsScreen: View {
         self.isFilterSheetPresented = true
     }
 
+    private func normalizedCardEditorInput() -> CardEditorInput {
+        CardEditorInput(
+            frontText: self.cardFormState.frontText.trimmingCharacters(in: .whitespacesAndNewlines),
+            backText: self.cardFormState.backText.trimmingCharacters(in: .whitespacesAndNewlines),
+            tags: self.cardFormState.tags,
+            effortLevel: self.cardFormState.effortLevel
+        )
+    }
+
+    private func editingCard() -> Card? {
+        guard let editingCardId = self.editorPresentation?.editingCardId else {
+            return nil
+        }
+
+        return self.cardsSnapshot.cards.first { card in
+            card.cardId == editingCardId
+        }
+    }
+
+    private func isEditingCardDirty() -> Bool {
+        guard self.editorPresentation?.editingCardId != nil else {
+            return false
+        }
+        guard let editingCard = self.editingCard() else {
+            return true
+        }
+
+        let normalizedInput = self.normalizedCardEditorInput()
+        return normalizedInput.frontText != editingCard.frontText
+            || normalizedInput.backText != editingCard.backText
+            || normalizedInput.effortLevel != editingCard.effortLevel
+            || normalizedInput.tags != editingCard.tags
+    }
+
+    private func saveEditingCardForAIHandoff() -> AIChatCardReference? {
+        guard let editingCardId = self.editorPresentation?.editingCardId else {
+            self.screenErrorMessage = "Card not found."
+            return nil
+        }
+
+        let normalizedInput = self.normalizedCardEditorInput()
+
+        do {
+            try store.saveCard(
+                input: normalizedInput,
+                editingCardId: editingCardId
+            )
+            self.screenErrorMessage = ""
+            Task { @MainActor in
+                await self.reloadCardsSnapshot()
+            }
+            return AIChatCardReference(
+                cardId: editingCardId,
+                frontText: normalizedInput.frontText,
+                backText: normalizedInput.backText,
+                tags: normalizedInput.tags,
+                effortLevel: normalizedInput.effortLevel
+            )
+        } catch {
+            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+            return nil
+        }
+    }
+
     private func dismissCardsSearch() {
         guard self.isSearchPresented else {
             return
@@ -241,12 +330,7 @@ struct CardsScreen: View {
     private func saveCard() {
         do {
             try store.saveCard(
-                input: CardEditorInput(
-                    frontText: cardFormState.frontText.trimmingCharacters(in: .whitespacesAndNewlines),
-                    backText: cardFormState.backText.trimmingCharacters(in: .whitespacesAndNewlines),
-                    tags: cardFormState.tags,
-                    effortLevel: cardFormState.effortLevel
-                ),
+                input: self.normalizedCardEditorInput(),
                 editingCardId: self.editorPresentation?.editingCardId
             )
             self.screenErrorMessage = ""

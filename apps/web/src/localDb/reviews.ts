@@ -153,20 +153,73 @@ async function iterateReviewCardsInCanonicalOrder(
   onCard: (card: Card) => boolean | void,
 ): Promise<void> {
   let shouldStop = false;
+  const futureCards: Array<Card> = [];
+  const invalidCards: Array<Card> = [];
 
-  await iterateCardsByCreatedAtDesc(database, workspaceId, (card) => {
+  let currentDueAt: string | null | undefined;
+  let currentDueGroup: Array<Card> = [];
+  let currentDueGroupKind: "timedDue" | "future" | "invalid" | null = null;
+
+  function flushCurrentDueGroup(): boolean {
+    const sortedGroup = [...currentDueGroup].sort(
+      (leftCard, rightCard) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp),
+    );
+    currentDueGroup = [];
+
+    if (currentDueGroupKind === "timedDue") {
+      for (const card of sortedGroup) {
+        if (onCard(card) === false) {
+          shouldStop = true;
+          return false;
+        }
+      }
+    } else if (currentDueGroupKind === "future") {
+      futureCards.push(...sortedGroup);
+    } else if (currentDueGroupKind === "invalid") {
+      invalidCards.push(...sortedGroup);
+    }
+
+    currentDueGroupKind = null;
+    return true;
+  }
+
+  await iterateCardsByDueAtAsc(database, workspaceId, (card) => {
     if (shouldStop) {
       return false;
     }
-    if (card.deletedAt !== null || card.dueAt !== null) {
+
+    if (card.deletedAt !== null || card.dueAt === null) {
       return true;
     }
 
-    if (onCard(card) === false) {
-      shouldStop = true;
+    const dueAtTimestamp = new Date(card.dueAt).getTime();
+    const isInvalidDueAt = Number.isNaN(dueAtTimestamp);
+    const isTimedDue = isInvalidDueAt === false && dueAtTimestamp <= nowTimestamp;
+    const nextGroupKind: "timedDue" | "future" | "invalid" = isTimedDue
+      ? "timedDue"
+      : isInvalidDueAt
+        ? "invalid"
+        : "future";
+
+    if (currentDueAt === undefined) {
+      currentDueAt = card.dueAt;
+      currentDueGroup = [card];
+      currentDueGroupKind = nextGroupKind;
+      return true;
+    }
+
+    if (currentDueAt === card.dueAt) {
+      currentDueGroup = [...currentDueGroup, card];
+      return true;
+    }
+
+    if (flushCurrentDueGroup() === false) {
       return false;
     }
 
+    currentDueAt = card.dueAt;
+    currentDueGroup = [card];
+    currentDueGroupKind = nextGroupKind;
     return true;
   });
 
@@ -174,12 +227,22 @@ async function iterateReviewCardsInCanonicalOrder(
     return;
   }
 
-  let currentDueAt: string | null | undefined;
-  let currentGroup: Array<Card> = [];
+  if (currentDueGroup.length > 0) {
+    if (flushCurrentDueGroup() === false) {
+      return;
+    }
+  }
 
-  function flushCurrentGroup(): boolean {
-    const sortedGroup = [...currentGroup].sort((leftCard, rightCard) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp));
-    currentGroup = [];
+  if (shouldStop) {
+    return;
+  }
+
+  let currentCreatedAt: string | null | undefined;
+  let currentNullGroup: Array<Card> = [];
+
+  function flushCurrentNullGroup(): boolean {
+    const sortedGroup = [...currentNullGroup].sort((leftCard, rightCard) => leftCard.cardId.localeCompare(rightCard.cardId));
+    currentNullGroup = [];
 
     for (const card of sortedGroup) {
       if (onCard(card) === false) {
@@ -191,36 +254,52 @@ async function iterateReviewCardsInCanonicalOrder(
     return true;
   }
 
-  await iterateCardsByDueAtAsc(database, workspaceId, (card) => {
+  await iterateCardsByCreatedAtDesc(database, workspaceId, (card) => {
     if (shouldStop) {
       return false;
     }
-    if (card.deletedAt !== null || card.dueAt === null) {
+    if (card.deletedAt !== null || card.dueAt !== null) {
       return true;
     }
 
-    if (currentDueAt === undefined) {
-      currentDueAt = card.dueAt;
-      currentGroup = [card];
+    if (currentCreatedAt === undefined) {
+      currentCreatedAt = card.createdAt;
+      currentNullGroup = [card];
       return true;
     }
 
-    if (currentDueAt === card.dueAt) {
-      currentGroup = [...currentGroup, card];
+    if (currentCreatedAt === card.createdAt) {
+      currentNullGroup = [...currentNullGroup, card];
       return true;
     }
 
-    if (flushCurrentGroup() === false) {
+    if (flushCurrentNullGroup() === false) {
       return false;
     }
 
-    currentDueAt = card.dueAt;
-    currentGroup = [card];
+    currentCreatedAt = card.createdAt;
+    currentNullGroup = [card];
     return true;
   });
 
-  if (shouldStop === false && currentGroup.length > 0) {
-    flushCurrentGroup();
+  if (shouldStop === false && currentNullGroup.length > 0) {
+    flushCurrentNullGroup();
+  }
+
+  if (shouldStop) {
+    return;
+  }
+
+  for (const card of futureCards) {
+    if (onCard(card) === false) {
+      return;
+    }
+  }
+
+  for (const card of invalidCards) {
+    if (onCard(card) === false) {
+      return;
+    }
   }
 }
 

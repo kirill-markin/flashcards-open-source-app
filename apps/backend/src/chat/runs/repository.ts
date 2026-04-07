@@ -9,7 +9,8 @@ import {
   CHAT_MODEL_ID,
   CHAT_MODEL_REASONING_EFFORT,
 } from "../config";
-import type { ChatSessionRow, ChatSessionRunState } from "../store";
+import type { ChatSessionRunState } from "../store";
+import type { ChatSessionRow } from "../store/repository";
 import type { ContentPart } from "../types";
 import type { ChatRunStatus } from "./types";
 
@@ -165,15 +166,20 @@ const UPDATE_CHAT_RUN_STATUS_SQL = `
 
 const SELECT_SESSION_FOR_UPDATE_SQL = `
   SELECT
-    session_id,
-    status,
-    active_run_id,
-    active_run_heartbeat_at,
-    main_content_invalidation_version,
-    updated_at
-  FROM ai.chat_sessions
-  WHERE session_id = $1
-  FOR UPDATE
+    chat_sessions.session_id,
+    chat_sessions.status,
+    chat_sessions.active_run_id,
+    chat_sessions.active_run_heartbeat_at,
+    chat_sessions.composer_suggestions,
+    chat_sessions.active_composer_suggestion_generation_id,
+    active_generation.suggestions AS active_generation_suggestions,
+    chat_sessions.main_content_invalidation_version,
+    chat_sessions.updated_at
+  FROM ai.chat_sessions AS chat_sessions
+  LEFT JOIN ai.chat_composer_suggestion_generations AS active_generation
+    ON active_generation.generation_id = chat_sessions.active_composer_suggestion_generation_id
+  WHERE chat_sessions.session_id = $1
+  FOR UPDATE OF chat_sessions
 `;
 
 const SELECT_CHAT_RUN_BY_SESSION_REQUEST_SQL = `

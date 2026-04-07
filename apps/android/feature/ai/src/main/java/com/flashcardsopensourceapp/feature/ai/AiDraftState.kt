@@ -3,9 +3,11 @@ package com.flashcardsopensourceapp.feature.ai
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
+import java.util.UUID
 
 internal enum class AiComposerPhase {
     IDLE,
@@ -38,6 +40,8 @@ internal data class AiDraftState(
     val isLiveAttached: Boolean,
     val draftMessage: String,
     val pendingAttachments: List<AiChatAttachment>,
+    val focusComposerRequestVersion: Long,
+    val serverComposerSuggestions: List<AiChatComposerSuggestion>,
     val composerPhase: AiComposerPhase,
     val dictationState: AiChatDictationState,
     val conversationBootstrapState: AiConversationBootstrapState,
@@ -60,6 +64,8 @@ internal fun makeDefaultAiDraftState(): AiDraftState {
         isLiveAttached = false,
         draftMessage = "",
         pendingAttachments = emptyList(),
+        focusComposerRequestVersion = 0L,
+        serverComposerSuggestions = emptyList(),
         composerPhase = AiComposerPhase.IDLE,
         dictationState = AiChatDictationState.IDLE,
         conversationBootstrapState = AiConversationBootstrapState.READY,
@@ -74,9 +80,13 @@ internal fun makeAiDraftState(
     workspaceId: String?,
     persistedState: AiChatPersistedState
 ): AiDraftState {
+    val normalizedPersistedState = normalizeAiChatPersistedStateForWorkspace(
+        workspaceId = workspaceId,
+        persistedState = persistedState
+    )
     return AiDraftState(
         workspaceId = workspaceId,
-        persistedState = persistedState,
+        persistedState = normalizedPersistedState,
         conversationScopeId = null,
         hasOlder = false,
         oldestCursor = null,
@@ -84,6 +94,8 @@ internal fun makeAiDraftState(
         isLiveAttached = false,
         draftMessage = "",
         pendingAttachments = emptyList(),
+        focusComposerRequestVersion = 0L,
+        serverComposerSuggestions = emptyList(),
         composerPhase = AiComposerPhase.IDLE,
         dictationState = AiChatDictationState.IDLE,
         conversationBootstrapState = AiConversationBootstrapState.READY,
@@ -92,4 +104,34 @@ internal fun makeAiDraftState(
         activeAlert = null,
         errorMessage = ""
     )
+}
+
+internal fun resolveAiChatSessionIdForWorkspace(
+    workspaceId: String?,
+    sessionId: String?
+): String? {
+    @Suppress("UNUSED_VARIABLE")
+    val ignoredWorkspaceId = workspaceId
+    return sessionId?.trim()?.takeIf { value -> value.isNotEmpty() }
+}
+
+internal fun normalizeAiChatPersistedStateForWorkspace(
+    workspaceId: String?,
+    persistedState: AiChatPersistedState
+): AiChatPersistedState {
+    val normalizedSessionId = resolveAiChatSessionIdForWorkspace(
+        workspaceId = workspaceId,
+        sessionId = persistedState.chatSessionId
+    )
+    if (normalizedSessionId == persistedState.chatSessionId) {
+        return persistedState
+    }
+
+    return normalizedSessionId?.let { sessionId ->
+        persistedState.copy(chatSessionId = sessionId)
+    } ?: persistedState
+}
+
+internal fun makeAiChatSessionId(): String {
+    return UUID.randomUUID().toString().lowercase()
 }

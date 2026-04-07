@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
@@ -64,7 +66,6 @@ class AiViewModel(
     private val chatRuntime = AiChatRuntime(
         scope = viewModelScope,
         aiChatRepository = aiChatRepository,
-        syncRepository = syncRepository,
         appVersion = appVersion,
         hasConsent = { consentState.value },
         currentCloudState = { cloudSettingsState.value.cloudState },
@@ -114,6 +115,10 @@ class AiViewModel(
 
     fun updateDraftMessage(draftMessage: String) {
         chatRuntime.updateDraftMessage(draftMessage = draftMessage)
+    }
+
+    fun applyComposerSuggestion(suggestion: AiChatComposerSuggestion) {
+        chatRuntime.applyComposerSuggestion(suggestion = suggestion)
     }
 
     fun sendMessage() {
@@ -175,6 +180,22 @@ class AiViewModel(
 
     fun applyEntryPrefill(prefill: AiEntryPrefill) {
         chatRuntime.applyEntryPrefill(prefill = prefill)
+    }
+
+    fun handoffCardToChat(
+        cardId: String,
+        frontText: String,
+        backText: String,
+        tags: List<String>,
+        effortLevel: EffortLevel
+    ): Boolean {
+        return chatRuntime.handoffCardToChat(
+            cardId = cardId,
+            frontText = frontText,
+            backText = backText,
+            tags = tags,
+            effortLevel = effortLevel
+        )
     }
 
     fun showAlert(alert: AiAlertState) {

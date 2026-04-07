@@ -14,6 +14,10 @@ import {
   startChatRunMock,
   useAppDataMock,
 } from "./ChatPanelTestSupport";
+import {
+  loadChatDraftWorkspaceState,
+  readChatDraftForSession,
+} from "./chatDraftStorage";
 import { storeChatSessionWarmStartSnapshot } from "./chatSessionWarmStart";
 
 const {
@@ -21,9 +25,12 @@ const {
   getContainer,
   renderChatPanel,
   clickNewConversation,
+  clickAddAttachment,
   setMobileViewport,
   sendMessage,
 } = setupChatPanelTest();
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 describe("ChatPanel new chat", () => {
   it("clears the conversation after a successful new-session response", async () => {
@@ -51,21 +58,72 @@ describe("ChatPanel new chat", () => {
     expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
   });
 
-  it("keeps the conversation and reports a top-level error when new-session fails", async () => {
-    const setErrorMessage = vi.fn();
-    useAppDataMock.mockReturnValue({
-      activeWorkspace: {
-        workspaceId: "workspace-1",
-        name: "Primary",
-        createdAt: "2026-03-10T00:00:00.000Z",
-        isSelected: true,
+  it("keeps the previous session draft when rolling to a fresh chat", async () => {
+    getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
+      sessionId: "session-1",
+      conversation: {
+        updatedAt: 1,
+        mainContentInvalidationVersion: 0,
+        messages: [],
       },
-      isSessionVerified: true,
-      localCardCount: 1,
-      refreshLocalData: vi.fn(async (): Promise<void> => undefined),
-      runSync: vi.fn(async (): Promise<void> => undefined),
-      setErrorMessage,
-    });
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(textarea).not.toBeNull();
+
+    await setTextareaValue(textarea as HTMLTextAreaElement, "keep this draft");
+    await flushAsync();
+
+    const draftsBeforeNew = loadChatDraftWorkspaceState("workspace-1");
+    expect(readChatDraftForSession(draftsBeforeNew, "session-1")?.inputText).toBe("keep this draft");
+
+    await clickNewConversation();
+    await flushAsync();
+    await flushAsync();
+
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
+    expect(textarea?.value).toBe("");
+
+    const draftsAfterNew = loadChatDraftWorkspaceState("workspace-1");
+    expect(readChatDraftForSession(draftsAfterNew, "session-1")?.inputText).toBe("keep this draft");
+    expect(readChatDraftForSession(draftsAfterNew, createNewChatSessionMock.mock.calls[0]?.[0] as string)).toBeNull();
+  });
+
+  it("keeps unresolved bootstrap drafts transient until a real session id exists", async () => {
+    getChatSnapshotMock.mockImplementation(() => new Promise(() => undefined));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(textarea).not.toBeNull();
+
+    await setTextareaValue(textarea as HTMLTextAreaElement, "pending draft");
+    await clickAddAttachment();
+    await flushAsync();
+
+    const draftsBeforeNew = loadChatDraftWorkspaceState("workspace-1");
+    const draftSessionIdsBeforeNew = Object.keys(draftsBeforeNew);
+    expect(draftSessionIdsBeforeNew).toHaveLength(0);
+    expect(textarea?.value).toBe("pending draft");
+    expect(getContainer().textContent).toContain("attached.txt");
+
+    await clickNewConversation();
+    await flushAsync();
+    await flushAsync();
+
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
+    const draftsAfterNew = loadChatDraftWorkspaceState("workspace-1");
+    expect(Object.keys(draftsAfterNew)).toHaveLength(0);
+    expect(createNewChatSessionMock.mock.calls[0]?.[0]).toMatch(UUID_PATTERN);
+    expect(textarea?.value).toBe("");
+    expect(getContainer().textContent).not.toContain("attached.txt");
+  });
+
+  it("shows an in-chat error dialog when background new-session ensure fails", async () => {
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
       sessionId: "session-1",
       conversation: {
@@ -90,7 +148,8 @@ describe("ChatPanel new chat", () => {
 
     expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
     expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
-    expect(setErrorMessage).toHaveBeenCalledWith("New chat failed. Request failed with status 500");
+    expect(getContainer().textContent).toContain("AI chat error");
+    expect(getContainer().textContent).toContain("New chat failed. Request failed with status 500");
   });
 
   it("returns focus to the composer after a successful new chat reset", async () => {
@@ -113,6 +172,111 @@ describe("ChatPanel new chat", () => {
 
     expect(document.activeElement).toBe(textarea);
   });
+
+  it("keeps send working while the background new-session ensure is still pending", async () => {
+    createNewChatSessionMock.mockImplementation(() => new Promise(() => undefined));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    await clickNewConversation();
+    await flushAsync();
+
+    await sendMessage("hello after new");
+    await flushAsync();
+
+    const createdSessionId = createNewChatSessionMock.mock.calls[0]?.[0];
+    expect(typeof createdSessionId).toBe("string");
+    expect(startChatRunMock).toHaveBeenCalledWith(expect.objectContaining({
+      sessionId: createdSessionId,
+    }));
+  });
+
+  it("does not let a late new-session ensure overwrite fresh suggestions after send", async () => {
+    const initialSuggestions = [{
+      id: "initial-1",
+      text: "Initial suggestion",
+      source: "initial" as const,
+      assistantItemId: null,
+    }];
+    const freshSuggestions = [{
+      id: "fresh-1",
+      text: "Fresh suggestion",
+      source: "assistant_follow_up" as const,
+      assistantItemId: "assistant-1",
+    }];
+    type NewChatSessionResponse = Readonly<{
+      ok: true;
+      sessionId: string;
+      composerSuggestions: typeof initialSuggestions;
+      chatConfig: ReturnType<typeof createChatSnapshot>["chatConfig"];
+    }>;
+    let createdSessionId: string | null = null;
+    let resolveEnsure: ((response: NewChatSessionResponse) => void) | null = null;
+
+    createNewChatSessionMock.mockImplementation((sessionId: string) => {
+      createdSessionId = sessionId;
+      return new Promise<NewChatSessionResponse>((resolve) => {
+        resolveEnsure = resolve;
+      });
+    });
+    startChatRunMock.mockImplementation(async (requestBody: { sessionId?: string }) => {
+      expect(requestBody.sessionId).toBe(createdSessionId);
+      return {
+        accepted: true,
+        sessionId: createdSessionId ?? "session-new",
+        conversationScopeId: createdSessionId ?? "session-new",
+        conversation: {
+          updatedAt: 2,
+          mainContentInvalidationVersion: 0,
+          messages: [],
+        },
+        composerSuggestions: freshSuggestions,
+        chatConfig: createChatSnapshot().chatConfig,
+        activeRun: null,
+      };
+    });
+    getChatSnapshotMock.mockImplementation(async (sessionId?: string) => {
+      if (sessionId === createdSessionId) {
+        return createChatSnapshot({
+          sessionId,
+          conversationScopeId: sessionId,
+          composerSuggestions: freshSuggestions,
+          conversation: {
+            updatedAt: 2,
+            mainContentInvalidationVersion: 0,
+            messages: [],
+          },
+        });
+      }
+
+      return createChatSnapshot();
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+
+    await clickNewConversation();
+    await flushAsync();
+
+    await sendMessage("hello after new");
+    await flushAsync();
+
+    expect(getContainer().textContent).toContain("Fresh suggestion");
+    expect(getContainer().textContent).not.toContain("Initial suggestion");
+
+    resolveEnsure?.({
+      ok: true,
+      sessionId: createdSessionId ?? "session-new",
+      composerSuggestions: initialSuggestions,
+      chatConfig: createChatSnapshot().chatConfig,
+    });
+    await flushAsync();
+    await flushAsync();
+
+    expect(getContainer().textContent).toContain("Fresh suggestion");
+    expect(getContainer().textContent).not.toContain("Initial suggestion");
+  });
 });
 
 describe("ChatPanel send lifecycle", () => {
@@ -122,7 +286,7 @@ describe("ChatPanel send lifecycle", () => {
     await renderChatPanel();
 
     expect(getContainer().textContent).toContain("Loading AI chat");
-    expect(getContainer().textContent).not.toContain("Try asking:");
+    expect(getContainer().textContent).not.toContain("Start a new AI chat");
   });
 
   it("preserves the visible transcript while the session is revalidating without showing a restore notice", async () => {
@@ -178,7 +342,115 @@ describe("ChatPanel send lifecycle", () => {
 
     expect(getContainer().textContent).toContain("Existing response");
     expect(getContainer().textContent).not.toContain("Restoring session...");
-    expect(getContainer().textContent).not.toContain("Try asking:");
+    expect(getContainer().textContent).not.toContain("Start a new AI chat");
+  });
+
+  it("revalidates the persisted warm-start session id during initial hydration", async () => {
+    storeChatSessionWarmStartSnapshot("workspace-1", createChatSnapshot({
+      sessionId: "session-local-fresh",
+      conversationScopeId: "session-local-fresh",
+      conversation: {
+        updatedAt: 1,
+        mainContentInvalidationVersion: 0,
+        messages: [],
+      },
+    }));
+    getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
+      sessionId: "session-local-fresh",
+      conversationScopeId: "session-local-fresh",
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-local-fresh");
+  });
+
+  it("opens a stale warm-start session as a fresh local chat without loading the stale session", async () => {
+    const staleTimestamp = Date.UTC(2026, 0, 1, 0, 0, 0);
+    vi.setSystemTime(new Date(staleTimestamp + (6 * 60 * 60 * 1000) + 1_000));
+    storeChatSessionWarmStartSnapshot("workspace-1", createChatSnapshot({
+      sessionId: "session-stale",
+      conversationScopeId: "session-stale",
+      conversation: {
+        updatedAt: staleTimestamp,
+        mainContentInvalidationVersion: 0,
+        messages: [
+          {
+            role: "user",
+            content: [{ type: "text", text: "Old question" }],
+            timestamp: staleTimestamp,
+            isError: false,
+            isStopped: false,
+          },
+          {
+            role: "assistant",
+            content: [{ type: "text", text: "Old answer" }],
+            timestamp: staleTimestamp + 1,
+            isError: false,
+            isStopped: false,
+          },
+        ],
+      },
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).not.toHaveBeenCalled();
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
+    expect(createNewChatSessionMock.mock.calls[0]?.[0]).not.toBe("session-stale");
+    expect(getContainer().textContent).not.toContain("Old question");
+    expect(getContainer().textContent).not.toContain("Old answer");
+  });
+
+  it("does not stale-roll over an assistant-only warm-start transcript", async () => {
+    const staleTimestamp = Date.UTC(2026, 0, 1, 0, 0, 0);
+    vi.setSystemTime(new Date(staleTimestamp + (6 * 60 * 60 * 1000) + 1_000));
+    storeChatSessionWarmStartSnapshot("workspace-1", createChatSnapshot({
+      sessionId: "session-assistant-only",
+      conversationScopeId: "session-assistant-only",
+      conversation: {
+        updatedAt: staleTimestamp,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "assistant",
+          content: [{ type: "text", text: "Assistant only" }],
+          timestamp: staleTimestamp,
+          isError: false,
+          isStopped: false,
+        }],
+      },
+    }));
+    getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
+      sessionId: "session-assistant-only",
+      conversationScopeId: "session-assistant-only",
+      conversation: {
+        updatedAt: staleTimestamp,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "assistant",
+          content: [{ type: "text", text: "Assistant only" }],
+          timestamp: staleTimestamp,
+          isError: false,
+          isStopped: false,
+        }],
+      },
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-assistant-only");
+    expect(createNewChatSessionMock).not.toHaveBeenCalled();
+  });
+
+  it("preserves latest-or-create bootstrap when no warm-start session id exists", async () => {
+    await renderChatPanel();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(getChatSnapshotMock.mock.calls[0]?.[0]).toBeUndefined();
   });
 
   it("shows a disabled send button until the draft has text or attachments", async () => {
@@ -367,7 +639,7 @@ describe("ChatPanel send lifecycle", () => {
 
     expect(getContainer().textContent).toContain("Warm start response");
     expect(getContainer().textContent).not.toContain("Loading AI chat");
-    expect(getContainer().textContent).not.toContain("Try asking:");
+    expect(getContainer().textContent).not.toContain("Start a new AI chat");
   });
 
   it("does not restart initial hydration for the same workspace after a failed snapshot refresh", async () => {

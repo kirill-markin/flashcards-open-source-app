@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.ai
 
 import com.flashcardsopensourceapp.data.local.cloud.CloudContractMismatchException
+import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
@@ -19,7 +20,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AiChatRemoteWireTest {
-    private val appVersion: String = "1.1.0"
+    private val appVersion: String = "1.1.2"
 
     private fun makeDispatchers(): AiCoroutineDispatchers {
         return AiCoroutineDispatchers(io = Dispatchers.IO)
@@ -57,6 +58,7 @@ class AiChatRemoteWireTest {
                     "hasOlder": false,
                     "oldestCursor": null
                   },
+                  "composerSuggestions": [],
                   "chatConfig": {
                     "provider": { "id": "openai", "label": "OpenAI" },
                     "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
@@ -129,6 +131,7 @@ class AiChatRemoteWireTest {
                 "hasOlder": false,
                 "oldestCursor": null
               },
+              "composerSuggestions": [],
               "chatConfig": {
                 "provider": { "id": "openai", "label": "OpenAI" },
                 "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
@@ -166,7 +169,130 @@ class AiChatRemoteWireTest {
     }
 
     @Test
+    fun decodeAcceptedEnvelopeWithoutComposerSuggestionsDefaultsToEmptyList() {
+        val response = decodeAiChatStartRunResponse(
+            payload = """
+            {
+              "accepted": true,
+              "sessionId": "session-1",
+              "conversationScopeId": "session-1",
+              "conversation": {
+                "updatedAt": 100,
+                "mainContentInvalidationVersion": 200,
+                "messages": [],
+                "hasOlder": false,
+                "oldestCursor": null
+              },
+              "chatConfig": {
+                "provider": { "id": "openai", "label": "OpenAI" },
+                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                "reasoning": { "effort": "medium", "label": "Medium" },
+                "features": {
+                  "modelPickerEnabled": false,
+                  "dictationEnabled": true,
+                  "attachmentsEnabled": true
+                },
+                "liveUrl": null
+              },
+              "activeRun": null
+            }
+            """.trimIndent()
+        )
+
+        assertEquals(0, response.composerSuggestions.size)
+    }
+
+    @Test
     fun decodeSnapshotEnvelopeWithoutActiveRun() {
+        val snapshot = decodeAiChatSessionSnapshot(
+            payload = """
+            {
+              "sessionId": "session-1",
+              "conversationScopeId": "session-1",
+              "conversation": {
+                "updatedAt": 100,
+                "mainContentInvalidationVersion": 200,
+                "messages": [],
+                "hasOlder": false,
+                "oldestCursor": null
+              },
+              "composerSuggestions": [],
+              "chatConfig": {
+                "provider": { "id": "openai", "label": "OpenAI" },
+                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                "reasoning": { "effort": "medium", "label": "Medium" },
+                "features": {
+                  "modelPickerEnabled": false,
+                  "dictationEnabled": true,
+                  "attachmentsEnabled": true
+                },
+                "liveUrl": null
+              },
+              "activeRun": null
+            }
+            """.trimIndent()
+        )
+
+        assertEquals("session-1", snapshot.sessionId)
+        assertEquals("session-1", snapshot.conversationScopeId)
+        assertNull(snapshot.activeRun)
+        assertEquals(0, snapshot.conversation.messages.size)
+    }
+
+    @Test
+    fun decodeSnapshotEnvelopeWithUnknownContentFallsBackToUnknownPart() {
+        val snapshot = decodeAiChatSessionSnapshot(
+            payload = """
+            {
+              "sessionId": "session-1",
+              "conversationScopeId": "session-1",
+              "conversation": {
+                "updatedAt": 100,
+                "mainContentInvalidationVersion": 200,
+                "messages": [
+                  {
+                    "role": "assistant",
+                    "content": [
+                      {
+                        "type": "audio_transcript_v2",
+                        "text": "future"
+                      }
+                    ],
+                    "timestamp": 123,
+                    "isError": false,
+                    "isStopped": false,
+                    "cursor": "cur-1",
+                    "itemId": "item-1"
+                  }
+                ],
+                "hasOlder": false,
+                "oldestCursor": null
+              },
+              "composerSuggestions": [],
+              "chatConfig": {
+                "provider": { "id": "openai", "label": "OpenAI" },
+                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                "reasoning": { "effort": "medium", "label": "Medium" },
+                "features": {
+                  "modelPickerEnabled": false,
+                  "dictationEnabled": true,
+                  "attachmentsEnabled": true
+                },
+                "liveUrl": null
+              },
+              "activeRun": null
+            }
+            """.trimIndent()
+        )
+
+        val unknownPart = snapshot.conversation.messages.single().content.single() as AiChatContentPart.Unknown
+        assertEquals("audio_transcript_v2", unknownPart.originalType)
+        assertEquals("Unsupported content", unknownPart.summaryText)
+        assertTrue(unknownPart.rawPayloadJson?.contains("audio_transcript_v2") == true)
+    }
+
+    @Test
+    fun decodeSnapshotEnvelopeWithoutComposerSuggestionsDefaultsToEmptyList() {
         val snapshot = decodeAiChatSessionSnapshot(
             payload = """
             {
@@ -195,10 +321,64 @@ class AiChatRemoteWireTest {
             """.trimIndent()
         )
 
-        assertEquals("session-1", snapshot.sessionId)
-        assertEquals("session-1", snapshot.conversationScopeId)
-        assertNull(snapshot.activeRun)
-        assertEquals(0, snapshot.conversation.messages.size)
+        assertEquals(0, snapshot.composerSuggestions.size)
+    }
+
+    @Test
+    fun decodeBootstrapEnvelopeWithoutComposerSuggestionsDefaultsToEmptyList() {
+        val response = decodeAiChatBootstrapResponse(
+            payload = """
+            {
+              "sessionId": "session-1",
+              "conversationScopeId": "session-1",
+              "conversation": {
+                "updatedAt": 100,
+                "mainContentInvalidationVersion": 200,
+                "messages": [],
+                "hasOlder": false,
+                "oldestCursor": null
+              },
+              "chatConfig": {
+                "provider": { "id": "openai", "label": "OpenAI" },
+                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                "reasoning": { "effort": "medium", "label": "Medium" },
+                "features": {
+                  "modelPickerEnabled": false,
+                  "dictationEnabled": true,
+                  "attachmentsEnabled": true
+                },
+                "liveUrl": null
+              },
+              "activeRun": null
+            }
+            """.trimIndent()
+        )
+
+        assertEquals(0, response.composerSuggestions.size)
+    }
+
+    @Test
+    fun decodeNewSessionWithoutComposerSuggestionsDefaultsToEmptyList() {
+        val response = decodeAiChatNewSession(
+            payload = """
+            {
+              "sessionId": "session-1",
+              "chatConfig": {
+                "provider": { "id": "openai", "label": "OpenAI" },
+                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                "reasoning": { "effort": "medium", "label": "Medium" },
+                "features": {
+                  "modelPickerEnabled": false,
+                  "dictationEnabled": true,
+                  "attachmentsEnabled": true
+                },
+                "liveUrl": null
+              }
+            }
+            """.trimIndent()
+        )
+
+        assertEquals(0, response.composerSuggestions.size)
     }
 
     @Test
@@ -329,6 +509,33 @@ class AiChatRemoteWireTest {
     }
 
     @Test
+    fun decodeAiChatLiveEventPayloadAssistantMessageDoneFallsBackToUnknownPart() {
+        val event = requireNotNull(decodeAiChatLiveEventPayload(
+            eventType = "assistant_message_done",
+            payload = """
+            {
+              "sessionId": "session-1",
+              "conversationScopeId": "session-1",
+              "runId": "run-1",
+              "cursor": "12",
+              "sequenceNumber": 2,
+              "streamEpoch": "run-1",
+              "itemId": "item-1",
+              "content": [{ "type": "audio_transcript_v2", "text": "done" }],
+              "isError": false,
+              "isStopped": true
+            }
+            """.trimIndent()
+        ))
+
+        require(event is AiChatLiveEvent.AssistantMessageDone)
+        val unknownPart = event.content.single() as AiChatContentPart.Unknown
+        assertEquals("audio_transcript_v2", unknownPart.originalType)
+        assertEquals("Unsupported content", unknownPart.summaryText)
+        assertTrue(unknownPart.rawPayloadJson?.contains("audio_transcript_v2") == true)
+    }
+
+    @Test
     fun decodeRunTerminalCompleted() {
         val event = requireNotNull(decodeAiChatLiveEventPayload(
             eventType = "run_terminal",
@@ -421,6 +628,28 @@ class AiChatRemoteWireTest {
         require(event is AiChatLiveEvent.RunTerminal)
         assertEquals(AiChatRunTerminalOutcome.RESET_REQUIRED, event.outcome)
         assertEquals("refresh", event.message)
+    }
+
+    @Test
+    fun decodeComposerSuggestionsUpdatedWithoutSuggestionsDefaultsToEmptyList() {
+        val event = requireNotNull(
+            decodeAiChatLiveEventPayload(
+                eventType = "composer_suggestions_updated",
+                payload = """
+                {
+                  "sessionId": "session-1",
+                  "conversationScopeId": "session-1",
+                  "runId": "run-1",
+                  "cursor": "12",
+                  "sequenceNumber": 3,
+                  "streamEpoch": "run-1"
+                }
+                """.trimIndent()
+            )
+        )
+
+        require(event is AiChatLiveEvent.ComposerSuggestionsUpdated)
+        assertEquals(0, event.suggestions.size)
     }
 
     @Test

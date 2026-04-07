@@ -1,6 +1,6 @@
 import XCTest
 
-extension LiveSmokeUITests {
+final class LiveSmokeReviewTests: LiveSmokeTestCase {
     @MainActor
     func testLiveSmokeManualCardReviewFlow() throws {
         try self.launchApplication(resetState: .localGuestSeededManualReviewCard, selectedTab: .review)

@@ -94,7 +94,7 @@ extension FlashcardsStore {
             self.cachedAIChatStore?.refreshAccessContextIfNeeded()
         }
         self.refreshReviewState(now: now)
-        self.refreshReviewNotificationsScheduling(now: now)
+        self.reconcileReviewNotifications(trigger: .workspaceChanged, now: now)
     }
 
     @discardableResult
@@ -139,7 +139,7 @@ extension FlashcardsStore {
         self.homeSnapshot = resolvedHomeSnapshot
         self.globalErrorMessage = ""
         self.reloadReviewNotificationsSettings()
-        self.refreshReviewNotificationsScheduling(now: now)
+        self.reconcileReviewNotifications(trigger: .workspaceChanged, now: now)
 
         return BootstrapSnapshotRefreshOutcome(
             didChange: didChange,

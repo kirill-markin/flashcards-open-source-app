@@ -1,4 +1,5 @@
-import { query, transaction, type DatabaseExecutor } from "./db";
+import type { DatabaseExecutor } from "./db";
+import { unsafeQuery, unsafeTransaction } from "./dbUnsafe";
 import { HttpError } from "./errors";
 import { getGuestAiWeightedMonthlyTokenCap } from "./guestAiQuotaConfig";
 
@@ -92,7 +93,7 @@ export async function assertGuestAiLimitAvailable(
   }
 
   const usageMonth = currentGuestUsageMonth(now);
-  const result = await query<GuestAiMonthlyUsageRow>(
+  const result = await unsafeQuery<GuestAiMonthlyUsageRow>(
     [
       "SELECT weighted_tokens",
       "FROM auth.guest_ai_monthly_usage",
@@ -129,7 +130,7 @@ export async function assertGuestAiLimitAllowsTranscription(
   const usageMonth = currentGuestUsageMonth(now);
   const nextWeightedTokens = calculateGuestDictationWeightedTokens(fileSizeBytes);
 
-  await transaction(async (executor) => {
+  await unsafeTransaction(async (executor) => {
     const currentUsage = await loadGuestAiUsageInExecutor(executor, userId, usageMonth);
     if (currentUsage + nextWeightedTokens > guestAiWeightedMonthlyTokenCap) {
       throw new HttpError(
@@ -149,7 +150,7 @@ export async function recordGuestChatUsage(
 ): Promise<void> {
   const weightedTokens = calculateGuestChatWeightedTokens(inputTokens, outputTokens);
   const usageMonth = currentGuestUsageMonth(now);
-  await transaction(async (executor) => {
+  await unsafeTransaction(async (executor) => {
     await appendGuestAiUsageInExecutor(executor, userId, usageMonth, weightedTokens);
   });
 }
@@ -161,7 +162,7 @@ export async function recordGuestDictationUsage(
 ): Promise<void> {
   const weightedTokens = calculateGuestDictationWeightedTokens(fileSizeBytes);
   const usageMonth = currentGuestUsageMonth(now);
-  await transaction(async (executor) => {
+  await unsafeTransaction(async (executor) => {
     await appendGuestAiUsageInExecutor(executor, userId, usageMonth, weightedTokens);
   });
 }

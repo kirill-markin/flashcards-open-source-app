@@ -309,6 +309,96 @@ class AppDatabaseTest {
     }
 
     @Test
+    fun reviewQueuePrioritizesTimedDueCardsBeforeNewCardsAndFutureCards(): Unit = runBlocking {
+        val nowMillis = System.currentTimeMillis()
+        val oneDayMillis = 86_400_000L
+        val oneYearMillis = 31_536_000_000L
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = nowMillis)
+        val reviewRepository = makeReviewRepository()
+
+        database.cardDao().insertCards(
+            listOf(
+                CardEntity(
+                    cardId = "timed-due-card",
+                    workspaceId = workspaceId,
+                    frontText = "Timed due",
+                    backText = "Back",
+                    effortLevel = EffortLevel.FAST,
+                    dueAtMillis = nowMillis - oneDayMillis,
+                    createdAtMillis = nowMillis - (2 * oneDayMillis),
+                    updatedAtMillis = nowMillis - (2 * oneDayMillis),
+                    reps = 1,
+                    lapses = 0,
+                    fsrsCardState = FsrsCardState.REVIEW,
+                    fsrsStepIndex = null,
+                    fsrsStability = 1.0,
+                    fsrsDifficulty = 1.0,
+                    fsrsLastReviewedAtMillis = nowMillis - oneDayMillis,
+                    fsrsScheduledDays = 1,
+                    deletedAtMillis = null
+                ),
+                CardEntity(
+                    cardId = "new-card",
+                    workspaceId = workspaceId,
+                    frontText = "New card",
+                    backText = "Back",
+                    effortLevel = EffortLevel.FAST,
+                    dueAtMillis = null,
+                    createdAtMillis = nowMillis - oneDayMillis,
+                    updatedAtMillis = nowMillis - oneDayMillis,
+                    reps = 0,
+                    lapses = 0,
+                    fsrsCardState = FsrsCardState.NEW,
+                    fsrsStepIndex = null,
+                    fsrsStability = null,
+                    fsrsDifficulty = null,
+                    fsrsLastReviewedAtMillis = null,
+                    fsrsScheduledDays = null,
+                    deletedAtMillis = null
+                ),
+                CardEntity(
+                    cardId = "future-card",
+                    workspaceId = workspaceId,
+                    frontText = "Future card",
+                    backText = "Back",
+                    effortLevel = EffortLevel.FAST,
+                    dueAtMillis = nowMillis + oneYearMillis,
+                    createdAtMillis = nowMillis - oneDayMillis,
+                    updatedAtMillis = nowMillis - oneDayMillis,
+                    reps = 1,
+                    lapses = 0,
+                    fsrsCardState = FsrsCardState.REVIEW,
+                    fsrsStepIndex = null,
+                    fsrsStability = 1.0,
+                    fsrsDifficulty = 1.0,
+                    fsrsLastReviewedAtMillis = nowMillis - oneDayMillis,
+                    fsrsScheduledDays = 1,
+                    deletedAtMillis = null
+                )
+            )
+        )
+
+        val sessionSnapshot = reviewRepository.observeReviewSession(
+            selectedFilter = ReviewFilter.AllCards,
+            pendingReviewedCardIds = emptySet()
+        ).first()
+        val timelinePage = reviewRepository.loadReviewTimelinePage(
+            selectedFilter = ReviewFilter.AllCards,
+            pendingReviewedCardIds = emptySet(),
+            offset = 0,
+            limit = 10
+        )
+        val topReviewCard = database.cardDao().loadTopReviewCard(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis
+        )
+
+        assertEquals(listOf("timed-due-card", "new-card"), sessionSnapshot.cards.map { card -> card.cardId })
+        assertEquals(listOf("timed-due-card", "new-card", "future-card"), timelinePage.cards.map { card -> card.cardId })
+        assertEquals("timed-due-card", topReviewCard?.cardId)
+    }
+
+    @Test
     fun observeCardsWithRelationsOrdersCardsByUpdatedAtDescending(): Unit = runBlocking {
         val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = 100L)
         val olderCard = CardEntity(

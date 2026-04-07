@@ -44,7 +44,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
         XCTAssertEqual(reviewQueue.count, 2)
         XCTAssertEqual(reviewTimeline.count, 4)
         XCTAssertEqual(Array(reviewTimeline.prefix(reviewQueue.count)).map(\.cardId), reviewQueue.map(\.cardId))
-        XCTAssertEqual(reviewTimeline.map(\.cardId), ["active-new", "active-due", "future", "malformed"])
+        XCTAssertEqual(reviewTimeline.map(\.cardId), ["active-due", "active-new", "future", "malformed"])
     }
 
     func testMakeReviewTimelineForDeckFilterReturnsMatchingActiveAndTotalCounts() throws {
@@ -143,7 +143,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
         )
     }
 
-    func testMakeReviewQueuePlacesNilDueAtBeforeEarlierDueAtAndUsesCreatedAtDescendingAsFinalTiebreaker() throws {
+    func testMakeReviewQueuePlacesTimedDueAtBeforeNilDueAtAndUsesCreatedAtDescendingAsFinalTiebreaker() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
         let cards = [
             FsrsSchedulerTestSupport.makeTestCard(
@@ -178,7 +178,7 @@ final class FsrsReviewPresentationTests: XCTestCase {
 
         XCTAssertEqual(
             makeReviewQueue(reviewFilter: .allCards, decks: [], cards: cards, now: now).map(\.cardId),
-            ["nil-due", "timed-earlier", "timed-tie-newer", "timed-tie-older"]
+            ["timed-earlier", "timed-tie-newer", "timed-tie-older", "nil-due"]
         )
     }
 

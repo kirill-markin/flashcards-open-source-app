@@ -1,27 +1,27 @@
 import XCTest
 
-extension LiveSmokeUITests {
+final class LiveSmokeSettingsTests: LiveSmokeTestCase {
     @MainActor
     func testLiveSmokeLocalNavigationFlow() throws {
         try self.step("verify local navigation surfaces without login") {
             try self.launchApplication(resetState: .localGuest, selectedTab: .cards)
             try self.assertElementExists(
                 identifier: LiveSmokeIdentifier.cardsAddButton,
-                timeout: self.shortUiTimeoutSeconds
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
 
-            try self.tapTabBarItem(named: LiveSmokeScreen.review.title, timeout: self.shortUiTimeoutSeconds)
-            try self.assertScreenVisible(screen: .review, timeout: self.shortUiTimeoutSeconds)
+            try self.tapTabBarItem(named: LiveSmokeScreen.review.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
 
-            try self.tapTabBarItem(named: LiveSmokeScreen.ai.title, timeout: self.shortUiTimeoutSeconds)
+            try self.tapTabBarItem(named: LiveSmokeScreen.ai.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertAiEntrySurfaceVisible()
 
-            try self.tapTabBarItem(named: LiveSmokeScreen.settings.title, timeout: self.shortUiTimeoutSeconds)
-            try self.assertScreenVisible(screen: .settings, timeout: self.shortUiTimeoutSeconds)
+            try self.tapTabBarItem(named: LiveSmokeScreen.settings.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.openAccountStatus()
             try self.assertElementExists(
                 identifier: LiveSmokeIdentifier.accountStatusSignInButton,
-                timeout: self.longUiTimeoutSeconds
+                timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
             try self.tapFirstNavigationBackButton()
             try self.tapFirstNavigationBackButton()
@@ -36,15 +36,15 @@ extension LiveSmokeUITests {
                 selectedTab: .cards,
                 appNotificationTapType: .reviewReminder
             )
-            try self.assertScreenVisible(screen: .review, timeout: self.shortUiTimeoutSeconds)
+            try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
 
-            try self.tapTabBarItem(named: LiveSmokeScreen.cards.title, timeout: self.shortUiTimeoutSeconds)
-            try self.assertScreenVisible(screen: .cards, timeout: self.shortUiTimeoutSeconds)
+            try self.tapTabBarItem(named: LiveSmokeScreen.cards.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
 
             XCUIDevice.shared.press(.home)
             self.app.activate()
-            try self.waitForApplicationToReachForeground(timeout: self.shortUiTimeoutSeconds)
-            try self.assertScreenVisible(screen: .cards, timeout: self.shortUiTimeoutSeconds)
+            try self.waitForApplicationToReachForeground(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
     }
 
@@ -56,7 +56,7 @@ extension LiveSmokeUITests {
                 selectedTab: .cards,
                 appNotificationTapType: .unsupported
             )
-            try self.waitForSelectedTabScreen(selectedTab: .cards, timeout: self.shortUiTimeoutSeconds)
+            try self.waitForSelectedTabScreen(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
     }
 

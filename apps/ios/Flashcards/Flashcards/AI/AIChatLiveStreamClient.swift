@@ -430,6 +430,9 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
             metadata["contentCount"] = String(content.count)
             metadata["isError"] = isError ? "true" : "false"
             metadata["isStopped"] = isStopped ? "true" : "false"
+        case .composerSuggestionsUpdated(metadata: _, suggestions: let suggestions):
+            metadata["eventType"] = "composer_suggestions_updated"
+            metadata["suggestionCount"] = String(suggestions.count)
         case .repairStatus(metadata: _, status: let status):
             metadata["eventType"] = "repair_status"
             metadata["attempt"] = String(status.attempt)
@@ -631,6 +634,7 @@ private enum AIChatLiveEventType: String, Decodable {
     case assistantReasoningSummary = "assistant_reasoning_summary"
     case assistantReasoningDone = "assistant_reasoning_done"
     case assistantMessageDone = "assistant_message_done"
+    case composerSuggestionsUpdated = "composer_suggestions_updated"
     case repairStatus = "repair_status"
     case runTerminal = "run_terminal"
 }
@@ -686,6 +690,10 @@ private struct AIChatLiveRepairStatusWirePayload: Decodable {
     let attempt: Int
     let maxAttempts: Int
     let toolName: String?
+}
+
+private struct AIChatLiveComposerSuggestionsUpdatedWirePayload: Decodable {
+    let suggestions: [AIChatComposerSuggestion]
 }
 
 private struct AIChatLiveRunTerminalWirePayload: Decodable {
@@ -837,6 +845,12 @@ private func decodeAIChatLiveEventResult(
                 isError: event.isError,
                 isStopped: event.isStopped
             ))
+        case .composerSuggestionsUpdated:
+            let event = try decoder.decode(AIChatLiveComposerSuggestionsUpdatedWirePayload.self, from: data)
+            return .event(.composerSuggestionsUpdated(
+                metadata: mapAIChatLiveEventMetadata(metadata),
+                suggestions: event.suggestions
+            ))
         case .repairStatus:
             let event = try decoder.decode(AIChatLiveRepairStatusWirePayload.self, from: data)
             return .event(.repairStatus(
@@ -922,6 +936,8 @@ private func aiChatLiveEventMetadata(_ event: AIChatLiveEvent) -> AIChatLiveEven
     case .assistantReasoningDone(metadata: let metadata, reasoningId: _, itemId: _):
         return metadata
     case .assistantMessageDone(metadata: let metadata, itemId: _, content: _, isError: _, isStopped: _):
+        return metadata
+    case .composerSuggestionsUpdated(metadata: let metadata, suggestions: _):
         return metadata
     case .repairStatus(metadata: let metadata, status: _):
         return metadata

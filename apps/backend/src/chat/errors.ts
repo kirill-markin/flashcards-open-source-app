@@ -24,3 +24,22 @@ export function isChatStorageEntityNotFoundError(error: unknown): boolean {
     || error instanceof ChatItemRowNotFoundError
     || error instanceof ChatRunRowNotFoundError;
 }
+
+export type ChatSessionRequestedSessionIdConflictError = Error & Readonly<{
+  sessionId: string;
+}>;
+
+export function createChatSessionRequestedSessionIdConflictError(sessionId: string): ChatSessionRequestedSessionIdConflictError {
+  return Object.assign(new Error(`Requested chat session id is already in use: ${sessionId}`), {
+    name: "ChatSessionRequestedSessionIdConflictError",
+    sessionId,
+  });
+}
+
+export function isChatSessionRequestedSessionIdConflictError(
+  error: unknown,
+): error is ChatSessionRequestedSessionIdConflictError {
+  return error instanceof Error
+    && error.name === "ChatSessionRequestedSessionIdConflictError"
+    && typeof (error as Partial<ChatSessionRequestedSessionIdConflictError>).sessionId === "string";
+}
