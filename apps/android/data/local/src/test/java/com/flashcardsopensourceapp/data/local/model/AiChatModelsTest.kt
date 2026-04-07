@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.model
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AiChatModelsTest {
@@ -28,5 +29,22 @@ class AiChatModelsTest {
                 effortLevel = EffortLevel.LONG
             )
         )
+    }
+
+    @Test
+    fun buildAiChatRequestContentDropsUnknownContent() {
+        val requestContent = buildAiChatRequestContent(
+            content = listOf(
+                AiChatContentPart.Unknown(
+                    originalType = "audio_transcript_v2",
+                    summaryText = "Unsupported content",
+                    rawPayloadJson = """{"type":"audio_transcript_v2"}"""
+                ),
+                AiChatContentPart.Text(text = "Hello")
+            )
+        )
+
+        assertEquals(1, requestContent.size)
+        assertTrue(requestContent.single() is AiChatWireContentPart.Text)
     }
 }

@@ -162,6 +162,13 @@ sealed interface AiChatAttachment {
         val tags: List<String>,
         val effortLevel: EffortLevel
     ) : AiChatAttachment
+
+    data class Unknown(
+        override val id: String,
+        val originalType: String,
+        val summaryText: String,
+        val rawPayloadJson: String?
+    ) : AiChatAttachment
 }
 
 data class AiChatComposerSuggestion(
@@ -221,6 +228,12 @@ sealed interface AiChatContentPart {
     data class AccountUpgradePrompt(
         val message: String,
         val buttonTitle: String
+    ) : AiChatContentPart
+
+    data class Unknown(
+        val originalType: String,
+        val summaryText: String,
+        val rawPayloadJson: String?
     ) : AiChatContentPart
 }
 
@@ -485,7 +498,16 @@ fun buildAiChatRequestContent(content: List<AiChatContentPart>): List<AiChatWire
             )
 
             is AiChatContentPart.AccountUpgradePrompt -> null
+            is AiChatContentPart.Unknown -> null
         }
+    }
+}
+
+fun isSendableAiChatAttachment(attachment: AiChatAttachment): Boolean {
+    return when (attachment) {
+        is AiChatAttachment.Binary,
+        is AiChatAttachment.Card -> true
+        is AiChatAttachment.Unknown -> false
     }
 }
 

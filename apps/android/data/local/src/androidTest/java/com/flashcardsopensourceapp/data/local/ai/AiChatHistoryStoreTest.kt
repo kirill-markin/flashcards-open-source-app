@@ -4,7 +4,11 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
+import com.flashcardsopensourceapp.data.local.model.AiChatMessage
+import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import kotlinx.coroutines.runBlocking
@@ -120,6 +124,65 @@ class AiChatHistoryStoreTest {
 
         assertEquals(makeDefaultAiChatPersistedState(), loadedState)
         assertFalse(preferences.contains(historyKey(workspaceId = "workspace-1")))
+    }
+
+    @Test
+    fun saveAndLoadStatePreservesUnknownContent() = runBlocking {
+        val state = AiChatPersistedState(
+            messages = listOf(
+                AiChatMessage(
+                    messageId = "message-1",
+                    role = AiChatRole.ASSISTANT,
+                    content = listOf(
+                        AiChatContentPart.Unknown(
+                            originalType = "audio_transcript_v2",
+                            summaryText = "Unsupported content",
+                            rawPayloadJson = """{"type":"audio_transcript_v2"}"""
+                        )
+                    ),
+                    timestampMillis = 1L,
+                    isError = false,
+                    isStopped = false,
+                    cursor = "cursor-1",
+                    itemId = "item-1"
+                )
+            ),
+            chatSessionId = "session-1",
+            lastKnownChatConfig = null
+        )
+
+        store.saveState(workspaceId = "workspace-1", state = state)
+
+        val loadedState = store.loadState(workspaceId = "workspace-1")
+        assertEquals(state, loadedState)
+    }
+
+    @Test
+    fun saveAndLoadDraftPreservesUnknownAttachment() = runBlocking {
+        val draftState = AiChatDraftState(
+            draftMessage = "",
+            pendingAttachments = listOf(
+                AiChatAttachment.Unknown(
+                    id = "attachment-unknown",
+                    originalType = "voice_note_v2",
+                    summaryText = "Unsupported attachment",
+                    rawPayloadJson = """{"type":"voice_note_v2"}"""
+                )
+            )
+        )
+
+        store.saveDraftState(
+            workspaceId = "workspace-1",
+            sessionId = "session-1",
+            state = draftState
+        )
+
+        val loadedDraftState = store.loadDraftState(
+            workspaceId = "workspace-1",
+            sessionId = "session-1"
+        )
+
+        assertEquals(draftState, loadedDraftState)
     }
 
     private fun historyKey(workspaceId: String): String {

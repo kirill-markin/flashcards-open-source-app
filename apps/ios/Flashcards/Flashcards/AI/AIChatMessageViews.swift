@@ -1,6 +1,32 @@
 import SwiftUI
 import UIKit
 
+func aiChatUnknownContentPlaceholderTitle() -> String {
+    "Unsupported content"
+}
+
+func aiChatUnknownContentPlaceholderSubtitle(content: AIChatUnknownContentPart) -> String {
+    "Type: \(content.originalType)"
+}
+
+struct AIChatUnknownContentPlaceholderView: View {
+    let content: AIChatUnknownContentPart
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(aiChatUnknownContentPlaceholderTitle(), systemImage: "questionmark.square.dashed")
+                .font(.subheadline.weight(.semibold))
+            Text(aiChatUnknownContentPlaceholderSubtitle(content: content))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
 struct AIChatTypingIndicator: View {
     var body: some View {
         TimelineView(.animation(minimumInterval: aiChatTypingIndicatorAnimationStepSeconds)) { context in
@@ -265,6 +291,8 @@ extension AIChatView {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        case .unknown(let unknownContent):
+            AIChatUnknownContentPlaceholderView(content: unknownContent)
         }
     }
 
@@ -278,6 +306,11 @@ extension AIChatView {
                     partialResult.append("\n")
                 }
                 partialResult.append(reasoningSummary.summary.isEmpty ? "Thinking..." : reasoningSummary.summary)
+            case .unknown(let unknownContent):
+                if partialResult.isEmpty == false {
+                    partialResult.append("\n")
+                }
+                partialResult.append(unknownContent.summaryText)
             case .toolCall, .image, .file, .card, .accountUpgradePrompt:
                 break
             }

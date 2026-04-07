@@ -80,6 +80,11 @@ private fun makeAttachmentContentPart(attachment: AiChatAttachment): AiChatConte
             tags = attachment.tags,
             effortLevel = attachment.effortLevel
         )
+        is AiChatAttachment.Unknown -> AiChatContentPart.Unknown(
+            originalType = attachment.originalType,
+            summaryText = attachment.summaryText,
+            rawPayloadJson = attachment.rawPayloadJson
+        )
     }
 }
 
@@ -624,7 +629,8 @@ private fun shouldReconcileAssistantTerminalContent(
             is AiChatContentPart.Card,
             is AiChatContentPart.File,
             is AiChatContentPart.ToolCall,
-            is AiChatContentPart.AccountUpgradePrompt -> true
+            is AiChatContentPart.AccountUpgradePrompt,
+            is AiChatContentPart.Unknown -> true
         }
     }
 }

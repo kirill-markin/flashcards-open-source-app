@@ -1,5 +1,7 @@
 import Foundation
 
+private let aiChatPersistedUnknownType: String = "__unknown__"
+
 func aiChatAppVersion() -> String {
     appMarketingVersion()
 }
@@ -130,8 +132,197 @@ struct AIChatReasoningSummary: Codable, Hashable, Identifiable, Sendable {
     let status: AIChatToolCallStatus
 }
 
+struct AIChatUnknownContentPart: Codable, Hashable, Sendable {
+    let originalType: String
+    let summaryText: String
+    let rawPayloadJSON: String?
+}
+
+struct AIChatUnknownAttachmentPayload: Codable, Hashable, Sendable {
+    let originalType: String
+    let summaryText: String
+    let rawPayloadJSON: String?
+}
+
 private struct AIChatStreamPositionPayload: Decodable {
     let itemId: String
+}
+
+private struct AIChatDynamicCodingKey: CodingKey {
+    let stringValue: String
+    let intValue: Int?
+
+    init?(stringValue: String) {
+        self.stringValue = stringValue
+        self.intValue = nil
+    }
+
+    init?(intValue: Int) {
+        self.stringValue = String(intValue)
+        self.intValue = intValue
+    }
+}
+
+private indirect enum AIChatRawJSONValue: Hashable, Sendable, Codable {
+    case string(String)
+    case number(Double)
+    case bool(Bool)
+    case object([String: AIChatRawJSONValue])
+    case array([AIChatRawJSONValue])
+    case null
+
+    init(from decoder: Decoder) throws {
+        if let container = try? decoder.container(keyedBy: AIChatDynamicCodingKey.self) {
+            var values: [String: AIChatRawJSONValue] = [:]
+            for key in container.allKeys {
+                values[key.stringValue] = try container.decode(AIChatRawJSONValue.self, forKey: key)
+            }
+            self = .object(values)
+            return
+        }
+
+        if var container = try? decoder.unkeyedContainer() {
+            var values: [AIChatRawJSONValue] = []
+            while container.isAtEnd == false {
+                values.append(try container.decode(AIChatRawJSONValue.self))
+            }
+            self = .array(values)
+            return
+        }
+
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            self = .null
+        } else if let stringValue = try? container.decode(String.self) {
+            self = .string(stringValue)
+        } else if let booleanValue = try? container.decode(Bool.self) {
+            self = .bool(booleanValue)
+        } else if let numberValue = try? container.decode(Double.self) {
+            self = .number(numberValue)
+        } else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Unsupported AI chat raw JSON value."
+            )
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        switch self {
+        case .string(let value):
+            var container = encoder.singleValueContainer()
+            try container.encode(value)
+        case .number(let value):
+            var container = encoder.singleValueContainer()
+            try container.encode(value)
+        case .bool(let value):
+            var container = encoder.singleValueContainer()
+            try container.encode(value)
+        case .object(let values):
+            var container = encoder.container(keyedBy: AIChatDynamicCodingKey.self)
+            for key in values.keys.sorted() {
+                guard let codingKey = AIChatDynamicCodingKey(stringValue: key) else {
+                    continue
+                }
+                try container.encode(values[key], forKey: codingKey)
+            }
+        case .array(let values):
+            var container = encoder.unkeyedContainer()
+            for value in values {
+                try container.encode(value)
+            }
+        case .null:
+            var container = encoder.singleValueContainer()
+            try container.encodeNil()
+        }
+    }
+}
+
+private func aiChatUnknownContentSummaryText(originalType: String) -> String {
+    "Unsupported content (type: \(originalType))"
+}
+
+private func aiChatUnknownAttachmentSummaryText(originalType: String) -> String {
+    "Unsupported attachment (type: \(originalType))"
+}
+
+private func aiChatEncodedRawPayloadJSON(rawPayload: AIChatRawJSONValue) -> String? {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.sortedKeys]
+    guard let data = try? encoder.encode(rawPayload) else {
+        return nil
+    }
+
+    return String(data: data, encoding: .utf8)
+}
+
+private func makeAIChatUnknownContentPart(
+    originalType: String,
+    rawPayload: AIChatRawJSONValue
+) -> AIChatUnknownContentPart {
+    AIChatUnknownContentPart(
+        originalType: originalType,
+        summaryText: aiChatUnknownContentSummaryText(originalType: originalType),
+        rawPayloadJSON: aiChatEncodedRawPayloadJSON(rawPayload: rawPayload)
+    )
+}
+
+private func makeAIChatUnknownAttachmentPayload(
+    originalType: String,
+    rawPayload: AIChatRawJSONValue
+) -> AIChatUnknownAttachmentPayload {
+    AIChatUnknownAttachmentPayload(
+        originalType: originalType,
+        summaryText: aiChatUnknownAttachmentSummaryText(originalType: originalType),
+        rawPayloadJSON: aiChatEncodedRawPayloadJSON(rawPayload: rawPayload)
+    )
+}
+
+private enum AIChatContentPartDecodingKeys: String, CodingKey {
+    case type
+    case text
+    case mediaType
+    case base64Data
+    case fileName
+    case cardId
+    case frontText
+    case backText
+    case tags
+    case effortLevel
+    case id
+    case name
+    case status
+    case input
+    case output
+    case summary
+    case streamPosition
+    case buttonTitle
+    case originalType
+    case summaryText
+    case rawPayloadJSON
+}
+
+func logAIChatUnknownContentParts(
+    content: [AIChatContentPart],
+    sessionId: String,
+    messageId: String,
+    source: String
+) {
+    for part in content {
+        guard case .unknown(let unknownPart) = part else {
+            continue
+        }
+
+        logAIChatStoreEvent(
+            action: "ai_chat_unknown_content_received",
+            metadata: [
+                "originalType": unknownPart.originalType,
+                "sessionId": sessionId.isEmpty ? "-" : sessionId,
+                "messageId": messageId.isEmpty ? "-" : messageId,
+                "source": source
+            ]
+        )
+    }
 }
 
 struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
@@ -141,6 +332,7 @@ struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
     enum Payload: Codable, Hashable, Sendable {
         case binary(fileName: String, mediaType: String, base64Data: String)
         case card(AIChatCardReference)
+        case unknown(AIChatUnknownAttachmentPayload)
 
         private enum CodingKeys: String, CodingKey {
             case type
@@ -152,9 +344,13 @@ struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
             case backText
             case tags
             case effortLevel
+            case originalType
+            case summaryText
+            case rawPayloadJSON
         }
 
         init(from decoder: Decoder) throws {
+            let rawPayload = try AIChatRawJSONValue(from: decoder)
             let container = try decoder.container(keyedBy: CodingKeys.self)
             let type = try container.decode(String.self, forKey: .type)
 
@@ -175,11 +371,20 @@ struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
                         effortLevel: try container.decode(EffortLevel.self, forKey: .effortLevel)
                     )
                 )
+            case aiChatPersistedUnknownType:
+                self = .unknown(
+                    AIChatUnknownAttachmentPayload(
+                        originalType: try container.decode(String.self, forKey: .originalType),
+                        summaryText: try container.decode(String.self, forKey: .summaryText),
+                        rawPayloadJSON: try container.decodeIfPresent(String.self, forKey: .rawPayloadJSON)
+                    )
+                )
             default:
-                throw DecodingError.dataCorruptedError(
-                    forKey: .type,
-                    in: container,
-                    debugDescription: "Unsupported AI chat attachment type: \(type)"
+                self = .unknown(
+                    makeAIChatUnknownAttachmentPayload(
+                        originalType: type,
+                        rawPayload: rawPayload
+                    )
                 )
             }
         }
@@ -200,6 +405,11 @@ struct AIChatAttachment: Codable, Hashable, Identifiable, Sendable {
                 try container.encode(card.backText, forKey: .backText)
                 try container.encode(card.tags, forKey: .tags)
                 try container.encode(card.effortLevel, forKey: .effortLevel)
+            case .unknown(let payload):
+                try container.encode(aiChatPersistedUnknownType, forKey: .type)
+                try container.encode(payload.originalType, forKey: .originalType)
+                try container.encode(payload.summaryText, forKey: .summaryText)
+                try container.encodeIfPresent(payload.rawPayloadJSON, forKey: .rawPayloadJSON)
             }
         }
     }
@@ -221,6 +431,7 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
     case toolCall(AIChatToolCall)
     case reasoningSummary(AIChatReasoningSummary)
     case accountUpgradePrompt(message: String, buttonTitle: String)
+    case unknown(AIChatUnknownContentPart)
 
     private enum CodingKeys: String, CodingKey {
         case type
@@ -241,71 +452,13 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
         case summary
         case streamPosition
         case buttonTitle
+        case originalType
+        case summaryText
+        case rawPayloadJSON
     }
 
     init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let type = try container.decode(String.self, forKey: .type)
-
-        switch type {
-        case "text":
-            self = .text(try container.decode(String.self, forKey: .text))
-        case "image":
-            self = .image(
-                mediaType: try container.decode(String.self, forKey: .mediaType),
-                base64Data: try container.decode(String.self, forKey: .base64Data)
-            )
-        case "file":
-            self = .file(
-                fileName: try container.decode(String.self, forKey: .fileName),
-                mediaType: try container.decode(String.self, forKey: .mediaType),
-                base64Data: try container.decode(String.self, forKey: .base64Data)
-            )
-        case "card":
-            self = .card(
-                AIChatCardReference(
-                    cardId: try container.decode(String.self, forKey: .cardId),
-                    frontText: try container.decode(String.self, forKey: .frontText),
-                    backText: try container.decode(String.self, forKey: .backText),
-                    tags: try container.decode([String].self, forKey: .tags),
-                    effortLevel: try container.decode(EffortLevel.self, forKey: .effortLevel)
-                )
-            )
-        case "tool_call":
-            self = .toolCall(
-                AIChatToolCall(
-                    id: try container.decode(String.self, forKey: .id),
-                    name: try container.decode(String.self, forKey: .name),
-                    status: try container.decode(AIChatToolCallStatus.self, forKey: .status),
-                    input: try container.decodeIfPresent(String.self, forKey: .input),
-                    output: try container.decodeIfPresent(String.self, forKey: .output)
-                )
-            )
-        case "reasoning_summary":
-            let summary = try container.decode(String.self, forKey: .summary)
-            let streamPosition = try container.decodeIfPresent(AIChatStreamPositionPayload.self, forKey: .streamPosition)
-            let reasoningId = try container.decodeIfPresent(String.self, forKey: .id)
-                ?? streamPosition?.itemId
-                ?? summary
-            self = .reasoningSummary(
-                AIChatReasoningSummary(
-                    id: reasoningId,
-                    summary: summary,
-                    status: .completed
-                )
-            )
-        case "account_upgrade_prompt":
-            self = .accountUpgradePrompt(
-                message: try container.decode(String.self, forKey: .text),
-                buttonTitle: try container.decode(String.self, forKey: .buttonTitle)
-            )
-        default:
-            throw DecodingError.dataCorruptedError(
-                forKey: .type,
-                in: container,
-                debugDescription: "Unsupported AI chat content type: \(type)"
-            )
-        }
+        self = try decodeAIChatContentPart(decoder: decoder)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -347,6 +500,11 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
             try container.encode("account_upgrade_prompt", forKey: .type)
             try container.encode(message, forKey: .text)
             try container.encode(buttonTitle, forKey: .buttonTitle)
+        case .unknown(let payload):
+            try container.encode(aiChatPersistedUnknownType, forKey: .type)
+            try container.encode(payload.originalType, forKey: .originalType)
+            try container.encode(payload.summaryText, forKey: .summaryText)
+            try container.encodeIfPresent(payload.rawPayloadJSON, forKey: .rawPayloadJSON)
         }
     }
 
@@ -354,7 +512,7 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
         switch self {
         case .text(let text):
             return text
-        default:
+        case .image, .file, .card, .toolCall, .reasoningSummary, .accountUpgradePrompt, .unknown:
             return nil
         }
     }
@@ -363,7 +521,7 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
         switch self {
         case .toolCall(let toolCall):
             return toolCall
-        default:
+        case .text, .image, .file, .card, .reasoningSummary, .accountUpgradePrompt, .unknown:
             return nil
         }
     }
@@ -372,102 +530,17 @@ enum AIChatContentPart: Codable, Hashable, Sendable {
         switch self {
         case .reasoningSummary(let reasoningSummary):
             return reasoningSummary.summary
-        default:
+        case .text, .image, .file, .card, .toolCall, .accountUpgradePrompt, .unknown:
             return nil
         }
     }
 }
 
 private struct AIChatDecodableContentPartPayload: Decodable {
-    let value: AIChatContentPart?
-
-    private enum CodingKeys: String, CodingKey {
-        case type
-        case text
-        case mediaType
-        case base64Data
-        case fileName
-        case cardId
-        case frontText
-        case backText
-        case tags
-        case effortLevel
-        case id
-        case name
-        case status
-        case input
-        case output
-        case summary
-        case streamPosition
-        case buttonTitle
-    }
+    let value: AIChatContentPart
 
     init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        let type = try container.decode(String.self, forKey: .type)
-
-        switch type {
-        case "text":
-            self.value = .text(try container.decode(String.self, forKey: .text))
-        case "image":
-            self.value = .image(
-                mediaType: try container.decode(String.self, forKey: .mediaType),
-                base64Data: try container.decode(String.self, forKey: .base64Data)
-            )
-        case "file":
-            self.value = .file(
-                fileName: try container.decode(String.self, forKey: .fileName),
-                mediaType: try container.decode(String.self, forKey: .mediaType),
-                base64Data: try container.decode(String.self, forKey: .base64Data)
-            )
-        case "card":
-            self.value = .card(
-                AIChatCardReference(
-                    cardId: try container.decode(String.self, forKey: .cardId),
-                    frontText: try container.decode(String.self, forKey: .frontText),
-                    backText: try container.decode(String.self, forKey: .backText),
-                    tags: try container.decode([String].self, forKey: .tags),
-                    effortLevel: try container.decode(EffortLevel.self, forKey: .effortLevel)
-                )
-            )
-        case "tool_call":
-            self.value = .toolCall(
-                AIChatToolCall(
-                    id: try container.decode(String.self, forKey: .id),
-                    name: try container.decode(String.self, forKey: .name),
-                    status: try container.decode(AIChatToolCallStatus.self, forKey: .status),
-                    input: try container.decodeIfPresent(String.self, forKey: .input),
-                    output: try container.decodeIfPresent(String.self, forKey: .output)
-                )
-            )
-        case "reasoning_summary":
-            let summary = try container.decode(String.self, forKey: .summary)
-            let streamPosition = try container.decodeIfPresent(
-                AIChatStreamPositionPayload.self,
-                forKey: .streamPosition
-            )
-            let reasoningId = try container.decodeIfPresent(String.self, forKey: .id)
-                ?? streamPosition?.itemId
-                ?? summary
-            self.value = .reasoningSummary(
-                AIChatReasoningSummary(
-                    id: reasoningId,
-                    summary: summary,
-                    status: .completed
-                )
-            )
-        case "account_upgrade_prompt":
-            self.value = .accountUpgradePrompt(
-                message: try container.decode(String.self, forKey: .text),
-                buttonTitle: try container.decode(String.self, forKey: .buttonTitle)
-            )
-        default:
-            throw DecodingError.dataCorruptedError(
-                forKey: .type,
-                in: container,
-                debugDescription: "Unsupported AI chat content type: \(type)"
-            )
-        }
+        self.value = try decodeAIChatContentPart(decoder: decoder)
     }
 }
 
@@ -475,7 +548,82 @@ func decodeAIChatContentParts<Key: CodingKey>(
     container: KeyedDecodingContainer<Key>,
     key: Key
 ) throws -> [AIChatContentPart] {
-    try container.decode([AIChatDecodableContentPartPayload].self, forKey: key).compactMap(\.value)
+    try container.decode([AIChatDecodableContentPartPayload].self, forKey: key).map(\.value)
+}
+
+private func decodeAIChatContentPart(decoder: Decoder) throws -> AIChatContentPart {
+    let rawPayload = try AIChatRawJSONValue(from: decoder)
+    let container = try decoder.container(keyedBy: AIChatContentPartDecodingKeys.self)
+    let type = try container.decode(String.self, forKey: .type)
+
+    switch type {
+    case "text":
+        return .text(try container.decode(String.self, forKey: .text))
+    case "image":
+        return .image(
+            mediaType: try container.decode(String.self, forKey: .mediaType),
+            base64Data: try container.decode(String.self, forKey: .base64Data)
+        )
+    case "file":
+        return .file(
+            fileName: try container.decode(String.self, forKey: .fileName),
+            mediaType: try container.decode(String.self, forKey: .mediaType),
+            base64Data: try container.decode(String.self, forKey: .base64Data)
+        )
+    case "card":
+        return .card(
+            AIChatCardReference(
+                cardId: try container.decode(String.self, forKey: .cardId),
+                frontText: try container.decode(String.self, forKey: .frontText),
+                backText: try container.decode(String.self, forKey: .backText),
+                tags: try container.decode([String].self, forKey: .tags),
+                effortLevel: try container.decode(EffortLevel.self, forKey: .effortLevel)
+            )
+        )
+    case "tool_call":
+        return .toolCall(
+            AIChatToolCall(
+                id: try container.decode(String.self, forKey: .id),
+                name: try container.decode(String.self, forKey: .name),
+                status: try container.decode(AIChatToolCallStatus.self, forKey: .status),
+                input: try container.decodeIfPresent(String.self, forKey: .input),
+                output: try container.decodeIfPresent(String.self, forKey: .output)
+            )
+        )
+    case "reasoning_summary":
+        let summary = try container.decode(String.self, forKey: .summary)
+        let streamPosition = try container.decodeIfPresent(AIChatStreamPositionPayload.self, forKey: .streamPosition)
+        let reasoningId = try container.decodeIfPresent(String.self, forKey: .id)
+            ?? streamPosition?.itemId
+            ?? summary
+        return .reasoningSummary(
+            AIChatReasoningSummary(
+                id: reasoningId,
+                summary: summary,
+                status: .completed
+            )
+        )
+    case "account_upgrade_prompt":
+        return .accountUpgradePrompt(
+            message: try container.decode(String.self, forKey: .text),
+            buttonTitle: try container.decode(String.self, forKey: .buttonTitle)
+        )
+    case aiChatPersistedUnknownType:
+        return .unknown(
+            AIChatUnknownContentPart(
+                originalType: try container.decode(String.self, forKey: .originalType),
+                summaryText: try container.decode(String.self, forKey: .summaryText),
+                rawPayloadJSON: try container.decodeIfPresent(String.self, forKey: .rawPayloadJSON)
+            )
+        )
+    default:
+        return .unknown(
+            makeAIChatUnknownContentPart(
+                originalType: type,
+                rawPayload: rawPayload
+            )
+        )
+    }
 }
 
 struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {

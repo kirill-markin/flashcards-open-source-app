@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -182,6 +183,14 @@ private fun MessageBubbleContent(
                         message = contentPart.message,
                         buttonTitle = contentPart.buttonTitle,
                         onOpenAccountStatus = onOpenAccountStatus
+                    )
+                }
+
+                is AiChatContentPart.Unknown -> {
+                    AttachmentContentCard(
+                        title = contentPart.summaryText,
+                        subtitle = "Type: ${contentPart.originalType}",
+                        icon = Icons.Outlined.WarningAmber
                     )
                 }
             }

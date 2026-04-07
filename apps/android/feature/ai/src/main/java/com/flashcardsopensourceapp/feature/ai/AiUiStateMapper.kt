@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
+import com.flashcardsopensourceapp.data.local.model.isSendableAiChatAttachment
 
 internal fun initialAiAppMetadataSummary(): AppMetadataSummary {
     return AppMetadataSummary(
@@ -39,6 +40,7 @@ internal fun mapToAiUiState(
     val isLinked = cloudState == CloudAccountState.LINKED
     val hasMessages = runtimeState.persistedState.messages.isNotEmpty()
     val hasDraftText = runtimeState.draftMessage.trim().isNotEmpty()
+    val hasSendableAttachments = runtimeState.pendingAttachments.any(::isSendableAiChatAttachment)
     val isConversationReady = runtimeState.conversationBootstrapState == AiConversationBootstrapState.READY
     val isConversationLoading = runtimeState.conversationBootstrapState == AiConversationBootstrapState.LOADING
     val hasActiveRun = runtimeState.activeRun != null
@@ -84,7 +86,7 @@ internal fun mapToAiUiState(
             && runtimeState.composerPhase == AiComposerPhase.IDLE
             && hasActiveRun.not()
             && runtimeState.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
-            && (hasDraftText || runtimeState.pendingAttachments.isNotEmpty()),
+            && (hasDraftText || hasSendableAttachments),
         canStartNewChat = canEditConversation
             && (hasMessages || hasDraftText || runtimeState.pendingAttachments.isNotEmpty()),
         repairStatus = runtimeState.repairStatus,

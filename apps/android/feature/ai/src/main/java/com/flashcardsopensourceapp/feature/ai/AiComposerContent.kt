@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -128,6 +129,7 @@ internal fun AiComposer(
                                         is AiChatAttachment.Card -> formatAiChatCardAttachmentLabel(
                                             frontText = attachment.frontText
                                         )
+                                        is AiChatAttachment.Unknown -> attachment.summaryText
                                     }
                                 )
                             },
@@ -143,6 +145,7 @@ internal fun AiComposer(
                                         }
 
                                         is AiChatAttachment.Card -> Icons.Outlined.CollectionsBookmark
+                                        is AiChatAttachment.Unknown -> Icons.Outlined.WarningAmber
                                     },
                                     contentDescription = null
                                 )

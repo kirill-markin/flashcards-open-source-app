@@ -66,6 +66,7 @@ internal fun AiConversation(
                             is AiChatContentPart.File -> contentPart.base64Data.length
                             is AiChatContentPart.Card -> contentPart.frontText.length + contentPart.backText.length
                             is AiChatContentPart.AccountUpgradePrompt -> contentPart.message.length
+                            is AiChatContentPart.Unknown -> contentPart.summaryText.length + contentPart.originalType.length
                         }
                     }
                 )

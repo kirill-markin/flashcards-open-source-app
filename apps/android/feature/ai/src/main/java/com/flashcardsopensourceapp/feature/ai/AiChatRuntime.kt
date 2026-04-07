@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.aiChatConsentRequiredMessage
 import com.flashcardsopensourceapp.data.local.model.aiChatGuestQuotaButtonTitle
 import com.flashcardsopensourceapp.data.local.model.aiChatGuestQuotaReachedMessage
+import com.flashcardsopensourceapp.data.local.model.isSendableAiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.makeAiChatCardAttachment
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import kotlinx.coroutines.CancellationException
@@ -611,7 +612,8 @@ internal class AiChatRuntime(
         if (state.dictationState != AiChatDictationState.IDLE) {
             return false
         }
-        return state.draftMessage.trim().isNotEmpty() || state.pendingAttachments.isNotEmpty()
+        return state.draftMessage.trim().isNotEmpty()
+            || state.pendingAttachments.any(::isSendableAiChatAttachment)
     }
 
     private suspend fun applyAcceptedRunResponse(response: com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse) {
