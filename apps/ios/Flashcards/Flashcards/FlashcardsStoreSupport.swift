@@ -27,12 +27,23 @@ protocol CloudSyncServing {
         bearerToken: String,
         workspaceId: String
     ) async throws -> CloudWorkspaceDeletePreview
+    func loadWorkspaceResetProgressPreview(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String
+    ) async throws -> CloudWorkspaceResetProgressPreview
     func deleteWorkspace(
         apiBaseUrl: String,
         bearerToken: String,
         workspaceId: String,
         confirmationText: String
     ) async throws -> CloudWorkspaceDeleteResult
+    func resetWorkspaceProgress(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        confirmationText: String
+    ) async throws -> CloudWorkspaceResetProgressResult
     func selectWorkspace(
         apiBaseUrl: String,
         bearerToken: String,

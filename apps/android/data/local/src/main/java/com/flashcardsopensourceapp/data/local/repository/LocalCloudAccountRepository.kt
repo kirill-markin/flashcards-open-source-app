@@ -15,6 +15,8 @@ import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressPreview
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
@@ -330,6 +332,79 @@ class LocalCloudAccountRepository(
             requireTransitionInvariant(
                 stage = "after initial sync for delete",
                 expectedWorkspaceId = result.workspace.workspaceId
+            )
+            result
+        }
+    }
+
+    override suspend fun loadCurrentWorkspaceResetProgressPreview(): CloudWorkspaceResetProgressPreview {
+        require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
+            "Workspace progress reset is available only for linked cloud workspaces."
+        }
+        return operationCoordinator.runExclusive {
+            val authenticatedSession = authenticatedSession()
+            val workspaceId = requireCurrentWorkspace(
+                database = database,
+                preferencesStore = preferencesStore,
+                missingWorkspaceMessage = "Workspace progress reset requires a current local workspace."
+            ).workspaceId
+            runCloudSyncCore(
+                cloudSettings = preferencesStore.currentCloudSettings(),
+                workspaceId = workspaceId,
+                syncSession = CloudSyncSession(
+                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                    authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}"
+                ),
+                appVersion = appVersion,
+                remoteService = remoteService,
+                syncLocalStore = syncLocalStore
+            )
+            remoteService.loadWorkspaceResetProgressPreview(
+                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                bearerToken = authenticatedSession.credentials.idToken,
+                workspaceId = workspaceId
+            )
+        }
+    }
+
+    override suspend fun resetCurrentWorkspaceProgress(confirmationText: String): CloudWorkspaceResetProgressResult {
+        return operationCoordinator.runExclusive {
+            require(preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
+                "Workspace progress reset is available only for linked cloud workspaces."
+            }
+            val authenticatedSession = authenticatedSession()
+            val currentWorkspaceId = requireCurrentWorkspace(
+                database = database,
+                preferencesStore = preferencesStore,
+                missingWorkspaceMessage = "Workspace progress reset requires a current local workspace."
+            ).workspaceId
+            runCloudSyncCore(
+                cloudSettings = preferencesStore.currentCloudSettings(),
+                workspaceId = currentWorkspaceId,
+                syncSession = CloudSyncSession(
+                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                    authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}"
+                ),
+                appVersion = appVersion,
+                remoteService = remoteService,
+                syncLocalStore = syncLocalStore
+            )
+            val result = remoteService.resetWorkspaceProgress(
+                apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                bearerToken = authenticatedSession.credentials.idToken,
+                workspaceId = currentWorkspaceId,
+                confirmationText = confirmationText
+            )
+            runCloudSyncCore(
+                cloudSettings = preferencesStore.currentCloudSettings(),
+                workspaceId = currentWorkspaceId,
+                syncSession = CloudSyncSession(
+                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                    authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}"
+                ),
+                appVersion = appVersion,
+                remoteService = remoteService,
+                syncLocalStore = syncLocalStore
             )
             result
         }

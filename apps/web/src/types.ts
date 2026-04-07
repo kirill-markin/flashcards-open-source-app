@@ -63,6 +63,21 @@ export type DeleteWorkspaceResponse = Readonly<{
   workspace: WorkspaceSummary;
 }>;
 
+export const resetWorkspaceProgressConfirmationText: string = "reset all progress for all cards in this workspace";
+
+export type WorkspaceResetProgressPreview = Readonly<{
+  workspaceId: string;
+  workspaceName: string;
+  cardsToResetCount: number;
+  confirmationText: string;
+}>;
+
+export type ResetWorkspaceProgressResponse = Readonly<{
+  ok: true;
+  workspaceId: string;
+  cardsResetCount: number;
+}>;
+
 export type AgentApiKeyConnection = Readonly<{
   connectionId: string;
   label: string;

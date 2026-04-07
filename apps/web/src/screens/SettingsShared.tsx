@@ -31,6 +31,7 @@ type SettingsActionCardProps = Readonly<{
   value: string;
   onClick: () => void;
   isMuted?: boolean;
+  disabled?: boolean;
   workspaceManagementState?: "locked" | "ready";
 }>;
 
@@ -129,13 +130,14 @@ export function SettingsNavigationCard(props: SettingsNavigationCardProps): Reac
 }
 
 export function SettingsActionCard(props: SettingsActionCardProps): ReactElement {
-  const { title, description, value, onClick, isMuted, workspaceManagementState } = props;
+  const { title, description, value, onClick, isMuted, disabled, workspaceManagementState } = props;
 
   return (
     <button
       className={`settings-nav-card settings-nav-card-button content-card${isMuted ? " settings-nav-card-muted" : ""}`}
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-disabled={workspaceManagementState === undefined ? undefined : workspaceManagementState === "locked" ? "true" : "false"}
       data-workspace-management-state={workspaceManagementState}
     >

@@ -68,6 +68,7 @@ enum SettingsNavigationDestination: Hashable, Sendable {
 }
 
 let allCardsDeckLabel: String = "All cards"
+let workspaceResetProgressConfirmationText: String = "reset all progress for all cards in this workspace"
 
 enum EffortLevel: String, CaseIterable, Codable, Hashable, Identifiable, Sendable {
     case fast
@@ -451,6 +452,21 @@ struct CloudWorkspaceDeleteResult: Codable, Hashable, Sendable {
     let deletedWorkspaceId: String
     let deletedCardsCount: Int
     let workspace: CloudWorkspaceSummary
+}
+
+// Keep in sync with the backend workspace reset-progress routes and the other
+// client implementations.
+struct CloudWorkspaceResetProgressPreview: Codable, Hashable, Sendable {
+    let workspaceId: String
+    let workspaceName: String
+    let cardsToResetCount: Int
+    let confirmationText: String
+}
+
+struct CloudWorkspaceResetProgressResult: Codable, Hashable, Sendable {
+    let ok: Bool
+    let workspaceId: String
+    let cardsResetCount: Int
 }
 
 struct CloudWorkspaceLinkContext: Hashable, Identifiable, Sendable {
