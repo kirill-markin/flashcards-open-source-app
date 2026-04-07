@@ -36,8 +36,11 @@ The sync layer now treats installation identity and workspace actor identity as 
 
 - `client_installation`
 - `workspace_seed`
+- `workspace_reset`
 - `agent_connection`
 - `ai_chat`
+
+`workspace_reset` is a deterministic system actor per workspace. The reset-progress flow uses it so destructive scheduler-state resets remain workspace-scoped and auditable without pretending to be a client installation.
 
 Client-authenticated writes never send actor ids in payloads. The backend resolves the active workspace replica from `(workspaceId, installationId)` and stamps the canonical `replicaId` into stored rows and sync logs.
 

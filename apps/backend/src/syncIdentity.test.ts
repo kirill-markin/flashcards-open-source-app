@@ -171,3 +171,55 @@ test("ensureSystemWorkspaceReplicaInExecutor does not claim installations", asyn
   assert.equal(recordedQueries.length, 1);
   assert.match(recordedQueries[0]!.text, /INSERT INTO sync\.workspace_replicas/);
 });
+
+test("ensureSystemWorkspaceReplicaInExecutor accepts workspace_reset actors", async () => {
+  const recordedQueries: Array<RecordedQuery> = [];
+  const executor: DatabaseExecutor = {
+    async query<Row extends pg.QueryResultRow>(
+      text: string,
+      params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
+    ): Promise<pg.QueryResult<Row>> {
+      recordedQueries.push({ text, params });
+
+      if (text.includes("sync.claim_installation")) {
+        throw new Error("System actors must not claim client installations");
+      }
+
+      if (text.includes("INSERT INTO sync.workspace_replicas")) {
+        return createQueryResult<Row>([{
+          replica_id: params[0],
+          platform: params[6],
+        } as unknown as Row]);
+      }
+
+      if (text.includes("UPDATE sync.workspace_replicas")) {
+        return createQueryResult<Row>([]);
+      }
+
+      throw new Error(`Unexpected query: ${text}`);
+    },
+  };
+
+  const replicaId = await ensureSystemWorkspaceReplicaInExecutor(executor, {
+    workspaceId: "workspace-1",
+    userId: "user-b",
+    actorKind: "workspace_reset",
+    actorKey: "reset-progress",
+    platform: "system",
+    appVersion: null,
+  });
+
+  assert.equal(replicaId, buildSystemWorkspaceReplicaId("workspace-1", "workspace_reset", "reset-progress"));
+  assert.equal(recordedQueries.length, 1);
+  assert.match(recordedQueries[0]!.text, /INSERT INTO sync\.workspace_replicas/);
+  assert.deepEqual(recordedQueries[0]!.params, [
+    replicaId,
+    "workspace-1",
+    "user-b",
+    "workspace_reset",
+    null,
+    "reset-progress",
+    "system",
+    null,
+  ]);
+});

@@ -291,7 +291,11 @@ export function WorkspaceSettingsScreen(): ReactElement {
                   <p className="subtitle">
                     Type this phrase exactly to continue.
                   </p>
-                  <p className="subtitle settings-delete-phrase" aria-label="confirmation phrase">
+                  <p
+                    className="subtitle settings-delete-phrase"
+                    aria-label="confirmation phrase"
+                    data-testid="workspace-reset-progress-confirmation-phrase"
+                  >
                     {resetWorkspaceProgressConfirmationText}
                   </p>
                   <label className="cell-stack" htmlFor="reset-workspace-progress-confirmation">
@@ -330,7 +334,8 @@ export function WorkspaceSettingsScreen(): ReactElement {
                     Press OK to clear the scheduler state and make these cards start over.
                   </p>
                   <p className="subtitle settings-delete-phrase">
-                    {resetPreview.cardsToResetCount} cards will be reset.
+                    <span data-testid="workspace-reset-progress-preview-count">{resetPreview.cardsToResetCount}</span>
+                    {" cards will be reset."}
                   </p>
                 </>
               )}

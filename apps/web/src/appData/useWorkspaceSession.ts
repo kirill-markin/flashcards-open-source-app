@@ -666,6 +666,9 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     }
 
     try {
+      if (activeWorkspace?.workspaceId === workspaceId) {
+        await runSync();
+      }
       const preview = await loadWorkspaceResetProgressPreviewRequest(workspaceId);
       setErrorMessage("");
       return preview;
@@ -678,7 +681,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       setErrorMessage(nextErrorMessage);
       throw error;
     }
-  }, [cloudSettings?.cloudState, session, sessionVerificationState, setErrorMessage]);
+  }, [activeWorkspace?.workspaceId, cloudSettings?.cloudState, runSync, session, sessionVerificationState, setErrorMessage]);
 
   const resetWorkspaceProgress = useCallback(async function resetWorkspaceProgress(
     workspaceId: string,

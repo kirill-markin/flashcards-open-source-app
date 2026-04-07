@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS sync.workspace_replicas (
   replica_id UUID PRIMARY KEY, -- immutable workspace actor identity referenced by cards, decks, review history, and sync logs
   workspace_id UUID NOT NULL REFERENCES org.workspaces(workspace_id) ON DELETE CASCADE,
   user_id TEXT NOT NULL, -- current authenticated owner of the actor row for runtime authorization and diagnostics
-  actor_kind TEXT NOT NULL CHECK (actor_kind IN ('client_installation', 'workspace_seed', 'agent_connection', 'ai_chat')),
+  actor_kind TEXT NOT NULL CHECK (actor_kind IN ('client_installation', 'workspace_seed', 'workspace_reset', 'agent_connection', 'ai_chat')),
   installation_id UUID REFERENCES sync.installations(installation_id) ON DELETE RESTRICT,
   actor_key TEXT,
   platform TEXT NOT NULL CHECK (platform IN ('ios', 'android', 'web', 'system')),
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS sync.workspace_replicas (
 COMMENT ON TABLE sync.workspace_replicas IS 'Immutable workspace-scoped sync actors. Historical sync metadata must always point here, never to sync.installations.';
 COMMENT ON COLUMN sync.workspace_replicas.replica_id IS 'Immutable actor identity for one installation or system actor inside one workspace.';
 COMMENT ON COLUMN sync.workspace_replicas.actor_kind IS 'Actor family. Client installations use installation_id; internal actors use actor_key.';
-COMMENT ON COLUMN sync.workspace_replicas.actor_key IS 'Deterministic system actor key for workspace_seed, agent_connection, or ai_chat rows.';
+COMMENT ON COLUMN sync.workspace_replicas.actor_key IS 'Deterministic system actor key for workspace_seed, workspace_reset, agent_connection, or ai_chat rows.';
 
 ALTER TABLE IF EXISTS auth.guest_device_aliases
   RENAME TO guest_replica_aliases;

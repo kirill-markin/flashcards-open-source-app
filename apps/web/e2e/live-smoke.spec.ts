@@ -2,6 +2,7 @@ import { test } from "./live-smoke/fixture";
 import { runAiCardCreationFlow, runAiConversationResetFlow } from "./live-smoke/flows/ai";
 import { runLinkedWorkspaceSetupFlow } from "./live-smoke/flows/auth-workspace";
 import { runManualCardReviewFlow } from "./live-smoke/flows/cards-review";
+import { runResetProgressFlow } from "./live-smoke/flows/reset-progress";
 import { runWorkspaceCleanupFlow } from "./live-smoke/flows/settings-cleanup";
 import {
   attachPageSnapshot,
@@ -40,6 +41,10 @@ test.describe.serial("live smoke flow uses the real demo account across review, 
 
   test("manual card can be created and reviewed in the linked workspace", async ({ liveSmokeSession }) => {
     await runManualCardReviewFlow(liveSmokeSession);
+  });
+
+  test("resetting all progress makes the reviewed card due again", async ({ liveSmokeSession }) => {
+    await runResetProgressFlow(liveSmokeSession);
   });
 
   test("ai card can be created with explicit confirmation and complete one insert", async ({ liveSmokeSession }) => {
