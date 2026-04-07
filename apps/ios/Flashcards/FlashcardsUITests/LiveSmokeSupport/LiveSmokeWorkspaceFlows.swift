@@ -237,6 +237,21 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
+    func openAccountDangerZone() throws {
+        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButton(
+            identifier: LiveSmokeIdentifier.settingsAccountSettingsRow,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButton(
+            identifier: LiveSmokeIdentifier.accountSettingsDangerZoneRow,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertScreenVisible(screen: .dangerZone, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+    }
+
+    @MainActor
     func openWorkspaceOverviewFromSettings() throws {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.tapButton(

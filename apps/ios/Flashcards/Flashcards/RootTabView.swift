@@ -42,6 +42,8 @@ struct RootTabView: View {
                             ThisDeviceSettingsView()
                         case .access:
                             AccessSettingsView()
+                        case .accessPermissionDetail(let kind):
+                            AccessPermissionDetailView(kind: kind)
                         case .workspace:
                             WorkspaceSettingsView()
                         case .workspaceNotifications:

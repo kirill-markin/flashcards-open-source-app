@@ -24,7 +24,19 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
             try self.tapFirstNavigationBackButton()
+            try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.tapFirstNavigationBackButton()
+            try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+
+            try self.openAccountDangerZone()
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.dangerZoneDeleteAccountButton,
+                timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+            )
+            try self.tapFirstNavigationBackButton()
+            try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.tapFirstNavigationBackButton()
+            try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
     }
 

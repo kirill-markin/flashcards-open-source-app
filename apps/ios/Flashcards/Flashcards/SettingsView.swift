@@ -58,9 +58,7 @@ struct SettingsView: View {
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsWorkspaceSettingsRow)
 
-                NavigationLink {
-                    AccountSettingsView()
-                } label: {
+                NavigationLink(value: SettingsNavigationDestination.account) {
                     SettingsNavigationRow(
                         title: "Account Settings",
                         value: displayCloudAccountStateTitle(cloudState: store.cloudSettings?.cloudState ?? .disconnected),

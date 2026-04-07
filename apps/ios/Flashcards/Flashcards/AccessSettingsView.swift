@@ -13,9 +13,7 @@ struct AccessSettingsView: View {
                 }
 
                 ForEach(AccessPermissionKind.allCases) { kind in
-                    NavigationLink {
-                        AccessPermissionDetailView(kind: kind)
-                    } label: {
+                    NavigationLink(value: SettingsNavigationDestination.accessPermissionDetail(kind)) {
                         HStack(spacing: 12) {
                             Label(kind.title, systemImage: kind.systemImage)
                             Spacer()
