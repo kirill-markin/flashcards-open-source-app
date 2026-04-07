@@ -431,6 +431,13 @@ private fun appendingAssistantTextPart(
     }
 }
 
+/**
+ * Upserts reasoning blocks without changing the order of the live assistant transcript.
+ *
+ * The append-on-insert behavior is intentional. Once reasoning arrives after text or
+ * other assistant parts, it must stay at that point in the message instead of jumping
+ * back to the top and visually reordering the stream.
+ */
 private fun upsertingReasoningSummary(
     content: List<AiChatContentPart>,
     reasoningSummary: AiChatReasoningSummary
@@ -441,7 +448,8 @@ private fun upsertingReasoningSummary(
             && part.reasoningSummary.reasoningId == reasoningSummary.reasoningId
     }
     return if (existingIndex == -1) {
-        listOf(AiChatContentPart.ReasoningSummary(reasoningSummary = reasoningSummary)) + currentContent
+        // Keep the live transcript order stable: new reasoning is added where it arrives.
+        currentContent + AiChatContentPart.ReasoningSummary(reasoningSummary = reasoningSummary)
     } else {
         currentContent.mapIndexed { index, part ->
             if (index == existingIndex) {

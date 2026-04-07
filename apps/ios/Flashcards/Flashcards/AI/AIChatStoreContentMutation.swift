@@ -186,6 +186,10 @@ func upsertingAIChatToolCall(
     return updatedContent
 }
 
+/// Keeps reasoning blocks in their current assistant-content order.
+///
+/// New reasoning blocks must be appended so they do not jump ahead of already
+/// streamed text or tool content while the assistant message is still growing.
 func upsertingAIChatReasoningSummary(
     content: [AIChatContentPart],
     reasoningSummary: AIChatReasoningSummary
@@ -209,7 +213,9 @@ func upsertingAIChatReasoningSummary(
         return updatedContent
     }
 
-    updatedContent.insert(.reasoningSummary(reasoningSummary), at: 0)
+    // Preserve the existing transcript order by appending new reasoning blocks
+    // where they arrived, instead of prepending them to the message.
+    updatedContent.append(.reasoningSummary(reasoningSummary))
     return updatedContent
 }
 

@@ -173,6 +173,38 @@ describe("useChatHistory", () => {
     });
   });
 
+  it("keeps a later reasoning block after existing assistant text", () => {
+    const harness = renderHistoryHarness();
+
+    act(() => {
+      const api = harness.getApi();
+      api.startAssistantMessage(null);
+      api.appendAssistantText("I'm checking your due cards and deck structure.", "assistant-item-1", "cursor-1");
+      api.upsertAssistantReasoningSummary(createReasoningPart({
+        reasoningId: "reasoning-1",
+        summary: "Checked the due queue.",
+        status: "started",
+      }), "assistant-item-1", "cursor-1");
+    });
+
+    const assistantMessage = harness.getApi().messages.at(-1);
+    // This order is intentional: the UI renders assistant content in array order,
+    // so reasoning must stay after text if it arrived later.
+    expect(assistantMessage?.content.map((part) => part.type)).toEqual([
+      "text",
+      "reasoning_summary",
+    ]);
+    expect(assistantMessage?.content).toMatchObject([
+      { type: "text", text: "I'm checking your due cards and deck structure." },
+      {
+        type: "reasoning_summary",
+        reasoningId: "reasoning-1",
+        summary: "Checked the due queue.",
+        status: "started",
+      },
+    ]);
+  });
+
   it("applies canonical terminal content over the optimistic placeholder", () => {
     const harness = renderHistoryHarness();
 
