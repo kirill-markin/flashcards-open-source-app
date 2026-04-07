@@ -7,6 +7,7 @@ import org.json.JSONObject
 
 private const val reviewPreferencesName: String = "flashcards-review-preferences"
 private const val selectedReviewFilterKeyPrefix: String = "selected-review-filter::"
+private const val hardAnswerReminderLastShownAtKey: String = "hard-answer-reminder-last-shown-at"
 private const val persistedReviewFilterKindKey: String = "kind"
 private const val persistedReviewFilterDeckIdKey: String = "deckId"
 private const val persistedReviewFilterTagKey: String = "tag"
@@ -15,9 +16,20 @@ private const val persistedReviewFilterDeckKind: String = "deck"
 private const val persistedReviewFilterTagKind: String = "tag"
 
 interface ReviewPreferencesStore {
+    /** Loads the selected review filter for a workspace. */
     fun loadSelectedReviewFilter(workspaceId: String): ReviewFilter
+
+    /** Persists the selected review filter for a workspace. */
     fun saveSelectedReviewFilter(workspaceId: String, reviewFilter: ReviewFilter)
+
+    /** Clears the selected review filter for a workspace. */
     fun clearSelectedReviewFilter(workspaceId: String)
+
+    /** Loads the timestamp of the last hard-answer reminder shown on this device. */
+    fun loadHardAnswerReminderLastShownAt(): Long?
+
+    /** Persists the timestamp of the last hard-answer reminder shown on this device. */
+    fun saveHardAnswerReminderLastShownAt(timestampMillis: Long)
 }
 
 class SharedPreferencesReviewPreferencesStore(
@@ -50,6 +62,20 @@ class SharedPreferencesReviewPreferencesStore(
     override fun clearSelectedReviewFilter(workspaceId: String) {
         preferences.edit(commit = true) {
             remove(makeSelectedReviewFilterKey(workspaceId = workspaceId))
+        }
+    }
+
+    override fun loadHardAnswerReminderLastShownAt(): Long? {
+        if (preferences.contains(hardAnswerReminderLastShownAtKey).not()) {
+            return null
+        }
+
+        return preferences.getLong(hardAnswerReminderLastShownAtKey, 0L)
+    }
+
+    override fun saveHardAnswerReminderLastShownAt(timestampMillis: Long) {
+        preferences.edit(commit = true) {
+            putLong(hardAnswerReminderLastShownAtKey, timestampMillis)
         }
     }
 }

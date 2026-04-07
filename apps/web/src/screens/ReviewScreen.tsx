@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { useAppData } from "../appData";
@@ -8,10 +8,17 @@ import { computeReviewSchedule, type ReviewRating } from "../../../backend/src/s
 import { classifyReviewContentPresentation } from "./reviewContentPresentation";
 import { cardsRoute, chatRoute } from "../routes";
 import { ReviewEditorModal } from "./ReviewEditorModal";
+import { ReviewHardReminderDialog } from "./ReviewHardReminderDialog";
 import { ReviewFilterMenu } from "./ReviewFilterMenu";
 import { useAiCardHandoff } from "../chat/useAiCardHandoff";
 import { useTransientMessage } from "../useTransientMessage";
 import { formatQueueBadge, useReviewFilterMenu } from "./useReviewFilterMenu";
+import {
+  appendRecentReviewRatings,
+  loadReviewHardReminderLastShownAt,
+  saveReviewHardReminderLastShownAt,
+  shouldShowReviewHardReminder,
+} from "./reviewHardReminder";
 import { useReviewCardEditor } from "./useReviewCardEditor";
 import { useReviewKeyboardShortcuts } from "./useReviewKeyboardShortcuts";
 import { useReviewScreenData } from "./useReviewScreenData";
@@ -309,6 +316,9 @@ export function ReviewScreen(): ReactElement {
   } = useAppData();
   const [isAnswerVisible, setIsAnswerVisible] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isHardReminderVisible, setIsHardReminderVisible] = useState<boolean>(false);
+  const [hardReminderLastShownAt, setHardReminderLastShownAt] = useState<number | null>(() => loadReviewHardReminderLastShownAt());
+  const recentReviewRatingsRef = useRef<Array<ReviewRating>>([]);
   const { message: reviewSpeechMessage, showMessage: showReviewSpeechMessage } = useTransientMessage(3000);
   const {
     activeReviewQueue,
@@ -405,6 +415,11 @@ export function ReviewScreen(): ReactElement {
   }, [selectedCard?.cardId, stopSpeech]);
 
   useEffect(() => {
+    recentReviewRatingsRef.current = [];
+    setIsHardReminderVisible(false);
+  }, [activeWorkspace?.workspaceId]);
+
+  useEffect(() => {
     return () => {
       stopSpeech();
     };
@@ -412,16 +427,11 @@ export function ReviewScreen(): ReactElement {
 
   useReviewKeyboardShortcuts({
     handleReview: async (card, rating) => {
-      setIsSubmitting(true);
-
-      try {
-        await handleReviewData(card, rating);
-      } finally {
-        setIsSubmitting(false);
-      }
+      await handleReview(card, rating);
     },
     isAnswerVisible,
     isEditorPresented,
+    isHardReminderVisible,
     isReviewFilterMenuOpen,
     isSubmitting,
     selectedCard,
@@ -432,7 +442,23 @@ export function ReviewScreen(): ReactElement {
     setIsSubmitting(true);
 
     try {
-      await handleReviewData(card, rating);
+      const didSaveReview = await handleReviewData(card, rating);
+      if (didSaveReview === false) {
+        return;
+      }
+
+      const nextRecentReviewRatings = appendRecentReviewRatings(recentReviewRatingsRef.current, rating);
+      recentReviewRatingsRef.current = nextRecentReviewRatings;
+      if (rating !== 1) {
+        return;
+      }
+
+      const nowMillis = Date.now();
+      if (shouldShowReviewHardReminder(nextRecentReviewRatings, hardReminderLastShownAt, nowMillis)) {
+        setHardReminderLastShownAt(nowMillis);
+        saveReviewHardReminderLastShownAt(nowMillis);
+        setIsHardReminderVisible(true);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -796,6 +822,13 @@ export function ReviewScreen(): ReactElement {
         onDelete={handleEditorDelete}
         onSave={handleEditorSave}
         tagSuggestions={tagSuggestions}
+      />
+
+      <ReviewHardReminderDialog
+        isOpen={isHardReminderVisible}
+        onDismiss={() => {
+          setIsHardReminderVisible(false);
+        }}
       />
     </main>
   );

@@ -51,7 +51,8 @@ private data class ReviewDraftState(
     val isPreviewLoading: Boolean,
     val previewErrorMessage: String,
     val errorMessage: String,
-    val isNotificationPermissionPromptVisible: Boolean
+    val isNotificationPermissionPromptVisible: Boolean,
+    val isHardAnswerReminderVisible: Boolean
 )
 
 private data class ObservedReviewSessionState(
@@ -105,7 +106,8 @@ class ReviewViewModel(
             isPreviewLoading = false,
             previewErrorMessage = "",
             errorMessage = "",
-            isNotificationPermissionPromptVisible = false
+            isNotificationPermissionPromptVisible = false,
+            isHardAnswerReminderVisible = false
         )
     )
 
@@ -155,6 +157,10 @@ class ReviewViewModel(
     private var lastVisibleAutoSyncChangeSignature: List<String>? = null
     private var activeWorkspaceId: String? = null
     private var workspaceGeneration: Long = 0L
+    /** Fixed-size in-memory review history for the current review session only. */
+    private var recentReviewRatings: List<ReviewRating> = emptyList()
+    /** Device-level cooldown timestamp for the hard-answer reminder. */
+    private var hardAnswerReminderLastShownAtMillis: Long? = reviewPreferencesStore.loadHardAnswerReminderLastShownAt()
 
     val uiState: StateFlow<ReviewUiState> = combine(
         reviewSessionState,
@@ -215,7 +221,8 @@ class ReviewViewModel(
             emptyState = emptyState,
             previewErrorMessage = state.previewErrorMessage,
             errorMessage = state.errorMessage,
-            isNotificationPermissionPromptVisible = state.isNotificationPermissionPromptVisible
+            isNotificationPermissionPromptVisible = state.isNotificationPermissionPromptVisible,
+            isHardAnswerReminderVisible = state.isHardAnswerReminderVisible
         )
     }.stateIn(
         scope = viewModelScope,
@@ -239,7 +246,8 @@ class ReviewViewModel(
             emptyState = null,
             previewErrorMessage = "",
             errorMessage = "",
-            isNotificationPermissionPromptVisible = false
+            isNotificationPermissionPromptVisible = false,
+            isHardAnswerReminderVisible = false
         )
     )
 
@@ -310,6 +318,15 @@ class ReviewViewModel(
         )
     }
 
+    /**
+     * Closes the hard-answer reminder without affecting the saved review result.
+     */
+    fun dismissHardAnswerReminder() {
+        draftState.update { state ->
+            state.copy(isHardAnswerReminderVisible = false)
+        }
+    }
+
     fun handleNotificationPermissionGranted() {
         onNotificationPermissionGranted()
     }
@@ -365,6 +382,7 @@ class ReviewViewModel(
         val cardId = currentCard.cardId
         val optimisticPreparedCurrentCard = uiState.value.preparedNextCard
         val operationWorkspaceGeneration = workspaceGeneration
+        val reviewedAtMillis = System.currentTimeMillis()
 
         draftState.update { state ->
             state.copy(
@@ -385,7 +403,7 @@ class ReviewViewModel(
                 reviewRepository.recordReview(
                     cardId = cardId,
                     rating = rating,
-                    reviewedAtMillis = System.currentTimeMillis()
+                    reviewedAtMillis = reviewedAtMillis
                 )
                 if (operationWorkspaceGeneration != workspaceGeneration) {
                     return@launch
@@ -396,7 +414,13 @@ class ReviewViewModel(
                         optimisticPreparedCurrentCard = null
                     )
                 }
-                handleSuccessfulReviewRecorded()
+                val didShowHardAnswerReminder = updateHardAnswerReminderState(
+                    rating = rating,
+                    reviewedAtMillis = reviewedAtMillis
+                )
+                handleSuccessfulReviewRecorded(
+                    shouldShowNotificationPermissionPrePrompt = didShowHardAnswerReminder.not()
+                )
             } catch (error: Throwable) {
                 if (operationWorkspaceGeneration != workspaceGeneration) {
                     return@launch
@@ -412,11 +436,55 @@ class ReviewViewModel(
         }
     }
 
-    private fun handleSuccessfulReviewRecorded() {
-        reviewNotificationsStore.saveLastActiveAtMillis(timestampMillis = System.currentTimeMillis())
+    /**
+     * Updates the in-memory review window and returns true only when the simple
+     * threshold and cooldown rules both pass.
+     */
+    private fun updateHardAnswerReminderState(
+        rating: ReviewRating,
+        reviewedAtMillis: Long
+    ): Boolean {
+        recentReviewRatings = appendRecentReviewRatings(
+            recentReviewRatings = recentReviewRatings,
+            nextRating = rating
+        )
+
+        if (rating != ReviewRating.HARD) {
+            return false
+        }
+        if (shouldShowHardAnswerReminder(recentReviewRatings = recentReviewRatings).not()) {
+            return false
+        }
+        if (isHardAnswerReminderOnCooldown(
+                lastShownAtMillis = hardAnswerReminderLastShownAtMillis,
+                nowMillis = reviewedAtMillis
+            )) {
+            return false
+        }
+
+        hardAnswerReminderLastShownAtMillis = reviewedAtMillis
+        reviewPreferencesStore.saveHardAnswerReminderLastShownAt(timestampMillis = reviewedAtMillis)
+        draftState.update { state ->
+            state.copy(isHardAnswerReminderVisible = true)
+        }
+        return true
+    }
+
+    /**
+     * Records successful review bookkeeping and optionally shows the notification pre-prompt.
+     */
+    private fun handleSuccessfulReviewRecorded(
+        shouldShowNotificationPermissionPrePrompt: Boolean
+    ) {
+        val nowMillis = System.currentTimeMillis()
+        reviewNotificationsStore.saveLastActiveAtMillis(timestampMillis = nowMillis)
         val nextReviewCount = reviewNotificationsStore.loadSuccessfulReviewCount() + 1
         reviewNotificationsStore.saveSuccessfulReviewCount(count = nextReviewCount)
         onReviewNotificationsChanged(ReviewNotificationsReconcileTrigger.REVIEW_RECORDED)
+
+        if (shouldShowNotificationPermissionPrePrompt.not()) {
+            return
+        }
 
         val promptState = reviewNotificationsStore.loadPromptState()
         if (nextReviewCount < reviewNotificationPermissionPromptThreshold) {
@@ -515,6 +583,7 @@ class ReviewViewModel(
 
                 activeWorkspaceId = workspaceId
                 workspaceGeneration += 1L
+                recentReviewRatings = emptyList()
                 val restoredFilter = if (workspaceId == null) {
                     ReviewFilter.AllCards
                 } else {
@@ -692,7 +761,8 @@ private fun makeWorkspaceScopedDraftState(reviewFilter: ReviewFilter): ReviewDra
         isPreviewLoading = false,
         previewErrorMessage = "",
         errorMessage = "",
-        isNotificationPermissionPromptVisible = false
+        isNotificationPermissionPromptVisible = false,
+        isHardAnswerReminderVisible = false
     )
 }
 
@@ -710,7 +780,8 @@ private fun applyReviewFilterChange(
         isPreviewLoading = false,
         previewErrorMessage = "",
         errorMessage = "",
-        isNotificationPermissionPromptVisible = false
+        isNotificationPermissionPromptVisible = false,
+        isHardAnswerReminderVisible = false
     )
 }
 
@@ -728,7 +799,8 @@ private fun applyResolvedReviewFilter(
         isPreviewLoading = false,
         previewErrorMessage = "",
         errorMessage = "",
-        isNotificationPermissionPromptVisible = false
+        isNotificationPermissionPromptVisible = false,
+        isHardAnswerReminderVisible = false
     )
 }
 

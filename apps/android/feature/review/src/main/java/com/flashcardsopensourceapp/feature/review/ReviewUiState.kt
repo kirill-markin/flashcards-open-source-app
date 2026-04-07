@@ -29,5 +29,7 @@ data class ReviewUiState(
     val emptyState: ReviewEmptyState?,
     val previewErrorMessage: String,
     val errorMessage: String,
-    val isNotificationPermissionPromptVisible: Boolean
+    val isNotificationPermissionPromptVisible: Boolean,
+    /** Shows the non-blocking reminder about choosing Again instead of Hard. */
+    val isHardAnswerReminderVisible: Boolean
 )

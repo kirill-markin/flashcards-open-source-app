@@ -773,6 +773,34 @@
   overflow: auto;
 }
 
+.review-hard-reminder-overlay {
+  position: fixed;
+  inset: 0;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.58);
+  display: grid;
+  place-items: center;
+  z-index: 90;
+  backdrop-filter: blur(14px);
+}
+
+.review-hard-reminder-modal {
+  width: min(620px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  display: grid;
+  gap: 20px;
+}
+
+.review-hard-reminder-body {
+  max-width: 52ch;
+}
+
+.review-hard-reminder-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .review-editor-delete-btn {
   color: #ffaea9;
 }

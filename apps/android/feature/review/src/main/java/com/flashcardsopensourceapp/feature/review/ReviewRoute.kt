@@ -45,6 +45,7 @@ fun ReviewRoute(
     onRateHard: () -> Unit,
     onRateGood: () -> Unit,
     onRateEasy: () -> Unit,
+    onDismissHardAnswerReminder: () -> Unit,
     onDismissErrorMessage: () -> Unit,
     onDismissNotificationPermissionPrompt: () -> Unit,
     onContinueNotificationPermissionPrompt: () -> Unit
@@ -184,6 +185,12 @@ fun ReviewRoute(
                 isFilterSheetVisible = false
                 onOpenDeckManagement()
             }
+        )
+    }
+
+    if (uiState.isHardAnswerReminderVisible) {
+        HardAnswerReminderDialog(
+            onDismissRequest = onDismissHardAnswerReminder
         )
     }
 

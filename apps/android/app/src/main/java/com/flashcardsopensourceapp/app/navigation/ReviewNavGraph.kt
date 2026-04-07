@@ -104,6 +104,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             onRateHard = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.HARD) },
             onRateGood = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.GOOD) },
             onRateEasy = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.ReviewRating.EASY) },
+            onDismissHardAnswerReminder = reviewViewModel::dismissHardAnswerReminder,
             onDismissErrorMessage = reviewViewModel::dismissErrorMessage,
             onDismissNotificationPermissionPrompt = reviewViewModel::dismissNotificationPermissionPrompt,
             onContinueNotificationPermissionPrompt = {

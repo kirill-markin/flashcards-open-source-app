@@ -71,6 +71,9 @@ final class FlashcardsStore {
     var cloudSyncFastPollingUntil: Date?
     var pendingReviewCardIds: Set<String>
     var reviewSubmissionFailure: ReviewSubmissionFailure?
+    /// Session-only buffer used to decide when to show the frequent-"Hard" reminder.
+    @ObservationIgnored var reviewHardReminderRecentRatings: [ReviewRating]
+    var isReviewHardReminderPresented: Bool
     var currentTransientBanner: TransientBanner?
     var queuedTransientBanners: [TransientBanner]
     var reviewNotificationsSettings: ReviewNotificationsSettings
@@ -94,6 +97,7 @@ final class FlashcardsStore {
     @ObservationIgnored var lastImmediateCloudSyncTriggerAt: Date?
     @ObservationIgnored var activeReviewNotificationsRescheduleTask: Task<Void, Never>?
     @ObservationIgnored var reviewNotificationsRescheduleGeneration: Int
+    @ObservationIgnored var reviewHardReminderLastShownAt: Date?
 
     var aiChatStore: AIChatStore {
         if let cachedAIChatStore {
@@ -281,6 +285,8 @@ final class FlashcardsStore {
         self.cloudSyncFastPollingUntil = nil
         self.pendingReviewCardIds = initialReviewPublishedState.pendingReviewCardIds
         self.reviewSubmissionFailure = initialReviewPublishedState.reviewSubmissionFailure
+        self.reviewHardReminderRecentRatings = []
+        self.isReviewHardReminderPresented = false
         self.currentTransientBanner = nil
         self.queuedTransientBanners = []
         self.reviewNotificationsSettings = makeDefaultReviewNotificationsSettings()
@@ -313,6 +319,7 @@ final class FlashcardsStore {
         self.lastImmediateCloudSyncTriggerAt = nil
         self.activeReviewNotificationsRescheduleTask = nil
         self.reviewNotificationsRescheduleGeneration = 0
+        self.reviewHardReminderLastShownAt = loadReviewHardReminderLastShownAt(userDefaults: userDefaults)
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {

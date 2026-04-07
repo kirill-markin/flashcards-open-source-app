@@ -260,6 +260,25 @@ struct ReviewView: View {
         } message: {
             Text("Flashcards Open Source App can send study reminders with a card from your review queue. These notifications contain study cards only and never marketing messages.")
         }
+        .alert(
+            "Hard is for difficult recall",
+            isPresented: Binding(
+                get: {
+                    store.isReviewHardReminderPresented
+                },
+                set: { isPresented in
+                    if isPresented == false {
+                        store.dismissReviewHardReminder()
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                store.dismissReviewHardReminder()
+            }
+        } message: {
+            Text("If you did not know the answer, choose \"Again\". \"Hard\" is only for answers you knew but it was difficult to recall.")
+        }
     }
 
     private var reviewFilterMenu: some View {
