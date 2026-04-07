@@ -38,6 +38,13 @@ function createSyncIdentityExecutor(
   recordedQueries: Array<RecordedQuery>;
 }> {
   const recordedQueries: Array<RecordedQuery> = [];
+  let currentUserId: string | null = null;
+  let currentWorkspaceId: string | null = null;
+
+  function requireCurrentWorkspaceScope(userId: string, workspaceId: string): void {
+    assert.equal(currentUserId, userId);
+    assert.equal(currentWorkspaceId, workspaceId);
+  }
 
   const executor: DatabaseExecutor = {
     async query<Row extends pg.QueryResultRow>(
@@ -45,6 +52,12 @@ function createSyncIdentityExecutor(
       params: ReadonlyArray<string | number | boolean | Date | null | ReadonlyArray<string>>,
     ): Promise<pg.QueryResult<Row>> {
       recordedQueries.push({ text, params });
+
+      if (text.includes("set_config('app.user_id'")) {
+        currentUserId = typeof params[0] === "string" ? params[0] : null;
+        currentWorkspaceId = typeof params[1] === "string" && params[1] !== "" ? params[1] : null;
+        return createQueryResult<Row>([]);
+      }
 
       if (text.includes("FROM sync.claim_installation")) {
         return createQueryResult<Row>([{
@@ -60,6 +73,8 @@ function createSyncIdentityExecutor(
         if (options.expectedWorkspaceReplicaInsertCount === 0) {
           throw new Error("Workspace replica insert was not expected");
         }
+
+        requireCurrentWorkspaceScope(String(params[2]), String(params[1]));
 
         return createQueryResult<Row>([{
           replica_id: params[0],
@@ -96,11 +111,13 @@ test("ensureWorkspaceReplicaInExecutor accepts inserted, refreshed, and reassign
       appVersion: "1.2.3",
     });
 
-    assert.equal(recordedQueries.length, 2);
-    assert.match(recordedQueries[0]!.text, /FROM sync\.claim_installation/);
-    assert.deepEqual(recordedQueries[0]!.params, ["installation-1", "ios", "user-b", "1.2.3"]);
-    assert.match(recordedQueries[1]!.text, /INSERT INTO sync\.workspace_replicas/);
-    assert.equal(replicaId, recordedQueries[1]!.params[0]);
+    assert.equal(recordedQueries.length, 3);
+    assert.match(recordedQueries[0]!.text, /set_config\('app\.user_id'/);
+    assert.deepEqual(recordedQueries[0]!.params, ["user-b", "workspace-1"]);
+    assert.match(recordedQueries[1]!.text, /FROM sync\.claim_installation/);
+    assert.deepEqual(recordedQueries[1]!.params, ["installation-1", "ios", "user-b", "1.2.3"]);
+    assert.match(recordedQueries[2]!.text, /INSERT INTO sync\.workspace_replicas/);
+    assert.equal(replicaId, recordedQueries[2]!.params[0]);
   }
 });
 
@@ -126,12 +143,15 @@ test("ensureWorkspaceReplicaInExecutor raises platform mismatch without touching
     },
   );
 
-  assert.equal(recordedQueries.length, 1);
-  assert.match(recordedQueries[0]!.text, /FROM sync\.claim_installation/);
+  assert.equal(recordedQueries.length, 2);
+  assert.match(recordedQueries[0]!.text, /set_config\('app\.user_id'/);
+  assert.match(recordedQueries[1]!.text, /FROM sync\.claim_installation/);
 });
 
 test("ensureSystemWorkspaceReplicaInExecutor does not claim installations", async () => {
   const recordedQueries: Array<RecordedQuery> = [];
+  let currentUserId: string | null = null;
+  let currentWorkspaceId: string | null = null;
   const executor: DatabaseExecutor = {
     async query<Row extends pg.QueryResultRow>(
       text: string,
@@ -139,11 +159,19 @@ test("ensureSystemWorkspaceReplicaInExecutor does not claim installations", asyn
     ): Promise<pg.QueryResult<Row>> {
       recordedQueries.push({ text, params });
 
+      if (text.includes("set_config('app.user_id'")) {
+        currentUserId = typeof params[0] === "string" ? params[0] : null;
+        currentWorkspaceId = typeof params[1] === "string" && params[1] !== "" ? params[1] : null;
+        return createQueryResult<Row>([]);
+      }
+
       if (text.includes("sync.claim_installation")) {
         throw new Error("System actors must not claim client installations");
       }
 
       if (text.includes("INSERT INTO sync.workspace_replicas")) {
+        assert.equal(currentUserId, String(params[2]));
+        assert.equal(currentWorkspaceId, String(params[1]));
         return createQueryResult<Row>([{
           replica_id: params[0],
           platform: params[6],
@@ -168,12 +196,15 @@ test("ensureSystemWorkspaceReplicaInExecutor does not claim installations", asyn
   });
 
   assert.equal(replicaId, buildSystemWorkspaceReplicaId("workspace-1", "ai_chat", "chat-session-1"));
-  assert.equal(recordedQueries.length, 1);
-  assert.match(recordedQueries[0]!.text, /INSERT INTO sync\.workspace_replicas/);
+  assert.equal(recordedQueries.length, 2);
+  assert.match(recordedQueries[0]!.text, /set_config\('app\.user_id'/);
+  assert.match(recordedQueries[1]!.text, /INSERT INTO sync\.workspace_replicas/);
 });
 
 test("ensureSystemWorkspaceReplicaInExecutor accepts workspace_reset actors", async () => {
   const recordedQueries: Array<RecordedQuery> = [];
+  let currentUserId: string | null = null;
+  let currentWorkspaceId: string | null = null;
   const executor: DatabaseExecutor = {
     async query<Row extends pg.QueryResultRow>(
       text: string,
@@ -181,11 +212,19 @@ test("ensureSystemWorkspaceReplicaInExecutor accepts workspace_reset actors", as
     ): Promise<pg.QueryResult<Row>> {
       recordedQueries.push({ text, params });
 
+      if (text.includes("set_config('app.user_id'")) {
+        currentUserId = typeof params[0] === "string" ? params[0] : null;
+        currentWorkspaceId = typeof params[1] === "string" && params[1] !== "" ? params[1] : null;
+        return createQueryResult<Row>([]);
+      }
+
       if (text.includes("sync.claim_installation")) {
         throw new Error("System actors must not claim client installations");
       }
 
       if (text.includes("INSERT INTO sync.workspace_replicas")) {
+        assert.equal(currentUserId, String(params[2]));
+        assert.equal(currentWorkspaceId, String(params[1]));
         return createQueryResult<Row>([{
           replica_id: params[0],
           platform: params[6],
@@ -210,9 +249,10 @@ test("ensureSystemWorkspaceReplicaInExecutor accepts workspace_reset actors", as
   });
 
   assert.equal(replicaId, buildSystemWorkspaceReplicaId("workspace-1", "workspace_reset", "reset-progress"));
-  assert.equal(recordedQueries.length, 1);
-  assert.match(recordedQueries[0]!.text, /INSERT INTO sync\.workspace_replicas/);
-  assert.deepEqual(recordedQueries[0]!.params, [
+  assert.equal(recordedQueries.length, 2);
+  assert.match(recordedQueries[0]!.text, /set_config\('app\.user_id'/);
+  assert.match(recordedQueries[1]!.text, /INSERT INTO sync\.workspace_replicas/);
+  assert.deepEqual(recordedQueries[1]!.params, [
     replicaId,
     "workspace-1",
     "user-b",

@@ -272,6 +272,23 @@ function createMergeState(params: Readonly<{
 }
 
 function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
+  function requireCurrentUserScope(userId: string): void {
+    assert.equal(
+      state.currentUserId,
+      userId,
+      `Expected app.user_id scope ${userId}, got ${state.currentUserId ?? "null"}`,
+    );
+  }
+
+  function requireCurrentWorkspaceScope(userId: string, workspaceId: string): void {
+    requireCurrentUserScope(userId);
+    assert.equal(
+      state.currentWorkspaceId,
+      workspaceId,
+      `Expected app.workspace_id scope ${workspaceId}, got ${state.currentWorkspaceId ?? "null"}`,
+    );
+  }
+
   return {
     async query<Row extends pg.QueryResultRow>(
       text: string,
@@ -330,6 +347,7 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
 
       if (text === "INSERT INTO org.user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING") {
         const userId = String(params[0]);
+        requireCurrentUserScope(userId);
         if (!state.userSettings.has(userId)) {
           state.userSettings.set(userId, createUserSettingsState(userId, null, null));
         }
@@ -346,6 +364,7 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
       if (text === "UPDATE org.user_settings SET email = $1 WHERE user_id = $2") {
         const email = params[0] === null ? null : String(params[0]);
         const userId = String(params[1]);
+        requireCurrentUserScope(userId);
         const current = state.userSettings.get(userId);
         if (current === undefined) {
           throw new Error(`Missing user_settings row for ${userId}`);
@@ -360,6 +379,7 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
       if (text === "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2") {
         const workspaceId = String(params[0]);
         const userId = String(params[1]);
+        requireCurrentUserScope(userId);
         const current = state.userSettings.get(userId) ?? createUserSettingsState(userId, null, null);
         state.userSettings.set(userId, {
           ...current,
@@ -549,6 +569,9 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
       }
 
       if (text.includes("INSERT INTO sync.workspace_replicas")) {
+        const replicaWorkspaceId = String(params[1]);
+        const replicaUserId = String(params[2]);
+        requireCurrentWorkspaceScope(replicaUserId, replicaWorkspaceId);
         const existingReplica = state.workspaceReplicas.find((replica) => replica.replica_id === params[0]);
         if (existingReplica !== undefined) {
           return createQueryResult<Row>([]);
@@ -577,6 +600,7 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
         const replicaId = String(params[0]);
         const workspaceId = String(params[1]);
         const userId = String(params[2]);
+        requireCurrentWorkspaceScope(userId, workspaceId);
         const actorKind = String(params[3]);
         const installationId = params[4] === null ? null : String(params[4]);
         const actorKey = params[5] === null ? null : String(params[5]);

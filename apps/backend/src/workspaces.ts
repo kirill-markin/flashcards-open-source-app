@@ -412,6 +412,7 @@ function toWorkspaceSchedulerSyncPayloadJson(row: WorkspaceSchedulerSeedRow): st
 }
 
 async function ensureUserSettingsRowInExecutor(executor: DatabaseExecutor, userId: string): Promise<void> {
+  await applyUserDatabaseScopeInExecutor(executor, { userId });
   await executor.query(
     "INSERT INTO org.user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING",
     [userId],

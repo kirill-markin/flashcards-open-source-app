@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
-import { transactionWithWorkspaceScope, type DatabaseExecutor } from "./db";
+import {
+  applyWorkspaceDatabaseScopeInExecutor,
+  transactionWithWorkspaceScope,
+  type DatabaseExecutor,
+} from "./db";
 import { HttpError } from "./errors";
 
 export type SyncClientPlatform = "ios" | "android" | "web";
@@ -181,6 +185,10 @@ export async function ensureWorkspaceReplicaInExecutor(
   executor: DatabaseExecutor,
   params: EnsureClientWorkspaceReplicaParams,
 ): Promise<string> {
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: params.userId,
+    workspaceId: params.workspaceId,
+  });
   await ensureInstallationInExecutor(
     executor,
     params.userId,
@@ -232,6 +240,10 @@ export async function ensureSystemWorkspaceReplicaInExecutor(
   params: EnsureSystemWorkspaceReplicaParams,
   explicitReplicaId?: string,
 ): Promise<string> {
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: params.userId,
+    workspaceId: params.workspaceId,
+  });
   const replicaId = explicitReplicaId ?? buildSystemWorkspaceReplicaId(
     params.workspaceId,
     params.actorKind,
