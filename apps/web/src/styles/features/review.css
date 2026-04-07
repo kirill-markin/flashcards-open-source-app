@@ -235,6 +235,14 @@
   flex-wrap: wrap;
 }
 
+.review-pane-head-actions {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .review-pane-edit-btn {
   flex-shrink: 0;
 }
@@ -796,6 +804,15 @@
   .review-pane,
   .review-queue-panel {
     padding: 12px;
+  }
+
+  .review-pane-head-actions {
+    width: auto;
+  }
+
+  .review-pane-head-actions > .ghost-btn,
+  .review-pane-head-actions > .primary-btn {
+    width: auto;
   }
 
   .review-card-surface {
