@@ -28,6 +28,13 @@ extension AIChatStore {
             inputText: self.inputText,
             pendingAttachments: self.pendingAttachments
         )
+        if self.chatSessionId.isEmpty && self.messages.isEmpty && draft.isEmpty && self.activeRunId == nil {
+            self.applyComposerDraft(inputText: "", pendingAttachments: [attachment])
+            self.schedulePersistCurrentDraftState()
+            self.activeAlert = nil
+            self.repairStatus = nil
+            return true
+        }
         if self.shouldAutoStartFreshLocalSession(persistedState: self.currentPersistedState()) {
             self.startFreshLocalSession(
                 inputText: "",
@@ -85,13 +92,6 @@ extension AIChatStore {
         self.invalidatePendingNewSessionRequest()
         self.resetLocalHistoryState()
         self.bootstrapPhase = .loading
-    }
-
-    func activateWorkspace() {
-        self.activateAccessContext(
-            force: true,
-            nextAccessContext: self.currentAccessContext()
-        )
     }
 
     func refreshAccessContextIfNeeded() {

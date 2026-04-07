@@ -49,6 +49,72 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
+    func tapButtonPreservingAlerts(identifier: String, timeout: TimeInterval) throws {
+        let button = self.app.buttons[identifier].firstMatch
+        try self.runWithInlineRawScreenStateOnFailure(action: "tap_button_preserving_alerts.\(identifier)") {
+            if self.waitForOptionalElement(
+                button,
+                identifier: identifier,
+                timeout: timeout
+            ) == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: identifier,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            if button.isEnabled == false {
+                throw LiveSmokeFailure.disabledElement(
+                    identifier: identifier,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            self.logActionStart(action: "tap_button_preserving_alerts", identifier: identifier)
+            button.tap()
+            self.logActionEnd(
+                action: "tap_button_preserving_alerts",
+                identifier: identifier,
+                result: "success",
+                note: "button tapped without alert dismissal"
+            )
+        }
+    }
+
+    @MainActor
+    func tapButtonScrollingIntoView(identifier: String, timeout: TimeInterval) throws {
+        let button = self.app.buttons[identifier].firstMatch
+        try self.runWithInlineRawScreenStateOnFailure(action: "tap_button_scrolling_into_view.\(identifier)") {
+            let deadline = Date().addingTimeInterval(timeout)
+
+            while Date() < deadline {
+                if button.exists && button.isHittable {
+                    try self.tapExistingButton(
+                        button,
+                        identifier: identifier,
+                        action: "tap_button_scrolling_into_view",
+                        note: "button tapped after scrolling into view"
+                    )
+                    return
+                }
+
+                self.scrollBestEffort()
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
     func tapCell(identifier: String, timeout: TimeInterval) throws {
         let cell = self.app.cells[identifier].firstMatch
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_cell.\(identifier)") {
@@ -92,6 +158,44 @@ extension LiveSmokeTestCase {
                 identifier: identifier,
                 action: "tap_alert_button",
                 note: "alert button tapped"
+            )
+        }
+    }
+
+    @MainActor
+    func tapAlertButtonPreservingAlerts(label: String, timeout: TimeInterval) throws {
+        let identifier = "alert.\(label)"
+        let button = self.app.alerts.buttons[label].firstMatch
+        try self.runWithInlineRawScreenStateOnFailure(action: "tap_alert_button_preserving_alerts.\(label)") {
+            let deadline = Date().addingTimeInterval(timeout)
+            while Date() < deadline && button.exists == false {
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+
+            if button.exists == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: identifier,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            if button.isEnabled == false {
+                throw LiveSmokeFailure.disabledElement(
+                    identifier: identifier,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            self.logActionStart(action: "tap_alert_button_preserving_alerts", identifier: identifier)
+            button.tap()
+            self.logActionEnd(
+                action: "tap_alert_button_preserving_alerts",
+                identifier: identifier,
+                result: "success",
+                note: "alert button tapped without dismissal"
             )
         }
     }
@@ -206,6 +310,23 @@ extension LiveSmokeTestCase {
         button.tap()
         _ = self.dismissKnownBlockingAlertIfVisible()
         self.logActionEnd(action: action, identifier: identifier, result: "success", note: note)
+    }
+
+    @MainActor
+    private func scrollBestEffort() {
+        let scrollView = self.app.scrollViews.firstMatch
+        if scrollView.exists {
+            scrollView.swipeUp()
+            return
+        }
+
+        let table = self.app.tables.firstMatch
+        if table.exists {
+            table.swipeUp()
+            return
+        }
+
+        self.app.swipeUp()
     }
 
     @MainActor

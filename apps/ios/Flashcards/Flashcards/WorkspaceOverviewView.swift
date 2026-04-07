@@ -77,14 +77,17 @@ struct WorkspaceOverviewView: View {
             Section("Today") {
                 LabeledContent("Due") {
                     Text("\(self.overviewSnapshot?.dueCount ?? 0)")
+                        .accessibilityIdentifier(UITestIdentifier.workspaceOverviewDueCount)
                 }
 
                 LabeledContent("New") {
                     Text("\(self.overviewSnapshot?.newCount ?? 0)")
+                        .accessibilityIdentifier(UITestIdentifier.workspaceOverviewNewCount)
                 }
 
                 LabeledContent("Reviewed") {
                     Text("\(self.overviewSnapshot?.reviewedCount ?? 0)")
+                        .accessibilityIdentifier(UITestIdentifier.workspaceOverviewReviewedCount)
                 }
             }
 

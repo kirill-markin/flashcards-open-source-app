@@ -10,7 +10,6 @@ struct ResetWorkspaceProgressConfirmationView: View {
     @State private var resetErrorMessage: String = ""
     @State private var isLoadingPreview: Bool = false
     @State private var isResetting: Bool = false
-    @State private var isPreviewPresented: Bool = false
     @FocusState private var isConfirmationFieldFocused: Bool
 
     private var isConfirmationMatched: Bool {
@@ -24,59 +23,14 @@ struct ResetWorkspaceProgressConfirmationView: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Warning! This action is permanent. It will clear study progress for every card in this workspace.")
-                    .foregroundStyle(.red)
-                    .font(.headline)
-
-                Text("Cards will remain in place. Their study progress will return to new.")
-                    .foregroundStyle(.secondary)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Type this phrase exactly to continue:")
-                        .foregroundStyle(.secondary)
-                    Text(workspaceResetProgressConfirmationText)
-                        .font(.body.monospaced())
-                        .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressConfirmationPhrase)
+                if let preview {
+                    self.previewContent(preview: preview)
+                } else {
+                    self.confirmationContent()
                 }
-
-                TextField("reset all progress for all cards in this workspace", text: self.$confirmationText)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled(true)
-                    .keyboardType(.asciiCapable)
-                    .textFieldStyle(.roundedBorder)
-                    .submitLabel(.done)
-                    .focused(self.$isConfirmationFieldFocused)
-                    .onSubmit {
-                        self.isConfirmationFieldFocused = false
-                        self.requestPreview()
-                    }
-                    .onChange(of: self.confirmationText) { _, _ in
-                        self.previewErrorMessage = ""
-                    }
-                    .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressConfirmationField)
-
-                if self.previewErrorMessage.isEmpty == false {
-                    CopyableErrorMessageView(message: self.previewErrorMessage)
-                }
-
-                if self.isLoadingPreview {
-                    ProgressView()
-                    Text("Loading reset preview...")
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Button(self.isLoadingPreview ? "Loading..." : "Continue") {
-                    self.requestPreview()
-                }
-                .buttonStyle(.glassProminent)
-                .tint(.red)
-                .disabled(self.isConfirmationMatched == false || self.isOperationInProgress)
-                .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressContinueButton)
             }
             .padding(24)
-            .navigationTitle("Reset all progress")
+            .navigationTitle(self.preview == nil ? "Reset all progress" : "Confirm reset")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -88,24 +42,103 @@ struct ResetWorkspaceProgressConfirmationView: View {
             }
         }
         .task {
-            self.isConfirmationFieldFocused = true
-        }
-        .interactiveDismissDisabled(self.isOperationInProgress)
-        .navigationDestination(isPresented: self.$isPreviewPresented) {
-            if let preview = self.preview {
-                ResetWorkspaceProgressPreviewView(
-                    preview: preview,
-                    isResetting: self.isResetting,
-                    errorMessage: self.resetErrorMessage,
-                    onCancel: {
-                        self.isPresented = false
-                    },
-                    onReset: {
-                        self.requestReset()
-                    }
-                )
+            if self.preview == nil {
+                self.isConfirmationFieldFocused = true
             }
         }
+        .interactiveDismissDisabled(self.isOperationInProgress)
+    }
+
+    @ViewBuilder
+    private func confirmationContent() -> some View {
+        Text("Warning! This action is permanent. It will clear study progress for every card in this workspace.")
+            .foregroundStyle(.red)
+            .font(.headline)
+
+        Text("Cards will remain in place. Their study progress will return to new.")
+            .foregroundStyle(.secondary)
+
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Type this phrase exactly to continue:")
+                .foregroundStyle(.secondary)
+            Text(workspaceResetProgressConfirmationText)
+                .font(.body.monospaced())
+                .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressConfirmationPhrase)
+        }
+
+        TextField("reset all progress for all cards in this workspace", text: self.$confirmationText)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled(true)
+            .keyboardType(.asciiCapable)
+            .textFieldStyle(.roundedBorder)
+            .submitLabel(.done)
+            .focused(self.$isConfirmationFieldFocused)
+            .onSubmit {
+                self.isConfirmationFieldFocused = false
+                self.requestPreview()
+            }
+            .onChange(of: self.confirmationText) { _, _ in
+                self.previewErrorMessage = ""
+            }
+            .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressConfirmationField)
+
+        if self.previewErrorMessage.isEmpty == false {
+            CopyableErrorMessageView(message: self.previewErrorMessage)
+        }
+
+        if self.isLoadingPreview {
+            ProgressView()
+            Text("Loading reset preview...")
+                .foregroundStyle(.secondary)
+        }
+
+        Spacer()
+
+        Button(self.isLoadingPreview ? "Loading..." : "Continue") {
+            self.requestPreview()
+        }
+        .buttonStyle(.glassProminent)
+        .tint(.red)
+        .disabled(self.isConfirmationMatched == false || self.isOperationInProgress)
+        .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressContinueButton)
+    }
+
+    @ViewBuilder
+    private func previewContent(preview: CloudWorkspaceResetProgressPreview) -> some View {
+        Text("Warning! This action is permanent. It will reset \(preview.cardsToResetCount) cards in \(preview.workspaceName).")
+            .foregroundStyle(.red)
+            .font(.headline)
+
+        Text("Cards will remain in the workspace. Only their study progress will be cleared.")
+            .foregroundStyle(.secondary)
+
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Cards to reset")
+                .foregroundStyle(.secondary)
+            Text("\(preview.cardsToResetCount)")
+                .font(.largeTitle.bold().monospacedDigit())
+                .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressCardsCount)
+        }
+
+        if self.resetErrorMessage.isEmpty == false {
+            CopyableErrorMessageView(message: self.resetErrorMessage)
+        }
+
+        if self.isResetting {
+            ProgressView()
+            Text("Resetting progress...")
+                .foregroundStyle(.secondary)
+        }
+
+        Spacer()
+
+        Button(self.isResetting ? "Resetting..." : "Reset all progress", role: .destructive) {
+            self.requestReset(preview: preview)
+        }
+        .buttonStyle(.glassProminent)
+        .tint(.red)
+        .disabled(self.isResetting)
+        .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressButton)
     }
 
     private func requestPreview() {
@@ -129,16 +162,15 @@ struct ResetWorkspaceProgressConfirmationView: View {
         do {
             let preview = try await self.store.loadCurrentWorkspaceResetProgressPreview()
             self.preview = preview
-            self.isPreviewPresented = true
+            self.isLoadingPreview = false
         } catch {
             self.preview = nil
             self.previewErrorMessage = Flashcards.errorMessage(error: error)
+            self.isLoadingPreview = false
         }
-
-        self.isLoadingPreview = false
     }
 
-    private func requestReset() {
+    private func requestReset(preview: CloudWorkspaceResetProgressPreview) {
         guard self.preview != nil else {
             return
         }
@@ -150,13 +182,13 @@ struct ResetWorkspaceProgressConfirmationView: View {
         self.resetErrorMessage = ""
 
         Task {
-            await self.performReset()
+            await self.performReset(preview: preview)
         }
     }
 
     @MainActor
-    private func performReset() async {
-        guard let preview = self.preview else {
+    private func performReset(preview: CloudWorkspaceResetProgressPreview) async {
+        guard self.preview != nil else {
             self.isResetting = false
             return
         }
@@ -169,65 +201,6 @@ struct ResetWorkspaceProgressConfirmationView: View {
             self.resetErrorMessage = Flashcards.errorMessage(error: error)
             self.isResetting = false
         }
-    }
-}
-
-private struct ResetWorkspaceProgressPreviewView: View {
-    let preview: CloudWorkspaceResetProgressPreview
-    let isResetting: Bool
-    let errorMessage: String
-    let onCancel: () -> Void
-    let onReset: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Warning! This action is permanent. It will reset \(self.preview.cardsToResetCount) cards in \(self.preview.workspaceName).")
-                .foregroundStyle(.red)
-                .font(.headline)
-
-            Text("Cards will remain in the workspace. Only their study progress will be cleared.")
-                .foregroundStyle(.secondary)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Cards to reset")
-                    .foregroundStyle(.secondary)
-                Text("\(self.preview.cardsToResetCount)")
-                    .font(.largeTitle.bold().monospacedDigit())
-                    .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressCardsCount)
-            }
-
-            if self.errorMessage.isEmpty == false {
-                CopyableErrorMessageView(message: self.errorMessage)
-            }
-
-            if self.isResetting {
-                ProgressView()
-                Text("Resetting progress...")
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            Button(self.isResetting ? "Resetting..." : "Reset all progress", role: .destructive) {
-                self.onReset()
-            }
-            .buttonStyle(.glassProminent)
-            .tint(.red)
-            .disabled(self.isResetting)
-            .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressButton)
-        }
-        .padding(24)
-        .navigationTitle("Confirm reset")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
-                    self.onCancel()
-                }
-                .disabled(self.isResetting)
-            }
-        }
-        .interactiveDismissDisabled(self.isResetting)
     }
 }
 

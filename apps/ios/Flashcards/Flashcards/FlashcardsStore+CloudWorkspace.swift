@@ -173,6 +173,13 @@ extension FlashcardsStore {
         let workspaceId = try requireWorkspaceId(workspace: self.workspace)
         let preview = try await self.withAuthenticatedCloudSession { session in
             let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+            let syncResult = try await self.runLinkedSync(linkedSession: session)
+            let now = Date()
+            try await self.applySyncResultWithoutBlockingReset(
+                syncResult: syncResult,
+                now: now,
+                trigger: self.manualCloudSyncTrigger(now: now)
+            )
             return try await cloudSyncService.loadWorkspaceResetProgressPreview(
                 apiBaseUrl: session.apiBaseUrl,
                 bearerToken: session.bearerToken,
@@ -256,6 +263,13 @@ extension FlashcardsStore {
         do {
             let resetResult = try await self.withAuthenticatedCloudSession { session in
                 let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.dependencies.cloudSyncService)
+                let syncResult = try await self.runLinkedSync(linkedSession: session)
+                let now = Date()
+                try await self.applySyncResultWithoutBlockingReset(
+                    syncResult: syncResult,
+                    now: now,
+                    trigger: self.manualCloudSyncTrigger(now: now)
+                )
                 let response = try await cloudSyncService.resetWorkspaceProgress(
                     apiBaseUrl: session.apiBaseUrl,
                     bearerToken: session.bearerToken,

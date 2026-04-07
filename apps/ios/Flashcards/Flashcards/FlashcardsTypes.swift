@@ -462,6 +462,10 @@ struct CloudWorkspaceResetProgressPreview: Codable, Hashable, Sendable {
     let workspaceName: String
     let cardsToResetCount: Int
     let confirmationText: String
+
+    var id: String {
+        self.workspaceId
+    }
 }
 
 struct CloudWorkspaceResetProgressResult: Codable, Hashable, Sendable {

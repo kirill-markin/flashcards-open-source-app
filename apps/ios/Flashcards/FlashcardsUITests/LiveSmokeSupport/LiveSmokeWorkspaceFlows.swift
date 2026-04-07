@@ -19,19 +19,30 @@ extension LiveSmokeTestCase {
         reviewEmail: String,
         scenario: () throws -> Void
     ) throws {
-        try self.launchApplication(resetState: .localGuest, selectedTab: .settings)
+        try self.launchApplication(
+            resetState: .localGuest,
+            selectedTab: .settings
+        )
 
         var primaryFailure: Error?
         var shouldDeleteWorkspace = false
 
         do {
+            var didCreateWorkspaceInChooser = false
             try self.step("sign in with the configured review account") {
-                try self.signInWithReviewAccount(reviewEmail: reviewEmail)
+                didCreateWorkspaceInChooser = try self.signInWithReviewAccount(reviewEmail: reviewEmail)
             }
 
-            try self.step("create an isolated linked workspace for this run") {
-                try self.createEphemeralWorkspace(workspaceName: context.workspaceName)
-                shouldDeleteWorkspace = true
+            if didCreateWorkspaceInChooser == false {
+                try self.step("create an isolated workspace after auto-linking") {
+                    try self.createWorkspaceFromCurrentWorkspaceSelection()
+                }
+            }
+
+            shouldDeleteWorkspace = true
+
+            try self.step("rename the linked workspace for this run") {
+                try self.renameLinkedWorkspace(workspaceName: context.workspaceName)
             }
 
             try scenario()
@@ -76,7 +87,7 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
-    func signInWithReviewAccount(reviewEmail: String) throws {
+    func signInWithReviewAccount(reviewEmail: String) throws -> Bool {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.openAccountStatus()
 
@@ -103,7 +114,11 @@ extension LiveSmokeTestCase {
                 identifier: LiveSmokeIdentifier.cloudSignInSendCodeButton,
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
-            try self.completeCloudWorkspaceSelectionIfNeeded()
+            let didUseWorkspaceChooser = try self.completeCloudWorkspaceSelectionIfNeeded()
+            try self.assertLinkedEmailVisible(reviewEmail: reviewEmail, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+            try self.tapFirstNavigationBackButton()
+            try self.tapFirstNavigationBackButton()
+            return didUseWorkspaceChooser
         } else if self.isAccountStatusLinked() {
             let visibleEmail = self.visibleLinkedEmailLabel()
             if visibleEmail?.contains(reviewEmail) == false {
@@ -113,23 +128,25 @@ extension LiveSmokeTestCase {
                     step: self.currentStepTitle
                 )
             }
+            try self.assertLinkedEmailVisible(reviewEmail: reviewEmail, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+            try self.tapFirstNavigationBackButton()
+            try self.tapFirstNavigationBackButton()
+            return false
+        } else {
+            throw LiveSmokeFailure.unexpectedAccountState(
+                message: "Expected sign-in or linked account state, but neither was visible.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
         }
-
-        try self.assertLinkedEmailVisible(reviewEmail: reviewEmail, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-        try self.assertElementExists(
-            identifier: LiveSmokeIdentifier.accountStatusSyncNowButton,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.tapFirstNavigationBackButton()
-        try self.tapFirstNavigationBackButton()
     }
 
     @MainActor
-    func createEphemeralWorkspace(workspaceName: String) throws {
+    func createWorkspaceFromCurrentWorkspaceSelection() throws {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButton(
+        try self.tapButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.settingsCurrentWorkspaceRow,
-            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         try self.assertScreenVisible(screen: .currentWorkspace, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.tapButton(
@@ -137,12 +154,18 @@ extension LiveSmokeTestCase {
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
         try self.assertCurrentWorkspacePickerIsVisible()
-        try self.tapButton(
+        try self.tapButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.currentWorkspaceCreateButton,
-            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
+        try self.assertScreenVisible(screen: .currentWorkspace, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.tapFirstNavigationBackButton()
+        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+    }
 
+    @MainActor
+    func renameLinkedWorkspace(workspaceName: String) throws {
+        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.tapButton(
             identifier: LiveSmokeIdentifier.settingsWorkspaceSettingsRow,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -180,12 +203,12 @@ extension LiveSmokeTestCase {
         )
         _ = self.dismissKnownBlockingAlertIfVisible()
         try self.openWorkspaceOverviewFromSettings()
-        try self.tapButton(
+        try self.tapButtonPreservingAlerts(
             identifier: LiveSmokeIdentifier.workspaceOverviewDeleteWorkspaceButton,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
 
-        try self.tapAlertButton(label: "Continue", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.tapAlertButtonPreservingAlerts(label: "Continue", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
 
         let confirmationPhrase = self.app.staticTexts[LiveSmokeIdentifier.deleteWorkspaceConfirmationPhrase]
         if self.waitForOptionalElement(
@@ -222,14 +245,78 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
-    func openAccountStatus() throws {
+    func openWorkspaceResetProgressFlow() throws {
+        try self.tapTabBarItem(named: LiveSmokeScreen.settings.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.tapButton(
+            identifier: LiveSmokeIdentifier.settingsWorkspaceSettingsRow,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+        try self.assertScreenVisible(screen: .workspaceSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButtonPreservingAlerts(
+            identifier: LiveSmokeIdentifier.workspaceSettingsResetProgressButton,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.tapAlertButtonPreservingAlerts(label: "Continue", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.resetWorkspaceProgressConfirmationPhrase,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+    }
+
+    @MainActor
+    func loadWorkspaceResetProgressConfirmationPhrase() throws -> String {
+        let phraseElement = self.app.staticTexts[LiveSmokeIdentifier.resetWorkspaceProgressConfirmationPhrase].firstMatch
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.resetWorkspaceProgressConfirmationPhrase,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+
+        let confirmationPhrase = phraseElement.label.trimmingCharacters(in: .whitespacesAndNewlines)
+        if confirmationPhrase.isEmpty {
+            throw LiveSmokeFailure.missingText(
+                text: "reset all progress for all cards in this workspace",
+                timeoutSeconds: LiveSmokeConfiguration.shortUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        return confirmationPhrase
+    }
+
+    @MainActor
+    func confirmWorkspaceResetProgressPreview(expectedCardsToResetCount: Int) throws {
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.resetWorkspaceProgressCardsCount,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertElementLabel(
+            identifier: LiveSmokeIdentifier.resetWorkspaceProgressCardsCount,
+            expectedLabel: String(expectedCardsToResetCount),
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+    }
+
+    @MainActor
+    func openWorkspaceOverviewFromWorkspaceSettings() throws {
+        try self.assertScreenVisible(screen: .workspaceSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButtonScrollingIntoView(
+            identifier: LiveSmokeIdentifier.workspaceSettingsOverviewRow,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertScreenVisible(screen: .workspaceOverview, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+    }
+
+    @MainActor
+    func openAccountStatus() throws {
+        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.settingsAccountSettingsRow,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButton(
+        try self.tapButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.accountSettingsAccountStatusRow,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
@@ -239,12 +326,12 @@ extension LiveSmokeTestCase {
     @MainActor
     func openAccountDangerZone() throws {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButton(
+        try self.tapButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.settingsAccountSettingsRow,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButton(
+        try self.tapButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.accountSettingsDangerZoneRow,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
@@ -254,14 +341,14 @@ extension LiveSmokeTestCase {
     @MainActor
     func openWorkspaceOverviewFromSettings() throws {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButton(
+        try self.tapButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.settingsWorkspaceSettingsRow,
-            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         try self.assertScreenVisible(screen: .workspaceSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButton(
+        try self.tapButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.workspaceSettingsOverviewRow,
-            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         try self.assertScreenVisible(screen: .workspaceOverview, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
     }
@@ -276,19 +363,12 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
-    func completeCloudWorkspaceSelectionIfNeeded() throws {
+    func completeCloudWorkspaceSelectionIfNeeded() throws -> Bool {
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
-        let existingWorkspacePredicate = NSPredicate(
-            format: "identifier BEGINSWITH %@",
-            "cloudSignIn.existingWorkspace."
-        )
+        var didUseWorkspaceChooser = false
 
         while Date() < deadline {
             _ = self.dismissKnownBlockingAlertIfVisible()
-
-            if self.isAccountStatusLinked() {
-                return
-            }
 
             let chooserScreen = self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.cloudWorkspaceChooserScreen)
@@ -300,36 +380,100 @@ extension LiveSmokeTestCase {
             )
 
             if chooserVisible {
-                let existingWorkspaceButton = self.app.buttons.matching(existingWorkspacePredicate).firstMatch
-                if self.waitForOptionalElement(
-                    existingWorkspaceButton,
-                    identifier: "cloudSignIn.existingWorkspace.first",
-                    timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds
-                ) && existingWorkspaceButton.isEnabled {
-                    try self.tapButton(
-                        button: existingWorkspaceButton,
-                        identifier: "cloudSignIn.existingWorkspace.first",
-                        timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds
-                    )
-                    continue
+                if try self.tryCreateWorkspaceInChooser() {
+                    didUseWorkspaceChooser = true
+                } else {
+                    try self.tapFirstExistingWorkspaceButtonInChooser()
                 }
+                continue
+            }
 
-                let createWorkspaceButton = self.app.buttons[LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton]
-                if self.waitForOptionalElement(
-                    createWorkspaceButton,
-                    identifier: LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton,
-                    timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds
-                ) && createWorkspaceButton.isEnabled {
-                    try self.tapButton(
-                        identifier: LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton,
-                        timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds
-                    )
-                    continue
-                }
+            if self.isAccountStatusLinked() {
+                return didUseWorkspaceChooser
             }
 
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
         }
+
+        throw LiveSmokeFailure.unexpectedAccountState(
+            message: "Timed out waiting for linked account state after post-auth workspace selection.",
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+
+    @MainActor
+    func scrollWorkspaceChooserToCreateWorkspaceButton() throws {
+        let chooserList = self.app.collectionViews[LiveSmokeIdentifier.cloudWorkspaceChooserScreen].firstMatch
+        let createButton = self.app.buttons[LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton].firstMatch
+        let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
+
+        while Date() < deadline {
+            if createButton.exists && createButton.isHittable {
+                return
+            }
+
+            if chooserList.exists {
+                chooserList.swipeUp()
+            } else {
+                self.app.swipeUp()
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+        }
+
+        throw LiveSmokeFailure.missingElement(
+            identifier: LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton,
+            timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+
+    @MainActor
+    func tryCreateWorkspaceInChooser() throws -> Bool {
+        do {
+            try self.scrollWorkspaceChooserToCreateWorkspaceButton()
+            try self.tapButton(
+                identifier: LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    @MainActor
+    func tapFirstExistingWorkspaceButtonInChooser() throws {
+        let chooserList = self.app.collectionViews[LiveSmokeIdentifier.cloudWorkspaceChooserScreen].firstMatch
+        let existingWorkspaceButton = chooserList.buttons
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "cloudSignIn.existingWorkspace."))
+            .firstMatch
+
+        if existingWorkspaceButton.exists == false {
+            throw LiveSmokeFailure.missingElement(
+                identifier: "cloudSignIn.existingWorkspace.*",
+                timeoutSeconds: LiveSmokeConfiguration.shortUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        let identifier = existingWorkspaceButton.identifier
+        if identifier.isEmpty {
+            throw LiveSmokeFailure.missingElement(
+                identifier: "cloudSignIn.existingWorkspace.*",
+                timeoutSeconds: LiveSmokeConfiguration.shortUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        try self.tapButton(
+            identifier: identifier,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
     }
 
     @MainActor

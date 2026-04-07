@@ -426,10 +426,13 @@ struct AIChatView: View {
     }
 
     func acceptExternalAIConsent() {
+        guard self.chatStore.hasExternalProviderConsent == false else {
+            return
+        }
+
         self.chatStore.acceptExternalProviderConsent()
-        self.chatStore.activateWorkspace()
         self.syncChatSurface(refreshConsent: false)
-        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+        self.handleAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
     }
 
     func refreshExternalAIConsentState() {
@@ -476,9 +479,11 @@ struct AIChatView: View {
     }
 
     func handleAIChatPresentationRequest(request: AIChatPresentationRequest?) {
-        guard let request else {
+        let resolvedRequest = request ?? self.navigation.aiChatPresentationRequest ?? self.deferredPresentationRequest
+        guard let resolvedRequest else {
             return
         }
+        self.captureAIChatPresentationRequest(request: resolvedRequest)
         guard self.chatStore.hasExternalProviderConsent else {
             return
         }
@@ -486,7 +491,7 @@ struct AIChatView: View {
             return
         }
 
-        let didApplyRequest = self.chatStore.applyPresentationRequest(request: request)
+        let didApplyRequest = self.chatStore.applyPresentationRequest(request: resolvedRequest)
         guard didApplyRequest else {
             return
         }

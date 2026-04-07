@@ -89,11 +89,7 @@ extension FlashcardsStore {
         self.globalErrorMessage = ""
         self.reloadReviewNotificationsSettings()
         self.localReadVersion += 1
-        if didSwitchWorkspace {
-            self.cachedAIChatStore?.activateWorkspace()
-        } else {
-            self.cachedAIChatStore?.refreshAccessContextIfNeeded()
-        }
+        self.cachedAIChatStore?.refreshAccessContextIfNeeded()
         self.refreshReviewState(now: now)
         self.reconcileReviewNotifications(trigger: .workspaceChanged, now: now)
     }

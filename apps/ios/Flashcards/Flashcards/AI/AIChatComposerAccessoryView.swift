@@ -62,6 +62,7 @@ extension AIChatView {
                                         Text(aiChatCardAttachmentLabel(card: card))
                                             .font(.caption)
                                             .lineLimit(1)
+                                            .accessibilityIdentifier(UITestIdentifier.aiComposerCardAttachmentChip)
                                     case .unknown(let unknownAttachment):
                                         Image(systemName: "questionmark.square.dashed")
                                             .foregroundStyle(.secondary)
@@ -80,7 +81,6 @@ extension AIChatView {
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 8)
                                 .background(.thinMaterial, in: Capsule())
-                                .accessibilityIdentifier(aiChatComposerAttachmentIdentifier(attachment: attachment))
                             }
                         }
                     }
@@ -236,16 +236,5 @@ extension AIChatView {
 
     var composerTextFieldDisabled: Bool {
         self.chatStore.isChatInteractive == false || self.chatStore.dictationState != .idle
-    }
-}
-
-private func aiChatComposerAttachmentIdentifier(attachment: AIChatAttachment) -> String {
-    switch attachment.payload {
-    case .binary:
-        return attachment.id
-    case .card:
-        return UITestIdentifier.aiComposerCardAttachmentChip
-    case .unknown:
-        return attachment.id
     }
 }
