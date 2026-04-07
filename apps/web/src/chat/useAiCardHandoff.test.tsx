@@ -2,23 +2,18 @@
 import { act, createElement } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { chatRoute } from "../routes";
 import type { Card } from "../types";
 
 const {
-  navigateMock,
   setErrorMessageMock,
+  useOptionalChatLayoutMock,
   useOptionalChatDraftMock,
   useOptionalChatSessionMock,
 } = vi.hoisted(() => ({
-  navigateMock: vi.fn(),
   setErrorMessageMock: vi.fn(),
+  useOptionalChatLayoutMock: vi.fn(),
   useOptionalChatDraftMock: vi.fn(),
   useOptionalChatSessionMock: vi.fn(),
-}));
-
-vi.mock("react-router-dom", () => ({
-  useNavigate: () => navigateMock,
 }));
 
 vi.mock("../appData", () => ({
@@ -29,6 +24,10 @@ vi.mock("../appData", () => ({
 
 vi.mock("./ChatDraftContext", () => ({
   useOptionalChatDraft: useOptionalChatDraftMock,
+}));
+
+vi.mock("./ChatLayoutContext", () => ({
+  useOptionalChatLayout: useOptionalChatLayoutMock,
 }));
 
 vi.mock("./ChatSessionControllerContext", () => ({
@@ -87,8 +86,8 @@ describe("useAiCardHandoff", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
-    navigateMock.mockReset();
     setErrorMessageMock.mockReset();
+    useOptionalChatLayoutMock.mockReset();
     useOptionalChatDraftMock.mockReset();
     useOptionalChatSessionMock.mockReset();
   });
@@ -107,7 +106,12 @@ describe("useAiCardHandoff", () => {
     const replaceDraftForSession = vi.fn();
     const requestComposerFocus = vi.fn();
     const clearConversation = vi.fn(async (): Promise<string> => "session-2");
+    const setIsOpen = vi.fn();
 
+    useOptionalChatLayoutMock.mockReturnValue({
+      isOpen: false,
+      setIsOpen,
+    });
     useOptionalChatDraftMock.mockReturnValue({
       draft: {
         workspaceId: "workspace-1",
@@ -157,14 +161,20 @@ describe("useAiCardHandoff", () => {
       })],
     });
     expect(requestComposerFocus).toHaveBeenCalledTimes(1);
-    expect(navigateMock).toHaveBeenCalledWith(chatRoute);
+    expect(setIsOpen).toHaveBeenCalledTimes(1);
+    expect(setIsOpen).toHaveBeenCalledWith(true);
   });
 
   it("reuses the current empty idle session without clearing another draft", async () => {
     const replaceDraftForSession = vi.fn();
     const requestComposerFocus = vi.fn();
     const clearConversation = vi.fn();
+    const setIsOpen = vi.fn();
 
+    useOptionalChatLayoutMock.mockReturnValue({
+      isOpen: true,
+      setIsOpen,
+    });
     useOptionalChatDraftMock.mockReturnValue({
       draft: {
         workspaceId: "workspace-1",
@@ -207,6 +217,6 @@ describe("useAiCardHandoff", () => {
       })],
     });
     expect(requestComposerFocus).toHaveBeenCalledTimes(1);
-    expect(navigateMock).toHaveBeenCalledWith(chatRoute);
+    expect(setIsOpen).not.toHaveBeenCalled();
   });
 });
