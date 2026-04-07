@@ -6,6 +6,14 @@ import org.junit.Test
 
 class ReviewNotificationsManagerTest {
     @Test
+    fun reviewReminderNotificationTagUsesDedicatedPrefix() {
+        assertEquals(
+            "review-notification::request-123",
+            reviewReminderNotificationTag(requestId = "request-123")
+        )
+    }
+
+    @Test
     fun consumeAppNotificationTapRequestReturnsRequestOnlyOncePerIntent() {
         val extras = mutableMapOf(
             "$appNotificationTapExtraPrefix::$appNotificationTapTypeDataKey" to AppNotificationTapType.REVIEW_REMINDER.rawValue
