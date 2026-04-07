@@ -13,8 +13,7 @@ struct AIChatView: View {
     @State var isFileImporterPresented: Bool
     @State var isPhotoPickerPresented: Bool
     @State var selectedPhotoItem: PhotosPickerItem?
-    @State var isNearBottom: Bool
-    @State var isUserScrolling: Bool
+    @State var isAutoFollowEnabled: Bool
     @State var scrollPosition: ScrollPosition
     @State var autoScrollTask: Task<Void, Never>?
     @State var shouldRestoreComposerFocusAfterDictation: Bool
@@ -30,8 +29,7 @@ struct AIChatView: View {
         self.isFileImporterPresented = false
         self.isPhotoPickerPresented = false
         self.selectedPhotoItem = nil
-        self.isNearBottom = true
-        self.isUserScrolling = false
+        self.isAutoFollowEnabled = true
         self.scrollPosition = ScrollPosition(idType: String.self)
         self.autoScrollTask = nil
         self.shouldRestoreComposerFocusAfterDictation = false
@@ -353,10 +351,19 @@ struct AIChatView: View {
                 scrollGeometry: context.geometry,
                 bottomThreshold: aiChatAutoScrollBottomThreshold
             )
-            self.isUserScrolling = nextScrollState.isUserScrolling
-            self.isNearBottom = nextScrollState.isNearBottom
-            if nextPhase == .idle && nextScrollState.isNearBottom && self.chatStore.isStreaming {
-                self.scrollToBottomIfNeeded(isAnimated: false)
+
+            // Only user-driven scroll phases can detach auto-follow. Animated scrolls
+            // are app-driven and should not flip the latch while the assistant content grows.
+            if nextScrollState.isUserInitiatedScroll && nextScrollState.isNearBottom == false {
+                self.isAutoFollowEnabled = false
+                return
+            }
+
+            if nextPhase == .idle && nextScrollState.isNearBottom {
+                self.isAutoFollowEnabled = true
+                if self.chatStore.isStreaming {
+                    self.scrollToBottomIfNeeded(isAnimated: false)
+                }
             }
         }
         .onAppear {
@@ -369,7 +376,7 @@ struct AIChatView: View {
         }
         .onChange(of: self.chatStore.messages) { _, messages in
             guard messages.isEmpty == false else {
-                self.isNearBottom = true
+                self.isAutoFollowEnabled = true
                 self.scrollToBottom(isAnimated: false)
                 return
             }

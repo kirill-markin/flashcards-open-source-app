@@ -143,6 +143,15 @@
   scroll-padding-block-end: max(28px, env(safe-area-inset-bottom));
 }
 
+.chat-messages-content {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100%;
+  width: 100%;
+}
+
 .chat-empty {
   padding: 12px;
   border: 1px solid var(--panel-border);

@@ -17,15 +17,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import kotlinx.coroutines.delay
 
@@ -46,47 +52,58 @@ internal fun AiConversation(
     val currentMessages by rememberUpdatedState(messages)
     val currentStreamingState by rememberUpdatedState(isStreaming)
     val interactionSource = remember { MutableInteractionSource() }
-    val autoScrollKey = remember(messages) {
-        buildString {
-            append(messages.size)
-            val lastMessage = messages.lastOrNull()
-            if (lastMessage != null) {
-                append("|")
-                append(lastMessage.messageId)
-                append("|")
-                append(lastMessage.isError)
-                append("|")
-                append(
-                    lastMessage.content.sumOf { contentPart ->
-                        when (contentPart) {
-                            is AiChatContentPart.Text -> contentPart.text.length
-                            is AiChatContentPart.ReasoningSummary -> contentPart.reasoningSummary.summary.length
-                            is AiChatContentPart.ToolCall -> contentPart.toolCall.input?.length ?: 0
-                            is AiChatContentPart.Image -> contentPart.base64Data.length
-                            is AiChatContentPart.File -> contentPart.base64Data.length
-                            is AiChatContentPart.Card -> contentPart.frontText.length + contentPart.backText.length
-                            is AiChatContentPart.AccountUpgradePrompt -> contentPart.message.length
-                            is AiChatContentPart.Unknown -> contentPart.summaryText.length + contentPart.originalType.length
-                        }
-                    }
-                )
+    var isDetachedFromBottom by rememberSaveable {
+        mutableStateOf(false)
+    }
+    val scrollConnection = remember(listState) {
+        object : NestedScrollConnection {
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                if (source == NestedScrollSource.UserInput) {
+                    // Only user-driven scrolling should toggle the detach latch.
+                    isDetachedFromBottom = aiConversationScrollState(
+                        layoutInfo = listState.layoutInfo,
+                        bottomThresholdPx = aiConversationAutoScrollBottomThresholdPx
+                    ).isNearBottom.not()
+                }
+
+                return Offset.Zero
             }
         }
     }
 
-    LaunchedEffect(autoScrollKey, messages.isEmpty()) {
+    suspend fun scrollLatestContentIfNeeded(
+        messagesSnapshot: List<AiChatMessage>,
+        isAnimated: Boolean
+    ) {
+        if (messagesSnapshot.isEmpty() || isDetachedFromBottom) {
+            return
+        }
+
+        val scrollState = aiConversationScrollState(
+            layoutInfo = listState.layoutInfo,
+            bottomThresholdPx = aiConversationAutoScrollBottomThresholdPx
+        )
+        if (scrollState.isNearBottom) {
+            return
+        }
+
+        if (isAnimated) {
+            listState.animateScrollToItem(index = conversationLastItemIndex(messages = messagesSnapshot))
+        } else {
+            listState.scrollToItem(index = conversationLastItemIndex(messages = messagesSnapshot))
+        }
+    }
+
+    LaunchedEffect(messages, isDetachedFromBottom) {
         if (messages.isNotEmpty()) {
-            val layoutInfo = listState.layoutInfo
-            val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            val scrollState = aiConversationScrollState(
-                totalItemsCount = layoutInfo.totalItemsCount,
-                lastVisibleItemIndex = lastVisibleItemIndex,
-                isUserScrolling = listState.isScrollInProgress,
-                bottomThreshold = 1
+            scrollLatestContentIfNeeded(
+                messagesSnapshot = messages,
+                isAnimated = isStreaming.not()
             )
-            if (scrollState.isNearBottom && scrollState.isUserScrolling.not()) {
-                listState.animateScrollToItem(index = conversationLastItemIndex(messages = messages))
-            }
         }
     }
 
@@ -94,17 +111,10 @@ internal fun AiConversation(
         if (messages.isNotEmpty()) {
             while (currentStreamingState) {
                 delay(250L)
-                val layoutInfo = listState.layoutInfo
-                val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                val scrollState = aiConversationScrollState(
-                    totalItemsCount = layoutInfo.totalItemsCount,
-                    lastVisibleItemIndex = lastVisibleItemIndex,
-                    isUserScrolling = listState.isScrollInProgress,
-                    bottomThreshold = 1
+                scrollLatestContentIfNeeded(
+                    messagesSnapshot = currentMessages,
+                    isAnimated = true
                 )
-                if (scrollState.isNearBottom && scrollState.isUserScrolling.not()) {
-                    listState.animateScrollToItem(index = conversationLastItemIndex(messages = currentMessages))
-                }
             }
         }
     }
@@ -137,7 +147,9 @@ internal fun AiConversation(
                 state = listState,
                 contentPadding = contentPadding,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .nestedScroll(scrollConnection)
             ) {
                 items(items = messages, key = { message -> message.messageId }) { message ->
                     MessageRow(
