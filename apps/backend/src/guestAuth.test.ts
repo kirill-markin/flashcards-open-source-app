@@ -42,7 +42,7 @@ type WorkspaceReplicaState = Readonly<{
   replica_id: string;
   workspace_id: string;
   user_id: string;
-  actor_kind: "client_installation" | "workspace_seed" | "agent_connection" | "ai_chat";
+  actor_kind: "client_installation" | "workspace_seed" | "workspace_reset" | "agent_connection" | "ai_chat";
   installation_id: string | null;
   actor_key: string | null;
   platform: "ios" | "android" | "web" | "system";
