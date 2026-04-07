@@ -19,7 +19,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AiChatRemoteWireTest {
-    private val appVersion: String = "1.1.0"
+    private val appVersion: String = "1.1.2"
 
     private fun makeDispatchers(): AiCoroutineDispatchers {
         return AiCoroutineDispatchers(io = Dispatchers.IO)
