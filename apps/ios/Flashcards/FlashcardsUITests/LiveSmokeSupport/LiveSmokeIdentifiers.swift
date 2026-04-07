@@ -46,6 +46,7 @@ enum LiveSmokeIdentifier {
     static let cardEditorFrontTextEditor: String = "cardEditor.frontTextEditor"
     static let cardEditorBackTextEditor: String = "cardEditor.backTextEditor"
     static let reviewShowAnswerButton: String = "review.showAnswerButton"
+    static let reviewAiButton: String = "review.aiButton"
     static let reviewRateGoodButton: String = "review.rateGoodButton"
     static let aiConsentAcceptButton: String = "ai.consentAcceptButton"
     static let aiNewChatButton: String = "ai.newChatButton"

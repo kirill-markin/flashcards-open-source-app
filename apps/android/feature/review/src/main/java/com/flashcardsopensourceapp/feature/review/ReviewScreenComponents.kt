@@ -89,7 +89,6 @@ private val reviewTopBarFilterMaxWidth = 160.dp
 private val reviewEmptyStateMaxWidth = 420.dp
 private val reviewSpeechButtonSize = 32.dp
 private val reviewSpeechIconSize = 18.dp
-private val reviewSpeechContentInset = 40.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -378,23 +377,6 @@ private fun ReviewCardContent(
                         modifier = Modifier.size(reviewEditIconSize)
                     )
                 }
-
-                FilledIconButton(
-                    onClick = onOpenCurrentCardWithAi,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    modifier = Modifier
-                        .size(reviewEditButtonSize)
-                        .testTag(reviewAiCardButtonTag)
-                ) {
-                    Text(
-                        text = "AI",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
             }
         }
 
@@ -413,7 +395,9 @@ private fun ReviewCardContent(
                     contentModifier = Modifier.testTag(reviewCurrentCardFrontContentTag),
                     isSpeechPlaying = activeSpeechSide == ReviewSpeechSide.FRONT,
                     onToggleSpeech = onToggleFrontSpeech,
-                    showSpeechButton = currentCard.frontSpeakableText.isNotEmpty()
+                    showSpeechButton = currentCard.frontSpeakableText.isNotEmpty(),
+                    showAiButton = false,
+                    onOpenAi = null
                 )
                 if (isAnswerVisible) {
                     HorizontalDivider()
@@ -423,7 +407,9 @@ private fun ReviewCardContent(
                         contentModifier = Modifier,
                         isSpeechPlaying = activeSpeechSide == ReviewSpeechSide.BACK,
                         onToggleSpeech = onToggleBackSpeech,
-                        showSpeechButton = currentCard.backSpeakableText.isNotEmpty()
+                        showSpeechButton = currentCard.backSpeakableText.isNotEmpty(),
+                        showAiButton = true,
+                        onOpenAi = onOpenCurrentCardWithAi
                     )
                 }
             }
@@ -457,7 +443,9 @@ private fun ReviewCardSideSection(
     contentModifier: Modifier,
     isSpeechPlaying: Boolean,
     onToggleSpeech: () -> Unit,
-    showSpeechButton: Boolean
+    showSpeechButton: Boolean,
+    showAiButton: Boolean,
+    onOpenAi: (() -> Unit)?
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -468,45 +456,62 @@ private fun ReviewCardSideSection(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Box(modifier = Modifier.fillMaxWidth()) {
-            ReviewRenderedContentView(
-                content = content,
-                modifier = contentModifier.then(
-                    if (showSpeechButton) {
-                        Modifier.padding(
-                            end = reviewSpeechContentInset,
-                            bottom = reviewSpeechContentInset
-                        )
-                    } else {
-                        Modifier
-                    }
-                )
-            )
+        ReviewRenderedContentView(
+            content = content,
+            modifier = contentModifier
+        )
+        if (showSpeechButton || showAiButton) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Spacer(modifier = Modifier.weight(1f))
 
-            if (showSpeechButton) {
-                FilledIconButton(
-                    onClick = onToggleSpeech,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = if (isSpeechPlaying) {
-                            MaterialTheme.colorScheme.surfaceContainerHighest
-                        } else {
-                            MaterialTheme.colorScheme.surfaceContainer
-                        },
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(reviewSpeechButtonSize)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
-                        contentDescription = if (isSpeechPlaying) {
-                            "Stop $label speech"
-                        } else {
-                            "Speak $label"
-                        },
-                        modifier = Modifier.size(reviewSpeechIconSize)
-                    )
+                if (showSpeechButton) {
+                    FilledIconButton(
+                        onClick = onToggleSpeech,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = if (isSpeechPlaying) {
+                                MaterialTheme.colorScheme.surfaceContainerHighest
+                            } else {
+                                MaterialTheme.colorScheme.surfaceContainer
+                            },
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        modifier = Modifier.size(reviewSpeechButtonSize)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
+                            contentDescription = if (isSpeechPlaying) {
+                                "Stop $label speech"
+                            } else {
+                                "Speak $label"
+                            },
+                            modifier = Modifier.size(reviewSpeechIconSize)
+                        )
+                    }
+                }
+
+                if (showAiButton) {
+                    val openAi = checkNotNull(onOpenAi)
+                    FilledIconButton(
+                        onClick = openAi,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        modifier = Modifier
+                            .size(reviewSpeechButtonSize)
+                            .testTag(reviewAiCardButtonTag)
+                    ) {
+                        Text(
+                            text = "AI",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
         }

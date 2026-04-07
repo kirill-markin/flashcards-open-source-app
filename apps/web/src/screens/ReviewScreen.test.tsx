@@ -78,6 +78,36 @@ describe("ReviewScreen", () => {
     expect(state.appData.submitReviewItem).not.toHaveBeenCalled();
   });
 
+  it("shows review AI only on the revealed back card and keeps the card text full width", async () => {
+    const state = getState();
+    const card = createCard({
+      cardId: "card-ai-placement",
+      frontText: "Front question",
+      backText: "Back answer",
+    });
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+
+    await renderReviewScreen();
+
+    expect(getContainer().querySelector(".review-pane-head-actions .review-card-ai-btn")).toBeNull();
+    expect(getContainer().querySelector(".review-card-surface-front .review-card-ai-btn")).toBeNull();
+    expect(getContainer().querySelector(".review-card-surface-front .review-card-actions")).toBeTruthy();
+
+    await revealAnswer();
+
+    const backAiButton = getContainer().querySelector(".review-card-answer .review-card-ai-btn");
+    if (!(backAiButton instanceof HTMLButtonElement)) {
+      throw new Error("Review back AI button was not found");
+    }
+
+    expect(backAiButton.textContent).toBe("AI");
+    expect(backAiButton.getAttribute("aria-label")).toBe("Open back card in AI chat");
+    expect(getContainer().querySelector(".review-pane-head-actions .review-card-ai-btn")).toBeNull();
+    expect(getContainer().querySelector(".review-card-answer .review-card-speech-btn")).not.toBeNull();
+  });
+
   it("filters, closes, and selects items in the review filter menu", async () => {
     const state = getState();
     state.decks = createDecks(["Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta", "Eta"]);

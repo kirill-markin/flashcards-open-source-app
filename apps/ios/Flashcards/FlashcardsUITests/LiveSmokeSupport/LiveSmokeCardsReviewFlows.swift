@@ -98,11 +98,22 @@ extension LiveSmokeTestCase {
             expectedFrontText,
             timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
         )
+        if self.app.buttons[LiveSmokeIdentifier.reviewAiButton].exists {
+            throw LiveSmokeFailure.unexpectedReviewState(
+                message: "Review AI button should not be visible before the answer is revealed.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
         try self.tapButton(
             identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
             timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
         )
         try self.waitForReviewAnswerReveal()
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.reviewAiButton,
+            timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+        )
         try self.tapButton(
             identifier: LiveSmokeIdentifier.reviewRateGoodButton,
             timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds

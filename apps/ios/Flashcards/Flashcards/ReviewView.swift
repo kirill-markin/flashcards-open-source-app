@@ -360,19 +360,6 @@ struct ReviewView: View {
                 Spacer(minLength: 12)
 
                 Button {
-                    self.navigation.openAICardHandoff(card: makeAIChatCardReference(card: card))
-                } label: {
-                    Text("AI")
-                        .font(.caption.weight(.bold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .background(Color.accentColor, in: Capsule())
-                        .foregroundStyle(Color.white)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Open card in AI chat")
-
-                Button {
                     self.beginEditing(card: card)
                 } label: {
                     Image(systemName: "pencil.circle.fill")
@@ -391,6 +378,8 @@ struct ReviewView: View {
                     self.toggleSpeech(side: .front, sourceText: card.frontText)
                 },
                 showsSpeechButton: preparedRevealState.frontSpeakableText.isEmpty == false,
+                showsAiButton: false,
+                onOpenAi: {},
                 surfaceStyle: .front
             )
 
@@ -403,6 +392,10 @@ struct ReviewView: View {
                         self.toggleSpeech(side: .back, sourceText: card.backText)
                     },
                     showsSpeechButton: preparedRevealState.backSpeakableText.isEmpty == false,
+                    showsAiButton: true,
+                    onOpenAi: {
+                        self.navigation.openAICardHandoff(card: makeAIChatCardReference(card: card))
+                    },
                     surfaceStyle: .back
                 )
             }

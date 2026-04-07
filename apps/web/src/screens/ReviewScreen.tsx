@@ -45,7 +45,9 @@ type ReviewCardSideProps = Readonly<{
   contentClassName: string;
   isSpeaking: boolean;
   label: string;
+  onOpenAi: (() => void) | null;
   onToggleSpeech: () => void;
+  showAiButton: boolean;
   showSpeechButton: boolean;
   surfaceClassName?: string;
   text: string;
@@ -228,36 +230,63 @@ function ReviewCardMarkdown({ text }: Readonly<{ text: string }>): ReactElement 
 }
 
 function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
-  const { contentClassName, isSpeaking, label, onToggleSpeech, showSpeechButton, surfaceClassName, text } = props;
+  const {
+    contentClassName,
+    isSpeaking,
+    label,
+    onOpenAi,
+    onToggleSpeech,
+    showAiButton,
+    showSpeechButton,
+    surfaceClassName,
+    text,
+  } = props;
   const presentationMode = classifyReviewContentPresentation(text);
 
   return (
     <div className={surfaceClassName === undefined ? "review-card-surface" : surfaceClassName}>
       <div className="review-label">{label}</div>
       <div className="review-card-body">
-        <div
-          className={[
-            "review-card-content",
-            contentClassName,
-            `review-card-content-${presentationMode}`,
-          ].join(" ")}
-          data-presentation-mode={presentationMode}
-        >
-          {presentationMode === "markdown" ? <ReviewCardMarkdown text={text} /> : text}
-        </div>
-        {showSpeechButton ? (
-          <button
-            type="button"
-            className={`review-card-speech-btn${isSpeaking ? " review-card-speech-btn-active" : ""}`}
-            onClick={onToggleSpeech}
-            aria-label={isSpeaking ? `Stop speaking ${label.toLowerCase()}` : `Speak ${label.toLowerCase()}`}
+        <div className="review-card-content-wrap">
+          <div
+            className={[
+              "review-card-content",
+              contentClassName,
+              `review-card-content-${presentationMode}`,
+            ].join(" ")}
+            data-presentation-mode={presentationMode}
           >
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M5 14H2V10H5L10 6V18L5 14Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M14 9C15.333 10.2 15.333 13.8 14 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M17.5 6.5C20.5 9.4 20.5 14.6 17.5 17.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+            {presentationMode === "markdown" ? <ReviewCardMarkdown text={text} /> : text}
+          </div>
+        </div>
+
+        {showSpeechButton || showAiButton ? (
+          <div className="review-card-actions">
+            {showSpeechButton ? (
+              <button
+                type="button"
+                className={`review-card-speech-btn${isSpeaking ? " review-card-speech-btn-active" : ""}`}
+                onClick={onToggleSpeech}
+                aria-label={isSpeaking ? `Stop speaking ${label.toLowerCase()}` : `Speak ${label.toLowerCase()}`}
+              >
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M5 14H2V10H5L10 6V18L5 14Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M14 9C15.333 10.2 15.333 13.8 14 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M17.5 6.5C20.5 9.4 20.5 14.6 17.5 17.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            ) : null}
+            {showAiButton && onOpenAi !== null ? (
+              <button
+                type="button"
+                className="review-card-ai-btn"
+                onClick={onOpenAi}
+                aria-label={`Open ${label.toLowerCase()} card in AI chat`}
+              >
+                AI
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </div>
@@ -488,13 +517,6 @@ export function ReviewScreen(): ReactElement {
                     >
                       Edit
                     </button>
-                    <button
-                      type="button"
-                      className="primary-btn review-pane-ai-btn"
-                      disabled
-                    >
-                      AI
-                    </button>
                   </div>
                 </div>
                 <div className="review-card-stack">
@@ -504,7 +526,9 @@ export function ReviewScreen(): ReactElement {
                       text={loadingReviewCurrentCard.frontText}
                       contentClassName="review-front"
                       isSpeaking={false}
+                      onOpenAi={null}
                       onToggleSpeech={() => undefined}
+                      showAiButton={false}
                       showSpeechButton={false}
                       surfaceClassName="review-card-surface review-card-surface-front"
                     />
@@ -589,13 +613,6 @@ export function ReviewScreen(): ReactElement {
                     >
                       Edit
                     </button>
-                    <button
-                      type="button"
-                      className="primary-btn review-pane-ai-btn"
-                      onClick={() => void handoffCardToAi(selectedCard)}
-                    >
-                      AI
-                    </button>
                   </div>
                 </div>
                 <div className="review-card-stack">
@@ -604,7 +621,9 @@ export function ReviewScreen(): ReactElement {
                     text={selectedCard.frontText}
                     contentClassName="review-front"
                     isSpeaking={activeSpeechSide === "front"}
+                    onOpenAi={null}
                     onToggleSpeech={() => toggleSpeech("front", selectedCard.frontText)}
+                    showAiButton={false}
                     showSpeechButton={selectedFrontSpeakableText !== ""}
                     surfaceClassName="review-card-surface review-card-surface-front"
                   />
@@ -615,7 +634,9 @@ export function ReviewScreen(): ReactElement {
                       text={selectedCard.backText === "" ? EMPTY_BACK_TEXT_PLACEHOLDER : selectedCard.backText}
                       contentClassName="review-back"
                       isSpeaking={activeSpeechSide === "back"}
+                      onOpenAi={() => void handoffCardToAi(selectedCard)}
                       onToggleSpeech={() => toggleSpeech("back", selectedCard.backText)}
+                      showAiButton={true}
                       showSpeechButton={selectedBackSpeakableText !== ""}
                       surfaceClassName="review-card-surface review-card-answer"
                     />

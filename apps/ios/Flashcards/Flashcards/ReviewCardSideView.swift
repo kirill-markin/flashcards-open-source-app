@@ -6,6 +6,8 @@ struct ReviewCardSideView: View {
     let isSpeechPlaying: Bool
     let onToggleSpeech: () -> Void
     let showsSpeechButton: Bool
+    let showsAiButton: Bool
+    let onOpenAi: () -> Void
     let surfaceStyle: ReviewCardSurfaceStyle
 
     init(
@@ -14,6 +16,8 @@ struct ReviewCardSideView: View {
         isSpeechPlaying: Bool,
         onToggleSpeech: @escaping () -> Void,
         showsSpeechButton: Bool,
+        showsAiButton: Bool,
+        onOpenAi: @escaping () -> Void,
         surfaceStyle: ReviewCardSurfaceStyle
     ) {
         self.label = label
@@ -21,6 +25,8 @@ struct ReviewCardSideView: View {
         self.isSpeechPlaying = isSpeechPlaying
         self.onToggleSpeech = onToggleSpeech
         self.showsSpeechButton = showsSpeechButton
+        self.showsAiButton = showsAiButton
+        self.onOpenAi = onOpenAi
         self.surfaceStyle = surfaceStyle
     }
 
@@ -31,22 +37,38 @@ struct ReviewCardSideView: View {
                 .textCase(.uppercase)
                 .foregroundStyle(.secondary)
 
-            ZStack(alignment: .bottomTrailing) {
-                contentView
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.trailing, self.showsSpeechButton ? 32 : 0)
-                    .padding(.bottom, self.showsSpeechButton ? 32 : 0)
+            contentView
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                if self.showsSpeechButton {
-                    Button(action: self.onToggleSpeech) {
-                        Image(systemName: self.isSpeechPlaying ? "speaker.wave.2.fill" : "speaker.wave.2")
-                            .font(.callout.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 32, height: 32)
-                            .background(.thinMaterial, in: Circle())
+            if self.showsSpeechButton || self.showsAiButton {
+                HStack(spacing: 8) {
+                    Spacer(minLength: 0)
+
+                    if self.showsSpeechButton {
+                        Button(action: self.onToggleSpeech) {
+                            Image(systemName: self.isSpeechPlaying ? "speaker.wave.2.fill" : "speaker.wave.2")
+                                .font(.callout.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 32, height: 32)
+                                .background(.thinMaterial, in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(self.isSpeechPlaying ? "Stop \(self.label) speech" : "Speak \(self.label)")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(self.isSpeechPlaying ? "Stop \(self.label) speech" : "Speak \(self.label)")
+
+                    if self.showsAiButton {
+                        Button(action: self.onOpenAi) {
+                            Text("AI")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.white)
+                                .frame(height: 32)
+                                .padding(.horizontal, 11)
+                                .background(Color.accentColor, in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier(UITestIdentifier.reviewAiButton)
+                        .accessibilityLabel("Open card in AI chat")
+                    }
                 }
             }
         }
