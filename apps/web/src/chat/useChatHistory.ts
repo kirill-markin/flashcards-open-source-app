@@ -133,7 +133,10 @@ function upsertAssistantReasoningSummaryContent(
   );
 
   if (existingIndex < 0) {
-    return [reasoningSummary, ...normalizedContent];
+    // Keep reasoning in the existing assistant-content order.
+    // The renderer consumes message.content sequentially, so prepending here would
+    // make later reasoning jump to the top of the visible transcript.
+    return [...normalizedContent, reasoningSummary];
   }
 
   return normalizedContent.map((part, index) => {

@@ -17,6 +17,68 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class AiChatRuntimeBootstrapAndLiveStreamTest {
     @Test
+    fun reasoningSummaryStaysAfterExistingTextWhenItArrivesLater() = runTest {
+        val repository = FakeAiChatRepository()
+        val liveEvents = MutableSharedFlow<AiChatLiveEvent>()
+        repository.startRunResponse = makeAcceptedStartRunResponse(
+            sessionId = "session-1",
+            activeRun = makeActiveRun(runId = "run-1", cursor = "0"),
+            messages = listOf(
+                makeUserMessage(
+                    content = listOf(AiChatContentPart.Text(text = "What should I study next?")),
+                    timestampMillis = 1L
+                ),
+                makeAssistantStatusMessage(timestampMillis = 2L)
+            ),
+            composerSuggestions = emptyList()
+        )
+        repository.liveFlows["run-1"] = liveEvents
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.onScreenVisible()
+        runtime.updateDraftMessage(draftMessage = "What should I study next?")
+        runtime.sendMessage()
+        advanceUntilIdle()
+
+        // This ordering is the behavior we want to preserve: the transcript should
+        // reflect arrival order, not jump a later reasoning block back to the top.
+        liveEvents.emit(
+            AiChatLiveEvent.AssistantDelta(
+                metadata = makeMetadata(runId = "run-1", cursor = "1"),
+                text = "I'm checking your due cards.",
+                itemId = "item-1"
+            )
+        )
+        advanceUntilIdle()
+
+        liveEvents.emit(
+            AiChatLiveEvent.AssistantReasoningStarted(
+                metadata = makeMetadata(runId = "run-1", cursor = "2"),
+                reasoningId = "reasoning-1",
+                itemId = "item-1",
+                outputIndex = 0
+            )
+        )
+        advanceUntilIdle()
+
+        val assistantMessage = runtime.state.value.persistedState.messages.last()
+        assertEquals(2, assistantMessage.content.size)
+        assertTrue(assistantMessage.content[0] is AiChatContentPart.Text)
+        assertTrue(assistantMessage.content[1] is AiChatContentPart.ReasoningSummary)
+        assertEquals(
+            "I'm checking your due cards.",
+            (assistantMessage.content[0] as AiChatContentPart.Text).text
+        )
+        assertEquals(
+            "reasoning-1",
+            (assistantMessage.content[1] as AiChatContentPart.ReasoningSummary).reasoningSummary.reasoningId
+        )
+
+        runtime.onScreenHidden()
+        advanceUntilIdle()
+    }
+
+    @Test
     fun bootstrapWhileVisibleWithActiveRunStartsLiveCollection() = runTest {
         val repository = FakeAiChatRepository()
         val liveEvents = MutableSharedFlow<AiChatLiveEvent>()
