@@ -80,7 +80,7 @@ async function completeResetProgressFlow(session: LiveSmokeSession): Promise<voi
   await trackedFill(
     diagnostics,
     `enter reset progress confirmation phrase ${confirmationPhrase}`,
-    resetDialog.getByLabel("Confirmation phrase"),
+    resetDialog.getByRole("textbox", { name: "Confirmation phrase", exact: true }),
     confirmationPhrase,
   );
   await trackedClick(
