@@ -154,13 +154,13 @@ Manual `workflow_dispatch` runs use the same embedded pre-deploy checks before t
 
 This repository does not try to prove backend and web correctness with exhaustive test coverage before deploy. The highest-confidence automated signals are the real Playwright web smoke and the real agent API smoke that run against the deployed environment closest to production, and any additional non-smoke tests should stay targeted to important module boundaries or contracts.
 
-After pushing to `main`, watch `AWS/Web Release` until the release either finishes green or fails clearly after deploy. This pipeline is intentionally fix-forward only: a failed post-deploy smoke leaves the deployed AWS/Web release in place, marks that run failed, and the next push must still be allowed to deploy.
-
 Cross-client live smoke references:
 
 - Web: `apps/web/e2e/live-smoke.spec.ts`
-- iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
+- iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmoke*Tests.swift`
 - Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
+
+After pushing to `main`, watch `AWS/Web Release` until the release either finishes green or fails clearly after deploy. This pipeline is intentionally fix-forward only: a failed post-deploy smoke leaves the deployed AWS/Web release in place, marks that run failed, and the next push must still be allowed to deploy.
 
 Guest AI quota is configured separately:
 

@@ -1,6 +1,6 @@
 import XCTest
 
-extension LiveSmokeUITests {
+final class LiveSmokeSettingsTests: LiveSmokeTestCase {
     @MainActor
     func testLiveSmokeLocalNavigationFlow() throws {
         try self.step("verify local navigation surfaces without login") {

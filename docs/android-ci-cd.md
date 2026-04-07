@@ -70,7 +70,7 @@ Cross-client live smoke references:
 
 - Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
 - Android notification tap gate: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/NotificationTapSmokeTest.kt`
-- iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
+- iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmoke*Tests.swift`
 - Web: `apps/web/e2e/live-smoke.spec.ts`
 
 Cloud Build config: `cloudbuild.android.yaml`
