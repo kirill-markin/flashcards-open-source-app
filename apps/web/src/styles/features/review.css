@@ -247,12 +247,6 @@
   flex-shrink: 0;
 }
 
-.review-pane-ai-btn {
-  flex-shrink: 0;
-  min-width: 52px;
-  padding-inline: 14px;
-}
-
 .review-loading-retry-btn {
   margin-top: 12px;
 }
@@ -334,10 +328,13 @@
 
 .review-card-body {
   min-height: 76px;
-  display: flex;
+  display: grid;
+  gap: 12px;
   min-width: 0;
-  position: relative;
-  padding-bottom: 44px;
+}
+
+.review-card-content-wrap {
+  min-width: 0;
 }
 
 .review-loading-card-lines {
@@ -372,12 +369,19 @@
   color: var(--text);
 }
 
+.review-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
 .review-card-speech-btn {
-  position: absolute;
-  right: 0;
-  bottom: 0;
   width: 32px;
   height: 32px;
+  min-height: 32px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.05);
@@ -409,6 +413,36 @@
 .review-card-speech-btn svg {
   width: 16px;
   height: 16px;
+}
+
+.review-card-ai-btn {
+  min-width: 40px;
+  height: 32px;
+  min-height: 32px;
+  padding-inline: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff6f3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.review-card-ai-btn:hover {
+  background: var(--accent-strong);
+}
+
+.review-card-ai-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.28);
+  outline-offset: 2px;
 }
 
 .review-transient-message {

@@ -24,6 +24,7 @@ import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateContentTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
+import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
@@ -385,6 +386,7 @@ class MainActivityTest {
         composeRule.onNodeWithTag(reviewFilterButtonTag).fetchSemanticsNode()
         composeRule.onNodeWithText("All cards").fetchSemanticsNode()
         composeRule.onNodeWithTag(reviewEditCardButtonTag).fetchSemanticsNode()
+        assertTrue(composeRule.onAllNodesWithTag(reviewAiCardButtonTag).fetchSemanticsNodes().isEmpty())
         assertTrue(composeRule.onAllNodesWithText("Edit card").fetchSemanticsNodes().isEmpty())
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
@@ -397,8 +399,13 @@ class MainActivityTest {
                 && composeRule.onAllNodesWithText("Hard").fetchSemanticsNodes().isNotEmpty()
                 && composeRule.onAllNodesWithText("Good").fetchSemanticsNodes().isNotEmpty()
                 && composeRule.onAllNodesWithText("Easy").fetchSemanticsNodes().isNotEmpty()
+                && composeRule.onAllNodesWithTag(reviewAiCardButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag(reviewRateGoodButtonTag).fetchSemanticsNode()
+
+        val editButtonBounds = composeRule.onNodeWithTag(reviewEditCardButtonTag).fetchSemanticsNode().boundsInRoot
+        val aiButtonBounds = composeRule.onNodeWithTag(reviewAiCardButtonTag).fetchSemanticsNode().boundsInRoot
+        assertTrue(aiButtonBounds.top > editButtonBounds.top + 40f)
     }
 
     private fun waitForCardsEmptyState() {
