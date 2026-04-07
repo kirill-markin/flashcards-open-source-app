@@ -1,6 +1,6 @@
 {
   "name": "flashcards-auth",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,14 +10,14 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-secrets-manager": "^3.1024.0",
+    "@aws-sdk/client-secrets-manager": "^3.1025.0",
     "@hono/node-server": "^1.19.12",
     "aws-jwt-verify": "^5.1.1",
-    "hono": "^4.12.10",
+    "hono": "^4.12.11",
     "pg": "^8.20.0"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
+    "@types/node": "^24.12.2",
     "@types/pg": "^8.20.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2"

@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewRoute
 import com.flashcardsopensourceapp.feature.review.createReviewViewModelFactory
@@ -42,8 +43,11 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 shouldShowNotificationPermissionPrePrompt = {
                     hasNotificationPermission(context = context).not()
                 },
-                onReviewNotificationsChanged = {
-                    appGraph.reviewNotificationsManager.refreshCurrentWorkspaceScheduling()
+                onReviewNotificationsChanged = { trigger ->
+                    appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
+                        trigger = trigger,
+                        nowMillis = System.currentTimeMillis()
+                    )
                 },
                 onNotificationPermissionGranted = {
                     appGraph.reviewNotificationsManager.enableDefaultDailyForCurrentWorkspace()
@@ -63,6 +67,19 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             },
             onOpenCurrentCard = { cardId ->
                 appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
+            },
+            onOpenCurrentCardWithAi = { cardId, frontText, backText, tags, effortLevel ->
+                appGraph.appHandoffCoordinator.requestAiCardHandoff(
+                    cardId = cardId,
+                    frontText = frontText,
+                    backText = backText,
+                    tags = tags,
+                    effortLevel = effortLevel
+                )
+                navigateToTopLevelDestination(
+                    navController = navController,
+                    destination = AiDestination
+                )
             },
             onOpenDeckManagement = {
                 appGraph.appHandoffCoordinator.requestSettingsNavigation(
@@ -114,8 +131,11 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 shouldShowNotificationPermissionPrePrompt = {
                     false
                 },
-                onReviewNotificationsChanged = {
-                    appGraph.reviewNotificationsManager.refreshCurrentWorkspaceScheduling()
+                onReviewNotificationsChanged = { trigger ->
+                    appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
+                        trigger = trigger,
+                        nowMillis = System.currentTimeMillis()
+                    )
                 },
                 onNotificationPermissionGranted = {
                     appGraph.reviewNotificationsManager.enableDefaultDailyForCurrentWorkspace()

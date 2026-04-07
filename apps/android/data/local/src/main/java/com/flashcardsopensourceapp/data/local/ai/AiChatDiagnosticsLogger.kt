@@ -28,20 +28,41 @@ object AiChatDiagnosticsLogger {
         val reasoningSummaryPartCount = content.count { part -> part is AiChatContentPart.ReasoningSummary }
         val imagePartCount = content.count { part -> part is AiChatContentPart.Image }
         val filePartCount = content.count { part -> part is AiChatContentPart.File }
+        val cardPartCount = content.count { part -> part is AiChatContentPart.Card }
         val toolCallPartCount = content.count { part -> part is AiChatContentPart.ToolCall }
         val accountUpgradePartCount = content.count { part -> part is AiChatContentPart.AccountUpgradePrompt }
+        val unknownPartCount = content.count { part -> part is AiChatContentPart.Unknown }
         val textLength = content.sumOf { part ->
             when (part) {
                 is AiChatContentPart.Text -> part.text.length
                 is AiChatContentPart.ReasoningSummary -> 0
                 is AiChatContentPart.Image -> 0
                 is AiChatContentPart.File -> 0
+                is AiChatContentPart.Card -> 0
                 is AiChatContentPart.ToolCall -> 0
                 is AiChatContentPart.AccountUpgradePrompt -> 0
+                is AiChatContentPart.Unknown -> 0
             }
         }
 
-        return "textParts=$textPartCount,reasoningSummaryParts=$reasoningSummaryPartCount,imageParts=$imagePartCount,fileParts=$filePartCount,toolCallParts=$toolCallPartCount,accountUpgradeParts=$accountUpgradePartCount,textLength=$textLength"
+        return "textParts=$textPartCount,reasoningSummaryParts=$reasoningSummaryPartCount,imageParts=$imagePartCount,fileParts=$filePartCount,cardParts=$cardPartCount,toolCallParts=$toolCallPartCount,accountUpgradeParts=$accountUpgradePartCount,unknownParts=$unknownPartCount,textLength=$textLength"
+    }
+
+    fun logUnknownContentReceived(
+        originalType: String,
+        sessionId: String,
+        messageId: String,
+        source: String
+    ) {
+        info(
+            event = "ai_chat_unknown_content_received",
+            fields = listOf(
+                "originalType" to originalType,
+                "sessionId" to sessionId,
+                "messageId" to messageId,
+                "source" to source
+            )
+        )
     }
 
     private fun buildMessage(event: String, fields: List<Pair<String, String?>>): String {

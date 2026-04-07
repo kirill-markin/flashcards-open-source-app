@@ -2,6 +2,7 @@ import { authenticateRequest, type AuthTransport } from "../auth";
 import { isDeletedSubject } from "../deletedSubjects";
 import { HttpError } from "../errors";
 import { ensureUserProfile } from "../ensureUser";
+import { assertUserHasWorkspaceAccess } from "../workspaces";
 import {
   enforceSessionCsrfProtection,
   extractRequestAuthInputs,
@@ -18,6 +19,15 @@ export type RequestContext = Readonly<{
   userSettingsCreatedAt: string;
   transport: AuthTransport;
   connectionId: string | null;
+}>;
+
+export type WorkspaceRequestContext = Readonly<{
+  userId: string;
+  selectedWorkspaceId: string | null;
+}>;
+
+export type WorkspaceAccessRequestContext = Readonly<{
+  userId: string;
 }>;
 
 type LoadRequestContextDependencies = Readonly<{
@@ -118,6 +128,46 @@ export function requireSelectedWorkspaceId(requestContext: RequestContext): stri
   }
 
   return requestContext.selectedWorkspaceId;
+}
+
+export async function requireAccessibleWorkspaceId(
+  requestContext: WorkspaceAccessRequestContext,
+  workspaceId: string,
+): Promise<string> {
+  await assertUserHasWorkspaceAccess(requestContext.userId, workspaceId);
+  return workspaceId;
+}
+
+/**
+ * Resolves the currently selected workspace and revalidates access before a
+ * workspace-bound route continues with business logic.
+ */
+export async function requireAccessibleSelectedWorkspaceId(
+  requestContext: WorkspaceRequestContext,
+): Promise<string> {
+  if (requestContext.selectedWorkspaceId === null) {
+    throw new HttpError(
+      409,
+      "Select a workspace before using this endpoint",
+      "WORKSPACE_SELECTION_REQUIRED",
+    );
+  }
+
+  return requireAccessibleWorkspaceId(requestContext, requestContext.selectedWorkspaceId);
+}
+
+/**
+ * AI dictation keeps its existing 403 contract when no workspace is selected,
+ * but still revalidates the selected workspace before any downstream work.
+ */
+export async function requireAccessibleSelectedWorkspaceIdForAiDictation(
+  requestContext: WorkspaceRequestContext,
+): Promise<string> {
+  if (requestContext.selectedWorkspaceId === null) {
+    throw new HttpError(403, "A workspace must be selected before using AI dictation.", "AI_WORKSPACE_REQUIRED");
+  }
+
+  return requireAccessibleWorkspaceId(requestContext, requestContext.selectedWorkspaceId);
 }
 
 export function requireAgentConnectionId(requestContext: RequestContext): string {

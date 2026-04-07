@@ -12,11 +12,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -29,10 +31,16 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.formatAiChatCardAttachmentLabel
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 
 const val aiComposerMessageFieldTag: String = "ai_composer_message_field"
@@ -42,6 +50,7 @@ const val aiComposerSendButtonTag: String = "ai_composer_send_button"
 internal fun AiComposer(
     uiState: AiUiState,
     onDraftMessageChange: (String) -> Unit,
+    onApplyComposerSuggestion: (com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion) -> Unit,
     onSendMessage: () -> Unit,
     onCancelStreaming: () -> Unit,
     onRemovePendingAttachment: (String) -> Unit,
@@ -52,6 +61,13 @@ internal fun AiComposer(
     val canManageAttachments = uiState.isComposerBusy.not() && uiState.dictationState == AiChatDictationState.IDLE
     val isDictationBusy = uiState.dictationState == AiChatDictationState.REQUESTING_PERMISSION
         || uiState.dictationState == AiChatDictationState.TRANSCRIBING
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(uiState.focusComposerRequestVersion) {
+        if (uiState.focusComposerRequestVersion > 0L) {
+            focusRequester.requestFocus()
+        }
+    }
 
     Surface(
         modifier = Modifier
@@ -107,14 +123,29 @@ internal fun AiComposer(
                             selected = true,
                             onClick = {},
                             label = {
-                                Text(attachment.fileName)
+                                Text(
+                                    when (attachment) {
+                                        is AiChatAttachment.Binary -> attachment.fileName
+                                        is AiChatAttachment.Card -> formatAiChatCardAttachmentLabel(
+                                            frontText = attachment.frontText
+                                        )
+                                        is AiChatAttachment.Unknown -> attachment.summaryText
+                                    }
+                                )
                             },
                             leadingIcon = {
                                 Icon(
-                                    imageVector = if (attachment.isImage) {
-                                        Icons.Outlined.Image
-                                    } else {
-                                        Icons.Outlined.Description
+                                    imageVector = when (attachment) {
+                                        is AiChatAttachment.Binary -> {
+                                            if (attachment.isImage) {
+                                                Icons.Outlined.Image
+                                            } else {
+                                                Icons.Outlined.Description
+                                            }
+                                        }
+
+                                        is AiChatAttachment.Card -> Icons.Outlined.CollectionsBookmark
+                                        is AiChatAttachment.Unknown -> Icons.Outlined.WarningAmber
                                     },
                                     contentDescription = null
                                 )
@@ -132,6 +163,27 @@ internal fun AiComposer(
                                     )
                                 }
                             }
+                        )
+                    }
+                }
+            }
+
+            if (uiState.composerSuggestions.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(tag = aiComposerSuggestionRowTag)
+                ) {
+                    uiState.composerSuggestions.forEachIndexed { index, suggestion ->
+                        AssistChip(
+                            onClick = {
+                                onApplyComposerSuggestion(suggestion)
+                            },
+                            label = {
+                                Text(suggestion.text)
+                            },
+                            modifier = Modifier.testTag(tag = "$aiComposerSuggestionPrefixTag$index")
                         )
                     }
                 }
@@ -161,6 +213,7 @@ internal fun AiComposer(
                 enabled = canEditDraft,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .focusRequester(focusRequester)
                     .testTag(tag = aiComposerMessageFieldTag)
             )
 

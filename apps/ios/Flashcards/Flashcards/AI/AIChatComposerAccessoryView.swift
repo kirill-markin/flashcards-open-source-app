@@ -49,11 +49,26 @@ extension AIChatView {
                         HStack(spacing: 8) {
                             ForEach(self.chatStore.pendingAttachments) { attachment in
                                 HStack(spacing: 6) {
-                                    Image(systemName: attachment.isImage ? "photo" : "doc")
-                                        .foregroundStyle(.secondary)
-                                    Text(attachment.fileName)
-                                        .font(.caption)
-                                        .lineLimit(1)
+                                    switch attachment.payload {
+                                    case .binary(let fileName, _, _):
+                                        Image(systemName: attachment.isImage ? "photo" : "doc")
+                                            .foregroundStyle(.secondary)
+                                        Text(fileName)
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                    case .card(let card):
+                                        Image(systemName: "square.stack")
+                                            .foregroundStyle(.secondary)
+                                        Text(aiChatCardAttachmentLabel(card: card))
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                    case .unknown(let unknownAttachment):
+                                        Image(systemName: "questionmark.square.dashed")
+                                            .foregroundStyle(.secondary)
+                                        Text("Unsupported attachment (\(unknownAttachment.originalType))")
+                                            .font(.caption)
+                                            .lineLimit(1)
+                                    }
                                     Button {
                                         self.chatStore.removeAttachment(id: attachment.id)
                                     } label: {
@@ -65,9 +80,37 @@ extension AIChatView {
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 8)
                                 .background(.thinMaterial, in: Capsule())
+                                .accessibilityIdentifier(aiChatComposerAttachmentIdentifier(attachment: attachment))
                             }
                         }
                     }
+                }
+
+                if self.chatStore.visibleComposerSuggestions.isEmpty == false {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(Array(self.chatStore.visibleComposerSuggestions.enumerated()), id: \.element.id) { index, suggestion in
+                                Button {
+                                    self.chatStore.applyComposerSuggestion(suggestion)
+                                    self.isComposerFocused = true
+                                } label: {
+                                    Text(suggestion.text)
+                                        .font(.footnote)
+                                        .foregroundStyle(.primary)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 9)
+                                }
+                                .buttonStyle(.plain)
+                                .background(.thinMaterial, in: Capsule())
+                                .overlay {
+                                    Capsule()
+                                        .strokeBorder(Color.accentColor.opacity(0.18), lineWidth: 1)
+                                }
+                                .accessibilityIdentifier("\(UITestIdentifier.aiComposerSuggestionPrefix)\(index)")
+                            }
+                        }
+                    }
+                    .accessibilityIdentifier(UITestIdentifier.aiComposerSuggestionRow)
                 }
 
                 ZStack(alignment: .bottomTrailing) {
@@ -193,5 +236,16 @@ extension AIChatView {
 
     var composerTextFieldDisabled: Bool {
         self.chatStore.isChatInteractive == false || self.chatStore.dictationState != .idle
+    }
+}
+
+private func aiChatComposerAttachmentIdentifier(attachment: AIChatAttachment) -> String {
+    switch attachment.payload {
+    case .binary:
+        return attachment.id
+    case .card:
+        return UITestIdentifier.aiComposerCardAttachmentChip
+    case .unknown:
+        return attachment.id
     }
 }

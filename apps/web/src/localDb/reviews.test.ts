@@ -87,7 +87,7 @@ describe("localDb reviews", () => {
     }
   });
 
-  it("matches legacy review timeline ordering with equal dueAt and createdAt tie-breaks", async () => {
+  it("matches review timeline ordering with timed due cards before null and future cards", async () => {
     const nowTimestamp = Date.parse("2025-01-08T00:00:00.000Z");
     const originalNow = Date.now;
     Date.now = () => nowTimestamp;
@@ -104,17 +104,17 @@ describe("localDb reviews", () => {
       expect(result.cards.map((card) => card.cardId)).toEqual(legacyCards.slice(0, 4).map((card) => card.cardId));
       expect(result.hasMoreCards).toBe(true);
       expect(result.cards.slice(0, 4).map((card) => card.cardId)).toEqual([
-        "null-newer",
-        "null-older",
         "due-same-newer",
         "due-same-older",
+        "due-other",
+        "null-newer",
       ]);
     } finally {
       Date.now = originalNow;
     }
   });
 
-  it("keeps null due and equal due ordering aligned with stable cardId tie-breaks", async () => {
+  it("keeps timed due ahead of null due ordering with stable cardId tie-breaks", async () => {
     const nowTimestamp = Date.parse("2025-01-08T00:00:00.000Z");
     const originalNow = Date.now;
     Date.now = () => nowTimestamp;
@@ -180,12 +180,12 @@ describe("localDb reviews", () => {
       const result = await loadReviewTimelinePage(workspaceId, { kind: "allCards" }, 6, 0);
 
       expect(result.cards.map((card) => card.cardId)).toEqual([
-        "card-a",
-        "card-b",
-        "null-older",
         "due-same-a",
         "due-same-b",
         "due-same-older",
+        "card-a",
+        "card-b",
+        "null-older",
       ]);
     } finally {
       Date.now = originalNow;

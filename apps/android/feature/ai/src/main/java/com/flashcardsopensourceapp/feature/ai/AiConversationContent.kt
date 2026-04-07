@@ -64,7 +64,9 @@ internal fun AiConversation(
                             is AiChatContentPart.ToolCall -> contentPart.toolCall.input?.length ?: 0
                             is AiChatContentPart.Image -> contentPart.base64Data.length
                             is AiChatContentPart.File -> contentPart.base64Data.length
+                            is AiChatContentPart.Card -> contentPart.frontText.length + contentPart.backText.length
                             is AiChatContentPart.AccountUpgradePrompt -> contentPart.message.length
+                            is AiChatContentPart.Unknown -> contentPart.summaryText.length + contentPart.originalType.length
                         }
                     }
                 )
@@ -163,24 +165,12 @@ private fun AiConversationEmptyState(
             .testTag(aiEmptyStateContentTag)
     ) {
         Text(
-            text = "Try asking",
+            text = "Start a new AI chat",
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Summarize weak areas from my due cards in $currentWorkspaceName.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = "Find cards tagged with grammar and suggest cleanup.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = "Propose a new deck filter and explain the exact change.",
+            text = "Ask about cards, review history, or attach notes for extraction in $currentWorkspaceName.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

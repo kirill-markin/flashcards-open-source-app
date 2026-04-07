@@ -61,6 +61,7 @@ class AiRouteTest {
                         consentRequired = false
                     },
                     onDraftMessageChange = {},
+                    onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
                     onNewChat = {},
@@ -131,6 +132,7 @@ class AiRouteTest {
                     ),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
                     onNewChat = {},
@@ -187,6 +189,7 @@ class AiRouteTest {
                     ),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
                     onNewChat = {},
@@ -221,6 +224,7 @@ class AiRouteTest {
                     uiState = makeAiUiState(),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
                     onNewChat = {},
@@ -258,6 +262,7 @@ class AiRouteTest {
                     ),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
                     onNewChat = {},
@@ -305,6 +310,7 @@ class AiRouteTest {
                     ),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
                     onNewChat = {},
@@ -371,6 +377,7 @@ class AiRouteTest {
                             ),
                             onAcceptConsent = {},
                             onDraftMessageChange = {},
+                            onApplyComposerSuggestion = {},
                             onSendMessage = {},
                             onCancelStreaming = {},
                             onNewChat = {},
@@ -418,6 +425,7 @@ class AiRouteTest {
                     ),
                     onAcceptConsent = {},
                     onDraftMessageChange = {},
+                    onApplyComposerSuggestion = {},
                     onSendMessage = {},
                     onCancelStreaming = {},
                     onNewChat = {},
@@ -445,6 +453,60 @@ class AiRouteTest {
         assertTrue(composeRule.onAllNodesWithText("Retry").fetchSemanticsNodes().isEmpty())
         composeRule.onNodeWithText("Open account status").assertIsDisplayed()
     }
+
+    @Test
+    fun unknownContentShowsUnsupportedPlaceholder() {
+        composeRule.setContent {
+            FlashcardsTheme {
+                AiRoute(
+                    uiState = makeAiUiState(
+                        messages = listOf(
+                            AiChatMessage(
+                                messageId = "assistant-unknown",
+                                role = AiChatRole.ASSISTANT,
+                                content = listOf(
+                                    AiChatContentPart.Unknown(
+                                        originalType = "audio_transcript_v2",
+                                        summaryText = "Unsupported content",
+                                        rawPayloadJson = """{"type":"audio_transcript_v2"}"""
+                                    )
+                                ),
+                                timestampMillis = 1L,
+                                isError = false,
+                                isStopped = false,
+                                cursor = null,
+                                itemId = "item-1"
+                            )
+                        )
+                    ),
+                    onAcceptConsent = {},
+                    onDraftMessageChange = {},
+                    onApplyComposerSuggestion = {},
+                    onSendMessage = {},
+                    onCancelStreaming = {},
+                    onNewChat = {},
+                    onOpenAccountStatus = {},
+                    onDismissErrorMessage = {},
+                    onDismissAlert = {},
+                    onAddPendingAttachment = {},
+                    onRemovePendingAttachment = {},
+                    onStartDictationPermissionRequest = {},
+                    onStartDictationRecording = {},
+                    onTranscribeRecordedAudio = { _, _, _ -> },
+                    onCancelDictation = {},
+                    onScreenVisible = {},
+                    onScreenHidden = {},
+                    onWarmUpSessionIfNeeded = {},
+                    onRetryConversationLoad = {},
+                    onShowAlert = {},
+                    onShowErrorMessage = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Unsupported content").assertIsDisplayed()
+        composeRule.onNodeWithText("Type: audio_transcript_v2").assertIsDisplayed()
+    }
 }
 
 private fun makeAiUiState(
@@ -458,13 +520,15 @@ private fun makeAiUiState(
     isConversationReady: Boolean = true,
     conversationErrorMessage: String = "",
     canRetryConversationLoad: Boolean = true,
-    showOpenAccountStatusForConversationError: Boolean = false
+    showOpenAccountStatusForConversationError: Boolean = false,
+    focusComposerRequestVersion: Long = 0L
 ): AiUiState {
     return AiUiState(
         currentWorkspaceName = "Personal",
         messages = messages,
         pendingAttachments = emptyList(),
         draftMessage = draftMessage,
+        focusComposerRequestVersion = focusComposerRequestVersion,
         chatConfig = defaultAiChatServerConfig,
         isConsentRequired = isConsentRequired,
         isLinked = false,
@@ -479,6 +543,7 @@ private fun makeAiUiState(
         dictationState = AiChatDictationState.IDLE,
         canSend = canSend,
         canStartNewChat = messages.isNotEmpty(),
+        composerSuggestions = emptyList(),
         repairStatus = null,
         activeAlert = null,
         errorMessage = ""

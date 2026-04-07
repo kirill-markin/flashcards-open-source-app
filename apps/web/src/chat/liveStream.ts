@@ -1,6 +1,13 @@
-import { parseContentPartArray } from "../apiContracts";
+import {
+  parseChatComposerSuggestionArray,
+  parseContentPartArray,
+} from "../apiContracts";
 import { webAppVersion } from "../clientIdentity";
-import type { ChatLiveStream, ContentPart } from "../types";
+import type {
+  ChatComposerSuggestion,
+  ChatLiveStream,
+  ContentPart,
+} from "../types";
 
 type ChatRunTerminalOutcome = "completed" | "stopped" | "error" | "reset_required";
 
@@ -51,6 +58,10 @@ export type ChatLiveEvent =
     content: ReadonlyArray<ContentPart>;
     isError: boolean;
     isStopped: boolean;
+  }>)
+  | (ChatLiveEventMetadata<string | null> & Readonly<{
+    type: "composer_suggestions_updated";
+    suggestions: ReadonlyArray<ChatComposerSuggestion>;
   }>)
   | (ChatLiveEventMetadata<string | null> & Readonly<{
     type: "repair_status";
@@ -331,6 +342,14 @@ export function parseChatLiveEvent(
       content: parseContentPartArray(objectValue.content, type, "content"),
       isError: requireBooleanField(objectValue, "isError", type, payload),
       isStopped: requireBooleanField(objectValue, "isStopped", type, payload),
+    };
+  }
+
+  if (type === "composer_suggestions_updated") {
+    return {
+      ...metadata,
+      type,
+      suggestions: parseChatComposerSuggestionArray(objectValue.suggestions, type, "suggestions"),
     };
   }
 

@@ -17,7 +17,7 @@ import {
   loadRequestContextFromRequest,
   parseWorkspaceIdParam,
   requireAgentConnectionId,
-  requireSelectedWorkspaceId,
+  requireAccessibleSelectedWorkspaceId,
 } from "../server/requestContext";
 import {
   expectNonEmptyString,
@@ -119,7 +119,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
 
   app.post("/agent/sql", async (context) => {
     const { requestContext, connectionId } = await loadAgentRequest(context.req.raw, options.allowedOrigins);
-    const workspaceId = requireSelectedWorkspaceId(requestContext);
+    const workspaceId = await requireAccessibleSelectedWorkspaceId(requestContext);
     const body = parseSqlBody(await parseJsonBody(context.req.raw));
     const result = await executeAgentSql({
       userId: requestContext.userId,

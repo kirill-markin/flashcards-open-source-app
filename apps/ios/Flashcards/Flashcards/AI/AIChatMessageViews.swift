@@ -1,6 +1,32 @@
 import SwiftUI
 import UIKit
 
+func aiChatUnknownContentPlaceholderTitle() -> String {
+    "Unsupported content"
+}
+
+func aiChatUnknownContentPlaceholderSubtitle(content: AIChatUnknownContentPart) -> String {
+    "Type: \(content.originalType)"
+}
+
+struct AIChatUnknownContentPlaceholderView: View {
+    let content: AIChatUnknownContentPart
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(aiChatUnknownContentPlaceholderTitle(), systemImage: "questionmark.square.dashed")
+                .font(.subheadline.weight(.semibold))
+            Text(aiChatUnknownContentPlaceholderSubtitle(content: content))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
 struct AIChatTypingIndicator: View {
     var body: some View {
         TimelineView(.animation(minimumInterval: aiChatTypingIndicatorAnimationStepSeconds)) { context in
@@ -134,6 +160,34 @@ extension AIChatView {
             Label(fileName, systemImage: "doc")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+        case .card(let card):
+            DisclosureGroup {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(buildAIChatCardContextXML(card: card))
+                        .font(.caption.monospaced())
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                    if card.tags.isEmpty == false {
+                        Text("Tags: \(card.tags.joined(separator: ", "))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.top, 4)
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(aiChatCardAttachmentLabel(card: card), systemImage: "square.stack")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Prompt context")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .tint(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         case .toolCall(let toolCall):
             let summaryText = aiChatToolSummaryText(name: toolCall.name, input: toolCall.input)
             let sections = aiChatToolSections(input: toolCall.input, output: toolCall.output)
@@ -237,6 +291,8 @@ extension AIChatView {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        case .unknown(let unknownContent):
+            AIChatUnknownContentPlaceholderView(content: unknownContent)
         }
     }
 
@@ -250,7 +306,12 @@ extension AIChatView {
                     partialResult.append("\n")
                 }
                 partialResult.append(reasoningSummary.summary.isEmpty ? "Thinking..." : reasoningSummary.summary)
-            case .toolCall, .image, .file, .accountUpgradePrompt:
+            case .unknown(let unknownContent):
+                if partialResult.isEmpty == false {
+                    partialResult.append("\n")
+                }
+                partialResult.append(unknownContent.summaryText)
+            case .toolCall, .image, .file, .card, .accountUpgradePrompt:
                 break
             }
         }

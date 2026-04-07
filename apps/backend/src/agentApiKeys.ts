@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { query, queryWithUserScope } from "./db";
+import { queryWithUserScope } from "./db";
+import { unsafeQuery } from "./dbUnsafe";
 import { HttpError } from "./errors";
 import {
   decodeOpaqueCursor,
@@ -151,7 +152,7 @@ export function parseAgentApiKey(value: string): Readonly<{
  */
 export async function authenticateAgentApiKey(apiKey: string): Promise<AuthenticatedAgentApiKey> {
   const parsedKey = parseAgentApiKey(apiKey);
-  const result = await query<AuthenticatedAgentApiKeyRow>(
+  const result = await unsafeQuery<AuthenticatedAgentApiKeyRow>(
     [
       "SELECT connection_id, user_id, key_hash, selected_workspace_id, last_used_at, revoked_at",
       "FROM auth.authenticate_agent_api_key($1)",

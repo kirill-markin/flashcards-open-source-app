@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import type { StoredMessage } from "./useChatHistory";
+import { buildCardContextXml, formatCardAttachmentLabel } from "./chatCardParts";
 
 /**
  * Maps machine-oriented tool names into short user-facing labels while keeping
@@ -105,6 +106,39 @@ function renderToolCallSection(
   );
 }
 
+function renderCardAttachment(
+  card: Readonly<{
+    cardId: string;
+    frontText: string;
+    backText: string;
+    tags: ReadonlyArray<string>;
+    effortLevel: "fast" | "medium" | "long";
+  }>,
+  key: string,
+): ReactElement {
+  return (
+    <details key={key} className="chat-card-part">
+      <summary className="chat-card-part-summary">
+        <span className="chat-card-part-label">Card</span>
+        <span className="chat-card-part-title" title={card.frontText}>
+          {formatCardAttachmentLabel(card)}
+        </span>
+      </summary>
+      <div className="chat-card-part-body">
+        <div className="chat-card-part-meta">
+          <span>ID {card.cardId}</span>
+          <span>Effort {card.effortLevel}</span>
+          <span>{card.tags.length === 0 ? "No tags" : card.tags.join(", ")}</span>
+        </div>
+        <details className="chat-card-part-context">
+          <summary className="chat-card-part-context-summary">Prompt context</summary>
+          <pre className="chat-card-part-xml">{buildCardContextXml(card)}</pre>
+        </details>
+      </div>
+    </details>
+  );
+}
+
 /**
  * Renders persisted chat history parts without normalizing whitespace so the
  * transcript stays byte-for-byte faithful to stored assistant output.
@@ -133,6 +167,12 @@ export function renderStoredMessageContent(message: StoredMessage): ReactElement
 
     if (part.type === "file") {
       elements.push(<span key={`file-${index}`}>[{part.fileName}]</span>);
+      previousPartWasAttachment = true;
+      continue;
+    }
+
+    if (part.type === "card") {
+      elements.push(renderCardAttachment(part, `card-${index}`));
       previousPartWasAttachment = true;
       continue;
     }

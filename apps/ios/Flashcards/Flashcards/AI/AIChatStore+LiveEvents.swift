@@ -1,33 +1,6 @@
 import Foundation
 
 extension AIChatStore {
-    /**
-     * Controls whether the chat surface is allowed to keep a live SSE attach.
-     * Hidden, backgrounded, or inactive screens must detach immediately. When
-     * the surface becomes visible again, recovery always starts from bootstrap.
-     */
-    func setChatVisibility(isVisible: Bool) {
-        if self.shouldKeepLiveAttached == isVisible {
-            return
-        }
-
-        self.shouldKeepLiveAttached = isVisible
-
-        if isVisible {
-            self.resumeVisibleSessionIfNeeded()
-            return
-        }
-
-        Task {
-            await self.runtime.detach()
-        }
-    }
-
-    /**
-     * Applies one typed live event on top of the last trusted bootstrap state.
-     * Snapshot/bootstrap remains the source of truth. The live stream only
-     * mutates the currently active assistant turn while the run is streaming.
-     */
     func handleLiveEvent(_ event: AIChatLiveEvent) {
         self.clearStaleResumeErrorIfNeeded(
             connectedResumeAttemptSequence: self.activeLiveResumeAttemptSequence
@@ -293,6 +266,12 @@ extension AIChatStore {
                 return
             }
             let message = self.messages[messageIndex]
+            logAIChatUnknownContentParts(
+                content: finalizedContent,
+                sessionId: metadata.sessionId,
+                messageId: message.id,
+                source: "live"
+            )
             self.messages[messageIndex] = AIChatMessage(
                 id: message.id,
                 role: message.role,
@@ -317,6 +296,16 @@ extension AIChatStore {
                         "contentCount": String(finalizedContent.count)
                     ]
                 )
+            )
+
+        case .composerSuggestionsUpdated(metadata: _, suggestions: let suggestions):
+            self.applyComposerSuggestions(suggestions)
+            logAIChatStoreEvent(
+                action: "ai_live_composer_suggestions_applied",
+                metadata: [
+                    "chatSessionId": self.chatSessionId.isEmpty ? "-" : self.chatSessionId,
+                    "count": String(suggestions.count)
+                ]
             )
 
         case .repairStatus(metadata: _, status: let status):
@@ -384,264 +373,6 @@ extension AIChatStore {
                     ]
                 )
             )
-        }
-    }
-
-    /**
-     * Applies the latest bootstrap snapshot and records the cursor boundary from
-     * which a resumed live attach may continue.
-     */
-    func applyBootstrap(_ response: AIChatBootstrapResponse) {
-        self.applyEnvelope(response)
-    }
-
-    /**
-     * Attaches bootstrap-provided live SSE only when the surface is visible and
-     * the backend still reports an active run.
-     */
-    func attachBootstrapLiveIfNeeded(
-        response: AIChatBootstrapResponse,
-        session: CloudLinkedSession,
-        resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
-    ) {
-        guard self.shouldKeepLiveAttached else {
-            self.activeLiveResumeAttemptSequence = nil
-            Task {
-                await self.runtime.detach()
-            }
-            return
-        }
-        guard let activeRun = response.activeRun else {
-            self.activeLiveResumeAttemptSequence = nil
-            Task {
-                await self.runtime.detach()
-            }
-            return
-        }
-
-        self.activeLiveResumeAttemptSequence = resumeAttemptDiagnostics?.sequence
-        Task {
-            await self.runtime.detach()
-            await self.runtime.attachLive(
-                liveStream: activeRun.live.stream,
-                sessionId: response.sessionId,
-                runId: activeRun.runId,
-                afterCursor: activeRun.live.cursor,
-                configurationMode: session.configurationMode,
-                resumeAttemptDiagnostics: resumeAttemptDiagnostics,
-                eventHandler: { [weak self] event in
-                    await self?.handleLiveEvent(event)
-                },
-                completionHandler: { [weak self] termination in
-                    await self?.handleLiveStreamTermination(termination, sessionId: response.sessionId)
-                }
-            )
-        }
-    }
-
-    /**
-     * Re-attaches the current live stream envelope for the active run. This is
-     * only valid while the surface stays visible and the latest cursor is known.
-     */
-    func attachActiveLiveStreamIfPossible() {
-        guard self.shouldKeepLiveAttached else {
-            Task {
-                await self.runtime.detach()
-            }
-            return
-        }
-        guard self.composerPhase == .running else {
-            return
-        }
-        guard let activeRunId = self.activeRunId, activeRunId.isEmpty == false else {
-            self.clearActiveRunTracking(resetComposer: true)
-            self.showGeneralError(message: "AI active run is unavailable.")
-            return
-        }
-        guard let liveStream = self.activeLiveStream else {
-            self.clearActiveRunTracking(resetComposer: true)
-            self.showGeneralError(message: "AI live stream is unavailable for the active run.")
-            return
-        }
-        guard self.chatSessionId.isEmpty == false else {
-            self.clearActiveRunTracking(resetComposer: true)
-            self.showGeneralError(message: "AI chat session is unavailable for the active run.")
-            return
-        }
-
-        let sessionId = self.chatSessionId
-        let afterCursor = self.liveCursor
-        self.activeLiveResumeAttemptSequence = nil
-        Task {
-            do {
-                let session = try await self.flashcardsStore.cloudSessionForAI()
-                guard self.shouldKeepLiveAttached else {
-                    await self.runtime.detach()
-                    return
-                }
-                guard self.activeRunId == activeRunId else {
-                    await self.runtime.detach()
-                    return
-                }
-                await self.runtime.detach()
-                await self.runtime.attachLive(
-                    liveStream: liveStream,
-                    sessionId: sessionId,
-                    runId: activeRunId,
-                    afterCursor: afterCursor,
-                    configurationMode: session.configurationMode,
-                    resumeAttemptDiagnostics: nil,
-                    eventHandler: { [weak self] event in
-                        await self?.handleLiveEvent(event)
-                    },
-                    completionHandler: { [weak self] termination in
-                        await self?.handleLiveStreamTermination(termination, sessionId: sessionId)
-                    }
-                )
-            } catch {
-                guard self.shouldKeepLiveAttached else {
-                    return
-                }
-                self.clearActiveRunTracking(resetComposer: true)
-                self.showGeneralError(error: error)
-            }
-        }
-    }
-
-    /**
-     * Resumes the visible chat surface by fetching bootstrap first. Live SSE is
-     * never resumed blindly; bootstrap decides whether attach is still needed.
-     */
-    func resumeVisibleSessionIfNeeded() {
-        guard self.shouldKeepLiveAttached else {
-            return
-        }
-        guard self.isChatInteractive else {
-            return
-        }
-        let cloudState = self.flashcardsStore.cloudSettings?.cloudState
-        guard cloudState == .linked || cloudState == .guest else {
-            return
-        }
-        guard self.hasExternalProviderConsent else {
-            return
-        }
-        guard self.activeBootstrapTask == nil else {
-            return
-        }
-        guard self.composerPhase != .preparingSend && self.composerPhase != .startingRun else {
-            return
-        }
-
-        self.startLinkedBootstrap(
-            forceReloadState: false,
-            resumeAttemptDiagnostics: self.nextResumeAttemptDiagnostics()
-        )
-    }
-
-    func reloadConversationFromBootstrap() {
-        Task {
-            do {
-                let session = try await self.flashcardsStore.cloudSessionForAI()
-                let response = try await self.chatService.loadBootstrap(
-                    session: session,
-                    sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
-                    limit: aiChatBootstrapPageLimit,
-                    resumeAttemptDiagnostics: nil
-                )
-                self.applyBootstrap(response)
-                self.attachBootstrapLiveIfNeeded(response: response, session: session, resumeAttemptDiagnostics: nil)
-            } catch {
-                self.clearActiveRunTracking(resetComposer: true)
-                self.showGeneralError(error: error)
-            }
-        }
-    }
-
-    func handleLiveStreamTermination(
-        _ termination: AIChatLiveAttachTermination,
-        sessionId: String
-    ) async {
-        switch termination {
-        case .sawTerminalEvent:
-            return
-        case .failed(let message):
-            guard self.shouldKeepLiveAttached else {
-                return
-            }
-            await self.reconcileFailedLiveStreamTermination(
-                sessionId: sessionId,
-                fallbackMessage: message
-            )
-        case .endedWithoutTerminalEvent:
-            guard self.shouldKeepLiveAttached else {
-                return
-            }
-            await self.reconcileUnexpectedLiveStreamEnd(sessionId: sessionId)
-        }
-    }
-
-    func reconcileFailedLiveStreamTermination(
-        sessionId: String,
-        fallbackMessage: String
-    ) async {
-        do {
-            let session = try await self.flashcardsStore.cloudSessionForAI()
-            let response = try await self.chatService.loadBootstrap(
-                session: session,
-                sessionId: sessionId,
-                limit: aiChatBootstrapPageLimit,
-                resumeAttemptDiagnostics: nil
-            )
-            self.applyBootstrap(response)
-
-            if let errorMessage = aiChatLatestAssistantErrorMessage(messages: response.conversation.messages) {
-                self.transitionToIdle()
-                self.showGeneralError(message: errorMessage)
-                return
-            }
-
-            if response.activeRun != nil {
-                self.attachBootstrapLiveIfNeeded(response: response, session: session, resumeAttemptDiagnostics: nil)
-                return
-            }
-
-            self.transitionToIdle()
-            if self.messages.last.map({ message in
-                message.role == .assistant && isOptimisticAIChatStatusContent(content: message.content)
-            }) == true {
-                self.markAssistantError(message: fallbackMessage)
-            }
-        } catch {
-            self.clearActiveRunTracking(resetComposer: true)
-            self.showGeneralError(error: error)
-        }
-    }
-
-    func reconcileUnexpectedLiveStreamEnd(sessionId: String) async {
-        do {
-            let session = try await self.flashcardsStore.cloudSessionForAI()
-            let response = try await self.chatService.loadBootstrap(
-                session: session,
-                sessionId: sessionId,
-                limit: aiChatBootstrapPageLimit,
-                resumeAttemptDiagnostics: nil
-            )
-            self.applyBootstrap(response)
-
-            if let errorMessage = aiChatLatestAssistantErrorMessage(messages: response.conversation.messages) {
-                self.transitionToIdle()
-                self.showGeneralError(message: errorMessage)
-                return
-            }
-
-            if response.activeRun != nil {
-                self.attachBootstrapLiveIfNeeded(response: response, session: session, resumeAttemptDiagnostics: nil)
-                return
-            }
-        } catch {
-            self.clearActiveRunTracking(resetComposer: true)
-            self.showGeneralError(error: error)
         }
     }
 
@@ -777,6 +508,9 @@ extension AIChatStore {
             values["contentCount"] = String(content.count)
             values["isError"] = isError ? "true" : "false"
             values["isStopped"] = isStopped ? "true" : "false"
+        case .composerSuggestionsUpdated(metadata: _, suggestions: let suggestions):
+            values["eventType"] = "composer_suggestions_updated"
+            values["suggestionCount"] = String(suggestions.count)
         case .repairStatus(metadata: _, status: let status):
             values["eventType"] = "repair_status"
             values["attempt"] = String(status.attempt)
@@ -831,7 +565,7 @@ extension AIChatStore {
     }
 }
 
-private extension AIChatStore {
+extension AIChatStore {
     func liveEventMetadata(_ event: AIChatLiveEvent) -> AIChatLiveEventMetadata {
         switch event {
         case .assistantDelta(metadata: let metadata, text: _, itemId: _):
@@ -845,6 +579,8 @@ private extension AIChatStore {
         case .assistantReasoningDone(metadata: let metadata, reasoningId: _, itemId: _):
             return metadata
         case .assistantMessageDone(metadata: let metadata, itemId: _, content: _, isError: _, isStopped: _):
+            return metadata
+        case .composerSuggestionsUpdated(metadata: let metadata, suggestions: _):
             return metadata
         case .repairStatus(metadata: let metadata, status: _):
             return metadata
@@ -955,20 +691,6 @@ private extension AIChatStore {
     }
 }
 
-private func aiChatLatestAssistantErrorMessage(messages: [AIChatMessage]) -> String? {
-    guard let assistantMessage = messages.last(where: { $0.role == .assistant && $0.isError }) else {
-        return nil
-    }
-
-    let message = assistantMessage.content.reduce(into: "") { result, part in
-        if case .text(let text) = part {
-            result.append(text)
-        }
-    }.trimmingCharacters(in: .whitespacesAndNewlines)
-
-    return message.isEmpty ? nil : message
-}
-
 private func aiChatTerminalEventHasRenderableContent(
     content: [AIChatContentPart],
     isError: Bool,
@@ -984,7 +706,7 @@ private func aiChatTerminalEventHasRenderableContent(
             return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
         case .reasoningSummary(let reasoningSummary):
             return reasoningSummary.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-        case .image, .file, .toolCall, .accountUpgradePrompt:
+        case .image, .file, .card, .toolCall, .accountUpgradePrompt, .unknown:
             return true
         }
     }

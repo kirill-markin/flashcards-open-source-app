@@ -36,6 +36,33 @@ Stop local services with:
 make db-down
 ```
 
+## Local browser smoke with auth
+
+The full local web smoke is intentionally separate from the deployed post-release smoke.
+
+Use it only against the local stack:
+
+1. keep root `.env` in `AUTH_MODE=cognito`
+2. set `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_REGION`, and `SESSION_ENCRYPTION_KEY`
+3. set `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` for the local review/demo account
+4. start `make db-up`
+5. start `make auth-dev`
+6. start `make backend-dev`
+7. run `npm run test:e2e:local --prefix apps/web`
+
+`test:e2e:local` talks only to:
+
+- local web on `http://localhost:3000`
+- local backend on `http://localhost:8080`
+- local auth on `http://localhost:8081`
+
+Playwright builds and serves the local web preview automatically, but it does not start backend or auth for you. The preflight step fails immediately if local auth or backend is missing or if the local smoke points at any deployed origin.
+
+This split is deliberate:
+
+- local smoke validates the current branch without relying on production auth redirect allowlists
+- CI/CD post-deploy smoke still validates the deployed production path after release
+
 ## First AWS deploy
 
 Keep the operator config in root `.env`. The important deploy-time values are:
@@ -127,13 +154,13 @@ Manual `workflow_dispatch` runs use the same embedded pre-deploy checks before t
 
 This repository does not try to prove backend and web correctness with exhaustive test coverage before deploy. The highest-confidence automated signals are the real Playwright web smoke and the real agent API smoke that run against the deployed environment closest to production, and any additional non-smoke tests should stay targeted to important module boundaries or contracts.
 
-After pushing to `main`, watch `AWS/Web Release` until the release either finishes green or fails clearly after deploy. This pipeline is intentionally fix-forward only: a failed post-deploy smoke leaves the deployed AWS/Web release in place, marks that run failed, and the next push must still be allowed to deploy.
-
 Cross-client live smoke references:
 
 - Web: `apps/web/e2e/live-smoke.spec.ts`
-- iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
+- iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmoke*Tests.swift`
 - Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
+
+After pushing to `main`, watch `AWS/Web Release` until the release either finishes green or fails clearly after deploy. This pipeline is intentionally fix-forward only: a failed post-deploy smoke leaves the deployed AWS/Web release in place, marks that run failed, and the next push must still be allowed to deploy.
 
 Guest AI quota is configured separately:
 

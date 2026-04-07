@@ -65,12 +65,37 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
             onOpenTagsEditor = {
                 navController.navigate(route = CardEditorTagsDestination.createRoute(cardId = editingArgument))
             },
+            onEditWithAi = if (editingCardId == null) {
+                null
+            } else {
+                {
+                    val handoffCardId = requireNotNull(editingCardId)
+                    coroutineScope.launch {
+                        val savedCardDraft = editorViewModel.save(editingCardId = handoffCardId)
+                        if (savedCardDraft == null) {
+                            return@launch
+                        }
+
+                        appGraph.appHandoffCoordinator.requestAiCardHandoff(
+                            cardId = handoffCardId,
+                            frontText = savedCardDraft.frontText,
+                            backText = savedCardDraft.backText,
+                            tags = savedCardDraft.tags,
+                            effortLevel = savedCardDraft.effortLevel
+                        )
+                        navigateToTopLevelDestination(
+                            navController = navController,
+                            destination = AiDestination
+                        )
+                    }
+                }
+            },
             onRemoveTag = editorViewModel::removeTag,
             onEffortLevelChange = editorViewModel::updateEffortLevel,
             onSave = {
                 coroutineScope.launch {
                     val didSave = editorViewModel.save(editingCardId = editingCardId)
-                    if (didSave) {
+                    if (didSave != null) {
                         withContext(Dispatchers.Main.immediate) {
                             navController.popBackStack()
                         }

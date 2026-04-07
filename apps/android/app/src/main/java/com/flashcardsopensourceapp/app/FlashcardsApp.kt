@@ -50,6 +50,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
+import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncSource
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import kotlinx.coroutines.delay
@@ -159,7 +160,8 @@ fun FlashcardsApp(appGraph: AppGraph) {
                 when (event) {
                     Lifecycle.Event.ON_RESUME -> {
                         isAppResumed = true
-                        appGraph.reviewNotificationsManager.markAppResumed(
+                        appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
+                            trigger = ReviewNotificationsReconcileTrigger.APP_ACTIVE,
                             nowMillis = System.currentTimeMillis()
                         )
                         if (currentCanRunImmediateAutoSync) {
@@ -174,7 +176,8 @@ fun FlashcardsApp(appGraph: AppGraph) {
 
                     Lifecycle.Event.ON_PAUSE -> {
                         isAppResumed = false
-                        appGraph.reviewNotificationsManager.markAppPaused(
+                        appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
+                            trigger = ReviewNotificationsReconcileTrigger.APP_BACKGROUND,
                             nowMillis = System.currentTimeMillis()
                         )
                     }

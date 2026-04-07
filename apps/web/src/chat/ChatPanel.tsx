@@ -20,10 +20,12 @@ import {
   checkFileSize,
   EXTRA_AGGRESSIVE_IMAGE_COMPRESSION,
   FileAttachment,
+  isBinaryPendingAttachment,
   prepareAttachment,
   recompressImageAttachment,
   type PendingAttachment,
 } from "./FileAttachment";
+import { formatCardAttachmentLabel } from "./chatCardParts";
 import {
   ATTACHMENT_LIMIT_ERROR_MESSAGE,
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
@@ -132,10 +134,11 @@ export function ChatPanel(props: Props): ReactElement {
   const appData = useAppData();
   const {
     draft,
+    focusComposerRequestVersion,
     replaceInputText,
     updateInputText,
     replacePendingAttachments,
-    clearDraft,
+    clearDraftForSession,
   } = useChatDraft();
   const { setIsOpen, chatWidth, setChatWidth } = useChatLayout();
   const [localWidth, setLocalWidth] = useState<number>(chatWidth);
@@ -155,6 +158,7 @@ export function ChatPanel(props: Props): ReactElement {
     isStopping,
     currentSessionId,
     chatConfig,
+    composerSuggestions,
     composerAction,
     errorDialogMessage,
     dismissErrorDialog,
@@ -255,6 +259,14 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
 
+    textareaRef.current?.focus();
+  }, [dictationState, focusComposerRequestVersion]);
+
+  useEffect(() => {
+    if (dictationState !== "idle") {
+      return;
+    }
+
     const textarea = textareaRef.current;
     const pendingSelection = pendingTextareaSelectionRef.current;
     if (textarea === null || pendingSelection === null) {
@@ -346,6 +358,7 @@ export function ChatPanel(props: Props): ReactElement {
 
     if (
       projectedSizeBytes > ATTACHMENT_PAYLOAD_LIMIT_BYTES
+      && isBinaryPendingAttachment(attachment)
       && attachment.mediaType.startsWith(IMAGE_MEDIA_TYPE_PREFIX)
     ) {
       try {
@@ -559,6 +572,7 @@ export function ChatPanel(props: Props): ReactElement {
 
     const nextText = inputText;
     const nextAttachments = pendingAttachmentsRef.current;
+    const sourceSessionId = currentSessionId;
     const contentParts = buildContentParts(nextText, nextAttachments);
     if (contentParts.length === 0) {
       return;
@@ -600,7 +614,10 @@ export function ChatPanel(props: Props): ReactElement {
       });
 
       if (result.accepted) {
-        clearDraft();
+        clearDraftForSession(sourceSessionId);
+        if (result.sessionId !== null && result.sessionId !== sourceSessionId) {
+          clearDraftForSession(result.sessionId);
+        }
         pendingAttachmentsRef.current = [];
         draftSelectionRef.current = null;
         pendingTextareaSelectionRef.current = null;
@@ -644,6 +661,16 @@ export function ChatPanel(props: Props): ReactElement {
     && !isChatActionLocked
     && dictationState === "idle"
     && (inputText.trim().length > 0 || pendingAttachments.length > 0);
+  const canShowComposerSuggestions = isHistoryLoaded
+    && composerAction === "send"
+    && sendPhase === "idle"
+    && !isAssistantRunActive
+    && !isStopping
+    && !isChatActionLocked
+    && dictationState === "idle"
+    && pendingAttachments.length === 0
+    && inputText.trim().length === 0
+    && composerSuggestions.length > 0;
   const microphoneAriaLabel = dictationState === "recording" ? "Stop dictation" : "Start dictation";
   const dictationStatusLabel = dictationState === "requesting_permission"
     ? "Waiting for microphone access..."
@@ -696,16 +723,17 @@ export function ChatPanel(props: Props): ReactElement {
             className="chat-close-btn"
             onClick={() => {
               discardDictation();
-              void clearConversation().then(() => {
-                clearDraft();
-                pendingAttachmentsRef.current = [];
-                draftSelectionRef.current = null;
-                pendingTextareaSelectionRef.current = null;
-                requestComposerFocusRestore();
-              }).catch((error: unknown) => {
-                const message = error instanceof Error ? error.message : String(error);
-                appData.setErrorMessage(`New chat failed. ${message}`);
-              });
+              if (currentSessionId === null) {
+                clearDraftForSession(null);
+              }
+              void clearConversation()
+                .then((nextSessionId) => {
+                  clearDraftForSession(nextSessionId);
+                  pendingAttachmentsRef.current = [];
+                  draftSelectionRef.current = null;
+                  pendingTextareaSelectionRef.current = null;
+                  requestComposerFocusRestore();
+                });
             }}
             disabled={isComposerTransientBusy || isStopping}
           >
@@ -741,18 +769,8 @@ export function ChatPanel(props: Props): ReactElement {
 
         {!isInitialHistoryLoading && messages.length === 0 ? (
           <div className="chat-empty">
-            <p className="chat-empty-title">Try asking:</p>
-            <ul className="chat-empty-list">
-              <li>Draft 10 Spanish verb flashcards for beginners.</li>
-              <li>Find due cards about biology and summarize weak areas.</li>
-              <li>Clean up duplicated tags and propose a rename plan.</li>
-            </ul>
-            <p className="chat-empty-title">Attachments:</p>
-            <ul className="chat-empty-list">
-              <li>Paste screenshots of notes and ask for card extraction.</li>
-              <li>Upload PDFs or text files and ask for flashcard drafts.</li>
-              <li>Ask the assistant to propose edits before applying them.</li>
-            </ul>
+            <p className="chat-empty-title">Start a new AI chat</p>
+            <p className="chat-empty-copy">Ask about cards, review history, or attach notes for extraction.</p>
           </div>
         ) : null}
 
@@ -778,8 +796,15 @@ export function ChatPanel(props: Props): ReactElement {
         {pendingAttachments.length > 0 ? (
           <div className="chat-attachment-preview">
             {pendingAttachments.map((attachment, index) => (
-              <span key={`${attachment.fileName}-${index}`} className="chat-attachment-chip">
-                {attachment.fileName}
+              <span
+                key={isBinaryPendingAttachment(attachment)
+                  ? `${attachment.fileName}-${index}`
+                  : `${attachment.attachmentId}-${index}`}
+                className={`chat-attachment-chip${isBinaryPendingAttachment(attachment) ? "" : " chat-attachment-chip-card"}`}
+              >
+                {isBinaryPendingAttachment(attachment)
+                  ? attachment.fileName
+                  : `Card · ${formatCardAttachmentLabel(attachment)}`}
                 <button
                   type="button"
                   className="chat-attachment-remove"
@@ -789,6 +814,27 @@ export function ChatPanel(props: Props): ReactElement {
                   &times;
                 </button>
               </span>
+            ))}
+          </div>
+        ) : null}
+
+        {canShowComposerSuggestions ? (
+          <div className="chat-composer-suggestions" aria-label="Suggested replies">
+            {composerSuggestions.map((suggestion) => (
+              <button
+                key={suggestion.id}
+                type="button"
+                className="chat-composer-suggestion"
+                onClick={() => {
+                  updateInputText((currentText) =>
+                    currentText.length === 0
+                      ? suggestion.text
+                      : `${currentText}${currentText.endsWith(" ") ? "" : " "}${suggestion.text}`);
+                  requestComposerFocusRestore();
+                }}
+              >
+                {suggestion.text}
+              </button>
             ))}
           </div>
         ) : null}

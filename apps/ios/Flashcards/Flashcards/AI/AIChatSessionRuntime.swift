@@ -205,6 +205,7 @@ actor AIChatSessionRuntime {
                     .assistantReasoningStarted,
                     .assistantReasoningSummary,
                     .assistantReasoningDone,
+                    .composerSuggestionsUpdated,
                     .repairStatus,
                     .assistantMessageDone:
                 break

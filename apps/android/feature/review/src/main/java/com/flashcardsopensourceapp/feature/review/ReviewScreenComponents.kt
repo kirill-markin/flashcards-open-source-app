@@ -69,6 +69,7 @@ const val reviewShowAnswerButtonTag: String = "review_show_answer_button"
 const val reviewRateGoodButtonTag: String = "review_rate_good_button"
 const val reviewFilterButtonTag: String = "review_filter_button"
 const val reviewEditCardButtonTag: String = "review_edit_card_button"
+const val reviewAiCardButtonTag: String = "review_ai_card_button"
 const val reviewEmptyStateTag: String = "review_empty_state"
 const val reviewEmptyStateContentTag: String = "review_empty_state_content"
 const val reviewEmptyStateTitleTag: String = "review_empty_state_title"
@@ -161,6 +162,13 @@ internal fun ReviewContent(
     uiState: ReviewUiState,
     activeSpeechSide: ReviewSpeechSide?,
     onOpenCurrentCard: (String) -> Unit,
+    onOpenCurrentCardWithAi: (
+        cardId: String,
+        frontText: String,
+        backText: String,
+        tags: List<String>,
+        effortLevel: com.flashcardsopensourceapp.data.local.model.EffortLevel
+    ) -> Unit,
     onCreateCard: () -> Unit,
     onCreateCardWithAi: () -> Unit,
     onSwitchToAllCards: () -> Unit,
@@ -205,6 +213,16 @@ internal fun ReviewContent(
                         activeSpeechSide = activeSpeechSide,
                         onOpenCurrentCard = {
                             uiState.currentCardIdForEditing?.let(onOpenCurrentCard)
+                        },
+                        onOpenCurrentCardWithAi = {
+                            val card = uiState.preparedCurrentCard.card
+                            onOpenCurrentCardWithAi(
+                                card.cardId,
+                                card.frontText,
+                                card.backText,
+                                card.tags,
+                                card.effortLevel
+                            )
                         },
                         onToggleFrontSpeech = onToggleFrontSpeech,
                         onToggleBackSpeech = onToggleBackSpeech
@@ -312,6 +330,7 @@ private fun ReviewCardContent(
     isAnswerVisible: Boolean,
     activeSpeechSide: ReviewSpeechSide?,
     onOpenCurrentCard: () -> Unit,
+    onOpenCurrentCardWithAi: () -> Unit,
     onToggleFrontSpeech: () -> Unit,
     onToggleBackSpeech: () -> Unit
 ) {
@@ -339,21 +358,43 @@ private fun ReviewCardContent(
                 )
             }
 
-            FilledIconButton(
-                onClick = onOpenCurrentCard,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                modifier = Modifier
-                    .size(reviewEditButtonSize)
-                    .testTag(reviewEditCardButtonTag)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Edit,
-                    contentDescription = "Edit card",
-                    modifier = Modifier.size(reviewEditIconSize)
-                )
+                FilledIconButton(
+                    onClick = onOpenCurrentCard,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier
+                        .size(reviewEditButtonSize)
+                        .testTag(reviewEditCardButtonTag)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Edit,
+                        contentDescription = "Edit card",
+                        modifier = Modifier.size(reviewEditIconSize)
+                    )
+                }
+
+                FilledIconButton(
+                    onClick = onOpenCurrentCardWithAi,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    modifier = Modifier
+                        .size(reviewEditButtonSize)
+                        .testTag(reviewAiCardButtonTag)
+                ) {
+                    Text(
+                        text = "AI",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 

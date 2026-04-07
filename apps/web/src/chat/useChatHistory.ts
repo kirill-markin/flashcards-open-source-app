@@ -11,7 +11,7 @@ export type StoredMessage = Readonly<{
   itemId: string | null;
 }>;
 
-type ChatHistoryState = Readonly<{
+export type ChatHistoryState = Readonly<{
   messages: ReadonlyArray<StoredMessage>;
   replaceMessages: (messages: ReadonlyArray<StoredMessage>) => void;
   appendUserMessage: (content: ReadonlyArray<ContentPart>) => void;

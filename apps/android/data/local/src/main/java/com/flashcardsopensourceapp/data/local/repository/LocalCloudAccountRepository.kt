@@ -2,48 +2,30 @@ package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
-import com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
+import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
-import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
-import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
-import com.flashcardsopensourceapp.data.local.model.PersistedOutboxEntry
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
-import com.flashcardsopensourceapp.data.local.model.SyncOperationPayload
-import com.flashcardsopensourceapp.data.local.model.SyncStatus
-import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
-import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinitionJsonObject
-import com.flashcardsopensourceapp.data.local.model.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.makeCustomCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import org.json.JSONArray
 import org.json.JSONObject
 
-private const val syncPullPageLimit: Int = 200
-private const val bootstrapPageLimit: Int = 200
 private const val accountDeletionConfirmationTextForCloudApi: String = "delete my account"
-internal const val androidClientPlatform: String = "android"
 
 class LocalCloudAccountRepository(
     private val database: AppDatabase,
@@ -118,10 +100,14 @@ class LocalCloudAccountRepository(
                 code = code,
                 authBaseUrl = configuration.authBaseUrl
             )
-            buildCloudWorkspaceLinkContext(
+            val linkContext = buildCloudWorkspaceLinkContext(
                 credentials = credentials,
                 configuration = configuration
             )
+            if (linkContext.guestUpgradeMode != null) {
+                markGuestUpgradePreparationState()
+            }
+            linkContext
         }
     }
 
@@ -759,13 +745,27 @@ class LocalCloudAccountRepository(
         val cloudSettings = preferencesStore.currentCloudSettings()
         val guestWorkspaceId = cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
         if (cloudSettings.cloudState == CloudAccountState.GUEST && guestWorkspaceId != null) {
-            return guestSessionStore.loadSession(
+            val activeWorkspaceSession = guestSessionStore.loadSession(
                 localWorkspaceId = guestWorkspaceId,
                 configuration = configuration
             )
+            if (activeWorkspaceSession != null) {
+                return activeWorkspaceSession
+            }
         }
 
         return guestSessionStore.loadAnySession(configuration = configuration)
+    }
+
+    private suspend fun markGuestUpgradePreparationState() {
+        val cloudSettings = preferencesStore.currentCloudSettings()
+        preferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.GUEST,
+            linkedUserId = null,
+            linkedWorkspaceId = null,
+            linkedEmail = null,
+            activeWorkspaceId = cloudSettings.activeWorkspaceId
+        )
     }
 
     private fun clearGuestSessionsIfNeeded() {
@@ -773,642 +773,8 @@ class LocalCloudAccountRepository(
     }
 }
 
-private fun validateWorkspaceSelection(
-    linkContext: CloudWorkspaceLinkContext,
-    selection: CloudWorkspaceLinkSelection
-): CloudWorkspaceLinkSelection {
-    return when (selection) {
-        is CloudWorkspaceLinkSelection.Existing -> {
-            require(linkContext.workspaces.any { workspace -> workspace.workspaceId == selection.workspaceId }) {
-                "Selected workspace is unavailable for this sign-in attempt. Start sign-in again."
-            }
-            selection
-        }
-
-        CloudWorkspaceLinkSelection.CreateNew -> CloudWorkspaceLinkSelection.CreateNew
-    }
-}
-
-private fun resolvePreferredPostAuthWorkspaceId(
-    workspaces: List<CloudWorkspaceSummary>
-): String? {
-    if (workspaces.size == 1) {
-        return workspaces.first().workspaceId
-    }
-    val selectedWorkspaceIds = workspaces.filter(CloudWorkspaceSummary::isSelected)
-        .map(CloudWorkspaceSummary::workspaceId)
-        .distinct()
-    return if (selectedWorkspaceIds.size == 1) {
-        selectedWorkspaceIds.single()
-    } else {
-        null
-    }
-}
-
-private fun CloudWorkspaceLinkSelection.toGuestUpgradeSelection(): CloudGuestUpgradeSelection {
-    return when (this) {
-        is CloudWorkspaceLinkSelection.Existing -> CloudGuestUpgradeSelection.Existing(workspaceId = workspaceId)
-        CloudWorkspaceLinkSelection.CreateNew -> CloudGuestUpgradeSelection.CreateNew
-    }
-}
-
-class LocalSyncRepository(
-    private val database: AppDatabase,
-    private val preferencesStore: CloudPreferencesStore,
-    private val remoteService: CloudRemoteGateway,
-    private val syncLocalStore: SyncLocalStore,
-    private val operationCoordinator: CloudOperationCoordinator,
-    private val resetCoordinator: CloudIdentityResetCoordinator,
-    private val guestSessionStore: GuestAiSessionStore,
-    private val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator,
-    private val appVersion: String
-) : SyncRepository, AutoSyncEventRepository {
-    private val syncStatusState = MutableStateFlow(
-        SyncStatusSnapshot(
-            status = SyncStatus.Idle,
-            lastSuccessfulSyncAtMillis = null,
-            lastErrorMessage = ""
-        )
-    )
-    private val autoSyncEventsFlow = MutableSharedFlow<AutoSyncEvent>(
-        replay = 0,
-        extraBufferCapacity = 32
-    )
-
-    override fun observeSyncStatus(): Flow<SyncStatusSnapshot> {
-        return syncStatusState.asStateFlow()
-    }
-
-    override suspend fun scheduleSync() {
-        syncNow()
-    }
-
-    override suspend fun syncNow() {
-        performSync(autoSyncRequest = null)
-    }
-
-    override fun observeAutoSyncEvents(): Flow<AutoSyncEvent> {
-        return autoSyncEventsFlow
-    }
-
-    override suspend fun runAutoSync(request: AutoSyncRequest) {
-        performSync(autoSyncRequest = request)
-    }
-
-    private suspend fun performSync(autoSyncRequest: AutoSyncRequest?) {
-        operationCoordinator.runExclusive {
-            val currentCloudSettings = preferencesStore.currentCloudSettings()
-            val previousCloudState = currentCloudSettings.cloudState
-            val currentStatus = syncStatusState.value.status
-            emitAutoSyncRequested(autoSyncRequest = autoSyncRequest)
-            if (currentStatus is SyncStatus.Blocked) {
-                if (currentStatus.installationId == currentCloudSettings.installationId) {
-                    val error = IllegalStateException(currentStatus.message)
-                    emitAutoSyncFailure(
-                        autoSyncRequest = autoSyncRequest,
-                        error = error
-                    )
-                    throw error
-                }
-                syncStatusState.value = SyncStatusSnapshot(
-                    status = SyncStatus.Idle,
-                    lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
-                    lastErrorMessage = ""
-                )
-            }
-            if (preferencesStore.currentAccountDeletionState() != AccountDeletionState.Hidden) {
-                emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)
-                return@runExclusive
-            }
-            val reconciliation = cloudGuestSessionCoordinator.reconcilePersistedCloudStateLocked()
-            val cloudSettings = reconciliation.cloudSettings
-            val failureWorkspaceId = cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
-            if (reconciliation.didRunSync) {
-                syncStatusState.value = SyncStatusSnapshot(
-                    status = SyncStatus.Idle,
-                    lastSuccessfulSyncAtMillis = System.currentTimeMillis(),
-                    lastErrorMessage = ""
-                )
-                emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)
-                return@runExclusive
-            }
-            if (
-                previousCloudState != CloudAccountState.GUEST &&
-                cloudSettings.cloudState == CloudAccountState.GUEST &&
-                reconciliation.guestRestoreRequiresSync.not()
-            ) {
-                syncStatusState.value = SyncStatusSnapshot(
-                    status = SyncStatus.Idle,
-                    lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
-                    lastErrorMessage = ""
-                )
-                emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)
-                return@runExclusive
-            }
-            syncStatusState.value = syncStatusState.value.copy(status = SyncStatus.Syncing, lastErrorMessage = "")
-
-            var syncTarget: CloudSyncTarget? = null
-            try {
-                syncTarget = resolveSyncTarget(cloudSettings = cloudSettings)
-                runCloudSyncCore(
-                    cloudSettings = cloudSettings,
-                    workspaceId = syncTarget.workspaceId,
-                    syncSession = syncTarget.session,
-                    appVersion = appVersion,
-                    remoteService = remoteService,
-                    syncLocalStore = syncLocalStore
-                )
-                syncStatusState.value = SyncStatusSnapshot(
-                    status = SyncStatus.Idle,
-                    lastSuccessfulSyncAtMillis = System.currentTimeMillis(),
-                    lastErrorMessage = ""
-                )
-                emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)
-            } catch (error: CancellationException) {
-                syncStatusState.value = SyncStatusSnapshot(
-                    status = SyncStatus.Idle,
-                    lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
-                    lastErrorMessage = ""
-                )
-                throw error
-            } catch (error: Exception) {
-                if (isRemoteAccountDeletedError(error = error)) {
-                    resetCoordinator.resetLocalStateForCloudIdentityChange()
-                    syncStatusState.value = SyncStatusSnapshot(
-                        status = SyncStatus.Idle,
-                        lastSuccessfulSyncAtMillis = null,
-                        lastErrorMessage = ""
-                    )
-                    emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)
-                    return@runExclusive
-                }
-                if (isCloudIdentityConflictError(error = error)) {
-                    val message = error.message ?: "Cloud sync is blocked for this installation."
-                    syncStatusState.value = SyncStatusSnapshot(
-                        status = SyncStatus.Blocked(
-                            message = message,
-                            installationId = cloudSettings.installationId
-                        ),
-                        lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
-                        lastErrorMessage = message
-                    )
-                    emitAutoSyncFailure(
-                        autoSyncRequest = autoSyncRequest,
-                        error = error
-                    )
-                    throw error
-                }
-                val workspaceIdForFailure = syncTarget?.workspaceId ?: failureWorkspaceId
-                if (workspaceIdForFailure != null) {
-                    syncLocalStore.markSyncFailure(
-                        workspaceIdForFailure,
-                        error.message ?: "Cloud sync failed."
-                    )
-                }
-                syncStatusState.value = SyncStatusSnapshot(
-                    status = SyncStatus.Failed(error.message ?: "Cloud sync failed."),
-                    lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
-                    lastErrorMessage = error.message ?: "Cloud sync failed."
-                )
-                emitAutoSyncFailure(
-                    autoSyncRequest = autoSyncRequest,
-                    error = error
-                )
-                throw error
-            }
-        }
-    }
-
-    private fun emitAutoSyncRequested(autoSyncRequest: AutoSyncRequest?) {
-        if (autoSyncRequest == null) {
-            return
-        }
-
-        autoSyncEventsFlow.tryEmit(
-            AutoSyncEvent.Requested(request = autoSyncRequest)
-        )
-    }
-
-    private fun emitAutoSyncSuccess(autoSyncRequest: AutoSyncRequest?) {
-        if (autoSyncRequest == null) {
-            return
-        }
-
-        autoSyncEventsFlow.tryEmit(
-            AutoSyncEvent.Completed(
-                completion = AutoSyncCompletion(
-                    request = autoSyncRequest,
-                    completedAtMillis = System.currentTimeMillis(),
-                    outcome = AutoSyncOutcome.Succeeded
-                )
-            )
-        )
-    }
-
-    private fun emitAutoSyncFailure(
-        autoSyncRequest: AutoSyncRequest?,
-        error: Exception
-    ) {
-        if (autoSyncRequest == null) {
-            return
-        }
-
-        autoSyncEventsFlow.tryEmit(
-            AutoSyncEvent.Completed(
-                completion = AutoSyncCompletion(
-                    request = autoSyncRequest,
-                    completedAtMillis = System.currentTimeMillis(),
-                    outcome = AutoSyncOutcome.Failed(
-                        message = error.message ?: "Cloud sync failed."
-                    )
-                )
-            )
-        )
-    }
-
-    private suspend fun resolveSyncTarget(cloudSettings: CloudSettings): CloudSyncTarget {
-        return when (cloudSettings.cloudState) {
-            CloudAccountState.LINKED -> {
-                val authenticatedSession = authenticatedSession()
-                val workspaceId = requireNotNull(
-                    cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
-                ) {
-                    "Cloud sync requires an active linked workspace."
-                }
-                CloudSyncTarget(
-                    workspaceId = workspaceId,
-                    session = CloudSyncSession(
-                        apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
-                        authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}"
-                    )
-                )
-            }
-
-            CloudAccountState.GUEST -> {
-                val configuration = preferencesStore.currentServerConfiguration()
-                val workspaceId = requireNotNull(
-                    cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId
-                ) {
-                    "Cloud sync requires an active guest workspace."
-                }
-                val guestSession = guestSessionStore.loadSession(
-                    localWorkspaceId = workspaceId,
-                    configuration = configuration
-                )
-                val storedGuestSession = requireNotNull(guestSession) {
-                    "Guest AI session is unavailable."
-                }
-                require(storedGuestSession.workspaceId == workspaceId) {
-                    "Guest cloud sync requires active workspace '$workspaceId', but the stored guest session points to '${storedGuestSession.workspaceId}'."
-                }
-                CloudSyncTarget(
-                    workspaceId = workspaceId,
-                    session = CloudSyncSession(
-                        apiBaseUrl = storedGuestSession.apiBaseUrl,
-                        authorizationHeader = "Guest ${storedGuestSession.guestToken}"
-                    )
-                )
-            }
-
-            else -> {
-                throw IllegalStateException("Cloud sync requires a linked or guest cloud account.")
-            }
-        }
-    }
-
-    private suspend fun authenticatedSession(): AuthenticatedCloudSession {
-        val configuration = preferencesStore.currentServerConfiguration()
-        val storedCredentials = requireNotNull(preferencesStore.loadCredentials()) {
-            "Cloud account is not signed in."
-        }
-        val refreshedCredentials = if (
-            shouldRefreshCloudIdToken(
-                idTokenExpiresAtMillis = storedCredentials.idTokenExpiresAtMillis,
-                nowMillis = System.currentTimeMillis()
-            )
-        ) {
-            remoteService.refreshIdToken(
-                refreshToken = storedCredentials.refreshToken,
-                authBaseUrl = configuration.authBaseUrl
-            ).also(preferencesStore::saveCredentials)
-        } else {
-            storedCredentials
-        }
-        val accountSnapshot = remoteService.fetchCloudAccount(
-            apiBaseUrl = configuration.apiBaseUrl,
-            bearerToken = refreshedCredentials.idToken
-        )
-        return AuthenticatedCloudSession(
-            configuration = configuration,
-            credentials = refreshedCredentials,
-            accountSnapshot = accountSnapshot
-        )
-    }
-}
-
-internal suspend fun runCloudSyncCore(
-    cloudSettings: CloudSettings,
-    workspaceId: String,
-    syncSession: CloudSyncSession,
-    appVersion: String,
-    remoteService: CloudRemoteGateway,
-    syncLocalStore: SyncLocalStore
-) {
-    syncLocalStore.recordSyncAttempt(workspaceId)
-    val syncState = syncLocalStore.ensureSyncState(workspaceId)
-    var lastHotCursor = syncState.lastSyncCursor?.toLongOrNull() ?: 0L
-    var lastReviewSequenceId = syncState.lastReviewSequenceId
-    var hasHydratedHotState = syncState.hasHydratedHotState
-    var hasHydratedReviewHistory = syncState.hasHydratedReviewHistory
-    var bootstrapResponse: RemoteBootstrapPullResponse? = null
-
-    if (hasHydratedHotState.not()) {
-        bootstrapResponse = remoteService.bootstrapPull(
-            apiBaseUrl = syncSession.apiBaseUrl,
-            authorizationHeader = syncSession.authorizationHeader,
-            workspaceId = workspaceId,
-            body = JSONObject()
-                .put("mode", "pull")
-                .put("installationId", cloudSettings.installationId)
-                .put("platform", androidClientPlatform)
-                .put("appVersion", appVersion)
-                .put("cursor", JSONObject.NULL)
-                .put("limit", bootstrapPageLimit)
-        )
-
-        if (bootstrapResponse.remoteIsEmpty) {
-            val bootstrapEntries = syncLocalStore.buildBootstrapEntries(workspaceId)
-            if (bootstrapEntries.length() > 0) {
-                val bootstrapPushResponse = remoteService.bootstrapPush(
-                    apiBaseUrl = syncSession.apiBaseUrl,
-                    authorizationHeader = syncSession.authorizationHeader,
-                    workspaceId = workspaceId,
-                    body = JSONObject()
-                        .put("mode", "push")
-                        .put("installationId", cloudSettings.installationId)
-                        .put("platform", androidClientPlatform)
-                        .put("appVersion", appVersion)
-                        .put("entries", bootstrapEntries)
-                )
-                lastHotCursor = bootstrapPushResponse.bootstrapHotChangeId ?: lastHotCursor
-            }
-        } else {
-            syncLocalStore.applyBootstrapEntries(workspaceId, bootstrapResponse.entries)
-            lastHotCursor = bootstrapResponse.bootstrapHotChangeId
-            var nextCursor = bootstrapResponse.nextCursor
-
-            while (bootstrapResponse.hasMore && nextCursor != null) {
-                val nextPage = remoteService.bootstrapPull(
-                    apiBaseUrl = syncSession.apiBaseUrl,
-                    authorizationHeader = syncSession.authorizationHeader,
-                    workspaceId = workspaceId,
-                    body = JSONObject()
-                        .put("mode", "pull")
-                        .put("installationId", cloudSettings.installationId)
-                        .put("platform", androidClientPlatform)
-                        .put("appVersion", appVersion)
-                        .put("cursor", nextCursor)
-                        .put("limit", bootstrapPageLimit)
-                )
-                syncLocalStore.applyBootstrapEntries(workspaceId, nextPage.entries)
-                nextCursor = nextPage.nextCursor
-                lastHotCursor = nextPage.bootstrapHotChangeId
-                if (nextPage.hasMore.not()) {
-                    break
-                }
-            }
-        }
-
-        hasHydratedHotState = true
-    }
-
-    if (hasHydratedReviewHistory.not()) {
-        if (bootstrapResponse?.remoteIsEmpty == true) {
-            val reviewEvents = syncLocalStore.buildReviewHistoryImportEvents(workspaceId)
-            if (reviewEvents.length() > 0) {
-                val importResponse = remoteService.importReviewHistory(
-                    apiBaseUrl = syncSession.apiBaseUrl,
-                    authorizationHeader = syncSession.authorizationHeader,
-                    workspaceId = workspaceId,
-                    body = JSONObject()
-                        .put("installationId", cloudSettings.installationId)
-                        .put("platform", androidClientPlatform)
-                        .put("appVersion", appVersion)
-                        .put("reviewEvents", reviewEvents)
-                )
-                lastReviewSequenceId = importResponse.nextReviewSequenceId ?: lastReviewSequenceId
-            }
-        } else {
-            var hasMore = true
-            while (hasMore) {
-                val reviewHistoryPage = remoteService.pullReviewHistory(
-                    apiBaseUrl = syncSession.apiBaseUrl,
-                    authorizationHeader = syncSession.authorizationHeader,
-                    workspaceId = workspaceId,
-                    body = JSONObject()
-                        .put("installationId", cloudSettings.installationId)
-                        .put("platform", androidClientPlatform)
-                        .put("appVersion", appVersion)
-                        .put("afterReviewSequenceId", lastReviewSequenceId)
-                        .put("limit", syncPullPageLimit)
-                )
-                syncLocalStore.applyReviewHistory(reviewHistoryPage.reviewEvents)
-                lastReviewSequenceId = reviewHistoryPage.nextReviewSequenceId
-                hasMore = reviewHistoryPage.hasMore
-            }
-        }
-
-        hasHydratedReviewHistory = true
-    }
-
-    val outboxEntries = syncLocalStore.loadOutboxEntries(workspaceId)
-    if (outboxEntries.isNotEmpty()) {
-        try {
-            val pushResponse = remoteService.push(
-                apiBaseUrl = syncSession.apiBaseUrl,
-                authorizationHeader = syncSession.authorizationHeader,
-                workspaceId = workspaceId,
-                body = buildPushRequest(
-                    installationId = cloudSettings.installationId,
-                    outboxEntries = outboxEntries,
-                    appVersion = appVersion
-                )
-            )
-            syncLocalStore.deleteOutboxEntries(pushResponse.operations.map { result -> result.operationId })
-            val pushCursor = pushResponse.operations.mapNotNull { result -> result.resultingHotChangeId }.maxOrNull()
-            if (pushCursor != null && pushCursor > lastHotCursor) {
-                lastHotCursor = pushCursor
-            }
-        } catch (error: Exception) {
-            syncLocalStore.markOutboxEntriesFailed(
-                outboxEntries.map(PersistedOutboxEntry::operationId),
-                error.message ?: "Cloud push failed."
-            )
-            throw error
-        }
-    }
-
-    var hasMoreHotChanges = true
-    while (hasMoreHotChanges) {
-        val pullResponse = remoteService.pull(
-            apiBaseUrl = syncSession.apiBaseUrl,
-            authorizationHeader = syncSession.authorizationHeader,
-            workspaceId = workspaceId,
-                body = JSONObject()
-                    .put("installationId", cloudSettings.installationId)
-                    .put("platform", androidClientPlatform)
-                    .put("appVersion", appVersion)
-                    .put("afterHotChangeId", lastHotCursor)
-                .put("limit", syncPullPageLimit)
-        )
-        syncLocalStore.applyPullChanges(workspaceId, pullResponse.changes)
-        lastHotCursor = pullResponse.nextHotChangeId
-        hasMoreHotChanges = pullResponse.hasMore
-    }
-
-    var hasMoreReviewHistory = true
-    while (hasMoreReviewHistory) {
-        val reviewHistoryPage = remoteService.pullReviewHistory(
-            apiBaseUrl = syncSession.apiBaseUrl,
-            authorizationHeader = syncSession.authorizationHeader,
-            workspaceId = workspaceId,
-            body = JSONObject()
-                .put("installationId", cloudSettings.installationId)
-                .put("platform", androidClientPlatform)
-                .put("appVersion", appVersion)
-                .put("afterReviewSequenceId", lastReviewSequenceId)
-                .put("limit", syncPullPageLimit)
-        )
-        syncLocalStore.applyReviewHistory(reviewHistoryPage.reviewEvents)
-        lastReviewSequenceId = reviewHistoryPage.nextReviewSequenceId
-        hasMoreReviewHistory = reviewHistoryPage.hasMore
-    }
-
-    syncLocalStore.markSyncSuccess(
-        workspaceId = workspaceId,
-        lastSyncCursor = lastHotCursor.toString(),
-        lastReviewSequenceId = lastReviewSequenceId,
-        hasHydratedHotState = hasHydratedHotState,
-        hasHydratedReviewHistory = hasHydratedReviewHistory
-    )
-}
-
-private fun isRemoteAccountDeletedError(error: Exception): Boolean {
-    return error is CloudRemoteException
-        && error.statusCode == 410
-        && error.errorCode == "ACCOUNT_DELETED"
-}
-
-internal fun isCloudIdentityConflictError(error: Exception): Boolean {
-    return error is CloudRemoteException && (
-        error.errorCode == "SYNC_INSTALLATION_PLATFORM_MISMATCH" ||
-            error.errorCode == "SYNC_REPLICA_CONFLICT"
-        )
-}
-
 private data class AuthenticatedCloudSession(
     val configuration: CloudServiceConfiguration,
     val credentials: StoredCloudCredentials,
     val accountSnapshot: CloudAccountSnapshot
 )
-
-internal data class CloudSyncSession(
-    val apiBaseUrl: String,
-    val authorizationHeader: String
-)
-
-private data class CloudSyncTarget(
-    val workspaceId: String,
-    val session: CloudSyncSession
-)
-
-private fun buildPushRequest(
-    installationId: String,
-    outboxEntries: List<PersistedOutboxEntry>,
-    appVersion: String
-): JSONObject {
-    return JSONObject()
-        .put("installationId", installationId)
-        .put("platform", androidClientPlatform)
-        .put("appVersion", appVersion)
-        .put(
-            "operations",
-            JSONArray().apply {
-                outboxEntries.forEach { entry ->
-                    put(
-                        JSONObject()
-                            .put("operationId", entry.operation.operationId)
-                            .put("entityType", entry.operation.entityType.toRemoteValue())
-                            .put("entityId", entry.operation.entityId)
-                            .put("action", entry.operation.action.toRemoteValue())
-                            .put("clientUpdatedAt", entry.operation.clientUpdatedAt)
-                            .put("payload", buildOperationPayload(entry.operation.payload))
-                    )
-                }
-            }
-        )
-}
-
-private fun buildOperationPayload(payload: SyncOperationPayload): JSONObject {
-    return when (payload) {
-        is SyncOperationPayload.Card -> JSONObject()
-            .put("cardId", payload.payload.cardId)
-            .put("frontText", payload.payload.frontText)
-            .put("backText", payload.payload.backText)
-            .put("tags", JSONArray(payload.payload.tags))
-            .put("effortLevel", payload.payload.effortLevel)
-            .put("dueAt", payload.payload.dueAt)
-            .put("createdAt", payload.payload.createdAt)
-            .put("reps", payload.payload.reps)
-            .put("lapses", payload.payload.lapses)
-            .put("fsrsCardState", payload.payload.fsrsCardState)
-            .put("fsrsStepIndex", payload.payload.fsrsStepIndex)
-            .put("fsrsStability", payload.payload.fsrsStability)
-            .put("fsrsDifficulty", payload.payload.fsrsDifficulty)
-            .put("fsrsLastReviewedAt", payload.payload.fsrsLastReviewedAt)
-            .put("fsrsScheduledDays", payload.payload.fsrsScheduledDays)
-            .put("deletedAt", payload.payload.deletedAt)
-
-        is SyncOperationPayload.Deck -> JSONObject()
-            .put("deckId", payload.payload.deckId)
-            .put("name", payload.payload.name)
-            .put("filterDefinition", buildDeckFilterDefinitionJson(payload.payload.filterDefinition))
-            .put("createdAt", payload.payload.createdAt)
-            .put("deletedAt", payload.payload.deletedAt)
-
-        is SyncOperationPayload.WorkspaceSchedulerSettings -> JSONObject()
-            .put("algorithm", payload.payload.algorithm)
-            .put("desiredRetention", payload.payload.desiredRetention)
-            .put("learningStepsMinutes", JSONArray(payload.payload.learningStepsMinutes))
-            .put("relearningStepsMinutes", JSONArray(payload.payload.relearningStepsMinutes))
-            .put("maximumIntervalDays", payload.payload.maximumIntervalDays)
-            .put("enableFuzz", payload.payload.enableFuzz)
-
-        is SyncOperationPayload.ReviewEvent -> JSONObject()
-            .put("reviewEventId", payload.payload.reviewEventId)
-            .put("cardId", payload.payload.cardId)
-            .put("clientEventId", payload.payload.clientEventId)
-            .put("rating", payload.payload.rating)
-            .put("reviewedAtClient", payload.payload.reviewedAtClient)
-    }
-}
-
-private fun buildDeckFilterDefinitionJson(filterDefinition: com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition): JSONObject {
-    return buildDeckFilterDefinitionJsonObject(filterDefinition = filterDefinition)
-}
-
-private fun com.flashcardsopensourceapp.data.local.model.SyncEntityType.toRemoteValue(): String {
-    return when (this) {
-        com.flashcardsopensourceapp.data.local.model.SyncEntityType.CARD -> "card"
-        com.flashcardsopensourceapp.data.local.model.SyncEntityType.DECK -> "deck"
-        com.flashcardsopensourceapp.data.local.model.SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> "workspace_scheduler_settings"
-        com.flashcardsopensourceapp.data.local.model.SyncEntityType.REVIEW_EVENT -> "review_event"
-    }
-}
-
-private fun com.flashcardsopensourceapp.data.local.model.SyncAction.toRemoteValue(): String {
-    return when (this) {
-        com.flashcardsopensourceapp.data.local.model.SyncAction.UPSERT -> "upsert"
-        com.flashcardsopensourceapp.data.local.model.SyncAction.APPEND -> "append"
-    }
-}

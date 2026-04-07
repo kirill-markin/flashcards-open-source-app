@@ -11,6 +11,9 @@ import {
   type ChatConversationEnvelope,
   type ChatStopResponse,
 } from "../chat/contract";
+import {
+  type ChatComposerSuggestion,
+} from "../chat/composerSuggestions";
 import { getChatConfig } from "../chat/config";
 import {
   getRecoveredChatSessionSnapshot,
@@ -26,7 +29,9 @@ import {
   ChatSessionConflictError,
   ChatSessionNotFoundError,
   createFreshChatSession,
+  getChatSessionId,
   listChatMessagesLatest,
+  rolloverToFreshChatSession,
   type ChatSessionSnapshot,
 } from "../chat/store";
 import { invokeChatWorkerOrPersistFailure } from "../chat/workerInvoke";
@@ -38,16 +43,18 @@ import {
 } from "../chat/liveAuth";
 import {
   loadRequestContextFromRequest,
-  requireSelectedWorkspaceId,
+  requireAccessibleSelectedWorkspaceId,
   type RequestContext,
 } from "../server/requestContext";
 import {
   expectNonEmptyString,
   expectRecord,
+  expectUuidString,
   parseJsonBody,
 } from "../server/requestParsing";
 import type { AppEnv } from "../app";
 import { logCloudRouteEvent } from "../server/logging";
+import { isChatSessionRequestedSessionIdConflictError } from "../chat/errors";
 
 type ChatTextContentPart = Readonly<{
   type: "text";
@@ -67,6 +74,15 @@ type ChatFileContentPart = Readonly<{
   fileName: string;
 }>;
 
+type ChatCardContentPart = Readonly<{
+  type: "card";
+  cardId: string;
+  frontText: string;
+  backText: string;
+  tags: ReadonlyArray<string>;
+  effortLevel: "fast" | "medium" | "long";
+}>;
+
 type ChatToolCallContentPart = Readonly<{
   type: "tool_call";
   id: string;
@@ -80,6 +96,7 @@ export type ChatContentPart =
   | ChatTextContentPart
   | ChatImageContentPart
   | ChatFileContentPart
+  | ChatCardContentPart
   | ChatToolCallContentPart;
 
 export type ChatRequestBody = Readonly<{
@@ -102,7 +119,9 @@ type ChatRoutesOptions = Readonly<{
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
   getRecoveredChatSessionSnapshotFn?: typeof getRecoveredChatSessionSnapshot;
   getRecoveredPaginatedSessionFn?: typeof getRecoveredPaginatedSession;
+  rolloverToFreshChatSessionFn?: typeof rolloverToFreshChatSession;
   createFreshChatSessionFn?: typeof createFreshChatSession;
+  getChatSessionIdFn?: typeof getChatSessionId;
   prepareChatRunFn?: typeof prepareChatRun;
   interruptPreparedChatRunFn?: typeof interruptPreparedChatRun;
   invokeChatWorkerFn?: typeof invokeChatWorkerOrPersistFailure;
@@ -110,9 +129,11 @@ type ChatRoutesOptions = Readonly<{
   createChatLiveStreamEnvelopeFn?: typeof createChatLiveStreamEnvelope;
   resolveLiveCursorFn?: typeof resolveLiveCursor;
   listChatMessagesLatestFn?: typeof listChatMessagesLatest;
+  requireAccessibleSelectedWorkspaceIdFn?: typeof requireAccessibleSelectedWorkspaceId;
 }>;
 
 const chatResumeContractViolationCode = "CHAT_LIVE_RESUME_CONTRACT_VIOLATION";
+const chatSessionIdConflictCode = "CHAT_SESSION_ID_CONFLICT";
 
 type ChatResumeDiagnosticsHeaders = Readonly<{
   resumeAttemptId: string | null;
@@ -147,6 +168,14 @@ function expectNullableString(value: unknown, fieldName: string): string | null 
   return expectNonEmptyString(value, fieldName);
 }
 
+function expectString(value: unknown, fieldName: string): string {
+  if (typeof value !== "string") {
+    throw new HttpError(400, `${fieldName} must be a string`);
+  }
+
+  return value;
+}
+
 /**
  * Parses one content part from the backend-owned chat request contract.
  */
@@ -175,6 +204,27 @@ function parseChatContentPart(value: unknown, context: string): ChatContentPart 
       mediaType: expectNonEmptyString(body.mediaType, `${context}.mediaType`),
       base64Data: expectNonEmptyString(body.base64Data, `${context}.base64Data`),
       fileName: expectNonEmptyString(body.fileName, `${context}.fileName`),
+    };
+  }
+
+  if (type === "card") {
+    const tagsValue = body.tags;
+    if (!Array.isArray(tagsValue)) {
+      throw new HttpError(400, `${context}.tags must be an array`);
+    }
+
+    const effortLevel = expectNonEmptyString(body.effortLevel, `${context}.effortLevel`);
+    if (effortLevel !== "fast" && effortLevel !== "medium" && effortLevel !== "long") {
+      throw new HttpError(400, `${context}.effortLevel is invalid`);
+    }
+
+    return {
+      type: "card",
+      cardId: expectNonEmptyString(body.cardId, `${context}.cardId`),
+      frontText: expectString(body.frontText, `${context}.frontText`),
+      backText: expectString(body.backText, `${context}.backText`),
+      tags: tagsValue.map((tag, index) => expectNonEmptyString(tag, `${context}.tags[${index}]`)),
+      effortLevel,
     };
   }
 
@@ -228,7 +278,7 @@ export function parseChatRequestBody(value: unknown): ChatRequestBody {
 
   const sessionId = body.sessionId === undefined
     ? undefined
-    : expectNonEmptyString(body.sessionId, "sessionId");
+    : expectUuidString(body.sessionId, "sessionId");
 
   return {
     sessionId,
@@ -239,18 +289,15 @@ export function parseChatRequestBody(value: unknown): ChatRequestBody {
 }
 
 /**
- * Parses the request body for creating a fresh chat session when the current
- * session already contains history.
+ * Parses the request body for creating or resolving a chat session.
  */
 export function parseNewChatRequestBody(value: unknown): NewChatRequestBody {
   const body = expectRecord(value);
 
-  if (body.sessionId === undefined) {
-    return {};
-  }
-
   return {
-    sessionId: expectNonEmptyString(body.sessionId, "sessionId"),
+    sessionId: body.sessionId === undefined
+      ? undefined
+      : expectUuidString(body.sessionId, "sessionId"),
   };
 }
 
@@ -261,7 +308,7 @@ export function parseStopChatRequestBody(value: unknown): StopChatRequestBody {
   const body = expectRecord(value);
 
   return {
-    sessionId: expectNonEmptyString(body.sessionId, "sessionId"),
+    sessionId: expectUuidString(body.sessionId, "sessionId"),
   };
 }
 
@@ -281,9 +328,18 @@ function assertSupportedTransport(requestContext: RequestContext): void {
   );
 }
 
+function parseOptionalSessionIdQuery(value: string | undefined): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return expectUuidString(value, "sessionId");
+}
+
 type ChatNewResponse = Readonly<{
   ok: true;
   sessionId: string;
+  composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
   chatConfig: ReturnType<typeof getChatConfig>;
 }>;
 
@@ -555,6 +611,14 @@ function mapStoreError(error: unknown): never {
     throw new HttpError(404, error.message);
   }
 
+  if (isChatSessionRequestedSessionIdConflictError(error)) {
+    throw new HttpError(
+      409,
+      "Requested chat session id is already in use.",
+      chatSessionIdConflictCode,
+    );
+  }
+
   if (error instanceof ChatSessionConflictError) {
     throw new HttpError(
       409,
@@ -587,7 +651,9 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
   const getRecoveredChatSessionSnapshotFn = options.getRecoveredChatSessionSnapshotFn ?? getRecoveredChatSessionSnapshot;
   const getRecoveredPaginatedSessionFn = options.getRecoveredPaginatedSessionFn ?? getRecoveredPaginatedSession;
+  const rolloverToFreshChatSessionFn = options.rolloverToFreshChatSessionFn ?? rolloverToFreshChatSession;
   const createFreshChatSessionFn = options.createFreshChatSessionFn ?? createFreshChatSession;
+  const getChatSessionIdFn = options.getChatSessionIdFn ?? getChatSessionId;
   const prepareChatRunFn = options.prepareChatRunFn ?? prepareChatRun;
   const interruptPreparedChatRunFn = options.interruptPreparedChatRunFn ?? interruptPreparedChatRun;
   const invokeChatWorkerFn = options.invokeChatWorkerFn ?? invokeChatWorkerOrPersistFailure;
@@ -595,6 +661,22 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const createChatLiveStreamEnvelopeFn = options.createChatLiveStreamEnvelopeFn ?? createChatLiveStreamEnvelope;
   const resolveLiveCursorFn = options.resolveLiveCursorFn ?? resolveLiveCursor;
   const listChatMessagesLatestFn = options.listChatMessagesLatestFn ?? listChatMessagesLatest;
+  const requireAccessibleSelectedWorkspaceIdFn = options.requireAccessibleSelectedWorkspaceIdFn
+    ?? (options.loadRequestContextFromRequestFn === undefined
+      ? requireAccessibleSelectedWorkspaceId
+      : async (requestContext: RequestContext): Promise<string> => {
+        // Route tests often stub request context directly and do not exercise
+        // the real workspace access path, so keep a minimal local fallback.
+        if (requestContext.selectedWorkspaceId === null) {
+          throw new HttpError(
+            409,
+            "Select a workspace before using this endpoint",
+            "WORKSPACE_SELECTION_REQUIRED",
+          );
+        }
+
+        return requestContext.selectedWorkspaceId;
+      });
 
   app.get("/chat", async (context) => {
     const requestContext = await loadSupportedRequestContext(
@@ -602,8 +684,8 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       options.allowedOrigins,
       loadRequestContextFromRequestFn,
     );
-    const workspaceId = requireSelectedWorkspaceId(requestContext);
-    const sessionId = context.req.query("sessionId") ?? undefined;
+    const workspaceId = await requireAccessibleSelectedWorkspaceIdFn(requestContext);
+    const sessionId = parseOptionalSessionIdQuery(context.req.query("sessionId") ?? undefined);
     const limitParam = context.req.query("limit") ?? undefined;
     const resumeDiagnostics = readChatResumeDiagnosticsHeaders(context.req.raw);
 
@@ -675,7 +757,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       options.allowedOrigins,
       loadRequestContextFromRequestFn,
     );
-    const workspaceId = requireSelectedWorkspaceId(requestContext);
+    const workspaceId = await requireAccessibleSelectedWorkspaceIdFn(requestContext);
     const body = parseChatRequestBody(await parseJsonBody(context.req.raw));
     const resumeDiagnostics = readChatResumeDiagnosticsHeaders(context.req.raw);
     context.header("X-Chat-Request-Id", body.clientRequestId);
@@ -732,8 +814,67 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       options.allowedOrigins,
       loadRequestContextFromRequestFn,
     );
-    const workspaceId = requireSelectedWorkspaceId(requestContext);
+    const workspaceId = await requireAccessibleSelectedWorkspaceIdFn(requestContext);
     const body = parseNewChatRequestBody(await parseJsonBody(context.req.raw));
+
+    // Preferred modern flow: clients send an explicit client-generated sessionId.
+    // When an explicit id is present, this route is idempotent: create exactly
+    // that session if it does not exist yet, otherwise return the existing
+    // session unchanged. The omitted-sessionId path below stays intentionally
+    // preserved for backward compatibility with older clients.
+    if (body.sessionId !== undefined) {
+      let existingSessionId: string | null;
+      try {
+        existingSessionId = await getChatSessionIdFn(
+          requestContext.userId,
+          workspaceId,
+          body.sessionId,
+        );
+      } catch (error) {
+        return mapStoreError(error);
+      }
+
+      if (existingSessionId === null) {
+        try {
+          const createdSessionId = await createFreshChatSessionFn(
+            requestContext.userId,
+            workspaceId,
+            body.sessionId,
+          );
+          const createdSnapshot = await getRecoveredChatSessionSnapshotFn(
+            requestContext.userId,
+            workspaceId,
+            createdSessionId,
+          );
+
+          return context.json({
+            ok: true,
+            sessionId: createdSnapshot.sessionId,
+            composerSuggestions: createdSnapshot.composerSuggestions,
+            chatConfig: getChatConfig(),
+          } satisfies ChatNewResponse);
+        } catch (error) {
+          return mapStoreError(error);
+        }
+      }
+
+      try {
+        const existingSnapshot = await getRecoveredChatSessionSnapshotFn(
+          requestContext.userId,
+          workspaceId,
+          existingSessionId,
+        );
+
+        return context.json({
+          ok: true,
+          sessionId: existingSnapshot.sessionId,
+          composerSuggestions: existingSnapshot.composerSuggestions,
+          chatConfig: getChatConfig(),
+        } satisfies ChatNewResponse);
+      } catch (error) {
+        return mapStoreError(error);
+      }
+    }
 
     let snapshot: ChatSessionSnapshot;
     try {
@@ -746,22 +887,35 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       return mapStoreError(error);
     }
 
-    if (snapshot.messages.length === 0) {
+    if (snapshot.messages.length === 0 && snapshot.runState === "idle") {
       return context.json({
         ok: true,
         sessionId: snapshot.sessionId,
+        composerSuggestions: snapshot.composerSuggestions,
         chatConfig: getChatConfig(),
       } satisfies ChatNewResponse);
     }
 
-    const newSessionId = await createFreshChatSessionFn(
-      requestContext.userId,
-      workspaceId,
-    );
+    let newSnapshot: ChatSessionSnapshot;
+    try {
+      const newSessionId = await rolloverToFreshChatSessionFn(
+        requestContext.userId,
+        workspaceId,
+        snapshot.sessionId,
+      );
+      newSnapshot = await getRecoveredChatSessionSnapshotFn(
+        requestContext.userId,
+        workspaceId,
+        newSessionId,
+      );
+    } catch (error) {
+      return mapStoreError(error);
+    }
 
     return context.json({
       ok: true,
-      sessionId: newSessionId,
+      sessionId: newSnapshot.sessionId,
+      composerSuggestions: newSnapshot.composerSuggestions,
       chatConfig: getChatConfig(),
     } satisfies ChatNewResponse);
   });
@@ -772,18 +926,22 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       options.allowedOrigins,
       loadRequestContextFromRequestFn,
     );
-    const workspaceId = requireSelectedWorkspaceId(requestContext);
+    const workspaceId = await requireAccessibleSelectedWorkspaceIdFn(requestContext);
     const body = parseStopChatRequestBody(await parseJsonBody(context.req.raw));
 
-    let sessionId: string;
+    let sessionId: string | null;
     try {
-      sessionId = await getRecoveredChatSessionSnapshotFn(
+      sessionId = await getChatSessionIdFn(
         requestContext.userId,
         workspaceId,
         body.sessionId,
-      ).then((snapshot) => snapshot.sessionId);
+      );
     } catch (error) {
       return mapStoreError(error);
+    }
+
+    if (sessionId === null) {
+      return mapStoreError(new ChatSessionNotFoundError(body.sessionId));
     }
 
     const stopState: ChatRunStopState = await requestChatRunCancellationFn(

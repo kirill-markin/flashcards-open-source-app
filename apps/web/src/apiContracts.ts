@@ -1,6 +1,7 @@
 import type {
   AgentApiKeyConnection,
   ChatConfig,
+  ChatComposerSuggestion,
   ChatLiveStream,
   ChatSessionHistoryMessage,
   ChatSessionSnapshot,
@@ -459,6 +460,33 @@ function parseChatConversation(value: unknown, endpoint: string, path: string): 
   };
 }
 
+function parseChatComposerSuggestion(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ChatComposerSuggestion {
+  const objectValue = parseObject(value, endpoint, path);
+  const source = parseRequiredField(objectValue, "source", endpoint, path, parseString);
+  if (source !== "initial" && source !== "assistant_follow_up") {
+    throw new ApiContractError(endpoint, joinPath(path, "source"), "a known composer suggestion source");
+  }
+
+  return {
+    id: parseRequiredField(objectValue, "id", endpoint, path, parseString),
+    text: parseRequiredField(objectValue, "text", endpoint, path, parseString),
+    source,
+    assistantItemId: parseRequiredField(objectValue, "assistantItemId", endpoint, path, parseNullableString),
+  };
+}
+
+export function parseChatComposerSuggestionArray(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ReadonlyArray<ChatComposerSuggestion> {
+  return parseArray(value, endpoint, path, parseChatComposerSuggestion);
+}
+
 function parseChatActiveRun(value: unknown, endpoint: string, path: string): NonNullable<ChatSessionSnapshot["activeRun"]> {
   const objectValue = parseObject(value, endpoint, path);
   const liveValue = parseRequiredField(objectValue, "live", endpoint, path, parseObject);
@@ -535,6 +563,17 @@ function parseContentPart(value: unknown, endpoint: string, path: string): Conte
       mediaType: parseRequiredField(objectValue, "mediaType", endpoint, path, parseString),
       base64Data: parseRequiredField(objectValue, "base64Data", endpoint, path, parseString),
       fileName: parseRequiredField(objectValue, "fileName", endpoint, path, parseString),
+    };
+  }
+
+  if (type === "card") {
+    return {
+      type,
+      cardId: parseRequiredField(objectValue, "cardId", endpoint, path, parseString),
+      frontText: parseRequiredField(objectValue, "frontText", endpoint, path, parseString),
+      backText: parseRequiredField(objectValue, "backText", endpoint, path, parseString),
+      tags: parseRequiredField(objectValue, "tags", endpoint, path, parseStringArray),
+      effortLevel: parseRequiredField(objectValue, "effortLevel", endpoint, path, parseEffortLevel),
     };
   }
 
@@ -615,8 +654,8 @@ function parseContentPartType(
   value: unknown,
   endpoint: string,
   path: string,
-): "text" | "image" | "file" | "tool_call" | "reasoning_summary" {
-  return parseEnum(value, endpoint, path, ["text", "image", "file", "tool_call", "reasoning_summary"]);
+): "text" | "image" | "file" | "card" | "tool_call" | "reasoning_summary" {
+  return parseEnum(value, endpoint, path, ["text", "image", "file", "card", "tool_call", "reasoning_summary"]);
 }
 
 function parseToolCallStatus(value: unknown, endpoint: string, path: string): "started" | "completed" {
@@ -876,6 +915,7 @@ export function parseChatSessionSnapshotResponse(value: unknown, endpoint: strin
     sessionId: parseRequiredField(objectValue, "sessionId", endpoint, "", parseString),
     conversationScopeId: parseRequiredField(objectValue, "conversationScopeId", endpoint, "", parseString),
     conversation: parseRequiredField(objectValue, "conversation", endpoint, "", parseChatConversation),
+    composerSuggestions: parseRequiredField(objectValue, "composerSuggestions", endpoint, "", parseChatComposerSuggestionArray),
     chatConfig: parseRequiredField(objectValue, "chatConfig", endpoint, "", parseChatConfig),
     activeRun: parseRequiredField(objectValue, "activeRun", endpoint, "", parseNullableChatActiveRun),
   };
@@ -896,6 +936,7 @@ export function parseStartChatRunResponse(value: unknown, endpoint: string): Sta
     sessionId: parseRequiredField(objectValue, "sessionId", endpoint, "", parseString),
     conversationScopeId: parseRequiredField(objectValue, "conversationScopeId", endpoint, "", parseString),
     conversation: parseRequiredField(objectValue, "conversation", endpoint, "", parseChatConversation),
+    composerSuggestions: parseRequiredField(objectValue, "composerSuggestions", endpoint, "", parseChatComposerSuggestionArray),
     chatConfig: parseRequiredField(objectValue, "chatConfig", endpoint, "", parseChatConfig),
     activeRun: parseRequiredField(objectValue, "activeRun", endpoint, "", parseNullableChatActiveRun),
     deduplicated: parseOptionalField(objectValue, "deduplicated", endpoint, "", parseBoolean),
@@ -907,6 +948,7 @@ export function parseNewChatSessionResponse(value: unknown, endpoint: string): N
   return {
     ok: parseLiteral(parseRequiredField(objectValue, "ok", endpoint, "", parseBoolean), endpoint, "ok", true),
     sessionId: parseRequiredField(objectValue, "sessionId", endpoint, "", parseString),
+    composerSuggestions: parseRequiredField(objectValue, "composerSuggestions", endpoint, "", parseChatComposerSuggestionArray),
     chatConfig: parseRequiredField(objectValue, "chatConfig", endpoint, "", parseChatConfig),
   };
 }

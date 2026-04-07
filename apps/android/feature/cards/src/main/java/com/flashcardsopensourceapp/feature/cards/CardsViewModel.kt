@@ -403,7 +403,7 @@ class CardEditorViewModel(
         }
     }
 
-    suspend fun save(editingCardId: String?): Boolean {
+    suspend fun save(editingCardId: String?): CardDraft? {
         val state = uiState.value
         val validation = validateCardEditorInput(
             frontText = state.frontText,
@@ -418,25 +418,41 @@ class CardEditorViewModel(
                     errorMessage = validation.errorMessage
                 )
             }
-            return false
+            return null
         }
 
-        val cardDraft = CardDraft(
-            frontText = state.frontText.trim(),
-            backText = state.backText.trim(),
-            tags = normalizeTags(
-                values = state.selectedTags,
-                referenceTags = currentReferenceTags()
-            ),
-            effortLevel = state.effortLevel
+        val cardDraft = buildCardEditorDraft(
+            frontText = state.frontText,
+            backText = state.backText,
+            selectedTags = state.selectedTags,
+            effortLevel = state.effortLevel,
+            referenceTags = currentReferenceTags()
         )
 
         return if (editingCardId == null) {
             cardsRepository.createCard(cardDraft = cardDraft)
-            true
+            inputState.update { currentState ->
+                currentState.copy(
+                    frontTextErrorMessage = "",
+                    backTextErrorMessage = "",
+                    tagsErrorMessage = "",
+                    errorMessage = "",
+                    isDirty = false
+                )
+            }
+            cardDraft
         } else {
             cardsRepository.updateCard(cardId = editingCardId, cardDraft = cardDraft)
-            true
+            inputState.update { currentState ->
+                currentState.copy(
+                    frontTextErrorMessage = "",
+                    backTextErrorMessage = "",
+                    tagsErrorMessage = "",
+                    errorMessage = "",
+                    isDirty = false
+                )
+            }
+            cardDraft
         }
     }
 
@@ -524,4 +540,22 @@ private fun toggleTagSelection(selectedTags: List<String>, tag: String): List<St
     }
 
     return selectedTags + tag
+}
+
+internal fun buildCardEditorDraft(
+    frontText: String,
+    backText: String,
+    selectedTags: List<String>,
+    effortLevel: EffortLevel,
+    referenceTags: List<String>
+): CardDraft {
+    return CardDraft(
+        frontText = frontText.trim(),
+        backText = backText.trim(),
+        tags = normalizeTags(
+            values = selectedTags,
+            referenceTags = referenceTags
+        ),
+        effortLevel = effortLevel
+    )
 }

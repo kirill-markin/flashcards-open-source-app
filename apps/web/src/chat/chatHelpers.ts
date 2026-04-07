@@ -1,5 +1,6 @@
 import type { ContentPart } from "../types";
 import type { PendingAttachment } from "./FileAttachment";
+import { isBinaryPendingAttachment } from "./FileAttachment";
 
 export const STORAGE_MODEL_KEY = "flashcards-chat-model";
 export const IMAGE_MEDIA_TYPE_PREFIX = "image/";
@@ -36,6 +37,18 @@ export function buildContentParts(
   const parts: Array<ContentPart> = [];
 
   for (const attachment of attachments) {
+    if (!isBinaryPendingAttachment(attachment)) {
+      parts.push({
+        type: "card",
+        cardId: attachment.cardId,
+        frontText: attachment.frontText,
+        backText: attachment.backText,
+        tags: attachment.tags,
+        effortLevel: attachment.effortLevel,
+      });
+      continue;
+    }
+
     if (attachment.mediaType.startsWith(IMAGE_MEDIA_TYPE_PREFIX)) {
       parts.push({ type: "image", mediaType: attachment.mediaType, base64Data: attachment.base64Data });
       continue;

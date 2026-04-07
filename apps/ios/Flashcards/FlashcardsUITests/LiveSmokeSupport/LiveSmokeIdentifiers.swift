@@ -34,7 +34,9 @@ enum LiveSmokeIdentifier {
     static let deleteWorkspaceConfirmationField: String = "deleteWorkspace.confirmationField"
     static let deleteWorkspaceConfirmationButton: String = "deleteWorkspace.confirmationButton"
     static let cardsAddButton: String = "cards.addButton"
+    static let cardsCardRow: String = "cards.cardRow"
     static let cardEditorScreen: String = "cardEditor.screen"
+    static let cardEditorEditWithAIButton: String = "cardEditor.editWithAIButton"
     static let cardEditorFrontRow: String = "cardEditor.frontRow"
     static let cardEditorBackRow: String = "cardEditor.backRow"
     static let cardEditorSaveButton: String = "cardEditor.saveButton"
@@ -48,6 +50,9 @@ enum LiveSmokeIdentifier {
     static let aiMessageRow: String = "ai.messageRow"
     static let aiComposerTextField: String = "ai.composerTextField"
     static let aiComposerSendButton: String = "ai.composerSendButton"
+    static let aiComposerCardAttachmentChip: String = "ai.composerCardAttachmentChip"
+    static let aiComposerSuggestionRow: String = "ai.composerSuggestionRow"
+    static let aiComposerSuggestionPrefix: String = "ai.composerSuggestion."
     static let aiToolCallSummary: String = "ai.toolCallSummary"
     static let aiToolCallRequestText: String = "ai.toolCallRequestText"
     static let aiToolCallResponseText: String = "ai.toolCallResponseText"
@@ -167,7 +172,7 @@ enum LiveSmokeSeededData {
 
 let aiComposerPlaceholderText: String = "Ask about cards, review history, or propose a change..."
 let aiCreatePromptText: String = "I give you all permissions. Please create one test flashcard now."
-let aiResetPromptText: String = "reset smoke 7"
+let aiResetPromptText: String = "Reply with exactly: reset ok"
 let aiCreatePromptMaximumAttempts: Int = 3
 let aiResetPromptMaximumAttempts: Int = 3
 let aiCreateRunCompletionTimeoutSeconds: TimeInterval = 90

@@ -27,16 +27,16 @@ struct ReviewQueueChunkLoadState: Hashable, Sendable {
     let hasMoreCards: Bool
 }
 
-private func reviewOrderDueRank(card: Card) -> Int {
+private func reviewOrderDueAtRank(card: Card) -> Int {
     guard let dueAt = card.dueAt else {
-        return 0
+        return 1
     }
 
     guard parseIsoTimestamp(value: dueAt) != nil else {
         return 2
     }
 
-    return 1
+    return 0
 }
 
 private func hasActiveTag(tag: String, cards: [Card]) -> Bool {
@@ -49,7 +49,7 @@ private func hasActiveTag(tag: String, cards: [Card]) -> Bool {
 // - apps/ios/Flashcards/Flashcards/Database/CardStore+ReadSQL.swift review queue ORDER BY
 // - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/ReviewSupport.kt::sortCardsForReviewQueue
 // - apps/web/src/appData/domain.ts::compareCardsForReviewOrder
-// Ordering contract: due cards first, then earlier dueAt, then newer createdAt, then cardId ascending.
+// Ordering contract: timed due cards first, then nil dueAt new cards, then future cards, then malformed dueAt values last.
 // If this changes, mirror the same change across all three clients in the same change.
 func compareCardsForReviewOrder(leftCard: Card, rightCard: Card, now: Date) -> Bool {
     let leftIsDue = isCardDue(card: leftCard, now: now)
@@ -58,8 +58,8 @@ func compareCardsForReviewOrder(leftCard: Card, rightCard: Card, now: Date) -> B
         return leftIsDue
     }
 
-    let leftDueRank = reviewOrderDueRank(card: leftCard)
-    let rightDueRank = reviewOrderDueRank(card: rightCard)
+    let leftDueRank = reviewOrderDueAtRank(card: leftCard)
+    let rightDueRank = reviewOrderDueAtRank(card: rightCard)
     if leftDueRank != rightDueRank {
         return leftDueRank < rightDueRank
     }

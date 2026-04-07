@@ -12,7 +12,7 @@ import {
   listChatMessagesBeforeWithExecutor,
   listChatMessagesLatestWithExecutor,
   resolveLatestOrCreateChatSessionWithExecutor,
-  resolveRequestedChatSessionWithExecutor,
+  resolveRequestedOrCreateChatSessionWithExecutor,
   type ChatSessionSnapshot,
 } from "../store";
 
@@ -63,7 +63,7 @@ export async function getRecoveredPaginatedSession(
     const scope = { userId, workspaceId };
     const sessionRow = sessionId === undefined
       ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
-      : await resolveRequestedChatSessionWithExecutor(executor, scope, sessionId);
+      : await resolveRequestedOrCreateChatSessionWithExecutor(executor, scope, sessionId);
 
     if (sessionRow.status === "running") {
       const lockedSession = await selectSessionForUpdateWithExecutor(executor, scope, sessionRow.session_id);
@@ -72,7 +72,7 @@ export async function getRecoveredPaginatedSession(
 
     const resolvedSession = sessionId === undefined
       ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
-      : await resolveRequestedChatSessionWithExecutor(executor, scope, sessionRow.session_id);
+      : await resolveRequestedOrCreateChatSessionWithExecutor(executor, scope, sessionRow.session_id);
 
     const page = beforeCursor === undefined
       ? await listChatMessagesLatestWithExecutor(executor, scope, resolvedSession.session_id, limit)

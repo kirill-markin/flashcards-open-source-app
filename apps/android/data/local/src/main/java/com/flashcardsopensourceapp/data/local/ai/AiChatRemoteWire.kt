@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatConversationEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatAcceptedConversationEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.AiChatActiveRunLive
+import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEventMetadata
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
@@ -30,22 +31,27 @@ import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.AiChatFeatures
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
 @JvmInline
@@ -153,6 +159,7 @@ private data class AiChatConversationEnvelopeWire(
     val sessionId: StrictRemoteString,
     val conversationScopeId: StrictRemoteString,
     val conversation: AiChatConversationWire,
+    val composerSuggestions: List<AiChatComposerSuggestionWire> = emptyList(),
     val chatConfig: AiChatServerConfigWire,
     val activeRun: AiChatActiveRunWire? = null
 )
@@ -163,6 +170,7 @@ private data class AiChatAcceptedConversationEnvelopeWire(
     val sessionId: StrictRemoteString,
     val conversationScopeId: StrictRemoteString,
     val conversation: AiChatConversationWire,
+    val composerSuggestions: List<AiChatComposerSuggestionWire> = emptyList(),
     val chatConfig: AiChatServerConfigWire,
     val activeRun: AiChatActiveRunWire? = null,
     val deduplicated: StrictRemoteBoolean? = null
@@ -218,6 +226,16 @@ private data class AiChatFileContentPartWire(
 ) : AiChatContentPartWire
 
 @Serializable
+@SerialName("card")
+private data class AiChatCardContentPartWire(
+    val cardId: StrictRemoteString,
+    val frontText: StrictRemoteString,
+    val backText: StrictRemoteString,
+    val tags: List<StrictRemoteString>,
+    val effortLevel: StrictRemoteString
+) : AiChatContentPartWire
+
+@Serializable
 @SerialName("tool_call")
 private data class AiChatToolCallContentPartWire(
     val toolCallId: StrictRemoteString? = null,
@@ -232,7 +250,7 @@ private data class AiChatToolCallContentPartWire(
 @Serializable
 private data class AiChatConversationMessageWire(
     val role: AiChatRoleWire,
-    val content: List<AiChatContentPartWire>,
+    val content: List<JsonObject>,
     val timestamp: StrictRemoteLong,
     val isError: StrictRemoteBoolean,
     val isStopped: StrictRemoteBoolean,
@@ -243,7 +261,16 @@ private data class AiChatConversationMessageWire(
 @Serializable
 private data class AiChatNewSessionWire(
     val sessionId: StrictRemoteString,
+    val composerSuggestions: List<AiChatComposerSuggestionWire> = emptyList(),
     val chatConfig: AiChatServerConfigWire
+)
+
+@Serializable
+private data class AiChatComposerSuggestionWire(
+    val id: StrictRemoteString,
+    val text: StrictRemoteString,
+    val source: StrictRemoteString,
+    val assistantItemId: StrictRemoteString? = null
 )
 
 @Serializable
@@ -270,6 +297,7 @@ private enum class AiChatLiveEventTypeWire {
     @SerialName("assistant_reasoning_summary") ASSISTANT_REASONING_SUMMARY,
     @SerialName("assistant_reasoning_done") ASSISTANT_REASONING_DONE,
     @SerialName("assistant_message_done") ASSISTANT_MESSAGE_DONE,
+    @SerialName("composer_suggestions_updated") COMPOSER_SUGGESTIONS_UPDATED,
     @SerialName("repair_status") REPAIR_STATUS,
     @SerialName("run_terminal") RUN_TERMINAL,
 }
@@ -372,9 +400,20 @@ private data class AiChatLiveAssistantMessageDoneWireEvent(
     val sequenceNumber: StrictRemoteInt,
     val streamEpoch: StrictRemoteString,
     val itemId: StrictRemoteString,
-    val content: List<AiChatContentPartWire>,
+    val content: List<JsonObject>,
     val isError: StrictRemoteBoolean,
     val isStopped: StrictRemoteBoolean
+)
+
+@Serializable
+private data class AiChatLiveComposerSuggestionsUpdatedWireEvent(
+    val sessionId: StrictRemoteString,
+    val conversationScopeId: StrictRemoteString,
+    val runId: StrictRemoteString,
+    val cursor: StrictRemoteString? = null,
+    val sequenceNumber: StrictRemoteInt,
+    val streamEpoch: StrictRemoteString,
+    val suggestions: List<AiChatComposerSuggestionWire> = emptyList()
 )
 
 @Serializable
@@ -456,6 +495,7 @@ internal fun decodeAiChatNewSession(payload: String): AiChatSessionSnapshot {
             hasOlder = false,
             oldestCursor = null
         ),
+        composerSuggestions = wire.composerSuggestions.map(AiChatComposerSuggestionWire::asDomain),
         chatConfig = wire.chatConfig.asDomain(),
         activeRun = null
     )
@@ -564,10 +604,26 @@ internal fun decodeAiChatLiveEventPayloadResult(
             AiChatLiveEventPayloadDecodeResult.Event(AiChatLiveEvent.AssistantMessageDone(
                 metadata = wire.asMetadata(),
                 itemId = wire.itemId.value,
-                content = wire.content.map(::mapAiChatContentPart),
+                content = wire.content.map { part ->
+                    mapAiChatContentPart(
+                        part = part,
+                        sessionId = wire.sessionId.value,
+                        messageId = wire.itemId.value,
+                        source = "live"
+                    )
+                },
                 isError = wire.isError.value,
                 isStopped = wire.isStopped.value
             ))
+        }
+        AiChatLiveEventTypeWire.COMPOSER_SUGGESTIONS_UPDATED -> {
+            val wire = decodeAiChatWire<AiChatLiveComposerSuggestionsUpdatedWireEvent>(payload = payload, context = "chat.live.composer_suggestions_updated")
+            AiChatLiveEventPayloadDecodeResult.Event(
+                AiChatLiveEvent.ComposerSuggestionsUpdated(
+                    metadata = wire.asMetadata(),
+                    suggestions = wire.suggestions.map(AiChatComposerSuggestionWire::asDomain)
+                )
+            )
         }
         AiChatLiveEventTypeWire.REPAIR_STATUS -> {
             val wire = decodeAiChatWire<AiChatLiveRepairStatusWireEvent>(payload = payload, context = "chat.live.repair_status")
@@ -600,6 +656,14 @@ private inline fun <reified T> decodeAiChatWire(payload: String, context: String
         strictRemoteJson.decodeFromString<T>(payload)
     } catch (error: Throwable) {
         throw buildRemoteContractMismatch(context = context, rawBody = payload, error = error)
+    }
+}
+
+private inline fun <reified T> decodeAiChatWireElement(element: JsonElement, context: String): T {
+    return try {
+        strictRemoteJson.decodeFromJsonElement<T>(element)
+    } catch (error: Throwable) {
+        throw buildRemoteContractMismatch(context = context, rawBody = element.toString(), error = error)
     }
 }
 
@@ -648,15 +712,24 @@ private fun AiChatLiveStreamEnvelopeWire.asDomain(): AiChatLiveStreamEnvelope {
 
 private fun AiChatConversationMessageWire.asDomain(sessionId: String, index: Int): AiChatMessage {
     val cursor = this.cursor?.value?.ifBlank { null }
+    val messageId = cursor?.let { "$sessionId-$index-$it" } ?: "snapshot-$index"
+    val resolvedItemId = this.itemId?.value?.ifBlank { null } ?: this.content.firstNotNullOfOrNull(::extractAiChatItemId)
     return AiChatMessage(
-        messageId = cursor?.let { "$sessionId-$index-$it" } ?: "snapshot-$index",
+        messageId = messageId,
         role = this.role.asDomain(),
-        content = this.content.map(::mapAiChatContentPart),
+        content = this.content.map { part ->
+            mapAiChatContentPart(
+                part = part,
+                sessionId = sessionId,
+                messageId = messageId,
+                source = "snapshot"
+            )
+        },
         timestampMillis = this.timestamp.value,
         isError = this.isError.value,
         isStopped = this.isStopped.value,
         cursor = cursor,
-        itemId = this.itemId?.value?.ifBlank { null } ?: this.content.firstNotNullOfOrNull(::extractAiChatItemId)
+        itemId = resolvedItemId
     )
 }
 
@@ -697,6 +770,7 @@ private fun AiChatConversationEnvelopeWire.asConversationEnvelope(): AiChatConve
         sessionId = this.sessionId.value,
         conversationScopeId = this.conversationScopeId.value,
         conversation = this.conversation.asDomain(sessionId = this.sessionId.value),
+        composerSuggestions = this.composerSuggestions.map(AiChatComposerSuggestionWire::asDomain),
         chatConfig = this.chatConfig.asDomain(),
         activeRun = this.activeRun?.asDomain()
     )
@@ -708,60 +782,136 @@ private fun AiChatAcceptedConversationEnvelopeWire.asAcceptedConversationEnvelop
         sessionId = this.sessionId.value,
         conversationScopeId = this.conversationScopeId.value,
         conversation = this.conversation.asDomain(sessionId = this.sessionId.value),
+        composerSuggestions = this.composerSuggestions.map(AiChatComposerSuggestionWire::asDomain),
         chatConfig = this.chatConfig.asDomain(),
         activeRun = this.activeRun?.asDomain(),
         deduplicated = this.deduplicated?.value
     )
 }
 
-private fun mapAiChatContentPart(part: AiChatContentPartWire): AiChatContentPart {
-    return when (part) {
-        is AiChatTextContentPartWire -> AiChatContentPart.Text(text = part.text.value)
-        is AiChatReasoningSummaryContentPartWire -> AiChatContentPart.ReasoningSummary(
-            reasoningSummary = AiChatReasoningSummary(
-                reasoningId = part.reasoningId?.value?.ifBlank { null }
-                    ?: part.id?.value?.ifBlank { null }
-                    ?: part.streamPosition?.itemId?.value?.ifBlank { null }
-                    ?: throw CloudContractMismatchException(
-                        "Cloud contract mismatch for chat.content.reasoning_summary: missing AI chat reasoning summary id"
-                    ),
-                summary = part.summary.value,
-                status = part.status?.asDomain() ?: AiChatToolCallStatus.COMPLETED
+private fun AiChatComposerSuggestionWire.asDomain(): AiChatComposerSuggestion {
+    return AiChatComposerSuggestion(
+        id = this.id.value,
+        text = this.text.value,
+        source = this.source.value,
+        assistantItemId = this.assistantItemId?.value?.ifBlank { null }
+    )
+}
+
+private fun mapAiChatContentPart(
+    part: JsonObject,
+    sessionId: String,
+    messageId: String,
+    source: String
+): AiChatContentPart {
+    val originalType = part["type"]?.jsonPrimitive?.contentOrNull?.ifBlank { null }
+        ?: throw CloudContractMismatchException(
+            "Cloud contract mismatch for chat.content.type: missing AI chat content type"
+        )
+
+    return when (originalType) {
+        "text" -> {
+            val wire = decodeAiChatWireElement<AiChatTextContentPartWire>(element = part, context = "chat.content.text")
+            AiChatContentPart.Text(text = wire.text.value)
+        }
+
+        "reasoning_summary" -> {
+            val wire = decodeAiChatWireElement<AiChatReasoningSummaryContentPartWire>(
+                element = part,
+                context = "chat.content.reasoning_summary"
             )
-        )
-        is AiChatImageContentPartWire -> AiChatContentPart.Image(
-            fileName = part.fileName?.value?.ifBlank { null },
-            mediaType = part.mediaType.value,
-            base64Data = part.base64Data.value
-        )
-        is AiChatFileContentPartWire -> AiChatContentPart.File(
-            fileName = part.fileName.value,
-            mediaType = part.mediaType.value,
-            base64Data = part.base64Data.value
-        )
-        is AiChatToolCallContentPartWire -> AiChatContentPart.ToolCall(
-            toolCall = AiChatToolCall(
-                toolCallId = part.toolCallId?.value?.ifBlank { null }
-                    ?: part.id?.value?.ifBlank { null }
-                    ?: throw CloudContractMismatchException(
-                        "Cloud contract mismatch for chat.content.tool_call: missing AI chat tool call id"
-                    ),
-                name = part.name.value,
-                status = part.status.asDomain(),
-                input = part.input?.value?.ifBlank { null },
-                output = part.output?.value?.ifBlank { null }
+            AiChatContentPart.ReasoningSummary(
+                reasoningSummary = AiChatReasoningSummary(
+                    reasoningId = wire.reasoningId?.value?.ifBlank { null }
+                        ?: wire.id?.value?.ifBlank { null }
+                        ?: wire.streamPosition?.itemId?.value?.ifBlank { null }
+                        ?: throw CloudContractMismatchException(
+                            "Cloud contract mismatch for chat.content.reasoning_summary: missing AI chat reasoning summary id"
+                        ),
+                    summary = wire.summary.value,
+                    status = wire.status?.asDomain() ?: AiChatToolCallStatus.COMPLETED
+                )
             )
-        )
+        }
+
+        "image" -> {
+            val wire = decodeAiChatWireElement<AiChatImageContentPartWire>(element = part, context = "chat.content.image")
+            AiChatContentPart.Image(
+                fileName = wire.fileName?.value?.ifBlank { null },
+                mediaType = wire.mediaType.value,
+                base64Data = wire.base64Data.value
+            )
+        }
+
+        "file" -> {
+            val wire = decodeAiChatWireElement<AiChatFileContentPartWire>(element = part, context = "chat.content.file")
+            AiChatContentPart.File(
+                fileName = wire.fileName.value,
+                mediaType = wire.mediaType.value,
+                base64Data = wire.base64Data.value
+            )
+        }
+
+        "card" -> {
+            val wire = decodeAiChatWireElement<AiChatCardContentPartWire>(element = part, context = "chat.content.card")
+            AiChatContentPart.Card(
+                cardId = wire.cardId.value,
+                frontText = wire.frontText.value,
+                backText = wire.backText.value,
+                tags = wire.tags.map(StrictRemoteString::value),
+                effortLevel = wire.effortLevel.value.toEffortLevel()
+            )
+        }
+
+        "tool_call" -> {
+            val wire = decodeAiChatWireElement<AiChatToolCallContentPartWire>(element = part, context = "chat.content.tool_call")
+            AiChatContentPart.ToolCall(
+                toolCall = AiChatToolCall(
+                    toolCallId = wire.toolCallId?.value?.ifBlank { null }
+                        ?: wire.id?.value?.ifBlank { null }
+                        ?: throw CloudContractMismatchException(
+                            "Cloud contract mismatch for chat.content.tool_call: missing AI chat tool call id"
+                        ),
+                    name = wire.name.value,
+                    status = wire.status.asDomain(),
+                    input = wire.input?.value?.ifBlank { null },
+                    output = wire.output?.value?.ifBlank { null }
+                )
+            )
+        }
+
+        else -> {
+            AiChatDiagnosticsLogger.logUnknownContentReceived(
+                originalType = originalType,
+                sessionId = sessionId,
+                messageId = messageId,
+                source = source
+            )
+            AiChatContentPart.Unknown(
+                originalType = originalType,
+                summaryText = "Unsupported content",
+                rawPayloadJson = part.toString()
+            )
+        }
     }
 }
 
-private fun extractAiChatItemId(part: AiChatContentPartWire): String? {
-    return when (part) {
-        is AiChatReasoningSummaryContentPartWire -> part.streamPosition?.itemId?.value?.ifBlank { null }
-        is AiChatToolCallContentPartWire -> part.streamPosition?.itemId?.value?.ifBlank { null }
-        is AiChatFileContentPartWire,
-        is AiChatImageContentPartWire,
-        is AiChatTextContentPartWire -> null
+private fun extractAiChatItemId(part: JsonObject): String? {
+    return (part["streamPosition"] as? JsonObject)
+        ?.get("itemId")
+        ?.jsonPrimitive
+        ?.contentOrNull
+        ?.ifBlank { null }
+}
+
+private fun String.toEffortLevel(): EffortLevel {
+    return when (this) {
+        "fast" -> EffortLevel.FAST
+        "medium" -> EffortLevel.MEDIUM
+        "long" -> EffortLevel.LONG
+        else -> throw CloudContractMismatchException(
+            "Cloud contract mismatch for chat.content.card.effortLevel: unsupported effort level"
+        )
     }
 }
 
@@ -841,6 +991,17 @@ private fun AiChatLiveAssistantReasoningDoneWireEvent.asMetadata(): AiChatLiveEv
 }
 
 private fun AiChatLiveAssistantMessageDoneWireEvent.asMetadata(): AiChatLiveEventMetadata {
+    return AiChatLiveEventMetadataWire(
+        sessionId = this.sessionId,
+        conversationScopeId = this.conversationScopeId,
+        runId = this.runId,
+        cursor = this.cursor,
+        sequenceNumber = this.sequenceNumber,
+        streamEpoch = this.streamEpoch
+    ).asDomain()
+}
+
+private fun AiChatLiveComposerSuggestionsUpdatedWireEvent.asMetadata(): AiChatLiveEventMetadata {
     return AiChatLiveEventMetadataWire(
         sessionId = this.sessionId,
         conversationScopeId = this.conversationScopeId,
@@ -973,6 +1134,7 @@ private val AiChatLiveEventTypeWire.serialName: String
         AiChatLiveEventTypeWire.ASSISTANT_REASONING_SUMMARY -> "assistant_reasoning_summary"
         AiChatLiveEventTypeWire.ASSISTANT_REASONING_DONE -> "assistant_reasoning_done"
         AiChatLiveEventTypeWire.ASSISTANT_MESSAGE_DONE -> "assistant_message_done"
+        AiChatLiveEventTypeWire.COMPOSER_SUGGESTIONS_UPDATED -> "composer_suggestions_updated"
         AiChatLiveEventTypeWire.REPAIR_STATUS -> "repair_status"
         AiChatLiveEventTypeWire.RUN_TERMINAL -> "run_terminal"
     }

@@ -1,0 +1,177 @@
+import Foundation
+
+enum LocalDatabaseSchema {
+    static let currentVersion: Int = 11
+
+    static var baseMigrationSQL: String {
+        let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
+
+        return """
+        CREATE TABLE IF NOT EXISTS workspaces (
+            workspace_id TEXT PRIMARY KEY, -- workspace identifier shared across local and server stores
+            name TEXT NOT NULL, -- human-readable workspace name shown in the UI
+            created_at TEXT NOT NULL, -- local creation timestamp for the workspace row
+            fsrs_algorithm TEXT NOT NULL DEFAULT '\(defaultSchedulerSettingsConfig.algorithm)' CHECK (fsrs_algorithm = '\(defaultSchedulerSettingsConfig.algorithm)'), -- scheduler algorithm name kept aligned with the backend contract
+            fsrs_desired_retention REAL NOT NULL DEFAULT \(defaultSchedulerSettingsConfig.desiredRetention) CHECK (fsrs_desired_retention > 0 AND fsrs_desired_retention < 1), -- desired recall probability target
+            fsrs_learning_steps_minutes_json TEXT NOT NULL DEFAULT '\(defaultSchedulerSettingsConfig.learningStepsMinutesJson)', -- JSON-encoded learning steps mirrored from the backend row
+            fsrs_relearning_steps_minutes_json TEXT NOT NULL DEFAULT '\(defaultSchedulerSettingsConfig.relearningStepsMinutesJson)', -- JSON-encoded relearning steps mirrored from the backend row
+            fsrs_maximum_interval_days INTEGER NOT NULL DEFAULT \(defaultSchedulerSettingsConfig.maximumIntervalDays) CHECK (fsrs_maximum_interval_days >= 1), -- maximum interval cap mirrored from the backend row
+            fsrs_enable_fuzz INTEGER NOT NULL DEFAULT \(defaultEnableFuzzValue) CHECK (fsrs_enable_fuzz IN (0, 1)), -- whether FSRS fuzzing is enabled
+            fsrs_client_updated_at TEXT NOT NULL, -- client-side LWW timestamp for the most recent local or synced scheduler-settings winner
+            fsrs_last_modified_by_replica_id TEXT NOT NULL, -- device that produced the currently winning scheduler-settings row
+            fsrs_last_operation_id TEXT NOT NULL, -- client-generated operation identifier used as the deterministic final LWW tie-break
+            fsrs_updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP -- last time the local mirror row was written or merged
+        );
+
+        CREATE TABLE IF NOT EXISTS user_settings (
+            user_id TEXT PRIMARY KEY,
+            workspace_id TEXT REFERENCES workspaces(workspace_id) ON DELETE SET NULL,
+            email TEXT,
+            locale TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS cards (
+            card_id TEXT PRIMARY KEY, -- card identifier generated locally so the row can be created offline
+            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace ownership for isolation and pull scoping
+            front_text TEXT NOT NULL, -- prompt shown to the learner
+            back_text TEXT NOT NULL, -- answer shown after reveal
+            tags_json TEXT NOT NULL, -- JSON-encoded tag list used by local filtering and sync payload generation
+            effort_level TEXT NOT NULL CHECK (effort_level IN ('fast', 'medium', 'long')), -- effort classification mirrored from the backend card row
+            due_at TEXT, -- next scheduled review timestamp; NULL for cards that have never been scheduled
+            created_at TEXT NOT NULL, -- original card creation timestamp that must survive later edits, reviews, deletes, and sync merges
+            reps INTEGER NOT NULL CHECK (reps >= 0), -- denormalized total successful review count cached on the row
+            lapses INTEGER NOT NULL CHECK (lapses >= 0), -- denormalized lapse count cached on the row
+            fsrs_card_state TEXT NOT NULL CHECK (fsrs_card_state IN ('new', 'learning', 'review', 'relearning')), -- persisted FSRS state required for offline scheduling
+            fsrs_step_index INTEGER CHECK (fsrs_step_index IS NULL OR fsrs_step_index >= 0), -- current learning or relearning step index when applicable
+            fsrs_stability REAL, -- FSRS memory stability estimate
+            fsrs_difficulty REAL, -- FSRS difficulty estimate
+            fsrs_last_reviewed_at TEXT, -- timestamp of the most recent review incorporated into this card row
+            fsrs_scheduled_days INTEGER CHECK (fsrs_scheduled_days IS NULL OR fsrs_scheduled_days >= 0), -- interval length that produced the current due_at
+            client_updated_at TEXT NOT NULL, -- client-side LWW timestamp for the most recent local or synced card winner
+            last_modified_by_replica_id TEXT NOT NULL, -- device that produced the currently winning card row
+            last_operation_id TEXT NOT NULL, -- client-generated operation identifier used as the deterministic final LWW tie-break
+            updated_at TEXT NOT NULL, -- last time the local mirror row was written or merged
+            deleted_at TEXT -- tombstone timestamp; non-NULL means the card is deleted but must still sync
+        );
+
+        CREATE TABLE IF NOT EXISTS decks (
+            deck_id TEXT PRIMARY KEY, -- deck identifier generated locally so the row can be created offline
+            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace ownership for isolation and pull scoping
+            name TEXT NOT NULL, -- user-visible deck name
+            filter_definition_json TEXT NOT NULL, -- JSON-encoded deck filter definition mirrored to sync payloads
+            created_at TEXT NOT NULL, -- original deck creation timestamp that must survive later updates
+            client_updated_at TEXT NOT NULL, -- client-side LWW timestamp for the most recent local or synced deck winner
+            last_modified_by_replica_id TEXT NOT NULL, -- device that produced the currently winning deck row
+            last_operation_id TEXT NOT NULL, -- client-generated operation identifier used as the deterministic final LWW tie-break
+            updated_at TEXT NOT NULL, -- last time the local mirror row was written or merged
+            deleted_at TEXT -- tombstone timestamp; non-NULL means the deck is deleted but must still sync
+        );
+
+        CREATE TABLE IF NOT EXISTS review_events (
+            review_event_id TEXT PRIMARY KEY, -- immutable review event identifier generated locally for append-only sync
+            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace ownership for isolation and pull scoping
+            card_id TEXT NOT NULL REFERENCES cards(card_id) ON DELETE CASCADE, -- card reviewed by this event
+            replica_id TEXT NOT NULL, -- workspace replica that recorded the review event
+            client_event_id TEXT NOT NULL, -- client-generated review-event idempotency key reused on push retry
+            rating INTEGER NOT NULL CHECK (rating BETWEEN 0 AND 3), -- review rating from Again to Easy
+            reviewed_at_client TEXT NOT NULL, -- timestamp captured on the device when the user answered
+            reviewed_at_server TEXT NOT NULL, -- local mirror of the backend receive timestamp once synced; local writes use current device time until ack
+            UNIQUE (workspace_id, replica_id, client_event_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS card_tags (
+            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace ownership for local tag queries and deck filters
+            card_id TEXT NOT NULL REFERENCES cards(card_id) ON DELETE CASCADE, -- card that currently exposes the tag in its local winning row
+            tag TEXT NOT NULL, -- normalized tag value extracted from cards.tags_json for indexed local reads
+            PRIMARY KEY (workspace_id, card_id, tag)
+        );
+
+        CREATE TABLE IF NOT EXISTS outbox (
+            operation_id TEXT PRIMARY KEY, -- unique local operation id used for idempotent sync push
+            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace that owns the pending sync operation
+            installation_id TEXT NOT NULL, -- installation that created the pending sync operation before the backend stamps a workspace replica
+            entity_type TEXT NOT NULL, -- sync root targeted by the operation: card, deck, workspace_scheduler_settings, or review_event
+            entity_id TEXT NOT NULL, -- identifier of the logical sync root targeted by the operation
+            operation_type TEXT NOT NULL, -- mutation kind sent to the backend, such as upsert or append
+            payload_json TEXT NOT NULL, -- serialized entity payload that can be uploaded without rereading application tables
+            client_updated_at TEXT NOT NULL, -- client-side LWW timestamp associated with the pending operation
+            created_at TEXT NOT NULL, -- when the pending operation entered the local outbox
+            attempt_count INTEGER NOT NULL DEFAULT 0, -- retry counter for sync diagnostics and exponential backoff decisions
+            last_error TEXT -- most recent sync failure message for debugging and user-facing diagnostics
+        );
+
+        CREATE TABLE IF NOT EXISTS sync_state (
+            workspace_id TEXT PRIMARY KEY REFERENCES workspaces(workspace_id) ON DELETE CASCADE, -- workspace scope for hot-state and review-history sync progress
+            last_applied_hot_change_id INTEGER NOT NULL DEFAULT 0, -- highest hot-state change already merged into the local mirror
+            last_applied_review_sequence_id INTEGER NOT NULL DEFAULT 0, -- highest append-only review-history sequence already imported locally
+            has_hydrated_hot_state INTEGER NOT NULL DEFAULT 0, -- whether the blocking current-state bootstrap already completed locally
+            has_hydrated_review_history INTEGER NOT NULL DEFAULT 0, -- whether the background review-history backfill already completed locally
+            updated_at TEXT NOT NULL -- last time the local pull cursor state changed
+        );
+
+        CREATE TABLE IF NOT EXISTS app_local_settings (
+            settings_id INTEGER PRIMARY KEY CHECK (settings_id = 1),
+            installation_id TEXT NOT NULL,
+            cloud_state TEXT NOT NULL CHECK (cloud_state IN ('disconnected', 'linking-ready', 'guest', 'linked')),
+            linked_user_id TEXT,
+            linked_workspace_id TEXT,
+            active_workspace_id TEXT,
+            linked_email TEXT,
+            onboarding_completed INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_created_at
+            ON cards(workspace_id, created_at DESC, card_id ASC);
+
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_updated_at
+            ON cards(workspace_id, updated_at DESC, card_id ASC);
+
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_active
+            ON cards(workspace_id, due_at)
+            WHERE deleted_at IS NULL;
+
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_created_active
+            ON cards(workspace_id, due_at, created_at DESC, card_id ASC)
+            WHERE deleted_at IS NULL;
+
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_effort_created_active
+            ON cards(workspace_id, effort_level, created_at DESC, card_id ASC)
+            WHERE deleted_at IS NULL;
+
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_fsrs_last_reviewed_at
+            ON cards(workspace_id, fsrs_last_reviewed_at DESC)
+            WHERE deleted_at IS NULL;
+
+        CREATE INDEX IF NOT EXISTS idx_decks_workspace_created_at
+            ON decks(workspace_id, created_at DESC, deck_id DESC);
+
+        CREATE INDEX IF NOT EXISTS idx_card_tags_workspace_tag_card
+            ON card_tags(workspace_id, tag, card_id);
+
+        CREATE INDEX IF NOT EXISTS idx_card_tags_workspace_card_tag
+            ON card_tags(workspace_id, card_id, tag);
+
+        CREATE INDEX IF NOT EXISTS idx_review_events_workspace_card_time
+            ON review_events(workspace_id, card_id, reviewed_at_server DESC);
+
+        CREATE INDEX IF NOT EXISTS idx_outbox_workspace_created_at
+            ON outbox(workspace_id, created_at ASC);
+        """
+    }
+
+    static let resetSQL: String = """
+    DROP TABLE IF EXISTS outbox;
+    DROP TABLE IF EXISTS sync_state;
+    DROP TABLE IF EXISTS review_events;
+    DROP TABLE IF EXISTS decks;
+    DROP TABLE IF EXISTS card_tags;
+    DROP TABLE IF EXISTS cards;
+    DROP TABLE IF EXISTS workspace_scheduler_settings;
+    DROP TABLE IF EXISTS user_settings;
+    DROP TABLE IF EXISTS app_local_settings;
+    DROP TABLE IF EXISTS workspaces;
+    PRAGMA user_version = 0;
+    """
+}

@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.app.navigation
 
 import com.flashcardsopensourceapp.app.notifications.AppNotificationTapRequest
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,6 +11,15 @@ import kotlinx.coroutines.flow.asStateFlow
 data class AiEntryPrefillRequest(
     val requestId: Long,
     val prefill: AiEntryPrefill
+)
+
+data class AiCardHandoffRequest(
+    val requestId: Long,
+    val cardId: String,
+    val frontText: String,
+    val backText: String,
+    val tags: List<String>,
+    val effortLevel: EffortLevel
 )
 
 data class CardEditorRequest(
@@ -36,12 +46,17 @@ data class SettingsNavigationRequest(
 class AppHandoffCoordinator {
     private val nextRequestId = AtomicLong(0L)
     private val aiEntryPrefillState = MutableStateFlow<AiEntryPrefillRequest?>(value = null)
+    private val aiCardHandoffState = MutableStateFlow<AiCardHandoffRequest?>(value = null)
     private val cardEditorState = MutableStateFlow<CardEditorRequest?>(value = null)
     private val appNotificationTapState = MutableStateFlow<AppNotificationTapHandoffRequest?>(value = null)
     private val settingsNavigationState = MutableStateFlow<SettingsNavigationRequest?>(value = null)
 
     fun observeAiEntryPrefill(): StateFlow<AiEntryPrefillRequest?> {
         return aiEntryPrefillState.asStateFlow()
+    }
+
+    fun observeAiCardHandoff(): StateFlow<AiCardHandoffRequest?> {
+        return aiCardHandoffState.asStateFlow()
     }
 
     fun observeCardEditor(): StateFlow<CardEditorRequest?> {
@@ -69,6 +84,31 @@ class AppHandoffCoordinator {
         }
 
         aiEntryPrefillState.value = null
+    }
+
+    fun requestAiCardHandoff(
+        cardId: String,
+        frontText: String,
+        backText: String,
+        tags: List<String>,
+        effortLevel: EffortLevel
+    ) {
+        aiCardHandoffState.value = AiCardHandoffRequest(
+            requestId = nextRequestId.incrementAndGet(),
+            cardId = cardId,
+            frontText = frontText,
+            backText = backText,
+            tags = tags,
+            effortLevel = effortLevel
+        )
+    }
+
+    fun consumeAiCardHandoff(requestId: Long) {
+        if (aiCardHandoffState.value?.requestId != requestId) {
+            return
+        }
+
+        aiCardHandoffState.value = null
     }
 
     fun requestCardEditor(cardId: String?) {
