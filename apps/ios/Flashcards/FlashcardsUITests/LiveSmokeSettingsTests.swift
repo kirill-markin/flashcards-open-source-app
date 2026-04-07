@@ -1,3 +1,4 @@
+import Foundation
 import XCTest
 
 final class LiveSmokeSettingsTests: LiveSmokeTestCase {
@@ -37,6 +38,57 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.tapFirstNavigationBackButton()
             try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        }
+    }
+
+    @MainActor
+    func testLiveSmokeResetWorkspaceProgressFlow() throws {
+        let context = self.makeRunContext()
+        let reviewEmail = try self.configuredReviewEmail()
+
+        try self.runSignedInLinkedWorkspaceScenario(context: context, reviewEmail: reviewEmail) {
+            try self.step("create one manual card in the linked workspace") {
+                try self.tapTabBarItem(named: LiveSmokeScreen.cards.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.createManualCard(frontText: context.manualFrontText, backText: context.manualBackText)
+            }
+
+            try self.step("review the manual card once") {
+                try self.tapTabBarItem(named: LiveSmokeScreen.review.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.reviewCurrentCard(expectedFrontText: context.manualFrontText)
+            }
+
+            try self.step("reset workspace progress and verify the preview count") {
+                try self.openWorkspaceResetProgressFlow()
+                let confirmationPhrase = try self.loadWorkspaceResetProgressConfirmationPhrase()
+                try self.replaceTextSafely(
+                    confirmationPhrase,
+                    inElementWithIdentifier: LiveSmokeIdentifier.resetWorkspaceProgressConfirmationField,
+                    timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+                )
+                try self.tapButton(
+                    identifier: LiveSmokeIdentifier.resetWorkspaceProgressContinueButton,
+                    timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+                )
+                try self.confirmWorkspaceResetProgressPreview(expectedCardsToResetCount: 1)
+                try self.tapButton(
+                    identifier: LiveSmokeIdentifier.resetWorkspaceProgressButton,
+                    timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+                )
+                try self.assertScreenVisible(screen: .workspaceSettings, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+            }
+
+            try self.step("verify the reset card is reviewable again") {
+                try self.tapTabBarItem(named: LiveSmokeScreen.review.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.reviewCurrentCard(expectedFrontText: context.manualFrontText)
+                try self.tapTabBarItem(named: LiveSmokeScreen.settings.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                let workspaceSettingsScreen = self.app.descendants(matching: .any)
+                    .matching(identifier: LiveSmokeIdentifier.workspaceSettingsScreen)
+                    .firstMatch
+                if workspaceSettingsScreen.exists {
+                    try self.tapFirstNavigationBackButton()
+                }
+                try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            }
         }
     }
 
@@ -86,5 +138,9 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         throw XCTSkip(
             "TODO: Restore after flattening the nested Current Workspace -> Workspace flow and reworking the linked-workspace smoke path."
         )
+    }
+
+    private func configuredReviewEmail() throws -> String {
+        ProcessInfo.processInfo.environment[LiveSmokeConfiguration.reviewEmailEnvironmentKey] ?? "apple-review@example.com"
     }
 }
