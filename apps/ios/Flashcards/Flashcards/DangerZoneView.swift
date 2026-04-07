@@ -15,10 +15,12 @@ struct DangerZoneView: View {
                 Button("Delete my account", role: .destructive) {
                     self.isDeleteAccountAlertPresented = true
                 }
+                .accessibilityIdentifier(UITestIdentifier.dangerZoneDeleteAccountButton)
                 .disabled(store.cloudSettings?.cloudState != .linked)
             }
         }
         .listStyle(.insetGrouped)
+        .accessibilityIdentifier(UITestIdentifier.dangerZoneScreen)
         .navigationTitle("Danger Zone")
         .alert("Delete this account?", isPresented: self.$isDeleteAccountAlertPresented) {
             Button("Cancel", role: .cancel) {}

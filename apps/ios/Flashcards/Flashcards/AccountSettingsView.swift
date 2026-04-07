@@ -12,9 +12,7 @@ struct AccountSettingsView: View {
             }
 
             Section {
-                NavigationLink {
-                    AccountStatusView()
-                } label: {
+                NavigationLink(value: SettingsNavigationDestination.accountStatus) {
                     SettingsNavigationRow(
                         title: "Account Status",
                         value: displayCloudAccountStateTitle(cloudState: store.cloudSettings?.cloudState ?? .disconnected),
@@ -70,6 +68,7 @@ struct AccountSettingsView: View {
                         systemImage: "exclamationmark.triangle"
                     )
                 }
+                .accessibilityIdentifier(UITestIdentifier.accountSettingsDangerZoneRow)
             }
         }
         .listStyle(.insetGrouped)

@@ -3,7 +3,7 @@ import Photos
 import SwiftUI
 import UIKit
 
-enum AccessPermissionKind: String, CaseIterable, Identifiable, Sendable {
+enum AccessPermissionKind: String, CaseIterable, Identifiable, Hashable, Sendable {
     case photos
     case camera
     case microphone

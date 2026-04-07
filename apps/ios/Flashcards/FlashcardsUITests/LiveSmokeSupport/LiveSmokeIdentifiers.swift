@@ -12,10 +12,13 @@ enum LiveSmokeIdentifier {
     static let settingsAccountSettingsRow: String = "settings.accountSettingsRow"
     static let currentWorkspaceScreen: String = "currentWorkspace.screen"
     static let accountSettingsAccountStatusRow: String = "accountSettings.accountStatusRow"
+    static let accountSettingsDangerZoneRow: String = "accountSettings.dangerZoneRow"
     static let workspaceSettingsScreen: String = "workspaceSettings.screen"
     static let workspaceOverviewScreen: String = "workspaceOverview.screen"
     static let accountSettingsScreen: String = "accountSettings.screen"
     static let accountStatusScreen: String = "accountStatus.screen"
+    static let dangerZoneScreen: String = "dangerZone.screen"
+    static let dangerZoneDeleteAccountButton: String = "dangerZone.deleteAccountButton"
     static let accountStatusSignInButton: String = "accountStatus.signInButton"
     static let accountStatusSyncNowButton: String = "accountStatus.syncNowButton"
     static let accountStatusSwitchAccountButton: String = "accountStatus.switchAccountButton"
@@ -102,6 +105,7 @@ enum LiveSmokeScreen: CaseIterable {
     case workspaceOverview
     case accountSettings
     case accountStatus
+    case dangerZone
 
     var identifier: String {
         switch self {
@@ -123,6 +127,8 @@ enum LiveSmokeScreen: CaseIterable {
             return LiveSmokeIdentifier.accountSettingsScreen
         case .accountStatus:
             return LiveSmokeIdentifier.accountStatusScreen
+        case .dangerZone:
+            return LiveSmokeIdentifier.dangerZoneScreen
         }
     }
 
@@ -146,6 +152,8 @@ enum LiveSmokeScreen: CaseIterable {
             return "Account Settings"
         case .accountStatus:
             return "Account Status"
+        case .dangerZone:
+            return "Danger Zone"
         }
     }
 }

@@ -55,6 +55,15 @@ Avoid:
 - compatibility work for old iOS versions that we do not support
 - adding third-party dependencies when Apple APIs already cover the use case
 
+For nested push-style settings and detail menus in SwiftUI, use one navigation model consistently within the same stack:
+
+- prefer `NavigationStack`
+- prefer value-based `NavigationLink(value:)`
+- declare destinations with `navigationDestination(for:)`
+- when explicit deep-link or back-stack state is needed, drive the stack from `path`
+
+Do not mix destination-based `NavigationLink { ... }` pushes with value-based or path-driven pushes inside the same nested menu flow. That can desynchronize the visible screen hierarchy from the real back stack.
+
 ## Testing Rule
 
 Only test the app against the final supported iOS target.

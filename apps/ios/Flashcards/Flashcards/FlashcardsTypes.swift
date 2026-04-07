@@ -50,6 +50,7 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case currentWorkspace
     case device
     case access
+    case accessPermissionDetail(AccessPermissionKind)
     case workspace
     case workspaceNotifications
     case workspaceOverview
