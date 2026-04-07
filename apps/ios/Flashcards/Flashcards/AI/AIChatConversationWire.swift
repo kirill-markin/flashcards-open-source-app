@@ -212,7 +212,7 @@ func mapConversationMessage(
     message: AIChatConversationMessageWire
 ) -> AIChatMessage {
     let stableCursor = message.cursor ?? "snapshot-\(index)"
-    return AIChatMessage(
+    let mappedMessage = AIChatMessage(
         id: "\(sessionId)-\(index)-\(stableCursor)",
         role: message.role,
         content: message.content,
@@ -222,6 +222,13 @@ func mapConversationMessage(
         cursor: message.cursor,
         itemId: message.itemId
     )
+    logAIChatUnknownContentParts(
+        content: mappedMessage.content,
+        sessionId: sessionId,
+        messageId: mappedMessage.id,
+        source: "snapshot"
+    )
+    return mappedMessage
 }
 
 func mapActiveRun(_ payload: AIChatActiveRunWire) -> AIChatActiveRun {

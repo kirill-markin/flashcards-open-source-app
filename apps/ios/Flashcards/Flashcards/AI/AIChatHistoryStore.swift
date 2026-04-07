@@ -125,6 +125,14 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
         do {
             let state = try self.decoder.decode(AIChatPersistedState.self, from: data)
             let trimmedMessages = Array(state.messages.suffix(aiChatMaxMessages))
+            for message in trimmedMessages {
+                logAIChatUnknownContentParts(
+                    content: message.content,
+                    sessionId: state.chatSessionId,
+                    messageId: message.id,
+                    source: "local_history"
+                )
+            }
             return AIChatPersistedState(
                 messages: trimmedMessages,
                 chatSessionId: state.chatSessionId,

@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.UUID
 
 private const val aiChatHistoryPreferencesName: String = "flashcards-ai-chat-history"
 private const val aiChatDefaultHistoryKey: String = "ai-chat-history"
@@ -207,11 +208,16 @@ class AiChatHistoryStore(
 
     private fun decodeState(rawValue: String): AiChatPersistedState {
         val jsonObject = JSONObject(rawValue)
+        val chatSessionId = jsonObject.optString("chatSessionId", "")
         val messages = jsonObject.optJSONArray("messages")
-            ?.let(::decodeMessages)
+            ?.let { jsonArray ->
+                decodeMessages(
+                    jsonArray = jsonArray,
+                    sessionId = chatSessionId
+                )
+            }
             ?.takeLast(aiChatMaxMessages)
             ?: emptyList()
-        val chatSessionId = jsonObject.optString("chatSessionId", "")
         val lastKnownChatConfig = jsonObject.optJSONObject("lastKnownChatConfig")
             ?.let(::decodeChatConfig)
 
@@ -298,19 +304,29 @@ class AiChatHistoryStore(
             .put("itemId", message.itemId ?: JSONObject.NULL)
     }
 
-    private fun decodeMessages(jsonArray: JSONArray): List<AiChatMessage> {
+    private fun decodeMessages(jsonArray: JSONArray, sessionId: String): List<AiChatMessage> {
         return buildList {
             for (index in 0 until jsonArray.length()) {
-                add(decodeMessage(jsonObject = jsonArray.getJSONObject(index)))
+                add(
+                    decodeMessage(
+                        jsonObject = jsonArray.getJSONObject(index),
+                        sessionId = sessionId
+                    )
+                )
             }
         }
     }
 
-    private fun decodeMessage(jsonObject: JSONObject): AiChatMessage {
+    private fun decodeMessage(jsonObject: JSONObject, sessionId: String): AiChatMessage {
+        val messageId = jsonObject.getString("messageId")
         return AiChatMessage(
-            messageId = jsonObject.getString("messageId"),
+            messageId = messageId,
             role = AiChatRole.valueOf(jsonObject.getString("role")),
-            content = decodeContentParts(jsonArray = jsonObject.getJSONArray("content")),
+            content = decodeContentParts(
+                jsonArray = jsonObject.getJSONArray("content"),
+                sessionId = sessionId,
+                messageId = messageId
+            ),
             timestampMillis = jsonObject.getLong("timestampMillis"),
             isError = jsonObject.getBoolean("isError"),
             isStopped = jsonObject.optBoolean("isStopped", false),
@@ -363,19 +379,40 @@ class AiChatHistoryStore(
                 .put("type", "account_upgrade_prompt")
                 .put("message", contentPart.message)
                 .put("buttonTitle", contentPart.buttonTitle)
+
+            is AiChatContentPart.Unknown -> JSONObject()
+                .put("type", "unknown")
+                .put("originalType", contentPart.originalType)
+                .put("summaryText", contentPart.summaryText)
+                .put("rawPayloadJson", contentPart.rawPayloadJson ?: JSONObject.NULL)
         }
     }
 
-    private fun decodeContentParts(jsonArray: JSONArray): List<AiChatContentPart> {
+    private fun decodeContentParts(
+        jsonArray: JSONArray,
+        sessionId: String,
+        messageId: String
+    ): List<AiChatContentPart> {
         return buildList {
             for (index in 0 until jsonArray.length()) {
-                add(decodeContentPart(jsonObject = jsonArray.getJSONObject(index)))
+                add(
+                    decodeContentPart(
+                        jsonObject = jsonArray.getJSONObject(index),
+                        sessionId = sessionId,
+                        messageId = messageId
+                    )
+                )
             }
         }
     }
 
-    private fun decodeContentPart(jsonObject: JSONObject): AiChatContentPart {
-        return when (jsonObject.getString("type")) {
+    private fun decodeContentPart(
+        jsonObject: JSONObject,
+        sessionId: String,
+        messageId: String
+    ): AiChatContentPart {
+        val storedType = jsonObject.getString("type")
+        return when (storedType) {
             "text" -> AiChatContentPart.Text(
                 text = jsonObject.getString("text")
             )
@@ -428,7 +465,19 @@ class AiChatHistoryStore(
                 buttonTitle = jsonObject.getString("buttonTitle")
             )
 
-            else -> throw IllegalArgumentException("Unsupported AI chat content type.")
+            "unknown" -> decodeUnknownContentPart(
+                jsonObject = jsonObject,
+                fallbackType = storedType,
+                sessionId = sessionId,
+                messageId = messageId
+            )
+
+            else -> decodeUnknownContentPart(
+                jsonObject = jsonObject,
+                fallbackType = storedType,
+                sessionId = sessionId,
+                messageId = messageId
+            )
         }
     }
 
@@ -468,6 +517,13 @@ class AiChatHistoryStore(
                 .put("backText", attachment.backText)
                 .put("tags", JSONArray(attachment.tags))
                 .put("effortLevel", attachment.effortLevel.name)
+
+            is AiChatAttachment.Unknown -> JSONObject()
+                .put("type", "unknown")
+                .put("id", attachment.id)
+                .put("originalType", attachment.originalType)
+                .put("summaryText", attachment.summaryText)
+                .put("rawPayloadJson", attachment.rawPayloadJson ?: JSONObject.NULL)
         }
     }
 
@@ -480,7 +536,8 @@ class AiChatHistoryStore(
     }
 
     private fun decodeAttachment(jsonObject: JSONObject): AiChatAttachment {
-        return when (jsonObject.getString("type")) {
+        val storedType = jsonObject.getString("type")
+        return when (storedType) {
             "binary" -> AiChatAttachment.Binary(
                 id = jsonObject.getString("id"),
                 fileName = jsonObject.getString("fileName"),
@@ -497,8 +554,46 @@ class AiChatHistoryStore(
                 effortLevel = decodeEffortLevel(jsonObject = jsonObject)
             )
 
-            else -> throw IllegalArgumentException("Unsupported AI chat attachment type.")
+            "unknown" -> AiChatAttachment.Unknown(
+                id = jsonObject.optString("id", "").ifBlank {
+                    UUID.randomUUID().toString().lowercase()
+                },
+                originalType = jsonObject.optString("originalType", storedType).ifBlank { storedType },
+                summaryText = jsonObject.optString("summaryText", "Unsupported attachment"),
+                rawPayloadJson = jsonObject.optString("rawPayloadJson", "").ifBlank { null }
+            )
+
+            else -> AiChatAttachment.Unknown(
+                id = jsonObject.optString("id", "").ifBlank {
+                    UUID.randomUUID().toString().lowercase()
+                },
+                originalType = storedType,
+                summaryText = "Unsupported attachment",
+                rawPayloadJson = jsonObject.toString()
+            )
         }
+    }
+
+    private fun decodeUnknownContentPart(
+        jsonObject: JSONObject,
+        fallbackType: String,
+        sessionId: String,
+        messageId: String
+    ): AiChatContentPart.Unknown {
+        val originalType = jsonObject.optString("originalType", fallbackType).ifBlank { fallbackType }
+        AiChatDiagnosticsLogger.logUnknownContentReceived(
+            originalType = originalType,
+            sessionId = sessionId,
+            messageId = messageId,
+            source = "local_history"
+        )
+        return AiChatContentPart.Unknown(
+            originalType = originalType,
+            summaryText = jsonObject.optString("summaryText", "Unsupported content"),
+            rawPayloadJson = jsonObject.optString("rawPayloadJson", "").ifBlank {
+                jsonObject.toString()
+            }
+        )
     }
 
     private fun decodeEffortLevel(jsonObject: JSONObject): EffortLevel {

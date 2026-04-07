@@ -266,6 +266,12 @@ extension AIChatStore {
                 return
             }
             let message = self.messages[messageIndex]
+            logAIChatUnknownContentParts(
+                content: finalizedContent,
+                sessionId: metadata.sessionId,
+                messageId: message.id,
+                source: "live"
+            )
             self.messages[messageIndex] = AIChatMessage(
                 id: message.id,
                 role: message.role,
@@ -700,7 +706,7 @@ private func aiChatTerminalEventHasRenderableContent(
             return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
         case .reasoningSummary(let reasoningSummary):
             return reasoningSummary.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-        case .image, .file, .card, .toolCall, .accountUpgradePrompt:
+        case .image, .file, .card, .toolCall, .accountUpgradePrompt, .unknown:
             return true
         }
     }

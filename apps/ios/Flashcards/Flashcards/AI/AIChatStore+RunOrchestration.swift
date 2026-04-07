@@ -233,7 +233,7 @@ extension AIChatStore {
     }
 
     func makeOutgoingContent() -> [AIChatContentPart] {
-        var content: [AIChatContentPart] = self.pendingAttachments.map { attachment in
+        var content: [AIChatContentPart] = self.pendingAttachments.compactMap { attachment in
             switch attachment.payload {
             case .binary(let fileName, let mediaType, let base64Data):
                 if attachment.isImage {
@@ -247,6 +247,8 @@ extension AIChatStore {
                 )
             case .card(let card):
                 return .card(card)
+            case .unknown:
+                return nil
             }
         }
 

@@ -62,6 +62,12 @@ extension AIChatView {
                                         Text(aiChatCardAttachmentLabel(card: card))
                                             .font(.caption)
                                             .lineLimit(1)
+                                    case .unknown(let unknownAttachment):
+                                        Image(systemName: "questionmark.square.dashed")
+                                            .foregroundStyle(.secondary)
+                                        Text("Unsupported attachment (\(unknownAttachment.originalType))")
+                                            .font(.caption)
+                                            .lineLimit(1)
                                     }
                                     Button {
                                         self.chatStore.removeAttachment(id: attachment.id)
@@ -239,5 +245,7 @@ private func aiChatComposerAttachmentIdentifier(attachment: AIChatAttachment) ->
         return attachment.id
     case .card:
         return UITestIdentifier.aiComposerCardAttachmentChip
+    case .unknown:
+        return attachment.id
     }
 }

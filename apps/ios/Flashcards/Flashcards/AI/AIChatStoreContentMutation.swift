@@ -279,7 +279,7 @@ private func extractAIChatTextContent(parts: [AIChatContentPart]) -> String {
             partialResult.append(text)
         case .reasoningSummary(let reasoningSummary):
             partialResult.append(reasoningSummaryText(reasoningSummary: reasoningSummary))
-        case .image, .file, .card, .toolCall, .accountUpgradePrompt:
+        case .image, .file, .card, .toolCall, .accountUpgradePrompt, .unknown:
             break
         }
     }
