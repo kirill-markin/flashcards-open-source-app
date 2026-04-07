@@ -299,6 +299,10 @@ extension FlashcardsStore {
                 self.localReadVersion += 1
             }
             self.handleSuccessfulReviewNotificationTrigger()
+            self.handleSuccessfulReviewHardReminder(
+                rating: request.rating,
+                now: now
+            )
             self.triggerCloudSyncIfLinked(
                 trigger: CloudSyncTrigger(
                     source: .localMutation,

@@ -9,6 +9,7 @@ extension FlashcardsStore {
             workspaceId: nextWorkspaceId
         )
         self.reviewRuntime.cancelForAccountDeletion()
+        self.resetReviewHardReminderSession()
         self.reviewRuntime = ReviewQueueRuntime(
             initialSelectedReviewFilter: nextReviewFilter,
             reviewSeedQueueSize: reviewSeedQueueSize,
@@ -139,6 +140,9 @@ extension FlashcardsStore {
         self.homeSnapshot = resolvedHomeSnapshot
         self.globalErrorMessage = ""
         self.reloadReviewNotificationsSettings()
+        if workspaceChanged {
+            self.resetReviewHardReminderSession()
+        }
         self.reconcileReviewNotifications(trigger: .workspaceChanged, now: now)
 
         return BootstrapSnapshotRefreshOutcome(

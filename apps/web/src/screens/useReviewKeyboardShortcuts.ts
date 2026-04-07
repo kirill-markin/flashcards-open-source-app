@@ -5,6 +5,7 @@ type UseReviewKeyboardShortcutsParams = Readonly<{
   handleReview: (card: Card, rating: 0 | 1 | 2 | 3) => Promise<void>;
   isAnswerVisible: boolean;
   isEditorPresented: boolean;
+  isHardReminderVisible: boolean;
   isReviewFilterMenuOpen: boolean;
   isSubmitting: boolean;
   selectedCard: Card | null;
@@ -37,6 +38,7 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     handleReview,
     isAnswerVisible,
     isEditorPresented,
+    isHardReminderVisible,
     isReviewFilterMenuOpen,
     isSubmitting,
     selectedCard,
@@ -44,7 +46,14 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
   } = params;
 
   const handleDocumentKeyDown = useEffectEvent((event: KeyboardEvent) => {
-    if (selectedCard === null || isSubmitting || isEditorPresented || isReviewFilterMenuOpen || isEditableKeyboardTarget(event.target)) {
+    if (
+      selectedCard === null
+      || isSubmitting
+      || isEditorPresented
+      || isHardReminderVisible
+      || isReviewFilterMenuOpen
+      || isEditableKeyboardTarget(event.target)
+    ) {
       return;
     }
 

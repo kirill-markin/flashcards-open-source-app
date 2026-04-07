@@ -34,7 +34,7 @@ type UseReviewScreenDataParams = Readonly<{
 export type UseReviewScreenDataResult = Readonly<{
   activeReviewQueue: ReadonlyArray<Card>;
   deckSummaries: ReadonlyArray<DeckSummary>;
-  handleReview: (card: Card, rating: 0 | 1 | 2 | 3) => Promise<void>;
+  handleReview: (card: Card, rating: 0 | 1 | 2 | 3) => Promise<boolean>;
   hasLoadedReviewData: boolean;
   isInitialReviewLoad: boolean;
   isReviewLoading: boolean;
@@ -183,7 +183,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     };
   }, [activeWorkspaceId, localReadVersion, selectedReviewFilter]);
 
-  async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<void> {
+  async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<boolean> {
     setErrorMessage("");
 
     try {
@@ -211,8 +211,11 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         setActiveReviewQueue([...nextReviewQueue, ...nextChunk.cards]);
         setReviewQueueCursor(nextChunk.nextCursor);
       }
+
+      return true;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : String(error));
+      return false;
     }
   }
 

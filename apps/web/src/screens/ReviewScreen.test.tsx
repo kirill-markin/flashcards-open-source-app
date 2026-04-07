@@ -248,4 +248,36 @@ describe("ReviewScreen", () => {
 
     expect(state.appData.submitReviewItem).toHaveBeenCalledWith("card-hidden-answer", 0);
   });
+
+  it("shows the hard reminder after a full recent window with too many hard answers", async () => {
+    const state = getState();
+    const cards = Array.from({ length: 8 }, (_, index) => createCard({
+      cardId: `hard-reminder-${index + 1}`,
+      frontText: `Question ${index + 1}`,
+      backText: `Answer ${index + 1}`,
+    }));
+    state.cards = cards;
+    state.reviewQueue = cards;
+    state.reviewTimeline = cards;
+    state.appData.submitReviewItem.mockImplementation(async (cardId: string): Promise<typeof cards[number]> => {
+      return createCard({ cardId });
+    });
+
+    await renderReviewScreen();
+
+    for (const key of ["2", "2", "2", "2", "2", "3", "3"]) {
+      await revealAnswer();
+      await dispatchDocumentKeydown(key);
+      expect(getContainer().querySelector('[role="dialog"]')).toBeNull();
+    }
+
+    await revealAnswer();
+    await dispatchDocumentKeydown("2");
+
+    const reminderDialog = getContainer().querySelector('[role="dialog"]');
+    expect(reminderDialog).not.toBeNull();
+    expect(getContainer().textContent).toContain('choose "Again"');
+    expect(getContainer().textContent).toContain('"Hard"');
+    expect(state.appData.submitReviewItem).toHaveBeenCalledTimes(8);
+  });
 });
