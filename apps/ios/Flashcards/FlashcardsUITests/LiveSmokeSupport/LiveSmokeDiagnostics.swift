@@ -86,7 +86,12 @@ extension LiveSmokeTestCase {
             let buttons = self.elements(query: alert.buttons)
                 .map(\.label)
                 .joined(separator: ", ")
-            return "\(alert.label) [\(buttons.isEmpty ? "-" : buttons)]"
+            let staticTexts = self.elements(query: alert.staticTexts)
+                .map(\.label)
+                .filter { $0.isEmpty == false && $0 != alert.label }
+                .joined(separator: " | ")
+            let textSummary = staticTexts.isEmpty ? "-" : staticTexts
+            return "\(alert.label) {\(textSummary)} [\(buttons.isEmpty ? "-" : buttons)]"
         }
 
         if alerts.isEmpty {

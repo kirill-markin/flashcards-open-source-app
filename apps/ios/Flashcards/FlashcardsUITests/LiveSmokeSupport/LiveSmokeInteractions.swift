@@ -1,4 +1,5 @@
 import XCTest
+import Foundation
 
 extension LiveSmokeTestCase {
     @MainActor
@@ -139,6 +140,8 @@ extension LiveSmokeTestCase {
                 continue
             }
 
+            let alertSummary = self.activeAlertsSnapshot()
+            fputs("LIVE_SMOKE_ALERT: \(alertSummary)\n", stderr)
             button.tap()
             self.logSmokeBreadcrumb(
                 event: "alert_dismissed",
@@ -147,7 +150,7 @@ extension LiveSmokeTestCase {
                 timeoutSeconds: "-",
                 durationSeconds: "-",
                 result: "success",
-                note: "known alert button tapped"
+                note: "known alert button tapped: \(alertSummary)"
             )
             return true
         }
