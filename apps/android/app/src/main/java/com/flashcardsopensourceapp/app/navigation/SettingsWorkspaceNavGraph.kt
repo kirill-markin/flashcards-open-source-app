@@ -49,6 +49,7 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
             val workspaceSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.WorkspaceSettingsViewModel>(
                 factory = createWorkspaceSettingsViewModelFactory(
                     workspaceRepository = appGraph.workspaceRepository,
+                    cloudAccountRepository = appGraph.cloudAccountRepository,
                     reviewNotificationsStore = appGraph.reviewNotificationsStore
                 )
             )
@@ -74,6 +75,12 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 onOpenExport = {
                     navController.navigate(route = SettingsWorkspaceExportDestination.route)
                 },
+                onOpenResetConfirmation = workspaceSettingsViewModel::openResetConfirmation,
+                onDismissResetConfirmation = workspaceSettingsViewModel::dismissResetConfirmation,
+                onResetConfirmationTextChange = workspaceSettingsViewModel::updateResetConfirmationText,
+                onRequestResetProgress = workspaceSettingsViewModel::requestResetProgressAsync,
+                onDismissResetPreviewAlert = workspaceSettingsViewModel::dismissResetPreviewAlert,
+                onResetProgress = workspaceSettingsViewModel::resetProgressAsync,
                 onBack = {
                     navController.popBackStack()
                 }

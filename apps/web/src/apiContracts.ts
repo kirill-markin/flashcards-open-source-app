@@ -25,8 +25,10 @@ import type {
   SyncReviewHistoryImportResult,
   SyncReviewHistoryPullResult,
   WorkspaceDeletePreview,
+  WorkspaceResetProgressPreview,
   WorkspaceSchedulerSettings,
   WorkspaceSummary,
+  ResetWorkspaceProgressResponse,
   Card,
 } from "./types";
 
@@ -716,6 +718,31 @@ export function parseDeleteWorkspaceResponse(value: unknown, endpoint: string): 
     deletedWorkspaceId: parseRequiredField(objectValue, "deletedWorkspaceId", endpoint, "", parseString),
     deletedCardsCount: parseRequiredField(objectValue, "deletedCardsCount", endpoint, "", parseNumber),
     workspace: parseRequiredField(objectValue, "workspace", endpoint, "", parseWorkspaceSummary),
+  };
+}
+
+export function parseWorkspaceResetProgressPreviewResponse(
+  value: unknown,
+  endpoint: string,
+): WorkspaceResetProgressPreview {
+  const objectValue = parseObject(value, endpoint, "");
+  return {
+    workspaceId: parseRequiredField(objectValue, "workspaceId", endpoint, "", parseString),
+    workspaceName: parseRequiredField(objectValue, "workspaceName", endpoint, "", parseString),
+    cardsToResetCount: parseRequiredField(objectValue, "cardsToResetCount", endpoint, "", parseNumber),
+    confirmationText: parseRequiredField(objectValue, "confirmationText", endpoint, "", parseString),
+  };
+}
+
+export function parseResetWorkspaceProgressResponse(
+  value: unknown,
+  endpoint: string,
+): ResetWorkspaceProgressResponse {
+  const objectValue = parseObject(value, endpoint, "");
+  return {
+    ok: parseLiteral(parseRequiredField(objectValue, "ok", endpoint, "", parseBoolean), endpoint, "ok", true),
+    workspaceId: parseRequiredField(objectValue, "workspaceId", endpoint, "", parseString),
+    cardsResetCount: parseRequiredField(objectValue, "cardsResetCount", endpoint, "", parseNumber),
   };
 }
 

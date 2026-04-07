@@ -95,6 +95,18 @@
   text-align: start;
 }
 
+.settings-nav-card-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+  transform: none;
+}
+
+.settings-nav-card-button:disabled:hover {
+  transform: none;
+  border-color: var(--panel-border);
+  background: rgba(20, 20, 24, 0.92);
+}
+
 .settings-nav-card:hover {
   transform: translateY(-1px);
   border-color: var(--panel-border-strong);

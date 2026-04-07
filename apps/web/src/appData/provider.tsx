@@ -161,7 +161,15 @@ export function AppDataProvider(props: Props): ReactElement {
     setSelectedReviewFilterState(reviewFilter);
   }, []);
 
-  const { initialize, chooseWorkspace, createWorkspace, renameWorkspace, deleteWorkspace } = useWorkspaceSession({
+  const {
+    initialize,
+    chooseWorkspace,
+    createWorkspace,
+    renameWorkspace,
+    deleteWorkspace,
+    loadWorkspaceResetProgressPreview,
+    resetWorkspaceProgress,
+  } = useWorkspaceSession({
     sessionLoadState,
     sessionVerificationState,
     session,
@@ -205,6 +213,8 @@ export function AppDataProvider(props: Props): ReactElement {
     createWorkspace,
     renameWorkspace,
     deleteWorkspace,
+    loadWorkspaceResetProgressPreview,
+    resetWorkspaceProgress,
     runSync: syncEngine.runSync,
     refreshLocalData: syncEngine.refreshLocalData,
     getCardById: syncEngine.getCardById,

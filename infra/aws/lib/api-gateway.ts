@@ -441,6 +441,8 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   workspaceById.addResource("rename").addMethod("POST", integration);
   workspaceById.addResource("delete-preview").addMethod("GET", integration);
   workspaceById.addResource("delete").addMethod("POST", integration);
+  workspaceById.addResource("reset-progress-preview").addMethod("GET", integration);
+  workspaceById.addResource("reset-progress").addMethod("POST", integration);
   agentWorkspaceById.addResource("select").addMethod("POST", integration);
   workspaceById.addResource("tags").addMethod("GET", integration);
   workspaceById

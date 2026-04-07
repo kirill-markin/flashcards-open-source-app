@@ -97,6 +97,19 @@ data class CloudWorkspaceDeleteResult(
     val workspace: CloudWorkspaceSummary
 )
 
+data class CloudWorkspaceResetProgressPreview(
+    val workspaceId: String,
+    val workspaceName: String,
+    val cardsToResetCount: Int,
+    val confirmationText: String
+)
+
+data class CloudWorkspaceResetProgressResult(
+    val ok: Boolean,
+    val workspaceId: String,
+    val cardsResetCount: Int
+)
+
 data class AgentApiKeyConnection(
     val connectionId: String,
     val label: String,

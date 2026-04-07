@@ -129,6 +129,20 @@ final class CloudSyncService: @unchecked Sendable {
         )
     }
 
+    func loadWorkspaceResetProgressPreview(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String
+    ) async throws -> CloudWorkspaceResetProgressPreview {
+        try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: "Bearer \(bearerToken)",
+            path: "/workspaces/\(workspaceId)/reset-progress-preview",
+            method: "GET",
+            body: Optional<String>.none
+        )
+    }
+
     func deleteWorkspace(
         apiBaseUrl: String,
         bearerToken: String,
@@ -142,6 +156,27 @@ final class CloudSyncService: @unchecked Sendable {
             method: "POST",
             body: DeleteAccountRequest(confirmationText: confirmationText)
         )
+    }
+
+    func resetWorkspaceProgress(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        confirmationText: String
+    ) async throws -> CloudWorkspaceResetProgressResult {
+        let response: CloudWorkspaceResetProgressResult = try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: "Bearer \(bearerToken)",
+            path: "/workspaces/\(workspaceId)/reset-progress",
+            method: "POST",
+            body: DeleteAccountRequest(confirmationText: confirmationText)
+        )
+
+        if response.ok == false {
+            throw LocalStoreError.validation("Workspace progress reset did not return ok=true")
+        }
+
+        return response
     }
 
     func selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String) async throws -> CloudWorkspaceSummary {

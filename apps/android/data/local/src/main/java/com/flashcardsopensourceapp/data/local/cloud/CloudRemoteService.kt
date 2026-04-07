@@ -10,6 +10,8 @@ import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressPreview
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
@@ -137,6 +139,17 @@ interface CloudRemoteGateway {
         workspaceId: String,
         confirmationText: String
     ): CloudWorkspaceDeleteResult
+    suspend fun loadWorkspaceResetProgressPreview(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String
+    ): CloudWorkspaceResetProgressPreview
+    suspend fun resetWorkspaceProgress(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        confirmationText: String
+    ): CloudWorkspaceResetProgressResult
 
     suspend fun deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String)
     suspend fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult
@@ -476,6 +489,51 @@ class CloudRemoteService : CloudRemoteGateway {
                 isSelected = true,
                 fieldPath = "deleteWorkspace.workspace"
             )
+        )
+    }
+
+    override
+    suspend fun loadWorkspaceResetProgressPreview(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String
+    ): CloudWorkspaceResetProgressPreview {
+        val response = getJson(
+            baseUrl = apiBaseUrl,
+            path = "/workspaces/$workspaceId/reset-progress-preview",
+            authorizationHeader = "Bearer $bearerToken"
+        )
+        return CloudWorkspaceResetProgressPreview(
+            workspaceId = response.requireCloudString("workspaceId", "workspaceResetProgressPreview.workspaceId"),
+            workspaceName = response.requireCloudString("workspaceName", "workspaceResetProgressPreview.workspaceName"),
+            cardsToResetCount = response.requireCloudInt(
+                "cardsToResetCount",
+                "workspaceResetProgressPreview.cardsToResetCount"
+            ),
+            confirmationText = response.requireCloudString(
+                "confirmationText",
+                "workspaceResetProgressPreview.confirmationText"
+            )
+        )
+    }
+
+    override
+    suspend fun resetWorkspaceProgress(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        confirmationText: String
+    ): CloudWorkspaceResetProgressResult {
+        val response = postJson(
+            baseUrl = apiBaseUrl,
+            path = "/workspaces/$workspaceId/reset-progress",
+            authorizationHeader = "Bearer $bearerToken",
+            body = JSONObject().put("confirmationText", confirmationText)
+        )
+        return CloudWorkspaceResetProgressResult(
+            ok = response.requireCloudBoolean("ok", "resetWorkspaceProgress.ok"),
+            workspaceId = response.requireCloudString("workspaceId", "resetWorkspaceProgress.workspaceId"),
+            cardsResetCount = response.requireCloudInt("cardsResetCount", "resetWorkspaceProgress.cardsResetCount")
         )
     }
 

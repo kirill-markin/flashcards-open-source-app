@@ -6,6 +6,7 @@ export type SyncClientPlatform = "ios" | "android" | "web";
 export type WorkspaceReplicaActorKind =
   | "client_installation"
   | "workspace_seed"
+  | "workspace_reset"
   | "agent_connection"
   | "ai_chat";
 export type WorkspaceReplicaPlatform = SyncClientPlatform | "system";

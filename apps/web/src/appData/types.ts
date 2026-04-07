@@ -5,10 +5,12 @@ import type {
   CreateCardInput,
   CreateDeckInput,
   Deck,
+  ResetWorkspaceProgressResponse,
   ReviewFilter,
   SessionInfo,
   UpdateCardInput,
   UpdateDeckInput,
+  WorkspaceResetProgressPreview,
   WorkspaceSchedulerSettings,
   WorkspaceSummary,
 } from "../types";
@@ -38,6 +40,8 @@ export type AppDataContextValue = Readonly<{
   createWorkspace: (name: string) => Promise<void>;
   renameWorkspace: (workspaceId: string, name: string) => Promise<void>;
   deleteWorkspace: (workspaceId: string, confirmationText: string) => Promise<void>;
+  loadWorkspaceResetProgressPreview: (workspaceId: string) => Promise<WorkspaceResetProgressPreview>;
+  resetWorkspaceProgress: (workspaceId: string, confirmationText: string) => Promise<ResetWorkspaceProgressResponse>;
   runSync: () => Promise<void>;
   refreshLocalData: () => Promise<void>;
   getCardById: (cardId: string) => Promise<Card>;

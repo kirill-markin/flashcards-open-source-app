@@ -19,11 +19,15 @@ import {
   deleteWorkspaceForUser,
   listUserWorkspacesPageForSelectedWorkspace,
   loadWorkspaceDeletePreviewForUser,
+  loadWorkspaceResetProgressPreviewForUser,
   renameWorkspaceForUser,
+  resetWorkspaceProgressForUser,
   selectWorkspaceForApiKeyConnection,
   selectWorkspaceForUser,
   type DeleteWorkspaceResult,
   type WorkspaceDeletePreview,
+  type ResetWorkspaceProgressResult,
+  type WorkspaceResetProgressPreview,
   type WorkspaceSummary,
 } from "../workspaces";
 import { HttpError } from "../errors";
@@ -58,6 +62,10 @@ type WorkspacesPageResponse = Readonly<{
 }>;
 
 type WorkspaceDeleteResponse = DeleteWorkspaceResult;
+
+type WorkspaceResetProgressPreviewResponse = WorkspaceResetProgressPreview;
+
+type WorkspaceResetProgressResponse = ResetWorkspaceProgressResult;
 
 type AgentApiKeyConnectionsPageResponse = Readonly<{
   connections: ReadonlyArray<AgentApiKeyConnection>;
@@ -305,6 +313,81 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
       return context.json(response satisfies WorkspaceDeleteResponse);
     } catch (error) {
       logCloudRouteEvent("workspace_delete_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        userId: requestContext.userId,
+        workspaceId,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
+  });
+
+  app.get("/workspaces/:workspaceId/reset-progress-preview", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    requireHumanManagedConnectionAccess(requestContext.transport);
+    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+    const requestId = context.get("requestId");
+
+    try {
+      const preview = await loadWorkspaceResetProgressPreviewForUser(requestContext.userId, workspaceId);
+      logCloudRouteEvent("workspace_reset_progress_preview", {
+        requestId,
+        route: context.req.path,
+        statusCode: 200,
+        userId: requestContext.userId,
+        workspaceId,
+        cardsCount: preview.cardsToResetCount,
+      }, false);
+      return context.json(preview satisfies WorkspaceResetProgressPreviewResponse);
+    } catch (error) {
+      logCloudRouteEvent("workspace_reset_progress_preview_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        userId: requestContext.userId,
+        workspaceId,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
+  });
+
+  app.post("/workspaces/:workspaceId/reset-progress", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    requireHumanManagedConnectionAccess(requestContext.transport);
+    const workspaceId = parseWorkspaceIdParam(context.req.param("workspaceId"));
+    const requestId = context.get("requestId");
+    const body = expectRecord(await parseJsonBody(context.req.raw));
+
+    if (typeof body.confirmationText !== "string") {
+      throw new HttpError(
+        400,
+        "confirmationText must be a string",
+        "WORKSPACE_RESET_PROGRESS_CONFIRMATION_INVALID",
+      );
+    }
+
+    try {
+      const response = await resetWorkspaceProgressForUser(
+        requestContext.userId,
+        workspaceId,
+        body.confirmationText,
+      );
+      logCloudRouteEvent("workspace_reset_progress", {
+        requestId,
+        route: context.req.path,
+        statusCode: 200,
+        userId: requestContext.userId,
+        workspaceId,
+        cardsResetCount: response.cardsResetCount,
+      }, false);
+      return context.json(response satisfies WorkspaceResetProgressResponse);
+    } catch (error) {
+      logCloudRouteEvent("workspace_reset_progress_error", {
         requestId,
         route: context.req.path,
         statusCode: error instanceof HttpError ? error.statusCode : 500,

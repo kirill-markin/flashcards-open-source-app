@@ -12,6 +12,8 @@ import {
   encodeOpaqueCursor,
   type CursorPageInput,
 } from "./pagination";
+import { CARD_COLUMNS, mapCard, recordCardSyncChange } from "./cards/shared";
+import type { CardRow } from "./cards/types";
 import { logCloudRouteEvent } from "./server/logging";
 import {
   buildSystemWorkspaceReplicaId,
@@ -21,6 +23,7 @@ import { insertSyncChange } from "./syncChanges";
 
 export const AUTO_CREATED_WORKSPACE_NAME = "Personal";
 export const deleteWorkspaceConfirmationText = "delete workspace";
+export const resetWorkspaceProgressConfirmationText = "reset all progress for all cards in this workspace";
 
 export type WorkspaceSummary = Readonly<{
   workspaceId: string;
@@ -49,6 +52,19 @@ export type DeleteWorkspaceResult = Readonly<{
   workspace: WorkspaceSummary;
 }>;
 
+export type WorkspaceResetProgressPreview = Readonly<{
+  workspaceId: string;
+  workspaceName: string;
+  cardsToResetCount: number;
+  confirmationText: string;
+}>;
+
+export type ResetWorkspaceProgressResult = Readonly<{
+  ok: true;
+  workspaceId: string;
+  cardsResetCount: number;
+}>;
+
 type WorkspaceDeleteFailureStage =
   | "load_management_row"
   | "prepare_selection"
@@ -56,6 +72,11 @@ type WorkspaceDeleteFailureStage =
   | "delete_workspace"
   | "ensure_selected_workspace"
   | "load_replacement_workspace";
+
+type WorkspaceResetProgressFailureStage =
+  | "load_management_row"
+  | "count_resettable_cards"
+  | "reset_workspace_cards";
 
 type WorkspaceCreateFailureStage =
   | "create_workspace_row"
@@ -86,6 +107,14 @@ type WorkspaceManagementRow = Readonly<{
 
 type ActiveCardCountRow = Readonly<{
   active_card_count: string | number;
+}>;
+
+type ResettableCardCountRow = Readonly<{
+  cards_to_reset_count: string | number;
+}>;
+
+type ResettableCardIdRow = Readonly<{
+  card_id: string;
 }>;
 
 type DeletedWorkspaceRow = Readonly<{
@@ -153,6 +182,16 @@ function assertWorkspaceIsSoleMember(memberCount: number): void {
   }
 }
 
+function assertWorkspaceIsSoleMemberForReset(memberCount: number): void {
+  if (memberCount !== 1) {
+    throw new HttpError(
+      409,
+      "This workspace cannot reset progress while it still has multiple members.",
+      "WORKSPACE_RESET_SHARED",
+    );
+  }
+}
+
 function assertDeleteWorkspaceConfirmationText(confirmationText: string): void {
   if (confirmationText !== deleteWorkspaceConfirmationText) {
     throw new HttpError(
@@ -209,12 +248,134 @@ function createWorkspaceDeletePreviewFailedError(): HttpError {
   );
 }
 
+function createWorkspaceResetProgressFailedError(): HttpError {
+  return new HttpError(
+    500,
+    "Workspace progress reset failed on the server before it could be completed. Try again.",
+    "WORKSPACE_RESET_PROGRESS_FAILED",
+  );
+}
+
+function createWorkspaceResetProgressPreviewFailedError(): HttpError {
+  return new HttpError(
+    500,
+    "Workspace progress reset preview failed on the server before it could be loaded. Try again.",
+    "WORKSPACE_RESET_PROGRESS_PREVIEW_FAILED",
+  );
+}
+
 function createWorkspaceCreateFailedError(): HttpError {
   return new HttpError(
     500,
     "Workspace creation failed on the server before it could be completed. Try again.",
     "WORKSPACE_CREATE_FAILED",
   );
+}
+
+function assertResetWorkspaceProgressConfirmationText(confirmationText: string): void {
+  if (confirmationText !== resetWorkspaceProgressConfirmationText) {
+    throw new HttpError(
+      400,
+      `Type "${resetWorkspaceProgressConfirmationText}" exactly to confirm workspace progress reset.`,
+      "WORKSPACE_RESET_PROGRESS_CONFIRMATION_INVALID",
+    );
+  }
+}
+
+function getResettableCardPredicateSql(): string {
+  return [
+    "workspace_id = $1",
+    "AND deleted_at IS NULL",
+    "AND (",
+    "due_at IS NOT NULL",
+    "OR reps <> 0",
+    "OR lapses <> 0",
+    "OR fsrs_card_state <> 'new'",
+    "OR fsrs_step_index IS NOT NULL",
+    "OR fsrs_stability IS NOT NULL",
+    "OR fsrs_difficulty IS NOT NULL",
+    "OR fsrs_last_reviewed_at IS NOT NULL",
+    "OR fsrs_scheduled_days IS NOT NULL",
+    ")",
+  ].join(" ");
+}
+
+async function loadResettableCardCountInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+): Promise<number> {
+  const result = await executor.query<ResettableCardCountRow>(
+    [
+      "SELECT COUNT(*)::int AS cards_to_reset_count",
+      "FROM content.cards",
+      "WHERE",
+      getResettableCardPredicateSql(),
+    ].join(" "),
+    [workspaceId],
+  );
+
+  const row = result.rows[0];
+  if (row === undefined) {
+    throw createWorkspaceInvariantError(
+      "Workspace progress reset count could not be loaded.",
+      "WORKSPACE_RESET_PROGRESS_COUNT_UNAVAILABLE",
+    );
+  }
+
+  return typeof row.cards_to_reset_count === "number"
+    ? row.cards_to_reset_count
+    : Number.parseInt(row.cards_to_reset_count, 10);
+}
+
+async function loadResettableCardRowsInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+): Promise<ReadonlyArray<ResettableCardIdRow>> {
+  const result = await executor.query<ResettableCardIdRow>(
+    [
+      "SELECT card_id",
+      "FROM content.cards",
+      "WHERE",
+      getResettableCardPredicateSql(),
+      "ORDER BY card_id ASC",
+      "FOR UPDATE",
+    ].join(" "),
+    [workspaceId],
+  );
+
+  return result.rows;
+}
+
+async function resetCardProgressInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  replicaId: string,
+  cardId: string,
+): Promise<CardRow> {
+  const clientUpdatedAt = new Date().toISOString();
+  const operationId = randomUUID();
+
+  const result = await executor.query<CardRow>(
+    [
+      "UPDATE content.cards",
+      "SET due_at = NULL, reps = 0, lapses = 0, fsrs_card_state = 'new', fsrs_step_index = NULL,",
+      "fsrs_stability = NULL, fsrs_difficulty = NULL, fsrs_last_reviewed_at = NULL, fsrs_scheduled_days = NULL,",
+      "client_updated_at = $1, last_modified_by_replica_id = $2, last_operation_id = $3, updated_at = now()",
+      "WHERE workspace_id = $4 AND card_id = $5 AND deleted_at IS NULL",
+      "RETURNING",
+      CARD_COLUMNS,
+    ].join(" "),
+    [clientUpdatedAt, replicaId, operationId, workspaceId, cardId],
+  );
+
+  const updatedCardRow = result.rows[0];
+  if (updatedCardRow === undefined) {
+    throw new HttpError(404, "Card not found");
+  }
+
+  const updatedCard = mapCard(updatedCardRow);
+  await recordCardSyncChange(executor, workspaceId, updatedCard);
+  return updatedCardRow;
 }
 
 function decodeWorkspacePageCursor(cursor: string): WorkspacePageCursor {
@@ -827,6 +988,140 @@ export async function loadWorkspaceDeletePreviewForUser(
     executor,
     userId,
     workspaceId,
+  ));
+}
+
+export async function loadWorkspaceResetProgressPreviewInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  workspaceId: string,
+): Promise<WorkspaceResetProgressPreview> {
+  try {
+    const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
+    assertWorkspaceOwner(managedWorkspace.role);
+    assertWorkspaceIsSoleMemberForReset(managedWorkspace.member_count);
+    await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
+    const cardsToResetCount = await loadResettableCardCountInExecutor(executor, workspaceId);
+
+    return {
+      workspaceId,
+      workspaceName: managedWorkspace.name,
+      cardsToResetCount,
+      confirmationText: resetWorkspaceProgressConfirmationText,
+    };
+  } catch (error) {
+    if (error instanceof HttpError) {
+      throw error;
+    }
+
+    const databaseErrorDetails = getDatabaseErrorDetails(error);
+    logCloudRouteEvent("workspace_reset_progress_preview_transaction_error", {
+      userId,
+      workspaceId,
+      code: "WORKSPACE_RESET_PROGRESS_PREVIEW_FAILED",
+      ...databaseErrorDetails,
+    }, true);
+    throw createWorkspaceResetProgressPreviewFailedError();
+  }
+}
+
+export async function loadWorkspaceResetProgressPreviewForUser(
+  userId: string,
+  workspaceId: string,
+): Promise<WorkspaceResetProgressPreview> {
+  return transactionWithUserScope({ userId }, async (executor) => loadWorkspaceResetProgressPreviewInExecutor(
+    executor,
+    userId,
+    workspaceId,
+  ));
+}
+
+async function resetWorkspaceProgressInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  workspaceId: string,
+  confirmationText: string,
+): Promise<ResetWorkspaceProgressResult> {
+  assertResetWorkspaceProgressConfirmationText(confirmationText);
+  let stage: WorkspaceResetProgressFailureStage = "load_management_row";
+  const managedWorkspace = await loadWorkspaceManagementRowInExecutor(executor, userId, workspaceId);
+  assertWorkspaceOwner(managedWorkspace.role);
+  assertWorkspaceIsSoleMemberForReset(managedWorkspace.member_count);
+  await applyWorkspaceDatabaseScopeInExecutor(executor, { userId, workspaceId });
+  let cardsResetCount = 0;
+
+  try {
+    stage = "count_resettable_cards";
+    const resettableCards = await loadResettableCardRowsInExecutor(executor, workspaceId);
+    cardsResetCount = resettableCards.length;
+
+    if (resettableCards.length === 0) {
+      return {
+        ok: true,
+        workspaceId,
+        cardsResetCount: 0,
+      };
+    }
+
+    stage = "reset_workspace_cards";
+    const resetReplicaId = await ensureSystemWorkspaceReplicaInExecutor(executor, {
+      workspaceId,
+      userId,
+      actorKind: "workspace_reset",
+      actorKey: "reset-progress",
+      platform: "system",
+      appVersion: null,
+    });
+
+    for (const resettableCard of resettableCards) {
+      await resetCardProgressInExecutor(
+        executor,
+        workspaceId,
+        resetReplicaId,
+        resettableCard.card_id,
+      );
+    }
+
+    return {
+      ok: true,
+      workspaceId,
+      cardsResetCount,
+    };
+  } catch (error) {
+    if (error instanceof HttpError) {
+      logCloudRouteEvent("workspace_reset_progress_transaction_error", {
+        userId,
+        workspaceId,
+        cardsResetCount,
+        stage,
+        code: error.code,
+      }, true);
+      throw error;
+    }
+
+    const databaseErrorDetails = getDatabaseErrorDetails(error);
+    logCloudRouteEvent("workspace_reset_progress_transaction_error", {
+      userId,
+      workspaceId,
+      cardsResetCount,
+      stage,
+      code: "WORKSPACE_RESET_PROGRESS_FAILED",
+      ...databaseErrorDetails,
+    }, true);
+    throw createWorkspaceResetProgressFailedError();
+  }
+}
+
+export async function resetWorkspaceProgressForUser(
+  userId: string,
+  workspaceId: string,
+  confirmationText: string,
+): Promise<ResetWorkspaceProgressResult> {
+  return transactionWithUserScope({ userId }, async (executor) => resetWorkspaceProgressInExecutor(
+    executor,
+    userId,
+    workspaceId,
+    confirmationText,
   ));
 }
 

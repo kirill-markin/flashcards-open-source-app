@@ -11,14 +11,22 @@ import {
   getSession,
   isAuthRedirectError,
   listWorkspaces,
+  loadWorkspaceResetProgressPreview as loadWorkspaceResetProgressPreviewRequest,
   renameWorkspace as renameWorkspaceRequest,
   revalidateSession as revalidateSessionRequest,
   selectWorkspace,
+  resetWorkspaceProgress as resetWorkspaceProgressRequest,
 } from "../api";
 import { clearAllLocalBrowserData, consumeAccountDeletedMarker } from "../accountDeletion";
 import { getStableInstallationId } from "../clientIdentity";
 import { loadCloudSettings, putCloudSettings } from "../localDb/cloudSettings";
-import type { CloudSettings, SessionInfo, WorkspaceSummary } from "../types";
+import type {
+  CloudSettings,
+  ResetWorkspaceProgressResponse,
+  SessionInfo,
+  WorkspaceResetProgressPreview,
+  WorkspaceSummary,
+} from "../types";
 import {
   findWorkspaceById,
   getErrorMessage,
@@ -59,6 +67,8 @@ type WorkspaceSession = Readonly<{
   createWorkspace: (name: string) => Promise<void>;
   renameWorkspace: (workspaceId: string, name: string) => Promise<void>;
   deleteWorkspace: (workspaceId: string, confirmationText: string) => Promise<void>;
+  loadWorkspaceResetProgressPreview: (workspaceId: string) => Promise<WorkspaceResetProgressPreview>;
+  resetWorkspaceProgress: (workspaceId: string, confirmationText: string) => Promise<ResetWorkspaceProgressResponse>;
 }>;
 
 type WorkspaceTransitionLogDetails = Readonly<{
@@ -640,6 +650,70 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     }
   }, [activateWorkspace, availableWorkspaces, session, sessionVerificationState, setErrorMessage, setIsChoosingWorkspace]);
 
+  const loadWorkspaceResetProgressPreview = useCallback(async function loadWorkspaceResetProgressPreview(
+    workspaceId: string,
+  ): Promise<WorkspaceResetProgressPreview> {
+    if (session === null) {
+      throw new Error("Session is unavailable");
+    }
+
+    if (sessionVerificationState !== "verified") {
+      throw createRemoteActionLockedError();
+    }
+
+    if (cloudSettings?.cloudState !== "linked") {
+      throw new Error("Workspace progress reset is available only for linked cloud workspaces.");
+    }
+
+    try {
+      const preview = await loadWorkspaceResetProgressPreviewRequest(workspaceId);
+      setErrorMessage("");
+      return preview;
+    } catch (error) {
+      if (isAuthRedirectError(error)) {
+        return Promise.reject(error);
+      }
+
+      const nextErrorMessage = getErrorMessage(error);
+      setErrorMessage(nextErrorMessage);
+      throw error;
+    }
+  }, [cloudSettings?.cloudState, session, sessionVerificationState, setErrorMessage]);
+
+  const resetWorkspaceProgress = useCallback(async function resetWorkspaceProgress(
+    workspaceId: string,
+    confirmationText: string,
+  ): Promise<ResetWorkspaceProgressResponse> {
+    if (session === null) {
+      throw new Error("Session is unavailable");
+    }
+
+    if (sessionVerificationState !== "verified") {
+      throw createRemoteActionLockedError();
+    }
+
+    if (cloudSettings?.cloudState !== "linked") {
+      throw new Error("Workspace progress reset is available only for linked cloud workspaces.");
+    }
+
+    try {
+      const response = await resetWorkspaceProgressRequest(workspaceId, confirmationText);
+      if (activeWorkspace?.workspaceId === workspaceId) {
+        void runSync();
+      }
+      setErrorMessage("");
+      return response;
+    } catch (error) {
+      if (isAuthRedirectError(error)) {
+        return Promise.reject(error);
+      }
+
+      const nextErrorMessage = getErrorMessage(error);
+      setErrorMessage(nextErrorMessage);
+      throw error;
+    }
+  }, [activeWorkspace?.workspaceId, cloudSettings?.cloudState, runSync, session, sessionVerificationState, setErrorMessage]);
+
   const initializeRef = useRef(initialize);
 
   useEffect(() => {
@@ -763,5 +837,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     createWorkspace,
     renameWorkspace,
     deleteWorkspace,
+    loadWorkspaceResetProgressPreview,
+    resetWorkspaceProgress,
   };
 }

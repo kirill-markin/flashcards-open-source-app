@@ -9,6 +9,7 @@ import {
   parseQueryCardsPageResponse,
   parseNewChatSessionResponse,
   parseSessionInfoResponse,
+  parseResetWorkspaceProgressResponse,
   parseStartChatRunResponse,
   parseStopChatRunResponse,
   parseSyncBootstrapPullResultResponse,
@@ -17,6 +18,7 @@ import {
   parseSyncPushResultResponse,
   parseSyncReviewHistoryImportResultResponse,
   parseSyncReviewHistoryPullResultResponse,
+  parseWorkspaceResetProgressPreviewResponse,
   parseWorkspaceDeletePreviewResponse,
   parseWorkspaceEnvelopeResponse,
   parseWorkspacesEnvelopeResponse,
@@ -47,6 +49,8 @@ import type {
   SyncPushResult,
   SyncReviewHistoryImportResult,
   SyncReviewHistoryPullResult,
+  ResetWorkspaceProgressResponse,
+  WorkspaceResetProgressPreview,
   WorkspaceDeletePreview,
   WorkspaceSummary,
 } from "./types";
@@ -454,6 +458,30 @@ export async function deleteWorkspace(workspaceId: string, confirmationText: str
     method: "POST",
     body: JSON.stringify({ confirmationText }),
   }, allowAuthRecovery), `POST /workspaces/${workspaceId}/delete`);
+}
+
+export async function loadWorkspaceResetProgressPreview(
+  workspaceId: string,
+): Promise<WorkspaceResetProgressPreview> {
+  return parseWorkspaceResetProgressPreviewResponse(
+    await requestJson(`/workspaces/${workspaceId}/reset-progress-preview`, {
+      method: "GET",
+    }, allowAuthRecovery),
+    `GET /workspaces/${workspaceId}/reset-progress-preview`,
+  );
+}
+
+export async function resetWorkspaceProgress(
+  workspaceId: string,
+  confirmationText: string,
+): Promise<ResetWorkspaceProgressResponse> {
+  return parseResetWorkspaceProgressResponse(
+    await requestJson(`/workspaces/${workspaceId}/reset-progress`, {
+      method: "POST",
+      body: JSON.stringify({ confirmationText }),
+    }, allowAuthRecovery),
+    `POST /workspaces/${workspaceId}/reset-progress`,
+  );
 }
 
 export async function listAgentApiKeys(): Promise<AgentApiKeyConnectionsResponse> {

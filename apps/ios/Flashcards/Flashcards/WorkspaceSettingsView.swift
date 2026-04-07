@@ -4,6 +4,8 @@ struct WorkspaceSettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @State private var overviewSnapshot: WorkspaceOverviewSnapshot? = nil
     @State private var errorMessage: String = ""
+    @State private var isResetProgressAlertPresented: Bool = false
+    @State private var isResetProgressConfirmationPresented: Bool = false
 
     var body: some View {
         List {
@@ -67,10 +69,33 @@ struct WorkspaceSettingsView: View {
                     )
                 }
             }
+
+            Section("Danger Zone") {
+                Text("Permanently reset study progress for every card in this workspace.")
+                    .foregroundStyle(.secondary)
+
+                Button("Reset all progress", role: .destructive) {
+                    self.isResetProgressAlertPresented = true
+                }
+                .disabled(store.cloudSettings?.cloudState != .linked || store.workspace == nil)
+                .accessibilityIdentifier(UITestIdentifier.workspaceSettingsResetProgressButton)
+            }
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.workspaceSettingsScreen)
         .navigationTitle("Workspace Settings")
+        .alert("Reset all progress?", isPresented: self.$isResetProgressAlertPresented) {
+            Button("Cancel", role: .cancel) {}
+            Button("Continue", role: .destructive) {
+                self.isResetProgressConfirmationPresented = true
+            }
+        } message: {
+            Text("This permanently resets study progress for all cards in the current workspace.")
+        }
+        .fullScreenCover(isPresented: self.$isResetProgressConfirmationPresented) {
+            ResetWorkspaceProgressConfirmationView(isPresented: self.$isResetProgressConfirmationPresented)
+                .environment(store)
+        }
         .task(id: store.localReadVersion) {
             await self.reloadWorkspaceOverview()
         }
