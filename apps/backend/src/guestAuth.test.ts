@@ -3,7 +3,10 @@ import { createHash } from "node:crypto";
 import test from "node:test";
 import type pg from "pg";
 import type { DatabaseExecutor } from "./db";
-import { completeGuestUpgradeInExecutor } from "./guestAuth";
+import {
+  completeGuestUpgradeInExecutor,
+  prepareGuestUpgradeInExecutor,
+} from "./guestAuth";
 import { HttpError } from "./errors";
 
 type GuestSessionState = Readonly<{
@@ -16,6 +19,7 @@ type GuestSessionState = Readonly<{
 type UserSettingsState = Readonly<{
   user_id: string;
   workspace_id: string | null;
+  email: string | null;
 }>;
 
 type WorkspaceState = Readonly<{
@@ -54,6 +58,54 @@ type InstallationState = Readonly<{
   app_version: string | null;
 }>;
 
+type CardState = Readonly<{
+  card_id: string;
+  workspace_id: string;
+  front_text: string;
+  back_text: string;
+  tags: ReadonlyArray<string>;
+  effort_level: string;
+  due_at: string | null;
+  created_at: string;
+  reps: number;
+  lapses: number;
+  fsrs_card_state: string;
+  fsrs_step_index: number | null;
+  fsrs_stability: number | null;
+  fsrs_difficulty: number | null;
+  fsrs_last_reviewed_at: string | null;
+  fsrs_scheduled_days: number | null;
+  client_updated_at: string;
+  last_modified_by_replica_id: string;
+  last_operation_id: string;
+  updated_at: string;
+  deleted_at: string | null;
+}>;
+
+type DeckState = Readonly<{
+  deck_id: string;
+  workspace_id: string;
+  name: string;
+  filter_definition: Readonly<Record<string, unknown>>;
+  created_at: string;
+  client_updated_at: string;
+  last_modified_by_replica_id: string;
+  last_operation_id: string;
+  updated_at: string;
+  deleted_at: string | null;
+}>;
+
+type ReviewEventState = Readonly<{
+  review_event_id: string;
+  workspace_id: string;
+  card_id: string;
+  replica_id: string;
+  client_event_id: string;
+  rating: number;
+  reviewed_at_client: string;
+  reviewed_at_server: string;
+}>;
+
 type GuestUpgradeHistoryState = Readonly<{
   upgrade_id: string;
   source_guest_user_id: string;
@@ -74,6 +126,7 @@ type GuestReplicaAliasState = Readonly<{
 type MutableState = {
   currentUserId: string | null;
   currentWorkspaceId: string | null;
+  nextHotChangeId: number;
   guestSession: GuestSessionState;
   identityMappings: Map<string, string>;
   userSettings: Map<string, UserSettingsState>;
@@ -81,6 +134,9 @@ type MutableState = {
   workspaceMemberships: Set<string>;
   workspaceReplicas: Array<WorkspaceReplicaState>;
   installations: Map<string, InstallationState>;
+  cards: Array<CardState>;
+  decks: Array<DeckState>;
+  reviewEvents: Array<ReviewEventState>;
   guestUpgradeHistory: Array<GuestUpgradeHistoryState>;
   guestReplicaAliases: Array<GuestReplicaAliasState>;
 };
@@ -101,6 +157,118 @@ function membershipKey(userId: string, workspaceId: string): string {
 
 function hashGuestToken(guestToken: string): string {
   return createHash("sha256").update(guestToken, "utf8").digest("hex");
+}
+
+function createUserSettingsState(userId: string, workspaceId: string | null, email: string | null): UserSettingsState {
+  return {
+    user_id: userId,
+    workspace_id: workspaceId,
+    email,
+  };
+}
+
+function createWorkspaceState(
+  workspaceId: string,
+  name: string,
+  createdAt: string,
+  clientUpdatedAt: string,
+  lastModifiedByReplicaId: string,
+  lastOperationId: string,
+): WorkspaceState {
+  return {
+    workspace_id: workspaceId,
+    name,
+    created_at: createdAt,
+    fsrs_algorithm: "fsrs-6",
+    fsrs_desired_retention: 0.9,
+    fsrs_learning_steps_minutes: [1, 10],
+    fsrs_relearning_steps_minutes: [10],
+    fsrs_maximum_interval_days: 36500,
+    fsrs_enable_fuzz: true,
+    fsrs_client_updated_at: clientUpdatedAt,
+    fsrs_last_modified_by_replica_id: lastModifiedByReplicaId,
+    fsrs_last_operation_id: lastOperationId,
+    fsrs_updated_at: clientUpdatedAt,
+  };
+}
+
+function createMergeState(params: Readonly<{
+  guestToken: string;
+  guestSessionId: string;
+  guestUserId: string;
+  guestWorkspaceId: string;
+  targetSubject: string;
+  targetUserId: string;
+  targetWorkspaceId: string;
+  guestReplicaId: string;
+  installationId: string;
+  guestSchedulerUpdatedAt: string;
+  targetSchedulerUpdatedAt: string;
+}>): MutableState {
+  return {
+    currentUserId: null,
+    currentWorkspaceId: null,
+    nextHotChangeId: 1,
+    guestSession: {
+      session_id: params.guestSessionId,
+      session_secret_hash: hashGuestToken(params.guestToken),
+      user_id: params.guestUserId,
+      revoked_at: null,
+    },
+    identityMappings: new Map<string, string>([[params.targetSubject, params.targetUserId]]),
+    userSettings: new Map<string, UserSettingsState>([
+      [params.guestUserId, createUserSettingsState(params.guestUserId, params.guestWorkspaceId, null)],
+      [params.targetUserId, createUserSettingsState(params.targetUserId, params.targetWorkspaceId, null)],
+    ]),
+    workspaces: new Map<string, WorkspaceState>([
+      [params.guestWorkspaceId, createWorkspaceState(
+        params.guestWorkspaceId,
+        "Guest workspace",
+        "2026-04-02T14:00:00.000Z",
+        params.guestSchedulerUpdatedAt,
+        params.guestReplicaId,
+        "guest-op",
+      )],
+      [params.targetWorkspaceId, createWorkspaceState(
+        params.targetWorkspaceId,
+        "Target workspace",
+        "2026-04-02T13:00:00.000Z",
+        params.targetSchedulerUpdatedAt,
+        "target-replica-existing",
+        "target-op",
+      )],
+    ]),
+    workspaceMemberships: new Set<string>([
+      membershipKey(params.guestUserId, params.guestWorkspaceId),
+      membershipKey(params.targetUserId, params.targetWorkspaceId),
+    ]),
+    workspaceReplicas: [{
+      replica_id: params.guestReplicaId,
+      workspace_id: params.guestWorkspaceId,
+      user_id: params.guestUserId,
+      actor_kind: "client_installation",
+      installation_id: params.installationId,
+      actor_key: null,
+      platform: "ios",
+      app_version: "1.2.3",
+      created_at: "2026-04-02T14:00:01.000Z",
+      last_seen_at: "2026-04-02T14:01:09.591Z",
+    }],
+    installations: new Map<string, InstallationState>([[
+      params.installationId,
+      {
+        installation_id: params.installationId,
+        user_id: params.guestUserId,
+        platform: "ios",
+        app_version: "1.2.3",
+      },
+    ]]),
+    cards: [],
+    decks: [],
+    reviewEvents: [],
+    guestUpgradeHistory: [],
+    guestReplicaAliases: [],
+  };
 }
 
 function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
@@ -151,11 +319,53 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
         return createQueryResult<Row>(rows);
       }
 
-      if (text.includes("SELECT workspace_id FROM org.user_settings")) {
+      if (text.includes("INSERT INTO auth.user_identities")) {
+        const providerSubject = String(params[0]);
+        const userId = String(params[1]);
+        if (!state.identityMappings.has(providerSubject)) {
+          state.identityMappings.set(providerSubject, userId);
+        }
+        return createQueryResult<Row>([]);
+      }
+
+      if (text === "INSERT INTO org.user_settings (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING") {
+        const userId = String(params[0]);
+        if (!state.userSettings.has(userId)) {
+          state.userSettings.set(userId, createUserSettingsState(userId, null, null));
+        }
+        return createQueryResult<Row>([]);
+      }
+
+      if (text === "SELECT workspace_id FROM org.user_settings WHERE user_id = $1 FOR UPDATE") {
         const userId = params[0];
         const row = typeof userId === "string" ? state.userSettings.get(userId) ?? null : null;
         const rows = row === null ? [] : [{ workspace_id: row.workspace_id } as unknown as Row];
         return createQueryResult<Row>(rows);
+      }
+
+      if (text === "UPDATE org.user_settings SET email = $1 WHERE user_id = $2") {
+        const email = params[0] === null ? null : String(params[0]);
+        const userId = String(params[1]);
+        const current = state.userSettings.get(userId);
+        if (current === undefined) {
+          throw new Error(`Missing user_settings row for ${userId}`);
+        }
+        state.userSettings.set(userId, {
+          ...current,
+          email,
+        });
+        return createQueryResult<Row>([]);
+      }
+
+      if (text === "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2") {
+        const workspaceId = String(params[0]);
+        const userId = String(params[1]);
+        const current = state.userSettings.get(userId) ?? createUserSettingsState(userId, null, null);
+        state.userSettings.set(userId, {
+          ...current,
+          workspace_id: workspaceId,
+        });
+        return createQueryResult<Row>([]);
       }
 
       if (text.includes("FROM org.workspaces AS workspaces")) {
@@ -189,12 +399,76 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
         return createQueryResult<Row>(rows);
       }
 
-      if (
-        text.includes("FROM content.cards")
-        || text.includes("FROM content.decks")
-        || text.includes("FROM content.review_events")
-      ) {
-        return createQueryResult<Row>([]);
+      if (text.includes("FROM content.cards")) {
+        const workspaceId = params[0];
+        const rows = typeof workspaceId !== "string"
+          ? []
+          : state.cards
+            .filter((card) => card.workspace_id === workspaceId)
+            .sort((left, right) => left.created_at.localeCompare(right.created_at) || left.card_id.localeCompare(right.card_id))
+            .map((card) => ({
+              card_id: card.card_id,
+              front_text: card.front_text,
+              back_text: card.back_text,
+              tags: card.tags,
+              effort_level: card.effort_level,
+              due_at: card.due_at,
+              created_at: card.created_at,
+              reps: card.reps,
+              lapses: card.lapses,
+              fsrs_card_state: card.fsrs_card_state,
+              fsrs_step_index: card.fsrs_step_index,
+              fsrs_stability: card.fsrs_stability,
+              fsrs_difficulty: card.fsrs_difficulty,
+              fsrs_last_reviewed_at: card.fsrs_last_reviewed_at,
+              fsrs_scheduled_days: card.fsrs_scheduled_days,
+              client_updated_at: card.client_updated_at,
+              last_modified_by_replica_id: card.last_modified_by_replica_id,
+              last_operation_id: card.last_operation_id,
+              updated_at: card.updated_at,
+              deleted_at: card.deleted_at,
+            } as unknown as Row));
+        return createQueryResult<Row>(rows);
+      }
+
+      if (text.includes("FROM content.decks")) {
+        const workspaceId = params[0];
+        const rows = typeof workspaceId !== "string"
+          ? []
+          : state.decks
+            .filter((deck) => deck.workspace_id === workspaceId)
+            .sort((left, right) => left.created_at.localeCompare(right.created_at) || left.deck_id.localeCompare(right.deck_id))
+            .map((deck) => ({
+              deck_id: deck.deck_id,
+              name: deck.name,
+              filter_definition: deck.filter_definition,
+              created_at: deck.created_at,
+              client_updated_at: deck.client_updated_at,
+              last_modified_by_replica_id: deck.last_modified_by_replica_id,
+              last_operation_id: deck.last_operation_id,
+              updated_at: deck.updated_at,
+              deleted_at: deck.deleted_at,
+            } as unknown as Row));
+        return createQueryResult<Row>(rows);
+      }
+
+      if (text.includes("FROM content.review_events")) {
+        const workspaceId = params[0];
+        const rows = typeof workspaceId !== "string"
+          ? []
+          : state.reviewEvents
+            .filter((reviewEvent) => reviewEvent.workspace_id === workspaceId)
+            .sort((left, right) => left.reviewed_at_server.localeCompare(right.reviewed_at_server) || left.review_event_id.localeCompare(right.review_event_id))
+            .map((reviewEvent) => ({
+              review_event_id: reviewEvent.review_event_id,
+              card_id: reviewEvent.card_id,
+              replica_id: reviewEvent.replica_id,
+              client_event_id: reviewEvent.client_event_id,
+              rating: reviewEvent.rating,
+              reviewed_at_client: reviewEvent.reviewed_at_client,
+              reviewed_at_server: reviewEvent.reviewed_at_server,
+            } as unknown as Row));
+        return createQueryResult<Row>(rows);
       }
 
       if (text.includes("FROM org.workspaces") && text.includes("fsrs_algorithm")) {
@@ -219,6 +493,12 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
         text === "DELETE FROM content.decks WHERE workspace_id = $1"
         || text === "DELETE FROM content.cards WHERE workspace_id = $1"
       ) {
+        const workspaceId = String(params[0]);
+        if (text.includes("content.decks")) {
+          state.decks = state.decks.filter((deck) => deck.workspace_id !== workspaceId);
+        } else {
+          state.cards = state.cards.filter((card) => card.workspace_id !== workspaceId);
+        }
         return createQueryResult<Row>([]);
       }
 
@@ -294,7 +574,41 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
       }
 
       if (text.includes("UPDATE sync.workspace_replicas")) {
-        return createQueryResult<Row>([]);
+        const replicaId = String(params[0]);
+        const workspaceId = String(params[1]);
+        const userId = String(params[2]);
+        const actorKind = String(params[3]);
+        const installationId = params[4] === null ? null : String(params[4]);
+        const actorKey = params[5] === null ? null : String(params[5]);
+        const platform = String(params[6]);
+        const appVersion = params[7] === null ? null : String(params[7]);
+        const index = state.workspaceReplicas.findIndex((replica) => (
+          replica.replica_id === replicaId
+          && replica.workspace_id === workspaceId
+          && replica.actor_kind === actorKind
+          && replica.installation_id === installationId
+          && replica.actor_key === actorKey
+          && replica.platform === platform
+        ));
+        if (index === -1) {
+          return createQueryResult<Row>([]);
+        }
+
+        const current = state.workspaceReplicas[index];
+        if (current === undefined) {
+          return createQueryResult<Row>([]);
+        }
+
+        state.workspaceReplicas[index] = {
+          ...current,
+          user_id: userId,
+          app_version: appVersion,
+          last_seen_at: "2026-04-02T14:01:16.000Z",
+        };
+        return createQueryResult<Row>([{
+          replica_id: replicaId,
+          platform,
+        } as unknown as Row]);
       }
 
       if (text.includes("INSERT INTO auth.guest_upgrade_history")) {
@@ -320,16 +634,6 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
         return createQueryResult<Row>([]);
       }
 
-      if (text === "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2") {
-        const workspaceId = String(params[0]);
-        const userId = String(params[1]);
-        state.userSettings.set(userId, {
-          user_id: userId,
-          workspace_id: workspaceId,
-        });
-        return createQueryResult<Row>([]);
-      }
-
       if (text === "UPDATE auth.guest_sessions SET revoked_at = now() WHERE session_id = $1") {
         state.guestSession = {
           ...state.guestSession,
@@ -345,6 +649,9 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
         state.workspaceMemberships = new Set(
           [...state.workspaceMemberships].filter((value) => !value.endsWith(`:${workspaceId}`)),
         );
+        state.cards = state.cards.filter((card) => card.workspace_id !== workspaceId);
+        state.decks = state.decks.filter((deck) => deck.workspace_id !== workspaceId);
+        state.reviewEvents = state.reviewEvents.filter((reviewEvent) => reviewEvent.workspace_id !== workspaceId);
         return createQueryResult<Row>([]);
       }
 
@@ -353,10 +660,201 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
         return createQueryResult<Row>([]);
       }
 
+      if (
+        text
+          === "INSERT INTO org.workspaces ( workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id ) VALUES ($1, $2, $3, $4, $5)"
+      ) {
+        const workspaceId = String(params[0]);
+        const name = String(params[1]);
+        const bootstrapTimestamp = String(params[2]);
+        const bootstrapReplicaId = String(params[3]);
+        const bootstrapOperationId = String(params[4]);
+        state.workspaces.set(workspaceId, {
+          workspace_id: workspaceId,
+          name,
+          created_at: bootstrapTimestamp,
+          fsrs_algorithm: "fsrs-6",
+          fsrs_desired_retention: 0.9,
+          fsrs_learning_steps_minutes: [1, 10],
+          fsrs_relearning_steps_minutes: [10],
+          fsrs_maximum_interval_days: 36500,
+          fsrs_enable_fuzz: true,
+          fsrs_client_updated_at: bootstrapTimestamp,
+          fsrs_last_modified_by_replica_id: bootstrapReplicaId,
+          fsrs_last_operation_id: bootstrapOperationId,
+          fsrs_updated_at: bootstrapTimestamp,
+        });
+        return createQueryResult<Row>([]);
+      }
+
+      if (text === "INSERT INTO org.workspace_memberships (workspace_id, user_id, role) VALUES ($1, $2, 'owner')") {
+        const workspaceId = String(params[0]);
+        const userId = String(params[1]);
+        state.workspaceMemberships.add(membershipKey(userId, workspaceId));
+        return createQueryResult<Row>([]);
+      }
+
+      if (
+        text
+          === "INSERT INTO sync.workspace_sync_metadata (workspace_id, min_available_hot_change_id, updated_at) VALUES ($1, 0, now()) ON CONFLICT (workspace_id) DO NOTHING"
+      ) {
+        return createQueryResult<Row>([]);
+      }
+
+      if (
+        text
+          === "INSERT INTO sync.hot_changes ( workspace_id, entity_type, entity_id, action, replica_id, operation_id, client_updated_at ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING change_id"
+      ) {
+        const changeId = state.nextHotChangeId;
+        state.nextHotChangeId += 1;
+        return createQueryResult<Row>([{ change_id: changeId } as unknown as Row]);
+      }
+
+      if (text.startsWith("INSERT INTO content.cards")) {
+        state.cards.push({
+          card_id: String(params[0]),
+          workspace_id: String(params[1]),
+          front_text: String(params[2]),
+          back_text: String(params[3]),
+          tags: Array.isArray(params[4]) ? params[4].map(String) : [],
+          effort_level: String(params[5]),
+          due_at: params[6] === null ? null : String(params[6]),
+          reps: Number(params[7]),
+          lapses: Number(params[8]),
+          updated_at: String(params[9]),
+          deleted_at: params[10] === null ? null : String(params[10]),
+          fsrs_card_state: String(params[11]),
+          fsrs_step_index: params[12] === null ? null : Number(params[12]),
+          fsrs_stability: params[13] === null ? null : Number(params[13]),
+          fsrs_difficulty: params[14] === null ? null : Number(params[14]),
+          fsrs_last_reviewed_at: params[15] === null ? null : String(params[15]),
+          fsrs_scheduled_days: params[16] === null ? null : Number(params[16]),
+          client_updated_at: String(params[17]),
+          last_modified_by_replica_id: String(params[18]),
+          last_operation_id: String(params[19]),
+          created_at: String(params[20]),
+        });
+        return createQueryResult<Row>([]);
+      }
+
+      if (text.startsWith("INSERT INTO content.decks")) {
+        state.decks.push({
+          deck_id: String(params[0]),
+          workspace_id: String(params[1]),
+          name: String(params[2]),
+          filter_definition: JSON.parse(String(params[3])) as Readonly<Record<string, unknown>>,
+          created_at: String(params[4]),
+          updated_at: String(params[5]),
+          deleted_at: params[6] === null ? null : String(params[6]),
+          client_updated_at: String(params[7]),
+          last_modified_by_replica_id: String(params[8]),
+          last_operation_id: String(params[9]),
+        });
+        return createQueryResult<Row>([]);
+      }
+
+      if (text.startsWith("INSERT INTO content.review_events")) {
+        state.reviewEvents.push({
+          review_event_id: String(params[0]),
+          workspace_id: String(params[1]),
+          card_id: String(params[2]),
+          replica_id: String(params[3]),
+          client_event_id: String(params[4]),
+          rating: Number(params[5]),
+          reviewed_at_client: String(params[6]),
+          reviewed_at_server: String(params[7]),
+        });
+        return createQueryResult<Row>([]);
+      }
+
+      if (text.startsWith("UPDATE org.workspaces SET")) {
+        const workspaceId = String(params[10]);
+        const current = state.workspaces.get(workspaceId);
+        if (current === undefined) {
+          throw new Error(`Missing workspace ${workspaceId}`);
+        }
+
+        state.workspaces.set(workspaceId, {
+          ...current,
+          fsrs_algorithm: String(params[0]),
+          fsrs_desired_retention: Number(params[1]),
+          fsrs_learning_steps_minutes: JSON.parse(String(params[2])) as ReadonlyArray<number>,
+          fsrs_relearning_steps_minutes: JSON.parse(String(params[3])) as ReadonlyArray<number>,
+          fsrs_maximum_interval_days: Number(params[4]),
+          fsrs_enable_fuzz: Boolean(params[5]),
+          fsrs_client_updated_at: String(params[6]),
+          fsrs_last_modified_by_replica_id: String(params[7]),
+          fsrs_last_operation_id: String(params[8]),
+          fsrs_updated_at: String(params[9]),
+        });
+        return createQueryResult<Row>([]);
+      }
+
       throw new Error(`Unexpected query: ${text}`);
     },
   };
 }
+
+test("prepareGuestUpgradeInExecutor binds a new cognito subject to the guest user and updates email", async () => {
+  const guestToken = "guest-token-prepare-bound";
+  const guestUserId = "guest-user";
+  const guestWorkspaceId = "guest-workspace";
+  const cognitoSubject = "cognito-subject-bound";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-prepare-bound",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject: "different-target-subject",
+    targetUserId: "linked-user",
+    targetWorkspaceId: "target-workspace",
+    guestReplicaId: "guest-replica",
+    installationId: "installation-prepare-bound",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  state.identityMappings.clear();
+
+  const executor = createGuestUpgradeExecutor(state);
+  const result = await prepareGuestUpgradeInExecutor(
+    executor,
+    guestToken,
+    cognitoSubject,
+    "guest@example.com",
+  );
+
+  assert.equal(result.mode, "bound");
+  assert.equal(state.identityMappings.get(cognitoSubject), guestUserId);
+  assert.equal(state.userSettings.get(guestUserId)?.email, "guest@example.com");
+});
+
+test("prepareGuestUpgradeInExecutor returns merge_required for a different linked user", async () => {
+  const guestToken = "guest-token-prepare-merge";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-prepare-merge",
+    guestUserId: "guest-user",
+    guestWorkspaceId: "guest-workspace",
+    targetSubject: "cognito-subject-prepare-merge",
+    targetUserId: "linked-user",
+    targetWorkspaceId: "target-workspace",
+    guestReplicaId: "guest-replica",
+    installationId: "installation-prepare-merge",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+
+  const executor = createGuestUpgradeExecutor(state);
+  const result = await prepareGuestUpgradeInExecutor(
+    executor,
+    guestToken,
+    "cognito-subject-prepare-merge",
+    "linked@example.com",
+  );
+
+  assert.equal(result.mode, "merge_required");
+  assert.equal(state.userSettings.get("guest-user")?.email, null);
+});
 
 test("completeGuestUpgradeInExecutor reassigns guest installation ownership during merge", async () => {
   const guestToken = "guest-token-1";
@@ -368,80 +866,19 @@ test("completeGuestUpgradeInExecutor reassigns guest installation ownership duri
   const installationId = "installation-1";
   const targetSubject = "cognito-subject-1";
 
-  const state: MutableState = {
-    currentUserId: null,
-    currentWorkspaceId: null,
-    guestSession: {
-      session_id: "guest-session-1",
-      session_secret_hash: hashGuestToken(guestToken),
-      user_id: guestUserId,
-      revoked_at: null,
-    },
-    identityMappings: new Map<string, string>([[targetSubject, targetUserId]]),
-    userSettings: new Map<string, UserSettingsState>([
-      [guestUserId, { user_id: guestUserId, workspace_id: guestWorkspaceId }],
-      [targetUserId, { user_id: targetUserId, workspace_id: targetWorkspaceId }],
-    ]),
-    workspaces: new Map<string, WorkspaceState>([
-      [guestWorkspaceId, {
-        workspace_id: guestWorkspaceId,
-        name: "Guest workspace",
-        created_at: "2026-04-02T14:00:00.000Z",
-        fsrs_algorithm: "fsrs-6",
-        fsrs_desired_retention: 0.9,
-        fsrs_learning_steps_minutes: [1, 10],
-        fsrs_relearning_steps_minutes: [10],
-        fsrs_maximum_interval_days: 36500,
-        fsrs_enable_fuzz: true,
-        fsrs_client_updated_at: "2026-04-02T14:00:00.000Z",
-        fsrs_last_modified_by_replica_id: guestReplicaId,
-        fsrs_last_operation_id: "guest-op",
-        fsrs_updated_at: "2026-04-02T14:00:00.000Z",
-      }],
-      [targetWorkspaceId, {
-        workspace_id: targetWorkspaceId,
-        name: "Target workspace",
-        created_at: "2026-04-02T13:00:00.000Z",
-        fsrs_algorithm: "fsrs-6",
-        fsrs_desired_retention: 0.9,
-        fsrs_learning_steps_minutes: [1, 10],
-        fsrs_relearning_steps_minutes: [10],
-        fsrs_maximum_interval_days: 36500,
-        fsrs_enable_fuzz: true,
-        fsrs_client_updated_at: "2026-04-02T14:05:00.000Z",
-        fsrs_last_modified_by_replica_id: "target-replica-existing",
-        fsrs_last_operation_id: "target-op",
-        fsrs_updated_at: "2026-04-02T14:05:00.000Z",
-      }],
-    ]),
-    workspaceMemberships: new Set<string>([
-      membershipKey(guestUserId, guestWorkspaceId),
-      membershipKey(targetUserId, targetWorkspaceId),
-    ]),
-    workspaceReplicas: [{
-      replica_id: guestReplicaId,
-      workspace_id: guestWorkspaceId,
-      user_id: guestUserId,
-      actor_kind: "client_installation",
-      installation_id: installationId,
-      actor_key: null,
-      platform: "ios",
-      app_version: "1.2.3",
-      created_at: "2026-04-02T14:00:01.000Z",
-      last_seen_at: "2026-04-02T14:01:09.591Z",
-    }],
-    installations: new Map<string, InstallationState>([[
-      installationId,
-      {
-        installation_id: installationId,
-        user_id: guestUserId,
-        platform: "ios",
-        app_version: "1.2.3",
-      },
-    ]]),
-    guestUpgradeHistory: [],
-    guestReplicaAliases: [],
-  };
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-1",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId,
+    installationId,
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
 
   const executor = createGuestUpgradeExecutor(state);
   const result = await completeGuestUpgradeInExecutor(
@@ -474,6 +911,114 @@ test("completeGuestUpgradeInExecutor reassigns guest installation ownership duri
   assert.equal(targetReplica?.user_id, targetUserId);
 });
 
+test("completeGuestUpgradeInExecutor with create_new creates and selects a new target workspace", async () => {
+  const guestToken = "guest-token-create-new";
+  const guestUserId = "guest-user";
+  const guestWorkspaceId = "guest-workspace";
+  const targetUserId = "linked-user";
+  const targetWorkspaceId = "target-workspace";
+  const guestReplicaId = "guest-replica";
+  const installationId = "installation-create-new";
+  const targetSubject = "cognito-subject-create-new";
+
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-create-new",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId,
+    installationId,
+    guestSchedulerUpdatedAt: "2026-04-02T14:10:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+
+  const executor = createGuestUpgradeExecutor(state);
+  const result = await completeGuestUpgradeInExecutor(
+    executor,
+    guestToken,
+    targetSubject,
+    {
+      type: "create_new",
+    },
+  );
+
+  assert.equal(result.outcome, "fresh_completion");
+  assert.notEqual(result.targetWorkspaceId, targetWorkspaceId);
+  assert.equal(result.workspace.workspaceId, result.targetWorkspaceId);
+  assert.equal(state.userSettings.get(targetUserId)?.workspace_id, result.targetWorkspaceId);
+  assert.equal(state.workspaces.get(result.targetWorkspaceId)?.name, "Guest workspace");
+  assert.ok(state.workspaceMemberships.has(membershipKey(targetUserId, result.targetWorkspaceId)));
+});
+
+test("completeGuestUpgradeInExecutor applies guest scheduler settings when guest metadata wins", async () => {
+  const guestToken = "guest-token-scheduler-win";
+  const targetWorkspaceId = "target-workspace";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-scheduler-win",
+    guestUserId: "guest-user",
+    guestWorkspaceId: "guest-workspace",
+    targetSubject: "cognito-subject-scheduler-win",
+    targetUserId: "linked-user",
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica",
+    installationId: "installation-scheduler-win",
+    guestSchedulerUpdatedAt: "2026-04-02T14:10:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+
+  const executor = createGuestUpgradeExecutor(state);
+  await completeGuestUpgradeInExecutor(
+    executor,
+    guestToken,
+    "cognito-subject-scheduler-win",
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+  );
+
+  const targetWorkspace = state.workspaces.get(targetWorkspaceId);
+  assert.equal(targetWorkspace?.fsrs_client_updated_at, "2026-04-02T14:10:00.000Z");
+  assert.notEqual(targetWorkspace?.fsrs_last_modified_by_replica_id, "target-replica-existing");
+});
+
+test("completeGuestUpgradeInExecutor leaves target scheduler settings when target metadata wins", async () => {
+  const guestToken = "guest-token-scheduler-lose";
+  const targetWorkspaceId = "target-workspace";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-scheduler-lose",
+    guestUserId: "guest-user",
+    guestWorkspaceId: "guest-workspace",
+    targetSubject: "cognito-subject-scheduler-lose",
+    targetUserId: "linked-user",
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica",
+    installationId: "installation-scheduler-lose",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+
+  const executor = createGuestUpgradeExecutor(state);
+  await completeGuestUpgradeInExecutor(
+    executor,
+    guestToken,
+    "cognito-subject-scheduler-lose",
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+  );
+
+  const targetWorkspace = state.workspaces.get(targetWorkspaceId);
+  assert.equal(targetWorkspace?.fsrs_client_updated_at, "2026-04-02T14:05:00.000Z");
+  assert.equal(targetWorkspace?.fsrs_last_modified_by_replica_id, "target-replica-existing");
+});
+
 test("completeGuestUpgradeInExecutor replays a revoked guest upgrade for the same subject", async () => {
   const guestToken = "guest-token-2";
   const guestUserId = "guest-user";
@@ -484,80 +1029,19 @@ test("completeGuestUpgradeInExecutor replays a revoked guest upgrade for the sam
   const installationId = "installation-2";
   const targetSubject = "cognito-subject-2";
 
-  const state: MutableState = {
-    currentUserId: null,
-    currentWorkspaceId: null,
-    guestSession: {
-      session_id: "guest-session-2",
-      session_secret_hash: hashGuestToken(guestToken),
-      user_id: guestUserId,
-      revoked_at: null,
-    },
-    identityMappings: new Map<string, string>([[targetSubject, targetUserId]]),
-    userSettings: new Map<string, UserSettingsState>([
-      [guestUserId, { user_id: guestUserId, workspace_id: guestWorkspaceId }],
-      [targetUserId, { user_id: targetUserId, workspace_id: targetWorkspaceId }],
-    ]),
-    workspaces: new Map<string, WorkspaceState>([
-      [guestWorkspaceId, {
-        workspace_id: guestWorkspaceId,
-        name: "Guest workspace",
-        created_at: "2026-04-02T14:00:00.000Z",
-        fsrs_algorithm: "fsrs-6",
-        fsrs_desired_retention: 0.9,
-        fsrs_learning_steps_minutes: [1, 10],
-        fsrs_relearning_steps_minutes: [10],
-        fsrs_maximum_interval_days: 36500,
-        fsrs_enable_fuzz: true,
-        fsrs_client_updated_at: "2026-04-02T14:00:00.000Z",
-        fsrs_last_modified_by_replica_id: guestReplicaId,
-        fsrs_last_operation_id: "guest-op",
-        fsrs_updated_at: "2026-04-02T14:00:00.000Z",
-      }],
-      [targetWorkspaceId, {
-        workspace_id: targetWorkspaceId,
-        name: "Target workspace",
-        created_at: "2026-04-02T13:00:00.000Z",
-        fsrs_algorithm: "fsrs-6",
-        fsrs_desired_retention: 0.9,
-        fsrs_learning_steps_minutes: [1, 10],
-        fsrs_relearning_steps_minutes: [10],
-        fsrs_maximum_interval_days: 36500,
-        fsrs_enable_fuzz: true,
-        fsrs_client_updated_at: "2026-04-02T14:05:00.000Z",
-        fsrs_last_modified_by_replica_id: "target-replica-existing",
-        fsrs_last_operation_id: "target-op",
-        fsrs_updated_at: "2026-04-02T14:05:00.000Z",
-      }],
-    ]),
-    workspaceMemberships: new Set<string>([
-      membershipKey(guestUserId, guestWorkspaceId),
-      membershipKey(targetUserId, targetWorkspaceId),
-    ]),
-    workspaceReplicas: [{
-      replica_id: guestReplicaId,
-      workspace_id: guestWorkspaceId,
-      user_id: guestUserId,
-      actor_kind: "client_installation",
-      installation_id: installationId,
-      actor_key: null,
-      platform: "ios",
-      app_version: "1.2.3",
-      created_at: "2026-04-02T14:00:01.000Z",
-      last_seen_at: "2026-04-02T14:01:09.591Z",
-    }],
-    installations: new Map<string, InstallationState>([[
-      installationId,
-      {
-        installation_id: installationId,
-        user_id: guestUserId,
-        platform: "ios",
-        app_version: "1.2.3",
-      },
-    ]]),
-    guestUpgradeHistory: [],
-    guestReplicaAliases: [],
-  };
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-2",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId,
+    installationId,
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
 
   const executor = createGuestUpgradeExecutor(state);
   const firstResult = await completeGuestUpgradeInExecutor(
@@ -595,6 +1079,7 @@ test("completeGuestUpgradeInExecutor rejects a replay from a different subject",
   const state: MutableState = {
     currentUserId: null,
     currentWorkspaceId: null,
+    nextHotChangeId: 1,
     guestSession: {
       session_id: guestSessionId,
       session_secret_hash: hashGuestToken(guestToken),
@@ -603,30 +1088,26 @@ test("completeGuestUpgradeInExecutor rejects a replay from a different subject",
     },
     identityMappings: new Map<string, string>([["different-subject", "linked-user"]]),
     userSettings: new Map<string, UserSettingsState>([
-      ["linked-user", { user_id: "linked-user", workspace_id: targetWorkspaceId }],
+      ["linked-user", createUserSettingsState("linked-user", targetWorkspaceId, null)],
     ]),
     workspaces: new Map<string, WorkspaceState>([
-      [targetWorkspaceId, {
-        workspace_id: targetWorkspaceId,
-        name: "Target workspace",
-        created_at: "2026-04-02T13:00:00.000Z",
-        fsrs_algorithm: "fsrs-6",
-        fsrs_desired_retention: 0.9,
-        fsrs_learning_steps_minutes: [1, 10],
-        fsrs_relearning_steps_minutes: [10],
-        fsrs_maximum_interval_days: 36500,
-        fsrs_enable_fuzz: true,
-        fsrs_client_updated_at: "2026-04-02T14:05:00.000Z",
-        fsrs_last_modified_by_replica_id: "target-replica-existing",
-        fsrs_last_operation_id: "target-op",
-        fsrs_updated_at: "2026-04-02T14:05:00.000Z",
-      }],
+      [targetWorkspaceId, createWorkspaceState(
+        targetWorkspaceId,
+        "Target workspace",
+        "2026-04-02T13:00:00.000Z",
+        "2026-04-02T14:05:00.000Z",
+        "target-replica-existing",
+        "target-op",
+      )],
     ]),
     workspaceMemberships: new Set<string>([
       membershipKey("linked-user", targetWorkspaceId),
     ]),
     workspaceReplicas: [],
     installations: new Map<string, InstallationState>(),
+    cards: [],
+    decks: [],
+    reviewEvents: [],
     guestUpgradeHistory: [{
       upgrade_id: "upgrade-1",
       source_guest_user_id: guestUserId,
@@ -668,6 +1149,7 @@ test("completeGuestUpgradeInExecutor rejects a revoked guest session without rep
   const state: MutableState = {
     currentUserId: null,
     currentWorkspaceId: null,
+    nextHotChangeId: 1,
     guestSession: {
       session_id: guestSessionId,
       session_secret_hash: hashGuestToken(guestToken),
@@ -680,6 +1162,9 @@ test("completeGuestUpgradeInExecutor rejects a revoked guest session without rep
     workspaceMemberships: new Set<string>(),
     workspaceReplicas: [],
     installations: new Map<string, InstallationState>(),
+    cards: [],
+    decks: [],
+    reviewEvents: [],
     guestUpgradeHistory: [],
     guestReplicaAliases: [],
   };
