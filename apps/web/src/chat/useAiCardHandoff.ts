@@ -1,20 +1,19 @@
 import { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAppData } from "../appData";
 import type { Card } from "../types";
-import { chatRoute } from "../routes";
 import { makeCardPendingAttachment } from "./chatCardParts";
 import { useOptionalChatDraft } from "./ChatDraftContext";
+import { useOptionalChatLayout } from "./ChatLayoutContext";
 import { useOptionalChatSession } from "./ChatSessionControllerContext";
 
 export function useAiCardHandoff(): (card: Card) => Promise<boolean> {
-  const navigate = useNavigate();
   const { setErrorMessage } = useAppData();
   const draftContext = useOptionalChatDraft();
+  const chatLayout = useOptionalChatLayout();
   const session = useOptionalChatSession();
 
   return useCallback(async (card: Card): Promise<boolean> => {
-    if (draftContext === null || session === null) {
+    if (draftContext === null || chatLayout === null || session === null) {
       return false;
     }
 
@@ -50,12 +49,14 @@ export function useAiCardHandoff(): (card: Card) => Promise<boolean> {
         pendingAttachments: [makeCardPendingAttachment(card)],
       },
     );
+    if (chatLayout.isOpen === false) {
+      chatLayout.setIsOpen(true);
+    }
     draftContext.requestComposerFocus();
-    navigate(chatRoute);
     return true;
   }, [
+    chatLayout,
     draftContext,
-    navigate,
     setErrorMessage,
     session,
   ]);

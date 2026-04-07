@@ -74,3 +74,7 @@ export function useChatLayout(): ChatLayoutContextValue {
 
   return context;
 }
+
+export function useOptionalChatLayout(): ChatLayoutContextValue | null {
+  return useContext(ChatLayoutContext);
+}
