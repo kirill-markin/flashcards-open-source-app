@@ -1,6 +1,6 @@
 import XCTest
 
-extension LiveSmokeUITests {
+final class LiveSmokeCardsTests: LiveSmokeTestCase {
     @MainActor
     func testLiveSmokeManualCardCreationFlow() throws {
         let context = self.makeRunContext()

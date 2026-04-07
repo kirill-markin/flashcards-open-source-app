@@ -90,10 +90,9 @@ Download URLs in `ciArtifacts.attributes.downloadUrl` are temporary pre-signed A
 
 This repository already emits structured smoke breadcrumbs from the iOS UI test suite:
 
-- test entrypoint: [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift#L338)
-- manual card flow body: [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift#L705)
-- breadcrumb logger: [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift#L1949)
-- screen summary helper: [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift#L1763)
+- grouped smoke entrypoints: [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeAiTests.swift`](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/FlashcardsUITests/LiveSmokeAiTests.swift), [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeCardsTests.swift`](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/FlashcardsUITests/LiveSmokeCardsTests.swift), [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeReviewTests.swift`](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/FlashcardsUITests/LiveSmokeReviewTests.swift), and [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSettingsTests.swift`](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSettingsTests.swift)
+- shared smoke base: [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport/LiveSmokeTestCase.swift`](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport/LiveSmokeTestCase.swift)
+- breadcrumb logger and screen diagnostics: [`apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport/LiveSmokeDiagnostics.swift`](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/FlashcardsUITests/LiveSmokeSupport/LiveSmokeDiagnostics.swift)
 
 Those breadcrumbs appear in the cloud `xcodebuild` log as JSON lines under the `ios_ui_smoke` domain. That is the fastest way to recover exact per-step timestamps without opening the Xcode Cloud UI manually.
 
@@ -232,7 +231,7 @@ Typical shape:
   "type": "ciTestResults",
   "attributes": {
     "name": "testLiveSmokeManualCardCreationFlow()",
-    "className": "LiveSmokeUITests",
+    "className": "LiveSmokeCardsTests",
     "status": "SUCCESS",
     "destinationTestResults": [
       {
