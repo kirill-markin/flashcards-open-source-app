@@ -1,6 +1,9 @@
 package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.cloud.putNullableDouble
+import com.flashcardsopensourceapp.data.local.cloud.putNullableInt
+import com.flashcardsopensourceapp.data.local.cloud.putNullableString
 import com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
@@ -241,24 +244,24 @@ private fun buildOperationPayload(payload: SyncOperationPayload): JSONObject {
             .put("backText", payload.payload.backText)
             .put("tags", JSONArray(payload.payload.tags))
             .put("effortLevel", payload.payload.effortLevel)
-            .put("dueAt", payload.payload.dueAt)
+            .putNullableString("dueAt", payload.payload.dueAt)
             .put("createdAt", payload.payload.createdAt)
             .put("reps", payload.payload.reps)
             .put("lapses", payload.payload.lapses)
             .put("fsrsCardState", payload.payload.fsrsCardState)
-            .put("fsrsStepIndex", payload.payload.fsrsStepIndex)
-            .put("fsrsStability", payload.payload.fsrsStability)
-            .put("fsrsDifficulty", payload.payload.fsrsDifficulty)
-            .put("fsrsLastReviewedAt", payload.payload.fsrsLastReviewedAt)
-            .put("fsrsScheduledDays", payload.payload.fsrsScheduledDays)
-            .put("deletedAt", payload.payload.deletedAt)
+            .putNullableInt("fsrsStepIndex", payload.payload.fsrsStepIndex)
+            .putNullableDouble("fsrsStability", payload.payload.fsrsStability)
+            .putNullableDouble("fsrsDifficulty", payload.payload.fsrsDifficulty)
+            .putNullableString("fsrsLastReviewedAt", payload.payload.fsrsLastReviewedAt)
+            .putNullableInt("fsrsScheduledDays", payload.payload.fsrsScheduledDays)
+            .putNullableString("deletedAt", payload.payload.deletedAt)
 
         is SyncOperationPayload.Deck -> JSONObject()
             .put("deckId", payload.payload.deckId)
             .put("name", payload.payload.name)
             .put("filterDefinition", buildDeckFilterDefinitionJson(payload.payload.filterDefinition))
             .put("createdAt", payload.payload.createdAt)
-            .put("deletedAt", payload.payload.deletedAt)
+            .putNullableString("deletedAt", payload.payload.deletedAt)
 
         is SyncOperationPayload.WorkspaceSchedulerSettings -> JSONObject()
             .put("algorithm", payload.payload.algorithm)

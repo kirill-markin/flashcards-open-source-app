@@ -389,10 +389,16 @@ data class ReviewCard(
     val tags: List<String>,
     val effortLevel: EffortLevel,
     val dueAtMillis: Long?,
+    val updatedAtMillis: Long,
     val createdAtMillis: Long,
     val reps: Int,
     val lapses: Int,
     val queueStatus: ReviewCardQueueStatus
+)
+
+data class PendingReviewedCard(
+    val cardId: String,
+    val updatedAtMillis: Long
 )
 
 enum class ReviewCardQueueStatus {

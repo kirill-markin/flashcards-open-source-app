@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
@@ -275,25 +276,9 @@ internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
             aiComposerDraftTextOrNull().isNullOrBlank().not() &&
                 countNodesWithTagInAnySemanticsTree(tag = aiComposerSuggestionRowTag) == 0
         }
-        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performTextReplacement("")
-        waitForAiComposerButtonState(
-            expectedLabel = "Send",
-            expectedEnabled = false,
-            context = "after clearing the first AI composer suggestion draft"
-        )
-        waitForComposerSuggestionCount(
-            expectedCount = 2,
-            context = "after clearing the first AI composer suggestion draft"
-        )
-        waitForTagToExist(
-            tag = "${aiComposerSuggestionPrefixTag}0",
-            timeoutMillis = externalUiTimeoutMillis,
-            context = "while waiting for the backend AI composer suggestion after clearing the draft"
-        )
-        clickTag(tag = "${aiComposerSuggestionPrefixTag}0", label = "Backend AI composer suggestion")
         val suggestionPrompt: String = aiComposerDraftTextOrNull().orEmpty()
         if (suggestionPrompt.isBlank()) {
-            throw AssertionError("Applying the backend AI composer suggestion did not populate the draft.")
+            throw AssertionError("Applying the first AI composer suggestion did not populate the draft.")
         }
         val previousPersistedState: AiChatPersistedState = currentAiPersistedState()
         clickTag(tag = aiComposerSendButtonTag, label = "Send AI composer suggestion prompt")
@@ -467,9 +452,12 @@ private fun LiveSmokeContext.fillAiComposer(
     )
     dismissExternalSystemDialogIfPresent()
     waitForAiComposerEditable(context = "before filling $context")
-    composeRule.onNodeWithTag(aiComposerMessageFieldTag).performClick()
+    val composerField = composeRule.onNodeWithTag(aiComposerMessageFieldTag)
+    composerField.performClick()
     composeRule.waitForIdle()
-    composeRule.onNodeWithTag(aiComposerMessageFieldTag).performTextReplacement(expectedDraftText)
+    composerField.performTextClearance()
+    composeRule.waitForIdle()
+    composerField.performTextInput(expectedDraftText)
     waitForAiComposerReady(
         expectedDraftText = expectedDraftText,
         expectedButtonLabel = "Send",

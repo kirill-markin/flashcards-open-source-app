@@ -35,6 +35,9 @@ const val workspaceOverviewDeleteConfirmationFieldTag: String = "workspace_overv
 const val workspaceOverviewDeleteConfirmationButtonTag: String = "workspace_overview_delete_confirmation_button"
 const val workspaceOverviewDeleteConfirmationErrorTag: String = "workspace_overview_delete_confirmation_error"
 const val workspaceOverviewDeleteConfirmationLoadingTag: String = "workspace_overview_delete_confirmation_loading"
+const val workspaceOverviewTodayDueCountTag: String = "workspace_overview_today_due_count"
+const val workspaceOverviewTodayNewCountTag: String = "workspace_overview_today_new_count"
+const val workspaceOverviewTodayReviewedCountTag: String = "workspace_overview_today_reviewed_count"
 
 @Composable
 fun WorkspaceOverviewRoute(
@@ -143,9 +146,21 @@ fun WorkspaceOverviewRoute(
                             text = "Today",
                             style = MaterialTheme.typography.titleMedium
                         )
-                        OverviewRow(title = "Due", value = uiState.dueCount)
-                        OverviewRow(title = "New", value = uiState.newCount)
-                        OverviewRow(title = "Reviewed", value = uiState.reviewedCount)
+                        OverviewRow(
+                            title = "Due",
+                            value = uiState.dueCount,
+                            valueTag = workspaceOverviewTodayDueCountTag
+                        )
+                        OverviewRow(
+                            title = "New",
+                            value = uiState.newCount,
+                            valueTag = workspaceOverviewTodayNewCountTag
+                        )
+                        OverviewRow(
+                            title = "Reviewed",
+                            value = uiState.reviewedCount,
+                            valueTag = workspaceOverviewTodayReviewedCountTag
+                        )
                     }
                 }
             }

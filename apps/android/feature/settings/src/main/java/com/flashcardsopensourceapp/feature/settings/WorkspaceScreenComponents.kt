@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.CardSummary
@@ -84,6 +85,21 @@ internal fun DeckCardRow(
 
 @Composable
 internal fun OverviewRow(title: String, value: Int) {
+    OverviewRow(
+        title = title,
+        value = value,
+        valueTag = null
+    )
+}
+
+@Composable
+internal fun OverviewRow(title: String, value: Int, valueTag: String?) {
+    val valueModifier: Modifier = if (valueTag != null) {
+        Modifier.testTag(tag = valueTag)
+    } else {
+        Modifier
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -94,7 +110,8 @@ internal fun OverviewRow(title: String, value: Int) {
         )
         Text(
             text = value.toString(),
-            style = MaterialTheme.typography.titleSmall
+            style = MaterialTheme.typography.titleSmall,
+            modifier = valueModifier
         )
     }
 }

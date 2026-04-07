@@ -173,7 +173,7 @@ fun buildReviewTagFilterOptions(cards: List<CardSummary>, reviewedAtMillis: Long
 
 fun buildReviewSessionSnapshot(
     selectedFilter: ReviewFilter,
-    pendingReviewedCardIds: Set<String>,
+    pendingReviewedCards: Set<PendingReviewedCard>,
     decks: List<DeckSummary>,
     cards: List<CardSummary>,
     tagsSummary: WorkspaceTagsSummary,
@@ -192,7 +192,10 @@ fun buildReviewSessionSnapshot(
         reviewedAtMillis = reviewedAtMillis
     )
     val remainingCards = matchingCards.filter { card ->
-        pendingReviewedCardIds.contains(card.cardId).not()
+        matchesPendingReviewedCard(
+            pendingReviewedCards = pendingReviewedCards,
+            card = card
+        ).not()
     }
     val currentCard = remainingCards.firstOrNull()
     val nextCard = remainingCards.getOrNull(index = 1)
@@ -231,7 +234,7 @@ fun buildReviewSessionSnapshot(
 
 fun buildReviewTimelinePage(
     selectedFilter: ReviewFilter,
-    pendingReviewedCardIds: Set<String>,
+    pendingReviewedCards: Set<PendingReviewedCard>,
     decks: List<DeckSummary>,
     cards: List<CardSummary>,
     tagsSummary: WorkspaceTagsSummary,
@@ -269,10 +272,16 @@ fun buildReviewTimelinePage(
         }
     )
     val remainingCards = dueCards.filter { card ->
-        pendingReviewedCardIds.contains(card.cardId).not()
+        matchesPendingReviewedCard(
+            pendingReviewedCards = pendingReviewedCards,
+            card = card
+        ).not()
     }
     val alreadyReviewedCards = dueCards.filter { card ->
-        pendingReviewedCardIds.contains(card.cardId)
+        matchesPendingReviewedCard(
+            pendingReviewedCards = pendingReviewedCards,
+            card = card
+        )
     }
     val orderedCards = buildList {
         addAll(remainingCards.map { card ->
@@ -313,9 +322,22 @@ fun toReviewCard(
         tags = card.tags,
         effortLevel = card.effortLevel,
         dueAtMillis = card.dueAtMillis,
+        updatedAtMillis = card.updatedAtMillis,
         createdAtMillis = card.createdAtMillis,
         reps = card.reps,
         lapses = card.lapses,
         queueStatus = queueStatus
+    )
+}
+
+private fun matchesPendingReviewedCard(
+    pendingReviewedCards: Set<PendingReviewedCard>,
+    card: CardSummary
+): Boolean {
+    return pendingReviewedCards.contains(
+        PendingReviewedCard(
+            cardId = card.cardId,
+            updatedAtMillis = card.updatedAtMillis
+        )
     )
 }
