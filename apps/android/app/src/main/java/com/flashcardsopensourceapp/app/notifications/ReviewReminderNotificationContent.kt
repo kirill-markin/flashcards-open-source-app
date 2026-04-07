@@ -52,7 +52,7 @@ fun buildReviewReminderNotificationContent(
         .build()
 
     return ReviewReminderNotificationContent(
-        notificationTag = requestId,
+        notificationTag = reviewReminderNotificationTag(requestId = requestId),
         notificationId = reviewReminderNotificationId(requestId = requestId),
         notification = notification
     )
@@ -116,6 +116,10 @@ private fun createReviewReminderPendingIntent(
 
 private fun reviewReminderNotificationId(requestId: String): Int {
     return requestId.hashCode()
+}
+
+internal fun reviewReminderNotificationTag(requestId: String): String {
+    return "$reviewReminderNotificationTagPrefix$requestId"
 }
 
 private fun ensureReviewNotificationChannel(context: Context) {
