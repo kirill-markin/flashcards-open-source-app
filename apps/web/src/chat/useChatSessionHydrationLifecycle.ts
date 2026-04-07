@@ -90,6 +90,9 @@ export function useChatSessionHydrationLifecycle(
 
   const runHydrationLifecycle = useEffectEvent((isDisposedRef: { current: boolean }): void => {
     const isWorkspaceTransition = hydratedWorkspaceIdRef.current !== workspaceId;
+    const initialHydrationSessionId = isWorkspaceTransition
+      ? undefined
+      : resolveInitialHydrationSessionId(workspaceId, runtimeRefs.currentSessionIdRef.current);
 
     if (workspaceId === null) {
       invalidatePendingSnapshotRequests();
@@ -147,7 +150,7 @@ export function useChatSessionHydrationLifecycle(
     void (async (): Promise<void> => {
       try {
         const snapshot = await loadAndApplySnapshot(
-          resolveInitialHydrationSessionId(workspaceId, runtimeRefs.currentSessionIdRef.current),
+          initialHydrationSessionId,
           true,
           "initial_hydration",
           null,
