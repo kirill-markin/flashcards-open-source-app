@@ -1,0 +1,42 @@
+import type { ChatConfig, ChatComposerSuggestion } from "../types";
+import type { PendingAttachment } from "./FileAttachment";
+import type { ChatComposerAction, ChatRunState } from "./streamRecovery";
+import type { StoredMessage } from "./useChatHistory";
+
+export type UseChatSessionControllerParams = Readonly<{
+  workspaceId: string | null;
+  isRemoteReady: boolean;
+  onMainContentInvalidated: (mainContentInvalidationVersion: number) => void;
+}>;
+
+export type SendChatMessageParams = Readonly<{
+  clientRequestId: string;
+  text: string;
+  attachments: ReadonlyArray<PendingAttachment>;
+}>;
+
+export type SendChatMessageResult = Readonly<{
+  accepted: boolean;
+  sessionId: string | null;
+}>;
+
+export type ChatSessionController = Readonly<{
+  messages: ReadonlyArray<StoredMessage>;
+  runState: ChatRunState;
+  isHistoryLoaded: boolean;
+  isAssistantRunActive: boolean;
+  isLiveStreamConnected: boolean;
+  isStopping: boolean;
+  currentSessionId: string | null;
+  mainContentInvalidationVersion: number;
+  chatConfig: ChatConfig;
+  composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
+  composerAction: ChatComposerAction;
+  composerNotice: string | null;
+  errorDialogMessage: string | null;
+  dismissErrorDialog: () => void;
+  acceptServerSessionId: (sessionId: string) => void;
+  sendMessage: (params: SendChatMessageParams) => Promise<SendChatMessageResult>;
+  stopMessage: () => Promise<void>;
+  clearConversation: () => Promise<string | null>;
+}>;

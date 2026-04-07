@@ -27,6 +27,25 @@ The live smoke scenario intentionally mirrors the mobile clients:
 - iOS equivalent: `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
 - Android equivalent: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
 
+For local web work, `npm run test:e2e:local` in `apps/web` runs the same Playwright smoke against the local browser stack:
+
+1. local auth on `http://localhost:8081`
+2. local backend on `http://localhost:8080`
+3. local production-style web preview on `http://localhost:3000` that Playwright builds and serves automatically
+
+This local smoke does not reuse production auth. It is intentionally isolated so localhost never depends on the deployed auth allowlist or production web origin.
+
+Local smoke prerequisites:
+
+- root `.env` must keep `AUTH_MODE=cognito`
+- local auth/backend must have real Cognito config (`COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_REGION`, `SESSION_ENCRYPTION_KEY`)
+- review/demo sign-in should be enabled locally with `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP`
+- start the local data/auth stack first with `make db-up`, `make auth-dev`, and `make backend-dev`
+
+The local smoke preflight fails fast if local auth or backend is unavailable, or if the Playwright target is misconfigured to mix localhost with deployed origins.
+
+`npm run test:e2e` and `npm run test:e2e:prod` remain the production/deployed smoke entrypoints. They must not point at localhost and are the paths used by CI/CD and post-deploy verification.
+
 ## CI/CD
 
 Web build and deploy details are documented in [`docs/backend-web-deployment.md`](../../docs/backend-web-deployment.md).

@@ -32,12 +32,15 @@ import {
   normalizeError,
   type LiveSmokeDiagnostics,
 } from "./live-smoke.diagnostics";
+import { resolveE2eEnvironment, validateE2eEnvironment } from "./e2eEnvironment";
 
 const localUiTimeoutMs = 10_000;
 const externalUiTimeoutMs = 30_000;
 
+const e2eEnvironment = resolveE2eEnvironment(process.env);
+validateE2eEnvironment(e2eEnvironment);
 const reviewEmail = process.env.FLASHCARDS_LIVE_REVIEW_EMAIL ?? "google-review@example.com";
-const authBaseUrl = process.env.FLASHCARDS_E2E_AUTH_BASE_URL ?? "https://auth.flashcards-open-source-app.com";
+const authBaseUrl = e2eEnvironment.authBaseUrl;
 
 type LiveSmokeScenario = Readonly<{
   workspaceName: string;
