@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AIChatScrollState: Equatable {
     let isNearBottom: Bool
-    let isUserScrolling: Bool
+    let isUserInitiatedScroll: Bool
 }
 
 func aiChatScrollState(
@@ -11,24 +11,25 @@ func aiChatScrollState(
     bottomThreshold: CGFloat
 ) -> AIChatScrollState {
     let distanceToBottom = max(scrollGeometry.contentSize.height - scrollGeometry.visibleRect.maxY, 0)
+    let isUserInitiatedScroll: Bool
+    switch scrollPhase {
+    case .tracking, .interacting, .decelerating:
+        isUserInitiatedScroll = true
+    case .idle, .animating:
+        isUserInitiatedScroll = false
+    @unknown default:
+        isUserInitiatedScroll = false
+    }
+
     return AIChatScrollState(
         isNearBottom: distanceToBottom <= bottomThreshold,
-        isUserScrolling: scrollPhase.isScrolling
+        isUserInitiatedScroll: isUserInitiatedScroll
     )
 }
 
 extension AIChatView {
     func scrollToBottomIfNeeded(isAnimated: Bool) {
-        guard self.isNearBottom else {
-            return
-        }
-
-        guard self.isUserScrolling == false else {
-            return
-        }
-
-        guard self.chatStore.messages.isEmpty == false else {
-            self.scrollToBottom(isAnimated: isAnimated)
+        guard self.isAutoFollowEnabled else {
             return
         }
 

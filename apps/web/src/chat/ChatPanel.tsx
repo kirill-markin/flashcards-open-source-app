@@ -170,6 +170,7 @@ export function ChatPanel(props: Props): ReactElement {
 
   const rootRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
+  const messagesContentRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingAttachmentsRef = useRef<ReadonlyArray<PendingAttachment>>([]);
   const dragCounterRef = useRef<number>(0);
@@ -188,6 +189,7 @@ export function ChatPanel(props: Props): ReactElement {
     isStreaming: isAssistantRunActive,
     messages,
     messagesRef,
+    messagesContentRef,
   });
   const isInitialHistoryLoading = !isHistoryLoaded && messages.length === 0;
 
@@ -755,41 +757,43 @@ export function ChatPanel(props: Props): ReactElement {
       </div>
 
       <div className="chat-messages" ref={messagesRef} onScroll={handleMessagesScroll}>
-        {isInitialHistoryLoading ? (
-          <div className="chat-empty chat-empty-loading" aria-live="polite">
-            <p className="chat-empty-title">Loading AI chat…</p>
-            <div className="chat-loading-lines" aria-hidden="true">
-              <span className="chat-loading-line chat-loading-line-title" />
-              <span className="chat-loading-line" />
-              <span className="chat-loading-line" />
-              <span className="chat-loading-line chat-loading-line-short" />
+        <div className="chat-messages-content" ref={messagesContentRef}>
+          {isInitialHistoryLoading ? (
+            <div className="chat-empty chat-empty-loading" aria-live="polite">
+              <p className="chat-empty-title">Loading AI chat…</p>
+              <div className="chat-loading-lines" aria-hidden="true">
+                <span className="chat-loading-line chat-loading-line-title" />
+                <span className="chat-loading-line" />
+                <span className="chat-loading-line" />
+                <span className="chat-loading-line chat-loading-line-short" />
+              </div>
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        {!isInitialHistoryLoading && messages.length === 0 ? (
-          <div className="chat-empty">
-            <p className="chat-empty-title">Start a new AI chat</p>
-            <p className="chat-empty-copy">Ask about cards, review history, or attach notes for extraction.</p>
-          </div>
-        ) : null}
-
-        {messages.map((message, index) => {
-          const isLastAssistant = isAssistantRunActive && message.role === "assistant" && index === messages.length - 1;
-          return (
-            <div
-              key={`${message.timestamp}-${index}`}
-              className={`chat-msg chat-msg-${message.role}`}
-            >
-              {renderStoredMessageContent(message)}
-              {isLastAssistant ? (
-                <span className="chat-streaming-indicator">
-                  <span className="chat-dots" />
-                </span>
-              ) : null}
+          {!isInitialHistoryLoading && messages.length === 0 ? (
+            <div className="chat-empty">
+              <p className="chat-empty-title">Start a new AI chat</p>
+              <p className="chat-empty-copy">Ask about cards, review history, or attach notes for extraction.</p>
             </div>
-          );
-        })}
+          ) : null}
+
+          {messages.map((message, index) => {
+            const isLastAssistant = isAssistantRunActive && message.role === "assistant" && index === messages.length - 1;
+            return (
+              <div
+                key={`${message.timestamp}-${index}`}
+                className={`chat-msg chat-msg-${message.role}`}
+              >
+                {renderStoredMessageContent(message)}
+                {isLastAssistant ? (
+                  <span className="chat-streaming-indicator">
+                    <span className="chat-dots" />
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="chat-input-area">

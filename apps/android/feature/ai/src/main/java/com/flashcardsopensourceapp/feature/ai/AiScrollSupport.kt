@@ -1,26 +1,36 @@
 package com.flashcardsopensourceapp.feature.ai
 
+import androidx.compose.foundation.lazy.LazyListLayoutInfo
+
+internal const val aiConversationAutoScrollBottomThresholdPx: Int = 24
+
 data class AiConversationScrollState(
-    val isNearBottom: Boolean,
-    val isUserScrolling: Boolean
+    val isNearBottom: Boolean
 )
 
+/**
+ * Measures proximity from the rendered bottom edge so in-place content growth does not
+ * look like the user intentionally detached from the conversation.
+ */
 fun aiConversationScrollState(
-    totalItemsCount: Int,
-    lastVisibleItemIndex: Int,
-    isUserScrolling: Boolean,
-    bottomThreshold: Int
+    layoutInfo: LazyListLayoutInfo,
+    bottomThresholdPx: Int
 ): AiConversationScrollState {
-    if (totalItemsCount <= 0) {
-        return AiConversationScrollState(
-            isNearBottom = true,
-            isUserScrolling = isUserScrolling
-        )
+    if (layoutInfo.totalItemsCount <= 0) {
+        return AiConversationScrollState(isNearBottom = true)
     }
 
-    val distanceToBottom = (totalItemsCount - 1) - lastVisibleItemIndex
+    val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
+        ?: return AiConversationScrollState(isNearBottom = true)
+
+    val lastItemIndex = layoutInfo.totalItemsCount - 1
+    if (lastVisibleItem.index < lastItemIndex) {
+        return AiConversationScrollState(isNearBottom = false)
+    }
+
+    val renderedBottom = lastVisibleItem.offset + lastVisibleItem.size
+    val distanceToBottom = (layoutInfo.viewportEndOffset - renderedBottom).coerceAtLeast(0)
     return AiConversationScrollState(
-        isNearBottom = distanceToBottom <= bottomThreshold,
-        isUserScrolling = isUserScrolling
+        isNearBottom = distanceToBottom <= bottomThresholdPx
     )
 }
