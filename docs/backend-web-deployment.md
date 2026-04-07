@@ -36,6 +36,33 @@ Stop local services with:
 make db-down
 ```
 
+## Local browser smoke with auth
+
+The full local web smoke is intentionally separate from the deployed post-release smoke.
+
+Use it only against the local stack:
+
+1. keep root `.env` in `AUTH_MODE=cognito`
+2. set `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_REGION`, and `SESSION_ENCRYPTION_KEY`
+3. set `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` for the local review/demo account
+4. start `make db-up`
+5. start `make auth-dev`
+6. start `make backend-dev`
+7. run `npm run test:e2e:local --prefix apps/web`
+
+`test:e2e:local` talks only to:
+
+- local web on `http://localhost:3000`
+- local backend on `http://localhost:8080`
+- local auth on `http://localhost:8081`
+
+Playwright builds and serves the local web preview automatically, but it does not start backend or auth for you. The preflight step fails immediately if local auth or backend is missing or if the local smoke points at any deployed origin.
+
+This split is deliberate:
+
+- local smoke validates the current branch without relying on production auth redirect allowlists
+- CI/CD post-deploy smoke still validates the deployed production path after release
+
 ## First AWS deploy
 
 Keep the operator config in root `.env`. The important deploy-time values are:
