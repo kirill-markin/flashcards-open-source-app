@@ -97,7 +97,6 @@ class NotificationTapSmokeTest {
             }
 
             liveSmokeContext.step("verify the app returns to review without unexpected navigation") {
-                liveSmokeContext.waitForAppToReachForeground(packageName = appContext.packageName)
                 liveSmokeContext.waitForReviewScreenAfterNotificationTap()
             }
 

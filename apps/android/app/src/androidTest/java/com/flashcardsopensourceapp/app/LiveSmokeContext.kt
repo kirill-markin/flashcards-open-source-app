@@ -6,6 +6,7 @@ import androidx.test.uiautomator.UiDevice
 import org.junit.rules.TestName
 
 internal const val externalUiTimeoutMillis: Long = 30_000L
+internal const val externalAiRunTimeoutMillis: Long = 60_000L
 internal const val internalUiTimeoutMillis: Long = 10_000L
 internal const val reviewEmailArgumentKey: String = "FLASHCARDS_LIVE_REVIEW_EMAIL"
 internal const val cloudSyncChooserPrompt: String =

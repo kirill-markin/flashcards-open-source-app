@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the Android debug app, the Android test APK, and the lint report.
+# Run fast Android CI checks, then build the debug artifacts consumed by later jobs.
 
 set -euo pipefail
 
@@ -15,6 +15,8 @@ fi
 cd "${ANDROID_DIR}"
 
 ./gradlew --no-daemon \
+  test \
   :app:assembleDebug \
   :app:assembleDebugAndroidTest \
+  :data:local:assembleDebugAndroidTest \
   :app:lintDebug

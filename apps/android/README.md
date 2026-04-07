@@ -156,7 +156,7 @@ The repository policy for Android CI/CD is:
 - Firebase Test Lab is the cloud device test runner
 - `cloudbuild.android.yaml` is the Google-native Cloud Build entrypoint
 - Google auth from GitHub must use Workload Identity Federation, not a JSON key
-- the release gate order is native build/lint checks first, then the native Firebase Test Lab smoke suite, then Google Play release
+- the release gate order is Android unit tests plus build/lint first, then the full GitHub-hosted emulator instrumentation suite, then the native Firebase Test Lab smoke suite, then Google Play release
 - after pushing to `main`, watch `Android Release` when Android-impacting files changed; it runs independently from the AWS/Web release workflow
 - manual Android workflow runs also go through `Android Release`, and Google Play publish stays opt-in there
 

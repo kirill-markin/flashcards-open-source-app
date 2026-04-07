@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    name: Android build and lint
+    name: Android build, unit tests, and lint
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
@@ -38,7 +38,7 @@ jobs:
             "platforms;android-36" \
             "build-tools;36.0.0"
 
-      - name: Build debug app, test APK, and lint
+      - name: Run Android unit tests, build debug artifacts, and lint
         run: bash scripts/run-android-ci.sh
 
       - name: Upload debug APKs
@@ -56,6 +56,74 @@ jobs:
           name: android-lint-report
           if-no-files-found: error
           path: apps/android/app/build/reports/lint-results-debug.html
+
+      - name: Upload unit test reports
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-unit-test-reports
+          if-no-files-found: error
+          path: |
+            apps/android/**/build/reports/tests/**
+            apps/android/**/build/test-results/**
+
+  emulator-instrumentation:
+    name: Android emulator instrumentation
+    needs:
+      - build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.target_ref }}
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Install Android SDK packages
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" \
+            "emulator" \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "system-images;android-36;google_apis;x86_64"
+
+      - name: Enable KVM access
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run full Android instrumentation suite on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: |
+            cd apps/android
+            ./gradlew --no-daemon connectedAndroidTest
+
+      - name: Upload instrumentation reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-instrumentation-reports
+          if-no-files-found: error
+          path: |
+            apps/android/**/build/outputs/androidTest-results/**
+            apps/android/**/build/reports/androidTests/**
 
   live-smoke-config:
     name: Validate Android live smoke configuration
@@ -94,8 +162,9 @@ jobs:
     name: Firebase Test Lab
     needs:
       - build
+      - emulator-instrumentation
       - live-smoke-config
-    if: ${{ inputs.run_live_smoke && needs.live-smoke-config.result == 'success' }}
+    if: ${{ inputs.run_live_smoke && needs.live-smoke-config.result == 'success' && needs.emulator-instrumentation.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:

@@ -169,29 +169,37 @@ internal fun LiveSmokeContext.createAiCardWithConfirmation() {
     )
 
     var latestCompletedSqlSummaries: List<String> = emptyList()
+    var latestAttemptError: Throwable? = null
     repeat(times = 3) { attemptIndex ->
-        val previousPersistedState: AiChatPersistedState = currentAiPersistedState()
+        try {
+            fillAiComposer(
+                expectedDraftText = aiCreatePromptText,
+                context = "for AI create attempt ${attemptIndex + 1}"
+            )
+            clickTag(tag = aiComposerSendButtonTag, label = "Send AI create prompt")
+            waitForAiUserMessageVisible(
+                expectedUserText = aiCreatePromptText,
+                context = "for AI create attempt ${attemptIndex + 1}"
+            )
+            waitForAiComposerIdleAfterRun(
+                context = "after AI create attempt ${attemptIndex + 1} completed"
+            )
 
-        fillAiComposer(
-            expectedDraftText = aiCreatePromptText,
-            context = "for AI create attempt ${attemptIndex + 1}"
-        )
-        clickTag(tag = aiComposerSendButtonTag, label = "Send AI create prompt")
-        waitForAiRunAcceptedOrCompleted(
-            previousPersistedState = previousPersistedState,
-            context = "for AI create attempt ${attemptIndex + 1}"
-        )
-        waitForAiComposerButtonState(
-            expectedLabel = "Send",
-            expectedEnabled = false,
-            context = "after AI create attempt ${attemptIndex + 1} completed"
-        )
-
-        val toolCallCheck: LiveSmokeAiToolCallCheck = completedAiInsertToolCallCheck()
-        latestCompletedSqlSummaries = toolCallCheck.completedSqlSummaries
-        if (toolCallCheck.matchingInsertFound) {
-            return
+            val toolCallCheck: LiveSmokeAiToolCallCheck = completedAiInsertToolCallCheck()
+            latestCompletedSqlSummaries = toolCallCheck.completedSqlSummaries
+            if (toolCallCheck.matchingInsertFound) {
+                return
+            }
+        } catch (error: Throwable) {
+            latestAttemptError = error
         }
+    }
+
+    if (latestAttemptError != null && latestCompletedSqlSummaries.isEmpty()) {
+        throw AssertionError(
+            "AI create flow did not complete successfully after 3 attempts.",
+            latestAttemptError
+        )
     }
 
     throw AssertionError(
@@ -204,6 +212,34 @@ private data class LiveSmokeAiToolCallCheck(
     val matchingInsertFound: Boolean,
     val completedSqlSummaries: List<String>
 )
+
+private fun LiveSmokeContext.waitForAiUserMessageVisible(
+    expectedUserText: String,
+    context: String
+) {
+    try {
+        waitForTagToExist(
+            tag = aiUserMessageBubbleTag,
+            timeoutMillis = externalAiRunTimeoutMillis,
+            context = "while waiting for a user AI message $context"
+        )
+        waitUntilWithMitigation(
+            timeoutMillis = externalAiRunTimeoutMillis,
+            context = "while waiting for the AI user message text $context"
+        ) {
+            hasVisibleText(text = expectedUserText, substring = false)
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "AI user message did not appear $context. " +
+                "ExpectedUser='$expectedUserText' " +
+                "ActualDraft='${aiComposerDraftTextOrNull()}' " +
+                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = "Send")} " +
+                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+            error
+        )
+    }
+}
 
 private fun LiveSmokeContext.waitForAiRunAcceptedOrCompleted(
     previousPersistedState: AiChatPersistedState,
@@ -290,9 +326,7 @@ internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
             expectedUserText = suggestionPrompt,
             context = "while waiting for the AI composer suggestion conversation to materialize"
         )
-        waitForAiComposerButtonState(
-            expectedLabel = "Send",
-            expectedEnabled = false,
+        waitForAiComposerIdleAfterRun(
             context = "after the AI composer suggestion conversation completed"
         )
         waitForComposerSuggestionCount(
@@ -328,29 +362,22 @@ internal fun LiveSmokeContext.createGuestAiConversationForReset() {
         expectedEnabled = false,
         context = "before filling the AI reset prompt"
     )
-    val previousPersistedState: AiChatPersistedState = currentAiPersistedState()
 
     fillAiComposer(
         expectedDraftText = aiResetPromptText,
         context = "for the AI reset conversation"
     )
     clickTag(tag = aiComposerSendButtonTag, label = "Send AI reset prompt")
-    waitForAiRunAcceptedOrCompleted(
-        previousPersistedState = previousPersistedState,
-        context = "for the AI reset conversation"
-    )
-    waitForAiConversationMaterialized(
+    waitForAiUserMessageVisible(
         expectedUserText = aiResetPromptText,
-        context = "while waiting for the AI reset conversation to materialize"
+        context = "for the AI reset conversation"
     )
     waitForEnabledTag(
         tag = aiNewChatButtonTag,
         label = "New chat",
         context = "after the AI reset conversation completed"
     )
-    waitForAiComposerButtonState(
-        expectedLabel = "Send",
-        expectedEnabled = false,
+    waitForAiComposerIdleAfterRun(
         context = "after the AI reset conversation completed"
     )
 }
@@ -452,17 +479,80 @@ private fun LiveSmokeContext.fillAiComposer(
     )
     dismissExternalSystemDialogIfPresent()
     waitForAiComposerEditable(context = "before filling $context")
-    val composerField = composeRule.onNodeWithTag(aiComposerMessageFieldTag)
-    composerField.performClick()
-    composeRule.waitForIdle()
-    composerField.performTextClearance()
-    composeRule.waitForIdle()
-    composerField.performTextInput(expectedDraftText)
-    waitForAiComposerReady(
+    val filled: Boolean = tryFillAiComposerWithTextInput(
         expectedDraftText = expectedDraftText,
-        expectedButtonLabel = "Send",
-        context = "after filling $context"
+        context = context
+    ) || tryFillAiComposerWithTextReplacement(
+        expectedDraftText = expectedDraftText,
+        context = context
+    ) || tryFillAiComposerWithTextInput(
+        expectedDraftText = expectedDraftText,
+        context = "$context after replacement fallback"
     )
+    if (filled.not()) {
+        throw AssertionError(
+            "AI composer was not ready after filling $context. " +
+                "ExpectedDraft='$expectedDraftText' " +
+                "ActualDraft='${aiComposerDraftTextOrNull()}' " +
+                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = "Send")} " +
+                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}"
+        )
+    }
+}
+
+private fun LiveSmokeContext.tryFillAiComposerWithTextInput(
+    expectedDraftText: String,
+    context: String
+): Boolean {
+    val composerField = composeRule.onNodeWithTag(aiComposerMessageFieldTag)
+    return try {
+        composerField.performClick()
+        composeRule.waitForIdle()
+        composerField.performTextClearance()
+        composeRule.waitForIdle()
+        composerField.performTextInput(expectedDraftText)
+        waitForAiComposerReadyQuickly(
+            expectedDraftText = expectedDraftText,
+            context = "$context via performTextInput"
+        )
+        true
+    } catch (_: Throwable) {
+        false
+    }
+}
+
+private fun LiveSmokeContext.tryFillAiComposerWithTextReplacement(
+    expectedDraftText: String,
+    context: String
+): Boolean {
+    val composerField = composeRule.onNodeWithTag(aiComposerMessageFieldTag)
+    return try {
+        composerField.performClick()
+        composeRule.waitForIdle()
+        composerField.performTextClearance()
+        composeRule.waitForIdle()
+        composerField.performTextReplacement(expectedDraftText)
+        waitForAiComposerReadyQuickly(
+            expectedDraftText = expectedDraftText,
+            context = "$context via performTextReplacement"
+        )
+        true
+    } catch (_: Throwable) {
+        false
+    }
+}
+
+private fun LiveSmokeContext.waitForAiComposerReadyQuickly(
+    expectedDraftText: String,
+    context: String
+) {
+    composeRule.waitUntil(timeoutMillis = internalUiTimeoutMillis) {
+        aiComposerDraftTextOrNull() == expectedDraftText &&
+            aiComposerSendButtonMatchesState(
+                expectedLabel = "Send",
+                expectedEnabled = true
+            )
+    }
 }
 
 private fun LiveSmokeContext.waitForGuestCloudWorkspaceReady(context: String) {
@@ -542,6 +632,29 @@ private fun LiveSmokeContext.waitForAiComposerButtonState(
                 "ExpectedLabel='$expectedLabel' " +
                 "ExpectedEnabled=$expectedEnabled " +
                 "ActualState=${aiComposerSendButtonStateOrNull(expectedLabel = expectedLabel)} " +
+                "ActualDraft='${aiComposerDraftTextOrNull()}' " +
+                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+            error
+        )
+    }
+}
+
+private fun LiveSmokeContext.waitForAiComposerIdleAfterRun(context: String) {
+    try {
+        waitUntilWithMitigation(
+            timeoutMillis = externalAiRunTimeoutMillis,
+            context = "while waiting for the AI composer to return to idle $context"
+        ) {
+            aiComposerFieldIsEditable() &&
+                aiComposerSendButtonMatchesState(
+                    expectedLabel = "Send",
+                    expectedEnabled = false
+                )
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "AI composer did not return to idle $context. " +
+                "ActualState=${aiComposerSendButtonStateOrNull(expectedLabel = "Send")} " +
                 "ActualDraft='${aiComposerDraftTextOrNull()}' " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
