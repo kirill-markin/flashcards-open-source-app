@@ -480,20 +480,22 @@ export function ReviewScreen(): ReactElement {
                       </>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    className="ghost-btn review-pane-edit-btn"
-                    disabled
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="primary-btn review-pane-ai-btn"
-                    disabled
-                  >
-                    AI
-                  </button>
+                  <div className="review-pane-head-actions">
+                    <button
+                      type="button"
+                      className="ghost-btn review-pane-edit-btn"
+                      disabled
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="primary-btn review-pane-ai-btn"
+                      disabled
+                    >
+                      AI
+                    </button>
+                  </div>
                 </div>
                 <div className="review-card-stack">
                   {loadingReviewCurrentCard !== null ? (
@@ -579,20 +581,22 @@ export function ReviewScreen(): ReactElement {
                     <span className="badge">{selectedCard.effortLevel}</span>
                     <span className="badge">{renderTags(selectedCard.tags)}</span>
                   </div>
-                  <button
-                    type="button"
-                    className="ghost-btn review-pane-edit-btn"
-                    onClick={() => handleOpenEditor(selectedCard)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="primary-btn review-pane-ai-btn"
-                    onClick={() => void handoffCardToAi(selectedCard)}
-                  >
-                    AI
-                  </button>
+                  <div className="review-pane-head-actions">
+                    <button
+                      type="button"
+                      className="ghost-btn review-pane-edit-btn"
+                      onClick={() => handleOpenEditor(selectedCard)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="primary-btn review-pane-ai-btn"
+                      onClick={() => void handoffCardToAi(selectedCard)}
+                    >
+                      AI
+                    </button>
+                  </div>
                 </div>
                 <div className="review-card-stack">
                   <ReviewCardSide
