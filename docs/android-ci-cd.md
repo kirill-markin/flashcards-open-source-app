@@ -9,8 +9,8 @@ This repository uses one reusable Android validation workflow plus one dedicated
 - Android release is fully independent from the AWS/Web release workflow on `main`
 - `cloudbuild.android.yaml` is the Google-native entrypoint for Cloud Build triggers in the Google Cloud console
 
-This setup keeps fast repository-native checks in GitHub while still using Google-managed device testing and avoiding long-lived Google service account keys.
-We do not aim for exhaustive Android test coverage here. Fast repository-native checks should stay targeted, while the most trusted automated signal is the native live smoke on a real managed device because it is the closest CI check to production behavior.
+This setup keeps repository-native checks in GitHub while still using Google-managed device testing and avoiding long-lived Google service account keys.
+We still treat the managed-device live smoke as the closest CI signal to production behavior, but the GitHub-hosted pipeline now also runs the full Android unit and instrumentation suites so release gates do not drift from local verification.
 
 ## Required GitHub repository variables
 
@@ -48,19 +48,25 @@ This Android-specific sync is separate from the AWS deploy bootstrap script `bas
 
 GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 
+- Runs `test` for the whole Android Gradle project
 - Builds `:app:assembleDebug`
 - Builds `:app:assembleDebugAndroidTest`
+- Builds `:data:local:assembleDebugAndroidTest`
 - Runs `:app:lintDebug`
-- Uploads the debug APK, Android test APK, and lint report as workflow artifacts
+- Uploads the debug APK, Android test APK, unit test reports, and lint report as workflow artifacts
+- Boots a headless Android 16 / API 36 emulator in GitHub Actions
+- Runs the full Gradle `connectedAndroidTest` suite on that emulator
+- Uploads instrumentation reports from the emulator run as workflow artifacts
 - Validates the Firebase Test Lab configuration whenever the reusable workflow is called with live smoke enabled
 - Runs Firebase Test Lab against the native stateful smoke classes `com.flashcardsopensourceapp.app.LiveSmokeTest` and `com.flashcardsopensourceapp.app.NotificationTapSmokeTest`
 - Fails the workflow instead of silently skipping the live smoke gate when the required repository variables are missing
 
 The intended Android release order is:
 
-1. Native build and lint checks in GitHub Actions
-2. Native Firebase Test Lab smoke suite on the configured Android 16 device
-3. Google Play production release from `android-release.yml`
+1. Android unit tests, debug builds, and lint in GitHub Actions
+2. Full Android instrumentation suite on a GitHub-hosted Android 16 emulator
+3. Native Firebase Test Lab smoke suite on the configured Android 16 device
+4. Google Play production release from `android-release.yml`
 
 After pushing to `main`, watch `Android Release` separately when Android-impacting files changed.
 

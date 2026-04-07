@@ -36,6 +36,8 @@ import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressPreview
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.FsrsCardState
@@ -671,6 +673,23 @@ internal class FakeCloudRemoteGateway private constructor(
         workspaceId: String,
         confirmationText: String
     ): CloudWorkspaceDeleteResult {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun loadWorkspaceResetProgressPreview(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String
+    ): CloudWorkspaceResetProgressPreview {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun resetWorkspaceProgress(
+        apiBaseUrl: String,
+        bearerToken: String,
+        workspaceId: String,
+        confirmationText: String
+    ): CloudWorkspaceResetProgressResult {
         throw UnsupportedOperationException()
     }
 

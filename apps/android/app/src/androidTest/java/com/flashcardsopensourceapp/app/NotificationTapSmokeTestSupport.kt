@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app
 
 import android.Manifest
+import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.os.ParcelFileDescriptor
@@ -93,9 +94,15 @@ internal fun LiveSmokeContext.openNotificationShadeAndTap(frontText: String) {
         throw AssertionError("Notification marker text '$frontText' did not appear in the notification shade.")
     }
 
-    val notificationObject = device.findObject(By.text(frontText))
-        ?: throw AssertionError("Notification marker text '$frontText' could not be resolved after appearing.")
-    notificationObject.click()
+    val notificationManager = composeRule.activity.getSystemService(NotificationManager::class.java)
+    val statusBarNotification = notificationManager.activeNotifications.firstOrNull { notification ->
+        notification.notification.matchesFrontText(frontText = frontText)
+    } ?: throw AssertionError(
+        "Notification marker text '$frontText' was visible in the system shade but no matching active notification could be resolved."
+    )
+    val contentIntent = statusBarNotification.notification.contentIntent
+        ?: throw AssertionError("Review reminder notification '$frontText' did not provide a contentIntent.")
+    contentIntent.send()
 }
 
 internal fun LiveSmokeContext.waitForAppToReachForeground(packageName: String) {
@@ -130,6 +137,13 @@ private fun activeNotificationIds(context: Context): Set<Int> {
     return notificationManager.activeNotifications
         .map { statusBarNotification -> statusBarNotification.id }
         .toSet()
+}
+
+private fun Notification.matchesFrontText(frontText: String): Boolean {
+    val extras = extras
+    val contentText = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
+    val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()
+    return contentText == frontText || bigText == frontText
 }
 
 private fun resolveHomeLauncherPackageNameOrThrow(): String {

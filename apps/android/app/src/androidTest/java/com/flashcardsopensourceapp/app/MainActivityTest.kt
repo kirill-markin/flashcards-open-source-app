@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -67,7 +68,7 @@ class MainActivityTest {
         composeRule.onNodeWithText("Search cards").fetchSemanticsNode()
 
         waitForAiEmptyState()
-        composeRule.onNodeWithText("Try asking").fetchSemanticsNode()
+        composeRule.onNodeWithTag(aiEmptyStateContentTag, useUnmergedTree = true).fetchSemanticsNode()
         composeRule.onNodeWithText("Message").fetchSemanticsNode()
 
         openSettingsTab()
@@ -146,7 +147,15 @@ class MainActivityTest {
 
         composeRule.onNodeWithText("Android card").performClick()
         updateCardText(fieldTitle = "Front", value = "Updated Android card")
-        composeRule.onNodeWithText("Save").performClick()
+        scrollToText(text = "Save")
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodes(
+                matcher = hasClickAction().and(other = hasText("Save"))
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNode(
+            matcher = hasClickAction().and(other = hasText("Save"))
+        ).performClick()
 
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Updated Android card").fetchSemanticsNodes().isNotEmpty()
@@ -328,7 +337,7 @@ class MainActivityTest {
         composeRule.onNodeWithText("Create with AI").performClick()
         dismissAiConsentIfNeeded()
         waitForAiEmptyState()
-        composeRule.onNodeWithTag(aiEmptyStateContentTag).fetchSemanticsNode()
+        composeRule.onNodeWithTag(aiEmptyStateContentTag, useUnmergedTree = true).fetchSemanticsNode()
         assertAiEmptyStateIsCentered()
         composeRule.onNodeWithText("Message").fetchSemanticsNode()
     }
@@ -420,7 +429,7 @@ class MainActivityTest {
         openAiTab()
         dismissAiConsentIfNeeded()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(aiEmptyStateTag).fetchSemanticsNodes().isNotEmpty() &&
+            composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isEmpty() &&
                 composeRule.onAllNodesWithText("Message").fetchSemanticsNodes().isNotEmpty()
         }
     }
@@ -440,8 +449,14 @@ class MainActivityTest {
     }
 
     private fun assertAiEmptyStateIsCentered() {
-        val containerBounds = composeRule.onNodeWithTag(aiEmptyStateTag).fetchSemanticsNode().boundsInRoot
-        val contentBounds = composeRule.onNodeWithTag(aiEmptyStateContentTag).fetchSemanticsNode().boundsInRoot
+        val containerBounds = composeRule.onNodeWithTag(
+            aiEmptyStateTag,
+            useUnmergedTree = true
+        ).fetchSemanticsNode().boundsInRoot
+        val contentBounds = composeRule.onNodeWithTag(
+            aiEmptyStateContentTag,
+            useUnmergedTree = true
+        ).fetchSemanticsNode().boundsInRoot
         val containerCenterX = (containerBounds.left + containerBounds.right) / 2f
         val containerCenterY = (containerBounds.top + containerBounds.bottom) / 2f
         val contentCenterX = (contentBounds.left + contentBounds.right) / 2f
@@ -519,12 +534,18 @@ class MainActivityTest {
     private fun dismissAiConsentIfNeeded() {
         if (composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isNotEmpty()) {
             composeRule.onNodeWithText("OK").performClick()
+            composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+                composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isEmpty()
+            }
         }
     }
 
     private fun updateCardText(fieldTitle: String, value: String) {
         composeRule.onNodeWithText(fieldTitle).performClick()
-        composeRule.onAllNodes(hasSetTextAction())[0].performTextReplacement(value)
+        val textField = composeRule.onAllNodes(hasSetTextAction())[0]
+        textField.performTextClearance()
+        composeRule.waitForIdle()
+        textField.performTextInput(value)
         tapBackIcon()
     }
 
