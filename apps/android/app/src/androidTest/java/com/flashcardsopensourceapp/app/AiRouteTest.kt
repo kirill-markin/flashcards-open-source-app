@@ -12,6 +12,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -34,8 +35,6 @@ import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
-import com.flashcardsopensourceapp.feature.ai.aiEmptyStateContentTag
-import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.formatAiConsentWorkspaceDisclosureText
 import org.junit.Assert.assertEquals
@@ -92,9 +91,11 @@ class AiRouteTest {
         composeRule.onNodeWithText("Terms of Service").assertIsDisplayed()
         composeRule.onNodeWithText("Support").assertIsDisplayed()
         composeRule.onNodeWithText("OK").performClick()
-        composeRule.onNodeWithTag(aiEmptyStateTag).assertIsDisplayed()
-        composeRule.onNodeWithTag(aiEmptyStateContentTag).assertIsDisplayed()
-        composeRule.onNodeWithText("Try asking").assertIsDisplayed()
+        composeRule.waitUntil(timeoutMillis = 5_000L) {
+            composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isEmpty() &&
+                composeRule.onAllNodesWithText("Message").fetchSemanticsNodes().isNotEmpty()
+        }
+        assertTrue(composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isEmpty())
         assertTrue(composeRule.onAllNodesWithText("Android AI").fetchSemanticsNodes().isEmpty())
         composeRule.onNodeWithText("Message").assertIsDisplayed()
     }

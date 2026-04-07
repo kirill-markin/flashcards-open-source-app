@@ -12,6 +12,8 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressPreview
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
@@ -234,6 +236,14 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
     }
 
     override suspend fun deleteCurrentWorkspace(confirmationText: String): CloudWorkspaceDeleteResult {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun loadCurrentWorkspaceResetProgressPreview(): CloudWorkspaceResetProgressPreview {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun resetCurrentWorkspaceProgress(confirmationText: String): CloudWorkspaceResetProgressResult {
         throw UnsupportedOperationException()
     }
 

@@ -32,6 +32,7 @@ import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.DeviceDiagnosticsSummary
+import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
@@ -81,12 +82,12 @@ interface WorkspaceRepository {
 interface ReviewRepository {
     fun observeReviewSession(
         selectedFilter: ReviewFilter,
-        pendingReviewedCardIds: Set<String>
+        pendingReviewedCards: Set<PendingReviewedCard>
     ): Flow<ReviewSessionSnapshot>
 
     suspend fun loadReviewTimelinePage(
         selectedFilter: ReviewFilter,
-        pendingReviewedCardIds: Set<String>,
+        pendingReviewedCards: Set<PendingReviewedCard>,
         offset: Int,
         limit: Int
     ): ReviewTimelinePage

@@ -15,6 +15,7 @@ import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.FsrsCardState
+import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
@@ -229,21 +230,26 @@ class AppDatabaseTest {
             )
         )
 
-        val orderedCardIds = database.cardDao().observeCardsWithRelations().first().map { card ->
-            card.card.cardId
+        val orderedCards = database.cardDao().observeCardsWithRelations().first().map { card ->
+            card.card
         }
 
         val allCardsSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.Deck(deckId = "missing-deck"),
-            pendingReviewedCardIds = emptySet()
+            pendingReviewedCards = emptySet()
         ).first()
         val pendingSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.AllCards,
-            pendingReviewedCardIds = setOf(orderedCardIds.first())
+            pendingReviewedCards = setOf(
+                PendingReviewedCard(
+                    cardId = orderedCards.first().cardId,
+                    updatedAtMillis = orderedCards.first().updatedAtMillis
+                )
+            )
         ).first()
         val tagSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.Tag(tag = "ui"),
-            pendingReviewedCardIds = emptySet()
+            pendingReviewedCards = emptySet()
         ).first()
 
         assertEquals(ReviewFilter.AllCards, allCardsSnapshot.selectedFilter)
@@ -290,21 +296,26 @@ class AppDatabaseTest {
             )
         )
 
-        val orderedCardIds = database.cardDao().observeCardsWithRelations().first().map { card ->
-            card.card.cardId
+        val orderedCards = database.cardDao().observeCardsWithRelations().first().map { card ->
+            card.card
         }
-        val pendingCardIds = orderedCardIds.take(2).toSet()
+        val pendingCards = orderedCards.take(2).map { card ->
+            PendingReviewedCard(
+                cardId = card.cardId,
+                updatedAtMillis = card.updatedAtMillis
+            )
+        }.toSet()
 
         val page = reviewRepository.loadReviewTimelinePage(
             selectedFilter = ReviewFilter.AllCards,
-            pendingReviewedCardIds = pendingCardIds,
+            pendingReviewedCards = pendingCards,
             offset = 0,
             limit = 10
         )
 
         assertEquals(3, page.cards.size)
-        assertEquals(pendingCardIds, page.cards.takeLast(2).map { card -> card.cardId }.toSet())
-        assertFalse(page.cards.first().cardId in pendingCardIds)
+        assertEquals(pendingCards.map { card -> card.cardId }.toSet(), page.cards.takeLast(2).map { card -> card.cardId }.toSet())
+        assertFalse(page.cards.first().cardId in pendingCards.map { card -> card.cardId }.toSet())
         assertTrue(page.hasMoreCards.not())
     }
 
@@ -380,11 +391,11 @@ class AppDatabaseTest {
 
         val sessionSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.AllCards,
-            pendingReviewedCardIds = emptySet()
+            pendingReviewedCards = emptySet()
         ).first()
         val timelinePage = reviewRepository.loadReviewTimelinePage(
             selectedFilter = ReviewFilter.AllCards,
-            pendingReviewedCardIds = emptySet(),
+            pendingReviewedCards = emptySet(),
             offset = 0,
             limit = 10
         )

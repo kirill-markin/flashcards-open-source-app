@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
+import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
@@ -43,7 +44,7 @@ private data class ReviewDraftState(
     val requestedFilter: ReviewFilter,
     val revealedCardId: String?,
     val reviewedInSessionCount: Int,
-    val pendingReviewedCardIds: Set<String>,
+    val pendingReviewedCards: Set<PendingReviewedCard>,
     val optimisticPreparedCurrentCard: PreparedReviewCardPresentation?,
     val previewCards: List<ReviewCard>,
     val nextPreviewOffset: Int,
@@ -98,7 +99,7 @@ class ReviewViewModel(
             requestedFilter = ReviewFilter.AllCards,
             revealedCardId = null,
             reviewedInSessionCount = 0,
-            pendingReviewedCardIds = emptySet(),
+            pendingReviewedCards = emptySet(),
             optimisticPreparedCurrentCard = null,
             previewCards = emptyList(),
             nextPreviewOffset = 0,
@@ -114,7 +115,7 @@ class ReviewViewModel(
     private val reviewSessionState = draftState.flatMapLatest { state ->
         reviewRepository.observeReviewSession(
             selectedFilter = state.requestedFilter,
-            pendingReviewedCardIds = state.pendingReviewedCardIds
+            pendingReviewedCards = state.pendingReviewedCards
         ).map { sessionSnapshot ->
             ObservedReviewSessionState(
                 requestedFilter = state.requestedFilter,
@@ -387,7 +388,10 @@ class ReviewViewModel(
         draftState.update { state ->
             state.copy(
                 revealedCardId = null,
-                pendingReviewedCardIds = state.pendingReviewedCardIds + cardId,
+                pendingReviewedCards = state.pendingReviewedCards + PendingReviewedCard(
+                    cardId = cardId,
+                    updatedAtMillis = currentCard.updatedAtMillis
+                ),
                 optimisticPreparedCurrentCard = optimisticPreparedCurrentCard,
                 previewCards = emptyList(),
                 nextPreviewOffset = 0,
@@ -427,7 +431,10 @@ class ReviewViewModel(
                 }
                 draftState.update { state ->
                     state.copy(
-                        pendingReviewedCardIds = state.pendingReviewedCardIds - cardId,
+                        pendingReviewedCards = state.pendingReviewedCards - PendingReviewedCard(
+                            cardId = cardId,
+                            updatedAtMillis = currentCard.updatedAtMillis
+                        ),
                         optimisticPreparedCurrentCard = null,
                         errorMessage = error.message ?: "Review could not be saved."
                     )
@@ -511,14 +518,14 @@ class ReviewViewModel(
 
     private fun loadPreviewPage(offset: Int, replaceCards: Boolean) {
         val requestedFilter = uiState.value.selectedFilter
-        val pendingReviewedCardIds = draftState.value.pendingReviewedCardIds
+        val pendingReviewedCards = draftState.value.pendingReviewedCards
         val operationWorkspaceGeneration = workspaceGeneration
 
         viewModelScope.launch {
             try {
                 val page = reviewRepository.loadReviewTimelinePage(
                     selectedFilter = requestedFilter,
-                    pendingReviewedCardIds = pendingReviewedCardIds,
+                    pendingReviewedCards = pendingReviewedCards,
                     offset = offset,
                     limit = reviewPreviewPageSize
                 )
@@ -753,7 +760,7 @@ private fun makeWorkspaceScopedDraftState(reviewFilter: ReviewFilter): ReviewDra
         requestedFilter = reviewFilter,
         revealedCardId = null,
         reviewedInSessionCount = 0,
-        pendingReviewedCardIds = emptySet(),
+        pendingReviewedCards = emptySet(),
         optimisticPreparedCurrentCard = null,
         previewCards = emptyList(),
         nextPreviewOffset = 0,

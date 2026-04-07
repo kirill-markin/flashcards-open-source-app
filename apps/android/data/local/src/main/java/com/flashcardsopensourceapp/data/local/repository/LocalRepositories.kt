@@ -487,7 +487,7 @@ class LocalReviewRepository(
 ) : ReviewRepository {
     override fun observeReviewSession(
         selectedFilter: ReviewFilter,
-        pendingReviewedCardIds: Set<String>
+        pendingReviewedCards: Set<com.flashcardsopensourceapp.data.local.model.PendingReviewedCard>
     ): Flow<ReviewSessionSnapshot> {
         return combine(
             observeCurrentWorkspace(
@@ -532,7 +532,7 @@ class LocalReviewRepository(
 
             buildReviewSessionSnapshot(
                 selectedFilter = selectedFilter,
-                pendingReviewedCardIds = pendingReviewedCardIds,
+                pendingReviewedCards = pendingReviewedCards,
                 decks = deckSummaries,
                 cards = cardSummaries,
                 tagsSummary = makeWorkspaceTagsSummary(cards = cardSummaries),
@@ -544,7 +544,7 @@ class LocalReviewRepository(
 
     override suspend fun loadReviewTimelinePage(
         selectedFilter: ReviewFilter,
-        pendingReviewedCardIds: Set<String>,
+        pendingReviewedCards: Set<com.flashcardsopensourceapp.data.local.model.PendingReviewedCard>,
         offset: Int,
         limit: Int
     ): ReviewTimelinePage {
@@ -569,7 +569,7 @@ class LocalReviewRepository(
 
         return buildReviewTimelinePage(
             selectedFilter = selectedFilter,
-            pendingReviewedCardIds = pendingReviewedCardIds,
+            pendingReviewedCards = pendingReviewedCards,
             decks = deckSummaries,
             cards = cardSummaries,
             tagsSummary = makeWorkspaceTagsSummary(cards = cardSummaries),

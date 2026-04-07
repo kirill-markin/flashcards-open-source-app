@@ -96,6 +96,56 @@ class LiveSmokeTest {
     }
 
     @Test
+    fun resetWorkspaceProgressRestoresAReviewedCardToReview() {
+        val runId: String = System.currentTimeMillis().toString()
+        val workspaceName: String = "E2E android reset $runId"
+        val manualFrontText: String = "Manual reset e2e android $runId"
+        val manualBackText: String = "Manual answer reset e2e android $runId"
+        val reviewEmail: String = configuredReviewEmail()
+
+        liveSmokeContext.withLinkedWorkspaceSession(
+            reviewEmail = reviewEmail,
+            workspaceName = workspaceName
+        ) {
+            liveSmokeContext.step("create one manual card in the linked workspace") {
+                liveSmokeContext.createManualCard(
+                    frontText = manualFrontText,
+                    backText = manualBackText,
+                    markerTag = "reset-progress-$runId"
+                )
+            }
+
+            liveSmokeContext.step("review the card once") {
+                liveSmokeContext.assertCardReachableInReview(
+                    expectedFrontText = manualFrontText,
+                    timeoutMillis = externalUiTimeoutMillis
+                )
+                liveSmokeContext.rateVisibleReviewCardGood()
+            }
+
+            liveSmokeContext.step("open reset all progress flow and confirm the preview count is one") {
+                liveSmokeContext.resetWorkspaceProgressFromSettings(expectedCardsToResetCount = 1)
+            }
+
+            liveSmokeContext.step("verify the workspace summary reflects the reset card state") {
+                liveSmokeContext.assertWorkspaceTodayCounts(
+                    expectedDueCount = 1,
+                    expectedNewCount = 1,
+                    expectedReviewedCount = 0
+                )
+            }
+
+            liveSmokeContext.step("verify the same card reappears in review") {
+                liveSmokeContext.openReviewTab()
+                liveSmokeContext.assertCardReachableInReview(
+                    expectedFrontText = manualFrontText,
+                    timeoutMillis = externalUiTimeoutMillis
+                )
+            }
+        }
+    }
+
+    @Test
     fun guestAiCardCanBeCreatedWithExplicitConfirmation() {
         liveSmokeContext.step("create one AI card as guest and confirm the insert completed") {
             liveSmokeContext.createAiCardWithConfirmation()
