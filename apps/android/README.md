@@ -160,6 +160,19 @@ The repository policy for Android CI/CD is:
 - after pushing to `main`, watch `Android Release` when Android-impacting files changed; it runs independently from the AWS/Web release workflow
 - manual Android workflow runs also go through `Android Release`, and Google Play publish stays opt-in there
 
+## Respect Existing Code
+
+Before making any change, read the existing screens and composables in the area you are touching.
+
+Follow the patterns already present:
+
+- match the composable structure, ViewModel wiring, and StateFlow usage already established in neighboring screens
+- use the same naming conventions for composables, view models, state classes, and Compose test tags already in the codebase
+- if a shared composable, utility, or extension already exists for what you need, use it instead of adding a new one
+- do not introduce a new architecture layer or pattern unless the existing one is clearly broken for the task at hand
+
+If you are unsure how something is done, read two or three existing screens first. The answer is almost always already there.
+
 ## Review Standard
 
 When reviewing or implementing Android changes, challenge complexity early.

@@ -131,6 +131,19 @@ The expected release gate is:
 
 When a change lands on `main`, follow the Xcode Cloud workflow until the release either completes or fails with a concrete error. Do not assume the iOS release finished just because the GitHub-side AWS/Web release workflow is green.
 
+## Respect Existing Code
+
+Before making any change, read the existing screens and components in the area you are touching.
+
+Follow the patterns already present:
+
+- match the view structure, state ownership, and data flow used in neighboring screens
+- use the same naming conventions for views, view models, and identifiers already established in the codebase
+- if a helper, extension, or modifier already exists for what you need, use it instead of adding a new one
+- do not introduce a new architecture pattern or abstraction unless the existing one is clearly broken for the task at hand
+
+If you are unsure how something is done, read two or three existing screens first. The answer is almost always already there.
+
 ## Review Standard
 
 When reviewing or implementing iOS changes, challenge complexity early.

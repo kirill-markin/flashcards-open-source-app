@@ -46,6 +46,19 @@ The local smoke preflight fails fast if local auth or backend is unavailable, or
 
 `npm run test:e2e` and `npm run test:e2e:prod` remain the production/deployed smoke entrypoints. They must not point at localhost and are the paths used by CI/CD and post-deploy verification.
 
+## Respect Existing Code
+
+Before making any change, read the existing components and modules in the area you are touching.
+
+Follow the patterns already present:
+
+- match the component structure, state management approach, and API call conventions already used in neighboring screens
+- use the same naming conventions for components, hooks, types, and test selectors already established in the codebase
+- if a shared hook, utility, or helper already exists for what you need, use it instead of adding a new one
+- do not introduce a new abstraction or pattern unless the existing one is clearly broken for the task at hand
+
+If you are unsure how something is done, read two or three existing screens or hooks first. The answer is almost always already there.
+
 ## CI/CD
 
 Web build and deploy details are documented in [`docs/backend-web-deployment.md`](../../docs/backend-web-deployment.md).
