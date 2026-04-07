@@ -3,69 +3,69 @@ import XCTest
 extension LiveSmokeTestCase {
     @MainActor
     func createManualCard(frontText: String, backText: String) throws {
-        try self.assertScreenVisible(screen: .cards, timeout: self.shortUiTimeoutSeconds)
-        try self.tapElement(identifier: LiveSmokeIdentifier.cardsAddButton, timeout: self.longUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButton(identifier: LiveSmokeIdentifier.cardsAddButton, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.cardEditorScreen,
-            timeout: self.longUiTimeoutSeconds
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
-        try self.tapElement(identifier: LiveSmokeIdentifier.cardEditorFrontRow, timeout: self.longUiTimeoutSeconds)
+        try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorFrontRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.typeTextSafely(
             frontText,
             intoElementWithIdentifier: LiveSmokeIdentifier.cardEditorFrontTextEditor,
-            timeout: self.longUiTimeoutSeconds
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         try self.tapFirstNavigationBackButton()
-        try self.tapElement(identifier: LiveSmokeIdentifier.cardEditorBackRow, timeout: self.longUiTimeoutSeconds)
+        try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorBackRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.typeTextSafely(
             backText,
             intoElementWithIdentifier: LiveSmokeIdentifier.cardEditorBackTextEditor,
-            timeout: self.longUiTimeoutSeconds
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         try self.tapFirstNavigationBackButton()
-        try self.tapElement(identifier: LiveSmokeIdentifier.cardEditorSaveButton, timeout: self.longUiTimeoutSeconds)
-        try self.assertTextExists(frontText, timeout: self.longUiTimeoutSeconds)
+        try self.tapButton(identifier: LiveSmokeIdentifier.cardEditorSaveButton, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertTextExists(frontText, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
     }
 
     @MainActor
     func openFirstCardForEditing() throws {
-        try self.assertScreenVisible(screen: .cards, timeout: self.shortUiTimeoutSeconds)
-        try self.tapElement(identifier: LiveSmokeIdentifier.cardsCardRow, timeout: self.longUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButton(identifier: LiveSmokeIdentifier.cardsCardRow, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.cardEditorEditWithAIButton,
-            timeout: self.longUiTimeoutSeconds
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
     }
 
     @MainActor
     func handoffEditedCardToAIAndAssertDraftAttachment() throws {
-        try self.tapElement(
+        try self.tapButton(
             identifier: LiveSmokeIdentifier.cardEditorEditWithAIButton,
-            timeout: self.longUiTimeoutSeconds
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
-        try self.assertScreenVisible(screen: .ai, timeout: self.longUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .ai, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.assertAiEntrySurfaceVisible()
 
         let consentButton = self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton]
         if self.waitForOptionalElement(
             consentButton,
             identifier: LiveSmokeIdentifier.aiConsentAcceptButton,
-            timeout: self.optionalProbeTimeoutSeconds
+            timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds
         ) {
-            try self.tapElement(
+            try self.tapButton(
                 identifier: LiveSmokeIdentifier.aiConsentAcceptButton,
-                timeout: self.shortUiTimeoutSeconds
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
             try self.waitForAiComposerAfterConsent()
         }
 
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.aiComposerTextField,
-            timeout: self.longUiTimeoutSeconds
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.aiComposerCardAttachmentChip,
-            timeout: self.longUiTimeoutSeconds
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
 
         let cardAttachmentChipCount = self.app.descendants(matching: .any)
@@ -93,19 +93,19 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func reviewCurrentCard(expectedFrontText: String) throws {
-        try self.assertScreenVisible(screen: .review, timeout: self.shortUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertTextExists(
             expectedFrontText,
-            timeout: self.reviewInitialProbeTimeoutSeconds
+            timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
         )
-        try self.tapElement(
+        try self.tapButton(
             identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
-            timeout: self.reviewInteractionTimeoutSeconds
+            timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
         )
         try self.waitForReviewAnswerReveal()
-        try self.tapElement(
+        try self.tapButton(
             identifier: LiveSmokeIdentifier.reviewRateGoodButton,
-            timeout: self.reviewInteractionTimeoutSeconds
+            timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
         )
     }
 
@@ -113,7 +113,7 @@ extension LiveSmokeTestCase {
     func waitForReviewAnswerReveal() throws {
         let showAnswerButton = self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton]
         let rateGoodButton = self.app.buttons[LiveSmokeIdentifier.reviewRateGoodButton]
-        let deadline = Date().addingTimeInterval(self.reviewInteractionTimeoutSeconds)
+        let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
 
         while Date() < deadline {
             _ = self.dismissKnownBlockingAlertIfVisible()
@@ -135,7 +135,7 @@ extension LiveSmokeTestCase {
 
         throw LiveSmokeFailure.missingElement(
             identifier: LiveSmokeIdentifier.reviewRateGoodButton,
-            timeoutSeconds: self.reviewInteractionTimeoutSeconds,
+            timeoutSeconds: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds,
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
