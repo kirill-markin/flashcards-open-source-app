@@ -24,7 +24,7 @@
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^28.1.0",
     "typescript": "^6.0.2",
-    "vite": "^8.0.3",
+    "vite": "^8.0.5",
     "vitest": "^4.1.2"
   },
   "overrides": {
