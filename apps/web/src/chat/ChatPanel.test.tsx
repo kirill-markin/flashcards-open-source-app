@@ -605,6 +605,44 @@ describe("ChatPanel send lifecycle", () => {
     expect(getContainer().textContent).toContain("Existing response");
   });
 
+  it("does not reuse the previous workspace session id when hydrating a new workspace", async () => {
+    getChatSnapshotMock
+      .mockResolvedValueOnce(createChatSnapshot({
+        sessionId: "session-workspace-1",
+        conversationScopeId: "session-workspace-1",
+      }))
+      .mockResolvedValueOnce(createChatSnapshot({
+        sessionId: "session-workspace-2",
+        conversationScopeId: "session-workspace-2",
+      }));
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    useAppDataMock.mockReturnValue({
+      sessionVerificationState: "verified",
+      activeWorkspace: {
+        workspaceId: "workspace-2",
+        name: "Secondary",
+        createdAt: "2026-03-11T00:00:00.000Z",
+        isSelected: true,
+      },
+      isSessionVerified: true,
+      localCardCount: 1,
+      refreshLocalData: vi.fn(async (): Promise<void> => undefined),
+      runSync: vi.fn(async (): Promise<void> => undefined),
+      setErrorMessage: vi.fn(),
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    expect(getChatSnapshotMock).toHaveBeenCalledTimes(2);
+    expect(getChatSnapshotMock.mock.calls[1]?.[0]).toBeUndefined();
+  });
+
   it("uses the persisted chat snapshot as the first paint while refresh is pending", async () => {
     storeChatSessionWarmStartSnapshot("workspace-1", createChatSnapshot({
       conversation: {
