@@ -50,13 +50,11 @@ extension LiveSmokeTestCase {
                 identifier: LiveSmokeIdentifier.aiComposerSendButton,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
-            _ = self.dismissKnownBlockingAlertIfVisible()
             self.logActionStart(action: "ai_send_\(attempt)", identifier: LiveSmokeIdentifier.aiComposerSendButton)
             try self.tapButton(
                 identifier: LiveSmokeIdentifier.aiComposerSendButton,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
-            _ = self.dismissKnownBlockingAlertIfVisible()
             self.logActionEnd(
                 action: "ai_send_\(attempt)",
                 identifier: LiveSmokeIdentifier.aiComposerSendButton,
@@ -216,8 +214,6 @@ extension LiveSmokeTestCase {
         var nextConsentRetryTapAt = Date()
 
         while Date() < deadline {
-            _ = self.dismissKnownBlockingAlertIfVisible()
-
             if consentButton.exists == false && composerTextField.exists {
                 return
             }
@@ -377,7 +373,6 @@ extension LiveSmokeTestCase {
             }
 
             element.typeText(text)
-            _ = self.dismissKnownBlockingAlertIfVisible()
         }
     }
 
@@ -387,8 +382,6 @@ extension LiveSmokeTestCase {
         let deadline = Date().addingTimeInterval(timeout)
 
         while Date() < deadline {
-            _ = self.dismissKnownBlockingAlertIfVisible()
-
             if sendButton.exists && sendButton.isEnabled {
                 return true
             }
@@ -438,8 +431,6 @@ extension LiveSmokeTestCase {
         let deadline = startedAt.addingTimeInterval(timeout)
 
         while Date() < deadline {
-            _ = self.dismissKnownBlockingAlertIfVisible()
-
             let currentCount = self.app.descendants(matching: .any)
                 .matching(predicate)
                 .count
@@ -509,8 +500,6 @@ extension LiveSmokeTestCase {
         )
 
         while Date() < deadline {
-            _ = self.dismissKnownBlockingAlertIfVisible()
-
             let currentCount = self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
                 .count
@@ -568,8 +557,6 @@ extension LiveSmokeTestCase {
         )
 
         while Date() < deadline {
-            _ = self.dismissKnownBlockingAlertIfVisible()
-
             if let errorMessage = self.latestVisibleAssistantErrorMessage() {
                 let durationSeconds = Date().timeIntervalSince(startedAt)
                 self.logSmokeBreadcrumb(
@@ -654,8 +641,6 @@ extension LiveSmokeTestCase {
         )
 
         while Date() < deadline {
-            _ = self.dismissKnownBlockingAlertIfVisible()
-
             if let errorMessage = self.latestVisibleAssistantErrorMessage() {
                 let durationSeconds = Date().timeIntervalSince(startedAt)
                 self.logSmokeBreadcrumb(

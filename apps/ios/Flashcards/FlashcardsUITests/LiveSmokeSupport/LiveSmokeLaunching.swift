@@ -124,7 +124,6 @@ extension LiveSmokeTestCase {
         self.logActionStart(action: action, identifier: "application")
         self.app.launch()
         try self.waitForApplicationToReachForeground(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        _ = self.dismissKnownBlockingAlertIfVisible()
         if request.appNotificationTapType == nil {
             try self.waitForSelectedTabScreen(
                 selectedTab: request.selectedTab,

@@ -12,8 +12,6 @@ enum LiveSmokeConfiguration {
     static let selectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
     static let appNotificationTapTypeEnvironmentKey: String = "FLASHCARDS_UI_TEST_APP_NOTIFICATION_TAP_TYPE"
     static let maximumStoredBreadcrumbCount: Int = 30
-    static let knownInterruptionButtonLabels: [String] = ["Not now", "Not Now", "OK", "Close", "Dismiss", "Cancel", "Allow"]
-    static let knownBlockingAlertButtonLabels: [String] = ["OK", "Close", "Dismiss", "Cancel", "Not now", "Not Now", "Allow"]
 }
 
 struct LiveSmokeLaunchRequest {
