@@ -52,6 +52,16 @@ if [[ -z "${TEST_PATH}" ]]; then
   exit 1
 fi
 
+if [[ -z "${RESULTS_BUCKET}" ]]; then
+  echo "ERROR: --results-bucket is required." >&2
+  exit 1
+fi
+
+if [[ -z "${RESULTS_DIR}" ]]; then
+  echo "ERROR: --results-dir is required." >&2
+  exit 1
+fi
+
 if ! command -v gcloud >/dev/null 2>&1; then
   echo "ERROR: gcloud is required to run Firebase Test Lab." >&2
   exit 1
@@ -85,19 +95,12 @@ gcloud_args=(
   --no-performance-metrics
 )
 
-if [[ -n "${RESULTS_BUCKET}" ]]; then
-  gcloud_args+=(
-    --results-bucket
-    "${RESULTS_BUCKET}"
-  )
-fi
-
-if [[ -n "${RESULTS_DIR}" ]]; then
-  gcloud_args+=(
-    --results-dir
-    "${RESULTS_DIR}"
-  )
-fi
+gcloud_args+=(
+  --results-bucket
+  "${RESULTS_BUCKET}"
+  --results-dir
+  "${RESULTS_DIR}"
+)
 
 for test_target in "${TEST_TARGETS[@]}"; do
   gcloud_args+=(
