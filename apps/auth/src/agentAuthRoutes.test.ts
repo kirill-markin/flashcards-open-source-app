@@ -157,6 +157,8 @@ test("agent send-code uses Cognito OTP for non-demo emails", async () => {
 
 test("agent send-code issues an opaque challenge for allowlisted demo emails without OTP delivery", async () => {
   let createdChallengeSession = "";
+  let decideOtpRateLimitCalled = false;
+  let recordOtpSendDecisionCalled = false;
 
   const app = createAgentSendCodeApp({
     initiateEmailOtp: async () => {
@@ -166,8 +168,13 @@ test("agent send-code issues an opaque challenge for allowlisted demo emails wit
       assert.equal(email, "google-review@example.com");
       return "demo-password";
     },
-    decideOtpRateLimit: async () => ({ kind: "send" }),
-    recordOtpSendDecision: async () => undefined,
+    decideOtpRateLimit: async () => {
+      decideOtpRateLimitCalled = true;
+      return { kind: "send" };
+    },
+    recordOtpSendDecision: async () => {
+      recordOtpSendDecisionCalled = true;
+    },
     createAgentOtpChallenge: async (_email, cognitoSession) => {
       createdChallengeSession = cognitoSession;
       return "DEMO-AGENT-OTP";
@@ -192,6 +199,8 @@ test("agent send-code issues an opaque challenge for allowlisted demo emails wit
   assert.equal(payload.ok, true);
   assert.equal(payload.data.otpSessionToken, "DEMO-AGENT-OTP");
   assert.equal(createdChallengeSession, "demo-agent-session:google-review@example.com");
+  assert.equal(decideOtpRateLimitCalled, false);
+  assert.equal(recordOtpSendDecisionCalled, false);
 });
 
 test("agent verify-code uses the OTP challenge for non-demo emails", async () => {

@@ -100,10 +100,40 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
     }
 
     const requestId = getRequestId(c);
-    const ipAddress = getClientIpAddress(c.req.raw);
-    const rateLimitDecision = await dependencies.decideOtpRateLimit(email, ipAddress);
+    const demoPassword = await dependencies.getDemoEmailPassword(email);
     const authBaseUrl = getPublicAuthBaseUrl(c.req.url);
     const apiBaseUrl = getPublicApiBaseUrl(c.req.url);
+
+    if (demoPassword !== null) {
+      const otpSessionToken = await dependencies.createAgentOtpChallenge(
+        email,
+        createDemoAgentSession(email),
+        dependencies.now(),
+      );
+
+      return c.json(createAgentEnvelope(
+        c.req.url,
+        {
+          email,
+          otpSessionToken,
+          expiresInSeconds: 180,
+          authBaseUrl,
+          apiBaseUrl,
+        },
+        [{
+          name: "verify_code",
+          method: "POST",
+          url: `${authBaseUrl}/api/agent/verify-code`,
+          input: {
+            required: ["code", "otpSessionToken", "label"],
+          },
+        }],
+        "A verification code has been sent to the user's email. Ask for the 8-digit code from the email, then call verify_code with code, otpSessionToken, and a label for this agent connection. Read payload from data.* and do not expect resource fields at the top level. Select the next endpoint from instructions and confirm it with actions.",
+      ));
+    }
+
+    const ipAddress = getClientIpAddress(c.req.raw);
+    const rateLimitDecision = await dependencies.decideOtpRateLimit(email, ipAddress);
 
     if (rateLimitDecision.kind === "block_ip_limit") {
       await dependencies.recordOtpSendDecision(email, ipAddress, "blocked_ip_limit", null);
@@ -144,10 +174,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
       await dependencies.recordOtpSendDecision(email, ipAddress, "suppressed_email_limit", null);
     } else {
       try {
-        const demoPassword = await dependencies.getDemoEmailPassword(email);
-        const session = demoPassword === null
-          ? (await dependencies.initiateEmailOtp(email)).session
-          : createDemoAgentSession(email);
+        const session = (await dependencies.initiateEmailOtp(email)).session;
         otpSessionToken = await dependencies.createAgentOtpChallenge(email, session, dependencies.now());
         await dependencies.recordOtpSendDecision(email, ipAddress, "sent", null);
       } catch (error) {
