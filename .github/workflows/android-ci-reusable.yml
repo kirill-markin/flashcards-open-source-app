@@ -111,12 +111,29 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
-          script: |
-            cd apps/android
-            ./gradlew --no-daemon connectedAndroidTest
+          script: bash scripts/run-android-connected-tests.sh
+
+      - name: Detect instrumentation reports
+        if: always()
+        id: instrumentation-reports
+        run: |
+          report_path="$(
+            find apps/android -type f \
+              \( -path '*/build/outputs/androidTest-results/*' -o -path '*/build/reports/androidTests/*' \) \
+              -print -quit
+          )"
+
+          if [[ -n "${report_path}" ]]; then
+            echo "reports_found=true" >> "${GITHUB_OUTPUT}"
+            echo "Found instrumentation report artifact at ${report_path}."
+            exit 0
+          fi
+
+          echo "reports_found=false" >> "${GITHUB_OUTPUT}"
+          echo "No instrumentation reports were produced."
 
       - name: Upload instrumentation reports
-        if: always()
+        if: always() && steps.instrumentation-reports.outputs.reports_found == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: android-instrumentation-reports
