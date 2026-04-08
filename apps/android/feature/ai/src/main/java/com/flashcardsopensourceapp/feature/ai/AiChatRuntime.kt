@@ -15,6 +15,7 @@ import com.flashcardsopensourceapp.data.local.model.aiChatGuestQuotaReachedMessa
 import com.flashcardsopensourceapp.data.local.model.isSendableAiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.makeAiChatCardAttachment
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancelAndJoin
@@ -29,6 +30,7 @@ private const val noSpeechRecordedMessage: String = "No speech was recorded."
 internal class AiChatRuntime(
     scope: CoroutineScope,
     aiChatRepository: AiChatRepository,
+    autoSyncEventRepository: AutoSyncEventRepository,
     appVersion: String,
     hasConsent: () -> Boolean,
     currentCloudState: () -> CloudAccountState,
@@ -38,6 +40,7 @@ internal class AiChatRuntime(
     private val context = AiChatRuntimeContext(
         scope = scope,
         aiChatRepository = aiChatRepository,
+        autoSyncEventRepository = autoSyncEventRepository,
         appVersion = appVersion,
         hasConsent = hasConsent,
         currentCloudState = currentCloudState,
@@ -513,17 +516,6 @@ internal class AiChatRuntime(
         }
 
         val previousPersistedState = runtimeStateMutable.value.persistedState
-        val nextPersistedState = runtimeStateMutable.value.persistedState.copy(
-            messages = runtimeStateMutable.value.persistedState.messages + listOf(
-                makeUserMessage(
-                    content = outgoingContent,
-                    timestampMillis = System.currentTimeMillis()
-                ),
-                makeAssistantStatusMessage(
-                    timestampMillis = System.currentTimeMillis()
-                )
-            )
-        )
         val draftMessageBackup = runtimeStateMutable.value.draftMessage
         val pendingAttachmentsBackup = runtimeStateMutable.value.pendingAttachments
 
@@ -532,10 +524,28 @@ internal class AiChatRuntime(
             var didAcceptRun = false
             var didAppendOptimisticMessages = false
             try {
+                // AI send is blocked on a direct sync so the backend run never starts
+                // from stale local writes that are still sitting in the outbox.
+                context.aiChatRepository.ensureReadyForSend(workspaceId = runtimeStateMutable.value.workspaceId)
+                val nextPersistedState = runtimeStateMutable.value.persistedState.copy(
+                    messages = runtimeStateMutable.value.persistedState.messages + listOf(
+                        makeUserMessage(
+                            content = outgoingContent,
+                            timestampMillis = System.currentTimeMillis()
+                        ),
+                        makeAssistantStatusMessage(
+                            timestampMillis = System.currentTimeMillis()
+                        )
+                    )
+                )
                 runtimeStateMutable.update { state ->
                     state.copy(
-                        persistedState = nextPersistedState,
-                        composerPhase = AiComposerPhase.STARTING_RUN
+                        persistedState = setPendingToolRunPostSync(
+                            state = nextPersistedState,
+                            pendingToolRunPostSync = false
+                        ),
+                        composerPhase = AiComposerPhase.STARTING_RUN,
+                        runHadToolCalls = false
                     )
                 }
                 persistCurrentState()
@@ -616,19 +626,32 @@ internal class AiChatRuntime(
             || state.pendingAttachments.any(::isSendableAiChatAttachment)
     }
 
-    private suspend fun applyAcceptedRunResponse(response: com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse) {
+    private suspend fun applyAcceptedRunResponse(
+        response: com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
+    ) {
+        // Accepted responses can still mirror older recovered history before the
+        // current turn is fully visible. We intentionally keep the accepted-path
+        // detection broad here because an occasional zero-diff post-run sync is
+        // an acceptable tradeoff for simpler cross-client recovery behavior.
+        val runHadToolCalls = snapshotRunHasToolCalls(
+            activeRun = response.activeRun,
+            messages = response.conversation.messages
+        )
         runtimeStateMutable.update { state ->
             updateComposerSuggestions(
                 state = state.copy(
                     persistedState = state.persistedState.copy(
                         messages = response.conversation.messages,
                         chatSessionId = response.sessionId,
-                        lastKnownChatConfig = response.chatConfig
+                        lastKnownChatConfig = response.chatConfig,
+                        pendingToolRunPostSync = state.persistedState.pendingToolRunPostSync
+                            || runHadToolCalls
                     ),
                     conversationScopeId = response.conversationScopeId,
                     hasOlder = response.conversation.hasOlder,
                     oldestCursor = response.conversation.oldestCursor,
                     activeRun = response.activeRun,
+                    runHadToolCalls = runHadToolCalls,
                     isLiveAttached = false,
                     draftMessage = "",
                     pendingAttachments = emptyList(),
@@ -649,6 +672,8 @@ internal class AiChatRuntime(
                 workspaceId = runtimeStateMutable.value.workspaceId,
                 response = response
             )
+        } else {
+            context.triggerToolRunPostSyncIfNeeded(reason = "accepted_response_terminal")
         }
         persistCurrentState()
     }
@@ -864,12 +889,14 @@ internal class AiChatRuntime(
                         workspaceId = workspaceId,
                         persistedState = state.persistedState.copy(
                             messages = emptyList(),
-                            chatSessionId = targetSessionId
+                            chatSessionId = targetSessionId,
+                            pendingToolRunPostSync = false
                         ),
                         conversationScopeId = targetSessionId,
                         hasOlder = false,
                         oldestCursor = null,
                         activeRun = null,
+                        runHadToolCalls = false,
                         isLiveAttached = false,
                         draftMessage = draftMessage,
                         pendingAttachments = pendingAttachments,

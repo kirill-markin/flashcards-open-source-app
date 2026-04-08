@@ -82,7 +82,8 @@ extension AIChatStore {
         let clearedState = AIChatPersistedState(
             messages: [],
             chatSessionId: self.chatSessionId,
-            lastKnownChatConfig: self.serverChatConfig
+            lastKnownChatConfig: self.serverChatConfig,
+            pendingToolRunPostSync: false
         )
         self.conversationScopeId = self.chatSessionId
         self.schedulePersistState(state: clearedState)
@@ -252,6 +253,8 @@ extension AIChatStore {
         self.oldestCursor = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
+        self.runHadToolCalls = persistedState.pendingToolRunPostSync
+        self.pendingToolRunPostSync = persistedState.pendingToolRunPostSync
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
     }
@@ -322,6 +325,7 @@ extension AIChatStore {
         self.transitionToIdle()
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
+        self.resetRunToolCallTracking()
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
     }
@@ -359,13 +363,15 @@ extension AIChatStore {
         self.transitionToIdle()
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
+        self.resetRunToolCallTracking()
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
         self.schedulePersistState(
             state: AIChatPersistedState(
                 messages: [],
                 chatSessionId: sessionId,
-                lastKnownChatConfig: self.serverChatConfig
+                lastKnownChatConfig: self.serverChatConfig,
+                pendingToolRunPostSync: false
             )
         )
     }

@@ -204,6 +204,7 @@ class AiChatHistoryStore(
             .put("messages", JSONArray(state.messages.map(::encodeMessage)))
             .put("chatSessionId", state.chatSessionId)
             .put("lastKnownChatConfig", state.lastKnownChatConfig?.let(::encodeChatConfig))
+            .put("pendingToolRunPostSync", state.pendingToolRunPostSync)
     }
 
     private fun decodeState(rawValue: String): AiChatPersistedState {
@@ -224,7 +225,8 @@ class AiChatHistoryStore(
         return AiChatPersistedState(
             messages = messages,
             chatSessionId = chatSessionId,
-            lastKnownChatConfig = lastKnownChatConfig
+            lastKnownChatConfig = lastKnownChatConfig,
+            pendingToolRunPostSync = jsonObject.optBoolean("pendingToolRunPostSync", false)
         )
     }
 

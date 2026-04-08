@@ -720,6 +720,85 @@ class AiChatRemoteWireTest {
         )
     }
 
+    @Test
+    fun decodeAiChatLiveEventPayloadMapsToolCallWithoutSyncField() {
+        val event = decodeAiChatLiveEventPayload(
+            eventType = "assistant_tool_call",
+            payload = """
+            {
+              "sessionId": "session-1",
+              "conversationScopeId": "session-1",
+              "runId": "run-1",
+              "cursor": "12",
+              "sequenceNumber": 1,
+              "streamEpoch": "run-1",
+              "toolCallId": "tool-1",
+              "name": "sql",
+              "status": "completed",
+              "input": "{\"sql\":\"SELECT 1\"}",
+              "output": "{\"rows\":[1]}",
+              "itemId": "item-1",
+              "outputIndex": 0
+            }
+            """.trimIndent()
+        ) as AiChatLiveEvent.AssistantToolCall
+
+        assertEquals("tool-1", event.toolCall.toolCallId)
+        assertEquals("{\"sql\":\"SELECT 1\"}", event.toolCall.input)
+        assertEquals("{\"rows\":[1]}", event.toolCall.output)
+    }
+
+    @Test
+    fun decodeAiChatSessionSnapshotMapsToolCallWithoutSyncField() {
+        val snapshot = decodeAiChatSessionSnapshot(
+            payload = """
+            {
+              "sessionId": "session-1",
+              "conversationScopeId": "session-1",
+              "conversation": {
+                "updatedAt": 111,
+                "mainContentInvalidationVersion": 222,
+                "messages": [
+                  {
+                    "role": "assistant",
+                    "content": [
+                      {
+                        "type": "tool_call",
+                        "id": "tool-1",
+                        "name": "sql",
+                        "status": "completed"
+                      }
+                    ],
+                    "timestamp": 123,
+                    "isError": false,
+                    "isStopped": false
+                  }
+                ],
+                "hasOlder": false,
+                "oldestCursor": null
+              },
+              "composerSuggestions": [],
+              "chatConfig": {
+                "provider": { "id": "openai", "label": "OpenAI" },
+                "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                "reasoning": { "effort": "medium", "label": "Medium" },
+                "features": {
+                  "modelPickerEnabled": false,
+                  "dictationEnabled": true,
+                  "attachmentsEnabled": true
+                },
+                "liveUrl": null
+              },
+              "activeRun": null
+            }
+            """.trimIndent()
+        )
+
+        val toolCall = ((snapshot.conversation.messages.single().content.single()) as AiChatContentPart.ToolCall).toolCall
+        assertEquals("tool-1", toolCall.toolCallId)
+        assertEquals("sql", toolCall.name)
+    }
+
     @Test(expected = CloudContractMismatchException::class)
     fun decodeAiChatLiveEventPayloadRejectsUnknownEnumValue() {
         decodeAiChatLiveEventPayload(

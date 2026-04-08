@@ -149,7 +149,8 @@ final class AIChatUnknownContentTests: XCTestCase {
                 )
             ],
             chatSessionId: "session-1",
-            lastKnownChatConfig: nil
+            lastKnownChatConfig: nil,
+            pendingToolRunPostSync: false
         )
 
         await store.saveState(state: state)

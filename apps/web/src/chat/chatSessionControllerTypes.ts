@@ -6,7 +6,7 @@ import type { StoredMessage } from "./useChatHistory";
 export type UseChatSessionControllerParams = Readonly<{
   workspaceId: string | null;
   isRemoteReady: boolean;
-  onMainContentInvalidated: (mainContentInvalidationVersion: number) => void;
+  onToolRunPostSyncRequested: () => Promise<void>;
 }>;
 
 export type SendChatMessageParams = Readonly<{

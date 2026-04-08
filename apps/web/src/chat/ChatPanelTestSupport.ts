@@ -126,6 +126,7 @@ type ChatPanelTestHarness = Readonly<{
   setMobileViewport: (isMobile: boolean) => void;
   flushAsync: () => Promise<void>;
   renderChatPanel: (mode?: "sidebar" | "fullscreen") => Promise<void>;
+  unmountChatPanel: () => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
   clickNewConversation: () => Promise<void>;
   clickStop: () => Promise<void>;
@@ -607,6 +608,14 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     });
   }
 
+  async function unmountChatPanel(): Promise<void> {
+    expect(root).not.toBeNull();
+    await act(async () => {
+      root?.render(null);
+      await Promise.resolve();
+    });
+  }
+
   async function sendMessage(text: string): Promise<void> {
     const mountedContainer = getContainer();
     const textarea = mountedContainer.querySelector('textarea[name="chatMessage"]');
@@ -668,6 +677,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     setMobileViewport,
     flushAsync,
     renderChatPanel,
+    unmountChatPanel,
     sendMessage,
     clickNewConversation,
     clickStop,

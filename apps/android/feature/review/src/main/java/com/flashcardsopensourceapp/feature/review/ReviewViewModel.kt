@@ -63,6 +63,11 @@ private data class ObservedReviewSessionState(
     val sessionSnapshot: ReviewSessionSnapshot
 )
 
+private data class VisibleAutoSyncChangeSignature(
+    val reviewCardIds: List<String>,
+    val preparedCurrentCard: PreparedReviewCardPresentation?
+)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReviewViewModel(
     private val reviewRepository: ReviewRepository,
@@ -159,7 +164,7 @@ class ReviewViewModel(
     private var pendingAutoSyncRequestId: String? = null
     private var reviewCardIdsAtAutoSyncStart: List<String>? = null
     private var preparedCurrentCardAtAutoSyncStart: PreparedReviewCardPresentation? = null
-    private var lastVisibleAutoSyncChangeSignature: List<String>? = null
+    private var lastVisibleAutoSyncChangeSignature: VisibleAutoSyncChangeSignature? = null
     private var activeWorkspaceId: String? = null
     private var workspaceGeneration: Long = 0L
     /** Fixed-size in-memory review history for the current review session only. */
@@ -737,10 +742,30 @@ class ReviewViewModel(
         if (reviewCardIdsBeforeSync == null) {
             return
         }
-        if (reviewCardIdsBeforeSync == reviewCardIdsAfterSync) {
+        val currentPresentedCardId = draftState.value.presentedCardId
+        val displayedCurrentCardAfterSync = resolveDisplayedCurrentCard(
+            sessionCards = sessionSnapshot.cards,
+            presentedCardId = currentPresentedCardId
+        )
+        val preparedCurrentCardAfterSync = prepareDisplayedSessionCardPresentation(
+            displayedCard = displayedCurrentCardAfterSync,
+            sessionCards = sessionSnapshot.cards,
+            headAnswerOptions = sessionSnapshot.answerOptions,
+            secondAnswerOptions = sessionSnapshot.nextAnswerOptions
+        )
+        val didReviewQueueChange = reviewCardIdsBeforeSync != reviewCardIdsAfterSync
+        val didVisibleCurrentCardChange = currentPreparedCardBeforeSync != null
+            && preparedCurrentCardAfterSync != null
+            && currentPreparedCardBeforeSync.card.cardId == preparedCurrentCardAfterSync.card.cardId
+            && currentPreparedCardBeforeSync != preparedCurrentCardAfterSync
+        if (didReviewQueueChange.not() && didVisibleCurrentCardChange.not()) {
             return
         }
-        if (reviewCardIdsAfterSync == lastVisibleAutoSyncChangeSignature) {
+        val nextVisibleChangeSignature = VisibleAutoSyncChangeSignature(
+            reviewCardIds = reviewCardIdsAfterSync,
+            preparedCurrentCard = preparedCurrentCardAfterSync
+        )
+        if (nextVisibleChangeSignature == lastVisibleAutoSyncChangeSignature) {
             return
         }
 
@@ -756,19 +781,9 @@ class ReviewViewModel(
                 } else {
                     null
                 },
-                optimisticPreparedCurrentCard = when {
-                    state.optimisticPreparedCurrentCard?.card?.cardId == nextPresentedCardId -> {
-                        state.optimisticPreparedCurrentCard
-                    }
-
-                    currentPreparedCardBeforeSync?.card?.cardId == nextPresentedCardId -> {
-                        currentPreparedCardBeforeSync
-                    }
-
-                    else -> {
-                        null
-                    }
-                },
+                // Auto-sync must rebuild the visible card from the fresh review
+                // snapshot so same-card content changes are rendered immediately.
+                optimisticPreparedCurrentCard = null,
                 previewCards = emptyList(),
                 nextPreviewOffset = 0,
                 hasMorePreviewCards = true,
@@ -776,7 +791,7 @@ class ReviewViewModel(
                 previewErrorMessage = ""
             )
         }
-        lastVisibleAutoSyncChangeSignature = reviewCardIdsAfterSync
+        lastVisibleAutoSyncChangeSignature = nextVisibleChangeSignature
         messageController.showMessage(message = reviewUpdatedOnAnotherDeviceMessage)
     }
 }

@@ -6,6 +6,11 @@ fileprivate struct AIChatDraftPersistKey: Hashable, Sendable {
     let sessionId: String?
 }
 
+struct AIChatToolRunPostSyncOrigin: Equatable, Sendable {
+    let workspaceId: String?
+    let sessionId: String
+}
+
 @MainActor
 @Observable
 final class AIChatStore {
@@ -110,6 +115,9 @@ final class AIChatStore {
     @ObservationIgnored var activeConversationId: String?
     @ObservationIgnored var activeStreamingMessageId: String?
     @ObservationIgnored var activeStreamingItemId: String?
+    @ObservationIgnored var runHadToolCalls: Bool
+    @ObservationIgnored var pendingToolRunPostSync: Bool
+    @ObservationIgnored var activeToolRunPostSyncTask: Task<Void, Never>?
     @ObservationIgnored var nextResumeAttemptSequence: Int
     @ObservationIgnored var nextNewSessionRequestSequence: Int
     @ObservationIgnored var activeResumeErrorAttemptSequence: Int?
@@ -216,6 +224,114 @@ final class AIChatStore {
         self.activeRunSession = nil
     }
 
+    func resetRunToolCallTracking() {
+        self.runHadToolCalls = false
+        self.pendingToolRunPostSync = false
+    }
+
+    func markRunHadToolCalls() {
+        self.runHadToolCalls = true
+        let shouldPersistPendingFlag = self.pendingToolRunPostSync == false
+        self.pendingToolRunPostSync = true
+        if shouldPersistPendingFlag {
+            self.schedulePersistCurrentState()
+        }
+    }
+
+    func markRunHadToolCallsFromMessages(messages: [AIChatMessage]) {
+        if aiChatCurrentRunHasAssistantToolCalls(messages: messages) {
+            self.markRunHadToolCalls()
+        }
+    }
+
+    func markRunHadToolCallsFromSnapshot(
+        activeRun: AIChatActiveRun?,
+        messages: [AIChatMessage]
+    ) {
+        if aiChatSnapshotRunHasToolCalls(activeRun: activeRun, messages: messages) {
+            self.markRunHadToolCalls()
+        }
+    }
+
+    func hasPendingToolRunPostSync() -> Bool {
+        self.pendingToolRunPostSync
+    }
+
+    func hasPendingToolRunPostSync(origin: AIChatToolRunPostSyncOrigin) -> Bool {
+        if self.isCurrentToolRunPostSyncOrigin(origin) {
+            return self.pendingToolRunPostSync
+        }
+
+        let persistedState = self.historyStore.loadState(workspaceId: origin.workspaceId)
+        return persistedState.chatSessionId == origin.sessionId && persistedState.pendingToolRunPostSync
+    }
+
+    func currentToolRunPostSyncOrigin() -> AIChatToolRunPostSyncOrigin {
+        AIChatToolRunPostSyncOrigin(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: self.chatSessionId
+        )
+    }
+
+    func isCurrentToolRunPostSyncOrigin(_ origin: AIChatToolRunPostSyncOrigin) -> Bool {
+        self.historyWorkspaceId() == origin.workspaceId
+            && self.chatSessionId == origin.sessionId
+    }
+
+    func completeToolRunPostSyncAfterSuccess() {
+        self.runHadToolCalls = false
+        self.pendingToolRunPostSync = false
+    }
+
+    func completeToolRunPostSyncAfterSuccess(origin: AIChatToolRunPostSyncOrigin) async {
+        if self.isCurrentToolRunPostSyncOrigin(origin) {
+            self.completeToolRunPostSyncAfterSuccess()
+            self.schedulePersistCurrentState()
+            await self.waitForPendingStatePersistence()
+            return
+        }
+
+        if self.historyWorkspaceId() == origin.workspaceId {
+            return
+        }
+
+        await self.waitForPendingStatePersistence()
+        let persistedState = self.historyStore.loadState(workspaceId: origin.workspaceId)
+        guard persistedState.chatSessionId == origin.sessionId else {
+            return
+        }
+        guard persistedState.pendingToolRunPostSync else {
+            return
+        }
+
+        let clearedState = AIChatPersistedState(
+            messages: persistedState.messages,
+            chatSessionId: persistedState.chatSessionId,
+            lastKnownChatConfig: persistedState.lastKnownChatConfig,
+            pendingToolRunPostSync: false
+        )
+        await self.historyStore.saveState(workspaceId: origin.workspaceId, state: clearedState)
+    }
+
+    func waitForPendingStatePersistence() async {
+        while true {
+            let persistTask = self.activePersistTask
+            let hasPendingState = self.pendingPersistState != nil
+
+            if let persistTask {
+                await persistTask.value
+                continue
+            }
+
+            if hasPendingState {
+                await Task.yield()
+                continue
+            }
+
+            return
+        }
+    }
+
     func schedulePersistState(state: AIChatPersistedState) {
         self.pendingPersistState = state
         guard self.activePersistTask == nil else {
@@ -312,7 +428,8 @@ final class AIChatStore {
         return AIChatPersistedState(
             messages: self.messages,
             chatSessionId: self.chatSessionId,
-            lastKnownChatConfig: self.serverChatConfig
+            lastKnownChatConfig: self.serverChatConfig,
+            pendingToolRunPostSync: self.pendingToolRunPostSync
         )
     }
 
@@ -434,6 +551,9 @@ final class AIChatStore {
         self.activeConversationId = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
+        self.runHadToolCalls = persistedState.pendingToolRunPostSync
+        self.pendingToolRunPostSync = persistedState.pendingToolRunPostSync
+        self.activeToolRunPostSyncTask = nil
         self.nextResumeAttemptSequence = 0
         self.nextNewSessionRequestSequence = 0
         self.activeResumeErrorAttemptSequence = nil

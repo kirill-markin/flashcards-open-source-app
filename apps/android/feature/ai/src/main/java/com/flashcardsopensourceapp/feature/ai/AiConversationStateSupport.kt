@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai
 
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.AiChatActiveRun
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
@@ -103,6 +104,95 @@ internal fun appendTranscriptToDraft(
     }
 
     return "$trimmedDraft\n$trimmedTranscript"
+}
+
+private fun messageHasToolCalls(message: AiChatMessage): Boolean {
+    return message.content.any { contentPart -> contentPart is AiChatContentPart.ToolCall }
+}
+
+internal fun latestRunHasToolCalls(messages: List<AiChatMessage>): Boolean {
+    val latestUserIndex = messages.indexOfLast { message -> message.role == AiChatRole.USER }
+    if (latestUserIndex == -1) {
+        return false
+    }
+
+    return messages.drop(latestUserIndex + 1).any { message ->
+        message.role == AiChatRole.ASSISTANT && messageHasToolCalls(message = message)
+    }
+}
+
+internal fun terminalRunHasToolCalls(messages: List<AiChatMessage>): Boolean {
+    if (latestRunHasToolCalls(messages = messages)) {
+        return true
+    }
+
+    var trailingAssistantItemId: String? = null
+    var sawTrailingAssistantMessage = false
+    for (message in messages.asReversed()) {
+        if (message.role == AiChatRole.USER) {
+            return false
+        }
+        if (message.role == AiChatRole.ASSISTANT) {
+            if (sawTrailingAssistantMessage.not()) {
+                trailingAssistantItemId = message.itemId
+                sawTrailingAssistantMessage = true
+            } else if (message.itemId != trailingAssistantItemId) {
+                return false
+            }
+            if (messageHasToolCalls(message = message)) {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
+internal fun activeRunTailHasToolCalls(messages: List<AiChatMessage>): Boolean {
+    for (message in messages.asReversed()) {
+        if (message.role == AiChatRole.USER) {
+            return false
+        }
+        if (message.role == AiChatRole.ASSISTANT) {
+            if (messageHasToolCalls(message = message)) {
+                return true
+            }
+            if (message.isStopped) {
+                return false
+            }
+        }
+    }
+
+    return false
+}
+
+internal fun snapshotRunHasToolCalls(
+    activeRun: AiChatActiveRun?,
+    messages: List<AiChatMessage>
+): Boolean {
+    if (activeRun == null) {
+        return terminalRunHasToolCalls(messages = messages)
+    }
+
+    return activeRunTailHasToolCalls(messages = messages)
+}
+
+internal fun setPendingToolRunPostSync(
+    state: AiChatPersistedState,
+    pendingToolRunPostSync: Boolean
+): AiChatPersistedState {
+    if (state.pendingToolRunPostSync == pendingToolRunPostSync) {
+        return state
+    }
+
+    return state.copy(pendingToolRunPostSync = pendingToolRunPostSync)
+}
+
+internal fun clearPendingToolRunPostSync(state: AiChatPersistedState): AiChatPersistedState {
+    return setPendingToolRunPostSync(
+        state = state,
+        pendingToolRunPostSync = false
+    )
 }
 
 internal fun clearOptimisticAssistantStatusIfNeeded(

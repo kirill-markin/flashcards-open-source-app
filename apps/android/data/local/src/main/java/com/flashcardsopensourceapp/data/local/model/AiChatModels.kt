@@ -251,7 +251,8 @@ data class AiChatMessage(
 data class AiChatPersistedState(
     val messages: List<AiChatMessage>,
     val chatSessionId: String,
-    val lastKnownChatConfig: AiChatServerConfig?
+    val lastKnownChatConfig: AiChatServerConfig?,
+    val pendingToolRunPostSync: Boolean
 )
 
 data class AiChatDraftState(
@@ -342,7 +343,8 @@ fun makeDefaultAiChatPersistedState(): AiChatPersistedState {
     return AiChatPersistedState(
         messages = emptyList(),
         chatSessionId = "",
-        lastKnownChatConfig = null
+        lastKnownChatConfig = null,
+        pendingToolRunPostSync = false
     )
 }
 

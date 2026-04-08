@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
@@ -25,6 +26,7 @@ import kotlinx.coroutines.launch
 class AiViewModel(
     private val aiChatRepository: AiChatRepository,
     private val syncRepository: SyncRepository,
+    private val autoSyncEventRepository: AutoSyncEventRepository,
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
     appVersion: String
@@ -66,6 +68,7 @@ class AiViewModel(
     private val chatRuntime = AiChatRuntime(
         scope = viewModelScope,
         aiChatRepository = aiChatRepository,
+        autoSyncEventRepository = autoSyncEventRepository,
         appVersion = appVersion,
         hasConsent = { consentState.value },
         currentCloudState = { cloudSettingsState.value.cloudState },
@@ -226,6 +229,7 @@ class AiViewModel(
 fun createAiViewModelFactory(
     aiChatRepository: AiChatRepository,
     syncRepository: SyncRepository,
+    autoSyncEventRepository: AutoSyncEventRepository,
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
     appVersion: String
@@ -235,6 +239,7 @@ fun createAiViewModelFactory(
             AiViewModel(
                 aiChatRepository = aiChatRepository,
                 syncRepository = syncRepository,
+                autoSyncEventRepository = autoSyncEventRepository,
                 workspaceRepository = workspaceRepository,
                 cloudAccountRepository = cloudAccountRepository,
                 appVersion = appVersion

@@ -6,7 +6,8 @@ enum class AutoSyncSource {
     APP_LAUNCH,
     APP_FOREGROUND,
     REVIEW_TAB_SELECTED,
-    CARDS_TAB_SELECTED
+    CARDS_TAB_SELECTED,
+    AI_CHAT_MUTATION
 }
 
 data class AutoSyncRequest(

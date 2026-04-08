@@ -56,7 +56,8 @@ func storeAIChatHistoryStateSynchronously(
     let trimmedState = AIChatPersistedState(
         messages: Array(state.messages.suffix(aiChatMaxMessages)),
         chatSessionId: state.chatSessionId,
-        lastKnownChatConfig: state.lastKnownChatConfig
+        lastKnownChatConfig: state.lastKnownChatConfig,
+        pendingToolRunPostSync: state.pendingToolRunPostSync
     )
     let data = try encoder.encode(trimmedState)
     userDefaults.set(data, forKey: aiChatHistoryStorageKeyForWorkspace(workspaceId: workspaceId))
@@ -113,12 +114,18 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     }
 
     func loadState() -> AIChatPersistedState {
+        self.loadState(workspaceId: self.currentWorkspaceId)
+    }
+
+    func loadState(workspaceId: String?) -> AIChatPersistedState {
         runAIChatHistoryMigrationCleanupIfNeeded(userDefaults: self.userDefaults)
-        guard let data = self.userDefaults.data(forKey: self.storageKey()) else {
+        let storageKey = aiChatHistoryStorageKeyForWorkspace(workspaceId: workspaceId)
+        guard let data = self.userDefaults.data(forKey: storageKey) else {
             return AIChatPersistedState(
                 messages: [],
                 chatSessionId: "",
-                lastKnownChatConfig: nil
+                lastKnownChatConfig: nil,
+                pendingToolRunPostSync: false
             )
         }
 
@@ -136,28 +143,34 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
             return AIChatPersistedState(
                 messages: trimmedMessages,
                 chatSessionId: state.chatSessionId,
-                lastKnownChatConfig: state.lastKnownChatConfig
+                lastKnownChatConfig: state.lastKnownChatConfig,
+                pendingToolRunPostSync: state.pendingToolRunPostSync
             )
         } catch {
-            self.userDefaults.removeObject(forKey: self.storageKey())
+            self.userDefaults.removeObject(forKey: storageKey)
             return AIChatPersistedState(
                 messages: [],
                 chatSessionId: "",
-                lastKnownChatConfig: nil
+                lastKnownChatConfig: nil,
+                pendingToolRunPostSync: false
             )
         }
     }
 
     func saveState(state: AIChatPersistedState) async {
+        await self.saveState(workspaceId: self.currentWorkspaceId, state: state)
+    }
+
+    func saveState(workspaceId: String?, state: AIChatPersistedState) async {
         do {
             try storeAIChatHistoryStateSynchronously(
                 userDefaults: self.userDefaults,
                 encoder: self.encoder,
-                workspaceId: self.currentWorkspaceId,
+                workspaceId: workspaceId,
                 state: state
             )
         } catch {
-            self.userDefaults.removeObject(forKey: self.storageKey())
+            self.userDefaults.removeObject(forKey: aiChatHistoryStorageKeyForWorkspace(workspaceId: workspaceId))
         }
     }
 

@@ -9,6 +9,7 @@ export type ChatSessionControllerState = Readonly<{
   isHistoryLoaded: boolean;
   runState: ChatRunState;
   isStopping: boolean;
+  pendingToolRunPostSync: boolean;
   mainContentInvalidationVersion: number;
   chatConfig: ChatConfig;
   composerSuggestions: ReadonlyArray<ChatComposerSuggestion>;
@@ -30,7 +31,9 @@ export type ChatSessionControllerAction =
   | Readonly<{ type: "snapshot_applied"; sessionId: string; runState: ChatRunState; mainContentInvalidationVersion: number; composerSuggestions: ReadonlyArray<ChatComposerSuggestion>; chatConfig: ChatConfig }>
   | Readonly<{ type: "stop_finished"; runState: ChatRunState }>
   | Readonly<{ type: "stop_requested" }>
-  | Readonly<{ type: "warm_start_applied"; sessionId: string; mainContentInvalidationVersion: number; chatConfig: ChatConfig }>
+  | Readonly<{ type: "tool_run_post_sync_consumed" }>
+  | Readonly<{ type: "tool_run_post_sync_marked" }>
+  | Readonly<{ type: "warm_start_applied"; sessionId: string; mainContentInvalidationVersion: number; chatConfig: ChatConfig; pendingToolRunPostSync: boolean }>
   | Readonly<{ type: "warm_start_stale"; sessionId: string; chatConfig: ChatConfig }>
   | Readonly<{ type: "workspace_cleared" }>
   | Readonly<{ type: "workspace_hydration_started" }>;
@@ -61,6 +64,7 @@ function createEmptyConversationState(
     isHistoryLoaded,
     runState: "idle",
     isStopping: false,
+    pendingToolRunPostSync: false,
     mainContentInvalidationVersion: 0,
     composerSuggestions: [],
     ...clearUiState(state),
@@ -83,6 +87,9 @@ export function createInitialChatSessionControllerBootstrap(
     isHistoryLoaded: workspaceId === null || initialWarmStartSnapshot !== null,
     runState: "idle",
     isStopping: false,
+    pendingToolRunPostSync: initialWarmStartSnapshot !== null && initialWarmStartSnapshotIsStale === false
+      ? initialWarmStartSnapshot.pendingToolRunPostSync
+      : false,
     mainContentInvalidationVersion: initialWarmStartSnapshot !== null && initialWarmStartSnapshotIsStale === false
       ? initialWarmStartSnapshot.mainContentInvalidationVersion
       : 0,
@@ -138,6 +145,7 @@ export function chatSessionControllerReducer(
         isHistoryLoaded: true,
         runState: "idle",
         isStopping: false,
+        pendingToolRunPostSync: false,
         mainContentInvalidationVersion: 0,
         chatConfig: action.chatConfig,
         composerSuggestions: [],
@@ -200,6 +208,20 @@ export function chatSessionControllerReducer(
         ...state,
         isStopping: true,
       };
+    case "tool_run_post_sync_consumed":
+      return state.pendingToolRunPostSync === false
+        ? state
+        : {
+          ...state,
+          pendingToolRunPostSync: false,
+        };
+    case "tool_run_post_sync_marked":
+      return state.pendingToolRunPostSync
+        ? state
+        : {
+          ...state,
+          pendingToolRunPostSync: true,
+        };
     case "warm_start_applied":
       return {
         ...state,
@@ -207,6 +229,7 @@ export function chatSessionControllerReducer(
         isHistoryLoaded: true,
         runState: "idle",
         isStopping: false,
+        pendingToolRunPostSync: action.pendingToolRunPostSync,
         mainContentInvalidationVersion: action.mainContentInvalidationVersion,
         chatConfig: action.chatConfig,
         composerSuggestions: [],
@@ -219,6 +242,7 @@ export function chatSessionControllerReducer(
         isHistoryLoaded: true,
         runState: "idle",
         isStopping: false,
+        pendingToolRunPostSync: false,
         mainContentInvalidationVersion: 0,
         chatConfig: action.chatConfig,
         composerSuggestions: [],

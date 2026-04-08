@@ -82,6 +82,7 @@ export function useChatSessionHydrationLifecycle(
       sessionId: warmStartSnapshot.sessionId,
       mainContentInvalidationVersion: warmStartSnapshot.mainContentInvalidationVersion,
       chatConfig: warmStartSnapshot.chatConfig,
+      pendingToolRunPostSync: warmStartSnapshot.pendingToolRunPostSync,
     });
     resetSnapshotTracking(warmStartSnapshot.updatedAt);
     hydratedWorkspaceIdRef.current = nextWorkspaceId;

@@ -37,7 +37,11 @@ export type {
 export function useChatSessionController(
   params: UseChatSessionControllerParams,
 ): ChatSessionController {
-  const { workspaceId, isRemoteReady, onMainContentInvalidated } = params;
+  const {
+    workspaceId,
+    isRemoteReady,
+    onToolRunPostSyncRequested,
+  } = params;
   const controllerIdRef = useRef<string>(createChatControllerDebugId());
   const controllerId = controllerIdRef.current;
   const initialWarmStartSnapshotRef = useRef(loadChatSessionWarmStartSnapshot(workspaceId));
@@ -63,7 +67,7 @@ export function useChatSessionController(
     state,
     dispatch,
     history,
-    onMainContentInvalidated,
+    onToolRunPostSyncRequested,
     initialLastSnapshotUpdatedAt: initialWarmStartSnapshot !== null && initialWarmStartSnapshotIsStale === false
       ? initialWarmStartSnapshot.updatedAt
       : null,
@@ -115,7 +119,7 @@ export function useChatSessionController(
       composerSuggestions: [],
       chatConfig: state.chatConfig,
       activeRun: null,
-    });
+    }, state.pendingToolRunPostSync);
   });
 
   useEffect(() => {
@@ -127,6 +131,7 @@ export function useChatSessionController(
     state.currentSessionId,
     state.isHistoryLoaded,
     state.mainContentInvalidationVersion,
+    state.pendingToolRunPostSync,
     workspaceId,
   ]);
 

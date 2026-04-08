@@ -711,23 +711,56 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
     let messages: [AIChatMessage]
     let chatSessionId: String
     let lastKnownChatConfig: AIChatServerConfig?
+    let pendingToolRunPostSync: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case messages
+        case chatSessionId
+        case lastKnownChatConfig
+        case pendingToolRunPostSync
+    }
 
     init(
         messages: [AIChatMessage],
         chatSessionId: String,
-        lastKnownChatConfig: AIChatServerConfig?
+        lastKnownChatConfig: AIChatServerConfig?,
+        pendingToolRunPostSync: Bool
     ) {
         self.messages = messages
         self.chatSessionId = chatSessionId
         self.lastKnownChatConfig = lastKnownChatConfig
+        self.pendingToolRunPostSync = pendingToolRunPostSync
     }
 
     init(messages: [AIChatMessage]) {
         self.init(
             messages: messages,
             chatSessionId: "",
-            lastKnownChatConfig: nil
+            lastKnownChatConfig: nil,
+            pendingToolRunPostSync: false
         )
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.messages = try container.decode([AIChatMessage].self, forKey: .messages)
+        self.chatSessionId = try container.decode(String.self, forKey: .chatSessionId)
+        self.lastKnownChatConfig = try container.decodeIfPresent(
+            AIChatServerConfig.self,
+            forKey: .lastKnownChatConfig
+        )
+        self.pendingToolRunPostSync = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .pendingToolRunPostSync
+        ) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.messages, forKey: .messages)
+        try container.encode(self.chatSessionId, forKey: .chatSessionId)
+        try container.encodeIfPresent(self.lastKnownChatConfig, forKey: .lastKnownChatConfig)
+        try container.encode(self.pendingToolRunPostSync, forKey: .pendingToolRunPostSync)
     }
 }
 

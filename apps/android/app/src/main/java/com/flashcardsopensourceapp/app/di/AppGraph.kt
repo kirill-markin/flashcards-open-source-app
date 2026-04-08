@@ -159,6 +159,7 @@ class AppGraph(
         syncLocalStore = syncLocalStore
     )
     val aiChatRepository: AiChatRepository = LocalAiChatRepository(
+        database = database,
         preferencesStore = cloudPreferencesStore,
         cloudRemoteService = cloudRemoteService,
         cloudGuestSessionCoordinator = cloudGuestSessionCoordinator,

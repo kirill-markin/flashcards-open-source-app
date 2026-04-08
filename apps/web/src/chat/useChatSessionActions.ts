@@ -65,6 +65,7 @@ export function useChatSessionActions(
     hasActiveLiveConnection,
     invalidatePendingSnapshotRequests,
     isDocumentVisibleRef,
+    markRunHadToolCallsFromSnapshot,
     reconcileTerminalSnapshot,
     resetSnapshotTracking,
     runtimeRefs,
@@ -157,6 +158,16 @@ export function useChatSessionActions(
 
     try {
       const response = await startChatRun(requestBody);
+      // Accepted responses can already include tool-call content for the
+      // current run, whether the snapshot is terminal or still active. The
+      // accepted response is compared against the current local history so
+      // older server messages do not get mistaken for the new run.
+      markRunHadToolCallsFromSnapshot(
+        response.activeRun,
+        response.conversation.messages,
+        runtimeRefs.messagesRef.current,
+        contentParts,
+      );
       appendUserMessage(contentParts);
       startAssistantMessage(OPTIMISTIC_ASSISTANT_STATUS_TEXT);
       dispatch({
@@ -198,6 +209,7 @@ export function useChatSessionActions(
     dispatch,
     isDocumentVisibleRef,
     isRemoteReady,
+    markRunHadToolCallsFromSnapshot,
     reconcileTerminalSnapshot,
     setKnownLiveCursor,
     startActiveRunLiveStream,
