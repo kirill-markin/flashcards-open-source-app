@@ -136,30 +136,20 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
               <span className="review-filter-menu-item-label">{item.label}</span>
             </button>
           ))}
-          {reviewFilterMenuItems.map((item) => {
-            if (item.kind === "separator") {
-              if (visibleReviewTagFilterMenuItems.length === 0) {
-                return null;
-              }
-
-              return <div key={item.key} className="review-filter-menu-divider" role="separator" />;
-            }
-
-            return (
-              <Link
-                key={item.key}
-                className="review-filter-menu-entry review-filter-menu-entry-action"
-                to={item.href}
-                role="menuitem"
-                onClick={handleCloseMenu}
-              >
-                <span className="review-filter-menu-item-slot" aria-hidden="true">
-                  <ReviewFilterDecksIcon />
-                </span>
-                <span className="review-filter-menu-item-label">{item.label}</span>
-              </Link>
-            );
-          })}
+          {reviewFilterMenuItems.map((item) => (
+            <Link
+              key={item.key}
+              className="review-filter-menu-entry review-filter-menu-entry-action"
+              to={item.href}
+              role="menuitem"
+              onClick={handleCloseMenu}
+            >
+              <span className="review-filter-menu-item-slot" aria-hidden="true">
+                <ReviewFilterDecksIcon />
+              </span>
+              <span className="review-filter-menu-item-label">{item.label}</span>
+            </Link>
+          ))}
           {visibleReviewEffortFilterMenuItems.length > 0 ? (
             <div className="review-filter-menu-divider" role="separator" />
           ) : null}
