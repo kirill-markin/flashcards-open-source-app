@@ -53,10 +53,11 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 - Builds `:app:assembleDebugAndroidTest`
 - Builds `:data:local:assembleDebugAndroidTest`
 - Runs `:app:lintDebug`
+- Delegates the GitHub-hosted Android Gradle entrypoints to repo-root shell scripts in `scripts/`
 - Uploads the debug APK, Android test APK, unit test reports, and lint report as workflow artifacts
 - Boots a headless Android 16 / API 36 emulator in GitHub Actions
-- Runs the full Gradle `connectedAndroidTest` suite on that emulator
-- Uploads instrumentation reports from the emulator run as workflow artifacts
+- Runs the full Gradle `connectedAndroidTest` suite on that emulator through `scripts/run-android-connected-tests.sh`
+- Uploads instrumentation reports from the emulator run when the Gradle task produced them
 - Validates the Firebase Test Lab configuration whenever the reusable workflow is called with live smoke enabled
 - Runs Firebase Test Lab against the native stateful smoke classes `com.flashcardsopensourceapp.app.LiveSmokeTest` and `com.flashcardsopensourceapp.app.NotificationTapSmokeTest`
 - Fails the workflow instead of silently skipping the live smoke gate when the required repository variables are missing
