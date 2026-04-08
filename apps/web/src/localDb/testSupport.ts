@@ -175,6 +175,10 @@ function resolveLegacyReviewFilter(
       : { kind: "allCards" };
   }
 
+  if (reviewFilter.kind === "effort") {
+    return reviewFilter;
+  }
+
   return cards.some((card) => card.tags.includes(reviewFilter.tag))
     ? reviewFilter
     : { kind: "allCards" };
@@ -204,6 +208,8 @@ export function legacyReviewCards(
         const deck = decks.find((candidateDeck) => candidateDeck.deckId === resolvedReviewFilter.deckId);
         return deck === undefined ? true : matchesDeckFilterDefinition(deck.filterDefinition, card);
       })
+      : resolvedReviewFilter.kind === "effort"
+        ? activeCards.filter((card) => card.effortLevel === resolvedReviewFilter.effortLevel)
       : activeCards.filter((card) => card.tags.includes(resolvedReviewFilter.tag));
 
   return [...matchingCards].sort((leftCard, rightCard) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp));

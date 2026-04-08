@@ -65,6 +65,14 @@ async function resolveReviewFilterFromIndexedDb(
     };
   }
 
+  if (reviewFilter.kind === "effort") {
+    return {
+      resolvedReviewFilter: reviewFilter,
+      deck: null,
+      allowedTagCardIds: null,
+    };
+  }
+
   const allowedTagCardIds = await loadAllowedCardIdsForTags(database, workspaceId, [reviewFilter.tag]);
   if (allowedTagCardIds.size === 0) {
     return {
@@ -95,6 +103,10 @@ function matchesResolvedReviewFilter(
     }
 
     return matchesDeckFilterDefinition(filterResolution.deck.filterDefinition, card);
+  }
+
+  if (filterResolution.resolvedReviewFilter.kind === "effort") {
+    return card.effortLevel === filterResolution.resolvedReviewFilter.effortLevel;
   }
 
   return filterResolution.allowedTagCardIds?.has(card.cardId) ?? false;

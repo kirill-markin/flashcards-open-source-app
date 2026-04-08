@@ -251,12 +251,18 @@ class AppDatabaseTest {
             selectedFilter = ReviewFilter.Tag(tag = "ui"),
             pendingReviewedCards = emptySet()
         ).first()
+        val effortSnapshot = reviewRepository.observeReviewSession(
+            selectedFilter = ReviewFilter.Effort(effortLevel = EffortLevel.FAST),
+            pendingReviewedCards = emptySet()
+        ).first()
 
         assertEquals(ReviewFilter.AllCards, allCardsSnapshot.selectedFilter)
         assertEquals(3, allCardsSnapshot.totalCount)
         assertEquals(2, pendingSnapshot.remainingCount)
         assertEquals(3, pendingSnapshot.totalCount)
         assertEquals(2, tagSnapshot.totalCount)
+        assertEquals(ReviewFilter.Effort(effortLevel = EffortLevel.FAST), effortSnapshot.selectedFilter)
+        assertEquals(2, effortSnapshot.totalCount)
         assertEquals(
             "in 10 minutes",
             tagSnapshot.answerOptions.first { option ->

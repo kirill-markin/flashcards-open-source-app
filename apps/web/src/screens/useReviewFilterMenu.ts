@@ -1,22 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { ALL_CARDS_REVIEW_FILTER } from "../appData/domain";
+import { ALL_CARDS_REVIEW_FILTER, formatEffortLevelTitle } from "../appData/domain";
 import { settingsDecksRoute } from "../routes";
-import type { DeckSummary, ReviewFilter, WorkspaceTagSummary } from "../types";
+import type { DeckSummary, EffortLevel, ReviewFilter, WorkspaceTagSummary } from "../types";
 
 const REVIEW_FILTER_DECK_PREFIX = "deck:";
+const REVIEW_FILTER_EFFORT_PREFIX = "effort:";
 const REVIEW_FILTER_TAG_PREFIX = "tag:";
 
-export type ReviewFilterMenuItem =
-  | Readonly<{
-    kind: "action";
-    key: "edit-decks";
-    label: string;
-    href: string;
-  }>
-  | Readonly<{
-    kind: "separator";
-    key: "tags-separator";
-  }>;
+export type ReviewFilterMenuItem = Readonly<{
+  kind: "action";
+  key: "edit-decks";
+  label: string;
+  href: string;
+}>;
 
 export type ReviewFilterChoiceMenuItem = Readonly<{
   isSelected: boolean;
@@ -46,6 +42,7 @@ export type UseReviewFilterMenuResult = Readonly<{
   setReviewDeckSearchText: (value: string) => void;
   shouldShowReviewDeckSearch: boolean;
   visibleReviewDeckFilterMenuItems: ReadonlyArray<ReviewFilterChoiceMenuItem>;
+  visibleReviewEffortFilterMenuItems: ReadonlyArray<ReviewFilterChoiceMenuItem>;
   visibleReviewTagFilterMenuItems: ReadonlyArray<ReviewFilterChoiceMenuItem>;
 }>;
 
@@ -58,7 +55,29 @@ function toReviewFilterMenuItemKey(reviewFilter: ReviewFilter): string {
     return `${REVIEW_FILTER_DECK_PREFIX}${reviewFilter.deckId}`;
   }
 
+  if (reviewFilter.kind === "effort") {
+    return `${REVIEW_FILTER_EFFORT_PREFIX}${reviewFilter.effortLevel}`;
+  }
+
   return `${REVIEW_FILTER_TAG_PREFIX}${reviewFilter.tag}`;
+}
+
+function buildReviewEffortFilterMenuItems(
+  selectedReviewFilter: ReviewFilter,
+): Array<ReviewFilterChoiceMenuItem> {
+  return (["fast", "medium", "long"] as const satisfies ReadonlyArray<EffortLevel>).map((effortLevel) => {
+    const reviewFilter: ReviewFilter = {
+      kind: "effort",
+      effortLevel,
+    };
+
+    return {
+      key: toReviewFilterMenuItemKey(reviewFilter),
+      label: formatEffortLevelTitle(effortLevel),
+      reviewFilter,
+      isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(reviewFilter),
+    };
+  });
 }
 
 function buildReviewDeckFilterMenuItems(
@@ -107,27 +126,13 @@ function buildReviewTagFilterMenuItems(
   });
 }
 
-function buildReviewFilterMenuItems(
-  reviewTagSummaries: ReadonlyArray<WorkspaceTagSummary>,
-): Array<ReviewFilterMenuItem> {
-  const items: Array<ReviewFilterMenuItem> = [{
+function buildReviewFilterMenuItems(): Array<ReviewFilterMenuItem> {
+  return [{
     kind: "action",
     key: "edit-decks",
     label: "Edit decks",
     href: settingsDecksRoute,
   }];
-
-  if (reviewTagSummaries.length === 0) {
-    return items;
-  }
-
-  return [
-    ...items,
-    {
-      kind: "separator",
-      key: "tags-separator",
-    },
-  ];
 }
 
 function normalizeReviewFilterSearchText(searchText: string): string {
@@ -156,18 +161,26 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
   const reviewFilterTriggerRef = useRef<HTMLButtonElement | null>(null);
   const reviewDeckSearchInputRef = useRef<HTMLInputElement | null>(null);
   const reviewDeckFilterMenuItems = buildReviewDeckFilterMenuItems(deckSummaries, selectedReviewFilter);
+  const reviewEffortFilterMenuItems = buildReviewEffortFilterMenuItems(selectedReviewFilter);
   const reviewTagFilterMenuItems = buildReviewTagFilterMenuItems(reviewTagSummaries, selectedReviewFilter);
-  const reviewFilterMenuItems = buildReviewFilterMenuItems(reviewTagSummaries);
-  const totalReviewFilterChoicesCount = reviewDeckFilterMenuItems.length + reviewTagFilterMenuItems.length;
+  const reviewFilterMenuItems = buildReviewFilterMenuItems();
+  const totalReviewFilterChoicesCount = reviewDeckFilterMenuItems.length
+    + reviewEffortFilterMenuItems.length
+    + reviewTagFilterMenuItems.length;
   const shouldShowReviewDeckSearch = totalReviewFilterChoicesCount > 7;
   const normalizedReviewDeckSearchText = normalizeReviewFilterSearchText(reviewDeckSearchText);
   const visibleReviewDeckFilterMenuItems = shouldShowReviewDeckSearch
     ? reviewDeckFilterMenuItems.filter((item) => item.label.toLowerCase().includes(normalizedReviewDeckSearchText))
     : reviewDeckFilterMenuItems;
+  const visibleReviewEffortFilterMenuItems = shouldShowReviewDeckSearch
+    ? reviewEffortFilterMenuItems.filter((item) => item.label.toLowerCase().includes(normalizedReviewDeckSearchText))
+    : reviewEffortFilterMenuItems;
   const visibleReviewTagFilterMenuItems = shouldShowReviewDeckSearch
     ? reviewTagFilterMenuItems.filter((item) => item.label.toLowerCase().includes(normalizedReviewDeckSearchText))
     : reviewTagFilterMenuItems;
-  const hasVisibleReviewFilterChoices = visibleReviewDeckFilterMenuItems.length > 0 || visibleReviewTagFilterMenuItems.length > 0;
+  const hasVisibleReviewFilterChoices = visibleReviewDeckFilterMenuItems.length > 0
+    || visibleReviewEffortFilterMenuItems.length > 0
+    || visibleReviewTagFilterMenuItems.length > 0;
 
   useEffect(() => {
     if (!isReviewFilterMenuOpen) {
@@ -250,6 +263,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     setReviewDeckSearchText,
     shouldShowReviewDeckSearch,
     visibleReviewDeckFilterMenuItems,
+    visibleReviewEffortFilterMenuItems,
     visibleReviewTagFilterMenuItems,
   };
 }

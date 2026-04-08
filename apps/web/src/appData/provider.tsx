@@ -44,6 +44,24 @@ function parsePersistedReviewFilter(value: string | null): ReviewFilter {
       typeof parsedValue === "object"
       && parsedValue !== null
       && "kind" in parsedValue
+      && parsedValue.kind === "effort"
+      && "effortLevel" in parsedValue
+      && (
+        parsedValue.effortLevel === "fast"
+        || parsedValue.effortLevel === "medium"
+        || parsedValue.effortLevel === "long"
+      )
+    ) {
+      return {
+        kind: "effort",
+        effortLevel: parsedValue.effortLevel,
+      };
+    }
+
+    if (
+      typeof parsedValue === "object"
+      && parsedValue !== null
+      && "kind" in parsedValue
       && parsedValue.kind === "deck"
       && "deckId" in parsedValue
       && typeof parsedValue.deckId === "string"

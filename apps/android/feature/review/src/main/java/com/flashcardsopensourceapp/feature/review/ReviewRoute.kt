@@ -173,6 +173,7 @@ fun ReviewRoute(
         ReviewFilterSheet(
             selectedFilter = uiState.selectedFilter,
             availableDeckFilters = uiState.availableDeckFilters,
+            availableEffortFilters = uiState.availableEffortFilters,
             availableTagFilters = uiState.availableTagFilters,
             onDismiss = {
                 isFilterSheetVisible = false

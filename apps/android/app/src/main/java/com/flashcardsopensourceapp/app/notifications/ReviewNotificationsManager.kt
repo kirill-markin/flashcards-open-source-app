@@ -15,6 +15,7 @@ import androidx.work.WorkManager
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.decodeDeckFilterDefinitionJson
 import com.flashcardsopensourceapp.data.local.model.normalizeTagKey
@@ -334,6 +335,12 @@ class ReviewNotificationsManager(
                 nowMillis = nowMillis
             )
 
+            is ReviewFilter.Effort -> loadCurrentEffortReviewNotificationCard(
+                workspaceId = workspaceId,
+                effortLevel = reviewFilter.effortLevel,
+                nowMillis = nowMillis
+            )
+
             is ReviewFilter.Tag -> loadCurrentTagReviewNotificationCard(
                 workspaceId = workspaceId,
                 tag = reviewFilter.tag,
@@ -380,6 +387,26 @@ class ReviewNotificationsManager(
 
         return CurrentReviewNotificationCard(
             reviewFilter = makePersistedReviewFilter(reviewFilter = ReviewFilter.Deck(deckId = deck.deckId)),
+            cardId = card.cardId,
+            frontText = card.frontText
+        )
+    }
+
+    private suspend fun loadCurrentEffortReviewNotificationCard(
+        workspaceId: String,
+        effortLevel: EffortLevel,
+        nowMillis: Long
+    ): CurrentReviewNotificationCard? {
+        val card = database.cardDao().loadTopReviewCardByEffortLevels(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            effortLevels = listOf(effortLevel)
+        ) ?: return null
+
+        return CurrentReviewNotificationCard(
+            reviewFilter = makePersistedReviewFilter(
+                reviewFilter = ReviewFilter.Effort(effortLevel = effortLevel)
+            ),
             cardId = card.cardId,
             frontText = card.frontText
         )

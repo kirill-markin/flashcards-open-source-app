@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "../appData/domain";
+import { ALL_CARDS_REVIEW_FILTER, formatEffortLevelTitle, isReviewFilterEqual } from "../appData/domain";
 import { loadDecksListSnapshot } from "../localDb/decks";
 import {
   loadReviewQueueChunk,
@@ -69,6 +69,10 @@ function resolveReviewFilterTitle(
 ): string {
   if (reviewFilter.kind === "allCards") {
     return "All cards";
+  }
+
+  if (reviewFilter.kind === "effort") {
+    return formatEffortLevelTitle(reviewFilter.effortLevel);
   }
 
   if (reviewFilter.kind === "tag") {

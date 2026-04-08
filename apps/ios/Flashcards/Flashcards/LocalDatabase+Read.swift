@@ -62,6 +62,16 @@ extension LocalDatabase {
                 reviewFilter: .deck(deckId: deckId),
                 queryDefinition: .deck(filterDefinition: deck.filterDefinition)
             )
+        case .effort(let level):
+            return ResolvedReviewQuery(
+                reviewFilter: .effort(level: level),
+                queryDefinition: .deck(
+                    filterDefinition: buildDeckFilterDefinition(
+                        effortLevels: [level],
+                        tags: []
+                    )
+                )
+            )
         case .tag(let tag):
             return ResolvedReviewQuery(
                 reviewFilter: .tag(tag: tag),

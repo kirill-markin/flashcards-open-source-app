@@ -100,6 +100,53 @@ final class FsrsReviewPresentationTests: XCTestCase {
         XCTAssertEqual(reviewTimeline.map(\.cardId), ["matching-active", "matching-future"])
     }
 
+    func testMakeReviewTimelineForEffortFilterKeepsVirtualFilterActiveWithoutMatchingCards() throws {
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+        let cards = [
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "fast-active",
+                tags: ["grammar"],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:00:00.000Z",
+                updatedAt: "2026-03-09T08:30:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "medium-future",
+                tags: ["grammar"],
+                effortLevel: .medium,
+                dueAt: "2026-03-09T11:00:00.000Z",
+                updatedAt: "2026-03-09T07:30:00.000Z"
+            )
+        ]
+
+        let activeQueue = makeReviewQueue(
+            reviewFilter: .effort(level: .fast),
+            decks: [],
+            cards: cards,
+            now: now
+        )
+        let activeTimeline = makeReviewTimeline(
+            reviewFilter: .effort(level: .fast),
+            decks: [],
+            cards: cards,
+            now: now
+        )
+        let emptyTimeline = makeReviewTimeline(
+            reviewFilter: .effort(level: .long),
+            decks: [],
+            cards: cards,
+            now: now
+        )
+
+        XCTAssertEqual(activeQueue.map(\.cardId), ["fast-active"])
+        XCTAssertEqual(activeTimeline.map(\.cardId), ["fast-active"])
+        XCTAssertEqual(emptyTimeline, [])
+        XCTAssertEqual(
+            resolveReviewFilter(reviewFilter: .effort(level: .long), decks: [], cards: cards),
+            .effort(level: .long)
+        )
+    }
+
     func testMakeReviewTimelineAppendsFutureCardsSortedByDueAtAndCreatedAtDescending() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
         let cards = [

@@ -424,6 +424,10 @@ export type ReviewFilter =
     deckId: string;
   }>
   | Readonly<{
+    kind: "effort";
+    effortLevel: EffortLevel;
+  }>
+  | Readonly<{
     kind: "tag";
     tag: string;
   }>;

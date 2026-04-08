@@ -220,6 +220,7 @@ class ReviewViewModel(
             preparedCurrentCard = currentPreparedCard,
             preparedNextCard = preparedNextCard,
             availableDeckFilters = sessionSnapshot.availableDeckFilters,
+            availableEffortFilters = sessionSnapshot.availableEffortFilters,
             availableTagFilters = sessionSnapshot.availableTagFilters,
             isPreviewLoading = state.isPreviewLoading,
             previewItems = buildReviewPreviewItems(
@@ -248,6 +249,7 @@ class ReviewViewModel(
             preparedCurrentCard = null,
             preparedNextCard = null,
             availableDeckFilters = emptyList(),
+            availableEffortFilters = emptyList(),
             availableTagFilters = emptyList(),
             isPreviewLoading = false,
             previewItems = emptyList(),
@@ -912,6 +914,7 @@ private fun loadingReviewSessionSnapshot(): ReviewSessionSnapshot {
         remainingCount = 0,
         totalCount = 0,
         availableDeckFilters = emptyList(),
+        availableEffortFilters = emptyList(),
         availableTagFilters = emptyList(),
         isLoading = true
     )

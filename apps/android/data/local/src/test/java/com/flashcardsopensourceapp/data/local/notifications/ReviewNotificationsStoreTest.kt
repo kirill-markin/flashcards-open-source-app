@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.data.local.notifications
 
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import java.time.Instant
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
@@ -14,6 +16,7 @@ class ReviewNotificationsStoreTest {
             reviewFilter = PersistedReviewFilter(
                 kind = "deck",
                 deckId = "deck-1",
+                effortLevel = null,
                 tag = null
             ),
             nowMillis = parseTimestampMillis(value = "2026-04-03T09:00:00Z"),
@@ -91,6 +94,7 @@ class ReviewNotificationsStoreTest {
             reviewFilter = PersistedReviewFilter(
                 kind = "tag",
                 deckId = null,
+                effortLevel = null,
                 tag = "biology"
             ),
             nowMillis = parseTimestampMillis(value = "2026-04-03T10:16:00Z"),
@@ -204,6 +208,20 @@ class ReviewNotificationsStoreTest {
         assertEquals(listOf("Front B", "Front B"), replacementPayloads.map { it.frontText })
         assertEquals(replacementPayloads.size, replacementPayloads.map { it.requestId }.toSet().size)
     }
+
+    @Test
+    fun effortReviewFilterRoundTripsThroughNotificationPersistence() {
+        val persistedFilter = makePersistedReviewFilter(
+            reviewFilter = ReviewFilter.Effort(effortLevel = EffortLevel.MEDIUM)
+        )
+
+        assertEquals(
+            ReviewFilter.Effort(effortLevel = EffortLevel.MEDIUM),
+            decodePersistedReviewFilter(filter = persistedFilter)
+        )
+        assertEquals("effort", persistedFilter.kind)
+        assertEquals(EffortLevel.MEDIUM.name, persistedFilter.effortLevel)
+    }
 }
 
 private fun makeCurrentCard(cardId: String, frontText: String): CurrentReviewNotificationCard {
@@ -211,6 +229,7 @@ private fun makeCurrentCard(cardId: String, frontText: String): CurrentReviewNot
         reviewFilter = PersistedReviewFilter(
             kind = "allCards",
             deckId = null,
+            effortLevel = null,
             tag = null
         ),
         cardId = cardId,

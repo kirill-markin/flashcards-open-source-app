@@ -50,8 +50,20 @@ struct ReviewView: View {
             return self.reviewDeckSummaries.first(where: { deckSummary in
                 deckSummary.deckId == deckId
             })?.name ?? allCardsDeckLabel
+        case .effort(let level):
+            return level.title
         case .tag(let tag):
             return tag
+        }
+    }
+
+    /// Effort filters are stable virtual review scopes, so all three stay visible even when a count is zero.
+    private var reviewEffortFilterCounts: [EffortLevel: Int] {
+        let activeCards = deriveActiveCards(cards: store.cards)
+        return EffortLevel.allCases.reduce(into: [EffortLevel: Int]()) { result, level in
+            result[level] = activeCards.count { card in
+                card.effortLevel == level
+            }
         }
     }
 
@@ -63,6 +75,8 @@ struct ReviewView: View {
             return self.reviewDeckSummaries.first(where: { deckSummary in
                 deckSummary.deckId == deckId
             })?.name ?? allCardsDeckLabel
+        case .effort(let level):
+            return "\(level.title) (\(self.reviewEffortFilterCounts[level] ?? 0))"
         case .tag(let tag):
             guard let tagSummary = reviewTagSummaries.first(where: { summary in
                 summary.tag == tag
@@ -281,6 +295,10 @@ struct ReviewView: View {
         }
     }
 
+    /// This menu intentionally stays as one SwiftUI `Menu` backed by multiple grouped `Picker`s.
+    /// The grouped picker structure preserves the platform's inset/alignment while still behaving like
+    /// one conceptual single-choice review scope list with inline actions such as `Edit decks`.
+    /// Do not flatten or replace this structure casually unless the review filter UX is being deliberately rewritten.
     private var reviewFilterMenu: some View {
         Menu {
             Picker(
@@ -306,6 +324,27 @@ struct ReviewView: View {
                 navigation.openSettings(destination: .workspaceDecks)
             } label: {
                 Label("Edit decks", systemImage: "square.stack.3d.up")
+            }
+
+            Divider()
+
+            Picker(
+                "",
+                selection: Binding(
+                    get: {
+                        store.selectedReviewFilter
+                    },
+                    set: { nextReviewFilter in
+                        store.selectReviewFilter(reviewFilter: nextReviewFilter)
+                    }
+                )
+            ) {
+                ForEach(EffortLevel.allCases) { level in
+                    let reviewFilter = ReviewFilter.effort(level: level)
+
+                    Text(reviewFilterMenuItemLabel(reviewFilter: reviewFilter))
+                        .tag(reviewFilter)
+                }
             }
 
             if reviewTagSummaries.isEmpty == false {

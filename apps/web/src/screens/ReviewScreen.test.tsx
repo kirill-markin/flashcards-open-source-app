@@ -127,27 +127,26 @@ describe("ReviewScreen", () => {
       throw new Error("Review filter search input was not found");
     }
 
-    await setTextFieldValueAsync(searchInput, "eta");
+    await setTextFieldValueAsync(searchInput, "med");
 
-    expect(getContainer().textContent).toContain("Beta");
-    expect(getContainer().textContent).toContain("Zeta");
+    expect(getContainer().textContent).toContain("Medium");
     expect(getContainer().textContent).not.toContain("Alpha");
 
     await dispatchDocumentKeydown("Escape");
     expect(getContainer().querySelector(".review-filter-menu")).toBeNull();
 
     await openReviewFilterMenu();
-    const betaButton = [...getContainer().querySelectorAll("[data-review-filter-key]")]
-      .find((element) => element.getAttribute("data-review-filter-key") === "deck:deck-2");
-    if (!(betaButton instanceof HTMLButtonElement)) {
-      throw new Error("Beta review filter option was not found");
+    const mediumButton = [...getContainer().querySelectorAll("[data-review-filter-key]")]
+      .find((element) => element.getAttribute("data-review-filter-key") === "effort:medium");
+    if (!(mediumButton instanceof HTMLButtonElement)) {
+      throw new Error("Medium review filter option was not found");
     }
 
-    await clickElementAsync(betaButton);
+    await clickElementAsync(mediumButton);
 
     expect(state.appData.selectReviewFilter).toHaveBeenCalledWith({
-      kind: "deck",
-      deckId: "deck-2",
+      kind: "effort",
+      effortLevel: "medium",
     });
   });
 
