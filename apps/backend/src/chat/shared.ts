@@ -29,8 +29,11 @@ function buildCardSideContractSection(): string {
     "Card side contract:",
     "- Front side must contain only a question or recall prompt. Never include the answer on the front side.",
     "- Back side must start with the direct answer.",
+    "- When the back side is longer than one short sentence, format it as real Markdown instead of dense plain text.",
+    "- Use blank lines between paragraphs on longer back sides so the rendered card stays readable.",
+    "- Use short Markdown lists when they improve scanability.",
     "- Include concrete examples by default when creating a card unless the user explicitly asks not to.",
-    "- For code cards, concrete code snippets are preferred inside the card content itself.",
+    "- For code cards, concrete code snippets are preferred inside the card content itself, usually in fenced Markdown code blocks on the back side.",
   ]);
 }
 
@@ -49,6 +52,7 @@ function buildPlainTextChatFormattingSection(): string {
     "- Respond as plain text for a compact chat surface.",
     "- Keep replies concise and easy to scan on mobile and web.",
     "- Do not rely on markdown headings, tables, blockquotes, or fenced code blocks in user-facing chat replies.",
+    "- These plain-text reply rules apply to chat messages, not to card fields such as backText.",
   ]);
 }
 
