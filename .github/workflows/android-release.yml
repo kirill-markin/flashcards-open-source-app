@@ -9,7 +9,6 @@ on:
       - '!apps/android/docs/**'
       - 'cloudbuild.android.yaml'
       - 'scripts/run-android-ci.sh'
-      - 'scripts/run-android-connected-tests.sh'
       - 'scripts/run-android-firebase-test-lab.sh'
       - 'scripts/run-android-release.sh'
       - 'scripts/setup-github-android.sh'
@@ -84,7 +83,7 @@ jobs:
             case "${changed_path}" in
               apps/android/README.md) ;;
               apps/android/docs/*) ;;
-              apps/android/*|cloudbuild.android.yaml|scripts/run-android-ci.sh|scripts/run-android-connected-tests.sh|scripts/run-android-firebase-test-lab.sh|scripts/run-android-release.sh|scripts/setup-github-android.sh|.github/workflows/android-ci-reusable.yml|.github/workflows/android-release.yml)
+              apps/android/*|cloudbuild.android.yaml|scripts/run-android-ci.sh|scripts/run-android-firebase-test-lab.sh|scripts/run-android-release.sh|scripts/setup-github-android.sh|.github/workflows/android-ci-reusable.yml|.github/workflows/android-release.yml)
                 android_changed=true
                 break
                 ;;
@@ -140,7 +139,7 @@ jobs:
       cancel-in-progress: true
     uses: ./.github/workflows/android-ci-reusable.yml
     with:
-      run_live_smoke: true
+      run_app_instrumentation: true
       target_ref: ${{ needs.preflight.outputs.target_sha }}
     secrets: inherit
 

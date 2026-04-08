@@ -10,7 +10,7 @@ This repository uses one reusable Android validation workflow plus one dedicated
 - `cloudbuild.android.yaml` is the Google-native entrypoint for Cloud Build triggers in the Google Cloud console
 
 This setup keeps repository-native checks in GitHub while still using Google-managed device testing and avoiding long-lived Google service account keys.
-We still treat the managed-device live smoke as the closest CI signal to production behavior, but the GitHub-hosted pipeline now also runs the full Android unit and instrumentation suites so release gates do not drift from local verification.
+We treat the managed-device app instrumentation suite as the closest CI signal to production behavior, while GitHub-hosted jobs keep the fast unit/build/lint checks and the smaller `data:local` instrumentation gate.
 
 ## Required GitHub repository variables
 
@@ -56,22 +56,22 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 - Delegates the GitHub-hosted Android Gradle entrypoints to repo-root shell scripts in `scripts/`
 - Uploads the debug APK, Android test APK, unit test reports, and lint report as workflow artifacts
 - Boots a headless Android 16 / API 36 emulator in GitHub Actions
-- Runs the full Gradle `connectedAndroidTest` suite on that emulator through `scripts/run-android-connected-tests.sh`
-- Uploads instrumentation reports from the emulator run when the Gradle task produced them
-- Validates the Firebase Test Lab configuration whenever the reusable workflow is called with live smoke enabled
-- Runs Firebase Test Lab against the native stateful smoke classes `com.flashcardsopensourceapp.app.LiveSmokeTest` and `com.flashcardsopensourceapp.app.NotificationTapSmokeTest`
-- Fails the workflow instead of silently skipping the live smoke gate when the required repository variables are missing
+- Runs `:data:local:connectedDebugAndroidTest` on that emulator
+- Uploads `data:local` instrumentation reports from the emulator run when the Gradle task produced them
+- Validates the Firebase Test Lab configuration whenever the reusable workflow is called with app instrumentation enabled
+- Runs Firebase Test Lab against the full app instrumentation package `com.flashcardsopensourceapp.app`, excluding `com.flashcardsopensourceapp.app.ManualOnlyAndroidTest`
+- Fails the workflow instead of silently skipping the Firebase Test Lab app instrumentation gate when the required repository variables are missing
 
 The intended Android release order is:
 
 1. Android unit tests, debug builds, and lint in GitHub Actions
-2. Full Android instrumentation suite on a GitHub-hosted Android 16 emulator
-3. Native Firebase Test Lab smoke suite on the configured Android 16 device
+2. `data:local` Android instrumentation on a GitHub-hosted Android 16 emulator
+3. Full app UI instrumentation suite in Firebase Test Lab on the configured Android 16 device
 4. Google Play production release from `android-release.yml`
 
 After pushing to `main`, watch `Android Release` separately when Android-impacting files changed.
 
-`Android Release` runs independently on `push main` for Android-impacting changes and on manual `workflow_dispatch` with an explicit target SHA. Manual runs execute Android CI plus Firebase Test Lab, and publish to Google Play only when `publish_to_play` is explicitly enabled.
+`Android Release` runs independently on `push main` for Android-impacting changes and on manual `workflow_dispatch` with an explicit target SHA. Manual runs execute Android CI plus Firebase Test Lab app instrumentation, and publish to Google Play only when `publish_to_play` is explicitly enabled.
 
 Cross-client live smoke references:
 
@@ -83,7 +83,7 @@ Cross-client live smoke references:
 Cloud Build config: `cloudbuild.android.yaml`
 
 - Builds a dedicated Android CI container from `apps/android/ci/Dockerfile`
-- Reuses the same shell scripts as GitHub Actions
+- Reuses the same fast CI shell script as GitHub Actions and the same Firebase Test Lab package-level targeting
 - Can be attached to a Cloud Build trigger connected to the GitHub repository
 
 ## Recommended architecture
@@ -318,7 +318,7 @@ bash scripts/run-android-release.sh \
   --key-password "YOUR_KEY_PASSWORD"
 ```
 
-Run the live smoke test on a local emulator (requires a running emulator via `adb devices`):
+Run one app instrumentation class on a local emulator for ad hoc debugging (requires a running emulator via `adb devices`):
 
 ```bash
 cd apps/android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.flashcardsopensourceapp.app.LiveSmokeTest
@@ -326,13 +326,13 @@ cd apps/android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstru
 
 Note: `connectedDebugAndroidTest` does not support the `--tests` flag. Use `-Pandroid.testInstrumentationRunnerArguments.class=` to filter by test class.
 
-Run the notification tap smoke test on a local emulator:
+Run another app instrumentation class on a local emulator:
 
 ```bash
 cd apps/android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.flashcardsopensourceapp.app.NotificationTapSmokeTest
 ```
 
-Run the live smoke test in Firebase Test Lab directly after authenticating with `gcloud`:
+Run the full app instrumentation package in Firebase Test Lab directly after authenticating with `gcloud`:
 
 ```bash
 bash scripts/run-android-firebase-test-lab.sh \
@@ -341,8 +341,7 @@ bash scripts/run-android-firebase-test-lab.sh \
   --device-version "36" \
   --app-path "apps/android/app/build/outputs/apk/debug/app-debug.apk" \
   --test-path "apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk" \
-  --test-targets "class com.flashcardsopensourceapp.app.LiveSmokeTest" \
-  --test-targets "class com.flashcardsopensourceapp.app.NotificationTapSmokeTest" \
+  --test-targets "package com.flashcardsopensourceapp.app notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest" \
   --results-bucket "gs://flashcards-open-source-app-test-lab-results" \
   --results-dir "manual/local"
 ```

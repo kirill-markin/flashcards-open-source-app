@@ -128,7 +128,7 @@ Test only on the final supported Android target.
 - Preserve the usual test artifacts, logs, screenshots, and reports when running Android tests in the background
 - Open a visible Android emulator only when the user explicitly asks for it at that time
 
-The most trusted Android checks are the emulator or managed-device smoke flows because they exercise the real app closest to production behavior.
+The most trusted Android checks are the managed-device app instrumentation flows because they exercise the real app closest to production behavior.
 
 ## Native Test Stack
 
@@ -136,7 +136,7 @@ The Android app uses native Android and Compose testing:
 
 - targeted integration coverage runs through native instrumentation and Compose UI testing in `apps/android/app/src/androidTest` and `apps/android/data/local/src/androidTest`
 - shared FSRS scheduler parity stays in `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/model/FsrsSchedulerParityTest.kt` and uses `tests/fsrs-full-vectors.json`
-- release-gate UI coverage runs through native instrumentation and Compose UI testing in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt` and `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/NotificationTapSmokeTest.kt`
+- release-gate app UI instrumentation runs through the full `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app` package in Firebase Test Lab, with `LiveSmokeTest.kt` and `NotificationTapSmokeTest.kt` kept as the highest-confidence stateful flows inside that package
 - the live smoke flow relies on stable Compose test tags from the production UI modules, not on a separate mock shell
 
 The Android live smoke scenario matches the other clients on purpose:
@@ -156,7 +156,7 @@ The repository policy for Android CI/CD is:
 - Firebase Test Lab is the cloud device test runner
 - `cloudbuild.android.yaml` is the Google-native Cloud Build entrypoint
 - Google auth from GitHub must use Workload Identity Federation, not a JSON key
-- the release gate order is Android unit tests plus build/lint first, then the full GitHub-hosted emulator instrumentation suite, then the native Firebase Test Lab smoke suite, then Google Play release
+- the release gate order is Android unit tests plus build/lint first, then GitHub-hosted `data:local` instrumentation, then Firebase Test Lab app UI instrumentation, then Google Play release
 - after pushing to `main`, watch `Android Release` when Android-impacting files changed; it runs independently from the AWS/Web release workflow
 - manual Android workflow runs also go through `Android Release`, and Google Play publish stays opt-in there
 
