@@ -155,6 +155,8 @@ jobs:
           GCP_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
           ANDROID_FTL_DEVICE_MODEL: ${{ vars.ANDROID_FTL_DEVICE_MODEL }}
           ANDROID_FTL_DEVICE_VERSION: ${{ vars.ANDROID_FTL_DEVICE_VERSION }}
+          ANDROID_FTL_RESULTS_BUCKET: ${{ vars.ANDROID_FTL_RESULTS_BUCKET }}
+          ANDROID_FTL_RESULTS_DIR: ${{ vars.ANDROID_FTL_RESULTS_DIR }}
         run: |
           missing_values=()
 
@@ -163,7 +165,9 @@ jobs:
             GCP_WORKLOAD_IDENTITY_PROVIDER \
             GCP_SERVICE_ACCOUNT_EMAIL \
             ANDROID_FTL_DEVICE_MODEL \
-            ANDROID_FTL_DEVICE_VERSION; do
+            ANDROID_FTL_DEVICE_VERSION \
+            ANDROID_FTL_RESULTS_BUCKET \
+            ANDROID_FTL_RESULTS_DIR; do
             if [[ -z "${!variable_name}" ]]; then
               missing_values+=("${variable_name}")
             fi
@@ -245,15 +249,16 @@ jobs:
             results_dir="${results_dir}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           fi
 
+          # Keep Firebase Test Lab targeting aligned with AndroidJUnitRunner filtering.
+          # The custom runner excludes @ManualOnlyAndroidTest by default, which keeps
+          # manual marketing screenshot entrypoints out of CI/CD runs.
+
           bash scripts/run-android-firebase-test-lab.sh \
             --project-id "${GCP_PROJECT_ID}" \
             --device-model "${ANDROID_FTL_DEVICE_MODEL}" \
             --device-version "${ANDROID_FTL_DEVICE_VERSION}" \
             --app-path "${APP_APK_PATH}" \
             --test-path "${TEST_APK_PATH}" \
-            # Keep Firebase Test Lab targeting aligned with AndroidJUnitRunner filtering.
-            # The custom runner excludes @ManualOnlyAndroidTest by default, which keeps
-            # manual marketing screenshot entrypoints out of CI/CD runs.
             --test-targets "package com.flashcardsopensourceapp.app" \
             --results-bucket "${ANDROID_FTL_RESULTS_BUCKET}" \
             --results-dir "${results_dir}"
