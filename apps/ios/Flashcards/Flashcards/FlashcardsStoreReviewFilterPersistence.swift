@@ -3,12 +3,14 @@ import Foundation
 enum PersistedReviewFilterKind: String, Codable {
     case allCards
     case deck
+    case effort
     case tag
 }
 
 struct PersistedReviewFilter: Codable, Hashable, Sendable {
     let kind: PersistedReviewFilterKind
     let deckId: String?
+    let effortLevel: EffortLevel?
     let tag: String?
 }
 
@@ -30,11 +32,13 @@ func clearStoredReviewFilters(userDefaults: UserDefaults) {
 func makePersistedReviewFilter(reviewFilter: ReviewFilter) -> PersistedReviewFilter {
     switch reviewFilter {
     case .allCards:
-        return PersistedReviewFilter(kind: .allCards, deckId: nil, tag: nil)
+        return PersistedReviewFilter(kind: .allCards, deckId: nil, effortLevel: nil, tag: nil)
     case .deck(let deckId):
-        return PersistedReviewFilter(kind: .deck, deckId: deckId, tag: nil)
+        return PersistedReviewFilter(kind: .deck, deckId: deckId, effortLevel: nil, tag: nil)
+    case .effort(let level):
+        return PersistedReviewFilter(kind: .effort, deckId: nil, effortLevel: level, tag: nil)
     case .tag(let tag):
-        return PersistedReviewFilter(kind: .tag, deckId: nil, tag: tag)
+        return PersistedReviewFilter(kind: .tag, deckId: nil, effortLevel: nil, tag: tag)
     }
 }
 
@@ -48,6 +52,12 @@ func makeReviewFilter(persistedReviewFilter: PersistedReviewFilter) throws -> Re
         }
 
         return .deck(deckId: deckId)
+    case .effort:
+        guard let effortLevel = persistedReviewFilter.effortLevel else {
+            throw LocalStoreError.validation("Persisted review filter is missing effortLevel")
+        }
+
+        return .effort(level: effortLevel)
     case .tag:
         guard let tag = persistedReviewFilter.tag, tag.isEmpty == false else {
             throw LocalStoreError.validation("Persisted review filter is missing tag")

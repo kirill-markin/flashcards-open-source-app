@@ -204,5 +204,5 @@ private func formatDate(date: Date, calendar: Calendar) -> String {
 }
 
 private extension PersistedReviewFilter {
-    static let allCards = PersistedReviewFilter(kind: .allCards, deckId: nil, tag: nil)
+    static let allCards = PersistedReviewFilter(kind: .allCards, deckId: nil, effortLevel: nil, tag: nil)
 }

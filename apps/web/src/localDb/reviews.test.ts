@@ -30,6 +30,7 @@ describe("localDb reviews", () => {
       for (const reviewFilter of [
         { kind: "allCards" } as const,
         { kind: "deck", deckId: deckLongCode.deckId } as const,
+        { kind: "effort", effortLevel: "medium" } as const,
         { kind: "tag", tag: "grammar" } as const,
       ]) {
         const result = await loadReviewQueueSnapshot(workspaceId, reviewFilter, 8);

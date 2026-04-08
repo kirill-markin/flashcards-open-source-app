@@ -377,6 +377,10 @@ sealed interface ReviewFilter {
         val deckId: String
     ) : ReviewFilter
 
+    data class Effort(
+        val effortLevel: EffortLevel
+    ) : ReviewFilter
+
     data class Tag(
         val tag: String
     ) : ReviewFilter
@@ -432,6 +436,12 @@ data class ReviewDeckFilterOption(
     val totalCount: Int
 )
 
+data class ReviewEffortFilterOption(
+    val effortLevel: EffortLevel,
+    val title: String,
+    val totalCount: Int
+)
+
 data class ReviewTagFilterOption(
     val tag: String,
     val totalCount: Int
@@ -446,6 +456,7 @@ data class ReviewSessionSnapshot(
     val remainingCount: Int,
     val totalCount: Int,
     val availableDeckFilters: List<ReviewDeckFilterOption>,
+    val availableEffortFilters: List<ReviewEffortFilterOption>,
     val availableTagFilters: List<ReviewTagFilterOption>,
     val isLoading: Boolean
 )

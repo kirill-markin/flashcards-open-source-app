@@ -254,6 +254,10 @@ export function serializeReviewFilterKey(reviewFilter: ReviewFilter): string {
     return `deck:${reviewFilter.deckId}`;
   }
 
+  if (reviewFilter.kind === "effort") {
+    return `effort:${reviewFilter.effortLevel}`;
+  }
+
   return `tag:${reviewFilter.tag}`;
 }
 

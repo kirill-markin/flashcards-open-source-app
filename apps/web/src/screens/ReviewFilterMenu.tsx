@@ -18,6 +18,7 @@ type ReviewFilterMenuProps = Readonly<{
   setReviewDeckSearchText: (value: string) => void;
   shouldShowReviewDeckSearch: boolean;
   visibleReviewDeckFilterMenuItems: ReadonlyArray<ReviewFilterChoiceMenuItem>;
+  visibleReviewEffortFilterMenuItems: ReadonlyArray<ReviewFilterChoiceMenuItem>;
   visibleReviewTagFilterMenuItems: ReadonlyArray<ReviewFilterChoiceMenuItem>;
 }>;
 
@@ -79,12 +80,13 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
     setReviewDeckSearchText,
     shouldShowReviewDeckSearch,
     visibleReviewDeckFilterMenuItems,
+    visibleReviewEffortFilterMenuItems,
     visibleReviewTagFilterMenuItems,
   } = props;
 
   return (
     <div ref={reviewFilterMenuWrapRef} className="review-filter-menu-wrap">
-      <span className="review-filter-label">Deck</span>
+      <span className="review-filter-label">Scope</span>
       <button
         ref={reviewFilterTriggerRef}
         className={`ghost-btn review-filter-trigger${isReviewFilterMenuOpen ? " review-filter-trigger-open" : ""}`}
@@ -107,14 +109,14 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
                 type="search"
                 name="review-filter-search"
                 className="review-filter-search-input"
-                placeholder="Search decks or tags"
+                placeholder="Search decks, effort, or tags"
                 value={reviewDeckSearchText}
                 onChange={(event) => setReviewDeckSearchText(event.target.value)}
               />
             </label>
           ) : null}
           {hasVisibleReviewFilterChoices === false ? (
-            <div className="review-filter-menu-empty" aria-live="polite">No decks or tags found</div>
+            <div className="review-filter-menu-empty" aria-live="polite">No filters found</div>
           ) : null}
           {visibleReviewDeckFilterMenuItems.map((item) => (
             <button
@@ -158,6 +160,30 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
               </Link>
             );
           })}
+          {visibleReviewEffortFilterMenuItems.length > 0 ? (
+            <div className="review-filter-menu-divider" role="separator" />
+          ) : null}
+          {visibleReviewEffortFilterMenuItems.map((effortItem) => (
+            <button
+              key={effortItem.key}
+              className={`review-filter-menu-entry${effortItem.isSelected ? " review-filter-menu-entry-active" : ""}`}
+              type="button"
+              role="menuitemradio"
+              aria-checked={effortItem.isSelected}
+              data-review-filter-key={effortItem.key}
+              onClick={() => handleReviewFilterSelect(effortItem.reviewFilter)}
+            >
+              <span className="review-filter-menu-item-slot" aria-hidden="true">
+                <span className={`review-filter-menu-item-check${effortItem.isSelected ? " review-filter-menu-item-check-visible" : ""}`}>
+                  <ReviewFilterCheckIcon />
+                </span>
+              </span>
+              <span className="review-filter-menu-item-label">{effortItem.label}</span>
+            </button>
+          ))}
+          {visibleReviewTagFilterMenuItems.length > 0 ? (
+            <div className="review-filter-menu-divider" role="separator" />
+          ) : null}
           {visibleReviewTagFilterMenuItems.map((tagItem) => (
             <button
               key={tagItem.key}

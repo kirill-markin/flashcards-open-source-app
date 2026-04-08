@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local.review
 
 import android.content.Context
 import androidx.core.content.edit
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import org.json.JSONObject
 
@@ -10,9 +11,11 @@ private const val selectedReviewFilterKeyPrefix: String = "selected-review-filte
 private const val hardAnswerReminderLastShownAtKey: String = "hard-answer-reminder-last-shown-at"
 private const val persistedReviewFilterKindKey: String = "kind"
 private const val persistedReviewFilterDeckIdKey: String = "deckId"
+private const val persistedReviewFilterEffortLevelKey: String = "effortLevel"
 private const val persistedReviewFilterTagKey: String = "tag"
 private const val persistedReviewFilterAllCardsKind: String = "allCards"
 private const val persistedReviewFilterDeckKind: String = "deck"
+private const val persistedReviewFilterEffortKind: String = "effort"
 private const val persistedReviewFilterTagKind: String = "tag"
 
 interface ReviewPreferencesStore {
@@ -97,6 +100,11 @@ private fun encodePersistedReviewFilter(reviewFilter: ReviewFilter): String {
             payload.put(persistedReviewFilterDeckIdKey, reviewFilter.deckId)
         }
 
+        is ReviewFilter.Effort -> {
+            payload.put(persistedReviewFilterKindKey, persistedReviewFilterEffortKind)
+            payload.put(persistedReviewFilterEffortLevelKey, reviewFilter.effortLevel.name)
+        }
+
         is ReviewFilter.Tag -> {
             payload.put(persistedReviewFilterKindKey, persistedReviewFilterTagKind)
             payload.put(persistedReviewFilterTagKey, reviewFilter.tag)
@@ -116,6 +124,14 @@ private fun decodePersistedReviewFilter(rawValue: String): ReviewFilter {
                 "Persisted review filter is missing deckId."
             }
             ReviewFilter.Deck(deckId = deckId)
+        }
+
+        persistedReviewFilterEffortKind -> {
+            val effortLevelValue = payload.optString(persistedReviewFilterEffortLevelKey).trim()
+            require(effortLevelValue.isNotEmpty()) {
+                "Persisted review filter is missing effortLevel."
+            }
+            ReviewFilter.Effort(effortLevel = enumValueOf<EffortLevel>(effortLevelValue))
         }
 
         persistedReviewFilterTagKind -> {

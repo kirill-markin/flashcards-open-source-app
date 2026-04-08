@@ -362,6 +362,7 @@ export function ReviewScreen(): ReactElement {
     setReviewDeckSearchText,
     shouldShowReviewDeckSearch,
     visibleReviewDeckFilterMenuItems,
+    visibleReviewEffortFilterMenuItems,
     visibleReviewTagFilterMenuItems,
   } = useReviewFilterMenu({
     deckSummaries,
@@ -512,6 +513,7 @@ export function ReviewScreen(): ReactElement {
               setReviewDeckSearchText={setReviewDeckSearchText}
               shouldShowReviewDeckSearch={shouldShowReviewDeckSearch}
               visibleReviewDeckFilterMenuItems={visibleReviewDeckFilterMenuItems}
+              visibleReviewEffortFilterMenuItems={visibleReviewEffortFilterMenuItems}
               visibleReviewTagFilterMenuItems={visibleReviewTagFilterMenuItems}
             />
           </div>

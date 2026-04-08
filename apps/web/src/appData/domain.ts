@@ -8,6 +8,7 @@ import type {
   CreateDeckInput,
   DeckFilterDefinition,
   Deck,
+  EffortLevel,
   ReviewFilter,
   ReviewEvent,
   SyncPushOperation,
@@ -104,6 +105,10 @@ export function isReviewFilterEqual(left: ReviewFilter, right: ReviewFilter): bo
     return left.deckId === right.deckId;
   }
 
+  if (left.kind === "effort" && right.kind === "effort") {
+    return left.effortLevel === right.effortLevel;
+  }
+
   if (left.kind === "tag" && right.kind === "tag") {
     return left.tag === right.tag;
   }
@@ -186,6 +191,10 @@ function hasActiveTag(tag: string, cards: ReadonlyArray<Card>): boolean {
   return deriveActiveCards(cards).some((card) => card.tags.includes(tag));
 }
 
+export function formatEffortLevelTitle(effortLevel: EffortLevel): string {
+  return effortLevel.charAt(0).toUpperCase() + effortLevel.slice(1);
+}
+
 export function resolveReviewFilter(
   reviewFilter: ReviewFilter,
   decks: ReadonlyArray<Deck>,
@@ -201,6 +210,10 @@ export function resolveReviewFilter(
       return ALL_CARDS_REVIEW_FILTER;
     }
 
+    return reviewFilter;
+  }
+
+  if (reviewFilter.kind === "effort") {
     return reviewFilter;
   }
 
@@ -230,6 +243,10 @@ export function cardsMatchingReviewFilter(
     return cardsMatchingDeck(deck, cards);
   }
 
+  if (resolvedReviewFilter.kind === "effort") {
+    return deriveActiveCards(cards).filter((card) => card.effortLevel === resolvedReviewFilter.effortLevel);
+  }
+
   return deriveActiveCards(cards).filter((card) => card.tags.includes(resolvedReviewFilter.tag));
 }
 
@@ -246,6 +263,10 @@ export function reviewFilterTitle(
   if (resolvedReviewFilter.kind === "deck") {
     const deck = deriveActiveDecks(decks).find((candidateDeck) => candidateDeck.deckId === resolvedReviewFilter.deckId);
     return deck?.name ?? ALL_CARDS_DECK_LABEL;
+  }
+
+  if (resolvedReviewFilter.kind === "effort") {
+    return formatEffortLevelTitle(resolvedReviewFilter.effortLevel);
   }
 
   return resolvedReviewFilter.tag;

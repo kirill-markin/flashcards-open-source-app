@@ -109,6 +109,8 @@ func resolveReviewFilter(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card
         }
 
         return .allCards
+    case .effort:
+        return reviewFilter
     case .tag(let tag):
         if hasActiveTag(tag: tag, cards: cards) {
             return reviewFilter
@@ -132,6 +134,10 @@ func cardsMatchingReviewFilter(reviewFilter: ReviewFilter, decks: [Deck], cards:
         }
 
         return cardsMatchingDeck(deck: deck, cards: cards)
+    case .effort(let level):
+        return deriveActiveCards(cards: cards).filter { card in
+            card.effortLevel == level
+        }
     case .tag(let tag):
         return deriveActiveCards(cards: cards).filter { card in
             card.tags.contains(tag)
@@ -153,6 +159,8 @@ func reviewFilterTitle(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card])
         }
 
         return deck.name
+    case .effort(let level):
+        return level.title
     case .tag(let tag):
         return tag
     }
@@ -164,7 +172,7 @@ func shouldShowSwitchToAllCardsReviewAction(reviewFilter: ReviewFilter, decks: [
     switch resolvedReviewFilter {
     case .allCards:
         return false
-    case .deck, .tag:
+    case .deck, .effort, .tag:
         return true
     }
 }
@@ -213,6 +221,16 @@ func resolveReviewQuery(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card]
         return ResolvedReviewQuery(
             reviewFilter: resolvedReviewFilter,
             queryDefinition: .deck(filterDefinition: deck.filterDefinition)
+        )
+    case .effort(let level):
+        return ResolvedReviewQuery(
+            reviewFilter: resolvedReviewFilter,
+            queryDefinition: .deck(
+                filterDefinition: buildDeckFilterDefinition(
+                    effortLevels: [level],
+                    tags: []
+                )
+            )
         )
     case .tag(let tag):
         return ResolvedReviewQuery(

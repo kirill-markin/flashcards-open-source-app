@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
+import com.flashcardsopensourceapp.data.local.model.ReviewEffortFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewTagFilterOption
@@ -724,6 +725,7 @@ private fun RatingButton(
 internal fun ReviewFilterSheet(
     selectedFilter: ReviewFilter,
     availableDeckFilters: List<ReviewDeckFilterOption>,
+    availableEffortFilters: List<ReviewEffortFilterOption>,
     availableTagFilters: List<ReviewTagFilterOption>,
     onDismiss: () -> Unit,
     onSelectFilter: (ReviewFilter) -> Unit,
@@ -774,6 +776,26 @@ internal fun ReviewFilterSheet(
                         }
                     )
                 }
+            }
+
+            item {
+                Text(
+                    text = "Effort",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                )
+            }
+
+            items(availableEffortFilters.size) { index ->
+                val effortFilter = availableEffortFilters[index]
+                ReviewFilterOptionRow(
+                    title = "${effortFilter.title} (${effortFilter.totalCount})",
+                    subtitle = "Virtual effort filter",
+                    selected = selectedFilter == ReviewFilter.Effort(effortLevel = effortFilter.effortLevel),
+                    onClick = {
+                        onSelectFilter(ReviewFilter.Effort(effortLevel = effortFilter.effortLevel))
+                    }
+                )
             }
 
             if (availableTagFilters.isNotEmpty()) {

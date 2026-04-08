@@ -43,6 +43,10 @@ private fun matchesReviewFilter(filter: ReviewFilter, decks: List<DeckSummary>, 
             )
         }
 
+        is ReviewFilter.Effort -> {
+            card.effortLevel == filter.effortLevel
+        }
+
         is ReviewFilter.Tag -> {
             val requestedTagKey = normalizeTagKey(tag = filter.tag)
             card.tags.any { tag ->
@@ -71,6 +75,10 @@ fun resolveReviewFilter(
             }
         }
 
+        is ReviewFilter.Effort -> {
+            ReviewFilter.Effort(effortLevel = selectedFilter.effortLevel)
+        }
+
         is ReviewFilter.Tag -> {
             val matchingTag = tagsSummary.tags.firstOrNull { tagSummary ->
                 normalizeTagKey(tag = tagSummary.tag) == normalizeTagKey(tag = selectedFilter.tag)
@@ -95,6 +103,7 @@ fun reviewFilterTitle(
             deck.deckId == selectedFilter.deckId
         }?.name ?: "All cards"
 
+        is ReviewFilter.Effort -> formatCardEffortLabel(effortLevel = selectedFilter.effortLevel)
         is ReviewFilter.Tag -> selectedFilter.tag
     }
 }
@@ -145,6 +154,26 @@ fun buildReviewDeckFilterOptions(decks: List<DeckSummary>): List<ReviewDeckFilte
             option.deckId
         }
     )
+}
+
+fun buildReviewEffortFilterOptions(
+    cards: List<CardSummary>,
+    reviewedAtMillis: Long
+): List<ReviewEffortFilterOption> {
+    val dueCards = cards.filter { card ->
+        isCardDue(card = card, nowMillis = reviewedAtMillis)
+    }
+    val counts = dueCards.groupingBy { card ->
+        card.effortLevel
+    }.eachCount()
+
+    return EffortLevel.entries.map { effortLevel ->
+        ReviewEffortFilterOption(
+            effortLevel = effortLevel,
+            title = formatCardEffortLabel(effortLevel = effortLevel),
+            totalCount = counts[effortLevel] ?: 0
+        )
+    }
 }
 
 fun buildReviewTagFilterOptions(cards: List<CardSummary>, reviewedAtMillis: Long): List<ReviewTagFilterOption> {
@@ -224,6 +253,10 @@ fun buildReviewSessionSnapshot(
         remainingCount = remainingCards.size,
         totalCount = matchingCards.size,
         availableDeckFilters = buildReviewDeckFilterOptions(decks = decks),
+        availableEffortFilters = buildReviewEffortFilterOptions(
+            cards = cards,
+            reviewedAtMillis = reviewedAtMillis
+        ),
         availableTagFilters = buildReviewTagFilterOptions(
             cards = cards,
             reviewedAtMillis = reviewedAtMillis
