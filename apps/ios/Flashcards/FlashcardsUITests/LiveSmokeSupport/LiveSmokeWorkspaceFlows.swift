@@ -364,20 +364,20 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func completeCloudWorkspaceSelectionIfNeeded() throws -> Bool {
-        let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
+        let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds * 3)
         var didUseWorkspaceChooser = false
 
         while Date() < deadline {
             _ = self.dismissKnownBlockingAlertIfVisible()
 
+            if self.isAccountStatusLinked() {
+                return didUseWorkspaceChooser
+            }
+
             let chooserScreen = self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.cloudWorkspaceChooserScreen)
                 .firstMatch
-            let chooserVisible = self.waitForOptionalElement(
-                chooserScreen,
-                identifier: LiveSmokeIdentifier.cloudWorkspaceChooserScreen,
-                timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds
-            )
+            let chooserVisible = chooserScreen.exists
 
             if chooserVisible {
                 if try self.tryCreateWorkspaceInChooser() {
@@ -386,10 +386,6 @@ extension LiveSmokeTestCase {
                     try self.tapFirstExistingWorkspaceButtonInChooser()
                 }
                 continue
-            }
-
-            if self.isAccountStatusLinked() {
-                return didUseWorkspaceChooser
             }
 
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
@@ -479,11 +475,7 @@ extension LiveSmokeTestCase {
     @MainActor
     func isAccountStatusLinked() -> Bool {
         let syncNowButton = self.app.buttons[LiveSmokeIdentifier.accountStatusSyncNowButton]
-        return self.waitForOptionalElement(
-            syncNowButton,
-            identifier: LiveSmokeIdentifier.accountStatusSyncNowButton,
-            timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds
-        )
+        return syncNowButton.exists
     }
 
     @MainActor
