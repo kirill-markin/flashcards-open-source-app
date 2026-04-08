@@ -203,7 +203,7 @@ extension LiveSmokeTestCase {
         )
         _ = self.dismissKnownBlockingAlertIfVisible()
         try self.openWorkspaceOverviewFromSettings()
-        try self.tapButtonScrollingIntoView(
+        try self.tapButtonScrollingIntoViewPreservingAlerts(
             identifier: LiveSmokeIdentifier.workspaceOverviewDeleteWorkspaceButton,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
