@@ -251,6 +251,9 @@ jobs:
             --device-version "${ANDROID_FTL_DEVICE_VERSION}" \
             --app-path "${APP_APK_PATH}" \
             --test-path "${TEST_APK_PATH}" \
-            --test-targets "package com.flashcardsopensourceapp.app notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest" \
+            # Keep Firebase Test Lab targeting aligned with AndroidJUnitRunner filtering.
+            # The custom runner excludes @ManualOnlyAndroidTest by default, which keeps
+            # manual marketing screenshot entrypoints out of CI/CD runs.
+            --test-targets "package com.flashcardsopensourceapp.app" \
             --results-bucket "${ANDROID_FTL_RESULTS_BUCKET}" \
             --results-dir "${results_dir}"
