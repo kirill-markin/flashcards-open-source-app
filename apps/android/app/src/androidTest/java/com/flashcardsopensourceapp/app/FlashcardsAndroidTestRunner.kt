@@ -14,7 +14,8 @@ class FlashcardsAndroidTestRunner : AndroidJUnitRunner() {
             ?: false
 
         if (includeManualOnly.not()) {
-            // Keep manual marketing screenshot entrypoints out of default instrumentation runs.
+            // Keep manual marketing screenshot entrypoints out of default instrumentation runs,
+            // including package-level CI/CD runs such as Firebase Test Lab.
             val manualOnlyAnnotationName = ManualOnlyAndroidTest::class.java.name
             val existingNotAnnotation = runnerArguments.getString("notAnnotation").orEmpty()
             val updatedNotAnnotation = listOf(existingNotAnnotation, manualOnlyAnnotationName)
