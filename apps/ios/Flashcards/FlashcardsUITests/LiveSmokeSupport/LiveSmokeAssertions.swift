@@ -62,7 +62,6 @@ extension LiveSmokeTestCase {
                     return
                 }
 
-                _ = self.dismissKnownBlockingAlertIfVisible()
                 RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
             }
 
@@ -97,7 +96,6 @@ extension LiveSmokeTestCase {
                     return
                 }
 
-                _ = self.dismissKnownBlockingAlertIfVisible()
                 RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
             }
 
@@ -144,7 +142,6 @@ extension LiveSmokeTestCase {
             )
 
             while Date() < deadline {
-                _ = self.dismissKnownBlockingAlertIfVisible()
                 lastObservedLabel = element.label
                 if lastObservedLabel == expectedLabel {
                     let durationSeconds = Date().timeIntervalSince(startedAt)
@@ -205,9 +202,6 @@ extension LiveSmokeTestCase {
     func assertScreenVisible(screen: LiveSmokeScreen, timeout: TimeInterval) throws {
         try self.runWithInlineRawScreenStateOnFailure(action: "assert_screen.\(screen.identifier)") {
             let element = self.app.descendants(matching: .any).matching(identifier: screen.identifier).firstMatch
-            if timeout >= LiveSmokeConfiguration.longUiTimeoutSeconds {
-                _ = self.dismissKnownBlockingAlertIfVisible()
-            }
             self.logSmokeBreadcrumb(
                 event: "screen_assert_start",
                 action: "assert_screen",
@@ -248,9 +242,6 @@ extension LiveSmokeTestCase {
         identifier: String,
         timeout: TimeInterval
     ) -> Bool {
-        if timeout >= LiveSmokeConfiguration.longUiTimeoutSeconds {
-            _ = self.dismissKnownBlockingAlertIfVisible()
-        }
         self.logSmokeBreadcrumb(
             event: "wait_start",
             action: "wait_for_element",
@@ -295,7 +286,6 @@ extension LiveSmokeTestCase {
         let deadline = startedAt.addingTimeInterval(timeout)
 
         while Date() < deadline {
-            _ = self.dismissKnownBlockingAlertIfVisible()
             let currentValue = self.elementValue(element: element)
             if currentValue == expectedValue || currentValue.contains(expectedValue) {
                 let durationSeconds = Date().timeIntervalSince(startedAt)

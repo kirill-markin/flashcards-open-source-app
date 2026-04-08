@@ -10,21 +10,6 @@ class LiveSmokeTestCase: XCTestCase {
     override func setUpWithError() throws {
         try super.setUpWithError()
         continueAfterFailure = false
-        addUIInterruptionMonitor(withDescription: "Live smoke known interruptions") { alert in
-            MainActor.assumeIsolated {
-                for label in LiveSmokeConfiguration.knownInterruptionButtonLabels {
-                    let button = alert.buttons[label]
-                    guard button.exists else {
-                        continue
-                    }
-
-                    button.tap()
-                    return true
-                }
-
-                return false
-            }
-        }
     }
 
     override func tearDownWithError() throws {

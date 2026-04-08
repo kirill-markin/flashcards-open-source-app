@@ -253,44 +253,6 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
-    func dismissKnownBlockingAlertIfVisible() -> Bool {
-        guard self.app != nil else {
-            return false
-        }
-        guard self.isApplicationRunning else {
-            return false
-        }
-
-        let alert = self.app.alerts.firstMatch
-        guard alert.exists else {
-            return false
-        }
-
-        for label in LiveSmokeConfiguration.knownBlockingAlertButtonLabels {
-            let button = alert.buttons[label]
-            guard button.exists else {
-                continue
-            }
-
-            let alertSummary = self.activeAlertsSnapshot()
-            fputs("LIVE_SMOKE_ALERT: \(alertSummary)\n", stderr)
-            button.tap()
-            self.logSmokeBreadcrumb(
-                event: "alert_dismissed",
-                action: "dismiss_alert",
-                identifier: label,
-                timeoutSeconds: "-",
-                durationSeconds: "-",
-                result: "success",
-                note: "known alert button tapped: \(alertSummary)"
-            )
-            return true
-        }
-
-        return false
-    }
-
-    @MainActor
     func tapButton(
         button: XCUIElement,
         identifier: String,
@@ -336,7 +298,6 @@ extension LiveSmokeTestCase {
 
         self.logActionStart(action: action, identifier: identifier)
         button.tap()
-        _ = self.dismissKnownBlockingAlertIfVisible()
         self.logActionEnd(action: action, identifier: identifier, result: "success", note: note)
     }
 
@@ -395,7 +356,6 @@ extension LiveSmokeTestCase {
 
         self.logActionStart(action: "tap_cell", identifier: identifier)
         cell.tap()
-        _ = self.dismissKnownBlockingAlertIfVisible()
         self.logActionEnd(action: "tap_cell", identifier: identifier, result: "success", note: "cell tapped")
     }
 }

@@ -16,7 +16,6 @@ extension LiveSmokeTestCase {
             )
             self.logActionStart(action: "type_text", identifier: identifier)
             element.typeText(text)
-            _ = self.dismissKnownBlockingAlertIfVisible()
             if try self.waitForElementValueContaining(
                 element,
                 identifier: identifier,
@@ -73,7 +72,6 @@ extension LiveSmokeTestCase {
                 element.typeText(deleteSequence)
             }
             element.typeText(text)
-            _ = self.dismissKnownBlockingAlertIfVisible()
 
             if try self.waitForElementValueContaining(
                 element,
@@ -147,8 +145,6 @@ extension LiveSmokeTestCase {
         )
 
         while Date() < deadline {
-            _ = self.dismissKnownBlockingAlertIfVisible()
-
             if element.exists && element.isHittable {
                 element.tap()
                 if self.elementHasKeyboardFocus(element: element) {

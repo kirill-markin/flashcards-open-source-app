@@ -201,7 +201,6 @@ extension LiveSmokeTestCase {
             result: "start",
             note: "cleanup begins"
         )
-        _ = self.dismissKnownBlockingAlertIfVisible()
         try self.openWorkspaceOverviewFromSettings()
         try self.tapButtonScrollingIntoViewPreservingAlerts(
             identifier: LiveSmokeIdentifier.workspaceOverviewDeleteWorkspaceButton,
@@ -366,7 +365,6 @@ extension LiveSmokeTestCase {
                 return
             }
 
-            _ = self.dismissKnownBlockingAlertIfVisible()
         }
 
         throw LiveSmokeFailure.missingScreen(
@@ -400,7 +398,6 @@ extension LiveSmokeTestCase {
                 return
             }
 
-            _ = self.dismissKnownBlockingAlertIfVisible()
         }
 
         throw LiveSmokeFailure.missingScreen(
@@ -434,7 +431,6 @@ extension LiveSmokeTestCase {
                 return
             }
 
-            _ = self.dismissKnownBlockingAlertIfVisible()
         }
 
         throw LiveSmokeFailure.missingScreen(
@@ -452,8 +448,6 @@ extension LiveSmokeTestCase {
         var didUseWorkspaceChooser = false
 
         while Date() < deadline {
-            _ = self.dismissKnownBlockingAlertIfVisible()
-
             if self.isAccountStatusLinked() {
                 return didUseWorkspaceChooser
             }
@@ -494,7 +488,6 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func scrollWorkspaceChooserToCreateWorkspaceButton() throws {
-        let chooserList = self.app.collectionViews[LiveSmokeIdentifier.cloudWorkspaceChooserScreen].firstMatch
         let createButton = self.app.buttons[LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton].firstMatch
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
 
@@ -503,12 +496,7 @@ extension LiveSmokeTestCase {
                 return
             }
 
-            if chooserList.exists {
-                chooserList.swipeUp()
-            } else {
-                self.app.swipeUp()
-            }
-
+            self.app.swipeUp()
             RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
         }
 
@@ -592,7 +580,6 @@ extension LiveSmokeTestCase {
         let deadline = startedAt.addingTimeInterval(timeout)
 
         while Date() < deadline {
-            _ = self.dismissKnownBlockingAlertIfVisible()
             if let visibleEmail = self.visibleLinkedEmailLabel(), visibleEmail.contains(reviewEmail) {
                 return
             }

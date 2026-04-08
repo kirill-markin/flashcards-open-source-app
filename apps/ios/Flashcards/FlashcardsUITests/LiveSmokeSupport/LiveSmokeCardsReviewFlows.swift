@@ -127,8 +127,6 @@ extension LiveSmokeTestCase {
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
 
         while Date() < deadline {
-            _ = self.dismissKnownBlockingAlertIfVisible()
-
             if showAnswerButton.exists == false && rateGoodButton.exists {
                 return
             }
