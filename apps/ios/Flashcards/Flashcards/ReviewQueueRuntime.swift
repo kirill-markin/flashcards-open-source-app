@@ -3,6 +3,7 @@ import Foundation
 struct ReviewQueuePublishedState: Hashable {
     let selectedReviewFilter: ReviewFilter
     let reviewQueue: [Card]
+    let presentedCardId: String?
     let reviewCounts: ReviewCounts
     let isReviewHeadLoading: Bool
     let isReviewCountsLoading: Bool
@@ -96,6 +97,7 @@ struct ReviewQueueRuntime {
         ReviewQueuePublishedState(
             selectedReviewFilter: selectedReviewFilter,
             reviewQueue: [],
+            presentedCardId: nil,
             reviewCounts: ReviewCounts(dueCount: 0, totalCount: 0),
             isReviewHeadLoading: false,
             isReviewCountsLoading: false,
@@ -106,8 +108,21 @@ struct ReviewQueueRuntime {
     }
 
     func effectiveReviewQueue(publishedState: ReviewQueuePublishedState) -> [Card] {
-        publishedState.reviewQueue.filter { card in
-            publishedState.pendingReviewCardIds.contains(card.cardId) == false
+        let visibleReviewQueue = self.visibleReviewQueue(publishedState: publishedState)
+        guard let presentedCardId = self.resolvePresentedCardId(
+            reviewQueue: visibleReviewQueue,
+            preferredPresentedCardId: publishedState.presentedCardId
+        ) else {
+            return visibleReviewQueue
+        }
+        guard let presentedCard = visibleReviewQueue.first(where: { card in
+            card.cardId == presentedCardId
+        }) else {
+            return visibleReviewQueue
+        }
+
+        return [presentedCard] + visibleReviewQueue.filter { card in
+            card.cardId != presentedCardId
         }
     }
 
@@ -163,6 +178,7 @@ struct ReviewQueueRuntime {
         let nextPublishedState = ReviewQueuePublishedState(
             selectedReviewFilter: resolvedReviewQuery.reviewFilter,
             reviewQueue: [],
+            presentedCardId: nil,
             reviewCounts: ReviewCounts(dueCount: 0, totalCount: 0),
             isReviewHeadLoading: true,
             isReviewCountsLoading: true,
@@ -223,6 +239,11 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: reviewHeadState.resolvedReviewFilter,
             reviewQueue: reviewHeadState.seedReviewQueue,
+            presentedCardId: self.resolvePresentedCardId(
+                reviewQueue: reviewHeadState.seedReviewQueue,
+                pendingReviewCardIds: publishedState.pendingReviewCardIds,
+                preferredPresentedCardId: publishedState.presentedCardId
+            ),
             reviewCounts: publishedState.reviewCounts,
             isReviewHeadLoading: false,
             isReviewCountsLoading: publishedState.isReviewCountsLoading,
@@ -247,6 +268,11 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            presentedCardId: self.resolvePresentedCardId(
+                reviewQueue: publishedState.reviewQueue,
+                pendingReviewCardIds: publishedState.pendingReviewCardIds,
+                preferredPresentedCardId: publishedState.presentedCardId
+            ),
             reviewCounts: publishedState.reviewCounts,
             isReviewHeadLoading: false,
             isReviewCountsLoading: false,
@@ -280,6 +306,11 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            presentedCardId: self.resolvePresentedCardId(
+                reviewQueue: publishedState.reviewQueue,
+                pendingReviewCardIds: publishedState.pendingReviewCardIds,
+                preferredPresentedCardId: publishedState.presentedCardId
+            ),
             reviewCounts: reviewCounts,
             isReviewHeadLoading: publishedState.isReviewHeadLoading,
             isReviewCountsLoading: false,
@@ -302,6 +333,11 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            presentedCardId: self.resolvePresentedCardId(
+                reviewQueue: publishedState.reviewQueue,
+                pendingReviewCardIds: publishedState.pendingReviewCardIds,
+                preferredPresentedCardId: publishedState.presentedCardId
+            ),
             reviewCounts: publishedState.reviewCounts,
             isReviewHeadLoading: publishedState.isReviewHeadLoading,
             isReviewCountsLoading: false,
@@ -323,6 +359,11 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: reviewHeadState.resolvedReviewFilter,
             reviewQueue: shouldReplaceSeedQueue ? reviewHeadState.seedReviewQueue : publishedState.reviewQueue,
+            presentedCardId: self.resolvePresentedCardId(
+                reviewQueue: shouldReplaceSeedQueue ? reviewHeadState.seedReviewQueue : publishedState.reviewQueue,
+                pendingReviewCardIds: publishedState.pendingReviewCardIds,
+                preferredPresentedCardId: publishedState.presentedCardId
+            ),
             reviewCounts: reviewCounts,
             isReviewHeadLoading: false,
             isReviewCountsLoading: false,
@@ -376,6 +417,11 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            presentedCardId: self.resolvePresentedCardId(
+                reviewQueue: publishedState.reviewQueue,
+                pendingReviewCardIds: publishedState.pendingReviewCardIds,
+                preferredPresentedCardId: publishedState.presentedCardId
+            ),
             reviewCounts: publishedState.reviewCounts,
             isReviewHeadLoading: publishedState.isReviewHeadLoading,
             isReviewCountsLoading: publishedState.isReviewCountsLoading,
@@ -407,6 +453,11 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue + queueChunkLoadState.reviewQueueChunk,
+            presentedCardId: self.resolvePresentedCardId(
+                reviewQueue: publishedState.reviewQueue + queueChunkLoadState.reviewQueueChunk,
+                pendingReviewCardIds: publishedState.pendingReviewCardIds,
+                preferredPresentedCardId: publishedState.presentedCardId
+            ),
             reviewCounts: publishedState.reviewCounts,
             isReviewHeadLoading: publishedState.isReviewHeadLoading,
             isReviewCountsLoading: publishedState.isReviewCountsLoading,
@@ -429,6 +480,11 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            presentedCardId: self.resolvePresentedCardId(
+                reviewQueue: publishedState.reviewQueue,
+                pendingReviewCardIds: publishedState.pendingReviewCardIds,
+                preferredPresentedCardId: publishedState.presentedCardId
+            ),
             reviewCounts: publishedState.reviewCounts,
             isReviewHeadLoading: publishedState.isReviewHeadLoading,
             isReviewCountsLoading: publishedState.isReviewCountsLoading,
@@ -462,6 +518,11 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            presentedCardId: self.resolvePresentedCardId(
+                reviewQueue: publishedState.reviewQueue,
+                pendingReviewCardIds: pendingReviewCardIds,
+                preferredPresentedCardId: publishedState.presentedCardId
+            ),
             reviewCounts: publishedState.reviewCounts,
             isReviewHeadLoading: publishedState.isReviewHeadLoading,
             isReviewCountsLoading: publishedState.isReviewCountsLoading,
@@ -511,6 +572,11 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            presentedCardId: self.resolvePresentedCardId(
+                reviewQueue: publishedState.reviewQueue,
+                pendingReviewCardIds: pendingReviewCardIds,
+                preferredPresentedCardId: publishedState.presentedCardId
+            ),
             reviewCounts: publishedState.reviewCounts,
             isReviewHeadLoading: publishedState.isReviewHeadLoading,
             isReviewCountsLoading: publishedState.isReviewCountsLoading,
@@ -527,9 +593,15 @@ struct ReviewQueueRuntime {
     ) -> ReviewQueuePublishedState {
         var pendingReviewCardIds = publishedState.pendingReviewCardIds
         pendingReviewCardIds.remove(request.cardId)
+        let presentedCardId = self.resolvePresentedCardId(
+            reviewQueue: publishedState.reviewQueue,
+            pendingReviewCardIds: pendingReviewCardIds,
+            preferredPresentedCardId: request.cardId
+        )
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            presentedCardId: presentedCardId,
             reviewCounts: publishedState.reviewCounts,
             isReviewHeadLoading: publishedState.isReviewHeadLoading,
             isReviewCountsLoading: publishedState.isReviewCountsLoading,
@@ -634,5 +706,37 @@ struct ReviewQueueRuntime {
 
         self.state.activeReviewQueueChunkTask = nil
         self.state.activeReviewQueueChunkRequestId = nil
+    }
+
+    private func visibleReviewQueue(publishedState: ReviewQueuePublishedState) -> [Card] {
+        publishedState.reviewQueue.filter { card in
+            publishedState.pendingReviewCardIds.contains(card.cardId) == false
+        }
+    }
+
+    private func resolvePresentedCardId(
+        reviewQueue: [Card],
+        preferredPresentedCardId: String?
+    ) -> String? {
+        if let preferredPresentedCardId, reviewQueue.contains(where: { card in
+            card.cardId == preferredPresentedCardId
+        }) {
+            return preferredPresentedCardId
+        }
+
+        return reviewQueue.first?.cardId
+    }
+
+    private func resolvePresentedCardId(
+        reviewQueue: [Card],
+        pendingReviewCardIds: Set<String>,
+        preferredPresentedCardId: String?
+    ) -> String? {
+        self.resolvePresentedCardId(
+            reviewQueue: reviewQueue.filter { card in
+                pendingReviewCardIds.contains(card.cardId) == false
+            },
+            preferredPresentedCardId: preferredPresentedCardId
+        )
     }
 }

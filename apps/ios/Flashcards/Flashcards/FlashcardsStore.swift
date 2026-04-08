@@ -60,6 +60,7 @@ final class FlashcardsStore {
     var deckItems: [DeckListItem]
     var selectedReviewFilter: ReviewFilter
     var reviewQueue: [Card]
+    var presentedReviewCardId: String?
     var reviewCounts: ReviewCounts
     var isReviewHeadLoading: Bool
     var isReviewCountsLoading: Bool
@@ -268,6 +269,7 @@ final class FlashcardsStore {
         self.deckItems = []
         self.selectedReviewFilter = initialReviewPublishedState.selectedReviewFilter
         self.reviewQueue = initialReviewPublishedState.reviewQueue
+        self.presentedReviewCardId = initialReviewPublishedState.presentedCardId
         self.reviewCounts = initialReviewPublishedState.reviewCounts
         self.isReviewHeadLoading = initialReviewPublishedState.isReviewHeadLoading
         self.isReviewCountsLoading = initialReviewPublishedState.isReviewCountsLoading

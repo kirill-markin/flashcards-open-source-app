@@ -15,6 +15,7 @@ const {
   getState,
   openReviewFilterMenu,
   renderReviewScreen,
+  rerenderReviewScreen,
   revealAnswer,
 } = setupReviewScreenTest();
 
@@ -279,5 +280,49 @@ describe("ReviewScreen", () => {
     expect(getContainer().textContent).toContain('choose "Again"');
     expect(getContainer().textContent).toContain('"Hard"');
     expect(state.appData.submitReviewItem).toHaveBeenCalledTimes(8);
+  });
+
+  it("keeps the presented card stable across a background queue reorder and advances to the new canonical head after review", async () => {
+    const state = getState();
+    const currentCard = createCard({
+      cardId: "card-current",
+      frontText: "Current front",
+      backText: "Current back",
+      dueAt: "2026-03-10T11:55:00.000Z",
+    });
+    const newlyDueCard = createCard({
+      cardId: "card-newly-due",
+      frontText: "Newly due front",
+      backText: "Newly due back",
+      dueAt: "2026-03-10T11:50:00.000Z",
+      createdAt: "2026-03-10T11:59:00.000Z",
+      updatedAt: "2026-03-10T11:59:00.000Z",
+    });
+    state.cards = [currentCard, newlyDueCard];
+    state.reviewQueue = [currentCard];
+    state.reviewTimeline = [currentCard, newlyDueCard];
+    state.appData.submitReviewItem.mockImplementation(async (): Promise<Card> => currentCard);
+
+    await renderReviewScreen();
+
+    expect(getContainer().textContent).toContain("Current front");
+    expect(getContainer().textContent).not.toContain("Newly due frontCurrent front");
+
+    state.reviewQueue = [newlyDueCard, currentCard];
+    state.reviewTimeline = [newlyDueCard, currentCard];
+    state.appData.localReadVersion = 1;
+
+    await rerenderReviewScreen();
+
+    expect(getContainer().textContent).toContain("Current front");
+    const queueTitlesAfterRefresh = [...getContainer().querySelectorAll(".review-queue-card-title")].map((element) => element.textContent);
+    expect(queueTitlesAfterRefresh).toEqual(["Current front", "Newly due front"]);
+
+    await revealAnswer();
+    await dispatchDocumentKeydown("3");
+
+    expect(state.appData.submitReviewItem).toHaveBeenCalledWith("card-current", 2);
+    expect(getContainer().textContent).toContain("Newly due front");
+    expect(getContainer().textContent).not.toContain("Current frontCurrent back");
   });
 });

@@ -75,7 +75,7 @@ struct ReviewView: View {
     }
 
     private var currentCard: Card? {
-        currentReviewCard(reviewQueue: store.effectiveReviewQueue)
+        store.presentedReviewCard
     }
 
     private var cachedPreparedCurrentRevealState: PreparedReviewRevealState? {
