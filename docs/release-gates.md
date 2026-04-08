@@ -20,4 +20,5 @@ Cross-client live smoke references:
 - Web: `apps/web/e2e/live-smoke.spec.ts`
 
 These live smoke flows are the highest-confidence checks in the repository because they exercise the real app closest to production conditions.
+On Android, these live smoke flows now run as part of the broader Firebase Test Lab app instrumentation gate rather than as a standalone smoke-only gate.
 When a code change affects a primary user flow, main screen, or cross-client navigation path, check the relevant live smoke or targeted integration tests in the same change and update them when the expected behavior changed. We do not try to guard every internal detail with tests. For small internal or low-risk changes that do not affect the main user journey, updating those tests is optional.

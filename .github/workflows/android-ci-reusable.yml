@@ -3,7 +3,7 @@ name: Android CI reusable
 on:
   workflow_call:
     inputs:
-      run_live_smoke:
+      run_app_instrumentation:
         required: true
         type: boolean
       target_ref:
@@ -66,8 +66,8 @@ jobs:
             apps/android/**/build/reports/tests/**
             apps/android/**/build/test-results/**
 
-  emulator-instrumentation:
-    name: Android emulator instrumentation
+  emulator-data-local-instrumentation:
+    name: Android emulator data:local instrumentation
     needs:
       - build
     runs-on: ubuntu-24.04
@@ -103,7 +103,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Run full Android instrumentation suite on emulator
+      - name: Run data:local instrumentation suite on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 36
@@ -111,14 +111,14 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
-          script: bash scripts/run-android-connected-tests.sh
+          script: cd apps/android && ./gradlew --no-daemon :data:local:connectedDebugAndroidTest
 
-      - name: Detect instrumentation reports
+      - name: Detect data:local instrumentation reports
         if: always()
         id: instrumentation-reports
         run: |
           report_path="$(
-            find apps/android -type f \
+            find apps/android/data/local -type f \
               \( -path '*/build/outputs/androidTest-results/*' -o -path '*/build/reports/androidTests/*' \) \
               -print -quit
           )"
@@ -130,21 +130,21 @@ jobs:
           fi
 
           echo "reports_found=false" >> "${GITHUB_OUTPUT}"
-          echo "No instrumentation reports were produced."
+          echo "No data:local instrumentation reports were produced."
 
-      - name: Upload instrumentation reports
+      - name: Upload data:local instrumentation reports
         if: always() && steps.instrumentation-reports.outputs.reports_found == 'true'
         uses: actions/upload-artifact@v7
         with:
-          name: android-instrumentation-reports
+          name: android-data-local-instrumentation-reports
           if-no-files-found: error
           path: |
-            apps/android/**/build/outputs/androidTest-results/**
-            apps/android/**/build/reports/androidTests/**
+            apps/android/data/local/**/build/outputs/androidTest-results/**
+            apps/android/data/local/**/build/reports/androidTests/**
 
-  live-smoke-config:
-    name: Validate Android live smoke configuration
-    if: ${{ inputs.run_live_smoke }}
+  app-instrumentation-config:
+    name: Validate Android app instrumentation configuration
+    if: ${{ inputs.run_app_instrumentation }}
     runs-on: ubuntu-24.04
 
     steps:
@@ -170,18 +170,18 @@ jobs:
           done
 
           if [[ "${#missing_values[@]}" -gt 0 ]]; then
-            printf 'Missing required GitHub Actions variables for Android live smoke: %s\n' "${missing_values[*]}" >&2
+            printf 'Missing required GitHub Actions variables for Android app instrumentation: %s\n' "${missing_values[*]}" >&2
             echo "Configure them with bash scripts/setup-github-android.sh or in the GitHub repository settings." >&2
             exit 1
           fi
 
-  firebase-test-lab:
-    name: Firebase Test Lab
+  firebase-test-lab-app-instrumentation:
+    name: Firebase Test Lab app instrumentation
     needs:
       - build
-      - emulator-instrumentation
-      - live-smoke-config
-    if: ${{ inputs.run_live_smoke && needs.live-smoke-config.result == 'success' && needs.emulator-instrumentation.result == 'success' }}
+      - emulator-data-local-instrumentation
+      - app-instrumentation-config
+    if: ${{ inputs.run_app_instrumentation && needs.app-instrumentation-config.result == 'success' && needs.emulator-data-local-instrumentation.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
@@ -229,7 +229,7 @@ jobs:
           printf 'APP_APK_PATH=%s\n' "${app_apk_path}" >> "${GITHUB_ENV}"
           printf 'TEST_APK_PATH=%s\n' "${test_apk_path}" >> "${GITHUB_ENV}"
 
-      - name: Run instrumentation tests in Firebase Test Lab
+      - name: Run app instrumentation tests in Firebase Test Lab
         env:
           GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
           ANDROID_FTL_DEVICE_MODEL: ${{ vars.ANDROID_FTL_DEVICE_MODEL }}
@@ -251,7 +251,6 @@ jobs:
             --device-version "${ANDROID_FTL_DEVICE_VERSION}" \
             --app-path "${APP_APK_PATH}" \
             --test-path "${TEST_APK_PATH}" \
-            --test-targets "class com.flashcardsopensourceapp.app.LiveSmokeTest" \
-            --test-targets "class com.flashcardsopensourceapp.app.NotificationTapSmokeTest" \
+            --test-targets "package com.flashcardsopensourceapp.app notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest" \
             --results-bucket "${ANDROID_FTL_RESULTS_BUCKET}" \
             --results-dir "${results_dir}"
