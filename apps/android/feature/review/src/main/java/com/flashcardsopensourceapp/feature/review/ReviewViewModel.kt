@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
+import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
@@ -42,6 +43,7 @@ private const val reviewUpdatedOnAnotherDeviceMessage: String = "This review upd
 
 private data class ReviewDraftState(
     val requestedFilter: ReviewFilter,
+    val presentedCardId: String?,
     val revealedCardId: String?,
     val reviewedInSessionCount: Int,
     val pendingReviewedCards: Set<PendingReviewedCard>,
@@ -97,6 +99,7 @@ class ReviewViewModel(
     private val draftState = MutableStateFlow(
         value = ReviewDraftState(
             requestedFilter = ReviewFilter.AllCards,
+            presentedCardId = null,
             revealedCardId = null,
             reviewedInSessionCount = 0,
             pendingReviewedCards = emptySet(),
@@ -155,6 +158,7 @@ class ReviewViewModel(
 
     private var pendingAutoSyncRequestId: String? = null
     private var reviewCardIdsAtAutoSyncStart: List<String>? = null
+    private var preparedCurrentCardAtAutoSyncStart: PreparedReviewCardPresentation? = null
     private var lastVisibleAutoSyncChangeSignature: List<String>? = null
     private var activeWorkspaceId: String? = null
     private var workspaceGeneration: Long = 0L
@@ -169,31 +173,35 @@ class ReviewViewModel(
         appMetadataState
     ) { reviewSessionState, state, appMetadata ->
         val sessionSnapshot = reviewSessionState.sessionSnapshot
-        val sessionCurrentCard = sessionSnapshot.cards.firstOrNull()
-        val sessionPreparedCurrentCard = sessionCurrentCard?.let { card ->
-            prepareReviewCardPresentation(
-                card = card,
-                answerOptions = sessionSnapshot.answerOptions
-            )
-        }
+        val displayedCurrentCard = resolveDisplayedCurrentCard(
+            sessionCards = sessionSnapshot.cards,
+            presentedCardId = state.presentedCardId
+        )
+        val displayedQueue = buildDisplayedReviewQueue(
+            sessionCards = sessionSnapshot.cards,
+            displayedCurrentCardId = displayedCurrentCard?.cardId
+        )
+        val sessionPreparedCurrentCard = prepareDisplayedSessionCardPresentation(
+            displayedCard = displayedCurrentCard,
+            sessionCards = sessionSnapshot.cards,
+            headAnswerOptions = sessionSnapshot.answerOptions,
+            secondAnswerOptions = sessionSnapshot.nextAnswerOptions
+        )
         val currentPreparedCard = if (
             state.optimisticPreparedCurrentCard != null
-            && sessionPreparedCurrentCard?.card?.cardId != state.optimisticPreparedCurrentCard.card.cardId
+            && state.optimisticPreparedCurrentCard.card.cardId == displayedCurrentCard?.cardId
         ) {
             state.optimisticPreparedCurrentCard
         } else {
             sessionPreparedCurrentCard
         }
-        val preparedNextCard = if (currentPreparedCard?.card?.cardId == sessionPreparedCurrentCard?.card?.cardId) {
-            sessionSnapshot.cards.getOrNull(index = 1)?.let { card ->
-                prepareReviewCardPresentation(
-                    card = card,
-                    answerOptions = sessionSnapshot.nextAnswerOptions
-                )
-            }
-        } else {
-            null
-        }
+        val displayedNextCard = displayedQueue.getOrNull(index = 1)
+        val preparedNextCard = prepareDisplayedSessionCardPresentation(
+            displayedCard = displayedNextCard,
+            sessionCards = sessionSnapshot.cards,
+            headAnswerOptions = sessionSnapshot.answerOptions,
+            secondAnswerOptions = sessionSnapshot.nextAnswerOptions
+        )
         val emptyState = resolveReviewEmptyState(
             selectedFilter = sessionSnapshot.selectedFilter,
             totalCount = sessionSnapshot.totalCount,
@@ -255,6 +263,7 @@ class ReviewViewModel(
     init {
         observeWorkspaceChanges()
         observeResolvedFilterChanges()
+        observePresentedCardChanges()
         observeAutoSyncDrivenReviewChanges()
     }
 
@@ -382,11 +391,13 @@ class ReviewViewModel(
         val currentCard = uiState.value.preparedCurrentCard?.card ?: return
         val cardId = currentCard.cardId
         val optimisticPreparedCurrentCard = uiState.value.preparedNextCard
+        val nextPresentedCardId = optimisticPreparedCurrentCard?.card?.cardId
         val operationWorkspaceGeneration = workspaceGeneration
         val reviewedAtMillis = System.currentTimeMillis()
 
         draftState.update { state ->
             state.copy(
+                presentedCardId = nextPresentedCardId,
                 revealedCardId = null,
                 pendingReviewedCards = state.pendingReviewedCards + PendingReviewedCard(
                     cardId = cardId,
@@ -431,6 +442,7 @@ class ReviewViewModel(
                 }
                 draftState.update { state ->
                     state.copy(
+                        presentedCardId = cardId,
                         pendingReviewedCards = state.pendingReviewedCards - PendingReviewedCard(
                             cardId = cardId,
                             updatedAtMillis = currentCard.updatedAtMillis
@@ -634,6 +646,45 @@ class ReviewViewModel(
         }
     }
 
+    private fun observePresentedCardChanges() {
+        viewModelScope.launch {
+            reviewSessionState.collect { observedState ->
+                val sessionSnapshot = observedState.sessionSnapshot
+                if (sessionSnapshot.isLoading) {
+                    return@collect
+                }
+
+                draftState.update { state ->
+                    if (observedState.requestedFilter != state.requestedFilter) {
+                        return@update state
+                    }
+
+                    val nextPresentedCardId = resolvePresentedCardId(
+                        sessionCards = sessionSnapshot.cards,
+                        currentPresentedCardId = state.presentedCardId
+                    )
+                    if (nextPresentedCardId == state.presentedCardId) {
+                        return@update state
+                    }
+
+                    state.copy(
+                        presentedCardId = nextPresentedCardId,
+                        revealedCardId = if (state.revealedCardId == nextPresentedCardId) {
+                            state.revealedCardId
+                        } else {
+                            null
+                        },
+                        optimisticPreparedCurrentCard = if (state.optimisticPreparedCurrentCard?.card?.cardId == nextPresentedCardId) {
+                            state.optimisticPreparedCurrentCard
+                        } else {
+                            null
+                        }
+                    )
+                }
+            }
+        }
+    }
+
     private fun handleAutoSyncRequested(request: AutoSyncRequest) {
         if (request.allowsVisibleChangeMessage.not()) {
             return
@@ -644,6 +695,7 @@ class ReviewViewModel(
 
         pendingAutoSyncRequestId = request.requestId
         reviewCardIdsAtAutoSyncStart = reviewSessionState.value.sessionSnapshot.cards.map(ReviewCard::cardId)
+        preparedCurrentCardAtAutoSyncStart = uiState.value.preparedCurrentCard
     }
 
     private fun handleAutoSyncCompleted(completion: AutoSyncCompletion) {
@@ -654,6 +706,8 @@ class ReviewViewModel(
         pendingAutoSyncRequestId = null
         val reviewCardIdsBeforeSync = reviewCardIdsAtAutoSyncStart
         reviewCardIdsAtAutoSyncStart = null
+        val currentPreparedCardBeforeSync = preparedCurrentCardAtAutoSyncStart
+        preparedCurrentCardAtAutoSyncStart = null
 
         if (completion.outcome !is AutoSyncOutcome.Succeeded) {
             return
@@ -667,13 +721,15 @@ class ReviewViewModel(
 
         reconcileReviewAfterSuccessfulAutoSync(
             reviewCardIdsBeforeSync = reviewCardIdsBeforeSync,
-            sessionSnapshot = reviewSessionState.value.sessionSnapshot
+            sessionSnapshot = reviewSessionState.value.sessionSnapshot,
+            currentPreparedCardBeforeSync = currentPreparedCardBeforeSync
         )
     }
 
     private fun reconcileReviewAfterSuccessfulAutoSync(
         reviewCardIdsBeforeSync: List<String>?,
-        sessionSnapshot: ReviewSessionSnapshot
+        sessionSnapshot: ReviewSessionSnapshot,
+        currentPreparedCardBeforeSync: PreparedReviewCardPresentation?
     ) {
         val reviewCardIdsAfterSync = sessionSnapshot.cards.map(ReviewCard::cardId)
         if (reviewCardIdsBeforeSync == null) {
@@ -686,18 +742,30 @@ class ReviewViewModel(
             return
         }
 
-        val postSyncCurrentCardId = reviewCardIdsAfterSync.firstOrNull()
         draftState.update { state ->
+            val nextPresentedCardId = resolvePresentedCardId(
+                sessionCards = sessionSnapshot.cards,
+                currentPresentedCardId = state.presentedCardId
+            )
             state.copy(
-                revealedCardId = if (state.revealedCardId == postSyncCurrentCardId) {
+                presentedCardId = nextPresentedCardId,
+                revealedCardId = if (state.revealedCardId == nextPresentedCardId) {
                     state.revealedCardId
                 } else {
                     null
                 },
-                optimisticPreparedCurrentCard = if (state.optimisticPreparedCurrentCard?.card?.cardId == postSyncCurrentCardId) {
-                    state.optimisticPreparedCurrentCard
-                } else {
-                    null
+                optimisticPreparedCurrentCard = when {
+                    state.optimisticPreparedCurrentCard?.card?.cardId == nextPresentedCardId -> {
+                        state.optimisticPreparedCurrentCard
+                    }
+
+                    currentPreparedCardBeforeSync?.card?.cardId == nextPresentedCardId -> {
+                        currentPreparedCardBeforeSync
+                    }
+
+                    else -> {
+                        null
+                    }
                 },
                 previewCards = emptyList(),
                 nextPreviewOffset = 0,
@@ -758,6 +826,7 @@ fun createReviewViewModelFactory(
 private fun makeWorkspaceScopedDraftState(reviewFilter: ReviewFilter): ReviewDraftState {
     return ReviewDraftState(
         requestedFilter = reviewFilter,
+        presentedCardId = null,
         revealedCardId = null,
         reviewedInSessionCount = 0,
         pendingReviewedCards = emptySet(),
@@ -779,6 +848,7 @@ private fun applyReviewFilterChange(
 ): ReviewDraftState {
     return state.copy(
         requestedFilter = reviewFilter,
+        presentedCardId = null,
         revealedCardId = null,
         optimisticPreparedCurrentCard = null,
         previewCards = emptyList(),
@@ -798,6 +868,7 @@ private fun applyResolvedReviewFilter(
 ): ReviewDraftState {
     return state.copy(
         requestedFilter = reviewFilter,
+        presentedCardId = null,
         revealedCardId = null,
         optimisticPreparedCurrentCard = null,
         previewCards = emptyList(),
@@ -843,5 +914,73 @@ private fun loadingReviewSessionSnapshot(): ReviewSessionSnapshot {
         availableDeckFilters = emptyList(),
         availableTagFilters = emptyList(),
         isLoading = true
+    )
+}
+
+private fun resolvePresentedCardId(
+    sessionCards: List<ReviewCard>,
+    currentPresentedCardId: String?
+): String? {
+    val hasPresentedCard = sessionCards.any { card ->
+        card.cardId == currentPresentedCardId
+    }
+    if (hasPresentedCard) {
+        return currentPresentedCardId
+    }
+
+    return sessionCards.firstOrNull()?.cardId
+}
+
+private fun resolveDisplayedCurrentCard(
+    sessionCards: List<ReviewCard>,
+    presentedCardId: String?
+): ReviewCard? {
+    return sessionCards.firstOrNull { card ->
+        card.cardId == presentedCardId
+    } ?: sessionCards.firstOrNull()
+}
+
+private fun buildDisplayedReviewQueue(
+    sessionCards: List<ReviewCard>,
+    displayedCurrentCardId: String?
+): List<ReviewCard> {
+    if (displayedCurrentCardId == null) {
+        return sessionCards
+    }
+
+    val displayedCurrentCard = sessionCards.firstOrNull { card ->
+        card.cardId == displayedCurrentCardId
+    } ?: return sessionCards
+
+    return buildList {
+        add(displayedCurrentCard)
+        sessionCards.forEach { card ->
+            if (card.cardId != displayedCurrentCardId) {
+                add(card)
+            }
+        }
+    }
+}
+
+private fun prepareDisplayedSessionCardPresentation(
+    displayedCard: ReviewCard?,
+    sessionCards: List<ReviewCard>,
+    headAnswerOptions: List<ReviewAnswerOption>,
+    secondAnswerOptions: List<ReviewAnswerOption>
+): PreparedReviewCardPresentation? {
+    val card = displayedCard ?: return null
+    val cardIndex = sessionCards.indexOfFirst { sessionCard ->
+        sessionCard.cardId == card.cardId
+    }
+
+    val answerOptions = when (cardIndex) {
+        0 -> headAnswerOptions
+        1 -> secondAnswerOptions
+        else -> return null
+    }
+
+    return prepareReviewCardPresentation(
+        card = card,
+        answerOptions = answerOptions
     )
 }

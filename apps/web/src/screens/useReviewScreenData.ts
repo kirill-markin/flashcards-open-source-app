@@ -78,6 +78,54 @@ function resolveReviewFilterTitle(
   return deckSummaries.find((deck) => deck.deckId === reviewFilter.deckId)?.name ?? "All cards";
 }
 
+function buildDisplayedReviewQueue(
+  canonicalReviewQueue: ReadonlyArray<Card>,
+  presentedCardId: string | null,
+): ReadonlyArray<Card> {
+  if (presentedCardId === null) {
+    return canonicalReviewQueue;
+  }
+
+  const presentedCard = canonicalReviewQueue.find((card) => card.cardId === presentedCardId);
+  if (presentedCard === undefined) {
+    return canonicalReviewQueue;
+  }
+
+  return [
+    presentedCard,
+    ...canonicalReviewQueue.filter((card) => card.cardId !== presentedCardId),
+  ];
+}
+
+function buildDisplayedReviewTimeline(
+  reviewTimeline: ReadonlyArray<Card>,
+  displayedReviewQueue: ReadonlyArray<Card>,
+): ReadonlyArray<Card> {
+  const displayedCurrentCard = displayedReviewQueue[0];
+  if (displayedCurrentCard === undefined) {
+    return reviewTimeline;
+  }
+
+  return [
+    displayedCurrentCard,
+    ...reviewTimeline.filter((card) => card.cardId !== displayedCurrentCard.cardId),
+  ];
+}
+
+function resolvePresentedCardId(
+  canonicalReviewQueue: ReadonlyArray<Card>,
+  previousPresentedCardId: string | null,
+): string | null {
+  if (previousPresentedCardId !== null) {
+    const previousPresentedCard = canonicalReviewQueue.find((card) => card.cardId === previousPresentedCardId);
+    if (previousPresentedCard !== undefined) {
+      return previousPresentedCard.cardId;
+    }
+  }
+
+  return canonicalReviewQueue[0]?.cardId ?? null;
+}
+
 export function useReviewScreenData(params: UseReviewScreenDataParams): UseReviewScreenDataResult {
   const {
     activeWorkspaceId,
@@ -86,7 +134,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     setErrorMessage,
     submitReviewItem,
   } = params;
-  const [activeReviewQueue, setActiveReviewQueue] = useState<ReadonlyArray<Card>>([]);
+  const [canonicalReviewQueue, setCanonicalReviewQueue] = useState<ReadonlyArray<Card>>([]);
   const [queueCards, setQueueCards] = useState<ReadonlyArray<Card>>([]);
   const [reviewCounts, setReviewCounts] = useState<ReviewCounts>(createEmptyReviewCounts);
   const [reviewQueueCursor, setReviewQueueCursor] = useState<string | null>(null);
@@ -98,11 +146,18 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const [isReviewLoading, setIsReviewLoading] = useState<boolean>(true);
   const [reviewLoadErrorMessage, setReviewLoadErrorMessage] = useState<string>("");
   const [hasLoadedReviewData, setHasLoadedReviewData] = useState<boolean>(false);
+  const [presentedCardId, setPresentedCardId] = useState<string | null>(null);
   const previousReviewFilterRef = useRef<ReviewFilter | null>(null);
+  const presentedCardIdRef = useRef<string | null>(null);
   const reviewLoadingSnapshot = activeWorkspaceId === null
     ? null
     : readReviewLoadingSnapshot(activeWorkspaceId, selectedReviewFilter);
   const isInitialReviewLoad = isReviewLoading && hasLoadedReviewData === false;
+  const activeReviewQueue = buildDisplayedReviewQueue(canonicalReviewQueue, presentedCardId);
+
+  useEffect(() => {
+    presentedCardIdRef.current = presentedCardId;
+  }, [presentedCardId]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -142,13 +197,18 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           nextResolvedReviewFilter,
           decksSnapshot.deckSummaries,
         );
+        const nextPresentedCardId = shouldShowBlockingLoader
+          ? resolvePresentedCardId(reviewQueueSnapshot.cards, null)
+          : resolvePresentedCardId(reviewQueueSnapshot.cards, presentedCardIdRef.current);
+        const nextActiveReviewQueue = buildDisplayedReviewQueue(reviewQueueSnapshot.cards, nextPresentedCardId);
 
         setResolvedReviewFilter(nextResolvedReviewFilter);
         setSelectedReviewFilterTitle(nextSelectedReviewFilterTitle);
-        setActiveReviewQueue(reviewQueueSnapshot.cards);
+        setCanonicalReviewQueue(reviewQueueSnapshot.cards);
+        setPresentedCardId(nextPresentedCardId);
         setReviewCounts(reviewQueueSnapshot.reviewCounts);
         setReviewQueueCursor(reviewQueueSnapshot.nextCursor);
-        setQueueCards(reviewTimelinePage.cards);
+        setQueueCards(buildDisplayedReviewTimeline(reviewTimelinePage.cards, nextActiveReviewQueue));
         setReviewTagSummaries(tagsSummary.tags);
         setTagSuggestions(toTagSuggestions(tagsSummary.tags));
         setDeckSummaries(decksSnapshot.deckSummaries);
@@ -158,8 +218,10 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           selectedReviewFilterKey: serializeReviewFilterKey(selectedReviewFilter),
           resolvedReviewFilterTitle: nextSelectedReviewFilterTitle,
           reviewCounts: reviewQueueSnapshot.reviewCounts,
-          currentCard: reviewQueueSnapshot.cards[0] === undefined ? null : buildReviewLoadingCardPreview(reviewQueueSnapshot.cards[0]),
-          queuePreview: reviewTimelinePage.cards.slice(0, 6).map((card) => buildReviewLoadingCardPreview(card)),
+          currentCard: nextActiveReviewQueue[0] === undefined ? null : buildReviewLoadingCardPreview(nextActiveReviewQueue[0]),
+          queuePreview: buildDisplayedReviewTimeline(reviewTimelinePage.cards, nextActiveReviewQueue)
+            .slice(0, 6)
+            .map((card) => buildReviewLoadingCardPreview(card)),
           savedAt: new Date().toISOString(),
         });
         setHasLoadedReviewData(true);
@@ -188,15 +250,22 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
 
     try {
       await submitReviewItem(card.cardId, rating);
-      const nextReviewQueue = activeReviewQueue.filter((queuedCard) => queuedCard.cardId !== card.cardId);
-      setActiveReviewQueue(nextReviewQueue);
-      setQueueCards((currentCards) => currentCards.filter((queuedCard) => queuedCard.cardId !== card.cardId));
+      const nextCanonicalReviewQueue = canonicalReviewQueue.filter((queuedCard) => queuedCard.cardId !== card.cardId);
+      const nextPresentedCardId = resolvePresentedCardId(nextCanonicalReviewQueue, null);
+      const nextActiveReviewQueue = buildDisplayedReviewQueue(nextCanonicalReviewQueue, nextPresentedCardId);
+
+      setCanonicalReviewQueue(nextCanonicalReviewQueue);
+      setPresentedCardId(nextPresentedCardId);
+      setQueueCards((currentCards) => buildDisplayedReviewTimeline(
+        currentCards.filter((queuedCard) => queuedCard.cardId !== card.cardId),
+        nextActiveReviewQueue,
+      ));
       setReviewCounts((currentCounts) => ({
         dueCount: Math.max(0, currentCounts.dueCount - 1),
         totalCount: Math.max(0, currentCounts.totalCount - 1),
       }));
 
-      if (nextReviewQueue.length <= 4 && reviewQueueCursor !== null) {
+      if (nextCanonicalReviewQueue.length <= 4 && reviewQueueCursor !== null) {
         if (activeWorkspaceId === null) {
           throw new Error("Workspace is unavailable");
         }
@@ -205,10 +274,11 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           activeWorkspaceId,
           resolvedReviewFilter,
           reviewQueueCursor,
-          8 - nextReviewQueue.length,
-          new Set(nextReviewQueue.map((queuedCard) => queuedCard.cardId)),
+          8 - nextCanonicalReviewQueue.length,
+          new Set(nextCanonicalReviewQueue.map((queuedCard) => queuedCard.cardId)),
         );
-        setActiveReviewQueue([...nextReviewQueue, ...nextChunk.cards]);
+        const replenishedCanonicalReviewQueue = [...nextCanonicalReviewQueue, ...nextChunk.cards];
+        setCanonicalReviewQueue(replenishedCanonicalReviewQueue);
         setReviewQueueCursor(nextChunk.nextCursor);
       }
 
