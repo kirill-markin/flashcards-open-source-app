@@ -203,9 +203,9 @@ extension LiveSmokeTestCase {
         )
         _ = self.dismissKnownBlockingAlertIfVisible()
         try self.openWorkspaceOverviewFromSettings()
-        try self.tapButtonPreservingAlerts(
+        try self.tapButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.workspaceOverviewDeleteWorkspaceButton,
-            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
 
         try self.tapAlertButtonPreservingAlerts(label: "Continue", timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
@@ -310,32 +310,14 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func openAccountStatus() throws {
-        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButtonScrollingIntoView(
-            identifier: LiveSmokeIdentifier.settingsAccountSettingsRow,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButtonScrollingIntoView(
-            identifier: LiveSmokeIdentifier.accountSettingsAccountStatusRow,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.assertScreenVisible(screen: .accountStatus, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.openAccountSettingsFromSettings()
+        try self.openAccountStatusFromAccountSettings()
     }
 
     @MainActor
     func openAccountDangerZone() throws {
-        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButtonScrollingIntoView(
-            identifier: LiveSmokeIdentifier.settingsAccountSettingsRow,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.tapButtonScrollingIntoView(
-            identifier: LiveSmokeIdentifier.accountSettingsDangerZoneRow,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.assertScreenVisible(screen: .dangerZone, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.openAccountSettingsFromSettings()
+        try self.openAccountDangerZoneFromAccountSettings()
     }
 
     @MainActor
@@ -363,6 +345,108 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
+    private func openAccountSettingsFromSettings() throws {
+        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
+
+        while Date() < deadline {
+            let accountSettingsScreen = self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.accountSettingsScreen)
+                .firstMatch
+            if accountSettingsScreen.exists {
+                return
+            }
+
+            try self.tapButtonScrollingIntoView(
+                identifier: LiveSmokeIdentifier.settingsAccountSettingsRow,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+
+            if accountSettingsScreen.waitForExistence(timeout: liveSmokeFocusPollIntervalSeconds) {
+                return
+            }
+
+            _ = self.dismissKnownBlockingAlertIfVisible()
+        }
+
+        throw LiveSmokeFailure.missingScreen(
+            screen: LiveSmokeScreen.accountSettings.title,
+            identifier: LiveSmokeScreen.accountSettings.identifier,
+            timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
+            currentScreen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+
+    @MainActor
+    private func openAccountStatusFromAccountSettings() throws {
+        try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
+
+        while Date() < deadline {
+            let accountStatusScreen = self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.accountStatusScreen)
+                .firstMatch
+            if accountStatusScreen.exists {
+                return
+            }
+
+            try self.tapButtonScrollingIntoView(
+                identifier: LiveSmokeIdentifier.accountSettingsAccountStatusRow,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+
+            if accountStatusScreen.waitForExistence(timeout: liveSmokeFocusPollIntervalSeconds) {
+                return
+            }
+
+            _ = self.dismissKnownBlockingAlertIfVisible()
+        }
+
+        throw LiveSmokeFailure.missingScreen(
+            screen: LiveSmokeScreen.accountStatus.title,
+            identifier: LiveSmokeScreen.accountStatus.identifier,
+            timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
+            currentScreen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+
+    @MainActor
+    private func openAccountDangerZoneFromAccountSettings() throws {
+        try self.assertScreenVisible(screen: .accountSettings, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds)
+
+        while Date() < deadline {
+            let dangerZoneScreen = self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.dangerZoneScreen)
+                .firstMatch
+            if dangerZoneScreen.exists {
+                return
+            }
+
+            try self.tapButtonScrollingIntoView(
+                identifier: LiveSmokeIdentifier.accountSettingsDangerZoneRow,
+                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+            )
+
+            if dangerZoneScreen.waitForExistence(timeout: liveSmokeFocusPollIntervalSeconds) {
+                return
+            }
+
+            _ = self.dismissKnownBlockingAlertIfVisible()
+        }
+
+        throw LiveSmokeFailure.missingScreen(
+            screen: LiveSmokeScreen.dangerZone.title,
+            identifier: LiveSmokeScreen.dangerZone.identifier,
+            timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
+            currentScreen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
+    }
+
+    @MainActor
     func completeCloudWorkspaceSelectionIfNeeded() throws -> Bool {
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds * 3)
         var didUseWorkspaceChooser = false
@@ -382,10 +466,20 @@ extension LiveSmokeTestCase {
             if chooserVisible {
                 if try self.tryCreateWorkspaceInChooser() {
                     didUseWorkspaceChooser = true
-                } else {
-                    try self.tapFirstExistingWorkspaceButtonInChooser()
+                    continue
                 }
-                continue
+
+                if self.isAccountStatusLinked() {
+                    return didUseWorkspaceChooser
+                }
+
+                if chooserScreen.exists == false {
+                    continue
+                }
+
+                if try self.tryTapFirstExistingWorkspaceButtonInChooser() {
+                    continue
+                }
             }
 
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
@@ -507,5 +601,23 @@ extension LiveSmokeTestCase {
         }
 
         try self.assertTextExists(reviewEmail, timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds)
+    }
+
+    @MainActor
+    func tryTapFirstExistingWorkspaceButtonInChooser() throws -> Bool {
+        let chooserList = self.app.collectionViews[LiveSmokeIdentifier.cloudWorkspaceChooserScreen].firstMatch
+        guard chooserList.exists else {
+            return false
+        }
+
+        let existingWorkspaceButton = chooserList.buttons
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "cloudSignIn.existingWorkspace."))
+            .firstMatch
+        guard existingWorkspaceButton.exists else {
+            return false
+        }
+
+        try self.tapFirstExistingWorkspaceButtonInChooser()
+        return true
     }
 }

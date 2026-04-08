@@ -314,6 +314,12 @@ extension LiveSmokeTestCase {
 
     @MainActor
     private func scrollBestEffort() {
+        let collectionView = self.app.collectionViews.firstMatch
+        if collectionView.exists {
+            collectionView.swipeUp()
+            return
+        }
+
         let scrollView = self.app.scrollViews.firstMatch
         if scrollView.exists {
             scrollView.swipeUp()
