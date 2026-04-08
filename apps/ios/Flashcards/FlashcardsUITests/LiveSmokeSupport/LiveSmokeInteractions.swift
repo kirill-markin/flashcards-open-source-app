@@ -115,6 +115,36 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
+    func tapButtonScrollingIntoViewPreservingAlerts(identifier: String, timeout: TimeInterval) throws {
+        let button = self.app.buttons[identifier].firstMatch
+        try self.runWithInlineRawScreenStateOnFailure(action: "tap_button_scrolling_into_view_preserving_alerts.\(identifier)") {
+            let deadline = Date().addingTimeInterval(timeout)
+
+            while Date() < deadline {
+                if button.exists && button.isHittable {
+                    try self.tapExistingButtonPreservingAlerts(
+                        button,
+                        identifier: identifier,
+                        action: "tap_button_scrolling_into_view_preserving_alerts",
+                        note: "button tapped after scrolling into view without alert dismissal"
+                    )
+                    return
+                }
+
+                self.scrollBestEffort()
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
     func tapCell(identifier: String, timeout: TimeInterval) throws {
         let cell = self.app.cells[identifier].firstMatch
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_cell.\(identifier)") {
@@ -189,12 +219,10 @@ extension LiveSmokeTestCase {
                 )
             }
 
-            self.logActionStart(action: "tap_alert_button_preserving_alerts", identifier: identifier)
-            button.tap()
-            self.logActionEnd(
-                action: "tap_alert_button_preserving_alerts",
+            try self.tapExistingButtonPreservingAlerts(
+                button,
                 identifier: identifier,
-                result: "success",
+                action: "tap_alert_button_preserving_alerts",
                 note: "alert button tapped without dismissal"
             )
         }
@@ -309,6 +337,26 @@ extension LiveSmokeTestCase {
         self.logActionStart(action: action, identifier: identifier)
         button.tap()
         _ = self.dismissKnownBlockingAlertIfVisible()
+        self.logActionEnd(action: action, identifier: identifier, result: "success", note: note)
+    }
+
+    @MainActor
+    private func tapExistingButtonPreservingAlerts(
+        _ button: XCUIElement,
+        identifier: String,
+        action: String,
+        note: String
+    ) throws {
+        if button.isEnabled == false {
+            throw LiveSmokeFailure.disabledElement(
+                identifier: identifier,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        self.logActionStart(action: action, identifier: identifier)
+        button.tap()
         self.logActionEnd(action: action, identifier: identifier, result: "success", note: note)
     }
 
