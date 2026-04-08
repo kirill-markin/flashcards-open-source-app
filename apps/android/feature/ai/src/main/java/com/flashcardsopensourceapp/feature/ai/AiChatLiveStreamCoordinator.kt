@@ -88,6 +88,7 @@ internal class AiChatLiveStreamCoordinator(
             state.copy(
                 persistedState = clearOptimisticAssistantStatusIfNeeded(state = state.persistedState),
                 activeRun = null,
+                runHadToolCalls = state.runHadToolCalls,
                 isLiveAttached = false,
                 serverComposerSuggestions = emptyList(),
                 composerPhase = AiComposerPhase.IDLE,
@@ -200,16 +201,20 @@ internal class AiChatLiveStreamCoordinator(
             is AiChatLiveEvent.AssistantToolCall -> {
                 context.runtimeStateMutable.update { state ->
                     state.copy(
-                        persistedState = upsertAssistantToolCall(
-                            state = state.persistedState,
-                            toolCall = event.toolCall,
-                            itemId = event.itemId,
-                            cursor = requireNotNull(event.metadata.cursor)
+                        persistedState = setPendingToolRunPostSync(
+                            state = upsertAssistantToolCall(
+                                state = state.persistedState,
+                                toolCall = event.toolCall,
+                                itemId = event.itemId,
+                                cursor = requireNotNull(event.metadata.cursor)
+                            ),
+                            pendingToolRunPostSync = true
                         ),
                         activeRun = updateActiveRunCursor(
                             activeRun = state.activeRun,
                             cursor = event.metadata.cursor
                         ),
+                        runHadToolCalls = true,
                         repairStatus = null
                     )
                 }
@@ -332,10 +337,12 @@ internal class AiChatLiveStreamCoordinator(
                             errorMessage = ""
                         )
                     }
+                    context.triggerToolRunPostSyncIfNeeded(reason = "run_terminal_completed")
                 }
 
                 AiChatRunTerminalOutcome.STOPPED -> {
                     finalizeStoppedConversation()
+                    context.triggerToolRunPostSyncIfNeeded(reason = "run_terminal_stopped")
                     return
                 }
 
@@ -355,6 +362,7 @@ internal class AiChatLiveStreamCoordinator(
                             errorMessage = ""
                         )
                     }
+                    context.triggerToolRunPostSyncIfNeeded(reason = "run_terminal_error")
                 }
             }
         }

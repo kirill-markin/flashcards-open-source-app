@@ -125,7 +125,9 @@ struct AIChatResumeAttemptDiagnostics: Equatable, Sendable {
 protocol AIChatHistoryStoring: Sendable {
     func activateWorkspace(workspaceId: String?)
     func loadState() -> AIChatPersistedState
+    func loadState(workspaceId: String?) -> AIChatPersistedState
     func saveState(state: AIChatPersistedState) async
+    func saveState(workspaceId: String?, state: AIChatPersistedState) async
     func clearState() async
     func loadDraft(workspaceId: String?, sessionId: String?) -> AIChatComposerDraft
     func saveDraft(workspaceId: String?, sessionId: String?, draft: AIChatComposerDraft) async

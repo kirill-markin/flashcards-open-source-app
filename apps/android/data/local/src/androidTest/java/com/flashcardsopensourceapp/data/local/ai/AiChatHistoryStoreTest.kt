@@ -148,13 +148,34 @@ class AiChatHistoryStoreTest {
                 )
             ),
             chatSessionId = "session-1",
-            lastKnownChatConfig = null
+            lastKnownChatConfig = null,
+            pendingToolRunPostSync = true
         )
 
         store.saveState(workspaceId = "workspace-1", state = state)
 
         val loadedState = store.loadState(workspaceId = "workspace-1")
         assertEquals(state, loadedState)
+    }
+
+    @Test
+    fun loadStateDefaultsPendingToolRunPostSyncToFalseWhenMissing() = runBlocking {
+        val preferences = context.getSharedPreferences("flashcards-ai-chat-history", Context.MODE_PRIVATE)
+        preferences.edit()
+            .putString(
+                historyKey(workspaceId = "workspace-1"),
+                JSONObject()
+                    .put("messages", JSONArray())
+                    .put("chatSessionId", "session-1")
+                    .put("lastKnownChatConfig", JSONObject.NULL)
+                    .toString()
+            )
+            .commit()
+
+        val loadedState = store.loadState(workspaceId = "workspace-1")
+
+        assertFalse(loadedState.pendingToolRunPostSync)
+        assertEquals("session-1", loadedState.chatSessionId)
     }
 
     @Test

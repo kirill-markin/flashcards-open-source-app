@@ -67,6 +67,7 @@ extension AIChatStore {
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
                 try await self.ensureAIChatReadyForSend(linkedSession: session)
+                self.resetRunToolCallTracking()
                 self.messages.append(
                     AIChatMessage(
                         id: UUID().uuidString.lowercased(),
@@ -104,13 +105,6 @@ extension AIChatStore {
                         await self?.handleRuntimeEvent(event, conversationId: conversationId)
                     }
                 )
-                if session.authorization.isGuest == false {
-                    do {
-                        _ = try await self.flashcardsStore.runLinkedSync(linkedSession: session)
-                    } catch {
-                        self.flashcardsStore.globalErrorMessage = Flashcards.errorMessage(error: error)
-                    }
-                }
             } catch is CancellationError {
             } catch {
                 self.handleSendMessageError(
@@ -384,6 +378,14 @@ extension AIChatStore {
         switch event {
         case .accepted(let response):
             self.applyEnvelope(response.envelope)
+            // Accepted responses can still reflect recovered older history
+            // before the current turn appears locally. We intentionally allow a
+            // speculative zero-diff post-run sync here because that tradeoff is
+            // simpler than adding more per-run disambiguation on the client.
+            self.markRunHadToolCallsFromSnapshot(
+                activeRun: response.activeRun,
+                messages: response.envelope.conversation.messages
+            )
             self.applyComposerDraft(inputText: "", pendingAttachments: [])
             self.schedulePersistCurrentDraftState()
             self.repairStatus = nil
@@ -391,6 +393,7 @@ extension AIChatStore {
                 self.attachActiveLiveStreamIfPossible()
             } else {
                 self.transitionToIdle()
+                self.syncLinkedDataAfterTerminalRunIfNeeded()
             }
         case .liveEvent(let liveEvent):
             self.handleLiveEvent(liveEvent)
@@ -446,6 +449,46 @@ extension AIChatStore {
         }
 
         self.schedulePersistCurrentState()
+    }
+
+    /// The accepted run response only confirms that the backend started or
+    /// completed the run. Tool-backed changes are synced only after the run is
+    /// terminal so the local review state refreshes once from the final data.
+    func syncLinkedDataAfterTerminalRunIfNeeded() {
+        guard self.hasPendingToolRunPostSync() else {
+            return
+        }
+        guard self.activeToolRunPostSyncTask == nil else {
+            return
+        }
+
+        let origin = self.currentToolRunPostSyncOrigin()
+        let postSyncTask = Task { @MainActor in
+            defer {
+                self.activeToolRunPostSyncTask = nil
+            }
+
+            do {
+                guard self.hasPendingToolRunPostSync(origin: origin) else {
+                    return
+                }
+                let session = try await self.flashcardsStore.cloudSessionForAI()
+                guard self.hasPendingToolRunPostSync(origin: origin) else {
+                    return
+                }
+
+                _ = try await self.flashcardsStore.runLinkedSync(linkedSession: session)
+                await self.completeToolRunPostSyncAfterSuccess(origin: origin)
+            } catch {
+                if self.isCurrentToolRunPostSyncOrigin(origin) && self.pendingToolRunPostSync {
+                    self.schedulePersistCurrentState()
+                    await self.waitForPendingStatePersistence()
+                }
+                self.flashcardsStore.globalErrorMessage = Flashcards.errorMessage(error: error)
+            }
+        }
+
+        self.activeToolRunPostSyncTask = postSyncTask
     }
 }
 

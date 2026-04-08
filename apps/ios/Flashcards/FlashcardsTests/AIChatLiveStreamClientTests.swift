@@ -181,6 +181,39 @@ final class AIChatLiveStreamClientTests: XCTestCase {
         }
     }
 
+    func testDecodeAIChatLiveEventDecodesAssistantToolCallWithoutRequiresSyncField() throws {
+        let event = try XCTUnwrap(decodeAIChatLiveEvent(
+            eventType: "assistant_tool_call",
+            payload: """
+            {
+              "sessionId": "session-1",
+              "conversationScopeId": "session-1",
+              "runId": "run-1",
+              "cursor": "15",
+              "sequenceNumber": 1,
+              "streamEpoch": "epoch-1",
+              "toolCallId": "tool-1",
+              "name": "sql",
+              "status": "started",
+              "input": "{\\\"query\\\":\\\"select 1\\\"}",
+              "itemId": "item-1"
+            }
+            """
+        ))
+
+        guard case .assistantToolCall(metadata: let metadata, toolCall: let toolCall, itemId: let itemId) = event else {
+            return XCTFail("Expected assistant_tool_call event.")
+        }
+
+        XCTAssertEqual(metadata.runId, "run-1")
+        XCTAssertEqual(toolCall.id, "tool-1")
+        XCTAssertEqual(toolCall.name, "sql")
+        XCTAssertEqual(toolCall.status, .started)
+        XCTAssertEqual(toolCall.input, "{\"query\":\"select 1\"}")
+        XCTAssertNil(toolCall.output)
+        XCTAssertEqual(itemId, "item-1")
+    }
+
     func testDecodeAIChatLiveEventRejectsMalformedJson() {
         XCTAssertThrowsError(
             try decodeAIChatLiveEvent(

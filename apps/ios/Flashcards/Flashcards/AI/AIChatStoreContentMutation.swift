@@ -266,6 +266,92 @@ func finalizingAIChatContent(content: [AIChatContentPart]) -> [AIChatContentPart
     }
 }
 
+func aiChatCurrentRunHasAssistantToolCalls(messages: [AIChatMessage]) -> Bool {
+    guard let latestUserMessageIndex = messages.lastIndex(where: { $0.role == .user }) else {
+        return false
+    }
+
+    let currentRunMessages = messages.suffix(from: messages.index(after: latestUserMessageIndex))
+    return currentRunMessages.contains { message in
+        guard message.role == .assistant else {
+            return false
+        }
+
+        return message.content.contains { part in
+            if case .toolCall = part {
+                return true
+            }
+
+            return false
+        }
+    }
+}
+
+func aiChatActiveRunTailHasToolCalls(messages: [AIChatMessage]) -> Bool {
+    for message in messages.reversed() {
+        guard message.role == .assistant else {
+            return false
+        }
+        guard message.isStopped == false else {
+            return false
+        }
+
+        if message.content.contains(where: aiChatContentPartIsToolCall(part:)) {
+            return true
+        }
+    }
+
+    return false
+}
+
+func aiChatTerminalRunHasToolCalls(messages: [AIChatMessage]) -> Bool {
+    if aiChatCurrentRunHasAssistantToolCalls(messages: messages) {
+        return true
+    }
+
+    var trailingAssistantItemId: String?
+    var sawTrailingAssistantMessage = false
+    for message in messages.reversed() {
+        if message.role == .user {
+            return false
+        }
+
+        if message.role == .assistant {
+            if sawTrailingAssistantMessage == false {
+                trailingAssistantItemId = message.itemId
+                sawTrailingAssistantMessage = true
+            } else if message.itemId != trailingAssistantItemId {
+                return false
+            }
+
+            if message.content.contains(where: aiChatContentPartIsToolCall(part:)) {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
+func aiChatSnapshotRunHasToolCalls(
+    activeRun: AIChatActiveRun?,
+    messages: [AIChatMessage]
+) -> Bool {
+    if activeRun == nil {
+        return aiChatTerminalRunHasToolCalls(messages: messages)
+    }
+
+    return aiChatActiveRunTailHasToolCalls(messages: messages)
+}
+
+private func aiChatContentPartIsToolCall(part: AIChatContentPart) -> Bool {
+    if case .toolCall = part {
+        return true
+    }
+
+    return false
+}
+
 private func reasoningSummaryText(reasoningSummary: AIChatReasoningSummary) -> String {
     if reasoningSummary.summary.isEmpty {
         return "Thinking..."

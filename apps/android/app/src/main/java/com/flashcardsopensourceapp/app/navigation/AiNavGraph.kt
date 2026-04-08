@@ -20,6 +20,7 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             factory = createAiViewModelFactory(
                 aiChatRepository = appGraph.aiChatRepository,
                 syncRepository = appGraph.syncRepository,
+                autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 workspaceRepository = appGraph.workspaceRepository,
                 cloudAccountRepository = appGraph.cloudAccountRepository,
                 appVersion = appGraph.appPackageInfo.versionName

@@ -52,7 +52,8 @@ class CloudIdentityResetCoordinatorTest {
             state = AiChatPersistedState(
                 messages = emptyList(),
                 chatSessionId = "session-1",
-                lastKnownChatConfig = null
+                lastKnownChatConfig = null,
+                pendingToolRunPostSync = false
             )
         )
         environment.guestAiSessionStore.saveSession(

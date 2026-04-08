@@ -142,6 +142,7 @@ interface AiChatRepository {
     fun hasConsent(): Boolean
     fun updateConsent(hasConsent: Boolean)
     suspend fun prepareSessionForAi(workspaceId: String?)
+    suspend fun ensureReadyForSend(workspaceId: String?)
     suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState
     suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState)
     suspend fun clearPersistedState(workspaceId: String?)

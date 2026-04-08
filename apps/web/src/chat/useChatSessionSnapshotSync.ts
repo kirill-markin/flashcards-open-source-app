@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, type Dispatch, type MutableRefObject } from "react";
 import { getChatSnapshot, getChatSnapshotWithResumeDiagnostics } from "../api";
+import type { ChatSessionHistoryMessage } from "../types";
 import { storeChatConfig } from "./chatConfig";
 import {
   areChatConfigsEqual,
+  areContentPartsEqual,
   areMessagesEqual,
   extractAssistantErrorMessage,
   extractLatestAssistantMessageText,
@@ -20,7 +22,7 @@ import type { ChatSessionSnapshot } from "./chatSessionSnapshot";
 import type { ChatHistoryState } from "./useChatHistory";
 import type { ChatLiveEvent } from "./liveStream";
 import { useChatLiveSession } from "./useChatLiveSession";
-import type { ChatActiveRun } from "../types";
+import type { ChatActiveRun, ContentPart } from "../types";
 
 type UseChatSessionSnapshotSyncParams = Readonly<{
   controllerId: string;
@@ -29,7 +31,7 @@ type UseChatSessionSnapshotSyncParams = Readonly<{
   state: ChatSessionControllerState;
   dispatch: Dispatch<ChatSessionControllerAction>;
   history: ChatHistoryState;
-  onMainContentInvalidated: (mainContentInvalidationVersion: number) => void;
+  onToolRunPostSyncRequested: () => Promise<void>;
   initialLastSnapshotUpdatedAt: number | null;
 }>;
 
@@ -46,8 +48,6 @@ export type ChatSessionSnapshotRuntimeRefs = Readonly<{
   messagesRef: MutableRefObject<ChatHistoryState["messages"]>;
   chatConfigRef: MutableRefObject<ChatSessionControllerState["chatConfig"]>;
   lastSnapshotUpdatedAtRef: MutableRefObject<number | null>;
-  hasObservedMainContentInvalidationVersionRef: MutableRefObject<boolean>;
-  lastMainContentInvalidationVersionRef: MutableRefObject<number>;
   snapshotRequestVersionRef: MutableRefObject<number>;
   liveCursorRef: MutableRefObject<string | null>;
 }>;
@@ -77,10 +77,192 @@ export type ChatSessionSnapshotSync = Readonly<{
     resumeAttemptId: number | null,
   ) => void;
   reconcileTerminalSnapshot: () => void;
+  markRunHadToolCallsFromSnapshot: (
+    activeRun: ChatActiveRun | null,
+    messages: ReadonlyArray<ChatSessionHistoryMessage>,
+    previousMessages: ReadonlyArray<ChatSessionHistoryMessage> | null,
+    currentTurnContent: ReadonlyArray<ContentPart> | null,
+  ) => void;
 }>;
 
 function toSnapshotRunState(snapshot: ChatSessionSnapshot): ChatSessionControllerState["runState"] {
   return snapshot.activeRun === null ? "idle" : "running";
+}
+
+/**
+ * Tool-call detection is only safe when it is scoped to the latest run.
+ * Inspect assistant messages after the latest user turn so older historical
+ * assistant tool calls do not leak into a newer run.
+ */
+function messageHasToolCalls(message: ChatSessionHistoryMessage): boolean {
+  return message.content.some((part) => part.type === "tool_call");
+}
+
+function latestRunHasToolCalls(messages: ReadonlyArray<ChatSessionHistoryMessage>): boolean {
+  let latestUserIndex = -1;
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === "user") {
+      latestUserIndex = index;
+      break;
+    }
+  }
+
+  for (let index = latestUserIndex + 1; index < messages.length; index += 1) {
+    const message = messages[index];
+    if (message?.role === "assistant" && messageHasToolCalls(message)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function trailingAssistantItemHasToolCalls(
+  messages: ReadonlyArray<ChatSessionHistoryMessage>,
+): boolean {
+  const latestMessage = messages[messages.length - 1];
+  if (latestMessage?.role !== "assistant") {
+    return false;
+  }
+
+  const trailingItemId = latestMessage.itemId;
+  if (trailingItemId === null) {
+    return false;
+  }
+
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message === undefined) {
+      continue;
+    }
+
+    if (message.role === "user" || message.itemId !== trailingItemId) {
+      return false;
+    }
+
+    if (messageHasToolCalls(message)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function terminalRunHasToolCalls(messages: ReadonlyArray<ChatSessionHistoryMessage>): boolean {
+  const latestMessage = messages[messages.length - 1];
+
+  if (latestRunHasToolCalls(messages)) {
+    if (latestMessage?.role === "assistant" && messageHasToolCalls(latestMessage)) {
+      return true;
+    }
+  }
+
+  if (latestMessage?.role === "assistant" && latestMessage.itemId !== null) {
+    return trailingAssistantItemHasToolCalls(messages);
+  }
+
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message === undefined) {
+      continue;
+    }
+
+    if (message.role === "user") {
+      return false;
+    }
+
+    if (messageHasToolCalls(message)) {
+      return true;
+    }
+
+    if (message.isStopped) {
+      return false;
+    }
+  }
+
+  return false;
+}
+
+function resolveAcceptedResponseMessageDelta(
+  messages: ReadonlyArray<ChatSessionHistoryMessage>,
+  previousMessages: ReadonlyArray<ChatSessionHistoryMessage> | null,
+): ReadonlyArray<ChatSessionHistoryMessage> | null {
+  if (previousMessages === null) {
+    return null;
+  }
+
+  if (messages.length <= previousMessages.length) {
+    return null;
+  }
+
+  const sharedHistory = messages.slice(0, previousMessages.length);
+  if (areMessagesEqual(sharedHistory, previousMessages) === false) {
+    return null;
+  }
+
+  return messages.slice(previousMessages.length);
+}
+
+function resolveMessagesAfterCurrentUser(
+  messages: ReadonlyArray<ChatSessionHistoryMessage>,
+  currentTurnContent: ReadonlyArray<ContentPart>,
+): ReadonlyArray<ChatSessionHistoryMessage> | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role !== "user") {
+      continue;
+    }
+
+    if (areContentPartsEqual(message.content, currentTurnContent)) {
+      return messages.slice(index + 1);
+    }
+
+    return null;
+  }
+
+  return null;
+}
+
+function activeRunHasObservedToolCalls(
+  messages: ReadonlyArray<ChatSessionHistoryMessage>,
+  previousMessages: ReadonlyArray<ChatSessionHistoryMessage> | null,
+  currentTurnContent: ReadonlyArray<ContentPart> | null,
+): boolean {
+  const acceptedResponseDelta = resolveAcceptedResponseMessageDelta(messages, previousMessages);
+
+  if (currentTurnContent !== null) {
+    if (acceptedResponseDelta === null) {
+      return false;
+    }
+
+    const currentRunMessages = resolveMessagesAfterCurrentUser(
+      acceptedResponseDelta,
+      currentTurnContent,
+    );
+    if (currentRunMessages !== null) {
+      return latestRunHasToolCalls(currentRunMessages);
+    }
+
+    const acceptedResponseIncludesUserMessage = acceptedResponseDelta.some((message) => message.role === "user");
+    if (acceptedResponseIncludesUserMessage) {
+      return false;
+    }
+
+    return latestRunHasToolCalls(acceptedResponseDelta);
+  }
+
+  return latestRunHasToolCalls(messages);
+}
+
+function snapshotRunHasToolCalls(
+  activeRun: ChatActiveRun | null,
+  messages: ReadonlyArray<ChatSessionHistoryMessage>,
+  previousMessages: ReadonlyArray<ChatSessionHistoryMessage> | null,
+  currentTurnContent: ReadonlyArray<ContentPart> | null,
+): boolean {
+  return activeRun === null
+    ? terminalRunHasToolCalls(messages)
+    : activeRunHasObservedToolCalls(messages, previousMessages, currentTurnContent);
 }
 
 export function useChatSessionSnapshotSync(
@@ -93,7 +275,7 @@ export function useChatSessionSnapshotSync(
     state,
     dispatch,
     history,
-    onMainContentInvalidated,
+    onToolRunPostSyncRequested,
     initialLastSnapshotUpdatedAt,
   } = params;
   const {
@@ -111,13 +293,13 @@ export function useChatSessionSnapshotSync(
   const messagesRef = useRef<ChatHistoryState["messages"]>(messages);
   const chatConfigRef = useRef<ChatSessionControllerState["chatConfig"]>(state.chatConfig);
   const lastSnapshotUpdatedAtRef = useRef<number | null>(initialLastSnapshotUpdatedAt);
-  const hasObservedMainContentInvalidationVersionRef = useRef<boolean>(false);
-  const lastMainContentInvalidationVersionRef = useRef<number>(0);
   const snapshotRequestVersionRef = useRef<number>(0);
   const visibilityResumePromiseRef = useRef<Promise<void> | null>(null);
+  const activeToolRunPostSyncPromiseRef = useRef<Promise<void> | null>(null);
   const liveCursorRef = useRef<string | null>(null);
   const resumeAttemptCounterRef = useRef<number>(0);
   const reconcileTerminalSnapshotRef = useRef<() => void>(() => {});
+  const pendingToolRunPostSyncRef = useRef<boolean>(state.pendingToolRunPostSync);
 
   const runtimeRefs: ChatSessionSnapshotRuntimeRefs = {
     currentWorkspaceIdRef,
@@ -126,8 +308,6 @@ export function useChatSessionSnapshotSync(
     messagesRef,
     chatConfigRef,
     lastSnapshotUpdatedAtRef,
-    hasObservedMainContentInvalidationVersionRef,
-    lastMainContentInvalidationVersionRef,
     snapshotRequestVersionRef,
     liveCursorRef,
   };
@@ -156,6 +336,10 @@ export function useChatSessionSnapshotSync(
     chatConfigRef.current = state.chatConfig;
   }, [state.chatConfig]);
 
+  useEffect(() => {
+    pendingToolRunPostSyncRef.current = state.pendingToolRunPostSync;
+  }, [state.pendingToolRunPostSync]);
+
   const setKnownLiveCursor = useCallback((cursor: string | null): void => {
     liveCursorRef.current = cursor;
   }, []);
@@ -165,8 +349,6 @@ export function useChatSessionSnapshotSync(
   }, []);
 
   const resetSnapshotTracking = useCallback((updatedAt: number | null): void => {
-    hasObservedMainContentInvalidationVersionRef.current = false;
-    lastMainContentInvalidationVersionRef.current = 0;
     lastSnapshotUpdatedAtRef.current = updatedAt;
     liveCursorRef.current = null;
   }, []);
@@ -177,6 +359,67 @@ export function useChatSessionSnapshotSync(
     return nextAttemptId;
   }, []);
 
+  const requestToolRunPostSyncIfNeeded = useCallback((): Promise<void> => {
+    if (pendingToolRunPostSyncRef.current === false) {
+      return Promise.resolve();
+    }
+
+    const activePostSyncRequest = activeToolRunPostSyncPromiseRef.current;
+    if (activePostSyncRequest !== null) {
+      return activePostSyncRequest;
+    }
+
+    // Web intentionally follows the same AI sync contract as iOS and Android:
+    // one explicit sync after a terminal tool-backed run, with no extra
+    // invalidation-driven chat refresh on top of it.
+    let postSyncRequestPromise: Promise<void> | null = null;
+    postSyncRequestPromise = (async (): Promise<void> => {
+      try {
+        await onToolRunPostSyncRequested();
+        pendingToolRunPostSyncRef.current = false;
+        dispatch({ type: "tool_run_post_sync_consumed" });
+      } finally {
+        if (activeToolRunPostSyncPromiseRef.current === postSyncRequestPromise) {
+          activeToolRunPostSyncPromiseRef.current = null;
+        }
+      }
+    })();
+
+    activeToolRunPostSyncPromiseRef.current = postSyncRequestPromise;
+    return postSyncRequestPromise;
+  }, [dispatch, onToolRunPostSyncRequested]);
+
+  const triggerToolRunPostSyncIfNeeded = useCallback((): void => {
+    void requestToolRunPostSyncIfNeeded().catch(() => undefined);
+  }, [requestToolRunPostSyncIfNeeded]);
+
+  const markPendingToolRunPostSync = useCallback((): void => {
+    if (pendingToolRunPostSyncRef.current) {
+      return;
+    }
+
+    pendingToolRunPostSyncRef.current = true;
+    dispatch({ type: "tool_run_post_sync_marked" });
+  }, [dispatch]);
+
+  const markRunHadToolCallsFromSnapshot = useCallback((
+    activeRun: ChatActiveRun | null,
+    nextMessages: ReadonlyArray<ChatSessionHistoryMessage>,
+    previousMessages: ReadonlyArray<ChatSessionHistoryMessage> | null,
+    currentTurnContent: ReadonlyArray<ContentPart> | null,
+  ): void => {
+    if (snapshotRunHasToolCalls(
+      activeRun,
+      nextMessages,
+      previousMessages,
+      currentTurnContent,
+    ) === false) {
+      return;
+    }
+
+    markPendingToolRunPostSync();
+  }, [markPendingToolRunPostSync]);
+
   const applyLiveEvent = useCallback((event: ChatLiveEvent): void => {
     if (event.type === "assistant_delta") {
       setKnownLiveCursor(event.cursor);
@@ -186,6 +429,7 @@ export function useChatSessionSnapshotSync(
 
     if (event.type === "assistant_tool_call") {
       setKnownLiveCursor(event.cursor);
+      markPendingToolRunPostSync();
       upsertAssistantToolCall(toAssistantToolCallContentPart(event), event.itemId, event.cursor);
       return;
     }
@@ -220,15 +464,9 @@ export function useChatSessionSnapshotSync(
         return;
       }
 
-      if (event.isError) {
-        dispatch({
-          type: "run_interrupted",
-          message: extractLatestAssistantMessageText(messagesRef.current) ?? "AI chat failed.",
-        });
-        return;
-      }
-
-      dispatch({ type: "run_completed" });
+      // The live protocol can finalize the assistant message before the run
+      // itself becomes terminal. Keep the run active until run_terminal (or a
+      // terminal snapshot recovery path) so post-run sync stays terminal-only.
       return;
     }
 
@@ -254,10 +492,12 @@ export function useChatSessionSnapshotSync(
     }
 
     if (event.outcome === "completed" || event.outcome === "stopped") {
+      triggerToolRunPostSyncIfNeeded();
       dispatch({ type: "run_completed" });
       return;
     }
 
+    triggerToolRunPostSyncIfNeeded();
     dispatch({
       type: "run_interrupted",
       message: event.message ?? extractLatestAssistantMessageText(messagesRef.current) ?? "AI chat failed.",
@@ -267,8 +507,10 @@ export function useChatSessionSnapshotSync(
     completeAssistantReasoningSummary,
     dispatch,
     finishAssistantMessage,
+    markPendingToolRunPostSync,
     state.currentSessionId,
     state.mainContentInvalidationVersion,
+    triggerToolRunPostSyncIfNeeded,
     setKnownLiveCursor,
     upsertAssistantReasoningSummary,
     upsertAssistantToolCall,
@@ -421,11 +663,26 @@ export function useChatSessionSnapshotSync(
       const shouldReplaceVisibleMessages = replaceHistory
         && areMessagesEqual(messagesRef.current, snapshot.conversation.messages) === false;
       const shouldUpdateChatConfig = areChatConfigsEqual(chatConfigRef.current, snapshot.chatConfig) === false;
+      const didRunBecomeTerminal = runStateRef.current === "running" && nextRunState === "idle";
+      const snapshotBelongsToCurrentRun = snapshot.activeRun !== null
+        || didRunBecomeTerminal
+        || trigger === "terminal_reconcile";
+      if (snapshotBelongsToCurrentRun) {
+        markRunHadToolCallsFromSnapshot(
+          snapshot.activeRun,
+          snapshot.conversation.messages,
+          null,
+          null,
+        );
+      }
 
       dispatch({
         type: "snapshot_applied",
         sessionId: snapshot.sessionId,
         runState: nextRunState,
+        // Keep the server invalidation version in controller state for snapshot
+        // parity and warm-start persistence even though AI-triggered refreshes
+        // now come only from tool-call detection + terminal run completion.
         mainContentInvalidationVersion: nextMainContentInvalidationVersion,
         composerSuggestions: snapshot.composerSuggestions,
         chatConfig: snapshot.chatConfig,
@@ -435,14 +692,12 @@ export function useChatSessionSnapshotSync(
         storeChatConfig(snapshot.chatConfig);
       }
 
-      if (hasObservedMainContentInvalidationVersionRef.current) {
-        if (nextMainContentInvalidationVersion > lastMainContentInvalidationVersionRef.current) {
-          onMainContentInvalidated(nextMainContentInvalidationVersion);
-        }
-      } else {
-        hasObservedMainContentInvalidationVersionRef.current = true;
+      if (nextRunState === "idle") {
+        // Snapshot recovery is the fallback terminal path for runs that finish
+        // outside the happy-path live event flow, and cold-start hydration
+        // consumes the same persisted one-shot flag after a reload.
+        triggerToolRunPostSyncIfNeeded();
       }
-      lastMainContentInvalidationVersionRef.current = nextMainContentInvalidationVersion;
 
       if (shouldReplaceVisibleMessages) {
         replaceMessages(snapshot.conversation.messages);
@@ -474,7 +729,15 @@ export function useChatSessionSnapshotSync(
       });
       throw error;
     }
-  }, [debugLog, dispatch, onMainContentInvalidated, replaceMessages, setKnownLiveCursor, workspaceId]);
+  }, [
+    debugLog,
+    dispatch,
+    markRunHadToolCallsFromSnapshot,
+    replaceMessages,
+    triggerToolRunPostSyncIfNeeded,
+    setKnownLiveCursor,
+    workspaceId,
+  ]);
 
   const startActiveRunLiveStream = useCallback((
     sessionId: string,
@@ -560,5 +823,6 @@ export function useChatSessionSnapshotSync(
     startActiveRunLiveStream,
     startSnapshotLiveStream,
     reconcileTerminalSnapshot,
+    markRunHadToolCallsFromSnapshot,
   };
 }

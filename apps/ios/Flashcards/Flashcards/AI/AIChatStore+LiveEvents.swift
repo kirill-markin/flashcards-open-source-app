@@ -75,6 +75,7 @@ extension AIChatStore {
                 cursor: cursor,
                 itemId: itemId
             )
+            self.markRunHadToolCalls()
             logAIChatStoreEvent(
                 action: "ai_live_event_handle_applied",
                 metadata: self.metadataForAppliedStreamingEvent(
@@ -331,12 +332,14 @@ extension AIChatStore {
             switch outcome {
             case .completed:
                 self.clearActiveRunTracking(resetComposer: true)
+                self.syncLinkedDataAfterTerminalRunIfNeeded()
             case .stopped:
                 if let cursor = metadata.cursor, let assistantItemId {
                     _ = self.resolveTerminalAssistantMessageIndex(itemId: assistantItemId, cursor: cursor)
                 }
                 self.finalizeStoppedAssistantMessageIfNeeded()
                 self.clearActiveRunTracking(resetComposer: true)
+                self.syncLinkedDataAfterTerminalRunIfNeeded()
             case .error:
                 if let cursor = metadata.cursor, let assistantItemId {
                     _ = self.resolveTerminalAssistantMessageIndex(itemId: assistantItemId, cursor: cursor)
@@ -350,6 +353,7 @@ extension AIChatStore {
                     self.showGeneralError(message: "AI chat failed.")
                 }
                 self.clearActiveRunTracking(resetComposer: true)
+                self.syncLinkedDataAfterTerminalRunIfNeeded()
             case .resetRequired:
                 self.clearActiveRunTracking(resetComposer: true)
                 self.reloadConversationFromBootstrap()

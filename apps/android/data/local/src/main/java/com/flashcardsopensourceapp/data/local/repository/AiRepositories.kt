@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatPreferencesStore
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.makeAiChatHistoryScopedWorkspaceId
+import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
@@ -35,6 +36,7 @@ private data class AuthorizedAiChatSession(
 )
 
 class LocalAiChatRepository(
+    private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
     private val cloudRemoteService: CloudRemoteService,
     private val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator,
@@ -57,6 +59,18 @@ class LocalAiChatRepository(
 
     override suspend fun prepareSessionForAi(workspaceId: String?) {
         authorizedSession(workspaceId = workspaceId)
+    }
+
+    override suspend fun ensureReadyForSend(workspaceId: String?) {
+        syncRepository.syncNow()
+        val hasPendingOutboxEntries = if (workspaceId == null) {
+            database.outboxDao().countOutboxEntries() > 0
+        } else {
+            database.outboxDao().loadOutboxEntries(workspaceId = workspaceId, limit = 1).isNotEmpty()
+        }
+        require(hasPendingOutboxEntries.not()) {
+            "AI chat could not start because local changes are still waiting to sync. Try again after sync finishes."
+        }
     }
 
     override suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState {

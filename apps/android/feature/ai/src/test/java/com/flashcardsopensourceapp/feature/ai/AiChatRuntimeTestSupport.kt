@@ -26,6 +26,9 @@ import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
+import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
 import java.util.ArrayDeque
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
@@ -39,9 +42,39 @@ internal const val secondaryTestWorkspaceId: String = "workspace-2"
 private const val testAppVersion: String = "1.1.2"
 
 internal fun makeRuntime(scope: TestScope, repository: FakeAiChatRepository): AiChatRuntime {
+    return makeRuntimeWithAutoSync(
+        scope = scope,
+        repository = repository,
+        autoSyncEventRepository = FakeAutoSyncEventRepository()
+    )
+}
+
+internal fun makeRuntimeContext(
+    scope: TestScope,
+    repository: FakeAiChatRepository,
+    autoSyncEventRepository: FakeAutoSyncEventRepository
+): AiChatRuntimeContext {
+    return AiChatRuntimeContext(
+        scope = scope,
+        aiChatRepository = repository,
+        autoSyncEventRepository = autoSyncEventRepository,
+        appVersion = testAppVersion,
+        hasConsent = { repository.consent.value },
+        currentCloudState = { CloudAccountState.GUEST },
+        currentServerConfiguration = { makeOfficialCloudServiceConfiguration() },
+        currentSyncStatus = { SyncStatus.Idle }
+    )
+}
+
+internal fun makeRuntimeWithAutoSync(
+    scope: TestScope,
+    repository: FakeAiChatRepository,
+    autoSyncEventRepository: FakeAutoSyncEventRepository
+): AiChatRuntime {
     return AiChatRuntime(
         scope = scope,
         aiChatRepository = repository,
+        autoSyncEventRepository = autoSyncEventRepository,
         appVersion = testAppVersion,
         hasConsent = { repository.consent.value },
         currentCloudState = { CloudAccountState.GUEST },
@@ -197,6 +230,10 @@ internal class FakeAiChatRepository : AiChatRepository {
         Unit
     }
 
+    override suspend fun ensureReadyForSend(workspaceId: String?) {
+        Unit
+    }
+
     override suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState {
         return persistedStates[workspaceId] ?: makeDefaultAiChatPersistedState()
     }
@@ -328,5 +365,25 @@ internal class FakeAiChatRepository : AiChatRepository {
         state: AiChatPersistedState
     ) {
         persistedStates[workspaceId] = state
+    }
+}
+
+internal class FakeAutoSyncEventRepository : AutoSyncEventRepository {
+    val requests: MutableList<AutoSyncRequest> = mutableListOf()
+    val runAutoSyncErrors: ArrayDeque<Exception> = ArrayDeque()
+    val runAutoSyncGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
+
+    override fun observeAutoSyncEvents(): Flow<AutoSyncEvent> {
+        return emptyFlow()
+    }
+
+    override suspend fun runAutoSync(request: AutoSyncRequest) {
+        requests += request
+        if (runAutoSyncGates.isNotEmpty()) {
+            runAutoSyncGates.removeFirst().await()
+        }
+        if (runAutoSyncErrors.isNotEmpty()) {
+            throw runAutoSyncErrors.removeFirst()
+        }
     }
 }

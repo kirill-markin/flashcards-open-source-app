@@ -27,6 +27,13 @@ extension AIChatStore {
 
     func applyBootstrap(_ response: AIChatBootstrapResponse) {
         self.applyEnvelope(response)
+        self.markRunHadToolCallsFromSnapshot(
+            activeRun: response.activeRun,
+            messages: response.conversation.messages
+        )
+        if response.activeRun == nil {
+            self.syncLinkedDataAfterTerminalRunIfNeeded()
+        }
     }
 
     func attachBootstrapLiveIfNeeded(

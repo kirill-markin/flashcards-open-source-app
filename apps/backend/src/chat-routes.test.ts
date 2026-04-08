@@ -707,7 +707,7 @@ test("GET /chat paginated history returns assistant item ids and sanitized conte
   });
 });
 
-test("POST /chat returns the canonical chat request id header and dedupe metadata", async () => {
+test("POST /chat can return an active run before the current turn appears in messages", async () => {
   let preparedClientRequestId: string | null = null;
   let invokeCallCount = 0;
   const app = createChatRoutes({

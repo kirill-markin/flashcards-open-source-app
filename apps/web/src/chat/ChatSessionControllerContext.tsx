@@ -15,24 +15,26 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
   const { children } = props;
   const appData = useAppData();
   const activeWorkspaceId = appData.activeWorkspace?.workspaceId ?? null;
-  const refreshLocalData = appData.refreshLocalData;
+  const runSync = appData.runSync;
   const setAppErrorMessage = appData.setErrorMessage;
 
-  const handleMainContentInvalidated = useCallback((mainContentInvalidationVersion: number): void => {
-    if (mainContentInvalidationVersion <= 0) {
-      return;
-    }
-
-    void refreshLocalData().catch((error: unknown) => {
+  const handleToolRunPostSyncRequested = useCallback(async (): Promise<void> => {
+    // Web now matches the shared client rule: AI-driven data refreshes come
+    // from one post-run sync after any tool-backed run, not from chat-specific
+    // invalidation callbacks.
+    try {
+      await runSync();
+    } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      setAppErrorMessage(`Chat content refresh failed. ${message}`);
-    });
-  }, [refreshLocalData, setAppErrorMessage]);
+      setAppErrorMessage(`Chat sync failed. ${message}`);
+      throw error;
+    }
+  }, [runSync, setAppErrorMessage]);
 
   const controller = useChatSessionController({
     workspaceId: activeWorkspaceId,
     isRemoteReady: appData.sessionVerificationState === "verified",
-    onMainContentInvalidated: handleMainContentInvalidated,
+    onToolRunPostSyncRequested: handleToolRunPostSyncRequested,
   });
 
   return (

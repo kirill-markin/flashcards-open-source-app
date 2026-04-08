@@ -68,7 +68,7 @@ function areStreamPositionsEqual(
     && left.sequenceNumber === right.sequenceNumber;
 }
 
-function areContentPartsEqual(
+export function areContentPartsEqual(
   left: ReadonlyArray<ContentPart>,
   right: ReadonlyArray<ContentPart>,
 ): boolean {

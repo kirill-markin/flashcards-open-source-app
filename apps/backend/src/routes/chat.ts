@@ -581,6 +581,10 @@ async function buildStartConversationEnvelope(
       params.listChatMessagesLatestFn,
     );
 
+    // The accepted response mirrors the recovered snapshot at start time. For a
+    // newly accepted running turn that snapshot can still omit the current
+    // user/assistant items entirely, so clients must not infer current-turn
+    // tool usage from historical messages alone.
     return {
       accepted: true,
       ...envelope,

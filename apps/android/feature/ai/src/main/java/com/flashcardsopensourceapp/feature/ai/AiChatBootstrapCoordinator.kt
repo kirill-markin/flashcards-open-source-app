@@ -187,6 +187,13 @@ internal class AiChatBootstrapCoordinator(
         response: AiChatBootstrapResponse,
         preserveLocalComposerState: Boolean
     ) {
+        val previousState = context.runtimeStateMutable.value
+        val recoveredActiveRunHadToolCalls = snapshotRunHasToolCalls(
+            activeRun = response.activeRun,
+            messages = response.conversation.messages
+        )
+        val shouldPersistPendingToolRunPostSync =
+            previousState.persistedState.pendingToolRunPostSync || recoveredActiveRunHadToolCalls
         val workspaceId = context.runtimeStateMutable.value.workspaceId
         val resolvedSessionId = resolveAiChatSessionIdForWorkspace(
             workspaceId = workspaceId,
@@ -210,12 +217,14 @@ internal class AiChatBootstrapCoordinator(
                     persistedState = state.persistedState.copy(
                         messages = response.conversation.messages,
                         chatSessionId = resolvedSessionId,
-                        lastKnownChatConfig = response.chatConfig
+                        lastKnownChatConfig = response.chatConfig,
+                        pendingToolRunPostSync = shouldPersistPendingToolRunPostSync
                     ),
                     conversationScopeId = resolvedConversationScopeId,
                     hasOlder = response.conversation.hasOlder,
                     oldestCursor = response.conversation.oldestCursor,
                     activeRun = response.activeRun,
+                    runHadToolCalls = state.runHadToolCalls || recoveredActiveRunHadToolCalls,
                     isLiveAttached = false,
                     draftMessage = if (preserveLocalComposerState) {
                         state.draftMessage
@@ -245,6 +254,9 @@ internal class AiChatBootstrapCoordinator(
                 ),
                 nextSuggestions = response.composerSuggestions
             )
+        }
+        if (response.activeRun == null && shouldPersistPendingToolRunPostSync) {
+            context.triggerToolRunPostSyncIfNeeded(reason = "bootstrap_terminal")
         }
         context.persistCurrentState()
     }
