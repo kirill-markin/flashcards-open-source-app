@@ -12,6 +12,8 @@ import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.feature.cards.CardEditorRoute
 import com.flashcardsopensourceapp.feature.cards.CardTagsRoute
 import com.flashcardsopensourceapp.feature.cards.CardTextEditorRoute
+import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorFrontTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.createCardEditorViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -166,6 +168,11 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
                 "Keep this side focused on the answer."
             },
             text = if (field == "front") uiState.frontText else uiState.backText,
+            textFieldTag = if (field == "front") {
+                cardEditorFrontTextFieldTag
+            } else {
+                cardEditorBackTextFieldTag
+            },
             onTextChange = if (field == "front") {
                 editorViewModel::updateFrontText
             } else {

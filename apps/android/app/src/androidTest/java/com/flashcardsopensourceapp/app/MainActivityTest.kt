@@ -7,7 +7,6 @@ import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -23,6 +22,10 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorFrontSummaryCardTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorFrontTextFieldTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
 import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
@@ -187,7 +190,11 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithText("Clear").performClick()
 
         composeRule.onNodeWithText("Android card").performClick()
-        updateCardText(fieldTitle = "Front", value = "Updated Android card")
+        updateCardText(
+            summaryTag = cardEditorFrontSummaryCardTag,
+            editorFieldTag = cardEditorFrontTextFieldTag,
+            value = "Updated Android card"
+        )
         scrollToText(text = "Save")
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodes(
@@ -487,8 +494,16 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     private fun createCard(frontText: String, backText: String, tags: List<String>) {
         openCardsTab()
         composeRule.onNodeWithContentDescription("Add card").performClick()
-        updateCardText(fieldTitle = "Front", value = frontText)
-        updateCardText(fieldTitle = "Back", value = backText)
+        updateCardText(
+            summaryTag = cardEditorFrontSummaryCardTag,
+            editorFieldTag = cardEditorFrontTextFieldTag,
+            value = frontText
+        )
+        updateCardText(
+            summaryTag = cardEditorBackSummaryCardTag,
+            editorFieldTag = cardEditorBackTextFieldTag,
+            value = backText
+        )
         if (tags.isNotEmpty()) {
             composeRule.onNodeWithText("Tags").performClick()
             tags.forEach { tag ->
@@ -582,30 +597,12 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         ).performClick()
     }
 
-    private fun updateCardText(fieldTitle: String, value: String) {
-        composeRule.onNode(
-            matcher = hasText(fieldTitle).and(other = hasClickAction())
-        ).performClick()
-        waitForCardTextEditor(fieldTitle = fieldTitle)
-        val textField = composeRule.onAllNodes(hasSetTextAction())[0]
-        textField.performTextReplacement(value)
+    private fun updateCardText(summaryTag: String, editorFieldTag: String, value: String) {
+        composeRule.onNodeWithTag(summaryTag).performScrollTo()
+        composeRule.onNodeWithTag(summaryTag).performClick()
+        composeRule.onNodeWithTag(editorFieldTag).fetchSemanticsNode()
+        composeRule.onNodeWithTag(editorFieldTag).performTextReplacement(value)
         tapVisibleBackButton()
-    }
-
-    private fun waitForCardTextEditor(fieldTitle: String) {
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText(fieldTitle).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText(cardTextEditorSupportingText(fieldTitle)).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().size == 1
-        }
-    }
-
-    private fun cardTextEditorSupportingText(fieldTitle: String): String {
-        return when (fieldTitle) {
-            "Front" -> "Keep this side focused on the question or review prompt."
-            "Back" -> "Keep this side focused on the answer."
-            else -> throw IllegalArgumentException("Unsupported card text field title: $fieldTitle")
-        }
     }
 
     private fun tapVisibleBackButton() {
