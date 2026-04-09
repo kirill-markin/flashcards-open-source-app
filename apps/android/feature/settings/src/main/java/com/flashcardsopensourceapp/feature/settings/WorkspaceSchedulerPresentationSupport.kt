@@ -1,19 +1,32 @@
 package com.flashcardsopensourceapp.feature.settings
 
 import com.flashcardsopensourceapp.data.local.model.WorkspaceSchedulerSettings
+import java.text.NumberFormat
 
-fun formatWorkspaceSchedulerSummary(settings: WorkspaceSchedulerSettings): String {
-    return "${settings.algorithm.uppercase()} ${formatWorkspaceSchedulerDesiredRetention(value = settings.desiredRetention)}"
+fun formatWorkspaceSchedulerSummary(
+    settings: WorkspaceSchedulerSettings,
+    strings: SettingsStringResolver
+): String {
+    return "${settings.algorithm.uppercase()} ${formatWorkspaceSchedulerDesiredRetention(value = settings.desiredRetention, strings = strings)}"
 }
 
-fun formatWorkspaceSchedulerDesiredRetention(value: Double): String {
-    return String.format("%.2f", value)
+fun formatWorkspaceSchedulerDesiredRetention(
+    value: Double,
+    strings: SettingsStringResolver
+): String {
+    val formatter = NumberFormat.getNumberInstance(strings.locale())
+    formatter.minimumFractionDigits = 2
+    formatter.maximumFractionDigits = 2
+    return formatter.format(value)
 }
 
-fun formatWorkspaceSchedulerUpdatedAtLabel(updatedAtMillis: Long): String {
+fun formatWorkspaceSchedulerUpdatedAtLabel(
+    updatedAtMillis: Long,
+    strings: SettingsStringResolver
+): String {
     if (updatedAtMillis <= 0L) {
-        return "Unavailable"
+        return strings.get(R.string.settings_unavailable)
     }
 
-    return updatedAtMillis.toString()
+    return formatTimestampLabel(timestampMillis = updatedAtMillis, strings = strings)
 }

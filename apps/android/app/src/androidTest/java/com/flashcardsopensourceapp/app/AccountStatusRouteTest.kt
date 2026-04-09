@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app
 
 import androidx.activity.ComponentActivity
+import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -10,6 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.feature.settings.AccountStatusRoute
 import com.flashcardsopensourceapp.feature.settings.AccountStatusUiState
+import com.flashcardsopensourceapp.feature.settings.R as SettingsR
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,12 +52,16 @@ class AccountStatusRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithText("Sync is blocked on this device").assertIsDisplayed()
+        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_status_sync_blocked_title)).assertIsDisplayed()
         composeRule.onNodeWithText(
-            "Use Log out to clear local cloud identity on this device before reconnecting."
+            settingsString(SettingsR.string.settings_account_status_sync_blocked_body)
         ).assertIsDisplayed()
-        composeRule.onNodeWithText("Sync now").assertIsNotEnabled()
-        composeRule.onNodeWithText("Log out").performScrollTo()
-        composeRule.onNodeWithText("Log out").assertIsDisplayed()
+        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_status_sync_now_button)).assertIsNotEnabled()
+        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_logout)).performScrollTo()
+        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_logout)).assertIsDisplayed()
+    }
+
+    private fun settingsString(@StringRes resId: Int): String {
+        return composeRule.activity.getString(resId)
     }
 }

@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 const val currentWorkspaceCreateButtonTag: String = "current_workspace_create_button"
@@ -61,7 +62,7 @@ fun CurrentWorkspaceRoute(
     }
 
     SettingsScreenScaffold(
-        title = "Current Workspace",
+        title = stringResource(R.string.settings_root_current_workspace_title),
         onBack = onBack,
         isBackEnabled = uiState.isSwitching.not()
     ) { innerPadding ->
@@ -79,7 +80,7 @@ fun CurrentWorkspaceRoute(
                         modifier = Modifier.padding(20.dp)
                     ) {
                         Text(
-                            text = "Current workspace",
+                            text = stringResource(R.string.settings_root_current_workspace_title),
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(
@@ -87,7 +88,9 @@ fun CurrentWorkspaceRoute(
                             modifier = Modifier.testTag(tag = currentWorkspaceNameTag)
                         )
                         Text(
-                            text = "Cloud status: ${uiState.cloudStatusTitle}",
+                            text = stringResource(
+                                R.string.settings_account_status_cloud_status_label
+                            ) + ": " + uiState.cloudStatusTitle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (uiState.linkedEmail != null) {
@@ -99,8 +102,14 @@ fun CurrentWorkspaceRoute(
                         if (uiState.pendingWorkspaceTitle != null) {
                             Text(
                                 text = when (uiState.operation) {
-                                    CurrentWorkspaceOperation.SWITCHING -> "Switching to ${uiState.pendingWorkspaceTitle}..."
-                                    CurrentWorkspaceOperation.SYNCING -> "Syncing ${uiState.pendingWorkspaceTitle}..."
+                                    CurrentWorkspaceOperation.SWITCHING -> stringResource(
+                                        R.string.settings_current_workspace_switching,
+                                        uiState.pendingWorkspaceTitle
+                                    )
+                                    CurrentWorkspaceOperation.SYNCING -> stringResource(
+                                        R.string.settings_current_workspace_syncing,
+                                        uiState.pendingWorkspaceTitle
+                                    )
                                     CurrentWorkspaceOperation.IDLE,
                                     CurrentWorkspaceOperation.LOADING -> ""
                                 },
@@ -133,16 +142,16 @@ fun CurrentWorkspaceRoute(
                         modifier = Modifier.padding(20.dp)
                     ) {
                         Text(
-                            text = "Linked workspaces",
+                            text = stringResource(R.string.settings_cloud_status_choose_workspace),
                             style = MaterialTheme.typography.titleMedium
                         )
                         when {
                             uiState.isLinked.not() && uiState.isLinkingReady.not() -> {
                                 Text(
                                     text = if (uiState.isGuest) {
-                                        "Create an account or log in to upgrade Guest AI before managing linked workspaces."
+                                        stringResource(R.string.settings_current_workspace_load_guest_message)
                                     } else {
-                                        "Sign in first to load linked cloud workspaces."
+                                        stringResource(R.string.settings_current_workspace_load_sign_in_message)
                                     },
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -150,7 +159,7 @@ fun CurrentWorkspaceRoute(
                                     onClick = onOpenSignIn,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Text(if (uiState.isGuest) "Create account or Log in" else "Sign in")
+                                    Text(stringResource(R.string.settings_account_status_sign_in_button))
                                 }
                             }
 
@@ -159,7 +168,7 @@ fun CurrentWorkspaceRoute(
                                     CircularProgressIndicator(
                                         modifier = Modifier.testTag(tag = currentWorkspaceLoadingStateTag)
                                     )
-                                    Text("Loading linked workspaces...")
+                                    Text(stringResource(R.string.settings_loading))
                                 }
                             }
 
@@ -171,7 +180,7 @@ fun CurrentWorkspaceRoute(
                                         .fillMaxWidth()
                                         .testTag(tag = currentWorkspaceReloadButtonTag)
                                 ) {
-                                    Text("Load linked workspaces")
+                                    Text(stringResource(R.string.settings_reload))
                                 }
                             }
 
@@ -223,7 +232,10 @@ fun CurrentWorkspaceRoute(
                                         ) {
                                             Text(
                                                 text = if (workspace.isSelected) {
-                                                    "${workspace.title} (Current)"
+                                                    stringResource(
+                                                        R.string.settings_post_auth_current_workspace_suffix,
+                                                        workspace.title
+                                                    )
                                                 } else {
                                                     workspace.title
                                                 },
@@ -248,7 +260,7 @@ fun CurrentWorkspaceRoute(
                                         onClick = onRetryLastWorkspaceAction,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Text("Retry last workspace action")
+                                        Text(stringResource(R.string.settings_retry))
                                     }
                                 }
                             }

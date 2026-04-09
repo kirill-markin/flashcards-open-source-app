@@ -8,6 +8,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ReviewNotificationsStoreTest {
+    private val fallbackFrontText: String = "Continue your study session in Flashcards."
+
     @Test
     fun dailyReminderFallbackPayloadsUseGenericBodyTextAndNullCardId() {
         val zoneId = ZoneId.of("UTC")
@@ -19,6 +21,7 @@ class ReviewNotificationsStoreTest {
                 effortLevel = null,
                 tag = null
             ),
+            fallbackFrontText = fallbackFrontText,
             nowMillis = parseTimestampMillis(value = "2026-04-03T09:00:00Z"),
             zoneId = zoneId,
             settings = DailyReviewNotificationsSettings(
@@ -27,7 +30,7 @@ class ReviewNotificationsStoreTest {
             )
         )
 
-        assertEquals("Continue your study session in Flashcards.", payloads.first().frontText)
+        assertEquals(fallbackFrontText, payloads.first().frontText)
         assertEquals(listOf(null, null), payloads.take(2).map { payload -> payload.cardId })
         assertEquals(
             listOf("deck-1", "deck-1"),
@@ -97,6 +100,7 @@ class ReviewNotificationsStoreTest {
                 effortLevel = null,
                 tag = "biology"
             ),
+            fallbackFrontText = fallbackFrontText,
             nowMillis = parseTimestampMillis(value = "2026-04-03T10:16:00Z"),
             lastActiveAtMillis = parseTimestampMillis(value = "2026-04-03T10:15:00Z"),
             zoneId = zoneId,
@@ -109,7 +113,7 @@ class ReviewNotificationsStoreTest {
             )
         )
 
-        assertEquals("Continue your study session in Flashcards.", payloads.first().frontText)
+        assertEquals(fallbackFrontText, payloads.first().frontText)
         assertEquals(listOf(null, null), payloads.take(2).map { payload -> payload.cardId })
         assertEquals(
             listOf("biology", "biology"),

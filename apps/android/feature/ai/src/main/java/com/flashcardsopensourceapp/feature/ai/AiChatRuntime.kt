@@ -10,9 +10,6 @@ import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
-import com.flashcardsopensourceapp.data.local.model.aiChatConsentRequiredMessage
-import com.flashcardsopensourceapp.data.local.model.aiChatGuestQuotaButtonTitle
-import com.flashcardsopensourceapp.data.local.model.aiChatGuestQuotaReachedMessage
 import com.flashcardsopensourceapp.data.local.model.isSendableAiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.makeAiChatCardAttachment
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
@@ -25,15 +22,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-private const val noSpeechRecordedMessage: String = "No speech was recorded."
-private const val cardHandoffRequiresFreshChatMessage: String =
-    "Start a new chat before handing off a card to AI."
-
 internal class AiChatRuntime(
     scope: CoroutineScope,
     aiChatRepository: AiChatRepository,
     autoSyncEventRepository: AutoSyncEventRepository,
     appVersion: String,
+    textProvider: AiTextProvider,
     hasConsent: () -> Boolean,
     currentCloudState: () -> CloudAccountState,
     currentServerConfiguration: () -> CloudServiceConfiguration,
@@ -44,6 +38,7 @@ internal class AiChatRuntime(
         aiChatRepository = aiChatRepository,
         autoSyncEventRepository = autoSyncEventRepository,
         appVersion = appVersion,
+        textProvider = textProvider,
         hasConsent = hasConsent,
         currentCloudState = currentCloudState,
         currentServerConfiguration = currentServerConfiguration,
@@ -235,7 +230,7 @@ internal class AiChatRuntime(
                 val transcript = transcription.text.trim()
 
                 require(transcript.isNotEmpty()) {
-                    noSpeechRecordedMessage
+                    context.textProvider.noSpeechRecorded
                 }
 
                 runtimeStateMutable.update { state ->
@@ -266,12 +261,13 @@ internal class AiChatRuntime(
                 val message = makeAiUserFacingErrorMessage(
                     error = error,
                     surface = AiErrorSurface.DICTATION,
-                    configuration = currentServerConfiguration()
+                    configuration = currentServerConfiguration(),
+                    textProvider = context.textProvider
                 )
                 runtimeStateMutable.update { state ->
                     state.copy(
                         dictationState = AiChatDictationState.IDLE,
-                        activeAlert = AiAlertState.GeneralError(message = message),
+                        activeAlert = context.textProvider.generalError(message = message),
                         errorMessage = ""
                     )
                 }
@@ -365,7 +361,10 @@ internal class AiChatRuntime(
 
         runtimeStateMutable.update { state ->
             state.copy(
-                draftMessage = aiEntryPrefillPrompt(prefill = prefill),
+                draftMessage = aiEntryPrefillPrompt(
+                    prefill = prefill,
+                    textProvider = context.textProvider
+                ),
                 focusComposerRequestVersion = state.focusComposerRequestVersion + 1L,
                 activeAlert = null,
                 errorMessage = ""
@@ -404,7 +403,9 @@ internal class AiChatRuntime(
         ) {
             runtimeStateMutable.update { state ->
                 state.copy(
-                    activeAlert = AiAlertState.GeneralError(message = cardHandoffRequiresFreshChatMessage),
+                    activeAlert = context.textProvider.generalError(
+                        message = context.textProvider.cardHandoffRequiresNewChat
+                    ),
                     errorMessage = ""
                 )
             }
@@ -446,7 +447,7 @@ internal class AiChatRuntime(
     fun showErrorMessage(message: String) {
         runtimeStateMutable.update { state ->
             state.copy(
-                activeAlert = AiAlertState.GeneralError(message = message),
+                activeAlert = context.textProvider.generalError(message = message),
                 errorMessage = ""
             )
         }
@@ -485,7 +486,9 @@ internal class AiChatRuntime(
             if (hasConsent().not()) {
                 runtimeStateMutable.update { state ->
                     state.copy(
-                        activeAlert = AiAlertState.GeneralError(message = aiChatConsentRequiredMessage),
+                        activeAlert = context.textProvider.generalError(
+                            message = context.textProvider.consentRequiredMessage
+                        ),
                         errorMessage = ""
                     )
                 }
@@ -713,8 +716,8 @@ internal class AiChatRuntime(
                 state.copy(
                     persistedState = appendAssistantAccountUpgradePrompt(
                         state = state.persistedState,
-                        message = aiChatGuestQuotaReachedMessage,
-                        buttonTitle = aiChatGuestQuotaButtonTitle,
+                        message = context.textProvider.guestQuotaReachedMessage,
+                        buttonTitle = context.textProvider.guestQuotaButtonTitle,
                         timestampMillis = System.currentTimeMillis()
                     ),
                     activeRun = null,
@@ -746,8 +749,8 @@ internal class AiChatRuntime(
                     activeRun = null,
                     isLiveAttached = false,
                     composerPhase = AiComposerPhase.IDLE,
-                    activeAlert = AiAlertState.GeneralError(
-                        message = "A response is already in progress. Wait for it to finish or stop it before sending another message."
+                    activeAlert = context.textProvider.generalError(
+                        message = context.textProvider.responseInProgress
                     ),
                     errorMessage = ""
                 )
@@ -758,7 +761,8 @@ internal class AiChatRuntime(
         val message = makeAiUserFacingErrorMessage(
             error = error,
             surface = AiErrorSurface.CHAT,
-            configuration = currentServerConfiguration()
+            configuration = currentServerConfiguration(),
+            textProvider = context.textProvider
         )
         val currentState = runtimeStateMutable.value
         AiChatDiagnosticsLogger.error(
@@ -777,7 +781,7 @@ internal class AiChatRuntime(
                 activeRun = null,
                 isLiveAttached = false,
                 composerPhase = AiComposerPhase.IDLE,
-                activeAlert = AiAlertState.GeneralError(message = message),
+                activeAlert = context.textProvider.generalError(message = message),
                 errorMessage = ""
             )
         }
@@ -788,7 +792,8 @@ internal class AiChatRuntime(
         val message = makeAiUserFacingErrorMessage(
             error = error,
             surface = AiErrorSurface.CHAT,
-            configuration = currentServerConfiguration()
+            configuration = currentServerConfiguration(),
+            textProvider = context.textProvider
         )
 
         AiChatDiagnosticsLogger.error(
@@ -805,7 +810,7 @@ internal class AiChatRuntime(
 
         runtimeStateMutable.update { state ->
             state.copy(
-                activeAlert = AiAlertState.GeneralError(message = message),
+                activeAlert = context.textProvider.generalError(message = message),
                 errorMessage = ""
             )
         }

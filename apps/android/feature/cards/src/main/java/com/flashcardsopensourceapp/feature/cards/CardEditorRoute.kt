@@ -31,7 +31,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 
@@ -49,6 +52,7 @@ fun CardEditorRoute(
     onDelete: (() -> Unit)?,
     onBack: () -> Unit
 ) {
+    val resources = LocalContext.current.resources
     Scaffold(
         topBar = {
             TopAppBar(
@@ -59,7 +63,7 @@ fun CardEditorRoute(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(id = R.string.cards_editor_back_content_description)
                         )
                     }
                 }
@@ -79,7 +83,7 @@ fun CardEditorRoute(
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "Front text stays the review prompt. Back text stays the answer. Both can be long-form and are edited on dedicated Android surfaces.",
+                        text = stringResource(id = R.string.cards_editor_guidance),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp)
                     )
@@ -104,14 +108,14 @@ fun CardEditorRoute(
                         onClick = onEditWithAi,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Edit with AI")
+                        Text(stringResource(id = R.string.cards_edit_with_ai))
                     }
                 }
             }
 
             item {
                 Text(
-                    text = "Text",
+                    text = stringResource(id = R.string.cards_text_section),
                     style = MaterialTheme.typography.titleSmall
                 )
             }
@@ -119,9 +123,9 @@ fun CardEditorRoute(
             item {
                 NavigationSummaryCard(
                     modifier = Modifier.testTag(cardEditorFrontSummaryCardTag),
-                    title = "Front",
-                    summary = formatCardTextPreview(text = uiState.frontText),
-                    supportingText = "Question or prompt shown first during review",
+                    title = stringResource(id = R.string.cards_front_title),
+                    summary = formatCardsTextPreview(resources = resources, text = uiState.frontText),
+                    supportingText = stringResource(id = R.string.cards_front_supporting_text),
                     icon = {
                         Icon(
                             imageVector = Icons.Outlined.Description,
@@ -145,9 +149,9 @@ fun CardEditorRoute(
             item {
                 NavigationSummaryCard(
                     modifier = Modifier.testTag(cardEditorBackSummaryCardTag),
-                    title = "Back",
-                    summary = formatCardTextPreview(text = uiState.backText),
-                    supportingText = "Answer shown after revealing the card",
+                    title = stringResource(id = R.string.cards_back_title),
+                    summary = formatCardsTextPreview(resources = resources, text = uiState.backText),
+                    supportingText = stringResource(id = R.string.cards_back_supporting_text),
                     icon = {
                         Icon(
                             imageVector = Icons.Outlined.Description,
@@ -170,7 +174,7 @@ fun CardEditorRoute(
 
             item {
                 Text(
-                    text = "Metadata",
+                    text = stringResource(id = R.string.cards_metadata_section),
                     style = MaterialTheme.typography.titleSmall
                 )
             }
@@ -178,12 +182,16 @@ fun CardEditorRoute(
             item {
                 NavigationSummaryCard(
                     modifier = Modifier,
-                    title = "Tags",
-                    summary = formatTagSelectionSummary(tags = uiState.selectedTags),
+                    title = stringResource(id = R.string.cards_tags_title),
+                    summary = formatCardsTagSelectionSummary(resources = resources, tags = uiState.selectedTags),
                     supportingText = if (uiState.availableTagSuggestions.isEmpty()) {
-                        "No workspace tags yet. You can still add custom tags."
+                        stringResource(id = R.string.cards_tags_summary_no_workspace_tags)
                     } else {
-                        "${uiState.availableTagSuggestions.size} workspace tags available"
+                        pluralStringResource(
+                            id = R.plurals.cards_tags_summary_workspace_tags_available,
+                            count = uiState.availableTagSuggestions.size,
+                            uiState.availableTagSuggestions.size
+                        )
                     },
                     icon = {
                         Icon(
@@ -234,7 +242,7 @@ fun CardEditorRoute(
 
             item {
                 Text(
-                    text = "Effort level",
+                    text = stringResource(id = R.string.cards_effort_level_title),
                     style = MaterialTheme.typography.titleSmall
                 )
             }
@@ -255,7 +263,7 @@ fun CardEditorRoute(
                                 count = options.size
                             )
                         ) {
-                            Text(formatEffortLevelTitle(effortLevel = option))
+                            Text(formatCardsEffortLevelTitle(resources = resources, effortLevel = option))
                         }
                     }
                 }
@@ -270,13 +278,13 @@ fun CardEditorRoute(
                         onClick = onBack,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(id = R.string.cards_cancel))
                     }
                     Button(
                         onClick = onSave,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Save")
+                        Text(stringResource(id = R.string.cards_save))
                     }
                 }
             }
@@ -291,7 +299,7 @@ fun CardEditorRoute(
                         onClick = onDelete,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Delete card")
+                        Text(stringResource(id = R.string.cards_delete_card))
                     }
                 }
             }

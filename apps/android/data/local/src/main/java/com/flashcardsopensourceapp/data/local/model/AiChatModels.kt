@@ -7,12 +7,7 @@ const val aiChatDefaultModelLabel: String = "GPT-5.4"
 const val aiChatDefaultProviderLabel: String = "OpenAI"
 const val aiChatDefaultReasoningEffort: String = "medium"
 const val aiChatDefaultReasoningLabel: String = "Medium"
-const val aiChatConsentRequiredMessage: String =
-    "Review AI data use and accept it on this device before using AI features."
-const val aiChatOptimisticAssistantStatusText: String = "Looking through your cards..."
-const val aiChatGuestQuotaReachedMessage: String =
-    "Your free guest AI limit for this month is used up. Create an account or log in to keep using AI."
-const val aiChatGuestQuotaButtonTitle: String = "Create account or Log in"
+const val aiChatOptimisticAssistantStatusToken: String = "__ai_optimistic_assistant_status__"
 const val aiChatMaximumAttachmentBytes: Int = 20 * 1024 * 1024
 
 val aiChatSupportedFileExtensions: Set<String> = setOf(

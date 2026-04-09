@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 
@@ -59,7 +60,7 @@ fun CloudPostAuthRoute(
     }
 
     SettingsScreenScaffold(
-        title = "Cloud sync",
+        title = stringResource(R.string.settings_post_auth_title),
         onBack = onBack,
         isBackEnabled = isBackEnabled
     ) { innerPadding ->
@@ -85,9 +86,17 @@ fun CloudPostAuthRoute(
                             CloudPostAuthMode.READY_TO_AUTO_LINK -> {
                                 Text(
                                     if (uiState.isGuestUpgrade) {
-                                        "Preparing to upgrade Guest AI into ${uiState.pendingWorkspaceTitle ?: "your workspace"}..."
+                                        stringResource(
+                                            R.string.settings_post_auth_prepare_guest_title,
+                                            uiState.pendingWorkspaceTitle
+                                                ?: stringResource(R.string.settings_current_workspace_selected)
+                                        )
                                     } else {
-                                        "Preparing ${uiState.pendingWorkspaceTitle ?: "your workspace"}..."
+                                        stringResource(
+                                            R.string.settings_post_auth_prepare_title,
+                                            uiState.pendingWorkspaceTitle
+                                                ?: stringResource(R.string.settings_current_workspace_selected)
+                                        )
                                     }
                                 )
                             }
@@ -95,9 +104,9 @@ fun CloudPostAuthRoute(
                             CloudPostAuthMode.CHOOSE_WORKSPACE -> {
                                 Text(
                                     if (uiState.isGuestUpgrade) {
-                                        "Choose the linked workspace that should receive this Guest AI session, or create a new one."
+                                        stringResource(R.string.settings_post_auth_choose_guest_workspace_body)
                                     } else {
-                                        "Choose a linked workspace to open on this Android device, or create a new one."
+                                        stringResource(R.string.settings_post_auth_choose_workspace_body)
                                     }
                                 )
                             }
@@ -120,7 +129,7 @@ fun CloudPostAuthRoute(
 
                             CloudPostAuthMode.IDLE -> {
                                 Text(
-                                    text = "Cloud account setup is idle.",
+                                    text = stringResource(R.string.settings_post_auth_idle),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -169,7 +178,10 @@ fun CloudPostAuthRoute(
                         ) {
                             Text(
                                 text = if (workspace.isSelected) {
-                                    "${workspace.title} (Current)"
+                                    stringResource(
+                                        R.string.settings_post_auth_current_workspace_suffix,
+                                        workspace.title
+                                    )
                                 } else {
                                     workspace.title
                                 },
@@ -200,7 +212,7 @@ fun CloudPostAuthRoute(
                         enabled = uiState.canRetry && uiState.mode == CloudPostAuthMode.FAILED,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Retry")
+                        Text(stringResource(R.string.settings_retry))
                     }
                 }
                 item {
@@ -209,7 +221,7 @@ fun CloudPostAuthRoute(
                         enabled = uiState.canLogout && uiState.mode == CloudPostAuthMode.FAILED,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Log out")
+                        Text(stringResource(R.string.settings_logout))
                     }
                 }
             }

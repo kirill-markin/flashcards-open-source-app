@@ -18,6 +18,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import com.flashcardsopensourceapp.core.ui.components.SectionTitle
 
 @Composable
@@ -32,7 +33,7 @@ fun AccountRoute(
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
-        title = "Account Settings",
+        title = stringResource(R.string.settings_account_title),
         onBack = onBack,
         isBackEnabled = true
     ) { innerPadding ->
@@ -45,10 +46,15 @@ fun AccountRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Account status")
+                            Text(stringResource(R.string.settings_account_status_title))
                         },
                         supportingContent = {
-                            Text("Workspace: $workspaceName")
+                            Text(
+                                stringResource(
+                                    R.string.settings_account_workspace_summary,
+                                    workspaceName
+                                )
+                            )
                         },
                         leadingContent = {
                             Icon(
@@ -62,17 +68,17 @@ fun AccountRoute(
             }
 
             item {
-                SectionTitle(text = "Support")
+                SectionTitle(text = stringResource(R.string.settings_account_support_section))
             }
 
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Legal & support")
+                            Text(stringResource(R.string.settings_account_legal_support_title))
                         },
                         supportingContent = {
-                            Text("Privacy, terms, support, and contact")
+                            Text(stringResource(R.string.settings_account_legal_support_summary))
                         },
                         leadingContent = {
                             Icon(
@@ -89,10 +95,10 @@ fun AccountRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Open source")
+                            Text(stringResource(R.string.settings_account_open_source_title))
                         },
                         supportingContent = {
-                            Text("GitHub repository and self-hosting direction")
+                            Text(stringResource(R.string.settings_account_open_source_summary))
                         },
                         leadingContent = {
                             Icon(
@@ -106,17 +112,17 @@ fun AccountRoute(
             }
 
             item {
-                SectionTitle(text = "Advanced")
+                SectionTitle(text = stringResource(R.string.settings_account_advanced_section))
             }
 
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Advanced")
+                            Text(stringResource(R.string.settings_account_advanced_title))
                         },
                         supportingContent = {
-                            Text("Server configuration")
+                            Text(stringResource(R.string.settings_account_advanced_summary))
                         },
                         leadingContent = {
                             Icon(
@@ -130,17 +136,17 @@ fun AccountRoute(
             }
 
             item {
-                SectionTitle(text = "Connections")
+                SectionTitle(text = stringResource(R.string.settings_account_connections_section))
             }
 
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Agent connections")
+                            Text(stringResource(R.string.settings_account_agent_connections_title))
                         },
                         supportingContent = {
-                            Text("Review and revoke long-lived bot connections")
+                            Text(stringResource(R.string.settings_account_agent_connections_summary))
                         },
                         leadingContent = {
                             Icon(
@@ -154,17 +160,17 @@ fun AccountRoute(
             }
 
             item {
-                SectionTitle(text = "Danger zone")
+                SectionTitle(text = stringResource(R.string.settings_account_danger_zone_section))
             }
 
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Danger zone")
+                            Text(stringResource(R.string.settings_account_danger_zone_section))
                         },
                         supportingContent = {
-                            Text("Delete account")
+                            Text(stringResource(R.string.settings_account_danger_zone_summary))
                         },
                         leadingContent = {
                             Icon(

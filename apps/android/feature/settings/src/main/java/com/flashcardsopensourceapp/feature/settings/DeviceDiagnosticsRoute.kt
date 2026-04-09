@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun DeviceDiagnosticsRoute(
@@ -12,7 +13,7 @@ fun DeviceDiagnosticsRoute(
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
-        title = "This Device",
+        title = stringResource(R.string.settings_device_title),
         onBack = onBack,
         isBackEnabled = true
     ) { innerPadding ->
@@ -23,45 +24,45 @@ fun DeviceDiagnosticsRoute(
         ) {
             item {
                 DeviceInfoCard(
-                    title = "Workspace",
+                    title = stringResource(R.string.settings_section_workspace),
                     rows = listOf(
-                        "Name" to uiState.workspaceName,
-                        "Workspace ID" to uiState.workspaceId
+                        stringResource(R.string.settings_device_workspace_name_label) to uiState.workspaceName,
+                        stringResource(R.string.settings_device_workspace_id_label) to uiState.workspaceId
                     )
                 )
             }
 
             item {
                 DeviceInfoCard(
-                    title = "App",
+                    title = stringResource(R.string.settings_device_app_info_title),
                     rows = listOf(
-                        "Version" to uiState.appVersion,
-                        "Build" to uiState.buildNumber,
-                        "Client" to uiState.clientLabel,
-                        "Storage" to uiState.storageLabel
+                        stringResource(R.string.settings_device_app_version_label) to uiState.appVersion,
+                        stringResource(R.string.settings_device_build_number_label) to uiState.buildNumber,
+                        stringResource(R.string.settings_device_client_label) to uiState.clientLabel,
+                        stringResource(R.string.settings_device_storage_label) to uiState.storageLabel
                     )
                 )
             }
 
             item {
                 DeviceInfoCard(
-                    title = "Device",
+                    title = stringResource(R.string.settings_section_device),
                     rows = listOf(
-                        "Operating system" to uiState.operatingSystem,
-                        "Model" to uiState.deviceModel
+                        stringResource(R.string.settings_device_os_label) to uiState.operatingSystem,
+                        stringResource(R.string.settings_device_model_label) to uiState.deviceModel
                     )
                 )
             }
 
             item {
                 DeviceInfoCard(
-                    title = "Local sync diagnostics",
+                    title = stringResource(R.string.settings_device_sync_diagnostics_title),
                     rows = listOf(
-                        "Outbox entries" to uiState.outboxEntriesCount.toString(),
-                        "Last sync cursor" to uiState.lastSyncCursor,
-                        "Last sync attempt" to uiState.lastSyncAttempt,
-                        "Last successful sync" to uiState.lastSuccessfulSync,
-                        "Last sync error" to uiState.lastSyncError
+                        stringResource(R.string.settings_device_outbox_label) to uiState.outboxEntriesCount.toString(),
+                        stringResource(R.string.settings_device_last_sync_cursor_label) to uiState.lastSyncCursor,
+                        stringResource(R.string.settings_device_last_sync_attempt_label) to uiState.lastSyncAttempt,
+                        stringResource(R.string.settings_device_last_successful_sync_label) to uiState.lastSuccessfulSync,
+                        stringResource(R.string.settings_device_last_sync_error_label) to uiState.lastSyncError
                     )
                 )
             }

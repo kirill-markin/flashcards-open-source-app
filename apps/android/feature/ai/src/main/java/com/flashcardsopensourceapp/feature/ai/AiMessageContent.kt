@@ -34,7 +34,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,8 +47,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.buildAiChatCardContextXml
-import com.flashcardsopensourceapp.data.local.model.formatAiChatCardAttachmentLabel
-import com.flashcardsopensourceapp.data.local.model.aiChatOptimisticAssistantStatusText
+import com.flashcardsopensourceapp.data.local.model.aiChatOptimisticAssistantStatusToken
 
 const val aiAssistantMessageBubbleTag: String = "ai_assistant_message_bubble"
 const val aiAssistantTextPartTag: String = "ai_assistant_text_part"
@@ -58,6 +59,8 @@ internal fun MessageRow(
     isLastMessage: Boolean,
     onOpenAccountStatus: () -> Unit
 ) {
+    val context = LocalContext.current
+    val textProvider = remember(context) { aiTextProvider(context = context) }
     val alignment = if (message.role == AiChatRole.USER) Alignment.CenterEnd else Alignment.CenterStart
     val containerColor = if (message.role == AiChatRole.USER) {
         MaterialTheme.colorScheme.primaryContainer
@@ -85,6 +88,7 @@ internal fun MessageRow(
                         message = message,
                         showsStreamingIndicator = showsStreamingIndicator,
                         onOpenAccountStatus = onOpenAccountStatus,
+                        textProvider = textProvider,
                         modifier = Modifier.padding(all = 16.dp)
                     )
                 }
@@ -99,6 +103,7 @@ internal fun MessageRow(
                     message = message,
                     showsStreamingIndicator = showsStreamingIndicator,
                     onOpenAccountStatus = onOpenAccountStatus,
+                    textProvider = textProvider,
                     modifier = Modifier
                         .background(color = containerColor)
                         .padding(all = 16.dp)
@@ -113,6 +118,7 @@ private fun MessageBubbleContent(
     message: AiChatMessage,
     showsStreamingIndicator: Boolean,
     onOpenAccountStatus: () -> Unit,
+    textProvider: AiTextProvider,
     modifier: Modifier
 ) {
     Column(
@@ -120,7 +126,11 @@ private fun MessageBubbleContent(
         modifier = modifier
     ) {
         Text(
-            text = if (message.role == AiChatRole.USER) "You" else "AI",
+            text = if (message.role == AiChatRole.USER) {
+                stringResource(id = R.string.ai_you)
+            } else {
+                stringResource(id = R.string.ai_title)
+            },
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold
         )
@@ -128,12 +138,16 @@ private fun MessageBubbleContent(
         message.content.forEach { contentPart ->
             when (contentPart) {
                 is AiChatContentPart.Text -> {
-                    if (showsStreamingIndicator && contentPart.text == aiChatOptimisticAssistantStatusText) {
+                    if (showsStreamingIndicator && contentPart.text == aiChatOptimisticAssistantStatusToken) {
                         TypingIndicatorRow()
                     } else {
                         SelectionContainer {
                             Text(
-                                text = contentPart.text,
+                                text = if (contentPart.text == aiChatOptimisticAssistantStatusToken) {
+                                    textProvider.optimisticAssistantStatusText
+                                } else {
+                                    contentPart.text
+                                },
                                 modifier = if (message.role == AiChatRole.ASSISTANT) {
                                     Modifier.testTag(tag = aiAssistantTextPartTag)
                                 } else {
@@ -150,17 +164,17 @@ private fun MessageBubbleContent(
 
                 is AiChatContentPart.Image -> {
                     AttachmentContentCard(
-                        title = contentPart.fileName ?: "Image attachment",
+                        title = contentPart.fileName ?: stringResource(id = R.string.ai_image_attachment_title),
                         subtitle = contentPart.mediaType,
                         icon = Icons.Outlined.Image
                     )
                 }
 
-            is AiChatContentPart.File -> {
-                AttachmentContentCard(
-                    title = contentPart.fileName,
-                    subtitle = contentPart.mediaType,
-                    icon = Icons.Outlined.Description
+                is AiChatContentPart.File -> {
+                    AttachmentContentCard(
+                        title = contentPart.fileName,
+                        subtitle = contentPart.mediaType,
+                        icon = Icons.Outlined.Description
                     )
                 }
 
@@ -170,7 +184,8 @@ private fun MessageBubbleContent(
                         frontText = contentPart.frontText,
                         backText = contentPart.backText,
                         tags = contentPart.tags,
-                        effortLevel = contentPart.effortLevel
+                        effortLevel = contentPart.effortLevel,
+                        textProvider = textProvider
                     )
                 }
 
@@ -189,7 +204,7 @@ private fun MessageBubbleContent(
                 is AiChatContentPart.Unknown -> {
                     AttachmentContentCard(
                         title = contentPart.summaryText,
-                        subtitle = "Type: ${contentPart.originalType}",
+                        subtitle = stringResource(id = R.string.ai_unknown_type_subtitle, contentPart.originalType),
                         icon = Icons.Outlined.WarningAmber
                     )
                 }
@@ -197,7 +212,7 @@ private fun MessageBubbleContent(
         }
 
         if (showsStreamingIndicator && message.content.none { contentPart ->
-                contentPart is AiChatContentPart.Text && contentPart.text == aiChatOptimisticAssistantStatusText
+                contentPart is AiChatContentPart.Text && contentPart.text == aiChatOptimisticAssistantStatusToken
             }
         ) {
             TypingIndicatorRow()
@@ -220,16 +235,18 @@ private fun ReasoningSummaryCard(reasoningSummary: AiChatReasoningSummary) {
         ) {
             Text(
                 text = if (reasoningSummary.status == AiChatToolCallStatus.STARTED) {
-                    "Reasoning summary · Running"
+                    stringResource(id = R.string.ai_reasoning_summary_running)
                 } else {
-                    "Reasoning summary · Done"
+                    stringResource(id = R.string.ai_reasoning_summary_done)
                 },
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
             SelectionContainer {
                 Text(
-                    text = reasoningSummary.summary.ifBlank { "Thinking..." },
+                    text = reasoningSummary.summary.ifBlank {
+                        stringResource(id = R.string.ai_thinking)
+                    },
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -268,7 +285,8 @@ private fun CardContextContentCard(
     frontText: String,
     backText: String,
     tags: List<String>,
-    effortLevel: com.flashcardsopensourceapp.data.local.model.EffortLevel
+    effortLevel: com.flashcardsopensourceapp.data.local.model.EffortLevel,
+    textProvider: AiTextProvider
 ) {
     var isPromptContextVisible by remember { mutableStateOf(value = false) }
     val promptContextXml = buildAiChatCardContextXml(
@@ -303,12 +321,12 @@ private fun CardContextContentCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = formatAiChatCardAttachmentLabel(frontText = frontText),
+                        text = aiCardAttachmentLabel(frontText = frontText),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "ID: $cardId",
+                        text = stringResource(id = R.string.ai_card_id_label, cardId),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -317,14 +335,20 @@ private fun CardContextContentCard(
 
             if (tags.isNotEmpty()) {
                 Text(
-                    text = "Tags: ${tags.joinToString(separator = ", ")}",
+                    text = stringResource(
+                        id = R.string.ai_card_tags_label,
+                        tags.joinToString(separator = ", ")
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Text(
-                text = "Effort: ${effortLevel.name.lowercase().replaceFirstChar(Char::uppercase)}",
+                text = stringResource(
+                    id = R.string.ai_card_effort_label,
+                    textProvider.effortLabel(effortLevel = effortLevel)
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -334,7 +358,13 @@ private fun CardContextContentCard(
                     isPromptContextVisible = isPromptContextVisible.not()
                 }
             ) {
-                Text(if (isPromptContextVisible) "Hide prompt context" else "Show prompt context")
+                Text(
+                    if (isPromptContextVisible) {
+                        stringResource(id = R.string.ai_hide_prompt_context)
+                    } else {
+                        stringResource(id = R.string.ai_show_prompt_context)
+                    }
+                )
             }
 
             if (isPromptContextVisible) {
@@ -361,7 +391,7 @@ private fun TypingIndicatorRow() {
             modifier = Modifier.width(18.dp)
         )
         Text(
-            text = "Generating response...",
+            text = stringResource(id = R.string.ai_generating_response),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium
         )
@@ -369,7 +399,10 @@ private fun TypingIndicatorRow() {
 }
 
 @Composable
-internal fun RepairStatusCard(status: AiChatRepairAttemptStatus) {
+internal fun RepairStatusCard(
+    status: AiChatRepairAttemptStatus,
+    textProvider: AiTextProvider
+) {
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.tertiaryContainer
@@ -381,7 +414,7 @@ internal fun RepairStatusCard(status: AiChatRepairAttemptStatus) {
                 .padding(16.dp)
         ) {
             Text(
-                text = "Repairing AI response",
+                text = stringResource(id = R.string.ai_repairing_response),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
@@ -390,13 +423,20 @@ internal fun RepairStatusCard(status: AiChatRepairAttemptStatus) {
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "Attempt ${status.attempt} of ${status.maxAttempts}",
+                text = stringResource(
+                    id = R.string.ai_attempt_of_max,
+                    status.attempt,
+                    status.maxAttempts
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
             status.toolName?.let { toolName ->
                 Text(
-                    text = "Tool: $toolName",
+                    text = stringResource(
+                        id = R.string.ai_tool_label,
+                        textProvider.toolLabel(name = toolName)
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
@@ -430,4 +470,17 @@ private fun AccountUpgradeCard(
             }
         }
     }
+}
+
+@Composable
+private fun aiCardAttachmentLabel(frontText: String): String {
+    val trimmedFrontText = frontText.trim()
+    if (trimmedFrontText.isEmpty()) {
+        return stringResource(id = R.string.ai_card_attachment_fallback_title)
+    }
+
+    return stringResource(
+        id = R.string.ai_card_attachment_title,
+        trimmedFrontText.take(n = 72)
+    )
 }

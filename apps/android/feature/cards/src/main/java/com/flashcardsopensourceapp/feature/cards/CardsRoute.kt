@@ -32,12 +32,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cardFilterActiveDimensionCount
-import com.flashcardsopensourceapp.data.local.model.formatCardFilterSummary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +54,7 @@ fun CardsRoute(
     onOpenTags: () -> Unit,
     onDeleteCard: (String) -> Unit
 ) {
+    val resources = LocalContext.current.resources
     var isFilterSheetVisible by remember { mutableStateOf(value = false) }
     var isLibraryMenuVisible by remember { mutableStateOf(value = false) }
     var draftFilter by remember(uiState.activeFilter) {
@@ -63,7 +66,7 @@ fun CardsRoute(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Cards")
+                    Text(stringResource(id = R.string.cards_title))
                 },
                 actions = {
                     IconButton(
@@ -75,9 +78,13 @@ fun CardsRoute(
                         Icon(
                             imageVector = Icons.Outlined.Tune,
                             contentDescription = if (activeFilterCount == 0) {
-                                "Filter cards"
+                                stringResource(id = R.string.cards_filter_content_description)
                             } else {
-                                "Filter cards ($activeFilterCount active)"
+                                pluralStringResource(
+                                    id = R.plurals.cards_filter_content_description_active,
+                                    count = activeFilterCount,
+                                    activeFilterCount
+                                )
                             }
                         )
                     }
@@ -88,7 +95,7 @@ fun CardsRoute(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.MoreVert,
-                            contentDescription = "Library actions"
+                            contentDescription = stringResource(id = R.string.cards_library_actions_content_description)
                         )
                     }
                     DropdownMenu(
@@ -99,7 +106,7 @@ fun CardsRoute(
                     ) {
                         DropdownMenuItem(
                             text = {
-                                Text("Open decks")
+                                Text(stringResource(id = R.string.cards_open_decks))
                             },
                             onClick = {
                                 isLibraryMenuVisible = false
@@ -108,7 +115,7 @@ fun CardsRoute(
                         )
                         DropdownMenuItem(
                             text = {
-                                Text("Open tags")
+                                Text(stringResource(id = R.string.cards_open_tags))
                             },
                             onClick = {
                                 isLibraryMenuVisible = false
@@ -123,7 +130,7 @@ fun CardsRoute(
             FloatingActionButton(
                 onClick = onCreateCard,
                 modifier = Modifier.semantics {
-                    contentDescription = "Add card"
+                    contentDescription = resources.getString(R.string.cards_add_card_content_description)
                 }
             ) {
                 Icon(
@@ -148,7 +155,7 @@ fun CardsRoute(
                     value = uiState.searchQuery,
                     onValueChange = onSearchQueryChange,
                     label = {
-                        Text("Search cards")
+                        Text(stringResource(id = R.string.cards_search_label))
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -162,11 +169,11 @@ fun CardsRoute(
                             modifier = Modifier.padding(16.dp)
                         ) {
                             Text(
-                                text = "Active filters",
+                                text = stringResource(id = R.string.cards_active_filters),
                                 style = MaterialTheme.typography.titleSmall
                             )
                             Text(
-                                text = formatCardFilterSummary(filter = uiState.activeFilter),
+                                text = formatCardsFilterSummary(resources = resources, filter = uiState.activeFilter),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -174,7 +181,7 @@ fun CardsRoute(
                                 onClick = onClearFilter,
                                 modifier = Modifier.align(Alignment.End)
                             ) {
-                                Text("Clear")
+                                Text(stringResource(id = R.string.cards_clear))
                             }
                         }
                     }
@@ -187,11 +194,11 @@ fun CardsRoute(
                         Text(
                             text = when {
                                 uiState.searchQuery.isEmpty() && activeFilterCount == 0 ->
-                                    "No cards yet. Tap the add button to create the first card."
+                                    stringResource(id = R.string.cards_empty_no_cards)
                                 activeFilterCount > 0 ->
-                                    "No cards match the current filters."
+                                    stringResource(id = R.string.cards_empty_no_filter_matches)
                                 else ->
-                                    "No cards match this search."
+                                    stringResource(id = R.string.cards_empty_no_search_matches)
                             },
                             modifier = Modifier.padding(20.dp)
                         )

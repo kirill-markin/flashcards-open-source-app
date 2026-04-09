@@ -19,7 +19,7 @@ data class ReviewNotificationsUiState(
 fun initialReviewNotificationsUiState(): ReviewNotificationsUiState {
     return ReviewNotificationsUiState(
         workspaceId = null,
-        workspaceName = "Loading...",
+        workspaceName = "",
         settings = defaultReviewNotificationsSettings(),
         hasRequestedSystemPermission = false
     )

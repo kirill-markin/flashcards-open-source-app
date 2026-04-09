@@ -23,7 +23,7 @@ fun AccountLegalSupportRoute(onBack: () -> Unit) {
     val supportEmail = stringResource(id = R.string.flashcards_support_email_address)
 
     SettingsScreenScaffold(
-        title = "Legal & Support",
+        title = stringResource(R.string.settings_legal_support_title),
         onBack = onBack,
         isBackEnabled = true
     ) { innerPadding ->
@@ -35,8 +35,8 @@ fun AccountLegalSupportRoute(onBack: () -> Unit) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SettingsLinkItem(
-                        title = "Privacy policy",
-                        summary = "Open hosted privacy details",
+                        title = stringResource(R.string.settings_legal_support_privacy_title),
+                        summary = stringResource(R.string.settings_legal_support_privacy_summary),
                         icon = Icons.Outlined.Description,
                         onClick = {
                             openExternalUrl(context = context, url = privacyUrl)
@@ -48,8 +48,8 @@ fun AccountLegalSupportRoute(onBack: () -> Unit) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SettingsLinkItem(
-                        title = "Terms of service",
-                        summary = "Open hosted terms",
+                        title = stringResource(R.string.settings_legal_support_terms_title),
+                        summary = stringResource(R.string.settings_legal_support_terms_summary),
                         icon = Icons.Outlined.Description,
                         onClick = {
                             openExternalUrl(context = context, url = termsUrl)
@@ -61,8 +61,8 @@ fun AccountLegalSupportRoute(onBack: () -> Unit) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SettingsLinkItem(
-                        title = "Support",
-                        summary = "Open hosted support page",
+                        title = stringResource(R.string.settings_legal_support_support_title),
+                        summary = stringResource(R.string.settings_legal_support_support_summary),
                         icon = Icons.AutoMirrored.Outlined.OpenInNew,
                         onClick = {
                             openExternalUrl(context = context, url = supportUrl)
@@ -74,7 +74,7 @@ fun AccountLegalSupportRoute(onBack: () -> Unit) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SettingsLinkItem(
-                        title = "Support email",
+                        title = stringResource(R.string.settings_legal_support_contact_title),
                         summary = supportEmail,
                         icon = Icons.Outlined.MailOutline,
                         onClick = {

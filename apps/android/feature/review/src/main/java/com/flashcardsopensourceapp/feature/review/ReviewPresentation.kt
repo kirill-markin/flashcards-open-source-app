@@ -19,22 +19,16 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.ReviewCardQueueStatus
-import com.flashcardsopensourceapp.data.local.model.formatCardDueLabel
-import com.flashcardsopensourceapp.data.local.model.formatCardEffortLabel
-import com.flashcardsopensourceapp.data.local.model.formatCardTagsLabel
-import java.time.Instant
+import com.flashcardsopensourceapp.data.local.model.ReviewRating
 
 /*
  Keep review content presentation heuristics aligned with:
  - apps/web/src/screens/reviewContentPresentation.ts
  - apps/ios/Flashcards/Flashcards/ReviewContentPresentation.swift
  */
-
-const val emptyReviewBackTextPlaceholder: String = "No back text"
 
 private const val reviewShortPlainWordLimit: Int = 4
 private const val reviewShortPlainVisibleCharacterLimit: Int = 48
@@ -99,6 +93,11 @@ data class ReviewInlineSegment(
     val isCode: Boolean
 )
 
+data class PreparedReviewAnswerOption(
+    val rating: ReviewRating,
+    val intervalDescription: String
+)
+
 data class PreparedReviewCardPresentation(
     val card: ReviewCard,
     val effortLabel: String,
@@ -110,7 +109,7 @@ data class PreparedReviewCardPresentation(
     val backContent: ReviewRenderedContent,
     val frontSpeakableText: String,
     val backSpeakableText: String,
-    val answerOptions: List<ReviewAnswerOption>
+    val answerOptions: List<PreparedReviewAnswerOption>
 )
 
 data class PreparedReviewPreviewCardPresentation(
@@ -211,56 +210,56 @@ fun makeReviewSpeakableText(text: String): String {
     return normalizeReviewSpeakableText(lines = speakableLines)
 }
 
-fun formatReviewEffortLabel(effortLevel: EffortLevel): String {
-    return formatCardEffortLabel(effortLevel = effortLevel)
-}
-
-fun formatReviewTagsLabel(tags: List<String>): String {
-    return formatCardTagsLabel(tags = tags)
-}
-
-fun formatReviewDueLabel(dueAtMillis: Long?): String {
-    return formatCardDueLabel(dueAtMillis = dueAtMillis)
-}
-
 fun prepareReviewCardPresentation(
     card: ReviewCard,
-    answerOptions: List<ReviewAnswerOption>
+    answerOptions: List<ReviewAnswerOption>,
+    textProvider: ReviewTextProvider
 ): PreparedReviewCardPresentation {
     val normalizedBackText = if (card.backText.trim().isEmpty()) {
-        emptyReviewBackTextPlaceholder
+        textProvider.emptyBackTextPlaceholder()
     } else {
         card.backText
     }
 
     return PreparedReviewCardPresentation(
         card = card,
-        effortLabel = formatReviewEffortLabel(effortLevel = card.effortLevel),
-        tagsLabel = formatReviewTagsLabel(tags = card.tags),
-        dueLabel = formatReviewDueLabel(dueAtMillis = card.dueAtMillis),
-        repsLabel = "Reps ${card.reps}",
-        lapsesLabel = "Lapses ${card.lapses}",
+        effortLabel = textProvider.effortLabel(effortLevel = card.effortLevel),
+        tagsLabel = textProvider.tagsLabel(tags = card.tags),
+        dueLabel = textProvider.dueLabel(dueAtMillis = card.dueAtMillis),
+        repsLabel = textProvider.repsLabel(reps = card.reps),
+        lapsesLabel = textProvider.lapsesLabel(lapses = card.lapses),
         frontContent = makeReviewRenderedContent(text = card.frontText),
         backContent = makeReviewRenderedContent(text = normalizedBackText),
         frontSpeakableText = makeReviewSpeakableText(text = card.frontText),
         backSpeakableText = makeReviewSpeakableText(text = card.backText),
-        answerOptions = answerOptions
+        answerOptions = answerOptions.map { option ->
+            PreparedReviewAnswerOption(
+                rating = option.rating,
+                intervalDescription = textProvider.intervalDescription(
+                    intervalDescription = option.intervalDescription
+                )
+            )
+        }
     )
 }
 
-fun prepareReviewPreviewCardPresentation(card: ReviewCard): PreparedReviewPreviewCardPresentation {
+fun prepareReviewPreviewCardPresentation(
+    card: ReviewCard,
+    textProvider: ReviewTextProvider
+): PreparedReviewPreviewCardPresentation {
     return PreparedReviewPreviewCardPresentation(
         card = card,
-        effortLabel = formatReviewEffortLabel(effortLevel = card.effortLevel),
-        tagsLabel = formatReviewTagsLabel(tags = card.tags),
-        dueLabel = formatReviewDueLabel(dueAtMillis = card.dueAtMillis),
+        effortLabel = textProvider.effortLabel(effortLevel = card.effortLevel),
+        tagsLabel = textProvider.tagsLabel(tags = card.tags),
+        dueLabel = textProvider.dueLabel(dueAtMillis = card.dueAtMillis),
         backText = card.backText
     )
 }
 
 fun buildReviewPreviewItems(
     cards: List<ReviewCard>,
-    currentCardId: String?
+    currentCardId: String?,
+    textProvider: ReviewTextProvider
 ): List<ReviewPreviewListItem> {
     val visibleCards = cards.filter { card ->
         card.queueStatus != ReviewCardQueueStatus.RATED
@@ -275,14 +274,17 @@ fun buildReviewPreviewItems(
                 add(
                     ReviewPreviewListItem.SectionHeader(
                         itemId = "section-future",
-                        title = "Later"
+                        title = textProvider.laterSectionTitle()
                     )
                 )
             }
 
             add(
                 ReviewPreviewListItem.CardEntry(
-                    presentation = prepareReviewPreviewCardPresentation(card = card),
+                    presentation = prepareReviewPreviewCardPresentation(
+                        card = card,
+                        textProvider = textProvider
+                    ),
                     isCurrent = currentCardId == card.cardId
                 )
             )

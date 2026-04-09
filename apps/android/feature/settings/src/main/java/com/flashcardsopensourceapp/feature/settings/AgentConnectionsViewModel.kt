@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -24,7 +25,8 @@ private data class AgentConnectionsDraftState(
 )
 
 class AgentConnectionsViewModel(
-    private val cloudAccountRepository: CloudAccountRepository
+    private val cloudAccountRepository: CloudAccountRepository,
+    private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = AgentConnectionsDraftState(
@@ -46,7 +48,9 @@ class AgentConnectionsViewModel(
             instructions = draft.instructions,
             errorMessage = draft.errorMessage,
             revokingConnectionId = draft.revokingConnectionId,
-            connections = draft.connections.map(::toAgentConnectionItemUiState)
+            connections = draft.connections.map { connection ->
+                toAgentConnectionItemUiState(connection = connection, strings = strings)
+            }
         )
     }.stateIn(
         scope = viewModelScope,
@@ -93,7 +97,7 @@ class AgentConnectionsViewModel(
             draftState.update { state ->
                 state.copy(
                     isLoading = false,
-                    errorMessage = error.message ?: "Could not load agent connections."
+                    errorMessage = error.message ?: strings.get(R.string.settings_agent_connections_load_failed)
                 )
             }
         }
@@ -127,7 +131,7 @@ class AgentConnectionsViewModel(
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
-                    errorMessage = error.message ?: "Could not revoke the agent connection.",
+                    errorMessage = error.message ?: strings.get(R.string.settings_agent_connections_revoke_failed),
                     revokingConnectionId = null
                 )
             }
@@ -135,21 +139,34 @@ class AgentConnectionsViewModel(
     }
 }
 
-fun createAgentConnectionsViewModelFactory(cloudAccountRepository: CloudAccountRepository): ViewModelProvider.Factory {
+fun createAgentConnectionsViewModelFactory(
+    cloudAccountRepository: CloudAccountRepository,
+    applicationContext: Context
+): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
-            AgentConnectionsViewModel(cloudAccountRepository = cloudAccountRepository)
+            AgentConnectionsViewModel(
+                cloudAccountRepository = cloudAccountRepository,
+                strings = createSettingsStringResolver(context = applicationContext)
+            )
         }
     }
 }
 
-private fun toAgentConnectionItemUiState(connection: AgentApiKeyConnection): AgentConnectionItemUiState {
+private fun toAgentConnectionItemUiState(
+    connection: AgentApiKeyConnection,
+    strings: SettingsStringResolver
+): AgentConnectionItemUiState {
     return AgentConnectionItemUiState(
         connectionId = connection.connectionId,
         label = connection.label,
-        createdAtLabel = formatTimestampLabel(timestampMillis = connection.createdAtMillis),
-        lastUsedAtLabel = formatTimestampLabel(timestampMillis = connection.lastUsedAtMillis),
-        revokedAtLabel = formatTimestampLabel(timestampMillis = connection.revokedAtMillis),
+        createdAtLabel = formatTimestampLabel(timestampMillis = connection.createdAtMillis, strings = strings),
+        lastUsedAtLabel = formatTimestampLabel(timestampMillis = connection.lastUsedAtMillis, strings = strings),
+        revokedAtLabel = if (connection.revokedAtMillis == null) {
+            strings.get(R.string.settings_agent_connections_active)
+        } else {
+            formatTimestampLabel(timestampMillis = connection.revokedAtMillis, strings = strings)
+        },
         isRevoked = connection.revokedAtMillis != null
     )
 }

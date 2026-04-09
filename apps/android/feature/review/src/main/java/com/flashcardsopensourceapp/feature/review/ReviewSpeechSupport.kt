@@ -12,8 +12,6 @@ import androidx.compose.runtime.setValue
 import java.util.Locale
 import java.util.UUID
 
-private const val reviewSpeechUnavailableMessage: String = "Speech is unavailable on this device."
-
 enum class ReviewSpeechSide {
     FRONT,
     BACK
@@ -66,7 +64,8 @@ private val reviewSpeechLatinLanguageHeuristics = listOf(
 )
 
 class ReviewSpeechController(
-    context: Context
+    context: Context,
+    private val unavailableMessage: String
 ) {
     private val applicationContext = context.applicationContext
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -114,7 +113,7 @@ class ReviewSpeechController(
             }
 
             ReviewSpeechInitState.FAILED -> {
-                onError(reviewSpeechUnavailableMessage)
+                onError(unavailableMessage)
             }
 
             ReviewSpeechInitState.READY -> {
@@ -203,13 +202,13 @@ class ReviewSpeechController(
         initState = ReviewSpeechInitState.FAILED
         val request = pendingRequest
         pendingRequest = null
-        request?.onError?.invoke(reviewSpeechUnavailableMessage)
+        request?.onError?.invoke(unavailableMessage)
     }
 
     private fun speak(request: PendingReviewSpeechRequest) {
         val controller = textToSpeech
         if (controller == null) {
-            request.onError(reviewSpeechUnavailableMessage)
+            request.onError(unavailableMessage)
             return
         }
 
@@ -226,7 +225,7 @@ class ReviewSpeechController(
         if (selectedVoice != null) {
             controller.voice = selectedVoice
         } else if (languageStatus == TextToSpeech.LANG_NOT_SUPPORTED || languageStatus == TextToSpeech.LANG_MISSING_DATA) {
-            request.onError(reviewSpeechUnavailableMessage)
+            request.onError(unavailableMessage)
             return
         }
 
@@ -244,7 +243,7 @@ class ReviewSpeechController(
         if (speakResult == TextToSpeech.ERROR) {
             activeUtteranceId = null
             activeSide = null
-            request.onError(reviewSpeechUnavailableMessage)
+            request.onError(unavailableMessage)
         }
     }
 

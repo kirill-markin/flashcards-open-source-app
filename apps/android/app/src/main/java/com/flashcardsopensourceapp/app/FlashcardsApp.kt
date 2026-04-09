@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -256,11 +257,11 @@ fun FlashcardsApp(appGraph: AppGraph) {
                         icon = {
                             Icon(
                                 imageVector = destination.icon,
-                                contentDescription = destination.label
+                                contentDescription = stringResource(destination.labelResId)
                             )
                         },
                         label = {
-                            Text(destination.label)
+                            Text(stringResource(destination.labelResId))
                         }
                     )
                 }
@@ -326,7 +327,7 @@ private fun StartupErrorScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Startup failed",
+                        text = stringResource(id = R.string.startup_error_title),
                         style = MaterialTheme.typography.titleLarge
                     )
                     Text(
@@ -334,7 +335,7 @@ private fun StartupErrorScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Button(onClick = onRetry) {
-                        Text(text = "Retry startup")
+                        Text(text = stringResource(id = R.string.startup_error_retry))
                     }
                 }
             }
@@ -375,7 +376,7 @@ internal fun AccountDeletionBlockingSurface(
                     .padding(24.dp)
             ) {
                 Text(
-                    text = "Deleting account",
+                    text = stringResource(id = R.string.account_deletion_blocking_title),
                     style = MaterialTheme.typography.headlineSmall
                 )
                 when (accountDeletionState) {
@@ -383,13 +384,13 @@ internal fun AccountDeletionBlockingSurface(
                     AccountDeletionState.InProgress -> {
                         CircularProgressIndicator()
                         Text(
-                            text = "Your account deletion is in progress. Keep this screen open until it finishes.",
+                            text = stringResource(id = R.string.account_deletion_in_progress_message),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     is AccountDeletionState.Failed -> {
                         Text(
-                            text = "The delete request did not finish yet. Retry to keep the account deletion moving forward.",
+                            text = stringResource(id = R.string.account_deletion_failed_message),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Card(modifier = Modifier.fillMaxWidth()) {
@@ -408,7 +409,7 @@ internal fun AccountDeletionBlockingSurface(
                             enabled = true,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Retry deletion")
+                            Text(stringResource(id = R.string.account_deletion_retry))
                         }
                     }
                 }

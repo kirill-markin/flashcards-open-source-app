@@ -9,29 +9,47 @@ private val reviewAnswerPresentationOrder: List<ReviewRating> = listOf(
     ReviewRating.EASY
 )
 
+sealed interface ReviewIntervalDescription {
+    data object Now : ReviewIntervalDescription
+
+    data object LessThanOneMinute : ReviewIntervalDescription
+
+    data class Minutes(
+        val count: Int
+    ) : ReviewIntervalDescription
+
+    data class Hours(
+        val count: Int
+    ) : ReviewIntervalDescription
+
+    data class Days(
+        val count: Int
+    ) : ReviewIntervalDescription
+}
+
 // Keep in sync with apps/ios/Flashcards/Flashcards/ReviewAnswerSupport.swift::formatReviewIntervalText(now:dueAt:).
-fun formatReviewIntervalText(nowMillis: Long, dueAtMillis: Long?): String {
+fun resolveReviewIntervalDescription(nowMillis: Long, dueAtMillis: Long?): ReviewIntervalDescription {
     if (dueAtMillis == null) {
-        return "now"
+        return ReviewIntervalDescription.Now
     }
 
     val durationSeconds = max(((dueAtMillis - nowMillis) / 1_000L).toInt(), 0)
     if (durationSeconds < 60) {
-        return "in less than a minute"
+        return ReviewIntervalDescription.LessThanOneMinute
     }
 
     val durationMinutes = durationSeconds / 60
     if (durationMinutes < 60) {
-        return "in $durationMinutes minute${if (durationMinutes == 1) "" else "s"}"
+        return ReviewIntervalDescription.Minutes(count = durationMinutes)
     }
 
     val durationHours = durationMinutes / 60
     if (durationHours < 24) {
-        return "in $durationHours hour${if (durationHours == 1) "" else "s"}"
+        return ReviewIntervalDescription.Hours(count = durationHours)
     }
 
     val durationDays = durationHours / 24
-    return "in $durationDays day${if (durationDays == 1) "" else "s"}"
+    return ReviewIntervalDescription.Days(count = durationDays)
 }
 
 // Keep in sync with apps/ios/Flashcards/Flashcards/ReviewAnswerSupport.swift::makeReviewAnswerOptions(card:schedulerSettings:now:).
@@ -50,7 +68,7 @@ fun makeReviewAnswerOptions(
 
         ReviewAnswerOption(
             rating = rating,
-            intervalDescription = formatReviewIntervalText(
+            intervalDescription = resolveReviewIntervalDescription(
                 nowMillis = reviewedAtMillis,
                 dueAtMillis = schedule.dueAtMillis
             )

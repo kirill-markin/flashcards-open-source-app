@@ -1,3 +1,5 @@
 package com.flashcardsopensourceapp.feature.settings
 
-internal const val workspaceUpdatedOnAnotherDeviceMessage: String = "Workspace updated on another device."
+internal fun workspaceUpdatedOnAnotherDeviceMessage(strings: SettingsStringResolver): String {
+    return strings.get(R.string.settings_workspace_auto_sync_changed)
+}

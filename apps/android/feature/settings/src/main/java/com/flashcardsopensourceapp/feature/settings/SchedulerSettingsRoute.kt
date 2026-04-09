@@ -1,25 +1,18 @@
 package com.flashcardsopensourceapp.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,9 +20,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SchedulerSettingsRoute(
     uiState: SchedulerSettingsUiState,
@@ -44,31 +37,14 @@ fun SchedulerSettingsRoute(
     onResetToDefaults: () -> Unit,
     onBack: () -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text("Scheduler")
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                }
-            )
-        }
+    SettingsScreenScaffold(
+        title = stringResource(R.string.settings_scheduler_title),
+        onBack = onBack,
+        isBackEnabled = true
     ) { innerPadding ->
         LazyColumn(
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                top = innerPadding.calculateTopPadding() + 16.dp,
-                end = 16.dp,
-                bottom = innerPadding.calculateBottomPadding() + 24.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
             modifier = Modifier.fillMaxSize()
         ) {
             item {
@@ -78,12 +54,12 @@ fun SchedulerSettingsRoute(
                         modifier = Modifier.padding(20.dp)
                     ) {
                         Text(
-                            text = "Algorithm",
+                            text = stringResource(R.string.settings_scheduler_algorithm_title),
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(text = uiState.algorithm)
                         Text(
-                            text = "Updated: ${uiState.updatedAtLabel}",
+                            text = stringResource(R.string.settings_scheduler_updated_at, uiState.updatedAtLabel),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -108,10 +84,10 @@ fun SchedulerSettingsRoute(
                     value = uiState.desiredRetentionText,
                     onValueChange = onDesiredRetentionChange,
                     label = {
-                        Text("Desired retention")
+                        Text(stringResource(R.string.settings_scheduler_desired_retention_label))
                     },
                     supportingText = {
-                        Text("Higher values bring cards back sooner.")
+                        Text(stringResource(R.string.settings_scheduler_desired_retention_supporting))
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -124,10 +100,10 @@ fun SchedulerSettingsRoute(
                     value = uiState.learningStepsText,
                     onValueChange = onLearningStepsChange,
                     label = {
-                        Text("Learning steps (minutes)")
+                        Text(stringResource(R.string.settings_scheduler_learning_steps_label))
                     },
                     supportingText = {
-                        Text("Comma-separated step list, for example 1, 10")
+                        Text(stringResource(R.string.settings_scheduler_learning_steps_supporting))
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -140,10 +116,10 @@ fun SchedulerSettingsRoute(
                     value = uiState.relearningStepsText,
                     onValueChange = onRelearningStepsChange,
                     label = {
-                        Text("Relearning steps (minutes)")
+                        Text(stringResource(R.string.settings_scheduler_relearning_steps_label))
                     },
                     supportingText = {
-                        Text("Comma-separated step list after Again in review.")
+                        Text(stringResource(R.string.settings_scheduler_relearning_steps_supporting))
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -156,7 +132,7 @@ fun SchedulerSettingsRoute(
                     value = uiState.maximumIntervalDaysText,
                     onValueChange = onMaximumIntervalDaysChange,
                     label = {
-                        Text("Maximum interval (days)")
+                        Text(stringResource(R.string.settings_scheduler_max_interval_label))
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -168,10 +144,10 @@ fun SchedulerSettingsRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Enable fuzz")
+                            Text(stringResource(R.string.settings_scheduler_enable_fuzz_title))
                         },
                         supportingContent = {
-                            Text("Spread long-term review intervals a bit to avoid clustering.")
+                            Text(stringResource(R.string.settings_scheduler_enable_fuzz_body))
                         },
                         trailingContent = {
                             Switch(
@@ -192,7 +168,7 @@ fun SchedulerSettingsRoute(
                         onClick = onResetToDefaults,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Reset")
+                        Text(stringResource(R.string.settings_reset))
                     }
                     Button(
                         onClick = onRequestSave,
@@ -200,7 +176,7 @@ fun SchedulerSettingsRoute(
                             .weight(1f)
                             .testTag(schedulerSaveButtonTag)
                     ) {
-                        Text("Save")
+                        Text(stringResource(R.string.settings_save))
                     }
                 }
             }
@@ -215,19 +191,19 @@ fun SchedulerSettingsRoute(
                     onClick = onConfirmSave,
                     modifier = Modifier.testTag(schedulerApplyButtonTag)
                 ) {
-                    Text("Apply")
+                    Text(stringResource(R.string.settings_apply))
                 }
             },
             dismissButton = {
                 TextButton(onClick = onDismissSaveConfirmation) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_cancel))
                 }
             },
             title = {
-                Text("Apply scheduler settings?")
+                Text(stringResource(R.string.settings_scheduler_apply_dialog_title))
             },
             text = {
-                Text("This changes future review intervals only and keeps current card history intact.")
+                Text(stringResource(R.string.settings_scheduler_apply_dialog_body))
             }
         )
     }

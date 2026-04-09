@@ -22,14 +22,15 @@ internal fun filterDeckEntries(
 
 internal fun buildDeckListEntries(
     decks: List<DeckSummary>,
-    overview: WorkspaceOverviewSummary?
+    overview: WorkspaceOverviewSummary?,
+    strings: SettingsStringResolver
 ): List<DeckListEntryUiState> {
-    val allCardsEntry = buildAllCardsDeckListEntry(overview = overview)
+    val allCardsEntry = buildAllCardsDeckListEntry(overview = overview, strings = strings)
     val persistedDeckEntries = decks.map { deck ->
         DeckListEntryUiState(
             target = DeckListTargetUiState.PersistedDeck(deckId = deck.deckId),
             title = deck.name,
-            filterSummary = formatDeckFilter(filterDefinition = deck.filterDefinition),
+            filterSummary = formatDeckFilter(filterDefinition = deck.filterDefinition, strings = strings),
             totalCards = deck.totalCards,
             dueCards = deck.dueCards,
             newCards = deck.newCards,
@@ -40,10 +41,13 @@ internal fun buildDeckListEntries(
     return listOf(allCardsEntry) + persistedDeckEntries
 }
 
-internal fun buildAllCardsDeckDetailInfo(overview: WorkspaceOverviewSummary?): DeckDetailInfoUiState.AllCards {
+internal fun buildAllCardsDeckDetailInfo(
+    overview: WorkspaceOverviewSummary?,
+    strings: SettingsStringResolver
+): DeckDetailInfoUiState.AllCards {
     return DeckDetailInfoUiState.AllCards(
-        title = "All cards",
-        filterSummary = "All cards",
+        title = strings.get(R.string.settings_decks_all_cards),
+        filterSummary = strings.get(R.string.settings_decks_all_cards),
         totalCards = overview?.totalCards ?: 0,
         dueCards = overview?.dueCount ?: 0,
         newCards = overview?.newCount ?: 0,
@@ -51,11 +55,14 @@ internal fun buildAllCardsDeckDetailInfo(overview: WorkspaceOverviewSummary?): D
     )
 }
 
-internal fun toPersistedDeckDetailInfo(deck: DeckSummary): DeckDetailInfoUiState.PersistedDeck {
+internal fun toPersistedDeckDetailInfo(
+    deck: DeckSummary,
+    strings: SettingsStringResolver
+): DeckDetailInfoUiState.PersistedDeck {
     return DeckDetailInfoUiState.PersistedDeck(
         deckId = deck.deckId,
         title = deck.name,
-        filterSummary = formatDeckFilter(filterDefinition = deck.filterDefinition),
+        filterSummary = formatDeckFilter(filterDefinition = deck.filterDefinition, strings = strings),
         totalCards = deck.totalCards,
         dueCards = deck.dueCards,
         newCards = deck.newCards,
@@ -63,28 +70,50 @@ internal fun toPersistedDeckDetailInfo(deck: DeckSummary): DeckDetailInfoUiState
     )
 }
 
-internal fun formatDeckFilter(filterDefinition: DeckFilterDefinition): String {
+internal fun formatDeckFilter(
+    filterDefinition: DeckFilterDefinition,
+    strings: SettingsStringResolver
+): String {
     val parts = buildList {
         if (filterDefinition.effortLevels.isNotEmpty()) {
-            add("effort in ${filterDefinition.effortLevels.joinToString(separator = ", ") { effortLevel -> effortLevel.name.lowercase() }}")
+            add(
+                strings.get(
+                    R.string.settings_deck_filter_effort,
+                    filterDefinition.effortLevels.joinToString(separator = ", ") { effortLevel ->
+                        when (effortLevel) {
+                            com.flashcardsopensourceapp.data.local.model.EffortLevel.FAST -> strings.get(R.string.settings_effort_fast)
+                            com.flashcardsopensourceapp.data.local.model.EffortLevel.MEDIUM -> strings.get(R.string.settings_effort_medium)
+                            com.flashcardsopensourceapp.data.local.model.EffortLevel.LONG -> strings.get(R.string.settings_effort_long)
+                        }
+                    }
+                )
+            )
         }
         if (filterDefinition.tags.isNotEmpty()) {
-            add("tags any of ${filterDefinition.tags.joinToString(separator = ", ")}")
+            add(
+                strings.get(
+                    R.string.settings_deck_filter_tags_any,
+                    filterDefinition.tags.joinToString(separator = ", ")
+                )
+            )
         }
     }
 
     if (parts.isEmpty()) {
-        return "All cards"
+        return strings.get(R.string.settings_decks_all_cards)
     }
 
-    return parts.joinToString(separator = " AND ")
+    return parts.joinToString(separator = strings.get(R.string.settings_deck_filter_join))
 }
 
-private fun buildAllCardsDeckListEntry(overview: WorkspaceOverviewSummary?): DeckListEntryUiState {
+private fun buildAllCardsDeckListEntry(
+    overview: WorkspaceOverviewSummary?,
+    strings: SettingsStringResolver
+): DeckListEntryUiState {
     return DeckListEntryUiState(
         target = DeckListTargetUiState.AllCards,
-        title = "All cards",
-        filterSummary = "All cards",
+        title = strings.get(R.string.settings_decks_all_cards),
+        filterSummary = strings.get(R.string.settings_decks_all_cards),
         totalCards = overview?.totalCards ?: 0,
         dueCards = overview?.dueCount ?: 0,
         newCards = overview?.newCount ?: 0,

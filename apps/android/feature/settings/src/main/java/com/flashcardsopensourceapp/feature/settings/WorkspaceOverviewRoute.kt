@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 const val workspaceOverviewNameFieldTag: String = "workspace_overview_name_field"
@@ -53,7 +54,7 @@ fun WorkspaceOverviewRoute(
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
-        title = "Overview",
+        title = stringResource(R.string.settings_workspace_overview_screen_title),
         onBack = onBack,
         isBackEnabled = true
     ) { innerPadding ->
@@ -94,13 +95,16 @@ fun WorkspaceOverviewRoute(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.padding(20.dp)
                     ) {
-                        Text(text = "Workspace", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            text = stringResource(R.string.settings_workspace_name_section_title),
+                            style = MaterialTheme.typography.titleMedium
+                        )
                         if (uiState.isLinked) {
                             OutlinedTextField(
                                 value = uiState.workspaceNameDraft,
                                 onValueChange = onWorkspaceNameChange,
                                 label = {
-                                    Text("Workspace name")
+                                    Text(stringResource(R.string.settings_workspace_name_label))
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -115,7 +119,13 @@ fun WorkspaceOverviewRoute(
                                     .fillMaxWidth()
                                     .testTag(tag = workspaceOverviewSaveNameButtonTag)
                             ) {
-                                Text(if (uiState.isSavingName) "Saving..." else "Save name")
+                                Text(
+                                    if (uiState.isSavingName) {
+                                        stringResource(R.string.settings_saving)
+                                    } else {
+                                        stringResource(R.string.settings_workspace_save_name_button)
+                                    }
+                                )
                             }
                         } else {
                             Text(
@@ -123,15 +133,15 @@ fun WorkspaceOverviewRoute(
                                 style = MaterialTheme.typography.headlineSmall
                             )
                             Text(
-                                text = "Workspace rename is available only for linked cloud workspaces.",
+                                text = stringResource(R.string.settings_workspace_rename_guidance),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
                         HorizontalDivider()
-                        OverviewRow(title = "Cards", value = uiState.totalCards)
-                        OverviewRow(title = "Decks", value = uiState.deckCount)
-                        OverviewRow(title = "Tags", value = uiState.tagCount)
+                        OverviewRow(title = stringResource(R.string.settings_cards_title), value = uiState.totalCards)
+                        OverviewRow(title = stringResource(R.string.settings_workspace_decks_title), value = uiState.deckCount)
+                        OverviewRow(title = stringResource(R.string.settings_workspace_tags_title), value = uiState.tagCount)
                     }
                 }
             }
@@ -143,21 +153,21 @@ fun WorkspaceOverviewRoute(
                         modifier = Modifier.padding(20.dp)
                     ) {
                         Text(
-                            text = "Today",
+                            text = stringResource(R.string.settings_workspace_today_title),
                             style = MaterialTheme.typography.titleMedium
                         )
                         OverviewRow(
-                            title = "Due",
+                            title = stringResource(R.string.settings_workspace_due_title),
                             value = uiState.dueCount,
                             valueTag = workspaceOverviewTodayDueCountTag
                         )
                         OverviewRow(
-                            title = "New",
+                            title = stringResource(R.string.settings_workspace_new_title),
                             value = uiState.newCount,
                             valueTag = workspaceOverviewTodayNewCountTag
                         )
                         OverviewRow(
-                            title = "Reviewed",
+                            title = stringResource(R.string.settings_workspace_reviewed_title),
                             value = uiState.reviewedCount,
                             valueTag = workspaceOverviewTodayReviewedCountTag
                         )
@@ -172,12 +182,12 @@ fun WorkspaceOverviewRoute(
                         modifier = Modifier.padding(20.dp)
                     ) {
                         Text(
-                            text = "Danger zone",
+                            text = stringResource(R.string.settings_account_danger_zone_card_title),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error
                         )
                         Text(
-                            text = "Permanently delete this workspace and all cards, decks, reviews, and sync history inside it.",
+                            text = stringResource(R.string.settings_workspace_delete_body),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         OutlinedButton(
@@ -191,15 +201,15 @@ fun WorkspaceOverviewRoute(
                         ) {
                             Text(
                                 if (uiState.isDeletePreviewLoading) {
-                                    "Loading..."
+                                    stringResource(R.string.settings_loading)
                                 } else {
-                                    "Delete workspace"
+                                    stringResource(R.string.settings_workspace_delete_button)
                                 }
                             )
                         }
                         if (uiState.isLinked.not()) {
                             Text(
-                                text = "Workspace delete is available only for linked cloud workspaces.",
+                                text = stringResource(R.string.settings_workspace_delete_guidance),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -217,26 +227,32 @@ fun WorkspaceOverviewRoute(
                     onClick = onOpenDeleteConfirmation,
                     modifier = Modifier.testTag(tag = workspaceOverviewDeletePreviewContinueButtonTag)
                 ) {
-                    Text("Continue")
+                    Text(stringResource(R.string.settings_continue))
                 }
             },
             dismissButton = {
                 TextButton(onClick = onDismissDeletePreviewAlert) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_cancel))
                 }
             },
             title = {
                 Text(
-                    text = "Delete this workspace?",
+                    text = stringResource(R.string.settings_workspace_delete_preview_title),
                     modifier = Modifier.testTag(tag = workspaceOverviewDeletePreviewDialogTag)
                 )
             },
             text = {
                 Text(
                     if (uiState.deletePreview.isLastAccessibleWorkspace) {
-                        "This permanently deletes ${uiState.deletePreview.activeCardCount} active cards. A new empty Personal workspace will be created immediately after deletion."
+                        stringResource(
+                            R.string.settings_workspace_delete_preview_last_workspace,
+                            uiState.deletePreview.activeCardCount
+                        )
                     } else {
-                        "This permanently deletes ${uiState.deletePreview.activeCardCount} active cards from this workspace."
+                        stringResource(
+                            R.string.settings_workspace_delete_preview_standard,
+                            uiState.deletePreview.activeCardCount
+                        )
                     },
                     modifier = Modifier.testTag(tag = workspaceOverviewDeletePreviewBodyTag)
                 )
@@ -258,7 +274,13 @@ fun WorkspaceOverviewRoute(
                         uiState.deleteConfirmationText == uiState.deletePreview.confirmationText,
                     modifier = Modifier.testTag(tag = workspaceOverviewDeleteConfirmationButtonTag)
                 ) {
-                    Text(if (uiState.isDeletingWorkspace) "Deleting..." else "Delete workspace")
+                    Text(
+                        if (uiState.isDeletingWorkspace) {
+                            stringResource(R.string.settings_deleting)
+                        } else {
+                            stringResource(R.string.settings_workspace_delete_button)
+                        }
+                    )
                 }
             },
             dismissButton = {
@@ -266,19 +288,19 @@ fun WorkspaceOverviewRoute(
                     onClick = onDismissDeleteConfirmation,
                     enabled = uiState.isDeletingWorkspace.not()
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_cancel))
                 }
             },
             title = {
                 Text(
-                    text = "Delete workspace",
+                    text = stringResource(R.string.settings_workspace_delete_dialog_title),
                     modifier = Modifier.testTag(tag = workspaceOverviewDeleteConfirmationDialogTag)
                 )
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "Warning! This action is permanent. Type the phrase below exactly to continue.",
+                        text = stringResource(R.string.settings_workspace_delete_dialog_warning),
                         color = MaterialTheme.colorScheme.error
                     )
                     if (uiState.deleteState == DestructiveActionState.IN_PROGRESS) {
@@ -303,7 +325,7 @@ fun WorkspaceOverviewRoute(
                         value = uiState.deleteConfirmationText,
                         onValueChange = onDeleteConfirmationTextChange,
                         label = {
-                            Text("Confirmation text")
+                            Text(stringResource(R.string.settings_workspace_confirmation_label))
                         },
                         enabled = uiState.isDeletingWorkspace.not(),
                         modifier = Modifier

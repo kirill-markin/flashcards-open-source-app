@@ -12,6 +12,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.CardSummary
@@ -42,7 +44,28 @@ internal fun DeckRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "${deckEntry.totalCards} cards | ${deckEntry.newCards} new | ${deckEntry.reviewedCards} reviewed | ${deckEntry.dueCards} due",
+                text = listOf(
+                    pluralStringResource(
+                        R.plurals.settings_workspace_deck_card_summary,
+                        deckEntry.totalCards,
+                        deckEntry.totalCards
+                    ),
+                    pluralStringResource(
+                        R.plurals.settings_workspace_deck_new_summary,
+                        deckEntry.newCards,
+                        deckEntry.newCards
+                    ),
+                    pluralStringResource(
+                        R.plurals.settings_workspace_deck_reviewed_summary,
+                        deckEntry.reviewedCards,
+                        deckEntry.reviewedCards
+                    ),
+                    pluralStringResource(
+                        R.plurals.settings_workspace_deck_due_summary,
+                        deckEntry.dueCards,
+                        deckEntry.dueCards
+                    )
+                ).joinToString(separator = " | "),
                 style = MaterialTheme.typography.labelMedium
             )
         }
@@ -70,7 +93,14 @@ internal fun DeckCardRow(
                 style = MaterialTheme.typography.titleSmall
             )
             Text(
-                text = "Effort: ${card.effortLevel.name.lowercase().replaceFirstChar { character -> character.uppercase() }}",
+                text = stringResource(
+                    R.string.settings_deck_card_effort,
+                    when (card.effortLevel.name) {
+                        "FAST" -> stringResource(R.string.settings_effort_fast)
+                        "MEDIUM" -> stringResource(R.string.settings_effort_medium)
+                        else -> stringResource(R.string.settings_effort_long)
+                    }
+                ),
                 color = MaterialTheme.colorScheme.primary
             )
             if (card.tags.isNotEmpty()) {

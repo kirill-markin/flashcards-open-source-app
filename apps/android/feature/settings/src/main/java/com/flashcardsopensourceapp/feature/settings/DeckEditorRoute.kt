@@ -22,10 +22,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
-import com.flashcardsopensourceapp.data.local.model.formatDeckFilterDefinition
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +39,7 @@ fun DeckEditorRoute(
     onDelete: (() -> Unit)?,
     onBack: () -> Unit
 ) {
+    val strings = createSettingsStringResolver(context = LocalContext.current)
     Scaffold(
         topBar = {
             TopAppBar(
@@ -74,7 +76,7 @@ fun DeckEditorRoute(
                     value = uiState.name,
                     onValueChange = onNameChange,
                     label = {
-                        Text("Deck name")
+                        Text(stringResource(R.string.settings_deck_editor_name_label))
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -82,7 +84,7 @@ fun DeckEditorRoute(
 
             item {
                 Text(
-                    text = "Effort",
+                    text = stringResource(R.string.settings_deck_editor_effort_title),
                     style = MaterialTheme.typography.titleSmall
                 )
             }
@@ -99,7 +101,13 @@ fun DeckEditorRoute(
                                 onToggleEffortLevel(effortLevel)
                             },
                             label = {
-                                Text(effortLevel.name.lowercase().replaceFirstChar { character -> character.uppercase() })
+                                Text(
+                                    when (effortLevel) {
+                                        EffortLevel.FAST -> stringResource(R.string.settings_effort_fast)
+                                        EffortLevel.MEDIUM -> stringResource(R.string.settings_effort_medium)
+                                        EffortLevel.LONG -> stringResource(R.string.settings_effort_long)
+                                    }
+                                )
                             }
                         )
                     }
@@ -108,7 +116,7 @@ fun DeckEditorRoute(
 
             item {
                 Text(
-                    text = "Tags",
+                    text = stringResource(R.string.settings_deck_editor_tags_title),
                     style = MaterialTheme.typography.titleSmall
                 )
             }
@@ -116,7 +124,7 @@ fun DeckEditorRoute(
             if (uiState.availableTags.isEmpty()) {
                 item {
                     Text(
-                        text = "No tags available yet. Create cards first, then use their tags in a deck rule.",
+                        text = stringResource(R.string.settings_deck_editor_no_tags),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -148,16 +156,17 @@ fun DeckEditorRoute(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = "Rule summary",
+                            text = stringResource(R.string.settings_deck_editor_rule_summary_title),
                             style = MaterialTheme.typography.titleSmall
                         )
                         Text(
-                            text = formatDeckFilterDefinition(
+                            text = formatDeckFilter(
                                 filterDefinition = DeckFilterDefinition(
                                     version = 2,
                                     effortLevels = uiState.selectedEffortLevels,
                                     tags = uiState.selectedTags
-                                )
+                                ),
+                                strings = strings
                             ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -174,13 +183,13 @@ fun DeckEditorRoute(
                         onClick = onBack,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.settings_deck_editor_cancel_button))
                     }
                     Button(
                         onClick = onSave,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Save")
+                        Text(stringResource(R.string.settings_save))
                     }
                 }
             }
@@ -195,7 +204,7 @@ fun DeckEditorRoute(
                         onClick = onDelete,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Delete deck")
+                        Text(stringResource(R.string.settings_deck_editor_delete_button))
                     }
                 }
             }

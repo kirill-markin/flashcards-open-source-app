@@ -33,16 +33,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.buildCardFilter
-import com.flashcardsopensourceapp.data.local.model.formatCardDueLabel
-import com.flashcardsopensourceapp.data.local.model.formatCardEffortLabel
-import com.flashcardsopensourceapp.data.local.model.formatCardTagsLabel
 
 const val cardsCardRowTag: String = "cards_card_row"
 const val cardsCardFrontTextTag: String = "cards_card_front_text"
@@ -57,6 +56,7 @@ internal fun CardRow(
     onOpenCard: (String) -> Unit,
     onDeleteCard: (String) -> Unit
 ) {
+    val resources = LocalContext.current.resources
     var isDeleteDialogVisible by remember { mutableStateOf(value = false) }
     var isActionsMenuVisible by remember { mutableStateOf(value = false) }
 
@@ -78,7 +78,7 @@ internal fun CardRow(
             },
             supportingContent = {
                 Text(
-                    text = buildCardMetadataSummary(card = card),
+                    text = formatCardsMetadataSummary(resources = resources, card = card),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -92,7 +92,7 @@ internal fun CardRow(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.MoreVert,
-                            contentDescription = "Card actions"
+                            contentDescription = stringResource(id = R.string.cards_card_actions_content_description)
                         )
                     }
 
@@ -104,7 +104,7 @@ internal fun CardRow(
                     ) {
                         DropdownMenuItem(
                             text = {
-                                Text("Edit")
+                                Text(stringResource(id = R.string.cards_edit))
                             },
                             leadingIcon = {
                                 Icon(
@@ -119,7 +119,7 @@ internal fun CardRow(
                         )
                         DropdownMenuItem(
                             text = {
-                                Text("Delete")
+                                Text(stringResource(id = R.string.cards_delete))
                             },
                             leadingIcon = {
                                 Icon(
@@ -144,10 +144,10 @@ internal fun CardRow(
                 isDeleteDialogVisible = false
             },
             title = {
-                Text("Delete card?")
+                Text(stringResource(id = R.string.cards_delete_dialog_title))
             },
             text = {
-                Text("This removes the local card from the Android app.")
+                Text(stringResource(id = R.string.cards_delete_dialog_message))
             },
             confirmButton = {
                 TextButton(
@@ -156,7 +156,7 @@ internal fun CardRow(
                         onDeleteCard(card.cardId)
                     }
                 ) {
-                    Text("Delete")
+                    Text(stringResource(id = R.string.cards_delete))
                 }
             },
             dismissButton = {
@@ -165,7 +165,7 @@ internal fun CardRow(
                         isDeleteDialogVisible = false
                     }
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(id = R.string.cards_cancel))
                 }
             }
         )
@@ -182,6 +182,7 @@ internal fun CardsFilterSheet(
     onClear: () -> Unit,
     onDraftFilterChange: (CardFilter) -> Unit
 ) {
+    val resources = LocalContext.current.resources
     ModalBottomSheet(
         onDismissRequest = onDismiss
     ) {
@@ -192,13 +193,13 @@ internal fun CardsFilterSheet(
                 .padding(start = 20.dp, end = 20.dp, bottom = 32.dp)
         ) {
             Text(
-                text = "Filters",
+                text = stringResource(id = R.string.cards_filters_title),
                 style = MaterialTheme.typography.headlineSmall
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Effort",
+                    text = stringResource(id = R.string.cards_effort_title),
                     style = MaterialTheme.typography.titleSmall
                 )
                 FlowRow(
@@ -219,7 +220,7 @@ internal fun CardsFilterSheet(
                                 )
                             },
                             label = {
-                                Text(formatEffortLevelTitle(effortLevel = effortLevel))
+                                Text(formatCardsEffortLevelTitle(resources = resources, effortLevel = effortLevel))
                             }
                         )
                     }
@@ -228,12 +229,12 @@ internal fun CardsFilterSheet(
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Tags",
+                    text = stringResource(id = R.string.cards_tags_title),
                     style = MaterialTheme.typography.titleSmall
                 )
                 if (availableTags.isEmpty()) {
                     Text(
-                        text = "No tags have been used yet.",
+                        text = stringResource(id = R.string.cards_no_tags_used_yet),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 } else {
@@ -273,7 +274,7 @@ internal fun CardsFilterSheet(
                     onClick = onClear,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Clear")
+                    Text(stringResource(id = R.string.cards_clear))
                 }
                 Button(
                     onClick = {
@@ -281,7 +282,7 @@ internal fun CardsFilterSheet(
                     },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Apply")
+                    Text(stringResource(id = R.string.cards_apply))
                 }
             }
         }
@@ -320,38 +321,6 @@ internal fun NavigationSummaryCard(
             leadingContent = icon
         )
     }
-}
-
-internal fun formatCardTextPreview(text: String): String {
-    val trimmedText = text.trim()
-
-    if (trimmedText.isEmpty()) {
-        return "Tap to edit"
-    }
-
-    return trimmedText
-        .split('\n')
-        .joinToString(separator = " ")
-}
-
-internal fun formatTagSelectionSummary(tags: List<String>): String {
-    if (tags.isEmpty()) {
-        return "No tags selected"
-    }
-
-    return tags.joinToString(separator = ", ")
-}
-
-internal fun formatEffortLevelTitle(effortLevel: EffortLevel): String {
-    return formatCardEffortLabel(effortLevel = effortLevel)
-}
-
-private fun buildCardMetadataSummary(card: CardSummary): String {
-    return listOf(
-        formatCardEffortLabel(effortLevel = card.effortLevel),
-        formatCardTagsLabel(tags = card.tags),
-        formatCardDueLabel(dueAtMillis = card.dueAtMillis)
-    ).joinToString(separator = " | ")
 }
 
 private fun toggleEffortSelection(selectedEffort: List<EffortLevel>, effortLevel: EffortLevel): List<EffortLevel> {

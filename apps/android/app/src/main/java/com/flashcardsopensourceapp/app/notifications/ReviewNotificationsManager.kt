@@ -34,6 +34,7 @@ import com.flashcardsopensourceapp.data.local.notifications.buildInactivityRemin
 import com.flashcardsopensourceapp.data.local.notifications.makePersistedReviewFilter
 import com.flashcardsopensourceapp.data.local.repository.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
+import com.flashcardsopensourceapp.feature.review.reviewTextProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -198,10 +199,12 @@ class ReviewNotificationsManager(
             }
         } else {
             val persistedReviewFilter = makePersistedReviewFilter(reviewFilter = selectedReviewFilter)
+            val fallbackFrontText = reviewTextProvider(context = context).notificationFallbackFrontText
             when (settings.selectedMode) {
                 ReviewNotificationMode.DAILY -> buildFallbackDailyReminderPayloads(
                     workspaceId = workspace.workspaceId,
                     reviewFilter = persistedReviewFilter,
+                    fallbackFrontText = fallbackFrontText,
                     nowMillis = nowMillis,
                     zoneId = zoneId,
                     settings = settings.daily
@@ -216,6 +219,7 @@ class ReviewNotificationsManager(
                     buildFallbackInactivityReminderPayloads(
                         workspaceId = workspace.workspaceId,
                         reviewFilter = persistedReviewFilter,
+                        fallbackFrontText = fallbackFrontText,
                         nowMillis = nowMillis,
                         lastActiveAtMillis = lastActiveAtMillis,
                         zoneId = zoneId,

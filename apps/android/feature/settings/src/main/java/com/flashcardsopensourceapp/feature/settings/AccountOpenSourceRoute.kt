@@ -18,7 +18,7 @@ fun AccountOpenSourceRoute(onBack: () -> Unit) {
     val repositoryUrl = stringResource(id = R.string.flashcards_repository_url)
 
     SettingsScreenScaffold(
-        title = "Open Source",
+        title = stringResource(R.string.settings_open_source_title),
         onBack = onBack,
         isBackEnabled = true
     ) { innerPadding ->
@@ -30,8 +30,8 @@ fun AccountOpenSourceRoute(onBack: () -> Unit) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SettingsLinkItem(
-                        title = "GitHub repository",
-                        summary = "Open MIT-licensed source repository",
+                        title = stringResource(R.string.settings_open_source_repository_title),
+                        summary = stringResource(R.string.settings_open_source_repository_summary),
                         icon = Icons.Outlined.Code,
                         onClick = {
                             openExternalUrl(context = context, url = repositoryUrl)

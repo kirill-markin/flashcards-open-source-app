@@ -7,8 +7,15 @@ import android.os.Build
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
-const val accountDeletionConfirmationText: String = "delete my account"
+fun accountDeletionConfirmationText(strings: SettingsStringResolver): String {
+    return strings.get(R.string.settings_account_danger_zone_confirmation_phrase)
+}
+
+fun workspaceResetProgressConfirmationText(strings: SettingsStringResolver): String {
+    return strings.get(R.string.settings_workspace_reset_confirmation_phrase)
+}
 
 fun openExternalUrl(context: Context, url: String) {
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -23,24 +30,31 @@ fun sendSupportEmail(context: Context, emailAddress: String) {
     context.startActivity(intent)
 }
 
-fun formatTimestampLabel(timestampMillis: Long?): String {
+fun formatTimestampLabel(timestampMillis: Long?, strings: SettingsStringResolver): String {
     if (timestampMillis == null) {
-        return "Never"
+        return strings.get(R.string.settings_never)
     }
 
-    return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(
-        Instant.ofEpochMilli(timestampMillis).atZone(ZoneId.systemDefault())
+    return DateTimeFormatter
+        .ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+        .withLocale(strings.locale())
+        .format(
+            Instant.ofEpochMilli(timestampMillis).atZone(ZoneId.systemDefault())
+        )
+}
+
+fun currentOperatingSystemLabel(strings: SettingsStringResolver): String {
+    return strings.get(
+        R.string.settings_device_os_format,
+        Build.VERSION.RELEASE,
+        Build.VERSION.SDK_INT
     )
 }
 
-fun currentOperatingSystemLabel(): String {
-    return "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
-}
-
-fun currentDeviceModelLabel(): String {
+fun currentDeviceModelLabel(strings: SettingsStringResolver): String {
     return listOf(Build.MANUFACTURER, Build.MODEL)
         .map(String::trim)
         .filter(String::isNotEmpty)
         .joinToString(separator = " ")
-        .ifEmpty { "Unavailable" }
+        .ifEmpty { strings.get(R.string.settings_unavailable) }
 }

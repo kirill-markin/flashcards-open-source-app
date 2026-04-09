@@ -10,24 +10,28 @@ import com.flashcardsopensourceapp.feature.settings.hasRequestedAccessPermission
 import com.flashcardsopensourceapp.feature.settings.markAccessPermissionRequested
 import com.flashcardsopensourceapp.feature.settings.resolveAccessStatus
 
-internal fun dictationStatusLabel(dictationState: AiChatDictationState): String {
+internal fun dictationStatusLabel(
+    dictationState: AiChatDictationState,
+    textProvider: AiTextProvider
+): String {
     return when (dictationState) {
         AiChatDictationState.IDLE -> ""
-        AiChatDictationState.REQUESTING_PERMISSION -> "Requesting microphone access..."
-        AiChatDictationState.RECORDING -> "Recording audio..."
-        AiChatDictationState.TRANSCRIBING -> "Transcribing audio..."
+        AiChatDictationState.REQUESTING_PERMISSION -> textProvider.dictationRequestingPermission
+        AiChatDictationState.RECORDING -> textProvider.dictationRecording
+        AiChatDictationState.TRANSCRIBING -> textProvider.dictationTranscribing
     }
 }
 
 internal fun handleCameraAction(
     activity: ComponentActivity?,
+    textProvider: AiTextProvider,
     onShowAlert: (AiAlertState) -> Unit,
     onShowErrorMessage: (String) -> Unit,
     takePictureLauncher: ActivityResultLauncher<Void?>,
     cameraPermissionLauncher: ActivityResultLauncher<String>
 ) {
     if (activity == null) {
-        onShowErrorMessage("Camera is unavailable in this Android host.")
+        onShowErrorMessage(textProvider.cameraUnavailableInHost)
         return
     }
 
@@ -43,7 +47,8 @@ internal fun handleCameraAction(
         val result = aiCapabilityPresentationResult(
             capability = AccessCapability.CAMERA,
             initialStatus = status,
-            requestedStatus = null
+            requestedStatus = null,
+            textProvider = textProvider
         )
     ) {
         AiCapabilityPresentationResult.Present -> {
@@ -51,7 +56,7 @@ internal fun handleCameraAction(
                 val permission = requireNotNull(
                     accessCapabilityPermission(capability = AccessCapability.CAMERA)
                 ) {
-                    "Camera permission is unavailable."
+                    textProvider.cameraPermissionUnavailable
                 }
                 markAccessPermissionRequested(
                     context = activity,
@@ -74,6 +79,7 @@ internal fun handleCameraAction(
 
 internal fun handleAttachmentAction(
     capability: AccessCapability,
+    textProvider: AiTextProvider,
     onShowAlert: (AiAlertState) -> Unit,
     onPresent: () -> Unit
 ) {
@@ -81,7 +87,8 @@ internal fun handleAttachmentAction(
         val result = aiCapabilityPresentationResult(
             capability = capability,
             initialStatus = AccessStatus.SYSTEM_PICKER,
-            requestedStatus = null
+            requestedStatus = null,
+            textProvider = textProvider
         )
     ) {
         AiCapabilityPresentationResult.Present -> onPresent()
@@ -93,6 +100,7 @@ internal fun handleAttachmentAction(
 internal fun handleDictationToggle(
     activity: ComponentActivity?,
     dictationState: AiChatDictationState,
+    textProvider: AiTextProvider,
     dictationRecorder: AndroidAiChatDictationRecorder,
     onStartDictationPermissionRequest: () -> Unit,
     onStartDictationRecording: () -> Unit,
@@ -113,13 +121,13 @@ internal fun handleDictationToggle(
         } catch (error: Exception) {
             dictationRecorder.cancelRecording()
             onCancelDictation()
-            onShowAlert(AiAlertState.GeneralError(message = error.message ?: "Audio recording could not be finished."))
+            onShowAlert(textProvider.generalError(message = error.message ?: textProvider.audioRecordingFinishFailed))
         }
         return
     }
 
     if (activity == null) {
-        onShowErrorMessage("Microphone is unavailable in this Android host.")
+        onShowErrorMessage(textProvider.microphoneUnavailableInHost)
         onCancelDictation()
         return
     }
@@ -136,7 +144,8 @@ internal fun handleDictationToggle(
         val result = aiCapabilityPresentationResult(
             capability = AccessCapability.MICROPHONE,
             initialStatus = status,
-            requestedStatus = null
+            requestedStatus = null,
+            textProvider = textProvider
         )
     ) {
         AiCapabilityPresentationResult.Present -> {
@@ -144,7 +153,7 @@ internal fun handleDictationToggle(
                 val permission = requireNotNull(
                     accessCapabilityPermission(capability = AccessCapability.MICROPHONE)
                 ) {
-                    "Microphone permission is unavailable."
+                    textProvider.microphonePermissionUnavailable
                 }
                 onStartDictationPermissionRequest()
                 markAccessPermissionRequested(
@@ -157,6 +166,7 @@ internal fun handleDictationToggle(
 
             startDictationRecording(
                 dictationRecorder = dictationRecorder,
+                textProvider = textProvider,
                 onStartDictationRecording = onStartDictationRecording,
                 onShowAlert = onShowAlert,
                 onCancelDictation = onCancelDictation
@@ -176,6 +186,7 @@ internal fun handleDictationToggle(
 
 internal fun startDictationRecording(
     dictationRecorder: AndroidAiChatDictationRecorder,
+    textProvider: AiTextProvider,
     onStartDictationRecording: () -> Unit,
     onShowAlert: (AiAlertState) -> Unit,
     onCancelDictation: () -> Unit
@@ -186,6 +197,6 @@ internal fun startDictationRecording(
     } catch (error: Exception) {
         dictationRecorder.cancelRecording()
         onCancelDictation()
-        onShowAlert(AiAlertState.GeneralError(message = error.message ?: "Audio recording could not be started."))
+        onShowAlert(textProvider.generalError(message = error.message ?: textProvider.audioRecordingStartFailed))
     }
 }

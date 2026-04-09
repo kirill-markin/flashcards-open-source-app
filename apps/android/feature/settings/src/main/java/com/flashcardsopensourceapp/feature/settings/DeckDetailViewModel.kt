@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -26,7 +27,8 @@ class DeckDetailViewModel(
     decksRepository: DecksRepository,
     cardsRepository: CardsRepository,
     workspaceRepository: WorkspaceRepository,
-    deckDetailRequest: DeckDetailRequest
+    deckDetailRequest: DeckDetailRequest,
+    private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val deckFilter = CardFilter(
         tags = emptyList(),
@@ -43,7 +45,7 @@ class DeckDetailViewModel(
                 )
             ) { overview, cards ->
                 DeckDetailUiState(
-                    detail = buildAllCardsDeckDetailInfo(overview = overview),
+                    detail = buildAllCardsDeckDetailInfo(overview = overview, strings = strings),
                     cards = cards
                 )
             }
@@ -55,7 +57,9 @@ class DeckDetailViewModel(
                 decksRepository.observeDeckCards(deckId = deckDetailRequest.deckId)
             ) { deck, cards ->
                 DeckDetailUiState(
-                    detail = deck?.let(::toPersistedDeckDetailInfo),
+                    detail = deck?.let { value ->
+                        toPersistedDeckDetailInfo(deck = value, strings = strings)
+                    },
                     cards = cards
                 )
             }
@@ -65,7 +69,10 @@ class DeckDetailViewModel(
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = DeckDetailUiState(
             detail = when (deckDetailRequest) {
-                DeckDetailRequest.AllCards -> buildAllCardsDeckDetailInfo(overview = null)
+                DeckDetailRequest.AllCards -> buildAllCardsDeckDetailInfo(
+                    overview = null,
+                    strings = strings
+                )
                 is DeckDetailRequest.PersistedDeck -> null
             },
             cards = emptyList()
@@ -77,7 +84,8 @@ fun createDeckDetailViewModelFactory(
     decksRepository: DecksRepository,
     cardsRepository: CardsRepository,
     workspaceRepository: WorkspaceRepository,
-    deckId: String
+    deckId: String,
+    applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
@@ -85,7 +93,8 @@ fun createDeckDetailViewModelFactory(
                 decksRepository = decksRepository,
                 cardsRepository = cardsRepository,
                 workspaceRepository = workspaceRepository,
-                deckDetailRequest = DeckDetailRequest.PersistedDeck(deckId = deckId)
+                deckDetailRequest = DeckDetailRequest.PersistedDeck(deckId = deckId),
+                strings = createSettingsStringResolver(context = applicationContext)
             )
         }
     }
@@ -94,7 +103,8 @@ fun createDeckDetailViewModelFactory(
 fun createAllCardsDeckDetailViewModelFactory(
     decksRepository: DecksRepository,
     cardsRepository: CardsRepository,
-    workspaceRepository: WorkspaceRepository
+    workspaceRepository: WorkspaceRepository,
+    applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
@@ -102,7 +112,8 @@ fun createAllCardsDeckDetailViewModelFactory(
                 decksRepository = decksRepository,
                 cardsRepository = cardsRepository,
                 workspaceRepository = workspaceRepository,
-                deckDetailRequest = DeckDetailRequest.AllCards
+                deckDetailRequest = DeckDetailRequest.AllCards,
+                strings = createSettingsStringResolver(context = applicationContext)
             )
         }
     }

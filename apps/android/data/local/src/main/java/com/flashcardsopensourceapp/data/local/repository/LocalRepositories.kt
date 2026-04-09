@@ -12,6 +12,8 @@ import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.TagEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
+import com.flashcardsopensourceapp.data.local.model.AppMetadataStorage
+import com.flashcardsopensourceapp.data.local.model.AppMetadataSyncStatus
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.CardSummary
@@ -296,20 +298,26 @@ class LocalWorkspaceRepository(
             syncRepository.observeSyncStatus()
         ) { overview, cloudSettings, syncStatusSnapshot ->
             AppMetadataSummary(
-                currentWorkspaceName = overview?.workspaceName ?: "Unavailable",
-                workspaceName = overview?.workspaceName ?: "Unavailable",
+                currentWorkspaceName = overview?.workspaceName,
+                workspaceName = overview?.workspaceName,
                 deckCount = overview?.deckCount ?: 0,
                 cardCount = overview?.totalCards ?: 0,
-                localStorageLabel = "Room + SQLite",
-                syncStatusText = when (cloudSettings.cloudState) {
-                    CloudAccountState.DISCONNECTED -> "Not connected"
-                    CloudAccountState.LINKING_READY -> "Sign-in complete, choose a workspace"
-                    CloudAccountState.GUEST -> "Guest AI session"
+                localStorage = AppMetadataStorage.ROOM_SQLITE,
+                syncStatus = when (cloudSettings.cloudState) {
+                    CloudAccountState.DISCONNECTED -> AppMetadataSyncStatus.NotConnected
+                    CloudAccountState.LINKING_READY -> AppMetadataSyncStatus.SignInCompleteChooseWorkspace
+                    CloudAccountState.GUEST -> AppMetadataSyncStatus.GuestAiSession
                     CloudAccountState.LINKED -> when (val syncStatus = syncStatusSnapshot.status) {
-                        is com.flashcardsopensourceapp.data.local.model.SyncStatus.Blocked -> syncStatus.message
-                        is com.flashcardsopensourceapp.data.local.model.SyncStatus.Failed -> syncStatus.message
-                        com.flashcardsopensourceapp.data.local.model.SyncStatus.Idle -> "Synced"
-                        com.flashcardsopensourceapp.data.local.model.SyncStatus.Syncing -> "Syncing"
+                        is com.flashcardsopensourceapp.data.local.model.SyncStatus.Blocked -> {
+                            AppMetadataSyncStatus.Message(text = syncStatus.message)
+                        }
+
+                        is com.flashcardsopensourceapp.data.local.model.SyncStatus.Failed -> {
+                            AppMetadataSyncStatus.Message(text = syncStatus.message)
+                        }
+
+                        com.flashcardsopensourceapp.data.local.model.SyncStatus.Idle -> AppMetadataSyncStatus.Synced
+                        com.flashcardsopensourceapp.data.local.model.SyncStatus.Syncing -> AppMetadataSyncStatus.Syncing
                     }
                 }
             )

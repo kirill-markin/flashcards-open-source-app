@@ -154,11 +154,12 @@ internal class AiChatRuntimeLifecycleCoordinator(
                 val message = makeAiUserFacingErrorMessage(
                     error = error,
                     surface = AiErrorSurface.CHAT,
-                    configuration = context.currentServerConfiguration()
+                    configuration = context.currentServerConfiguration(),
+                    textProvider = context.textProvider
                 )
                 context.runtimeStateMutable.update { state ->
                     state.copy(
-                        activeAlert = AiAlertState.GeneralError(message = message),
+                        activeAlert = context.textProvider.generalError(message = message),
                         errorMessage = ""
                     )
                 }

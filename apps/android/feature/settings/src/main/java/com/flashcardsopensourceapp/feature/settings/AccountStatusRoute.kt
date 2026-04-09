@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -32,7 +33,7 @@ fun AccountStatusRoute(
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
-        title = "Account Status",
+        title = stringResource(R.string.settings_account_status_screen_title),
         onBack = onBack,
         isBackEnabled = uiState.isSubmitting.not()
     ) { innerPadding ->
@@ -49,7 +50,7 @@ fun AccountStatusRoute(
                             modifier = Modifier.padding(20.dp)
                         ) {
                             Text(
-                                text = "Sync is blocked on this device",
+                                text = stringResource(R.string.settings_account_status_sync_blocked_title),
                                 style = MaterialTheme.typography.titleMedium
                             )
                             Text(
@@ -57,7 +58,7 @@ fun AccountStatusRoute(
                                 color = MaterialTheme.colorScheme.error
                             )
                             Text(
-                                text = "Use Log out to clear local cloud identity on this device before reconnecting."
+                                text = stringResource(R.string.settings_account_status_sync_blocked_body)
                             )
                         }
                     }
@@ -80,7 +81,7 @@ fun AccountStatusRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Cloud status")
+                            Text(stringResource(R.string.settings_account_status_cloud_status_label))
                         },
                         supportingContent = {
                             Text(uiState.cloudStatusTitle)
@@ -97,14 +98,14 @@ fun AccountStatusRoute(
 
             item {
                 DeviceInfoCard(
-                    title = "Account",
+                    title = stringResource(R.string.settings_section_account),
                     rows = buildList {
-                        add("Workspace" to uiState.workspaceName)
-                        add("Installation ID" to uiState.installationId)
-                        add("Sync" to uiState.syncStatusText)
-                        add("Last successful sync" to uiState.lastSuccessfulSync)
+                        add(stringResource(R.string.settings_section_workspace) to uiState.workspaceName)
+                        add(stringResource(R.string.settings_account_status_installation_id_label) to uiState.installationId)
+                        add(stringResource(R.string.settings_account_status_sync_status_label) to uiState.syncStatusText)
+                        add(stringResource(R.string.settings_account_status_last_successful_sync_label) to uiState.lastSuccessfulSync)
                         if (uiState.linkedEmail != null) {
-                            add("Linked email" to uiState.linkedEmail)
+                            add(stringResource(R.string.settings_account_status_linked_email_label) to uiState.linkedEmail)
                         }
                     }
                 )
@@ -117,12 +118,12 @@ fun AccountStatusRoute(
                         modifier = Modifier.padding(20.dp)
                     ) {
                         Text(
-                            text = "Actions",
+                            text = stringResource(R.string.settings_account_actions_title),
                             style = MaterialTheme.typography.titleMedium
                         )
                         if (uiState.isGuest) {
                             Text(
-                                text = "Guest AI is active on this device. Create an account or log in to upgrade it into a linked cloud account.",
+                                text = stringResource(R.string.settings_current_workspace_load_guest_message),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -134,9 +135,9 @@ fun AccountStatusRoute(
                             ) {
                                 Text(
                                     when {
-                                        uiState.isLinked -> "Switch account"
-                                        uiState.isGuest -> "Sign in or sign up"
-                                        else -> "Sign in or sign up"
+                                        uiState.isLinked -> stringResource(R.string.settings_account_status_sign_in_button)
+                                        uiState.isGuest -> stringResource(R.string.settings_account_status_sign_in_button)
+                                        else -> stringResource(R.string.settings_account_status_sign_in_button)
                                     }
                                 )
                             }
@@ -147,14 +148,20 @@ fun AccountStatusRoute(
                                 enabled = uiState.isSubmitting.not() && uiState.isSyncBlocked.not(),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text(if (uiState.isSubmitting) "Syncing..." else "Sync now")
+                                Text(
+                                    if (uiState.isSubmitting) {
+                                        stringResource(R.string.settings_sync_status_syncing)
+                                    } else {
+                                        stringResource(R.string.settings_account_status_sync_now_button)
+                                    }
+                                )
                             }
                             OutlinedButton(
                                 onClick = onRequestLogout,
                                 enabled = uiState.isSubmitting.not(),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Log out")
+                                Text(stringResource(R.string.settings_logout))
                             }
                         }
                     }
@@ -175,7 +182,13 @@ fun AccountStatusRoute(
                     onClick = onConfirmLogout,
                     enabled = uiState.isSubmitting.not()
                 ) {
-                    Text(if (uiState.isSubmitting) "Logging out..." else "Log out")
+                    Text(
+                        if (uiState.isSubmitting) {
+                            stringResource(R.string.settings_logout)
+                        } else {
+                            stringResource(R.string.settings_logout)
+                        }
+                    )
                 }
             },
             dismissButton = {
@@ -183,14 +196,14 @@ fun AccountStatusRoute(
                     onClick = onDismissLogoutConfirmation,
                     enabled = uiState.isSubmitting.not()
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_cancel))
                 }
             },
             title = {
-                Text("Log out and clear this device?")
+                Text(stringResource(R.string.settings_account_status_logout_dialog_title))
             },
             text = {
-                Text("All local workspaces and synced data will be removed from this device.")
+                Text(stringResource(R.string.settings_account_status_logout_dialog_body))
             }
         )
     }

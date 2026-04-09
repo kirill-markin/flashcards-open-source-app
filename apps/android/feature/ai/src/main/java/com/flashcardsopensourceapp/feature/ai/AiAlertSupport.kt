@@ -5,27 +5,17 @@ sealed interface AiAlertState {
     val message: String
     val showsSettingsAction: Boolean
 
-    data object MicrophoneSettings : AiAlertState {
-        override val title: String = "Microphone access needed"
-        override val message: String =
-            "Microphone access is turned off for Flashcards Open Source App. Open Settings to allow it."
-        override val showsSettingsAction: Boolean = true
-    }
-
-    data class AttachmentSettings(
-        val source: AiAttachmentSettingsSource
-    ) : AiAlertState {
-        override val title: String
-            get() = source.title
+    data class SettingsActionRequired(
+        override val title: String,
         override val message: String
-            get() = source.message
+    ) : AiAlertState {
         override val showsSettingsAction: Boolean = true
     }
 
     data class GeneralError(
+        override val title: String,
         override val message: String
     ) : AiAlertState {
-        override val title: String = "Error"
         override val showsSettingsAction: Boolean = false
     }
 }
@@ -33,19 +23,5 @@ sealed interface AiAlertState {
 enum class AiAttachmentSettingsSource {
     CAMERA,
     PHOTOS,
-    FILES;
-
-    val title: String
-        get() = when (this) {
-            CAMERA -> "Camera access needed"
-            PHOTOS -> "Photo access needed"
-            FILES -> "File access needed"
-        }
-
-    val message: String
-        get() = when (this) {
-            CAMERA -> "Camera access is turned off for Flashcards Open Source App. Open Settings to allow it."
-            PHOTOS -> "Photo access is turned off for Flashcards Open Source App. Open Settings to allow it."
-            FILES -> "File access is turned off for Flashcards Open Source App. Open Settings to allow it."
-        }
+    FILES
 }

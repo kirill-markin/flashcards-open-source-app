@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.navigation
 
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
@@ -46,11 +47,13 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
         route = SettingsWorkspaceGraph.route
     ) {
         composable(route = SettingsWorkspaceDestination.route) {
+            val context = LocalContext.current
             val workspaceSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.WorkspaceSettingsViewModel>(
                 factory = createWorkspaceSettingsViewModelFactory(
                     workspaceRepository = appGraph.workspaceRepository,
                     cloudAccountRepository = appGraph.cloudAccountRepository,
-                    reviewNotificationsStore = appGraph.reviewNotificationsStore
+                    reviewNotificationsStore = appGraph.reviewNotificationsStore,
+                    applicationContext = context.applicationContext
                 )
             )
             val uiState by workspaceSettingsViewModel.uiState.collectAsStateWithLifecycle()
@@ -121,13 +124,15 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
         }
 
         composable(route = SettingsWorkspaceOverviewDestination.route) {
+            val context = LocalContext.current
             val workspaceOverviewViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.WorkspaceOverviewViewModel>(
                 factory = createWorkspaceOverviewViewModelFactory(
                     workspaceRepository = appGraph.workspaceRepository,
                     cloudAccountRepository = appGraph.cloudAccountRepository,
                     autoSyncEventRepository = appGraph.autoSyncEventRepository,
                     messageController = appGraph.appMessageBus,
-                    visibleAppScreenRepository = appGraph.visibleAppScreenController
+                    visibleAppScreenRepository = appGraph.visibleAppScreenController,
+                    applicationContext = context.applicationContext
                 )
             )
             val uiState by workspaceOverviewViewModel.uiState.collectAsStateWithLifecycle()
@@ -149,10 +154,12 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
         }
 
         composable(route = SettingsWorkspaceDecksDestination.route) {
+            val context = LocalContext.current
             val decksViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.DecksViewModel>(
                 factory = createDecksViewModelFactory(
                     decksRepository = appGraph.decksRepository,
-                    workspaceRepository = appGraph.workspaceRepository
+                    workspaceRepository = appGraph.workspaceRepository,
+                    applicationContext = context.applicationContext
                 )
             )
             val uiState by decksViewModel.uiState.collectAsStateWithLifecycle()
@@ -183,11 +190,13 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
         }
 
         composable(route = SettingsWorkspaceAllCardsDeckDetailDestination.route) {
+            val context = LocalContext.current
             val deckDetailViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.DeckDetailViewModel>(
                 factory = createAllCardsDeckDetailViewModelFactory(
                     decksRepository = appGraph.decksRepository,
                     cardsRepository = appGraph.cardsRepository,
-                    workspaceRepository = appGraph.workspaceRepository
+                    workspaceRepository = appGraph.workspaceRepository,
+                    applicationContext = context.applicationContext
                 )
             )
             val uiState by deckDetailViewModel.uiState.collectAsStateWithLifecycle()
@@ -211,6 +220,7 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 type = NavType.StringType
             })
         ) { backStackEntry ->
+            val context = LocalContext.current
             val deckId = requireNotNull(backStackEntry.arguments?.getString(SettingsWorkspaceDeckDetailDestination.routeArgument)) {
                 "Deck detail route requires deckId."
             }
@@ -219,7 +229,8 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                     decksRepository = appGraph.decksRepository,
                     cardsRepository = appGraph.cardsRepository,
                     workspaceRepository = appGraph.workspaceRepository,
-                    deckId = deckId
+                    deckId = deckId,
+                    applicationContext = context.applicationContext
                 )
             )
             val uiState by deckDetailViewModel.uiState.collectAsStateWithLifecycle()
@@ -252,6 +263,7 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 type = NavType.StringType
             })
         ) { backStackEntry ->
+            val context = LocalContext.current
             val editingArgument = requireNotNull(backStackEntry.arguments?.getString(SettingsWorkspaceDeckEditorDestination.routeArgument)) {
                 "Deck editor route requires deckId."
             }
@@ -260,7 +272,8 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 factory = createDeckEditorViewModelFactory(
                     decksRepository = appGraph.decksRepository,
                     workspaceRepository = appGraph.workspaceRepository,
-                    editingDeckId = editingDeckId
+                    editingDeckId = editingDeckId,
+                    applicationContext = context.applicationContext
                 )
             )
             val uiState by deckEditorViewModel.uiState.collectAsStateWithLifecycle()
@@ -319,8 +332,12 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
         }
 
         composable(route = SettingsWorkspaceSchedulerDestination.route) {
+            val context = LocalContext.current
             val schedulerSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SchedulerSettingsViewModel>(
-                factory = createSchedulerSettingsViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
+                factory = createSchedulerSettingsViewModelFactory(
+                    workspaceRepository = appGraph.workspaceRepository,
+                    applicationContext = context.applicationContext
+                )
             )
             val uiState by schedulerSettingsViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -351,8 +368,12 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
         }
 
         composable(route = SettingsWorkspaceExportDestination.route) {
+            val context = LocalContext.current
             val workspaceExportViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.WorkspaceExportViewModel>(
-                factory = createWorkspaceExportViewModelFactory(workspaceRepository = appGraph.workspaceRepository)
+                factory = createWorkspaceExportViewModelFactory(
+                    workspaceRepository = appGraph.workspaceRepository,
+                    applicationContext = context.applicationContext
+                )
             )
 
             WorkspaceExportRoute(

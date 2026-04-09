@@ -12,50 +12,63 @@ import androidx.core.content.ContextCompat
 
 private const val accessPreferencesName: String = "android-access-permissions"
 
-fun accessCapabilityTitle(capability: AccessCapability): String {
+fun accessCapabilityTitle(
+    capability: AccessCapability,
+    strings: SettingsStringResolver
+): String {
     return when (capability) {
-        AccessCapability.CAMERA -> "Camera"
-        AccessCapability.MICROPHONE -> "Microphone"
-        AccessCapability.PHOTOS -> "Photos"
-        AccessCapability.FILES -> "Files"
+        AccessCapability.CAMERA -> strings.get(R.string.settings_access_camera_title)
+        AccessCapability.MICROPHONE -> strings.get(R.string.settings_access_microphone_title)
+        AccessCapability.PHOTOS -> strings.get(R.string.settings_access_photos_title)
+        AccessCapability.FILES -> strings.get(R.string.settings_access_files_title)
     }
 }
 
-fun accessCapabilitySummary(capability: AccessCapability): String {
+fun accessCapabilitySummary(
+    capability: AccessCapability,
+    strings: SettingsStringResolver
+): String {
     return when (capability) {
-        AccessCapability.CAMERA -> "Take photos directly from Android AI flows."
-        AccessCapability.MICROPHONE -> "Dictate text into Android AI flows."
-        AccessCapability.PHOTOS -> "Choose images through the Android system photo picker."
-        AccessCapability.FILES -> "Choose documents through the Android system file picker."
+        AccessCapability.CAMERA -> strings.get(R.string.settings_access_camera_summary)
+        AccessCapability.MICROPHONE -> strings.get(R.string.settings_access_microphone_summary)
+        AccessCapability.PHOTOS -> strings.get(R.string.settings_access_photos_summary)
+        AccessCapability.FILES -> strings.get(R.string.settings_access_files_summary)
     }
 }
 
-fun accessCapabilityGuidance(capability: AccessCapability, status: AccessStatus): String {
+fun accessCapabilityGuidance(
+    capability: AccessCapability,
+    status: AccessStatus,
+    strings: SettingsStringResolver
+): String {
     return when (capability) {
         AccessCapability.CAMERA -> when (status) {
-            AccessStatus.ALLOWED -> "Camera access is available. You can turn it off later from Android app settings."
-            AccessStatus.ASK_EVERY_TIME -> "Request camera access when you are ready to take a photo from Android."
-            AccessStatus.BLOCKED -> "Camera access is blocked for this app. Open Android app settings to allow it again."
-            AccessStatus.SYSTEM_PICKER -> "Camera uses a direct Android permission flow."
-            AccessStatus.UNAVAILABLE -> "This device does not report camera hardware."
+            AccessStatus.ALLOWED -> strings.get(R.string.settings_access_camera_guidance_allowed)
+            AccessStatus.ASK_EVERY_TIME -> strings.get(R.string.settings_access_camera_guidance_request)
+            AccessStatus.BLOCKED -> strings.get(R.string.settings_access_camera_guidance_blocked)
+            AccessStatus.SYSTEM_PICKER -> strings.get(R.string.settings_access_camera_guidance_system_picker)
+            AccessStatus.UNAVAILABLE -> strings.get(R.string.settings_access_camera_guidance_unavailable)
         }
         AccessCapability.MICROPHONE -> when (status) {
-            AccessStatus.ALLOWED -> "Microphone access is available. You can turn it off later from Android app settings."
-            AccessStatus.ASK_EVERY_TIME -> "Request microphone access when you are ready to dictate text from Android."
-            AccessStatus.BLOCKED -> "Microphone access is blocked for this app. Open Android app settings to allow it again."
-            AccessStatus.SYSTEM_PICKER -> "Microphone uses a direct Android permission flow."
-            AccessStatus.UNAVAILABLE -> "This device does not report microphone hardware."
+            AccessStatus.ALLOWED -> strings.get(R.string.settings_access_microphone_guidance_allowed)
+            AccessStatus.ASK_EVERY_TIME -> strings.get(R.string.settings_access_microphone_guidance_request)
+            AccessStatus.BLOCKED -> strings.get(R.string.settings_access_microphone_guidance_blocked)
+            AccessStatus.SYSTEM_PICKER -> strings.get(R.string.settings_access_microphone_guidance_system_picker)
+            AccessStatus.UNAVAILABLE -> strings.get(R.string.settings_access_microphone_guidance_unavailable)
         }
-        AccessCapability.PHOTOS -> "Android 14+ uses the system photo picker here, so broad storage access is not required."
-        AccessCapability.FILES -> "Android uses the system document picker here, so broad storage access is not required."
+        AccessCapability.PHOTOS -> strings.get(R.string.settings_access_photos_guidance)
+        AccessCapability.FILES -> strings.get(R.string.settings_access_files_guidance)
     }
 }
 
-fun accessCapabilityPrimaryActionLabel(status: AccessStatus): String? {
+fun accessCapabilityPrimaryActionLabel(
+    status: AccessStatus,
+    strings: SettingsStringResolver
+): String? {
     return when (status) {
-        AccessStatus.ASK_EVERY_TIME -> "Request access"
-        AccessStatus.BLOCKED -> "Open app settings"
-        AccessStatus.ALLOWED -> "Open app settings"
+        AccessStatus.ASK_EVERY_TIME -> strings.get(R.string.settings_access_request_access)
+        AccessStatus.BLOCKED -> strings.get(R.string.settings_access_open_app_settings)
+        AccessStatus.ALLOWED -> strings.get(R.string.settings_access_open_app_settings)
         AccessStatus.SYSTEM_PICKER,
         AccessStatus.UNAVAILABLE -> null
     }

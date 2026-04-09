@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun AccessRoute(
@@ -25,6 +26,7 @@ fun AccessRoute(
 ) {
     val context = LocalContext.current
     val activity = context as? ComponentActivity
+    val strings = createSettingsStringResolver(context = context)
     val capabilityStates = AccessCapability.entries.map { capability ->
         val status = if (activity == null) {
             AccessStatus.UNAVAILABLE
@@ -37,16 +39,20 @@ fun AccessRoute(
         }
         AccessCapabilityUiState(
             capability = capability,
-            title = accessCapabilityTitle(capability = capability),
-            summary = accessCapabilitySummary(capability = capability),
+            title = accessCapabilityTitle(capability = capability, strings = strings),
+            summary = accessCapabilitySummary(capability = capability, strings = strings),
             status = status,
-            guidance = accessCapabilityGuidance(capability = capability, status = status),
-            primaryActionLabel = accessCapabilityPrimaryActionLabel(status = status)
+            guidance = accessCapabilityGuidance(
+                capability = capability,
+                status = status,
+                strings = strings
+            ),
+            primaryActionLabel = accessCapabilityPrimaryActionLabel(status = status, strings = strings)
         )
     }
 
     SettingsScreenScaffold(
-        title = "Access",
+        title = stringResource(R.string.settings_access_title),
         onBack = onBack,
         isBackEnabled = true
     ) { innerPadding ->
@@ -59,10 +65,10 @@ fun AccessRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Notifications")
+                            Text(stringResource(R.string.settings_access_notifications_title))
                         },
                         supportingContent = {
-                            Text("Study reminder settings for this device")
+                            Text(stringResource(R.string.settings_access_notifications_summary))
                         },
                         leadingContent = {
                             Icon(
@@ -82,7 +88,15 @@ fun AccessRoute(
                             Text(item.title)
                         },
                         supportingContent = {
-                            Text(item.status.name.lowercase().replaceFirstChar(Char::uppercase))
+                            Text(
+                                when (item.status) {
+                                    AccessStatus.ALLOWED -> stringResource(R.string.settings_access_status_allowed)
+                                    AccessStatus.ASK_EVERY_TIME -> stringResource(R.string.settings_access_status_ask_every_time)
+                                    AccessStatus.BLOCKED -> stringResource(R.string.settings_access_status_blocked)
+                                    AccessStatus.SYSTEM_PICKER -> stringResource(R.string.settings_access_status_system_picker)
+                                    AccessStatus.UNAVAILABLE -> stringResource(R.string.settings_access_status_unavailable)
+                                }
+                            )
                         },
                         leadingContent = {
                             Icon(

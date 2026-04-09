@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">Flashcards Open Source App</string>
+    <string name="top_level_review">Review</string>
+    <string name="top_level_cards">Cards</string>
+    <string name="top_level_ai">AI</string>
+    <string name="top_level_settings">Settings</string>
+    <string name="startup_error_title">Startup failed</string>
+    <string name="startup_error_retry">Retry startup</string>
+    <string name="account_deletion_blocking_title">Deleting account</string>
+    <string name="account_deletion_in_progress_message">Your account deletion is in progress. Keep this screen open until it finishes.</string>
+    <string name="account_deletion_failed_message">The delete request did not finish yet. Retry to keep the account deletion moving forward.</string>
+    <string name="account_deletion_retry">Retry deletion</string>
+    <string name="review_notification_channel_name">Review reminders</string>
+    <string name="review_notification_channel_description">Study reminders with cards from your review queue.</string>
 </resources>

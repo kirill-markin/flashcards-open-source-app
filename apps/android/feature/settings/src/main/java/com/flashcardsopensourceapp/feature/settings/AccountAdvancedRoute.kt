@@ -13,6 +13,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun AccountAdvancedRoute(
@@ -20,7 +21,7 @@ fun AccountAdvancedRoute(
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
-        title = "Advanced",
+        title = stringResource(R.string.settings_account_advanced_screen_title),
         onBack = onBack,
         isBackEnabled = true
     ) { innerPadding ->
@@ -33,10 +34,10 @@ fun AccountAdvancedRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Server")
+                            Text(stringResource(R.string.settings_server_title))
                         },
                         supportingContent = {
-                            Text("Official or self-hosted server configuration")
+                            Text(stringResource(R.string.settings_server_summary))
                         },
                         leadingContent = {
                             Icon(

@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.normalizeTagKey
 
@@ -62,13 +63,13 @@ fun CardTagsRoute(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Tags")
+                    Text(stringResource(id = R.string.cards_tags_title))
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(id = R.string.cards_editor_back_content_description)
                         )
                     }
                 }
@@ -104,10 +105,10 @@ fun CardTagsRoute(
                         draftTagValue = nextValue
                     },
                     label = {
-                        Text("Add a tag")
+                        Text(stringResource(id = R.string.cards_add_tag_label))
                     },
                     supportingText = {
-                        Text("Pick an existing workspace tag or add a custom one.")
+                        Text(stringResource(id = R.string.cards_add_tag_supporting_text))
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -124,7 +125,7 @@ fun CardTagsRoute(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Clear")
+                        Text(stringResource(id = R.string.cards_clear))
                     }
                     Button(
                         onClick = {
@@ -138,14 +139,14 @@ fun CardTagsRoute(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Add tag")
+                        Text(stringResource(id = R.string.cards_add_tag))
                     }
                 }
             }
 
             item {
                 Text(
-                    text = "Selected tags",
+                    text = stringResource(id = R.string.cards_selected_tags),
                     style = MaterialTheme.typography.titleSmall
                 )
             }
@@ -154,7 +155,7 @@ fun CardTagsRoute(
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "No tags selected yet.",
+                            text = stringResource(id = R.string.cards_no_selected_tags_yet),
                             modifier = Modifier.padding(16.dp)
                         )
                     }
@@ -188,7 +189,7 @@ fun CardTagsRoute(
 
             item {
                 Text(
-                    text = "Workspace suggestions",
+                    text = stringResource(id = R.string.cards_workspace_suggestions),
                     style = MaterialTheme.typography.titleSmall
                 )
             }
@@ -200,7 +201,7 @@ fun CardTagsRoute(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         ListItem(
                             headlineContent = {
-                                Text("Add custom tag")
+                                Text(stringResource(id = R.string.cards_add_custom_tag))
                             },
                             supportingContent = {
                                 Text(draftTagValue.trim())
@@ -224,7 +225,7 @@ fun CardTagsRoute(
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "No workspace tags match the current search.",
+                            text = stringResource(id = R.string.cards_no_workspace_tags_match_search),
                             modifier = Modifier.padding(16.dp)
                         )
                     }

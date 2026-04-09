@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -30,7 +31,7 @@ fun AgentConnectionsRoute(
     }
 
     SettingsScreenScaffold(
-        title = "Agent Connections",
+        title = stringResource(R.string.settings_agent_connections_title),
         onBack = onBack,
         isBackEnabled = uiState.revokingConnectionId == null
     ) { innerPadding ->
@@ -59,7 +60,7 @@ fun AgentConnectionsRoute(
                     ) {
                         if (uiState.isLinked) {
                             Text(
-                                text = "Review and revoke long-lived bot connections tied to this cloud account.",
+                                text = stringResource(R.string.settings_agent_connections_intro),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             OutlinedButton(
@@ -67,11 +68,17 @@ fun AgentConnectionsRoute(
                                 enabled = uiState.isLoading.not(),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text(if (uiState.isLoading) "Loading..." else "Reload")
+                                Text(
+                                    if (uiState.isLoading) {
+                                        stringResource(R.string.settings_loading)
+                                    } else {
+                                        stringResource(R.string.settings_agent_connections_reload)
+                                    }
+                                )
                             }
                         } else {
                             Text(
-                                text = "Sign in to the cloud account to manage long-lived bot connections.",
+                                text = stringResource(R.string.settings_agent_connections_sign_in_guidance),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -95,7 +102,7 @@ fun AgentConnectionsRoute(
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "No long-lived bot connections were created for this account.",
+                            text = stringResource(R.string.settings_agent_connections_empty),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(20.dp)
                         )
@@ -115,9 +122,27 @@ fun AgentConnectionsRoute(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Text("Created: ${connection.createdAtLabel}")
-                        Text("Last used: ${connection.lastUsedAtLabel}")
-                        Text("Revoked: ${connection.revokedAtLabel}")
+                        Text(
+                            stringResource(
+                                R.string.settings_labeled_value,
+                                stringResource(R.string.settings_agent_connections_created_label),
+                                connection.createdAtLabel
+                            )
+                        )
+                        Text(
+                            stringResource(
+                                R.string.settings_labeled_value,
+                                stringResource(R.string.settings_agent_connections_last_used_label),
+                                connection.lastUsedAtLabel
+                            )
+                        )
+                        Text(
+                            stringResource(
+                                R.string.settings_labeled_value,
+                                stringResource(R.string.settings_agent_connections_revoked_label),
+                                connection.revokedAtLabel
+                            )
+                        )
                         OutlinedButton(
                             onClick = {
                                 onRevokeConnection(connection.connectionId)
@@ -128,9 +153,9 @@ fun AgentConnectionsRoute(
                         ) {
                             Text(
                                 if (uiState.revokingConnectionId == connection.connectionId) {
-                                    "Revoking..."
+                                    stringResource(R.string.settings_revoking)
                                 } else {
-                                    "Revoke"
+                                    stringResource(R.string.settings_agent_connections_revoke)
                                 }
                             )
                         }

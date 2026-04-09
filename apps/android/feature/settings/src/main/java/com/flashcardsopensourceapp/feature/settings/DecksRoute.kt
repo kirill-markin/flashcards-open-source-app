@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,13 +37,13 @@ fun DecksRoute(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Decks")
+                    Text(stringResource(R.string.settings_workspace_decks_title))
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.settings_back_content_description)
                         )
                     }
                 }
@@ -54,7 +55,7 @@ fun DecksRoute(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Add,
-                    contentDescription = "Add deck"
+                    contentDescription = stringResource(R.string.settings_decks_add_content_description)
                 )
             }
         }
@@ -74,7 +75,7 @@ fun DecksRoute(
                     value = uiState.searchQuery,
                     onValueChange = onSearchQueryChange,
                     label = {
-                        Text("Search decks")
+                        Text(stringResource(R.string.settings_decks_search_label))
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -85,9 +86,9 @@ fun DecksRoute(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = if (uiState.searchQuery.isEmpty()) {
-                                "No decks yet. Create the first filtered deck."
+                                stringResource(R.string.settings_decks_empty)
                             } else {
-                                "No decks match this search."
+                                stringResource(R.string.settings_decks_empty_search)
                             },
                             modifier = Modifier.padding(20.dp)
                         )

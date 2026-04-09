@@ -146,7 +146,8 @@ internal class AiChatLiveStreamCoordinator(
                 val message = makeAiUserFacingErrorMessage(
                     error = error,
                     surface = AiErrorSurface.CHAT,
-                    configuration = context.currentServerConfiguration()
+                    configuration = context.currentServerConfiguration(),
+                    textProvider = context.textProvider
                 )
                 context.runtimeStateMutable.update { state ->
                     state.copy(
@@ -154,7 +155,7 @@ internal class AiChatLiveStreamCoordinator(
                         isLiveAttached = false,
                         composerPhase = AiComposerPhase.IDLE,
                         repairStatus = null,
-                        activeAlert = AiAlertState.GeneralError(message = message),
+                        activeAlert = context.textProvider.generalError(message = message),
                         errorMessage = ""
                     )
                 }
@@ -354,10 +355,10 @@ internal class AiChatLiveStreamCoordinator(
                             serverComposerSuggestions = emptyList(),
                             composerPhase = AiComposerPhase.IDLE,
                             repairStatus = null,
-                            activeAlert = AiAlertState.GeneralError(
+                            activeAlert = context.textProvider.generalError(
                                 message = event.message
                                     ?: latestAssistantErrorMessage(messages = state.persistedState.messages)
-                                    ?: "AI chat failed."
+                                    ?: context.textProvider.chatFailed
                             ),
                             errorMessage = ""
                         )
@@ -388,7 +389,7 @@ internal class AiChatLiveStreamCoordinator(
                     state.copy(
                         activeRun = null,
                         composerPhase = AiComposerPhase.IDLE,
-                        activeAlert = AiAlertState.GeneralError(message = errorMessage),
+                        activeAlert = context.textProvider.generalError(message = errorMessage),
                         errorMessage = ""
                     )
                 }
@@ -403,8 +404,8 @@ internal class AiChatLiveStreamCoordinator(
                         isLiveAttached = false,
                         composerPhase = AiComposerPhase.IDLE,
                         repairStatus = null,
-                        activeAlert = AiAlertState.GeneralError(
-                            message = "AI live stream ended before message completion."
+                        activeAlert = context.textProvider.generalError(
+                            message = context.textProvider.liveStreamEndedBeforeCompletion
                         ),
                         errorMessage = ""
                     )
@@ -415,7 +416,8 @@ internal class AiChatLiveStreamCoordinator(
             val message = makeAiUserFacingErrorMessage(
                 error = error,
                 surface = AiErrorSurface.CHAT,
-                configuration = context.currentServerConfiguration()
+                configuration = context.currentServerConfiguration(),
+                textProvider = context.textProvider
             )
             context.runtimeStateMutable.update { state ->
                 state.copy(
@@ -423,7 +425,7 @@ internal class AiChatLiveStreamCoordinator(
                     isLiveAttached = false,
                     composerPhase = AiComposerPhase.IDLE,
                     repairStatus = null,
-                    activeAlert = AiAlertState.GeneralError(message = message),
+                    activeAlert = context.textProvider.generalError(message = message),
                     errorMessage = ""
                 )
             }

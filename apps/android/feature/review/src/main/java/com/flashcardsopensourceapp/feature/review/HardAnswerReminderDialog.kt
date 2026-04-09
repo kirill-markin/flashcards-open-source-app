@@ -4,6 +4,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 
 /**
  * Native Material dialog that reminds the user which answer button to use.
@@ -15,16 +16,14 @@ internal fun HardAnswerReminderDialog(
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = {
-            Text("Use Again for unknown answers")
+            Text(stringResource(id = R.string.review_hard_answer_reminder_title))
         },
         text = {
-            Text(
-                "If you did not know the answer, choose \"Again\". \"Hard\" is only for answers you knew but it was difficult to recall."
-            )
+            Text(stringResource(id = R.string.review_hard_answer_reminder_body))
         },
         confirmButton = {
             TextButton(onClick = onDismissRequest) {
-                Text("OK")
+                Text(stringResource(id = R.string.review_ok))
             }
         }
     )

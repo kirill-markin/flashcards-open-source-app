@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -24,7 +25,8 @@ private data class ServerSettingsDraftState(
 )
 
 class ServerSettingsViewModel(
-    private val cloudAccountRepository: CloudAccountRepository
+    private val cloudAccountRepository: CloudAccountRepository,
+    private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = ServerSettingsDraftState(
@@ -41,8 +43,8 @@ class ServerSettingsViewModel(
     ) { configuration, draft ->
         ServerSettingsUiState(
             modeTitle = when (configuration.mode) {
-                CloudServiceConfigurationMode.OFFICIAL -> "Official"
-                CloudServiceConfigurationMode.CUSTOM -> "Custom"
+                CloudServiceConfigurationMode.OFFICIAL -> strings.get(R.string.settings_server_mode_official)
+                CloudServiceConfigurationMode.CUSTOM -> strings.get(R.string.settings_server_mode_custom)
             },
             customOrigin = draft.customOrigin,
             apiBaseUrl = configuration.apiBaseUrl,
@@ -56,7 +58,7 @@ class ServerSettingsViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = ServerSettingsUiState(
-            modeTitle = "Loading...",
+            modeTitle = strings.get(R.string.settings_loading),
             customOrigin = "",
             apiBaseUrl = "",
             authBaseUrl = "",
@@ -103,7 +105,7 @@ class ServerSettingsViewModel(
 
     suspend fun applyPreviewConfiguration() {
         val previewConfiguration = requireNotNull(draftState.value.previewConfiguration) {
-            "Enter a valid custom server URL."
+            strings.get(R.string.settings_server_enter_valid_url)
         }
         draftState.update { state -> state.copy(isApplying = true, errorMessage = "") }
         try {
@@ -113,7 +115,7 @@ class ServerSettingsViewModel(
             draftState.update { state ->
                 state.copy(
                     isApplying = false,
-                    errorMessage = error.message ?: "Could not apply custom server."
+                    errorMessage = error.message ?: strings.get(R.string.settings_server_apply_failed)
                 )
             }
         }
@@ -134,7 +136,7 @@ class ServerSettingsViewModel(
             draftState.update { state ->
                 state.copy(
                     isApplying = false,
-                    errorMessage = error.message ?: "Custom server validation failed."
+                    errorMessage = error.message ?: strings.get(R.string.settings_server_validate_failed)
                 )
             }
         }
@@ -156,17 +158,23 @@ class ServerSettingsViewModel(
             draftState.update { state ->
                 state.copy(
                     isApplying = false,
-                    errorMessage = error.message ?: "Could not reset the official server."
+                    errorMessage = error.message ?: strings.get(R.string.settings_server_reset_failed)
                 )
             }
         }
     }
 }
 
-fun createServerSettingsViewModelFactory(cloudAccountRepository: CloudAccountRepository): ViewModelProvider.Factory {
+fun createServerSettingsViewModelFactory(
+    cloudAccountRepository: CloudAccountRepository,
+    applicationContext: Context
+): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
-            ServerSettingsViewModel(cloudAccountRepository = cloudAccountRepository)
+            ServerSettingsViewModel(
+                cloudAccountRepository = cloudAccountRepository,
+                strings = createSettingsStringResolver(context = applicationContext)
+            )
         }
     }
 }

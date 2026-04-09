@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 const val cloudSignInEmailFieldTag: String = "cloud_sign_in_email_field"
@@ -26,7 +27,7 @@ fun CloudSignInEmailRoute(
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
-        title = "Sign in",
+        title = stringResource(R.string.settings_sign_in_title),
         onBack = onBack,
         isBackEnabled = uiState.isSendingCode.not()
     ) { innerPadding ->
@@ -39,9 +40,9 @@ fun CloudSignInEmailRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = if (uiState.isGuestUpgrade) {
-                            "Sign in with email to upgrade this Guest AI session into a linked cloud account."
+                            stringResource(R.string.settings_sign_in_guest_upgrade_body)
                         } else {
-                            "Sign in with email to link this Android device to your cloud workspace."
+                            stringResource(R.string.settings_sign_in_device_link_body)
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(20.dp)
@@ -64,7 +65,7 @@ fun CloudSignInEmailRoute(
                     value = uiState.email,
                     onValueChange = onEmailChange,
                     label = {
-                        Text("Email")
+                        Text(stringResource(R.string.settings_sign_in_email_title))
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -80,7 +81,13 @@ fun CloudSignInEmailRoute(
                         .fillMaxWidth()
                         .testTag(tag = cloudSignInSendCodeButtonTag)
                 ) {
-                    Text(if (uiState.isSendingCode) "Sending..." else "Send one-time code")
+                    Text(
+                        if (uiState.isSendingCode) {
+                            stringResource(R.string.settings_sign_in_sending_code)
+                        } else {
+                            stringResource(R.string.settings_sign_in_send_code_button)
+                        }
+                    )
                 }
             }
         }

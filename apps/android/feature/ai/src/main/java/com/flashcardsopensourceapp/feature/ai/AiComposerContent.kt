@@ -37,10 +37,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
-import com.flashcardsopensourceapp.data.local.model.formatAiChatCardAttachmentLabel
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 
 const val aiComposerMessageFieldTag: String = "ai_composer_message_field"
@@ -57,6 +58,8 @@ internal fun AiComposer(
     onOpenAttachmentMenu: () -> Unit,
     onToggleDictation: () -> Unit
 ) {
+    val context = LocalContext.current
+    val textProvider = remember(context) { aiTextProvider(context = context) }
     val canEditDraft = uiState.isComposerBusy.not() && uiState.dictationState == AiChatDictationState.IDLE
     val canManageAttachments = uiState.isComposerBusy.not() && uiState.dictationState == AiChatDictationState.IDLE
     val isDictationBusy = uiState.dictationState == AiChatDictationState.REQUESTING_PERMISSION
@@ -126,7 +129,7 @@ internal fun AiComposer(
                                 Text(
                                     when (attachment) {
                                         is AiChatAttachment.Binary -> attachment.fileName
-                                        is AiChatAttachment.Card -> formatAiChatCardAttachmentLabel(
+                                        is AiChatAttachment.Card -> aiCardAttachmentLabel(
                                             frontText = attachment.frontText
                                         )
                                         is AiChatAttachment.Unknown -> attachment.summaryText
@@ -159,7 +162,7 @@ internal fun AiComposer(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.Close,
-                                        contentDescription = "Remove attachment"
+                                        contentDescription = stringResource(id = R.string.ai_remove_attachment_content_description)
                                     )
                                 }
                             }
@@ -190,13 +193,19 @@ internal fun AiComposer(
             }
 
             uiState.repairStatus?.let { status ->
-                RepairStatusCard(status = status)
+                RepairStatusCard(
+                    status = status,
+                    textProvider = textProvider
+                )
             }
 
             if (uiState.dictationState != AiChatDictationState.IDLE) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = dictationStatusLabel(dictationState = uiState.dictationState),
+                        text = dictationStatusLabel(
+                            dictationState = uiState.dictationState,
+                            textProvider = textProvider
+                        ),
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -207,7 +216,7 @@ internal fun AiComposer(
                 value = uiState.draftMessage,
                 onValueChange = onDraftMessageChange,
                 label = {
-                    Text("Message")
+                    Text(stringResource(id = R.string.ai_message_label))
                 },
                 minLines = 3,
                 enabled = canEditDraft,
@@ -232,7 +241,7 @@ internal fun AiComposer(
                         contentDescription = null
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Attach")
+                    Text(stringResource(id = R.string.ai_attach))
                 }
 
                 Button(
@@ -251,9 +260,9 @@ internal fun AiComposer(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         if (uiState.dictationState == AiChatDictationState.RECORDING) {
-                            "Stop"
+                            stringResource(id = R.string.ai_stop)
                         } else {
-                            "Dictate"
+                            stringResource(id = R.string.ai_dictate)
                         }
                     )
                 }
@@ -279,8 +288,27 @@ internal fun AiComposer(
                     contentDescription = null
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(if (uiState.canStopStreaming) "Stop" else "Send")
+                Text(
+                    if (uiState.canStopStreaming) {
+                        stringResource(id = R.string.ai_stop)
+                    } else {
+                        stringResource(id = R.string.ai_send)
+                    }
+                )
             }
         }
     }
+}
+
+@Composable
+private fun aiCardAttachmentLabel(frontText: String): String {
+    val trimmedFrontText = frontText.trim()
+    if (trimmedFrontText.isEmpty()) {
+        return stringResource(id = R.string.ai_card_attachment_fallback_title)
+    }
+
+    return stringResource(
+        id = R.string.ai_card_attachment_title,
+        trimmedFrontText.take(n = 72)
+    )
 }

@@ -427,7 +427,7 @@ data class ReviewSchedule(
 // Keep review answer option presentation aligned with apps/ios/Flashcards/Flashcards/ReviewAnswerSupport.swift and the Android scheduler mirror in ReviewAnswerSupport.kt.
 data class ReviewAnswerOption(
     val rating: ReviewRating,
-    val intervalDescription: String
+    val intervalDescription: ReviewIntervalDescription
 )
 
 data class ReviewDeckFilterOption(
@@ -466,13 +466,33 @@ data class ReviewTimelinePage(
     val hasMoreCards: Boolean
 )
 
+enum class AppMetadataStorage {
+    ROOM_SQLITE
+}
+
+sealed interface AppMetadataSyncStatus {
+    data object NotConnected : AppMetadataSyncStatus
+
+    data object SignInCompleteChooseWorkspace : AppMetadataSyncStatus
+
+    data object GuestAiSession : AppMetadataSyncStatus
+
+    data object Synced : AppMetadataSyncStatus
+
+    data object Syncing : AppMetadataSyncStatus
+
+    data class Message(
+        val text: String
+    ) : AppMetadataSyncStatus
+}
+
 data class AppMetadataSummary(
-    val currentWorkspaceName: String,
-    val workspaceName: String,
+    val currentWorkspaceName: String?,
+    val workspaceName: String?,
     val deckCount: Int,
     val cardCount: Int,
-    val localStorageLabel: String,
-    val syncStatusText: String
+    val localStorage: AppMetadataStorage,
+    val syncStatus: AppMetadataSyncStatus
 )
 
 data class DeviceDiagnosticsSummary(

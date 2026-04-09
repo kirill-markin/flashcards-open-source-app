@@ -96,6 +96,11 @@ android {
         compose = true
     }
 
+    androidResources {
+        generateLocaleConfig = true
+        localeFilters += listOf("en", "es")
+    }
+
     testOptions {
         animationsDisabled = true
         execution = "ANDROIDX_TEST_ORCHESTRATOR"

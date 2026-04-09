@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.ai
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
@@ -29,7 +30,8 @@ class AiViewModel(
     private val autoSyncEventRepository: AutoSyncEventRepository,
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
-    appVersion: String
+    appVersion: String,
+    textProvider: AiTextProvider
 ) : ViewModel() {
     private val workspaceState = workspaceRepository.observeWorkspace().stateIn(
         scope = viewModelScope,
@@ -39,7 +41,7 @@ class AiViewModel(
     private val metadataState = workspaceRepository.observeAppMetadata().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-        initialValue = initialAiAppMetadataSummary()
+        initialValue = initialAiAppMetadataSummary(textProvider = textProvider)
     )
     private val cloudSettingsState = cloudAccountRepository.observeCloudSettings().stateIn(
         scope = viewModelScope,
@@ -70,6 +72,7 @@ class AiViewModel(
         aiChatRepository = aiChatRepository,
         autoSyncEventRepository = autoSyncEventRepository,
         appVersion = appVersion,
+        textProvider = textProvider,
         hasConsent = { consentState.value },
         currentCloudState = { cloudSettingsState.value.cloudState },
         currentServerConfiguration = { serverConfigurationState.value },
@@ -88,12 +91,16 @@ class AiViewModel(
             cloudState = cloudSettings.cloudState,
             isCloudIdentityBlocked = syncStatus.status is SyncStatus.Blocked,
             hasConsent = hasConsent,
-            runtimeState = runtimeState
+            runtimeState = runtimeState,
+            textProvider = textProvider
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
-        initialValue = makeInitialAiUiState(hasConsent = aiChatRepository.hasConsent())
+        initialValue = makeInitialAiUiState(
+            hasConsent = aiChatRepository.hasConsent(),
+            textProvider = textProvider
+        )
     )
 
     init {
@@ -236,14 +243,22 @@ fun createAiViewModelFactory(
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
+            val application = this.requireApplication()
             AiViewModel(
                 aiChatRepository = aiChatRepository,
                 syncRepository = syncRepository,
                 autoSyncEventRepository = autoSyncEventRepository,
                 workspaceRepository = workspaceRepository,
                 cloudAccountRepository = cloudAccountRepository,
-                appVersion = appVersion
+                appVersion = appVersion,
+                textProvider = aiTextProvider(context = application)
             )
         }
+    }
+}
+
+private fun CreationExtras.requireApplication(): android.app.Application {
+    return checkNotNull(this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]) {
+        "AiViewModel requires an Application instance."
     }
 }

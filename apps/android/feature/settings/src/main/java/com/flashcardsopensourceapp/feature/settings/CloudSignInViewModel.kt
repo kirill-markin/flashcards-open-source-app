@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -68,7 +69,8 @@ private data class CloudSignInErrorPresentation(
 class CloudSignInViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
     private val syncRepository: SyncRepository,
-    private val messageController: TransientMessageController
+    private val messageController: TransientMessageController,
+    private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = CloudSignInDraftState(
@@ -133,12 +135,14 @@ class CloudSignInViewModel(
                 isGuestUpgrade = draft.linkContext?.guestUpgradeMode != null,
                 workspaces = buildCloudPostAuthWorkspaceItems(
                     preferredWorkspaceId = draft.linkContext?.preferredWorkspaceId,
-                    workspaces = draft.linkContext?.workspaces ?: emptyList()
+                    workspaces = draft.linkContext?.workspaces ?: emptyList(),
+                    strings = strings
                 ),
                 pendingWorkspaceTitle = draft.pendingSelection?.let { selection ->
                     workspaceSelectionTitle(
                         selection = selection,
-                        workspaces = draft.linkContext?.workspaces ?: emptyList()
+                        workspaces = draft.linkContext?.workspaces ?: emptyList(),
+                        strings = strings
                     )
                 },
                 processingTitle = draft.processingTitle,
@@ -285,7 +289,7 @@ class CloudSignInViewModel(
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return CloudSendCodeNavigationOutcome.NoNavigation
             }
-            val errorPresentation = createSendCodeErrorPresentation(error = error)
+            val errorPresentation = createSendCodeErrorPresentation(error = error, strings = strings)
             draftState.update { state ->
                 if (state.authAttemptId != authAttemptId) {
                     return@update state
@@ -302,7 +306,7 @@ class CloudSignInViewModel(
 
     suspend fun verifyCode(): Boolean {
         val challenge = requireNotNull(draftState.value.challenge) {
-            "Request a sign-in code first."
+            strings.get(R.string.settings_sign_in_request_code_first)
         }
         val authAttemptId = nextAuthAttemptId(draftState.value)
         draftState.update { state ->
@@ -336,7 +340,7 @@ class CloudSignInViewModel(
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return false
             }
-            val errorPresentation = createVerifyCodeErrorPresentation(error = error)
+            val errorPresentation = createVerifyCodeErrorPresentation(error = error, strings = strings)
             draftState.update { state ->
                 if (state.authAttemptId != authAttemptId) {
                     return@update state
@@ -414,7 +418,9 @@ class CloudSignInViewModel(
     suspend fun logoutAfterPostAuthFailure() {
         cloudAccountRepository.logout()
         clearPostAuthState()
-        messageController.showMessage(message = "Signed-in setup was cancelled. This device is disconnected.")
+        messageController.showMessage(
+            message = strings.get(R.string.settings_sign_in_cancelled_message)
+        )
     }
 
     fun acknowledgePostAuthCompletion() {
@@ -449,14 +455,14 @@ class CloudSignInViewModel(
             state.copy(
                 pendingSelection = null,
                 processingTitle = if (isGuestUpgrade) {
-                    "Upgrading guest account"
+                    strings.get(R.string.settings_post_auth_upgrading_title)
                 } else {
-                    "Linking workspace"
+                    strings.get(R.string.settings_post_auth_linking_title)
                 },
                 processingMessage = if (isGuestUpgrade) {
-                    "Preparing your Guest AI session for a linked Android cloud account."
+                    strings.get(R.string.settings_post_auth_upgrading_body)
                 } else {
-                    "Preparing your cloud workspace on this Android device."
+                    strings.get(R.string.settings_post_auth_linking_body)
                 },
                 postAuthErrorMessage = "",
                 retryAction = if (requiresGuestUpgrade) {
@@ -507,9 +513,9 @@ class CloudSignInViewModel(
                     processingTitle = "",
                     processingMessage = "",
                     postAuthErrorMessage = error.message ?: if (requiresGuestUpgrade) {
-                        "Guest account upgrade failed."
+                        strings.get(R.string.settings_post_auth_guest_upgrade_failed)
                     } else {
-                        "Cloud workspace setup failed."
+                        strings.get(R.string.settings_post_auth_setup_failed)
                     }
                 )
             }
@@ -524,7 +530,10 @@ class CloudSignInViewModel(
             return
         }
 
-        if (isPostAuthProcessing(state = draftState.value) && draftState.value.processingTitle == "Syncing workspace") {
+        if (
+            isPostAuthProcessing(state = draftState.value) &&
+            draftState.value.processingTitle == strings.get(R.string.settings_post_auth_syncing_title)
+        ) {
             return
         }
 
@@ -533,8 +542,8 @@ class CloudSignInViewModel(
                 return@update state
             }
             state.copy(
-                processingTitle = "Syncing workspace",
-                processingMessage = "Keep this screen open while Android finishes the initial cloud sync.",
+                processingTitle = strings.get(R.string.settings_post_auth_syncing_title),
+                processingMessage = strings.get(R.string.settings_post_auth_syncing_body),
                 postAuthErrorMessage = "",
                 retryAction = CloudPostAuthRetryAction.SyncOnly(
                     authAttemptId = authAttemptId,
@@ -569,7 +578,9 @@ class CloudSignInViewModel(
                     completionToken = System.currentTimeMillis()
                 )
             }
-            messageController.showMessage(message = "Signed in and synced $workspaceTitle.")
+            messageController.showMessage(
+                message = strings.get(R.string.settings_post_auth_signed_in_and_synced, workspaceTitle)
+            )
         } catch (error: Exception) {
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return
@@ -581,7 +592,7 @@ class CloudSignInViewModel(
                 state.copy(
                     processingTitle = "",
                     processingMessage = "",
-                    postAuthErrorMessage = error.message ?: "Initial sync failed."
+                    postAuthErrorMessage = error.message ?: strings.get(R.string.settings_post_auth_sync_failed)
                 )
             }
         }
@@ -610,29 +621,35 @@ class CloudSignInViewModel(
     }
 }
 
-private fun createSendCodeErrorPresentation(error: Exception): CloudSignInErrorPresentation {
+private fun createSendCodeErrorPresentation(
+    error: Exception,
+    strings: SettingsStringResolver
+): CloudSignInErrorPresentation {
     return if (isCloudTransportFailure(error = error)) {
         CloudSignInErrorPresentation(
-            message = "We could not confirm that the code was sent. Check your connection and try again.",
+            message = strings.get(R.string.settings_sign_in_send_code_transport_failed),
             technicalDetails = error.message?.trim().takeUnless { it.isNullOrEmpty() }
         )
     } else {
         CloudSignInErrorPresentation(
-            message = error.message ?: "Could not send the sign-in code.",
+            message = error.message ?: strings.get(R.string.settings_sign_in_send_code_failed),
             technicalDetails = null
         )
     }
 }
 
-private fun createVerifyCodeErrorPresentation(error: Exception): CloudSignInErrorPresentation {
+private fun createVerifyCodeErrorPresentation(
+    error: Exception,
+    strings: SettingsStringResolver
+): CloudSignInErrorPresentation {
     return if (isCloudTransportFailure(error = error)) {
         CloudSignInErrorPresentation(
-            message = "We could not verify the code right now. Check your connection and try again.",
+            message = strings.get(R.string.settings_sign_in_verify_transport_failed),
             technicalDetails = error.message?.trim().takeUnless { it.isNullOrEmpty() }
         )
     } else {
         CloudSignInErrorPresentation(
-            message = error.message ?: "Could not verify the code.",
+            message = error.message ?: strings.get(R.string.settings_sign_in_verify_failed),
             technicalDetails = null
         )
     }
@@ -645,14 +662,16 @@ private fun isCloudTransportFailure(error: Exception): Boolean {
 fun createCloudSignInViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
     syncRepository: SyncRepository,
-    messageController: TransientMessageController
+    messageController: TransientMessageController,
+    applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             CloudSignInViewModel(
                 cloudAccountRepository = cloudAccountRepository,
                 syncRepository = syncRepository,
-                messageController = messageController
+                messageController = messageController,
+                strings = createSettingsStringResolver(context = applicationContext)
             )
         }
     }

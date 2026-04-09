@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -21,12 +22,17 @@ import kotlinx.coroutines.flow.update
 class DeckEditorViewModel(
     private val decksRepository: DecksRepository,
     workspaceRepository: WorkspaceRepository,
-    editingDeckId: String?
+    editingDeckId: String?,
+    private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val inputState = MutableStateFlow(
         value = DeckEditorUiState(
             isLoading = true,
-            title = if (editingDeckId == null) "New deck" else "Edit deck",
+            title = if (editingDeckId == null) {
+                strings.get(R.string.settings_deck_editor_new_title)
+            } else {
+                strings.get(R.string.settings_deck_editor_edit_title)
+            },
             isEditing = editingDeckId != null,
             name = "",
             selectedEffortLevels = emptyList(),
@@ -102,7 +108,7 @@ class DeckEditorViewModel(
 
         if (trimmedName.isEmpty()) {
             inputState.update { currentState ->
-                currentState.copy(errorMessage = "Deck name is required.")
+                currentState.copy(errorMessage = strings.get(R.string.settings_deck_editor_name_required))
             }
             return false
         }
@@ -133,14 +139,16 @@ class DeckEditorViewModel(
 fun createDeckEditorViewModelFactory(
     decksRepository: DecksRepository,
     workspaceRepository: WorkspaceRepository,
-    editingDeckId: String?
+    editingDeckId: String?,
+    applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             DeckEditorViewModel(
                 decksRepository = decksRepository,
                 workspaceRepository = workspaceRepository,
-                editingDeckId = editingDeckId
+                editingDeckId = editingDeckId,
+                strings = createSettingsStringResolver(context = applicationContext)
             )
         }
     }

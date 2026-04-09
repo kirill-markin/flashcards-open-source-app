@@ -9,7 +9,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
-import com.flashcardsopensourceapp.data.local.model.aiChatOptimisticAssistantStatusText
+import com.flashcardsopensourceapp.data.local.model.aiChatOptimisticAssistantStatusToken
 import java.util.UUID
 
 internal fun makeUserMessage(
@@ -33,7 +33,7 @@ internal fun makeAssistantStatusMessage(timestampMillis: Long): AiChatMessage {
         messageId = UUID.randomUUID().toString().lowercase(),
         role = AiChatRole.ASSISTANT,
         content = listOf(
-            AiChatContentPart.Text(text = aiChatOptimisticAssistantStatusText)
+            AiChatContentPart.Text(text = aiChatOptimisticAssistantStatusToken)
         ),
         timestampMillis = timestampMillis,
         isError = false,
@@ -612,7 +612,7 @@ private fun removingOptimisticAssistantStatus(
     }
 
     return content.filterNot { part ->
-        part is AiChatContentPart.Text && part.text == aiChatOptimisticAssistantStatusText
+        part is AiChatContentPart.Text && part.text == aiChatOptimisticAssistantStatusToken
     }
 }
 
@@ -621,7 +621,7 @@ private fun isOptimisticAssistantStatus(
 ): Boolean {
     return content.size == 1
         && content[0] is AiChatContentPart.Text
-        && (content[0] as AiChatContentPart.Text).text == aiChatOptimisticAssistantStatusText
+        && (content[0] as AiChatContentPart.Text).text == aiChatOptimisticAssistantStatusToken
 }
 
 private data class StreamingAssistantMessageResolution(

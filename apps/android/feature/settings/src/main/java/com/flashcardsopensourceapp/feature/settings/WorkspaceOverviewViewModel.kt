@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -45,7 +46,8 @@ class WorkspaceOverviewViewModel(
     private val cloudAccountRepository: CloudAccountRepository,
     private val autoSyncEventRepository: AutoSyncEventRepository,
     private val messageController: TransientMessageController,
-    visibleAppScreenRepository: VisibleAppScreenRepository
+    visibleAppScreenRepository: VisibleAppScreenRepository,
+    private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = WorkspaceOverviewDraftState(
@@ -77,7 +79,7 @@ class WorkspaceOverviewViewModel(
         cloudAccountRepository.observeCloudSettings(),
         draftState
     ) { overview, cloudSettings, draft ->
-        val workspaceName = overview?.workspaceName ?: "Unavailable"
+        val workspaceName = overview?.workspaceName ?: strings.get(R.string.settings_unavailable)
         val workspaceNameDraft = if (draft.hasUserEditedName) {
             draft.workspaceNameDraft
         } else {
@@ -109,7 +111,7 @@ class WorkspaceOverviewViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = WorkspaceOverviewUiState(
-            workspaceName = "Loading...",
+            workspaceName = strings.get(R.string.settings_loading),
             totalCards = 0,
             deckCount = 0,
             tagCount = 0,
@@ -150,7 +152,10 @@ class WorkspaceOverviewViewModel(
         val nextName = uiState.value.workspaceNameDraft.trim()
         if (nextName.isEmpty()) {
             draftState.update { state ->
-                state.copy(errorMessage = "Workspace name is required.", successMessage = "")
+                state.copy(
+                    errorMessage = strings.get(R.string.settings_workspace_name_required),
+                    successMessage = ""
+                )
             }
             return false
         }
@@ -167,7 +172,7 @@ class WorkspaceOverviewViewModel(
                     hasUserEditedName = false,
                     isSavingName = false,
                     errorMessage = "",
-                    successMessage = "Workspace name saved."
+                    successMessage = strings.get(R.string.settings_workspace_name_saved)
                 )
             }
             true
@@ -175,7 +180,7 @@ class WorkspaceOverviewViewModel(
             draftState.update { state ->
                 state.copy(
                     isSavingName = false,
-                    errorMessage = error.message ?: "Workspace rename failed.",
+                    errorMessage = error.message ?: strings.get(R.string.settings_workspace_name_save_failed),
                     successMessage = ""
                 )
             }
@@ -219,7 +224,7 @@ class WorkspaceOverviewViewModel(
             draftState.update { state ->
                 state.copy(
                     isDeletePreviewLoading = false,
-                    errorMessage = error.message ?: "Workspace deletion preview failed.",
+                    errorMessage = error.message ?: strings.get(R.string.settings_workspace_delete_preview_failed),
                     successMessage = ""
                 )
             }
@@ -280,7 +285,9 @@ class WorkspaceOverviewViewModel(
         }
         if (uiState.value.deleteConfirmationText != deletePreview.confirmationText) {
             draftState.update { state ->
-                state.copy(errorMessage = "Enter the confirmation phrase exactly to continue.")
+                state.copy(
+                    errorMessage = strings.get(R.string.settings_account_danger_zone_confirmation_required)
+                )
             }
             return false
         }
@@ -308,17 +315,22 @@ class WorkspaceOverviewViewModel(
                     showDeleteConfirmation = false,
                     deletePreview = null,
                     errorMessage = "",
-                    successMessage = "Workspace deleted. Switched to ${result.workspace.name}."
+                    successMessage = strings.get(
+                        R.string.settings_current_workspace_switched_message,
+                        result.workspace.name
+                    )
                 )
             }
-            messageController.showMessage(message = "Workspace deleted. Switched to ${result.workspace.name}.")
+            messageController.showMessage(
+                message = strings.get(R.string.settings_current_workspace_switched_message, result.workspace.name)
+            )
             true
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
                     isDeletingWorkspace = false,
                     deleteState = DestructiveActionState.FAILED,
-                    errorMessage = error.message ?: "Workspace deletion failed.",
+                    errorMessage = error.message ?: strings.get(R.string.settings_workspace_delete_failed),
                     successMessage = ""
                 )
             }
@@ -391,7 +403,7 @@ class WorkspaceOverviewViewModel(
         }
 
         lastVisibleAutoSyncChangeSignature = currentWorkspaceOverviewSignature
-        messageController.showMessage(message = workspaceUpdatedOnAnotherDeviceMessage)
+        messageController.showMessage(message = workspaceUpdatedOnAnotherDeviceMessage(strings = strings))
     }
 }
 
@@ -424,7 +436,8 @@ fun createWorkspaceOverviewViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
     autoSyncEventRepository: AutoSyncEventRepository,
     messageController: TransientMessageController,
-    visibleAppScreenRepository: VisibleAppScreenRepository
+    visibleAppScreenRepository: VisibleAppScreenRepository,
+    applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
@@ -433,7 +446,8 @@ fun createWorkspaceOverviewViewModelFactory(
                 cloudAccountRepository = cloudAccountRepository,
                 autoSyncEventRepository = autoSyncEventRepository,
                 messageController = messageController,
-                visibleAppScreenRepository = visibleAppScreenRepository
+                visibleAppScreenRepository = visibleAppScreenRepository,
+                strings = createSettingsStringResolver(context = applicationContext)
             )
         }
     }

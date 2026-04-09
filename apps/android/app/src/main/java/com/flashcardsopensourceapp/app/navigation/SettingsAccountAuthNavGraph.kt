@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.app.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -31,6 +32,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
         route = SettingsAccountAuthGraph.route
     ) {
         composable(route = SettingsAccountSignInEmailDestination.route) { backStackEntry ->
+            val context = LocalContext.current
             val authGraphBackStackEntry = settingsAccountAuthBackStackEntry(
                 navController = navController,
                 currentBackStackEntry = backStackEntry
@@ -40,7 +42,8 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 factory = createCloudSignInViewModelFactory(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
                     syncRepository = appGraph.syncRepository,
-                    messageController = appGraph.appMessageBus
+                    messageController = appGraph.appMessageBus,
+                    applicationContext = context.applicationContext
                 )
             )
             val uiState by signInViewModel.uiState.collectAsStateWithLifecycle()
@@ -74,6 +77,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
         }
 
         composable(route = SettingsAccountSignInCodeDestination.route) { backStackEntry ->
+            val context = LocalContext.current
             val authGraphBackStackEntry = settingsAccountAuthBackStackEntry(
                 navController = navController,
                 currentBackStackEntry = backStackEntry
@@ -83,7 +87,8 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 factory = createCloudSignInViewModelFactory(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
                     syncRepository = appGraph.syncRepository,
-                    messageController = appGraph.appMessageBus
+                    messageController = appGraph.appMessageBus,
+                    applicationContext = context.applicationContext
                 )
             )
             val uiState by signInViewModel.uiState.collectAsStateWithLifecycle()
@@ -108,6 +113,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
         }
 
         composable(route = SettingsAccountPostAuthDestination.route) { backStackEntry ->
+            val context = LocalContext.current
             val authGraphBackStackEntry = settingsAccountAuthBackStackEntry(
                 navController = navController,
                 currentBackStackEntry = backStackEntry
@@ -117,7 +123,8 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 factory = createCloudSignInViewModelFactory(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
                     syncRepository = appGraph.syncRepository,
-                    messageController = appGraph.appMessageBus
+                    messageController = appGraph.appMessageBus,
+                    applicationContext = context.applicationContext
                 )
             )
             val uiState by signInViewModel.postAuthUiState.collectAsStateWithLifecycle()

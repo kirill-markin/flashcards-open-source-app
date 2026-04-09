@@ -20,6 +20,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.components.SectionTitle
 
@@ -58,7 +60,7 @@ internal fun SettingsScreenScaffold(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = "Back"
+                                contentDescription = stringResource(R.string.settings_back_content_description)
                             )
                         }
                     }
@@ -80,7 +82,7 @@ fun SettingsRoute(
     onOpenAccess: () -> Unit
 ) {
     SettingsScreenScaffold(
-        title = "Settings",
+        title = stringResource(R.string.settings_root_title),
         onBack = null,
         isBackEnabled = false
     ) { innerPadding ->
@@ -90,14 +92,14 @@ fun SettingsRoute(
             modifier = Modifier.fillMaxSize()
         ) {
             item {
-                SectionTitle(text = "Workspace")
+                SectionTitle(text = stringResource(R.string.settings_section_workspace))
             }
 
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Current Workspace")
+                            Text(stringResource(R.string.settings_root_current_workspace_title))
                         },
                         supportingContent = {
                             Text(uiState.currentWorkspaceName)
@@ -111,10 +113,25 @@ fun SettingsRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Workspace")
+                            Text(stringResource(R.string.settings_root_workspace_title))
                         },
                         supportingContent = {
-                            Text("${uiState.workspaceName} | ${uiState.deckCount} decks | ${uiState.cardCount} cards")
+                            Text(
+                                stringResource(
+                                    R.string.settings_root_workspace_summary,
+                                    uiState.workspaceName,
+                                    pluralStringResource(
+                                        R.plurals.settings_decks_count,
+                                        uiState.deckCount,
+                                        uiState.deckCount
+                                    ),
+                                    pluralStringResource(
+                                        R.plurals.settings_cards_count,
+                                        uiState.cardCount,
+                                        uiState.cardCount
+                                    )
+                                )
+                            )
                         },
                         modifier = Modifier.clickable(onClick = onOpenWorkspace)
                     )
@@ -122,14 +139,14 @@ fun SettingsRoute(
             }
 
             item {
-                SectionTitle(text = "Account")
+                SectionTitle(text = stringResource(R.string.settings_section_account))
             }
 
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Account")
+                            Text(stringResource(R.string.settings_root_account_title))
                         },
                         supportingContent = {
                             Text(uiState.accountStatusTitle)
@@ -140,14 +157,14 @@ fun SettingsRoute(
             }
 
             item {
-                SectionTitle(text = "Device")
+                SectionTitle(text = stringResource(R.string.settings_section_device))
             }
 
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("This Device")
+                            Text(stringResource(R.string.settings_root_device_title))
                         },
                         supportingContent = {
                             Text(uiState.storageLabel)
@@ -161,10 +178,10 @@ fun SettingsRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Access")
+                            Text(stringResource(R.string.settings_root_access_title))
                         },
                         supportingContent = {
-                            Text("Camera, microphone, photos, and files")
+                            Text(stringResource(R.string.settings_root_access_summary))
                         },
                         modifier = Modifier.clickable(onClick = onOpenAccess)
                     )

@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,7 +48,7 @@ fun ReviewPreviewRoute(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(id = R.string.review_preview_back_content_description)
                         )
                     }
                 }
@@ -78,8 +79,8 @@ fun ReviewPreviewRoute(
             } else if (uiState.previewItems.isEmpty()) {
                 item {
                     StaticEmptyReviewState(
-                        title = "No Matching Cards",
-                        body = "This review filter does not include any cards yet."
+                        title = stringResource(id = R.string.review_preview_empty_title),
+                        body = stringResource(id = R.string.review_preview_empty_body)
                     )
                 }
             } else {
