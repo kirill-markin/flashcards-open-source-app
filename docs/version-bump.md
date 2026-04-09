@@ -4,11 +4,17 @@ Use this guide when bumping release versions in the repository.
 
 ## Scope
 
-The project has separate version surfaces for backend-related Node packages, the web app, Android, and iOS. A version bump is not complete until the version surfaces for the platforms you are changing stay aligned within that platform.
+The repository has separate version surfaces for backend-related Node packages, the web app, Android, and iOS, but the default release policy is to use one shared semantic version across the whole project most of the time.
+
+In normal releases, backend, web, Android, and iOS should all move to the same new version in the same change. Only split versions when there is a concrete release reason to do that, and make that exception explicit in the change.
+
+A version bump is not complete until the repo-owned version surfaces that participate in that release stay aligned with each other and with each platform's runtime-reported version source.
 
 Do not change `/v1` API paths, OpenAPI `info.version: v1`, or API Gateway stage names as part of an app release bump. Those values describe the public API contract version, not the app release version.
 
 ## Source Of Truth By Platform
+
+Even though we usually ship one shared project version, each platform still has its own checked-in source of truth and runtime wiring. Keep those sources aligned instead of introducing copied fallback literals.
 
 ### Backend and backend-adjacent packages
 
@@ -102,12 +108,13 @@ when the user-facing effect is unclear.
 
 ## Expected Flow
 
-1. Choose the next semantic version for the platform or package you are releasing.
-2. Search the repo for the current version strings so you can see every manifest, runtime reader, and test expectation that still reports the old value for that target.
-3. Update only the touched platform or package version surfaces, and keep that platform's runtime-reported version aligned with its checked-in version source.
-4. Update release metadata that names the current app version for the touched platform.
-5. Re-run targeted searches to confirm the old app version strings are gone from the intended version surfaces.
-6. Run the smallest useful verification commands for the touched platforms.
+1. Choose the next semantic version for the release.
+2. By default, treat that version as the shared project version for backend, web, Android, and iOS.
+3. Search the repo for the current version strings so you can see every manifest, runtime reader, and test expectation that still reports the old value for the release.
+4. Update all repo-owned version surfaces that participate in that release, and keep each platform's runtime-reported version aligned with its checked-in version source.
+5. Update release metadata that names the current app version for the touched platform.
+6. Re-run targeted searches to confirm the old app version strings are gone from the intended version surfaces.
+7. Run the smallest useful verification commands for the touched platforms.
 
 ## Minimum Verification
 
