@@ -5,13 +5,23 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.rules.ExternalResource
 
 private val testOnlyPreferenceNames: List<String> = listOf(
-    "flashcards-review-preferences"
+    "flashcards-review-preferences",
+    "flashcards-ai-chat-preferences",
+    "flashcards-ai-chat-history"
 )
 
 class AppStateResetRule : ExternalResource() {
+    companion object {
+        private const val appResetTimeoutMillis: Long = 20_000L
+        private const val uiIdleTimeoutMillis: Long = 5_000L
+    }
+
     override fun before() {
         resetAppState()
     }
@@ -21,17 +31,33 @@ class AppStateResetRule : ExternalResource() {
     }
 
     private fun resetAppState() {
-        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        waitForUiIdle(phase = "before resetting app state")
 
         val context = ApplicationProvider.getApplicationContext<Context>()
         val application = context as FlashcardsApplication
 
         runBlocking {
-            application.awaitAppGraphStartup()
-            application.appGraph.cloudAccountRepository.logout()
+            withTimeout(appResetTimeoutMillis) {
+                application.awaitAppGraphStartup()
+                application.appGraph.cloudAccountRepository.logout()
+            }
         }
         NotificationManagerCompat.from(context).cancelAll()
         clearTestOnlySharedPreferences(context = context)
+        waitForUiIdle(phase = "after resetting app state")
+    }
+
+    private fun waitForUiIdle(phase: String) {
+        val latch = CountDownLatch(1)
+        InstrumentationRegistry.getInstrumentation().waitForIdle {
+            latch.countDown()
+        }
+        val didBecomeIdle = latch.await(uiIdleTimeoutMillis, TimeUnit.MILLISECONDS)
+        if (didBecomeIdle.not()) {
+            throw IllegalStateException(
+                "Timed out after $uiIdleTimeoutMillis ms waiting for instrumentation to become idle $phase."
+            )
+        }
     }
 
     private fun clearTestOnlySharedPreferences(context: Context) {
