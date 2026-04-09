@@ -342,13 +342,9 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func aiComposerTextFieldElement() -> XCUIElement {
-        let predicate = NSPredicate(
-            format: "identifier == %@ OR value == %@ OR label == %@",
-            LiveSmokeIdentifier.aiComposerTextField,
-            aiComposerPlaceholderText,
-            aiComposerPlaceholderText
-        )
-        return self.app.descendants(matching: .any).matching(predicate).firstMatch
+        self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiComposerTextField)
+            .firstMatch
     }
 
     @MainActor
