@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 
@@ -117,6 +118,7 @@ fun CardEditorRoute(
 
             item {
                 NavigationSummaryCard(
+                    modifier = Modifier.testTag(cardEditorFrontSummaryCardTag),
                     title = "Front",
                     summary = formatCardTextPreview(text = uiState.frontText),
                     supportingText = "Question or prompt shown first during review",
@@ -142,6 +144,7 @@ fun CardEditorRoute(
 
             item {
                 NavigationSummaryCard(
+                    modifier = Modifier.testTag(cardEditorBackSummaryCardTag),
                     title = "Back",
                     summary = formatCardTextPreview(text = uiState.backText),
                     supportingText = "Answer shown after revealing the card",
@@ -174,6 +177,7 @@ fun CardEditorRoute(
 
             item {
                 NavigationSummaryCard(
+                    modifier = Modifier,
                     title = "Tags",
                     summary = formatTagSelectionSummary(tags = uiState.selectedTags),
                     supportingText = if (uiState.availableTagSuggestions.isEmpty()) {

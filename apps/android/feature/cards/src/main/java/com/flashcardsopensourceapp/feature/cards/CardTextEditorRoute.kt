@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -25,6 +26,7 @@ fun CardTextEditorRoute(
     title: String,
     supportingText: String,
     text: String,
+    textFieldTag: String,
     onTextChange: (String) -> Unit,
     onBack: () -> Unit
 ) {
@@ -69,7 +71,8 @@ fun CardTextEditorRoute(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .weight(1f)
+                    .testTag(textFieldTag),
                 minLines = 14
             )
         }

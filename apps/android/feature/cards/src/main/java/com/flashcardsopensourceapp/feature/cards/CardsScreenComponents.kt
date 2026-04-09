@@ -46,6 +46,10 @@ import com.flashcardsopensourceapp.data.local.model.formatCardTagsLabel
 
 const val cardsCardRowTag: String = "cards_card_row"
 const val cardsCardFrontTextTag: String = "cards_card_front_text"
+const val cardEditorFrontSummaryCardTag: String = "card_editor_front_summary_card"
+const val cardEditorBackSummaryCardTag: String = "card_editor_back_summary_card"
+const val cardEditorFrontTextFieldTag: String = "card_editor_front_text_field"
+const val cardEditorBackTextFieldTag: String = "card_editor_back_text_field"
 
 @Composable
 internal fun CardRow(
@@ -286,6 +290,7 @@ internal fun CardsFilterSheet(
 
 @Composable
 internal fun NavigationSummaryCard(
+    modifier: Modifier,
     title: String,
     summary: String,
     supportingText: String,
@@ -293,7 +298,7 @@ internal fun NavigationSummaryCard(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
