@@ -17,6 +17,16 @@ export function createAiTransportObserver(page: Page): AiTransportObserver {
   let sessionlessChatRunRequestCount = 0;
   let sessionlessTranscriptionRequestCount = 0;
 
+  function buildObservation(): AiTransportObservation {
+    return {
+      liveRequestCount,
+      snapshotPollRequestCount,
+      sessionlessChatSnapshotRequestCount,
+      sessionlessChatRunRequestCount,
+      sessionlessTranscriptionRequestCount,
+    };
+  }
+
   const handleRequest = (request: Request): void => {
     if (isObserving === false) {
       return;
@@ -65,15 +75,10 @@ export function createAiTransportObserver(page: Page): AiTransportObserver {
       sessionlessTranscriptionRequestCount = 0;
       isObserving = true;
     },
+    read: (): AiTransportObservation => buildObservation(),
     stop: (): AiTransportObservation => {
       isObserving = false;
-      return {
-        liveRequestCount,
-        snapshotPollRequestCount,
-        sessionlessChatSnapshotRequestCount,
-        sessionlessChatRunRequestCount,
-        sessionlessTranscriptionRequestCount,
-      };
+      return buildObservation();
     },
     dispose: (): void => {
       isObserving = false;

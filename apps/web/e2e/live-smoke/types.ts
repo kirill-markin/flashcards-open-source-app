@@ -29,6 +29,7 @@ export type AiCreateAttemptResolution = Readonly<{
 
 export type AiTransportObserver = Readonly<{
   start: () => void;
+  read: () => AiTransportObservation;
   stop: () => AiTransportObservation;
   dispose: () => void;
 }>;
