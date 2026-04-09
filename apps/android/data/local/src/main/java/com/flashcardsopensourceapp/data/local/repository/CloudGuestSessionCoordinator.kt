@@ -136,25 +136,12 @@ class CloudGuestSessionCoordinator(
             }
 
             CloudAccountState.DISCONNECTED -> {
-                if (storedGuestSession != null) {
-                    val shouldSync = finishGuestCloudLinkNonCancellableLocked(
-                        session = storedGuestSession,
-                        workspaceId = storedGuestSession.workspaceId
-                    )
-                    CloudIdentityReconciliationResult(
-                        cloudSettings = preferencesStore.currentCloudSettings(),
-                        restoredGuestSession = storedGuestSession,
-                        guestRestoreRequiresSync = shouldSync,
-                        didRunSync = false
-                    )
-                } else {
-                    CloudIdentityReconciliationResult(
-                        cloudSettings = reconciledCloudSettings,
-                        restoredGuestSession = null,
-                        guestRestoreRequiresSync = false,
-                        didRunSync = false
-                    )
-                }
+                CloudIdentityReconciliationResult(
+                    cloudSettings = reconciledCloudSettings,
+                    restoredGuestSession = null,
+                    guestRestoreRequiresSync = false,
+                    didRunSync = false
+                )
             }
 
             CloudAccountState.LINKING_READY -> {

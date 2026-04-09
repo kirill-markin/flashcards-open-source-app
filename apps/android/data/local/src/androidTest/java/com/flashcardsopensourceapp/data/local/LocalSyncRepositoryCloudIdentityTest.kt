@@ -77,7 +77,7 @@ class LocalSyncRepositoryCloudIdentityTest {
     }
 
     @Test
-    fun syncRestoresStoredGuestSessionBeforeRunningWhenDisconnected() = runBlocking {
+    fun syncKeepsDisconnectedStateWhenStoredGuestSessionExistsButCloudStateIsDisconnected() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val guestWorkspaceId = "guest-workspace"
         val remoteGateway = FakeCloudRemoteGateway.standard()
@@ -100,13 +100,17 @@ class LocalSyncRepositoryCloudIdentityTest {
             )
         )
 
-        syncRepository.syncNow()
+        try {
+            syncRepository.syncNow()
+        } catch (_: IllegalStateException) {
+        }
 
         val cloudSettings = environment.cloudPreferencesStore.currentCloudSettings()
-        assertEquals(CloudAccountState.GUEST, cloudSettings.cloudState)
-        assertEquals(guestWorkspaceId, cloudSettings.activeWorkspaceId)
-        assertEquals(guestWorkspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)
-        assertEquals(listOf(guestWorkspaceId), remoteGateway.bootstrapPullWorkspaceIds)
+        assertEquals(CloudAccountState.DISCONNECTED, cloudSettings.cloudState)
+        assertEquals(localWorkspaceId, cloudSettings.activeWorkspaceId)
+        assertEquals(localWorkspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertTrue(syncRepository.observeSyncStatus().first().status is SyncStatus.Failed)
+        assertTrue(remoteGateway.bootstrapPullWorkspaceIds.isEmpty())
     }
 
     @Test
