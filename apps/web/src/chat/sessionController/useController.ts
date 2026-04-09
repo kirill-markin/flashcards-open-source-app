@@ -3,36 +3,36 @@ import {
   createChatControllerDebugId,
   createClientChatSessionId,
   logChatControllerDebug,
-} from "./chatSessionControllerHelpers";
+} from "./helpers";
 import {
   chatSessionControllerReducer,
   createInitialChatSessionControllerBootstrap,
   selectChatConfig,
   selectChatSessionComposerAction,
   selectIsAssistantRunActive,
-} from "./chatSessionControllerState";
+} from "./state";
+import { isChatSessionStale } from "./freshness";
 import type {
   ChatSessionController,
   SendChatMessageParams,
   SendChatMessageResult,
   UseChatSessionControllerParams,
-} from "./chatSessionControllerTypes";
-import { isChatSessionStale } from "./chatSessionFreshness";
+} from "./types";
 import {
   loadChatSessionWarmStartSnapshot,
   storeChatSessionWarmStartSnapshot,
-} from "./chatSessionWarmStart";
-import { useChatHistory } from "./useChatHistory";
-import { useChatSessionActions } from "./useChatSessionActions";
-import { useChatSessionHydrationLifecycle } from "./useChatSessionHydrationLifecycle";
-import { useChatSessionSnapshotSync } from "./useChatSessionSnapshotSync";
+} from "./warmStart";
+import { useChatHistory } from "../useChatHistory";
+import { useChatSessionActions } from "./useActions";
+import { useChatSessionHydrationLifecycle } from "./useHydrationLifecycle";
+import { useChatSessionSnapshotSync } from "./useSnapshotSync";
 
 export type {
   ChatSessionController,
   SendChatMessageParams,
   SendChatMessageResult,
   UseChatSessionControllerParams,
-} from "./chatSessionControllerTypes";
+} from "./types";
 
 export function useChatSessionController(
   params: UseChatSessionControllerParams,

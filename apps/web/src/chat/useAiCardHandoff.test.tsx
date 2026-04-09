@@ -30,7 +30,7 @@ vi.mock("./ChatLayoutContext", () => ({
   useOptionalChatLayout: useOptionalChatLayoutMock,
 }));
 
-vi.mock("./ChatSessionControllerContext", () => ({
+vi.mock("./sessionController", () => ({
   useOptionalChatSession: useOptionalChatSessionMock,
 }));
 

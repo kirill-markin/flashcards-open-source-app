@@ -10,7 +10,7 @@ import {
   type ChatDraftContent,
   type StoredChatDraft,
 } from "./chatDraftStorage";
-import { useOptionalChatSession } from "./ChatSessionControllerContext";
+import { useOptionalChatSession } from "./sessionController";
 
 export type ChatDraft = Readonly<{
   workspaceId: string | null;

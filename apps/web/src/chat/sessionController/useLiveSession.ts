@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
-import type { ChatLiveStream } from "../types";
-import { consumeChatLiveStream, type ChatLiveEvent } from "./liveStream";
+import type { ChatLiveStream } from "../../types";
+import { consumeChatLiveStream, type ChatLiveEvent } from "../liveStream";
 
 type ActiveLiveStreamConnection = Readonly<{
   sessionId: string;

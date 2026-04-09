@@ -1,9 +1,9 @@
 import { createContext, useCallback, useContext, type ReactElement, type ReactNode } from "react";
-import { useAppData } from "../appData";
+import { useAppData } from "../../appData";
 import {
   useChatSessionController,
   type ChatSessionController,
-} from "./useChatSessionController";
+} from "./useController";
 
 type Props = Readonly<{
   children: ReactNode;

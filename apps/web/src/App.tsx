@@ -12,7 +12,7 @@ import { AppDataProvider, useAppData } from "./appData";
 import { ApiError, buildLoginUrl, buildLogoutLocalUrl, buildLogoutUrl, deleteMyAccount, primeSessionCsrfToken } from "./api";
 import { ChatDraftProvider } from "./chat/ChatDraftContext";
 import { ChatLayoutProvider, useChatLayout } from "./chat/ChatLayoutContext";
-import { ChatSessionControllerProvider } from "./chat/ChatSessionControllerContext";
+import { ChatSessionControllerProvider } from "./chat/sessionController";
 import { ChatToggle } from "./chat/ChatToggle";
 import {
   accountAgentConnectionsRoute,

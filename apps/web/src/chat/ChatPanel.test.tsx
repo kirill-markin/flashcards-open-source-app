@@ -21,7 +21,7 @@ import {
 import {
   loadChatSessionWarmStartSnapshot,
   storeChatSessionWarmStartSnapshot,
-} from "./chatSessionWarmStart";
+} from "./sessionController/warmStart";
 
 const {
   flushAsync,
