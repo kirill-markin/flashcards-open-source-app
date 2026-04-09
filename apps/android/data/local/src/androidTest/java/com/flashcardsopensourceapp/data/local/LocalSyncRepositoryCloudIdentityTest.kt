@@ -16,7 +16,6 @@ import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -39,8 +38,9 @@ class LocalSyncRepositoryCloudIdentityTest {
     }
 
     @Test
-    fun syncResetsLocalStateWhenRemoteAccountIsDeleted() = runBlocking {
+    fun syncDisconnectsCloudIdentityWhenRemoteAccountIsDeletedWithoutResettingLocalState() = runBlocking {
         val initialLocalWorkspaceId = environment.requireLocalWorkspaceId()
+        val initialInstallationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val remoteGateway = FakeCloudRemoteGateway.forFetchAccountError(
             fetchAccountError = CloudRemoteException(
                 message = "Cloud request failed with status 410 for /me",
@@ -60,20 +60,21 @@ class LocalSyncRepositoryCloudIdentityTest {
 
         repository.syncNow()
 
-        val resetWorkspace = requireNotNull(environment.database.workspaceDao().loadAnyWorkspace()) {
+        val localWorkspace = requireNotNull(environment.database.workspaceDao().loadAnyWorkspace()) {
             "Expected a local workspace after remote deletion."
         }
 
         assertEquals(CloudAccountState.DISCONNECTED, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertEquals(initialInstallationId, environment.cloudPreferencesStore.currentCloudSettings().installationId)
         assertEquals(
             com.flashcardsopensourceapp.data.local.model.AccountDeletionState.Hidden,
             environment.cloudPreferencesStore.currentAccountDeletionState()
         )
         assertNull(environment.cloudPreferencesStore.loadCredentials())
-        assertTrue(environment.aiChatPreferencesStore.hasConsent().not())
+        assertTrue(environment.aiChatPreferencesStore.hasConsent())
         assertEquals(SyncStatus.Idle, repository.observeSyncStatus().first().status)
-        assertEquals(localWorkspaceName, resetWorkspace.name)
-        assertNotEquals(initialLocalWorkspaceId, resetWorkspace.workspaceId)
+        assertEquals(localWorkspaceName, localWorkspace.name)
+        assertEquals(initialLocalWorkspaceId, localWorkspace.workspaceId)
     }
 
     @Test
@@ -207,7 +208,7 @@ class LocalSyncRepositoryCloudIdentityTest {
     }
 
     @Test
-    fun syncResetsInvalidGuestStateWhenStoredGuestSessionIsMissing() = runBlocking {
+    fun syncDisconnectsInvalidGuestStateWhenStoredGuestSessionIsMissing() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val initialInstallationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         val syncRepository = environment.createSyncRepository(
@@ -226,19 +227,23 @@ class LocalSyncRepositoryCloudIdentityTest {
         } catch (_: IllegalStateException) {
         }
 
-        val resetWorkspace = requireNotNull(environment.database.workspaceDao().loadAnyWorkspace()) {
-            "Expected a local workspace after guest reset."
+        val localWorkspace = requireNotNull(environment.database.workspaceDao().loadAnyWorkspace()) {
+            "Expected a local workspace after guest normalization."
         }
         assertEquals(CloudAccountState.DISCONNECTED, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
-        assertEquals(resetWorkspace.workspaceId, environment.cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
-        assertNotEquals(initialInstallationId, environment.cloudPreferencesStore.currentCloudSettings().installationId)
+        assertEquals(localWorkspaceId, environment.cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
+        assertEquals(localWorkspaceId, localWorkspace.workspaceId)
+        assertEquals(initialInstallationId, environment.cloudPreferencesStore.currentCloudSettings().installationId)
+        assertTrue(syncRepository.observeSyncStatus().first().status is SyncStatus.Failed)
     }
 
     @Test
-    fun syncResetsStaleActiveWorkspaceBeforeRunning() = runBlocking {
+    fun syncNormalizesStaleActiveWorkspaceBeforeRunningWithoutReset() = runBlocking {
         val syncRepository = environment.createSyncRepository(
             remoteGateway = FakeCloudRemoteGateway.standard()
         )
+        val localWorkspaceId = environment.requireLocalWorkspaceId()
+        val initialInstallationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
         environment.cloudPreferencesStore.updateCloudSettings(
             cloudState = CloudAccountState.DISCONNECTED,
             linkedUserId = null,
@@ -253,11 +258,14 @@ class LocalSyncRepositoryCloudIdentityTest {
         }
 
         val cloudSettings = environment.cloudPreferencesStore.currentCloudSettings()
-        val resetWorkspace = requireNotNull(environment.database.workspaceDao().loadAnyWorkspace()) {
-            "Expected a local workspace after stale active workspace reset."
+        val localWorkspace = requireNotNull(environment.database.workspaceDao().loadAnyWorkspace()) {
+            "Expected a local workspace after stale active workspace normalization."
         }
         assertEquals(CloudAccountState.DISCONNECTED, cloudSettings.cloudState)
-        assertEquals(resetWorkspace.workspaceId, cloudSettings.activeWorkspaceId)
+        assertEquals(localWorkspaceId, cloudSettings.activeWorkspaceId)
+        assertEquals(localWorkspaceId, localWorkspace.workspaceId)
+        assertEquals(initialInstallationId, cloudSettings.installationId)
+        assertTrue(syncRepository.observeSyncStatus().first().status is SyncStatus.Failed)
     }
 
     @Test

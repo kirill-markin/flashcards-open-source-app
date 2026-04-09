@@ -54,4 +54,30 @@ class CloudIdentityResetCoordinator(
             }
         }
     }
+
+    /**
+     * Drops cloud identity without destroying the local shell or regenerating
+     * the installation identity. Use this for recoverable reconciliation
+     * failures where we want an explicit disconnected state instead of a full
+     * local reset.
+     */
+    suspend fun disconnectCloudIdentityPreservingLocalState() {
+        withContext(Dispatchers.IO) {
+            resetMutex.withLock {
+                cloudPreferencesStore.clearCredentials()
+                val activeWorkspaceId = ensureLocalWorkspaceShell(
+                    database = database,
+                    currentTimeMillis = System.currentTimeMillis()
+                )
+                cloudPreferencesStore.updateCloudSettings(
+                    cloudState = CloudAccountState.DISCONNECTED,
+                    linkedUserId = null,
+                    linkedWorkspaceId = null,
+                    linkedEmail = null,
+                    activeWorkspaceId = activeWorkspaceId
+                )
+                cloudPreferencesStore.clearAccountDeletionState()
+            }
+        }
+    }
 }
