@@ -1,0 +1,126 @@
+name: Android FTL Single Test Experiment
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: Git SHA to test
+        required: true
+        type: string
+      test_target:
+        description: AndroidJUnitRunner class target
+        required: true
+        default: class com.flashcardsopensourceapp.app.AccountStatusRouteTest
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  firebase-test-lab-single-test:
+    name: Firebase Test Lab single test experiment
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.target_sha }}
+
+      - name: Validate Firebase Test Lab configuration
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          GCP_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
+          ANDROID_FTL_DEVICE_MODEL: ${{ vars.ANDROID_FTL_DEVICE_MODEL }}
+          ANDROID_FTL_DEVICE_VERSION: ${{ vars.ANDROID_FTL_DEVICE_VERSION }}
+          ANDROID_FTL_RESULTS_BUCKET: ${{ vars.ANDROID_FTL_RESULTS_BUCKET }}
+          ANDROID_FTL_RESULTS_DIR: ${{ vars.ANDROID_FTL_RESULTS_DIR }}
+        run: |
+          missing_values=()
+
+          for variable_name in \
+            GCP_PROJECT_ID \
+            GCP_WORKLOAD_IDENTITY_PROVIDER \
+            GCP_SERVICE_ACCOUNT_EMAIL \
+            ANDROID_FTL_DEVICE_MODEL \
+            ANDROID_FTL_DEVICE_VERSION \
+            ANDROID_FTL_RESULTS_BUCKET \
+            ANDROID_FTL_RESULTS_DIR; do
+            if [[ -z "${!variable_name}" ]]; then
+              missing_values+=("${variable_name}")
+            fi
+          done
+
+          if [[ "${#missing_values[@]}" -gt 0 ]]; then
+            printf 'Missing required GitHub Actions variables for Android app instrumentation: %s\n' "${missing_values[*]}" >&2
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Install Android SDK packages
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0"
+
+      - name: Build debug APKs for Firebase Test Lab
+        run: cd apps/android && ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Run one Android test class in Firebase Test Lab
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          ANDROID_FTL_DEVICE_MODEL: ${{ vars.ANDROID_FTL_DEVICE_MODEL }}
+          ANDROID_FTL_DEVICE_VERSION: ${{ vars.ANDROID_FTL_DEVICE_VERSION }}
+          ANDROID_FTL_RESULTS_BUCKET: ${{ vars.ANDROID_FTL_RESULTS_BUCKET }}
+          ANDROID_FTL_RESULTS_DIR: ${{ vars.ANDROID_FTL_RESULTS_DIR }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+          TEST_TARGET: ${{ inputs.test_target }}
+        run: |
+          results_dir="${ANDROID_FTL_RESULTS_DIR}/single-test-experiment/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+
+          bash scripts/run-android-firebase-test-lab.sh \
+            --project-id "${GCP_PROJECT_ID}" \
+            --device-model "${ANDROID_FTL_DEVICE_MODEL}" \
+            --device-version "${ANDROID_FTL_DEVICE_VERSION}" \
+            --app-path "apps/android/app/build/outputs/apk/debug/app-debug.apk" \
+            --test-path "apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk" \
+            --timeout "10m" \
+            --test-targets "${TEST_TARGET}" \
+            --results-bucket "${ANDROID_FTL_RESULTS_BUCKET}" \
+            --results-dir "${results_dir}"
+
+      - name: Summarize experiment
+        run: |
+          {
+            echo "## Android FTL single test experiment"
+            echo ""
+            echo "- Target SHA: \`${{ inputs.target_sha }}\`"
+            echo "- Test target: \`${{ inputs.test_target }}\`"
+            echo "- Device model: \`${{ vars.ANDROID_FTL_DEVICE_MODEL }}\`"
+            echo "- Device version: \`${{ vars.ANDROID_FTL_DEVICE_VERSION }}\`"
+            echo "- Results bucket: \`${{ vars.ANDROID_FTL_RESULTS_BUCKET }}\`"
+            echo "- Results dir: \`${{ vars.ANDROID_FTL_RESULTS_DIR }}/single-test-experiment/${{ github.run_id }}-${{ github.run_attempt }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
