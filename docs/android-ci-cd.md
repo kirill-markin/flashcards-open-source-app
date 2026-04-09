@@ -60,6 +60,7 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 - Uploads `data:local` instrumentation reports from the emulator run when the Gradle task produced them
 - Validates the Firebase Test Lab configuration whenever the reusable workflow is called with app instrumentation enabled
 - Runs Firebase Test Lab against the full app instrumentation package `com.flashcardsopensourceapp.app`, excluding `com.flashcardsopensourceapp.app.ManualOnlyAndroidTest`
+- Waits up to 30 minutes for the Firebase Test Lab matrix to finish on the GitHub side, then explicitly cancels the matrix and fails the workflow with a timeout error
 - Fails the workflow instead of silently skipping the Firebase Test Lab app instrumentation gate when the required repository variables are missing
 
 The intended Android release order is:
@@ -350,6 +351,7 @@ bash scripts/run-android-firebase-test-lab.sh \
   --app-path "apps/android/app/build/outputs/apk/debug/app-debug.apk" \
   --test-path "apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk" \
   --timeout "30m" \
+  --max-matrix-duration "30m" \
   --test-targets "package com.flashcardsopensourceapp.app notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest" \
   --results-bucket "gs://flashcards-open-source-app-test-lab-results" \
   --results-dir "manual/local"
