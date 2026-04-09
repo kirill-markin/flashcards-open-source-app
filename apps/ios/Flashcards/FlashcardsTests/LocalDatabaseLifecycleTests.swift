@@ -84,21 +84,16 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
         XCTAssertEqual(workspace.workspaceId, userSettings.workspaceId)
     }
 
-    func testLegacyPreFullFsrsSchemaResetsAndBootstrapsCurrentSchema() throws {
+    func testLegacyPreFullFsrsSchemaFailsWithExplicitUnsupportedUpgradeError() throws {
         let databaseURL = try self.makeDatabaseURL()
         try self.createPreFullFsrsSchema(databaseURL: databaseURL)
 
-        let database = try LocalDatabase(databaseURL: databaseURL)
-        self.databaseURL = databaseURL
-        self.database = database
-
-        XCTAssertEqual(LocalDatabaseSchema.currentVersion, try self.loadSchemaVersion(database: database))
-        XCTAssertEqual(1, try self.countRows(database: database, tableName: "app_local_settings"))
-        XCTAssertEqual(1, try self.countRows(database: database, tableName: "workspaces"))
-        XCTAssertEqual(1, try self.countRows(database: database, tableName: "user_settings"))
-        XCTAssertEqual(1, try self.countRows(database: database, tableName: "sync_state"))
-        XCTAssertEqual(0, try self.countRows(database: database, tableName: "cards"))
-        XCTAssertFalse(try database.core.tableExists(name: "workspace_scheduler_settings"))
+        XCTAssertThrowsError(try LocalDatabase(databaseURL: databaseURL)) { error in
+            XCTAssertEqual(
+                Flashcards.errorMessage(error: error),
+                "Legacy local schema upgrade is unsupported (pre-full-fsrs schema). Delete the local database and relaunch the app."
+            )
+        }
     }
 
     private func makeDatabase() throws -> LocalDatabase {

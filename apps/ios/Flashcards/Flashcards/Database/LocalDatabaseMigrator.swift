@@ -7,11 +7,9 @@ struct LocalDatabaseMigrator {
         var schemaVersion = try self.loadSchemaVersion()
         let hasPreFullFsrsSchema = try self.hasPreFullFsrsSchema()
         if schemaVersion > 0 && schemaVersion < 4 {
-            try self.resetLocalSchema()
-            schemaVersion = try self.loadSchemaVersion()
+            throw self.unsupportedLegacySchemaError(reason: "schema version \(schemaVersion)")
         } else if schemaVersion == 0 && hasPreFullFsrsSchema {
-            try self.resetLocalSchema()
-            schemaVersion = try self.loadSchemaVersion()
+            throw self.unsupportedLegacySchemaError(reason: "pre-full-fsrs schema")
         }
 
         if schemaVersion == 0 {
@@ -446,6 +444,12 @@ struct LocalDatabaseMigrator {
         try self.core.executeScript(
             sql: "PRAGMA user_version = \(version);",
             errorContext: "Failed to update SQLite schema version"
+        )
+    }
+
+    private func unsupportedLegacySchemaError(reason: String) -> LocalStoreError {
+        LocalStoreError.database(
+            "Legacy local schema upgrade is unsupported (\(reason)). Delete the local database and relaunch the app."
         )
     }
 
