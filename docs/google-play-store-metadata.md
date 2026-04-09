@@ -1,48 +1,43 @@
 # Google Play Store Metadata
 
+Related competitor references: [Android competitors](competitor-store-metadata.md#android)
+
 ## App Name
 
 Flashcards Open Source App
 
 ## Short Description
 
-Offline-first flashcards with FSRS review, decks, tags, sync, and optional AI.
+Study flashcards offline with spaced repetition, AI help, decks, tags, and sync.
 
 ## Full Description
 
-Flashcards Open Source App is an offline-first flashcards app built for fast daily study.
+Study faster with a flashcards app built for offline review on Android.
 
-Create and edit cards on your device, organize them with decks and tags, and review with FSRS-based spaced repetition. The core app works locally, so you can keep studying even when you are offline.
+Create cards, review them with spaced repetition, organize them with decks and tags, and keep your progress on your device first. When you want cloud features, sign in and sync your workspace.
 
-Use the app to review due cards with a focused mobile flow, create and edit flashcards quickly, organize study material with decks and tags, and keep your data on-device first with local storage.
+Flashcards Open Source App helps you stay focused on studying instead of fighting the interface. The Android app is built for quick review sessions, fast card editing, and simple organization.
 
-Cloud sign-in is optional. You only need an account for cloud sync and hosted AI features.
+What you can do:
+- Review due cards with a focused spaced repetition flow
+- Create and edit flashcards with front text, back text, and tags
+- Search and filter your card library
+- Build filtered decks based on tags and effort level
+- Adjust scheduler settings for future reviews
+- Export your current workspace to CSV
+- Use AI chat to explore your cards, improve content, and plan better study organization
+- Attach photos and files to AI prompts, or use voice dictation on supported devices
+- Sign in with email and link your Android device to cloud workspaces
+- Use the official service or connect a custom server configuration
 
-The app is open source, and the same stack can be self-hosted. Support, privacy policy, and terms are available inside the app.
+Why people use it:
+- Offline-first studying on Android
+- Fast review sessions
+- Simple library management with decks and tags
+- Optional sync when you need it
+- AI support when it helps, without getting in the way
+- Native Material 3 Android experience
 
-## Release Notes
+This app is a practical choice for students, language learners, developers, and anyone who wants a clean flashcards app with offline review, spaced repetition, AI features, and optional sync.
 
-Keep release notes user-visible and platform-specific. Do not describe cross-client version alignment here.
-
-## App Access And Reviewer Notes
-
-Flashcards Open Source App is an offline-first flashcards app for studying, reviewing cards, and managing decks and tags.
-
-The core app works without signing in. A reviewer can open the app and use local card creation, editing, review, tags, decks, and settings without creating an account.
-
-Sign in is only required for cloud sync and hosted AI features.
-
-The app also includes an optional custom server setting in Account Settings > Advanced > Server. This is for self-hosted deployments and is not required for normal review of the hosted app.
-
-Account deletion is available in Account Settings > Danger Zone > Delete my account after signing in to a cloud account.
-
-AI is optional. Before using hosted AI, the app shows a consent screen explaining that request data may be sent to third-party AI providers configured on the current server.
-
-Support, privacy policy, and terms are available inside the app in Account Settings > Legal & Support.
-
-## Public URLs
-
-- Privacy policy: https://flashcards-open-source-app.com/privacy/
-- Terms of service: https://flashcards-open-source-app.com/terms/
-- Support: https://flashcards-open-source-app.com/support/
-- Support email: kirill+flashcards@kirill-markin.com
+The project is open source and built with a transparent, local-first approach.
