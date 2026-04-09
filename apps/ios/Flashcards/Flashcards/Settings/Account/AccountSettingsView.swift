@@ -14,7 +14,7 @@ struct AccountSettingsView: View {
             Section {
                 NavigationLink(value: SettingsNavigationDestination.accountStatus) {
                     SettingsNavigationRow(
-                        title: "Account Status",
+                        title: aiSettingsLocalized("settings.account.row.accountStatus", "Account Status"),
                         value: displayCloudAccountStateTitle(cloudState: store.cloudSettings?.cloudState ?? .disconnected),
                         systemImage: "person.crop.circle"
                     )
@@ -22,19 +22,19 @@ struct AccountSettingsView: View {
                 .accessibilityIdentifier(UITestIdentifier.accountSettingsAccountStatusRow)
             }
 
-            Section("Support") {
+            Section(aiSettingsLocalized("settings.account.section.support", "Support")) {
                 NavigationLink(value: SettingsNavigationDestination.accountLegalSupport) {
                     SettingsNavigationRow(
-                        title: "Legal & Support",
-                        value: "Privacy + Support",
+                        title: aiSettingsLocalized("settings.account.row.legalSupport", "Legal & Support"),
+                        value: aiSettingsLocalized("settings.account.row.legalSupportValue", "Privacy + Support"),
                         systemImage: "doc.text"
                     )
                 }
 
                 NavigationLink(value: SettingsNavigationDestination.accountOpenSource) {
                     SettingsNavigationRow(
-                        title: "Open Source",
-                        value: "GitHub + MIT",
+                        title: aiSettingsLocalized("settings.account.row.openSource", "Open Source"),
+                        value: aiSettingsLocalized("settings.account.row.openSourceValue", "GitHub + MIT"),
                         systemImage: "chevron.left.forwardslash.chevron.right"
                     )
                 }
@@ -43,18 +43,18 @@ struct AccountSettingsView: View {
             Section {
                 NavigationLink(value: SettingsNavigationDestination.accountAdvanced) {
                     SettingsNavigationRow(
-                        title: "Advanced",
-                        value: "Server",
+                        title: aiSettingsLocalized("settings.account.row.advanced", "Advanced"),
+                        value: aiSettingsLocalized("settings.account.row.serverValue", "Server"),
                         systemImage: "gearshape.2"
                     )
                 }
             }
 
-            Section("Connections") {
+            Section(aiSettingsLocalized("settings.account.section.connections", "Connections")) {
                 NavigationLink(value: SettingsNavigationDestination.accountAgentConnections) {
                     SettingsNavigationRow(
-                        title: "Agent Connections",
-                        value: "Connections",
+                        title: aiSettingsLocalized("settings.account.row.agentConnections", "Agent Connections"),
+                        value: aiSettingsLocalized("settings.account.row.agentConnectionsValue", "Connections"),
                         systemImage: "link"
                     )
                 }
@@ -63,8 +63,8 @@ struct AccountSettingsView: View {
             Section {
                 NavigationLink(value: SettingsNavigationDestination.accountDangerZone) {
                     SettingsNavigationRow(
-                        title: "Danger Zone",
-                        value: "Delete",
+                        title: aiSettingsLocalized("settings.account.row.dangerZone", "Danger Zone"),
+                        value: aiSettingsLocalized("settings.account.row.dangerZoneValue", "Delete"),
                         systemImage: "exclamationmark.triangle"
                     )
                 }
@@ -73,7 +73,7 @@ struct AccountSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.accountSettingsScreen)
-        .navigationTitle("Account Settings")
+        .navigationTitle(aiSettingsLocalized("settings.account.title", "Account Settings"))
     }
 }
 

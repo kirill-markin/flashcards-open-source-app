@@ -291,7 +291,12 @@ extension AIChatStore {
             case .invalidResponse(let errorDetails, _, _) = serviceError,
             errorDetails.code == "CHAT_ACTIVE_RUN_IN_PROGRESS"
         {
-            self.showGeneralError(message: "A response is already in progress. Wait for it to finish or stop it before sending another message.")
+            self.showGeneralError(
+                message: aiSettingsLocalized(
+                    "ai.run.error.activeRunInProgress",
+                    "A response is already in progress. Wait for it to finish or stop it before sending another message."
+                )
+            )
             return
         }
 

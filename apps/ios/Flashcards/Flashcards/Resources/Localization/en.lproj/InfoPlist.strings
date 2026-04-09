@@ -1,0 +1,3 @@
+"NSCameraUsageDescription" = "Allow camera access to take photos for AI chat attachments.";
+"NSMicrophoneUsageDescription" = "Allow microphone access to dictate text into AI chat.";
+"NSPhotoLibraryUsageDescription" = "Allow photo library access to choose photos for AI chat attachments.";

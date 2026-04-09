@@ -1,6 +1,7 @@
 import Foundation
 
 private let maximumSearchTokenCount = 5
+private let reviewCardsStringsTableName: String = "ReviewCards"
 
 // Keep in sync with apps/backend/src/searchTokens.ts::tokenizeSearchText.
 func tokenizeSearchText(searchText: String) -> [String] {
@@ -146,25 +147,59 @@ func cardFilterActiveDimensionCount(filter: CardFilter?) -> Int {
     return (filter.effort.isEmpty == false ? 1 : 0) + (filter.tags.isEmpty == false ? 1 : 0)
 }
 
+func localizedEffortTitle(effortLevel: EffortLevel) -> String {
+    switch effortLevel {
+    case .fast:
+        return String(localized: "Fast", table: reviewCardsStringsTableName)
+    case .medium:
+        return String(localized: "Medium", table: reviewCardsStringsTableName)
+    case .long:
+        return String(localized: "Long", table: reviewCardsStringsTableName)
+    }
+}
+
+func localizedAllCardsLabel() -> String {
+    String(localized: "All cards", table: reviewCardsStringsTableName)
+}
+
+func localizedNoTagsLabel() -> String {
+    String(localized: "No tags", table: reviewCardsStringsTableName)
+}
+
 func formatCardFilterSummary(filter: CardFilter?) -> String {
     guard let filter else {
-        return "No filters"
+        return String(localized: "No filters", table: reviewCardsStringsTableName)
     }
 
     var parts: [String] = []
     if filter.effort.isEmpty == false {
-        parts.append("effort in \(filter.effort.map(\.rawValue).joined(separator: ", "))")
+        let effortSummary = filter.effort.map { effortLevel in
+            localizedEffortTitle(effortLevel: effortLevel)
+        }.joined(separator: ", ")
+        parts.append(
+            String(
+                format: String(localized: "Effort: %@", table: reviewCardsStringsTableName),
+                locale: Locale.current,
+                effortSummary
+            )
+        )
     }
 
     if filter.tags.isEmpty == false {
-        parts.append("tags any of \(filter.tags.joined(separator: ", "))")
+        parts.append(
+            String(
+                format: String(localized: "Tags: %@", table: reviewCardsStringsTableName),
+                locale: Locale.current,
+                filter.tags.joined(separator: ", ")
+            )
+        )
     }
 
     if parts.isEmpty {
-        return "No filters"
+        return String(localized: "No filters", table: reviewCardsStringsTableName)
     }
 
-    return parts.joined(separator: " AND ")
+    return ListFormatter.localizedString(byJoining: parts)
 }
 
 func queryCards(cards: [Card], searchText: String, filter: CardFilter?) -> [Card] {
@@ -203,7 +238,7 @@ func formatDeckFilterDefinition(filterDefinition: DeckFilterDefinition) -> Strin
     }
 
     if parts.isEmpty {
-        return "All cards"
+        return localizedAllCardsLabel()
     }
 
     return parts.joined(separator: " AND ")

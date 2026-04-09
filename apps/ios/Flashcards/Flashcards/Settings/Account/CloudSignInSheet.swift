@@ -47,23 +47,23 @@ func makeCloudPostAuthFailurePresentation(
     case .completeLink(let linkContext, let selection):
         if cloudState == .linked {
             return CloudPostAuthFailurePresentation(
-                title: "Signed in, but initial sync failed.",
+                title: aiSettingsLocalized("settings.account.cloudSignIn.failure.initialSyncFailed", "Signed in, but initial sync failed."),
                 retryAction: .syncOnly
             )
         }
 
         return CloudPostAuthFailurePresentation(
-            title: "Signed in, but cloud setup failed.",
+            title: aiSettingsLocalized("settings.account.cloudSignIn.failure.cloudSetupFailed", "Signed in, but cloud setup failed."),
             retryAction: .completeLink(linkContext: linkContext, selection: selection)
         )
     case .completeGuestLink(let linkContext, let selection):
         return CloudPostAuthFailurePresentation(
-            title: "Signed in, but account upgrade failed.",
+            title: aiSettingsLocalized("settings.account.cloudSignIn.failure.accountUpgradeFailed", "Signed in, but account upgrade failed."),
             retryAction: .completeGuestLink(linkContext: linkContext, selection: selection)
         )
     case .syncOnly:
         return CloudPostAuthFailurePresentation(
-            title: "Signed in, but initial sync failed.",
+            title: aiSettingsLocalized("settings.account.cloudSignIn.failure.initialSyncFailed", "Signed in, but initial sync failed."),
             retryAction: .syncOnly
         )
     }
@@ -114,7 +114,7 @@ private struct CloudAuthInlineErrorView: View {
                 .textSelection(.enabled)
 
             if let technicalDetails = self.presentation.technicalDetails {
-                DisclosureGroup("Technical details") {
+                DisclosureGroup(aiSettingsLocalized("settings.account.cloudSignIn.technicalDetails", "Technical details")) {
                     Text(technicalDetails)
                         .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
@@ -122,7 +122,7 @@ private struct CloudAuthInlineErrorView: View {
                         .textSelection(.enabled)
                         .padding(.top, 4)
                         .contextMenu {
-                            Button("Copy technical details") {
+                            Button(aiSettingsLocalized("settings.account.cloudSignIn.copyTechnicalDetails", "Copy technical details")) {
                                 UIPasteboard.general.string = technicalDetails
                             }
                         }
@@ -140,8 +140,8 @@ struct CloudPostAuthSyncPresentation: Equatable {
 
 func makeCloudPostAuthSyncPresentation() -> CloudPostAuthSyncPresentation {
     CloudPostAuthSyncPresentation(
-        title: "Your account is syncing with the cloud.",
-        message: "Please do not turn off your phone. This usually takes a few minutes."
+        title: aiSettingsLocalized("settings.account.cloudSignIn.sync.title", "Your account is syncing with the cloud."),
+        message: aiSettingsLocalized("settings.account.cloudSignIn.sync.message", "Please do not turn off your phone. This usually takes a few minutes.")
     )
 }
 
@@ -190,13 +190,18 @@ struct CloudSignInSheet: View {
                         }
                     }
 
-                    Section("Cloud sync") {
-                        Text("Sign in with email and continue through the code and workspace steps. Local data stays on this device until you choose a cloud workspace.")
+                    Section(aiSettingsLocalized("settings.account.cloudSignIn.section.cloudSync", "Cloud sync")) {
+                        Text(
+                            aiSettingsLocalized(
+                                "settings.account.cloudSignIn.description",
+                                "Sign in with email and continue through the code and workspace steps. Local data stays on this device until you choose a cloud workspace."
+                            )
+                        )
                             .foregroundStyle(.secondary)
                     }
 
-                    Section("Email") {
-                        TextField("Your email", text: self.$email)
+                    Section(aiSettingsLocalized("common.email", "Email")) {
+                        TextField(aiSettingsLocalized("settings.account.cloudSignIn.emailPlaceholder", "Your email"), text: self.$email)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .keyboardType(.emailAddress)
@@ -210,7 +215,7 @@ struct CloudSignInSheet: View {
                     }
 
                     Section {
-                        Button("Send one-time code") {
+                        Button(aiSettingsLocalized("settings.account.cloudSignIn.sendOneTimeCode", "Send one-time code")) {
                             self.sendCode()
                         }
                         .disabled(self.isSendingCode || isValidCloudEmail(self.email) == false)
@@ -218,13 +223,13 @@ struct CloudSignInSheet: View {
                     }
                 }
             }
-            .navigationTitle("Sign in")
+            .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.title", "Sign in"))
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier(UITestIdentifier.cloudSignInScreen)
             .interactiveDismissDisabled(self.isPostAuthActionInFlight)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") {
+                    Button(aiSettingsLocalized("common.close", "Close")) {
                         self.dismiss()
                     }
                     .disabled(self.isSendingCode || self.isPostAuthActionInFlight)
@@ -291,13 +296,13 @@ struct CloudSignInSheet: View {
                 )
                 .environment(self.store)
             }
-            .alert("Log out and clear this device?", isPresented: self.$isLogoutConfirmationPresented) {
-                Button("Cancel", role: .cancel) {}
-                Button("Log out", role: .destructive) {
+            .alert(aiSettingsLocalized("settings.account.status.logoutAlertTitle", "Log out and clear this device?"), isPresented: self.$isLogoutConfirmationPresented) {
+                Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {}
+                Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
                     self.logoutAndDismiss()
                 }
             } message: {
-                Text("All local workspaces and synced data will be removed from this device.")
+                Text(aiSettingsLocalized("settings.account.status.logoutAlertMessage", "All local workspaces and synced data will be removed from this device."))
             }
             .onAppear {
                 self.scheduleEmailFieldFocus()
@@ -321,7 +326,7 @@ struct CloudSignInSheet: View {
 
         guard isValidCloudEmail(self.email) else {
             self.authErrorPresentation = CloudAuthInlineErrorPresentation(
-                message: "Enter a valid email address",
+                message: aiSettingsLocalized("settings.account.cloudSignIn.enterValidEmail", "Enter a valid email address"),
                 technicalDetails: nil
             )
             return
@@ -402,7 +407,7 @@ struct CloudSignInSheet: View {
             self.postAuthLoadingState = nil
             self.postAuthSyncState = nil
             self.presentPostAuthFailure(
-                title: "Signed in, but cloud setup failed.",
+                title: aiSettingsLocalized("settings.account.cloudSignIn.failure.cloudSetupFailed", "Signed in, but cloud setup failed."),
                 message: Flashcards.errorMessage(error: error),
                 retryAction: .prepareLink(verifiedContext: verifiedContext)
             )
@@ -575,14 +580,14 @@ private struct CloudOtpVerificationSheet: View {
                         }
                     }
 
-                    Section("Email") {
+                    Section(aiSettingsLocalized("common.email", "Email")) {
                         Text(self.currentEmail)
                             .textSelection(.enabled)
                     }
 
-                    Section("One-time code") {
+                    Section(aiSettingsLocalized("settings.account.cloudSignIn.oneTimeCode", "One-time code")) {
                         if self.currentChallenge == nil {
-                            Text("Sending the code…")
+                            Text(aiSettingsLocalized("settings.account.cloudSignIn.sendingCode", "Sending the code…"))
                                 .foregroundStyle(.secondary)
 
                             HStack {
@@ -597,19 +602,19 @@ private struct CloudOtpVerificationSheet: View {
                                 .foregroundStyle(.secondary)
 
                             if self.challengeState == .active {
-                                TextField("12345678", text: self.$code)
+                                TextField(aiSettingsLocalized("settings.account.cloudSignIn.codePlaceholder", "12345678"), text: self.$code)
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled()
                                     .keyboardType(.numberPad)
                                     .textContentType(.oneTimeCode)
                                     .focused(self.$isCodeFieldFocused)
 
-                                Button("Continue") {
+                                Button(aiSettingsLocalized("common.continue", "Continue")) {
                                     self.verifyCode()
                                 }
                                 .disabled(self.isVerifyingCode || self.isSendingCode || normalizedOtpCode(self.code).isEmpty)
                             } else {
-                                Button("Resend code") {
+                                Button(aiSettingsLocalized("settings.account.cloudSignIn.resendCode", "Resend code")) {
                                     self.resendCode()
                                 }
                                 .disabled(self.isSendingCode || self.isVerifyingCode)
@@ -618,7 +623,7 @@ private struct CloudOtpVerificationSheet: View {
                     }
                 }
             }
-            .navigationTitle("Verify code")
+            .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.verifyCodeTitle", "Verify code"))
             .navigationBarTitleDisplayMode(.inline)
             .onChange(of: self.currentChallenge) { _, nextChallenge in
                 guard nextChallenge != nil, self.challengeState == .active else {
@@ -637,7 +642,7 @@ private struct CloudOtpVerificationSheet: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Back") {
+                    Button(aiSettingsLocalized("common.back", "Back")) {
                         self.onReturnToEmail()
                     }
                     .disabled(self.isVerifyingCode || self.isSendingCode || self.currentChallenge == nil)
@@ -646,7 +651,7 @@ private struct CloudOtpVerificationSheet: View {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
 
-                    Button("Done") {
+                    Button(aiSettingsLocalized("common.done", "Done")) {
                         self.isCodeFieldFocused = false
                     }
                 }
@@ -665,11 +670,11 @@ private struct CloudOtpVerificationSheet: View {
     private var challengePrompt: String {
         switch self.challengeState {
         case .active:
-            return "Enter the 8-digit code from your email."
+            return aiSettingsLocalized("settings.account.cloudSignIn.challengePrompt.active", "Enter the 8-digit code from your email.")
         case .consumed:
-            return "This code was already used. Request a new code to continue."
+            return aiSettingsLocalized("settings.account.cloudSignIn.challengePrompt.consumed", "This code was already used. Request a new code to continue.")
         case .expired:
-            return "This code expired. Request a new code to continue."
+            return aiSettingsLocalized("settings.account.cloudSignIn.challengePrompt.expired", "This code expired. Request a new code to continue.")
         }
     }
 
@@ -685,14 +690,14 @@ private struct CloudOtpVerificationSheet: View {
         let nextCode = normalizedOtpCode(self.code)
         guard nextCode.isEmpty == false else {
             self.authErrorPresentation = CloudAuthInlineErrorPresentation(
-                message: "Code is required",
+                message: aiSettingsLocalized("settings.account.cloudSignIn.codeRequired", "Code is required"),
                 technicalDetails: nil
             )
             return
         }
         guard let currentChallenge = self.currentChallenge else {
             self.authErrorPresentation = CloudAuthInlineErrorPresentation(
-                message: "Code is still loading",
+                message: aiSettingsLocalized("settings.account.cloudSignIn.codeStillLoading", "Code is still loading"),
                 technicalDetails: nil
             )
             return
@@ -796,13 +801,18 @@ private struct CloudWorkspaceSelectionSheet: View {
                 horizontalPadding: 0
             ) {
                 List {
-                    Section("Workspace") {
-                        Text("Choose one option to continue: link this device to an existing cloud workspace or create a new cloud workspace.")
+                    Section(aiSettingsLocalized("settings.account.cloudSignIn.section.workspace", "Workspace")) {
+                        Text(
+                            aiSettingsLocalized(
+                                "settings.account.cloudSignIn.workspaceDescription",
+                                "Choose one option to continue: link this device to an existing cloud workspace or create a new cloud workspace."
+                            )
+                        )
                             .foregroundStyle(.secondary)
                     }
 
                     if self.selectionItems.isEmpty == false {
-                        Section("Choose workspace") {
+                        Section(aiSettingsLocalized("settings.currentWorkspace.section.chooseWorkspace", "Choose workspace")) {
                             ForEach(self.selectionItems) { item in
                                 Button {
                                     self.onSelection(item.selection)
@@ -818,11 +828,11 @@ private struct CloudWorkspaceSelectionSheet: View {
                 }
             }
             .accessibilityIdentifier(UITestIdentifier.cloudWorkspaceChooserScreen)
-            .navigationTitle("Choose workspace")
+            .navigationTitle(aiSettingsLocalized("settings.currentWorkspace.chooseWorkspaceTitle", "Choose workspace"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") {
+                    Button(aiSettingsLocalized("common.close", "Close")) {
                         self.onCancelled()
                     }
                 }
@@ -879,10 +889,14 @@ func makeCloudWorkspaceSelectionItems(
 
 func makeCreateWorkspaceSelectionTitle(localWorkspaceName: String?) -> String {
     guard let localWorkspaceName, localWorkspaceName.isEmpty == false else {
-        return "Create new workspace"
+        return aiSettingsLocalized("settings.currentWorkspace.createNew", "Create new workspace")
     }
 
-    return "Create new workspace from \"\(localWorkspaceName)\""
+    return aiSettingsLocalizedFormat(
+        "settings.currentWorkspace.createFromCurrent",
+        "Create new workspace from \"%@\"",
+        localWorkspaceName
+    )
 }
 
 private struct CloudWorkspaceSelectionRow: View {
@@ -940,30 +954,35 @@ private struct CloudPostAuthFailureSheet: View {
                         CopyableErrorMessageView(message: self.state.message)
                     }
 
-                    Section("Cloud account") {
+                    Section(aiSettingsLocalized("settings.account.cloudSignIn.section.cloudAccount", "Cloud account")) {
                         Text(self.state.title)
                             .font(.headline)
-                        Text("Your sign-in succeeded, but the cloud workspace setup or initial sync did not finish.")
+                        Text(
+                            aiSettingsLocalized(
+                                "settings.account.cloudSignIn.failureDescription",
+                                "Your sign-in succeeded, but the cloud workspace setup or initial sync did not finish."
+                            )
+                        )
                             .foregroundStyle(.secondary)
                     }
 
                     Section {
-                        Button("Retry") {
+                        Button(aiSettingsLocalized("common.retry", "Retry")) {
                             self.onRetry()
                         }
                         .disabled(self.isRetryDisabled || isCloudSignInSyncInFlight(status: self.store.syncStatus))
 
-                        Button("Close") {
+                        Button(aiSettingsLocalized("common.close", "Close")) {
                             self.onClose()
                         }
 
-                        Button("Log out", role: .destructive) {
+                        Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
                             self.onLogout()
                         }
                     }
                 }
             }
-            .navigationTitle("Cloud sync")
+            .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.cloudSyncTitle", "Cloud sync"))
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -977,11 +996,16 @@ private struct CloudPostAuthLoadingSheet: View {
                 horizontalPadding: 0
             ) {
                 Form {
-                    Section("Cloud sync") {
-                        Text("Loading workspaces…")
+                    Section(aiSettingsLocalized("settings.account.cloudSignIn.section.cloudSync", "Cloud sync")) {
+                        Text(aiSettingsLocalized("settings.account.cloudSignIn.loadingWorkspaces", "Loading workspaces…"))
                             .font(.headline)
 
-                        Text("Your sign-in succeeded. The app is now loading the cloud workspace step.")
+                        Text(
+                            aiSettingsLocalized(
+                                "settings.account.cloudSignIn.loadingWorkspacesDescription",
+                                "Your sign-in succeeded. The app is now loading the cloud workspace step."
+                            )
+                        )
                             .foregroundStyle(.secondary)
 
                         HStack {
@@ -994,7 +1018,7 @@ private struct CloudPostAuthLoadingSheet: View {
                     }
                 }
             }
-            .navigationTitle("Cloud sync")
+            .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.cloudSyncTitle", "Cloud sync"))
             .navigationBarTitleDisplayMode(.inline)
         }
     }
@@ -1023,7 +1047,7 @@ private struct CloudPostAuthSyncSheet: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .navigationTitle("Cloud sync")
+            .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.cloudSyncTitle", "Cloud sync"))
             .navigationBarTitleDisplayMode(.inline)
         }
     }

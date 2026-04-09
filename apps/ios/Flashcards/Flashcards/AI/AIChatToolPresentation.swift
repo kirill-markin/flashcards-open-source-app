@@ -22,9 +22,9 @@ func aiChatToolLabel(name: String) -> String {
     case "sql":
         return "SQL"
     case "code_execution", "code_interpreter":
-        return "Code execution"
+        return aiSettingsLocalized("ai.tool.label.codeExecution", "Code execution")
     case "web_search":
-        return "Web search"
+        return aiSettingsLocalized("ai.tool.label.webSearch", "Web search")
     default:
         return name
     }
@@ -65,10 +65,10 @@ func aiChatToolSections(input: String?, output: String?) -> [AIChatToolSection] 
         sections.append(
             AIChatToolSection(
                 id: "request",
-                title: "Request",
+                title: aiSettingsLocalized("ai.tool.section.request", "Request"),
                 text: input,
-                copyButtonTitle: "Copy",
-                copyAccessibilityLabel: "Copy request"
+                copyButtonTitle: aiSettingsLocalized("common.copy", "Copy"),
+                copyAccessibilityLabel: aiSettingsLocalized("ai.tool.copy.request", "Copy request")
             )
         )
     }
@@ -77,10 +77,10 @@ func aiChatToolSections(input: String?, output: String?) -> [AIChatToolSection] 
         sections.append(
             AIChatToolSection(
                 id: "response",
-                title: "Response",
+                title: aiSettingsLocalized("ai.tool.section.response", "Response"),
                 text: output,
-                copyButtonTitle: "Copy",
-                copyAccessibilityLabel: "Copy response"
+                copyButtonTitle: aiSettingsLocalized("common.copy", "Copy"),
+                copyAccessibilityLabel: aiSettingsLocalized("ai.tool.copy.response", "Copy response")
             )
         )
     }
@@ -91,9 +91,9 @@ func aiChatToolSections(input: String?, output: String?) -> [AIChatToolSection] 
 func aiChatToolStatusLabel(status: AIChatToolCallStatus) -> String {
     switch status {
     case .started:
-        return "Running"
+        return aiSettingsLocalized("ai.tool.status.running", "Running")
     case .completed:
-        return "Done"
+        return aiSettingsLocalized("ai.tool.status.done", "Done")
     }
 }
 

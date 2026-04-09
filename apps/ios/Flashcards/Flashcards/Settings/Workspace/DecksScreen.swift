@@ -32,25 +32,24 @@ struct DecksScreen: View {
         List {
             if screenErrorMessage.isEmpty == false {
                 Section {
-                    Text(screenErrorMessage)
-                        .foregroundStyle(.red)
+                    CopyableErrorMessageView(message: screenErrorMessage)
                 }
             }
 
             Section {
-                Text("Decks group related cards so you can study a topic together.")
+                Text(aiSettingsLocalized("settings.workspace.decks.description", "Decks group related cards so you can study a topic together."))
                     .foregroundStyle(.secondary)
             }
 
-            Section("Decks") {
+            Section(aiSettingsLocalized("settings.workspace.row.decks", "Decks")) {
                 if self.isLoading {
-                    Text("Loading decks…")
+                    Text(aiSettingsLocalized("settings.workspace.decks.loading", "Loading decks…"))
                         .foregroundStyle(.secondary)
                 } else if self.filteredDeckListEntries.isEmpty {
                     ContentUnavailableView(
-                        "No Matching Decks",
+                        aiSettingsLocalized("settings.workspace.decks.noMatching", "No Matching Decks"),
                         systemImage: "magnifyingglass",
-                        description: Text("Try a different search.")
+                        description: Text(aiSettingsLocalized("common.tryDifferentSearch", "Try a different search."))
                     )
                 } else {
                     ForEach(self.filteredDeckListEntries) { deckListEntry in
@@ -64,7 +63,7 @@ struct DecksScreen: View {
                                 Button(role: .destructive) {
                                     self.deleteDeck(deckId: persistedDeckId)
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    Label(aiSettingsLocalized("common.delete", "Delete"), systemImage: "trash")
                                 }
                             }
                         } else {
@@ -79,12 +78,12 @@ struct DecksScreen: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Decks")
+        .navigationTitle(aiSettingsLocalized("settings.workspace.row.decks", "Decks"))
         .searchable(
             text: self.$searchText,
             isPresented: self.$isSearchPresented,
             placement: .automatic,
-            prompt: "Search decks"
+            prompt: aiSettingsLocalized("settings.workspace.decks.searchPrompt", "Search decks")
         )
         .searchToolbarBehavior(preferredNativeSearchToolbarBehavior(horizontalSizeClass: self.horizontalSizeClass))
         .task(id: store.localReadVersion) {
@@ -95,14 +94,14 @@ struct DecksScreen: View {
                 Button {
                     self.beginCreating()
                 } label: {
-                    Label("New deck", systemImage: "plus")
+                    Label(aiSettingsLocalized("settings.workspace.decks.newDeck", "New deck"), systemImage: "plus")
                 }
             }
         }
         .sheet(isPresented: $isEditorPresented) {
             NavigationStack {
                 DeckEditorView(
-                    title: "New deck",
+                    title: aiSettingsLocalized("settings.workspace.decks.newDeck", "New deck"),
                     availableTagSuggestions: self.availableTagSuggestions,
                     formState: $deckFormState,
                     onCancel: {
@@ -217,7 +216,7 @@ private struct DeckListRow: View {
 
                 Spacer()
 
-                Text("\(deckListEntry.stats.dueCards) due")
+                Text(aiSettingsLocalizedFormat("settings.workspace.decks.dueCount", "%d due", deckListEntry.stats.dueCards))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -227,9 +226,9 @@ private struct DeckListRow: View {
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 12) {
-                Label("\(deckListEntry.stats.totalCards) cards", systemImage: "square.stack.3d.up")
-                Label("\(deckListEntry.stats.newCards) new", systemImage: "plus.circle")
-                Label("\(deckListEntry.stats.reviewedCards) reviewed", systemImage: "checkmark.circle")
+                Label(aiSettingsLocalizedFormat("settings.workspace.decks.totalCards", "%d cards", deckListEntry.stats.totalCards), systemImage: "square.stack.3d.up")
+                Label(aiSettingsLocalizedFormat("settings.workspace.decks.newCount", "%d new", deckListEntry.stats.newCards), systemImage: "plus.circle")
+                Label(aiSettingsLocalizedFormat("settings.workspace.decks.reviewedCount", "%d reviewed", deckListEntry.stats.reviewedCards), systemImage: "checkmark.circle")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -300,9 +299,9 @@ private enum DeckDetailScreenState {
     var emptyMessage: String {
         switch self {
         case .allCards:
-            return "You haven't created any cards yet."
+            return aiSettingsLocalized("settings.workspace.decks.emptyAllCards", "You haven't created any cards yet.")
         case .deck:
-            return "This deck doesn't have any matching cards yet."
+            return aiSettingsLocalized("settings.workspace.decks.emptyDeck", "This deck doesn't have any matching cards yet.")
         }
     }
 
@@ -351,25 +350,24 @@ private struct DeckDetailScreen: View {
         List {
             if screenErrorMessage.isEmpty == false {
                 Section {
-                    Text(screenErrorMessage)
-                        .foregroundStyle(.red)
+                    CopyableErrorMessageView(message: screenErrorMessage)
                 }
             }
 
             if let detailState {
-                Section("Deck rules") {
+                Section(aiSettingsLocalized("settings.workspace.decks.section.deckRules", "Deck rules")) {
                     SummaryRow(
-                        title: "Cards",
+                        title: aiSettingsLocalized("settings.workspace.overview.cards", "Cards"),
                         value: "\(detailState.stats.totalCards)",
                         symbolName: "square.stack.3d.up"
                     )
                     SummaryRow(
-                        title: "Due",
+                        title: aiSettingsLocalized("settings.workspace.overview.due", "Due"),
                         value: "\(detailState.stats.dueCards)",
                         symbolName: "clock.badge.checkmark"
                     )
                     SummaryRow(
-                        title: "New",
+                        title: aiSettingsLocalized("settings.workspace.overview.new", "New"),
                         value: "\(detailState.stats.newCards)",
                         symbolName: "plus.circle"
                     )
@@ -381,11 +379,11 @@ private struct DeckDetailScreen: View {
                     Button {
                         self.openReview()
                     } label: {
-                        Label("Open review", systemImage: "rectangle.on.rectangle")
+                        Label(aiSettingsLocalized("settings.workspace.decks.openReview", "Open review"), systemImage: "rectangle.on.rectangle")
                     }
                 }
 
-                Section("Matching cards") {
+                Section(aiSettingsLocalized("settings.workspace.decks.section.matchingCards", "Matching cards")) {
                     if detailState.cards.isEmpty {
                         Text(detailState.emptyMessage)
                             .foregroundStyle(.secondary)
@@ -398,27 +396,27 @@ private struct DeckDetailScreen: View {
 
                 if detailState.allowsEditing {
                     Section {
-                        Button("Delete deck", role: .destructive) {
+                        Button(aiSettingsLocalized("settings.workspace.decks.deleteDeck", "Delete deck"), role: .destructive) {
                             self.deleteDeck()
                         }
                     }
                 }
             } else {
                 Section {
-                    Text("Deck not found.")
+                    Text(aiSettingsLocalized("settings.workspace.decks.notFound", "Deck not found."))
                         .foregroundStyle(.secondary)
                 }
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(detailState?.title ?? "Deck")
+        .navigationTitle(detailState?.title ?? aiSettingsLocalized("settings.workspace.decks.deck", "Deck"))
         .task(id: "\(self.currentDeckId ?? "all")|\(store.localReadVersion)") {
             await self.reloadDetailState()
         }
         .toolbar {
             if detailState?.allowsEditing == true {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Edit") {
+                    Button(aiSettingsLocalized("common.edit", "Edit")) {
                         self.beginEditing()
                     }
                 }
@@ -427,7 +425,7 @@ private struct DeckDetailScreen: View {
         .sheet(isPresented: $isEditorPresented) {
             NavigationStack {
                 DeckEditorView(
-                    title: "Edit deck",
+                    title: aiSettingsLocalized("settings.workspace.decks.editDeck", "Edit deck"),
                     availableTagSuggestions: self.availableTagSuggestions,
                     formState: $deckFormState,
                     onCancel: {
@@ -443,13 +441,13 @@ private struct DeckDetailScreen: View {
 
     private func beginEditing() {
         guard let detailState else {
-            self.screenErrorMessage = "Deck not found."
+            self.screenErrorMessage = aiSettingsLocalized("settings.workspace.decks.notFound", "Deck not found.")
             return
         }
 
         switch detailState {
         case .allCards:
-            self.screenErrorMessage = "System deck cannot be edited."
+            self.screenErrorMessage = aiSettingsLocalized("settings.workspace.decks.systemDeckCannotBeEdited", "System deck cannot be edited.")
         case .deck(let deckItem, _):
             do {
                 self.deckFormState = try makeDeckFormState(deck: deckItem.deck)
@@ -463,7 +461,7 @@ private struct DeckDetailScreen: View {
 
     private func saveDeckChanges() {
         guard let deckId = currentDeckId else {
-            self.screenErrorMessage = "Deck not found."
+            self.screenErrorMessage = aiSettingsLocalized("settings.workspace.decks.notFound", "Deck not found.")
             return
         }
 
@@ -478,7 +476,7 @@ private struct DeckDetailScreen: View {
 
     private func deleteDeck() {
         guard let deckId = currentDeckId else {
-            self.screenErrorMessage = "Deck not found."
+            self.screenErrorMessage = aiSettingsLocalized("settings.workspace.decks.notFound", "Deck not found.")
             return
         }
 
@@ -544,11 +542,11 @@ private struct DeckEditorView: View {
             horizontalPadding: 0
         ) {
             Form {
-                Section("Name") {
-                    TextField("Deck name", text: $formState.name)
+                Section(aiSettingsLocalized("settings.workspace.decks.section.name", "Name")) {
+                    TextField(aiSettingsLocalized("settings.workspace.decks.deckName", "Deck name"), text: $formState.name)
                 }
 
-                Section("Effort") {
+                Section(aiSettingsLocalized("settings.workspace.decks.section.effort", "Effort")) {
                     ForEach(EffortLevel.allCases) { effortLevel in
                         Toggle(
                             effortLevel.title,
@@ -568,7 +566,7 @@ private struct DeckEditorView: View {
                     }
                 }
 
-                Section("Tags") {
+                Section(aiSettingsLocalized("settings.workspace.row.tags", "Tags")) {
                     NavigationLink {
                         TagPickerView(
                             selectedTags: formState.tags,
@@ -596,11 +594,11 @@ private struct DeckEditorView: View {
         .navigationTitle(title)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("Cancel", action: onCancel)
+                Button(aiSettingsLocalized("common.cancel", "Cancel"), action: onCancel)
             }
 
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Save", action: onSave)
+                Button(aiSettingsLocalized("common.save", "Save"), action: onSave)
             }
         }
     }

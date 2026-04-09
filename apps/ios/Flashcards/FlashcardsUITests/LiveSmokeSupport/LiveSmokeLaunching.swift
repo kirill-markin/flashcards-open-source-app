@@ -138,6 +138,15 @@ extension LiveSmokeTestCase {
         self.app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.resetStateEnvironmentKey)
         self.app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.appNotificationTapTypeEnvironmentKey)
         self.app.launchEnvironment[LiveSmokeConfiguration.selectedTabEnvironmentKey] = request.selectedTab.rawValue
+        self.app.launchArguments = self.app.launchArguments.filter { argument in
+            argument != "-AppleLanguages" && argument != "(en)" && argument != "-AppleLocale" && argument != "en_US"
+        }
+        self.app.launchArguments += [
+            "-AppleLanguages",
+            "(en)",
+            "-AppleLocale",
+            "en_US"
+        ]
         if let resetState = request.resetState {
             self.app.launchEnvironment[LiveSmokeConfiguration.resetStateEnvironmentKey] = resetState.rawValue
         }

@@ -68,8 +68,16 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case accountDangerZone
 }
 
-let allCardsDeckLabel: String = "All cards"
-let workspaceResetProgressConfirmationText: String = "reset all progress for all cards in this workspace"
+let allCardsDeckLabel: String = String(
+    localized: "cards.all_cards_deck_label",
+    table: "Foundation",
+    comment: "System deck label for all cards"
+)
+let workspaceResetProgressConfirmationText: String = String(
+    localized: "workspace.reset_progress_confirmation_text",
+    table: "Foundation",
+    comment: "Confirmation phrase for resetting all workspace card progress"
+)
 
 enum EffortLevel: String, CaseIterable, Codable, Hashable, Identifiable, Sendable {
     case fast
@@ -81,7 +89,26 @@ enum EffortLevel: String, CaseIterable, Codable, Hashable, Identifiable, Sendabl
     }
 
     var title: String {
-        rawValue.capitalized
+        switch self {
+        case .fast:
+            return String(
+                localized: "effort.fast.title",
+                table: "Foundation",
+                comment: "Fast effort level title"
+            )
+        case .medium:
+            return String(
+                localized: "effort.medium.title",
+                table: "Foundation",
+                comment: "Medium effort level title"
+            )
+        case .long:
+            return String(
+                localized: "effort.long.title",
+                table: "Foundation",
+                comment: "Long effort level title"
+            )
+        }
     }
 }
 
@@ -98,13 +125,29 @@ enum ReviewRating: Int, CaseIterable, Codable, Hashable, Identifiable, Sendable 
     var title: String {
         switch self {
         case .again:
-            return "Again"
+            return String(
+                localized: "review_rating.again.title",
+                table: "Foundation",
+                comment: "Review rating title for Again"
+            )
         case .hard:
-            return "Hard"
+            return String(
+                localized: "review_rating.hard.title",
+                table: "Foundation",
+                comment: "Review rating title for Hard"
+            )
         case .good:
-            return "Good"
+            return String(
+                localized: "review_rating.good.title",
+                table: "Foundation",
+                comment: "Review rating title for Good"
+            )
         case .easy:
-            return "Easy"
+            return String(
+                localized: "review_rating.easy.title",
+                table: "Foundation",
+                comment: "Review rating title for Easy"
+            )
         }
     }
 
@@ -147,13 +190,29 @@ enum CloudAccountState: String, CaseIterable, Codable, Hashable, Identifiable, S
     var title: String {
         switch self {
         case .disconnected:
-            return "Disconnected"
+            return String(
+                localized: "cloud_account_state.disconnected.title",
+                table: "Foundation",
+                comment: "Cloud account state title for disconnected"
+            )
         case .linkingReady:
-            return "Linking ready"
+            return String(
+                localized: "cloud_account_state.linking_ready.title",
+                table: "Foundation",
+                comment: "Cloud account state title for linking ready"
+            )
         case .guest:
-            return "Guest"
+            return String(
+                localized: "cloud_account_state.guest.title",
+                table: "Foundation",
+                comment: "Cloud account state title for guest"
+            )
         case .linked:
-            return "Linked"
+            return String(
+                localized: "cloud_account_state.linked.title",
+                table: "Foundation",
+                comment: "Cloud account state title for linked"
+            )
         }
     }
 }

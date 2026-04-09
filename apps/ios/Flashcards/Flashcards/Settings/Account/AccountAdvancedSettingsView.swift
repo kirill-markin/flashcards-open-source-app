@@ -3,21 +3,26 @@ import SwiftUI
 struct AccountAdvancedSettingsView: View {
     var body: some View {
         List {
-            Section("Advanced") {
-                Text("These settings are intended for technical users who know exactly which server they want to use.")
+            Section(aiSettingsLocalized("settings.account.advanced.section.advanced", "Advanced")) {
+                Text(
+                    aiSettingsLocalized(
+                        "settings.account.advanced.description",
+                        "These settings are intended for technical users who know exactly which server they want to use."
+                    )
+                )
                     .foregroundStyle(.secondary)
 
                 NavigationLink(value: SettingsNavigationDestination.accountServer) {
                     SettingsNavigationRow(
-                        title: "Server",
-                        value: "Custom domain",
+                        title: aiSettingsLocalized("settings.account.advanced.server", "Server"),
+                        value: aiSettingsLocalized("settings.account.advanced.serverValue", "Custom domain"),
                         systemImage: "network"
                     )
                 }
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Advanced")
+        .navigationTitle(aiSettingsLocalized("settings.account.advanced.title", "Advanced"))
     }
 }
 

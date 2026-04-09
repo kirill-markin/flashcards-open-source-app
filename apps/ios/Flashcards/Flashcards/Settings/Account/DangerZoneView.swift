@@ -8,11 +8,11 @@ struct DangerZoneView: View {
 
     var body: some View {
         List {
-            Section("Danger Zone") {
-                Text("Permanently delete this account and all cloud data.")
+            Section(aiSettingsLocalized("settings.account.dangerZone.section.dangerZone", "Danger Zone")) {
+                Text(aiSettingsLocalized("settings.account.dangerZone.description", "Permanently delete this account and all cloud data."))
                     .foregroundStyle(.secondary)
 
-                Button("Delete my account", role: .destructive) {
+                Button(aiSettingsLocalized("settings.account.dangerZone.deleteAccount", "Delete my account"), role: .destructive) {
                     self.isDeleteAccountAlertPresented = true
                 }
                 .accessibilityIdentifier(UITestIdentifier.dangerZoneDeleteAccountButton)
@@ -21,14 +21,14 @@ struct DangerZoneView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.dangerZoneScreen)
-        .navigationTitle("Danger Zone")
-        .alert("Delete this account?", isPresented: self.$isDeleteAccountAlertPresented) {
-            Button("Cancel", role: .cancel) {}
-            Button("Continue", role: .destructive) {
+        .navigationTitle(aiSettingsLocalized("settings.account.dangerZone.title", "Danger Zone"))
+        .alert(aiSettingsLocalized("settings.account.dangerZone.alertTitle", "Delete this account?"), isPresented: self.$isDeleteAccountAlertPresented) {
+            Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {}
+            Button(aiSettingsLocalized("common.continue", "Continue"), role: .destructive) {
                 self.isDeleteAccountConfirmationPresented = true
             }
         } message: {
-            Text("This permanently deletes the account and all cloud data.")
+            Text(aiSettingsLocalized("settings.account.dangerZone.alertMessage", "This permanently deletes the account and all cloud data."))
         }
         .fullScreenCover(isPresented: self.$isDeleteAccountConfirmationPresented) {
             DeleteAccountConfirmationView()

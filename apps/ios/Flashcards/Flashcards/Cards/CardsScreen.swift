@@ -1,5 +1,7 @@
 import SwiftUI
 
+private let reviewCardsStringsTableName: String = "ReviewCards"
+
 enum CardEditorPresentation: Hashable, Identifiable {
     case create
     case edit(cardId: String)
@@ -7,9 +9,9 @@ enum CardEditorPresentation: Hashable, Identifiable {
     var title: String {
         switch self {
         case .create:
-            return "New card"
+            return String(localized: "New card", table: reviewCardsStringsTableName)
         case .edit:
-            return "Edit card"
+            return String(localized: "Edit card", table: reviewCardsStringsTableName)
         }
     }
 
@@ -78,25 +80,25 @@ struct CardsScreen: View {
             }
 
             Section {
-                Text("Cards are the prompts and answers you review to learn and remember.")
+                Text(String(localized: "Cards are the prompts and answers you review to learn and remember.", table: reviewCardsStringsTableName))
                     .foregroundStyle(.secondary)
             }
 
-            Section("Cards") {
+            Section {
                 if self.isLoading {
-                    Text("Loading cards…")
+                    Text(String(localized: "Loading cards…", table: reviewCardsStringsTableName))
                         .foregroundStyle(.secondary)
                 } else if self.cardsSnapshot.totalCount == 0 {
-                    Text("You haven't created any cards yet.")
+                    Text(String(localized: "You haven't created any cards yet.", table: reviewCardsStringsTableName))
                         .foregroundStyle(.secondary)
                 } else if self.cardsSnapshot.cards.isEmpty {
                     ContentUnavailableView(
-                        "No Matching Cards",
+                        String(localized: "No Matching Cards", table: reviewCardsStringsTableName),
                         systemImage: activeFilterDimensionCount == 0 ? "magnifyingglass" : "line.3.horizontal.decrease.circle",
                         description: Text(
                             searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && activeFilterDimensionCount > 0
-                                ? "Try clearing filters."
-                                : "Try a different search or clear filters."
+                                ? String(localized: "Try clearing filters.", table: reviewCardsStringsTableName)
+                                : String(localized: "Try a different search or clear filters.", table: reviewCardsStringsTableName)
                         )
                     )
                 } else {
@@ -113,21 +115,23 @@ struct CardsScreen: View {
                             Button(role: .destructive) {
                                 self.deleteCard(cardId: card.cardId)
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                Label(String(localized: "Delete", table: reviewCardsStringsTableName), systemImage: "trash")
                             }
                         }
                     }
                 }
+            } header: {
+                Text(String(localized: "Cards", table: reviewCardsStringsTableName))
             }
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.cardsScreen)
-        .navigationTitle("Cards")
+        .navigationTitle(String(localized: "Cards", table: reviewCardsStringsTableName))
         .searchable(
             text: self.$searchText,
             isPresented: self.$isSearchPresented,
             placement: .automatic,
-            prompt: "Search cards"
+            prompt: String(localized: "Search cards", table: reviewCardsStringsTableName)
         )
         .searchToolbarBehavior(preferredNativeSearchToolbarBehavior(horizontalSizeClass: self.horizontalSizeClass))
         .toolbar {
@@ -139,14 +143,22 @@ struct CardsScreen: View {
                           ? "line.3.horizontal.decrease.circle"
                           : "line.3.horizontal.decrease.circle.fill")
                 }
-                .accessibilityLabel(activeFilterDimensionCount == 0 ? "Filter cards" : "Filter cards (\(activeFilterDimensionCount) active)")
+                .accessibilityLabel(
+                    activeFilterDimensionCount == 0
+                        ? String(localized: "Filter cards", table: reviewCardsStringsTableName)
+                        : String(
+                            format: String(localized: "Filter cards (%@ active)", table: reviewCardsStringsTableName),
+                            locale: Locale.current,
+                            activeFilterDimensionCount.formatted()
+                        )
+                )
             }
 
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     self.beginCreating()
                 } label: {
-                    Label("Add card", systemImage: "plus")
+                    Label(String(localized: "Add card", table: reviewCardsStringsTableName), systemImage: "plus")
                 }
                 .accessibilityIdentifier(UITestIdentifier.cardsAddButton)
             }
@@ -291,7 +303,7 @@ struct CardsScreen: View {
 
     private func saveEditingCardForAIHandoff() -> AIChatCardReference? {
         guard let editingCardId = self.editorPresentation?.editingCardId else {
-            self.screenErrorMessage = "Card not found."
+            self.screenErrorMessage = String(localized: "Card not found.", table: reviewCardsStringsTableName)
             return nil
         }
 
@@ -354,7 +366,7 @@ struct CardsScreen: View {
 
     private func deleteEditingCard() {
         guard let editingCardId = self.editorPresentation?.editingCardId else {
-            self.screenErrorMessage = "Card not found."
+            self.screenErrorMessage = String(localized: "Card not found.", table: reviewCardsStringsTableName)
             return
         }
 
@@ -399,7 +411,7 @@ struct CardsScreen: View {
         }
 
         self.isLoading = true
-        if self.screenErrorMessage == "Loading cards…" {
+        if self.screenErrorMessage == String(localized: "Loading cards…", table: reviewCardsStringsTableName) {
             self.screenErrorMessage = ""
         }
 
@@ -444,10 +456,10 @@ private struct CardFiltersSheetView: View {
 
     var body: some View {
         Form {
-            Section("Effort") {
+            Section {
                 ForEach(EffortLevel.allCases) { effortLevel in
                     Toggle(
-                        effortLevel.title,
+                        localizedEffortTitle(effortLevel: effortLevel),
                         isOn: Binding(
                             get: {
                                 draftEffort.contains(effortLevel)
@@ -465,9 +477,11 @@ private struct CardFiltersSheetView: View {
                         )
                     )
                 }
+            } header: {
+                Text(String(localized: "Effort", table: reviewCardsStringsTableName))
             }
 
-            Section("Tags") {
+            Section {
                 NavigationLink {
                     TagPickerView(
                         selectedTags: draftTags,
@@ -477,30 +491,36 @@ private struct CardFiltersSheetView: View {
                         }
                     )
                 } label: {
-                    TagsFieldRow(summary: formatTagSelectionSummary(tags: draftTags))
+                    TagsFieldRow(summary: localizedTagSelectionSummary(tags: draftTags))
                 }
+            } header: {
+                Text(String(localized: "Tags", table: reviewCardsStringsTableName))
             }
 
-            Section("Summary") {
+            Section {
                 Text(formatCardFilterSummary(filter: draftFilter))
                     .foregroundStyle(.secondary)
+            } header: {
+                Text(String(localized: "Summary", table: reviewCardsStringsTableName))
             }
 
-            Section("Actions") {
-                Button("Clear filters") {
+            Section {
+                Button(String(localized: "Clear filters", table: reviewCardsStringsTableName)) {
                     updateDraftFilter(tags: [], effort: [])
                 }
                 .disabled(cardFilterActiveDimensionCount(filter: draftFilter) == 0)
+            } header: {
+                Text(String(localized: "Actions", table: reviewCardsStringsTableName))
             }
         }
-        .navigationTitle("Filters")
+        .navigationTitle(String(localized: "Filters", table: reviewCardsStringsTableName))
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("Cancel", action: onCancel)
+                Button(String(localized: "Cancel", table: reviewCardsStringsTableName), action: onCancel)
             }
 
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Apply", action: onApply)
+                Button(String(localized: "Apply", table: reviewCardsStringsTableName), action: onApply)
             }
         }
     }
@@ -534,9 +554,9 @@ struct CardRow: View {
                 .foregroundStyle(.primary)
 
             HStack(spacing: 12) {
-                Label(card.effortLevel.title, systemImage: "timer")
-                Label(card.tags.isEmpty ? "No tags" : formatTags(tags: card.tags), systemImage: "tag")
-                Label(formatOptionalIsoTimestampForDisplay(value: card.dueAt), systemImage: "clock")
+                Label(localizedEffortTitle(effortLevel: card.effortLevel), systemImage: "timer")
+                Label(card.tags.isEmpty ? localizedNoTagsLabel() : formatTags(tags: card.tags), systemImage: "tag")
+                Label(localizedDueDateLabel(value: card.dueAt), systemImage: "clock")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -553,4 +573,16 @@ struct CardRow: View {
             .environment(FlashcardsStore())
             .environment(AppNavigationModel())
     }
+}
+
+private func localizedDueDateLabel(value: String?) -> String {
+    guard let value else {
+        return String(localized: "New", table: reviewCardsStringsTableName)
+    }
+
+    guard let date = parseIsoTimestamp(value: value) else {
+        return value
+    }
+
+    return date.formatted(date: .abbreviated, time: .shortened)
 }

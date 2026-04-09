@@ -10,7 +10,7 @@ struct CopyableErrorMessageView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .textSelection(.enabled)
             .contextMenu {
-                Button("Copy error") {
+                Button(aiSettingsLocalized("common.copyError", "Copy error")) {
                     UIPasteboard.general.string = self.message
                 }
             }

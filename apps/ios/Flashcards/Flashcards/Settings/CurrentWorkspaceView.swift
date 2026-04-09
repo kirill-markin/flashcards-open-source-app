@@ -9,7 +9,7 @@ struct CurrentWorkspaceView: View {
     @State private var isWorkspacePickerLoading: Bool = false
 
     private var currentWorkspaceName: String {
-        self.store.workspace?.name ?? "Unavailable"
+        self.store.workspace?.name ?? aiSettingsLocalized("common.unavailable", "Unavailable")
     }
 
     private var isWorkspaceManagementLocked: Bool {
@@ -29,8 +29,10 @@ struct CurrentWorkspaceView: View {
                     self.handleWorkspaceRowTap()
                 } label: {
                     SettingsNavigationRow(
-                        title: "Workspace",
-                        value: self.isWorkspacePickerLoading ? "Loading..." : self.currentWorkspaceName,
+                        title: aiSettingsLocalized("settings.currentWorkspace.row.workspace", "Workspace"),
+                        value: self.isWorkspacePickerLoading
+                            ? aiSettingsLocalized("common.loading", "Loading...")
+                            : self.currentWorkspaceName,
                         systemImage: "square.stack"
                     )
                 }
@@ -41,7 +43,7 @@ struct CurrentWorkspaceView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.currentWorkspaceScreen)
-        .navigationTitle("Current Workspace")
+        .navigationTitle(aiSettingsLocalized("settings.currentWorkspace.title", "Current Workspace"))
         .sheet(isPresented: self.$isWorkspacePickerPresented) {
             CurrentWorkspacePickerContainer(
                 workspaces: self.linkedWorkspaces,
@@ -96,7 +98,7 @@ private struct CurrentWorkspacePickerContainer: View {
         NavigationStack {
             Group {
                 if self.isLoading {
-                    ProgressView("Loading workspaces...")
+                    ProgressView(aiSettingsLocalized("settings.currentWorkspace.loadingWorkspaces", "Loading workspaces..."))
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 } else if let workspaces = self.workspaces {
                     CurrentWorkspacePickerSheet(
@@ -106,18 +108,20 @@ private struct CurrentWorkspacePickerContainer: View {
                     )
                 } else {
                     CopyableErrorMessageView(
-                        message: self.errorMessage.isEmpty ? "Failed to load linked workspaces." : self.errorMessage
+                        message: self.errorMessage.isEmpty
+                            ? aiSettingsLocalized("settings.currentWorkspace.loadError", "Failed to load linked workspaces.")
+                            : self.errorMessage
                     )
                     .padding()
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
             .accessibilityIdentifier(UITestIdentifier.currentWorkspacePickerScreen)
-            .navigationTitle("Choose Workspace")
+            .navigationTitle(aiSettingsLocalized("settings.currentWorkspace.chooseWorkspaceTitle", "Choose Workspace"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") {
+                    Button(aiSettingsLocalized("common.close", "Close")) {
                         self.onDismiss()
                     }
                 }
@@ -149,11 +153,16 @@ private struct CurrentWorkspacePickerSheet: View {
             }
 
             Section {
-                Text("Choose a linked workspace to open on this device, or create a new one.")
+                Text(
+                    aiSettingsLocalized(
+                        "settings.currentWorkspace.instructions",
+                        "Choose a linked workspace to open on this device, or create a new one."
+                    )
+                )
                     .foregroundStyle(.secondary)
             }
 
-            Section("Choose workspace") {
+            Section(aiSettingsLocalized("settings.currentWorkspace.section.chooseWorkspace", "Choose workspace")) {
                 ForEach(self.selectionItems) { item in
                     Button {
                         self.switchWorkspace(selection: item.selection)

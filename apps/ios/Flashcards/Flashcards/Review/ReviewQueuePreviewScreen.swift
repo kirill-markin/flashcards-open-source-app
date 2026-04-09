@@ -1,5 +1,7 @@
 import SwiftUI
 
+private let reviewCardsStringsTableName: String = "ReviewCards"
+
 struct ReviewQueuePreviewScreen: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -44,7 +46,7 @@ struct ReviewQueuePreviewScreen: View {
                     ProgressView()
                         .controlSize(.large)
                         .padding(.bottom, 12)
-                    Text("Loading queue")
+                    Text(String(localized: "Loading queue", table: reviewCardsStringsTableName))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -52,9 +54,9 @@ struct ReviewQueuePreviewScreen: View {
                 .padding(.top, 120)
             } else if self.previewItems.isEmpty && self.errorMessage == nil {
                 ContentUnavailableView(
-                    "No Matching Cards",
+                    String(localized: "No Matching Cards", table: reviewCardsStringsTableName),
                     systemImage: "tray",
-                    description: Text("This review filter does not include any cards yet.")
+                    description: Text(String(localized: "This review filter does not include any cards yet.", table: reviewCardsStringsTableName))
                 )
                 .padding(.top, 120)
             } else {
@@ -112,7 +114,7 @@ struct ReviewQueuePreviewScreen: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Close") {
+                Button(String(localized: "Close", table: reviewCardsStringsTableName)) {
                     self.dismiss()
                 }
             }
@@ -222,7 +224,7 @@ private struct ReviewQueuePreviewErrorCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Queue couldn't be loaded")
+            Text(String(localized: "Queue couldn't be loaded", table: reviewCardsStringsTableName))
                 .font(.headline)
 
             Text(message)
@@ -230,11 +232,11 @@ private struct ReviewQueuePreviewErrorCard: View {
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 12) {
-                Button("Retry") {
+                Button(String(localized: "Retry", table: reviewCardsStringsTableName)) {
                     self.onRetry()
                 }
 
-                Button("Close") {
+                Button(String(localized: "Close", table: reviewCardsStringsTableName)) {
                     self.onClose()
                 }
             }
@@ -257,7 +259,7 @@ private struct ReviewQueuePreviewCardRow: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 if isCurrent {
-                    Text("Current")
+                    Text(String(localized: "Current", table: reviewCardsStringsTableName))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.tint)
                         .padding(.horizontal, 10)
@@ -275,9 +277,9 @@ private struct ReviewQueuePreviewCardRow: View {
                 .lineLimit(2)
 
             HStack(spacing: 12) {
-                Label(formatOptionalIsoTimestampForDisplay(value: card.dueAt), systemImage: "clock")
-                Label(card.effortLevel.title, systemImage: "timer")
-                Label(card.tags.isEmpty ? "No tags" : formatTags(tags: card.tags), systemImage: "tag")
+                Label(localizedDueDateLabel(value: card.dueAt), systemImage: "clock")
+                Label(localizedEffortTitle(effortLevel: card.effortLevel), systemImage: "timer")
+                Label(card.tags.isEmpty ? localizedNoTagsLabel() : formatTags(tags: card.tags), systemImage: "tag")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -302,7 +304,7 @@ private struct ReviewQueueSectionSeparator: View {
                 .fill(Color.secondary.opacity(0.35))
                 .frame(height: 1)
 
-            Text("Later")
+            Text(String(localized: "Later", table: reviewCardsStringsTableName))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
 
@@ -312,4 +314,16 @@ private struct ReviewQueueSectionSeparator: View {
         }
         .padding(.vertical, 8)
     }
+}
+
+private func localizedDueDateLabel(value: String?) -> String {
+    guard let value else {
+        return String(localized: "New", table: reviewCardsStringsTableName)
+    }
+
+    guard let date = parseIsoTimestamp(value: value) else {
+        return value
+    }
+
+    return date.formatted(date: .abbreviated, time: .shortened)
 }

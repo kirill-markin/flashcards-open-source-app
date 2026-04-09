@@ -11,14 +11,7 @@ enum AIChatAttachmentMenuAction: String, CaseIterable, Identifiable {
     }
 
     var title: String {
-        switch self {
-        case .takePhoto:
-            return "Take Photo"
-        case .choosePhoto:
-            return "Choose Photo"
-        case .chooseFile:
-            return "Choose File"
-        }
+        localizedAIAttachmentMenuActionTitle(self)
     }
 
     var systemImage: String {
@@ -57,7 +50,13 @@ func aiChatMakeAttachmentFromFile(url: URL) throws -> AIChatAttachment {
         throw NSError(
             domain: "AIChatAttachment",
             code: 1,
-            userInfo: [NSLocalizedDescriptionKey: "Unsupported file type: .\(fileExtension)"]
+            userInfo: [
+                NSLocalizedDescriptionKey: aiSettingsLocalizedFormat(
+                    "ai.attachment.error.unsupportedType",
+                    "Unsupported file type: .%@",
+                    fileExtension
+                )
+            ]
         )
     }
 
@@ -119,12 +118,28 @@ func aiChatCameraPresentationResult(
         case .blocked, .askEveryTime:
             return .stopSilently
         case .limited, .unavailable:
-            return .showAlert(.generalError(title: "Error", message: "Camera is not available on this device."))
+            return .showAlert(
+                .generalError(
+                    title: aiSettingsLocalized("ai.error.title", "Error"),
+                    message: aiSettingsLocalized(
+                        "ai.attachment.error.cameraUnavailable",
+                        "Camera is not available on this device."
+                    )
+                )
+            )
         }
     case .blocked, .limited:
         return .showAlert(.attachmentSettings(source: .camera))
     case .unavailable:
-        return .showAlert(.generalError(title: "Error", message: "Camera is not available on this device."))
+        return .showAlert(
+            .generalError(
+                title: aiSettingsLocalized("ai.error.title", "Error"),
+                message: aiSettingsLocalized(
+                    "ai.attachment.error.cameraUnavailable",
+                    "Camera is not available on this device."
+                )
+            )
+        )
     }
 }
 
@@ -146,12 +161,28 @@ func aiChatPhotoPresentationResult(
         case .blocked, .askEveryTime:
             return .stopSilently
         case .unavailable:
-            return .showAlert(.generalError(title: "Error", message: "Photo access is not available on this device."))
+            return .showAlert(
+                .generalError(
+                    title: aiSettingsLocalized("ai.error.title", "Error"),
+                    message: aiSettingsLocalized(
+                        "ai.attachment.error.photoUnavailable",
+                        "Photo access is not available on this device."
+                    )
+                )
+            )
         }
     case .blocked:
         return .showAlert(.attachmentSettings(source: .photos))
     case .unavailable:
-        return .showAlert(.generalError(title: "Error", message: "Photo access is not available on this device."))
+        return .showAlert(
+            .generalError(
+                title: aiSettingsLocalized("ai.error.title", "Error"),
+                message: aiSettingsLocalized(
+                    "ai.attachment.error.photoUnavailable",
+                    "Photo access is not available on this device."
+                )
+            )
+        )
     }
 }
 
@@ -190,7 +221,10 @@ private func aiChatValidateAttachmentSize(data: Data) throws {
             domain: "AIChatAttachment",
             code: 2,
             userInfo: [
-                NSLocalizedDescriptionKey: "File is too large. Maximum allowed size is 20 MB.",
+                NSLocalizedDescriptionKey: aiSettingsLocalized(
+                    "ai.attachment.error.fileTooLarge",
+                    "File is too large. Maximum allowed size is 20 MB."
+                ),
             ]
         )
     }

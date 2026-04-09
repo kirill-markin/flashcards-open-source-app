@@ -30,8 +30,8 @@ struct SettingsView: View {
             Section {
                 if self.isWorkspaceManagementLocked {
                     SettingsNavigationRow(
-                        title: "Current Workspace",
-                        value: store.workspace?.name ?? "Unavailable",
+                        title: aiSettingsLocalized("settings.row.currentWorkspace", "Current Workspace"),
+                        value: store.workspace?.name ?? aiSettingsLocalized("common.unavailable", "Unavailable"),
                         systemImage: "square.stack"
                     )
                     .foregroundStyle(.secondary)
@@ -39,8 +39,8 @@ struct SettingsView: View {
                 } else {
                     NavigationLink(value: SettingsNavigationDestination.currentWorkspace) {
                         SettingsNavigationRow(
-                            title: "Current Workspace",
-                            value: store.workspace?.name ?? "Unavailable",
+                            title: aiSettingsLocalized("settings.row.currentWorkspace", "Current Workspace"),
+                            value: store.workspace?.name ?? aiSettingsLocalized("common.unavailable", "Unavailable"),
                             systemImage: "square.stack"
                         )
                     }
@@ -51,8 +51,8 @@ struct SettingsView: View {
             Section {
                 NavigationLink(value: SettingsNavigationDestination.workspace) {
                     SettingsNavigationRow(
-                        title: "Workspace Settings",
-                        value: store.workspace?.name ?? "Unavailable",
+                        title: aiSettingsLocalized("settings.row.workspaceSettings", "Workspace Settings"),
+                        value: store.workspace?.name ?? aiSettingsLocalized("common.unavailable", "Unavailable"),
                         systemImage: "square.grid.2x2"
                     )
                 }
@@ -60,7 +60,7 @@ struct SettingsView: View {
 
                 NavigationLink(value: SettingsNavigationDestination.account) {
                     SettingsNavigationRow(
-                        title: "Account Settings",
+                        title: aiSettingsLocalized("settings.row.accountSettings", "Account Settings"),
                         value: displayCloudAccountStateTitle(cloudState: store.cloudSettings?.cloudState ?? .disconnected),
                         systemImage: "person.crop.circle"
                     )
@@ -71,7 +71,7 @@ struct SettingsView: View {
             Section {
                 NavigationLink(value: SettingsNavigationDestination.device) {
                     SettingsNavigationRow(
-                        title: "This Device",
+                        title: aiSettingsLocalized("settings.row.thisDevice", "This Device"),
                         value: "SwiftUI + SQLite",
                         systemImage: "internaldrive"
                     )
@@ -79,8 +79,8 @@ struct SettingsView: View {
 
                 NavigationLink(value: SettingsNavigationDestination.access) {
                     SettingsNavigationRow(
-                        title: "Access",
-                        value: "4 items",
+                        title: aiSettingsLocalized("settings.row.access", "Access"),
+                        value: aiSettingsLocalized("settings.row.access.itemCount", "4 items"),
                         systemImage: "hand.raised"
                     )
                 }
@@ -88,7 +88,7 @@ struct SettingsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.settingsScreen)
-        .navigationTitle("Settings")
+        .navigationTitle(aiSettingsLocalized("settings.title", "Settings"))
     }
 }
 
@@ -115,29 +115,47 @@ func makeSyncStatusPresentation(status: SyncStatus, cloudState: CloudAccountStat
     case .idle:
         switch cloudState {
         case .linked:
-            return SyncStatusPresentation(title: "Successfully synced", tone: .success)
+            return SyncStatusPresentation(
+                title: aiSettingsLocalized("settings.sync.success", "Successfully synced"),
+                tone: .success
+            )
         case .guest:
-            return SyncStatusPresentation(title: "Guest AI is active", tone: .neutral)
+            return SyncStatusPresentation(
+                title: aiSettingsLocalized("settings.sync.guestAiActive", "Guest AI is active"),
+                tone: .neutral
+            )
         case .disconnected, .linkingReady:
-            return SyncStatusPresentation(title: "Not syncing", tone: .neutral)
+            return SyncStatusPresentation(
+                title: aiSettingsLocalized("settings.sync.notSyncing", "Not syncing"),
+                tone: .neutral
+            )
         }
     case .syncing:
-        return SyncStatusPresentation(title: "Syncing", tone: .inProgress)
+        return SyncStatusPresentation(
+            title: aiSettingsLocalized("settings.sync.syncing", "Syncing"),
+            tone: .inProgress
+        )
     case .blocked(let message):
-        return SyncStatusPresentation(title: "Sync blocked: \(message)", tone: .failure)
+        return SyncStatusPresentation(
+            title: aiSettingsLocalizedFormat("settings.sync.blocked", "Sync blocked: %@", message),
+            tone: .failure
+        )
     case .failed(let message):
-        return SyncStatusPresentation(title: "Sync failed: \(message)", tone: .failure)
+        return SyncStatusPresentation(
+            title: aiSettingsLocalizedFormat("settings.sync.failed", "Sync failed: %@", message),
+            tone: .failure
+        )
     }
 }
 
 func displayCloudAccountStateTitle(cloudState: CloudAccountState) -> String {
     switch cloudState {
     case .linked:
-        return cloudState.title
+        return localizedCloudAccountStateTitle(cloudState)
     case .guest:
-        return cloudState.title
+        return localizedCloudAccountStateTitle(cloudState)
     case .disconnected, .linkingReady:
-        return CloudAccountState.disconnected.title
+        return localizedCloudAccountStateTitle(.disconnected)
     }
 }
 

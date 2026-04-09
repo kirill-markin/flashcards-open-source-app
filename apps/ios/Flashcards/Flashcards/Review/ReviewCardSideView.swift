@@ -1,5 +1,7 @@
 import SwiftUI
 
+private let reviewCardsStringsTableName: String = "ReviewCards"
+
 struct ReviewCardSideView: View {
     let label: String
     let content: ReviewRenderedContent
@@ -53,12 +55,24 @@ struct ReviewCardSideView: View {
                                 .background(.thinMaterial, in: Circle())
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel(self.isSpeechPlaying ? "Stop \(self.label) speech" : "Speak \(self.label)")
+                        .accessibilityLabel(
+                            self.isSpeechPlaying
+                                ? String(
+                                    format: String(localized: "Stop %@ speech", table: reviewCardsStringsTableName),
+                                    locale: Locale.current,
+                                    self.label
+                                )
+                                : String(
+                                    format: String(localized: "Speak %@", table: reviewCardsStringsTableName),
+                                    locale: Locale.current,
+                                    self.label
+                                )
+                        )
                     }
 
                     if self.showsAiButton {
                         Button(action: self.onOpenAi) {
-                            Text("AI")
+                            Text(String(localized: "AI", table: reviewCardsStringsTableName))
                                 .font(.caption2.weight(.bold))
                                 .foregroundStyle(.white)
                                 .frame(height: 32)
@@ -67,7 +81,7 @@ struct ReviewCardSideView: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier(UITestIdentifier.reviewAiButton)
-                        .accessibilityLabel("Open card in AI chat")
+                        .accessibilityLabel(String(localized: "Open card in AI chat", table: reviewCardsStringsTableName))
                     }
                 }
             }

@@ -1,7 +1,11 @@
 import SwiftUI
 
 private func formatCardsCount(_ cardsCount: Int) -> String {
-    "\(cardsCount) " + (cardsCount == 1 ? "card" : "cards")
+    if cardsCount == 1 {
+        return aiSettingsLocalizedFormat("settings.workspace.tags.oneCard", "%d card", cardsCount)
+    }
+
+    return aiSettingsLocalizedFormat("settings.workspace.tags.multipleCards", "%d cards", cardsCount)
 }
 
 struct TagsScreen: View {
@@ -31,22 +35,27 @@ struct TagsScreen: View {
             }
 
             Section {
-                Text("Tags group cards across the workspace. Per-tag counts can overlap when one card has multiple tags.")
+                Text(
+                    aiSettingsLocalized(
+                        "settings.workspace.tags.description",
+                        "Tags group cards across the workspace. Per-tag counts can overlap when one card has multiple tags."
+                    )
+                )
                     .foregroundStyle(.secondary)
             }
 
-            Section("Tags") {
+            Section(aiSettingsLocalized("settings.workspace.row.tags", "Tags")) {
                 if self.isLoading {
-                    Text("Loading tags…")
+                    Text(aiSettingsLocalized("settings.workspace.tags.loading", "Loading tags…"))
                         .foregroundStyle(.secondary)
                 } else if self.tagsSummary.tags.isEmpty {
-                    Text("No tags have been used yet.")
+                    Text(aiSettingsLocalized("settings.workspace.tags.empty", "No tags have been used yet."))
                         .foregroundStyle(.secondary)
                 } else if self.filteredTags.isEmpty {
                     ContentUnavailableView(
-                        "No Matching Tags",
+                        aiSettingsLocalized("settings.workspace.tags.noMatching", "No Matching Tags"),
                         systemImage: "magnifyingglass",
-                        description: Text("Try a different search.")
+                        description: Text(aiSettingsLocalized("common.tryDifferentSearch", "Try a different search."))
                     )
                 } else {
                     ForEach(self.filteredTags, id: \.tag) { tagSummary in
@@ -68,7 +77,7 @@ struct TagsScreen: View {
             Section {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("Total cards")
+                        Text(aiSettingsLocalized("settings.workspace.tags.totalCards", "Total cards"))
                             .foregroundStyle(.secondary)
 
                         Spacer()
@@ -77,7 +86,12 @@ struct TagsScreen: View {
                             .font(.headline.monospacedDigit())
                     }
 
-                    Text("This count is for the full workspace and does not double-count cards that share tags.")
+                    Text(
+                        aiSettingsLocalized(
+                            "settings.workspace.tags.totalCardsDescription",
+                            "This count is for the full workspace and does not double-count cards that share tags."
+                        )
+                    )
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -85,12 +99,12 @@ struct TagsScreen: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Tags")
+        .navigationTitle(aiSettingsLocalized("settings.workspace.row.tags", "Tags"))
         .searchable(
             text: self.$searchText,
             isPresented: self.$isSearchPresented,
             placement: .automatic,
-            prompt: "Search tags"
+            prompt: aiSettingsLocalized("settings.workspace.tags.searchPrompt", "Search tags")
         )
         .searchToolbarBehavior(preferredNativeSearchToolbarBehavior(horizontalSizeClass: self.horizontalSizeClass))
         .task(id: store.localReadVersion) {

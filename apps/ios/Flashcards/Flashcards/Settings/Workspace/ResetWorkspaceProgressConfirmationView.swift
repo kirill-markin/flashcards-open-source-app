@@ -30,11 +30,15 @@ struct ResetWorkspaceProgressConfirmationView: View {
                 }
             }
             .padding(24)
-            .navigationTitle(self.preview == nil ? "Reset all progress" : "Confirm reset")
+            .navigationTitle(
+                self.preview == nil
+                    ? aiSettingsLocalized("settings.workspace.resetAllProgress", "Reset all progress")
+                    : aiSettingsLocalized("settings.workspace.resetConfirmation.title", "Confirm reset")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button(aiSettingsLocalized("common.cancel", "Cancel")) {
                         self.isPresented = false
                     }
                     .disabled(self.isOperationInProgress)
@@ -51,22 +55,38 @@ struct ResetWorkspaceProgressConfirmationView: View {
 
     @ViewBuilder
     private func confirmationContent() -> some View {
-        Text("Warning! This action is permanent. It will clear study progress for every card in this workspace.")
+        Text(
+            aiSettingsLocalized(
+                "settings.workspace.resetConfirmation.warning",
+                "Warning! This action is permanent. It will clear study progress for every card in this workspace."
+            )
+        )
             .foregroundStyle(.red)
             .font(.headline)
 
-        Text("Cards will remain in place. Their study progress will return to new.")
+        Text(
+            aiSettingsLocalized(
+                "settings.workspace.resetConfirmation.description",
+                "Cards will remain in place. Their study progress will return to new."
+            )
+        )
             .foregroundStyle(.secondary)
 
         VStack(alignment: .leading, spacing: 8) {
-            Text("Type this phrase exactly to continue:")
+            Text(aiSettingsLocalized("common.typePhraseToContinue", "Type this phrase exactly to continue:"))
                 .foregroundStyle(.secondary)
             Text(workspaceResetProgressConfirmationText)
                 .font(.body.monospaced())
                 .accessibilityIdentifier(UITestIdentifier.resetWorkspaceProgressConfirmationPhrase)
         }
 
-        TextField("reset all progress for all cards in this workspace", text: self.$confirmationText)
+        TextField(
+            aiSettingsLocalized(
+                "settings.workspace.resetConfirmation.placeholder",
+                "reset all progress for all cards in this workspace"
+            ),
+            text: self.$confirmationText
+        )
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled(true)
             .keyboardType(.asciiCapable)
@@ -88,13 +108,17 @@ struct ResetWorkspaceProgressConfirmationView: View {
 
         if self.isLoadingPreview {
             ProgressView()
-            Text("Loading reset preview...")
+            Text(aiSettingsLocalized("settings.workspace.resetConfirmation.loadingPreview", "Loading reset preview..."))
                 .foregroundStyle(.secondary)
         }
 
         Spacer()
 
-        Button(self.isLoadingPreview ? "Loading..." : "Continue") {
+        Button(
+            self.isLoadingPreview
+                ? aiSettingsLocalized("common.loading", "Loading...")
+                : aiSettingsLocalized("common.continue", "Continue")
+        ) {
             self.requestPreview()
         }
         .buttonStyle(.glassProminent)
@@ -105,15 +129,27 @@ struct ResetWorkspaceProgressConfirmationView: View {
 
     @ViewBuilder
     private func previewContent(preview: CloudWorkspaceResetProgressPreview) -> some View {
-        Text("Warning! This action is permanent. It will reset \(preview.cardsToResetCount) cards in \(preview.workspaceName).")
+        Text(
+            aiSettingsLocalizedFormat(
+                "settings.workspace.resetConfirmation.previewWarning",
+                "Warning! This action is permanent. It will reset %d cards in %@.",
+                preview.cardsToResetCount,
+                preview.workspaceName
+            )
+        )
             .foregroundStyle(.red)
             .font(.headline)
 
-        Text("Cards will remain in the workspace. Only their study progress will be cleared.")
+        Text(
+            aiSettingsLocalized(
+                "settings.workspace.resetConfirmation.previewDescription",
+                "Cards will remain in the workspace. Only their study progress will be cleared."
+            )
+        )
             .foregroundStyle(.secondary)
 
         VStack(alignment: .leading, spacing: 8) {
-            Text("Cards to reset")
+            Text(aiSettingsLocalized("settings.workspace.resetConfirmation.cardsToReset", "Cards to reset"))
                 .foregroundStyle(.secondary)
             Text("\(preview.cardsToResetCount)")
                 .font(.largeTitle.bold().monospacedDigit())
@@ -126,13 +162,18 @@ struct ResetWorkspaceProgressConfirmationView: View {
 
         if self.isResetting {
             ProgressView()
-            Text("Resetting progress...")
+            Text(aiSettingsLocalized("settings.workspace.resetConfirmation.resetting", "Resetting progress..."))
                 .foregroundStyle(.secondary)
         }
 
         Spacer()
 
-        Button(self.isResetting ? "Resetting..." : "Reset all progress", role: .destructive) {
+        Button(
+            self.isResetting
+                ? aiSettingsLocalized("settings.workspace.resetConfirmation.resettingButton", "Resetting...")
+                : aiSettingsLocalized("settings.workspace.resetAllProgress", "Reset all progress"),
+            role: .destructive
+        ) {
             self.requestReset(preview: preview)
         }
         .buttonStyle(.glassProminent)

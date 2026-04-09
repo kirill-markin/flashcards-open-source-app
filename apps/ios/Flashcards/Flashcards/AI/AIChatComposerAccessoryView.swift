@@ -66,7 +66,13 @@ extension AIChatView {
                                     case .unknown(let unknownAttachment):
                                         Image(systemName: "questionmark.square.dashed")
                                             .foregroundStyle(.secondary)
-                                        Text("Unsupported attachment (\(unknownAttachment.originalType))")
+                                        Text(
+                                            aiSettingsLocalizedFormat(
+                                                "ai.composer.attachment.unsupported",
+                                                "Unsupported attachment (%@)",
+                                                unknownAttachment.originalType
+                                            )
+                                        )
                                             .font(.caption)
                                             .lineLimit(1)
                                     }
@@ -115,7 +121,10 @@ extension AIChatView {
 
                 ZStack(alignment: .bottomTrailing) {
                     TextField(
-                        "Ask about cards, review history, or propose a change...",
+                        aiSettingsLocalized(
+                            "ai.composer.placeholder",
+                            "Ask about cards, review history, or propose a change..."
+                        ),
                         text: $chatStore.inputText,
                         selection: self.$composerSelection,
                         axis: .vertical
@@ -143,7 +152,11 @@ extension AIChatView {
                     }
                     .buttonStyle(.plain)
                     .disabled(self.primaryComposerButtonDisabled)
-                    .accessibilityLabel(self.chatStore.canStopResponse ? "Stop response" : "Send message")
+                    .accessibilityLabel(
+                        self.chatStore.canStopResponse
+                            ? aiSettingsLocalized("ai.composer.stopResponse", "Stop response")
+                            : aiSettingsLocalized("ai.composer.sendMessage", "Send message")
+                    )
                     .accessibilityIdentifier(UITestIdentifier.aiComposerSendButton)
                     .padding(.trailing, aiChatComposerSendButtonInset)
                     .padding(.bottom, aiChatComposerSendButtonInset)
@@ -175,7 +188,7 @@ extension AIChatView {
                                     Button {
                                         self.handleAttachmentMenuAction(action)
                             } label: {
-                                Label(action.title, systemImage: action.systemImage)
+                                Label(localizedAIAttachmentMenuActionTitle(action), systemImage: action.systemImage)
                             }
                         }
                             } label: {
@@ -184,8 +197,13 @@ extension AIChatView {
                             .buttonStyle(.glass)
                             .tint(.accentColor)
                             .disabled(self.chatStore.dictationState != .idle || self.chatStore.isComposerBusy)
-                            .accessibilityLabel("Add attachment")
-                            .accessibilityHint("Take a photo, choose a photo, or select a file")
+                            .accessibilityLabel(aiSettingsLocalized("ai.composer.addAttachment", "Add attachment"))
+                            .accessibilityHint(
+                                aiSettingsLocalized(
+                                    "ai.composer.addAttachment.hint",
+                                    "Take a photo, choose a photo, or select a file"
+                                )
+                            )
                             .menuOrder(.fixed)
                         }
 
@@ -200,7 +218,11 @@ extension AIChatView {
                             .buttonStyle(.glass)
                             .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
                             .disabled(self.chatStore.dictationState == .requestingPermission || self.chatStore.dictationState == .transcribing || self.chatStore.isComposerBusy)
-                            .accessibilityLabel(self.chatStore.dictationState == .recording ? "Stop dictation" : "Start dictation")
+                            .accessibilityLabel(
+                                self.chatStore.dictationState == .recording
+                                    ? aiSettingsLocalized("ai.composer.dictation.stop", "Stop dictation")
+                                    : aiSettingsLocalized("ai.composer.dictation.start", "Start dictation")
+                            )
                         }
                     }
                 }
@@ -215,11 +237,11 @@ extension AIChatView {
         case .idle:
             return ""
         case .requestingPermission:
-            return "Waiting for microphone access..."
+            return aiSettingsLocalized("ai.composer.dictation.waiting", "Waiting for microphone access...")
         case .recording:
-            return "Listening..."
+            return aiSettingsLocalized("ai.composer.dictation.listening", "Listening...")
         case .transcribing:
-            return "Transcribing..."
+            return aiSettingsLocalized("ai.composer.dictation.transcribing", "Transcribing...")
         }
     }
 

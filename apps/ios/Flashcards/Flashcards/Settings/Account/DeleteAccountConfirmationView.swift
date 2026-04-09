@@ -13,18 +13,23 @@ struct DeleteAccountConfirmationView: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Warning! This action is permanent. You will lose all your data forever, and we will not be able to restore it.")
+                Text(
+                    aiSettingsLocalized(
+                        "settings.account.deleteConfirmation.warning",
+                        "Warning! This action is permanent. You will lose all your data forever, and we will not be able to restore it."
+                    )
+                )
                     .foregroundStyle(.red)
                     .font(.headline)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Type this phrase exactly to continue:")
+                    Text(aiSettingsLocalized("common.typePhraseToContinue", "Type this phrase exactly to continue:"))
                         .foregroundStyle(.secondary)
                     Text(accountDeletionConfirmationText)
                         .font(.body.monospaced())
                 }
 
-                TextField("delete my account", text: self.$confirmationText)
+                TextField(aiSettingsLocalized("settings.account.deleteConfirmation.placeholder", "delete my account"), text: self.$confirmationText)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
                     .keyboardType(.asciiCapable)
@@ -37,7 +42,7 @@ struct DeleteAccountConfirmationView: View {
 
                 Spacer()
 
-                Button("Delete my account", role: .destructive) {
+                Button(aiSettingsLocalized("settings.account.dangerZone.deleteAccount", "Delete my account"), role: .destructive) {
                     store.beginAccountDeletion()
                     dismiss()
                 }
@@ -46,11 +51,11 @@ struct DeleteAccountConfirmationView: View {
                 .disabled(self.isDeleteEnabled == false)
             }
             .padding(24)
-            .navigationTitle("Delete account")
+            .navigationTitle(aiSettingsLocalized("settings.account.deleteConfirmation.title", "Delete account"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button(aiSettingsLocalized("common.cancel", "Cancel")) {
                         dismiss()
                     }
                 }

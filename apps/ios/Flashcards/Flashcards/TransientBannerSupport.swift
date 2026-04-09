@@ -1,12 +1,37 @@
 import SwiftUI
 
+private let foundationStringsTableName: String = "Foundation"
 let transientBannerDefaultDismissDelayNanoseconds: UInt64 = 3_000_000_000
-let settingsWorkspaceLockedBannerMessage: String = "Workspace changes are available only after you create an account."
-let reviewUpdatedOnAnotherDeviceBannerMessage: String = "This review updated on another device."
-let cardsUpdatedFromCloudBannerMessage: String = "Cards updated from the cloud."
-let aiChatOfflineBannerMessage: String = "No internet connection. AI chat requires internet access."
-let aiChatActiveRunBannerMessage: String = "A response is already in progress. Wait for it to finish or stop it before sending another message."
-let reviewSpeechUnavailableBannerMessage: String = "Speech is unavailable on this device."
+let settingsWorkspaceLockedBannerMessage: String = String(
+    localized: "transient_banner.workspace_changes_require_account",
+    table: foundationStringsTableName,
+    comment: "Banner message when workspace changes require an account"
+)
+let reviewUpdatedOnAnotherDeviceBannerMessage: String = String(
+    localized: "transient_banner.review_updated_on_another_device",
+    table: foundationStringsTableName,
+    comment: "Banner message when a review is updated on another device"
+)
+let cardsUpdatedFromCloudBannerMessage: String = String(
+    localized: "transient_banner.cards_updated_from_cloud",
+    table: foundationStringsTableName,
+    comment: "Banner message when cards update from the cloud"
+)
+let aiChatOfflineBannerMessage: String = String(
+    localized: "transient_banner.ai_chat_offline",
+    table: foundationStringsTableName,
+    comment: "Banner message when AI chat is unavailable offline"
+)
+let aiChatActiveRunBannerMessage: String = String(
+    localized: "transient_banner.ai_chat_active_run",
+    table: foundationStringsTableName,
+    comment: "Banner message when an AI response is already in progress"
+)
+let reviewSpeechUnavailableBannerMessage: String = String(
+    localized: "transient_banner.review_speech_unavailable",
+    table: foundationStringsTableName,
+    comment: "Banner message when speech is unavailable on the device"
+)
 
 enum TransientBannerKind: Hashable, Sendable {
     case aiChatOffline
