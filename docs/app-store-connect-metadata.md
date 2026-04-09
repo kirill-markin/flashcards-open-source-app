@@ -8,20 +8,30 @@ Flashcards Open Source App
 
 ## Subtitle
 
-Offline-first flashcards
+AI Flashcards for Real Study
 
 ## Description
 
-Flashcards Open Source App is an offline-first flashcards app built for fast daily study.
+Flashcards Open Source App is an AI-powered flashcards app built for serious studying.
 
-Create and edit cards on your device, organize them with decks and tags, and review with FSRS-based spaced repetition. The core app works locally, so you can keep studying even when you are offline.
+Use it for:
+- exam prep and coursework
+- language learning and vocabulary building
+- medical, technical, and other high-memorization study
+- AI-assisted card improvement and study planning
+- fast daily review with decks, tags, and spaced repetition
 
-Use the app to review due cards with a focused mobile flow, create and edit flashcards quickly, organize study material with decks and tags, and keep your data on-device first with local storage.
+Create and edit cards quickly, organize your study system with decks and tags, and review with spaced repetition that helps you remember more with less wasted time.
 
-Cloud sign-in is optional. You only need an account for cloud sync and hosted AI features.
+AI is built into the workflow. Use it to explore your material, improve card content, think through tricky topics, and organize your next study steps without leaving your flashcards.
+
+Cloud sign-in is optional. Sign in when you want sync and hosted AI features.
 
 The app is open source, and the same stack can be self-hosted. Support, privacy policy, and terms are available inside the app.
 
+All code for the app, backend, and infrastructure is open and available on GitHub:
+https://github.com/kirill-markin/flashcards-open-source-app
+
 ## Keywords
 
-flashcards,study,spaced repetition,offline,decks,tags,review,memory,learning,fsrs,open source
+study,spaced repetition,ai,vocabulary,language,exam prep,med school,decks,tags,fsrs,memory
