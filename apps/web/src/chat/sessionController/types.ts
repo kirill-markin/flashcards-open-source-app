@@ -36,6 +36,7 @@ export type ChatSessionController = Readonly<{
   errorDialogMessage: string | null;
   dismissErrorDialog: () => void;
   acceptServerSessionId: (sessionId: string) => void;
+  ensureRemoteSession: () => Promise<string>;
   sendMessage: (params: SendChatMessageParams) => Promise<SendChatMessageResult>;
   stopMessage: () => Promise<void>;
   clearConversation: () => Promise<string | null>;

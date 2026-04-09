@@ -17,6 +17,9 @@ export type CompletedSqlToolCall = Readonly<{
 export type AiTransportObservation = Readonly<{
   liveRequestCount: number;
   snapshotPollRequestCount: number;
+  sessionlessChatSnapshotRequestCount: number;
+  sessionlessChatRunRequestCount: number;
+  sessionlessTranscriptionRequestCount: number;
 }>;
 
 export type AiCreateAttemptResolution = Readonly<{

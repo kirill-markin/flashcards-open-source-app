@@ -162,7 +162,7 @@ export function ChatPanel(props: Props): ReactElement {
     composerAction,
     errorDialogMessage,
     dismissErrorDialog,
-    acceptServerSessionId,
+    ensureRemoteSession,
     sendMessage: sendChatMessage,
     stopMessage,
     clearConversation,
@@ -178,6 +178,7 @@ export function ChatPanel(props: Props): ReactElement {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const recordedChunksRef = useRef<Array<Blob>>([]);
+  const currentSessionIdRef = useRef<string | null>(currentSessionId);
   const draftSelectionRef = useRef<ChatDraftSelection | null>(null);
   const pendingTextareaSelectionRef = useRef<ChatDraftSelection | null>(null);
   const pendingComposerFocusRestoreRef = useRef<boolean>(false);
@@ -226,6 +227,10 @@ export function ChatPanel(props: Props): ReactElement {
   useEffect(() => {
     pendingAttachmentsRef.current = pendingAttachments;
   }, [pendingAttachments]);
+
+  useEffect(() => {
+    currentSessionIdRef.current = currentSessionId;
+  }, [currentSessionId]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -488,13 +493,21 @@ export function ChatPanel(props: Props): ReactElement {
         return;
       }
 
+      const sessionId = await ensureRemoteSession();
       const transcription = await transcribeChatAudio(
         audioBlob,
         "web",
-        currentSessionId ?? undefined,
+        sessionId,
       );
+      if (transcription.sessionId !== sessionId) {
+        throw new Error("Chat transcription returned an unexpected session ID.");
+      }
+
+      if (currentSessionIdRef.current !== sessionId) {
+        return;
+      }
+
       if (isMountedRef.current) {
-        acceptServerSessionId(transcription.sessionId);
         updateInputText((currentText) => {
           const insertionResult = insertDictationTranscriptIntoDraft(
             currentText,

@@ -138,6 +138,7 @@ class AiChatRuntimeCardHandoffTest {
     @Test
     fun bootstrapWithoutPersistedSessionIdUsesLatestOrCreateBeforeCardHandoff() = runTest {
         val repository = FakeAiChatRepository()
+        repository.nextEnsureSessionId = "session-from-server"
         repository.bootstrapResponses += makeBootstrapResponse(
             sessionId = "session-from-server",
             activeRun = null
@@ -148,7 +149,8 @@ class AiChatRuntimeCardHandoffTest {
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
         advanceUntilIdle()
 
-        assertEquals(listOf<String?>(null), repository.loadBootstrapSessionIds)
+        assertEquals(listOf("session-from-server"), repository.createNewSessionRequests)
+        assertEquals(listOf("session-from-server"), repository.loadBootstrapSessionIds)
         val didHandoff = runtime.handoffCardToChat(
             cardId = "card-1",
             frontText = "Front",
@@ -159,7 +161,7 @@ class AiChatRuntimeCardHandoffTest {
         advanceUntilIdle()
 
         assertTrue(didHandoff)
-        assertTrue(repository.createNewSessionRequests.isEmpty())
+        assertEquals(listOf("session-from-server"), repository.createNewSessionRequests)
         assertEquals("session-from-server", runtime.state.value.persistedState.chatSessionId)
         assertEquals(1, runtime.state.value.pendingAttachments.size)
         assertEquals("card-1", (runtime.state.value.pendingAttachments.single() as AiChatAttachment.Card).cardId)

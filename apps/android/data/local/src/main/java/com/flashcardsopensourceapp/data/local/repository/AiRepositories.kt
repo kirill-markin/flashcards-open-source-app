@@ -13,6 +13,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
+import com.flashcardsopensourceapp.data.local.model.AiChatSessionProvisioningResult
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStopRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import java.util.TimeZone
+import java.util.UUID
 
 private data class AuthorizedAiChatSession(
     val apiBaseUrl: String,
@@ -150,9 +152,37 @@ class LocalAiChatRepository(
         }
     }
 
+    override suspend fun ensureSessionId(
+        workspaceId: String?,
+        persistedState: AiChatPersistedState
+    ): AiChatSessionProvisioningResult {
+        val normalizedSessionId = resolveAiChatSessionIdOrNull(
+            persistedState = persistedState
+        )
+        if (normalizedSessionId != null) {
+            return AiChatSessionProvisioningResult(
+                sessionId = normalizedSessionId,
+                snapshot = null
+            )
+        }
+
+        val explicitSessionId = UUID.randomUUID().toString().lowercase()
+        val snapshot = createNewSession(
+            workspaceId = workspaceId,
+            sessionId = explicitSessionId
+        )
+        require(snapshot.sessionId == explicitSessionId) {
+            "AI chat session provisioning returned mismatched sessionId. requestedSessionId=$explicitSessionId responseSessionId=${snapshot.sessionId}"
+        }
+        return AiChatSessionProvisioningResult(
+            sessionId = explicitSessionId,
+            snapshot = snapshot
+        )
+    }
+
     override suspend fun loadBootstrap(
         workspaceId: String?,
-        sessionId: String?,
+        sessionId: String,
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse {
@@ -180,7 +210,7 @@ class LocalAiChatRepository(
 
     override suspend fun transcribeAudio(
         workspaceId: String?,
-        sessionId: String?,
+        sessionId: String,
         fileName: String,
         mediaType: String,
         audioBytes: ByteArray
@@ -218,20 +248,7 @@ class LocalAiChatRepository(
         content: List<AiChatContentPart>
     ): AiChatStartRunResponse {
         val session = authorizedSession(workspaceId = workspaceId)
-        val isLinkedSession = session.authorizationHeader.startsWith(prefix = "Bearer ")
-        val resolvedSessionId = state.chatSessionId.ifBlank {
-            require(isLinkedSession.not()) {
-                "Linked AI chat session is unavailable."
-            }
-
-            aiChatRemoteService.loadBootstrap(
-                apiBaseUrl = session.apiBaseUrl,
-                authorizationHeader = session.authorizationHeader,
-                sessionId = null,
-                limit = 1,
-                resumeDiagnostics = null
-            ).sessionId
-        }
+        val resolvedSessionId = requireExplicitAiChatSessionIdForRun(state = state)
         val request = AiChatStartRunRequest(
             sessionId = resolvedSessionId,
             clientRequestId = java.util.UUID.randomUUID().toString().lowercase(),
@@ -372,5 +389,19 @@ class LocalAiChatRepository(
             refreshToken = storedCredentials.refreshToken,
             authBaseUrl = authBaseUrl
         ).also(preferencesStore::saveCredentials)
+    }
+}
+
+internal fun resolveAiChatSessionIdOrNull(
+    persistedState: AiChatPersistedState
+): String? {
+    return persistedState.chatSessionId.trim().ifEmpty { null }
+}
+
+internal fun requireExplicitAiChatSessionIdForRun(
+    state: AiChatPersistedState
+): String {
+    return requireNotNull(resolveAiChatSessionIdOrNull(persistedState = state)) {
+        "AI chat session must be provisioned before starting a run."
     }
 }

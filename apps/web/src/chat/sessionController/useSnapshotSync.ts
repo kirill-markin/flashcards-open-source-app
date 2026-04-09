@@ -58,7 +58,7 @@ export type ChatSessionSnapshotSync = Readonly<{
   detachLiveStream: (sessionId: string | null, runId: string | null) => void;
   invalidatePendingSnapshotRequests: () => void;
   loadAndApplySnapshot: (
-    sessionId: string | undefined,
+    sessionId: string,
     replaceHistory: boolean,
     trigger: SnapshotRequestTrigger,
     resumeAttemptId: number | null,
@@ -545,8 +545,13 @@ export function useChatSessionSnapshotSync(
       let refreshPromise: Promise<void> | null = null;
       refreshPromise = (async (): Promise<void> => {
         try {
+          const currentSessionId = currentSessionIdRef.current;
+          if (currentSessionId === null) {
+            return;
+          }
+
           const snapshot = await loadAndApplySnapshot(
-            currentSessionIdRef.current ?? undefined,
+            currentSessionId,
             true,
             "visible_resume",
             resumeAttemptId,
@@ -633,7 +638,7 @@ export function useChatSessionSnapshotSync(
   });
 
   const loadAndApplySnapshot = useCallback(async (
-    sessionId: string | undefined,
+    sessionId: string,
     replaceHistory: boolean,
     trigger: SnapshotRequestTrigger,
     resumeAttemptId: number | null,
@@ -643,7 +648,7 @@ export function useChatSessionSnapshotSync(
 
     debugLog("snapshot_request_started", {
       workspaceId,
-      currentSessionId: sessionId ?? null,
+      currentSessionId: sessionId,
       replaceHistory,
       requestVersion,
       trigger,
@@ -720,7 +725,7 @@ export function useChatSessionSnapshotSync(
     } catch (error) {
       debugLog("snapshot_request_failed", {
         workspaceId,
-        currentSessionId: sessionId ?? null,
+        currentSessionId: sessionId,
         replaceHistory,
         requestVersion,
         trigger,
@@ -771,8 +776,13 @@ export function useChatSessionSnapshotSync(
 
     void (async (): Promise<void> => {
       try {
+        const currentSessionId = currentSessionIdRef.current;
+        if (currentSessionId === null) {
+          return;
+        }
+
         const snapshot = await loadAndApplySnapshot(
-          currentSessionIdRef.current ?? undefined,
+          currentSessionId,
           true,
           "terminal_reconcile",
           null,

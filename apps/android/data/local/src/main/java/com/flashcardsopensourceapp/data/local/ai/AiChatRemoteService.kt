@@ -137,16 +137,11 @@ class AiChatRemoteService(
     suspend fun loadBootstrap(
         apiBaseUrl: String,
         authorizationHeader: String,
-        sessionId: String?,
+        sessionId: String,
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse = withContext(dispatchers.io) {
-        val path = buildString {
-            append("/chat?limit=$limit")
-            if (!sessionId.isNullOrBlank()) {
-                append("&sessionId=$sessionId")
-            }
-        }
+        val path = "/chat?limit=$limit&sessionId=$sessionId"
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
             path = path,
@@ -273,7 +268,7 @@ class AiChatRemoteService(
     suspend fun transcribeAudio(
         apiBaseUrl: String,
         authorizationHeader: String,
-        sessionId: String?,
+        sessionId: String,
         fileName: String,
         mediaType: String,
         audioBytes: ByteArray
@@ -401,21 +396,19 @@ class AiChatRemoteService(
 
     private fun encodeMultipartAudioBody(
         boundary: String,
-        sessionId: String?,
+        sessionId: String,
         fileName: String,
         mediaType: String,
         audioBytes: ByteArray
     ): ByteArray {
         val outputStream = ByteArrayOutputStream()
-        if (sessionId.isNullOrBlank().not()) {
-            outputStream.write("--$boundary\r\n".toByteArray(StandardCharsets.UTF_8))
-            outputStream.write(
-                "Content-Disposition: form-data; name=\"sessionId\"\r\n\r\n"
-                    .toByteArray(StandardCharsets.UTF_8)
-            )
-            outputStream.write(requireNotNull(sessionId).toByteArray(StandardCharsets.UTF_8))
-            outputStream.write("\r\n".toByteArray(StandardCharsets.UTF_8))
-        }
+        outputStream.write("--$boundary\r\n".toByteArray(StandardCharsets.UTF_8))
+        outputStream.write(
+            "Content-Disposition: form-data; name=\"sessionId\"\r\n\r\n"
+                .toByteArray(StandardCharsets.UTF_8)
+        )
+        outputStream.write(sessionId.toByteArray(StandardCharsets.UTF_8))
+        outputStream.write("\r\n".toByteArray(StandardCharsets.UTF_8))
 
         outputStream.write("--$boundary\r\n".toByteArray(StandardCharsets.UTF_8))
         outputStream.write(

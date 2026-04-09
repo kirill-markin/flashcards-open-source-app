@@ -27,6 +27,7 @@ type UseChatSessionHydrationLifecycleParams = Readonly<{
   initialWarmStartSnapshot: WarmStartChatSessionSnapshot | null;
   initialFreshSessionId: string;
   initialShouldBootstrapFreshLocalSession: boolean;
+  ensureRemoteSessionForHydration: () => Promise<string>;
   ensureFreshSession: (sessionId: string) => void;
 }>;
 
@@ -43,6 +44,7 @@ export function useChatSessionHydrationLifecycle(
     initialWarmStartSnapshot,
     initialFreshSessionId,
     initialShouldBootstrapFreshLocalSession,
+    ensureRemoteSessionForHydration,
     ensureFreshSession,
   } = params;
   const { replaceMessages } = history;
@@ -96,7 +98,7 @@ export function useChatSessionHydrationLifecycle(
   const runHydrationLifecycle = useEffectEvent((isDisposedRef: { current: boolean }): void => {
     const isWorkspaceTransition = hydratedWorkspaceIdRef.current !== workspaceId;
     const initialHydrationSessionId = isWorkspaceTransition
-      ? undefined
+      ? null
       : resolveInitialHydrationSessionId(workspaceId, runtimeRefs.currentSessionIdRef.current);
 
     if (workspaceId === null) {
@@ -104,6 +106,8 @@ export function useChatSessionHydrationLifecycle(
       detachLiveStream(null, null);
       replaceMessages([]);
       resetSnapshotTracking(null);
+      runtimeRefs.currentWorkspaceIdRef.current = null;
+      runtimeRefs.currentSessionIdRef.current = null;
       dispatch({ type: "workspace_cleared" });
       hydratedWorkspaceIdRef.current = null;
       return;
@@ -136,6 +140,8 @@ export function useChatSessionHydrationLifecycle(
           detachLiveStream(null, null);
           replaceMessages([]);
           resetSnapshotTracking(null);
+          runtimeRefs.currentWorkspaceIdRef.current = workspaceId;
+          runtimeRefs.currentSessionIdRef.current = null;
           dispatch({ type: "workspace_hydration_started" });
           hydratedWorkspaceIdRef.current = workspaceId;
         }
@@ -148,14 +154,17 @@ export function useChatSessionHydrationLifecycle(
       detachLiveStream(null, null);
       replaceMessages([]);
       resetSnapshotTracking(null);
+      runtimeRefs.currentWorkspaceIdRef.current = workspaceId;
+      runtimeRefs.currentSessionIdRef.current = null;
       dispatch({ type: "workspace_hydration_started" });
       hydratedWorkspaceIdRef.current = workspaceId;
     }
 
     void (async (): Promise<void> => {
       try {
+        const ensuredSessionId = initialHydrationSessionId ?? await ensureRemoteSessionForHydration();
         const snapshot = await loadAndApplySnapshot(
-          initialHydrationSessionId,
+          ensuredSessionId,
           true,
           "initial_hydration",
           null,

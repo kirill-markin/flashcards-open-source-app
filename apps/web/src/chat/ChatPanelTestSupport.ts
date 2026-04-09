@@ -131,6 +131,7 @@ type ChatPanelTestHarness = Readonly<{
   clickNewConversation: () => Promise<void>;
   clickStop: () => Promise<void>;
   clickAddAttachment: () => Promise<void>;
+  clickMicrophone: () => Promise<void>;
 }>;
 
 type TextareaKeyboardParams = Readonly<{
@@ -449,11 +450,14 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       runSync: vi.fn(async (): Promise<void> => undefined),
       setErrorMessage: vi.fn(),
     });
-    getChatSnapshotMock.mockResolvedValue(createChatSnapshot());
-    startChatRunMock.mockResolvedValue({
+    getChatSnapshotMock.mockImplementation(async (sessionId: string) => createChatSnapshot({
+      sessionId,
+      conversationScopeId: sessionId,
+    }));
+    startChatRunMock.mockImplementation(async (requestBody: { sessionId: string }) => ({
       accepted: true,
-      sessionId: "session-1",
-      conversationScopeId: "session-1",
+      sessionId: requestBody.sessionId,
+      conversationScopeId: requestBody.sessionId,
       conversation: {
         updatedAt: 1,
         mainContentInvalidationVersion: 0,
@@ -462,7 +466,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       composerSuggestions: [],
       chatConfig: defaultChatConfig,
       activeRun: createChatActiveRun(),
-    });
+    }));
     createNewChatSessionMock.mockImplementation(async (sessionId: string) => ({
       ok: true,
       sessionId,
@@ -476,10 +480,14 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       stopped: true,
       stillRunning: false,
     });
-    transcribeChatAudioMock.mockResolvedValue({
+    transcribeChatAudioMock.mockImplementation(async (
+      _blob: Blob,
+      _source: "web",
+      sessionId: string,
+    ) => ({
       text: "dictated text",
-      sessionId: "session-1",
-    });
+      sessionId,
+    }));
     consumeChatLiveStreamMock.mockImplementation(() => new Promise(() => undefined));
     listOutboxRecordsMock.mockResolvedValue([]);
     checkFileSizeMock.mockReturnValue(null);
@@ -669,6 +677,17 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     });
   }
 
+  async function clickMicrophone(): Promise<void> {
+    const mountedContainer = getContainer();
+    const microphoneButton = mountedContainer.querySelector('.chat-mic-btn');
+    expect(microphoneButton).not.toBeNull();
+
+    await act(async () => {
+      microphoneButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await Promise.resolve();
+    });
+  }
+
   return {
     getContainer,
     getScrollToMock,
@@ -682,5 +701,6 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     clickNewConversation,
     clickStop,
     clickAddAttachment,
+    clickMicrophone,
   };
 }

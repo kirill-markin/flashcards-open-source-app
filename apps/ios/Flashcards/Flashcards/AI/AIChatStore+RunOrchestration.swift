@@ -67,6 +67,7 @@ extension AIChatStore {
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
                 try await self.ensureAIChatReadyForSend(linkedSession: session)
+                let explicitSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
                 self.resetRunToolCallTracking()
                 self.messages.append(
                     AIChatMessage(
@@ -98,7 +99,7 @@ extension AIChatStore {
                 self.activeConversationId = conversationId
                 try await self.runtime.run(
                     session: session,
-                    sessionId: resolvedSessionId,
+                    sessionId: explicitSessionId,
                     afterCursor: self.liveCursor,
                     outgoingContent: content,
                     eventHandler: { [weak self] event in
@@ -185,6 +186,7 @@ extension AIChatStore {
         self.activeWarmUpTask?.cancel()
         self.activeWarmUpTask = nil
         self.invalidatePendingNewSessionRequest()
+        self.invalidatePendingRemoteSessionProvisionRequest()
         self.cancelStreaming()
         self.cancelDictation()
     }
@@ -192,9 +194,6 @@ extension AIChatStore {
     func ensureAIChatReadyForSend(linkedSession: CloudLinkedSession) async throws {
         guard self.bootstrapPhase == .ready else {
             throw LocalStoreError.validation("AI chat is still loading.")
-        }
-        if linkedSession.authorization.isGuest == false && self.chatSessionId.isEmpty {
-            throw LocalStoreError.validation("AI chat session is unavailable. Reload the AI tab and try again.")
         }
         guard let workspaceId = self.flashcardsStore.workspace?.workspaceId else {
             throw LocalStoreError.validation("Select a workspace before using AI chat.")
@@ -330,9 +329,10 @@ extension AIChatStore {
 
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
+                let explicitSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
                 let bootstrap = try await self.chatService.loadBootstrap(
                     session: session,
-                    sessionId: resolvedSessionId.isEmpty ? nil : resolvedSessionId,
+                    sessionId: explicitSessionId,
                     limit: aiChatBootstrapPageLimit,
                     resumeAttemptDiagnostics: resumeAttemptDiagnostics
                 )
@@ -417,6 +417,7 @@ extension AIChatStore {
         self.messages = envelope.conversation.messages
         self.chatSessionId = envelope.sessionId
         self.conversationScopeId = envelope.conversationScopeId
+        self.requiresRemoteSessionProvisioning = false
         self.serverChatConfig = envelope.chatConfig
         self.applyComposerSuggestions(envelope.composerSuggestions)
         self.hasOlderMessages = envelope.conversation.hasOlder

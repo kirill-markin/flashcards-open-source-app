@@ -33,13 +33,9 @@ internal class AiChatBootstrapCoordinator(
         )
         var bootstrapJob: Job? = null
         bootstrapJob = context.scope.launch {
-            val persistedState = normalizeAiChatPersistedStateForWorkspace(
+            var persistedState = normalizeAiChatPersistedStateForWorkspace(
                 workspaceId = workspaceId,
                 persistedState = context.aiChatRepository.loadPersistedState(workspaceId = workspaceId)
-            )
-            val persistedSessionId = resolveAiChatSessionIdForWorkspace(
-                workspaceId = workspaceId,
-                sessionId = persistedState.chatSessionId
             )
             try {
                 val canPreserveLocalComposerState =
@@ -96,10 +92,28 @@ internal class AiChatBootstrapCoordinator(
                 if (context.activeAccessContext != accessContext) {
                     return@launch
                 }
+                val ensuredSession = context.aiChatRepository.ensureSessionId(
+                    workspaceId = workspaceId,
+                    persistedState = persistedState
+                )
+                if (context.activeAccessContext != accessContext) {
+                    return@launch
+                }
+                val ensuredSnapshot = ensuredSession.snapshot
+                if (ensuredSnapshot != null) {
+                    persistedState = persistedState.copy(
+                        chatSessionId = ensuredSession.sessionId,
+                        lastKnownChatConfig = ensuredSnapshot.chatConfig
+                    )
+                    context.runtimeStateMutable.update { state ->
+                        state.copy(persistedState = persistedState)
+                    }
+                    context.persistCurrentState()
+                }
 
                 val bootstrap = context.aiChatRepository.loadBootstrap(
                     workspaceId = workspaceId,
-                    sessionId = persistedSessionId,
+                    sessionId = ensuredSession.sessionId,
                     limit = aiChatBootstrapPageLimit,
                     resumeDiagnostics = resumeDiagnostics
                 )

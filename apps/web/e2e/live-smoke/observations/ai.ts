@@ -13,23 +13,45 @@ export function createAiTransportObserver(page: Page): AiTransportObserver {
   let isObserving = false;
   let liveRequestCount = 0;
   let snapshotPollRequestCount = 0;
+  let sessionlessChatSnapshotRequestCount = 0;
+  let sessionlessChatRunRequestCount = 0;
+  let sessionlessTranscriptionRequestCount = 0;
 
   const handleRequest = (request: Request): void => {
-    if (isObserving === false || request.method() !== "GET") {
+    if (isObserving === false) {
       return;
     }
 
     const url = request.url();
-    if (url.includes("sessionId=") === false) {
+    if (request.method() === "GET" && url.includes("/v1/chat")) {
+      if (url.includes("sessionId=") === false) {
+        sessionlessChatSnapshotRequestCount += 1;
+        return;
+      }
+
+      if (url.includes("/v1/chat?sessionId=")) {
+        snapshotPollRequestCount += 1;
+        return;
+      }
+
+      liveRequestCount += 1;
       return;
     }
 
-    if (url.includes("/v1/chat?sessionId=")) {
-      snapshotPollRequestCount += 1;
+    if (request.method() === "POST" && url.endsWith("/v1/chat")) {
+      const requestBody = request.postDataJSON() as { sessionId?: unknown } | null;
+      if (typeof requestBody?.sessionId !== "string" || requestBody.sessionId.trim() === "") {
+        sessionlessChatRunRequestCount += 1;
+      }
       return;
     }
 
-    liveRequestCount += 1;
+    if (request.method() === "POST" && url.endsWith("/v1/chat/transcriptions")) {
+      const requestBody = request.postData() ?? "";
+      if (requestBody.includes('name="sessionId"') === false) {
+        sessionlessTranscriptionRequestCount += 1;
+      }
+    }
   };
 
   page.on("request", handleRequest);
@@ -38,6 +60,9 @@ export function createAiTransportObserver(page: Page): AiTransportObserver {
     start: (): void => {
       liveRequestCount = 0;
       snapshotPollRequestCount = 0;
+      sessionlessChatSnapshotRequestCount = 0;
+      sessionlessChatRunRequestCount = 0;
+      sessionlessTranscriptionRequestCount = 0;
       isObserving = true;
     },
     stop: (): AiTransportObservation => {
@@ -45,6 +70,9 @@ export function createAiTransportObserver(page: Page): AiTransportObserver {
       return {
         liveRequestCount,
         snapshotPollRequestCount,
+        sessionlessChatSnapshotRequestCount,
+        sessionlessChatRunRequestCount,
+        sessionlessTranscriptionRequestCount,
       };
     },
     dispose: (): void => {

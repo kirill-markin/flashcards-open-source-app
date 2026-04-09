@@ -200,13 +200,13 @@ extension AIChatStore {
     }
 
     func reloadConversationFromBootstrap() {
-        let requestedSessionId = self.chatSessionId
         Task {
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
+                let requestedSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
                 let response = try await self.chatService.loadBootstrap(
                     session: session,
-                    sessionId: requestedSessionId.isEmpty ? nil : requestedSessionId,
+                    sessionId: requestedSessionId,
                     limit: aiChatBootstrapPageLimit,
                     resumeAttemptDiagnostics: nil
                 )

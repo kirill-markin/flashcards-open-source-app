@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.ai
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import kotlinx.coroutines.CompletableDeferred
@@ -17,6 +18,59 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AiChatRuntimeConversationResetAndSendTest {
+    @Test
+    fun sendMessageEnsuresExplicitSessionWithoutLegacyBootstrapFallback() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.nextEnsureSessionId = "send-session-1"
+        repository.startRunResponse = makeAcceptedStartRunResponse(
+            sessionId = "send-session-1",
+            activeRun = null,
+            messages = listOf(
+                makeUserMessage(
+                    content = listOf(AiChatContentPart.Text(text = "Hello")),
+                    timestampMillis = 1L
+                ),
+                makeAssistantStatusMessage(timestampMillis = 2L)
+            ),
+            composerSuggestions = emptyList()
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateDraftMessage(draftMessage = "Hello")
+        runtime.sendMessage()
+        advanceUntilIdle()
+
+        assertEquals(listOf("send-session-1"), repository.createNewSessionRequests)
+        assertEquals(0, repository.loadBootstrapCalls)
+        assertEquals("send-session-1", repository.lastStartRunState?.chatSessionId)
+        assertEquals("send-session-1", runtime.state.value.persistedState.chatSessionId)
+    }
+
+    @Test
+    fun firstDictationAlwaysUsesExplicitSessionId() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.nextEnsureSessionId = "dictation-session-1"
+        repository.transcribeAudioResponse = AiChatTranscriptionResult(
+            text = "dictated text",
+            sessionId = "dictation-session-1"
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.startDictationRecording()
+        runtime.transcribeRecordedAudio(
+            fileName = "clip.m4a",
+            mediaType = "audio/m4a",
+            audioBytes = byteArrayOf(1, 2, 3)
+        )
+        advanceUntilIdle()
+
+        assertEquals(listOf("dictation-session-1"), repository.createNewSessionRequests)
+        assertEquals(listOf("dictation-session-1"), repository.transcribeAudioSessionIds)
+        assertEquals(0, repository.loadBootstrapCalls)
+        assertEquals("dictation-session-1", runtime.state.value.persistedState.chatSessionId)
+        assertEquals("dictated text", runtime.state.value.draftMessage)
+    }
+
     @Test
     fun missingSessionSendFailureKeepsSessionIdAndRestoresDraft() = runTest {
         val repository = FakeAiChatRepository()

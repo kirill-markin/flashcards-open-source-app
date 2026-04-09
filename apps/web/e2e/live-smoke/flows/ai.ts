@@ -47,8 +47,10 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
   const messageField = fullscreenChat.getByPlaceholder("Ask about cards, review history, or attach notes...");
   const sendButton = fullscreenChat.getByRole("button", { name: "Send message" });
   const createPrompt = "I give you all permissions. Please create one test flashcard now.";
+  const bootstrapTransportObserver = createAiTransportObserver(page);
   const transportObserver = createAiTransportObserver(page);
 
+  bootstrapTransportObserver.start();
   await diagnostics.runAction("confirm fullscreen AI chat surface is visible", async () => {
     await expect(fullscreenChat).toBeVisible({ timeout: externalUiTimeoutMs });
   });
@@ -61,6 +63,15 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
     "",
     false,
     externalUiTimeoutMs,
+  );
+  const bootstrapTransportObservation = bootstrapTransportObserver.stop();
+  await diagnostics.runAction(
+    "confirm AI chat bootstrap did not use session-less /chat or /chat/transcriptions requests",
+    async () => {
+      expect(bootstrapTransportObservation.sessionlessChatSnapshotRequestCount).toBe(0);
+      expect(bootstrapTransportObservation.sessionlessChatRunRequestCount).toBe(0);
+      expect(bootstrapTransportObservation.sessionlessTranscriptionRequestCount).toBe(0);
+    },
   );
 
   try {
@@ -111,10 +122,13 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
         transportObservation = transportObserver.stop();
 
         await diagnostics.runAction(
-          `confirm AI create prompt attempt ${String(attempt)} used one live stream request and no snapshot polling`,
+          `confirm AI create prompt attempt ${String(attempt)} used one live stream request, no snapshot polling, and no session-less chat requests`,
           async () => {
             expect(transportObservation.liveRequestCount).toBe(1);
             expect(transportObservation.snapshotPollRequestCount).toBe(0);
+            expect(transportObservation.sessionlessChatSnapshotRequestCount).toBe(0);
+            expect(transportObservation.sessionlessChatRunRequestCount).toBe(0);
+            expect(transportObservation.sessionlessTranscriptionRequestCount).toBe(0);
           },
         );
 
@@ -162,6 +176,7 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
       }
     }
   } finally {
+    bootstrapTransportObserver.dispose();
     transportObserver.dispose();
   }
 
