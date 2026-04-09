@@ -6,7 +6,6 @@ extension LiveSmokeTestCase {
     func tapTabBarItem(named name: String, timeout: TimeInterval) throws {
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_tab.\(name)") {
             let tabBarButton = self.app.tabBars.buttons[name].firstMatch
-            let fallbackButton = self.app.buttons[name].firstMatch
             let deadline = Date().addingTimeInterval(timeout)
 
             while Date() < deadline {
@@ -16,16 +15,6 @@ extension LiveSmokeTestCase {
                         identifier: "tab.\(name)",
                         action: "tap_tab",
                         note: "tab bar button tapped"
-                    )
-                    return
-                }
-
-                if fallbackButton.exists && fallbackButton.isHittable {
-                    try self.tapExistingButton(
-                        fallbackButton,
-                        identifier: "tab.\(name)",
-                        action: "tap_tab",
-                        note: "fallback button tapped"
                     )
                     return
                 }
