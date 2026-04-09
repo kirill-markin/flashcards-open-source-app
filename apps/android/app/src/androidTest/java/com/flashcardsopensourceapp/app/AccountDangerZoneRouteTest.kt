@@ -17,7 +17,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class AccountDangerZoneRouteTest {
+class AccountDangerZoneRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 

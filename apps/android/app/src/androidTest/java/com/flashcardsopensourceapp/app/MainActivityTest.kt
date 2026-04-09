@@ -44,7 +44,7 @@ import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 
 @RunWith(AndroidJUnit4::class)
-class MainActivityTest {
+class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     companion object {
         private const val uiTimeoutMillis: Long = 20_000L
         private const val emptyCardsMessage: String = "No cards yet. Tap the add button to create the first card."

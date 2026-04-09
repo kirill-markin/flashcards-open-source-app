@@ -39,6 +39,7 @@ steps:
           --device-version "${_ANDROID_FTL_DEVICE_VERSION}"
           --app-path "/workspace/apps/android/app/build/outputs/apk/debug/app-debug.apk"
           --test-path "/workspace/apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
+          --timeout "30m"
           --test-targets "package com.flashcardsopensourceapp.app notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"
           --results-bucket "${_ANDROID_FTL_RESULTS_BUCKET}"
           --results-dir "${_ANDROID_FTL_RESULTS_DIR}"

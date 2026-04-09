@@ -19,7 +19,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class SettingsAuthRouteTest {
+class SettingsAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
