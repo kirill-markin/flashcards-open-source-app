@@ -110,16 +110,15 @@ class LocalSyncRepositoryCloudIdentityTest {
     }
 
     @Test
-    fun syncSilentlyRestoresLinkedWorkspaceFromStoredCredentialsWhenLocalShellIsSafe() = runBlocking {
+    fun syncKeepsDisconnectedStateWhenStoredCredentialsExistButCloudStateIsDisconnected() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
-        val remoteWorkspaceId = "workspace-linked"
         val remoteGateway = FakeCloudRemoteGateway.forAccountSnapshot(
             accountSnapshot = createCloudAccountSnapshot(
                 userId = "user-1",
                 email = "user@example.com",
                 workspaces = listOf(
                     createCloudWorkspaceSummary(
-                        workspaceId = remoteWorkspaceId,
+                        workspaceId = "workspace-linked",
                         name = "Personal",
                         createdAtMillis = 200L,
                         isSelected = true
@@ -139,16 +138,19 @@ class LocalSyncRepositoryCloudIdentityTest {
             activeWorkspaceId = localWorkspaceId
         )
 
-        syncRepository.syncNow()
+        try {
+            syncRepository.syncNow()
+        } catch (_: IllegalStateException) {
+        }
 
         val cloudSettings = environment.cloudPreferencesStore.currentCloudSettings()
-        assertEquals(CloudAccountState.LINKED, cloudSettings.cloudState)
-        assertEquals(remoteWorkspaceId, cloudSettings.activeWorkspaceId)
-        assertEquals(remoteWorkspaceId, cloudSettings.linkedWorkspaceId)
-        assertEquals("user@example.com", cloudSettings.linkedEmail)
-        assertEquals(remoteWorkspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)
-        assertEquals(SyncStatus.Idle, syncRepository.observeSyncStatus().first().status)
-        assertEquals(listOf(remoteWorkspaceId, remoteWorkspaceId), remoteGateway.bootstrapPullWorkspaceIds)
+        assertEquals(CloudAccountState.DISCONNECTED, cloudSettings.cloudState)
+        assertEquals(localWorkspaceId, cloudSettings.activeWorkspaceId)
+        assertNull(cloudSettings.linkedWorkspaceId)
+        assertNull(cloudSettings.linkedEmail)
+        assertEquals(localWorkspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertTrue(syncRepository.observeSyncStatus().first().status is SyncStatus.Failed)
+        assertTrue(remoteGateway.bootstrapPullWorkspaceIds.isEmpty())
     }
 
     @Test
