@@ -160,7 +160,7 @@ extension LocalDatabase {
     ///
     /// Review history is no longer part of hot change replay. Keep this path
     /// aligned with:
-    /// - `apps/ios/Flashcards/Flashcards/CloudSyncService.swift`
+    /// - `apps/ios/Flashcards/Flashcards/Cloud/Sync/CloudSyncService.swift`
     /// - `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/SyncLocalStore.kt`
     /// - the iOS sync tests that cover review-history application semantics
     func applyReviewHistoryEvent(workspaceId: String, reviewEvent: ReviewEvent) throws {
