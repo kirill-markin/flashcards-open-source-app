@@ -7,5 +7,6 @@ data class CloudSignInUiState(
     val isSendingCode: Boolean,
     val isVerifyingCode: Boolean,
     val errorMessage: String,
+    val errorTechnicalDetails: String?,
     val challengeEmail: String?
 )

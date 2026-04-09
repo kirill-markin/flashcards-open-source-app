@@ -47,13 +47,11 @@ fun CloudSignInCodeRoute(
 
             if (uiState.errorMessage.isNotEmpty()) {
                 item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = uiState.errorMessage,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(20.dp)
-                        )
-                    }
+                    CloudSignInErrorCard(
+                        message = uiState.errorMessage,
+                        technicalDetails = uiState.errorTechnicalDetails,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
 
