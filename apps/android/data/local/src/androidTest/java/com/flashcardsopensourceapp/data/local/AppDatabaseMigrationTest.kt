@@ -6,17 +6,14 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.migration2To3
-import com.flashcardsopensourceapp.data.local.database.migration3To4
-import com.flashcardsopensourceapp.data.local.database.migration4To5
 import com.flashcardsopensourceapp.data.local.database.migration5To6
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
 
 @RunWith(AndroidJUnit4::class)
 class AppDatabaseMigrationTest {
@@ -29,20 +26,21 @@ class AppDatabaseMigrationTest {
     }
 
     @Test
-    fun migrationFromVersion2AddsSchedulerStateWithoutDestroyingCards() = runBlocking {
+    fun migrationFromVersion5AddsAppLocalSettingsWithoutDestroyingCards() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        createVersion2Database(context = context)
+        createVersion5Database(context = context)
 
         val database = Room.databaseBuilder(
             context = context,
             klass = AppDatabase::class.java,
             name = databaseName
-        ).addMigrations(migration2To3, migration3To4, migration4To5, migration5To6).build()
+        ).addMigrations(migration5To6).build()
 
         val migratedCard = database.cardDao().loadCard(cardId = "card-1")
         val schedulerSettings = database.workspaceSchedulerSettingsDao().loadWorkspaceSchedulerSettings(
             workspaceId = "workspace-local"
         )
+        val appLocalSettings = database.appLocalSettingsDao().loadSettings()
 
         assertNotNull(migratedCard)
         assertEquals(0, migratedCard?.reps)
@@ -51,11 +49,12 @@ class AppDatabaseMigrationTest {
         assertNotNull(schedulerSettings)
         assertEquals("fsrs-6", schedulerSettings?.algorithm)
         assertEquals("[1,10]", schedulerSettings?.learningStepsMinutesJson)
+        assertNull(appLocalSettings)
 
         database.close()
     }
 
-    private fun createVersion2Database(context: Context) {
+    private fun createVersion5Database(context: Context) {
         val databaseFile = context.getDatabasePath(databaseName)
         if (databaseFile.exists()) {
             databaseFile.delete()
@@ -75,6 +74,7 @@ class AppDatabaseMigrationTest {
                 filterDefinitionJson TEXT NOT NULL,
                 createdAtMillis INTEGER NOT NULL,
                 updatedAtMillis INTEGER NOT NULL,
+                deletedAtMillis INTEGER,
                 FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
             )
             """.trimIndent()
@@ -87,8 +87,18 @@ class AppDatabaseMigrationTest {
                 frontText TEXT NOT NULL,
                 backText TEXT NOT NULL,
                 effortLevel TEXT NOT NULL,
+                dueAtMillis INTEGER,
                 createdAtMillis INTEGER NOT NULL,
                 updatedAtMillis INTEGER NOT NULL,
+                reps INTEGER NOT NULL,
+                lapses INTEGER NOT NULL,
+                fsrsCardState TEXT NOT NULL,
+                fsrsStepIndex INTEGER,
+                fsrsStability REAL,
+                fsrsDifficulty REAL,
+                fsrsLastReviewedAtMillis INTEGER,
+                fsrsScheduledDays INTEGER,
+                deletedAtMillis INTEGER,
                 FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
             )
             """.trimIndent()
@@ -120,8 +130,11 @@ class AppDatabaseMigrationTest {
                 reviewLogId TEXT NOT NULL PRIMARY KEY,
                 workspaceId TEXT NOT NULL,
                 cardId TEXT NOT NULL,
+                replicaId TEXT NOT NULL,
+                clientEventId TEXT NOT NULL,
                 rating TEXT NOT NULL,
                 reviewedAtMillis INTEGER NOT NULL,
+                reviewedAtServerIso TEXT NOT NULL,
                 FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE,
                 FOREIGN KEY(cardId) REFERENCES cards(cardId) ON DELETE CASCADE
             )
@@ -132,15 +145,47 @@ class AppDatabaseMigrationTest {
             CREATE TABLE outbox_entries (
                 outboxEntryId TEXT NOT NULL PRIMARY KEY,
                 workspaceId TEXT NOT NULL,
+                installationId TEXT NOT NULL,
+                entityType TEXT NOT NULL,
+                entityId TEXT NOT NULL,
                 operationType TEXT NOT NULL,
                 payloadJson TEXT NOT NULL,
+                clientUpdatedAtIso TEXT NOT NULL,
                 createdAtMillis INTEGER NOT NULL,
+                attemptCount INTEGER NOT NULL,
+                lastError TEXT,
                 FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
             )
             """.trimIndent()
         )
         sqliteDatabase.execSQL(
-            "CREATE TABLE sync_state (workspaceId TEXT NOT NULL PRIMARY KEY, lastSyncCursor TEXT, lastSyncAttemptAtMillis INTEGER)"
+            """
+            CREATE TABLE sync_state (
+                workspaceId TEXT NOT NULL PRIMARY KEY,
+                lastSyncCursor TEXT,
+                lastReviewSequenceId INTEGER NOT NULL,
+                hasHydratedHotState INTEGER NOT NULL,
+                hasHydratedReviewHistory INTEGER NOT NULL,
+                lastSyncAttemptAtMillis INTEGER,
+                lastSuccessfulSyncAtMillis INTEGER,
+                lastSyncError TEXT
+            )
+            """.trimIndent()
+        )
+        sqliteDatabase.execSQL(
+            """
+            CREATE TABLE workspace_scheduler_settings (
+                workspaceId TEXT NOT NULL PRIMARY KEY,
+                algorithm TEXT NOT NULL,
+                desiredRetention REAL NOT NULL,
+                learningStepsMinutesJson TEXT NOT NULL,
+                relearningStepsMinutesJson TEXT NOT NULL,
+                maximumIntervalDays INTEGER NOT NULL,
+                enableFuzz INTEGER NOT NULL,
+                updatedAtMillis INTEGER NOT NULL,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
         )
         sqliteDatabase.execSQL("CREATE INDEX index_decks_workspaceId ON decks(workspaceId)")
         sqliteDatabase.execSQL("CREATE INDEX index_cards_workspaceId ON cards(workspaceId)")
@@ -149,15 +194,77 @@ class AppDatabaseMigrationTest {
         sqliteDatabase.execSQL("CREATE INDEX index_review_logs_workspaceId ON review_logs(workspaceId)")
         sqliteDatabase.execSQL("CREATE INDEX index_review_logs_cardId ON review_logs(cardId)")
         sqliteDatabase.execSQL("CREATE INDEX index_outbox_entries_workspaceId ON outbox_entries(workspaceId)")
+        sqliteDatabase.execSQL("CREATE INDEX index_workspace_scheduler_settings_workspaceId ON workspace_scheduler_settings(workspaceId)")
 
         sqliteDatabase.execSQL(
             "INSERT INTO workspaces (workspaceId, name, createdAtMillis) VALUES ('workspace-local', 'Personal', 100)"
         )
         sqliteDatabase.execSQL(
-            "INSERT INTO cards (cardId, workspaceId, frontText, backText, effortLevel, createdAtMillis, updatedAtMillis) VALUES ('card-1', 'workspace-local', 'Front', 'Back', 'FAST', 100, 100)"
+            """
+            INSERT INTO cards (
+                cardId,
+                workspaceId,
+                frontText,
+                backText,
+                effortLevel,
+                dueAtMillis,
+                createdAtMillis,
+                updatedAtMillis,
+                reps,
+                lapses,
+                fsrsCardState,
+                fsrsStepIndex,
+                fsrsStability,
+                fsrsDifficulty,
+                fsrsLastReviewedAtMillis,
+                fsrsScheduledDays,
+                deletedAtMillis
+            ) VALUES (
+                'card-1',
+                'workspace-local',
+                'Front',
+                'Back',
+                'FAST',
+                NULL,
+                100,
+                100,
+                0,
+                0,
+                'NEW',
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL
+            )
+            """.trimIndent()
+        )
+        sqliteDatabase.execSQL(
+            """
+            INSERT INTO workspace_scheduler_settings (
+                workspaceId,
+                algorithm,
+                desiredRetention,
+                learningStepsMinutesJson,
+                relearningStepsMinutesJson,
+                maximumIntervalDays,
+                enableFuzz,
+                updatedAtMillis
+            ) VALUES (
+                'workspace-local',
+                'fsrs-6',
+                0.9,
+                '[1,10]',
+                '[10]',
+                36500,
+                1,
+                100
+            )
+            """.trimIndent()
         )
 
-        sqliteDatabase.version = 2
+        sqliteDatabase.version = 5
         sqliteDatabase.close()
     }
 }
