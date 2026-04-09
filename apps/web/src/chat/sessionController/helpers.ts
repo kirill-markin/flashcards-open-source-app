@@ -1,14 +1,14 @@
-import { ApiError } from "../api";
+import { ApiError } from "../../api";
 import type {
   ChatComposerSuggestion,
   ChatConfig,
   ContentPart,
   ReasoningSummaryContentPart,
   ToolCallContentPart,
-} from "../types";
-import { sanitizeErrorText } from "./chatHelpers";
-import type { ChatLiveEvent } from "./liveStream";
-import { OPTIMISTIC_ASSISTANT_STATUS_TEXT, type StoredMessage } from "./useChatHistory";
+} from "../../types";
+import { sanitizeErrorText } from "../chatHelpers";
+import type { ChatLiveEvent } from "../liveStream";
+import { OPTIMISTIC_ASSISTANT_STATUS_TEXT, type StoredMessage } from "../useChatHistory";
 
 const CHAT_DEBUG_LOG_PREFIX = "chat_debug ";
 const CHAT_DEBUG_STORAGE_KEY = "flashcards-chat-debug";

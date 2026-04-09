@@ -4,29 +4,29 @@ import {
   createNewChatSession,
   startChatRun,
   stopChatRun,
-} from "../api";
+} from "../../api";
+import { loadStoredChatConfig, storeChatConfig } from "./config";
+import {
+  createClientChatSessionId,
+  isChatApiError,
+  toErrorMessage,
+} from "./helpers";
 import type {
   ChatSessionControllerAction,
   ChatSessionControllerState,
-} from "./chatSessionControllerState";
+} from "./state";
+import type {
+  SendChatMessageParams,
+  SendChatMessageResult,
+} from "./types";
+import type { ChatSessionSnapshotSync } from "./useSnapshotSync";
 import {
   ATTACHMENT_LIMIT_ERROR_MESSAGE,
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
   buildContentParts,
   toRequestBodySizeBytes,
-} from "./chatHelpers";
-import {
-  createClientChatSessionId,
-  isChatApiError,
-  toErrorMessage,
-} from "./chatSessionControllerHelpers";
-import type {
-  SendChatMessageParams,
-  SendChatMessageResult,
-} from "./chatSessionControllerTypes";
-import { loadStoredChatConfig, storeChatConfig } from "./chatConfig";
-import { OPTIMISTIC_ASSISTANT_STATUS_TEXT, type ChatHistoryState } from "./useChatHistory";
-import type { ChatSessionSnapshotSync } from "./useChatSessionSnapshotSync";
+} from "../chatHelpers";
+import { OPTIMISTIC_ASSISTANT_STATUS_TEXT, type ChatHistoryState } from "../useChatHistory";
 
 type UseChatSessionActionsParams = Readonly<{
   workspaceId: string | null;

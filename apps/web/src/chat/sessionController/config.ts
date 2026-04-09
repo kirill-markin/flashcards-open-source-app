@@ -1,4 +1,4 @@
-import type { ChatConfig } from "../types";
+import type { ChatConfig } from "../../types";
 
 const chatConfigStorageKey = "flashcards-ai-chat-config";
 

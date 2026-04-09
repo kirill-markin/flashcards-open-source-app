@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, type Dispatch, type MutableRefObject } from "react";
-import { getChatSnapshot, getChatSnapshotWithResumeDiagnostics } from "../api";
-import type { ChatSessionHistoryMessage } from "../types";
-import { storeChatConfig } from "./chatConfig";
+import { getChatSnapshot, getChatSnapshotWithResumeDiagnostics } from "../../api";
+import type { ChatActiveRun, ChatSessionHistoryMessage, ContentPart } from "../../types";
+import { storeChatConfig } from "./config";
 import {
   areChatConfigsEqual,
   areContentPartsEqual,
@@ -13,16 +13,15 @@ import {
   toAssistantToolCallContentPart,
   toErrorMessage,
   type ChatDebugDetails,
-} from "./chatSessionControllerHelpers";
+} from "./helpers";
 import type {
   ChatSessionControllerAction,
   ChatSessionControllerState,
-} from "./chatSessionControllerState";
-import type { ChatSessionSnapshot } from "./chatSessionSnapshot";
-import type { ChatHistoryState } from "./useChatHistory";
-import type { ChatLiveEvent } from "./liveStream";
-import { useChatLiveSession } from "./useChatLiveSession";
-import type { ChatActiveRun, ContentPart } from "../types";
+} from "./state";
+import type { ChatSessionSnapshot } from "./snapshot";
+import { useChatLiveSession } from "./useLiveSession";
+import type { ChatHistoryState } from "../useChatHistory";
+import type { ChatLiveEvent } from "../liveStream";
 
 type UseChatSessionSnapshotSyncParams = Readonly<{
   controllerId: string;

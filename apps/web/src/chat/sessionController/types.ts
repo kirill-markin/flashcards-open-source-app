@@ -1,7 +1,7 @@
-import type { ChatConfig, ChatComposerSuggestion } from "../types";
-import type { PendingAttachment } from "./FileAttachment";
-import type { ChatComposerAction, ChatRunState } from "./streamRecovery";
-import type { StoredMessage } from "./useChatHistory";
+import type { ChatConfig, ChatComposerSuggestion } from "../../types";
+import type { PendingAttachment } from "../FileAttachment";
+import type { StoredMessage } from "../useChatHistory";
+import type { ChatComposerAction, ChatRunState } from "./runState";
 
 export type UseChatSessionControllerParams = Readonly<{
   workspaceId: string | null;

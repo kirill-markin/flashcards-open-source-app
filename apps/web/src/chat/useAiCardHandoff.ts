@@ -4,7 +4,7 @@ import type { Card } from "../types";
 import { makeCardPendingAttachment } from "./chatCardParts";
 import { useOptionalChatDraft } from "./ChatDraftContext";
 import { useOptionalChatLayout } from "./ChatLayoutContext";
-import { useOptionalChatSession } from "./ChatSessionControllerContext";
+import { useOptionalChatSession } from "./sessionController";
 
 export function useAiCardHandoff(): (card: Card) => Promise<boolean> {
   const { setErrorMessage } = useAppData();

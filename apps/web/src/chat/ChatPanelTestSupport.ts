@@ -2,9 +2,9 @@ import { act, createElement } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, expect, vi } from "vitest";
 import type { ChatSessionSnapshot } from "../types";
-import { defaultChatConfig } from "./chatConfig";
+import { defaultChatConfig } from "./sessionController/config";
 import { ChatDraftProvider } from "./ChatDraftContext";
-import { ChatSessionControllerProvider } from "./ChatSessionControllerContext";
+import { ChatSessionControllerProvider } from "./sessionController";
 
 const {
   ApiErrorMock,

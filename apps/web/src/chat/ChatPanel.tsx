@@ -43,7 +43,7 @@ import {
   type ChatDraftSelection,
   type ChatDictationState,
 } from "./chatDictation";
-import { useChatSession } from "./ChatSessionControllerContext";
+import { useChatSession } from "./sessionController";
 
 type Props = Readonly<{
   mode: "sidebar" | "fullscreen";
