@@ -141,10 +141,10 @@ class LocalSyncRepository(
                 throw error
             } catch (error: Exception) {
                 if (isRemoteAccountDeletedError(error = error)) {
-                    resetCoordinator.resetLocalStateForCloudIdentityChange()
+                    resetCoordinator.disconnectCloudIdentityPreservingLocalState()
                     syncStatusState.value = SyncStatusSnapshot(
                         status = SyncStatus.Idle,
-                        lastSuccessfulSyncAtMillis = null,
+                        lastSuccessfulSyncAtMillis = syncStatusState.value.lastSuccessfulSyncAtMillis,
                         lastErrorMessage = ""
                     )
                     emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)

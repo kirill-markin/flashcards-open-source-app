@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local.repository
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteService
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
+import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
@@ -65,7 +66,7 @@ class CloudGuestSessionCoordinator(
     internal suspend fun reconcilePersistedCloudStateLocked(): CloudIdentityReconciliationResult {
         val currentCloudSettings = preferencesStore.currentCloudSettings()
         if (hasInvalidActiveWorkspaceId(cloudSettings = currentCloudSettings)) {
-            resetCoordinator.resetLocalStateForCloudIdentityChange()
+            normalizeActiveWorkspaceIdToLocalShell()
             return CloudIdentityReconciliationResult(
                 cloudSettings = preferencesStore.currentCloudSettings(),
                 restoredGuestSession = null,
@@ -82,7 +83,8 @@ class CloudGuestSessionCoordinator(
         val storedCredentials = preferencesStore.loadCredentials()
         val storedGuestSession = guestSessionStore.loadAnySession(configuration = configuration)
         if (storedCredentials != null && storedGuestSession != null) {
-            resetCoordinator.resetLocalStateForCloudIdentityChange()
+            guestSessionStore.clearAllSessions()
+            resetCoordinator.disconnectCloudIdentityPreservingLocalState()
             return CloudIdentityReconciliationResult(
                 cloudSettings = preferencesStore.currentCloudSettings(),
                 restoredGuestSession = null,
@@ -95,7 +97,7 @@ class CloudGuestSessionCoordinator(
         return when (reconciledCloudSettings.cloudState) {
             CloudAccountState.LINKED -> {
                 if (storedCredentials == null) {
-                    resetCoordinator.resetLocalStateForCloudIdentityChange()
+                    resetCoordinator.disconnectCloudIdentityPreservingLocalState()
                     CloudIdentityReconciliationResult(
                         cloudSettings = preferencesStore.currentCloudSettings(),
                         restoredGuestSession = null,
@@ -114,7 +116,7 @@ class CloudGuestSessionCoordinator(
 
             CloudAccountState.GUEST -> {
                 if (storedGuestSession == null) {
-                    resetCoordinator.resetLocalStateForCloudIdentityChange()
+                    resetCoordinator.disconnectCloudIdentityPreservingLocalState()
                     CloudIdentityReconciliationResult(
                         cloudSettings = preferencesStore.currentCloudSettings(),
                         restoredGuestSession = null,
@@ -353,6 +355,19 @@ class CloudGuestSessionCoordinator(
     private suspend fun hasInvalidActiveWorkspaceId(cloudSettings: CloudSettings): Boolean {
         val activeWorkspaceId = cloudSettings.activeWorkspaceId ?: return false
         return database.workspaceDao().loadWorkspaceById(activeWorkspaceId) == null
+    }
+
+    private suspend fun normalizeActiveWorkspaceIdToLocalShell() {
+        val fallbackWorkspaceId = database.workspaceDao().loadAnyWorkspace()?.workspaceId
+        val resolvedWorkspaceId = if (fallbackWorkspaceId != null) {
+            fallbackWorkspaceId
+        } else {
+            ensureLocalWorkspaceShell(
+                database = database,
+                currentTimeMillis = System.currentTimeMillis()
+            )
+        }
+        preferencesStore.updateActiveWorkspaceId(activeWorkspaceId = resolvedWorkspaceId)
     }
 
     private suspend fun normalizeLegacyLinkingReadyStateLocked(cloudSettings: CloudSettings) {
