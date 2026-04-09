@@ -9,15 +9,11 @@ import com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
-import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
-import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
-import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
-import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
@@ -151,23 +147,6 @@ class CloudGuestSessionCoordinator(
                         guestRestoreRequiresSync = shouldSync,
                         didRunSync = false
                     )
-                } else if (
-                    storedCredentials != null &&
-                    isAuthenticatedSilentRestoreEligible(
-                        cloudSettings = reconciledCloudSettings,
-                        configuration = configuration
-                    )
-                ) {
-                    restoreAuthenticatedCloudSessionAfterReinstallLocked(
-                        storedCredentials = storedCredentials,
-                        configuration = configuration
-                    )
-                    CloudIdentityReconciliationResult(
-                        cloudSettings = preferencesStore.currentCloudSettings(),
-                        restoredGuestSession = null,
-                        guestRestoreRequiresSync = false,
-                        didRunSync = true
-                    )
                 } else {
                     CloudIdentityReconciliationResult(
                         cloudSettings = reconciledCloudSettings,
@@ -300,164 +279,6 @@ class CloudGuestSessionCoordinator(
         guestSessionStore.saveSession(localWorkspaceId = session.workspaceId, session = session)
         markGuestCloudState(session = session)
         return bootstrapProbe.remoteIsEmpty.not()
-    }
-
-    private suspend fun isAuthenticatedSilentRestoreEligible(
-        cloudSettings: CloudSettings,
-        configuration: CloudServiceConfiguration
-    ): Boolean {
-        if (configuration.mode != CloudServiceConfigurationMode.OFFICIAL) {
-            return false
-        }
-        if (
-            cloudSettings.cloudState != CloudAccountState.DISCONNECTED
-        ) {
-            return false
-        }
-        return isSafeForAuthenticatedSilentRestore()
-    }
-
-    private suspend fun isSafeForAuthenticatedSilentRestore(): Boolean {
-        val workspaceCount = database.workspaceDao().countWorkspaces()
-        if (workspaceCount != 1) {
-            return false
-        }
-        if (database.cardDao().countActiveCards() != 0) {
-            return false
-        }
-        if (database.deckDao().countDecks() != 0) {
-            return false
-        }
-        if (database.reviewLogDao().countReviewLogs() != 0) {
-            return false
-        }
-        return database.outboxDao().countOutboxEntries() == 0
-    }
-
-    private suspend fun restoreAuthenticatedCloudSessionAfterReinstallLocked(
-        storedCredentials: StoredCloudCredentials,
-        configuration: CloudServiceConfiguration
-    ) {
-        val initialCredentials = refreshStoredCredentialsIfNeeded(
-            storedCredentials = storedCredentials,
-            configuration = configuration,
-            forceRefresh = false
-        )
-        try {
-            performAuthenticatedSilentRestoreLocked(
-                credentials = initialCredentials,
-                configuration = configuration
-            )
-            return
-        } catch (error: Exception) {
-            if (isCloudAuthorizationError(error).not()) {
-                throw error
-            }
-        }
-
-        val refreshedCredentials = refreshStoredCredentialsIfNeeded(
-            storedCredentials = storedCredentials,
-            configuration = configuration,
-            forceRefresh = true
-        )
-        performAuthenticatedSilentRestoreLocked(
-            credentials = refreshedCredentials,
-            configuration = configuration
-        )
-    }
-
-    private suspend fun performAuthenticatedSilentRestoreLocked(
-        credentials: StoredCloudCredentials,
-        configuration: CloudServiceConfiguration
-    ) {
-        val accountSnapshot = remoteService.fetchCloudAccount(
-            apiBaseUrl = configuration.apiBaseUrl,
-            bearerToken = credentials.idToken
-        )
-        val selectedWorkspace = selectedWorkspaceForAuthenticatedSilentRestore(accountSnapshot)
-        applyLinkedWorkspaceAndSyncLocked(
-            accountSnapshot = accountSnapshot,
-            credentials = credentials,
-            configuration = configuration,
-            selectedWorkspace = selectedWorkspace
-        )
-    }
-
-    private fun selectedWorkspaceForAuthenticatedSilentRestore(
-        accountSnapshot: CloudAccountSnapshot
-    ): CloudWorkspaceSummary {
-        return requireNotNull(accountSnapshot.workspaces.firstOrNull(CloudWorkspaceSummary::isSelected)) {
-            "Authenticated cloud account is missing a selected workspace."
-        }
-    }
-
-    private suspend fun refreshStoredCredentialsIfNeeded(
-        storedCredentials: StoredCloudCredentials,
-        configuration: CloudServiceConfiguration,
-        forceRefresh: Boolean
-    ): StoredCloudCredentials {
-        if (
-            forceRefresh.not() &&
-            shouldRefreshCloudIdToken(
-                idTokenExpiresAtMillis = storedCredentials.idTokenExpiresAtMillis,
-                nowMillis = System.currentTimeMillis()
-            ).not()
-        ) {
-            return storedCredentials
-        }
-
-        val refreshedCredentials = remoteService.refreshIdToken(
-            refreshToken = storedCredentials.refreshToken,
-            authBaseUrl = configuration.authBaseUrl
-        )
-        preferencesStore.saveCredentials(refreshedCredentials)
-        return refreshedCredentials
-    }
-
-    private suspend fun applyLinkedWorkspaceAndSyncLocked(
-        accountSnapshot: CloudAccountSnapshot,
-        credentials: StoredCloudCredentials,
-        configuration: CloudServiceConfiguration,
-        selectedWorkspace: CloudWorkspaceSummary
-    ) {
-        val bootstrapProbe = remoteService.bootstrapPull(
-            apiBaseUrl = configuration.apiBaseUrl,
-            authorizationHeader = "Bearer ${credentials.idToken}",
-            workspaceId = selectedWorkspace.workspaceId,
-            body = org.json.JSONObject()
-                .put("mode", "pull")
-                .put("installationId", preferencesStore.currentCloudSettings().installationId)
-                .put("platform", androidClientPlatform)
-                .put("appVersion", appVersion)
-                .put("cursor", org.json.JSONObject.NULL)
-                .put("limit", 1)
-        )
-        val localLinkedWorkspace = syncLocalStore.migrateLocalShellToLinkedWorkspace(
-            workspace = selectedWorkspace,
-            remoteWorkspaceIsEmpty = bootstrapProbe.remoteIsEmpty
-        )
-        require(localLinkedWorkspace.workspaceId == selectedWorkspace.workspaceId) {
-            "Authenticated silent restore produced an unexpected local workspace. " +
-                "Expected='${selectedWorkspace.workspaceId}' Actual='${localLinkedWorkspace.workspaceId}'."
-        }
-        preferencesStore.updateCloudSettings(
-            cloudState = CloudAccountState.LINKED,
-            linkedUserId = accountSnapshot.userId,
-            linkedWorkspaceId = selectedWorkspace.workspaceId,
-            linkedEmail = accountSnapshot.email,
-            activeWorkspaceId = selectedWorkspace.workspaceId
-        )
-        runCloudSyncCore(
-            cloudSettings = preferencesStore.currentCloudSettings(),
-            workspaceId = selectedWorkspace.workspaceId,
-            syncSession = CloudSyncSession(
-                apiBaseUrl = configuration.apiBaseUrl,
-                authorizationHeader = "Bearer ${credentials.idToken}"
-            ),
-            appVersion = appVersion,
-            remoteService = remoteService,
-            syncLocalStore = syncLocalStore
-        )
     }
 
     private fun isCloudAuthorizationError(error: Exception): Boolean {
