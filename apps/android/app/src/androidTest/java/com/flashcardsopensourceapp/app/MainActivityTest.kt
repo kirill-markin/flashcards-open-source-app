@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.app
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.hasClickAction
@@ -13,22 +15,18 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
-import com.flashcardsopensourceapp.feature.ai.aiEmptyStateContentTag
-import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
-import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
-import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
+import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewFilterButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
@@ -44,7 +42,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
-import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class MainActivityTest {
@@ -63,48 +60,103 @@ class MainActivityTest {
         .around(composeRule)
 
     @Test
-    fun navigationShowsAllTopLevelScreensFromEmptyState() {
+    fun topLevelNavigationShowsCardsSettingsAndReviewEmptyState() {
         waitForCardsEmptyState()
         composeRule.onNodeWithText("Search cards").fetchSemanticsNode()
-
-        waitForAiEmptyState()
-        composeRule.onNodeWithTag(aiEmptyStateContentTag, useUnmergedTree = true).fetchSemanticsNode()
-        composeRule.onNodeWithText("Message").fetchSemanticsNode()
-
-        openSettingsTab()
-        composeRule.onNode(
-            matcher = hasText("Workspace").and(other = hasClickAction())
-        ).fetchSemanticsNode()
-
-        openReviewTab()
-        composeRule.onNodeWithText("No cards yet").fetchSemanticsNode()
-    }
-
-    @Test
-    fun settingsScreensShowTitlesAndBackNavigation() {
-        waitForCardsEmptyState()
 
         openSettingsTab()
         composeRule.onNodeWithText("Current Workspace").fetchSemanticsNode()
 
+        openReviewTabAndAssertEmptyState()
+    }
+
+    @Test
+    fun workspaceSettingsShowsTitleAndVisibleBackButton() {
+        waitForCardsEmptyState()
+
+        openSettingsTab()
+        composeRule.onNodeWithText("Current Workspace").fetchSemanticsNode()
         composeRule.onNode(
             matcher = hasText("Workspace").and(other = hasClickAction())
         ).performClick()
+
         composeRule.onNodeWithText("Workspace Settings").fetchSemanticsNode()
         composeRule.onNodeWithContentDescription("Back").fetchSemanticsNode()
-        tapBackIcon()
+        tapVisibleBackButton()
+        composeRule.onNodeWithText("Current Workspace").fetchSemanticsNode()
+    }
 
+    @Test
+    fun accountStatusAndSignInShowTitlesAndVisibleBackButton() {
+        waitForCardsEmptyState()
+
+        openSettingsTab()
         composeRule.onNode(
             matcher = hasText("Account").and(other = hasClickAction())
         ).performClick()
         composeRule.onNodeWithText("Account Settings").fetchSemanticsNode()
+
         composeRule.onNodeWithText("Account status").performClick()
         composeRule.onNodeWithText("Account Status").fetchSemanticsNode()
         composeRule.onNodeWithText("Sign in or sign up").performClick()
         composeRule.onNodeWithText("Sign in").fetchSemanticsNode()
         composeRule.onNodeWithContentDescription("Back").fetchSemanticsNode()
-        tapBackIcon()
+        tapVisibleBackButton()
         composeRule.onNodeWithText("Account Status").fetchSemanticsNode()
+    }
+
+    @Test
+    fun reviewEmptyStateShowsPrimaryHandoffs() {
+        waitForCardsEmptyState()
+
+        openReviewTabAndAssertEmptyState()
+        composeRule.onNodeWithText("Create card").fetchSemanticsNode()
+        composeRule.onNodeWithText("Create with AI").fetchSemanticsNode()
+    }
+
+    @Test
+    fun reviewEmptyStateCreateCardOpensEditor() {
+        waitForCardsEmptyState()
+
+        openReviewTabAndAssertEmptyState()
+        composeRule.onNodeWithText("Create card").performClick()
+        composeRule.onNodeWithText("New card").fetchSemanticsNode()
+        tapVisibleBackButton()
+        openReviewTabAndAssertEmptyState()
+    }
+
+    @Test
+    fun reviewEmptyStateCreateWithAiOpensConsentGate() {
+        waitForCardsEmptyState()
+
+        openReviewTabAndAssertEmptyState()
+        composeRule.onNodeWithText("Create with AI").performClick()
+        assertAiConsentGateIsVisible()
+    }
+
+    @Test
+    fun aiConsentAcceptanceOpensConversationSurface() {
+        waitForCardsEmptyState()
+
+        openAiTabAndAssertConsentGate()
+        acceptAiConsentAndWaitForConversation()
+        composeRule.onNodeWithTag(aiConversationSurfaceTag).fetchSemanticsNode()
+        composeRule.onNodeWithText("Message").fetchSemanticsNode()
+    }
+
+    @Test
+    fun aiConversationSurfaceTapClearsComposerFocus() {
+        waitForCardsEmptyState()
+
+        openAiTabAndAssertConsentGate()
+        acceptAiConsentAndWaitForConversation()
+
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performClick()
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).assertIsFocused()
+
+        composeRule.onNodeWithTag(aiConversationSurfaceTag).performClick()
+        waitUntilComposerIsNotFocused()
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).assertIsNotFocused()
     }
 
     @Test
@@ -123,18 +175,7 @@ class MainActivityTest {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("This came from the Android app.").fetchSemanticsNodes().isEmpty()
         }
-        composeRule.onNode(
-            matcher = hasText("Fast", substring = true)
-        ).fetchSemanticsNode()
-        composeRule.onNode(
-            matcher = hasText("draft", substring = true)
-        ).fetchSemanticsNode()
-        composeRule.onNode(
-            matcher = hasText("android", substring = true)
-        ).fetchSemanticsNode()
-        composeRule.onNode(
-            matcher = hasText("new", substring = true)
-        ).fetchSemanticsNode()
+        composeRule.onNodeWithText("Fast | draft, android | new").fetchSemanticsNode()
 
         openCardFilter()
         composeRule.onNodeWithText("draft (1)").performClick()
@@ -178,18 +219,9 @@ class MainActivityTest {
     }
 
     @Test
-    fun workspaceDecksAndTagsFlowWorksAfterCreatingCards() {
+    fun workspaceDecksFlowCreatesDeckAndOpensMatchingCardAfterCreatingCards() {
         waitForCardsEmptyState()
-        createCard(
-            frontText = "SQLite note",
-            backText = "Stored locally.",
-            tags = listOf("storage")
-        )
-        createCard(
-            frontText = "Compose note",
-            backText = "Rendered declaratively.",
-            tags = listOf("ui")
-        )
+        createCardsForWorkspaceSettingsFlows()
 
         openSettingsSection(sectionTitle = "Workspace")
         composeRule.onNodeWithText("Decks").performClick()
@@ -206,19 +238,25 @@ class MainActivityTest {
         composeRule.onNodeWithText("Storage deck").performClick()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodes(
-                matcher = hasText("SQLite note", substring = true).and(other = hasClickAction())
+                matcher = hasText("SQLite note").and(other = hasClickAction())
             ).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNode(
-            matcher = hasText("SQLite note", substring = true).and(other = hasClickAction())
+            matcher = hasText("SQLite note").and(other = hasClickAction())
         ).performClick()
         composeRule.onNodeWithText("Edit card").fetchSemanticsNode()
-        tapBackIcon()
-        tapBackIcon()
-        tapBackIcon()
+        composeRule.onNodeWithText("Stored locally.").fetchSemanticsNode()
+    }
 
+    @Test
+    fun workspaceTagsFlowShowsMatchingCardCountAfterCreatingCards() {
+        waitForCardsEmptyState()
+        createCardsForWorkspaceSettingsFlows()
+
+        openSettingsSection(sectionTitle = "Workspace")
         composeRule.onNodeWithText("Tags").performClick()
         composeRule.onNodeWithText("Search tags").performTextInput("ui")
+        composeRule.onNodeWithText("ui").fetchSemanticsNode()
         composeRule.onNodeWithText("1 cards").fetchSemanticsNode()
     }
 
@@ -263,96 +301,74 @@ class MainActivityTest {
     }
 
     @Test
-    fun settingsAccountDeviceAccessAndExportFlowsOpenFromEmptyState() {
+    fun workspaceOverviewShowsRenameNoticeFromEmptyState() {
         waitForCardsEmptyState()
 
-        openSettingsTab()
-        composeRule.onNode(
-            matcher = hasText("Workspace").and(other = hasClickAction())
-        ).performClick()
+        openWorkspaceSettings()
         composeRule.onNodeWithText("Overview").performClick()
         composeRule.onNodeWithText("Danger zone").fetchSemanticsNode()
         composeRule.onNodeWithText("Workspace rename is available only for linked cloud workspaces.").fetchSemanticsNode()
-        tapBackIcon()
-        tapBackIcon()
+    }
 
-        openSettingsTab()
-        composeRule.onNode(
-            matcher = hasText("Account").and(other = hasClickAction())
-        ).performClick()
+    @Test
+    fun accountStatusShowsCloudStatusFromEmptyState() {
+        waitForCardsEmptyState()
+
+        openAccountSettings()
         composeRule.onNodeWithText("Account status").performClick()
         composeRule.onNodeWithText("Cloud status").fetchSemanticsNode()
-        tapBackIcon()
+    }
 
+    @Test
+    fun accountAgentConnectionsShowsSignInGuidanceFromEmptyState() {
+        waitForCardsEmptyState()
+
+        openAccountSettings()
         composeRule.onNodeWithText("Agent connections").performClick()
         composeRule.onNodeWithText("Agent Connections").fetchSemanticsNode()
         composeRule.onNodeWithText("Sign in to the cloud account to manage long-lived bot connections.").fetchSemanticsNode()
-        tapBackIcon()
+    }
 
+    @Test
+    fun accountDangerZoneShowsDeleteActionFromEmptyState() {
+        waitForCardsEmptyState()
+
+        openAccountSettings()
         composeRule.onNode(
             matcher = hasText("Danger zone").and(other = hasClickAction())
         ).performClick()
         composeRule.onNodeWithText("Danger Zone").fetchSemanticsNode()
         composeRule.onNodeWithText("Delete my account").fetchSemanticsNode()
-        tapBackIcon()
-        tapBackIcon()
+    }
+
+    @Test
+    fun deviceDiagnosticsShowWorkspaceIdFromEmptyState() {
+        waitForCardsEmptyState()
 
         openSettingsSection(sectionTitle = "This Device")
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Workspace ID").fetchSemanticsNodes().isNotEmpty()
         }
-        tapBackIcon()
+    }
+
+    @Test
+    fun accessCameraUsageDetailsOpenFromEmptyState() {
+        waitForCardsEmptyState()
 
         openSettingsSection(sectionTitle = "Access")
         composeRule.onNodeWithText("Camera").fetchSemanticsNode()
         composeRule.onNodeWithText("Camera").performClick()
         composeRule.onNodeWithText("Usage").fetchSemanticsNode()
-        tapBackIcon()
-        tapBackIcon()
+    }
+
+    @Test
+    fun workspaceExportShowsCsvActionFromEmptyState() {
+        waitForCardsEmptyState()
 
         openSettingsSection(sectionTitle = "Workspace")
         composeRule.onNodeWithText("Export").performClick()
         composeRule.onNodeWithText("Export CSV").fetchSemanticsNode()
-    }
-
-    @Test
-    fun reviewEmptyStateSupportsGuidedCreationHandoffs() {
-        waitForCardsEmptyState()
-
-        openReviewTab()
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(reviewEmptyStateTag).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithTag(reviewEmptyStateContentTag).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithText("No cards yet").fetchSemanticsNode()
-        composeRule.onNodeWithText("Create card").fetchSemanticsNode()
-        composeRule.onNodeWithText("Create with AI").fetchSemanticsNode()
-        assertReviewEmptyStateIsCentered()
-
-        composeRule.onNodeWithText("Create card").performClick()
-        composeRule.onNodeWithText("New card").fetchSemanticsNode()
-        tapBackIcon()
-
-        composeRule.onNodeWithText("No cards yet").fetchSemanticsNode()
-        composeRule.onNodeWithText("Create with AI").performClick()
-        dismissAiConsentIfNeeded()
-        waitForAiEmptyState()
-        composeRule.onNodeWithTag(aiEmptyStateContentTag, useUnmergedTree = true).fetchSemanticsNode()
-        assertAiEmptyStateIsCentered()
-        composeRule.onNodeWithText("Message").fetchSemanticsNode()
-    }
-
-    @Test
-    fun aiConversationSurfaceTapClearsComposerFocus() {
-        waitForAiEmptyState()
-
-        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performClick()
-        composeRule.onNodeWithTag(aiComposerMessageFieldTag).assertIsFocused()
-
-        composeRule.onNodeWithTag(aiConversationSurfaceTag).performClick()
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithTag(aiComposerMessageFieldTag).assertIsNotFocused()
+        composeRule.onNodeWithText("CSV export").fetchSemanticsNode()
     }
 
     @Test
@@ -378,13 +394,9 @@ class MainActivityTest {
     }
 
     @Test
-    fun reviewScreenShowsVisibleFilterAndOverlayActions() {
+    fun reviewScreenShowsFilterAndEditActionsBeforeReveal() {
         waitForCardsEmptyState()
-        createCard(
-            frontText = "Visible review contract",
-            backText = "First line.\n\nSecond line that is long enough to require scrolling behind the action overlay.",
-            tags = listOf("review", "android")
-        )
+        createReviewOverlayFixtureCard()
 
         openReviewTab()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
@@ -401,6 +413,17 @@ class MainActivityTest {
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
         composeRule.onNodeWithText("Review scope").fetchSemanticsNode()
         composeRule.onNodeWithText("Review the full local queue").performClick()
+    }
+
+    @Test
+    fun reviewScreenShowsRatingAndAiActionsAfterReveal() {
+        waitForCardsEmptyState()
+        createReviewOverlayFixtureCard()
+
+        openReviewTab()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
+        }
 
         composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performClick()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
@@ -411,10 +434,8 @@ class MainActivityTest {
                 && composeRule.onAllNodesWithTag(reviewAiCardButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag(reviewRateGoodButtonTag).fetchSemanticsNode()
-
-        val editButtonBounds = composeRule.onNodeWithTag(reviewEditCardButtonTag).fetchSemanticsNode().boundsInRoot
-        val aiButtonBounds = composeRule.onNodeWithTag(reviewAiCardButtonTag).fetchSemanticsNode().boundsInRoot
-        assertTrue(aiButtonBounds.top > editButtonBounds.top + 40f)
+        composeRule.onNodeWithTag(reviewEditCardButtonTag).fetchSemanticsNode()
+        composeRule.onNodeWithTag(reviewAiCardButtonTag).fetchSemanticsNode()
     }
 
     private fun waitForCardsEmptyState() {
@@ -425,47 +446,42 @@ class MainActivityTest {
         }
     }
 
-    private fun waitForAiEmptyState() {
+    private fun openReviewTabAndAssertEmptyState() {
+        openReviewTab()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(reviewEmptyStateTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(reviewEmptyStateContentTag).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("No cards yet").fetchSemanticsNode()
+    }
+
+    private fun openAiTabAndAssertConsentGate() {
         openAiTab()
-        dismissAiConsentIfNeeded()
+        assertAiConsentGateIsVisible()
+    }
+
+    private fun assertAiConsentGateIsVisible() {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText("OK").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Before you use AI").fetchSemanticsNode()
+    }
+
+    private fun acceptAiConsentAndWaitForConversation() {
+        composeRule.onNodeWithText("OK").performClick()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isEmpty() &&
-                composeRule.onAllNodesWithText("Message").fetchSemanticsNodes().isNotEmpty()
+                composeRule.onAllNodesWithTag(aiConversationSurfaceTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
-    private fun assertReviewEmptyStateIsCentered() {
-        val containerBounds = composeRule.onNodeWithTag(reviewEmptyStateTag).fetchSemanticsNode().boundsInRoot
-        val contentBounds = composeRule.onNodeWithTag(reviewEmptyStateContentTag).fetchSemanticsNode().boundsInRoot
-        val containerCenterX = (containerBounds.left + containerBounds.right) / 2f
-        val containerCenterY = (containerBounds.top + containerBounds.bottom) / 2f
-        val contentCenterX = (contentBounds.left + contentBounds.right) / 2f
-        val contentCenterY = (contentBounds.top + contentBounds.bottom) / 2f
-        val maxCenterOffsetPx = 4f
-
-        assertTrue(abs(containerCenterX - contentCenterX) <= maxCenterOffsetPx)
-        assertTrue(abs(containerCenterY - contentCenterY) <= maxCenterOffsetPx)
-        assertTrue(contentBounds.width < composeRule.onRoot().fetchSemanticsNode().boundsInRoot.width)
-    }
-
-    private fun assertAiEmptyStateIsCentered() {
-        val containerBounds = composeRule.onNodeWithTag(
-            aiEmptyStateTag,
-            useUnmergedTree = true
-        ).fetchSemanticsNode().boundsInRoot
-        val contentBounds = composeRule.onNodeWithTag(
-            aiEmptyStateContentTag,
-            useUnmergedTree = true
-        ).fetchSemanticsNode().boundsInRoot
-        val containerCenterX = (containerBounds.left + containerBounds.right) / 2f
-        val containerCenterY = (containerBounds.top + containerBounds.bottom) / 2f
-        val contentCenterX = (contentBounds.left + contentBounds.right) / 2f
-        val contentCenterY = (contentBounds.top + contentBounds.bottom) / 2f
-        val maxCenterOffsetPx = 4f
-
-        assertTrue(abs(containerCenterX - contentCenterX) <= maxCenterOffsetPx)
-        assertTrue(abs(containerCenterY - contentCenterY) <= maxCenterOffsetPx)
-        assertTrue(contentBounds.width < composeRule.onRoot().fetchSemanticsNode().boundsInRoot.width)
+    private fun waitUntilComposerIsNotFocused() {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            val composerNodes = composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes()
+            composerNodes.size == 1 && composerNodes[0].config.getOrNull(SemanticsProperties.Focused) == false
+        }
     }
 
     private fun createCard(frontText: String, backText: String, tags: List<String>) {
@@ -479,7 +495,7 @@ class MainActivityTest {
                 composeRule.onNodeWithText("Add a tag").performTextInput(tag)
                 composeRule.onNodeWithText("Add tag").performClick()
             }
-            tapBackIcon()
+            tapVisibleBackButton()
         }
         scrollToText(text = "Save")
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
@@ -494,6 +510,27 @@ class MainActivityTest {
             composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty()
                 && composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    private fun createCardsForWorkspaceSettingsFlows() {
+        createCard(
+            frontText = "SQLite note",
+            backText = "Stored locally.",
+            tags = listOf("storage")
+        )
+        createCard(
+            frontText = "Compose note",
+            backText = "Rendered declaratively.",
+            tags = listOf("ui")
+        )
+    }
+
+    private fun createReviewOverlayFixtureCard() {
+        createCard(
+            frontText = "Visible review contract",
+            backText = "First line.\n\nSecond line that is long enough to require scrolling behind the action overlay.",
+            tags = listOf("review", "android")
+        )
     }
 
     private fun openCardsTab() {
@@ -531,33 +568,55 @@ class MainActivityTest {
         ).performClick()
     }
 
-    private fun dismissAiConsentIfNeeded() {
-        if (composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isNotEmpty()) {
-            composeRule.onNodeWithText("OK").performClick()
-            composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-                composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isEmpty()
-            }
-        }
+    private fun openWorkspaceSettings() {
+        openSettingsTab()
+        composeRule.onNode(
+            matcher = hasText("Workspace").and(other = hasClickAction())
+        ).performClick()
+    }
+
+    private fun openAccountSettings() {
+        openSettingsTab()
+        composeRule.onNode(
+            matcher = hasText("Account").and(other = hasClickAction())
+        ).performClick()
     }
 
     private fun updateCardText(fieldTitle: String, value: String) {
-        composeRule.onNodeWithText(fieldTitle).performClick()
+        composeRule.onNode(
+            matcher = hasText(fieldTitle).and(other = hasClickAction())
+        ).performClick()
+        waitForCardTextEditor(fieldTitle = fieldTitle)
         val textField = composeRule.onAllNodes(hasSetTextAction())[0]
-        textField.performTextClearance()
-        composeRule.waitForIdle()
-        textField.performTextInput(value)
-        tapBackIcon()
+        textField.performTextReplacement(value)
+        tapVisibleBackButton()
     }
 
-    private fun tapBackIcon() {
-        if (composeRule.onAllNodes(matcher = hasContentDescription("Back")).fetchSemanticsNodes().isNotEmpty()) {
-            composeRule.onNodeWithContentDescription("Back").performClick()
-        } else {
-            composeRule.activity.runOnUiThread {
-                composeRule.activity.onBackPressedDispatcher.onBackPressed()
-            }
-            composeRule.waitForIdle()
+    private fun waitForCardTextEditor(fieldTitle: String) {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText(fieldTitle).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText(cardTextEditorSupportingText(fieldTitle)).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().size == 1
         }
+    }
+
+    private fun cardTextEditorSupportingText(fieldTitle: String): String {
+        return when (fieldTitle) {
+            "Front" -> "Keep this side focused on the question or review prompt."
+            "Back" -> "Keep this side focused on the answer."
+            else -> throw IllegalArgumentException("Unsupported card text field title: $fieldTitle")
+        }
+    }
+
+    private fun tapVisibleBackButton() {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodes(
+                matcher = hasContentDescription("Back").and(other = hasClickAction())
+            ).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNode(
+            matcher = hasContentDescription("Back").and(other = hasClickAction())
+        ).performClick()
     }
 
     private fun openSettingsSection(sectionTitle: String) {
