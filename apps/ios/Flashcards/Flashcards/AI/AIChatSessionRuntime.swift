@@ -45,22 +45,15 @@ actor AIChatSessionRuntime {
         )
 
         do {
-            var effectiveSessionId = sessionId
+            let effectiveSessionId = sessionId.trimmingCharacters(in: .whitespacesAndNewlines)
             if effectiveSessionId.isEmpty {
-                if session.authorization.isGuest == false {
-                    throw LocalStoreError.validation("AI chat session is unavailable for the linked account.")
-                }
-                let recoveredSnapshot = try await self.chatService.loadSnapshot(
-                    session: session,
-                    sessionId: nil
-                )
-                effectiveSessionId = recoveredSnapshot.sessionId
+                throw LocalStoreError.validation("AI chat session orchestration started without a provisioned session id.")
             }
 
             let startResponse = try await self.chatService.startRun(
                 session: session,
                 request: AIChatStartRunRequestBody(
-                    sessionId: effectiveSessionId.isEmpty ? nil : effectiveSessionId,
+                    sessionId: effectiveSessionId,
                     clientRequestId: makeAIChatClientRequestId(),
                     content: outgoingContent,
                     timezone: TimeZone.current.identifier

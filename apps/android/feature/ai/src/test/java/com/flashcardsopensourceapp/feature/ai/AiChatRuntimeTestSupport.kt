@@ -16,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatRunTerminalOutcome
+import com.flashcardsopensourceapp.data.local.model.AiChatSessionProvisioningResult
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatStopRunResponse
@@ -71,13 +72,27 @@ internal fun makeRuntimeWithAutoSync(
     repository: FakeAiChatRepository,
     autoSyncEventRepository: FakeAutoSyncEventRepository
 ): AiChatRuntime {
+    return makeRuntimeWithCloudState(
+        scope = scope,
+        repository = repository,
+        autoSyncEventRepository = autoSyncEventRepository,
+        cloudState = CloudAccountState.GUEST
+    )
+}
+
+internal fun makeRuntimeWithCloudState(
+    scope: TestScope,
+    repository: FakeAiChatRepository,
+    autoSyncEventRepository: FakeAutoSyncEventRepository,
+    cloudState: CloudAccountState
+): AiChatRuntime {
     return AiChatRuntime(
         scope = scope,
         aiChatRepository = repository,
         autoSyncEventRepository = autoSyncEventRepository,
         appVersion = testAppVersion,
         hasConsent = { repository.consent.value },
-        currentCloudState = { CloudAccountState.GUEST },
+        currentCloudState = { cloudState },
         currentServerConfiguration = { makeOfficialCloudServiceConfiguration() },
         currentSyncStatus = { SyncStatus.Idle }
     )
@@ -189,14 +204,23 @@ internal class FakeAiChatRepository : AiChatRepository {
     val loadBootstrapGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val liveFlows: MutableMap<String, Flow<AiChatLiveEvent>> = mutableMapOf()
     val attachRunIds: MutableList<String> = mutableListOf()
-    val loadBootstrapSessionIds: MutableList<String?> = mutableListOf()
+    val loadBootstrapSessionIds: MutableList<String> = mutableListOf()
     val createNewSessionRequests: MutableList<String> = mutableListOf()
     val createNewSessionGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val createNewSessionResponses: ArrayDeque<AiChatSessionSnapshot> = ArrayDeque()
     val persistedStates: MutableMap<String?, AiChatPersistedState> = mutableMapOf()
     val draftStates: MutableMap<Pair<String?, String?>, AiChatDraftState> = mutableMapOf()
+    val ensureSessionRequests: MutableList<String> = mutableListOf()
+    val transcribeAudioSessionIds: MutableList<String> = mutableListOf()
+    var nextEnsureSessionId: String = "ensured-session-1"
+    var transcribeAudioResponse: AiChatTranscriptionResult = AiChatTranscriptionResult(
+        text = "transcribed speech",
+        sessionId = nextEnsureSessionId
+    )
     var startRunError: Exception? = null
     var loadBootstrapCalls: Int = 0
+    var startRunCalls: Int = 0
+    var lastStartRunState: AiChatPersistedState? = null
     var startRunResponse: AiChatStartRunResponse = AiChatAcceptedConversationEnvelope(
         accepted = true,
         sessionId = "session-1",
@@ -271,9 +295,33 @@ internal class FakeAiChatRepository : AiChatRepository {
         return null
     }
 
+    override suspend fun ensureSessionId(
+        workspaceId: String?,
+        persistedState: AiChatPersistedState
+    ): AiChatSessionProvisioningResult {
+        val normalizedSessionId = persistedState.chatSessionId.trim()
+        ensureSessionRequests += normalizedSessionId
+        if (normalizedSessionId.isNotEmpty()) {
+            return AiChatSessionProvisioningResult(
+                sessionId = normalizedSessionId,
+                snapshot = null
+            )
+        }
+
+        val sessionId = nextEnsureSessionId
+        val snapshot = createNewSession(
+            workspaceId = workspaceId,
+            sessionId = sessionId
+        )
+        return AiChatSessionProvisioningResult(
+            sessionId = sessionId,
+            snapshot = snapshot
+        )
+    }
+
     override suspend fun loadBootstrap(
         workspaceId: String?,
-        sessionId: String?,
+        sessionId: String,
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse {
@@ -314,12 +362,13 @@ internal class FakeAiChatRepository : AiChatRepository {
 
     override suspend fun transcribeAudio(
         workspaceId: String?,
-        sessionId: String?,
+        sessionId: String,
         fileName: String,
         mediaType: String,
         audioBytes: ByteArray
     ): AiChatTranscriptionResult {
-        throw IllegalStateException("Unexpected transcribeAudio call in test.")
+        transcribeAudioSessionIds += sessionId
+        return transcribeAudioResponse
     }
 
     override suspend fun warmUpLinkedSession() {
@@ -331,6 +380,8 @@ internal class FakeAiChatRepository : AiChatRepository {
         state: AiChatPersistedState,
         content: List<AiChatContentPart>
     ): AiChatStartRunResponse {
+        startRunCalls += 1
+        lastStartRunState = state
         val error: Exception? = startRunError
         if (error != null) {
             throw error

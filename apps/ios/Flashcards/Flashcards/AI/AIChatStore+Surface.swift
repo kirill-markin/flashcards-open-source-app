@@ -91,6 +91,7 @@ extension AIChatStore {
 
     func prepareForWorkspaceChange() {
         self.invalidatePendingNewSessionRequest()
+        self.invalidatePendingRemoteSessionProvisionRequest()
         self.resetLocalHistoryState()
         self.bootstrapPhase = .loading
     }
@@ -180,6 +181,7 @@ extension AIChatStore {
 
         self.surfaceState.activeAccessContext = nextAccessContext
         self.invalidatePendingNewSessionRequest()
+        self.invalidatePendingRemoteSessionProvisionRequest()
         self.activeBootstrapTask?.cancel()
         self.activeBootstrapTask = nil
         self.cancelStreaming()
@@ -207,7 +209,7 @@ extension AIChatStore {
         }
 
         self.bootstrapPhase = .ready
-        self.startPassiveSnapshotRefreshIfPossible(baselineState: persistedState)
+        self.startPassiveSnapshotRefreshIfPossible()
     }
 
     func shouldPreserveActiveGuestSendDuringAccessContextChange(
@@ -226,6 +228,7 @@ extension AIChatStore {
     }
 
     func restorePersistedState(_ persistedState: AIChatPersistedState) {
+        self.invalidatePendingRemoteSessionProvisionRequest()
         self.messages = persistedState.messages
         self.serverChatConfig = persistedState.lastKnownChatConfig ?? aiChatDefaultServerConfig
         let resolvedSessionId = aiChatResolvedSessionId(
@@ -257,6 +260,7 @@ extension AIChatStore {
         self.pendingToolRunPostSync = persistedState.pendingToolRunPostSync
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
+        self.requiresRemoteSessionProvisioning = false
     }
 
     func canAutoStartFreshLocalSession() -> Bool {
@@ -304,6 +308,7 @@ extension AIChatStore {
         self.activeBootstrapTask = nil
         self.activeWarmUpTask?.cancel()
         self.activeWarmUpTask = nil
+        self.invalidatePendingRemoteSessionProvisionRequest()
         self.cancelStreaming()
         self.cancelDictation()
         let resolvedSessionId = aiChatResolvedSessionId(
@@ -328,6 +333,7 @@ extension AIChatStore {
         self.resetRunToolCallTracking()
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
+        self.requiresRemoteSessionProvisioning = false
     }
 
     func resetConversationForNewSession(
@@ -341,6 +347,7 @@ extension AIChatStore {
         self.activeWarmUpTask = nil
         self.activeSendTask?.cancel()
         self.activeSendTask = nil
+        self.invalidatePendingRemoteSessionProvisionRequest()
         Task {
             await self.runtime.detach()
         }
@@ -366,6 +373,7 @@ extension AIChatStore {
         self.resetRunToolCallTracking()
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
+        self.requiresRemoteSessionProvisioning = true
         self.schedulePersistState(
             state: AIChatPersistedState(
                 messages: [],
@@ -414,31 +422,18 @@ extension AIChatStore {
 
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
-                let response = try await self.chatService.createNewSession(
-                    session: session,
-                    sessionId: sessionId
-                )
+                let provisionedSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
                 guard self.isCurrentNewSessionRequest(
                     sequence: requestSequence,
                     accessContext: requestedAccessContext
                 ) else {
                     return
                 }
-                guard response.sessionId == sessionId else {
+                guard provisionedSessionId == sessionId else {
                     self.shouldKeepLiveAttached = shouldKeepLiveAttached
                     return
-                }
-                guard self.chatSessionId == sessionId else {
-                    self.shouldKeepLiveAttached = shouldKeepLiveAttached
-                    return
-                }
-
-                self.serverChatConfig = response.chatConfig
-                if self.messages.isEmpty && self.activeRunId == nil {
-                    self.applyComposerSuggestions(response.composerSuggestions)
                 }
                 self.shouldKeepLiveAttached = shouldKeepLiveAttached
-                self.schedulePersistCurrentState()
             } catch is CancellationError {
             } catch {
                 if isAIChatRequestCancellationError(error: error) {
@@ -459,7 +454,7 @@ extension AIChatStore {
         self.activeNewSessionTask = task
     }
 
-    func startPassiveSnapshotRefreshIfPossible(baselineState: AIChatPersistedState) {
+    func startPassiveSnapshotRefreshIfPossible() {
         guard self.hasExternalProviderConsent else {
             return
         }
@@ -467,13 +462,15 @@ extension AIChatStore {
         Task {
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
+                let sessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
+                let refreshedBaselineState = self.currentPersistedState()
                 let bootstrap = try await self.chatService.loadBootstrap(
                     session: session,
-                    sessionId: baselineState.chatSessionId.isEmpty ? nil : baselineState.chatSessionId,
+                    sessionId: sessionId,
                     limit: aiChatBootstrapPageLimit,
                     resumeAttemptDiagnostics: nil
                 )
-                guard self.currentPersistedState() == baselineState else {
+                guard self.currentPersistedState() == refreshedBaselineState else {
                     return
                 }
                 self.applyBootstrap(bootstrap)

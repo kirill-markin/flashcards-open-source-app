@@ -11,6 +11,11 @@ struct AIChatToolRunPostSyncOrigin: Equatable, Sendable {
     let sessionId: String
 }
 
+struct AIChatRemoteSessionProvisionRequest {
+    let sessionId: String
+    let task: Task<AIChatNewSessionResponse, Error>
+}
+
 @MainActor
 @Observable
 final class AIChatStore {
@@ -108,6 +113,7 @@ final class AIChatStore {
     @ObservationIgnored var activeWarmUpTask: Task<Void, Never>?
     @ObservationIgnored var activeBootstrapTask: Task<Void, Never>?
     @ObservationIgnored var activeNewSessionTask: Task<Void, Never>?
+    @ObservationIgnored var activeRemoteSessionProvisionRequest: AIChatRemoteSessionProvisionRequest?
     @ObservationIgnored var activePersistTask: Task<Void, Never>?
     @ObservationIgnored var pendingPersistState: AIChatPersistedState?
     @ObservationIgnored var activeDraftPersistTask: Task<Void, Never>?
@@ -122,6 +128,7 @@ final class AIChatStore {
     @ObservationIgnored var nextNewSessionRequestSequence: Int
     @ObservationIgnored var activeResumeErrorAttemptSequence: Int?
     @ObservationIgnored var activeLiveResumeAttemptSequence: Int?
+    @ObservationIgnored var requiresRemoteSessionProvisioning: Bool
 
     var hasOlderMessages: Bool {
         get { self.conversationState.hasOlderMessages }
@@ -544,6 +551,7 @@ final class AIChatStore {
         self.activeWarmUpTask = nil
         self.activeBootstrapTask = nil
         self.activeNewSessionTask = nil
+        self.activeRemoteSessionProvisionRequest = nil
         self.activePersistTask = nil
         self.pendingPersistState = nil
         self.activeDraftPersistTask = nil
@@ -558,6 +566,7 @@ final class AIChatStore {
         self.nextNewSessionRequestSequence = 0
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
+        self.requiresRemoteSessionProvisioning = false
         self.activateAccessContext(
             force: true,
             nextAccessContext: self.currentAccessContext()

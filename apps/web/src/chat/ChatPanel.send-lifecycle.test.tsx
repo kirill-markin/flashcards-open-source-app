@@ -12,6 +12,7 @@ import {
   setTextareaValue,
   setupChatPanelTest,
   startChatRunMock,
+  transcribeChatAudioMock,
   useAppDataMock,
 } from "./ChatPanelTestSupport";
 import {
@@ -26,6 +27,7 @@ const {
   renderChatPanel,
   setMobileViewport,
   sendMessage,
+  clickMicrophone,
 } = setupChatPanelTest();
 
 describe("ChatPanel send lifecycle", () => {
@@ -185,12 +187,15 @@ describe("ChatPanel send lifecycle", () => {
     expect(createNewChatSessionMock).not.toHaveBeenCalled();
   });
 
-  it("preserves latest-or-create bootstrap when no warm-start session id exists", async () => {
+  it("provisions a remote session before the first bootstrap snapshot when no warm-start session id exists", async () => {
     await renderChatPanel();
     await flushAsync();
+    await flushAsync();
 
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
     expect(getChatSnapshotMock).toHaveBeenCalledTimes(1);
-    expect(getChatSnapshotMock.mock.calls[0]?.[0]).toBeUndefined();
+    expect(getChatSnapshotMock.mock.calls[0]?.[0]).toBe(createNewChatSessionMock.mock.calls[0]?.[0]);
+    expect(createNewChatSessionMock.mock.invocationCallOrder[0]).toBeLessThan(getChatSnapshotMock.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY);
   });
 
   it("shows a disabled send button until the draft has text or attachments", async () => {
@@ -222,6 +227,37 @@ describe("ChatPanel send lifecycle", () => {
 
     expect(textarea?.value).toBe("");
     expect(document.activeElement).toBe(textarea);
+  });
+
+  it("includes an explicit sessionId in the first send request body", async () => {
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    await sendMessage("hello");
+    await flushAsync();
+    await flushAsync();
+
+    expect(startChatRunMock).toHaveBeenCalledTimes(1);
+    expect(startChatRunMock.mock.calls[0]?.[0]).toEqual(expect.objectContaining({
+      sessionId: createNewChatSessionMock.mock.calls[0]?.[0],
+    }));
+  });
+
+  it("includes an explicit sessionId in the first dictation upload", async () => {
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    await clickMicrophone();
+    await flushAsync();
+
+    await clickMicrophone();
+    await flushAsync();
+    await flushAsync();
+
+    expect(transcribeChatAudioMock).toHaveBeenCalledTimes(1);
+    expect(transcribeChatAudioMock.mock.calls[0]?.[2]).toBe(createNewChatSessionMock.mock.calls[0]?.[0]);
   });
 
   it("sends on desktop Enter", async () => {
@@ -369,8 +405,10 @@ describe("ChatPanel send lifecycle", () => {
     await flushAsync();
     await flushAsync();
 
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(2);
     expect(getChatSnapshotMock).toHaveBeenCalledTimes(2);
-    expect(getChatSnapshotMock.mock.calls[1]?.[0]).toBeUndefined();
+    expect(getChatSnapshotMock.mock.calls[1]?.[0]).toBe(createNewChatSessionMock.mock.calls[1]?.[0]);
+    expect(getChatSnapshotMock.mock.calls[1]?.[0]).not.toBe("session-workspace-1");
   });
 
   it("uses the persisted chat snapshot as the first paint while refresh is pending", async () => {

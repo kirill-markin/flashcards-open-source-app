@@ -238,7 +238,7 @@ class AiChatRuntimeWorkspaceSessionTest {
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
         advanceUntilIdle()
 
-        assertEquals(listOf<String?>("session-1"), repository.loadBootstrapSessionIds)
+        assertEquals(listOf("session-1"), repository.loadBootstrapSessionIds)
         assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
     }
 }

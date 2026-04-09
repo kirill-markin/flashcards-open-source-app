@@ -255,6 +255,11 @@ data class AiChatPersistedState(
     val pendingToolRunPostSync: Boolean
 )
 
+data class AiChatSessionProvisioningResult(
+    val sessionId: String,
+    val snapshot: AiChatSessionSnapshot?
+)
+
 data class AiChatDraftState(
     val draftMessage: String,
     val pendingAttachments: List<AiChatAttachment>
@@ -294,7 +299,7 @@ sealed interface AiChatWireContentPart {
 }
 
 data class AiChatStartRunRequest(
-    val sessionId: String?,
+    val sessionId: String,
     val clientRequestId: String,
     val content: List<AiChatWireContentPart>,
     val timezone: String,

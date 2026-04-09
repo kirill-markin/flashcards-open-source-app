@@ -82,6 +82,7 @@ extension AIChatStore {
                     return
                 }
                 let session = try await self.flashcardsStore.cloudSessionForAI()
+                let explicitSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
                 let recordedAudio = try await self.voiceRecorder.stopRecording()
                 defer {
                     try? FileManager.default.removeItem(at: recordedAudio.fileUrl)
@@ -89,10 +90,14 @@ extension AIChatStore {
 
                 let transcription = try await self.audioTranscriber.transcribe(
                     session: session,
-                    sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
+                    sessionId: explicitSessionId,
                     recordedAudio: recordedAudio
                 )
-                self.chatSessionId = transcription.sessionId
+                guard transcription.sessionId == explicitSessionId else {
+                    throw LocalStoreError.validation(
+                        "AI dictation returned an unexpected session id. expected=\(explicitSessionId) actual=\(transcription.sessionId)"
+                    )
+                }
                 self.schedulePersistCurrentState()
                 self.completedDictationTranscript = AIChatCompletedDictationTranscript(
                     id: UUID().uuidString.lowercased(),

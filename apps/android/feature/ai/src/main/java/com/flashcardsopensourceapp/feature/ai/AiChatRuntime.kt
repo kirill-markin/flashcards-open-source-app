@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.AiChatSessionProvisioningResult
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
@@ -23,7 +24,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
 
 private const val noSpeechRecordedMessage: String = "No speech was recorded."
 private const val cardHandoffRequiresFreshChatMessage: String =
@@ -221,13 +221,17 @@ internal class AiChatRuntime(
 
         context.scope.launch {
             try {
+                val ensuredSession = ensureSessionIdIfNeeded()
                 val transcription = context.aiChatRepository.transcribeAudio(
                     workspaceId = runtimeStateMutable.value.workspaceId,
-                    sessionId = runtimeStateMutable.value.persistedState.chatSessionId.ifBlank { null },
+                    sessionId = ensuredSession.sessionId,
                     fileName = fileName,
                     mediaType = mediaType,
                     audioBytes = audioBytes
                 )
+                require(transcription.sessionId == ensuredSession.sessionId) {
+                    "AI dictation returned mismatched sessionId. expectedSessionId=${ensuredSession.sessionId} responseSessionId=${transcription.sessionId}"
+                }
                 val transcript = transcription.text.trim()
 
                 require(transcript.isNotEmpty()) {
@@ -236,7 +240,7 @@ internal class AiChatRuntime(
 
                 runtimeStateMutable.update { state ->
                     state.copy(
-                        persistedState = state.persistedState.copy(chatSessionId = transcription.sessionId),
+                        persistedState = state.persistedState.copy(chatSessionId = ensuredSession.sessionId),
                         draftMessage = appendTranscriptToDraft(
                             currentDraft = state.draftMessage,
                             transcript = transcript
@@ -531,6 +535,7 @@ internal class AiChatRuntime(
                 // AI send is blocked on a direct sync so the backend run never starts
                 // from stale local writes that are still sitting in the outbox.
                 context.aiChatRepository.ensureReadyForSend(workspaceId = runtimeStateMutable.value.workspaceId)
+                ensureSessionIdIfNeeded()
                 val nextPersistedState = runtimeStateMutable.value.persistedState.copy(
                     messages = runtimeStateMutable.value.persistedState.messages + listOf(
                         makeUserMessage(
@@ -843,7 +848,7 @@ internal class AiChatRuntime(
         persistCurrentDraft(snapshot = currentState)
         initializeFreshConversation(
             workspaceId = currentState.workspaceId,
-            targetSessionId = makeClientChatSessionId(),
+            targetSessionId = makeAiChatSessionId(),
             draftMessage = draftMessage,
             pendingAttachments = pendingAttachments,
             shouldFocusComposer = shouldFocusComposer
@@ -954,6 +959,36 @@ internal class AiChatRuntime(
         return context.currentServerConfiguration()
     }
 
+    private suspend fun ensureSessionIdIfNeeded(): AiChatSessionProvisioningResult {
+        val currentState = runtimeStateMutable.value
+        val ensuredSession = context.aiChatRepository.ensureSessionId(
+            workspaceId = currentState.workspaceId,
+            persistedState = currentState.persistedState
+        )
+        val ensuredSnapshot = ensuredSession.snapshot
+        if (ensuredSnapshot != null) {
+            runtimeStateMutable.update { state ->
+                if (state.persistedState.chatSessionId.isNotBlank()) {
+                    return@update state
+                }
+                updateComposerSuggestions(
+                    state = state.copy(
+                        persistedState = state.persistedState.copy(
+                            chatSessionId = ensuredSession.sessionId,
+                            lastKnownChatConfig = ensuredSnapshot.chatConfig
+                        ),
+                        conversationScopeId = ensuredSnapshot.conversationScopeId,
+                        activeAlert = null,
+                        errorMessage = ""
+                    ),
+                    nextSuggestions = ensuredSnapshot.composerSuggestions
+                )
+            }
+            persistCurrentState()
+        }
+        return ensuredSession
+    }
+
     private fun persistCurrentState() {
         context.persistCurrentState()
     }
@@ -961,8 +996,4 @@ internal class AiChatRuntime(
     private fun persistCurrentDraft(snapshot: AiChatRuntimeState = runtimeStateMutable.value) {
         context.persistDraft(snapshot = snapshot)
     }
-}
-
-private fun makeClientChatSessionId(): String {
-    return UUID.randomUUID().toString().lowercase()
 }

@@ -654,25 +654,17 @@ export async function queryCards(
   }, allowAuthRecovery), `POST /workspaces/${workspaceId}/cards/query`);
 }
 
-export async function getChatSnapshot(sessionId?: string): Promise<ChatSessionSnapshot> {
-  const pathname = sessionId === undefined
-    ? "/chat"
-    : `/chat?sessionId=${encodeURIComponent(sessionId)}`;
-
-  return parseChatSessionSnapshotResponse(await requestJson(pathname, {
+export async function getChatSnapshot(sessionId: string): Promise<ChatSessionSnapshot> {
+  return parseChatSessionSnapshotResponse(await requestJson(`/chat?sessionId=${encodeURIComponent(sessionId)}`, {
     method: "GET",
   }, allowAuthRecovery), "GET /chat");
 }
 
 export async function getChatSnapshotWithResumeDiagnostics(
-  sessionId: string | undefined,
+  sessionId: string,
   diagnostics: ChatResumeRequestDiagnostics,
 ): Promise<ChatSessionSnapshot> {
-  const pathname = sessionId === undefined
-    ? "/chat"
-    : `/chat?sessionId=${encodeURIComponent(sessionId)}`;
-
-  return parseChatSessionSnapshotResponse(await requestJson(pathname, {
+  return parseChatSessionSnapshotResponse(await requestJson(`/chat?sessionId=${encodeURIComponent(sessionId)}`, {
     method: "GET",
     headers: {
       "X-Chat-Resume-Attempt-Id": String(diagnostics.resumeAttemptId),
@@ -690,7 +682,7 @@ export async function startChatRun(body: StartChatRunRequestBody): Promise<Start
 }
 
 export async function createNewChatSession(
-  sessionId: string | undefined,
+  sessionId: string,
 ): Promise<NewChatSessionResponse> {
   return parseNewChatSessionResponse(await requestJson("/chat/new", {
     method: "POST",
@@ -737,16 +729,14 @@ function normalizeAudioMediaType(mediaType: string): string {
 export async function transcribeChatAudio(
   blob: Blob,
   source: ChatTranscriptionSource,
-  sessionId?: string,
+  sessionId: string,
 ): Promise<ChatTranscriptionResponse> {
   const mediaType = normalizeAudioMediaType(blob.type === "" ? "audio/webm" : blob.type);
   const file = new File([blob], `chat-dictation.${extensionForAudioMediaType(mediaType)}`, { type: mediaType });
   const formData = new FormData();
   formData.append("file", file);
   formData.append("source", source);
-  if (sessionId !== undefined) {
-    formData.append("sessionId", sessionId);
-  }
+  formData.append("sessionId", sessionId);
 
   return parseChatTranscriptionResponse(await requestJson("/chat/transcriptions", {
     method: "POST",

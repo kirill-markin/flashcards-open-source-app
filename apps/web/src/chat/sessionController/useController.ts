@@ -91,6 +91,7 @@ export function useChatSessionController(
     initialWarmStartSnapshot,
     initialFreshSessionId,
     initialShouldBootstrapFreshLocalSession: bootstrap.shouldBootstrapFreshLocalSession,
+    ensureRemoteSessionForHydration: actions.ensureRemoteSessionForHydration,
     ensureFreshSession: actions.ensureFreshSession,
   });
 
@@ -152,6 +153,10 @@ export function useChatSessionController(
     return actions.sendMessage(sendParams);
   }, [actions]);
 
+  const ensureRemoteSession = useCallback(async (): Promise<string> => {
+    return actions.ensureRemoteSession();
+  }, [actions]);
+
   const stopMessage = useCallback(async (): Promise<void> => {
     await actions.stopMessage();
   }, [actions]);
@@ -176,6 +181,7 @@ export function useChatSessionController(
     errorDialogMessage: state.errorDialogMessage,
     dismissErrorDialog,
     acceptServerSessionId,
+    ensureRemoteSession,
     sendMessage,
     stopMessage,
     clearConversation,

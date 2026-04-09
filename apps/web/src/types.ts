@@ -176,7 +176,7 @@ export type ChatSessionSnapshot = Readonly<{
 }>;
 
 export type StartChatRunRequestBody = Readonly<{
-  sessionId?: string;
+  sessionId: string;
   clientRequestId: string;
   content: ReadonlyArray<ContentPart>;
   timezone: string;

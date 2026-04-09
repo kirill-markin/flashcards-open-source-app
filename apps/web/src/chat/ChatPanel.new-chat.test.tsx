@@ -55,7 +55,7 @@ describe("ChatPanel new chat", () => {
     await clickNewConversation();
     await flushAsync();
 
-    expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(2);
     expect(getContainer().querySelectorAll(".chat-msg").length).toBe(0);
     expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
   });
@@ -86,15 +86,15 @@ describe("ChatPanel new chat", () => {
     await flushAsync();
     await flushAsync();
 
-    expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(2);
     expect(textarea?.value).toBe("");
 
     const draftsAfterNew = loadChatDraftWorkspaceState("workspace-1");
     expect(readChatDraftForSession(draftsAfterNew, "session-1")?.inputText).toBe("keep this draft");
-    expect(readChatDraftForSession(draftsAfterNew, createNewChatSessionMock.mock.calls[0]?.[0] as string)).toBeNull();
+    expect(readChatDraftForSession(draftsAfterNew, createNewChatSessionMock.mock.calls[1]?.[0] as string)).toBeNull();
   });
 
-  it("keeps unresolved bootstrap drafts transient until a real session id exists", async () => {
+  it("keeps bootstrap drafts transient while the snapshot refresh is unresolved", async () => {
     getChatSnapshotMock.mockImplementation(() => new Promise(() => undefined));
 
     await renderChatPanel();
@@ -117,10 +117,10 @@ describe("ChatPanel new chat", () => {
     await flushAsync();
     await flushAsync();
 
-    expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(2);
     const draftsAfterNew = loadChatDraftWorkspaceState("workspace-1");
     expect(Object.keys(draftsAfterNew)).toHaveLength(0);
-    expect(createNewChatSessionMock.mock.calls[0]?.[0]).toMatch(UUID_PATTERN);
+    expect(createNewChatSessionMock.mock.calls[1]?.[0]).toMatch(UUID_PATTERN);
     expect(textarea?.value).toBe("");
     expect(getContainer().textContent).not.toContain("attached.txt");
   });
@@ -144,9 +144,9 @@ describe("ChatPanel new chat", () => {
       },
     });
     storeChatSessionWarmStartSnapshot("workspace-1", staleToolSnapshot, true);
-    getChatSnapshotMock.mockImplementation(async (sessionId?: string) => createChatSnapshot({
-      sessionId: sessionId ?? "session-old",
-      conversationScopeId: sessionId ?? "session-old",
+    getChatSnapshotMock.mockImplementation(async (sessionId: string) => createChatSnapshot({
+      sessionId,
+      conversationScopeId: sessionId,
       conversation: {
         updatedAt: 3,
         mainContentInvalidationVersion: 0,
@@ -197,15 +197,23 @@ describe("ChatPanel new chat", () => {
         }],
       },
     }));
-    createNewChatSessionMock.mockRejectedValue(new Error("Request failed with status 500"));
+    createNewChatSessionMock
+      .mockResolvedValueOnce({
+        ok: true,
+        sessionId: "session-bootstrap",
+        composerSuggestions: [],
+        chatConfig: createChatSnapshot().chatConfig,
+      })
+      .mockRejectedValueOnce(new Error("Request failed with status 500"));
 
     await renderChatPanel();
+    await flushAsync();
     await flushAsync();
     await clickNewConversation();
     await flushAsync();
     await flushAsync();
 
-    expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(2);
     expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
     expect(getContainer().textContent).toContain("AI chat error");
     expect(getContainer().textContent).toContain("New chat failed. Request failed with status 500");
@@ -232,8 +240,24 @@ describe("ChatPanel new chat", () => {
     expect(document.activeElement).toBe(textarea);
   });
 
-  it("keeps send working while the background new-session ensure is still pending", async () => {
-    createNewChatSessionMock.mockImplementation(() => new Promise(() => undefined));
+  it("waits for the new-session provisioning response before starting the next send", async () => {
+    let resolveNewSession: ((value: {
+      ok: true;
+      sessionId: string;
+      composerSuggestions: [];
+      chatConfig: ReturnType<typeof createChatSnapshot>["chatConfig"];
+    }) => void) | null = null;
+    createNewChatSessionMock.mockImplementation((sessionId: string) => new Promise((resolve) => {
+      resolveNewSession = resolve;
+      if (createNewChatSessionMock.mock.calls.length === 1) {
+        resolve({
+          ok: true,
+          sessionId,
+          composerSuggestions: [],
+          chatConfig: createChatSnapshot().chatConfig,
+        });
+      }
+    }));
 
     await renderChatPanel();
     await flushAsync();
@@ -244,8 +268,19 @@ describe("ChatPanel new chat", () => {
     await sendMessage("hello after new");
     await flushAsync();
 
-    const createdSessionId = createNewChatSessionMock.mock.calls[0]?.[0];
+    const createdSessionId = createNewChatSessionMock.mock.calls[1]?.[0];
     expect(typeof createdSessionId).toBe("string");
+    expect(startChatRunMock).not.toHaveBeenCalled();
+
+    resolveNewSession?.({
+      ok: true,
+      sessionId: createdSessionId as string,
+      composerSuggestions: [],
+      chatConfig: createChatSnapshot().chatConfig,
+    });
+    await flushAsync();
+    await flushAsync();
+
     expect(startChatRunMock).toHaveBeenCalledWith(expect.objectContaining({
       sessionId: createdSessionId,
     }));
@@ -274,12 +309,21 @@ describe("ChatPanel new chat", () => {
     let resolveEnsure: ((response: NewChatSessionResponse) => void) | null = null;
 
     createNewChatSessionMock.mockImplementation((sessionId: string) => {
+      if (createNewChatSessionMock.mock.calls.length === 1) {
+        return Promise.resolve({
+          ok: true,
+          sessionId,
+          composerSuggestions: [],
+          chatConfig: createChatSnapshot().chatConfig,
+        });
+      }
+
       createdSessionId = sessionId;
       return new Promise<NewChatSessionResponse>((resolve) => {
         resolveEnsure = resolve;
       });
     });
-    startChatRunMock.mockImplementation(async (requestBody: { sessionId?: string }) => {
+    startChatRunMock.mockImplementation(async (requestBody: { sessionId: string }) => {
       expect(requestBody.sessionId).toBe(createdSessionId);
       return {
         accepted: true,
@@ -295,7 +339,7 @@ describe("ChatPanel new chat", () => {
         activeRun: null,
       };
     });
-    getChatSnapshotMock.mockImplementation(async (sessionId?: string) => {
+    getChatSnapshotMock.mockImplementation(async (sessionId: string) => {
       if (sessionId === createdSessionId) {
         return createChatSnapshot({
           sessionId,
@@ -321,15 +365,13 @@ describe("ChatPanel new chat", () => {
     await sendMessage("hello after new");
     await flushAsync();
 
-    expect(getContainer().textContent).toContain("Fresh suggestion");
-    expect(getContainer().textContent).not.toContain("Initial suggestion");
-
     resolveEnsure?.({
       ok: true,
       sessionId: createdSessionId ?? "session-new",
       composerSuggestions: initialSuggestions,
       chatConfig: createChatSnapshot().chatConfig,
     });
+    await flushAsync();
     await flushAsync();
     await flushAsync();
 

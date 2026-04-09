@@ -1077,41 +1077,191 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
         XCTAssertFalse(persistedState.pendingToolRunPostSync)
     }
 
-    func testSendMessageReadinessFailurePreservesExistingPendingToolRunFlag() async throws {
+    func testStartLinkedBootstrapCreatesExplicitSessionBeforeBootstrapForLinkedSession() async throws {
         let context = AIChatStoreTestContext.make()
         defer {
             context.tearDown()
         }
 
         try context.configureLinkedCloudSession()
-        await context.historyStore.saveState(
-            state: AIChatPersistedState(
-                messages: [makeAssistantTextMessage(itemId: "item-1")],
-                chatSessionId: "session-1",
-                lastKnownChatConfig: aiChatDefaultServerConfig,
-                pendingToolRunPostSync: true
+        let store = context.makeStore()
+        store.acceptExternalProviderConsent()
+        context.chatService.createNewSessionHandler = { sessionId in
+            guard let sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id during linked bootstrap.")
+            }
+            return makeNewSessionResponse(sessionId: sessionId)
+        }
+        context.chatService.loadBootstrapHandler = { sessionId in
+            guard let sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id during linked bootstrap load.")
+            }
+            return makeConversationEnvelope(
+                sessionId: sessionId,
+                messages: [],
+                activeRun: nil
             )
-        )
+        }
 
+        store.startLinkedBootstrap(forceReloadState: false, resumeAttemptDiagnostics: nil)
+        await waitForAIChatBootstrapToSettle(store: store)
+
+        let explicitSessionId = try XCTUnwrap(context.chatService.createNewSessionSessionIds.first ?? nil)
+        XCTAssertEqual(context.chatService.events, [
+            "createNewSession:\(explicitSessionId)",
+            "loadBootstrap:\(explicitSessionId)"
+        ])
+        XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [explicitSessionId])
+        XCTAssertEqual(store.chatSessionId, explicitSessionId)
+    }
+
+    func testStartLinkedBootstrapCreatesExplicitSessionBeforeBootstrapForGuestSession() async throws {
+        let context = AIChatStoreTestContext.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureGuestCloudSession()
+        let store = context.makeStore()
+        store.acceptExternalProviderConsent()
+        context.chatService.createNewSessionHandler = { sessionId in
+            guard let sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id during guest bootstrap.")
+            }
+            return makeNewSessionResponse(sessionId: sessionId)
+        }
+        context.chatService.loadBootstrapHandler = { sessionId in
+            guard let sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id during guest bootstrap load.")
+            }
+            return makeConversationEnvelope(
+                sessionId: sessionId,
+                messages: [],
+                activeRun: nil
+            )
+        }
+
+        store.startLinkedBootstrap(forceReloadState: false, resumeAttemptDiagnostics: nil)
+        await waitForAIChatBootstrapToSettle(store: store)
+
+        let explicitSessionId = try XCTUnwrap(context.chatService.createNewSessionSessionIds.first ?? nil)
+        XCTAssertEqual(context.chatService.events, [
+            "createNewSession:\(explicitSessionId)",
+            "loadBootstrap:\(explicitSessionId)"
+        ])
+        XCTAssertEqual(context.chatService.loadBootstrapSessionIds, [explicitSessionId])
+        XCTAssertEqual(store.chatSessionId, explicitSessionId)
+    }
+
+    func testFirstSendUsesExplicitSessionWithoutSnapshotRecovery() async throws {
+        let context = AIChatStoreTestContext.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureGuestCloudSession()
         let store = context.makeStore()
         store.acceptExternalProviderConsent()
         store.chatSessionId = ""
         store.conversationScopeId = ""
         store.inputText = "Help me review this."
+        context.chatService.createNewSessionHandler = { sessionId in
+            guard let sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id before the first send.")
+            }
+            return makeNewSessionResponse(sessionId: sessionId)
+        }
+        context.chatService.startRunHandler = { request in
+            guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id in the first send request.")
+            }
+            return makeAcceptedStartRunResponse(sessionId: sessionId, userText: "Help me review this.")
+        }
 
         store.sendMessage()
         await waitForAIChatSendToSettle(store: store)
         await store.waitForPendingStatePersistence()
 
-        XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
-        XCTAssertTrue(store.pendingToolRunPostSync)
-        XCTAssertTrue(context.historyStore.loadState().pendingToolRunPostSync)
+        let explicitSessionId = try XCTUnwrap(context.chatService.createNewSessionSessionIds.first ?? nil)
+        XCTAssertEqual(context.chatService.startRunRequests.map(\.sessionId), [explicitSessionId])
+        XCTAssertTrue(context.chatService.loadSnapshotSessionIds.isEmpty)
         XCTAssertNil(store.activeSendTask)
-        guard case .generalError(_, let message) = store.activeAlert else {
-            XCTFail("Expected send failure alert.")
-            return
+        XCTAssertNil(store.activeAlert)
+    }
+
+    func testFirstDictationUsesExplicitSessionId() async throws {
+        let context = AIChatStoreTestContext.make()
+        defer {
+            context.tearDown()
         }
-        XCTAssertEqual(message, "AI chat session is unavailable. Reload the AI tab and try again.")
+
+        try context.configureGuestCloudSession()
+        let voiceRecorder = AIChatStoreTestVoiceRecorder()
+        let transcriber = AIChatStoreTestAudioTranscriber()
+        let store = context.makeStore(
+            voiceRecorder: voiceRecorder,
+            audioTranscriber: transcriber
+        )
+        store.acceptExternalProviderConsent()
+        store.chatSessionId = ""
+        store.conversationScopeId = ""
+        store.dictationState = .recording
+        context.chatService.createNewSessionHandler = { sessionId in
+            guard let sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id before the first dictation.")
+            }
+            return makeNewSessionResponse(sessionId: sessionId)
+        }
+
+        store.finishDictation()
+        await waitForAIChatDictationToSettle(store: store)
+        await store.waitForPendingStatePersistence()
+
+        let explicitSessionId = try XCTUnwrap(context.chatService.createNewSessionSessionIds.first ?? nil)
+        let transcribedSessionIds = await transcriber.transcribedSessionIds()
+        XCTAssertEqual(transcribedSessionIds, [explicitSessionId])
+        XCTAssertNil(store.activeAlert)
+    }
+
+    func testRemoteSessionProvisioningRetryReusesSameExplicitSessionId() async throws {
+        let context = AIChatStoreTestContext.make()
+        defer {
+            context.tearDown()
+        }
+
+        try context.configureLinkedCloudSession()
+        let store = context.makeStore()
+        store.acceptExternalProviderConsent()
+        var createAttempts = 0
+        context.chatService.createNewSessionHandler = { sessionId in
+            guard let sessionId, sessionId.isEmpty == false else {
+                throw LocalStoreError.validation("Expected an explicit AI chat session id for retry coverage.")
+            }
+            createAttempts += 1
+            if createAttempts == 1 {
+                throw LocalStoreError.validation("Transient AI chat provisioning failure.")
+            }
+            return makeNewSessionResponse(sessionId: sessionId)
+        }
+
+        store.startFreshLocalSession(
+            inputText: "",
+            pendingAttachments: []
+        )
+        await waitForAIChatNewSessionToSettle(store: store)
+
+        let explicitSessionId = store.chatSessionId
+        XCTAssertFalse(explicitSessionId.isEmpty)
+        XCTAssertTrue(store.requiresRemoteSessionProvisioning)
+
+        let retriedSessionId = try await store.ensureRemoteSessionIfNeeded()
+
+        XCTAssertEqual(retriedSessionId, explicitSessionId)
+        XCTAssertEqual(context.chatService.createNewSessionSessionIds, [
+            explicitSessionId,
+            explicitSessionId
+        ])
+        XCTAssertFalse(store.requiresRemoteSessionProvisioning)
     }
 
     func testHistoryStoreLoadsLegacyStateWithoutPendingToolRunPostSyncField() {
@@ -1142,6 +1292,8 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
 private struct AIChatStoreTestContext {
     let suiteName: String
     let userDefaults: UserDefaults
+    let databaseURL: URL
+    let database: LocalDatabase
     let historyStore: AIChatHistoryStore
     let flashcardsStore: FlashcardsStore
     let chatService: AIChatStoreTestChatService
@@ -1151,6 +1303,10 @@ private struct AIChatStoreTestContext {
     static func make() -> AIChatStoreTestContext {
         let suiteName = "ai-chat-run-tool-call-tracking-\(UUID().uuidString)"
         let userDefaults = UserDefaults(suiteName: suiteName)!
+        let databaseURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ai-chat-run-tool-call-tracking-\(UUID().uuidString.lowercased())")
+            .appendingPathExtension("sqlite")
+        let database = try! LocalDatabase(databaseURL: databaseURL)
         let historyStore = AIChatHistoryStore(
             userDefaults: userDefaults,
             encoder: JSONEncoder(),
@@ -1161,7 +1317,7 @@ private struct AIChatStoreTestContext {
             userDefaults: userDefaults,
             encoder: JSONEncoder(),
             decoder: JSONDecoder(),
-            database: nil,
+            database: database,
             cloudAuthService: CloudAuthService(),
             cloudSyncService: cloudSyncService,
             credentialStore: CloudCredentialStore(service: "tests-\(suiteName)-cloud-auth"),
@@ -1182,6 +1338,8 @@ private struct AIChatStoreTestContext {
         return AIChatStoreTestContext(
             suiteName: suiteName,
             userDefaults: userDefaults,
+            databaseURL: databaseURL,
+            database: database,
             historyStore: historyStore,
             flashcardsStore: flashcardsStore,
             chatService: AIChatStoreTestChatService(),
@@ -1191,13 +1349,24 @@ private struct AIChatStoreTestContext {
 
     @MainActor
     func makeStore() -> AIChatStore {
+        self.makeStore(
+            voiceRecorder: AIChatDisabledVoiceRecorder(),
+            audioTranscriber: AIChatDisabledAudioTranscriber()
+        )
+    }
+
+    @MainActor
+    func makeStore(
+        voiceRecorder: any AIChatVoiceRecording,
+        audioTranscriber: any AIChatAudioTranscribing
+    ) -> AIChatStore {
         AIChatStore(
             flashcardsStore: self.flashcardsStore,
             historyStore: self.historyStore,
             chatService: self.chatService,
             contextLoader: AIChatStoreTestContextLoader(),
-            voiceRecorder: AIChatDisabledVoiceRecorder(),
-            audioTranscriber: AIChatDisabledAudioTranscriber()
+            voiceRecorder: voiceRecorder,
+            audioTranscriber: audioTranscriber
         )
     }
 
@@ -1318,13 +1487,34 @@ private struct AIChatStoreTestContextLoader: AIChatContextLoading {
 }
 
 private final class AIChatStoreTestChatService: AIChatSessionServicing, @unchecked Sendable {
+    var events: [String]
+    var loadSnapshotSessionIds: [String?]
+    var loadBootstrapSessionIds: [String?]
+    var startRunRequests: [AIChatStartRunRequestBody]
+    var createNewSessionSessionIds: [String?]
+    var loadBootstrapHandler: ((String?) throws -> AIChatBootstrapResponse)?
+    var startRunHandler: ((AIChatStartRunRequestBody) throws -> AIChatStartRunResponse)?
+    var createNewSessionHandler: ((String?) throws -> AIChatNewSessionResponse)?
+
+    init() {
+        self.events = []
+        self.loadSnapshotSessionIds = []
+        self.loadBootstrapSessionIds = []
+        self.startRunRequests = []
+        self.createNewSessionSessionIds = []
+        self.loadBootstrapHandler = nil
+        self.startRunHandler = nil
+        self.createNewSessionHandler = nil
+    }
+
     func loadSnapshot(
         session: CloudLinkedSession,
         sessionId: String?
     ) async throws -> AIChatSessionSnapshot {
         _ = session
-        _ = sessionId
-        fatalError("Not used in AIChatStoreRunToolCallTrackingTests.")
+        self.events.append("loadSnapshot:\(sessionId ?? "nil")")
+        self.loadSnapshotSessionIds.append(sessionId)
+        throw LocalStoreError.validation("Unexpected AI chat snapshot request in tests.")
     }
 
     func loadBootstrap(
@@ -1334,10 +1524,14 @@ private final class AIChatStoreTestChatService: AIChatSessionServicing, @uncheck
         resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
     ) async throws -> AIChatBootstrapResponse {
         _ = session
-        _ = sessionId
         _ = limit
         _ = resumeAttemptDiagnostics
-        fatalError("Not used in AIChatStoreRunToolCallTrackingTests.")
+        self.events.append("loadBootstrap:\(sessionId ?? "nil")")
+        self.loadBootstrapSessionIds.append(sessionId)
+        guard let loadBootstrapHandler else {
+            throw LocalStoreError.validation("Unexpected AI chat bootstrap request in tests.")
+        }
+        return try loadBootstrapHandler(sessionId)
     }
 
     func loadOlderMessages(
@@ -1350,7 +1544,7 @@ private final class AIChatStoreTestChatService: AIChatSessionServicing, @uncheck
         _ = sessionId
         _ = beforeCursor
         _ = limit
-        fatalError("Not used in AIChatStoreRunToolCallTrackingTests.")
+        throw LocalStoreError.validation("Unexpected AI chat older-messages request in tests.")
     }
 
     func startRun(
@@ -1358,8 +1552,12 @@ private final class AIChatStoreTestChatService: AIChatSessionServicing, @uncheck
         request: AIChatStartRunRequestBody
     ) async throws -> AIChatStartRunResponse {
         _ = session
-        _ = request
-        fatalError("Not used in AIChatStoreRunToolCallTrackingTests.")
+        self.events.append("startRun:\(request.sessionId ?? "nil")")
+        self.startRunRequests.append(request)
+        guard let startRunHandler else {
+            throw LocalStoreError.validation("Unexpected AI chat start-run request in tests.")
+        }
+        return try startRunHandler(request)
     }
 
     func createNewSession(
@@ -1367,8 +1565,12 @@ private final class AIChatStoreTestChatService: AIChatSessionServicing, @uncheck
         sessionId: String?
     ) async throws -> AIChatNewSessionResponse {
         _ = session
-        _ = sessionId
-        fatalError("Not used in AIChatStoreRunToolCallTrackingTests.")
+        self.events.append("createNewSession:\(sessionId ?? "nil")")
+        self.createNewSessionSessionIds.append(sessionId)
+        guard let createNewSessionHandler else {
+            throw LocalStoreError.validation("Unexpected AI chat new-session request in tests.")
+        }
+        return try createNewSessionHandler(sessionId)
     }
 
     func stopRun(
@@ -1550,9 +1752,21 @@ private func makeConversationEnvelope(
     messages: [AIChatMessage],
     activeRun: AIChatActiveRun?
 ) -> AIChatConversationEnvelope {
-    AIChatConversationEnvelope(
+    makeConversationEnvelope(
         sessionId: "session-1",
-        conversationScopeId: "session-1",
+        messages: messages,
+        activeRun: activeRun
+    )
+}
+
+private func makeConversationEnvelope(
+    sessionId: String,
+    messages: [AIChatMessage],
+    activeRun: AIChatActiveRun?
+) -> AIChatConversationEnvelope {
+    AIChatConversationEnvelope(
+        sessionId: sessionId,
+        conversationScopeId: sessionId,
         conversation: AIChatConversation(
             messages: messages,
             updatedAt: 1,
@@ -1656,12 +1870,138 @@ private func waitForBackgroundAIChatTasks() async {
 }
 
 @MainActor
+private func waitForAIChatBootstrapToSettle(store: AIChatStore) async {
+    for _ in 0..<100 {
+        if store.activeBootstrapTask == nil {
+            return
+        }
+        await Task.yield()
+    }
+}
+
+@MainActor
 private func waitForAIChatSendToSettle(store: AIChatStore) async {
     for _ in 0..<100 {
         if store.activeSendTask == nil {
             return
         }
         await Task.yield()
+    }
+}
+
+@MainActor
+private func waitForAIChatDictationToSettle(store: AIChatStore) async {
+    for _ in 0..<100 {
+        if store.activeDictationTask == nil {
+            return
+        }
+        await Task.yield()
+    }
+}
+
+@MainActor
+private func waitForAIChatNewSessionToSettle(store: AIChatStore) async {
+    for _ in 0..<100 {
+        if store.activeNewSessionTask == nil {
+            return
+        }
+        await Task.yield()
+    }
+}
+
+private func makeNewSessionResponse(sessionId: String) -> AIChatNewSessionResponse {
+    let chatConfigData = try! JSONEncoder().encode(aiChatDefaultServerConfig)
+    let chatConfigObject = try! JSONSerialization.jsonObject(with: chatConfigData)
+    let data = try! JSONSerialization.data(
+        withJSONObject: [
+            "ok": true,
+            "sessionId": sessionId,
+            "composerSuggestions": [],
+            "chatConfig": chatConfigObject
+        ]
+    )
+    return try! JSONDecoder().decode(AIChatNewSessionResponse.self, from: data)
+}
+
+private func makeAcceptedStartRunResponse(sessionId: String, userText: String) -> AIChatStartRunResponse {
+    AIChatStartRunResponse(
+        accepted: true,
+        sessionId: sessionId,
+        conversationScopeId: sessionId,
+        conversation: AIChatConversation(
+            messages: [
+                makeUserTextMessage(
+                    id: "message-0",
+                    text: userText,
+                    timestamp: "2026-04-08T10:00:00Z"
+                ),
+                makeAssistantTextMessage(
+                    id: "message-1",
+                    itemId: "item-1",
+                    text: "Working on it.",
+                    timestamp: "2026-04-08T10:00:01Z"
+                )
+            ],
+            updatedAt: 1,
+            mainContentInvalidationVersion: 1,
+            hasOlder: false,
+            oldestCursor: nil
+        ),
+        composerSuggestions: [],
+        chatConfig: aiChatDefaultServerConfig,
+        activeRun: nil,
+        deduplicated: nil
+    )
+}
+
+@MainActor
+private final class AIChatStoreTestVoiceRecorder: AIChatVoiceRecording {
+    func startRecording() async throws {
+        throw LocalStoreError.validation("Not used in AI chat dictation tests.")
+    }
+
+    func stopRecording() async throws -> AIChatRecordedAudio {
+        let fileUrl = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString.lowercased())
+            .appendingPathExtension("m4a")
+        try Data("audio".utf8).write(to: fileUrl)
+        return AIChatRecordedAudio(
+            fileUrl: fileUrl,
+            fileName: "chat-dictation.m4a",
+            mediaType: "audio/mp4"
+        )
+    }
+
+    func cancelRecording() {
+    }
+}
+
+actor AIChatStoreTestAudioTranscriber: AIChatAudioTranscribing {
+    private var sessionIds: [String?]
+
+    init() {
+        self.sessionIds = []
+    }
+
+    func transcribe(
+        session: CloudLinkedSession,
+        sessionId: String?,
+        recordedAudio: AIChatRecordedAudio
+    ) async throws -> AIChatTranscriptionResult {
+        _ = session
+        _ = recordedAudio
+        self.sessionIds.append(sessionId)
+        guard let sessionId, sessionId.isEmpty == false else {
+            throw LocalStoreError.validation("Expected an explicit AI chat session id for transcription.")
+        }
+        return AIChatTranscriptionResult(
+            text: "Transcript",
+            sessionId: sessionId
+        )
+    }
+
+    func transcribedSessionIds() -> [String?] {
+        self.sessionIds
     }
 }
 
