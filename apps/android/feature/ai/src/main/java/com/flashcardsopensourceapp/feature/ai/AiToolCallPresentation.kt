@@ -8,11 +8,11 @@ import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
  - apps/ios/Flashcards/Flashcards/AI/AIChatToolPresentation.swift
  */
 
-fun formatAiToolLabel(name: String): String {
+fun formatAiToolLabel(name: String, textProvider: AiTextProvider): String {
     return when (name) {
-        "sql" -> "SQL"
-        "code_execution", "code_interpreter" -> "Code execution"
-        "web_search" -> "Web search"
+        "sql" -> textProvider.toolSql
+        "code_execution", "code_interpreter" -> textProvider.toolCodeExecution
+        "web_search" -> textProvider.toolWebSearch
         else -> name
     }
 }
@@ -34,8 +34,8 @@ fun formatAiToolCallPreview(name: String, input: String?): String? {
     }
 }
 
-fun formatAiToolCallSummaryText(name: String, input: String?): String {
-    val toolLabel = formatAiToolLabel(name = name)
+fun formatAiToolCallSummaryText(name: String, input: String?, textProvider: AiTextProvider): String {
+    val toolLabel = formatAiToolLabel(name = name, textProvider = textProvider)
     val toolPreview = formatAiToolCallPreview(name = name, input = input)
     return if (toolPreview == null) {
         toolLabel
@@ -44,11 +44,8 @@ fun formatAiToolCallSummaryText(name: String, input: String?): String {
     }
 }
 
-fun formatAiToolCallStatus(status: AiChatToolCallStatus): String {
-    return when (status) {
-        AiChatToolCallStatus.STARTED -> "Running"
-        AiChatToolCallStatus.COMPLETED -> "Done"
-    }
+fun formatAiToolCallStatus(status: AiChatToolCallStatus, textProvider: AiTextProvider): String {
+    return textProvider.toolStatus(status = status)
 }
 
 private fun extractSqlToolCallPreview(input: String): String? {

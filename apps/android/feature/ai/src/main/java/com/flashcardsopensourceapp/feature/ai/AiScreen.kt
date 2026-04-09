@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -78,11 +79,15 @@ internal fun AiRouteContent(
     onShowErrorMessage: (String) -> Unit
 ) {
     val context = LocalContext.current
+    val textProvider = remember(context) { aiTextProvider(context = context) }
     val focusManager = LocalFocusManager.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = context as? ComponentActivity
     val dictationRecorder = remember(context) {
-        AndroidAiChatDictationRecorder(context = context)
+        AndroidAiChatDictationRecorder(
+            context = context,
+            textProvider = textProvider
+        )
     }
     var isAttachmentSheetVisible by remember { mutableStateOf(value = false) }
     val currentConsentRequired by rememberUpdatedState(uiState.isConsentRequired)
@@ -104,12 +109,18 @@ internal fun AiRouteContent(
         }
 
         try {
-            onAddPendingAttachment(makeAiChatAttachmentFromCameraBitmap(bitmap = bitmap))
+            onAddPendingAttachment(
+                makeAiChatAttachmentFromCameraBitmap(
+                    bitmap = bitmap,
+                    textProvider = textProvider
+                )
+            )
         } catch (error: Exception) {
             currentShowAlertAction(
                 aiAttachmentImportAlert(
                     capability = AccessCapability.CAMERA,
-                    error = error
+                    error = error,
+                    textProvider = textProvider
                 )
             )
         }
@@ -125,14 +136,16 @@ internal fun AiRouteContent(
             onAddPendingAttachment(
                 makeAiChatImageAttachmentFromUri(
                     context = context,
-                    uri = uri
+                    uri = uri,
+                    textProvider = textProvider
                 )
             )
         } catch (error: Exception) {
             currentShowAlertAction(
                 aiAttachmentImportAlert(
                     capability = AccessCapability.PHOTOS,
-                    error = error
+                    error = error,
+                    textProvider = textProvider
                 )
             )
         }
@@ -148,14 +161,16 @@ internal fun AiRouteContent(
             onAddPendingAttachment(
                 makeAiChatDocumentAttachmentFromUri(
                     context = context,
-                    uri = uri
+                    uri = uri,
+                    textProvider = textProvider
                 )
             )
         } catch (error: Exception) {
             currentShowAlertAction(
                 aiAttachmentImportAlert(
                     capability = AccessCapability.FILES,
-                    error = error
+                    error = error,
+                    textProvider = textProvider
                 )
             )
         }
@@ -179,7 +194,8 @@ internal fun AiRouteContent(
             val result = aiCapabilityPresentationResult(
                 capability = AccessCapability.CAMERA,
                 initialStatus = if (isGranted) AccessStatus.ALLOWED else AccessStatus.ASK_EVERY_TIME,
-                requestedStatus = if (isGranted) AccessStatus.ALLOWED else requestedStatus
+                requestedStatus = if (isGranted) AccessStatus.ALLOWED else requestedStatus,
+                textProvider = textProvider
             )
         ) {
             AiCapabilityPresentationResult.Present -> takePictureLauncher.launch(null)
@@ -207,12 +223,14 @@ internal fun AiRouteContent(
             val result = aiCapabilityPresentationResult(
                 capability = AccessCapability.MICROPHONE,
                 initialStatus = if (isGranted) AccessStatus.ALLOWED else AccessStatus.ASK_EVERY_TIME,
-                requestedStatus = if (isGranted) AccessStatus.ALLOWED else requestedStatus
+                requestedStatus = if (isGranted) AccessStatus.ALLOWED else requestedStatus,
+                textProvider = textProvider
             )
         ) {
             AiCapabilityPresentationResult.Present -> {
                 startDictationRecording(
                     dictationRecorder = dictationRecorder,
+                    textProvider = textProvider,
                     onStartDictationRecording = onStartDictationRecording,
                     onShowAlert = currentShowAlertAction,
                     onCancelDictation = currentCancelDictationAction
@@ -285,7 +303,7 @@ internal fun AiRouteContent(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("AI")
+                    Text(stringResource(id = R.string.ai_title))
                 },
                 actions = {
                     AssistChip(
@@ -309,7 +327,7 @@ internal fun AiRouteContent(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.AddComment,
-                            contentDescription = "New chat"
+                            contentDescription = stringResource(id = R.string.ai_new_chat_content_description)
                         )
                     }
                 }
@@ -331,6 +349,7 @@ internal fun AiRouteContent(
                         handleDictationToggle(
                             activity = activity,
                             dictationState = uiState.dictationState,
+                            textProvider = textProvider,
                             dictationRecorder = dictationRecorder,
                             onStartDictationPermissionRequest = onStartDictationPermissionRequest,
                             onStartDictationRecording = onStartDictationRecording,
@@ -367,8 +386,8 @@ internal fun AiRouteContent(
                         .padding(24.dp)
                 ) {
                     CircularProgressIndicator()
-                    Text("Loading chat")
-                    Text("We are loading the latest AI chat for this account before enabling the composer.")
+                    Text(stringResource(id = R.string.ai_loading_chat_title))
+                    Text(stringResource(id = R.string.ai_loading_chat_body))
                 }
             }
         } else if (uiState.isConversationReady.not()) {
@@ -381,16 +400,16 @@ internal fun AiRouteContent(
                         .fillMaxSize()
                         .padding(24.dp)
                 ) {
-                    Text("Chat unavailable")
+                    Text(stringResource(id = R.string.ai_chat_unavailable_title))
                     Text(uiState.conversationErrorMessage)
                     if (uiState.canRetryConversationLoad) {
                         Button(onClick = onRetryConversationLoad) {
-                            Text("Retry")
+                            Text(stringResource(id = R.string.ai_retry))
                         }
                     }
                     if (uiState.showOpenAccountStatusForConversationError) {
                         Button(onClick = onOpenAccountStatus) {
-                            Text("Open account status")
+                            Text(stringResource(id = R.string.ai_open_account_status))
                         }
                     }
                 }
@@ -422,6 +441,7 @@ internal fun AiRouteContent(
                     AttachmentAction.TAKE_PHOTO -> {
                         handleCameraAction(
                             activity = activity,
+                            textProvider = textProvider,
                             onShowAlert = onShowAlert,
                             onShowErrorMessage = onShowErrorMessage,
                             takePictureLauncher = takePictureLauncher,
@@ -432,6 +452,7 @@ internal fun AiRouteContent(
                     AttachmentAction.CHOOSE_PHOTO -> {
                         handleAttachmentAction(
                             capability = AccessCapability.PHOTOS,
+                            textProvider = textProvider,
                             onShowAlert = onShowAlert,
                             onPresent = {
                                 choosePhotoLauncher.launch(
@@ -444,6 +465,7 @@ internal fun AiRouteContent(
                     AttachmentAction.CHOOSE_FILE -> {
                         handleAttachmentAction(
                             capability = AccessCapability.FILES,
+                            textProvider = textProvider,
                             onShowAlert = onShowAlert,
                             onPresent = {
                                 chooseDocumentLauncher.launch(aiChatDocumentPickerMimeTypes())
@@ -472,18 +494,18 @@ internal fun AiRouteContent(
                             openApplicationSettings(context = context)
                         }
                     ) {
-                        Text("Open Settings")
+                        Text(stringResource(id = R.string.ai_open_settings))
                     }
                 } else {
                     TextButton(onClick = onDismissAlert) {
-                        Text("OK")
+                        Text(stringResource(id = R.string.ai_ok))
                     }
                 }
             },
             dismissButton = if (activeAlert.showsSettingsAction) {
                 {
                     TextButton(onClick = onDismissAlert) {
-                        Text("Cancel")
+                        Text(stringResource(id = R.string.ai_cancel))
                     }
                 }
             } else {

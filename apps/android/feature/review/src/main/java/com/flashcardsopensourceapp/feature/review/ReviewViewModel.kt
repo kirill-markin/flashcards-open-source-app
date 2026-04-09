@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.review
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
@@ -39,7 +40,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val reviewPreviewPageSize: Int = 20
-private const val reviewUpdatedOnAnotherDeviceMessage: String = "This review updated on another device."
 
 private data class ReviewDraftState(
     val requestedFilter: ReviewFilter,
@@ -79,28 +79,9 @@ class ReviewViewModel(
     private val onNotificationPermissionGranted: () -> Unit,
     private val reviewPreferencesStore: ReviewPreferencesStore,
     visibleAppScreenRepository: VisibleAppScreenRepository,
-    workspaceRepository: WorkspaceRepository
+    workspaceRepository: WorkspaceRepository,
+    private val textProvider: ReviewTextProvider
 ) : ViewModel() {
-    constructor(
-        reviewRepository: ReviewRepository,
-        autoSyncEventRepository: AutoSyncEventRepository,
-        messageController: TransientMessageController,
-        reviewPreferencesStore: ReviewPreferencesStore,
-        visibleAppScreenRepository: VisibleAppScreenRepository,
-        workspaceRepository: WorkspaceRepository
-    ) : this(
-        reviewRepository = reviewRepository,
-        autoSyncEventRepository = autoSyncEventRepository,
-        messageController = messageController,
-        reviewNotificationsStore = NoOpReviewNotificationsStore,
-        shouldShowNotificationPermissionPrePrompt = { false },
-        onReviewNotificationsChanged = { _ -> },
-        onNotificationPermissionGranted = {},
-        reviewPreferencesStore = reviewPreferencesStore,
-        visibleAppScreenRepository = visibleAppScreenRepository,
-        workspaceRepository = workspaceRepository
-    )
-
     private val draftState = MutableStateFlow(
         value = ReviewDraftState(
             requestedFilter = ReviewFilter.AllCards,
@@ -135,7 +116,7 @@ class ReviewViewModel(
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = ObservedReviewSessionState(
             requestedFilter = ReviewFilter.AllCards,
-            sessionSnapshot = loadingReviewSessionSnapshot()
+            sessionSnapshot = loadingReviewSessionSnapshot(textProvider = textProvider)
         )
     )
     private val visibleAppScreenState = visibleAppScreenRepository.observeVisibleAppScreen().stateIn(
@@ -152,12 +133,14 @@ class ReviewViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = com.flashcardsopensourceapp.data.local.model.AppMetadataSummary(
-            currentWorkspaceName = "Loading...",
-            workspaceName = "Loading...",
+            currentWorkspaceName = textProvider.loadingLabel,
+            workspaceName = textProvider.loadingLabel,
             deckCount = 0,
             cardCount = 0,
-            localStorageLabel = "Room + SQLite",
-            syncStatusText = "Loading..."
+            localStorage = com.flashcardsopensourceapp.data.local.model.AppMetadataStorage.ROOM_SQLITE,
+            syncStatus = com.flashcardsopensourceapp.data.local.model.AppMetadataSyncStatus.Message(
+                text = textProvider.loadingLabel
+            )
         )
     )
 
@@ -190,7 +173,8 @@ class ReviewViewModel(
             displayedCard = displayedCurrentCard,
             sessionCards = sessionSnapshot.cards,
             headAnswerOptions = sessionSnapshot.answerOptions,
-            secondAnswerOptions = sessionSnapshot.nextAnswerOptions
+            secondAnswerOptions = sessionSnapshot.nextAnswerOptions,
+            textProvider = textProvider
         )
         val currentPreparedCard = if (
             state.optimisticPreparedCurrentCard != null
@@ -205,7 +189,8 @@ class ReviewViewModel(
             displayedCard = displayedNextCard,
             sessionCards = sessionSnapshot.cards,
             headAnswerOptions = sessionSnapshot.answerOptions,
-            secondAnswerOptions = sessionSnapshot.nextAnswerOptions
+            secondAnswerOptions = sessionSnapshot.nextAnswerOptions,
+            textProvider = textProvider
         )
         val emptyState = resolveReviewEmptyState(
             selectedFilter = sessionSnapshot.selectedFilter,
@@ -216,7 +201,10 @@ class ReviewViewModel(
         ReviewUiState(
             isLoading = sessionSnapshot.isLoading,
             selectedFilter = sessionSnapshot.selectedFilter,
-            selectedFilterTitle = sessionSnapshot.selectedFilterTitle,
+            selectedFilterTitle = textProvider.filterTitle(
+                selectedFilter = sessionSnapshot.selectedFilter,
+                availableDeckFilters = sessionSnapshot.availableDeckFilters
+            ),
             remainingCount = sessionSnapshot.remainingCount,
             totalCount = sessionSnapshot.totalCount,
             reviewedInSessionCount = state.reviewedInSessionCount,
@@ -230,7 +218,8 @@ class ReviewViewModel(
             isPreviewLoading = state.isPreviewLoading,
             previewItems = buildReviewPreviewItems(
                 cards = state.previewCards,
-                currentCardId = currentPreparedCard?.card?.cardId
+                currentCardId = currentPreparedCard?.card?.cardId,
+                textProvider = textProvider
             ),
             hasMorePreviewCards = state.hasMorePreviewCards,
             emptyState = emptyState,
@@ -245,7 +234,7 @@ class ReviewViewModel(
         initialValue = ReviewUiState(
             isLoading = true,
             selectedFilter = ReviewFilter.AllCards,
-            selectedFilterTitle = "All cards",
+            selectedFilterTitle = textProvider.allCardsTitle(),
             remainingCount = 0,
             totalCount = 0,
             reviewedInSessionCount = 0,
@@ -455,7 +444,7 @@ class ReviewViewModel(
                             updatedAtMillis = currentCard.updatedAtMillis
                         ),
                         optimisticPreparedCurrentCard = null,
-                        errorMessage = error.message ?: "Review could not be saved."
+                        errorMessage = error.message ?: textProvider.reviewCouldNotBeSaved
                     )
                 }
             }
@@ -576,7 +565,7 @@ class ReviewViewModel(
                 draftState.update { state ->
                     state.copy(
                         isPreviewLoading = false,
-                        previewErrorMessage = error.message ?: "Review queue could not be loaded."
+                        previewErrorMessage = error.message ?: textProvider.reviewQueueCouldNotBeLoaded
                     )
                 }
             }
@@ -751,7 +740,8 @@ class ReviewViewModel(
             displayedCard = displayedCurrentCardAfterSync,
             sessionCards = sessionSnapshot.cards,
             headAnswerOptions = sessionSnapshot.answerOptions,
-            secondAnswerOptions = sessionSnapshot.nextAnswerOptions
+            secondAnswerOptions = sessionSnapshot.nextAnswerOptions,
+            textProvider = textProvider
         )
         val didReviewQueueChange = reviewCardIdsBeforeSync != reviewCardIdsAfterSync
         val didVisibleCurrentCardChange = currentPreparedCardBeforeSync != null
@@ -792,7 +782,7 @@ class ReviewViewModel(
             )
         }
         lastVisibleAutoSyncChangeSignature = nextVisibleChangeSignature
-        messageController.showMessage(message = reviewUpdatedOnAnotherDeviceMessage)
+        messageController.showMessage(message = textProvider.reviewUpdatedOnAnotherDeviceMessage)
     }
 }
 
@@ -824,6 +814,7 @@ fun createReviewViewModelFactory(
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
+            val application = requireApplication()
             ReviewViewModel(
                 reviewRepository = reviewRepository,
                 autoSyncEventRepository = autoSyncEventRepository,
@@ -834,7 +825,8 @@ fun createReviewViewModelFactory(
                 onNotificationPermissionGranted = onNotificationPermissionGranted,
                 reviewPreferencesStore = reviewPreferencesStore,
                 visibleAppScreenRepository = visibleAppScreenRepository,
-                workspaceRepository = workspaceRepository
+                workspaceRepository = workspaceRepository,
+                textProvider = reviewTextProvider(context = application)
             )
         }
     }
@@ -919,10 +911,14 @@ private fun resolveReviewEmptyState(
     }
 }
 
-private fun loadingReviewSessionSnapshot(): ReviewSessionSnapshot {
+private fun CreationExtras.requireApplication(): android.app.Application {
+    return checkNotNull(this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY])
+}
+
+private fun loadingReviewSessionSnapshot(textProvider: ReviewTextProvider): ReviewSessionSnapshot {
     return ReviewSessionSnapshot(
         selectedFilter = ReviewFilter.AllCards,
-        selectedFilterTitle = "All cards",
+        selectedFilterTitle = textProvider.allCardsTitle(),
         cards = emptyList(),
         answerOptions = emptyList(),
         nextAnswerOptions = emptyList(),
@@ -984,7 +980,8 @@ private fun prepareDisplayedSessionCardPresentation(
     displayedCard: ReviewCard?,
     sessionCards: List<ReviewCard>,
     headAnswerOptions: List<ReviewAnswerOption>,
-    secondAnswerOptions: List<ReviewAnswerOption>
+    secondAnswerOptions: List<ReviewAnswerOption>,
+    textProvider: ReviewTextProvider
 ): PreparedReviewCardPresentation? {
     val card = displayedCard ?: return null
     val cardIndex = sessionCards.indexOfFirst { sessionCard ->
@@ -999,6 +996,7 @@ private fun prepareDisplayedSessionCardPresentation(
 
     return prepareReviewCardPresentation(
         card = card,
-        answerOptions = answerOptions
+        answerOptions = answerOptions,
+        textProvider = textProvider
     )
 }

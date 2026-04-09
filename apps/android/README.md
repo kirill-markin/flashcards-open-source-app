@@ -85,6 +85,10 @@ Run commands from `apps/android/`.
 - Build the debug app: `./gradlew :app:assembleDebug`
 - Build AndroidTest APKs: `./gradlew :app:assembleDebugAndroidTest :data:local:assembleDebugAndroidTest`
 
+## Android Docs
+
+- Add a new app language safely: [`docs/add-language-checklist.md`](docs/add-language-checklist.md)
+
 ## Media Assets
 
 Store committed Android marketing assets and reference screenshots in `apps/android/docs/media/`.

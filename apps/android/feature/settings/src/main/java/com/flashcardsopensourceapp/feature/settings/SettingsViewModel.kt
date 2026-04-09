@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -27,7 +28,8 @@ class SettingsViewModel(
     cloudAccountRepository: CloudAccountRepository,
     private val autoSyncEventRepository: AutoSyncEventRepository,
     private val messageController: TransientMessageController,
-    visibleAppScreenRepository: VisibleAppScreenRepository
+    visibleAppScreenRepository: VisibleAppScreenRepository,
+    private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val visibleAppScreenState = visibleAppScreenRepository.observeVisibleAppScreen().stateIn(
         scope = viewModelScope,
@@ -43,30 +45,30 @@ class SettingsViewModel(
         cloudAccountRepository.observeCloudSettings()
     ) { metadata, cloudSettings ->
         SettingsUiState(
-            currentWorkspaceName = metadata.currentWorkspaceName,
-            workspaceName = metadata.workspaceName,
+            currentWorkspaceName = strings.resolveWorkspaceName(workspaceName = metadata.currentWorkspaceName),
+            workspaceName = strings.resolveWorkspaceName(workspaceName = metadata.workspaceName),
             cardCount = metadata.cardCount,
             deckCount = metadata.deckCount,
-            storageLabel = metadata.localStorageLabel,
-            syncStatusText = metadata.syncStatusText,
+            storageLabel = strings.resolveAppMetadataStorageLabel(storage = metadata.localStorage),
+            syncStatusText = strings.resolveAppMetadataSyncStatusText(status = metadata.syncStatus),
             accountStatusTitle = when (cloudSettings.cloudState) {
-                CloudAccountState.DISCONNECTED -> "Disconnected"
-                CloudAccountState.LINKING_READY -> "Choose workspace"
-                CloudAccountState.GUEST -> "Guest AI"
-                CloudAccountState.LINKED -> cloudSettings.linkedEmail ?: "Linked"
+                CloudAccountState.DISCONNECTED -> strings.get(R.string.settings_cloud_status_disconnected)
+                CloudAccountState.LINKING_READY -> strings.get(R.string.settings_cloud_status_choose_workspace)
+                CloudAccountState.GUEST -> strings.get(R.string.settings_cloud_status_guest_ai)
+                CloudAccountState.LINKED -> cloudSettings.linkedEmail ?: strings.get(R.string.settings_cloud_status_linked)
             }
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = SettingsUiState(
-            currentWorkspaceName = "Loading...",
-            workspaceName = "Loading...",
+            currentWorkspaceName = strings.get(R.string.settings_loading),
+            workspaceName = strings.get(R.string.settings_loading),
             cardCount = 0,
             deckCount = 0,
-            storageLabel = "Room + SQLite",
-            syncStatusText = "Loading...",
-            accountStatusTitle = "Loading..."
+            storageLabel = strings.get(R.string.settings_device_storage_room_sqlite),
+            syncStatusText = strings.get(R.string.settings_loading),
+            accountStatusTitle = strings.get(R.string.settings_loading)
         )
     )
 
@@ -130,7 +132,7 @@ class SettingsViewModel(
         }
 
         lastVisibleAutoSyncChangeSignature = currentSettingsSignature
-        messageController.showMessage(message = workspaceUpdatedOnAnotherDeviceMessage)
+        messageController.showMessage(message = workspaceUpdatedOnAnotherDeviceMessage(strings = strings))
     }
 }
 
@@ -155,7 +157,8 @@ fun createSettingsViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
     autoSyncEventRepository: AutoSyncEventRepository,
     messageController: TransientMessageController,
-    visibleAppScreenRepository: VisibleAppScreenRepository
+    visibleAppScreenRepository: VisibleAppScreenRepository,
+    applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
@@ -164,7 +167,8 @@ fun createSettingsViewModelFactory(
                 cloudAccountRepository = cloudAccountRepository,
                 autoSyncEventRepository = autoSyncEventRepository,
                 messageController = messageController,
-                visibleAppScreenRepository = visibleAppScreenRepository
+                visibleAppScreenRepository = visibleAppScreenRepository,
+                strings = createSettingsStringResolver(context = applicationContext)
             )
         }
     }

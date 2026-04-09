@@ -13,6 +13,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -25,7 +26,7 @@ fun ServerSettingsRoute(
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
-        title = "Server",
+        title = stringResource(R.string.settings_server_title),
         onBack = onBack,
         isBackEnabled = uiState.isApplying.not()
     ) { innerPadding ->
@@ -36,11 +37,11 @@ fun ServerSettingsRoute(
         ) {
             item {
                 DeviceInfoCard(
-                    title = "Current server",
+                    title = stringResource(R.string.settings_server_current_title),
                     rows = listOf(
-                        "Mode" to uiState.modeTitle,
-                        "API" to uiState.apiBaseUrl,
-                        "Auth" to uiState.authBaseUrl
+                        stringResource(R.string.settings_server_mode_label) to uiState.modeTitle,
+                        stringResource(R.string.settings_server_api_label) to uiState.apiBaseUrl,
+                        stringResource(R.string.settings_server_auth_label) to uiState.authBaseUrl
                     )
                 )
             }
@@ -62,10 +63,10 @@ fun ServerSettingsRoute(
                     value = uiState.customOrigin,
                     onValueChange = onCustomOriginChange,
                     label = {
-                        Text("Custom origin")
+                        Text(stringResource(R.string.settings_server_custom_origin_label))
                     },
                     supportingText = {
-                        Text("Use a base HTTPS URL like https://example.com")
+                        Text(stringResource(R.string.settings_server_custom_origin_supporting))
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -74,10 +75,10 @@ fun ServerSettingsRoute(
             if (uiState.previewApiBaseUrl != null && uiState.previewAuthBaseUrl != null) {
                 item {
                     DeviceInfoCard(
-                        title = "Preview",
+                        title = stringResource(R.string.settings_server_preview_title),
                         rows = listOf(
-                            "API" to uiState.previewApiBaseUrl,
-                            "Auth" to uiState.previewAuthBaseUrl
+                            stringResource(R.string.settings_server_api_label) to uiState.previewApiBaseUrl,
+                            stringResource(R.string.settings_server_auth_label) to uiState.previewAuthBaseUrl
                         )
                     )
                 }
@@ -89,7 +90,13 @@ fun ServerSettingsRoute(
                     enabled = uiState.isApplying.not(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(if (uiState.isApplying) "Validating..." else "Validate custom server")
+                    Text(
+                        if (uiState.isApplying) {
+                            stringResource(R.string.settings_validating)
+                        } else {
+                            stringResource(R.string.settings_server_validate_button)
+                        }
+                    )
                 }
             }
 
@@ -99,7 +106,7 @@ fun ServerSettingsRoute(
                     enabled = uiState.previewApiBaseUrl != null && uiState.isApplying.not(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Apply custom server")
+                    Text(stringResource(R.string.settings_server_apply_button))
                 }
             }
 
@@ -109,7 +116,7 @@ fun ServerSettingsRoute(
                     enabled = uiState.isApplying.not(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Reset to official server")
+                    Text(stringResource(R.string.settings_server_reset_button))
                 }
             }
         }

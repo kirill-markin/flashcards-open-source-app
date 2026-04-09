@@ -19,7 +19,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 const val workspaceSettingsResetProgressButtonTag: String = "workspace_settings_reset_progress_button"
@@ -59,8 +62,11 @@ fun WorkspaceSettingsRoute(
     onResetProgress: () -> Unit,
     onBack: () -> Unit
 ) {
+    val confirmationPhrase = workspaceResetProgressConfirmationText(
+        strings = createSettingsStringResolver(context = LocalContext.current)
+    )
     SettingsScreenScaffold(
-        title = "Workspace Settings",
+        title = stringResource(R.string.settings_workspace_title),
         onBack = onBack,
         isBackEnabled = uiState.resetState != DestructiveActionState.IN_PROGRESS
     ) { innerPadding ->
@@ -99,10 +105,25 @@ fun WorkspaceSettingsRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Overview")
+                            Text(stringResource(R.string.settings_workspace_overview_title))
                         },
                         supportingContent = {
-                            Text("${uiState.workspaceName} | ${uiState.totalCards} cards")
+                            Text(
+                                stringResource(
+                                    R.string.settings_root_workspace_summary,
+                                    uiState.workspaceName,
+                                    pluralStringResource(
+                                        R.plurals.settings_decks_count,
+                                        uiState.deckCount,
+                                        uiState.deckCount
+                                    ),
+                                    pluralStringResource(
+                                        R.plurals.settings_cards_count,
+                                        uiState.totalCards,
+                                        uiState.totalCards
+                                    )
+                                )
+                            )
                         },
                         modifier = Modifier.clickable(onClick = onOpenOverview)
                     )
@@ -113,10 +134,16 @@ fun WorkspaceSettingsRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Decks")
+                            Text(stringResource(R.string.settings_workspace_decks_title))
                         },
                         supportingContent = {
-                            Text("${uiState.deckCount} filtered decks")
+                            Text(
+                                pluralStringResource(
+                                    R.plurals.settings_filtered_decks_count,
+                                    uiState.deckCount,
+                                    uiState.deckCount
+                                )
+                            )
                         },
                         modifier = Modifier.clickable(onClick = onOpenDecks)
                     )
@@ -127,10 +154,16 @@ fun WorkspaceSettingsRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Tags")
+                            Text(stringResource(R.string.settings_workspace_tags_title))
                         },
                         supportingContent = {
-                            Text("${uiState.tagCount} tags")
+                            Text(
+                                pluralStringResource(
+                                    R.plurals.settings_tags_count,
+                                    uiState.tagCount,
+                                    uiState.tagCount
+                                )
+                            )
                         },
                         modifier = Modifier.clickable(onClick = onOpenTags)
                     )
@@ -141,7 +174,7 @@ fun WorkspaceSettingsRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Notifications")
+                            Text(stringResource(R.string.settings_workspace_notifications_title))
                         },
                         supportingContent = {
                             Text(uiState.notificationsSummary)
@@ -155,7 +188,7 @@ fun WorkspaceSettingsRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Scheduler")
+                            Text(stringResource(R.string.settings_workspace_scheduler_title))
                         },
                         supportingContent = {
                             Text(
@@ -172,7 +205,7 @@ fun WorkspaceSettingsRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Export")
+                            Text(stringResource(R.string.settings_workspace_export_title))
                         },
                         supportingContent = {
                             Text(uiState.exportSummary)
@@ -189,12 +222,12 @@ fun WorkspaceSettingsRoute(
                         modifier = Modifier.padding(20.dp)
                     ) {
                         Text(
-                            text = "Danger zone",
+                            text = stringResource(R.string.settings_workspace_reset_card_title),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error
                         )
                         Text(
-                            text = "Reset study progress for every card in this workspace. Card content stays intact.",
+                            text = stringResource(R.string.settings_workspace_reset_body),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (uiState.isResetPreviewLoading) {
@@ -216,15 +249,15 @@ fun WorkspaceSettingsRoute(
                         ) {
                             Text(
                                 if (uiState.isResetPreviewLoading) {
-                                    "Loading..."
+                                    stringResource(R.string.settings_loading)
                                 } else {
-                                    "Reset all progress"
+                                    stringResource(R.string.settings_workspace_reset_button)
                                 }
                             )
                         }
                         if (uiState.isLinked.not()) {
                             Text(
-                                text = "Sign in to a linked cloud workspace before resetting progress.",
+                                text = stringResource(R.string.settings_workspace_reset_sign_in_guidance),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -244,12 +277,12 @@ fun WorkspaceSettingsRoute(
             confirmButton = {
                 TextButton(
                     onClick = onRequestResetProgress,
-                    enabled = uiState.resetConfirmationText == workspaceSettingsResetProgressConfirmationText &&
+                    enabled = uiState.resetConfirmationText == confirmationPhrase &&
                         uiState.isResetPreviewLoading.not() &&
                         uiState.resetState != DestructiveActionState.IN_PROGRESS,
                     modifier = Modifier.testTag(tag = workspaceSettingsResetProgressConfirmationButtonTag)
                 ) {
-                    Text("OK")
+                    Text(stringResource(R.string.settings_ok))
                 }
             },
             dismissButton = {
@@ -258,19 +291,19 @@ fun WorkspaceSettingsRoute(
                     enabled = uiState.isResetPreviewLoading.not() &&
                         uiState.resetState != DestructiveActionState.IN_PROGRESS
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_cancel))
                 }
             },
             title = {
                 Text(
-                    text = "Reset progress",
+                    text = stringResource(R.string.settings_workspace_reset_dialog_title),
                     modifier = Modifier.testTag(tag = workspaceSettingsResetProgressConfirmationDialogTag)
                 )
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "Warning! This action is permanent. Type the phrase below exactly to continue.",
+                        text = stringResource(R.string.settings_workspace_reset_dialog_body),
                         color = MaterialTheme.colorScheme.error
                     )
                     if (uiState.errorMessage.isNotEmpty()) {
@@ -281,14 +314,14 @@ fun WorkspaceSettingsRoute(
                         )
                     }
                     Text(
-                        text = workspaceSettingsResetProgressConfirmationText,
+                        text = confirmationPhrase,
                         modifier = Modifier.testTag(tag = workspaceSettingsResetProgressConfirmationPhraseTag)
                     )
                     OutlinedTextField(
                         value = uiState.resetConfirmationText,
                         onValueChange = onResetConfirmationTextChange,
                         label = {
-                            Text("Confirmation text")
+                            Text(stringResource(R.string.settings_workspace_confirmation_label))
                         },
                         enabled = uiState.isResetPreviewLoading.not() &&
                             uiState.resetState != DestructiveActionState.IN_PROGRESS,
@@ -314,7 +347,13 @@ fun WorkspaceSettingsRoute(
                     enabled = uiState.resetState != DestructiveActionState.IN_PROGRESS,
                     modifier = Modifier.testTag(tag = workspaceSettingsResetProgressPreviewButtonTag)
                 ) {
-                    Text(if (uiState.resetState == DestructiveActionState.IN_PROGRESS) "Resetting..." else "OK")
+                    Text(
+                        if (uiState.resetState == DestructiveActionState.IN_PROGRESS) {
+                            stringResource(R.string.settings_workspace_resetting)
+                        } else {
+                            stringResource(R.string.settings_workspace_reset_confirm_button)
+                        }
+                    )
                 }
             },
             dismissButton = {
@@ -322,12 +361,12 @@ fun WorkspaceSettingsRoute(
                     onClick = onDismissResetPreviewAlert,
                     enabled = uiState.resetState != DestructiveActionState.IN_PROGRESS
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_cancel))
                 }
             },
             title = {
                 Text(
-                    text = "Reset ${uiState.resetProgressPreview.workspaceName}?",
+                    text = stringResource(R.string.settings_workspace_reset_preview_title),
                     modifier = Modifier.testTag(tag = workspaceSettingsResetProgressPreviewDialogTag)
                 )
             },
@@ -335,9 +374,12 @@ fun WorkspaceSettingsRoute(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         text = if (uiState.resetProgressPreview.cardsToResetCount == 0) {
-                            "No cards in this workspace currently have progress to reset."
+                            stringResource(R.string.settings_workspace_reset_preview_empty)
                         } else {
-                            "This will reset progress for ${uiState.resetProgressPreview.cardsToResetCount} cards in this workspace."
+                            stringResource(
+                                R.string.settings_workspace_reset_preview_body,
+                                uiState.resetProgressPreview.cardsToResetCount
+                            )
                         },
                         modifier = Modifier.testTag(tag = workspaceSettingsResetProgressPreviewBodyTag)
                     )

@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app
 
 import androidx.activity.ComponentActivity
+import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -12,6 +13,7 @@ import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.feature.settings.AccountDangerZoneRoute
 import com.flashcardsopensourceapp.feature.settings.AccountDangerZoneUiState
 import com.flashcardsopensourceapp.feature.settings.DestructiveActionState
+import com.flashcardsopensourceapp.feature.settings.R as SettingsR
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,9 +46,9 @@ class AccountDangerZoneRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithText("Delete my account").assertIsNotEnabled()
+        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_danger_zone_delete_button)).assertIsNotEnabled()
         composeRule.onNodeWithText(
-            "Sign in to a linked cloud account before deleting it."
+            settingsString(SettingsR.string.settings_account_danger_zone_sign_in_guidance)
         ).assertIsDisplayed()
     }
 
@@ -73,8 +75,8 @@ class AccountDangerZoneRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithText("Deleting...").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Back").assertIsNotEnabled()
+        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_deleting)).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(settingsString(SettingsR.string.settings_back_content_description)).assertIsNotEnabled()
     }
 
     @Test
@@ -100,11 +102,15 @@ class AccountDangerZoneRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithText("Delete account").assertIsDisplayed()
+        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_danger_zone_dialog_title)).assertIsDisplayed()
         composeRule.waitUntil(timeoutMillis = 5_000L) {
             composeRule.onAllNodesWithText("Delete request did not finish.").fetchSemanticsNodes().size == 2
         }
-        composeRule.onNodeWithText("delete my account").assertIsDisplayed()
-        composeRule.onNodeWithText("Cancel").assertIsDisplayed()
+        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_danger_zone_confirmation_phrase)).assertIsDisplayed()
+        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_cancel)).assertIsDisplayed()
+    }
+
+    private fun settingsString(@StringRes resId: Int): String {
+        return composeRule.activity.getString(resId)
     }
 }

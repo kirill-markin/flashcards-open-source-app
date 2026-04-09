@@ -128,17 +128,13 @@ private fun ensureReviewNotificationChannel(context: Context) {
     }
 
     val manager = context.getSystemService(NotificationManager::class.java)
-    if (manager.getNotificationChannel(reviewNotificationChannelId) != null) {
-        return
-    }
-
     manager.createNotificationChannel(
         NotificationChannel(
             reviewNotificationChannelId,
-            "Review reminders",
+            context.getString(R.string.review_notification_channel_name),
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = "Study reminders with cards from your review queue."
+            description = context.getString(R.string.review_notification_channel_description)
         }
     )
 }

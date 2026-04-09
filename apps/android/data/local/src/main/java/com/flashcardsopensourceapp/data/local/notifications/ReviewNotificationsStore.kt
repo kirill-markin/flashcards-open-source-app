@@ -17,7 +17,6 @@ const val defaultDailyReminderMinute: Int = 0
 const val dailyReminderSchedulingHorizonDays: Int = 7
 const val defaultInactivityReminderWindowEndHour: Int = 19
 const val defaultInactivityReminderWindowEndMinute: Int = 0
-const val fallbackReviewNotificationFrontText: String = "Continue your study session in Flashcards."
 
 private const val reviewNotificationsPreferencesName: String = "flashcards-review-notifications"
 private const val reviewNotificationsSettingsKeyPrefix: String = "review-notifications-settings::"
@@ -323,6 +322,7 @@ fun buildDailyReminderPayloads(
 fun buildFallbackDailyReminderPayloads(
     workspaceId: String,
     reviewFilter: PersistedReviewFilter,
+    fallbackFrontText: String,
     nowMillis: Long,
     zoneId: ZoneId,
     settings: DailyReviewNotificationsSettings
@@ -336,7 +336,7 @@ fun buildFallbackDailyReminderPayloads(
         workspaceId = workspaceId,
         reviewFilter = reviewFilter,
         cardId = null,
-        frontText = fallbackReviewNotificationFrontText,
+        frontText = fallbackFrontText,
         scheduledAtDateTimes = scheduledAtDateTimes,
         mode = ReviewNotificationMode.DAILY
     )
@@ -421,6 +421,7 @@ fun buildInactivityReminderPayloads(
 fun buildFallbackInactivityReminderPayloads(
     workspaceId: String,
     reviewFilter: PersistedReviewFilter,
+    fallbackFrontText: String,
     nowMillis: Long,
     lastActiveAtMillis: Long,
     zoneId: ZoneId,
@@ -443,7 +444,7 @@ fun buildFallbackInactivityReminderPayloads(
         workspaceId = workspaceId,
         reviewFilter = reviewFilter,
         cardId = null,
-        frontText = fallbackReviewNotificationFrontText,
+        frontText = fallbackFrontText,
         scheduledAtDateTimes = scheduledAtDateTimes,
         mode = ReviewNotificationMode.INACTIVITY
     )

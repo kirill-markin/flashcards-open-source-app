@@ -15,7 +15,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -53,9 +55,15 @@ fun ReviewRoute(
     var isFilterSheetVisible by remember { mutableStateOf(value = false) }
     var speechErrorMessage by remember { mutableStateOf(value = "") }
     val snackbarHostState = remember { SnackbarHostState() }
+    val configuration = LocalConfiguration.current
     val context = LocalContext.current
+    val reviewSpeechFallbackLanguageTag =
+        (configuration.locales[0] ?: Locale.getDefault()).toLanguageTag()
     val reviewSpeechController = remember(context) {
-        ReviewSpeechController(context = context)
+        ReviewSpeechController(
+            context = context,
+            unavailableMessage = context.getString(R.string.review_speech_unavailable)
+        )
     }
 
     LaunchedEffect(uiState.errorMessage) {
@@ -123,7 +131,7 @@ fun ReviewRoute(
                         reviewSpeechController.toggleSpeech(
                             side = ReviewSpeechSide.FRONT,
                             sourceText = currentCard.card.frontText,
-                            fallbackLanguageTag = Locale.getDefault().toLanguageTag(),
+                            fallbackLanguageTag = reviewSpeechFallbackLanguageTag,
                             onError = { message ->
                                 speechErrorMessage = message
                             }
@@ -135,7 +143,7 @@ fun ReviewRoute(
                         reviewSpeechController.toggleSpeech(
                             side = ReviewSpeechSide.BACK,
                             sourceText = currentCard.card.backText,
-                            fallbackLanguageTag = Locale.getDefault().toLanguageTag(),
+                            fallbackLanguageTag = reviewSpeechFallbackLanguageTag,
                             onError = { message ->
                                 speechErrorMessage = message
                             }
@@ -199,21 +207,21 @@ fun ReviewRoute(
         AlertDialog(
             onDismissRequest = onDismissNotificationPermissionPrompt,
             title = {
-                androidx.compose.material3.Text("Stay on top of your cards")
+                androidx.compose.material3.Text(stringResource(id = R.string.review_notification_prompt_title))
             },
             text = {
                 androidx.compose.material3.Text(
-                    "Flashcards Open Source App can send study reminders with a card from your review queue. These notifications contain study cards only and never marketing messages."
+                    stringResource(id = R.string.review_notification_prompt_body)
                 )
             },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = onContinueNotificationPermissionPrompt) {
-                    androidx.compose.material3.Text("Continue")
+                    androidx.compose.material3.Text(stringResource(id = R.string.review_continue))
                 }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = onDismissNotificationPermissionPrompt) {
-                    androidx.compose.material3.Text("Not now")
+                    androidx.compose.material3.Text(stringResource(id = R.string.review_not_now))
                 }
             }
         )

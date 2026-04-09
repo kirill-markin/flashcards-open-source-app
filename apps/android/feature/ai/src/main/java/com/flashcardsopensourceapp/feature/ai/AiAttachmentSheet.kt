@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 internal enum class AttachmentAction {
@@ -40,14 +41,14 @@ internal fun AttachmentSheet(
             item {
                 ListItem(
                     headlineContent = {
-                        Text("Take photo")
+                        Text(stringResource(id = R.string.ai_attachment_take_photo))
                     },
                     leadingContent = {
                         Icon(Icons.Outlined.CameraAlt, contentDescription = null)
                     },
                     modifier = Modifier.padding(horizontal = 8.dp),
                     supportingContent = {
-                        Text("Capture a photo directly from Android.")
+                        Text(stringResource(id = R.string.ai_attachment_take_photo_body))
                     }
                 )
                 TextButton(
@@ -58,7 +59,7 @@ internal fun AttachmentSheet(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                 ) {
-                    Text("Open camera")
+                    Text(stringResource(id = R.string.ai_attachment_open_camera))
                 }
                 HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
             }
@@ -66,14 +67,14 @@ internal fun AttachmentSheet(
             item {
                 ListItem(
                     headlineContent = {
-                        Text("Choose photo")
+                        Text(stringResource(id = R.string.ai_attachment_choose_photo))
                     },
                     leadingContent = {
                         Icon(Icons.Outlined.PhotoLibrary, contentDescription = null)
                     },
                     modifier = Modifier.padding(horizontal = 8.dp),
                     supportingContent = {
-                        Text("Use the Android system photo picker.")
+                        Text(stringResource(id = R.string.ai_attachment_choose_photo_body))
                     }
                 )
                 TextButton(
@@ -84,7 +85,7 @@ internal fun AttachmentSheet(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                 ) {
-                    Text("Open photo picker")
+                    Text(stringResource(id = R.string.ai_attachment_open_photo_picker))
                 }
                 HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
             }
@@ -92,14 +93,14 @@ internal fun AttachmentSheet(
             item {
                 ListItem(
                     headlineContent = {
-                        Text("Choose file")
+                        Text(stringResource(id = R.string.ai_attachment_choose_file))
                     },
                     leadingContent = {
                         Icon(Icons.Outlined.AttachFile, contentDescription = null)
                     },
                     modifier = Modifier.padding(horizontal = 8.dp),
                     supportingContent = {
-                        Text("Use the Android system document picker.")
+                        Text(stringResource(id = R.string.ai_attachment_choose_file_body))
                     }
                 )
                 TextButton(
@@ -110,7 +111,7 @@ internal fun AttachmentSheet(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                 ) {
-                    Text("Open file picker")
+                    Text(stringResource(id = R.string.ai_attachment_open_file_picker))
                 }
             }
         }

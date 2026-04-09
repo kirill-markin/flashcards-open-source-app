@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -22,7 +23,8 @@ private data class AccountDangerZoneDraftState(
 )
 
 class AccountDangerZoneViewModel(
-    private val cloudAccountRepository: CloudAccountRepository
+    private val cloudAccountRepository: CloudAccountRepository,
+    private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = AccountDangerZoneDraftState(
@@ -96,9 +98,11 @@ class AccountDangerZoneViewModel(
     }
 
     suspend fun deleteAccount(): Boolean {
-        if (uiState.value.confirmationText != accountDeletionConfirmationText) {
+        if (uiState.value.confirmationText != accountDeletionConfirmationText(strings = strings)) {
             draftState.update { state ->
-                state.copy(errorMessage = "Enter the confirmation phrase exactly to continue.")
+                state.copy(
+                    errorMessage = strings.get(R.string.settings_account_danger_zone_confirmation_required)
+                )
             }
             return false
         }
@@ -116,7 +120,7 @@ class AccountDangerZoneViewModel(
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
-                    errorMessage = error.message ?: "Account deletion failed."
+                    errorMessage = error.message ?: strings.get(R.string.settings_account_danger_zone_delete_failed)
                 )
             }
             false
@@ -124,10 +128,16 @@ class AccountDangerZoneViewModel(
     }
 }
 
-fun createAccountDangerZoneViewModelFactory(cloudAccountRepository: CloudAccountRepository): ViewModelProvider.Factory {
+fun createAccountDangerZoneViewModelFactory(
+    cloudAccountRepository: CloudAccountRepository,
+    applicationContext: Context
+): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
-            AccountDangerZoneViewModel(cloudAccountRepository = cloudAccountRepository)
+            AccountDangerZoneViewModel(
+                cloudAccountRepository = cloudAccountRepository,
+                strings = createSettingsStringResolver(context = applicationContext)
+            )
         }
     }
 }

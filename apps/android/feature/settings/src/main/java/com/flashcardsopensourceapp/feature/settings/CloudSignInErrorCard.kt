@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -51,9 +52,9 @@ fun CloudSignInErrorCard(
                 ) {
                     Text(
                         text = if (isShowingDetails) {
-                            "Hide technical details"
+                            stringResource(R.string.settings_sign_in_error_hide_details)
                         } else {
-                            "Show technical details"
+                            stringResource(R.string.settings_sign_in_error_show_details)
                         }
                     )
                 }

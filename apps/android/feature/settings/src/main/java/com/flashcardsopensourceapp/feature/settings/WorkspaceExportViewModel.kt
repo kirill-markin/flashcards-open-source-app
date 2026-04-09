@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -20,7 +21,8 @@ private data class WorkspaceExportDraftState(
 )
 
 class WorkspaceExportViewModel(
-    private val workspaceRepository: WorkspaceRepository
+    private val workspaceRepository: WorkspaceRepository,
+    private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = WorkspaceExportDraftState(
@@ -34,7 +36,7 @@ class WorkspaceExportViewModel(
         draftState
     ) { overview, draft ->
         WorkspaceExportUiState(
-            workspaceName = overview?.workspaceName ?: "Unavailable",
+            workspaceName = overview?.workspaceName ?: strings.get(R.string.settings_unavailable),
             activeCardsCount = overview?.totalCards ?: 0,
             isExporting = draft.isExporting,
             errorMessage = draft.errorMessage
@@ -43,7 +45,7 @@ class WorkspaceExportViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = WorkspaceExportUiState(
-            workspaceName = "Loading...",
+            workspaceName = strings.get(R.string.settings_loading),
             activeCardsCount = 0,
             isExporting = false,
             errorMessage = ""
@@ -64,7 +66,7 @@ class WorkspaceExportViewModel(
                 draftState.update { state ->
                     state.copy(
                         isExporting = false,
-                        errorMessage = "Workspace export is unavailable."
+                        errorMessage = strings.get(R.string.settings_export_unavailable)
                     )
                 }
             }
@@ -73,7 +75,7 @@ class WorkspaceExportViewModel(
             draftState.update { state ->
                 state.copy(
                     isExporting = false,
-                    errorMessage = error.message ?: "Android export could not be prepared."
+                    errorMessage = error.message ?: strings.get(R.string.settings_export_prepare_failed)
                 )
             }
             null
@@ -81,7 +83,7 @@ class WorkspaceExportViewModel(
             draftState.update { state ->
                 state.copy(
                     isExporting = false,
-                    errorMessage = error.message ?: "Android export could not be prepared."
+                    errorMessage = error.message ?: strings.get(R.string.settings_export_prepare_failed)
                 )
             }
             null
@@ -110,10 +112,16 @@ class WorkspaceExportViewModel(
     }
 }
 
-fun createWorkspaceExportViewModelFactory(workspaceRepository: WorkspaceRepository): ViewModelProvider.Factory {
+fun createWorkspaceExportViewModelFactory(
+    workspaceRepository: WorkspaceRepository,
+    applicationContext: Context
+): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
-            WorkspaceExportViewModel(workspaceRepository = workspaceRepository)
+            WorkspaceExportViewModel(
+                workspaceRepository = workspaceRepository,
+                strings = createSettingsStringResolver(context = applicationContext)
+            )
         }
     }
 }

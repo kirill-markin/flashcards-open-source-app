@@ -4,30 +4,35 @@ import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 
-internal fun displayCloudAccountStateTitle(cloudState: CloudAccountState): String {
+internal fun displayCloudAccountStateTitle(
+    cloudState: CloudAccountState,
+    strings: SettingsStringResolver
+): String {
     return when (cloudState) {
-        CloudAccountState.DISCONNECTED -> "Disconnected"
-        CloudAccountState.LINKING_READY -> "Choose workspace"
-        CloudAccountState.GUEST -> "Guest AI"
-        CloudAccountState.LINKED -> "Linked"
+        CloudAccountState.DISCONNECTED -> strings.get(R.string.settings_cloud_status_disconnected)
+        CloudAccountState.LINKING_READY -> strings.get(R.string.settings_cloud_status_choose_workspace)
+        CloudAccountState.GUEST -> strings.get(R.string.settings_cloud_status_guest_ai)
+        CloudAccountState.LINKED -> strings.get(R.string.settings_cloud_status_linked)
     }
 }
 
 internal fun workspaceSelectionTitle(
     selection: CloudWorkspaceLinkSelection,
-    workspaces: List<CloudWorkspaceSummary>
+    workspaces: List<CloudWorkspaceSummary>,
+    strings: SettingsStringResolver
 ): String {
     return when (selection) {
         is CloudWorkspaceLinkSelection.Existing -> workspaces.firstOrNull { workspace ->
             workspace.workspaceId == selection.workspaceId
-        }?.name ?: "Selected workspace"
-        CloudWorkspaceLinkSelection.CreateNew -> "New workspace"
+        }?.name ?: strings.get(R.string.settings_current_workspace_selected)
+        CloudWorkspaceLinkSelection.CreateNew -> strings.get(R.string.settings_current_workspace_new_title)
     }
 }
 
 internal fun buildCurrentWorkspaceItems(
     activeWorkspaceId: String?,
-    workspaces: List<CloudWorkspaceSummary>
+    workspaces: List<CloudWorkspaceSummary>,
+    strings: SettingsStringResolver
 ): List<CurrentWorkspaceItemUiState> {
     val selectedWorkspaceId = resolveSelectedWorkspaceId(
         activeWorkspaceId = activeWorkspaceId,
@@ -37,15 +42,18 @@ internal fun buildCurrentWorkspaceItems(
         CurrentWorkspaceItemUiState(
             workspaceId = workspace.workspaceId,
             title = workspace.name,
-            subtitle = formatTimestampLabel(workspace.createdAtMillis),
+            subtitle = formatTimestampLabel(
+                timestampMillis = workspace.createdAtMillis,
+                strings = strings
+            ),
             isSelected = workspace.workspaceId == selectedWorkspaceId,
             isCreateNew = false
         )
     }
     return items + CurrentWorkspaceItemUiState(
         workspaceId = "create-new",
-        title = "Create new workspace",
-        subtitle = "Start a new linked workspace in the cloud",
+        title = strings.get(R.string.settings_current_workspace_create_new_title),
+        subtitle = strings.get(R.string.settings_current_workspace_create_new_summary),
         isSelected = false,
         isCreateNew = true
     )
@@ -68,7 +76,8 @@ internal fun resolveSelectedWorkspaceId(
 
 internal fun currentWorkspaceSelectionErrorMessage(
     activeWorkspaceId: String?,
-    workspaces: List<CloudWorkspaceSummary>
+    workspaces: List<CloudWorkspaceSummary>,
+    strings: SettingsStringResolver
 ): String? {
     if (activeWorkspaceId == null) {
         return null
@@ -76,12 +85,13 @@ internal fun currentWorkspaceSelectionErrorMessage(
     if (workspaces.any { workspace -> workspace.workspaceId == activeWorkspaceId }) {
         return null
     }
-    return "The current workspace selection is invalid on this device. Retry the last workspace action or reload linked workspaces."
+    return strings.get(R.string.settings_current_workspace_invalid_selection)
 }
 
 internal fun buildCloudPostAuthWorkspaceItems(
     preferredWorkspaceId: String?,
-    workspaces: List<CloudWorkspaceSummary>
+    workspaces: List<CloudWorkspaceSummary>,
+    strings: SettingsStringResolver
 ): List<CurrentWorkspaceItemUiState> {
     val selectedWorkspaceId = when (
         val selection = buildAutomaticWorkspaceSelection(
@@ -97,14 +107,17 @@ internal fun buildCloudPostAuthWorkspaceItems(
         CurrentWorkspaceItemUiState(
             workspaceId = workspace.workspaceId,
             title = workspace.name,
-            subtitle = formatTimestampLabel(workspace.createdAtMillis),
+            subtitle = formatTimestampLabel(
+                timestampMillis = workspace.createdAtMillis,
+                strings = strings
+            ),
             isSelected = workspace.workspaceId == selectedWorkspaceId,
             isCreateNew = false
         )
     } + CurrentWorkspaceItemUiState(
         workspaceId = "create-new",
-        title = "Create new workspace",
-        subtitle = "Start a new linked workspace in the cloud",
+        title = strings.get(R.string.settings_current_workspace_create_new_title),
+        subtitle = strings.get(R.string.settings_current_workspace_create_new_summary),
         isSelected = false,
         isCreateNew = true
     )

@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.navigation
 
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
@@ -34,6 +35,7 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
         route = SettingsAccountGraph.route
     ) {
         composable(route = SettingsAccountDestination.route) { backStackEntry ->
+            val context = LocalContext.current
             val settingsRootBackStackEntry = settingsRootBackStackEntry(
                 navController = navController,
                 currentBackStackEntry = backStackEntry
@@ -45,7 +47,8 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
                     autoSyncEventRepository = appGraph.autoSyncEventRepository,
                     messageController = appGraph.appMessageBus,
-                    visibleAppScreenRepository = appGraph.visibleAppScreenController
+                    visibleAppScreenRepository = appGraph.visibleAppScreenController,
+                    applicationContext = context.applicationContext
                 )
             )
             val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
@@ -77,12 +80,14 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
         }
 
         composable(route = SettingsAccountStatusDestination.route) {
+            val context = LocalContext.current
             val accountStatusViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.AccountStatusViewModel>(
                 factory = createAccountStatusViewModelFactory(
                     workspaceRepository = appGraph.workspaceRepository,
                     cloudAccountRepository = appGraph.cloudAccountRepository,
                     syncRepository = appGraph.syncRepository,
-                    messageController = appGraph.appMessageBus
+                    messageController = appGraph.appMessageBus,
+                    applicationContext = context.applicationContext
                 )
             )
             val uiState by accountStatusViewModel.uiState.collectAsStateWithLifecycle()
@@ -122,9 +127,11 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
         }
 
         composable(route = SettingsAccountServerDestination.route) {
+            val context = LocalContext.current
             val serverSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.ServerSettingsViewModel>(
                 factory = createServerSettingsViewModelFactory(
-                    cloudAccountRepository = appGraph.cloudAccountRepository
+                    cloudAccountRepository = appGraph.cloudAccountRepository,
+                    applicationContext = context.applicationContext
                 )
             )
             val uiState by serverSettingsViewModel.uiState.collectAsStateWithLifecycle()
@@ -170,9 +177,11 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
         }
 
         composable(route = SettingsAccountAgentConnectionsDestination.route) {
+            val context = LocalContext.current
             val agentConnectionsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.AgentConnectionsViewModel>(
                 factory = createAgentConnectionsViewModelFactory(
-                    cloudAccountRepository = appGraph.cloudAccountRepository
+                    cloudAccountRepository = appGraph.cloudAccountRepository,
+                    applicationContext = context.applicationContext
                 )
             )
             val uiState by agentConnectionsViewModel.uiState.collectAsStateWithLifecycle()
@@ -196,9 +205,11 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
         }
 
         composable(route = SettingsAccountDangerZoneDestination.route) {
+            val context = LocalContext.current
             val accountDangerZoneViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.AccountDangerZoneViewModel>(
                 factory = createAccountDangerZoneViewModelFactory(
-                    cloudAccountRepository = appGraph.cloudAccountRepository
+                    cloudAccountRepository = appGraph.cloudAccountRepository,
+                    applicationContext = context.applicationContext
                 )
             )
             val uiState by accountDangerZoneViewModel.uiState.collectAsStateWithLifecycle()

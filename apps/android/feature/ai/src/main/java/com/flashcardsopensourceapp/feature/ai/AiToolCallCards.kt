@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 @Composable
 internal fun ToolCallCard(toolCall: AiChatToolCall) {
     val context = LocalContext.current
+    val textProvider = remember(context) { aiTextProvider(context = context) }
     val clipboardManager = remember(context) {
         checkNotNull(context.getSystemService(ClipboardManager::class.java)) {
             "ClipboardManager is not available."
@@ -65,7 +67,8 @@ internal fun ToolCallCard(toolCall: AiChatToolCall) {
                     Text(
                         text = formatAiToolCallSummaryText(
                             name = toolCall.name,
-                            input = toolCall.input
+                            input = toolCall.input,
+                            textProvider = textProvider
                         ),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
@@ -74,7 +77,7 @@ internal fun ToolCallCard(toolCall: AiChatToolCall) {
                 },
                 supportingContent = {
                     Text(
-                        text = formatAiToolCallStatus(status = toolCall.status),
+                        text = formatAiToolCallStatus(status = toolCall.status, textProvider = textProvider),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.testTag(tag = aiToolCallStatusTag)
                     )
@@ -93,9 +96,9 @@ internal fun ToolCallCard(toolCall: AiChatToolCall) {
                                 Icons.Outlined.ExpandMore
                             },
                             contentDescription = if (isExpanded) {
-                                "Collapse tool details"
+                                stringResource(id = R.string.ai_tool_collapse_details)
                             } else {
-                                "Expand tool details"
+                                stringResource(id = R.string.ai_tool_expand_details)
                             }
                         )
                     }
@@ -108,24 +111,32 @@ internal fun ToolCallCard(toolCall: AiChatToolCall) {
             if (isExpanded) {
                 toolCall.input?.let { input ->
                     ToolCallDetailCard(
-                        title = "Input",
+                        title = stringResource(id = R.string.ai_tool_input),
+                        copyTitle = stringResource(id = R.string.ai_tool_copy_input),
                         value = input,
                         valueTag = aiToolCallInputTag,
                         onCopy = {
                             clipboardManager.setPrimaryClip(
-                                ClipData.newPlainText("Input", input)
+                                ClipData.newPlainText(
+                                    context.getString(R.string.ai_tool_input),
+                                    input
+                                )
                             )
                         }
                     )
                 }
                 toolCall.output?.let { output ->
                     ToolCallDetailCard(
-                        title = "Output",
+                        title = stringResource(id = R.string.ai_tool_output),
+                        copyTitle = stringResource(id = R.string.ai_tool_copy_output),
                         value = output,
                         valueTag = aiToolCallOutputTag,
                         onCopy = {
                             clipboardManager.setPrimaryClip(
-                                ClipData.newPlainText("Output", output)
+                                ClipData.newPlainText(
+                                    context.getString(R.string.ai_tool_output),
+                                    output
+                                )
                             )
                         }
                     )
@@ -138,6 +149,7 @@ internal fun ToolCallCard(toolCall: AiChatToolCall) {
 @Composable
 private fun ToolCallDetailCard(
     title: String,
+    copyTitle: String,
     value: String,
     valueTag: String,
     onCopy: () -> Unit
@@ -166,7 +178,7 @@ private fun ToolCallDetailCard(
                         contentDescription = null
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Copy ${title.lowercase()}")
+                    Text(copyTitle)
                 }
             }
             SelectionContainer {

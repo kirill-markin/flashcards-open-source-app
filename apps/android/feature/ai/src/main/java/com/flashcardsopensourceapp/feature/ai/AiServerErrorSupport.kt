@@ -25,7 +25,8 @@ private val aiChatDictationAvailabilityErrorCodes: Set<String> = setOf(
 fun aiChatAvailabilityMessage(
     code: String,
     configurationMode: CloudServiceConfigurationMode,
-    surface: AiErrorSurface
+    surface: AiErrorSurface,
+    textProvider: AiTextProvider
 ): String? {
     return when (surface) {
         AiErrorSurface.CHAT -> {
@@ -35,10 +36,10 @@ fun aiChatAvailabilityMessage(
 
             when (configurationMode) {
                 CloudServiceConfigurationMode.OFFICIAL ->
-                    "AI is temporarily unavailable on the official server. Try again later."
+                    textProvider.serverChatOfficialUnavailable
 
                 CloudServiceConfigurationMode.CUSTOM ->
-                    "AI is unavailable on this server. Contact the server operator."
+                    textProvider.serverChatCustomUnavailable
             }
         }
 
@@ -49,10 +50,10 @@ fun aiChatAvailabilityMessage(
 
             when (configurationMode) {
                 CloudServiceConfigurationMode.OFFICIAL ->
-                    "AI dictation is temporarily unavailable on the official server. Try again later."
+                    textProvider.serverDictationOfficialUnavailable
 
                 CloudServiceConfigurationMode.CUSTOM ->
-                    "AI dictation is unavailable on this server. Contact the server operator."
+                    textProvider.serverDictationCustomUnavailable
             }
         }
     }
@@ -63,7 +64,8 @@ fun makeAiChatUserFacingErrorMessage(
     code: String?,
     requestId: String?,
     configurationMode: CloudServiceConfigurationMode,
-    surface: AiErrorSurface
+    surface: AiErrorSurface,
+    textProvider: AiTextProvider
 ): String {
     val mappedMessage = if (code == null) {
         null
@@ -71,20 +73,23 @@ fun makeAiChatUserFacingErrorMessage(
         aiChatAvailabilityMessage(
             code = code,
             configurationMode = configurationMode,
-            surface = surface
+            surface = surface,
+            textProvider = textProvider
         )
     }
 
     return appendAiRequestIdReference(
         message = mappedMessage ?: rawMessage,
-        requestId = requestId
+        requestId = requestId,
+        textProvider = textProvider
     )
 }
 
 private fun appendAiRequestIdReference(
     message: String,
-    requestId: String?
+    requestId: String?,
+    textProvider: AiTextProvider
 ): String {
     val normalizedRequestId = requestId?.trim()?.ifEmpty { null } ?: return message
-    return "$message Request ID: $normalizedRequestId"
+    return textProvider.messageWithRequestId(message = message, requestId = normalizedRequestId)
 }

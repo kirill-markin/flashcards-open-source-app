@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.cards
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
@@ -39,7 +40,8 @@ class CardsViewModel(
     private val autoSyncEventRepository: AutoSyncEventRepository,
     private val messageController: TransientMessageController,
     visibleAppScreenRepository: VisibleAppScreenRepository,
-    workspaceRepository: WorkspaceRepository
+    workspaceRepository: WorkspaceRepository,
+    private val textProvider: CardsTextProvider
 ) : ViewModel() {
     private val searchQuery = MutableStateFlow(value = "")
     private val activeFilter = MutableStateFlow(
@@ -169,7 +171,7 @@ class CardsViewModel(
         }
 
         lastVisibleAutoSyncChangeSignature = currentCardsSignature
-        messageController.showMessage(message = cardsUpdatedOnAnotherDeviceMessage)
+        messageController.showMessage(message = textProvider.cardsUpdatedOnAnotherDeviceMessage)
     }
 }
 
@@ -186,8 +188,6 @@ private data class CardsVisibleSignature(
     val activeFilter: CardFilter,
     val cards: List<VisibleCardSignature>
 )
-
-private const val cardsUpdatedOnAnotherDeviceMessage: String = "Cards updated on another device."
 
 private fun buildCardsVisibleSignature(uiState: CardsUiState): CardsVisibleSignature {
     return CardsVisibleSignature(
@@ -221,7 +221,8 @@ private data class CardEditorDraftState(
 class CardEditorViewModel(
     private val cardsRepository: CardsRepository,
     private val workspaceRepository: WorkspaceRepository,
-    editingCardId: String?
+    editingCardId: String?,
+    private val textProvider: CardsTextProvider
 ) : ViewModel() {
     private val inputState = MutableStateFlow(
         value = CardEditorDraftState(
@@ -272,7 +273,7 @@ class CardEditorViewModel(
         ) { card, tagsSummary, currentState ->
             CardEditorUiState(
                 isLoading = editingCardId != null && card != null && currentState.hasLoadedInitialValues.not(),
-                title = if (editingCardId == null) "New card" else "Edit card",
+                title = if (editingCardId == null) textProvider.newCardTitle else textProvider.editCardTitle,
                 isEditing = editingCardId != null,
                 frontText = currentState.frontText,
                 backText = currentState.backText,
@@ -293,7 +294,7 @@ class CardEditorViewModel(
             started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
             initialValue = CardEditorUiState(
                 isLoading = true,
-                title = if (editingCardId == null) "New card" else "Edit card",
+                title = if (editingCardId == null) textProvider.newCardTitle else textProvider.editCardTitle,
                 isEditing = editingCardId != null,
                 frontText = "",
                 backText = "",
@@ -359,7 +360,7 @@ class CardEditorViewModel(
         if (normalizedTag == null) {
             inputState.update { state ->
                 state.copy(
-                    tagsErrorMessage = "Enter a tag before adding it.",
+                    tagsErrorMessage = textProvider.enterTagBeforeAdding,
                     errorMessage = "",
                     isDirty = true
                 )
@@ -407,7 +408,8 @@ class CardEditorViewModel(
         val state = uiState.value
         val validation = validateCardEditorInput(
             frontText = state.frontText,
-            backText = state.backText
+            backText = state.backText,
+            textProvider = textProvider
         )
 
         if (validation.isValid.not()) {
@@ -475,12 +477,14 @@ fun createCardsViewModelFactory(
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
+            val application = requireApplication()
             CardsViewModel(
                 cardsRepository = cardsRepository,
                 autoSyncEventRepository = autoSyncEventRepository,
                 messageController = messageController,
                 visibleAppScreenRepository = visibleAppScreenRepository,
-                workspaceRepository = workspaceRepository
+                workspaceRepository = workspaceRepository,
+                textProvider = cardsTextProvider(context = application)
             )
         }
     }
@@ -493,10 +497,12 @@ fun createCardEditorViewModelFactory(
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
+            val application = requireApplication()
             CardEditorViewModel(
                 cardsRepository = cardsRepository,
                 workspaceRepository = workspaceRepository,
-                editingCardId = editingCardId
+                editingCardId = editingCardId,
+                textProvider = cardsTextProvider(context = application)
             )
         }
     }
@@ -511,15 +517,16 @@ private data class CardEditorValidationResult(
 
 private fun validateCardEditorInput(
     frontText: String,
-    backText: String
+    backText: String,
+    textProvider: CardsTextProvider
 ): CardEditorValidationResult {
     val frontTextErrorMessage = if (frontText.trim().isEmpty()) {
-        "Front text is required."
+        textProvider.frontTextRequired
     } else {
         ""
     }
     val backTextErrorMessage = if (backText.trim().isEmpty()) {
-        "Back text is required."
+        textProvider.backTextRequired
     } else {
         ""
     }
@@ -530,6 +537,10 @@ private fun validateCardEditorInput(
         backTextErrorMessage = backTextErrorMessage,
         errorMessage = frontTextErrorMessage.ifEmpty { backTextErrorMessage }
     )
+}
+
+private fun CreationExtras.requireApplication(): android.app.Application {
+    return checkNotNull(this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY])
 }
 
 private fun toggleTagSelection(selectedTags: List<String>, tag: String): List<String> {

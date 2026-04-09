@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -14,41 +15,48 @@ import kotlinx.coroutines.flow.stateIn
 class DeviceDiagnosticsViewModel(
     workspaceRepository: WorkspaceRepository,
     appVersion: String,
-    buildNumber: String
+    buildNumber: String,
+    private val strings: SettingsStringResolver
 ) : ViewModel() {
     val uiState: StateFlow<DeviceDiagnosticsUiState> = workspaceRepository.observeDeviceDiagnostics().map { diagnostics ->
         DeviceDiagnosticsUiState(
-            workspaceName = diagnostics?.workspaceName ?: "Unavailable",
-            workspaceId = diagnostics?.workspaceId ?: "Unavailable",
+            workspaceName = diagnostics?.workspaceName ?: strings.get(R.string.settings_unavailable),
+            workspaceId = diagnostics?.workspaceId ?: strings.get(R.string.settings_unavailable),
             appVersion = appVersion,
             buildNumber = buildNumber,
-            operatingSystem = currentOperatingSystemLabel(),
-            deviceModel = currentDeviceModelLabel(),
-            clientLabel = "Jetpack Compose",
-            storageLabel = "Room + SQLite",
+            operatingSystem = currentOperatingSystemLabel(strings = strings),
+            deviceModel = currentDeviceModelLabel(strings = strings),
+            clientLabel = strings.get(R.string.settings_device_client_jetpack_compose),
+            storageLabel = strings.get(R.string.settings_device_storage_room_sqlite),
             outboxEntriesCount = diagnostics?.outboxEntriesCount ?: 0,
-            lastSyncCursor = diagnostics?.lastSyncCursor ?: "Unavailable",
-            lastSyncAttempt = formatTimestampLabel(timestampMillis = diagnostics?.lastSyncAttemptAtMillis),
-            lastSuccessfulSync = formatTimestampLabel(timestampMillis = diagnostics?.lastSuccessfulSyncAtMillis),
-            lastSyncError = diagnostics?.lastSyncErrorMessage ?: "None"
+            lastSyncCursor = diagnostics?.lastSyncCursor ?: strings.get(R.string.settings_unavailable),
+            lastSyncAttempt = formatTimestampLabel(
+                timestampMillis = diagnostics?.lastSyncAttemptAtMillis,
+                strings = strings
+            ),
+            lastSuccessfulSync = formatTimestampLabel(
+                timestampMillis = diagnostics?.lastSuccessfulSyncAtMillis,
+                strings = strings
+            ),
+            lastSyncError = diagnostics?.lastSyncErrorMessage ?: strings.get(R.string.settings_none)
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = DeviceDiagnosticsUiState(
-            workspaceName = "Loading...",
-            workspaceId = "Loading...",
+            workspaceName = strings.get(R.string.settings_loading),
+            workspaceId = strings.get(R.string.settings_loading),
             appVersion = appVersion,
             buildNumber = buildNumber,
-            operatingSystem = currentOperatingSystemLabel(),
-            deviceModel = currentDeviceModelLabel(),
-            clientLabel = "Jetpack Compose",
-            storageLabel = "Room + SQLite",
+            operatingSystem = currentOperatingSystemLabel(strings = strings),
+            deviceModel = currentDeviceModelLabel(strings = strings),
+            clientLabel = strings.get(R.string.settings_device_client_jetpack_compose),
+            storageLabel = strings.get(R.string.settings_device_storage_room_sqlite),
             outboxEntriesCount = 0,
-            lastSyncCursor = "Unavailable",
-            lastSyncAttempt = "Never",
-            lastSuccessfulSync = "Never",
-            lastSyncError = "None"
+            lastSyncCursor = strings.get(R.string.settings_unavailable),
+            lastSyncAttempt = strings.get(R.string.settings_never),
+            lastSuccessfulSync = strings.get(R.string.settings_never),
+            lastSyncError = strings.get(R.string.settings_none)
         )
     )
 }
@@ -56,14 +64,16 @@ class DeviceDiagnosticsViewModel(
 fun createDeviceDiagnosticsViewModelFactory(
     workspaceRepository: WorkspaceRepository,
     appVersion: String,
-    buildNumber: String
+    buildNumber: String,
+    applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             DeviceDiagnosticsViewModel(
                 workspaceRepository = workspaceRepository,
                 appVersion = appVersion,
-                buildNumber = buildNumber
+                buildNumber = buildNumber,
+                strings = createSettingsStringResolver(context = applicationContext)
             )
         }
     }

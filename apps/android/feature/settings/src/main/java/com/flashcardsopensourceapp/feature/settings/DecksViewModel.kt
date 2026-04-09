@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -15,7 +16,8 @@ import kotlinx.coroutines.flow.stateIn
 
 class DecksViewModel(
     decksRepository: DecksRepository,
-    workspaceRepository: WorkspaceRepository
+    workspaceRepository: WorkspaceRepository,
+    private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val searchQuery = MutableStateFlow(value = "")
 
@@ -29,7 +31,8 @@ class DecksViewModel(
             deckEntries = filterDeckEntries(
                 deckEntries = buildDeckListEntries(
                     decks = decks,
-                    overview = overview
+                    overview = overview,
+                    strings = strings
                 ),
                 searchQuery = query
             )
@@ -50,13 +53,15 @@ class DecksViewModel(
 
 fun createDecksViewModelFactory(
     decksRepository: DecksRepository,
-    workspaceRepository: WorkspaceRepository
+    workspaceRepository: WorkspaceRepository,
+    applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             DecksViewModel(
                 decksRepository = decksRepository,
-                workspaceRepository = workspaceRepository
+                workspaceRepository = workspaceRepository,
+                strings = createSettingsStringResolver(context = applicationContext)
             )
         }
     }

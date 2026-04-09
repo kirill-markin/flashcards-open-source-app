@@ -12,6 +12,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -22,7 +23,7 @@ fun CloudSignInCodeRoute(
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
-        title = "Verify code",
+        title = stringResource(R.string.settings_sign_in_verify_title),
         onBack = onBack,
         isBackEnabled = uiState.isVerifyingCode.not()
     ) { innerPadding ->
@@ -35,9 +36,15 @@ fun CloudSignInCodeRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = if (uiState.isGuestUpgrade) {
-                            "Enter the one-time code sent to ${uiState.challengeEmail ?: "your email"} to finish upgrading Guest AI."
+                            stringResource(
+                                R.string.settings_sign_in_verify_guest_body,
+                                uiState.challengeEmail ?: stringResource(R.string.settings_sign_in_email_fallback)
+                            )
                         } else {
-                            "Enter the one-time code sent to ${uiState.challengeEmail ?: "your email"}."
+                            stringResource(
+                                R.string.settings_sign_in_verify_body,
+                                uiState.challengeEmail ?: stringResource(R.string.settings_sign_in_email_fallback)
+                            )
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(20.dp)
@@ -60,7 +67,7 @@ fun CloudSignInCodeRoute(
                     value = uiState.code,
                     onValueChange = onCodeChange,
                     label = {
-                        Text("One-time code")
+                        Text(stringResource(R.string.settings_sign_in_code_label))
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -72,7 +79,13 @@ fun CloudSignInCodeRoute(
                     enabled = uiState.isVerifyingCode.not(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(if (uiState.isVerifyingCode) "Verifying..." else "Verify code")
+                    Text(
+                        if (uiState.isVerifyingCode) {
+                            stringResource(R.string.settings_sign_in_verifying)
+                        } else {
+                            stringResource(R.string.settings_sign_in_verify_button)
+                        }
+                    )
                 }
             }
         }

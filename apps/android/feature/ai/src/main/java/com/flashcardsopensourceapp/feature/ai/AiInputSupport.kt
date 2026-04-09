@@ -7,9 +7,9 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.aiChatMaximumAttachmentBytes
+import com.flashcardsopensourceapp.data.local.model.aiChatSupportedFileExtensions
 import com.flashcardsopensourceapp.data.local.model.makeAiChatAttachment
-import com.flashcardsopensourceapp.data.local.model.requireAiChatAttachmentSize
-import com.flashcardsopensourceapp.data.local.model.requireSupportedAiChatAttachmentExtension
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.UUID
@@ -27,7 +27,8 @@ data class RecordedAiChatAudio(
 )
 
 class AndroidAiChatDictationRecorder(
-    private val context: Context
+    private val context: Context,
+    private val textProvider: AiTextProvider
 ) {
     private var mediaRecorder: MediaRecorder? = null
     private var outputFile: File? = null
@@ -62,10 +63,10 @@ class AndroidAiChatDictationRecorder(
 
     fun stopRecording(): RecordedAiChatAudio {
         val recorder = requireNotNull(mediaRecorder) {
-            "Dictation recording is not active."
+            textProvider.dictationRecordingNotActive
         }
         val recordedFile = requireNotNull(outputFile) {
-            "Dictation recording file is missing."
+            textProvider.dictationRecordingFileMissing
         }
 
         try {
@@ -82,7 +83,7 @@ class AndroidAiChatDictationRecorder(
             recordedFile.delete()
         }
         require(audioBytes.isNotEmpty()) {
-            "No speech was recorded."
+            textProvider.noSpeechRecorded
         }
 
         return RecordedAiChatAudio(
@@ -101,7 +102,10 @@ class AndroidAiChatDictationRecorder(
     }
 }
 
-fun makeAiChatAttachmentFromCameraBitmap(bitmap: Bitmap): AiChatAttachment {
+fun makeAiChatAttachmentFromCameraBitmap(
+    bitmap: Bitmap,
+    textProvider: AiTextProvider
+): AiChatAttachment {
     val outputStream = ByteArrayOutputStream()
     val didCompress = bitmap.compress(
         Bitmap.CompressFormat.JPEG,
@@ -109,11 +113,14 @@ fun makeAiChatAttachmentFromCameraBitmap(bitmap: Bitmap): AiChatAttachment {
         outputStream
     )
     require(didCompress) {
-        "Captured photo could not be encoded."
+        textProvider.capturedPhotoEncodeFailed
     }
 
     val bytes = outputStream.toByteArray()
-    requireAiChatAttachmentSize(byteCount = bytes.size)
+    requireAiChatAttachmentSize(
+        byteCount = bytes.size,
+        textProvider = textProvider
+    )
     return makeAiChatAttachment(
         fileName = cameraAttachmentFileName,
         mediaType = cameraAttachmentMediaType,
@@ -123,18 +130,22 @@ fun makeAiChatAttachmentFromCameraBitmap(bitmap: Bitmap): AiChatAttachment {
 
 fun makeAiChatImageAttachmentFromUri(
     context: Context,
-    uri: Uri
+    uri: Uri,
+    textProvider: AiTextProvider
 ): AiChatAttachment {
     val bytes = context.contentResolver.openInputStream(uri)?.use { inputStream ->
         inputStream.readBytes()
-    } ?: throw IllegalArgumentException("Selected image could not be read.")
-    requireAiChatAttachmentSize(byteCount = bytes.size)
+    } ?: throw IllegalArgumentException(textProvider.selectedImageReadFailed)
+    requireAiChatAttachmentSize(
+        byteCount = bytes.size,
+        textProvider = textProvider
+    )
 
     val displayName = queryDisplayName(context = context, uri = uri)
         ?: "photo.${fileExtensionFromMimeType(mediaType = resolveMimeType(context = context, uri = uri)) ?: "jpg"}"
     val mediaType = resolveMimeType(context = context, uri = uri)
     require(mediaType.startsWith(prefix = "image/")) {
-        "Selected item is not an image."
+        textProvider.selectedItemNotImage
     }
 
     return makeAiChatAttachment(
@@ -146,21 +157,29 @@ fun makeAiChatImageAttachmentFromUri(
 
 fun makeAiChatDocumentAttachmentFromUri(
     context: Context,
-    uri: Uri
+    uri: Uri,
+    textProvider: AiTextProvider
 ): AiChatAttachment {
     val bytes = context.contentResolver.openInputStream(uri)?.use { inputStream ->
         inputStream.readBytes()
-    } ?: throw IllegalArgumentException("Selected file could not be read.")
-    requireAiChatAttachmentSize(byteCount = bytes.size)
+    } ?: throw IllegalArgumentException(textProvider.selectedFileReadFailed)
+    requireAiChatAttachmentSize(
+        byteCount = bytes.size,
+        textProvider = textProvider
+    )
 
     val displayName = queryDisplayName(context = context, uri = uri)
-        ?: throw IllegalArgumentException("Selected file name is unavailable.")
+        ?: throw IllegalArgumentException(textProvider.selectedFileNameUnavailable)
     val mediaType = resolveMimeType(context = context, uri = uri)
     val fileExtension = resolveFileExtension(
         fileName = displayName,
-        mediaType = mediaType
+        mediaType = mediaType,
+        textProvider = textProvider
     )
-    requireSupportedAiChatAttachmentExtension(fileExtension = fileExtension)
+    requireSupportedAiChatAttachmentExtension(
+        fileExtension = fileExtension,
+        textProvider = textProvider
+    )
 
     return makeAiChatAttachment(
         fileName = displayName,
@@ -209,7 +228,8 @@ private fun resolveMimeType(
 
 private fun resolveFileExtension(
     fileName: String,
-    mediaType: String
+    mediaType: String,
+    textProvider: AiTextProvider
 ): String {
     val fileNameExtension = fileName.substringAfterLast(delimiter = '.', missingDelimiterValue = "")
         .trim()
@@ -219,7 +239,26 @@ private fun resolveFileExtension(
     }
 
     return fileExtensionFromMimeType(mediaType = mediaType)
-        ?: throw IllegalArgumentException("Selected file type is unsupported.")
+        ?: throw IllegalArgumentException(textProvider.selectedFileTypeUnsupported)
+}
+
+private fun requireAiChatAttachmentSize(
+    byteCount: Int,
+    textProvider: AiTextProvider
+) {
+    require(byteCount <= aiChatMaximumAttachmentBytes) {
+        textProvider.attachmentTooLarge
+    }
+}
+
+private fun requireSupportedAiChatAttachmentExtension(
+    fileExtension: String,
+    textProvider: AiTextProvider
+) {
+    val normalizedExtension = fileExtension.trim().lowercase()
+    require(aiChatSupportedFileExtensions.contains(normalizedExtension)) {
+        textProvider.unsupportedFileType(extension = normalizedExtension)
+    }
 }
 
 private fun fileExtensionFromMimeType(

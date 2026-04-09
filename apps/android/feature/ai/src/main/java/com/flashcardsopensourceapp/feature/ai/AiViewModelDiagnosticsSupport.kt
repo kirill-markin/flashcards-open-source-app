@@ -6,15 +6,17 @@ import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 internal fun makeAiUserFacingErrorMessage(
     error: Exception,
     surface: AiErrorSurface,
-    configuration: CloudServiceConfiguration
+    configuration: CloudServiceConfiguration,
+    textProvider: AiTextProvider
 ): String {
     val remoteError = error as? AiChatRemoteException
     return makeAiChatUserFacingErrorMessage(
-        rawMessage = error.message ?: "AI request failed.",
+        rawMessage = error.message ?: textProvider.requestFailed,
         code = remoteError?.code,
         requestId = remoteError?.requestId,
         configurationMode = configuration.mode,
-        surface = surface
+        surface = surface,
+        textProvider = textProvider
     )
 }
 

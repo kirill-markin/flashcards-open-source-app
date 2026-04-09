@@ -37,6 +37,7 @@ internal fun ConsentGate(
     val privacyUrl = stringResource(id = SettingsR.string.flashcards_privacy_policy_url)
     val termsUrl = stringResource(id = SettingsR.string.flashcards_terms_of_service_url)
     val supportUrl = stringResource(id = SettingsR.string.flashcards_support_url)
+    val workspaceDisclosureTemplate = stringResource(id = R.string.ai_consent_workspace_disclosure)
 
     Box(
         contentAlignment = Alignment.Center,
@@ -57,22 +58,25 @@ internal fun ConsentGate(
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Before you use AI",
+                    text = stringResource(id = R.string.ai_consent_title),
                     style = MaterialTheme.typography.headlineSmall
                 )
                 Text(
-                    text = "AI can be wrong. Review important results before relying on them.",
+                    text = stringResource(id = R.string.ai_consent_warning),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = formatAiConsentWorkspaceDisclosureText(currentWorkspaceName = currentWorkspaceName),
+                    text = formatAiConsentWorkspaceDisclosureText(
+                        template = workspaceDisclosureTemplate,
+                        currentWorkspaceName = currentWorkspaceName
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Button(
                     onClick = onAcceptConsent,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("OK")
+                    Text(stringResource(id = R.string.ai_consent_accept))
                 }
 
                 HorizontalDivider()
@@ -88,7 +92,7 @@ internal fun ConsentGate(
                         contentDescription = null
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Privacy Policy")
+                    Text(stringResource(id = R.string.ai_privacy_policy))
                 }
 
                 TextButton(
@@ -102,7 +106,7 @@ internal fun ConsentGate(
                         contentDescription = null
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Terms of Service")
+                    Text(stringResource(id = R.string.ai_terms_of_service))
                 }
 
                 TextButton(
@@ -116,7 +120,7 @@ internal fun ConsentGate(
                         contentDescription = null
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Support")
+                    Text(stringResource(id = R.string.ai_support))
                 }
             }
         }

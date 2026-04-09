@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -32,7 +33,8 @@ private data class WorkspaceSettingsDraftState(
 class WorkspaceSettingsViewModel(
     workspaceRepository: WorkspaceRepository,
     private val cloudAccountRepository: CloudAccountRepository,
-    reviewNotificationsStore: ReviewNotificationsStore
+    reviewNotificationsStore: ReviewNotificationsStore,
+    private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = WorkspaceSettingsDraftState(
@@ -55,19 +57,21 @@ class WorkspaceSettingsViewModel(
         draftState
     ) { overview, schedulerSettings, workspace, cloudSettings, draft ->
         WorkspaceSettingsUiState(
-            workspaceName = overview?.workspaceName ?: "Unavailable",
+            workspaceName = overview?.workspaceName ?: strings.get(R.string.settings_unavailable),
             deckCount = overview?.deckCount ?: 0,
             totalCards = overview?.totalCards ?: 0,
             tagCount = overview?.tagsCount ?: 0,
             notificationsSummary = workspace?.let { currentWorkspace ->
                 if (reviewNotificationsStore.loadSettings(workspaceId = currentWorkspace.workspaceId).isEnabled) {
-                    "On"
+                    strings.get(R.string.settings_on)
                 } else {
-                    "Off"
+                    strings.get(R.string.settings_off)
                 }
-            } ?: "Unavailable",
-            schedulerSummary = schedulerSettings?.let(::formatWorkspaceSchedulerSummary) ?: "Unavailable",
-            exportSummary = "CSV",
+            } ?: strings.get(R.string.settings_unavailable),
+            schedulerSummary = schedulerSettings?.let { settings ->
+                formatWorkspaceSchedulerSummary(settings = settings, strings = strings)
+            } ?: strings.get(R.string.settings_unavailable),
+            exportSummary = strings.get(R.string.settings_export_csv_summary),
             isLinked = cloudSettings.cloudState == CloudAccountState.LINKED,
             errorMessage = draft.errorMessage,
             successMessage = draft.successMessage,
@@ -82,13 +86,13 @@ class WorkspaceSettingsViewModel(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = WorkspaceSettingsUiState(
-            workspaceName = "Loading...",
+            workspaceName = strings.get(R.string.settings_loading),
             deckCount = 0,
             totalCards = 0,
             tagCount = 0,
-            notificationsSummary = "Loading...",
-            schedulerSummary = "Loading...",
-            exportSummary = "CSV",
+            notificationsSummary = strings.get(R.string.settings_loading),
+            schedulerSummary = strings.get(R.string.settings_loading),
+            exportSummary = strings.get(R.string.settings_export_csv_summary),
             isLinked = false,
             errorMessage = "",
             successMessage = "",
@@ -148,9 +152,9 @@ class WorkspaceSettingsViewModel(
     }
 
     private suspend fun requestResetProgress() {
-        if (uiState.value.resetConfirmationText != workspaceSettingsResetProgressConfirmationText) {
+        if (uiState.value.resetConfirmationText != workspaceResetProgressConfirmationText(strings = strings)) {
             draftState.update { state ->
-                state.copy(errorMessage = "Enter the confirmation phrase exactly to continue.")
+                state.copy(errorMessage = strings.get(R.string.settings_workspace_reset_confirmation_required))
             }
             return
         }
@@ -184,7 +188,7 @@ class WorkspaceSettingsViewModel(
                     isResetPreviewLoading = false,
                     showResetConfirmation = true,
                     showResetPreviewAlert = false,
-                    errorMessage = error.message ?: "Reset progress preview failed."
+                    errorMessage = error.message ?: strings.get(R.string.settings_workspace_reset_preview_failed)
                 )
             }
         }
@@ -214,10 +218,10 @@ class WorkspaceSettingsViewModel(
         }
         if (
             uiState.value.resetConfirmationText.isNotEmpty() &&
-            uiState.value.resetConfirmationText != workspaceSettingsResetProgressConfirmationText
+            uiState.value.resetConfirmationText != workspaceResetProgressConfirmationText(strings = strings)
         ) {
             draftState.update { state ->
-                state.copy(errorMessage = "Enter the confirmation phrase exactly to continue.")
+                state.copy(errorMessage = strings.get(R.string.settings_workspace_reset_confirmation_required))
             }
             return
         }
@@ -243,14 +247,17 @@ class WorkspaceSettingsViewModel(
                     showResetPreviewAlert = false,
                     resetProgressPreview = null,
                     errorMessage = "",
-                    successMessage = "Reset progress for ${result.cardsResetCount} cards."
+                    successMessage = strings.get(
+                        R.string.settings_workspace_reset_success,
+                        result.cardsResetCount
+                    )
                 )
             }
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
                     resetState = DestructiveActionState.FAILED,
-                    errorMessage = error.message ?: "Reset progress failed.",
+                    errorMessage = error.message ?: strings.get(R.string.settings_workspace_reset_failed),
                     successMessage = ""
                 )
             }
@@ -261,14 +268,16 @@ class WorkspaceSettingsViewModel(
 fun createWorkspaceSettingsViewModelFactory(
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
-    reviewNotificationsStore: ReviewNotificationsStore
+    reviewNotificationsStore: ReviewNotificationsStore,
+    applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             WorkspaceSettingsViewModel(
                 workspaceRepository = workspaceRepository,
                 cloudAccountRepository = cloudAccountRepository,
-                reviewNotificationsStore = reviewNotificationsStore
+                reviewNotificationsStore = reviewNotificationsStore,
+                strings = createSettingsStringResolver(context = applicationContext)
             )
         }
     }

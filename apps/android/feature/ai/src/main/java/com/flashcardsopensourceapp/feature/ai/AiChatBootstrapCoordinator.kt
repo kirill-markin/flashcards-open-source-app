@@ -144,7 +144,8 @@ internal class AiChatBootstrapCoordinator(
                 val message = makeAiUserFacingErrorMessage(
                     error = error,
                     surface = AiErrorSurface.CHAT,
-                    configuration = context.currentServerConfiguration()
+                    configuration = context.currentServerConfiguration(),
+                    textProvider = context.textProvider
                 )
                 AiChatDiagnosticsLogger.error(
                     event = "conversation_bootstrap_failed",

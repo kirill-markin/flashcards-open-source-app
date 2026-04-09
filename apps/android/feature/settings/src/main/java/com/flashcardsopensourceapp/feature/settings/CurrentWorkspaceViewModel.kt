@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -47,7 +48,8 @@ class CurrentWorkspaceViewModel(
     private val autoSyncEventRepository: AutoSyncEventRepository,
     private val messageController: TransientMessageController,
     visibleAppScreenRepository: VisibleAppScreenRepository,
-    workspaceRepository: WorkspaceRepository
+    workspaceRepository: WorkspaceRepository,
+    private val strings: SettingsStringResolver
 ) : ViewModel() {
     private val draftState = MutableStateFlow(
         value = CurrentWorkspaceDraftState(
@@ -74,28 +76,38 @@ class CurrentWorkspaceViewModel(
         draftState
     ) { metadata, cloudSettings, draft ->
         val isOperationActive = draft.operation != CurrentWorkspaceOperation.IDLE
+        val resolvedMetadataCurrentWorkspaceName = strings.resolveWorkspaceName(
+            workspaceName = metadata.currentWorkspaceName
+        )
         val selectionErrorMessage = if (
             draft.workspaceLoadState == CurrentWorkspaceLoadState.Loaded &&
             isOperationActive.not()
         ) {
             currentWorkspaceSelectionErrorMessage(
                 activeWorkspaceId = cloudSettings.activeWorkspaceId,
-                workspaces = draft.workspaces
+                workspaces = draft.workspaces,
+                strings = strings
             )
         } else {
             null
         }
         val currentWorkspaceName = if (selectionErrorMessage == null) {
-            if (isOperationActive && metadata.currentWorkspaceName == "Unavailable") {
-                draft.pendingWorkspaceTitle ?: metadata.currentWorkspaceName
+            if (
+                isOperationActive
+                && resolvedMetadataCurrentWorkspaceName == strings.get(R.string.settings_unavailable)
+            ) {
+                draft.pendingWorkspaceTitle ?: resolvedMetadataCurrentWorkspaceName
             } else {
-                metadata.currentWorkspaceName
+                resolvedMetadataCurrentWorkspaceName
             }
         } else {
-            "Unavailable"
+            strings.get(R.string.settings_unavailable)
         }
         CurrentWorkspaceUiState(
-            cloudStatusTitle = displayCloudAccountStateTitle(cloudState = cloudSettings.cloudState),
+            cloudStatusTitle = displayCloudAccountStateTitle(
+                cloudState = cloudSettings.cloudState,
+                strings = strings
+            ),
             currentWorkspaceName = currentWorkspaceName,
             linkedEmail = cloudSettings.linkedEmail,
             isGuest = cloudSettings.cloudState == CloudAccountState.GUEST,
@@ -114,15 +126,16 @@ class CurrentWorkspaceViewModel(
             },
             workspaces = buildCurrentWorkspaceItems(
                 activeWorkspaceId = cloudSettings.activeWorkspaceId,
-                workspaces = draft.workspaces
+                workspaces = draft.workspaces,
+                strings = strings
             )
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = CurrentWorkspaceUiState(
-            cloudStatusTitle = "Loading...",
-            currentWorkspaceName = "Loading...",
+            cloudStatusTitle = strings.get(R.string.settings_loading),
+            currentWorkspaceName = strings.get(R.string.settings_loading),
             linkedEmail = null,
             isGuest = false,
             isLinked = false,
@@ -146,9 +159,9 @@ class CurrentWorkspaceViewModel(
         if (cloudSettings.cloudState != CloudAccountState.LINKED) {
             messageController.showMessage(
                 message = if (cloudSettings.cloudState == CloudAccountState.GUEST) {
-                    "Create an account or log in to upgrade Guest AI before managing workspaces."
+                    strings.get(R.string.settings_current_workspace_load_guest_message)
                 } else {
-                    "Sign in to load linked workspaces."
+                    strings.get(R.string.settings_current_workspace_load_sign_in_message)
                 }
             )
             return
@@ -176,7 +189,7 @@ class CurrentWorkspaceViewModel(
                 state.copy(
                     operation = CurrentWorkspaceOperation.IDLE,
                     workspaceLoadState = CurrentWorkspaceLoadState.Failed,
-                    errorMessage = error.message ?: "Could not load linked workspaces."
+                    errorMessage = error.message ?: strings.get(R.string.settings_current_workspace_load_failed)
                 )
             }
         }
@@ -198,7 +211,8 @@ class CurrentWorkspaceViewModel(
                 operation = CurrentWorkspaceOperation.SWITCHING,
                 pendingWorkspaceTitle = workspaceSelectionTitle(
                     selection = selection,
-                    workspaces = state.workspaces
+                    workspaces = state.workspaces,
+                    strings = strings
                 ),
                 retryAction = CurrentWorkspaceRetryAction.CompleteLink(selection = selection),
                 errorMessage = ""
@@ -217,10 +231,11 @@ class CurrentWorkspaceViewModel(
             val reconciliationErrorMessage = workspaceReconciliationErrorMessage(
                 expectedWorkspaceId = workspace.workspaceId,
                 activeWorkspaceId = cloudSettings.activeWorkspaceId,
-                workspaces = workspaces
+                workspaces = workspaces,
+                strings = strings
             )
             require(reconciliationErrorMessage == null) {
-                reconciliationErrorMessage ?: "The linked workspace list did not reconcile to the expected current workspace."
+                reconciliationErrorMessage ?: strings.get(R.string.settings_current_workspace_reconcile_failed)
             }
             draftState.update { state ->
                 state.copy(
@@ -232,13 +247,15 @@ class CurrentWorkspaceViewModel(
                     workspaces = workspaces
                 )
             }
-            messageController.showMessage(message = "Current workspace is now ${workspace.name}.")
+            messageController.showMessage(
+                message = strings.get(R.string.settings_current_workspace_switched_message, workspace.name)
+            )
         } catch (error: Exception) {
             draftState.update { state ->
                 state.copy(
                     operation = CurrentWorkspaceOperation.IDLE,
                     workspaceLoadState = CurrentWorkspaceLoadState.Loaded,
-                    errorMessage = error.message ?: "Workspace switch failed."
+                    errorMessage = error.message ?: strings.get(R.string.settings_current_workspace_switch_failed)
                 )
             }
         }
@@ -322,7 +339,7 @@ class CurrentWorkspaceViewModel(
         }
 
         lastVisibleAutoSyncChangeSignature = currentWorkspaceSignature
-        messageController.showMessage(message = workspaceUpdatedOnAnotherDeviceMessage)
+        messageController.showMessage(message = workspaceUpdatedOnAnotherDeviceMessage(strings = strings))
     }
 
 }
@@ -370,11 +387,13 @@ private fun applyOptimisticWorkspaceSelection(
 private fun workspaceReconciliationErrorMessage(
     expectedWorkspaceId: String,
     activeWorkspaceId: String?,
-    workspaces: List<CloudWorkspaceSummary>
+    workspaces: List<CloudWorkspaceSummary>,
+    strings: SettingsStringResolver
 ): String? {
     val selectionErrorMessage = currentWorkspaceSelectionErrorMessage(
         activeWorkspaceId = activeWorkspaceId,
-        workspaces = workspaces
+        workspaces = workspaces,
+        strings = strings
     )
     if (selectionErrorMessage != null) {
         return selectionErrorMessage
@@ -386,7 +405,7 @@ private fun workspaceReconciliationErrorMessage(
     if (selectedWorkspaceId == expectedWorkspaceId) {
         return null
     }
-    return "The linked workspace list did not reconcile to the expected current workspace."
+    return strings.get(R.string.settings_current_workspace_reconcile_failed)
 }
 
 fun createCurrentWorkspaceViewModelFactory(
@@ -394,7 +413,8 @@ fun createCurrentWorkspaceViewModelFactory(
     cloudAccountRepository: CloudAccountRepository,
     autoSyncEventRepository: AutoSyncEventRepository,
     messageController: TransientMessageController,
-    visibleAppScreenRepository: VisibleAppScreenRepository
+    visibleAppScreenRepository: VisibleAppScreenRepository,
+    applicationContext: Context
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
@@ -403,7 +423,8 @@ fun createCurrentWorkspaceViewModelFactory(
                 autoSyncEventRepository = autoSyncEventRepository,
                 messageController = messageController,
                 visibleAppScreenRepository = visibleAppScreenRepository,
-                workspaceRepository = workspaceRepository
+                workspaceRepository = workspaceRepository,
+                strings = createSettingsStringResolver(context = applicationContext)
             )
         }
     }

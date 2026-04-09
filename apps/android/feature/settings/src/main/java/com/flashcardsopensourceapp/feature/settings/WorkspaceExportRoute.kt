@@ -24,6 +24,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flashcardsopensourceapp.data.local.model.WorkspaceExportData
@@ -60,16 +61,20 @@ fun WorkspaceExportRoute(
                 )
                 viewModel.finishExport()
             } catch (error: IllegalArgumentException) {
-                viewModel.showExportError(message = error.message ?: "Android export failed.")
+                viewModel.showExportError(
+                    message = context.getString(R.string.settings_export_write_failed)
+                )
             } catch (error: IllegalStateException) {
-                viewModel.showExportError(message = error.message ?: "Android export failed.")
+                viewModel.showExportError(
+                    message = context.getString(R.string.settings_export_write_failed)
+                )
             }
             pendingExportData = null
         }
     }
 
     SettingsScreenScaffold(
-        title = "Export",
+        title = stringResource(R.string.settings_export_title),
         onBack = onBack,
         isBackEnabled = uiState.isExporting.not()
     ) { innerPadding ->
@@ -82,10 +87,16 @@ fun WorkspaceExportRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("CSV export")
+                            Text(stringResource(R.string.settings_export_csv_summary))
                         },
                         supportingContent = {
-                            Text("${uiState.activeCardsCount} active cards from ${uiState.workspaceName}")
+                            Text(
+                                stringResource(
+                                    R.string.settings_export_csv_workspace_summary,
+                                    uiState.activeCardsCount,
+                                    uiState.workspaceName
+                                )
+                            )
                         },
                         leadingContent = {
                             Icon(
@@ -131,7 +142,13 @@ fun WorkspaceExportRoute(
                     enabled = uiState.isExporting.not(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(if (uiState.isExporting) "Preparing export..." else "Export CSV")
+                    Text(
+                        if (uiState.isExporting) {
+                            stringResource(R.string.settings_export_preparing)
+                        } else {
+                            stringResource(R.string.settings_export_csv_title)
+                        }
+                    )
                 }
             }
 
@@ -143,7 +160,7 @@ fun WorkspaceExportRoute(
                     enabled = uiState.errorMessage.isNotEmpty(),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Dismiss error")
+                    Text(stringResource(R.string.settings_export_dismiss_error))
                 }
             }
         }

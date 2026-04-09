@@ -16,52 +16,57 @@ sealed interface AiCapabilityPresentationResult {
 fun aiCapabilityPresentationResult(
     capability: AccessCapability,
     initialStatus: AccessStatus,
-    requestedStatus: AccessStatus?
+    requestedStatus: AccessStatus?,
+    textProvider: AiTextProvider
 ): AiCapabilityPresentationResult {
     return when (capability) {
         AccessCapability.CAMERA -> aiCameraPresentationResult(
             initialStatus = initialStatus,
-            requestedStatus = requestedStatus
+            requestedStatus = requestedStatus,
+            textProvider = textProvider
         )
 
         AccessCapability.MICROPHONE -> aiMicrophonePresentationResult(
             initialStatus = initialStatus,
-            requestedStatus = requestedStatus
+            requestedStatus = requestedStatus,
+            textProvider = textProvider
         )
 
         AccessCapability.PHOTOS -> aiAttachmentPickerPresentationResult(
             capability = capability,
-            status = initialStatus
+            status = initialStatus,
+            textProvider = textProvider
         )
 
         AccessCapability.FILES -> aiAttachmentPickerPresentationResult(
             capability = capability,
-            status = initialStatus
+            status = initialStatus,
+            textProvider = textProvider
         )
     }
 }
 
 fun aiAttachmentImportAlert(
     capability: AccessCapability,
-    error: Exception
+    error: Exception,
+    textProvider: AiTextProvider
 ): AiAlertState {
     return if (error is SecurityException) {
         when (capability) {
-            AccessCapability.CAMERA -> AiAlertState.AttachmentSettings(source = AiAttachmentSettingsSource.CAMERA)
-            AccessCapability.PHOTOS -> AiAlertState.AttachmentSettings(source = AiAttachmentSettingsSource.PHOTOS)
-            AccessCapability.FILES -> AiAlertState.AttachmentSettings(source = AiAttachmentSettingsSource.FILES)
-            AccessCapability.MICROPHONE -> AiAlertState.MicrophoneSettings
+            AccessCapability.CAMERA -> textProvider.attachmentSettingsAlert(source = AiAttachmentSettingsSource.CAMERA)
+            AccessCapability.PHOTOS -> textProvider.attachmentSettingsAlert(source = AiAttachmentSettingsSource.PHOTOS)
+            AccessCapability.FILES -> textProvider.attachmentSettingsAlert(source = AiAttachmentSettingsSource.FILES)
+            AccessCapability.MICROPHONE -> textProvider.microphoneSettingsAlert()
         }
     } else {
-        AiAlertState.GeneralError(
-            message = error.message ?: "The selected attachment could not be added."
-        )
+        textProvider.generalError(message = error.message ?: textProvider.selectedAttachmentCouldNotBeAdded)
     }
 }
 
 private fun aiCameraPresentationResult(
     initialStatus: AccessStatus,
-    requestedStatus: AccessStatus?
+    requestedStatus: AccessStatus?,
+    textProvider: AiTextProvider
 ): AiCapabilityPresentationResult {
     return when (initialStatus) {
         AccessStatus.ALLOWED -> AiCapabilityPresentationResult.Present
@@ -72,24 +77,25 @@ private fun aiCameraPresentationResult(
             AccessStatus.BLOCKED -> AiCapabilityPresentationResult.StopSilently
             AccessStatus.SYSTEM_PICKER,
             AccessStatus.UNAVAILABLE -> AiCapabilityPresentationResult.ShowAlert(
-                alert = AiAlertState.GeneralError(message = "Camera is not available on this device.")
+                alert = textProvider.generalError(message = textProvider.cameraUnavailableOnDevice)
             )
         }
 
         AccessStatus.BLOCKED -> AiCapabilityPresentationResult.ShowAlert(
-            alert = AiAlertState.AttachmentSettings(source = AiAttachmentSettingsSource.CAMERA)
+            alert = textProvider.attachmentSettingsAlert(source = AiAttachmentSettingsSource.CAMERA)
         )
 
         AccessStatus.SYSTEM_PICKER,
         AccessStatus.UNAVAILABLE -> AiCapabilityPresentationResult.ShowAlert(
-            alert = AiAlertState.GeneralError(message = "Camera is not available on this device.")
+            alert = textProvider.generalError(message = textProvider.cameraUnavailableOnDevice)
         )
     }
 }
 
 private fun aiMicrophonePresentationResult(
     initialStatus: AccessStatus,
-    requestedStatus: AccessStatus?
+    requestedStatus: AccessStatus?,
+    textProvider: AiTextProvider
 ): AiCapabilityPresentationResult {
     return when (initialStatus) {
         AccessStatus.ALLOWED -> AiCapabilityPresentationResult.Present
@@ -100,24 +106,25 @@ private fun aiMicrophonePresentationResult(
             AccessStatus.BLOCKED -> AiCapabilityPresentationResult.StopSilently
             AccessStatus.SYSTEM_PICKER,
             AccessStatus.UNAVAILABLE -> AiCapabilityPresentationResult.ShowAlert(
-                alert = AiAlertState.GeneralError(message = "Microphone is not available on this device.")
+                alert = textProvider.generalError(message = textProvider.microphoneUnavailableOnDevice)
             )
         }
 
         AccessStatus.BLOCKED -> AiCapabilityPresentationResult.ShowAlert(
-            alert = AiAlertState.MicrophoneSettings
+            alert = textProvider.microphoneSettingsAlert()
         )
 
         AccessStatus.SYSTEM_PICKER,
         AccessStatus.UNAVAILABLE -> AiCapabilityPresentationResult.ShowAlert(
-            alert = AiAlertState.GeneralError(message = "Microphone is not available on this device.")
+            alert = textProvider.generalError(message = textProvider.microphoneUnavailableOnDevice)
         )
     }
 }
 
 private fun aiAttachmentPickerPresentationResult(
     capability: AccessCapability,
-    status: AccessStatus
+    status: AccessStatus,
+    textProvider: AiTextProvider
 ): AiCapabilityPresentationResult {
     return when (status) {
         AccessStatus.ALLOWED,
@@ -126,22 +133,15 @@ private fun aiAttachmentPickerPresentationResult(
 
         AccessStatus.BLOCKED -> AiCapabilityPresentationResult.ShowAlert(
             alert = when (capability) {
-                AccessCapability.PHOTOS -> AiAlertState.AttachmentSettings(source = AiAttachmentSettingsSource.PHOTOS)
-                AccessCapability.FILES -> AiAlertState.AttachmentSettings(source = AiAttachmentSettingsSource.FILES)
-                AccessCapability.CAMERA -> AiAlertState.AttachmentSettings(source = AiAttachmentSettingsSource.CAMERA)
-                AccessCapability.MICROPHONE -> AiAlertState.MicrophoneSettings
+                AccessCapability.PHOTOS -> textProvider.attachmentSettingsAlert(source = AiAttachmentSettingsSource.PHOTOS)
+                AccessCapability.FILES -> textProvider.attachmentSettingsAlert(source = AiAttachmentSettingsSource.FILES)
+                AccessCapability.CAMERA -> textProvider.attachmentSettingsAlert(source = AiAttachmentSettingsSource.CAMERA)
+                AccessCapability.MICROPHONE -> textProvider.microphoneSettingsAlert()
             }
         )
 
         AccessStatus.UNAVAILABLE -> AiCapabilityPresentationResult.ShowAlert(
-            alert = AiAlertState.GeneralError(
-                message = when (capability) {
-                    AccessCapability.PHOTOS -> "Photo access is not available on this device."
-                    AccessCapability.FILES -> "File access is not available on this device."
-                    AccessCapability.CAMERA -> "Camera is not available on this device."
-                    AccessCapability.MICROPHONE -> "Microphone is not available on this device."
-                }
-            )
+            alert = textProvider.generalError(message = textProvider.deviceUnavailableMessage(capability = capability))
         )
     }
 }

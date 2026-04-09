@@ -16,6 +16,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -27,8 +29,9 @@ fun AccountDangerZoneRoute(
     onDeleteAccount: () -> Unit,
     onBack: () -> Unit
 ) {
+    val strings = createSettingsStringResolver(context = LocalContext.current)
     SettingsScreenScaffold(
-        title = "Danger Zone",
+        title = stringResource(R.string.settings_account_danger_zone_title),
         onBack = onBack,
         isBackEnabled = uiState.isDeleting.not()
     ) { innerPadding ->
@@ -68,12 +71,12 @@ fun AccountDangerZoneRoute(
                         modifier = Modifier.padding(20.dp)
                     ) {
                         Text(
-                            text = "Danger zone",
+                            text = stringResource(R.string.settings_account_danger_zone_card_title),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error
                         )
                         Text(
-                            text = "Permanently delete this account and all cloud data.",
+                            text = stringResource(R.string.settings_account_danger_zone_body),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (uiState.deleteState == DestructiveActionState.IN_PROGRESS) {
@@ -84,11 +87,17 @@ fun AccountDangerZoneRoute(
                             enabled = uiState.isLinked && uiState.isDeleting.not(),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(if (uiState.isDeleting) "Deleting..." else "Delete my account")
+                            Text(
+                                if (uiState.isDeleting) {
+                                    stringResource(R.string.settings_deleting)
+                                } else {
+                                    stringResource(R.string.settings_account_danger_zone_delete_button)
+                                }
+                            )
                         }
                         if (uiState.isLinked.not()) {
                             Text(
-                                text = "Sign in to a linked cloud account before deleting it.",
+                                text = stringResource(R.string.settings_account_danger_zone_sign_in_guidance),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -109,9 +118,15 @@ fun AccountDangerZoneRoute(
                 TextButton(
                     onClick = onDeleteAccount,
                     enabled = uiState.isDeleting.not() &&
-                        uiState.confirmationText == accountDeletionConfirmationText
+                        uiState.confirmationText == accountDeletionConfirmationText(strings = strings)
                 ) {
-                    Text(if (uiState.isDeleting) "Deleting..." else "Delete my account")
+                    Text(
+                        if (uiState.isDeleting) {
+                            stringResource(R.string.settings_deleting)
+                        } else {
+                            stringResource(R.string.settings_account_danger_zone_delete_button)
+                        }
+                    )
                 }
             },
             dismissButton = {
@@ -119,16 +134,16 @@ fun AccountDangerZoneRoute(
                     onClick = onDismissDeleteConfirmation,
                     enabled = uiState.isDeleting.not()
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.settings_cancel))
                 }
             },
             title = {
-                Text("Delete account")
+                Text(stringResource(R.string.settings_account_danger_zone_dialog_title))
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "Warning! This action is permanent. Type the phrase below exactly to continue.",
+                        text = stringResource(R.string.settings_account_danger_zone_dialog_warning),
                         color = MaterialTheme.colorScheme.error
                     )
                     if (uiState.deleteState == DestructiveActionState.IN_PROGRESS) {
@@ -141,14 +156,14 @@ fun AccountDangerZoneRoute(
                         )
                     }
                     Text(
-                        text = accountDeletionConfirmationText,
+                        text = accountDeletionConfirmationText(strings = strings),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     OutlinedTextField(
                         value = uiState.confirmationText,
                         onValueChange = onConfirmationTextChange,
                         label = {
-                            Text("Confirmation text")
+                            Text(stringResource(R.string.settings_account_danger_zone_confirmation_label))
                         },
                         enabled = uiState.isDeleting.not(),
                         modifier = Modifier.fillMaxWidth()

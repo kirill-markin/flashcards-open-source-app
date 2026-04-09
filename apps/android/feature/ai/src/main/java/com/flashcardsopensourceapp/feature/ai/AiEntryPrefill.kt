@@ -4,8 +4,11 @@ enum class AiEntryPrefill {
     CREATE_CARD
 }
 
-fun aiEntryPrefillPrompt(prefill: AiEntryPrefill): String {
+fun aiEntryPrefillPrompt(
+    prefill: AiEntryPrefill,
+    textProvider: AiTextProvider
+): String {
     return when (prefill) {
-        AiEntryPrefill.CREATE_CARD -> "Help me create a card."
+        AiEntryPrefill.CREATE_CARD -> textProvider.entryPrefillCreateCard
     }
 }

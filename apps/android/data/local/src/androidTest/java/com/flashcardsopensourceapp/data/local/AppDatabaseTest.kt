@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.ReviewIntervalDescription
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
@@ -264,7 +265,7 @@ class AppDatabaseTest {
         assertEquals(ReviewFilter.Effort(effortLevel = EffortLevel.FAST), effortSnapshot.selectedFilter)
         assertEquals(2, effortSnapshot.totalCount)
         assertEquals(
-            "in 10 minutes",
+            ReviewIntervalDescription.Minutes(count = 10),
             tagSnapshot.answerOptions.first { option ->
                 option.rating == ReviewRating.GOOD
             }.intervalDescription

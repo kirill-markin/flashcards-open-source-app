@@ -1,20 +1,22 @@
 package com.flashcardsopensourceapp.feature.ai
 
 import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
+import com.flashcardsopensourceapp.data.local.model.AppMetadataStorage
+import com.flashcardsopensourceapp.data.local.model.AppMetadataSyncStatus
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.isSendableAiChatAttachment
 
-internal fun initialAiAppMetadataSummary(): AppMetadataSummary {
+internal fun initialAiAppMetadataSummary(textProvider: AiTextProvider): AppMetadataSummary {
     return AppMetadataSummary(
-        currentWorkspaceName = "Loading...",
-        workspaceName = "Loading...",
+        currentWorkspaceName = textProvider.loadingLabel,
+        workspaceName = textProvider.loadingLabel,
         deckCount = 0,
         cardCount = 0,
-        localStorageLabel = "Room + SQLite",
-        syncStatusText = "Loading..."
+        localStorage = AppMetadataStorage.ROOM_SQLITE,
+        syncStatus = AppMetadataSyncStatus.Message(text = textProvider.loadingLabel)
     )
 }
 
@@ -35,7 +37,8 @@ internal fun mapToAiUiState(
     cloudState: CloudAccountState,
     isCloudIdentityBlocked: Boolean,
     hasConsent: Boolean,
-    runtimeState: AiChatRuntimeState
+    runtimeState: AiChatRuntimeState,
+    textProvider: AiTextProvider
 ): AiUiState {
     val isLinked = cloudState == CloudAccountState.LINKED
     val hasMessages = runtimeState.persistedState.messages.isNotEmpty()
@@ -63,7 +66,7 @@ internal fun mapToAiUiState(
     }
 
     return AiUiState(
-        currentWorkspaceName = metadata.currentWorkspaceName,
+        currentWorkspaceName = metadata.currentWorkspaceName ?: textProvider.unavailableLabel,
         messages = runtimeState.persistedState.messages,
         pendingAttachments = runtimeState.pendingAttachments,
         draftMessage = runtimeState.draftMessage,
@@ -95,9 +98,9 @@ internal fun mapToAiUiState(
     )
 }
 
-internal fun makeInitialAiUiState(hasConsent: Boolean): AiUiState {
+internal fun makeInitialAiUiState(hasConsent: Boolean, textProvider: AiTextProvider): AiUiState {
     return AiUiState(
-        currentWorkspaceName = "Loading...",
+        currentWorkspaceName = textProvider.loadingLabel,
         messages = emptyList(),
         pendingAttachments = emptyList(),
         draftMessage = "",

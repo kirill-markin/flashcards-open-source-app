@@ -29,6 +29,7 @@ internal class AiChatRuntimeContext(
     val aiChatRepository: AiChatRepository,
     val autoSyncEventRepository: AutoSyncEventRepository,
     val appVersion: String,
+    val textProvider: AiTextProvider,
     val hasConsent: () -> Boolean,
     val currentCloudState: () -> CloudAccountState,
     val currentServerConfiguration: () -> CloudServiceConfiguration,

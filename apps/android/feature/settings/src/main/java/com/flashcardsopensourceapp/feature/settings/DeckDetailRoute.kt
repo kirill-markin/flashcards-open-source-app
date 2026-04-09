@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,13 +41,13 @@ fun DeckDetailRoute(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(detail?.title ?: "Deck")
+                    Text(detail?.title ?: stringResource(R.string.settings_deck_title))
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.settings_back_content_description)
                         )
                     }
                 }
@@ -67,7 +68,7 @@ fun DeckDetailRoute(
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "Deck not found.",
+                            text = stringResource(R.string.settings_deck_not_found),
                             modifier = Modifier.padding(20.dp)
                         )
                     }
@@ -100,10 +101,10 @@ fun DeckDetailRoute(
                             text = detail.filterSummary,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        OverviewRow(title = "Cards", value = detail.totalCards)
-                        OverviewRow(title = "Due", value = detail.dueCards)
-                        OverviewRow(title = "New", value = detail.newCards)
-                        OverviewRow(title = "Reviewed", value = detail.reviewedCards)
+                        OverviewRow(title = stringResource(R.string.settings_cards_title), value = detail.totalCards)
+                        OverviewRow(title = stringResource(R.string.settings_workspace_due_title), value = detail.dueCards)
+                        OverviewRow(title = stringResource(R.string.settings_workspace_new_title), value = detail.newCards)
+                        OverviewRow(title = stringResource(R.string.settings_workspace_reviewed_title), value = detail.reviewedCards)
                     }
                 }
             }
@@ -120,7 +121,7 @@ fun DeckDetailRoute(
                             },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Edit")
+                            Text(stringResource(R.string.settings_deck_detail_edit_button))
                         }
                         Button(
                             onClick = {
@@ -128,7 +129,7 @@ fun DeckDetailRoute(
                             },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Delete")
+                            Text(stringResource(R.string.settings_deck_detail_delete_button))
                         }
                     }
                 }
@@ -136,7 +137,7 @@ fun DeckDetailRoute(
 
             item {
                 Text(
-                    text = "Matching cards",
+                    text = stringResource(R.string.settings_deck_matching_cards_title),
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -146,9 +147,9 @@ fun DeckDetailRoute(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = if (detail is DeckDetailInfoUiState.AllCards) {
-                                "This workspace does not have any cards yet."
+                                stringResource(R.string.settings_deck_empty_all_cards)
                             } else {
-                                "This filtered deck has no matching cards yet."
+                                stringResource(R.string.settings_deck_empty_filtered)
                             },
                             modifier = Modifier.padding(20.dp)
                         )

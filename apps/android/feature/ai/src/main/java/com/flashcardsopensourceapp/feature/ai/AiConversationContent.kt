@@ -30,6 +30,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
@@ -177,12 +178,12 @@ private fun AiConversationEmptyState(
             .testTag(aiEmptyStateContentTag)
     ) {
         Text(
-            text = "Start a new AI chat",
+            text = stringResource(id = R.string.ai_empty_title),
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Ask about cards, review history, or attach notes for extraction in $currentWorkspaceName.",
+            text = stringResource(id = R.string.ai_empty_body, currentWorkspaceName),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

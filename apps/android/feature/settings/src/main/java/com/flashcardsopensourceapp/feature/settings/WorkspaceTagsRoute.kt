@@ -22,6 +22,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,13 +37,13 @@ fun WorkspaceTagsRoute(
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Tags")
+                    Text(stringResource(R.string.settings_workspace_tags_title))
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.settings_back_content_description)
                         )
                     }
                 }
@@ -63,7 +65,7 @@ fun WorkspaceTagsRoute(
                     value = uiState.searchQuery,
                     onValueChange = onSearchQueryChange,
                     label = {
-                        Text("Search tags")
+                        Text(stringResource(R.string.settings_workspace_tags_search_label))
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -74,9 +76,9 @@ fun WorkspaceTagsRoute(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = if (uiState.searchQuery.isEmpty()) {
-                                "No tags have been used yet."
+                                stringResource(R.string.settings_workspace_tags_empty)
                             } else {
-                                "No tags match this search."
+                                stringResource(R.string.settings_workspace_tags_empty_search)
                             },
                             modifier = Modifier.padding(20.dp)
                         )
@@ -90,7 +92,13 @@ fun WorkspaceTagsRoute(
                                 Text(tagSummary.tag)
                             },
                             supportingContent = {
-                                Text("${tagSummary.cardsCount} cards")
+                                Text(
+                                    pluralStringResource(
+                                        R.plurals.settings_tag_cards_count,
+                                        tagSummary.cardsCount,
+                                        tagSummary.cardsCount
+                                    )
+                                )
                             }
                         )
                     }
@@ -101,7 +109,7 @@ fun WorkspaceTagsRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Total cards")
+                            Text(stringResource(R.string.settings_workspace_tags_total_cards_title))
                         },
                         supportingContent = {
                             Column(
@@ -109,7 +117,7 @@ fun WorkspaceTagsRoute(
                             ) {
                                 Text("${uiState.totalCards}")
                                 Text(
-                                    "This count is for the full workspace and does not double-count cards that share tags.",
+                                    stringResource(R.string.settings_workspace_tags_total_cards_body),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }

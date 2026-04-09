@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.app.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -24,6 +25,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
     coroutineScope: CoroutineScope
 ) {
     composable(route = SettingsDestination.route) { backStackEntry ->
+        val context = LocalContext.current
         val settingsRootBackStackEntry = settingsRootBackStackEntry(
             navController = navController,
             currentBackStackEntry = backStackEntry
@@ -35,7 +37,8 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
                     autoSyncEventRepository = appGraph.autoSyncEventRepository,
                     messageController = appGraph.appMessageBus,
-                    visibleAppScreenRepository = appGraph.visibleAppScreenController
+                    visibleAppScreenRepository = appGraph.visibleAppScreenController,
+                    applicationContext = context.applicationContext
                 )
             )
         val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
@@ -61,13 +64,15 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
     }
 
     composable(route = SettingsCurrentWorkspaceDestination.route) {
+        val context = LocalContext.current
         val currentWorkspaceViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.CurrentWorkspaceViewModel>(
             factory = createCurrentWorkspaceViewModelFactory(
                 workspaceRepository = appGraph.workspaceRepository,
                 cloudAccountRepository = appGraph.cloudAccountRepository,
                 autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 messageController = appGraph.appMessageBus,
-                visibleAppScreenRepository = appGraph.visibleAppScreenController
+                visibleAppScreenRepository = appGraph.visibleAppScreenController,
+                applicationContext = context.applicationContext
             )
         )
         val uiState by currentWorkspaceViewModel.uiState.collectAsStateWithLifecycle()
@@ -90,7 +95,11 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                 )
             },
             onOpenSignIn = {
-                appGraph.appMessageBus.showMessage(message = "Sign in to manage linked workspaces.")
+                appGraph.appMessageBus.showMessage(
+                    message = context.getString(
+                        com.flashcardsopensourceapp.feature.settings.R.string.settings_current_workspace_manage_sign_in_message
+                    )
+                )
                 navController.navigate(route = SettingsAccountSignInEmailDestination.route)
             },
             onRetryLastWorkspaceAction = {
@@ -103,11 +112,13 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
     }
 
     composable(route = SettingsDeviceDestination.route) {
+        val context = LocalContext.current
         val deviceDiagnosticsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.DeviceDiagnosticsViewModel>(
             factory = createDeviceDiagnosticsViewModelFactory(
                 workspaceRepository = appGraph.workspaceRepository,
                 appVersion = packageInfo.versionName,
-                buildNumber = packageInfo.longVersionCode.toString()
+                buildNumber = packageInfo.longVersionCode.toString(),
+                applicationContext = context.applicationContext
             )
         )
         val uiState by deviceDiagnosticsViewModel.uiState.collectAsStateWithLifecycle()

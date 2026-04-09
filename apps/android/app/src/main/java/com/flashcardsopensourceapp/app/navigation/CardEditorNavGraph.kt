@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.navigation
 
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
@@ -12,6 +13,7 @@ import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.feature.cards.CardEditorRoute
 import com.flashcardsopensourceapp.feature.cards.CardTagsRoute
 import com.flashcardsopensourceapp.feature.cards.CardTextEditorRoute
+import com.flashcardsopensourceapp.feature.cards.R as CardsR
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.createCardEditorViewModelFactory
@@ -161,11 +163,15 @@ internal fun NavGraphBuilder.registerCardEditorNavGraph(
         val uiState by editorViewModel.uiState.collectAsStateWithLifecycle()
 
         CardTextEditorRoute(
-            title = if (field == "front") "Front" else "Back",
-            supportingText = if (field == "front") {
-                "Keep this side focused on the question or review prompt."
+            title = if (field == "front") {
+                stringResource(id = CardsR.string.cards_front_title)
             } else {
-                "Keep this side focused on the answer."
+                stringResource(id = CardsR.string.cards_back_title)
+            },
+            supportingText = if (field == "front") {
+                stringResource(id = CardsR.string.cards_front_supporting_text)
+            } else {
+                stringResource(id = CardsR.string.cards_back_supporting_text)
             },
             text = if (field == "front") uiState.frontText else uiState.backText,
             textFieldTag = if (field == "front") {

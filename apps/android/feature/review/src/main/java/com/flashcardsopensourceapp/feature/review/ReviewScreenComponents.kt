@@ -55,16 +55,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.flashcardsopensourceapp.data.local.model.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewEffortFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewTagFilterOption
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 
 const val reviewShowAnswerButtonTag: String = "review_show_answer_button"
 const val reviewRateGoodButtonTag: String = "review_rate_good_button"
@@ -103,7 +104,7 @@ internal fun ReviewTopBar(
 ) {
     TopAppBar(
         title = {
-            Text("Review")
+            Text(stringResource(id = R.string.review_title))
         },
         actions = {
             if (isLoading) {
@@ -266,14 +267,14 @@ private fun ActionableEmptyReviewState(
     onSwitchToAllCards: () -> Unit
 ) {
     val title = when (emptyState) {
-        ReviewEmptyState.NO_CARDS_YET -> "No cards yet"
-        ReviewEmptyState.FILTER_EMPTY -> "No cards in this filter"
-        ReviewEmptyState.SESSION_COMPLETE -> "Session complete"
+        ReviewEmptyState.NO_CARDS_YET -> stringResource(id = R.string.review_empty_no_cards_title)
+        ReviewEmptyState.FILTER_EMPTY -> stringResource(id = R.string.review_empty_filter_title)
+        ReviewEmptyState.SESSION_COMPLETE -> stringResource(id = R.string.review_empty_complete_title)
     }
     val body = when (emptyState) {
-        ReviewEmptyState.NO_CARDS_YET -> "Create a card or use AI to start your first study session."
-        ReviewEmptyState.FILTER_EMPTY -> "Nothing is due in this filter right now. Switch back to all cards or add more material."
-        ReviewEmptyState.SESSION_COMPLETE -> "You are done for now. Add more material or come back when more cards are due."
+        ReviewEmptyState.NO_CARDS_YET -> stringResource(id = R.string.review_empty_no_cards_body)
+        ReviewEmptyState.FILTER_EMPTY -> stringResource(id = R.string.review_empty_filter_body)
+        ReviewEmptyState.SESSION_COMPLETE -> stringResource(id = R.string.review_empty_complete_body)
     }
 
     Column(
@@ -306,19 +307,19 @@ private fun ActionableEmptyReviewState(
             onClick = onCreateCard,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Create card")
+            Text(stringResource(id = R.string.review_create_card))
         }
         Button(
             onClick = onCreateCardWithAi,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Create with AI")
+            Text(stringResource(id = R.string.review_create_with_ai))
         }
         if (emptyState == ReviewEmptyState.FILTER_EMPTY) {
             TextButton(
                 onClick = onSwitchToAllCards
             ) {
-                Text("Switch to all cards")
+                Text(stringResource(id = R.string.review_switch_to_all_cards))
             }
         }
     }
@@ -374,7 +375,7 @@ private fun ReviewCardContent(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Edit,
-                        contentDescription = "Edit card",
+                        contentDescription = stringResource(id = R.string.review_edit_card_content_description),
                         modifier = Modifier.size(reviewEditIconSize)
                     )
                 }
@@ -391,7 +392,7 @@ private fun ReviewCardContent(
                 modifier = Modifier.padding(20.dp)
             ) {
                 ReviewCardSideSection(
-                    label = "Front",
+                    label = stringResource(id = R.string.review_front_label),
                     content = currentCard.frontContent,
                     contentModifier = Modifier.testTag(reviewCurrentCardFrontContentTag),
                     isSpeechPlaying = activeSpeechSide == ReviewSpeechSide.FRONT,
@@ -403,7 +404,7 @@ private fun ReviewCardContent(
                 if (isAnswerVisible) {
                     HorizontalDivider()
                     ReviewCardSideSection(
-                        label = "Back",
+                        label = stringResource(id = R.string.review_back_label),
                         content = currentCard.backContent,
                         contentModifier = Modifier,
                         isSpeechPlaying = activeSpeechSide == ReviewSpeechSide.BACK,
@@ -423,7 +424,7 @@ private fun ReviewCardContent(
         ) {
             ReviewMetadataItem(
                 icon = Icons.Outlined.AccessTime,
-                label = "Due ${currentCard.dueLabel}"
+                label = stringResource(id = R.string.review_due_label, currentCard.dueLabel)
             )
             ReviewMetadataItem(
                 icon = Icons.Outlined.Autorenew,
@@ -485,9 +486,9 @@ private fun ReviewCardSideSection(
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
                             contentDescription = if (isSpeechPlaying) {
-                                "Stop $label speech"
+                                stringResource(id = R.string.review_stop_speech, label)
                             } else {
-                                "Speak $label"
+                                stringResource(id = R.string.review_speak, label)
                             },
                             modifier = Modifier.size(reviewSpeechIconSize)
                         )
@@ -602,7 +603,7 @@ internal fun ReviewBottomActionOverlay(
                             imageVector = Icons.Outlined.Visibility,
                             contentDescription = null
                         )
-                        Text("Show answer")
+                        Text(stringResource(id = R.string.review_show_answer))
                     }
                 }
             }
@@ -612,7 +613,7 @@ internal fun ReviewBottomActionOverlay(
 
 @Composable
 private fun ReviewAnswerButtonGrid(
-    answerOptions: List<ReviewAnswerOption>,
+    answerOptions: List<PreparedReviewAnswerOption>,
     onRateAgain: () -> Unit,
     onRateHard: () -> Unit,
     onRateGood: () -> Unit,
@@ -649,29 +650,24 @@ private fun ReviewAnswerButtonGrid(
 }
 
 private data class ReviewRatingPresentation(
-    val title: String,
     val icon: ImageVector
 )
 
 private fun reviewRatingPresentation(rating: ReviewRating): ReviewRatingPresentation {
     return when (rating) {
         ReviewRating.AGAIN -> ReviewRatingPresentation(
-            title = "Again",
             icon = Icons.Outlined.Autorenew
         )
 
         ReviewRating.HARD -> ReviewRatingPresentation(
-            title = "Hard",
             icon = Icons.Outlined.HourglassBottom
         )
 
         ReviewRating.GOOD -> ReviewRatingPresentation(
-            title = "Good",
             icon = Icons.Outlined.CheckCircleOutline
         )
 
         ReviewRating.EASY -> ReviewRatingPresentation(
-            title = "Easy",
             icon = Icons.Outlined.AutoAwesome
         )
     }
@@ -679,11 +675,17 @@ private fun reviewRatingPresentation(rating: ReviewRating): ReviewRatingPresenta
 
 @Composable
 private fun RatingButton(
-    option: ReviewAnswerOption,
+    option: PreparedReviewAnswerOption,
     onClick: () -> Unit,
     modifier: Modifier
 ) {
     val presentation = reviewRatingPresentation(rating = option.rating)
+    val title = when (option.rating) {
+        ReviewRating.AGAIN -> stringResource(id = R.string.review_again)
+        ReviewRating.HARD -> stringResource(id = R.string.review_hard)
+        ReviewRating.GOOD -> stringResource(id = R.string.review_good)
+        ReviewRating.EASY -> stringResource(id = R.string.review_easy)
+    }
 
     Button(
         onClick = onClick,
@@ -708,7 +710,7 @@ private fun RatingButton(
                     contentDescription = null
                 )
                 Text(
-                    text = presentation.title,
+                    text = title,
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -739,7 +741,7 @@ internal fun ReviewFilterSheet(
         ) {
             item {
                 Text(
-                    text = "Review scope",
+                    text = stringResource(id = R.string.review_scope_title),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
@@ -747,8 +749,8 @@ internal fun ReviewFilterSheet(
 
             item {
                 ReviewFilterOptionRow(
-                    title = "All cards",
-                    subtitle = "Review the full local queue",
+                    title = stringResource(id = R.string.review_all_cards),
+                    subtitle = stringResource(id = R.string.review_scope_subtitle_all_cards),
                     selected = selectedFilter == ReviewFilter.AllCards,
                     onClick = {
                         onSelectFilter(ReviewFilter.AllCards)
@@ -759,7 +761,7 @@ internal fun ReviewFilterSheet(
             if (availableDeckFilters.isNotEmpty()) {
                 item {
                     Text(
-                        text = "Decks",
+                        text = stringResource(id = R.string.review_decks_title),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                     )
@@ -769,7 +771,7 @@ internal fun ReviewFilterSheet(
                     val deck = availableDeckFilters[index]
                     ReviewFilterOptionRow(
                         title = "${deck.title} (${deck.totalCount})",
-                        subtitle = "Filtered deck",
+                        subtitle = stringResource(id = R.string.review_filtered_deck_subtitle),
                         selected = selectedFilter == ReviewFilter.Deck(deckId = deck.deckId),
                         onClick = {
                             onSelectFilter(ReviewFilter.Deck(deckId = deck.deckId))
@@ -780,7 +782,7 @@ internal fun ReviewFilterSheet(
 
             item {
                 Text(
-                    text = "Effort",
+                    text = stringResource(id = R.string.review_effort_title),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                 )
@@ -789,8 +791,8 @@ internal fun ReviewFilterSheet(
             items(availableEffortFilters.size) { index ->
                 val effortFilter = availableEffortFilters[index]
                 ReviewFilterOptionRow(
-                    title = "${effortFilter.title} (${effortFilter.totalCount})",
-                    subtitle = "Virtual effort filter",
+                    title = "${reviewEffortLabel(effortLevel = effortFilter.effortLevel)} (${effortFilter.totalCount})",
+                    subtitle = stringResource(id = R.string.review_virtual_effort_filter_subtitle),
                     selected = selectedFilter == ReviewFilter.Effort(effortLevel = effortFilter.effortLevel),
                     onClick = {
                         onSelectFilter(ReviewFilter.Effort(effortLevel = effortFilter.effortLevel))
@@ -801,7 +803,7 @@ internal fun ReviewFilterSheet(
             if (availableTagFilters.isNotEmpty()) {
                 item {
                     Text(
-                        text = "Tags",
+                        text = stringResource(id = R.string.review_tags_title),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                     )
@@ -811,7 +813,7 @@ internal fun ReviewFilterSheet(
                     val tag = availableTagFilters[index]
                     ReviewFilterOptionRow(
                         title = "${tag.tag} (${tag.totalCount})",
-                        subtitle = "Workspace tag",
+                        subtitle = stringResource(id = R.string.review_workspace_tag_subtitle),
                         selected = selectedFilter == ReviewFilter.Tag(tag = tag.tag),
                         onClick = {
                             onSelectFilter(ReviewFilter.Tag(tag = tag.tag))
@@ -829,7 +831,7 @@ internal fun ReviewFilterSheet(
                     onClick = onManageDecks,
                     modifier = Modifier.padding(horizontal = 24.dp)
                 ) {
-                    Text("Manage filtered decks")
+                    Text(stringResource(id = R.string.review_manage_filtered_decks))
                 }
             }
         }
@@ -940,7 +942,7 @@ internal fun PreviewCardRow(
                         shape = MaterialTheme.shapes.large
                     ) {
                         Text(
-                            text = "Current",
+                            text = stringResource(id = R.string.review_current_chip),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
@@ -1013,7 +1015,7 @@ internal fun PreviewErrorCard(
             modifier = Modifier.padding(20.dp)
         ) {
             Text(
-                text = "Queue couldn't be loaded",
+                text = stringResource(id = R.string.review_queue_load_failed_title),
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
@@ -1022,8 +1024,17 @@ internal fun PreviewErrorCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             TextButton(onClick = onRetry) {
-                Text("Retry")
+                Text(stringResource(id = R.string.review_retry))
             }
         }
+    }
+}
+
+@Composable
+private fun reviewEffortLabel(effortLevel: EffortLevel): String {
+    return when (effortLevel) {
+        EffortLevel.FAST -> stringResource(id = R.string.review_fast)
+        EffortLevel.MEDIUM -> stringResource(id = R.string.review_medium)
+        EffortLevel.LONG -> stringResource(id = R.string.review_long)
     }
 }

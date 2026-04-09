@@ -31,6 +31,7 @@ import com.flashcardsopensourceapp.feature.ai.aiComposerSuggestionRowTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
 import com.flashcardsopensourceapp.feature.ai.aiNewChatButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
+import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
 import com.flashcardsopensourceapp.feature.cards.cardsCardFrontTextTag
 import com.flashcardsopensourceapp.feature.review.reviewCurrentCardFrontContentTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTitleTag
@@ -159,11 +160,12 @@ private const val aiResetPromptText: String =
     "Please reply with one short sentence so I can verify this chat resets."
 
 internal fun LiveSmokeContext.createAiCardWithConfirmation() {
+    val sendLabel = aiSendLabel()
     openAiTab()
     dismissAiConsentIfNeeded()
     waitForGuestCloudWorkspaceReady(context = "before filling the AI create prompt")
     waitForAiComposerButtonState(
-        expectedLabel = "Send",
+        expectedLabel = sendLabel,
         expectedEnabled = false,
         context = "before filling the AI create prompt"
     )
@@ -234,7 +236,7 @@ private fun LiveSmokeContext.waitForAiUserMessageVisible(
             "AI user message did not appear $context. " +
                 "ExpectedUser='$expectedUserText' " +
                 "ActualDraft='${aiComposerDraftTextOrNull()}' " +
-                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = "Send")} " +
+                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = aiSendLabel())} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )
@@ -258,7 +260,7 @@ private fun LiveSmokeContext.waitForAiRunAcceptedOrCompleted(
         throw AssertionError(
             "AI run was not accepted $context. " +
                 "ActualDraft='${aiComposerDraftTextOrNull()}' " +
-                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = "Send")} " +
+                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = aiSendLabel())} " +
                 "PersistedState=${currentAiPersistedStateSummary()} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
@@ -267,6 +269,7 @@ private fun LiveSmokeContext.waitForAiRunAcceptedOrCompleted(
 }
 
 internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
+    val sendLabel = aiSendLabel()
     waitForEnabledTag(
         tag = aiNewChatButtonTag,
         label = "New chat",
@@ -296,7 +299,7 @@ internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
             context = "while waiting for user messages to disappear after resetting the conversation"
         )
         waitForAiComposerButtonState(
-            expectedLabel = "Send",
+            expectedLabel = sendLabel,
             expectedEnabled = false,
             context = "after resetting the AI conversation"
         )
@@ -354,11 +357,12 @@ internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
 }
 
 internal fun LiveSmokeContext.createGuestAiConversationForReset() {
+    val sendLabel = aiSendLabel()
     openAiTab()
     dismissAiConsentIfNeeded()
     waitForGuestCloudWorkspaceReady(context = "before creating the AI reset conversation")
     waitForAiComposerButtonState(
-        expectedLabel = "Send",
+        expectedLabel = sendLabel,
         expectedEnabled = false,
         context = "before filling the AI reset prompt"
     )
@@ -462,7 +466,7 @@ private fun LiveSmokeContext.waitForAiComposerEditable(context: String) {
         throw AssertionError(
             "AI composer field was not editable $context. " +
                 "ActualDraft='${aiComposerDraftTextOrNull()}' " +
-                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = "Send")} " +
+                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = aiSendLabel())} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )
@@ -494,7 +498,7 @@ private fun LiveSmokeContext.fillAiComposer(
             "AI composer was not ready after filling $context. " +
                 "ExpectedDraft='$expectedDraftText' " +
                 "ActualDraft='${aiComposerDraftTextOrNull()}' " +
-                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = "Send")} " +
+                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = aiSendLabel())} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}"
         )
     }
@@ -549,7 +553,7 @@ private fun LiveSmokeContext.waitForAiComposerReadyQuickly(
     composeRule.waitUntil(timeoutMillis = internalUiTimeoutMillis) {
         aiComposerDraftTextOrNull() == expectedDraftText &&
             aiComposerSendButtonMatchesState(
-                expectedLabel = "Send",
+                expectedLabel = aiSendLabel(),
                 expectedEnabled = true
             )
     }
@@ -640,6 +644,7 @@ private fun LiveSmokeContext.waitForAiComposerButtonState(
 }
 
 private fun LiveSmokeContext.waitForAiComposerIdleAfterRun(context: String) {
+    val sendLabel = aiSendLabel()
     try {
         waitUntilWithMitigation(
             timeoutMillis = externalAiRunTimeoutMillis,
@@ -647,14 +652,14 @@ private fun LiveSmokeContext.waitForAiComposerIdleAfterRun(context: String) {
         ) {
             aiComposerFieldIsEditable() &&
                 aiComposerSendButtonMatchesState(
-                    expectedLabel = "Send",
+                    expectedLabel = sendLabel,
                     expectedEnabled = false
                 )
         }
     } catch (error: Throwable) {
         throw AssertionError(
             "AI composer did not return to idle $context. " +
-                "ActualState=${aiComposerSendButtonStateOrNull(expectedLabel = "Send")} " +
+                "ActualState=${aiComposerSendButtonStateOrNull(expectedLabel = sendLabel)} " +
                 "ActualDraft='${aiComposerDraftTextOrNull()}' " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
@@ -879,6 +884,10 @@ private fun LiveSmokeContext.latestAssistantMessageTextOrNull(): String? {
         .filter { text -> text.isNotBlank() }
         .takeIf { texts -> texts.isNotEmpty() }
         ?.joinToString(separator = " | ")
+}
+
+private fun LiveSmokeContext.aiSendLabel(): String {
+    return composeRule.activity.getString(AiFeatureR.string.ai_send)
 }
 
 private fun LiveSmokeContext.visibleCardsFrontTexts(): List<String> {

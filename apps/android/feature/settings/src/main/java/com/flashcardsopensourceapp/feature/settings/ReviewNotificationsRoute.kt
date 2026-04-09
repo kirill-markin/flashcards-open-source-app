@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.settings
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.text.format.DateFormat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,8 +23,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationMode
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,7 +62,7 @@ fun ReviewNotificationsRoute(
     }
 
     SettingsScreenScaffold(
-        title = "Notifications",
+        title = stringResource(R.string.settings_notifications_title),
         onBack = onBack,
         isBackEnabled = true
     ) { innerPadding ->
@@ -69,10 +75,10 @@ fun ReviewNotificationsRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("This device only")
+                            Text(stringResource(R.string.settings_notifications_this_device_title))
                         },
                         supportingContent = {
-                            Text("Notification settings stay attached to this workspace, but they apply only to the current device. Study reminders contain cards only and never marketing messages.")
+                            Text(stringResource(R.string.settings_notifications_this_device_body))
                         }
                     )
                 }
@@ -82,14 +88,14 @@ fun ReviewNotificationsRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Permission")
+                            Text(stringResource(R.string.settings_notifications_permission_title))
                         },
                         supportingContent = {
                             Text(
                                 when (permissionStatus) {
-                                    ReviewNotificationPermissionUiStatus.ALLOWED -> "Allowed"
-                                    ReviewNotificationPermissionUiStatus.NOT_REQUESTED -> "Not requested"
-                                    ReviewNotificationPermissionUiStatus.BLOCKED -> "Blocked"
+                                    ReviewNotificationPermissionUiStatus.ALLOWED -> stringResource(R.string.settings_access_status_allowed)
+                                    ReviewNotificationPermissionUiStatus.NOT_REQUESTED -> stringResource(R.string.settings_access_status_not_requested)
+                                    ReviewNotificationPermissionUiStatus.BLOCKED -> stringResource(R.string.settings_access_status_blocked)
                                 }
                             )
                         },
@@ -109,8 +115,8 @@ fun ReviewNotificationsRoute(
                                 Text(
                                     when (permissionStatus) {
                                         ReviewNotificationPermissionUiStatus.ALLOWED,
-                                        ReviewNotificationPermissionUiStatus.BLOCKED -> "Open app settings"
-                                        ReviewNotificationPermissionUiStatus.NOT_REQUESTED -> "Allow notifications"
+                                        ReviewNotificationPermissionUiStatus.BLOCKED -> stringResource(R.string.settings_access_open_app_settings)
+                                        ReviewNotificationPermissionUiStatus.NOT_REQUESTED -> stringResource(R.string.settings_notifications_allow_button)
                                     }
                                 )
                             }
@@ -123,10 +129,10 @@ fun ReviewNotificationsRoute(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     ListItem(
                         headlineContent = {
-                            Text("Review reminders")
+                            Text(stringResource(R.string.settings_notifications_reminders_title))
                         },
                         supportingContent = {
-                            Text("Send study cards from the current review filter on this device.")
+                            Text(stringResource(R.string.settings_notifications_reminders_body))
                         },
                         trailingContent = {
                             Switch(
@@ -155,9 +161,9 @@ fun ReviewNotificationsRoute(
                                 label = {
                                     Text(
                                         if (mode == ReviewNotificationMode.DAILY) {
-                                            "Daily"
+                                            stringResource(R.string.settings_notifications_mode_daily)
                                         } else {
-                                            "Inactivity"
+                                            stringResource(R.string.settings_notifications_mode_inactivity)
                                         }
                                     )
                                 }
@@ -172,10 +178,19 @@ fun ReviewNotificationsRoute(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         ListItem(
                             headlineContent = {
-                                Text("Daily reminder")
+                                Text(stringResource(R.string.settings_notifications_daily_title))
                             },
                             supportingContent = {
-                                Text("Example: send one card every day at ${formatTimeLabel(hour = uiState.settings.daily.hour, minute = uiState.settings.daily.minute)}.")
+                                Text(
+                                    stringResource(
+                                        R.string.settings_notifications_daily_example,
+                                        formatTimeLabel(
+                                            context = context,
+                                            hour = uiState.settings.daily.hour,
+                                            minute = uiState.settings.daily.minute
+                                        )
+                                    )
+                                )
                             },
                             trailingContent = {
                                 TimeValueStepper(
@@ -192,10 +207,26 @@ fun ReviewNotificationsRoute(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         ListItem(
                             headlineContent = {
-                                Text("Inactivity reminder")
+                                Text(stringResource(R.string.settings_notifications_inactivity_title))
                             },
                             supportingContent = {
-                                Text("Example: between ${formatTimeLabel(hour = uiState.settings.inactivity.windowStartHour, minute = uiState.settings.inactivity.windowStartMinute)} and ${formatTimeLabel(hour = uiState.settings.inactivity.windowEndHour, minute = uiState.settings.inactivity.windowEndMinute)}, remind me after ${formatIdleMinutes(minutes = uiState.settings.inactivity.idleMinutes)} away from the app, keep reminding me every ${formatIdleMinutes(minutes = uiState.settings.inactivity.idleMinutes)} inside that window, and repeat that pattern on later days until I return.")
+                                Text(
+                                    stringResource(
+                                        R.string.settings_notifications_inactivity_example,
+                                        formatTimeLabel(
+                                            context = context,
+                                            hour = uiState.settings.inactivity.windowStartHour,
+                                            minute = uiState.settings.inactivity.windowStartMinute
+                                        ),
+                                        formatTimeLabel(
+                                            context = context,
+                                            hour = uiState.settings.inactivity.windowEndHour,
+                                            minute = uiState.settings.inactivity.windowEndMinute
+                                        ),
+                                        idleMinutesLabel(minutes = uiState.settings.inactivity.idleMinutes),
+                                        idleMinutesLabel(minutes = uiState.settings.inactivity.idleMinutes)
+                                    )
+                                )
                             }
                         )
                     }
@@ -205,7 +236,7 @@ fun ReviewNotificationsRoute(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         ListItem(
                             headlineContent = {
-                                Text("From")
+                                Text(stringResource(R.string.settings_notifications_from_title))
                             },
                             trailingContent = {
                                 TimeValueStepper(
@@ -222,7 +253,7 @@ fun ReviewNotificationsRoute(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         ListItem(
                             headlineContent = {
-                                Text("To")
+                                Text(stringResource(R.string.settings_notifications_to_title))
                             },
                             trailingContent = {
                                 TimeValueStepper(
@@ -239,7 +270,7 @@ fun ReviewNotificationsRoute(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         ListItem(
                             headlineContent = {
-                                Text("Remind me after")
+                                Text(stringResource(R.string.settings_notifications_remind_after_title))
                             },
                             trailingContent = {
                                 SingleChoiceSegmentedButtonRow {
@@ -254,7 +285,7 @@ fun ReviewNotificationsRoute(
                                                 count = 3
                                             ),
                                             label = {
-                                                Text(formatIdleMinutes(minutes = value))
+                                                Text(idleMinutesLabel(minutes = value))
                                             }
                                         )
                                     }
@@ -274,6 +305,7 @@ private fun TimeValueStepper(
     minute: Int,
     onValueChange: (Int, Int) -> Unit
 ) {
+    val context = LocalContext.current
     TextButton(
         onClick = {
             val nextMinute = if (minute == 30) 0 else 30
@@ -286,26 +318,49 @@ private fun TimeValueStepper(
         }
     ) {
         Text(
-            text = formatTimeLabel(hour = hour, minute = minute),
+            text = formatTimeLabel(context = context, hour = hour, minute = minute),
             color = MaterialTheme.colorScheme.primary
         )
     }
 }
 
-private fun formatTimeLabel(hour: Int, minute: Int): String {
-    return "%02d:%02d".format(hour, minute)
+private fun formatTimeLabel(
+    context: Context,
+    hour: Int,
+    minute: Int
+): String {
+    val locale = context.resources.configuration.locales[0] ?: Locale.getDefault()
+    val skeleton = if (DateFormat.is24HourFormat(context)) "Hm" else "hm"
+    val pattern = DateFormat.getBestDateTimePattern(locale, skeleton)
+    return LocalTime.of(hour, minute).format(DateTimeFormatter.ofPattern(pattern, locale))
 }
 
-private fun formatIdleMinutes(minutes: Int): String {
+@Composable
+private fun idleMinutesLabel(minutes: Int): String {
+    return formatIdleMinutes(
+        minutes = minutes,
+        oneMinuteLabel = pluralStringResource(
+            R.plurals.settings_notifications_duration_minutes,
+            minutes,
+            minutes
+        ),
+        oneHourLabel = pluralStringResource(
+            R.plurals.settings_notifications_duration_hours,
+            minutes / 60,
+            minutes / 60
+        )
+    )
+}
+
+private fun formatIdleMinutes(
+    minutes: Int,
+    oneMinuteLabel: String,
+    oneHourLabel: String
+): String {
     return if (minutes % 60 == 0) {
-        val hours = minutes / 60
-        if (hours == 1) {
-            "1h"
-        } else {
-            "${hours}h"
-        }
+        oneHourLabel
     } else {
-        "${minutes}m"
+        oneMinuteLabel
     }
 }
 

@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -37,6 +38,7 @@ fun AccessDetailRoute(
 ) {
     val context = LocalContext.current
     val activity = context as? ComponentActivity
+    val strings = createSettingsStringResolver(context = context)
     val permission = accessCapabilityPermission(capability = capability)
     var permissionResultVersion by remember(capability) {
         mutableStateOf(value = 0)
@@ -61,13 +63,13 @@ fun AccessDetailRoute(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(accessCapabilityTitle(capability = capability))
+                    Text(accessCapabilityTitle(capability = capability, strings = strings))
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.settings_back_content_description)
                         )
                     }
                 }
@@ -86,10 +88,19 @@ fun AccessDetailRoute(
         ) {
             item {
                 DeviceInfoCard(
-                    title = accessCapabilityTitle(capability = capability),
+                    title = accessCapabilityTitle(capability = capability, strings = strings),
                     rows = listOf(
-                        "Status" to status.name.lowercase().replaceFirstChar(Char::uppercase),
-                        "Usage" to accessCapabilitySummary(capability = capability)
+                        stringResource(R.string.settings_access_status_label) to when (status) {
+                            AccessStatus.ALLOWED -> stringResource(R.string.settings_access_status_allowed)
+                            AccessStatus.ASK_EVERY_TIME -> stringResource(R.string.settings_access_status_ask_every_time)
+                            AccessStatus.BLOCKED -> stringResource(R.string.settings_access_status_blocked)
+                            AccessStatus.SYSTEM_PICKER -> stringResource(R.string.settings_access_status_system_picker)
+                            AccessStatus.UNAVAILABLE -> stringResource(R.string.settings_access_status_unavailable)
+                        },
+                        stringResource(R.string.settings_access_usage_label) to accessCapabilitySummary(
+                            capability = capability,
+                            strings = strings
+                        )
                     )
                 )
             }
@@ -97,14 +108,18 @@ fun AccessDetailRoute(
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = accessCapabilityGuidance(capability = capability, status = status),
+                        text = accessCapabilityGuidance(
+                            capability = capability,
+                            status = status,
+                            strings = strings
+                        ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(20.dp)
                     )
                 }
             }
 
-            val primaryActionLabel = accessCapabilityPrimaryActionLabel(status = status)
+            val primaryActionLabel = accessCapabilityPrimaryActionLabel(status = status, strings = strings)
             if (primaryActionLabel != null) {
                 item {
                     Button(

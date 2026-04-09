@@ -37,6 +37,7 @@ import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.formatAiConsentWorkspaceDisclosureText
+import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -51,6 +52,16 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     @Test
     fun consentGateShowsLegalLinksAndAcceptsConsent() {
         var consentRequired by mutableStateOf(value = true)
+        val consentTitle = composeRule.activity.getString(AiFeatureR.string.ai_consent_title)
+        val consentDisclosure = formatAiConsentWorkspaceDisclosureText(
+            template = composeRule.activity.getString(AiFeatureR.string.ai_consent_workspace_disclosure),
+            currentWorkspaceName = "Personal"
+        )
+        val privacyPolicy = composeRule.activity.getString(AiFeatureR.string.ai_privacy_policy)
+        val termsOfService = composeRule.activity.getString(AiFeatureR.string.ai_terms_of_service)
+        val support = composeRule.activity.getString(AiFeatureR.string.ai_support)
+        val accept = composeRule.activity.getString(AiFeatureR.string.ai_consent_accept)
+        val messageLabel = composeRule.activity.getString(AiFeatureR.string.ai_message_label)
 
         composeRule.setContent {
             FlashcardsTheme {
@@ -83,26 +94,26 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithText("Before you use AI").assertIsDisplayed()
-        composeRule.onNodeWithText(
-            formatAiConsentWorkspaceDisclosureText(currentWorkspaceName = "Personal")
-        ).assertIsDisplayed()
-        composeRule.onNodeWithText("Privacy Policy").assertIsDisplayed()
-        composeRule.onNodeWithText("Terms of Service").assertIsDisplayed()
-        composeRule.onNodeWithText("Support").assertIsDisplayed()
-        composeRule.onNodeWithText("OK").performClick()
+        composeRule.onNodeWithText(consentTitle).assertIsDisplayed()
+        composeRule.onNodeWithText(consentDisclosure).assertIsDisplayed()
+        composeRule.onNodeWithText(privacyPolicy).assertIsDisplayed()
+        composeRule.onNodeWithText(termsOfService).assertIsDisplayed()
+        composeRule.onNodeWithText(support).assertIsDisplayed()
+        composeRule.onNodeWithText(accept).performClick()
         composeRule.waitUntil(timeoutMillis = 5_000L) {
-            composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isEmpty() &&
-                composeRule.onAllNodesWithText("Message").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText(consentTitle).fetchSemanticsNodes().isEmpty() &&
+                composeRule.onAllNodesWithText(messageLabel).fetchSemanticsNodes().isNotEmpty()
         }
-        assertTrue(composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isEmpty())
+        assertTrue(composeRule.onAllNodesWithText(consentTitle).fetchSemanticsNodes().isEmpty())
         assertTrue(composeRule.onAllNodesWithText("Android AI").fetchSemanticsNodes().isEmpty())
-        composeRule.onNodeWithText("Message").assertIsDisplayed()
+        composeRule.onNodeWithText(messageLabel).assertIsDisplayed()
     }
 
     @Test
     fun toolCallDetailsExpandAndCopyOutput() {
         val toolOutput = "{\"rows\":[1]}"
+        val expandDetails = composeRule.activity.getString(AiFeatureR.string.ai_tool_expand_details)
+        val copyOutput = composeRule.activity.getString(AiFeatureR.string.ai_tool_copy_output)
 
         composeRule.setContent {
             FlashcardsTheme {
@@ -156,11 +167,11 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithContentDescription("Expand tool details").performClick()
+        composeRule.onNodeWithContentDescription(expandDetails).performClick()
         composeRule.onNodeWithText("{\"sql\":\"SELECT 1\"}").assertIsDisplayed()
         composeRule.onNodeWithText(toolOutput).assertIsDisplayed()
         composeRule.onNode(
-            matcher = hasText("Copy output").and(other = hasClickAction())
+            matcher = hasText(copyOutput).and(other = hasClickAction())
         ).performClick()
 
         val clipboardManager = composeRule.activity.getSystemService(ClipboardManager::class.java)
@@ -169,6 +180,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
 
     @Test
     fun streamingComposerPrimaryActionShowsStop() {
+        val stopLabel = composeRule.activity.getString(AiFeatureR.string.ai_stop)
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
@@ -213,12 +225,13 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithText("Stop").assertIsDisplayed()
+        composeRule.onNodeWithText(stopLabel).assertIsDisplayed()
         composeRule.onNodeWithTag(aiComposerSendButtonTag).assertIsEnabled()
     }
 
     @Test
     fun idleComposerPrimaryActionShowsDisabledSendWithoutDraft() {
+        val sendLabel = composeRule.activity.getString(AiFeatureR.string.ai_send)
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
@@ -248,12 +261,13 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithText("Send").assertIsDisplayed()
+        composeRule.onNodeWithText(sendLabel).assertIsDisplayed()
         composeRule.onNodeWithTag(aiComposerSendButtonTag).assertIsNotEnabled()
     }
 
     @Test
     fun idleComposerPrimaryActionEnablesSendWhenDraftExists() {
+        val sendLabel = composeRule.activity.getString(AiFeatureR.string.ai_send)
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
@@ -286,7 +300,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithText("Send").assertIsDisplayed()
+        composeRule.onNodeWithText(sendLabel).assertIsDisplayed()
         composeRule.onNodeWithTag(aiComposerSendButtonTag).assertIsEnabled()
     }
 
@@ -415,6 +429,9 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
 
     @Test
     fun blockedConversationErrorShowsAccountStatusActionInsteadOfRetry() {
+        val chatUnavailableTitle = composeRule.activity.getString(AiFeatureR.string.ai_chat_unavailable_title)
+        val retry = composeRule.activity.getString(AiFeatureR.string.ai_retry)
+        val openAccountStatus = composeRule.activity.getString(AiFeatureR.string.ai_open_account_status)
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
@@ -449,14 +466,18 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithText("Chat unavailable").assertIsDisplayed()
+        composeRule.onNodeWithText(chatUnavailableTitle).assertIsDisplayed()
         composeRule.onNodeWithText("Cloud sync is blocked for this installation.").assertIsDisplayed()
-        assertTrue(composeRule.onAllNodesWithText("Retry").fetchSemanticsNodes().isEmpty())
-        composeRule.onNodeWithText("Open account status").assertIsDisplayed()
+        assertTrue(composeRule.onAllNodesWithText(retry).fetchSemanticsNodes().isEmpty())
+        composeRule.onNodeWithText(openAccountStatus).assertIsDisplayed()
     }
 
     @Test
     fun unknownContentShowsUnsupportedPlaceholder() {
+        val unsupportedType = composeRule.activity.getString(
+            AiFeatureR.string.ai_unknown_type_subtitle,
+            "audio_transcript_v2"
+        )
         composeRule.setContent {
             FlashcardsTheme {
                 AiRoute(
@@ -506,7 +527,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         }
 
         composeRule.onNodeWithText("Unsupported content").assertIsDisplayed()
-        composeRule.onNodeWithText("Type: audio_transcript_v2").assertIsDisplayed()
+        composeRule.onNodeWithText(unsupportedType).assertIsDisplayed()
     }
 }
 
