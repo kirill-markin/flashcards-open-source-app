@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 private struct CloudOtpSheetState: Identifiable, Hashable {
     let id: String
@@ -102,6 +103,36 @@ private struct CloudPostAuthSyncState: Identifiable, Hashable {
     }
 }
 
+private struct CloudAuthInlineErrorView: View {
+    let presentation: CloudAuthInlineErrorPresentation
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(self.presentation.message)
+                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .textSelection(.enabled)
+
+            if let technicalDetails = self.presentation.technicalDetails {
+                DisclosureGroup("Technical details") {
+                    Text(technicalDetails)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                        .padding(.top, 4)
+                        .contextMenu {
+                            Button("Copy technical details") {
+                                UIPasteboard.general.string = technicalDetails
+                            }
+                        }
+                }
+                .tint(.secondary)
+            }
+        }
+    }
+}
+
 struct CloudPostAuthSyncPresentation: Equatable {
     let title: String
     let message: String
@@ -142,7 +173,7 @@ struct CloudSignInSheet: View {
     @State private var postAuthSyncState: CloudPostAuthSyncState?
     @State private var workspaceLinkContext: CloudWorkspaceLinkContext?
     @State private var postAuthFailureState: CloudPostAuthFailureState?
-    @State private var errorMessage: String = ""
+    @State private var authErrorPresentation: CloudAuthInlineErrorPresentation?
     @State private var isSendingCode: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
 
@@ -153,9 +184,9 @@ struct CloudSignInSheet: View {
                 horizontalPadding: 0
             ) {
                 Form {
-                    if self.errorMessage.isEmpty == false {
+                    if let authErrorPresentation = self.authErrorPresentation {
                         Section {
-                            CopyableErrorMessageView(message: self.errorMessage)
+                            CloudAuthInlineErrorView(presentation: authErrorPresentation)
                         }
                     }
 
@@ -289,14 +320,17 @@ struct CloudSignInSheet: View {
         self.isEmailFieldFocused = false
 
         guard isValidCloudEmail(self.email) else {
-            self.errorMessage = "Enter a valid email address"
+            self.authErrorPresentation = CloudAuthInlineErrorPresentation(
+                message: "Enter a valid email address",
+                technicalDetails: nil
+            )
             return
         }
 
         let nextEmail = normalizedCloudEmail(self.email)
         let nextOtpSheetState = CloudOtpSheetState(email: nextEmail, challenge: nil)
         self.email = nextEmail
-        self.errorMessage = ""
+        self.authErrorPresentation = nil
         self.otpSheetState = nextOtpSheetState
 
         Task { @MainActor in
@@ -331,13 +365,16 @@ struct CloudSignInSheet: View {
                 if self.otpSheetState?.id == nextOtpSheetState.id {
                     self.otpSheetState = nil
                 }
-                self.errorMessage = Flashcards.errorMessage(error: error)
+                self.authErrorPresentation = makeCloudAuthInlineErrorPresentation(
+                    error: error,
+                    context: .sendCode
+                )
             }
         }
     }
 
     private func handlePreparedLinkContext(_ linkContext: CloudWorkspaceLinkContext) {
-        self.errorMessage = ""
+        self.authErrorPresentation = nil
         self.postAuthLoadingState = nil
 
         switch makeCloudWorkspacePostAuthRoute(workspaces: linkContext.workspaces) {
@@ -353,7 +390,7 @@ struct CloudSignInSheet: View {
         self.postAuthLoadingState = CloudPostAuthLoadingState(verifiedContext: verifiedContext)
         self.postAuthSyncState = nil
         self.workspaceLinkContext = nil
-        self.errorMessage = ""
+        self.authErrorPresentation = nil
     }
 
     private func prepareCloudLink(verifiedContext: CloudVerifiedAuthContext) async {
@@ -402,7 +439,7 @@ struct CloudSignInSheet: View {
     private func presentPostAuthSync(operation: CloudPostAuthSyncOperation) {
         let nextState = CloudPostAuthSyncState(operation: operation)
 
-        self.errorMessage = ""
+        self.authErrorPresentation = nil
         self.postAuthLoadingState = nil
         self.postAuthSyncState = nil
         self.workspaceLinkContext = nil
@@ -466,7 +503,7 @@ struct CloudSignInSheet: View {
         message: String,
         retryAction: CloudPostAuthRetryAction
     ) {
-        self.errorMessage = ""
+        self.authErrorPresentation = nil
         self.postAuthLoadingState = nil
         self.postAuthSyncState = nil
         self.postAuthFailureState = CloudPostAuthFailureState(
@@ -480,7 +517,10 @@ struct CloudSignInSheet: View {
         do {
             try self.store.logoutCloudAccount()
         } catch {
-            self.errorMessage = Flashcards.errorMessage(error: error)
+            self.authErrorPresentation = CloudAuthInlineErrorPresentation(
+                message: Flashcards.errorMessage(error: error),
+                technicalDetails: nil
+            )
         }
 
         self.postAuthLoadingState = nil
@@ -500,7 +540,7 @@ private struct CloudOtpVerificationSheet: View {
     let onReturnToEmail: () -> Void
 
     @State private var code: String = ""
-    @State private var errorMessage: String = ""
+    @State private var authErrorPresentation: CloudAuthInlineErrorPresentation?
     @State private var isVerifyingCode: Bool = false
     @State private var isSendingCode: Bool = false
     @State private var challengeState: OtpChallengeState = .active
@@ -529,9 +569,9 @@ private struct CloudOtpVerificationSheet: View {
                 horizontalPadding: 0
             ) {
                 Form {
-                    if self.errorMessage.isEmpty == false {
+                    if let authErrorPresentation = self.authErrorPresentation {
                         Section {
-                            CopyableErrorMessageView(message: self.errorMessage)
+                            CloudAuthInlineErrorView(presentation: authErrorPresentation)
                         }
                     }
 
@@ -644,11 +684,17 @@ private struct CloudOtpVerificationSheet: View {
 
         let nextCode = normalizedOtpCode(self.code)
         guard nextCode.isEmpty == false else {
-            self.errorMessage = "Code is required"
+            self.authErrorPresentation = CloudAuthInlineErrorPresentation(
+                message: "Code is required",
+                technicalDetails: nil
+            )
             return
         }
         guard let currentChallenge = self.currentChallenge else {
-            self.errorMessage = "Code is still loading"
+            self.authErrorPresentation = CloudAuthInlineErrorPresentation(
+                message: "Code is still loading",
+                technicalDetails: nil
+            )
             return
         }
 
@@ -665,12 +711,14 @@ private struct CloudOtpVerificationSheet: View {
                 )
                 self.code = ""
                 self.challengeState = .consumed
-                self.errorMessage = ""
+                self.authErrorPresentation = nil
                 self.onVerified(verifiedContext)
             } catch {
-                let message = Flashcards.errorMessage(error: error)
                 self.applyOtpErrorState(error: error)
-                self.errorMessage = message
+                self.authErrorPresentation = makeCloudAuthInlineErrorPresentation(
+                    error: error,
+                    context: .verifyCode
+                )
             }
         }
     }
@@ -690,13 +738,16 @@ private struct CloudOtpVerificationSheet: View {
                 case .otpChallenge(let nextChallenge):
                     self.otpSheetState = self.otpSheetState?.withChallenge(nextChallenge)
                     self.code = ""
-                    self.errorMessage = ""
+                    self.authErrorPresentation = nil
                     self.challengeState = .active
                 case .verifiedCredentials:
                     throw LocalStoreError.validation("Demo review sign-in cannot resend an OTP challenge")
                 }
             } catch {
-                self.errorMessage = Flashcards.errorMessage(error: error)
+                self.authErrorPresentation = makeCloudAuthInlineErrorPresentation(
+                    error: error,
+                    context: .sendCode
+                )
             }
         }
     }

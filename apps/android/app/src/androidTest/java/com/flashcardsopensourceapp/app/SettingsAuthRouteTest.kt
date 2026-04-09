@@ -41,6 +41,7 @@ class SettingsAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                 isSendingCode = false,
                                 isVerifyingCode = false,
                                 errorMessage = "",
+                                errorTechnicalDetails = null,
                                 challengeEmail = null
                             ),
                             onEmailChange = { email = it },
@@ -58,6 +59,7 @@ class SettingsAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                 isSendingCode = false,
                                 isVerifyingCode = false,
                                 errorMessage = "",
+                                errorTechnicalDetails = null,
                                 challengeEmail = email
                             ),
                             onCodeChange = { code = it },

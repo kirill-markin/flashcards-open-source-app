@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.settings
 
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
+import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
@@ -35,7 +36,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
+import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CloudSignInViewModelTest {
@@ -107,6 +110,105 @@ class CloudSignInViewModelTest {
         postAuthCollection.cancel()
     }
 
+    @Test
+    fun sendCodeTransportFailureShowsFriendlyMessageAndTechnicalDetails() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        repository.enqueueSendCodeError(IOException("Software caused connection abort"))
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = FakeSyncRepository(),
+            messageController = TransientMessageController { }
+        )
+        val uiStateCollection = backgroundScope.async {
+            viewModel.uiState.collect()
+        }
+
+        viewModel.updateEmail("person@example.com")
+        val outcome = viewModel.sendCode()
+        advanceUntilIdle()
+
+        assertEquals(CloudSendCodeNavigationOutcome.NoNavigation, outcome)
+        assertEquals(
+            "We could not confirm that the code was sent. Check your connection and try again.",
+            viewModel.uiState.value.errorMessage
+        )
+        assertEquals("Software caused connection abort", viewModel.uiState.value.errorTechnicalDetails)
+
+        uiStateCollection.cancel()
+    }
+
+    @Test
+    fun sendCodeServerErrorKeepsFriendlyMessageWithoutTechnicalDisclosure() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        repository.enqueueSendCodeError(
+            CloudRemoteException(
+                message = "Enter a valid email address. Reference: req-123",
+                statusCode = 400,
+                responseBody = "{\"error\":\"bad request\"}",
+                errorCode = "VALIDATION_ERROR",
+                requestId = "req-123"
+            )
+        )
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = FakeSyncRepository(),
+            messageController = TransientMessageController { }
+        )
+        val uiStateCollection = backgroundScope.async {
+            viewModel.uiState.collect()
+        }
+
+        viewModel.updateEmail("person@example.com")
+        viewModel.sendCode()
+        advanceUntilIdle()
+
+        assertEquals("Enter a valid email address. Reference: req-123", viewModel.uiState.value.errorMessage)
+        assertNull(viewModel.uiState.value.errorTechnicalDetails)
+
+        uiStateCollection.cancel()
+    }
+
+    @Test
+    fun verifyCodeTransportFailureShowsFriendlyMessageAndTechnicalDetails() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        val repository = FakeCloudAccountRepository()
+        repository.enqueueSendCodeResult(
+            CloudSendCodeResult.OtpRequired(
+                challenge = CloudOtpChallenge(
+                    email = "person@example.com",
+                    csrfToken = "csrf-token",
+                    otpSessionToken = "otp-session-token"
+                )
+            )
+        )
+        repository.enqueueVerifyCodeError(IOException("Connection reset by peer"))
+        val viewModel = CloudSignInViewModel(
+            cloudAccountRepository = repository,
+            syncRepository = FakeSyncRepository(),
+            messageController = TransientMessageController { }
+        )
+        val uiStateCollection = backgroundScope.async {
+            viewModel.uiState.collect()
+        }
+
+        viewModel.updateEmail("person@example.com")
+        assertEquals(CloudSendCodeNavigationOutcome.OtpRequired, viewModel.sendCode())
+        viewModel.updateCode("123456")
+        val didVerify = viewModel.verifyCode()
+        advanceUntilIdle()
+
+        assertEquals(false, didVerify)
+        assertEquals(
+            "We could not verify the code right now. Check your connection and try again.",
+            viewModel.uiState.value.errorMessage
+        )
+        assertEquals("Connection reset by peer", viewModel.uiState.value.errorTechnicalDetails)
+
+        uiStateCollection.cancel()
+    }
+
     private fun makeCredentials(idToken: String): StoredCloudCredentials {
         return StoredCloudCredentials(
             refreshToken = "refresh-$idToken",
@@ -154,10 +256,20 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
     private val accountDeletionState = MutableStateFlow<AccountDeletionState>(AccountDeletionState.Hidden)
     private val serverConfiguration = MutableStateFlow(makeOfficialCloudServiceConfiguration())
     private val sendCodeResults = ArrayDeque<CloudSendCodeResult>()
+    private val sendCodeErrors = ArrayDeque<Exception>()
+    private val verifyCodeErrors = ArrayDeque<Exception>()
     private val preparedLinkContexts = mutableMapOf<String, CompletableDeferred<CloudWorkspaceLinkContext>>()
 
     fun enqueueSendCodeResult(result: CloudSendCodeResult) {
         sendCodeResults.addLast(result)
+    }
+
+    fun enqueueSendCodeError(error: Exception) {
+        sendCodeErrors.addLast(error)
+    }
+
+    fun enqueueVerifyCodeError(error: Exception) {
+        verifyCodeErrors.addLast(error)
     }
 
     fun enqueuePreparedLinkContext(
@@ -192,6 +304,9 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
     }
 
     override suspend fun sendCode(email: String): CloudSendCodeResult {
+        if (sendCodeErrors.isNotEmpty()) {
+            throw sendCodeErrors.removeFirst()
+        }
         return sendCodeResults.removeFirst()
     }
 
@@ -202,6 +317,9 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
     }
 
     override suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext {
+        if (verifyCodeErrors.isNotEmpty()) {
+            throw verifyCodeErrors.removeFirst()
+        }
         throw UnsupportedOperationException()
     }
 

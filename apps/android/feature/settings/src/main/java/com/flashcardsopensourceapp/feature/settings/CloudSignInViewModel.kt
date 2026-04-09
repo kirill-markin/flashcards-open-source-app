@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import java.io.IOException
 
 private sealed interface CloudPostAuthRetryAction {
     data class CompleteCloudLink(
@@ -50,12 +51,18 @@ private data class CloudSignInDraftState(
     val isSendingCode: Boolean,
     val isVerifyingCode: Boolean,
     val errorMessage: String,
+    val errorTechnicalDetails: String?,
     val pendingSelection: CloudWorkspaceLinkSelection?,
     val processingTitle: String,
     val processingMessage: String,
     val postAuthErrorMessage: String,
     val retryAction: CloudPostAuthRetryAction?,
     val completionToken: Long?
+)
+
+private data class CloudSignInErrorPresentation(
+    val message: String,
+    val technicalDetails: String?
 )
 
 class CloudSignInViewModel(
@@ -73,6 +80,7 @@ class CloudSignInViewModel(
             isSendingCode = false,
             isVerifyingCode = false,
             errorMessage = "",
+            errorTechnicalDetails = null,
             pendingSelection = null,
             processingTitle = "",
             processingMessage = "",
@@ -93,6 +101,7 @@ class CloudSignInViewModel(
                 isSendingCode = draft.isSendingCode,
                 isVerifyingCode = draft.isVerifyingCode,
                 errorMessage = draft.errorMessage,
+                errorTechnicalDetails = draft.errorTechnicalDetails,
                 challengeEmail = draft.challenge?.email
             )
         },
@@ -103,6 +112,7 @@ class CloudSignInViewModel(
             isSendingCode = false,
             isVerifyingCode = false,
             errorMessage = "",
+            errorTechnicalDetails = null,
             challengeEmail = null
         )
     )
@@ -155,11 +165,15 @@ class CloudSignInViewModel(
     )
 
     fun updateEmail(email: String) {
-        draftState.update { state -> state.copy(email = email, errorMessage = "") }
+        draftState.update { state ->
+            state.copy(email = email, errorMessage = "", errorTechnicalDetails = null)
+        }
     }
 
     fun updateCode(code: String) {
-        draftState.update { state -> state.copy(code = code, errorMessage = "") }
+        draftState.update { state ->
+            state.copy(code = code, errorMessage = "", errorTechnicalDetails = null)
+        }
     }
 
     private fun nextAuthAttemptId(state: CloudSignInDraftState): Long {
@@ -195,6 +209,7 @@ class CloudSignInViewModel(
                 isSendingCode = isSendingCode,
                 isVerifyingCode = isVerifyingCode,
                 errorMessage = "",
+                errorTechnicalDetails = null,
                 challenge = null,
                 linkContext = linkContext,
                 pendingSelection = buildPendingSelection(linkContext),
@@ -219,6 +234,7 @@ class CloudSignInViewModel(
                 isSendingCode = true,
                 isVerifyingCode = false,
                 errorMessage = "",
+                errorTechnicalDetails = null,
                 pendingSelection = null,
                 processingTitle = "",
                 processingMessage = "",
@@ -240,6 +256,7 @@ class CloudSignInViewModel(
                         state.copy(
                             isSendingCode = false,
                             errorMessage = "",
+                            errorTechnicalDetails = null,
                             challenge = result.challenge,
                             linkContext = null,
                             pendingSelection = null,
@@ -268,13 +285,15 @@ class CloudSignInViewModel(
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return CloudSendCodeNavigationOutcome.NoNavigation
             }
+            val errorPresentation = createSendCodeErrorPresentation(error = error)
             draftState.update { state ->
                 if (state.authAttemptId != authAttemptId) {
                     return@update state
                 }
                 state.copy(
                     isSendingCode = false,
-                    errorMessage = error.message ?: "Could not send the sign-in code."
+                    errorMessage = errorPresentation.message,
+                    errorTechnicalDetails = errorPresentation.technicalDetails
                 )
             }
             CloudSendCodeNavigationOutcome.NoNavigation
@@ -293,6 +312,7 @@ class CloudSignInViewModel(
                 isSendingCode = false,
                 isVerifyingCode = true,
                 errorMessage = "",
+                errorTechnicalDetails = null,
                 pendingSelection = null,
                 processingTitle = "",
                 processingMessage = "",
@@ -316,13 +336,15 @@ class CloudSignInViewModel(
             if (isCurrentAuthAttempt(authAttemptId = authAttemptId).not()) {
                 return false
             }
+            val errorPresentation = createVerifyCodeErrorPresentation(error = error)
             draftState.update { state ->
                 if (state.authAttemptId != authAttemptId) {
                     return@update state
                 }
                 state.copy(
                     isVerifyingCode = false,
-                    errorMessage = error.message ?: "Could not verify the code."
+                    errorMessage = errorPresentation.message,
+                    errorTechnicalDetails = errorPresentation.technicalDetails
                 )
             }
             false
@@ -581,10 +603,43 @@ class CloudSignInViewModel(
                 postAuthErrorMessage = "",
                 retryAction = null,
                 completionToken = null,
-                errorMessage = ""
+                errorMessage = "",
+                errorTechnicalDetails = null
             )
         }
     }
+}
+
+private fun createSendCodeErrorPresentation(error: Exception): CloudSignInErrorPresentation {
+    return if (isCloudTransportFailure(error = error)) {
+        CloudSignInErrorPresentation(
+            message = "We could not confirm that the code was sent. Check your connection and try again.",
+            technicalDetails = error.message?.trim().takeUnless { it.isNullOrEmpty() }
+        )
+    } else {
+        CloudSignInErrorPresentation(
+            message = error.message ?: "Could not send the sign-in code.",
+            technicalDetails = null
+        )
+    }
+}
+
+private fun createVerifyCodeErrorPresentation(error: Exception): CloudSignInErrorPresentation {
+    return if (isCloudTransportFailure(error = error)) {
+        CloudSignInErrorPresentation(
+            message = "We could not verify the code right now. Check your connection and try again.",
+            technicalDetails = error.message?.trim().takeUnless { it.isNullOrEmpty() }
+        )
+    } else {
+        CloudSignInErrorPresentation(
+            message = error.message ?: "Could not verify the code.",
+            technicalDetails = null
+        )
+    }
+}
+
+private fun isCloudTransportFailure(error: Exception): Boolean {
+    return error is IOException
 }
 
 fun createCloudSignInViewModelFactory(

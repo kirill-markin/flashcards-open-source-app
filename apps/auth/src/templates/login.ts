@@ -214,6 +214,44 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
       margin-bottom: 12px;
     }
 
+    .login-error-message {
+      margin: 0;
+    }
+
+    .login-error-details {
+      margin-top: 8px;
+    }
+
+    .login-error-summary {
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 12px;
+      user-select: none;
+    }
+
+    .login-error-detail-text {
+      margin: 8px 0 0;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-secondary);
+      font-family:
+        ui-monospace,
+        "SFMono-Regular",
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        "Liberation Mono",
+        "Courier New",
+        monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
     .login-hint {
       color: var(--text-secondary);
       font-size: 13px;
@@ -288,10 +326,57 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
       var stepOtp = document.getElementById("step-otp");
       var emailError = document.getElementById("email-error");
       var otpError = document.getElementById("otp-error");
+      var sendCodeTransportErrorMessage =
+        "We couldn't confirm whether the code request finished. Check your email for a code, then try again if needed.";
+      var verifyCodeTransportErrorMessage =
+        "We couldn't confirm whether sign-in finished. Try the code again, or refresh the page to check whether you're already signed in.";
 
       function showError(el, msg) {
+        el.textContent = "";
         el.textContent = msg;
         el.classList.remove("hidden");
+      }
+
+      function showErrorWithDetails(el, msg, detailsText) {
+        var message = document.createElement("p");
+        message.className = "login-error-message";
+        message.textContent = msg;
+
+        var details = document.createElement("details");
+        details.className = "login-error-details";
+
+        var summary = document.createElement("summary");
+        summary.className = "login-error-summary";
+        summary.textContent = "Technical details";
+
+        var technicalText = document.createElement("pre");
+        technicalText.className = "login-error-detail-text";
+        technicalText.textContent = detailsText;
+
+        details.appendChild(summary);
+        details.appendChild(technicalText);
+
+        el.textContent = "";
+        el.appendChild(message);
+        el.appendChild(details);
+        el.classList.remove("hidden");
+      }
+
+      function getTechnicalErrorDetails(err) {
+        if (err && typeof err === "object") {
+          var errorName = typeof err.name === "string" ? err.name : "";
+          var errorMessage = typeof err.message === "string" ? err.message : "";
+
+          if (errorName !== "" && errorMessage !== "") {
+            return errorName + ": " + errorMessage;
+          }
+
+          if (errorMessage !== "") {
+            return errorMessage;
+          }
+        }
+
+        return String(err);
       }
 
       function hideError(el) {
@@ -369,7 +454,11 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
             });
           })
           .catch(function(err) {
-            showError(emailError, err.message || String(err));
+            showErrorWithDetails(
+              emailError,
+              sendCodeTransportErrorMessage,
+              getTechnicalErrorDetails(err),
+            );
           })
           .finally(function() {
             sendBtn.disabled = false;
@@ -405,7 +494,11 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
             });
           })
           .catch(function(err) {
-            showError(otpError, err.message || String(err));
+            showErrorWithDetails(
+              otpError,
+              verifyCodeTransportErrorMessage,
+              getTechnicalErrorDetails(err),
+            );
           })
           .finally(function() {
             verifyBtn.disabled = false;
