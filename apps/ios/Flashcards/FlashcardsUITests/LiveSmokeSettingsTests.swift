@@ -140,7 +140,18 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
         )
     }
 
+    @MainActor
     private func configuredReviewEmail() throws -> String {
-        ProcessInfo.processInfo.environment[LiveSmokeConfiguration.reviewEmailEnvironmentKey] ?? "apple-review@example.com"
+        guard let reviewEmail = ProcessInfo.processInfo.environment[LiveSmokeConfiguration.reviewEmailEnvironmentKey]?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+              reviewEmail.isEmpty == false else {
+            throw LiveSmokeFailure.unexpectedAccountState(
+                message: "Missing required environment variable \(LiveSmokeConfiguration.reviewEmailEnvironmentKey) for linked-workspace smoke.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        return reviewEmail
     }
 }
