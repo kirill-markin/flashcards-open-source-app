@@ -127,6 +127,7 @@ Test only on the final supported Android target.
 - Prefer background local emulator runs without a visible emulator window by default
 - Preserve the usual test artifacts, logs, screenshots, and reports when running Android tests in the background
 - Open a visible Android emulator only when the user explicitly asks for it at that time
+- Before a local instrumentation run, stop all other Android emulators, verify `adb devices` shows only the one target emulator, and prefer a clean rebuild plus one clean test run so stale emulator state does not contaminate the result
 
 The most trusted Android checks are the managed-device app instrumentation flows because they exercise the real app closest to production behavior.
 

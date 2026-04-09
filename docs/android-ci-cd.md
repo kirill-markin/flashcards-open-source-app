@@ -292,6 +292,12 @@ Set these substitutions on the trigger:
 For Android, follow [apps/android/README.md](../apps/android/README.md) for platform targets and testing focus. Tests should be run only against the final supported Android target, not against older API levels.
 Run Android local tests only sequentially on the local machine. Do not run Android local tests in parallel.
 Before running Android tests, also check which Android emulators are available locally. If a local emulator is available, start it in the background without a visible emulator window by default and preserve the usual test artifacts, logs, screenshots, and reports. Open a visible Android emulator only when the user explicitly asks for it at that time.
+For local instrumentation runs, prefer one clean emulator only:
+
+- stop all running Android emulators before the run
+- verify `adb devices` shows only one target emulator before starting Gradle
+- prefer a clean rebuild and one clean test run when validating a local fix
+- do not reuse a second emulator or a half-failed prior emulator session for the same verification pass
 
 ## Local parity commands
 
@@ -321,7 +327,8 @@ bash scripts/run-android-release.sh \
 Run one app instrumentation class on a local emulator for ad hoc debugging (requires a running emulator via `adb devices`):
 
 ```bash
-cd apps/android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.flashcardsopensourceapp.app.LiveSmokeTest
+adb devices
+cd apps/android && ./gradlew clean :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.flashcardsopensourceapp.app.LiveSmokeTest
 ```
 
 Note: `connectedDebugAndroidTest` does not support the `--tests` flag. Use `-Pandroid.testInstrumentationRunnerArguments.class=` to filter by test class.
@@ -329,7 +336,8 @@ Note: `connectedDebugAndroidTest` does not support the `--tests` flag. Use `-Pan
 Run another app instrumentation class on a local emulator:
 
 ```bash
-cd apps/android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.flashcardsopensourceapp.app.NotificationTapSmokeTest
+adb devices
+cd apps/android && ./gradlew clean :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.flashcardsopensourceapp.app.NotificationTapSmokeTest
 ```
 
 Run the full app instrumentation package in Firebase Test Lab directly after authenticating with `gcloud`:
