@@ -101,6 +101,7 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
       );
       transportObserver.start();
       let transportObservation;
+      let requiresLiveStreamRequest = false;
 
       try {
         await trackedClick(diagnostics, `send AI create prompt attempt ${String(attempt)}`, sendButton);
@@ -141,6 +142,16 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
           );
 
           if (stopButtonVisible) {
+            requiresLiveStreamRequest = true;
+            await diagnostics.runAction(
+              `wait for AI create prompt attempt ${String(attempt)} live stream request after confirmed insert`,
+              async () => {
+                await expect.poll(
+                  () => transportObserver.read().liveRequestCount,
+                  { timeout: localUiTimeoutMs },
+                ).toBeGreaterThan(0);
+              },
+            );
             await trackedClick(
               diagnostics,
               `stop AI create prompt attempt ${String(attempt)} after confirmed insert`,
@@ -159,11 +170,26 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
           externalUiTimeoutMs,
         );
 
+        transportObservation = transportObserver.stop();
+
         const matchedInsertToolCall = attemptResolution.matchedInsertToolCall ?? await waitForCompletedCardInsertToolCall(
           page,
           diagnostics,
           `wait for completed SQL card insert tool call after AI create attempt ${String(attempt)}`,
           localUiTimeoutMs,
+        );
+
+        await diagnostics.runAction(
+          `confirm AI create prompt attempt ${String(attempt)} avoided snapshot polling and session-less chat requests`,
+          async () => {
+            expect(transportObservation.snapshotPollRequestCount).toBe(0);
+            expect(transportObservation.sessionlessChatSnapshotRequestCount).toBe(0);
+            expect(transportObservation.sessionlessChatRunRequestCount).toBe(0);
+            expect(transportObservation.sessionlessTranscriptionRequestCount).toBe(0);
+            if (requiresLiveStreamRequest) {
+              expect(transportObservation.liveRequestCount).toBeGreaterThan(0);
+            }
+          },
         );
 
         if (matchedInsertToolCall !== null) {
