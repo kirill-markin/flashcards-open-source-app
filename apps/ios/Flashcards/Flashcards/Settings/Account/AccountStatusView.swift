@@ -65,6 +65,7 @@ struct AccountStatusView: View {
                     if let linkedEmail = cloudSettings.linkedEmail {
                         LabeledContent("Linked email") {
                             Text(linkedEmail)
+                                .accessibilityIdentifier(UITestIdentifier.accountStatusLinkedEmailValue)
                         }
                     }
 
