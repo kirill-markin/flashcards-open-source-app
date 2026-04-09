@@ -452,28 +452,13 @@ extension LiveSmokeTestCase {
                 return didUseWorkspaceChooser
             }
 
-            let chooserScreen = self.app.descendants(matching: .any)
-                .matching(identifier: LiveSmokeIdentifier.cloudWorkspaceChooserScreen)
-                .firstMatch
+            let chooserScreen = self.app.collectionViews[LiveSmokeIdentifier.cloudWorkspaceChooserScreen].firstMatch
             let chooserVisible = chooserScreen.exists
 
             if chooserVisible {
-                if try self.tryCreateWorkspaceInChooser() {
-                    didUseWorkspaceChooser = true
-                    continue
-                }
-
-                if self.isAccountStatusLinked() {
-                    return didUseWorkspaceChooser
-                }
-
-                if chooserScreen.exists == false {
-                    continue
-                }
-
-                if try self.tryTapFirstExistingWorkspaceButtonInChooser() {
-                    continue
-                }
+                try self.createWorkspaceInChooser()
+                didUseWorkspaceChooser = true
+                continue
             }
 
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
@@ -509,17 +494,12 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
-    func tryCreateWorkspaceInChooser() throws -> Bool {
-        do {
-            try self.scrollWorkspaceChooserToCreateWorkspaceButton()
-            try self.tapButton(
-                identifier: LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-            return true
-        } catch {
-            return false
-        }
+    func createWorkspaceInChooser() throws {
+        try self.scrollWorkspaceChooserToCreateWorkspaceButton()
+        try self.tapButton(
+            identifier: LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
     }
 
     @MainActor
@@ -588,23 +568,5 @@ extension LiveSmokeTestCase {
         }
 
         try self.assertTextExists(reviewEmail, timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds)
-    }
-
-    @MainActor
-    func tryTapFirstExistingWorkspaceButtonInChooser() throws -> Bool {
-        let chooserList = self.app.collectionViews[LiveSmokeIdentifier.cloudWorkspaceChooserScreen].firstMatch
-        guard chooserList.exists else {
-            return false
-        }
-
-        let existingWorkspaceButton = chooserList.buttons
-            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "cloudSignIn.existingWorkspace."))
-            .firstMatch
-        guard existingWorkspaceButton.exists else {
-            return false
-        }
-
-        try self.tapFirstExistingWorkspaceButtonInChooser()
-        return true
     }
 }
