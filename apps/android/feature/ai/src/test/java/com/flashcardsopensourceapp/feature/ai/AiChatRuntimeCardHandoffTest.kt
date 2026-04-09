@@ -16,7 +16,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class AiChatRuntimeCardHandoffTest {
     @Test
-    fun staleCardHandoffCreatesFreshSessionAndPreservesOldDraftState() = runTest {
+    fun staleCardHandoffRequiresManualNewChatAndPreservesCurrentDraftState() = runTest {
         val repository = FakeAiChatRepository()
         repository.consent.value = false
         val nowMillis = System.currentTimeMillis()
@@ -53,25 +53,17 @@ class AiChatRuntimeCardHandoffTest {
         )
         advanceUntilIdle()
 
-        assertTrue(didHandoff)
-        assertEquals(1, repository.createNewSessionRequests.size)
-        val newSessionId = repository.createNewSessionRequests.single()
-        assertTrue(newSessionId.isNotBlank())
-        assertFalse(newSessionId == oldSessionId)
-        assertEquals(newSessionId, runtime.state.value.persistedState.chatSessionId)
-        assertEquals(1, runtime.state.value.pendingAttachments.size)
-        assertEquals("card-1", (runtime.state.value.pendingAttachments.single() as AiChatAttachment.Card).cardId)
+        assertFalse(didHandoff)
+        assertTrue(repository.createNewSessionRequests.isEmpty())
+        assertEquals(oldSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertTrue(runtime.state.value.pendingAttachments.isEmpty())
+        assertEquals("Unsaved review note", runtime.state.value.draftMessage)
+        val alert = runtime.state.value.activeAlert as AiAlertState.GeneralError
+        assertEquals("Start a new chat before handing off a card to AI.", alert.message)
         assertEquals(
             "Unsaved review note",
             repository.draftStates[defaultTestWorkspaceId to oldSessionId]?.draftMessage
         )
-        assertEquals(
-            listOf("card-1"),
-            repository.draftStates[defaultTestWorkspaceId to newSessionId]?.pendingAttachments?.map { attachment ->
-                (attachment as AiChatAttachment.Card).cardId
-            }
-        )
-        assertEquals("", repository.draftStates[defaultTestWorkspaceId to newSessionId]?.draftMessage)
     }
 
     @Test
@@ -106,7 +98,7 @@ class AiChatRuntimeCardHandoffTest {
     }
 
     @Test
-    fun dirtyCardHandoffCreatesFreshSessionAndPreservesOldDraftState() = runTest {
+    fun dirtyCardHandoffRequiresManualNewChatAndPreservesCurrentDraftState() = runTest {
         val repository = FakeAiChatRepository()
         repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
             chatSessionId = "session-1"
@@ -133,20 +125,14 @@ class AiChatRuntimeCardHandoffTest {
         )
         advanceUntilIdle()
 
-        assertTrue(didHandoff)
-        assertEquals(1, repository.createNewSessionRequests.size)
-        val newSessionId = repository.createNewSessionRequests.single()
-        assertTrue(newSessionId.isNotBlank())
-        assertFalse(newSessionId == "session-1")
-        assertEquals(newSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertFalse(didHandoff)
+        assertTrue(repository.createNewSessionRequests.isEmpty())
+        assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
+        assertEquals("Unsaved note", runtime.state.value.draftMessage)
+        assertTrue(runtime.state.value.pendingAttachments.isEmpty())
+        val alert = runtime.state.value.activeAlert as AiAlertState.GeneralError
+        assertEquals("Start a new chat before handing off a card to AI.", alert.message)
         assertEquals("Unsaved note", repository.draftStates[defaultTestWorkspaceId to "session-1"]?.draftMessage)
-        assertEquals(
-            listOf("card-1"),
-            repository.draftStates[defaultTestWorkspaceId to newSessionId]?.pendingAttachments?.map { attachment ->
-                (attachment as AiChatAttachment.Card).cardId
-            }
-        )
-        assertEquals("", repository.draftStates[defaultTestWorkspaceId to newSessionId]?.draftMessage)
     }
 
     @Test

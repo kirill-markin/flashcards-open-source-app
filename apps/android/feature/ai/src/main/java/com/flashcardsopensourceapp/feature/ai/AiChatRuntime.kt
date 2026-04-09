@@ -26,6 +26,8 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 private const val noSpeechRecordedMessage: String = "No speech was recorded."
+private const val cardHandoffRequiresFreshChatMessage: String =
+    "Start a new chat before handing off a card to AI."
 
 internal class AiChatRuntime(
     scope: CoroutineScope,
@@ -392,11 +394,20 @@ internal class AiChatRuntime(
         )
 
         if (
-            requiresFreshSessionForCardHandoff(
-                state = currentState,
-                nowMillis = System.currentTimeMillis()
-            ) || currentState.persistedState.chatSessionId.isBlank()
+            requiresManualFreshSessionForCardHandoff(
+                state = currentState
+            )
         ) {
+            runtimeStateMutable.update { state ->
+                state.copy(
+                    activeAlert = AiAlertState.GeneralError(message = cardHandoffRequiresFreshChatMessage),
+                    errorMessage = ""
+                )
+            }
+            return false
+        }
+
+        if (currentState.persistedState.chatSessionId.isBlank()) {
             persistCurrentDraft(snapshot = currentState)
             startFreshConversation(
                 draftMessage = "",
@@ -458,7 +469,6 @@ internal class AiChatRuntime(
     fun onScreenHidden() {
         lifecycleCoordinator.onScreenHidden()
     }
-
     fun warmUpLinkedSessionIfNeeded(
         resumeDiagnostics: com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?
     ) {
@@ -806,17 +816,12 @@ internal class AiChatRuntime(
             || state.pendingAttachments.isNotEmpty()
     }
 
-    private fun requiresFreshSessionForCardHandoff(
-        state: AiChatRuntimeState,
-        nowMillis: Long
+    private fun requiresManualFreshSessionForCardHandoff(
+        state: AiChatRuntimeState
     ): Boolean {
         return isConversationDirty(state = state)
             || state.activeRun != null
             || state.composerPhase != AiComposerPhase.IDLE
-            || isAiChatConversationStale(
-                messages = state.persistedState.messages,
-                nowMillis = nowMillis
-            )
     }
 
     private fun canApplyFreshSessionEnsureResponse(
