@@ -49,6 +49,7 @@ android {
         versionCode = androidVersionCode ?: 1
         versionName = "1.1.3"
         testInstrumentationRunner = "com.flashcardsopensourceapp.app.FlashcardsAndroidTestRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
     }
 
     signingConfigs {
@@ -97,6 +98,7 @@ android {
 
     testOptions {
         animationsDisabled = true
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 }
 
@@ -135,6 +137,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.test.uiautomator)
+    androidTestUtil(libs.androidx.test.orchestrator)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

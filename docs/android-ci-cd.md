@@ -349,6 +349,7 @@ bash scripts/run-android-firebase-test-lab.sh \
   --device-version "36" \
   --app-path "apps/android/app/build/outputs/apk/debug/app-debug.apk" \
   --test-path "apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk" \
+  --timeout "30m" \
   --test-targets "package com.flashcardsopensourceapp.app notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest" \
   --results-bucket "gs://flashcards-open-source-app-test-lab-results" \
   --results-dir "manual/local"

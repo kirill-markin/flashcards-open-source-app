@@ -10,6 +10,7 @@ APP_PATH=""
 TEST_PATH=""
 RESULTS_BUCKET=""
 RESULTS_DIR=""
+TEST_TIMEOUT=""
 TEST_TARGETS=()
 MAX_INFRASTRUCTURE_RETRIES=2
 
@@ -22,6 +23,7 @@ while [[ $# -gt 0 ]]; do
     --test-path) TEST_PATH="$2"; shift 2 ;;
     --results-bucket) RESULTS_BUCKET="$2"; shift 2 ;;
     --results-dir) RESULTS_DIR="$2"; shift 2 ;;
+    --timeout) TEST_TIMEOUT="$2"; shift 2 ;;
     --test-targets) TEST_TARGETS+=("$2"); shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
@@ -62,6 +64,11 @@ if [[ -z "${RESULTS_DIR}" ]]; then
   exit 1
 fi
 
+if [[ -z "${TEST_TIMEOUT}" ]]; then
+  echo "ERROR: --timeout is required." >&2
+  exit 1
+fi
+
 if ! command -v gcloud >/dev/null 2>&1; then
   echo "ERROR: gcloud is required to run Firebase Test Lab." >&2
   exit 1
@@ -92,6 +99,11 @@ gcloud_args=(
   "${TEST_PATH}"
   --device
   "model=${DEVICE_MODEL},version=${DEVICE_VERSION},locale=en,orientation=portrait"
+  --timeout
+  "${TEST_TIMEOUT}"
+  --use-orchestrator
+  --environment-variables
+  "clearPackageData=true"
   --no-performance-metrics
 )
 

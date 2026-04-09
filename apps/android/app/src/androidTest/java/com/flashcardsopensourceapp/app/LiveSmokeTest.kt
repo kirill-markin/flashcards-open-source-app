@@ -12,7 +12,7 @@ import org.junit.rules.TestRule
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class LiveSmokeTest {
+class LiveSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
     private val appStateResetRule = AppStateResetRule()
     private val composeRule = createAndroidComposeRule<MainActivity>()
     private val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())

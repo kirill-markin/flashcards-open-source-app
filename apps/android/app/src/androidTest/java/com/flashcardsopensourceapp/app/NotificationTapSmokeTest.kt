@@ -20,7 +20,7 @@ import org.junit.runner.Description
 import org.junit.runners.model.Statement
 
 @RunWith(AndroidJUnit4::class)
-class NotificationTapSmokeTest {
+class NotificationTapSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
     private val appStateResetRule = AppStateResetRule()
     private val composeRule = createAndroidComposeRule<MainActivity>()
     private val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
