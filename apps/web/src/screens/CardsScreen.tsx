@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { useAppData } from "../appData";
-import { formatCardFilterSummary, getCardFilterActiveDimensionCount, normalizeCardFilter } from "../cardFilters";
+import { getCardFilterActiveDimensionCount, normalizeCardFilter } from "../cardFilters";
 import { EFFORT_LEVELS } from "../deckFilters";
+import { useI18n } from "../i18n";
 import { CardTagsInput, type CardTagsInputHandle } from "./CardTagsInput";
 import { EditableCardEffortCell, EditableCardTagsCell, EditableCardTextCell } from "./CardsTableEditors";
 import { queryLocalCardsPage } from "../localDb/cards";
@@ -13,6 +14,7 @@ import {
   readCardsLoadingSnapshot,
   writeCardsLoadingSnapshot,
 } from "./loadingSnapshots";
+import { formatCardFilterSummary, formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "./featureFormatting";
 
 type CardsQueryState = Readonly<{
   items: ReadonlyArray<Card>;
@@ -38,14 +40,6 @@ function createInitialCardsQueryState(): CardsQueryState {
     isLoadingMore: false,
     errorMessage: "",
   };
-}
-
-function formatTimestamp(value: string | null): string {
-  if (value === null) {
-    return "new";
-  }
-
-  return new Date(value).toLocaleString();
 }
 
 function normalizeCardsSearchText(searchText: string): string | null {
@@ -134,6 +128,7 @@ export function CardsScreen(): ReactElement {
     updateCardItem,
     setErrorMessage,
   } = useAppData();
+  const { t, formatDateTime, formatNumber } = useI18n();
   const [searchText, setSearchText] = useState<string>("");
   const [debouncedSearchText, setDebouncedSearchText] = useState<string>("");
   const [sorts, setSorts] = useState<ReadonlyArray<CardQuerySort>>([]);
@@ -424,49 +419,50 @@ export function CardsScreen(): ReactElement {
   }
 
   const countLabel = hasActiveSearchOrFilter
-    ? `${cardsQueryState.totalCount} matches`
-    : `${cardsQueryState.totalCount} total`;
+    ? t("cardsScreen.counts.matches", { count: formatNumber(cardsQueryState.totalCount) })
+    : t("cardsScreen.counts.total", { count: formatNumber(cardsQueryState.totalCount) });
   const filterButtonLabel = activeFilterDimensionCount === 0
-    ? "Filter"
-    : `Filter (${activeFilterDimensionCount})`;
+    ? t("cardsScreen.filters.trigger")
+    : t("cardsScreen.filters.triggerWithCount", { count: formatNumber(activeFilterDimensionCount) });
   const visibleCountLabel = isInitialCardsLoad && cardsLoadingSnapshot !== null
-    ? `${cardsLoadingSnapshot.totalCount} total`
+    ? t("cardsScreen.counts.total", { count: formatNumber(cardsLoadingSnapshot.totalCount) })
     : countLabel;
 
   return (
-    <main className="container">
+    <main className="container" data-testid="cards-screen">
       <section className="panel cards-panel">
         {cardsQueryState.errorMessage !== "" ? <p className="error-banner">{cardsQueryState.errorMessage}</p> : null}
         {cardsQueryState.errorMessage !== "" && cardsQueryState.hasLoaded === false ? (
           <button className="primary-btn cards-loading-retry-btn" type="button" onClick={() => void loadFirstPage()}>
-            Retry
+            {t("common.retry")}
           </button>
         ) : null}
         <div className="screen-head cards-screen-head">
           <div>
-            <h1 className="title">Cards</h1>
-            <p className="subtitle">Cards are the prompts and answers you review to learn and remember.</p>
+            <h1 className="title">{t("cardsScreen.title")}</h1>
+            <p className="subtitle">{t("cardsScreen.subtitle")}</p>
           </div>
           <div className="screen-actions">
             <span className="badge">{visibleCountLabel}</span>
-            <Link className="primary-btn" to="/cards/new">New card</Link>
+            <Link className="primary-btn" to="/cards/new" data-testid="cards-new-card">{t("cardForm.title.new")}</Link>
           </div>
         </div>
 
         <div className="cards-search-bar">
           <label className="cards-search-field">
-            <span className="cards-search-label">Search</span>
+            <span className="cards-search-label">{t("cardsScreen.search.label")}</span>
             <input
               type="search"
               name="cards-search"
               className="cards-search-input"
-              placeholder="Search front, back, or tags"
+              placeholder={t("cardsScreen.search.placeholder")}
               value={searchText}
+              data-testid="cards-search-input"
               onChange={(event) => setSearchText(event.target.value)}
             />
           </label>
           <div ref={filterWrapRef} className="cards-filter-wrap">
-            <span className="cards-search-label">Filters</span>
+            <span className="cards-search-label">{t("cardsScreen.filters.label")}</span>
             <button
               type="button"
               className={`ghost-btn cards-filter-trigger${cardFilter === null ? "" : " cards-filter-trigger-active"}`}
@@ -481,10 +477,10 @@ export function CardsScreen(): ReactElement {
                 ref={filterPopoverRef}
                 className="cards-filter-popover"
                 role="dialog"
-                aria-label="Cards filters"
+                aria-label={t("cardsScreen.filters.ariaLabel")}
               >
                 <div className="cards-filter-section">
-                  <span className="deck-form-label">Effort</span>
+                  <span className="deck-form-label">{t("cardsScreen.filters.effort")}</span>
                   <div className="deck-checkbox-list">
                     {EFFORT_LEVELS.map((effortLevel) => (
                       <label key={effortLevel} className="deck-checkbox-option">
@@ -496,19 +492,19 @@ export function CardsScreen(): ReactElement {
                             effort: toggleCardFilterEffort(draftFilterValue.effort, effortLevel),
                           })}
                         />
-                        <span>{effortLevel}</span>
+                        <span>{formatEffortLevelLabel(t, effortLevel)}</span>
                       </label>
                     ))}
                   </div>
                 </div>
 
                 <div className="cards-filter-section">
-                  <span className="deck-form-label">Tags</span>
+                  <span className="deck-form-label">{t("cardsScreen.filters.tags")}</span>
                   <CardTagsInput
                     ref={filterTagsInputRef}
                     value={draftFilterValue.tags}
                     suggestions={tagSuggestions}
-                    placeholder="Add or filter tags"
+                    placeholder={t("cardTags.inputPlaceholder")}
                     inputName="cards-filter-tags"
                     onChange={(nextTags) => setDraftCardFilter({
                       tags: nextTags,
@@ -518,12 +514,12 @@ export function CardsScreen(): ReactElement {
                   />
                 </div>
 
-                <p className="subtitle cards-filter-summary">{formatCardFilterSummary(normalizeCardFilter(draftFilterValue))}</p>
+                <p className="subtitle cards-filter-summary">{formatCardFilterSummary(normalizeCardFilter(draftFilterValue), t)}</p>
 
                 <div className="cards-filter-actions">
-                  <button type="button" className="ghost-btn" onClick={handleFilterClear}>Clear</button>
-                  <button type="button" className="ghost-btn" onClick={handleFilterCancel}>Cancel</button>
-                  <button type="button" className="primary-btn" onClick={handleFilterApply}>Apply</button>
+                  <button type="button" className="ghost-btn" onClick={handleFilterClear}>{t("cardsScreen.filters.actions.clear")}</button>
+                  <button type="button" className="ghost-btn" onClick={handleFilterCancel}>{t("common.cancel")}</button>
+                  <button type="button" className="primary-btn" onClick={handleFilterApply}>{t("cardsScreen.filters.actions.apply")}</button>
                 </div>
               </div>
             ) : null}
@@ -535,14 +531,14 @@ export function CardsScreen(): ReactElement {
             <thead>
               <tr>
                 <th className="txn-th cards-open-th cards-col-open" />
-                <th className="txn-th cards-header-th cards-col-front">{renderSortableHeaderCell("frontText", "Front")}</th>
-                <th className="txn-th cards-header-th cards-col-back">{renderSortableHeaderCell("backText", "Back")}</th>
-                <th className="txn-th cards-header-th cards-col-tags">{renderSortableHeaderCell("tags", "Tags")}</th>
-                <th className="txn-th cards-header-th cards-col-effort">{renderSortableHeaderCell("effortLevel", "Effort")}</th>
-                <th className="txn-th cards-header-th cards-col-due">{renderSortableHeaderCell("dueAt", "Due")}</th>
-                <th className="txn-th cards-header-th cards-col-reps">{renderSortableHeaderCell("reps", "Reps")}</th>
-                <th className="txn-th cards-header-th cards-col-lapses">{renderSortableHeaderCell("lapses", "Lapses")}</th>
-                <th className="txn-th cards-header-th cards-col-updated">{renderSortableHeaderCell("updatedAt", "Updated")}</th>
+                <th className="txn-th cards-header-th cards-col-front">{renderSortableHeaderCell("frontText", t("cardsScreen.table.front"))}</th>
+                <th className="txn-th cards-header-th cards-col-back">{renderSortableHeaderCell("backText", t("cardsScreen.table.back"))}</th>
+                <th className="txn-th cards-header-th cards-col-tags">{renderSortableHeaderCell("tags", t("cardsScreen.table.tags"))}</th>
+                <th className="txn-th cards-header-th cards-col-effort">{renderSortableHeaderCell("effortLevel", t("cardsScreen.table.effort"))}</th>
+                <th className="txn-th cards-header-th cards-col-due">{renderSortableHeaderCell("dueAt", t("cardsScreen.table.due"))}</th>
+                <th className="txn-th cards-header-th cards-col-reps">{renderSortableHeaderCell("reps", t("cardsScreen.table.reps"))}</th>
+                <th className="txn-th cards-header-th cards-col-lapses">{renderSortableHeaderCell("lapses", t("cardsScreen.table.lapses"))}</th>
+                <th className="txn-th cards-header-th cards-col-updated">{renderSortableHeaderCell("updatedAt", t("cardsScreen.table.updated"))}</th>
               </tr>
             </thead>
             <tbody>
@@ -551,29 +547,29 @@ export function CardsScreen(): ReactElement {
                   cardsLoadingSnapshot.rows.map((card) => (
                     <tr key={card.cardId} className="txn-row cards-row cards-loading-row">
                       <td className="txn-cell cards-open-cell cards-col-open">
-                        <span className="row-open-link cards-loading-row-open">Open</span>
+                        <span className="row-open-link cards-loading-row-open">{t("cardsScreen.loading.open")}</span>
                       </td>
                       <td className="txn-cell cards-col-front cards-cell-multiline">
                         <span className="cards-loading-cell-text">{card.frontText}</span>
                       </td>
                       <td className="txn-cell cards-col-back cards-cell-multiline">
-                        <span className="cards-loading-cell-text">{card.backText === "" ? "No back text" : card.backText}</span>
+                        <span className="cards-loading-cell-text">{card.backText === "" ? t("common.noBackText") : card.backText}</span>
                       </td>
                       <td className="txn-cell cards-col-tags">
-                        <span className="cards-loading-cell-text">{card.tags.length === 0 ? "—" : card.tags.join(", ")}</span>
+                        <span className="cards-loading-cell-text">{formatTagSummary(card.tags)}</span>
                       </td>
-                      <td className="txn-cell cards-col-effort">{card.effortLevel}</td>
-                      <td className="txn-cell txn-cell-mono cards-col-due">{formatTimestamp(card.dueAt)}</td>
+                      <td className="txn-cell cards-col-effort">{formatEffortLevelLabel(t, card.effortLevel)}</td>
+                      <td className="txn-cell txn-cell-mono cards-col-due">{formatNullableDateTime(card.dueAt, formatDateTime, t)}</td>
                       <td className="txn-cell txn-cell-mono cards-col-reps">{card.reps}</td>
                       <td className="txn-cell txn-cell-mono cards-col-lapses">{card.lapses}</td>
-                      <td className="txn-cell txn-cell-mono cards-col-updated">{formatTimestamp(card.updatedAt)}</td>
+                      <td className="txn-cell txn-cell-mono cards-col-updated">{formatNullableDateTime(card.updatedAt, formatDateTime, t)}</td>
                     </tr>
                   ))
                 ) : (
                   ["loading-1", "loading-2", "loading-3", "loading-4", "loading-5", "loading-6"].map((key) => (
                     <tr key={key} className="txn-row cards-row cards-loading-row" aria-hidden="true">
                       <td className="txn-cell cards-open-cell cards-col-open">
-                        <span className="row-open-link cards-loading-row-open">Open</span>
+                        <span className="row-open-link cards-loading-row-open">{t("cardsScreen.loading.open")}</span>
                       </td>
                       <td className="txn-cell cards-col-front"><span className="cards-loading-line cards-loading-line-wide" /></td>
                       <td className="txn-cell cards-col-back"><span className="cards-loading-line cards-loading-line-wide" /></td>
@@ -591,7 +587,7 @@ export function CardsScreen(): ReactElement {
                 return (
                   <tr key={card.cardId} className="txn-row cards-row">
                     <td className="txn-cell cards-open-cell cards-col-open">
-                      <Link className="row-open-link" to={`/cards/${card.cardId}`}>Open</Link>
+                      <Link className="row-open-link" to={`/cards/${card.cardId}`}>{t("cardsScreen.table.open")}</Link>
                     </td>
                     <EditableCardTextCell
                       value={card.frontText}
@@ -622,10 +618,10 @@ export function CardsScreen(): ReactElement {
                       saving={isSaving}
                       onCommit={(nextValue) => handleInlineSave(card, { effortLevel: nextValue })}
                     />
-                    <td className="txn-cell txn-cell-mono cards-col-due">{formatTimestamp(card.dueAt)}</td>
+                    <td className="txn-cell txn-cell-mono cards-col-due">{formatNullableDateTime(card.dueAt, formatDateTime, t)}</td>
                     <td className="txn-cell txn-cell-mono cards-col-reps">{card.reps}</td>
                     <td className="txn-cell txn-cell-mono cards-col-lapses">{card.lapses}</td>
-                    <td className="txn-cell txn-cell-mono cards-col-updated">{formatTimestamp(card.updatedAt)}</td>
+                    <td className="txn-cell txn-cell-mono cards-col-updated">{formatNullableDateTime(card.updatedAt, formatDateTime, t)}</td>
                   </tr>
                 );
               })}
@@ -633,15 +629,15 @@ export function CardsScreen(): ReactElement {
                 <tr>
                   <td className="txn-cell txn-empty" colSpan={9}>
                     {cardsQueryState.totalCount === 0 && hasActiveSearchOrFilter === false
-                      ? "You haven't created any cards yet."
-                      : "No matching cards. Try a different search or clear filters."}
+                      ? t("cardsScreen.empty.noCards")
+                      : t("cardsScreen.empty.noMatches")}
                   </td>
                 </tr>
               ) : null}
               {cardsQueryState.nextCursor !== null ? (
                 <tr ref={loadMoreSentinelRef} className="cards-load-more-row" aria-hidden="true">
                   <td className="txn-cell" colSpan={9}>
-                    {cardsQueryState.isLoadingMore ? "Loading more cards…" : ""}
+                    {cardsQueryState.isLoadingMore ? t("cardsScreen.loadingMore") : ""}
                   </td>
                 </tr>
               ) : null}

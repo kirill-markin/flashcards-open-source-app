@@ -35,7 +35,7 @@ export async function runAiConversationResetFlow(session: LiveSmokeSession): Pro
 
 async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics } = session;
-  await trackedClick(diagnostics, "open AI chat navigation", page.getByRole("link", { name: "AI chat", exact: true }));
+  await trackedClick(diagnostics, "open AI chat navigation", page.locator('nav.nav a[href="/chat"]').first());
   await trackedWaitForUrl(
     page,
     diagnostics,
@@ -43,9 +43,9 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
     /\/chat$/,
     externalUiTimeoutMs,
   );
-  const fullscreenChat = page.locator(".chat-sidebar-fullscreen");
-  const messageField = fullscreenChat.getByPlaceholder("Ask about cards, review history, or attach notes...");
-  const sendButton = fullscreenChat.getByRole("button", { name: "Send message" });
+  const fullscreenChat = page.getByTestId("chat-panel");
+  const messageField = page.getByTestId("chat-composer-input");
+  const sendButton = page.getByTestId("chat-send-button");
   const createPrompt = "I give you all permissions. Please create one test flashcard now.";
   const bootstrapTransportObserver = createAiTransportObserver(page);
   const transportObserver = createAiTransportObserver(page);
@@ -134,7 +134,7 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
         );
 
         if (attemptResolution.completionState === "inserted") {
-          const stopButton = page.getByRole("button", { name: "Stop response" });
+          const stopButton = page.getByTestId("chat-stop-button");
           const stopButtonVisible = await trackedIsVisible(
             diagnostics,
             `check whether AI create prompt attempt ${String(attempt)} still shows an active stop action after insert`,
@@ -227,18 +227,18 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
 
 async function assertNewChatResetsConversation(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics } = session;
-  const fullscreenChat = page.locator(".chat-sidebar-fullscreen");
-  const messageField = fullscreenChat.getByPlaceholder("Ask about cards, review history, or attach notes...");
-  const sendButton = fullscreenChat.getByRole("button", { name: "Send message" });
+  const fullscreenChat = page.getByTestId("chat-panel");
+  const messageField = page.getByTestId("chat-composer-input");
+  const sendButton = page.getByTestId("chat-send-button");
   const suggestionButtons = fullscreenChat.locator(".chat-composer-suggestion");
 
   await trackedClick(
     diagnostics,
     "start a fresh AI chat from the top bar",
-    fullscreenChat.getByRole("button", { name: "New", exact: true }),
+    page.getByTestId("chat-new-button"),
   );
   await diagnostics.runAction("confirm AI chat empty state is visible after starting a new chat", async () => {
-    await expect(page.getByText("Start a new AI chat", { exact: true })).toBeVisible({ timeout: externalUiTimeoutMs });
+    await expect(page.getByTestId("chat-empty-title")).toBeVisible({ timeout: externalUiTimeoutMs });
   });
   await diagnostics.runAction("confirm AI chat has no remaining messages or message-level errors", async () => {
     const allMessages = page.locator(".chat-msg");
@@ -348,7 +348,7 @@ async function assertNewChatResetsConversation(session: LiveSmokeSession): Promi
           throw new Error("The assistant reported an error before the suggestion run was accepted.");
         }
 
-        const stopVisible = await fullscreenChat.getByRole("button", { name: "Stop response" }).isVisible().catch(() => false);
+        const stopVisible = await page.getByTestId("chat-stop-button").isVisible().catch(() => false);
         if (stopVisible) {
           return;
         }

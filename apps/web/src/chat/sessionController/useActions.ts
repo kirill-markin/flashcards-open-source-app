@@ -16,21 +16,22 @@ import type {
   ChatSessionControllerState,
 } from "./state";
 import type {
+  ChatSessionControllerUiMessages,
   SendChatMessageParams,
   SendChatMessageResult,
 } from "./types";
 import type { ChatSessionSnapshotSync } from "./useSnapshotSync";
 import {
-  ATTACHMENT_LIMIT_ERROR_MESSAGE,
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
   buildContentParts,
   toRequestBodySizeBytes,
 } from "../chatHelpers";
-import { OPTIMISTIC_ASSISTANT_STATUS_TEXT, type ChatHistoryState } from "../useChatHistory";
+import type { ChatHistoryState } from "../useChatHistory";
 
 type UseChatSessionActionsParams = Readonly<{
   workspaceId: string | null;
   isRemoteReady: boolean;
+  uiMessages: ChatSessionControllerUiMessages;
   state: ChatSessionControllerState;
   dispatch: Dispatch<ChatSessionControllerAction>;
   history: ChatHistoryState;
@@ -52,6 +53,7 @@ export function useChatSessionActions(
   const {
     workspaceId,
     isRemoteReady,
+    uiMessages,
     state,
     dispatch,
     history,
@@ -185,20 +187,20 @@ export function useChatSessionActions(
         if (isFreshSessionEnsureCurrent(sessionId, requestSequence)) {
           dispatch({
             type: "error_shown",
-            message: `New chat failed. ${toErrorMessage(error)}`,
+            message: `${uiMessages.newChatFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
           });
         }
       }
     })();
-  }, [beginFreshSessionRequestSequence, dispatch, isFreshSessionEnsureCurrent, provisionRemoteSession]);
+  }, [beginFreshSessionRequestSequence, dispatch, isFreshSessionEnsureCurrent, provisionRemoteSession, uiMessages]);
 
   const ensureRemoteSession = useCallback(async (): Promise<string> => {
     if (workspaceId === null) {
-      throw createRemoteSessionProvisioningError("Select a workspace before using AI chat.");
+      throw createRemoteSessionProvisioningError(uiMessages.workspaceRequired);
     }
 
     if (isRemoteReady === false) {
-      throw createRemoteSessionProvisioningError("Remote AI chat is not ready yet.");
+      throw createRemoteSessionProvisioningError(uiMessages.remoteNotReady);
     }
 
     const resolveRemoteSession = async (): Promise<RemoteSessionResolution> => {
@@ -209,7 +211,7 @@ export function useChatSessionActions(
         if (activeProvisioning !== null && activeProvisioning.sessionId === currentSessionId) {
           const response = await activeProvisioning.promise;
           if (response.sessionId !== currentSessionId) {
-            throw createRemoteSessionProvisioningError("New chat returned an unexpected session ID.");
+            throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
           }
         }
 
@@ -222,7 +224,7 @@ export function useChatSessionActions(
       if (activeProvisioning !== null) {
         const response = await activeProvisioning.promise;
         if (response.sessionId !== activeProvisioning.sessionId) {
-          throw createRemoteSessionProvisioningError("New chat returned an unexpected session ID.");
+          throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
         }
 
         return {
@@ -234,7 +236,7 @@ export function useChatSessionActions(
       const nextSessionId = createClientChatSessionId();
       const response = await provisionRemoteSession(nextSessionId);
       if (response.sessionId !== nextSessionId) {
-        throw createRemoteSessionProvisioningError("New chat returned an unexpected session ID.");
+        throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
       }
 
       return {
@@ -259,15 +261,15 @@ export function useChatSessionActions(
     }
 
     return resolution.sessionId;
-  }, [dispatch, isRemoteReady, provisionRemoteSession, runtimeRefs, workspaceId]);
+  }, [dispatch, isRemoteReady, provisionRemoteSession, runtimeRefs, uiMessages, workspaceId]);
 
   const ensureRemoteSessionForHydration = useCallback(async (): Promise<string> => {
     if (workspaceId === null) {
-      throw createRemoteSessionProvisioningError("Select a workspace before using AI chat.");
+      throw createRemoteSessionProvisioningError(uiMessages.workspaceRequired);
     }
 
     if (isRemoteReady === false) {
-      throw createRemoteSessionProvisioningError("Remote AI chat is not ready yet.");
+      throw createRemoteSessionProvisioningError(uiMessages.remoteNotReady);
     }
 
     const currentSessionId = normalizeExistingSessionId(runtimeRefs.currentSessionIdRef.current);
@@ -277,7 +279,7 @@ export function useChatSessionActions(
       if (activeProvisioning !== null && activeProvisioning.sessionId === currentSessionId) {
         const response = await activeProvisioning.promise;
         if (response.sessionId !== currentSessionId) {
-          throw createRemoteSessionProvisioningError("New chat returned an unexpected session ID.");
+          throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
         }
       }
 
@@ -287,7 +289,7 @@ export function useChatSessionActions(
     if (activeProvisioning !== null) {
       const response = await activeProvisioning.promise;
       if (response.sessionId !== activeProvisioning.sessionId) {
-        throw createRemoteSessionProvisioningError("New chat returned an unexpected session ID.");
+        throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
       }
 
       return response.sessionId;
@@ -296,11 +298,11 @@ export function useChatSessionActions(
     const nextSessionId = createClientChatSessionId();
     const response = await provisionRemoteSession(nextSessionId);
     if (response.sessionId !== nextSessionId) {
-      throw createRemoteSessionProvisioningError("New chat returned an unexpected session ID.");
+      throw createRemoteSessionProvisioningError(uiMessages.unexpectedSessionId);
     }
 
     return response.sessionId;
-  }, [isRemoteReady, provisionRemoteSession, runtimeRefs, workspaceId]);
+  }, [isRemoteReady, provisionRemoteSession, runtimeRefs, uiMessages, workspaceId]);
 
   const sendMessage = useCallback(async (
     sendParams: SendChatMessageParams,
@@ -326,7 +328,7 @@ export function useChatSessionActions(
     } catch (error) {
       dispatch({
         type: "error_shown",
-        message: `Chat request failed. ${toErrorMessage(error)}`,
+        message: `${uiMessages.requestFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
       });
       return { accepted: false, sessionId: state.currentSessionId };
     }
@@ -341,7 +343,7 @@ export function useChatSessionActions(
     if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
       dispatch({
         type: "error_shown",
-        message: ATTACHMENT_LIMIT_ERROR_MESSAGE,
+        message: uiMessages.attachmentLimit,
       });
       return { accepted: false, sessionId: state.currentSessionId };
     }
@@ -359,7 +361,7 @@ export function useChatSessionActions(
         contentParts,
       );
       appendUserMessage(contentParts);
-      startAssistantMessage(OPTIMISTIC_ASSISTANT_STATUS_TEXT);
+      startAssistantMessage(uiMessages.optimisticAssistantStatus);
       dispatch({
         type: "run_started",
         sessionId: response.sessionId,
@@ -383,14 +385,14 @@ export function useChatSessionActions(
       if (isChatApiError(error) && error.code === "CHAT_ACTIVE_RUN_IN_PROGRESS") {
         dispatch({
           type: "error_shown",
-          message: "A response is already in progress. Wait for it to finish or stop it before sending another message.",
+          message: uiMessages.activeRunInProgress,
         });
         return { accepted: false, sessionId: state.currentSessionId };
       }
 
       dispatch({
         type: "error_shown",
-        message: `Chat request failed. ${toErrorMessage(error)}`,
+        message: `${uiMessages.requestFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
       });
       return { accepted: false, sessionId: state.currentSessionId };
     }
@@ -409,6 +411,7 @@ export function useChatSessionActions(
     state.isHistoryLoaded,
     state.isStopping,
     state.runState,
+    uiMessages,
     workspaceId,
   ]);
 
@@ -430,7 +433,7 @@ export function useChatSessionActions(
     } catch (error) {
       dispatch({
         type: "run_interrupted",
-        message: `Chat stop failed. ${toErrorMessage(error)}`,
+        message: `${uiMessages.stopFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
       });
       return;
     }
@@ -449,6 +452,7 @@ export function useChatSessionActions(
     state.currentSessionId,
     state.isStopping,
     state.runState,
+    uiMessages,
   ]);
 
   const clearConversation = useCallback(async (): Promise<string | null> => {

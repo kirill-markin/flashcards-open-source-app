@@ -1,21 +1,84 @@
+import type { LoginPageLocale } from "../routes/loginPageLocale.js";
+
 const AUTH_FAVICON_URL =
   "data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22512%22%20height=%22512%22%20viewBox=%220%200%20512%20512%22%3E%3Crect%20width=%22512%22%20height=%22512%22%20rx=%2296%22%20fill=%22%23232323%22/%3E%3Crect%20x=%22104%22%20y=%2292%22%20width=%22184%22%20height=%22264%22%20rx=%2232%22%20fill=%22%23f8f3ec%22/%3E%3Crect%20x=%22212%22%20y=%22156%22%20width=%22196%22%20height=%22272%22%20rx=%2232%22%20fill=%22%23c44b2d%22/%3E%3C/svg%3E";
 
+type LoginPageCopy = Readonly<{
+  pageTitle: string;
+  backToWebsite: string;
+  signInTitle: string;
+  checkingSession: string;
+  emailLabel: string;
+  sendCode: string;
+  sendingCode: string;
+  checkEmailForCode: string;
+  verificationCodeLabel: string;
+  verify: string;
+  verifying: string;
+  technicalDetails: string;
+  genericErrorPrefix: string;
+  sendCodeTransportErrorMessage: string;
+  verifyCodeTransportErrorMessage: string;
+}>;
+
+const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
+  en: {
+    pageTitle: "Sign in",
+    backToWebsite: "Back to website",
+    signInTitle: "Sign in",
+    checkingSession: "Checking session...",
+    emailLabel: "Email",
+    sendCode: "Send code",
+    sendingCode: "Sending...",
+    checkEmailForCode: "Check your email for an 8-digit code",
+    verificationCodeLabel: "Verification code",
+    verify: "Verify",
+    verifying: "Verifying...",
+    technicalDetails: "Technical details",
+    genericErrorPrefix: "Error",
+    sendCodeTransportErrorMessage:
+      "We couldn't confirm whether the code request finished. Check your email for a code, then try again if needed.",
+    verifyCodeTransportErrorMessage:
+      "We couldn't confirm whether sign-in finished. Try the code again, or refresh the page to check whether you're already signed in.",
+  },
+  es: {
+    pageTitle: "Iniciar sesión",
+    backToWebsite: "Volver al sitio web",
+    signInTitle: "Iniciar sesión",
+    checkingSession: "Comprobando sesión...",
+    emailLabel: "Correo electrónico",
+    sendCode: "Enviar código",
+    sendingCode: "Enviando...",
+    checkEmailForCode: "Revisa tu correo para encontrar un código de 8 dígitos",
+    verificationCodeLabel: "Código de verificación",
+    verify: "Verificar",
+    verifying: "Verificando...",
+    technicalDetails: "Detalles técnicos",
+    genericErrorPrefix: "Error",
+    sendCodeTransportErrorMessage:
+      "No pudimos confirmar si la solicitud del código terminó. Revisa tu correo para encontrar un código y vuelve a intentarlo si hace falta.",
+    verifyCodeTransportErrorMessage:
+      "No pudimos confirmar si el inicio de sesión terminó. Intenta usar el código otra vez o recarga la página para comprobar si ya iniciaste sesión.",
+  },
+};
+
 /**
  * Login page HTML template. Vanilla HTML + CSS + JS — no React, no bundler.
- * English only. On successful verification, auth service sets session cookies
+ * On successful verification, auth service sets session cookies
  * and client JS redirects to redirect_uri.
  */
 
-export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): string => {
+export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, locale: LoginPageLocale): string => {
+  const copy = LOGIN_PAGE_COPY[locale];
+
   return `<!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="${locale}" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" href="${AUTH_FAVICON_URL}">
-  <title>Sign in</title>
+  <title>${copy.pageTitle}</title>
   <style>
     :root {
       color-scheme: dark;
@@ -286,27 +349,27 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
 </head>
 <body>
   <div class="login-page">
-    <a class="login-back-link" href="${websiteHomeUrl}">Back to website</a>
+    <a class="login-back-link" href="${websiteHomeUrl}">${copy.backToWebsite}</a>
     <div class="login-card">
-      <h1 class="login-title">Sign in</h1>
+      <h1 class="login-title">${copy.signInTitle}</h1>
 
       <div id="step-checking">
-        <p class="login-status">Checking session...</p>
+        <p class="login-status">${copy.checkingSession}</p>
       </div>
 
       <div id="step-email" class="hidden">
-        <label class="login-label" for="login-email">Email</label>
+        <label class="login-label" for="login-email">${copy.emailLabel}</label>
         <input id="login-email" class="login-input" type="email" autocomplete="email" autofocus>
         <div id="email-error" class="login-error hidden"></div>
-        <button id="send-btn" class="login-btn" type="button">Send code</button>
+        <button id="send-btn" class="login-btn" type="button">${copy.sendCode}</button>
       </div>
 
       <div id="step-otp" class="hidden">
-        <p class="login-hint">Check your email for an 8-digit code</p>
-        <label class="login-label" for="login-otp">Verification code</label>
+        <p class="login-hint">${copy.checkEmailForCode}</p>
+        <label class="login-label" for="login-otp">${copy.verificationCodeLabel}</label>
         <input id="login-otp" class="login-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8">
         <div id="otp-error" class="login-error hidden"></div>
-        <button id="verify-btn" class="login-btn" type="button">Verify</button>
+        <button id="verify-btn" class="login-btn" type="button">${copy.verify}</button>
       </div>
     </div>
   </div>
@@ -314,6 +377,7 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
   <script>
     (function() {
       var redirectUri = ${JSON.stringify(redirectUri)};
+      var copy = ${JSON.stringify(copy)};
 
       var csrfToken = "";
 
@@ -326,10 +390,6 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
       var stepOtp = document.getElementById("step-otp");
       var emailError = document.getElementById("email-error");
       var otpError = document.getElementById("otp-error");
-      var sendCodeTransportErrorMessage =
-        "We couldn't confirm whether the code request finished. Check your email for a code, then try again if needed.";
-      var verifyCodeTransportErrorMessage =
-        "We couldn't confirm whether sign-in finished. Try the code again, or refresh the page to check whether you're already signed in.";
 
       function showError(el, msg) {
         el.textContent = "";
@@ -347,7 +407,7 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
 
         var summary = document.createElement("summary");
         summary.className = "login-error-summary";
-        summary.textContent = "Technical details";
+        summary.textContent = copy.technicalDetails;
 
         var technicalText = document.createElement("pre");
         technicalText.className = "login-error-detail-text";
@@ -425,7 +485,7 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
 
         hideError(emailError);
         sendBtn.disabled = true;
-        sendBtn.textContent = "Sending\u2026";
+        sendBtn.textContent = copy.sendingCode;
 
         fetch("api/send-code", {
           method: "POST",
@@ -436,7 +496,7 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
           .then(function(res) {
             return res.json().then(function(data) {
               if (!res.ok) {
-                showError(emailError, data.error || "Error: " + res.status);
+                showError(emailError, data.error || copy.genericErrorPrefix + ": " + res.status);
                 return;
               }
               if (
@@ -456,13 +516,13 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
           .catch(function(err) {
             showErrorWithDetails(
               emailError,
-              sendCodeTransportErrorMessage,
+              copy.sendCodeTransportErrorMessage,
               getTechnicalErrorDetails(err),
             );
           })
           .finally(function() {
             sendBtn.disabled = false;
-            sendBtn.textContent = "Send code";
+            sendBtn.textContent = copy.sendCode;
           });
       });
 
@@ -472,7 +532,7 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
 
         hideError(otpError);
         verifyBtn.disabled = true;
-        verifyBtn.textContent = "Verifying\u2026";
+        verifyBtn.textContent = copy.verifying;
 
         fetch("api/verify-code", {
           method: "POST",
@@ -486,7 +546,7 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
           .then(function(res) {
             return res.json().then(function(data) {
               if (!res.ok) {
-                showError(otpError, data.error || "Error: " + res.status);
+                showError(otpError, data.error || copy.genericErrorPrefix + ": " + res.status);
                 return;
               }
               // Cookies set by server response — redirect to app
@@ -496,13 +556,13 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string): st
           .catch(function(err) {
             showErrorWithDetails(
               otpError,
-              verifyCodeTransportErrorMessage,
+              copy.verifyCodeTransportErrorMessage,
               getTechnicalErrorDetails(err),
             );
           })
           .finally(function() {
             verifyBtn.disabled = false;
-            verifyBtn.textContent = "Verify";
+            verifyBtn.textContent = copy.verify;
           });
       });
 

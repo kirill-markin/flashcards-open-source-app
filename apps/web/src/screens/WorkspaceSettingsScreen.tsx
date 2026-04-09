@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
+import { useI18n } from "../i18n";
 import { resetWorkspaceProgressConfirmationText, type WorkspaceResetProgressPreview } from "../types";
 import {
   settingsDecksRoute,
@@ -26,6 +27,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
     resetWorkspaceProgress,
     workspaceSettings,
   } = useAppData();
+  const { t, formatCount } = useI18n();
   const [activeCardCount, setActiveCardCount] = useState<number>(0);
   const [activeDeckCount, setActiveDeckCount] = useState<number>(0);
   const [tagsCount, setTagsCount] = useState<number>(0);
@@ -41,6 +43,19 @@ export function WorkspaceSettingsScreen(): ReactElement {
     && cloudSettings?.cloudState === "linked"
     && activeWorkspace !== null;
   const isResetConfirmationMatched = resetConfirmationValue === resetWorkspaceProgressConfirmationText;
+  const workspaceUnavailableMessage = t("workspaceOverview.workspaceUnavailable");
+  const cardCountLabel = formatCount(activeCardCount, {
+    one: t("settingsWorkspace.countLabels.card.one"),
+    other: t("settingsWorkspace.countLabels.card.other"),
+  });
+  const deckCountLabel = formatCount(activeDeckCount, {
+    one: t("settingsWorkspace.countLabels.deck.one"),
+    other: t("settingsWorkspace.countLabels.deck.other"),
+  });
+  const tagCountLabel = formatCount(tagsCount, {
+    one: t("settingsWorkspace.countLabels.tag.one"),
+    other: t("settingsWorkspace.countLabels.tag.other"),
+  });
 
   useEffect(() => {
     let isCancelled = false;
@@ -50,7 +65,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
 
       try {
         if (activeWorkspace === null) {
-          throw new Error("Workspace is unavailable");
+          throw new Error(workspaceUnavailableMessage);
         }
 
         const [tagsSummary, decksSnapshot] = await Promise.all([
@@ -78,7 +93,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspace, localReadVersion]);
+  }, [activeWorkspace, localReadVersion, workspaceUnavailableMessage]);
 
   useEffect(() => {
     if (isResetDialogOpen === false) {
@@ -178,13 +193,13 @@ export function WorkspaceSettingsScreen(): ReactElement {
   if (errorMessage !== "") {
     return (
       <SettingsShell
-        title="Workspace Settings"
-        subtitle="Manage workspace data, study settings, and device details."
+        title={t("settingsWorkspace.title")}
+        subtitle={t("settingsWorkspace.errorSubtitle")}
         activeTab="workspace"
       >
         <p className="error-banner">{errorMessage}</p>
         <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
-          Retry
+          {t("common.retry")}
         </button>
       </SettingsShell>
     );
@@ -193,8 +208,8 @@ export function WorkspaceSettingsScreen(): ReactElement {
   return (
     <>
       <SettingsShell
-        title="Workspace Settings"
-        subtitle="Manage workspace overview, workspace data, study settings, and export."
+        title={t("settingsWorkspace.title")}
+        subtitle={t("settingsWorkspace.subtitle")}
         activeTab="workspace"
       >
         {appErrorMessage !== "" ? <p className="error-banner">{appErrorMessage}</p> : null}
@@ -202,60 +217,60 @@ export function WorkspaceSettingsScreen(): ReactElement {
         <SettingsGroup>
           <div className="settings-nav-list">
             <SettingsNavigationCard
-              title="Overview"
-              description="Review workspace name, counts, and today stats."
-              value={`${activeCardCount} cards`}
+              title={t("settingsWorkspace.overview.title")}
+              description={t("settingsWorkspace.overview.description")}
+              value={cardCountLabel}
               to={settingsOverviewRoute}
             />
           </div>
         </SettingsGroup>
 
-        <SettingsGroup title="Workspace Data">
+        <SettingsGroup title={t("settingsWorkspace.workspaceDataGroupTitle")}>
           <div className="settings-nav-list">
             <SettingsNavigationCard
-              title="Decks"
-              description="Create, edit, and review reusable study scopes."
-              value={`${activeDeckCount} total`}
+              title={t("settingsWorkspace.decks.title")}
+              description={t("settingsWorkspace.decks.description")}
+              value={deckCountLabel}
               to={settingsDecksRoute}
             />
             <SettingsNavigationCard
-              title="Tags"
-              description="Inspect workspace-wide tag usage and card counts."
-              value={`${tagsCount} total`}
+              title={t("settingsWorkspace.tags.title")}
+              description={t("settingsWorkspace.tags.description")}
+              value={tagCountLabel}
               to={settingsTagsRoute}
             />
           </div>
         </SettingsGroup>
 
-        <SettingsGroup title="Settings">
+        <SettingsGroup title={t("settingsWorkspace.settingsGroupTitle")}>
           <div className="settings-nav-list">
             <SettingsNavigationCard
-              title="Scheduler"
-              description="Review the active scheduler configuration for future reviews."
-              value={workspaceSettings === null ? "Unavailable" : workspaceSettings.algorithm.toUpperCase()}
+              title={t("settingsWorkspace.scheduler.title")}
+              description={t("settingsWorkspace.scheduler.description")}
+              value={workspaceSettings === null ? t("common.unavailable") : workspaceSettings.algorithm.toUpperCase()}
               to={settingsSchedulerRoute}
             />
             <SettingsNavigationCard
-              title="Notifications"
-              description="Review device-local reminder settings for study notifications on this workspace."
-              value="This device"
+              title={t("settingsWorkspace.notifications.title")}
+              description={t("settingsWorkspace.notifications.description")}
+              value={t("settingsWorkspace.notifications.value")}
               to={settingsNotificationsRoute}
             />
             <SettingsNavigationCard
-              title="Export"
-              description="Save all active cards from this workspace as a standard CSV file."
-              value="CSV"
+              title={t("settingsWorkspace.export.title")}
+              description={t("settingsWorkspace.export.description")}
+              value={t("settingsWorkspace.export.value")}
               to={settingsExportRoute}
             />
           </div>
         </SettingsGroup>
 
-        <SettingsGroup title="Danger Zone">
+        <SettingsGroup title={t("settingsWorkspace.dangerZoneGroupTitle")}>
           <div className="settings-nav-list">
             <SettingsActionCard
-              title="Reset all progress"
-              description="Reset study progress for every active card in this workspace."
-              value="Reset"
+              title={t("settingsWorkspace.resetProgress.title")}
+              description={t("settingsWorkspace.resetProgress.description")}
+              value={t("settingsWorkspace.resetProgress.value")}
               onClick={openResetDialog}
               isMuted={isResetAvailable === false}
               disabled={isResetAvailable === false}
@@ -263,7 +278,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
           </div>
           {isResetAvailable ? null : (
             <p className="subtitle">
-              Reset all progress is available only for linked cloud workspaces.
+              {t("settingsWorkspace.resetProgress.availabilityHint")}
             </p>
           )}
         </SettingsGroup>
@@ -279,18 +294,16 @@ export function WorkspaceSettingsScreen(): ReactElement {
           <div className="panel settings-delete-dialog">
             <div className="cell-stack">
               <h2 id="reset-workspace-progress-title" className="panel-subtitle">
-                Reset all progress
+                {t("settingsWorkspace.resetProgress.dialogTitle")}
               </h2>
 
               {resetPreview === null ? (
                 <>
                   <p className="error-banner settings-delete-warning">
-                    Warning! This action is permanent. It will reset progress for every active card in this workspace.
+                    {t("settingsWorkspace.resetProgress.initialWarning")}
                   </p>
                   {resetErrorMessage !== "" ? <p className="error-banner">{resetErrorMessage}</p> : null}
-                  <p className="subtitle">
-                    Type this phrase exactly to continue.
-                  </p>
+                  <p className="subtitle">{t("settingsWorkspace.resetProgress.initialHelp")}</p>
                   <p
                     className="subtitle settings-delete-phrase"
                     aria-label="confirmation phrase"
@@ -299,7 +312,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
                     {resetWorkspaceProgressConfirmationText}
                   </p>
                   <label className="cell-stack" htmlFor="reset-workspace-progress-confirmation">
-                    <span className="cell-secondary">Confirmation phrase</span>
+                    <span className="cell-secondary">{t("settingsWorkspace.resetProgress.phraseLabel")}</span>
                     <input
                       id="reset-workspace-progress-confirmation"
                       className="settings-input"
@@ -326,16 +339,25 @@ export function WorkspaceSettingsScreen(): ReactElement {
               ) : (
                 <>
                   <p className="error-banner settings-delete-warning">
-                    Warning! This action is permanent. It will reset progress for {resetPreview.cardsToResetCount} cards in{" "}
-                    {resetPreview.workspaceName}.
+                    {t("settingsWorkspace.resetProgress.previewWarning", {
+                      count: formatCount(resetPreview.cardsToResetCount, {
+                        one: t("settingsWorkspace.countLabels.card.one"),
+                        other: t("settingsWorkspace.countLabels.card.other"),
+                      }),
+                      workspaceName: resetPreview.workspaceName,
+                    })}
                   </p>
                   {resetErrorMessage !== "" ? <p className="error-banner">{resetErrorMessage}</p> : null}
-                  <p className="subtitle">
-                    Press OK to clear the scheduler state and make these cards start over.
-                  </p>
+                  <p className="subtitle">{t("settingsWorkspace.resetProgress.previewHelp")}</p>
                   <p className="subtitle settings-delete-phrase">
-                    <span data-testid="workspace-reset-progress-preview-count">{resetPreview.cardsToResetCount}</span>
-                    {" cards will be reset."}
+                    <span data-testid="workspace-reset-progress-preview-count">
+                      {t("settingsWorkspace.resetProgress.previewSummary", {
+                        count: formatCount(resetPreview.cardsToResetCount, {
+                          one: t("settingsWorkspace.countLabels.card.one"),
+                          other: t("settingsWorkspace.countLabels.card.other"),
+                        }),
+                      })}
+                    </span>
                   </p>
                 </>
               )}
@@ -348,7 +370,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
                 disabled={isResetPreviewLoading || isResetExecuting}
                 onClick={closeResetDialog}
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               {resetPreview === null ? (
                 <button
@@ -357,7 +379,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
                   disabled={isResetConfirmationMatched === false || isResetPreviewLoading || isResetExecuting}
                   onClick={handleResetPrimaryAction}
                 >
-                  {isResetPreviewLoading ? "Loading..." : "Continue"}
+                  {isResetPreviewLoading ? t("common.loading") : t("common.continue")}
                 </button>
               ) : (
                 <button
@@ -366,7 +388,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
                   disabled={isResetExecuting}
                   onClick={handleResetPrimaryAction}
                 >
-                  {isResetExecuting ? "Resetting..." : "OK"}
+                  {isResetExecuting ? t("settingsWorkspace.resetProgress.resetting") : t("common.ok")}
                 </button>
               )}
             </div>

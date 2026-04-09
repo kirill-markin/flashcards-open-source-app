@@ -1,58 +1,67 @@
 import type { ReactElement } from "react";
 import { useAppData } from "../appData";
+import { useI18n } from "../i18n";
 import { SettingsShell } from "./SettingsShared";
 
-function formatStepList(steps: ReadonlyArray<number>): string {
-  return steps.join(", ");
+function formatStepList(
+  steps: ReadonlyArray<number>,
+  formatNumber: (value: number) => string,
+): string {
+  return steps.map((step) => formatNumber(step)).join(", ");
 }
 
 export function WorkspaceSchedulerScreen(): ReactElement {
   const { workspaceSettings } = useAppData();
+  const { t, formatDateTime, formatNumber } = useI18n();
 
   return (
     <SettingsShell
-      title="Scheduler"
-      subtitle="Review the scheduler configuration used for future reviews."
+      title={t("workspaceScheduler.title")}
+      subtitle={t("workspaceScheduler.subtitle")}
       activeTab="workspace"
     >
       {workspaceSettings === null ? (
         <article className="content-card settings-summary-card">
-          <span className="cell-secondary">Scheduler</span>
-          <strong className="panel-subtitle">Unavailable</strong>
+          <span className="cell-secondary">{t("workspaceScheduler.schedulerLabel")}</span>
+          <strong className="panel-subtitle">{t("common.unavailable")}</strong>
         </article>
       ) : (
         <div className="settings-detail-grid">
           <article className="content-card settings-summary-card">
-            <span className="cell-secondary">Algorithm</span>
+            <span className="cell-secondary">{t("workspaceScheduler.labels.algorithm")}</span>
             <strong className="panel-subtitle">{workspaceSettings.algorithm.toUpperCase()}</strong>
           </article>
           <article className="content-card settings-summary-card">
-            <span className="cell-secondary">Desired retention</span>
-            <strong className="panel-subtitle">{workspaceSettings.desiredRetention}</strong>
+            <span className="cell-secondary">{t("workspaceScheduler.labels.desiredRetention")}</span>
+            <strong className="panel-subtitle">{formatNumber(workspaceSettings.desiredRetention)}</strong>
           </article>
           <article className="content-card settings-summary-card">
-            <span className="cell-secondary">Learning steps</span>
-            <strong className="panel-subtitle">{formatStepList(workspaceSettings.learningStepsMinutes)}</strong>
+            <span className="cell-secondary">{t("workspaceScheduler.labels.learningSteps")}</span>
+            <strong className="panel-subtitle">{formatStepList(workspaceSettings.learningStepsMinutes, formatNumber)}</strong>
           </article>
           <article className="content-card settings-summary-card">
-            <span className="cell-secondary">Relearning steps</span>
-            <strong className="panel-subtitle">{formatStepList(workspaceSettings.relearningStepsMinutes)}</strong>
+            <span className="cell-secondary">{t("workspaceScheduler.labels.relearningSteps")}</span>
+            <strong className="panel-subtitle">{formatStepList(workspaceSettings.relearningStepsMinutes, formatNumber)}</strong>
           </article>
           <article className="content-card settings-summary-card">
-            <span className="cell-secondary">Maximum interval</span>
-            <strong className="panel-subtitle">{workspaceSettings.maximumIntervalDays} days</strong>
+            <span className="cell-secondary">{t("workspaceScheduler.labels.maximumInterval")}</span>
+            <strong className="panel-subtitle">
+              {t("workspaceScheduler.maximumIntervalDays", {
+                count: formatNumber(workspaceSettings.maximumIntervalDays),
+              })}
+            </strong>
           </article>
           <article className="content-card settings-summary-card">
-            <span className="cell-secondary">Enable fuzz</span>
-            <strong className="panel-subtitle">{workspaceSettings.enableFuzz ? "Enabled" : "Disabled"}</strong>
+            <span className="cell-secondary">{t("workspaceScheduler.labels.enableFuzz")}</span>
+            <strong className="panel-subtitle">{workspaceSettings.enableFuzz ? t("common.enabled") : t("common.disabled")}</strong>
           </article>
           <article className="content-card settings-summary-card">
-            <span className="cell-secondary">Updated</span>
-            <strong className="panel-subtitle txn-cell-mono">{workspaceSettings.updatedAt}</strong>
+            <span className="cell-secondary">{t("workspaceScheduler.labels.updated")}</span>
+            <strong className="panel-subtitle txn-cell-mono">{formatDateTime(workspaceSettings.updatedAt)}</strong>
           </article>
           <article className="content-card content-card-muted settings-summary-card">
-            <span className="cell-secondary">Note</span>
-            <p className="subtitle">These settings affect future scheduling only. Existing card state remains authoritative.</p>
+            <span className="cell-secondary">{t("workspaceScheduler.labels.note")}</span>
+            <p className="subtitle">{t("workspaceScheduler.note")}</p>
           </article>
         </div>
       )}

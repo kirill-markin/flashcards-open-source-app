@@ -32,6 +32,7 @@ import {
   getErrorMessage,
   markSelectedWorkspaces,
 } from "./domain";
+import type { TranslationKey } from "../i18n";
 import type { SessionLoadState } from "./types";
 import type { SessionVerificationState } from "./warmStart";
 
@@ -40,6 +41,7 @@ const resumeRetryDelayMs = 750;
 const resumeRetryCount = 2;
 
 type UseWorkspaceSessionParams = Readonly<{
+  t: (key: TranslationKey) => string;
   sessionLoadState: SessionLoadState;
   sessionVerificationState: SessionVerificationState;
   session: SessionInfo | null;
@@ -139,8 +141,8 @@ function consumeLoggedOutMarker(): boolean {
   return true;
 }
 
-function createRemoteActionLockedError(): Error {
-  return new Error("Restoring session. Try again in a moment.");
+function createRemoteActionLockedError(t: (key: TranslationKey) => string): Error {
+  return new Error(t("app.sessionRestoringActionLocked"));
 }
 
 function logWorkspaceTransition(event: string, details: WorkspaceTransitionLogDetails): void {
@@ -180,6 +182,7 @@ function buildWorkspaceInteractionLogDetails(
 
 export function useWorkspaceSession(params: UseWorkspaceSessionParams): WorkspaceSession {
   const {
+    t,
     sessionLoadState,
     sessionVerificationState,
     session,
@@ -362,7 +365,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
         setSession(null);
         setSessionLoadState("deleted");
         setSessionVerificationState("verified");
-        setSessionErrorMessage("Your account has been deleted.");
+        setSessionErrorMessage(t("app.accountDeleted"));
         return;
       }
 
@@ -402,6 +405,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     session,
     sessionLoadState,
     sessionVerificationState,
+    t,
     activeWorkspace,
     availableWorkspaces,
     setActiveWorkspace,
@@ -416,11 +420,11 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
 
   const chooseWorkspace = useCallback(async function chooseWorkspace(workspaceId: string): Promise<void> {
     if (session === null) {
-      throw new Error("Session is unavailable");
+      throw new Error(t("app.sessionUnavailable"));
     }
 
     if (sessionVerificationState !== "verified") {
-      throw createRemoteActionLockedError();
+      throw createRemoteActionLockedError(t);
     }
 
     setIsChoosingWorkspace(true);
@@ -470,22 +474,23 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     cloudSettings,
     session,
     sessionVerificationState,
+    t,
     setErrorMessage,
     setIsChoosingWorkspace,
   ]);
 
   const createWorkspace = useCallback(async function createWorkspace(name: string): Promise<void> {
     if (session === null) {
-      throw new Error("Session is unavailable");
+      throw new Error(t("app.sessionUnavailable"));
     }
 
     if (sessionVerificationState !== "verified") {
-      throw createRemoteActionLockedError();
+      throw createRemoteActionLockedError(t);
     }
 
     const trimmedName = name.trim();
     if (trimmedName === "") {
-      throw new Error("Workspace name is required");
+      throw new Error(t("settingsCurrentWorkspace.workspaceNameRequired"));
     }
 
     setIsChoosingWorkspace(true);
@@ -538,6 +543,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     cloudSettings,
     session,
     sessionVerificationState,
+    t,
     setErrorMessage,
     setIsChoosingWorkspace,
   ]);
@@ -547,16 +553,16 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     name: string,
   ): Promise<void> {
     if (session === null) {
-      throw new Error("Session is unavailable");
+      throw new Error(t("app.sessionUnavailable"));
     }
 
     if (sessionVerificationState !== "verified") {
-      throw createRemoteActionLockedError();
+      throw createRemoteActionLockedError(t);
     }
 
     const trimmedName = name.trim();
     if (trimmedName === "") {
-      throw new Error("Workspace name is required");
+      throw new Error(t("settingsCurrentWorkspace.workspaceNameRequired"));
     }
 
     setIsChoosingWorkspace(true);
@@ -587,6 +593,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     availableWorkspaces,
     session,
     sessionVerificationState,
+    t,
     setActiveWorkspace,
     setAvailableWorkspaces,
     setErrorMessage,
@@ -598,11 +605,11 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     confirmationText: string,
   ): Promise<void> {
     if (session === null) {
-      throw new Error("Session is unavailable");
+      throw new Error(t("app.sessionUnavailable"));
     }
 
     if (sessionVerificationState !== "verified") {
-      throw createRemoteActionLockedError();
+      throw createRemoteActionLockedError(t);
     }
 
     setIsChoosingWorkspace(true);
@@ -648,21 +655,21 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     } finally {
       setIsChoosingWorkspace(false);
     }
-  }, [activateWorkspace, availableWorkspaces, session, sessionVerificationState, setErrorMessage, setIsChoosingWorkspace]);
+  }, [activateWorkspace, availableWorkspaces, session, sessionVerificationState, t, setErrorMessage, setIsChoosingWorkspace]);
 
   const loadWorkspaceResetProgressPreview = useCallback(async function loadWorkspaceResetProgressPreview(
     workspaceId: string,
   ): Promise<WorkspaceResetProgressPreview> {
     if (session === null) {
-      throw new Error("Session is unavailable");
+      throw new Error(t("app.sessionUnavailable"));
     }
 
     if (sessionVerificationState !== "verified") {
-      throw createRemoteActionLockedError();
+      throw createRemoteActionLockedError(t);
     }
 
     if (cloudSettings?.cloudState !== "linked") {
-      throw new Error("Workspace progress reset is available only for linked cloud workspaces.");
+      throw new Error(t("settingsWorkspace.resetProgress.availabilityHint"));
     }
 
     try {
@@ -681,22 +688,22 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       setErrorMessage(nextErrorMessage);
       throw error;
     }
-  }, [activeWorkspace?.workspaceId, cloudSettings?.cloudState, runSync, session, sessionVerificationState, setErrorMessage]);
+  }, [activeWorkspace?.workspaceId, cloudSettings?.cloudState, runSync, session, sessionVerificationState, t, setErrorMessage]);
 
   const resetWorkspaceProgress = useCallback(async function resetWorkspaceProgress(
     workspaceId: string,
     confirmationText: string,
   ): Promise<ResetWorkspaceProgressResponse> {
     if (session === null) {
-      throw new Error("Session is unavailable");
+      throw new Error(t("app.sessionUnavailable"));
     }
 
     if (sessionVerificationState !== "verified") {
-      throw createRemoteActionLockedError();
+      throw createRemoteActionLockedError(t);
     }
 
     if (cloudSettings?.cloudState !== "linked") {
-      throw new Error("Workspace progress reset is available only for linked cloud workspaces.");
+      throw new Error(t("settingsWorkspace.resetProgress.availabilityHint"));
     }
 
     try {
@@ -715,7 +722,7 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       setErrorMessage(nextErrorMessage);
       throw error;
     }
-  }, [activeWorkspace?.workspaceId, cloudSettings?.cloudState, runSync, session, sessionVerificationState, setErrorMessage]);
+  }, [activeWorkspace?.workspaceId, cloudSettings?.cloudState, runSync, session, sessionVerificationState, t, setErrorMessage]);
 
   const initializeRef = useRef(initialize);
 

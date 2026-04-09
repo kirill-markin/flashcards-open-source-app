@@ -29,7 +29,7 @@ export async function waitForDeleteWorkspaceConfirmation(
   await trackedClick(
     diagnostics,
     "retry delete workspace details fetch",
-    dialog.getByRole("button", { name: "Retry" }),
+    dialog.locator(".screen-actions .primary-btn").first(),
   );
   await trackedWaitForDeleteWorkspaceRetryTransition(
     page,

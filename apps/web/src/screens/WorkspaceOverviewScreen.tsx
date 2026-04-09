@@ -1,12 +1,13 @@
 import { useEffect, useState, type FormEvent, type ReactElement } from "react";
 import { loadWorkspaceDeletePreview } from "../api";
 import { useAppData } from "../appData";
+import { useI18n } from "../i18n";
 import { loadWorkspaceOverviewSnapshot } from "../localDb/workspace";
 import type { WorkspaceDeletePreview, WorkspaceOverviewSnapshot } from "../types";
 import { SettingsShell } from "./SettingsShared";
 
 const emptyOverviewSnapshot: WorkspaceOverviewSnapshot = {
-  workspaceName: "Workspace unavailable",
+  workspaceName: "",
   deckCount: 0,
   tagsCount: 0,
   totalCards: 0,
@@ -24,6 +25,8 @@ export function WorkspaceOverviewScreen(): ReactElement {
     renameWorkspace,
     deleteWorkspace,
   } = useAppData();
+  const { t, formatCount, formatNumber } = useI18n();
+  const workspaceUnavailableMessage = t("workspaceOverview.workspaceUnavailable");
   const [overviewSnapshot, setOverviewSnapshot] = useState<WorkspaceOverviewSnapshot>(emptyOverviewSnapshot);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -41,7 +44,10 @@ export function WorkspaceOverviewScreen(): ReactElement {
 
     async function loadScreenData(): Promise<void> {
       if (activeWorkspace === null) {
-        setOverviewSnapshot(emptyOverviewSnapshot);
+        setOverviewSnapshot({
+          ...emptyOverviewSnapshot,
+          workspaceName: workspaceUnavailableMessage,
+        });
         setWorkspaceName("");
         setIsLoading(false);
         return;
@@ -76,7 +82,7 @@ export function WorkspaceOverviewScreen(): ReactElement {
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspace, localReadVersion]);
+  }, [activeWorkspace, localReadVersion, workspaceUnavailableMessage]);
 
   useEffect(() => {
     if (!isDeleteDialogOpen) {
@@ -99,18 +105,18 @@ export function WorkspaceOverviewScreen(): ReactElement {
     event.preventDefault();
 
     if (activeWorkspace === null) {
-      setRenameErrorMessage("Workspace is unavailable");
+      setRenameErrorMessage(t("workspaceOverview.rename.workspaceUnavailable"));
       return;
     }
 
     if (isSessionVerified === false) {
-      setRenameErrorMessage("Restoring session. Try again in a moment.");
+      setRenameErrorMessage(t("workspaceOverview.rename.restoringSession"));
       return;
     }
 
     const trimmedWorkspaceName = workspaceName.trim();
     if (trimmedWorkspaceName === "") {
-      setRenameErrorMessage("Workspace name is required");
+      setRenameErrorMessage(t("workspaceOverview.rename.workspaceNameRequired"));
       return;
     }
 
@@ -153,7 +159,7 @@ export function WorkspaceOverviewScreen(): ReactElement {
 
   async function retryDeletePreview(): Promise<void> {
     if (activeWorkspace === null) {
-      setDeletePreviewErrorMessage("Workspace is unavailable");
+      setDeletePreviewErrorMessage(t("workspaceOverview.rename.workspaceUnavailable"));
       return;
     }
 
@@ -189,11 +195,11 @@ export function WorkspaceOverviewScreen(): ReactElement {
   if (isLoading) {
     return (
       <SettingsShell
-        title="Overview"
-        subtitle="Review workspace details and today counts."
+        title={t("workspaceOverview.title")}
+        subtitle={t("workspaceOverview.subtitle")}
         activeTab="workspace"
       >
-        <p className="subtitle">Loading workspace overview…</p>
+        <p className="subtitle">{t("workspaceOverview.loading")}</p>
       </SettingsShell>
     );
   }
@@ -201,13 +207,13 @@ export function WorkspaceOverviewScreen(): ReactElement {
   if (errorMessage !== "") {
     return (
       <SettingsShell
-        title="Overview"
-        subtitle="Review workspace details and today counts."
+        title={t("workspaceOverview.title")}
+        subtitle={t("workspaceOverview.subtitle")}
         activeTab="workspace"
       >
         <p className="error-banner">{errorMessage}</p>
         <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
-          Retry
+          {t("common.retry")}
         </button>
       </SettingsShell>
     );
@@ -225,39 +231,39 @@ export function WorkspaceOverviewScreen(): ReactElement {
   return (
     <>
       <SettingsShell
-        title="Overview"
-        subtitle="Review workspace details and today counts."
+        title={t("workspaceOverview.title")}
+        subtitle={t("workspaceOverview.subtitle")}
         activeTab="workspace"
       >
         <section className="settings-group">
           <div className="settings-summary-grid">
             <article className="content-card settings-summary-card">
-              <span className="cell-secondary">Workspace</span>
+              <span className="cell-secondary">{t("workspaceOverview.labels.workspace")}</span>
               <strong className="panel-subtitle">{overviewSnapshot.workspaceName}</strong>
             </article>
             <article className="content-card settings-summary-card">
-              <span className="cell-secondary">Cards</span>
-              <strong className="panel-subtitle">{overviewSnapshot.totalCards}</strong>
+              <span className="cell-secondary">{t("workspaceOverview.labels.cards")}</span>
+              <strong className="panel-subtitle">{formatNumber(overviewSnapshot.totalCards)}</strong>
             </article>
             <article className="content-card settings-summary-card">
-              <span className="cell-secondary">Decks</span>
-              <strong className="panel-subtitle">{overviewSnapshot.deckCount}</strong>
+              <span className="cell-secondary">{t("workspaceOverview.labels.decks")}</span>
+              <strong className="panel-subtitle">{formatNumber(overviewSnapshot.deckCount)}</strong>
             </article>
             <article className="content-card settings-summary-card">
-              <span className="cell-secondary">Tags</span>
-              <strong className="panel-subtitle">{overviewSnapshot.tagsCount}</strong>
+              <span className="cell-secondary">{t("workspaceOverview.labels.tags")}</span>
+              <strong className="panel-subtitle">{formatNumber(overviewSnapshot.tagsCount)}</strong>
             </article>
             <article className="content-card settings-summary-card">
-              <span className="cell-secondary">Due</span>
-              <strong className="panel-subtitle">{overviewSnapshot.dueCount}</strong>
+              <span className="cell-secondary">{t("workspaceOverview.labels.due")}</span>
+              <strong className="panel-subtitle">{formatNumber(overviewSnapshot.dueCount)}</strong>
             </article>
             <article className="content-card settings-summary-card">
-              <span className="cell-secondary">New</span>
-              <strong className="panel-subtitle">{overviewSnapshot.newCount}</strong>
+              <span className="cell-secondary">{t("workspaceOverview.labels.new")}</span>
+              <strong className="panel-subtitle">{formatNumber(overviewSnapshot.newCount)}</strong>
             </article>
             <article className="content-card settings-summary-card">
-              <span className="cell-secondary">Reviewed</span>
-              <strong className="panel-subtitle">{overviewSnapshot.reviewedCount}</strong>
+              <span className="cell-secondary">{t("workspaceOverview.labels.reviewed")}</span>
+              <strong className="panel-subtitle">{formatNumber(overviewSnapshot.reviewedCount)}</strong>
             </article>
           </div>
         </section>
@@ -266,11 +272,11 @@ export function WorkspaceOverviewScreen(): ReactElement {
           <article className="content-card settings-overview-card">
             <form className="cell-stack" onSubmit={(event) => void handleRenameSubmit(event)}>
               <div className="cell-stack">
-                <h2 className="panel-subtitle">Rename workspace</h2>
-                <p className="subtitle">Update the current workspace name for every linked client.</p>
+                <h2 className="panel-subtitle">{t("workspaceOverview.rename.title")}</h2>
+                <p className="subtitle">{t("workspaceOverview.rename.description")}</p>
               </div>
               <label className="cell-stack" htmlFor="workspace-name">
-                <span className="cell-secondary">Workspace name</span>
+                <span className="cell-secondary">{t("workspaceOverview.rename.fieldLabel")}</span>
                 <input
                   id="workspace-name"
                   className="settings-input"
@@ -284,10 +290,10 @@ export function WorkspaceOverviewScreen(): ReactElement {
                 />
               </label>
               {renameErrorMessage !== "" ? <p className="error-banner">{renameErrorMessage}</p> : null}
-              {isSessionVerified === false ? <p className="subtitle">Restoring session...</p> : null}
+              {isSessionVerified === false ? <p className="subtitle">{t("loading.restoringSession")}</p> : null}
               <div className="screen-actions">
                 <button className="primary-btn" type="submit" disabled={isRenameDisabled}>
-                  {isRenameSubmitting ? "Saving..." : "Save name"}
+                  {isRenameSubmitting ? t("workspaceOverview.rename.saving") : t("workspaceOverview.rename.save")}
                 </button>
               </div>
             </form>
@@ -297,10 +303,8 @@ export function WorkspaceOverviewScreen(): ReactElement {
         <section className="settings-group">
           <article className="content-card settings-danger-card">
             <div className="cell-stack">
-              <h2 className="panel-subtitle">Delete workspace</h2>
-              <p className="subtitle">
-                Permanently delete this workspace and all cards, decks, reviews, and sync history inside it.
-              </p>
+              <h2 className="panel-subtitle">{t("workspaceOverview.delete.title")}</h2>
+              <p className="subtitle">{t("workspaceOverview.delete.description")}</p>
             </div>
             <div className="screen-actions">
               <button
@@ -309,7 +313,7 @@ export function WorkspaceOverviewScreen(): ReactElement {
                 onClick={() => void openDeleteDialog()}
                 disabled={isSessionVerified === false}
               >
-                Delete workspace
+                {t("workspaceOverview.delete.button")}
               </button>
             </div>
           </article>
@@ -325,24 +329,29 @@ export function WorkspaceOverviewScreen(): ReactElement {
         >
           <div className="panel settings-delete-dialog">
             <div className="cell-stack">
-              <h2 id="delete-workspace-title" className="panel-subtitle">Delete workspace</h2>
+              <h2 id="delete-workspace-title" className="panel-subtitle">{t("workspaceOverview.delete.dialogTitle")}</h2>
               {deletePreviewErrorMessage !== "" ? <p className="error-banner">{deletePreviewErrorMessage}</p> : null}
               {deletePreview === null ? (
-                <p className="subtitle">Loading delete details…</p>
+                <p className="subtitle">{t("workspaceOverview.delete.loading")}</p>
               ) : (
                 <>
                   <p className="error-banner settings-delete-warning">
-                    Warning! This action is permanent. It will delete {deletePreview.activeCardCount} active cards from
-                    {" "}{deletePreview.workspaceName}.
+                    {t("workspaceOverview.delete.warning", {
+                      count: formatCount(deletePreview.activeCardCount, {
+                        one: t("settingsWorkspace.countLabels.card.one"),
+                        other: t("settingsWorkspace.countLabels.card.other"),
+                      }),
+                      workspaceName: deletePreview.workspaceName,
+                    })}
                   </p>
                   {deletePreview.isLastAccessibleWorkspace ? (
-                    <p className="subtitle">A new empty Personal workspace will be created immediately after deletion.</p>
+                    <p className="subtitle">{t("workspaceOverview.delete.lastWorkspaceHint")}</p>
                   ) : null}
                   <p className="subtitle settings-delete-phrase" aria-label="confirmation phrase">
                     {deletePreview.confirmationText}
                   </p>
                   <label className="cell-stack" htmlFor="delete-workspace-confirmation">
-                    <span className="cell-secondary">Type the phrase exactly to continue.</span>
+                    <span className="cell-secondary">{t("workspaceOverview.delete.typePhrase")}</span>
                     <input
                       id="delete-workspace-confirmation"
                       className="settings-input"
@@ -370,11 +379,11 @@ export function WorkspaceOverviewScreen(): ReactElement {
             </div>
             <div className="screen-actions">
               <button className="ghost-btn" type="button" disabled={isDeleteSubmitting} onClick={closeDeleteDialog}>
-                Cancel
+                {t("common.cancel")}
               </button>
               {deletePreview === null ? (
                 <button className="primary-btn" type="button" disabled={isDeleteSubmitting} onClick={() => void retryDeletePreview()}>
-                  Retry
+                  {t("common.retry")}
                 </button>
               ) : (
                 <button
@@ -383,7 +392,7 @@ export function WorkspaceOverviewScreen(): ReactElement {
                   disabled={!isDeleteConfirmationMatched || isDeleteSubmitting}
                   onClick={() => void confirmDeleteWorkspace()}
                 >
-                  {isDeleteSubmitting ? "Deleting..." : "Delete workspace"}
+                  {isDeleteSubmitting ? t("workspaceOverview.delete.deleting") : t("workspaceOverview.delete.button")}
                 </button>
               )}
             </div>

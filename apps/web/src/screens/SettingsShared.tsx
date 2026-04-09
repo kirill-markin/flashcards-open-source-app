@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
+import { useI18n } from "../i18n";
 import {
   accountSettingsRoute,
   settingsAccessRoute,
@@ -42,7 +43,13 @@ type SettingsGroupProps = Readonly<{
 
 type SettingsTabItem = Readonly<{
   key: SettingsTab;
-  label: string;
+  labelKey:
+    | "settingsTabs.general"
+    | "settingsTabs.currentWorkspace"
+    | "settingsTabs.workspace"
+    | "settingsTabs.account"
+    | "settingsTabs.device"
+    | "settingsTabs.access";
   to: string;
   end?: boolean;
 }>;
@@ -50,46 +57,47 @@ type SettingsTabItem = Readonly<{
 const settingsTabs: ReadonlyArray<SettingsTabItem> = [
   {
     key: "general",
-    label: "General",
+    labelKey: "settingsTabs.general",
     to: settingsHubRoute,
     end: true,
   },
   {
     key: "current-workspace",
-    label: "Current Workspace",
+    labelKey: "settingsTabs.currentWorkspace",
     to: settingsCurrentWorkspaceRoute,
     end: true,
   },
   {
     key: "workspace",
-    label: "Workspace",
+    labelKey: "settingsTabs.workspace",
     to: workspaceSettingsRoute,
   },
   {
     key: "account",
-    label: "Account",
+    labelKey: "settingsTabs.account",
     to: accountSettingsRoute,
   },
   {
     key: "device",
-    label: "Device",
+    labelKey: "settingsTabs.device",
     to: settingsDeviceRoute,
     end: true,
   },
   {
     key: "access",
-    label: "Access",
+    labelKey: "settingsTabs.access",
     to: settingsAccessRoute,
   },
 ] as const;
 
 export function SettingsShell(props: SettingsShellProps): ReactElement {
   const { title, subtitle, activeTab, children } = props;
+  const { t } = useI18n();
 
   return (
     <main className="container settings-page">
       <section className="panel settings-panel">
-        <nav className="settings-switcher" aria-label="Settings tabs" data-active-tab={activeTab}>
+        <nav className="settings-switcher" aria-label={t("settingsTabs.ariaLabel")} data-active-tab={activeTab}>
           {settingsTabs.map((tab) => (
             <NavLink
               key={tab.key}
@@ -97,7 +105,7 @@ export function SettingsShell(props: SettingsShellProps): ReactElement {
               to={tab.to}
               end={tab.end}
             >
-              {tab.label}
+              {t(tab.labelKey)}
             </NavLink>
           ))}
         </nav>

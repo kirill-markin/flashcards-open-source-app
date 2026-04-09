@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../appData";
 import { useAiCardHandoff } from "../chat/useAiCardHandoff";
+import { useI18n } from "../i18n";
 import { CardFormFields, isCardFormStateDirty, toCardFormState, type CardFormState } from "./CardForm";
 import type { Card, CreateCardInput, TagSuggestion, UpdateCardInput } from "../types";
 import { loadWorkspaceTagsSummary } from "../localDb/workspace";
@@ -18,6 +19,7 @@ function toTagSuggestions(tags: Awaited<ReturnType<typeof loadWorkspaceTagsSumma
 export function CardFormScreen(): ReactElement {
   const { cardId } = useParams();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const { activeWorkspace, getCardById, createCardItem, updateCardItem, deleteCardItem, setErrorMessage, localReadVersion } = useAppData();
   const [currentCard, setCurrentCard] = useState<Card | null>(null);
   const [formState, setFormState] = useState<CardFormState>(toCardFormState(null));
@@ -71,7 +73,7 @@ export function CardFormScreen(): ReactElement {
 
   async function saveCurrentCard(): Promise<Card | null> {
     if (cardId === undefined) {
-      setActionErrorMessage("Card ID is required");
+      setActionErrorMessage(t("cardForm.errors.cardIdRequired"));
       return null;
     }
 
@@ -138,11 +140,11 @@ export function CardFormScreen(): ReactElement {
 
   async function handleDelete(): Promise<void> {
     if (cardId === undefined) {
-      setActionErrorMessage("Card ID is required");
+      setActionErrorMessage(t("cardForm.errors.cardIdRequired"));
       return;
     }
 
-    if (window.confirm("Delete this card?") === false) {
+    if (window.confirm(t("cardForm.deleteConfirmation")) === false) {
       return;
     }
 
@@ -164,8 +166,8 @@ export function CardFormScreen(): ReactElement {
     return (
       <main className="container">
         <section className="panel">
-          <h1 className="title">Card form</h1>
-          <p className="subtitle">Loading card…</p>
+          <h1 className="title">{isCreateMode ? t("cardForm.title.new") : t("cardForm.title.edit")}</h1>
+          <p className="subtitle">{t("cardForm.loading")}</p>
         </section>
       </main>
     );
@@ -175,10 +177,10 @@ export function CardFormScreen(): ReactElement {
     return (
       <main className="container">
         <section className="panel">
-          <h1 className="title">Card form</h1>
+          <h1 className="title">{isCreateMode ? t("cardForm.title.new") : t("cardForm.title.edit")}</h1>
           <p className="error-banner">{loadErrorMessage}</p>
           <button className="primary-btn" type="button" onClick={() => void loadScreenData()}>
-            Retry
+            {t("common.retry")}
           </button>
         </section>
       </main>
@@ -191,19 +193,20 @@ export function CardFormScreen(): ReactElement {
         {actionErrorMessage !== "" ? <p className="error-banner">{actionErrorMessage}</p> : null}
         <div className="screen-head">
           <div>
-            <h1 className="title">{isCreateMode ? "New card" : "Card form"}</h1>
-            <p className="subtitle">Large editor in the same mono system as the tables.</p>
+            <h1 className="title">{isCreateMode ? t("cardForm.title.new") : t("cardForm.title.edit")}</h1>
+            <p className="subtitle">{t("cardForm.subtitle")}</p>
           </div>
           <div className="screen-actions">
-            <Link className="ghost-btn" to={cardsRoute}>Back</Link>
+            <Link className="ghost-btn" to={cardsRoute}>{t("cardForm.actions.back")}</Link>
             {!isCreateMode && currentCard !== null ? (
               <button
                 type="button"
                 className="ghost-btn review-editor-ai-btn"
                 disabled={isSaving || isDeleting}
                 onClick={() => void handleEditWithAi()}
+                data-testid="card-form-edit-with-ai"
               >
-                Edit with AI
+                {t("cardForm.actions.editWithAi")}
               </button>
             ) : null}
             {!isCreateMode ? (
@@ -212,8 +215,9 @@ export function CardFormScreen(): ReactElement {
                 className="ghost-btn settings-danger-btn"
                 disabled={isSaving || isDeleting}
                 onClick={() => void handleDelete()}
+                data-testid="card-form-delete"
               >
-                {isDeleting ? "Deleting…" : "Delete card"}
+                {isDeleting ? t("cardForm.actions.deleting") : t("cardForm.actions.delete")}
               </button>
             ) : null}
             <button
@@ -221,8 +225,9 @@ export function CardFormScreen(): ReactElement {
               className="primary-btn"
               disabled={isSaving || isDeleting}
               onClick={() => void handleSubmit()}
+              data-testid="card-form-save"
             >
-              {isSaving ? "Saving…" : "Save card"}
+              {isSaving ? t("cardForm.actions.saving") : t("cardForm.actions.save")}
             </button>
           </div>
         </div>

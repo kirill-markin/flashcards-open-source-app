@@ -1,6 +1,6 @@
 /**
  * Login page route. Validates redirect_uri origin against ALLOWED_REDIRECT_URIS
- * and serves the HTML login page (English only).
+ * and serves the localized HTML login page.
  *
  * The redirect_uri may include a path so the user returns to the page they
  * originally visited after login. Only the origin is validated.
@@ -9,6 +9,7 @@ import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import { validateSessionToken } from "../server/browserSession.js";
 import { log } from "../server/logger.js";
+import { resolveLoginPageLocale } from "./loginPageLocale.js";
 import { renderLoginPage } from "../templates/login.js";
 
 const app = new Hono();
@@ -58,6 +59,7 @@ export function buildWebsiteHomeUrl(redirectUri: string): string {
 
 app.get("/login", async (c) => {
   const redirectUri = c.req.query("redirect_uri") ?? "";
+  const localeHint = c.req.query("locale");
 
   if (redirectUri === "") {
     return c.text("Missing redirect_uri parameter", 400);
@@ -82,7 +84,8 @@ app.get("/login", async (c) => {
   }
 
   const websiteHomeUrl = buildWebsiteHomeUrl(redirectUri);
-  const html = renderLoginPage(redirectUri, websiteHomeUrl);
+  const locale = resolveLoginPageLocale(localeHint, c.req.header("accept-language"));
+  const html = renderLoginPage(redirectUri, websiteHomeUrl, locale);
   return c.html(html);
 });
 

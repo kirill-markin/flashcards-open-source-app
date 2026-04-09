@@ -1,6 +1,7 @@
 import { act, createElement } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, expect, vi } from "vitest";
+import { I18nProvider } from "../i18n";
 import type { ChatSessionSnapshot } from "../types";
 import { defaultChatConfig } from "./sessionController/config";
 import { ChatDraftProvider } from "./ChatDraftContext";
@@ -603,12 +604,16 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     await act(async () => {
       root?.render(
         createElement(
-          ChatSessionControllerProvider,
+          I18nProvider,
           null,
           createElement(
-            ChatDraftProvider,
+            ChatSessionControllerProvider,
             null,
-            createElement(ChatPanel, { key: mode, mode }),
+            createElement(
+              ChatDraftProvider,
+              null,
+              createElement(ChatPanel, { key: mode, mode }),
+            ),
           ),
         ),
       );

@@ -1,10 +1,9 @@
 import { useEffect, useState, type ReactElement } from "react";
 import {
-  browserPermissionSettingsGuidance,
-  formatBrowserPermissionState,
   queryBrowserPermissionState,
   type BrowserPermissionState,
 } from "../access/browserAccess";
+import { useI18n } from "../i18n";
 import { buildSettingsAccessDetailRoute, settingsNotificationsRoute } from "../routes";
 import { SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
@@ -13,7 +12,28 @@ type BrowserPermissionSnapshot = Readonly<{
   microphone: BrowserPermissionState;
 }>;
 
+function permissionStateKey(state: BrowserPermissionState):
+  | "accessSettings.permission.statusDenied"
+  | "accessSettings.permission.statusGranted"
+  | "accessSettings.permission.statusPrompt"
+  | "accessSettings.permission.statusUnsupported" {
+  if (state === "granted") {
+    return "accessSettings.permission.statusGranted";
+  }
+
+  if (state === "prompt") {
+    return "accessSettings.permission.statusPrompt";
+  }
+
+  if (state === "denied") {
+    return "accessSettings.permission.statusDenied";
+  }
+
+  return "accessSettings.permission.statusUnsupported";
+}
+
 export function AccessSettingsScreen(): ReactElement {
+  const { t } = useI18n();
   const [permissionSnapshot, setPermissionSnapshot] = useState<BrowserPermissionSnapshot>({
     camera: "unsupported",
     microphone: "unsupported",
@@ -42,35 +62,35 @@ export function AccessSettingsScreen(): ReactElement {
 
   return (
     <SettingsShell
-      title="Access"
-      subtitle="Review which browser permissions the chat and attachments can use on this device."
+      title={t("accessSettings.title")}
+      subtitle={t("accessSettings.subtitle")}
       activeTab="access"
     >
       <div className="settings-nav-list">
         <SettingsNavigationCard
-          title="Notifications"
-          description="Review study reminder options for this workspace on the current device."
-          value="This device"
+          title={t("accessSettings.notifications.title")}
+          description={t("accessSettings.notifications.description")}
+          value={t("accessSettings.notifications.value")}
           to={settingsNotificationsRoute}
         />
         <SettingsNavigationCard
-            title="Photos and files"
-            description="Browser file access is granted only when you choose files from the picker."
-            value="Per action"
-            to={buildSettingsAccessDetailRoute("photos-and-files")}
-          />
-          <SettingsNavigationCard
-            title="Camera"
-            description={browserPermissionSettingsGuidance("camera")}
-            value={formatBrowserPermissionState(permissionSnapshot.camera)}
-            to={buildSettingsAccessDetailRoute("camera")}
-          />
-          <SettingsNavigationCard
-            title="Microphone"
-            description={browserPermissionSettingsGuidance("microphone")}
-            value={formatBrowserPermissionState(permissionSnapshot.microphone)}
-            to={buildSettingsAccessDetailRoute("microphone")}
-          />
+          title={t("accessSettings.photosAndFiles.title")}
+          description={t("accessSettings.photosAndFiles.description")}
+          value={t("common.perAction")}
+          to={buildSettingsAccessDetailRoute("photos-and-files")}
+        />
+        <SettingsNavigationCard
+          title={t("accessSettings.permission.titleCamera")}
+          description={t("accessSettings.permission.guidanceCamera")}
+          value={t(permissionStateKey(permissionSnapshot.camera))}
+          to={buildSettingsAccessDetailRoute("camera")}
+        />
+        <SettingsNavigationCard
+          title={t("accessSettings.permission.titleMicrophone")}
+          description={t("accessSettings.permission.guidanceMicrophone")}
+          value={t(permissionStateKey(permissionSnapshot.microphone))}
+          to={buildSettingsAccessDetailRoute("microphone")}
+        />
       </div>
     </SettingsShell>
   );

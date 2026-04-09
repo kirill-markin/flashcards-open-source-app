@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { Link } from "react-router-dom";
+import { useI18n } from "../i18n";
 import type { ReviewFilter } from "../types";
 import type { ReviewFilterChoiceMenuItem, ReviewFilterMenuItem } from "./useReviewFilterMenu";
 
@@ -83,40 +84,42 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
     visibleReviewEffortFilterMenuItems,
     visibleReviewTagFilterMenuItems,
   } = props;
+  const { t } = useI18n();
 
   return (
     <div ref={reviewFilterMenuWrapRef} className="review-filter-menu-wrap">
-      <span className="review-filter-label">Scope</span>
+      <span className="review-filter-label">{t("reviewFilterMenu.scopeLabel")}</span>
       <button
         ref={reviewFilterTriggerRef}
         className={`ghost-btn review-filter-trigger${isReviewFilterMenuOpen ? " review-filter-trigger-open" : ""}`}
         type="button"
         aria-expanded={isReviewFilterMenuOpen}
         aria-haspopup="menu"
-        aria-label="Open review filter"
+        aria-label={t("reviewFilterMenu.openAriaLabel")}
         onClick={handleReviewFilterMenuToggle}
+        data-testid="review-filter-trigger"
       >
         <span className="review-filter-trigger-value">{selectedReviewFilterTitle}</span>
         <span className="review-filter-trigger-chevron" aria-hidden="true">▾</span>
       </button>
       {isReviewFilterMenuOpen ? (
-        <div className="review-filter-menu" role="menu" aria-label="Review filter">
+        <div className="review-filter-menu" role="menu" aria-label={t("reviewFilterMenu.menuAriaLabel")}>
           {shouldShowReviewDeckSearch ? (
             <label className="review-filter-search-field">
-              <span className="review-filter-search-label">Search</span>
+              <span className="review-filter-search-label">{t("reviewFilterMenu.searchLabel")}</span>
               <input
                 ref={reviewDeckSearchInputRef}
                 type="search"
                 name="review-filter-search"
                 className="review-filter-search-input"
-                placeholder="Search decks, effort, or tags"
+                placeholder={t("reviewFilterMenu.searchPlaceholder")}
                 value={reviewDeckSearchText}
                 onChange={(event) => setReviewDeckSearchText(event.target.value)}
               />
             </label>
           ) : null}
           {hasVisibleReviewFilterChoices === false ? (
-            <div className="review-filter-menu-empty" aria-live="polite">No filters found</div>
+            <div className="review-filter-menu-empty" aria-live="polite">{t("reviewFilterMenu.empty")}</div>
           ) : null}
           {visibleReviewDeckFilterMenuItems.map((item) => (
             <button

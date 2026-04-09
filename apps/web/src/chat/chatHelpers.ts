@@ -6,11 +6,15 @@ export const STORAGE_MODEL_KEY = "flashcards-chat-model";
 export const IMAGE_MEDIA_TYPE_PREFIX = "image/";
 export const ATTACHMENT_PAYLOAD_LIMIT_BYTES = 9_961_472;
 export const USER_VISIBLE_ATTACHMENT_LIMIT_MB = 10;
-export const ATTACHMENT_LIMIT_ERROR_MESSAGE = `Attachment payload limit is ${USER_VISIBLE_ATTACHMENT_LIMIT_MB} MB after compression.`;
 export const MIN_WIDTH = 280;
 export const MAX_WIDTH = 600;
 export const AUTO_SCROLL_INTERVAL_MS = 2_000;
 export const AUTO_SCROLL_BOTTOM_THRESHOLD_PX = 24;
+
+export type ChatErrorFallbackMessages = Readonly<{
+  emptyBackendResponse: string;
+  upstreamHtmlResponse: string;
+}>;
 
 /**
  * Clamps the draggable chat sidebar width to the supported layout bounds.
@@ -82,13 +86,17 @@ export function toRequestBodySizeBytes(requestBody: unknown): number {
  * Rewrites backend error text into actionable browser-facing messages when the
  * upstream response body is empty or unexpectedly HTML.
  */
-export function sanitizeErrorText(status: number, raw: string): string {
+export function sanitizeErrorTextWithFallbackMessages(
+  status: number,
+  raw: string,
+  fallbackMessages: ChatErrorFallbackMessages,
+): string {
   if (raw.trim().length === 0 && status === 500) {
-    return "The backend returned an empty error response.";
+    return fallbackMessages.emptyBackendResponse;
   }
 
   if (raw.includes("<html") || raw.includes("<!DOCTYPE")) {
-    return "The request was blocked by an upstream HTML response.";
+    return fallbackMessages.upstreamHtmlResponse;
   }
 
   return raw;

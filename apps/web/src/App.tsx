@@ -9,11 +9,20 @@ import {
   subscribeToAccountDeletionPending,
 } from "./accountDeletion";
 import { AppDataProvider, useAppData } from "./appData";
-import { ApiError, buildLoginUrl, buildLogoutLocalUrl, buildLogoutUrl, deleteMyAccount, primeSessionCsrfToken } from "./api";
+import {
+  ApiError,
+  buildLoginUrl,
+  buildLogoutLocalUrl,
+  buildLogoutUrl,
+  deleteMyAccount,
+  getPreferredAuthUiLocale,
+  primeSessionCsrfToken,
+} from "./api";
 import { ChatDraftProvider } from "./chat/ChatDraftContext";
 import { ChatLayoutProvider, useChatLayout } from "./chat/ChatLayoutContext";
 import { ChatSessionControllerProvider } from "./chat/sessionController";
 import { ChatToggle } from "./chat/ChatToggle";
+import { type TranslationKey, useI18n } from "./i18n";
 import {
   accountAgentConnectionsRoute,
   accountDangerZoneRoute,
@@ -40,7 +49,7 @@ import {
   settingsTagsRoute,
   workspaceSettingsRoute,
 } from "./routes";
-import { isWorkspaceManagementLocked, workspaceManagementLockedBannerMessage } from "./workspaceManagement";
+import { isWorkspaceManagementLocked } from "./workspaceManagement";
 import { CardFormScreen } from "./screens/CardFormScreen";
 import { CardsScreen } from "./screens/CardsScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
@@ -107,13 +116,14 @@ const WorkspaceSettingsScreen = lazy(async () => import("./screens/WorkspaceSett
   default: module.WorkspaceSettingsScreen,
 })));
 
-function RouteContentFallback(props: Readonly<{ message: string }>): ReactElement {
-  const { message } = props;
+function RouteContentFallback(props: Readonly<{ messageKey: TranslationKey }>): ReactElement {
+  const { messageKey } = props;
+  const { t } = useI18n();
 
   return (
     <main className="container">
       <section className="panel">
-        <p className="subtitle">{message}</p>
+        <p className="subtitle">{t(messageKey)}</p>
       </section>
     </main>
   );
@@ -121,16 +131,17 @@ function RouteContentFallback(props: Readonly<{ message: string }>): ReactElemen
 
 function SidebarChatFallback(): ReactElement {
   const { chatWidth } = useChatLayout();
+  const { t } = useI18n();
 
   return (
     <section className="chat-sidebar chat-sidebar-loading" style={{ width: chatWidth }}>
       <div className="chat-loading-shell">
         <div className="chat-header">
-          <span className="chat-header-title">AI chat</span>
+          <span className="chat-header-title">{t("navigation.aiChat")}</span>
         </div>
         <div className="chat-messages">
           <div className="chat-empty chat-empty-loading">
-            <p className="chat-empty-title">Loading AI chat…</p>
+            <p className="chat-empty-title">{t("loading.aiChat")}</p>
             <div className="chat-loading-lines" aria-hidden="true">
               <span className="chat-loading-line chat-loading-line-title" />
               <span className="chat-loading-line" />
@@ -154,15 +165,17 @@ function SidebarChatFallback(): ReactElement {
 }
 
 function FullscreenChatFallback(): ReactElement {
+  const { t } = useI18n();
+
   return (
     <section className="chat-sidebar-fullscreen chat-sidebar-fullscreen-loading">
       <div className="chat-loading-shell">
         <div className="chat-header">
-          <span className="chat-header-title">AI chat</span>
+          <span className="chat-header-title">{t("navigation.aiChat")}</span>
         </div>
         <div className="chat-messages">
           <div className="chat-empty chat-empty-loading">
-            <p className="chat-empty-title">Loading AI chat…</p>
+            <p className="chat-empty-title">{t("loading.aiChat")}</p>
             <div className="chat-loading-lines" aria-hidden="true">
               <span className="chat-loading-line chat-loading-line-title" />
               <span className="chat-loading-line" />
@@ -187,10 +200,10 @@ function FullscreenChatFallback(): ReactElement {
 
 function renderDeferredRoute(
   element: ReactElement,
-  message: string,
+  messageKey: TranslationKey,
 ): ReactElement {
   return (
-    <Suspense fallback={<RouteContentFallback message={message} />}>
+    <Suspense fallback={<RouteContentFallback messageKey={messageKey} />}>
       {element}
     </Suspense>
   );
@@ -217,6 +230,7 @@ function LegacyDeckEditRedirect(): ReactElement {
 }
 
 export function AppShell(): ReactElement {
+  const { t, formatDateTime } = useI18n();
   const {
     sessionLoadState,
     sessionVerificationState,
@@ -235,8 +249,9 @@ export function AppShell(): ReactElement {
   const [isAccountDeletionPendingState, setIsAccountDeletionPendingState] = useState<boolean>(isAccountDeletionPending);
   const [accountDeletionErrorMessage, setAccountDeletionErrorMessage] = useState<string>("");
   const [isAccountDeletionSubmitting, setIsAccountDeletionSubmitting] = useState<boolean>(false);
-  const sessionRestoringMessage = sessionVerificationState === "unverified" ? "Restoring session..." : "";
+  const sessionRestoringMessage = sessionVerificationState === "unverified" ? t("loading.restoringSession") : "";
   const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
+  const workspaceManagementLockedMessage = t("workspaceManagement.lockedMessage");
 
   const completeAccountDeletion = useCallback(async function completeAccountDeletion(): Promise<void> {
     if (isSessionVerified === false) {
@@ -286,11 +301,11 @@ export function AppShell(): ReactElement {
     return (
       <main className="page-state">
         <section className="panel panel-center state-panel">
-          <h1 className="title">Deleting account</h1>
+          <h1 className="title">{t("app.deleteAccountTitle")}</h1>
           <p className="subtitle">
             {isSessionVerified
-              ? "Your account deletion is in progress. Do not close this page unless you plan to come back and retry."
-              : "Restoring session before account deletion..."}
+              ? t("app.deleteAccountInProgress")
+              : t("app.deleteAccountRestoring")}
           </p>
           {accountDeletionErrorMessage !== "" ? <p className="error-banner">{accountDeletionErrorMessage}</p> : null}
           <button
@@ -299,7 +314,7 @@ export function AppShell(): ReactElement {
             disabled={isAccountDeletionSubmitting}
             onClick={() => void completeAccountDeletion()}
           >
-            {isAccountDeletionSubmitting ? "Deleting..." : "Retry deletion"}
+            {isAccountDeletionSubmitting ? t("app.deleting") : t("app.deleteAccountRetry")}
           </button>
         </section>
       </main>
@@ -310,7 +325,7 @@ export function AppShell(): ReactElement {
     return (
       <main className="page-state">
         <section className="panel panel-center state-panel">
-          <p className="subtitle">{sessionLoadState === "redirecting" ? "Redirecting to login…" : "Loading…"}</p>
+          <p className="subtitle">{sessionLoadState === "redirecting" ? t("loading.redirectingToLogin") : t("loading.generic")}</p>
         </section>
       </main>
     );
@@ -320,10 +335,10 @@ export function AppShell(): ReactElement {
     return (
       <main className="page-state">
         <section className="panel panel-center state-panel">
-          <h1 className="title">Flashcards</h1>
+          <h1 className="title">{t("app.title")}</h1>
           <p className="error-banner">{sessionErrorMessage}</p>
           <button className="primary-btn" type="button" onClick={() => void initialize()}>
-            Retry
+            {t("common.retry")}
           </button>
         </section>
       </main>
@@ -334,10 +349,10 @@ export function AppShell(): ReactElement {
     return (
       <main className="page-state">
         <section className="panel panel-center state-panel">
-          <h1 className="title">Flashcards</h1>
+          <h1 className="title">{t("app.title")}</h1>
           <p className="subtitle">{sessionErrorMessage}</p>
-          <a className="primary-btn" href={buildLoginUrl(window.location.origin)}>
-            Sign in again
+          <a className="primary-btn" href={buildLoginUrl(window.location.origin, getPreferredAuthUiLocale())}>
+            {t("app.signInAgain")}
           </a>
         </section>
       </main>
@@ -348,10 +363,8 @@ export function AppShell(): ReactElement {
     return (
       <main className="page-state">
         <section className="panel panel-center workspace-modal state-panel">
-          <h1 className="title">Choose workspace</h1>
-          <p className="subtitle">
-            Select which existing workspace should receive the local browser data from this device.
-          </p>
+          <h1 className="title">{t("app.chooseWorkspaceTitle")}</h1>
+          <p className="subtitle">{t("app.chooseWorkspaceSubtitle")}</p>
           <div className="workspace-choice-list">
             {availableWorkspaces.map((workspace) => (
               <button
@@ -362,7 +375,7 @@ export function AppShell(): ReactElement {
                 disabled={isChoosingWorkspace}
               >
                 <span className="workspace-choice-name">{workspace.name}</span>
-                <span className="workspace-choice-meta">{workspace.createdAt}</span>
+                <span className="workspace-choice-meta">{formatDateTime(workspace.createdAt)}</span>
               </button>
             ))}
           </div>
@@ -383,33 +396,33 @@ export function AppShell(): ReactElement {
                   <span className="brand-full">flashcards-open-source-app</span>
                   <span className="brand-short">flashcards</span>
                 </a>
-                {isSyncing ? <span className="topbar-sync-status">Syncing...</span> : null}
+                {isSyncing ? <span className="topbar-sync-status">{t("app.syncing")}</span> : null}
                 {!isSyncing && sessionRestoringMessage !== "" ? <span className="topbar-sync-status">{sessionRestoringMessage}</span> : null}
               </div>
-              <p className="topbar-workspace">{activeWorkspace?.name ?? "Workspace unavailable"}</p>
+              <p className="topbar-workspace">{activeWorkspace?.name ?? t("app.workspaceUnavailable")}</p>
             </div>
-            <nav className="nav" aria-label="Primary">
+            <nav className="nav" aria-label={t("shell.primaryNavigation")}>
               <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={reviewRoute}>
-                Review
+                {t("navigation.review")}
               </NavLink>
               <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={cardsRoute}>
-                Cards
+                {t("navigation.cards")}
               </NavLink>
               <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={chatRoute}>
-                AI chat
+                {t("navigation.aiChat")}
               </NavLink>
               <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={settingsHubRoute}>
-                Settings
+                {t("navigation.settings")}
               </NavLink>
             </nav>
             <div className="topbar-actions">
               <AccountMenu
                 workspaces={availableWorkspaces}
                 currentWorkspaceId={activeWorkspace?.workspaceId ?? ""}
-                currentWorkspaceName={activeWorkspace?.name ?? "Unavailable"}
+                currentWorkspaceName={activeWorkspace?.name ?? t("common.unavailable")}
                 isBusy={isChoosingWorkspace}
                 isWorkspaceManagementLocked={isWorkspaceLocked}
-                workspaceManagementLockedMessage={workspaceManagementLockedBannerMessage}
+                workspaceManagementLockedMessage={workspaceManagementLockedMessage}
                 accountSettingsUrl={accountSettingsRoute}
                 logoutUrl={buildLogoutUrl()}
                 onSelectWorkspace={chooseWorkspace}
@@ -483,30 +496,30 @@ export function RoutedShell(): ReactElement {
           <Route path="/decks/:deckId" element={<LegacyDeckDetailRedirect />} />
           <Route path="/tags" element={<Navigate replace to={settingsTagsRoute} />} />
           <Route path={reviewRoute} element={<ReviewScreen />} />
-          <Route path={settingsHubRoute} element={renderDeferredRoute(<SettingsScreen />, "Loading settings…")} />
+          <Route path={settingsHubRoute} element={renderDeferredRoute(<SettingsScreen />, "loading.settings")} />
           <Route
             path={settingsCurrentWorkspaceRoute}
-            element={renderDeferredRoute(<CurrentWorkspaceScreen />, "Loading current workspace…")}
+            element={renderDeferredRoute(<CurrentWorkspaceScreen />, "loading.currentWorkspace")}
           />
-          <Route path={settingsAccessRoute} element={renderDeferredRoute(<AccessSettingsScreen />, "Loading access settings…")} />
-          <Route path={settingsAccessDetailRoutePattern} element={renderDeferredRoute(<AccessPermissionDetailScreen />, "Loading access details…")} />
-          <Route path={workspaceSettingsRoute} element={renderDeferredRoute(<WorkspaceSettingsScreen />, "Loading workspace settings…")} />
-          <Route path={settingsNotificationsRoute} element={renderDeferredRoute(<NotificationsSettingsScreen />, "Loading notification settings…")} />
-          <Route path={settingsOverviewRoute} element={renderDeferredRoute(<WorkspaceOverviewScreen />, "Loading workspace overview…")} />
-          <Route path={settingsSchedulerRoute} element={renderDeferredRoute(<WorkspaceSchedulerScreen />, "Loading scheduler settings…")} />
-          <Route path={settingsExportRoute} element={renderDeferredRoute(<WorkspaceExportScreen />, "Loading export settings…")} />
-          <Route path={settingsDecksRoute} element={renderDeferredRoute(<DecksScreen />, "Loading decks…")} />
-          <Route path={settingsDeckNewRoute} element={renderDeferredRoute(<DeckFormScreen />, "Loading deck editor…")} />
-          <Route path={`${settingsDecksRoute}/:deckId/edit`} element={renderDeferredRoute(<DeckFormScreen />, "Loading deck editor…")} />
-          <Route path={`${settingsDecksRoute}/:deckId`} element={renderDeferredRoute(<DeckDetailScreen />, "Loading deck details…")} />
-          <Route path={settingsTagsRoute} element={renderDeferredRoute(<TagsScreen />, "Loading tags…")} />
-          <Route path={settingsDeviceRoute} element={renderDeferredRoute(<ThisDeviceSettingsScreen />, "Loading device details…")} />
-          <Route path={accountSettingsRoute} element={renderDeferredRoute(<AccountSettingsScreen />, "Loading account settings…")} />
-          <Route path={accountStatusRoute} element={renderDeferredRoute(<AccountStatusScreen />, "Loading account status…")} />
-          <Route path={accountLegalSupportRoute} element={renderDeferredRoute(<LegalSupportScreen />, "Loading legal support…")} />
-          <Route path={accountOpenSourceRoute} element={renderDeferredRoute(<OpenSourceSettingsScreen />, "Loading open-source settings…")} />
-          <Route path={accountAgentConnectionsRoute} element={renderDeferredRoute(<AgentConnectionsScreen />, "Loading agent connections…")} />
-          <Route path={accountDangerZoneRoute} element={renderDeferredRoute(<DangerZoneScreen />, "Loading danger zone…")} />
+          <Route path={settingsAccessRoute} element={renderDeferredRoute(<AccessSettingsScreen />, "loading.accessSettings")} />
+          <Route path={settingsAccessDetailRoutePattern} element={renderDeferredRoute(<AccessPermissionDetailScreen />, "loading.accessDetails")} />
+          <Route path={workspaceSettingsRoute} element={renderDeferredRoute(<WorkspaceSettingsScreen />, "loading.workspaceSettings")} />
+          <Route path={settingsNotificationsRoute} element={renderDeferredRoute(<NotificationsSettingsScreen />, "loading.notificationSettings")} />
+          <Route path={settingsOverviewRoute} element={renderDeferredRoute(<WorkspaceOverviewScreen />, "loading.workspaceOverview")} />
+          <Route path={settingsSchedulerRoute} element={renderDeferredRoute(<WorkspaceSchedulerScreen />, "loading.schedulerSettings")} />
+          <Route path={settingsExportRoute} element={renderDeferredRoute(<WorkspaceExportScreen />, "loading.exportSettings")} />
+          <Route path={settingsDecksRoute} element={renderDeferredRoute(<DecksScreen />, "loading.decks")} />
+          <Route path={settingsDeckNewRoute} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
+          <Route path={`${settingsDecksRoute}/:deckId/edit`} element={renderDeferredRoute(<DeckFormScreen />, "loading.deckEditor")} />
+          <Route path={`${settingsDecksRoute}/:deckId`} element={renderDeferredRoute(<DeckDetailScreen />, "loading.deckDetails")} />
+          <Route path={settingsTagsRoute} element={renderDeferredRoute(<TagsScreen />, "loading.tags")} />
+          <Route path={settingsDeviceRoute} element={renderDeferredRoute(<ThisDeviceSettingsScreen />, "loading.deviceDetails")} />
+          <Route path={accountSettingsRoute} element={renderDeferredRoute(<AccountSettingsScreen />, "loading.accountSettings")} />
+          <Route path={accountStatusRoute} element={renderDeferredRoute(<AccountStatusScreen />, "loading.accountStatus")} />
+          <Route path={accountLegalSupportRoute} element={renderDeferredRoute(<LegalSupportScreen />, "loading.legalSupport")} />
+          <Route path={accountOpenSourceRoute} element={renderDeferredRoute(<OpenSourceSettingsScreen />, "loading.openSourceSettings")} />
+          <Route path={accountAgentConnectionsRoute} element={renderDeferredRoute(<AgentConnectionsScreen />, "loading.agentConnections")} />
+          <Route path={accountDangerZoneRoute} element={renderDeferredRoute(<DangerZoneScreen />, "loading.dangerZone")} />
           <Route
             path={chatRoute}
             element={(

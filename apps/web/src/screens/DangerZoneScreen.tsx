@@ -6,10 +6,12 @@ import {
   storeAccountDeletionCsrfToken,
 } from "../accountDeletion";
 import { getCachedSessionCsrfToken } from "../api";
+import { useI18n } from "../i18n";
 import { SettingsShell } from "./SettingsShared";
 
 export function DangerZoneScreen(): ReactElement {
   const { isSessionVerified } = useAppData();
+  const { t } = useI18n();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [deleteConfirmationValue, setDeleteConfirmationValue] = useState<string>("");
 
@@ -54,17 +56,17 @@ export function DangerZoneScreen(): ReactElement {
   return (
     <>
       <SettingsShell
-        title="Danger Zone"
-        subtitle="Delete the account and all cloud data."
+        title={t("dangerZone.title")}
+        subtitle={t("dangerZone.subtitle")}
         activeTab="account"
       >
         <section className="content-card settings-danger-card">
           <div className="cell-stack">
-            <h2 className="panel-subtitle">Delete account</h2>
+            <h2 className="panel-subtitle">{t("dangerZone.deleteTitle")}</h2>
             <p className="subtitle">
               {isSessionVerified
-                ? "Permanently delete this account and all cloud data."
-                : "Restoring session before account deletion..."}
+                ? t("dangerZone.deleteDescription")
+                : t("dangerZone.restoringDescription")}
             </p>
           </div>
           <div className="screen-actions">
@@ -74,7 +76,7 @@ export function DangerZoneScreen(): ReactElement {
               onClick={openDeleteDialog}
               disabled={isSessionVerified === false}
             >
-              Delete my account
+              {t("dangerZone.deleteButton")}
             </button>
           </div>
         </section>
@@ -89,15 +91,15 @@ export function DangerZoneScreen(): ReactElement {
         >
           <div className="panel settings-delete-dialog">
             <div className="cell-stack">
-              <h2 id="delete-account-title" className="panel-subtitle">Delete my account</h2>
+              <h2 id="delete-account-title" className="panel-subtitle">{t("dangerZone.dialogTitle")}</h2>
               <p className="error-banner settings-delete-warning">
-                Warning! This action is permanent. You will lose all your data forever, and we will not be able to restore it.
+                {t("dangerZone.dialogWarning")}
               </p>
               <p className="subtitle settings-delete-phrase" aria-label="confirmation phrase">
                 {deleteAccountConfirmationText}
               </p>
               <label className="cell-stack" htmlFor="delete-account-confirmation">
-                <span className="cell-secondary">Type the phrase exactly to continue.</span>
+                <span className="cell-secondary">{t("dangerZone.typePhrase")}</span>
                 <input
                   id="delete-account-confirmation"
                   className="settings-input"
@@ -122,7 +124,7 @@ export function DangerZoneScreen(): ReactElement {
             </div>
             <div className="screen-actions">
               <button className="ghost-btn" type="button" onClick={closeDeleteDialog}>
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 className="ghost-btn settings-danger-btn"
@@ -130,7 +132,7 @@ export function DangerZoneScreen(): ReactElement {
                 disabled={!isDeleteConfirmationMatched}
                 onClick={startAccountDeletion}
               >
-                Delete my account
+                {t("dangerZone.deleteButton")}
               </button>
             </div>
           </div>

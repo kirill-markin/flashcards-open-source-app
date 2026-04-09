@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { translationCatalogs } from "../i18n";
 import type { ContentPart, ReasoningSummaryContentPart, ToolCallContentPart } from "../types";
 
 export type StoredMessage = Readonly<{
@@ -31,12 +32,19 @@ export type ChatHistoryState = Readonly<{
   clearHistory: () => void;
 }>;
 
-export const OPTIMISTIC_ASSISTANT_STATUS_TEXT = "Looking through your cards...";
+const OPTIMISTIC_ASSISTANT_STATUS_TEXTS = new Set<string>([
+  translationCatalogs.en.chatPanel.status.searchingCards,
+  translationCatalogs.es.chatPanel.status.searchingCards,
+]);
+
+export function isOptimisticAssistantStatusText(text: string): boolean {
+  return OPTIMISTIC_ASSISTANT_STATUS_TEXTS.has(text);
+}
 
 function isOptimisticAssistantStatusContent(content: ReadonlyArray<ContentPart>): boolean {
   return content.length === 1
     && content[0]?.type === "text"
-    && content[0].text === OPTIMISTIC_ASSISTANT_STATUS_TEXT;
+    && isOptimisticAssistantStatusText(content[0].text);
 }
 
 export function appendAssistantErrorContent(

@@ -19,7 +19,7 @@ export async function runWorkspaceCleanupFlow(session: LiveSmokeSession): Promis
 
 async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
-  const settingsTabs = page.getByRole("navigation", { name: "Settings tabs" });
+  const settingsTabs = page.locator(".settings-switcher");
   const hasSettingsTabs = await trackedIsVisible(
     diagnostics,
     "check whether settings tabs are already visible before cleanup",
@@ -30,7 +30,7 @@ async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void
     await trackedClick(
       diagnostics,
       "open settings navigation before cleanup",
-      page.getByRole("link", { name: "Settings", exact: true }),
+      page.locator('nav.nav a[href="/settings"]').first(),
     );
     await trackedExpectVisible(
       diagnostics,
@@ -40,40 +40,38 @@ async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void
     );
   }
 
-  const overviewHeading = page.getByRole("heading", { name: "Overview" });
-  const startsOnOverview = await trackedIsVisible(
-    diagnostics,
+  const startsOnOverview = await diagnostics.runAction(
     "check whether cleanup already starts on workspace overview",
-    overviewHeading,
+    async () => page.url().endsWith("/settings/workspace/overview"),
   );
 
   if (startsOnOverview === false) {
     await trackedClick(
       diagnostics,
       "open workspace tab from settings shell",
-      page.getByRole("link", { name: "Workspace", exact: true }),
+      page.locator('.settings-switcher a[href="/settings/workspace"]').first(),
     );
     await trackedExpectVisible(
       diagnostics,
       "confirm workspace settings screen is visible",
-      page.getByRole("heading", { name: "Workspace Settings" }),
+      page.locator(".settings-panel"),
       localUiTimeoutMs,
     );
     await trackedClick(
       diagnostics,
       "open workspace overview screen",
-      page.locator(".settings-nav-card").filter({ hasText: "Overview" }).first(),
+      page.locator('a[href="/settings/workspace/overview"]').first(),
     );
     await trackedExpectVisible(
       diagnostics,
       "confirm workspace overview screen is visible",
-      overviewHeading,
+      page.locator('button.settings-danger-btn').first(),
       localUiTimeoutMs,
     );
   }
 
-  await trackedClick(diagnostics, "open delete workspace dialog", page.getByRole("button", { name: "Delete workspace" }));
-  const deleteDialog = page.getByRole("dialog", { name: "Delete workspace" });
+  await trackedClick(diagnostics, "open delete workspace dialog", page.locator('button.settings-danger-btn').first());
+  const deleteDialog = page.locator(".settings-delete-dialog-backdrop");
   await trackedExpectVisible(
     diagnostics,
     "confirm delete workspace dialog is visible",
@@ -83,8 +81,8 @@ async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void
 
   await waitForDeleteWorkspaceConfirmation(page, diagnostics, deleteDialog);
 
-  const confirmationInput = deleteDialog.getByLabel("Type the phrase exactly to continue.");
-  const confirmationPhraseLabel = deleteDialog.getByLabel("confirmation phrase");
+  const confirmationInput = deleteDialog.locator("#delete-workspace-confirmation");
+  const confirmationPhraseLabel = deleteDialog.locator(".settings-delete-phrase");
   const confirmationPhrase = await trackedReadRequiredTextContent(
     diagnostics,
     "read delete workspace confirmation phrase after details resolve",
@@ -101,7 +99,7 @@ async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void
   await trackedClick(
     diagnostics,
     `submit workspace deletion for ${scenario.workspaceName}`,
-    deleteDialog.getByRole("button", { name: "Delete workspace" }),
+    deleteDialog.locator(".screen-actions .settings-danger-btn").first(),
   );
   await trackedExpectNotText(
     diagnostics,

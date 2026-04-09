@@ -1,4 +1,5 @@
 import { type FormEvent, type ReactElement, useEffect, useRef, useState } from "react";
+import { useI18n } from "./i18n";
 import type { WorkspaceSummary } from "./types";
 import { useTransientMessage } from "./useTransientMessage";
 
@@ -28,6 +29,7 @@ export function AccountMenu(props: Props): ReactElement {
     onSelectWorkspace,
     onCreateWorkspace,
   } = props;
+  const { t, formatDateTime } = useI18n();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState<string>("");
@@ -106,7 +108,7 @@ export function AccountMenu(props: Props): ReactElement {
 
     const trimmedName = newWorkspaceName.trim();
     if (trimmedName === "") {
-      setErrorMessage("Workspace name is required");
+      setErrorMessage(t("accountMenu.workspaceNameRequired"));
       return;
     }
 
@@ -130,7 +132,7 @@ export function AccountMenu(props: Props): ReactElement {
         onClick={() => setIsOpen((currentValue) => !currentValue)}
         aria-expanded={isOpen}
         aria-haspopup="true"
-        aria-label="Open account menu"
+        aria-label={t("accountMenu.openButtonLabel")}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="8" r="4" />
@@ -140,7 +142,7 @@ export function AccountMenu(props: Props): ReactElement {
       {isOpen ? (
         <div ref={menuRef} className="account-menu-dropdown">
           {message === "" ? null : <div className="account-menu-banner" role="status">{message}</div>}
-          <div className="account-menu-section-label">Current Workspace</div>
+          <div className="account-menu-section-label">{t("accountMenu.currentWorkspaceSection")}</div>
           {isWorkspaceManagementLocked ? (
             <button
               className="account-menu-item account-menu-item-muted"
@@ -159,7 +161,10 @@ export function AccountMenu(props: Props): ReactElement {
                   onClick={() => void handleWorkspaceSelect(workspace.workspaceId)}
                   disabled={isBusy}
                 >
-                  {workspace.name}
+                  <span className="cell-stack">
+                    <span>{workspace.name}</span>
+                    <span className="cell-secondary">{formatDateTime(workspace.createdAt)}</span>
+                  </span>
                 </button>
               ))}
             </>
@@ -174,7 +179,7 @@ export function AccountMenu(props: Props): ReactElement {
               }}
               disabled={isBusy}
             >
-              + New workspace
+              + {t("accountMenu.newWorkspace")}
             </button>
           ) : (
             <form className="account-menu-create-form" onSubmit={(event) => void handleCreateWorkspace(event)}>
@@ -182,7 +187,7 @@ export function AccountMenu(props: Props): ReactElement {
                 ref={inputRef}
                 className="account-menu-create-input"
                 type="text"
-                placeholder="Workspace name"
+                placeholder={t("accountMenu.workspaceNamePlaceholder")}
                 value={newWorkspaceName}
                 onChange={(event) => setNewWorkspaceName(event.target.value)}
                 disabled={isBusy}
@@ -192,10 +197,10 @@ export function AccountMenu(props: Props): ReactElement {
           )}
           <div className="account-menu-separator" />
           <a className="account-menu-item account-menu-link" href={accountSettingsUrl}>
-            Account settings
+            {t("accountMenu.accountSettings")}
           </a>
           <a className="account-menu-item account-menu-link" href={logoutUrl}>
-            Logout
+            {t("accountMenu.logout")}
           </a>
         </div>
       ) : null}

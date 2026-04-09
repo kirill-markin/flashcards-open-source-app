@@ -26,11 +26,11 @@ export async function runResetProgressFlow(session: LiveSmokeSession): Promise<v
 async function confirmReviewedManualCardStillExists(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
 
-  await trackedClick(diagnostics, "open cards navigation before reset", page.getByRole("link", { name: "Cards", exact: true }));
+  await trackedClick(diagnostics, "open cards navigation before reset", page.locator('nav.nav a[href="/cards"]').first());
   await trackedFill(
     diagnostics,
     `search cards for ${scenario.manualFrontText}`,
-    page.getByPlaceholder("Search front, back, or tags"),
+    page.getByTestId("cards-search-input"),
     scenario.manualFrontText,
   );
   await trackedExpectVisible(
@@ -44,25 +44,25 @@ async function confirmReviewedManualCardStillExists(session: LiveSmokeSession): 
 async function completeResetProgressFlow(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics } = session;
 
-  await trackedClick(diagnostics, "open settings navigation before reset", page.getByRole("link", { name: "Settings", exact: true }));
+  await trackedClick(diagnostics, "open settings navigation before reset", page.locator('nav.nav a[href="/settings"]').first());
   await trackedClick(
     diagnostics,
     "open workspace settings screen before reset",
-    page.getByRole("navigation", { name: "Settings tabs" }).getByRole("link", { name: "Workspace", exact: true }),
+    page.locator('.settings-switcher a[href="/settings/workspace"]').first(),
   );
   await trackedExpectVisible(
     diagnostics,
     "confirm workspace settings screen is visible before reset",
-    page.getByRole("heading", { name: "Workspace Settings" }),
+    page.locator(".settings-panel"),
     localUiTimeoutMs,
   );
   await trackedClick(
     diagnostics,
     "open reset all progress dialog",
-    page.getByRole("button", { name: "Reset all progress" }),
+    page.locator('button.settings-danger-btn').first(),
   );
 
-  const resetDialog = page.getByRole("dialog", { name: "Reset all progress" });
+  const resetDialog = page.locator(".settings-delete-dialog-backdrop");
   await trackedExpectVisible(
     diagnostics,
     "confirm reset all progress dialog is visible",
@@ -80,13 +80,13 @@ async function completeResetProgressFlow(session: LiveSmokeSession): Promise<voi
   await trackedFill(
     diagnostics,
     `enter reset progress confirmation phrase ${confirmationPhrase}`,
-    resetDialog.getByRole("textbox", { name: "Confirmation phrase", exact: true }),
+    resetDialog.locator("#reset-workspace-progress-confirmation"),
     confirmationPhrase,
   );
   await trackedClick(
     diagnostics,
     "continue to reset progress preview",
-    resetDialog.getByRole("button", { name: "Continue" }),
+    resetDialog.locator(".screen-actions .settings-danger-btn").first(),
   );
 
   const resetPreviewCount = page.getByTestId("workspace-reset-progress-preview-count");
@@ -100,14 +100,14 @@ async function completeResetProgressFlow(session: LiveSmokeSession): Promise<voi
   await trackedClick(
     diagnostics,
     "confirm reset all progress",
-    resetDialog.getByRole("button", { name: "OK" }),
+    resetDialog.locator(".screen-actions .primary-btn").first(),
   );
 }
 
 async function confirmReviewedManualCardBecomesDueAgain(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
 
-  await trackedClick(diagnostics, "open review navigation after reset", page.getByRole("link", { name: "Review", exact: true }));
+  await trackedClick(diagnostics, "open review navigation after reset", page.locator('nav.nav a[href="/review"]').first());
   await trackedExpectVisible(
     diagnostics,
     `confirm the reviewed card becomes due again: ${scenario.manualFrontText}`,

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { useAppData } from "../appData";
 import { ALL_CARDS_REVIEW_FILTER, currentReviewCard, isCardDue } from "../appData/domain";
+import { useI18n } from "../i18n";
 import type { Card, WorkspaceSchedulerSettings } from "../types";
 import { computeReviewSchedule, type ReviewRating } from "../../../backend/src/schedule";
 import { classifyReviewContentPresentation } from "./reviewContentPresentation";
@@ -24,31 +25,25 @@ import { useReviewKeyboardShortcuts } from "./useReviewKeyboardShortcuts";
 import { useReviewScreenData } from "./useReviewScreenData";
 import { makeReviewSpeakableText, type ReviewSpeechSide, useReviewSpeech } from "./reviewSpeech";
 import { isCardFormStateDirty } from "./CardForm";
+import { formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "./featureFormatting";
 
 type ReviewButtonOption = Readonly<{
   intervalDescription: string;
   rating: 0 | 1 | 2 | 3;
+  testId: "again" | "good" | "hard" | "easy";
   title: string;
 }>;
 
-const EMPTY_BACK_TEXT_PLACEHOLDER = "No back text";
 const REVIEW_BUTTONS_PER_COLUMN = 2;
 const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
 const REVIEW_MARKDOWN_SYMBOL_ONLY_LIST_ITEM_PATTERN = /^(\s{0,3}[-*+]\s+)([+*\-#>])(\s*)$/;
 
 type MarkdownFenceMarker = "`" | "~";
 
-const reviewAnswerOptions: ReadonlyArray<Readonly<{
-  rating: ReviewRating;
-  title: string;
-}>> = [
-  { title: "Again", rating: 0 },
-  { title: "Good", rating: 2 },
-  { title: "Hard", rating: 1 },
-  { title: "Easy", rating: 3 },
-];
+const reviewAnswerOptions: ReadonlyArray<ReviewRating> = [0, 2, 1, 3];
 
 type ReviewCardSideProps = Readonly<{
+  aiButtonAriaLabel: string | null;
   contentClassName: string;
   isSpeaking: boolean;
   label: string;
@@ -56,45 +51,95 @@ type ReviewCardSideProps = Readonly<{
   onToggleSpeech: () => void;
   showAiButton: boolean;
   showSpeechButton: boolean;
+  speechButtonAriaLabel: string | null;
   surfaceClassName?: string;
   text: string;
 }>;
 
-function formatTimestamp(value: string | null): string {
-  if (value === null) {
-    return "new";
+function reviewRatingTitle(
+  rating: ReviewRating,
+  t: ReturnType<typeof useI18n>["t"],
+): string {
+  if (rating === 0) {
+    return t("reviewScreen.ratings.again");
   }
 
-  return new Date(value).toLocaleString();
+  if (rating === 1) {
+    return t("reviewScreen.ratings.hard");
+  }
+
+  if (rating === 2) {
+    return t("reviewScreen.ratings.good");
+  }
+
+  return t("reviewScreen.ratings.easy");
 }
 
-function renderTags(tags: ReadonlyArray<string>): string {
-  return tags.length === 0 ? "—" : tags.join(", ");
+function reviewRatingTestId(rating: ReviewRating): "again" | "good" | "hard" | "easy" {
+  if (rating === 0) {
+    return "again";
+  }
+
+  if (rating === 1) {
+    return "hard";
+  }
+
+  if (rating === 2) {
+    return "good";
+  }
+
+  return "easy";
 }
 
-function formatReviewIntervalDescription(now: Date, dueAt: Date): string {
+function formatReviewIntervalDescription(
+  now: Date,
+  dueAt: Date,
+  t: ReturnType<typeof useI18n>["t"],
+  formatCount: ReturnType<typeof useI18n>["formatCount"],
+): string {
   const durationMilliseconds = Math.max(dueAt.getTime() - now.getTime(), 0);
   const durationSeconds = Math.floor(durationMilliseconds / 1000);
 
   if (durationSeconds < 60) {
-    return "in less than a minute";
+    return t("reviewScreen.interval.lessThanMinute");
   }
 
   const durationMinutes = Math.floor(durationSeconds / 60);
   if (durationMinutes < 60) {
-    return `in ${durationMinutes} minute${durationMinutes === 1 ? "" : "s"}`;
+    return t("reviewScreen.interval.inCount", {
+      count: formatCount(durationMinutes, {
+        one: t("common.countLabels.minute.one"),
+        other: t("common.countLabels.minute.other"),
+      }),
+    });
   }
 
   const durationHours = Math.floor(durationMinutes / 60);
   if (durationHours < 24) {
-    return `in ${durationHours} hour${durationHours === 1 ? "" : "s"}`;
+    return t("reviewScreen.interval.inCount", {
+      count: formatCount(durationHours, {
+        one: t("common.countLabels.hour.one"),
+        other: t("common.countLabels.hour.other"),
+      }),
+    });
   }
 
   const durationDays = Math.floor(durationHours / 24);
-  return `in ${durationDays} day${durationDays === 1 ? "" : "s"}`;
+  return t("reviewScreen.interval.inCount", {
+    count: formatCount(durationDays, {
+      one: t("common.countLabels.day.one"),
+      other: t("common.countLabels.day.other"),
+    }),
+  });
 }
 
-function buildReviewButtonOptions(card: Card, schedulerSettings: WorkspaceSchedulerSettings, now: Date): Array<ReviewButtonOption> {
+function buildReviewButtonOptions(
+  card: Card,
+  schedulerSettings: WorkspaceSchedulerSettings,
+  now: Date,
+  t: ReturnType<typeof useI18n>["t"],
+  formatCount: ReturnType<typeof useI18n>["formatCount"],
+): Array<ReviewButtonOption> {
   return reviewAnswerOptions.map((option) => {
     const schedule = computeReviewSchedule(
       {
@@ -116,14 +161,15 @@ function buildReviewButtonOptions(card: Card, schedulerSettings: WorkspaceSchedu
         maximumIntervalDays: schedulerSettings.maximumIntervalDays,
         enableFuzz: schedulerSettings.enableFuzz,
       },
-      option.rating,
+      option,
       now,
     );
 
     return {
-      title: option.title,
-      rating: option.rating,
-      intervalDescription: formatReviewIntervalDescription(now, schedule.dueAt),
+      title: reviewRatingTitle(option, t),
+      rating: option,
+      testId: reviewRatingTestId(option),
+      intervalDescription: formatReviewIntervalDescription(now, schedule.dueAt, t, formatCount),
     };
   });
 }
@@ -238,6 +284,7 @@ function ReviewCardMarkdown({ text }: Readonly<{ text: string }>): ReactElement 
 
 function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
   const {
+    aiButtonAriaLabel,
     contentClassName,
     isSpeaking,
     label,
@@ -245,6 +292,7 @@ function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
     onToggleSpeech,
     showAiButton,
     showSpeechButton,
+    speechButtonAriaLabel,
     surfaceClassName,
     text,
   } = props;
@@ -274,7 +322,7 @@ function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
                 type="button"
                 className={`review-card-speech-btn${isSpeaking ? " review-card-speech-btn-active" : ""}`}
                 onClick={onToggleSpeech}
-                aria-label={isSpeaking ? `Stop speaking ${label.toLowerCase()}` : `Speak ${label.toLowerCase()}`}
+                aria-label={speechButtonAriaLabel ?? label}
               >
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="M5 14H2V10H5L10 6V18L5 14Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
@@ -288,7 +336,7 @@ function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
                 type="button"
                 className="review-card-ai-btn"
                 onClick={onOpenAi}
-                aria-label={`Open ${label.toLowerCase()} card in AI chat`}
+                aria-label={aiButtonAriaLabel ?? label}
               >
                 AI
               </button>
@@ -314,6 +362,7 @@ export function ReviewScreen(): ReactElement {
     deleteCardItem,
     setErrorMessage,
   } = useAppData();
+  const { t, formatCount, formatDateTime, formatNumber } = useI18n();
   const [isAnswerVisible, setIsAnswerVisible] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isHardReminderVisible, setIsHardReminderVisible] = useState<boolean>(false);
@@ -347,6 +396,7 @@ export function ReviewScreen(): ReactElement {
     toggleSpeech,
   } = useReviewSpeech({
     showMessage: showReviewSpeechMessage,
+    speechUnavailableMessage: t("reviewScreen.speechUnavailable"),
   });
   const {
     handleCloseMenu,
@@ -387,6 +437,7 @@ export function ReviewScreen(): ReactElement {
     queueCards,
     selectedCard: currentReviewCard(activeReviewQueue),
     setErrorMessage,
+    t,
     updateCardItem,
   });
   const handoffCardToAi = useAiCardHandoff();
@@ -467,36 +518,36 @@ export function ReviewScreen(): ReactElement {
 
   if (isAnswerVisible && selectedCard !== null && workspaceSettings !== null) {
     try {
-      reviewButtonOptions = buildReviewButtonOptions(selectedCard, workspaceSettings, reviewButtonsNow);
+      reviewButtonOptions = buildReviewButtonOptions(selectedCard, workspaceSettings, reviewButtonsNow, t, formatCount);
     } catch (error) {
       reviewButtonErrorMessage = error instanceof Error ? error.message : String(error);
     }
   } else if (isAnswerVisible && selectedCard !== null) {
-    reviewButtonErrorMessage = "Workspace scheduler settings are not loaded";
+    reviewButtonErrorMessage = t("reviewScreen.errors.schedulerUnavailable");
   }
 
   const leftReviewButtonOptions = reviewButtonOptions.slice(0, REVIEW_BUTTONS_PER_COLUMN);
   const rightReviewButtonOptions = reviewButtonOptions.slice(REVIEW_BUTTONS_PER_COLUMN, REVIEW_BUTTONS_PER_COLUMN * 2);
 
   return (
-    <main className="container">
+    <main className="container" data-testid="review-screen">
       <section className="panel review-screen-panel">
         <div className="screen-head">
           <div>
-            <h1 className="title">Review</h1>
-            <p className="subtitle">Queue table plus a focused flip flow.</p>
+            <h1 className="title">{t("reviewScreen.title")}</h1>
+            <p className="subtitle">{t("reviewScreen.subtitle")}</p>
             {reviewLoadErrorMessage !== "" ? <p className="error-banner">{reviewLoadErrorMessage}</p> : null}
             {reviewSpeechMessage !== "" ? <p className="review-transient-message" role="status">{reviewSpeechMessage}</p> : null}
             {reviewLoadErrorMessage !== "" && hasLoadedReviewData === false ? (
               <button className="primary-btn review-loading-retry-btn" type="button" onClick={() => void refreshLocalData()}>
-                Retry
+                {t("reviewScreen.actions.retry")}
               </button>
             ) : null}
           </div>
           <div className="screen-actions review-screen-actions">
             <div className="review-filter-summary-wrap">
-              <span className="review-filter-label">Queue</span>
-              <span className="badge review-filter-summary">{formatQueueBadge(visibleReviewCounts.dueCount, visibleReviewCounts.totalCount)}</span>
+              <span className="review-filter-label">{t("reviewScreen.queue.title")}</span>
+              <span className="badge review-filter-summary">{formatQueueBadge(visibleReviewCounts.dueCount, visibleReviewCounts.totalCount, formatNumber, t)}</span>
             </div>
             <ReviewFilterMenu
               handleCloseMenu={handleCloseMenu}
@@ -527,13 +578,13 @@ export function ReviewScreen(): ReactElement {
                   <div className="review-pane-head-meta">
                     {loadingReviewCurrentCard !== null ? (
                       <>
-                        <span className="badge">{loadingReviewCurrentCard.effortLevel}</span>
-                        <span className="badge">{renderTags(loadingReviewCurrentCard.tags)}</span>
+                        <span className="badge">{formatEffortLevelLabel(t, loadingReviewCurrentCard.effortLevel)}</span>
+                        <span className="badge">{formatTagSummary(loadingReviewCurrentCard.tags)}</span>
                       </>
                     ) : (
                       <>
-                        <span className="badge review-loading-badge">Loading queue</span>
-                        <span className="badge review-loading-badge">Preparing card</span>
+                        <span className="badge review-loading-badge">{t("reviewScreen.loading.queue")}</span>
+                        <span className="badge review-loading-badge">{t("reviewScreen.loading.preparingCard")}</span>
                       </>
                     )}
                   </div>
@@ -543,14 +594,15 @@ export function ReviewScreen(): ReactElement {
                       className="ghost-btn review-pane-edit-btn"
                       disabled
                     >
-                      Edit
+                      {t("reviewScreen.actions.edit")}
                     </button>
                   </div>
                 </div>
                 <div className="review-card-stack">
                   {loadingReviewCurrentCard !== null ? (
                     <ReviewCardSide
-                      label="Front"
+                      label={t("reviewScreen.sides.front")}
+                      aiButtonAriaLabel={null}
                       text={loadingReviewCurrentCard.frontText}
                       contentClassName="review-front"
                       isSpeaking={false}
@@ -558,11 +610,12 @@ export function ReviewScreen(): ReactElement {
                       onToggleSpeech={() => undefined}
                       showAiButton={false}
                       showSpeechButton={false}
+                      speechButtonAriaLabel={null}
                       surfaceClassName="review-card-surface review-card-surface-front"
                     />
                   ) : (
                     <div className="review-card-surface review-card-surface-front review-loading-card-surface" aria-hidden="true">
-                      <div className="review-label">Front</div>
+                      <div className="review-label">{t("reviewScreen.sides.front")}</div>
                       <div className="review-card-body">
                         <div className="review-loading-card-lines">
                           <span className="review-loading-line review-loading-line-title" />
@@ -573,7 +626,7 @@ export function ReviewScreen(): ReactElement {
                     </div>
                   )}
                   <div className="review-card-surface review-card-answer review-loading-card-surface" aria-hidden="true">
-                    <div className="review-label">Back</div>
+                    <div className="review-label">{t("reviewScreen.sides.back")}</div>
                     <div className="review-card-body">
                       <div className="review-loading-card-lines">
                         <span className="review-loading-line" />
@@ -584,43 +637,44 @@ export function ReviewScreen(): ReactElement {
                   </div>
                 </div>
                 <div className="review-meta review-meta-loading">
-                  <span>{reviewLoadingSnapshot === null ? "Loading review queue…" : "Showing a recent local snapshot…"}</span>
+                  <span>{reviewLoadingSnapshot === null ? t("reviewScreen.loading.reviewQueue") : t("reviewScreen.loading.snapshot")}</span>
                 </div>
                 <div className="review-actions-dock">
                   <button
                     type="button"
                     className="primary-btn review-reveal-btn"
                     disabled
+                    data-testid="review-reveal-answer"
                   >
-                    Reveal answer
+                    {t("reviewScreen.actions.revealAnswer")}
                   </button>
                 </div>
               </>
             ) : selectedCard === null ? (
               <div className="review-empty">
-                <h2 className="panel-subtitle">{hasCards ? "Nothing Due" : "No Cards Yet"}</h2>
+                <h2 className="panel-subtitle">{hasCards ? t("reviewScreen.empty.nothingDueTitle") : t("reviewScreen.empty.noCardsTitle")}</h2>
                 <p className="subtitle">
                   {hasCards
-                    ? "You're all caught up for now. Come back later or add more cards."
-                    : "You haven't created any cards yet. Add your first card to start studying."}
+                    ? t("reviewScreen.empty.nothingDueBody")
+                    : t("reviewScreen.empty.noCardsBody")}
                 </p>
                 <div className="review-empty-actions">
                   <Link className="primary-btn" to={`${cardsRoute}/new`}>
-                    Create card
+                    {t("reviewScreen.actions.createCard")}
                   </Link>
-                  <p className="review-empty-or">or</p>
+                  <p className="review-empty-or">{t("reviewScreen.empty.or")}</p>
                   <Link className="ghost-btn" to={chatRoute}>
-                    Create with AI
+                    {t("reviewScreen.actions.createWithAi")}
                   </Link>
                   {shouldShowSwitchToAllCardsAction ? (
                     <>
-                      <p className="review-empty-or">or</p>
+                      <p className="review-empty-or">{t("reviewScreen.empty.or")}</p>
                       <button
                         type="button"
                         className="ghost-btn"
                         onClick={() => selectReviewFilter(ALL_CARDS_REVIEW_FILTER)}
                       >
-                        switch to all cards deck
+                        {t("reviewScreen.actions.switchToAllCards")}
                       </button>
                     </>
                   ) : null}
@@ -630,8 +684,8 @@ export function ReviewScreen(): ReactElement {
               <>
                 <div className="review-pane-head">
                   <div className="review-pane-head-meta">
-                    <span className="badge">{selectedCard.effortLevel}</span>
-                    <span className="badge">{renderTags(selectedCard.tags)}</span>
+                    <span className="badge">{formatEffortLevelLabel(t, selectedCard.effortLevel)}</span>
+                    <span className="badge">{formatTagSummary(selectedCard.tags)}</span>
                   </div>
                   <div className="review-pane-head-actions">
                     <button
@@ -639,13 +693,14 @@ export function ReviewScreen(): ReactElement {
                       className="ghost-btn review-pane-edit-btn"
                       onClick={() => handleOpenEditor(selectedCard)}
                     >
-                      Edit
+                      {t("reviewScreen.actions.edit")}
                     </button>
                   </div>
                 </div>
                 <div className="review-card-stack">
                   <ReviewCardSide
-                    label="Front"
+                    label={t("reviewScreen.sides.front")}
+                    aiButtonAriaLabel={null}
                     text={selectedCard.frontText}
                     contentClassName="review-front"
                     isSpeaking={activeSpeechSide === "front"}
@@ -653,28 +708,37 @@ export function ReviewScreen(): ReactElement {
                     onToggleSpeech={() => toggleSpeech("front", selectedCard.frontText)}
                     showAiButton={false}
                     showSpeechButton={selectedFrontSpeakableText !== ""}
+                    speechButtonAriaLabel={t(activeSpeechSide === "front" ? "reviewScreen.speakAriaLabel.stop" : "reviewScreen.speakAriaLabel.start", {
+                      side: t("reviewScreen.sides.front").toLowerCase(),
+                    })}
                     surfaceClassName="review-card-surface review-card-surface-front"
                   />
 
                   {isAnswerVisible ? (
                     <ReviewCardSide
-                      label="Back"
-                      text={selectedCard.backText === "" ? EMPTY_BACK_TEXT_PLACEHOLDER : selectedCard.backText}
+                      label={t("reviewScreen.sides.back")}
+                      aiButtonAriaLabel={t("reviewScreen.aiOpenAriaLabel", {
+                        side: t("reviewScreen.sides.back").toLowerCase(),
+                      })}
+                      text={selectedCard.backText === "" ? t("common.noBackText") : selectedCard.backText}
                       contentClassName="review-back"
                       isSpeaking={activeSpeechSide === "back"}
                       onOpenAi={() => void handoffCardToAi(selectedCard)}
                       onToggleSpeech={() => toggleSpeech("back", selectedCard.backText)}
                       showAiButton={true}
                       showSpeechButton={selectedBackSpeakableText !== ""}
+                      speechButtonAriaLabel={t(activeSpeechSide === "back" ? "reviewScreen.speakAriaLabel.stop" : "reviewScreen.speakAriaLabel.start", {
+                        side: t("reviewScreen.sides.back").toLowerCase(),
+                      })}
                       surfaceClassName="review-card-surface review-card-answer"
                     />
                   ) : null}
                 </div>
 
                 <div className="review-meta">
-                  <span>Due {formatTimestamp(selectedCard.dueAt)}</span>
-                  <span>Reps {selectedCard.reps}</span>
-                  <span>Lapses {selectedCard.lapses}</span>
+                  <span>{t("reviewScreen.meta.due", { value: formatNullableDateTime(selectedCard.dueAt, formatDateTime, t) })}</span>
+                  <span>{t("reviewScreen.meta.reps", { count: formatNumber(selectedCard.reps) })}</span>
+                  <span>{t("reviewScreen.meta.lapses", { count: formatNumber(selectedCard.lapses) })}</span>
                 </div>
 
                 <div className="review-actions-dock">
@@ -691,6 +755,7 @@ export function ReviewScreen(): ReactElement {
                               className="rating-btn"
                               disabled={isSubmitting}
                               onClick={() => void handleReview(selectedCard, option.rating)}
+                              data-testid={`review-rate-${option.testId}`}
                             >
                               <span className="rating-btn-title">{option.title}</span>
                               <span className="rating-btn-subtitle">{option.intervalDescription}</span>
@@ -705,6 +770,7 @@ export function ReviewScreen(): ReactElement {
                               className="rating-btn"
                               disabled={isSubmitting}
                               onClick={() => void handleReview(selectedCard, option.rating)}
+                              data-testid={`review-rate-${option.testId}`}
                             >
                               <span className="rating-btn-title">{option.title}</span>
                               <span className="rating-btn-subtitle">{option.intervalDescription}</span>
@@ -718,8 +784,9 @@ export function ReviewScreen(): ReactElement {
                       type="button"
                       className="primary-btn review-reveal-btn"
                       onClick={() => setIsAnswerVisible(true)}
+                      data-testid="review-reveal-answer"
                     >
-                      Reveal answer
+                      {t("reviewScreen.actions.revealAnswer")}
                     </button>
                   )}
                 </div>
@@ -729,9 +796,14 @@ export function ReviewScreen(): ReactElement {
 
           <aside className="review-queue-panel">
             <div className="review-queue-head">
-              <h2 className="panel-subtitle">Queue</h2>
+              <h2 className="panel-subtitle">{t("reviewScreen.queue.title")}</h2>
               <span className="review-queue-caption">
-                {isInitialReviewLoad && reviewLoadingSnapshot === null ? "loading" : `${visibleQueueCardsCount} cards`}
+                {isInitialReviewLoad && reviewLoadingSnapshot === null
+                  ? t("reviewScreen.queue.loading")
+                  : formatCount(visibleQueueCardsCount, {
+                    one: t("common.countLabels.card.one"),
+                    other: t("common.countLabels.card.other"),
+                  })}
               </span>
             </div>
             {isInitialReviewLoad ? (
@@ -747,11 +819,11 @@ export function ReviewScreen(): ReactElement {
                         className={`review-queue-card${isDue ? "" : " review-queue-card-upcoming"}${isActive ? " review-queue-card-active" : ""}`}
                       >
                         <span className="review-queue-card-title">{card.frontText}</span>
-                        <span className="review-queue-card-tags">{renderTags(card.tags)}</span>
+                        <span className="review-queue-card-tags">{formatTagSummary(card.tags)}</span>
                         <span className="review-queue-card-meta">
-                          <span>{card.effortLevel}</span>
-                          <span>{formatTimestamp(card.dueAt)}</span>
-                          {isDue ? null : <span>Upcoming</span>}
+                          <span>{formatEffortLevelLabel(t, card.effortLevel)}</span>
+                          <span>{formatNullableDateTime(card.dueAt, formatDateTime, t)}</span>
+                          {isDue ? null : <span>{t("reviewScreen.queue.upcoming")}</span>}
                         </span>
                       </div>
                     );
@@ -769,7 +841,7 @@ export function ReviewScreen(): ReactElement {
                 </div>
               )
             ) : queueCards.length === 0 ? (
-              <p className="subtitle">No cards to review right now.</p>
+              <p className="subtitle">{t("reviewScreen.empty.queue")}</p>
             ) : (
               <div className="review-queue-list">
                 {queueCards.map((card) => {
@@ -781,11 +853,11 @@ export function ReviewScreen(): ReactElement {
                       className={`review-queue-card${isDue ? "" : " review-queue-card-upcoming"}${selectedCard?.cardId === card.cardId ? " review-queue-card-active" : ""}`}
                     >
                       <span className="review-queue-card-title">{card.frontText}</span>
-                      <span className="review-queue-card-tags">{renderTags(card.tags)}</span>
+                      <span className="review-queue-card-tags">{formatTagSummary(card.tags)}</span>
                       <span className="review-queue-card-meta">
-                        <span>{card.effortLevel}</span>
-                        <span>{formatTimestamp(card.dueAt)}</span>
-                        {isDue ? null : <span>Upcoming</span>}
+                        <span>{formatEffortLevelLabel(t, card.effortLevel)}</span>
+                        <span>{formatNullableDateTime(card.dueAt, formatDateTime, t)}</span>
+                        {isDue ? null : <span>{t("reviewScreen.queue.upcoming")}</span>}
                       </span>
                     </div>
                   );

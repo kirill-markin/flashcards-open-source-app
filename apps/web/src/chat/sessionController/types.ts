@@ -1,12 +1,31 @@
 import type { ChatConfig, ChatComposerSuggestion } from "../../types";
+import type { ChatErrorFallbackMessages } from "../chatHelpers";
 import type { PendingAttachment } from "../FileAttachment";
 import type { StoredMessage } from "../useChatHistory";
 import type { ChatComposerAction, ChatRunState } from "./runState";
+
+export type ChatSessionControllerUiMessages = Readonly<{
+  activeRunInProgress: string;
+  attachmentLimit: string;
+  errorFallbacks: ChatErrorFallbackMessages;
+  genericChatFailed: string;
+  liveStreamEndedBeforeCompletion: string;
+  newChatFailedPrefix: string;
+  optimisticAssistantStatus: string;
+  refreshFailedPrefix: string;
+  remoteNotReady: string;
+  requestFailedPrefix: string;
+  stopFailedPrefix: string;
+  transcriptionUnexpectedSessionId: string;
+  unexpectedSessionId: string;
+  workspaceRequired: string;
+}>;
 
 export type UseChatSessionControllerParams = Readonly<{
   workspaceId: string | null;
   isRemoteReady: boolean;
   onToolRunPostSyncRequested: () => Promise<void>;
+  uiMessages: ChatSessionControllerUiMessages;
 }>;
 
 export type SendChatMessageParams = Readonly<{

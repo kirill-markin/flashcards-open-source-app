@@ -83,6 +83,7 @@ type NavigateToUrl = (url: string) => void;
 type ChatResumeRequestDiagnostics = Readonly<{
   resumeAttemptId: number;
 }>;
+export type AuthUiLocale = "en" | "es";
 
 const collectionPageLimit = 100;
 
@@ -192,13 +193,50 @@ function getCurrentReturnUrl(): string {
   return window.location.href;
 }
 
+function normalizeAuthUiLocale(localeHint: string): AuthUiLocale | null {
+  const normalizedLocaleHint = localeHint.replaceAll("_", "-").trim().toLowerCase();
+  if (normalizedLocaleHint === "") {
+    return null;
+  }
+
+  const primaryLanguage = normalizedLocaleHint.split("-")[0];
+  if (primaryLanguage === "en" || primaryLanguage === "es") {
+    return primaryLanguage;
+  }
+
+  return null;
+}
+
+function getNavigatorLanguages(): ReadonlyArray<string> {
+  if (Array.isArray(navigator.languages) && navigator.languages.length > 0) {
+    return navigator.languages;
+  }
+
+  if (typeof navigator.language === "string" && navigator.language.trim() !== "") {
+    return [navigator.language];
+  }
+
+  return [];
+}
+
+export function getPreferredAuthUiLocale(): AuthUiLocale {
+  for (const localeHint of getNavigatorLanguages()) {
+    const resolvedLocale = normalizeAuthUiLocale(localeHint);
+    if (resolvedLocale !== null) {
+      return resolvedLocale;
+    }
+  }
+
+  return "en";
+}
+
 /**
  * Starts the browser auth redirect flow exactly once per auth failure burst.
  * The current route is preserved so the user returns to the same screen after
  * refresh or interactive sign-in completes on the auth origin.
  */
 function redirectToLogin(): never {
-  const redirectUrl = buildLoginUrl(getCurrentReturnUrl());
+  const redirectUrl = buildLoginUrl(getCurrentReturnUrl(), getPreferredAuthUiLocale());
   resetSessionState();
 
   if (redirectInFlight === false) {
@@ -748,9 +786,17 @@ export async function transcribeChatAudio(
  * Builds an auth login URL that preserves the exact in-app location the user
  * should return to after silent refresh or interactive sign-in completes.
  */
-export function buildLoginUrl(returnUrl: string): string {
+export function buildLoginUrl(returnUrl: string, localeHint: string): string {
   const config = getAppConfig();
-  return `${config.authBaseUrl}/login?redirect_uri=${encodeURIComponent(returnUrl)}`;
+  const loginUrl = new URL(`${config.authBaseUrl}/login`);
+  loginUrl.searchParams.set("redirect_uri", returnUrl);
+
+  const sanitizedLocaleHint = normalizeAuthUiLocale(localeHint);
+  if (sanitizedLocaleHint !== null) {
+    loginUrl.searchParams.set("locale", sanitizedLocaleHint);
+  }
+
+  return loginUrl.toString();
 }
 
 export function buildLogoutUrl(): string {
