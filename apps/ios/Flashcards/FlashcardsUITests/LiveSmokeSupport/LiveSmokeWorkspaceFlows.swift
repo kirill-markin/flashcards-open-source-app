@@ -542,10 +542,10 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func visibleLinkedEmailLabel() -> String? {
-        let linkedEmailLabel = self.app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "@")).firstMatch
+        let linkedEmailLabel = self.app.staticTexts[LiveSmokeIdentifier.accountStatusLinkedEmailValue].firstMatch
         if self.waitForOptionalElement(
             linkedEmailLabel,
-            identifier: "text.linkedEmail",
+            identifier: LiveSmokeIdentifier.accountStatusLinkedEmailValue,
             timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds
         ) {
             return linkedEmailLabel.label
@@ -567,6 +567,10 @@ extension LiveSmokeTestCase {
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
         }
 
-        try self.assertTextExists(reviewEmail, timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds)
+        throw LiveSmokeFailure.unexpectedAccountState(
+            message: "Expected linked review email '\(reviewEmail)' in \(LiveSmokeIdentifier.accountStatusLinkedEmailValue), but it was not visible.",
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
     }
 }

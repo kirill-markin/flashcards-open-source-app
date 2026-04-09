@@ -29,6 +29,7 @@ enum LiveSmokeIdentifier {
     static let resetWorkspaceProgressCardsCount: String = "resetWorkspaceProgress.cardsToResetCount"
     static let resetWorkspaceProgressButton: String = "resetWorkspaceProgress.resetButton"
     static let accountStatusSignInButton: String = "accountStatus.signInButton"
+    static let accountStatusLinkedEmailValue: String = "accountStatus.linkedEmailValue"
     static let accountStatusSyncNowButton: String = "accountStatus.syncNowButton"
     static let accountStatusSwitchAccountButton: String = "accountStatus.switchAccountButton"
     static let accountStatusLogoutButton: String = "accountStatus.logoutButton"
