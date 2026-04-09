@@ -1,13 +1,14 @@
 import AVFAudio
 import SwiftUI
 
+private let reviewCardsStringsTableName: String = "ReviewCards"
 private let reviewBottomBarHorizontalPadding: CGFloat = 20
 private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
-let emptyBackTextPlaceholder: String = "No back text"
+let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
 private let reviewQueuePreviewPageSize: Int = 50
 
 struct ReviewView: View {
@@ -45,13 +46,13 @@ struct ReviewView: View {
     private var selectedReviewFilterTitle: String {
         switch store.selectedReviewFilter {
         case .allCards:
-            return allCardsDeckLabel
+            return localizedAllCardsLabel()
         case .deck(let deckId):
             return self.reviewDeckSummaries.first(where: { deckSummary in
                 deckSummary.deckId == deckId
-            })?.name ?? allCardsDeckLabel
+            })?.name ?? localizedAllCardsLabel()
         case .effort(let level):
-            return level.title
+            return localizedEffortTitle(effortLevel: level)
         case .tag(let tag):
             return tag
         }
@@ -70,13 +71,13 @@ struct ReviewView: View {
     private func reviewFilterMenuItemLabel(reviewFilter: ReviewFilter) -> String {
         switch reviewFilter {
         case .allCards:
-            return allCardsDeckLabel
+            return localizedAllCardsLabel()
         case .deck(let deckId):
             return self.reviewDeckSummaries.first(where: { deckSummary in
                 deckSummary.deckId == deckId
-            })?.name ?? allCardsDeckLabel
+            })?.name ?? localizedAllCardsLabel()
         case .effort(let level):
-            return "\(level.title) (\(self.reviewEffortFilterCounts[level] ?? 0))"
+            return "\(localizedEffortTitle(effortLevel: level)) (\((self.reviewEffortFilterCounts[level] ?? 0).formatted()))"
         case .tag(let tag):
             guard let tagSummary = reviewTagSummaries.first(where: { summary in
                 summary.tag == tag
@@ -84,7 +85,7 @@ struct ReviewView: View {
                 return tag
             }
 
-            return "\(tagSummary.tag) (\(tagSummary.cardsCount))"
+            return "\(tagSummary.tag) (\(tagSummary.cardsCount.formatted()))"
         }
     }
 
@@ -131,7 +132,7 @@ struct ReviewView: View {
             }
         }
         .accessibilityIdentifier(UITestIdentifier.reviewScreen)
-        .navigationTitle("Review")
+        .navigationTitle(String(localized: "Review", table: reviewCardsStringsTableName))
         .onChange(of: currentCard?.cardId) { _, _ in
             isAnswerVisible = false
             self.reviewSpeechController.stopSpeech()
@@ -157,7 +158,7 @@ struct ReviewView: View {
                 if store.isReviewCountsLoading {
                     ProgressView()
                         .controlSize(.small)
-                        .accessibilityLabel("Loading review queue")
+                        .accessibilityLabel(String(localized: "Loading review queue", table: reviewCardsStringsTableName))
                 } else {
                     Button {
                         self.isQueuePreviewPresented = true
@@ -168,7 +169,14 @@ struct ReviewView: View {
                             .foregroundStyle(.secondary)
                     }
                     .disabled(store.reviewTotalCount == 0)
-                    .accessibilityLabel("Review queue \(store.displayedReviewDueCount) active of \(store.reviewTotalCount) total")
+                    .accessibilityLabel(
+                        String(
+                            format: String(localized: "Review queue status: %@ active of %@ total", table: reviewCardsStringsTableName),
+                            locale: Locale.current,
+                            store.displayedReviewDueCount.formatted(),
+                            store.reviewTotalCount.formatted()
+                        )
+                    )
                 }
             }
         }
@@ -191,7 +199,7 @@ struct ReviewView: View {
         .sheet(isPresented: self.$isEditorPresented) {
             NavigationStack {
                 CardEditorScreen(
-                    title: "Edit card",
+                    title: String(localized: "Edit card", table: reviewCardsStringsTableName),
                     isEditing: true,
                     errorMessage: screenErrorMessage,
                     availableTagSuggestions: self.availableTagSuggestions,
@@ -234,7 +242,7 @@ struct ReviewView: View {
             }
         }
         .alert(
-            "Review wasn't saved",
+            String(localized: "Review wasn't saved", table: reviewCardsStringsTableName),
             isPresented: Binding(
                 get: {
                     store.reviewSubmissionFailure != nil
@@ -246,14 +254,14 @@ struct ReviewView: View {
                 }
             )
         ) {
-            Button("OK", role: .cancel) {
+            Button(String(localized: "OK", table: reviewCardsStringsTableName), role: .cancel) {
                 store.dismissReviewSubmissionFailure()
             }
         } message: {
             Text(store.reviewSubmissionFailure?.message ?? "")
         }
         .alert(
-            "Stay on top of your cards",
+            String(localized: "Stay on top of your cards", table: reviewCardsStringsTableName),
             isPresented: Binding(
                 get: {
                     store.isReviewNotificationPrePromptPresented
@@ -265,17 +273,17 @@ struct ReviewView: View {
                 }
             )
         ) {
-            Button("Not now", role: .cancel) {
+            Button(String(localized: "Not now", table: reviewCardsStringsTableName), role: .cancel) {
                 store.dismissReviewNotificationPrePrompt(markDismissed: true)
             }
-            Button("Continue") {
+            Button(String(localized: "Continue", table: reviewCardsStringsTableName)) {
                 store.continueReviewNotificationPrePrompt()
             }
         } message: {
-            Text("Flashcards Open Source App can send study reminders with a card from your review queue. These notifications contain study cards only and never marketing messages.")
+            Text(String(localized: "Flashcards Open Source App can send study reminders with a card from your review queue. These notifications contain study cards only and never marketing messages.", table: reviewCardsStringsTableName))
         }
         .alert(
-            "Hard is for difficult recall",
+            String(localized: "Hard is for difficult recall", table: reviewCardsStringsTableName),
             isPresented: Binding(
                 get: {
                     store.isReviewHardReminderPresented
@@ -287,11 +295,11 @@ struct ReviewView: View {
                 }
             )
         ) {
-            Button("OK", role: .cancel) {
+            Button(String(localized: "OK", table: reviewCardsStringsTableName), role: .cancel) {
                 store.dismissReviewHardReminder()
             }
         } message: {
-            Text("If you did not know the answer, choose \"Again\". \"Hard\" is only for answers you knew but it was difficult to recall.")
+            Text(String(localized: "If you did not know the answer, choose \"Again\". \"Hard\" is only for answers you knew but it was difficult to recall.", table: reviewCardsStringsTableName))
         }
     }
 
@@ -323,7 +331,7 @@ struct ReviewView: View {
             Button {
                 navigation.openSettings(destination: .workspaceDecks)
             } label: {
-                Label("Edit decks", systemImage: "square.stack.3d.up")
+                Label(String(localized: "Edit decks", table: reviewCardsStringsTableName), systemImage: "square.stack.3d.up")
             }
 
             Divider()
@@ -411,8 +419,8 @@ struct ReviewView: View {
 
             HStack(alignment: .top, spacing: 12) {
                 HStack(spacing: 12) {
-                    Label(card.effortLevel.title, systemImage: "timer")
-                    Label(card.tags.isEmpty ? "No tags" : formatTags(tags: card.tags), systemImage: "tag")
+                    Label(localizedEffortTitle(effortLevel: card.effortLevel), systemImage: "timer")
+                    Label(card.tags.isEmpty ? localizedNoTagsLabel() : formatTags(tags: card.tags), systemImage: "tag")
                 }
 
                 Spacer(minLength: 12)
@@ -423,13 +431,13 @@ struct ReviewView: View {
                     Image(systemName: "pencil.circle.fill")
                         .font(.title3)
                 }
-                .accessibilityLabel("Edit card")
+                .accessibilityLabel(String(localized: "Edit card", table: reviewCardsStringsTableName))
             }
             .font(.subheadline)
             .foregroundStyle(.secondary)
 
             ReviewCardSideView(
-                label: "Front",
+                label: String(localized: "Front", table: reviewCardsStringsTableName),
                 content: preparedRevealState.frontContent,
                 isSpeechPlaying: self.reviewSpeechController.activeSide == .front,
                 onToggleSpeech: {
@@ -443,7 +451,7 @@ struct ReviewView: View {
 
             if isAnswerVisible {
                 ReviewCardSideView(
-                    label: "Back",
+                    label: String(localized: "Back", table: reviewCardsStringsTableName),
                     content: preparedRevealState.backContent,
                     isSpeechPlaying: self.reviewSpeechController.activeSide == .back,
                     onToggleSpeech: {
@@ -459,9 +467,9 @@ struct ReviewView: View {
             }
 
             HStack(spacing: 12) {
-                Label("Due \(formatOptionalIsoTimestampForDisplay(value: card.dueAt))", systemImage: "clock")
-                Label("Reps \(card.reps)", systemImage: "arrow.clockwise")
-                Label("Lapses \(card.lapses)", systemImage: "exclamationmark.circle")
+                Label(localizedReviewDueLabel(value: card.dueAt), systemImage: "clock")
+                Label(localizedReviewRepsLabel(value: card.reps), systemImage: "arrow.clockwise")
+                Label(localizedReviewLapsesLabel(value: card.lapses), systemImage: "exclamationmark.circle")
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -513,7 +521,7 @@ struct ReviewView: View {
         Button {
             isAnswerVisible = true
         } label: {
-            Label("Show answer", systemImage: "eye")
+            Label(String(localized: "Show answer", table: reviewCardsStringsTableName), systemImage: "eye")
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: showAnswerButtonMinHeight)
         }
@@ -544,7 +552,7 @@ struct ReviewView: View {
                     Image(systemName: option.rating.symbolName)
                         .font(.headline)
 
-                    Text(option.rating.title)
+                    Text(localizedReviewRatingTitle(rating: option.rating))
                         .fontWeight(.semibold)
                         .lineLimit(1)
                 }
@@ -575,49 +583,49 @@ struct ReviewView: View {
 
         return ContentUnavailableView {
             if self.totalCardsCount == 0 {
-                Label("No Cards Yet", systemImage: "tray")
+                Label(String(localized: "No Cards Yet", table: reviewCardsStringsTableName), systemImage: "tray")
             } else {
-                Label("Nothing Due", systemImage: "checkmark.circle")
+                Label(String(localized: "Nothing Due", table: reviewCardsStringsTableName), systemImage: "checkmark.circle")
             }
         } description: {
             if self.totalCardsCount == 0 {
-                Text("You haven't created any cards yet. Add your first card to start studying.")
+                Text(String(localized: "You haven't created any cards yet. Add your first card to start studying.", table: reviewCardsStringsTableName))
             } else {
-                Text("You're all caught up for now. Come back later or add more cards.")
+                Text(String(localized: "You're all caught up for now. Come back later or add more cards.", table: reviewCardsStringsTableName))
             }
         } actions: {
             VStack(spacing: 8) {
                 Button {
                     navigation.openCardCreation()
                 } label: {
-                    Label("Create card", systemImage: "plus")
+                    Label(String(localized: "Create card", table: reviewCardsStringsTableName), systemImage: "plus")
                         .font(.body)
                         .imageScale(.medium)
                 }
                 .buttonStyle(.glass)
 
-                Text("or")
+                Text(String(localized: "or", table: reviewCardsStringsTableName))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
                 Button {
                     navigation.openAICardCreation()
                 } label: {
-                    Label("Create with AI", systemImage: "sparkles")
+                    Label(String(localized: "Create with AI", table: reviewCardsStringsTableName), systemImage: "sparkles")
                         .font(.body)
                         .imageScale(.medium)
                 }
                 .buttonStyle(.glassProminent)
 
                 if shouldShowSwitchToAllCardsAction {
-                    Text("or")
+                    Text(String(localized: "or", table: reviewCardsStringsTableName))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
 
                     Button {
                         store.selectReviewFilter(reviewFilter: .allCards)
                     } label: {
-                        Text("switch to all cards deck")
+                        Text(String(localized: "Switch to all cards deck", table: reviewCardsStringsTableName))
                     }
                     .buttonStyle(.glass)
                 }
@@ -648,6 +656,41 @@ private func reviewAnswerButtonIdentifier(rating: ReviewRating) -> String {
     }
 
     return "review.rating.\(rating.rawValue)"
+}
+
+private func localizedReviewDueLabel(value: String?) -> String {
+    guard let value else {
+        return String(localized: "New", table: reviewCardsStringsTableName)
+    }
+
+    let dueDateLabel: String
+    if let date = parseIsoTimestamp(value: value) {
+        dueDateLabel = date.formatted(date: .abbreviated, time: .shortened)
+    } else {
+        dueDateLabel = value
+    }
+
+    return String(
+        format: String(localized: "Due %@", table: reviewCardsStringsTableName),
+        locale: Locale.current,
+        dueDateLabel
+    )
+}
+
+private func localizedReviewRepsLabel(value: Int) -> String {
+    String(
+        format: String(localized: "Reps %@", table: reviewCardsStringsTableName),
+        locale: Locale.current,
+        value.formatted()
+    )
+}
+
+private func localizedReviewLapsesLabel(value: Int) -> String {
+    String(
+        format: String(localized: "Lapses %@", table: reviewCardsStringsTableName),
+        locale: Locale.current,
+        value.formatted()
+    )
 }
 
 #Preview {
@@ -739,7 +782,10 @@ final class ReviewSpeechController: NSObject, ObservableObject, @preconcurrency 
             try self.activateReviewSpeechAudioSession()
         } catch {
             self.deactivateReviewSpeechAudioSession()
-            return "Couldn't prepare audio for speech. Check your audio settings and try again."
+            return String(
+                localized: "Couldn't prepare audio for speech. Check your audio settings and try again.",
+                table: reviewCardsStringsTableName
+            )
         }
 
         let utterance = AVSpeechUtterance(string: speakableText)

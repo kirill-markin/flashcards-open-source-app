@@ -16,15 +16,24 @@ struct WorkspaceExportView: View {
                 }
             }
 
-            Section("Available Formats") {
+            Section(aiSettingsLocalized("settings.workspace.export.section.availableFormats", "Available Formats")) {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("CSV")
                         .font(.headline)
 
-                    Text("Exports front text, back text, and tags for all active cards in the current workspace.")
+                    Text(
+                        aiSettingsLocalized(
+                            "settings.workspace.export.description",
+                            "Exports front text, back text, and tags for all active cards in the current workspace."
+                        )
+                    )
                         .foregroundStyle(.secondary)
 
-                    Button(self.isExporting ? "Exporting..." : "Export CSV") {
+                    Button(
+                        self.isExporting
+                            ? aiSettingsLocalized("settings.workspace.export.exporting", "Exporting...")
+                            : aiSettingsLocalized("settings.workspace.export.exportCsv", "Export CSV")
+                    ) {
                         Task {
                             await self.exportCsv()
                         }
@@ -35,7 +44,7 @@ struct WorkspaceExportView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Export")
+        .navigationTitle(aiSettingsLocalized("settings.workspace.row.export", "Export"))
         .sheet(
             isPresented: self.$isShareSheetPresented,
             onDismiss: {
@@ -45,7 +54,7 @@ struct WorkspaceExportView: View {
             if let exportedFileURL = self.exportedFileURL {
                 WorkspaceExportActivitySheet(activityItems: [exportedFileURL])
             } else {
-                Text("Export file is unavailable.")
+                Text(aiSettingsLocalized("settings.workspace.export.fileUnavailable", "Export file is unavailable."))
             }
         }
     }
@@ -53,7 +62,7 @@ struct WorkspaceExportView: View {
     @MainActor
     private func exportCsv() async {
         guard let database = store.database, let workspace = store.workspace else {
-            self.errorMessage = "Workspace is unavailable"
+            self.errorMessage = aiSettingsLocalized("settings.workspace.export.workspaceUnavailable", "Workspace is unavailable")
             return
         }
 

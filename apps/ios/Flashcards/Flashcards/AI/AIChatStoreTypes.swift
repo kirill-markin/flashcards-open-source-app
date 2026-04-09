@@ -10,22 +10,46 @@ enum AIChatAttachmentSettingsSource: String, Equatable {
     var title: String {
         switch self {
         case .camera:
-            return "Camera Access Needed"
+            return String(
+                localized: "ai_chat_attachment_settings.camera.title",
+                table: "Foundation",
+                comment: "AI chat alert title when camera access is needed"
+            )
         case .photos:
-            return "Photo Access Needed"
+            return String(
+                localized: "ai_chat_attachment_settings.photos.title",
+                table: "Foundation",
+                comment: "AI chat alert title when photo access is needed"
+            )
         case .files:
-            return "File Access Needed"
+            return String(
+                localized: "ai_chat_attachment_settings.files.title",
+                table: "Foundation",
+                comment: "AI chat alert title when file access is needed"
+            )
         }
     }
 
     var message: String {
         switch self {
         case .camera:
-            return "Camera access is turned off for Flashcards Open Source App. Open Settings to allow it."
+            return String(
+                localized: "ai_chat_attachment_settings.camera.message",
+                table: "Foundation",
+                comment: "AI chat alert message when camera access is blocked"
+            )
         case .photos:
-            return "Photo access is turned off for Flashcards Open Source App. Open Settings to allow it."
+            return String(
+                localized: "ai_chat_attachment_settings.photos.message",
+                table: "Foundation",
+                comment: "AI chat alert message when photo access is blocked"
+            )
         case .files:
-            return "File access is turned off for Flashcards Open Source App. Open Settings to allow it."
+            return String(
+                localized: "ai_chat_attachment_settings.files.message",
+                table: "Foundation",
+                comment: "AI chat alert message when file access is blocked"
+            )
         }
     }
 }
@@ -49,7 +73,11 @@ enum AIChatAlert: Identifiable, Equatable {
     var title: String {
         switch self {
         case .microphoneSettings:
-            return "Microphone Access Needed"
+            return String(
+                localized: "ai_chat_alert.microphone.title",
+                table: "Foundation",
+                comment: "AI chat alert title when microphone access is needed"
+            )
         case .attachmentSettings(let source):
             return source.title
         case .generalError(let title, _):
@@ -60,7 +88,11 @@ enum AIChatAlert: Identifiable, Equatable {
     var message: String {
         switch self {
         case .microphoneSettings:
-            return "Microphone access is turned off for Flashcards Open Source App. Open Settings to allow it."
+            return String(
+                localized: "ai_chat_alert.microphone.message",
+                table: "Foundation",
+                comment: "AI chat alert message when microphone access is blocked"
+            )
         case .attachmentSettings(let source):
             return source.message
         case .generalError(_, let message):

@@ -102,7 +102,10 @@ extension AIChatStore {
 
     func showGeneralError(message: String) {
         self.activeResumeErrorAttemptSequence = nil
-        self.activeAlert = .generalError(title: "Error", message: message)
+        self.activeAlert = .generalError(
+            title: aiSettingsLocalized("ai.error.title", "Error"),
+            message: message
+        )
     }
 
     func showGeneralError(error: Error) {
@@ -115,7 +118,10 @@ extension AIChatStore {
 
     func showResumeGeneralError(message: String, resumeAttemptSequence: Int) {
         self.activeResumeErrorAttemptSequence = resumeAttemptSequence
-        self.activeAlert = .generalError(title: "Error", message: message)
+        self.activeAlert = .generalError(
+            title: aiSettingsLocalized("ai.error.title", "Error"),
+            message: message
+        )
     }
 
     func showMicrophoneSettingsAlert() {
@@ -197,7 +203,7 @@ private func aiChatAlertPresentation(
     }
 
     return AIChatAlertPresentation(
-        title: "Error",
+        title: aiSettingsLocalized("ai.error.title", "Error"),
         message: Flashcards.errorMessage(error: error)
     )
 }
@@ -208,7 +214,10 @@ private func aiChatAlertPresentation(
 ) -> AIChatAlertPresentation {
     switch liveError {
     case .invalidStatusCode(let httpStatusCode, let errorDetails, _):
-        let summary = "Couldn't Continue the AI Response"
+        let summary = aiSettingsLocalized(
+            "ai.error.summary.couldNotContinue",
+            "Couldn't Continue the AI Response"
+        )
         let rawDetails = errorDetails.message
         return aiChatAlertPresentation(
             diagnostics: nil,
@@ -222,8 +231,14 @@ private func aiChatAlertPresentation(
     case .invalidResponse:
         return aiChatAlertPresentation(
             diagnostics: nil,
-            summary: "Couldn't Continue the AI Response",
-            rawDetails: "The AI live stream did not receive an HTTP response.",
+            summary: aiSettingsLocalized(
+                "ai.error.summary.couldNotContinue",
+                "Couldn't Continue the AI Response"
+            ),
+            rawDetails: aiSettingsLocalized(
+                "ai.error.live.invalidHttpResponse",
+                "The AI live stream did not receive an HTTP response."
+            ),
             code: nil,
             statusCode: nil,
             requestId: nil,
@@ -232,8 +247,14 @@ private func aiChatAlertPresentation(
     case .invalidUrl:
         return aiChatAlertPresentation(
             diagnostics: nil,
-            summary: "AI Configuration Error",
-            rawDetails: "The AI live stream URL is invalid.",
+            summary: aiSettingsLocalized(
+                "ai.error.summary.configuration",
+                "AI Configuration Error"
+            ),
+            rawDetails: aiSettingsLocalized(
+                "ai.error.live.invalidUrl",
+                "The AI live stream URL is invalid."
+            ),
             code: nil,
             statusCode: nil,
             requestId: nil,
@@ -259,35 +280,83 @@ private func aiChatAlertPresentation(
 
     let effectiveRequestId = requestId ?? diagnostics?.backendRequestId
     if let effectiveRequestId, effectiveRequestId.isEmpty == false {
-        detailLines.append("Reference: \(effectiveRequestId)")
+        detailLines.append(
+            aiSettingsLocalizedFormat(
+                "ai.error.detail.reference",
+                "Reference: %@",
+                effectiveRequestId
+            )
+        )
     } else if let clientRequestId = diagnostics?.clientRequestId, clientRequestId.isEmpty == false {
-        detailLines.append("Debug: \(clientRequestId)")
+        detailLines.append(
+            aiSettingsLocalizedFormat(
+                "ai.error.detail.debug",
+                "Debug: %@",
+                clientRequestId
+            )
+        )
     }
 
     let effectiveStatusCode = statusCode ?? diagnostics?.statusCode
     if let effectiveStatusCode {
-        detailLines.append("Status: \(effectiveStatusCode)")
+        detailLines.append(
+            aiSettingsLocalizedFormat(
+                "ai.error.detail.status",
+                "Status: %d",
+                effectiveStatusCode
+            )
+        )
     }
 
     let effectiveCode = code
     if let effectiveCode, effectiveCode.isEmpty == false {
-        detailLines.append("Code: \(effectiveCode)")
+        detailLines.append(
+            aiSettingsLocalizedFormat(
+                "ai.error.detail.code",
+                "Code: %@",
+                effectiveCode
+            )
+        )
     }
 
     if let stage = diagnostics?.stage {
-        detailLines.append("Stage: \(stage.rawValue)")
+        detailLines.append(
+            aiSettingsLocalizedFormat(
+                "ai.error.detail.stage",
+                "Stage: %@",
+                stage.rawValue
+            )
+        )
     }
 
     if let resumeAttemptSequence {
-        detailLines.append("Resume Attempt: \(resumeAttemptSequence)")
+        detailLines.append(
+            aiSettingsLocalizedFormat(
+                "ai.error.detail.resumeAttempt",
+                "Resume Attempt: %d",
+                resumeAttemptSequence
+            )
+        )
     }
 
     if let decoderSummary = diagnostics?.decoderSummary, decoderSummary.isEmpty == false {
-        detailLines.append("Details: \(decoderSummary)")
+        detailLines.append(
+            aiSettingsLocalizedFormat(
+                "ai.error.detail.details",
+                "Details: %@",
+                decoderSummary
+            )
+        )
     }
 
     if let rawSnippet = diagnostics?.rawSnippet, rawSnippet.isEmpty == false {
-        detailLines.append("Payload: \(rawSnippet)")
+        detailLines.append(
+            aiSettingsLocalizedFormat(
+                "ai.error.detail.payload",
+                "Payload: %@",
+                rawSnippet
+            )
+        )
     }
 
     return AIChatAlertPresentation(
@@ -298,23 +367,38 @@ private func aiChatAlertPresentation(
 
 private func aiChatFailureSummary(error: Error) -> String {
     if error is AIChatLiveStreamSetupError {
-        return "Couldn't Continue the AI Response"
+        return aiSettingsLocalized(
+            "ai.error.summary.couldNotContinue",
+            "Couldn't Continue the AI Response"
+        )
     }
 
     if error is AIChatLiveStreamContractError {
-        return "Received an Invalid AI Response"
+        return aiSettingsLocalized(
+            "ai.error.summary.invalidResponse",
+            "Received an Invalid AI Response"
+        )
     }
 
     if let serviceError = error as? AIChatServiceError {
         switch serviceError {
         case .invalidBaseUrl:
-            return "AI Configuration Error"
+            return aiSettingsLocalized(
+                "ai.error.summary.configuration",
+                "AI Configuration Error"
+            )
         case .invalidHttpResponse, .invalidResponse:
-            return "Couldn't Continue the AI Response"
+            return aiSettingsLocalized(
+                "ai.error.summary.couldNotContinue",
+                "Couldn't Continue the AI Response"
+            )
         case .invalidPayload:
-            return "Received an Invalid AI Response"
+            return aiSettingsLocalized(
+                "ai.error.summary.invalidResponse",
+                "Received an Invalid AI Response"
+            )
         }
     }
 
-    return "Error"
+    return aiSettingsLocalized("ai.error.title", "Error")
 }

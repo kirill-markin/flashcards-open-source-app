@@ -8,35 +8,71 @@ enum CloudAuthError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidBaseUrl:
-            return "Cloud sign-in is unavailable. Check the app configuration."
+            return String(
+                localized: "cloud_auth.error.invalid_base_url",
+                table: "Foundation",
+                comment: "Cloud auth error when the auth base URL is invalid"
+            )
         case .invalidResponse(let details, _):
             switch details.code {
             case "INVALID_EMAIL":
-                return "Enter a valid email address."
+                return String(
+                    localized: "cloud_auth.error.invalid_email",
+                    table: "Foundation",
+                    comment: "Cloud auth error when the email address is invalid"
+                )
             case "OTP_SESSION_EXPIRED":
-                return "Code expired. Request a new one."
+                return String(
+                    localized: "cloud_auth.error.otp_session_expired",
+                    table: "Foundation",
+                    comment: "Cloud auth error when the OTP session expired"
+                )
             case "OTP_CHALLENGE_CONSUMED":
-                return "Code already used. Request a new one."
+                return String(
+                    localized: "cloud_auth.error.otp_challenge_consumed",
+                    table: "Foundation",
+                    comment: "Cloud auth error when the OTP challenge was already used"
+                )
             case "OTP_CODE_INVALID":
-                return "Code is invalid. Try again."
+                return String(
+                    localized: "cloud_auth.error.otp_code_invalid",
+                    table: "Foundation",
+                    comment: "Cloud auth error when the OTP code is invalid"
+                )
             case "OTP_SEND_FAILED":
                 return appendCloudRequestIdReference(
-                    message: "Could not send a code. Try again.",
+                    message: String(
+                        localized: "cloud_auth.error.otp_send_failed",
+                        table: "Foundation",
+                        comment: "Cloud auth error when sending the OTP code failed"
+                    ),
                     requestId: details.requestId
                 )
             case "OTP_VERIFY_FAILED":
                 return appendCloudRequestIdReference(
-                    message: "Could not verify the code. Try again.",
+                    message: String(
+                        localized: "cloud_auth.error.otp_verify_failed",
+                        table: "Foundation",
+                        comment: "Cloud auth error when verifying the OTP code failed"
+                    ),
                     requestId: details.requestId
                 )
             default:
                 return appendCloudRequestIdReference(
-                    message: "Cloud sign-in failed. Try again.",
+                    message: String(
+                        localized: "cloud_auth.error.sign_in_failed",
+                        table: "Foundation",
+                        comment: "Cloud auth error for an unknown sign-in failure"
+                    ),
                     requestId: details.requestId
                 )
             }
         case .invalidResponseBody:
-            return "Cloud sign-in failed. Try again."
+            return String(
+                localized: "cloud_auth.error.sign_in_failed",
+                table: "Foundation",
+                comment: "Cloud auth error for an unknown sign-in failure"
+            )
         }
     }
 

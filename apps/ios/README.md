@@ -2,6 +2,8 @@
 
 Read this file before making any iOS change.
 
+If your change touches iOS localization or adds a new language, also read [`docs/ios-localization.md`](../../docs/ios-localization.md) before editing.
+
 ## Goal
 
 The iOS app should feel fully native to Apple platforms. We prefer Apple system components, Apple interaction patterns, and Apple visual conventions over custom design systems or cross-platform visual alignment.

@@ -1,6 +1,15 @@
 import Foundation
 
 private let reviewAnswerPresentationOrder: [ReviewRating] = [.again, .hard, .good, .easy]
+private let reviewCardsStringsTableName: String = "ReviewCards"
+private let reviewIntervalFormatter: DateComponentsFormatter = {
+    let formatter = DateComponentsFormatter()
+    formatter.unitsStyle = .full
+    formatter.maximumUnitCount = 1
+    formatter.includesApproximationPhrase = false
+    formatter.includesTimeRemainingPhrase = false
+    return formatter
+}()
 
 struct ReviewAnswerOption: Hashable, Identifiable {
     let rating: ReviewRating
@@ -11,25 +20,48 @@ struct ReviewAnswerOption: Hashable, Identifiable {
     }
 }
 
+func localizedReviewRatingTitle(rating: ReviewRating) -> String {
+    switch rating {
+    case .again:
+        return String(localized: "Again", table: reviewCardsStringsTableName)
+    case .hard:
+        return String(localized: "Hard", table: reviewCardsStringsTableName)
+    case .good:
+        return String(localized: "Good", table: reviewCardsStringsTableName)
+    case .easy:
+        return String(localized: "Easy", table: reviewCardsStringsTableName)
+    }
+}
+
 func formatReviewIntervalText(now: Date, dueAt: Date) -> String {
     let durationSeconds = max(Int(dueAt.timeIntervalSince(now)), 0)
 
     if durationSeconds < 60 {
-        return "in less than a minute"
+        return String(localized: "in less than a minute", table: reviewCardsStringsTableName)
     }
 
+    let localizedInterval: String
     let durationMinutes = durationSeconds / 60
-    if durationMinutes < 60 {
-        return "in \(durationMinutes) minute\(durationMinutes == 1 ? "" : "s")"
+    if durationMinutes < 60,
+       let formattedInterval = reviewIntervalFormatter.string(from: TimeInterval(durationMinutes * 60)) {
+        localizedInterval = formattedInterval
+    } else {
+        let durationHours = durationMinutes / 60
+        if durationHours < 24,
+           let formattedInterval = reviewIntervalFormatter.string(from: TimeInterval(durationHours * 3_600)) {
+            localizedInterval = formattedInterval
+        } else {
+            let durationDays = durationHours / 24
+            localizedInterval = reviewIntervalFormatter.string(from: TimeInterval(durationDays * 86_400))
+                ?? durationDays.formatted()
+        }
     }
 
-    let durationHours = durationMinutes / 60
-    if durationHours < 24 {
-        return "in \(durationHours) hour\(durationHours == 1 ? "" : "s")"
-    }
-
-    let durationDays = durationHours / 24
-    return "in \(durationDays) day\(durationDays == 1 ? "" : "s")"
+    return String(
+        format: String(localized: "in %@", table: reviewCardsStringsTableName),
+        locale: Locale.current,
+        localizedInterval
+    )
 }
 
 func makeReviewAnswerOptions(card: Card, schedulerSettings: WorkspaceSchedulerSettings, now: Date) throws -> [ReviewAnswerOption] {

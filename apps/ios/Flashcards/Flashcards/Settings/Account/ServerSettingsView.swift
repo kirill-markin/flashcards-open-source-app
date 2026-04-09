@@ -8,9 +8,9 @@ private enum ServerSettingsConfirmationAction {
 private func cloudServiceConfigurationModeTitle(_ mode: CloudServiceConfigurationMode) -> String {
     switch mode {
     case .official:
-        return "Official"
+        return aiSettingsLocalized("settings.account.server.mode.official", "Official")
     case .custom:
-        return "Custom"
+        return aiSettingsLocalized("settings.account.server.mode.custom", "Custom")
     }
 }
 
@@ -39,22 +39,22 @@ struct ServerSettingsView: View {
     private var confirmationTitle: String {
         switch self.confirmationAction {
         case .apply:
-            return "Disconnect this device and switch server?"
+            return aiSettingsLocalized("settings.account.server.confirmationTitle.apply", "Disconnect this device and switch server?")
         case .resetToOfficial:
-            return "Disconnect this device and reset to the official server?"
+            return aiSettingsLocalized("settings.account.server.confirmationTitle.reset", "Disconnect this device and reset to the official server?")
         case nil:
-            return "Confirm server change"
+            return aiSettingsLocalized("settings.account.server.confirmationTitle.default", "Confirm server change")
         }
     }
 
     private var confirmationButtonTitle: String {
         switch self.confirmationAction {
         case .apply:
-            return "Disconnect and Apply"
+            return aiSettingsLocalized("settings.account.server.confirmationButton.apply", "Disconnect and Apply")
         case .resetToOfficial:
-            return "Disconnect and Reset"
+            return aiSettingsLocalized("settings.account.server.confirmationButton.reset", "Disconnect and Reset")
         case nil:
-            return "Confirm"
+            return aiSettingsLocalized("common.confirm", "Confirm")
         }
     }
 
@@ -66,46 +66,51 @@ struct ServerSettingsView: View {
                 }
             }
 
-            Section("Current Server") {
+            Section(aiSettingsLocalized("settings.account.server.section.currentServer", "Current Server")) {
                 if let currentConfiguration {
-                    LabeledContent("Mode") {
+                    LabeledContent(aiSettingsLocalized("settings.account.server.mode", "Mode")) {
                         Text(cloudServiceConfigurationModeTitle(currentConfiguration.mode))
                     }
 
                     if let customOrigin = currentConfiguration.customOrigin {
-                        LabeledContent("Domain") {
+                        LabeledContent(aiSettingsLocalized("settings.account.server.domain", "Domain")) {
                             Text(customOrigin)
                                 .font(.caption.monospaced())
                                 .multilineTextAlignment(.trailing)
                         }
                     } else {
-                        LabeledContent("Domain") {
-                            Text("Official default")
+                        LabeledContent(aiSettingsLocalized("settings.account.server.domain", "Domain")) {
+                            Text(aiSettingsLocalized("settings.account.server.officialDefault", "Official default"))
                         }
                     }
 
-                    LabeledContent("API URL") {
+                    LabeledContent(aiSettingsLocalized("settings.account.server.apiUrl", "API URL")) {
                         Text(currentConfiguration.apiBaseUrl)
                             .font(.caption.monospaced())
                             .multilineTextAlignment(.trailing)
                     }
 
-                    LabeledContent("Auth URL") {
+                    LabeledContent(aiSettingsLocalized("settings.account.server.authUrl", "Auth URL")) {
                         Text(currentConfiguration.authBaseUrl)
                             .font(.caption.monospaced())
                             .multilineTextAlignment(.trailing)
                     }
                 } else {
-                    Text("Server configuration is unavailable.")
+                    Text(aiSettingsLocalized("settings.account.server.unavailable", "Server configuration is unavailable."))
                         .foregroundStyle(.secondary)
                 }
             }
 
-            Section("Custom Server") {
-                Text("Enter your self-hosted HTTPS domain. The app will automatically use api.<domain>/v1 and auth.<domain>. Self-hosted servers may omit AI chat and dictation.")
+            Section(aiSettingsLocalized("settings.account.server.section.customServer", "Custom Server")) {
+                Text(
+                    aiSettingsLocalized(
+                        "settings.account.server.customDescription",
+                        "Enter your self-hosted HTTPS domain. The app will automatically use api.<domain>/v1 and auth.<domain>. Self-hosted servers may omit AI chat and dictation."
+                    )
+                )
                     .foregroundStyle(.secondary)
 
-                TextField("https://example.com", text: self.$customOriginInput)
+                TextField(aiSettingsLocalized("settings.account.server.customPlaceholder", "https://example.com"), text: self.$customOriginInput)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
@@ -115,49 +120,64 @@ struct ServerSettingsView: View {
                     }
 
                 if let previewConfiguration {
-                    LabeledContent("Expected API URL") {
+                    LabeledContent(aiSettingsLocalized("settings.account.server.expectedApiUrl", "Expected API URL")) {
                         Text(previewConfiguration.apiBaseUrl)
                             .font(.caption.monospaced())
                             .multilineTextAlignment(.trailing)
                     }
 
-                    LabeledContent("Expected Auth URL") {
+                    LabeledContent(aiSettingsLocalized("settings.account.server.expectedAuthUrl", "Expected Auth URL")) {
                         Text(previewConfiguration.authBaseUrl)
                             .font(.caption.monospaced())
                             .multilineTextAlignment(.trailing)
                     }
                 } else {
-                    Text("Enter a valid base HTTPS URL like https://example.com to preview the derived API and auth URLs.")
+                    Text(
+                        aiSettingsLocalized(
+                            "settings.account.server.previewDescription",
+                            "Enter a valid base HTTPS URL like https://example.com to preview the derived API and auth URLs."
+                        )
+                    )
                         .foregroundStyle(.secondary)
                 }
 
-                Button("Apply Custom Server") {
+                Button(aiSettingsLocalized("settings.account.server.applyCustomServer", "Apply Custom Server")) {
                     self.prepareCustomServerApply()
                 }
                 .disabled(self.isApplyDisabled)
             }
 
-            Section("Official Server") {
-                Text("Resetting switches this device back to the bundled official server configuration. You will need to sign in again manually.")
+            Section(aiSettingsLocalized("settings.account.server.section.officialServer", "Official Server")) {
+                Text(
+                    aiSettingsLocalized(
+                        "settings.account.server.officialDescription",
+                        "Resetting switches this device back to the bundled official server configuration. You will need to sign in again manually."
+                    )
+                )
                     .foregroundStyle(.secondary)
 
-                Button("Reset to Official Server", role: .destructive) {
+                Button(aiSettingsLocalized("settings.account.server.resetToOfficialServer", "Reset to Official Server"), role: .destructive) {
                     self.confirmationAction = .resetToOfficial
                     self.isConfirmationPresented = true
                 }
                 .disabled(self.isResetDisabled)
             }
         }
-        .navigationTitle("Server")
+        .navigationTitle(aiSettingsLocalized("settings.account.advanced.server", "Server"))
         .alert(self.confirmationTitle, isPresented: self.$isConfirmationPresented) {
-            Button("Cancel", role: .cancel) {
+            Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {
                 self.confirmationAction = nil
             }
             Button(self.confirmationButtonTitle, role: .destructive) {
                 self.commitConfirmationAction()
             }
         } message: {
-            Text("This device will disconnect from the current cloud server. Local data stays on this device, sync will not start automatically, and you will need to sign in again manually.")
+            Text(
+                aiSettingsLocalized(
+                    "settings.account.server.confirmationMessage",
+                    "This device will disconnect from the current cloud server. Local data stays on this device, sync will not start automatically, and you will need to sign in again manually."
+                )
+            )
         }
         .onAppear {
             self.loadCurrentConfiguration()

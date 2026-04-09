@@ -1,11 +1,13 @@
 import SwiftUI
 
+private let reviewCardsStringsTableName: String = "ReviewCards"
+
 struct TagsFieldRow: View {
     let summary: String
 
     var body: some View {
         HStack {
-            Text("Tags")
+            Text(String(localized: "Tags", table: reviewCardsStringsTableName))
             Spacer()
             Text(summary)
                 .foregroundStyle(.secondary)
@@ -24,7 +26,7 @@ private struct TagInputRow: View {
             Image(systemName: "tag")
                 .foregroundStyle(.secondary)
 
-            TextField("Add or filter tags", text: $searchText)
+            TextField(String(localized: "Add or filter tags", table: reviewCardsStringsTableName), text: $searchText)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.done)
@@ -163,7 +165,7 @@ struct TagPickerView: View {
             }
 
             if draftTags.isEmpty == false {
-                Section("Selected") {
+                Section {
                     ForEach(selectedSuggestions, id: \.tag) { suggestion in
                         Button {
                             draftTags = toggleTagSelection(
@@ -180,10 +182,12 @@ struct TagPickerView: View {
                         }
                         .buttonStyle(.plain)
                     }
+                } header: {
+                    Text(String(localized: "Selected", table: reviewCardsStringsTableName))
                 }
             }
 
-            Section("Suggestions") {
+            Section {
                 if let nextCreatableTag {
                     Button {
                         draftTags = toggleTagSelection(
@@ -194,16 +198,20 @@ struct TagPickerView: View {
                         searchText = ""
                     } label: {
                         TagPickerRow(
-                            title: "Create \"\(nextCreatableTag)\"",
+                            title: String(
+                                format: String(localized: "Create \"%@\"", table: reviewCardsStringsTableName),
+                                locale: Locale.current,
+                                nextCreatableTag
+                            ),
                             isSelected: false,
-                            detail: .label("New")
+                            detail: .label(String(localized: "New", table: reviewCardsStringsTableName))
                         )
                     }
                     .buttonStyle(.plain)
                 }
 
                 if filteredSuggestions.isEmpty && nextCreatableTag == nil {
-                    Text("No matching tags")
+                    Text(String(localized: "No matching tags", table: reviewCardsStringsTableName))
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(filteredSuggestions, id: \.tag) { suggestion in
@@ -223,24 +231,38 @@ struct TagPickerView: View {
                         .buttonStyle(.plain)
                     }
                 }
+            } header: {
+                Text(String(localized: "Suggestions", table: reviewCardsStringsTableName))
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Tags")
+        .navigationTitle(String(localized: "Tags", table: reviewCardsStringsTableName))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("Cancel") {
+                Button(String(localized: "Cancel", table: reviewCardsStringsTableName)) {
                     dismiss()
                 }
             }
 
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Done") {
+                Button(String(localized: "Done", table: reviewCardsStringsTableName)) {
                     onSave(normalizeTags(values: draftTags, referenceTags: suggestions.map(\.tag)))
                     dismiss()
                 }
             }
         }
     }
+}
+
+func localizedTagSelectionSummary(tags: [String]) -> String {
+    if tags.isEmpty {
+        return localizedNoTagsLabel()
+    }
+
+    if tags.count <= 2 {
+        return tags.joined(separator: ", ")
+    }
+
+    return "\(tags[0]), \(tags[1]) +\((tags.count - 2).formatted())"
 }

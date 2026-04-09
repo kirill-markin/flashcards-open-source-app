@@ -38,9 +38,17 @@ func makeCloudAuthInlineErrorPresentation(
 private func makeCloudAuthTransportFailureMessage(context: CloudAuthInlineErrorContext) -> String {
     switch context {
     case .sendCode:
-        return "The connection was interrupted while sending the code. Check your email, then try again if needed."
+        return String(
+            localized: "cloud_auth.error.transport.send_code_interrupted",
+            table: "Foundation",
+            comment: "Cloud auth inline error when the network connection drops while sending the OTP code"
+        )
     case .verifyCode:
-        return "The connection was interrupted while verifying the code. Try again, or request a new code if needed."
+        return String(
+            localized: "cloud_auth.error.transport.verify_code_interrupted",
+            table: "Foundation",
+            comment: "Cloud auth inline error when the network connection drops while verifying the OTP code"
+        )
     }
 }
 

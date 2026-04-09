@@ -3,11 +3,11 @@ import SwiftUI
 struct AccessSettingsView: View {
     var body: some View {
         List {
-            Section("Permissions") {
+            Section(aiSettingsLocalized("settings.access.section.permissions", "Permissions")) {
                 NavigationLink(value: SettingsNavigationDestination.workspaceNotifications) {
                     SettingsNavigationRow(
-                        title: "Notifications",
-                        value: "This Device",
+                        title: aiSettingsLocalized("settings.access.notifications", "Notifications"),
+                        value: aiSettingsLocalized("settings.access.thisDevice", "This Device"),
                         systemImage: "bell.badge"
                     )
                 }
@@ -15,9 +15,9 @@ struct AccessSettingsView: View {
                 ForEach(AccessPermissionKind.allCases) { kind in
                     NavigationLink(value: SettingsNavigationDestination.accessPermissionDetail(kind)) {
                         HStack(spacing: 12) {
-                            Label(kind.title, systemImage: kind.systemImage)
+                            Label(localizedAccessPermissionKindTitle(kind), systemImage: kind.systemImage)
                             Spacer()
-                            Text(accessPermissionStatus(kind: kind).title)
+                            Text(localizedAccessPermissionStatusTitle(accessPermissionStatus(kind: kind)))
                                 .font(.subheadline.monospacedDigit())
                                 .foregroundStyle(.secondary)
                         }
@@ -26,12 +26,17 @@ struct AccessSettingsView: View {
             }
 
             Section {
-                Text("Flashcards Open Source App requests only the access needed for attachments and chat dictation.")
+                Text(
+                    aiSettingsLocalized(
+                        "settings.access.footer",
+                        "Flashcards Open Source App requests only the access needed for attachments and chat dictation."
+                    )
+                )
                     .foregroundStyle(.secondary)
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Access")
+        .navigationTitle(aiSettingsLocalized("settings.access.title", "Access"))
     }
 }
 
@@ -55,16 +60,19 @@ struct AccessPermissionDetailView: View {
                 }
             }
 
-            Section(self.kind.title) {
-                LabeledContent("Status") {
-                    Text(self.status.title)
+            Section(localizedAccessPermissionKindTitle(self.kind)) {
+                LabeledContent(aiSettingsLocalized("settings.access.detail.status", "Status")) {
+                    Text(localizedAccessPermissionStatusTitle(self.status))
                 }
 
-                Text(accessPermissionGuidance(kind: self.kind, status: self.status))
+                Text(localizedAccessPermissionDescription(self.kind))
+                    .foregroundStyle(.secondary)
+
+                Text(localizedAccessPermissionGuidance(kind: self.kind, status: self.status))
                     .foregroundStyle(.secondary)
             }
 
-            if let primaryActionTitle = accessPermissionPrimaryActionTitle(status: self.status) {
+            if let primaryActionTitle = localizedAccessPermissionPrimaryActionTitle(self.status) {
                 Section {
                     Button(primaryActionTitle) {
                         self.handlePrimaryAction()
@@ -73,7 +81,7 @@ struct AccessPermissionDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(self.kind.title)
+        .navigationTitle(localizedAccessPermissionKindTitle(self.kind))
         .onAppear {
             self.refreshStatus()
         }
@@ -93,7 +101,10 @@ struct AccessPermissionDetailView: View {
         case .allowed, .blocked, .limited:
             openApplicationSettings()
         case .unavailable:
-            self.screenErrorMessage = "This access is unavailable on the current device."
+            self.screenErrorMessage = aiSettingsLocalized(
+                "settings.access.guidance.unavailable",
+                "This access is unavailable on the current device."
+            )
         }
     }
 }

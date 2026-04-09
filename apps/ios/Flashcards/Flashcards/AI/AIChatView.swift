@@ -48,7 +48,7 @@ struct AIChatView: View {
             }
         }
         .accessibilityIdentifier(UITestIdentifier.aiScreen)
-        .navigationTitle("AI")
+        .navigationTitle(aiSettingsLocalized("ai.title", "AI"))
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaBar(edge: .bottom, spacing: 0) {
             if self.accessState == .ready && self.chatStore.isChatInteractive {
@@ -58,7 +58,7 @@ struct AIChatView: View {
         .toolbar {
             if self.accessState == .ready {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("New") {
+                    Button(aiSettingsLocalized("ai.newChat", "New")) {
                         self.chatStore.clearHistory()
                     }
                     .accessibilityIdentifier(UITestIdentifier.aiNewChatButton)
@@ -181,15 +181,15 @@ struct AIChatView: View {
             isPresented: self.isAlertPresentedBinding
         ) {
             if self.chatStore.activeAlert?.showsSettingsAction == true {
-                Button("Cancel", role: .cancel) {
+                Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {
                     self.chatStore.dismissAlert()
                 }
-                Button("Open Settings") {
+                Button(aiSettingsLocalized("common.openSettings", "Open Settings")) {
                     self.chatStore.dismissAlert()
                     openApplicationSettings()
                 }
             } else {
-                Button("OK", role: .cancel) {
+                Button(aiSettingsLocalized("common.ok", "OK"), role: .cancel) {
                     self.chatStore.dismissAlert()
                 }
             }
@@ -234,20 +234,20 @@ struct AIChatView: View {
                         .font(.system(size: 40))
                         .foregroundStyle(.secondary)
 
-                    Text("Before you use AI")
+                    Text(aiSettingsLocalized("ai.consent.title", "Before you use AI"))
                         .font(.title3.weight(.semibold))
 
-                    Text("AI can be wrong. Review important results before relying on them.")
+                    Text(aiSettingsLocalized("ai.consent.warning", "AI can be wrong. Review important results before relying on them."))
                         .foregroundStyle(.secondary)
 
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(aiChatExternalProviderDisclosureItems, id: \.self) { item in
-                            Label(item, systemImage: "checkmark.circle")
+                            Label(localizedAIChatDisclosureItem(item), systemImage: "checkmark.circle")
                         }
                     }
                     .font(.subheadline)
 
-                    Button("OK") {
+                    Button(aiSettingsLocalized("common.ok", "OK")) {
                         self.acceptExternalAIConsent()
                     }
                     .buttonStyle(.glassProminent)
@@ -255,13 +255,13 @@ struct AIChatView: View {
 
                     VStack(alignment: .leading, spacing: 10) {
                         if let privacyUrl = URL(string: flashcardsPrivacyPolicyUrl) {
-                            Link("Privacy Policy", destination: privacyUrl)
+                            Link(aiSettingsLocalized("common.privacyPolicy", "Privacy Policy"), destination: privacyUrl)
                         }
                         if let termsUrl = URL(string: flashcardsTermsOfServiceUrl) {
-                            Link("Terms of Service", destination: termsUrl)
+                            Link(aiSettingsLocalized("common.termsOfService", "Terms of Service"), destination: termsUrl)
                         }
                         if let supportUrl = URL(string: flashcardsSupportUrl) {
-                            Link("Support", destination: supportUrl)
+                            Link(aiSettingsLocalized("common.support", "Support"), destination: supportUrl)
                         }
                     }
                     .font(.subheadline.weight(.medium))
@@ -287,9 +287,14 @@ struct AIChatView: View {
     var loadingChatState: some View {
         ContentUnavailableView {
             ProgressView()
-            Text("Loading chat")
+            Text(aiSettingsLocalized("ai.loading.title", "Loading chat"))
         } description: {
-            Text("We are loading the latest AI chat for this account before enabling the composer.")
+            Text(
+                aiSettingsLocalized(
+                    "ai.loading.description",
+                    "We are loading the latest AI chat for this account before enabling the composer."
+                )
+            )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, aiChatMessageListHorizontalPadding)
@@ -297,17 +302,17 @@ struct AIChatView: View {
 
     var failedChatState: some View {
         ContentUnavailableView {
-            Label("Chat unavailable", systemImage: "exclamationmark.triangle")
+            Label(aiSettingsLocalized("ai.failed.title", "Chat unavailable"), systemImage: "exclamationmark.triangle")
         } description: {
             VStack(spacing: 12) {
-                Text(self.chatStore.bootstrapFailureMessage ?? "Failed to load AI chat.")
+                Text(self.chatStore.bootstrapFailureMessage ?? aiSettingsLocalized("ai.failed.message", "Failed to load AI chat."))
                 if self.flashcardsStore.isCloudSyncBlocked {
-                    Button("Open account status") {
+                    Button(aiSettingsLocalized("ai.failed.openAccountStatus", "Open account status")) {
                         self.navigation.openSettings(destination: .accountStatus)
                     }
                     .buttonStyle(.glassProminent)
                 } else {
-                    Button("Retry") {
+                    Button(aiSettingsLocalized("common.retry", "Retry")) {
                         self.chatStore.retryLinkedBootstrap()
                     }
                     .buttonStyle(.glassProminent)
@@ -320,10 +325,15 @@ struct AIChatView: View {
 
     var emptyChatState: some View {
         ContentUnavailableView {
-            Text("Start a new AI chat")
+            Text(aiSettingsLocalized("ai.emptyState.title", "Start a new AI chat"))
                 .accessibilityIdentifier(UITestIdentifier.aiEmptyState)
         } description: {
-            Text("Ask about cards, review history, or attach notes for extraction.")
+            Text(
+                aiSettingsLocalized(
+                    "ai.emptyState.description",
+                    "Ask about cards, review history, or attach notes for extraction."
+                )
+            )
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
         }

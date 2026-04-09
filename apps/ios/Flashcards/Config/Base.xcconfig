@@ -9,6 +9,7 @@ ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
 ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor
 CODE_SIGN_STYLE = Automatic
 CURRENT_PROJECT_VERSION = $(APP_CURRENT_PROJECT_VERSION)
+DEVELOPMENT_LANGUAGE = en
 // Keep the repository default unsigned. Signed archives inject DEVELOPMENT_TEAM
 // through Local.xcconfig, which is generated locally or by Xcode Cloud.
 DEVELOPMENT_TEAM =

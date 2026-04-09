@@ -18,18 +18,18 @@ struct WorkspaceSettingsView: View {
             Section {
                 NavigationLink(value: SettingsNavigationDestination.workspaceOverview) {
                     SettingsNavigationRow(
-                        title: "Overview",
-                        value: store.workspace?.name ?? "Unavailable",
+                        title: aiSettingsLocalized("settings.workspace.row.overview", "Overview"),
+                        value: store.workspace?.name ?? aiSettingsLocalized("common.unavailable", "Unavailable"),
                         systemImage: "square.text.square"
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.workspaceSettingsOverviewRow)
             }
 
-            Section("Workspace Data") {
+            Section(aiSettingsLocalized("settings.workspace.section.workspaceData", "Workspace Data")) {
                 NavigationLink(value: SettingsNavigationDestination.workspaceDecks) {
                     SettingsNavigationRow(
-                        title: "Decks",
+                        title: aiSettingsLocalized("settings.workspace.row.decks", "Decks"),
                         value: "\(self.overviewSnapshot?.deckCount ?? 0)",
                         systemImage: "line.3.horizontal.decrease.circle"
                     )
@@ -37,17 +37,17 @@ struct WorkspaceSettingsView: View {
 
                 NavigationLink(value: SettingsNavigationDestination.workspaceTags) {
                     SettingsNavigationRow(
-                        title: "Tags",
+                        title: aiSettingsLocalized("settings.workspace.row.tags", "Tags"),
                         value: "\(self.overviewSnapshot?.tagsCount ?? 0)",
                         systemImage: "tag"
                     )
                 }
             }
 
-            Section("Settings") {
+            Section(aiSettingsLocalized("settings.workspace.section.settings", "Settings")) {
                 NavigationLink(value: SettingsNavigationDestination.workspaceScheduler) {
                     SettingsNavigationRow(
-                        title: "Scheduler",
+                        title: aiSettingsLocalized("settings.workspace.row.scheduler", "Scheduler"),
                         value: schedulerSummaryValue(settings: store.schedulerSettings),
                         systemImage: "calendar.badge.clock"
                     )
@@ -55,26 +55,31 @@ struct WorkspaceSettingsView: View {
 
                 NavigationLink(value: SettingsNavigationDestination.workspaceNotifications) {
                     SettingsNavigationRow(
-                        title: "Notifications",
-                        value: "This Device",
+                        title: aiSettingsLocalized("settings.workspace.row.notifications", "Notifications"),
+                        value: aiSettingsLocalized("settings.access.thisDevice", "This Device"),
                         systemImage: "bell.badge"
                     )
                 }
 
                 NavigationLink(value: SettingsNavigationDestination.workspaceExport) {
                     SettingsNavigationRow(
-                        title: "Export",
+                        title: aiSettingsLocalized("settings.workspace.row.export", "Export"),
                         value: "CSV",
                         systemImage: "square.and.arrow.up"
                     )
                 }
             }
 
-            Section("Danger Zone") {
-                Text("Permanently reset study progress for every card in this workspace.")
+            Section(aiSettingsLocalized("settings.workspace.section.dangerZone", "Danger Zone")) {
+                Text(
+                    aiSettingsLocalized(
+                        "settings.workspace.resetProgressDescription",
+                        "Permanently reset study progress for every card in this workspace."
+                    )
+                )
                     .foregroundStyle(.secondary)
 
-                Button("Reset all progress", role: .destructive) {
+                Button(aiSettingsLocalized("settings.workspace.resetAllProgress", "Reset all progress"), role: .destructive) {
                     self.isResetProgressAlertPresented = true
                 }
                 .disabled(store.cloudSettings?.cloudState != .linked || store.workspace == nil)
@@ -83,14 +88,19 @@ struct WorkspaceSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.workspaceSettingsScreen)
-        .navigationTitle("Workspace Settings")
-        .alert("Reset all progress?", isPresented: self.$isResetProgressAlertPresented) {
-            Button("Cancel", role: .cancel) {}
-            Button("Continue", role: .destructive) {
+        .navigationTitle(aiSettingsLocalized("settings.workspace.title", "Workspace Settings"))
+        .alert(aiSettingsLocalized("settings.workspace.resetAlertTitle", "Reset all progress?"), isPresented: self.$isResetProgressAlertPresented) {
+            Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {}
+            Button(aiSettingsLocalized("common.continue", "Continue"), role: .destructive) {
                 self.isResetProgressConfirmationPresented = true
             }
         } message: {
-            Text("This permanently resets study progress for all cards in the current workspace.")
+            Text(
+                aiSettingsLocalized(
+                    "settings.workspace.resetAlertMessage",
+                    "This permanently resets study progress for all cards in the current workspace."
+                )
+            )
         }
         .fullScreenCover(isPresented: self.$isResetProgressConfirmationPresented) {
             ResetWorkspaceProgressConfirmationView(isPresented: self.$isResetProgressConfirmationPresented)
@@ -125,7 +135,7 @@ struct WorkspaceSettingsView: View {
 
 private func schedulerSummaryValue(settings: WorkspaceSchedulerSettings?) -> String {
     guard let settings else {
-        return "Unavailable"
+        return aiSettingsLocalized("common.unavailable", "Unavailable")
     }
 
     return "\(settings.algorithm.uppercased()) \(formatSchedulerRetentionValue(value: settings.desiredRetention))"

@@ -2,11 +2,11 @@ import SwiftUI
 import UIKit
 
 func aiChatUnknownContentPlaceholderTitle() -> String {
-    "Unsupported content"
+    aiSettingsLocalized("ai.message.unsupportedContent", "Unsupported content")
 }
 
 func aiChatUnknownContentPlaceholderSubtitle(content: AIChatUnknownContentPart) -> String {
-    "Type: \(content.originalType)"
+    aiSettingsLocalizedFormat("ai.message.unsupportedContent.type", "Type: %@", content.originalType)
 }
 
 struct AIChatUnknownContentPlaceholderView: View {
@@ -41,7 +41,7 @@ struct AIChatTypingIndicator: View {
                 }
             }
             .padding(.top, 2)
-            .accessibilityLabel("Assistant is typing")
+            .accessibilityLabel(aiSettingsLocalized("ai.message.assistantTyping", "Assistant is typing"))
         }
     }
 }
@@ -108,7 +108,11 @@ extension AIChatView {
         showsTypingIndicator: Bool
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(message.role == .user ? "You" : "Assistant")
+            Text(
+                message.role == .user
+                    ? aiSettingsLocalized("ai.message.role.you", "You")
+                    : aiSettingsLocalized("ai.message.role.assistant", "Assistant")
+            )
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
 
@@ -120,7 +124,15 @@ extension AIChatView {
                 HStack(spacing: 8) {
                     ProgressView()
                         .controlSize(.small)
-                    Text(repairStatus.displayText)
+                    Text(
+                        aiSettingsLocalizedFormat(
+                            "ai.message.repairStatus",
+                            "%@ %d/%d",
+                            repairStatus.message,
+                            repairStatus.attempt,
+                            repairStatus.maxAttempts
+                        )
+                    )
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -153,7 +165,7 @@ extension AIChatView {
                 Text(text)
             }
         case .image:
-            Label("Image attached", systemImage: "photo")
+            Label(aiSettingsLocalized("ai.message.imageAttached", "Image attached"), systemImage: "photo")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         case .file(let fileName, _, _):
@@ -168,7 +180,13 @@ extension AIChatView {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .textSelection(.enabled)
                     if card.tags.isEmpty == false {
-                        Text("Tags: \(card.tags.joined(separator: ", "))")
+                        Text(
+                            aiSettingsLocalizedFormat(
+                                "ai.message.card.tags",
+                                "Tags: %@",
+                                card.tags.joined(separator: ", ")
+                            )
+                        )
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -178,7 +196,7 @@ extension AIChatView {
                 VStack(alignment: .leading, spacing: 4) {
                     Label(aiChatCardAttachmentLabel(card: card), systemImage: "square.stack")
                         .font(.subheadline.weight(.semibold))
-                    Text("Prompt context")
+                    Text(aiSettingsLocalized("ai.message.card.promptContext", "Prompt context"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -252,7 +270,11 @@ extension AIChatView {
             )
         case .reasoningSummary(let reasoningSummary):
             DisclosureGroup {
-                Text(reasoningSummary.summary.isEmpty ? "Thinking..." : reasoningSummary.summary)
+                Text(
+                    reasoningSummary.summary.isEmpty
+                        ? aiSettingsLocalized("ai.message.reasoning.thinking", "Thinking...")
+                        : reasoningSummary.summary
+                )
                     .font(.subheadline)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
@@ -260,10 +282,14 @@ extension AIChatView {
                     .padding(.top, 4)
             } label: {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    Text("Reasoning")
+                    Text(aiSettingsLocalized("ai.message.reasoning.title", "Reasoning"))
                         .font(.subheadline.weight(.semibold))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Text(reasoningSummary.status == .started ? "RUNNING" : "DONE")
+                    Text(
+                        reasoningSummary.status == .started
+                            ? aiSettingsLocalized("ai.message.reasoning.status.running", "RUNNING")
+                            : aiSettingsLocalized("ai.message.reasoning.status.done", "DONE")
+                    )
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -305,7 +331,11 @@ extension AIChatView {
                 if partialResult.isEmpty == false {
                     partialResult.append("\n")
                 }
-                partialResult.append(reasoningSummary.summary.isEmpty ? "Thinking..." : reasoningSummary.summary)
+                partialResult.append(
+                    reasoningSummary.summary.isEmpty
+                        ? aiSettingsLocalized("ai.message.reasoning.thinking", "Thinking...")
+                        : reasoningSummary.summary
+                )
             case .unknown(let unknownContent):
                 if partialResult.isEmpty == false {
                     partialResult.append("\n")
@@ -317,7 +347,7 @@ extension AIChatView {
         }
         let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        return trimmedText.isEmpty ? "Assistant" : trimmedText
+        return trimmedText.isEmpty ? aiSettingsLocalized("ai.message.role.assistant", "Assistant") : trimmedText
     }
 }
 

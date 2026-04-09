@@ -45,31 +45,31 @@ struct AccountStatusView: View {
                 }
             }
 
-            Section("Account Status") {
+            Section(aiSettingsLocalized("settings.account.status.section.accountStatus", "Account Status")) {
                 if let cloudSettings = store.cloudSettings {
                     let syncStatusPresentation = makeSyncStatusPresentation(
                         status: store.syncStatus,
                         cloudState: cloudSettings.cloudState
                     )
 
-                    LabeledContent("State") {
+                    LabeledContent(aiSettingsLocalized("settings.account.status.state", "State")) {
                         Text(displayCloudAccountStateTitle(cloudState: cloudSettings.cloudState))
                     }
 
-                    LabeledContent("Installation ID") {
+                    LabeledContent(aiSettingsLocalized("settings.account.status.installationId", "Installation ID")) {
                         Text(cloudSettings.installationId)
                             .font(.caption.monospaced())
                             .multilineTextAlignment(.trailing)
                     }
 
                     if let linkedEmail = cloudSettings.linkedEmail {
-                        LabeledContent("Linked email") {
+                        LabeledContent(aiSettingsLocalized("settings.account.status.linkedEmail", "Linked email")) {
                             Text(linkedEmail)
                                 .accessibilityIdentifier(UITestIdentifier.accountStatusLinkedEmailValue)
                         }
                     }
 
-                    LabeledContent("Sync status") {
+                    LabeledContent(aiSettingsLocalized("settings.account.status.syncStatus", "Sync status")) {
                         SyncStatusIndicatorView(presentation: syncStatusPresentation)
                     }
 
@@ -78,64 +78,74 @@ struct AccountStatusView: View {
                     }
 
                     if let lastSuccessfulCloudSyncAt = store.lastSuccessfulCloudSyncAt {
-                        LabeledContent("Last sync") {
+                        LabeledContent(aiSettingsLocalized("settings.account.status.lastSync", "Last sync")) {
                             Text(lastSuccessfulCloudSyncAt)
                                 .font(.caption.monospaced())
                                 .multilineTextAlignment(.trailing)
                         }
                     }
 
-                    Text("Guest and linked accounts sync the current workspace through the cloud. Linked accounts can manage workspaces from Current Workspace in Settings.")
+                    Text(
+                        aiSettingsLocalized(
+                            "settings.account.status.description",
+                            "Guest and linked accounts sync the current workspace through the cloud. Linked accounts can manage workspaces from Current Workspace in Settings."
+                        )
+                    )
                         .foregroundStyle(.secondary)
 
                     switch cloudSettings.cloudState {
                     case .disconnected, .linkingReady:
-                        Button("Sign in or sign up") {
+                        Button(aiSettingsLocalized("settings.account.status.signIn", "Sign in or sign up")) {
                             self.isCloudSignInPresented = true
                         }
                         .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
                     case .guest:
-                        Button("Sign in or sign up") {
+                        Button(aiSettingsLocalized("settings.account.status.signIn", "Sign in or sign up")) {
                             self.isCloudSignInPresented = true
                         }
                         .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
                     case .linked:
-                        Button("Sync now") {
+                        Button(aiSettingsLocalized("settings.account.status.syncNow", "Sync now")) {
                             self.syncNow()
                         }
                         .disabled(isSyncInFlight(status: store.syncStatus) || self.isSyncBlocked)
                         .accessibilityIdentifier(UITestIdentifier.accountStatusSyncNowButton)
 
-                        Button("Switch account") {
+                        Button(aiSettingsLocalized("settings.account.status.switchAccount", "Switch account")) {
                             self.isCloudSignInPresented = true
                         }
                         .accessibilityIdentifier(UITestIdentifier.accountStatusSwitchAccountButton)
 
-                        Button("Log out", role: .destructive) {
+                        Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
                             self.isLogoutConfirmationPresented = true
                         }
                         .accessibilityIdentifier(UITestIdentifier.accountStatusLogoutButton)
                     }
                 } else {
-                    Text("Cloud settings are unavailable.")
+                    Text(aiSettingsLocalized("settings.account.status.unavailable", "Cloud settings are unavailable."))
                         .foregroundStyle(.secondary)
                 }
             }
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.accountStatusScreen)
-        .navigationTitle("Account Status")
+        .navigationTitle(aiSettingsLocalized("settings.account.status.title", "Account Status"))
         .sheet(isPresented: self.$isCloudSignInPresented) {
             CloudSignInSheet()
                 .environment(store)
         }
-        .alert("Log out and clear this device?", isPresented: self.$isLogoutConfirmationPresented) {
-            Button("Cancel", role: .cancel) {}
-            Button("Log out", role: .destructive) {
+        .alert(aiSettingsLocalized("settings.account.status.logoutAlertTitle", "Log out and clear this device?"), isPresented: self.$isLogoutConfirmationPresented) {
+            Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {}
+            Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
                 self.logoutCloudAccount()
             }
         } message: {
-            Text("All local workspaces and synced data will be removed from this device.")
+            Text(
+                aiSettingsLocalized(
+                    "settings.account.status.logoutAlertMessage",
+                    "All local workspaces and synced data will be removed from this device."
+                )
+            )
         }
     }
 

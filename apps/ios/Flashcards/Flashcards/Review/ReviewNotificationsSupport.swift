@@ -9,7 +9,11 @@ let dailyReminderSchedulingHorizonDays: Int = 7
 let reviewNotificationPendingRequestsLimit: Int = 64
 let defaultInactivityReminderWindowEndHour: Int = 19
 let defaultInactivityReminderWindowEndMinute: Int = 0
-let reviewNotificationFallbackBodyText: String = "Continue your study session in Flashcards."
+let reviewNotificationFallbackBodyText: String = String(
+    localized: "review_notification.fallback_body",
+    table: "Foundation",
+    comment: "Fallback review notification body text"
+)
 
 let reviewNotificationsSettingsUserDefaultsKeyPrefix: String = "review-notifications-settings::"
 let reviewNotificationPromptStateUserDefaultsKey: String = "review-notification-prompt-state"
@@ -31,9 +35,17 @@ enum ReviewNotificationMode: String, Codable, CaseIterable, Identifiable, Hashab
     var title: String {
         switch self {
         case .daily:
-            return "Daily"
+            return String(
+                localized: "review_notification.mode.daily",
+                table: "Foundation",
+                comment: "Daily review notification mode title"
+            )
         case .inactivity:
-            return "Inactivity"
+            return String(
+                localized: "review_notification.mode.inactivity",
+                table: "Foundation",
+                comment: "Inactivity review notification mode title"
+            )
         }
     }
 }
@@ -255,20 +267,40 @@ enum ReviewNotificationPermissionStatus: Hashable, Sendable {
     var title: String {
         switch self {
         case .allowed:
-            return "Allowed"
+            return String(
+                localized: "review_notification_permission.allowed",
+                table: "Foundation",
+                comment: "Notifications permission title for allowed"
+            )
         case .notRequested:
-            return "Not requested"
+            return String(
+                localized: "review_notification_permission.not_requested",
+                table: "Foundation",
+                comment: "Notifications permission title for not requested"
+            )
         case .blocked:
-            return "Blocked"
+            return String(
+                localized: "review_notification_permission.blocked",
+                table: "Foundation",
+                comment: "Notifications permission title for blocked"
+            )
         }
     }
 
     var actionTitle: String {
         switch self {
         case .allowed, .blocked:
-            return "Open Settings"
+            return String(
+                localized: "shared.action.open_settings",
+                table: "Foundation",
+                comment: "Notifications permission action title to open Settings"
+            )
         case .notRequested:
-            return "Allow Notifications"
+            return String(
+                localized: "review_notification_permission.allow_notifications",
+                table: "Foundation",
+                comment: "Notifications permission action title to allow notifications"
+            )
         }
     }
 }

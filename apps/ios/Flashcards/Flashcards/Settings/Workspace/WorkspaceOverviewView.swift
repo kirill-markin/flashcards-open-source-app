@@ -34,9 +34,9 @@ struct WorkspaceOverviewView: View {
                 }
             }
 
-            Section("Workspace") {
+            Section(aiSettingsLocalized("settings.workspace.overview.section.workspace", "Workspace")) {
                 if self.isCloudLinked {
-                    TextField("Workspace name", text: self.$workspaceNameDraft)
+                    TextField(aiSettingsLocalized("settings.workspace.overview.workspaceName", "Workspace name"), text: self.$workspaceNameDraft)
                         .textInputAutocapitalization(.words)
                         .autocorrectionDisabled(true)
                         .accessibilityIdentifier(UITestIdentifier.workspaceOverviewNameField)
@@ -45,7 +45,11 @@ struct WorkspaceOverviewView: View {
                         CopyableErrorMessageView(message: self.renameErrorMessage)
                     }
 
-                    Button(self.isRenameSubmitting ? "Saving..." : "Save name") {
+                    Button(
+                        self.isRenameSubmitting
+                            ? aiSettingsLocalized("common.saving", "Saving...")
+                            : aiSettingsLocalized("settings.workspace.overview.saveName", "Save name")
+                    ) {
                         Task {
                             await self.renameWorkspace()
                         }
@@ -53,53 +57,68 @@ struct WorkspaceOverviewView: View {
                     .disabled(self.isRenameDisabled)
                     .accessibilityIdentifier(UITestIdentifier.workspaceOverviewSaveNameButton)
                 } else {
-                    LabeledContent("Workspace") {
-                        Text(self.overviewSnapshot?.workspaceName ?? store.workspace?.name ?? "Unavailable")
+                    LabeledContent(aiSettingsLocalized("settings.workspace.overview.workspace", "Workspace")) {
+                        Text(self.overviewSnapshot?.workspaceName ?? store.workspace?.name ?? aiSettingsLocalized("common.unavailable", "Unavailable"))
                     }
 
-                    Text("Workspace rename and delete are available only for linked cloud workspaces.")
+                    Text(
+                        aiSettingsLocalized(
+                            "settings.workspace.overview.linkedOnly",
+                            "Workspace rename and delete are available only for linked cloud workspaces."
+                        )
+                    )
                         .foregroundStyle(.secondary)
                 }
 
-                LabeledContent("Cards") {
+                LabeledContent(aiSettingsLocalized("settings.workspace.overview.cards", "Cards")) {
                     Text("\(self.overviewSnapshot?.totalCards ?? 0)")
                 }
 
-                LabeledContent("Decks") {
+                LabeledContent(aiSettingsLocalized("settings.workspace.row.decks", "Decks")) {
                     Text("\(self.overviewSnapshot?.deckCount ?? 0)")
                 }
 
-                LabeledContent("Tags") {
+                LabeledContent(aiSettingsLocalized("settings.workspace.row.tags", "Tags")) {
                     Text("\(self.overviewSnapshot?.tagsCount ?? 0)")
                 }
             }
 
-            Section("Today") {
-                LabeledContent("Due") {
+            Section(aiSettingsLocalized("settings.workspace.overview.section.today", "Today")) {
+                LabeledContent(aiSettingsLocalized("settings.workspace.overview.due", "Due")) {
                     Text("\(self.overviewSnapshot?.dueCount ?? 0)")
                         .accessibilityIdentifier(UITestIdentifier.workspaceOverviewDueCount)
                 }
 
-                LabeledContent("New") {
+                LabeledContent(aiSettingsLocalized("settings.workspace.overview.new", "New")) {
                     Text("\(self.overviewSnapshot?.newCount ?? 0)")
                         .accessibilityIdentifier(UITestIdentifier.workspaceOverviewNewCount)
                 }
 
-                LabeledContent("Reviewed") {
+                LabeledContent(aiSettingsLocalized("settings.workspace.overview.reviewed", "Reviewed")) {
                     Text("\(self.overviewSnapshot?.reviewedCount ?? 0)")
                         .accessibilityIdentifier(UITestIdentifier.workspaceOverviewReviewedCount)
                 }
             }
 
-            Section("Danger Zone") {
-                Text("Permanently delete this workspace and all cards, decks, reviews, and sync history inside it.")
+            Section(aiSettingsLocalized("settings.workspace.section.dangerZone", "Danger Zone")) {
+                Text(
+                    aiSettingsLocalized(
+                        "settings.workspace.overview.deleteDescription",
+                        "Permanently delete this workspace and all cards, decks, reviews, and sync history inside it."
+                    )
+                )
                     .foregroundStyle(.secondary)
 
                 if self.deletePreviewErrorMessage.isEmpty == false {
                     CopyableErrorMessageView(message: self.deletePreviewErrorMessage)
                 }
 
-                Button(self.isDeletePreviewLoading ? "Loading..." : "Delete workspace", role: .destructive) {
+                Button(
+                    self.isDeletePreviewLoading
+                        ? aiSettingsLocalized("common.loading", "Loading...")
+                        : aiSettingsLocalized("settings.workspace.overview.deleteWorkspace", "Delete workspace"),
+                    role: .destructive
+                ) {
                     Task {
                         await self.prepareDeleteWorkspace()
                     }
@@ -110,23 +129,29 @@ struct WorkspaceOverviewView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.workspaceOverviewScreen)
-        .navigationTitle("Overview")
+        .navigationTitle(aiSettingsLocalized("settings.workspace.row.overview", "Overview"))
         .task(id: store.localReadVersion) {
             await self.reloadWorkspaceOverview()
         }
         .task(id: store.workspace?.workspaceId) {
             self.workspaceNameDraft = store.workspace?.name ?? ""
         }
-        .alert("Delete this workspace?", isPresented: self.$isDeleteWorkspaceAlertPresented) {
-            Button("Cancel", role: .cancel) {}
-            Button("Continue", role: .destructive) {
+        .alert(aiSettingsLocalized("settings.workspace.overview.deleteAlertTitle", "Delete this workspace?"), isPresented: self.$isDeleteWorkspaceAlertPresented) {
+            Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {}
+            Button(aiSettingsLocalized("common.continue", "Continue"), role: .destructive) {
                 self.isDeleteWorkspaceConfirmationPresented = true
             }
         } message: {
             if let deletePreview {
-                Text("This permanently deletes \(deletePreview.activeCardCount) active cards from this workspace.")
+                Text(
+                    aiSettingsLocalizedFormat(
+                        "settings.workspace.overview.deleteAlertMessageWithCount",
+                        "This permanently deletes %d active cards from this workspace.",
+                        deletePreview.activeCardCount
+                    )
+                )
             } else {
-                Text("This permanently deletes the current workspace.")
+                Text(aiSettingsLocalized("settings.workspace.overview.deleteAlertMessage", "This permanently deletes the current workspace."))
             }
         }
         .fullScreenCover(isPresented: self.$isDeleteWorkspaceConfirmationPresented) {

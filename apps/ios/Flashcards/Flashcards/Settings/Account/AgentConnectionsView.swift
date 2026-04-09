@@ -17,7 +17,7 @@ struct AgentConnectionsView: View {
                 }
             }
 
-            Section("Agent Connections") {
+            Section(aiSettingsLocalized("settings.account.agentConnections.section.agentConnections", "Agent Connections")) {
                 if store.cloudSettings?.cloudState == .linked {
                     if self.agentConnectionsInstructions.isEmpty == false {
                         Text(self.agentConnectionsInstructions)
@@ -25,10 +25,15 @@ struct AgentConnectionsView: View {
                     }
 
                     if self.isLoadingAgentConnections {
-                        Text("Loading agent connections...")
+                        Text(aiSettingsLocalized("settings.account.agentConnections.loading", "Loading agent connections..."))
                             .foregroundStyle(.secondary)
                     } else if self.agentConnections.isEmpty {
-                        Text("No long-lived bot connections were created for this account.")
+                        Text(
+                            aiSettingsLocalized(
+                                "settings.account.agentConnections.empty",
+                                "No long-lived bot connections were created for this account."
+                            )
+                        )
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(self.agentConnections) { connection in
@@ -37,19 +42,19 @@ struct AgentConnectionsView: View {
                                 Text(connection.connectionId)
                                     .font(.caption.monospaced())
                                     .foregroundStyle(.secondary)
-                                LabeledContent("Created") {
+                                LabeledContent(aiSettingsLocalized("settings.account.agentConnections.created", "Created")) {
                                     Text(connection.createdAt)
                                         .font(.caption.monospaced())
                                 }
-                                LabeledContent("Last used") {
-                                    Text(connection.lastUsedAt ?? "Never")
+                                LabeledContent(aiSettingsLocalized("settings.account.agentConnections.lastUsed", "Last used")) {
+                                    Text(connection.lastUsedAt ?? aiSettingsLocalized("settings.account.agentConnections.never", "Never"))
                                         .font(.caption.monospaced())
                                 }
-                                LabeledContent("Revoked") {
-                                    Text(connection.revokedAt ?? "Not revoked")
+                                LabeledContent(aiSettingsLocalized("settings.account.agentConnections.revoked", "Revoked")) {
+                                    Text(connection.revokedAt ?? aiSettingsLocalized("settings.account.agentConnections.notRevoked", "Not revoked"))
                                         .font(.caption.monospaced())
                                 }
-                                Button("Revoke", role: .destructive) {
+                                Button(aiSettingsLocalized("settings.account.agentConnections.revoke", "Revoke"), role: .destructive) {
                                     self.revokeAgentConnection(connectionId: connection.connectionId)
                                 }
                                 .disabled(connection.revokedAt != nil || self.revokingConnectionId == connection.connectionId)
@@ -57,13 +62,18 @@ struct AgentConnectionsView: View {
                         }
                     }
                 } else {
-                    Text("Sign in to the cloud account to manage long-lived bot connections.")
+                    Text(
+                        aiSettingsLocalized(
+                            "settings.account.agentConnections.signInRequired",
+                            "Sign in to the cloud account to manage long-lived bot connections."
+                        )
+                    )
                         .foregroundStyle(.secondary)
                 }
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Agent Connections")
+        .navigationTitle(aiSettingsLocalized("settings.account.agentConnections.title", "Agent Connections"))
         .task(id: store.cloudSettings?.cloudState == .linked) {
             await self.reloadAgentConnectionsIfNeeded()
         }

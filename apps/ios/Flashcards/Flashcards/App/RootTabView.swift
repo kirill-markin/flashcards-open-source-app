@@ -12,7 +12,14 @@ struct RootTabView: View {
                 ReviewView()
             }
             .tabItem {
-                Label("Review", systemImage: "rectangle.on.rectangle")
+                Label(
+                    String(
+                        localized: "root_tab.review.title",
+                        table: "Foundation",
+                        comment: "Review tab title"
+                    ),
+                    systemImage: "rectangle.on.rectangle"
+                )
             }
             .tag(AppTab.review)
 
@@ -20,7 +27,14 @@ struct RootTabView: View {
                 CardsScreen()
             }
             .tabItem {
-                Label("Cards", systemImage: "rectangle.stack")
+                Label(
+                    String(
+                        localized: "root_tab.cards.title",
+                        table: "Foundation",
+                        comment: "Cards tab title"
+                    ),
+                    systemImage: "rectangle.stack"
+                )
             }
             .tag(AppTab.cards)
 
@@ -28,7 +42,14 @@ struct RootTabView: View {
                 AIChatView(chatStore: store.aiChatStore)
             }
             .tabItem {
-                Label("AI", systemImage: "sparkles.rectangle.stack")
+                Label(
+                    String(
+                        localized: "root_tab.ai.title",
+                        table: "Foundation",
+                        comment: "AI tab title"
+                    ),
+                    systemImage: "sparkles.rectangle.stack"
+                )
             }
             .tag(AppTab.ai)
 
@@ -78,7 +99,14 @@ struct RootTabView: View {
                     }
             }
             .tabItem {
-                Label("Settings", systemImage: "gearshape")
+                Label(
+                    String(
+                        localized: "root_tab.settings.title",
+                        table: "Foundation",
+                        comment: "Settings tab title"
+                    ),
+                    systemImage: "gearshape"
+                )
             }
             .tag(AppTab.settings)
         }
@@ -115,7 +143,11 @@ struct RootTabView: View {
             )
         }
         .alert(
-            "Account deleted",
+            String(
+                localized: "root_tab.account_deleted.title",
+                table: "Foundation",
+                comment: "Account deletion success alert title"
+            ),
             isPresented: Binding(
                 get: {
                     store.accountDeletionSuccessMessage != nil
@@ -127,7 +159,14 @@ struct RootTabView: View {
                 }
             )
         ) {
-            Button("OK", role: .cancel) {
+            Button(
+                String(
+                    localized: "shared.ok",
+                    table: "Foundation",
+                    comment: "Confirmation button title"
+                ),
+                role: .cancel
+            ) {
                 store.dismissAccountDeletionSuccessMessage()
             }
         } message: {

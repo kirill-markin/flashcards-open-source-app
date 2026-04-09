@@ -15,23 +15,28 @@ struct ReviewNotificationsSettingsView: View {
             }
 
             Section {
-                Text("Notification settings stay attached to this workspace, but they apply only to the current device. Study reminders contain cards only and never marketing messages.")
+                Text(
+                    aiSettingsLocalized(
+                        "settings.notifications.description",
+                        "Notification settings stay attached to this workspace, but they apply only to the current device. Study reminders contain cards only and never marketing messages."
+                    )
+                )
                     .foregroundStyle(.secondary)
             }
 
-            Section("Permission") {
-                LabeledContent("Status") {
-                    Text(self.permissionStatus.title)
+            Section(aiSettingsLocalized("settings.notifications.section.permission", "Permission")) {
+                LabeledContent(aiSettingsLocalized("settings.access.detail.status", "Status")) {
+                    Text(localizedReviewNotificationPermissionStatusTitle(self.permissionStatus))
                 }
 
-                Button(self.permissionStatus.actionTitle) {
+                Button(localizedReviewNotificationPermissionActionTitle(self.permissionStatus)) {
                     self.handlePermissionAction()
                 }
             }
 
-            Section("Review Reminders") {
+            Section(aiSettingsLocalized("settings.notifications.section.reviewReminders", "Review Reminders")) {
                 Toggle(
-                    "Enable reminders",
+                    aiSettingsLocalized("settings.notifications.enableReminders", "Enable reminders"),
                     isOn: Binding(
                         get: {
                             store.reviewNotificationsSettings.isEnabled
@@ -43,7 +48,7 @@ struct ReviewNotificationsSettingsView: View {
                 )
 
                 Picker(
-                    "Mode",
+                    aiSettingsLocalized("settings.notifications.mode", "Mode"),
                     selection: Binding(
                         get: {
                             store.reviewNotificationsSettings.selectedMode
@@ -54,19 +59,19 @@ struct ReviewNotificationsSettingsView: View {
                     )
                 ) {
                     ForEach(ReviewNotificationMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
+                        Text(localizedReviewNotificationModeTitle(mode)).tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)
             }
 
             if store.reviewNotificationsSettings.selectedMode == .daily {
-                Section("Daily Reminder") {
-                    Text("Example: send one card every day at the selected local time.")
+                Section(aiSettingsLocalized("settings.notifications.section.dailyReminder", "Daily Reminder")) {
+                    Text(aiSettingsLocalized("settings.notifications.dailyExample", "Example: send one card every day at the selected local time."))
                         .foregroundStyle(.secondary)
 
                     DatePicker(
-                        "Time",
+                        aiSettingsLocalized("settings.notifications.time", "Time"),
                         selection: Binding(
                             get: {
                                 makeTimeOnlyDate(
@@ -86,12 +91,17 @@ struct ReviewNotificationsSettingsView: View {
                     )
                 }
             } else {
-                Section("Inactivity Reminder") {
-                    Text("Example: between the selected local times, remind me after I have been away from the app for the chosen interval, keep reminding me every chosen interval inside that window, and repeat that pattern on later days until I come back.")
+                Section(aiSettingsLocalized("settings.notifications.section.inactivityReminder", "Inactivity Reminder")) {
+                    Text(
+                        aiSettingsLocalized(
+                            "settings.notifications.inactivityExample",
+                            "Example: between the selected local times, remind me after I have been away from the app for the chosen interval, keep reminding me every chosen interval inside that window, and repeat that pattern on later days until I come back."
+                        )
+                    )
                         .foregroundStyle(.secondary)
 
                     DatePicker(
-                        "From",
+                        aiSettingsLocalized("settings.notifications.from", "From"),
                         selection: Binding(
                             get: {
                                 makeTimeOnlyDate(
@@ -114,7 +124,7 @@ struct ReviewNotificationsSettingsView: View {
                     )
 
                     DatePicker(
-                        "To",
+                        aiSettingsLocalized("settings.notifications.to", "To"),
                         selection: Binding(
                             get: {
                                 makeTimeOnlyDate(
@@ -137,7 +147,7 @@ struct ReviewNotificationsSettingsView: View {
                     )
 
                     Picker(
-                        "Remind me after",
+                        aiSettingsLocalized("settings.notifications.remindAfter", "Remind me after"),
                         selection: Binding(
                             get: {
                                 store.reviewNotificationsSettings.inactivity.idleMinutes
@@ -161,7 +171,7 @@ struct ReviewNotificationsSettingsView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Notifications")
+        .navigationTitle(aiSettingsLocalized("settings.notifications.title", "Notifications"))
         .task(id: store.workspace?.workspaceId) {
             await self.refreshPermissionStatus()
         }
@@ -201,10 +211,14 @@ private func makeTimeOnlyDate(hour: Int, minute: Int) -> Date {
 private func formatIdleMinutes(minutes: Int) -> String {
     if minutes % 60 == 0 {
         let hours = minutes / 60
-        return hours == 1 ? "1 hour" : "\(hours) hours"
+        if hours == 1 {
+            return aiSettingsLocalized("settings.notifications.duration.oneHour", "1 hour")
+        }
+
+        return aiSettingsLocalizedFormat("settings.notifications.duration.hours", "%d hours", hours)
     }
 
-    return "\(minutes) minutes"
+    return aiSettingsLocalizedFormat("settings.notifications.duration.minutes", "%d minutes", minutes)
 }
 
 #Preview {

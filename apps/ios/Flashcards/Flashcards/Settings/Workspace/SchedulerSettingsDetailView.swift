@@ -24,78 +24,76 @@ struct SchedulerSettingsDetailView: View {
         List {
             if store.globalErrorMessage.isEmpty == false {
                 Section {
-                    Text(store.globalErrorMessage)
-                        .foregroundStyle(.red)
+                    CopyableErrorMessageView(message: store.globalErrorMessage)
                 }
             }
 
             if screenErrorMessage.isEmpty == false {
                 Section {
-                    Text(screenErrorMessage)
-                        .foregroundStyle(.red)
+                    CopyableErrorMessageView(message: screenErrorMessage)
                 }
             }
 
             if let schedulerSettings = store.schedulerSettings {
-                Section("Scheduler") {
+                Section(aiSettingsLocalized("settings.workspace.scheduler.section.scheduler", "Scheduler")) {
                     schedulerInfoRow(
-                        title: "Algorithm",
+                        title: aiSettingsLocalized("settings.workspace.scheduler.algorithm", "Algorithm"),
                         value: schedulerSettings.algorithm.uppercased(),
-                        note: "FSRS-6 is fixed in v1 and cannot be changed."
+                        note: aiSettingsLocalized("settings.workspace.scheduler.algorithmNote", "FSRS-6 is fixed in v1 and cannot be changed.")
                     )
 
                     schedulerTextFieldRow(
-                        title: "Desired retention",
-                        prompt: "0.90",
+                        title: aiSettingsLocalized("settings.workspace.scheduler.desiredRetention", "Desired retention"),
+                        prompt: aiSettingsLocalized("settings.workspace.scheduler.desiredRetentionPrompt", "0.90"),
                         text: self.$draft.desiredRetentionText,
                         focusedField: self.$focusedField,
                         field: .desiredRetention,
-                        note: "Higher values shorten intervals and increase review frequency. Lower values lengthen intervals and increase forgetting risk.",
+                        note: aiSettingsLocalized("settings.workspace.scheduler.desiredRetentionNote", "Higher values shorten intervals and increase review frequency. Lower values lengthen intervals and increase forgetting risk."),
                         keyboardType: .decimalPad,
                         autocapitalization: .sentences
                     )
 
                     schedulerTextFieldRow(
-                        title: "Learning steps (minutes)",
-                        prompt: "1, 10",
+                        title: aiSettingsLocalized("settings.workspace.scheduler.learningSteps", "Learning steps (minutes)"),
+                        prompt: aiSettingsLocalized("settings.workspace.scheduler.learningStepsPrompt", "1, 10"),
                         text: self.$draft.learningStepsText,
                         focusedField: self.$focusedField,
                         field: .learningSteps,
-                        note: "Short-term minute steps for new cards before they graduate. More or longer steps keep cards in learning longer.",
+                        note: aiSettingsLocalized("settings.workspace.scheduler.learningStepsNote", "Short-term minute steps for new cards before they graduate. More or longer steps keep cards in learning longer."),
                         keyboardType: .numbersAndPunctuation,
                         autocapitalization: .never
                     )
 
                     schedulerTextFieldRow(
-                        title: "Relearning steps (minutes)",
-                        prompt: "10",
+                        title: aiSettingsLocalized("settings.workspace.scheduler.relearningSteps", "Relearning steps (minutes)"),
+                        prompt: aiSettingsLocalized("settings.workspace.scheduler.relearningStepsPrompt", "10"),
                         text: self.$draft.relearningStepsText,
                         focusedField: self.$focusedField,
                         field: .relearningSteps,
-                        note: "Short-term minute steps after a failed review. More or longer steps keep lapsed cards in relearning longer.",
+                        note: aiSettingsLocalized("settings.workspace.scheduler.relearningStepsNote", "Short-term minute steps after a failed review. More or longer steps keep lapsed cards in relearning longer."),
                         keyboardType: .numbersAndPunctuation,
                         autocapitalization: .never
                     )
 
                     schedulerTextFieldRow(
-                        title: "Maximum interval (days)",
-                        prompt: "36500",
+                        title: aiSettingsLocalized("settings.workspace.scheduler.maximumInterval", "Maximum interval (days)"),
+                        prompt: aiSettingsLocalized("settings.workspace.scheduler.maximumIntervalPrompt", "36500"),
                         text: self.$draft.maximumIntervalDaysText,
                         focusedField: self.$focusedField,
                         field: .maximumIntervalDays,
-                        note: "Hard cap for long-term intervals. Lower values bring mature cards back sooner.",
+                        note: aiSettingsLocalized("settings.workspace.scheduler.maximumIntervalNote", "Hard cap for long-term intervals. Lower values bring mature cards back sooner."),
                         keyboardType: .numberPad,
                         autocapitalization: .sentences
                     )
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Toggle("Enable fuzz", isOn: self.$draft.enableFuzz)
+                        Toggle(aiSettingsLocalized("settings.workspace.scheduler.enableFuzz", "Enable fuzz"), isOn: self.$draft.enableFuzz)
 
-                        SchedulerSettingNote(text: "Slightly spreads due dates to avoid clusters. Disable it for more predictable but more concentrated schedules.")
+                        SchedulerSettingNote(text: aiSettingsLocalized("settings.workspace.scheduler.enableFuzzNote", "Slightly spreads due dates to avoid clusters. Disable it for more predictable but more concentrated schedules."))
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Updated")
+                        Text(aiSettingsLocalized("settings.workspace.scheduler.updated", "Updated"))
                             .font(.headline)
 
                         Text(schedulerSettings.updatedAt)
@@ -103,52 +101,57 @@ struct SchedulerSettingsDetailView: View {
                     }
                 }
 
-                Section("Actions") {
-                    Button("Save scheduler settings") {
+                Section(aiSettingsLocalized("settings.workspace.scheduler.section.actions", "Actions")) {
+                    Button(aiSettingsLocalized("settings.workspace.scheduler.save", "Save scheduler settings")) {
                         self.requestSchedulerSettingsSave()
                     }
 
-                    Button("Reset to defaults") {
+                    Button(aiSettingsLocalized("settings.workspace.scheduler.resetToDefaults", "Reset to defaults")) {
                         self.resetSchedulerSettingsDraft()
                     }
                     .disabled(self.isResetDisabled)
 
-                    Text("Reset fills the default values in the form. Tap Save to apply. This affects future reviews only.")
+                    Text(aiSettingsLocalized("settings.workspace.scheduler.resetNote", "Reset fills the default values in the form. Tap Save to apply. This affects future reviews only."))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             } else {
-                Section("Scheduler") {
-                    Text("Scheduler settings are unavailable.")
+                Section(aiSettingsLocalized("settings.workspace.scheduler.section.scheduler", "Scheduler")) {
+                    Text(aiSettingsLocalized("settings.workspace.scheduler.unavailable", "Scheduler settings are unavailable."))
                         .foregroundStyle(.secondary)
                 }
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Scheduler settings")
+        .navigationTitle(aiSettingsLocalized("settings.workspace.scheduler.title", "Scheduler settings"))
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
 
-                Button("Done") {
+                Button(aiSettingsLocalized("common.done", "Done")) {
                     self.focusedField = nil
                 }
             }
         }
         .alert(
-            "Apply scheduler settings?",
+            aiSettingsLocalized("settings.workspace.scheduler.applyAlertTitle", "Apply scheduler settings?"),
             isPresented: self.$isSaveConfirmationPresented,
             presenting: self.pendingSchedulerSettingsUpdate
         ) { pendingUpdate in
-            Button("Cancel", role: .cancel) {
+            Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {
                 self.pendingSchedulerSettingsUpdate = nil
             }
 
-            Button("Apply") {
+            Button(aiSettingsLocalized("common.apply", "Apply")) {
                 self.applySchedulerSettingsUpdate(update: pendingUpdate)
             }
         } message: { _ in
-            Text("Changing scheduler settings is not recommended unless you have a specific reason. It affects future reviews only and does not rewrite existing card state.")
+            Text(
+                aiSettingsLocalized(
+                    "settings.workspace.scheduler.applyAlertMessage",
+                    "Changing scheduler settings is not recommended unless you have a specific reason. It affects future reviews only and does not rewrite existing card state."
+                )
+            )
         }
         .onAppear {
             self.loadSchedulerDraft(settings: store.schedulerSettings)

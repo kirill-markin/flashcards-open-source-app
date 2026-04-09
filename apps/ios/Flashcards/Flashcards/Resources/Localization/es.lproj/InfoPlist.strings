@@ -1,0 +1,3 @@
+"NSCameraUsageDescription" = "Permite acceder a la cámara para tomar fotos para los archivos adjuntos del chat con IA.";
+"NSMicrophoneUsageDescription" = "Permite acceder al micrófono para dictar texto en el chat con IA.";
+"NSPhotoLibraryUsageDescription" = "Permite acceder a Fotos para elegir fotos para los archivos adjuntos del chat con IA.";

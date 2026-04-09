@@ -1,0 +1,1213 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "access_permission.camera.description" : {
+      "comment" : "Camera permission description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Take photos directly from AI chat."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haz fotos directamente desde el chat con IA."
+          }
+        }
+      }
+    },
+    "access_permission.camera.title" : {
+      "comment" : "Camera permission title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cámara"
+          }
+        }
+      }
+    },
+    "access_permission.microphone.description" : {
+      "comment" : "Microphone permission description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dictate text into AI chat."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dicta texto en el chat con IA."
+          }
+        }
+      }
+    },
+    "access_permission.microphone.title" : {
+      "comment" : "Microphone permission title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micrófono"
+          }
+        }
+      }
+    },
+    "access_permission.photos.description" : {
+      "comment" : "Photos permission description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose photos for AI chat attachments."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige fotos para los archivos adjuntos del chat con IA."
+          }
+        }
+      }
+    },
+    "access_permission.photos.title" : {
+      "comment" : "Photos permission title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photos"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos"
+          }
+        }
+      }
+    },
+    "access_permission_guidance.allowed" : {
+      "comment" : "Guidance when permission is allowed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Settings if you want to turn this access off."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre Ajustes si quieres desactivar este acceso."
+          }
+        }
+      }
+    },
+    "access_permission_guidance.ask_every_time" : {
+      "comment" : "Guidance when permission has not been requested yet",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request access now, or open Settings later if you want to manage it manually."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solicita acceso ahora o abre Ajustes más tarde si quieres gestionarlo manualmente."
+          }
+        }
+      }
+    },
+    "access_permission_guidance.camera.blocked" : {
+      "comment" : "Guidance when camera permission is blocked",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Camera to change it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a la cámara está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Cámara para cambiarlo."
+          }
+        }
+      }
+    },
+    "access_permission_guidance.limited" : {
+      "comment" : "Guidance when permission is limited",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Settings to review or expand this access."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre Ajustes para revisar o ampliar este acceso."
+          }
+        }
+      }
+    },
+    "access_permission_guidance.microphone.blocked" : {
+      "comment" : "Guidance when microphone permission is blocked",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Microphone to change it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso al micrófono está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Micrófono para cambiarlo."
+          }
+        }
+      }
+    },
+    "access_permission_guidance.photos.blocked" : {
+      "comment" : "Guidance when photo permission is blocked",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Photos to change it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a Fotos está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Fotos para cambiarlo."
+          }
+        }
+      }
+    },
+    "access_permission_guidance.photos.limited" : {
+      "comment" : "Guidance when photo permission is limited",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only the photos you already shared with Flashcards Open Source App are available. Open Settings to grant broader photo access."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo están disponibles las fotos que ya compartiste con Flashcards Open Source App. Abre Ajustes para conceder un acceso más amplio a Fotos."
+          }
+        }
+      }
+    },
+    "access_permission_guidance.unavailable" : {
+      "comment" : "Guidance when permission is unavailable",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This access is unavailable on the current device."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este acceso no está disponible en el dispositivo actual."
+          }
+        }
+      }
+    },
+    "access_permission_status.allowed.title" : {
+      "comment" : "Permission status title for allowed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitido"
+          }
+        }
+      }
+    },
+    "access_permission_status.ask_every_time.title" : {
+      "comment" : "Permission status title for ask every time",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask every time"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preguntar cada vez"
+          }
+        }
+      }
+    },
+    "access_permission_status.blocked.title" : {
+      "comment" : "Permission status title for blocked",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloqueado"
+          }
+        }
+      }
+    },
+    "access_permission_status.limited.title" : {
+      "comment" : "Permission status title for limited",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limited"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limitado"
+          }
+        }
+      }
+    },
+    "access_permission_status.unavailable.title" : {
+      "comment" : "Permission status title for unavailable",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unavailable"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No disponible"
+          }
+        }
+      }
+    },
+    "ai_chat_alert.microphone.message" : {
+      "comment" : "AI chat alert message when microphone access is blocked",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone access is turned off for Flashcards Open Source App. Open Settings to allow it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso al micrófono está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+          }
+        }
+      }
+    },
+    "ai_chat_alert.microphone.title" : {
+      "comment" : "AI chat alert title when microphone access is needed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone Access Needed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se necesita acceso al micrófono"
+          }
+        }
+      }
+    },
+    "ai_chat_attachment_settings.camera.message" : {
+      "comment" : "AI chat alert message when camera access is blocked",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera access is turned off for Flashcards Open Source App. Open Settings to allow it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a la cámara está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+          }
+        }
+      }
+    },
+    "ai_chat_attachment_settings.camera.title" : {
+      "comment" : "AI chat alert title when camera access is needed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera Access Needed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se necesita acceso a la cámara"
+          }
+        }
+      }
+    },
+    "ai_chat_attachment_settings.files.message" : {
+      "comment" : "AI chat alert message when file access is blocked",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File access is turned off for Flashcards Open Source App. Open Settings to allow it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a Archivos está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+          }
+        }
+      }
+    },
+    "ai_chat_attachment_settings.files.title" : {
+      "comment" : "AI chat alert title when file access is needed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File Access Needed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se necesita acceso a Archivos"
+          }
+        }
+      }
+    },
+    "ai_chat_attachment_settings.photos.message" : {
+      "comment" : "AI chat alert message when photo access is blocked",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo access is turned off for Flashcards Open Source App. Open Settings to allow it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a Fotos está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+          }
+        }
+      }
+    },
+    "ai_chat_attachment_settings.photos.title" : {
+      "comment" : "AI chat alert title when photo access is needed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Access Needed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se necesita acceso a Fotos"
+          }
+        }
+      }
+    },
+    "cards.all_cards_deck_label" : {
+      "comment" : "System deck label for all cards",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All cards"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas las tarjetas"
+          }
+        }
+      }
+    },
+    "cloud_account_state.disconnected.title" : {
+      "comment" : "Cloud account state title for disconnected",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disconnected"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desconectado"
+          }
+        }
+      }
+    },
+    "cloud_account_state.guest.title" : {
+      "comment" : "Cloud account state title for guest",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guest"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invitado"
+          }
+        }
+      }
+    },
+    "cloud_account_state.linked.title" : {
+      "comment" : "Cloud account state title for linked",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linked"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vinculado"
+          }
+        }
+      }
+    },
+    "cloud_account_state.linking_ready.title" : {
+      "comment" : "Cloud account state title for linking ready",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linking ready"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listo para vincular"
+          }
+        }
+      }
+    },
+    "cloud_auth.error.invalid_base_url" : {
+      "comment" : "Cloud auth error when the auth base URL is invalid",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cloud sign-in is unavailable. Check the app configuration."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El inicio de sesión en la nube no está disponible. Revisa la configuración de la app."
+          }
+        }
+      }
+    },
+    "cloud_auth.error.invalid_email" : {
+      "comment" : "Cloud auth error when the email address is invalid",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a valid email address."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce una dirección de correo válida."
+          }
+        }
+      }
+    },
+    "cloud_auth.error.otp_challenge_consumed" : {
+      "comment" : "Cloud auth error when the OTP challenge was already used",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code already used. Request a new one."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El código ya se ha usado. Solicita uno nuevo."
+          }
+        }
+      }
+    },
+    "cloud_auth.error.otp_code_invalid" : {
+      "comment" : "Cloud auth error when the OTP code is invalid",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code is invalid. Try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El código no es válido. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "cloud_auth.error.otp_send_failed" : {
+      "comment" : "Cloud auth error when sending the OTP code failed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not send a code. Try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo enviar el código. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "cloud_auth.error.otp_session_expired" : {
+      "comment" : "Cloud auth error when the OTP session expired",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code expired. Request a new one."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El código ha caducado. Solicita uno nuevo."
+          }
+        }
+      }
+    },
+    "cloud_auth.error.otp_verify_failed" : {
+      "comment" : "Cloud auth error when verifying the OTP code failed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not verify the code. Try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo verificar el código. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "cloud_auth.error.sign_in_failed" : {
+      "comment" : "Cloud auth error for an unknown sign-in failure",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cloud sign-in failed. Try again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo iniciar sesión en la nube. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "cloud_auth.error.transport.send_code_interrupted" : {
+      "comment" : "Cloud auth inline error when the network connection drops while sending the OTP code",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The connection was interrupted while sending the code. Check your email, then try again if needed."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La conexión se interrumpió mientras se enviaba el código. Revisa tu correo y, si hace falta, vuelve a intentarlo."
+          }
+        }
+      }
+    },
+    "cloud_auth.error.transport.verify_code_interrupted" : {
+      "comment" : "Cloud auth inline error when the network connection drops while verifying the OTP code",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The connection was interrupted while verifying the code. Try again, or request a new code if needed."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La conexión se interrumpió mientras se verificaba el código. Inténtalo de nuevo o solicita un código nuevo si hace falta."
+          }
+        }
+      }
+    },
+    "effort.fast.title" : {
+      "comment" : "Fast effort level title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fast"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rápido"
+          }
+        }
+      }
+    },
+    "effort.long.title" : {
+      "comment" : "Long effort level title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Long"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Largo"
+          }
+        }
+      }
+    },
+    "effort.medium.title" : {
+      "comment" : "Medium effort level title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medio"
+          }
+        }
+      }
+    },
+    "review_notification.fallback_body" : {
+      "comment" : "Fallback review notification body text",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue your study session in Flashcards."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continúa tu sesión de estudio en Flashcards."
+          }
+        }
+      }
+    },
+    "review_notification.mode.daily" : {
+      "comment" : "Daily review notification mode title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diario"
+          }
+        }
+      }
+    },
+    "review_notification.mode.inactivity" : {
+      "comment" : "Inactivity review notification mode title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inactivity"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inactividad"
+          }
+        }
+      }
+    },
+    "review_notification_permission.allow_notifications" : {
+      "comment" : "Notifications permission action title to allow notifications",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow Notifications"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir notificaciones"
+          }
+        }
+      }
+    },
+    "review_notification_permission.allowed" : {
+      "comment" : "Notifications permission title for allowed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allowed"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitido"
+          }
+        }
+      }
+    },
+    "review_notification_permission.blocked" : {
+      "comment" : "Notifications permission title for blocked",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blocked"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloqueado"
+          }
+        }
+      }
+    },
+    "review_notification_permission.not_requested" : {
+      "comment" : "Notifications permission title for not requested",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not requested"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No solicitado"
+          }
+        }
+      }
+    },
+    "review_rating.again.title" : {
+      "comment" : "Review rating title for Again",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Again"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De nuevo"
+          }
+        }
+      }
+    },
+    "review_rating.easy.title" : {
+      "comment" : "Review rating title for Easy",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Easy"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fácil"
+          }
+        }
+      }
+    },
+    "review_rating.good.title" : {
+      "comment" : "Review rating title for Good",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Good"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bien"
+          }
+        }
+      }
+    },
+    "review_rating.hard.title" : {
+      "comment" : "Review rating title for Hard",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hard"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Difícil"
+          }
+        }
+      }
+    },
+    "root_tab.account_deleted.title" : {
+      "comment" : "Account deletion success alert title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account deleted"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuenta eliminada"
+          }
+        }
+      }
+    },
+    "root_tab.ai.title" : {
+      "comment" : "AI tab title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IA"
+          }
+        }
+      }
+    },
+    "root_tab.cards.title" : {
+      "comment" : "Cards tab title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarjetas"
+          }
+        }
+      }
+    },
+    "root_tab.review.title" : {
+      "comment" : "Review tab title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repasar"
+          }
+        }
+      }
+    },
+    "root_tab.settings.title" : {
+      "comment" : "Settings tab title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes"
+          }
+        }
+      }
+    },
+    "shared.action.open_settings" : {
+      "comment" : "Shared action title to open Settings",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Settings"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ajustes"
+          }
+        }
+      }
+    },
+    "shared.action.request_access" : {
+      "comment" : "Shared action title to request access",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Request access"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solicitar acceso"
+          }
+        }
+      }
+    },
+    "shared.ok" : {
+      "comment" : "Confirmation button title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aceptar"
+          }
+        }
+      }
+    },
+    "transient_banner.ai_chat_active_run" : {
+      "comment" : "Banner message when an AI response is already in progress",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A response is already in progress. Wait for it to finish or stop it before sending another message."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya hay una respuesta en curso. Espera a que termine o detenla antes de enviar otro mensaje."
+          }
+        }
+      }
+    },
+    "transient_banner.ai_chat_offline" : {
+      "comment" : "Banner message when AI chat is unavailable offline",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No internet connection. AI chat requires internet access."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay conexión a internet. El chat con IA requiere acceso a internet."
+          }
+        }
+      }
+    },
+    "transient_banner.cards_updated_from_cloud" : {
+      "comment" : "Banner message when cards update from the cloud",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards updated from the cloud."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarjetas actualizadas desde la nube."
+          }
+        }
+      }
+    },
+    "transient_banner.review_speech_unavailable" : {
+      "comment" : "Banner message when speech is unavailable on the device",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech is unavailable on this device."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La voz no está disponible en este dispositivo."
+          }
+        }
+      }
+    },
+    "transient_banner.review_updated_on_another_device" : {
+      "comment" : "Banner message when a review is updated on another device",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This review updated on another device."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta revisión se actualizó en otro dispositivo."
+          }
+        }
+      }
+    },
+    "transient_banner.workspace_changes_require_account" : {
+      "comment" : "Banner message when workspace changes require an account",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Workspace changes are available only after you create an account."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los cambios del espacio de trabajo solo están disponibles después de crear una cuenta."
+          }
+        }
+      }
+    },
+    "workspace.reset_progress_confirmation_text" : {
+      "comment" : "Confirmation phrase for resetting all workspace card progress",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "reset all progress for all cards in this workspace"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "restablecer todo el progreso de todas las tarjetas de este espacio de trabajo"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

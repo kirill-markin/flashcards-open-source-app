@@ -39,9 +39,15 @@ func aiChatAvailabilityMessage(
 
         switch configurationMode {
         case .official:
-            return "AI is temporarily unavailable on the official server. Try again later."
+            return aiSettingsLocalized(
+                "ai.availability.chat.official",
+                "AI is temporarily unavailable on the official server. Try again later."
+            )
         case .custom:
-            return "AI is unavailable on this server. Contact the server operator."
+            return aiSettingsLocalized(
+                "ai.availability.chat.custom",
+                "AI is unavailable on this server. Contact the server operator."
+            )
         }
     case .dictation:
         guard aiChatDictationAvailabilityErrorCodes.contains(code) else {
@@ -50,9 +56,15 @@ func aiChatAvailabilityMessage(
 
         switch configurationMode {
         case .official:
-            return "AI dictation is temporarily unavailable on the official server. Try again later."
+            return aiSettingsLocalized(
+                "ai.availability.dictation.official",
+                "AI dictation is temporarily unavailable on the official server. Try again later."
+            )
         case .custom:
-            return "AI dictation is unavailable on this server. Contact the server operator."
+            return aiSettingsLocalized(
+                "ai.availability.dictation.custom",
+                "AI dictation is unavailable on this server. Contact the server operator."
+            )
         }
     }
 }

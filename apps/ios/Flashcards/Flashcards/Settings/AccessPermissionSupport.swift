@@ -15,11 +15,23 @@ enum AccessPermissionKind: String, CaseIterable, Identifiable, Hashable, Sendabl
     var title: String {
         switch self {
         case .photos:
-            return "Photos"
+            return String(
+                localized: "access_permission.photos.title",
+                table: "Foundation",
+                comment: "Photos permission title"
+            )
         case .camera:
-            return "Camera"
+            return String(
+                localized: "access_permission.camera.title",
+                table: "Foundation",
+                comment: "Camera permission title"
+            )
         case .microphone:
-            return "Microphone"
+            return String(
+                localized: "access_permission.microphone.title",
+                table: "Foundation",
+                comment: "Microphone permission title"
+            )
         }
     }
 
@@ -37,11 +49,23 @@ enum AccessPermissionKind: String, CaseIterable, Identifiable, Hashable, Sendabl
     var description: String {
         switch self {
         case .photos:
-            return "Choose photos for AI chat attachments."
+            return String(
+                localized: "access_permission.photos.description",
+                table: "Foundation",
+                comment: "Photos permission description"
+            )
         case .camera:
-            return "Take photos directly from AI chat."
+            return String(
+                localized: "access_permission.camera.description",
+                table: "Foundation",
+                comment: "Camera permission description"
+            )
         case .microphone:
-            return "Dictate text into AI chat."
+            return String(
+                localized: "access_permission.microphone.description",
+                table: "Foundation",
+                comment: "Microphone permission description"
+            )
         }
     }
 }
@@ -56,15 +80,35 @@ enum AccessPermissionStatus: Sendable, Equatable {
     var title: String {
         switch self {
         case .allowed:
-            return "Allowed"
+            return String(
+                localized: "access_permission_status.allowed.title",
+                table: "Foundation",
+                comment: "Permission status title for allowed"
+            )
         case .askEveryTime:
-            return "Ask every time"
+            return String(
+                localized: "access_permission_status.ask_every_time.title",
+                table: "Foundation",
+                comment: "Permission status title for ask every time"
+            )
         case .blocked:
-            return "Blocked"
+            return String(
+                localized: "access_permission_status.blocked.title",
+                table: "Foundation",
+                comment: "Permission status title for blocked"
+            )
         case .limited:
-            return "Limited"
+            return String(
+                localized: "access_permission_status.limited.title",
+                table: "Foundation",
+                comment: "Permission status title for limited"
+            )
         case .unavailable:
-            return "Unavailable"
+            return String(
+                localized: "access_permission_status.unavailable.title",
+                table: "Foundation",
+                comment: "Permission status title for unavailable"
+            )
         }
     }
 }
@@ -120,9 +164,17 @@ func accessPermissionPrimaryActionTitle(
 ) -> String? {
     switch status {
     case .askEveryTime:
-        return "Request access"
+        return String(
+            localized: "shared.action.request_access",
+            table: "Foundation",
+            comment: "Permission action title to request access"
+        )
     case .allowed, .blocked, .limited:
-        return "Open Settings"
+        return String(
+            localized: "shared.action.open_settings",
+            table: "Foundation",
+            comment: "Permission action title to open Settings"
+        )
     case .unavailable:
         return nil
     }
@@ -131,21 +183,53 @@ func accessPermissionPrimaryActionTitle(
 func accessPermissionGuidance(kind: AccessPermissionKind, status: AccessPermissionStatus) -> String {
     switch (kind, status) {
     case (.photos, .limited):
-        return "Only the photos you already shared with Flashcards Open Source App are available. Open Settings to grant broader photo access."
+        return String(
+            localized: "access_permission_guidance.photos.limited",
+            table: "Foundation",
+            comment: "Guidance when photo permission is limited"
+        )
     case (.photos, .blocked):
-        return "Photo access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Photos to change it."
+        return String(
+            localized: "access_permission_guidance.photos.blocked",
+            table: "Foundation",
+            comment: "Guidance when photo permission is blocked"
+        )
     case (.camera, .blocked):
-        return "Camera access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Camera to change it."
+        return String(
+            localized: "access_permission_guidance.camera.blocked",
+            table: "Foundation",
+            comment: "Guidance when camera permission is blocked"
+        )
     case (.microphone, .blocked):
-        return "Microphone access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Microphone to change it."
+        return String(
+            localized: "access_permission_guidance.microphone.blocked",
+            table: "Foundation",
+            comment: "Guidance when microphone permission is blocked"
+        )
     case (_, .askEveryTime):
-        return "Request access now, or open Settings later if you want to manage it manually."
+        return String(
+            localized: "access_permission_guidance.ask_every_time",
+            table: "Foundation",
+            comment: "Guidance when permission has not been requested yet"
+        )
     case (_, .allowed):
-        return "Open Settings if you want to turn this access off."
+        return String(
+            localized: "access_permission_guidance.allowed",
+            table: "Foundation",
+            comment: "Guidance when permission is allowed"
+        )
     case (_, .limited):
-        return "Open Settings to review or expand this access."
+        return String(
+            localized: "access_permission_guidance.limited",
+            table: "Foundation",
+            comment: "Guidance when permission is limited"
+        )
     case (_, .unavailable):
-        return "This access is unavailable on the current device."
+        return String(
+            localized: "access_permission_guidance.unavailable",
+            table: "Foundation",
+            comment: "Guidance when permission is unavailable"
+        )
     }
 }
 

@@ -55,17 +55,35 @@ enum AIChatVoiceRecorderError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .microphoneUnavailable:
-            return "Microphone is not available on this device."
+            return aiSettingsLocalized(
+                "ai.dictation.error.microphoneUnavailable",
+                "Microphone is not available on this device."
+            )
         case .microphoneDenied:
-            return "Microphone access was not granted."
+            return aiSettingsLocalized(
+                "ai.dictation.error.microphoneDenied",
+                "Microphone access was not granted."
+            )
         case .microphoneBlocked:
-            return "Microphone access is turned off for Flashcards Open Source App. Enable it in Settings > Privacy & Security > Microphone."
+            return aiSettingsLocalized(
+                "ai.dictation.error.microphoneBlocked",
+                "Microphone access is turned off for Flashcards Open Source App. Enable it in Settings > Privacy & Security > Microphone."
+            )
         case .invalidRecording:
-            return "Failed to prepare the recorded audio."
+            return aiSettingsLocalized(
+                "ai.dictation.error.invalidRecording",
+                "Failed to prepare the recorded audio."
+            )
         case .recordingStartFailed:
-            return "Failed to start microphone recording."
+            return aiSettingsLocalized(
+                "ai.dictation.error.recordingStartFailed",
+                "Failed to start microphone recording."
+            )
         case .emptyRecording:
-            return "No speech was recorded."
+            return aiSettingsLocalized(
+                "ai.dictation.error.emptyRecording",
+                "No speech was recorded."
+            )
         }
     }
 }
@@ -80,11 +98,20 @@ enum AIChatTranscriptionError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidBaseUrl:
-            return "There is a network problem. Fix it and try again."
+            return aiSettingsLocalized(
+                "ai.dictation.error.network",
+                "There is a network problem. Fix it and try again."
+            )
         case .invalidAudio:
-            return "We couldn’t process that recording. Please try again."
+            return aiSettingsLocalized(
+                "ai.dictation.error.invalidAudio",
+                "We couldn't process that recording. Please try again."
+            )
         case .serviceUnavailable:
-            return "There is a network problem. Fix it and try again."
+            return aiSettingsLocalized(
+                "ai.dictation.error.network",
+                "There is a network problem. Fix it and try again."
+            )
         case .guestLimitReached:
             return aiChatGuestQuotaReachedMessage
         case .serverMessage(let message):

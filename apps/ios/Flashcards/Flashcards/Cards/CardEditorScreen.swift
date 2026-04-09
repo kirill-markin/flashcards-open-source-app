@@ -1,10 +1,35 @@
 import SwiftUI
 
+private let reviewCardsStringsTableName: String = "ReviewCards"
+
 struct CardFormState {
     var frontText: String
     var backText: String
     var tags: [String]
     var effortLevel: EffortLevel
+}
+
+private enum CardTextField: String {
+    case front
+    case back
+
+    var title: String {
+        switch self {
+        case .front:
+            return String(localized: "Front", table: reviewCardsStringsTableName)
+        case .back:
+            return String(localized: "Back", table: reviewCardsStringsTableName)
+        }
+    }
+
+    var accessibilityIdentifier: String {
+        switch self {
+        case .front:
+            return UITestIdentifier.cardEditorFrontTextEditor
+        case .back:
+            return UITestIdentifier.cardEditorBackTextEditor
+        }
+    }
 }
 
 struct CardEditorScreen: View {
@@ -35,20 +60,20 @@ struct CardEditorScreen: View {
 
                 if let onEditWithAI {
                     Section {
-                        Button("Edit with AI", action: onEditWithAI)
+                        Button(String(localized: "Edit with AI", table: reviewCardsStringsTableName), action: onEditWithAI)
                             .accessibilityIdentifier(UITestIdentifier.cardEditorEditWithAIButton)
                     }
                 }
 
-                Section("Text") {
+                Section {
                     NavigationLink {
                         CardTextEditorScreen(
-                            title: "Front",
+                            field: .front,
                             text: $formState.frontText
                         )
                     } label: {
                         CardTextPreviewRow(
-                            title: "Front",
+                            field: .front,
                             text: formState.frontText
                         )
                     }
@@ -56,22 +81,24 @@ struct CardEditorScreen: View {
 
                     NavigationLink {
                         CardTextEditorScreen(
-                            title: "Back",
+                            field: .back,
                             text: $formState.backText
                         )
                     } label: {
                         CardTextPreviewRow(
-                            title: "Back",
+                            field: .back,
                             text: formState.backText
                         )
                     }
                     .accessibilityIdentifier(UITestIdentifier.cardEditorBackRow)
+                } header: {
+                    Text(String(localized: "Text", table: reviewCardsStringsTableName))
                 }
 
-                Section("Metadata") {
-                    Picker("Effort", selection: $formState.effortLevel) {
+                Section {
+                    Picker(String(localized: "Effort", table: reviewCardsStringsTableName), selection: $formState.effortLevel) {
                         ForEach(EffortLevel.allCases) { effortLevel in
-                            Text(effortLevel.title).tag(effortLevel)
+                            Text(localizedEffortTitle(effortLevel: effortLevel)).tag(effortLevel)
                         }
                     }
 
@@ -84,34 +111,38 @@ struct CardEditorScreen: View {
                             }
                         )
                     } label: {
-                        TagsFieldRow(summary: formatTagSelectionSummary(tags: formState.tags))
+                        TagsFieldRow(summary: localizedTagSelectionSummary(tags: formState.tags))
                     }
+                } header: {
+                    Text(String(localized: "Metadata", table: reviewCardsStringsTableName))
                 }
 
                 if isEditing {
-                    Section("Actions") {
-                        Button("Delete card", role: .destructive) {
+                    Section {
+                        Button(String(localized: "Delete card", table: reviewCardsStringsTableName), role: .destructive) {
                             self.isDeleteConfirmationPresented = true
                         }
+                    } header: {
+                        Text(String(localized: "Actions", table: reviewCardsStringsTableName))
                     }
                 }
             }
         }
         .navigationTitle(title)
-        .alert("Delete this card?", isPresented: self.$isDeleteConfirmationPresented) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive, action: onDelete)
+        .alert(String(localized: "Delete this card?", table: reviewCardsStringsTableName), isPresented: self.$isDeleteConfirmationPresented) {
+            Button(String(localized: "Cancel", table: reviewCardsStringsTableName), role: .cancel) {}
+            Button(String(localized: "Delete", table: reviewCardsStringsTableName), role: .destructive, action: onDelete)
         } message: {
-            Text("Deleting removes this card from the local list and from the next sync.")
+            Text(String(localized: "Deleting removes this card from the local list and from the next sync.", table: reviewCardsStringsTableName))
         }
         .accessibilityIdentifier(UITestIdentifier.cardEditorScreen)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("Cancel", action: onCancel)
+                Button(String(localized: "Cancel", table: reviewCardsStringsTableName), action: onCancel)
             }
 
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Save", action: onSave)
+                Button(String(localized: "Save", table: reviewCardsStringsTableName), action: onSave)
                     .accessibilityIdentifier(UITestIdentifier.cardEditorSaveButton)
             }
         }
@@ -119,7 +150,7 @@ struct CardEditorScreen: View {
 }
 
 private struct CardTextPreviewRow: View {
-    let title: String
+    let field: CardTextField
     let text: String
 
     private var previewText: String {
@@ -134,7 +165,7 @@ private struct CardTextPreviewRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title)
+            Text(field.title)
                 .font(.body)
                 .foregroundStyle(.secondary)
 
@@ -148,7 +179,7 @@ private struct CardTextPreviewRow: View {
 }
 
 private struct CardTextEditorScreen: View {
-    let title: String
+    let field: CardTextField
     @Binding var text: String
     @FocusState private var isTextEditorFocused: Bool
 
@@ -163,10 +194,10 @@ private struct CardTextEditorScreen: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .padding(12)
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .accessibilityIdentifier(cardEditorTextEditorIdentifier(title: self.title))
+                .accessibilityIdentifier(self.field.accessibilityIdentifier)
         }
         .padding(.vertical, 16)
-        .navigationTitle(title)
+        .navigationTitle(self.field.title)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             self.isTextEditorFocused = true
@@ -174,19 +205,11 @@ private struct CardTextEditorScreen: View {
     }
 }
 
-private func cardEditorTextEditorIdentifier(title: String) -> String {
-    if title == "Front" {
-        return UITestIdentifier.cardEditorFrontTextEditor
-    }
-
-    return UITestIdentifier.cardEditorBackTextEditor
-}
-
 private func formatCardTextPreview(text: String) -> String {
     let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
     if trimmedText.isEmpty {
-        return "Tap to edit"
+        return String(localized: "Tap to edit", table: reviewCardsStringsTableName)
     }
 
     return trimmedText

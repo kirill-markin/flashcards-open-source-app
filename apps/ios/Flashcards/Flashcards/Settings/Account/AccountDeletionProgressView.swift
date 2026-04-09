@@ -9,7 +9,7 @@ struct AccountDeletionProgressView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 20) {
-                Text("Deleting account")
+                Text(aiSettingsLocalized("settings.account.deletionProgress.title", "Deleting account"))
                     .font(.title2.weight(.semibold))
 
                 switch store.accountDeletionState {
@@ -17,15 +17,25 @@ struct AccountDeletionProgressView: View {
                     EmptyView()
                 case .inProgress:
                     ProgressView()
-                    Text("Your account deletion is in progress. Keep this screen open until it finishes.")
+                    Text(
+                        aiSettingsLocalized(
+                            "settings.account.deletionProgress.inProgress",
+                            "Your account deletion is in progress. Keep this screen open until it finishes."
+                        )
+                    )
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
                 case .failed(let message):
-                    Text("The delete request did not finish yet. Retry to keep the account deletion moving forward.")
+                    Text(
+                        aiSettingsLocalized(
+                            "settings.account.deletionProgress.failed",
+                            "The delete request did not finish yet. Retry to keep the account deletion moving forward."
+                        )
+                    )
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
                     CopyableErrorMessageView(message: message)
-                    Button("Retry deletion", role: .destructive) {
+                    Button(aiSettingsLocalized("settings.account.deletionProgress.retry", "Retry deletion"), role: .destructive) {
                         store.retryPendingAccountDeletion()
                     }
                 }

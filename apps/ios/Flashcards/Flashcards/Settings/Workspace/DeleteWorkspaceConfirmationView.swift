@@ -19,25 +19,35 @@ struct DeleteWorkspaceConfirmationView: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 20) {
                 Text(
-                    "Warning! This action is permanent. It will delete \(self.preview.activeCardCount) active cards from \(self.preview.workspaceName)."
+                    aiSettingsLocalizedFormat(
+                        "settings.workspace.deleteConfirmation.warning",
+                        "Warning! This action is permanent. It will delete %d active cards from %@.",
+                        self.preview.activeCardCount,
+                        self.preview.workspaceName
+                    )
                 )
                     .foregroundStyle(.red)
                     .font(.headline)
 
                 if self.preview.isLastAccessibleWorkspace {
-                    Text("A new empty Personal workspace will be created immediately after deletion.")
+                    Text(
+                        aiSettingsLocalized(
+                            "settings.workspace.deleteConfirmation.lastWorkspace",
+                            "A new empty Personal workspace will be created immediately after deletion."
+                        )
+                    )
                         .foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Type this phrase exactly to continue:")
+                    Text(aiSettingsLocalized("common.typePhraseToContinue", "Type this phrase exactly to continue:"))
                         .foregroundStyle(.secondary)
                     Text(self.preview.confirmationText)
                         .font(.body.monospaced())
                         .accessibilityIdentifier(UITestIdentifier.deleteWorkspaceConfirmationPhrase)
                 }
 
-                TextField("delete workspace", text: self.$confirmationText)
+                TextField(aiSettingsLocalized("settings.workspace.deleteConfirmation.placeholder", "delete workspace"), text: self.$confirmationText)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
                     .keyboardType(.asciiCapable)
@@ -55,7 +65,12 @@ struct DeleteWorkspaceConfirmationView: View {
 
                 Spacer()
 
-                Button(self.isDeleting ? "Deleting..." : "Delete workspace", role: .destructive) {
+                Button(
+                    self.isDeleting
+                        ? aiSettingsLocalized("settings.workspace.deleteConfirmation.deleting", "Deleting...")
+                        : aiSettingsLocalized("settings.workspace.overview.deleteWorkspace", "Delete workspace"),
+                    role: .destructive
+                ) {
                     Task {
                         await self.deleteWorkspace()
                     }
@@ -66,11 +81,11 @@ struct DeleteWorkspaceConfirmationView: View {
                 .accessibilityIdentifier(UITestIdentifier.deleteWorkspaceConfirmationButton)
             }
             .padding(24)
-            .navigationTitle("Delete workspace")
+            .navigationTitle(aiSettingsLocalized("settings.workspace.deleteConfirmation.title", "Delete workspace"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button(aiSettingsLocalized("common.cancel", "Cancel")) {
                         dismiss()
                     }
                     .disabled(self.isDeleting)
