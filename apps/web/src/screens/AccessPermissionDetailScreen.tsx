@@ -1,14 +1,12 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { useParams } from "react-router-dom";
 import {
-  browserPermissionSettingsGuidance,
-  explainBrowserMediaPermissionError,
-  formatBrowserPermissionState,
   queryBrowserPermissionState,
   requestBrowserMediaPermission,
   type BrowserMediaPermissionKind,
   type BrowserPermissionState,
 } from "../access/browserAccess";
+import { type TranslationKey, useI18n } from "../i18n";
 import { SettingsShell } from "./SettingsShared";
 
 type AccessDetailKind = "camera" | "microphone" | "photos-and-files";
@@ -32,27 +30,97 @@ function parseAccessDetailKind(value: string | undefined): AccessDetailKind {
   throw new Error("Unknown access detail kind");
 }
 
-function buildAccessDetailContent(kind: AccessDetailKind, state: BrowserPermissionState): AccessDetailContent {
+function permissionStateKey(state: BrowserPermissionState): TranslationKey {
+  if (state === "granted") {
+    return "accessSettings.permission.statusGranted";
+  }
+
+  if (state === "prompt") {
+    return "accessSettings.permission.statusPrompt";
+  }
+
+  if (state === "denied") {
+    return "accessSettings.permission.statusDenied";
+  }
+
+  return "accessSettings.permission.statusUnsupported";
+}
+
+function buildAccessDetailContent(
+  kind: AccessDetailKind,
+  state: BrowserPermissionState,
+  t: (key: TranslationKey) => string,
+): AccessDetailContent {
   if (kind === "photos-and-files") {
     return {
-      title: "Photos and files",
-      description: "Browsers do not grant persistent photo-library access here. You choose files each time from the picker.",
-      status: "Per action",
+      title: t("accessSettings.photosAndFiles.title"),
+      description: t("accessSettings.photosAndFiles.description"),
+      status: t("common.perAction"),
       actionLabel: null,
     };
   }
 
   return {
-    title: kind === "camera" ? "Camera" : "Microphone",
-    description: browserPermissionSettingsGuidance(kind),
-    status: formatBrowserPermissionState(state),
-    actionLabel: state === "denied" ? null : "Request access",
+    title: kind === "camera" ? t("accessSettings.permission.titleCamera") : t("accessSettings.permission.titleMicrophone"),
+    description: kind === "camera"
+      ? t("accessSettings.permission.guidanceCamera")
+      : t("accessSettings.permission.guidanceMicrophone"),
+    status: t(permissionStateKey(state)),
+    actionLabel: state === "denied" ? null : t("accessSettings.permission.requestAccess"),
   };
+}
+
+function formatPermissionError(
+  kind: BrowserMediaPermissionKind,
+  error: unknown,
+  permissionState: BrowserPermissionState,
+  t: (key: TranslationKey) => string,
+): string {
+  if (error instanceof DOMException) {
+    if (error.name === "NotAllowedError") {
+      if (permissionState === "denied") {
+        return kind === "camera"
+          ? t("accessSettings.permission.errorNotAllowedDeniedCamera")
+          : t("accessSettings.permission.errorNotAllowedDeniedMicrophone");
+      }
+
+      return kind === "camera"
+        ? t("accessSettings.permission.errorNotAllowedCamera")
+        : t("accessSettings.permission.errorNotAllowedMicrophone");
+    }
+
+    if (error.name === "NotFoundError") {
+      return kind === "camera"
+        ? t("accessSettings.permission.errorNotFoundCamera")
+        : t("accessSettings.permission.errorNotFoundMicrophone");
+    }
+
+    if (error.name === "NotReadableError") {
+      return kind === "camera"
+        ? t("accessSettings.permission.errorNotReadableCamera")
+        : t("accessSettings.permission.errorNotReadableMicrophone");
+    }
+  }
+
+  if (error instanceof Error) {
+    if (error.message === "Media device access is unavailable in this browser.") {
+      return t("accessSettings.permission.errorMediaUnavailable");
+    }
+
+    if (error.message === "Media permissions require HTTPS or localhost.") {
+      return t("accessSettings.permission.errorSecureContext");
+    }
+
+    return error.message;
+  }
+
+  return String(error);
 }
 
 export function AccessPermissionDetailScreen(): ReactElement {
   const params = useParams();
   const kind = parseAccessDetailKind(params.accessKind);
+  const { t } = useI18n();
   const [permissionState, setPermissionState] = useState<BrowserPermissionState>("unsupported");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
@@ -79,7 +147,7 @@ export function AccessPermissionDetailScreen(): ReactElement {
     };
   }, [kind]);
 
-  const content = buildAccessDetailContent(kind, permissionState);
+  const content = buildAccessDetailContent(kind, permissionState, t);
 
   async function handleRequestAccess(): Promise<void> {
     if (isBrowserMediaPermissionKind(kind) === false) {
@@ -94,7 +162,7 @@ export function AccessPermissionDetailScreen(): ReactElement {
     } catch (error) {
       const nextState = await queryBrowserPermissionState(mediaKind);
       setPermissionState(nextState);
-      setErrorMessage(explainBrowserMediaPermissionError(mediaKind, error, nextState));
+      setErrorMessage(formatPermissionError(mediaKind, error, nextState, t));
     }
   }
 
@@ -107,7 +175,7 @@ export function AccessPermissionDetailScreen(): ReactElement {
       {errorMessage !== "" ? <p className="error-banner">{errorMessage}</p> : null}
 
       <article className="content-card settings-summary-card">
-        <span className="cell-secondary">Status</span>
+        <span className="cell-secondary">{t("common.status")}</span>
         <strong className="panel-subtitle">{content.status}</strong>
       </article>
 

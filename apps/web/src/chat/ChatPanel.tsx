@@ -9,6 +9,7 @@ import {
 } from "react";
 import { transcribeChatAudio } from "../api";
 import { useAppData } from "../appData";
+import { useI18n } from "../i18n";
 import { listOutboxRecords } from "../localDb/outbox";
 import {
   explainBrowserMediaPermissionError,
@@ -27,11 +28,11 @@ import {
 } from "./FileAttachment";
 import { formatCardAttachmentLabel } from "./chatCardParts";
 import {
-  ATTACHMENT_LIMIT_ERROR_MESSAGE,
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
   IMAGE_MEDIA_TYPE_PREFIX,
   MAX_WIDTH,
   MIN_WIDTH,
+  USER_VISIBLE_ATTACHMENT_LIMIT_MB,
   buildContentParts,
   calculateSidebarWidthFromPointer,
   toRequestBodySizeBytes,
@@ -120,7 +121,7 @@ function stopMediaRecorder(
         return;
       }
 
-      reject(new Error("Microphone recording failed."));
+      reject(new Error("MICROPHONE_RECORDING_FAILED"));
     }
 
     recorder.addEventListener("stop", handleStop, { once: true });
@@ -132,6 +133,7 @@ function stopMediaRecorder(
 export function ChatPanel(props: Props): ReactElement {
   const { mode } = props;
   const appData = useAppData();
+  const { t, formatNumber } = useI18n();
   const {
     draft,
     focusComposerRequestVersion,
@@ -385,7 +387,9 @@ export function ChatPanel(props: Props): ReactElement {
     }
 
     if (projectedSizeBytes > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
-      window.alert(ATTACHMENT_LIMIT_ERROR_MESSAGE);
+      window.alert(t("chatPanel.alerts.attachmentLimit", {
+        count: formatNumber(USER_VISIBLE_ATTACHMENT_LIMIT_MB),
+      }));
       return;
     }
 
@@ -431,13 +435,13 @@ export function ChatPanel(props: Props): ReactElement {
       : null;
 
     if (typeof MediaRecorder === "undefined") {
-      window.alert("Microphone recording is unavailable in this browser.");
+      window.alert(t("chatPanel.alerts.microphoneUnavailable"));
       return;
     }
 
     const mediaDevices = navigator.mediaDevices;
     if (mediaDevices === undefined || typeof mediaDevices.getUserMedia !== "function") {
-      window.alert("Microphone recording is unavailable in this browser.");
+      window.alert(t("chatPanel.alerts.microphoneUnavailable"));
       return;
     }
 
@@ -467,7 +471,7 @@ export function ChatPanel(props: Props): ReactElement {
       cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
       const permissionState = await queryBrowserPermissionState("microphone");
       if (isMountedRef.current) {
-        window.alert(explainBrowserMediaPermissionError("microphone", error, permissionState));
+        window.alert(explainBrowserMediaPermissionError("microphone", error, permissionState, t));
         setDictationState("idle");
       }
     }
@@ -500,7 +504,7 @@ export function ChatPanel(props: Props): ReactElement {
         sessionId,
       );
       if (transcription.sessionId !== sessionId) {
-        throw new Error("Chat transcription returned an unexpected session ID.");
+        throw new Error(t("chatPanel.errors.transcriptionUnexpectedSessionId"));
       }
 
       if (currentSessionIdRef.current !== sessionId) {
@@ -524,7 +528,12 @@ export function ChatPanel(props: Props): ReactElement {
       }
     } catch (error) {
       if (isMountedRef.current) {
-        window.alert(error instanceof Error ? error.message : String(error));
+        const message = error instanceof Error && error.message === "MICROPHONE_RECORDING_FAILED"
+          ? t("chatPanel.alerts.microphoneUnavailable")
+          : error instanceof Error
+            ? error.message
+            : String(error);
+        window.alert(message);
       }
     } finally {
       cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
@@ -576,12 +585,12 @@ export function ChatPanel(props: Props): ReactElement {
     }
 
     if (appData.isSessionVerified === false) {
-      appData.setErrorMessage("Restoring session. Try again in a moment.");
+      appData.setErrorMessage(t("chatPanel.transientErrors.sessionRestoring"));
       return;
     }
 
     if (activeWorkspaceId === null) {
-      appData.setErrorMessage("Select a workspace before using AI chat.");
+      appData.setErrorMessage(t("chatPanel.transientErrors.workspaceRequired"));
       return;
     }
 
@@ -599,7 +608,9 @@ export function ChatPanel(props: Props): ReactElement {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     };
     if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
-      window.alert(ATTACHMENT_LIMIT_ERROR_MESSAGE);
+      window.alert(t("chatPanel.alerts.attachmentLimit", {
+        count: formatNumber(USER_VISIBLE_ATTACHMENT_LIMIT_MB),
+      }));
       return;
     }
 
@@ -609,7 +620,7 @@ export function ChatPanel(props: Props): ReactElement {
       await appData.runSync();
       const outboxRecords = await listOutboxRecords(activeWorkspaceId);
       if (outboxRecords.length > 0) {
-        appData.setErrorMessage("AI chat is blocked until all pending sync operations are uploaded.");
+        appData.setErrorMessage(t("chatPanel.transientErrors.pendingSync"));
         setSendPhase("idle");
         return;
       }
@@ -686,17 +697,18 @@ export function ChatPanel(props: Props): ReactElement {
     && pendingAttachments.length === 0
     && inputText.trim().length === 0
     && composerSuggestions.length > 0;
-  const microphoneAriaLabel = dictationState === "recording" ? "Stop dictation" : "Start dictation";
+  const microphoneAriaLabel = dictationState === "recording" ? t("chatPanel.dictation.stop") : t("chatPanel.dictation.start");
   const dictationStatusLabel = dictationState === "requesting_permission"
-    ? "Waiting for microphone access..."
+    ? t("chatPanel.dictation.waitingForPermission")
     : dictationState === "recording"
-      ? "Listening..."
-      : "Transcribing...";
+      ? t("chatPanel.dictation.listening")
+      : t("chatPanel.dictation.transcribing");
 
   return (
     <div
       ref={rootRef}
       className={rootClassName}
+      data-testid="chat-panel"
       style={mode === "sidebar" ? { width: localWidth } : undefined}
       onDragEnter={(event) => {
         event.preventDefault();
@@ -715,7 +727,7 @@ export function ChatPanel(props: Props): ReactElement {
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => void handleDrop(event)}
     >
-      {isDragOver ? <div className="chat-drop-overlay">Drop files to attach</div> : null}
+      {isDragOver ? <div className="chat-drop-overlay">{t("chatPanel.dropFiles")}</div> : null}
       {mode === "sidebar" ? (
         <div
           className={`chat-resize-handle${isDragging ? " dragging" : ""}`}
@@ -729,7 +741,7 @@ export function ChatPanel(props: Props): ReactElement {
 
       <div className="chat-header">
         <div>
-          <span className="chat-header-title">AI chat</span>
+          <span className="chat-header-title">{t("chatPanel.providerTitle")}</span>
           <div className="chat-subtitle">{chatConfig.provider.label} · {chatConfig.model.badgeLabel}</div>
         </div>
         <div className="chat-header-actions">
@@ -751,8 +763,9 @@ export function ChatPanel(props: Props): ReactElement {
                 });
             }}
             disabled={isComposerTransientBusy || isStopping}
+            data-testid="chat-new-button"
           >
-            New
+            {t("chatPanel.actions.newChat")}
           </button>
           {mode === "sidebar" ? (
             <button
@@ -773,7 +786,7 @@ export function ChatPanel(props: Props): ReactElement {
         <div className="chat-messages-content" ref={messagesContentRef}>
           {isInitialHistoryLoading ? (
             <div className="chat-empty chat-empty-loading" aria-live="polite">
-              <p className="chat-empty-title">Loading AI chat…</p>
+              <p className="chat-empty-title" data-testid="chat-loading-title">{t("chatPanel.loadingTitle")}</p>
               <div className="chat-loading-lines" aria-hidden="true">
                 <span className="chat-loading-line chat-loading-line-title" />
                 <span className="chat-loading-line" />
@@ -785,8 +798,8 @@ export function ChatPanel(props: Props): ReactElement {
 
           {!isInitialHistoryLoading && messages.length === 0 ? (
             <div className="chat-empty">
-              <p className="chat-empty-title">Start a new AI chat</p>
-              <p className="chat-empty-copy">Ask about cards, review history, or attach notes for extraction.</p>
+              <p className="chat-empty-title" data-testid="chat-empty-title">{t("chatPanel.empty.title")}</p>
+              <p className="chat-empty-copy">{t("chatPanel.empty.copy")}</p>
             </div>
           ) : null}
 
@@ -797,7 +810,7 @@ export function ChatPanel(props: Props): ReactElement {
                 key={`${message.timestamp}-${index}`}
                 className={`chat-msg chat-msg-${message.role}`}
               >
-                {renderStoredMessageContent(message)}
+                {renderStoredMessageContent(message, t)}
                 {isLastAssistant ? (
                   <span className="chat-streaming-indicator">
                     <span className="chat-dots" />
@@ -821,12 +834,13 @@ export function ChatPanel(props: Props): ReactElement {
               >
                 {isBinaryPendingAttachment(attachment)
                   ? attachment.fileName
-                  : `Card · ${formatCardAttachmentLabel(attachment)}`}
+                  : `${t("chatPanel.pendingAttachmentCardPrefix")} · ${formatCardAttachmentLabel(attachment)}`}
                 <button
                   type="button"
                   className="chat-attachment-remove"
                   onClick={() => removeAttachment(index)}
                   disabled={isDraftInputBlocked}
+                  aria-label={t("chatPanel.actions.removeAttachment")}
                 >
                   &times;
                 </button>
@@ -836,7 +850,7 @@ export function ChatPanel(props: Props): ReactElement {
         ) : null}
 
         {canShowComposerSuggestions ? (
-          <div className="chat-composer-suggestions" aria-label="Suggested replies">
+          <div className="chat-composer-suggestions" aria-label={t("chatPanel.suggestedReplies")}>
             {composerSuggestions.map((suggestion) => (
               <button
                 key={suggestion.id}
@@ -872,10 +886,11 @@ export function ChatPanel(props: Props): ReactElement {
             ref={textareaRef}
             name="chatMessage"
             className="chat-textarea"
-            placeholder="Ask about cards, review history, or attach notes..."
+            placeholder={t("chatPanel.composerPlaceholder")}
             value={inputText}
             rows={1}
             disabled={isDraftInputBlocked}
+            data-testid="chat-composer-input"
             onChange={(event) => {
               replaceInputText(event.target.value);
               updateTrackedDraftSelection(event.target);
@@ -922,9 +937,10 @@ export function ChatPanel(props: Props): ReactElement {
               <button
                 type="button"
                 className="chat-stop-btn"
-                aria-label="Stop response"
+                aria-label={t("chatPanel.actions.stopAriaLabel")}
                 onClick={() => void stopMessage()}
                 disabled={isStopping}
+                data-testid="chat-stop-button"
               >
                 <span className="chat-stop-btn-icon" aria-hidden="true" />
               </button>
@@ -932,11 +948,12 @@ export function ChatPanel(props: Props): ReactElement {
               <button
                 type="button"
                 className="chat-send-btn"
-                aria-label="Send message"
+                aria-label={t("chatPanel.actions.sendAriaLabel")}
                 onClick={() => void sendPendingMessage()}
                 disabled={!canSendPendingMessage}
+                data-testid="chat-send-button"
               >
-                Send
+                {t("chatPanel.actions.send")}
               </button>
             )}
           </div>
@@ -951,7 +968,7 @@ export function ChatPanel(props: Props): ReactElement {
           aria-labelledby="chat-error-dialog-title"
         >
           <div className="panel chat-error-dialog">
-            <h2 id="chat-error-dialog-title">AI chat error</h2>
+            <h2 id="chat-error-dialog-title">{t("chatPanel.errorTitle")}</h2>
             <p>{errorDialogMessage}</p>
             <button
               type="button"

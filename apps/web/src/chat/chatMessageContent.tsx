@@ -1,6 +1,22 @@
 import type { ReactElement } from "react";
+import type { TranslationKey } from "../i18n";
+import type { TranslationValues } from "../i18n/types";
 import type { StoredMessage } from "./useChatHistory";
 import { buildCardContextXml, formatCardAttachmentLabel } from "./chatCardParts";
+
+type Translate = (key: TranslationKey, values?: TranslationValues) => string;
+
+function formatEffortValue(value: "fast" | "medium" | "long", t: Translate): string {
+  if (value === "fast") {
+    return t("effortLevels.fast");
+  }
+
+  if (value === "medium") {
+    return t("effortLevels.medium");
+  }
+
+  return t("effortLevels.long");
+}
 
 /**
  * Maps machine-oriented tool names into short user-facing labels while keeping
@@ -10,10 +26,10 @@ import { buildCardContextXml, formatCardAttachmentLabel } from "./chatCardParts"
  * - `apps/ios/Flashcards/Flashcards/AI/AIChatToolPresentation.swift::aiChatToolLabel`
  * - `apps/android/feature/ai/src/main/java/com/flashcardsopensourceapp/feature/ai/AiToolCallPresentation.kt::formatAiToolLabel`
  */
-export function formatToolLabel(name: string): string {
-  if (name === "sql") return "SQL";
-  if (name === "code_execution" || name === "code_interpreter") return "Code execution";
-  if (name === "web_search") return "Web search";
+export function formatToolLabel(name: string, t: Translate): string {
+  if (name === "sql") return t("chatMessageContent.toolLabels.sql");
+  if (name === "code_execution" || name === "code_interpreter") return t("chatMessageContent.toolLabels.codeExecution");
+  if (name === "web_search") return t("chatMessageContent.toolLabels.webSearch");
   return name;
 }
 
@@ -43,38 +59,38 @@ function extractToolCallPreview(name: string, input: string | null): string | nu
   return input;
 }
 
-function toolCallStatusLabel(status: "started" | "completed"): string {
-  return status === "started" ? "Running" : "Done";
+function toolCallStatusLabel(status: "started" | "completed", t: Translate): string {
+  return status === "started" ? t("chatMessageContent.statuses.started") : t("chatMessageContent.statuses.completed");
 }
 
-function reasoningStatusLabel(status: "started" | "completed" | undefined): string {
-  return status === "started" ? "Running" : "Done";
+function reasoningStatusLabel(status: "started" | "completed" | undefined, t: Translate): string {
+  return status === "started" ? t("chatMessageContent.statuses.started") : t("chatMessageContent.statuses.completed");
 }
 
-function buildToolCallSummaryText(name: string, input: string | null): string {
-  const toolLabel = formatToolLabel(name);
+function buildToolCallSummaryText(name: string, input: string | null, t: Translate): string {
+  const toolLabel = formatToolLabel(name, t);
   const toolPreview = extractToolCallPreview(name, input);
   return toolPreview === null ? toolLabel : `${toolLabel}: ${toolPreview}`;
 }
 
-function toClipboardErrorMessage(sectionTitle: string, error: unknown): string {
+function toClipboardErrorMessage(sectionTitle: string, error: unknown, t: Translate): string {
   if (error instanceof Error && error.message.trim() !== "") {
-    return `Failed to copy ${sectionTitle.toLowerCase()}. ${error.message}`;
+    return `${t("chatMessageContent.failedToCopy", { section: sectionTitle.toLowerCase() })} ${error.message}`;
   }
 
-  return `Failed to copy ${sectionTitle.toLowerCase()}.`;
+  return t("chatMessageContent.failedToCopy", { section: sectionTitle.toLowerCase() });
 }
 
-async function copyToolCallSection(text: string, sectionTitle: string): Promise<void> {
+async function copyToolCallSection(text: string, sectionTitle: string, t: Translate): Promise<void> {
   if (typeof navigator.clipboard?.writeText !== "function") {
-    window.alert(`Failed to copy ${sectionTitle.toLowerCase()}. Clipboard API is unavailable.`);
+    window.alert(t("chatMessageContent.failedToCopy", { section: sectionTitle.toLowerCase() }));
     return;
   }
 
   try {
     await navigator.clipboard.writeText(text);
   } catch (error) {
-    window.alert(toClipboardErrorMessage(sectionTitle, error));
+    window.alert(toClipboardErrorMessage(sectionTitle, error, t));
   }
 }
 
@@ -82,6 +98,7 @@ function renderToolCallSection(
   sectionTitle: string,
   text: string | null,
   sectionClassName: "input" | "output",
+  t: Translate,
 ): ReactElement | null {
   if (text === null || text === "") {
     return null;
@@ -95,10 +112,10 @@ function renderToolCallSection(
           type="button"
           className="chat-tool-call-copy"
           onClick={() => {
-            void copyToolCallSection(text, sectionTitle);
+            void copyToolCallSection(text, sectionTitle, t);
           }}
         >
-          Copy
+          {t("chatMessageContent.copy")}
         </button>
       </div>
       <pre className={`chat-tool-call-${sectionClassName}`}>{text}</pre>
@@ -115,23 +132,24 @@ function renderCardAttachment(
     effortLevel: "fast" | "medium" | "long";
   }>,
   key: string,
+  t: Translate,
 ): ReactElement {
   return (
     <details key={key} className="chat-card-part">
       <summary className="chat-card-part-summary">
-        <span className="chat-card-part-label">Card</span>
+        <span className="chat-card-part-label">{t("chatMessageContent.card")}</span>
         <span className="chat-card-part-title" title={card.frontText}>
           {formatCardAttachmentLabel(card)}
         </span>
       </summary>
       <div className="chat-card-part-body">
         <div className="chat-card-part-meta">
-          <span>ID {card.cardId}</span>
-          <span>Effort {card.effortLevel}</span>
-          <span>{card.tags.length === 0 ? "No tags" : card.tags.join(", ")}</span>
+          <span>{t("chatMessageContent.id", { value: card.cardId })}</span>
+          <span>{t("chatMessageContent.toolMeta.effort", { value: formatEffortValue(card.effortLevel, t) })}</span>
+          <span>{card.tags.length === 0 ? t("chatMessageContent.noTags") : card.tags.join(", ")}</span>
         </div>
         <details className="chat-card-part-context">
-          <summary className="chat-card-part-context-summary">Prompt context</summary>
+          <summary className="chat-card-part-context-summary">{t("chatMessageContent.promptContext")}</summary>
           <pre className="chat-card-part-xml">{buildCardContextXml(card)}</pre>
         </details>
       </div>
@@ -143,7 +161,7 @@ function renderCardAttachment(
  * Renders persisted chat history parts without normalizing whitespace so the
  * transcript stays byte-for-byte faithful to stored assistant output.
  */
-export function renderStoredMessageContent(message: StoredMessage): ReactElement {
+export function renderStoredMessageContent(message: StoredMessage, t: Translate): ReactElement {
   const elements: Array<ReactElement> = [];
   let previousPartWasAttachment = false;
 
@@ -160,7 +178,7 @@ export function renderStoredMessageContent(message: StoredMessage): ReactElement
     }
 
     if (part.type === "image") {
-      elements.push(<span key={`image-${index}`}>[image attached]</span>);
+      elements.push(<span key={`image-${index}`}>{t("chatMessageContent.imageAttached")}</span>);
       previousPartWasAttachment = true;
       continue;
     }
@@ -172,19 +190,19 @@ export function renderStoredMessageContent(message: StoredMessage): ReactElement
     }
 
     if (part.type === "card") {
-      elements.push(renderCardAttachment(part, `card-${index}`));
+      elements.push(renderCardAttachment(part, `card-${index}`, t));
       previousPartWasAttachment = true;
       continue;
     }
 
     if (part.type === "reasoning_summary") {
       const reasoningStatus = part.status ?? "completed";
-      const reasoningText = part.summary === "" ? "Thinking..." : part.summary;
+      const reasoningText = part.summary === "" ? t("chatMessageContent.thinking") : part.summary;
       elements.push(
         <details key={`reasoning-${index}`} className={`chat-tool-call chat-tool-call-${reasoningStatus}`}>
           <summary className="chat-tool-call-summary">
-            <span className="chat-tool-call-summary-main" title={reasoningText}>Reasoning</span>
-            <span className="chat-tool-call-status">{reasoningStatusLabel(part.status)}</span>
+            <span className="chat-tool-call-summary-main" title={reasoningText}>{t("chatMessageContent.reasoning")}</span>
+            <span className="chat-tool-call-status">{reasoningStatusLabel(part.status, t)}</span>
           </summary>
           <pre className="chat-tool-call-output">{reasoningText}</pre>
         </details>,
@@ -194,7 +212,7 @@ export function renderStoredMessageContent(message: StoredMessage): ReactElement
     }
 
     previousPartWasAttachment = false;
-    const summaryText = buildToolCallSummaryText(part.name, part.input);
+    const summaryText = buildToolCallSummaryText(part.name, part.input, t);
     elements.push(
       <details
         key={`tool-${index}`}
@@ -202,10 +220,10 @@ export function renderStoredMessageContent(message: StoredMessage): ReactElement
       >
         <summary className="chat-tool-call-summary">
           <span className="chat-tool-call-summary-main" title={summaryText}>{summaryText}</span>
-          <span className="chat-tool-call-status">{toolCallStatusLabel(part.status)}</span>
+          <span className="chat-tool-call-status">{toolCallStatusLabel(part.status, t)}</span>
         </summary>
-        {renderToolCallSection("Request", part.input, "input")}
-        {renderToolCallSection("Response", part.output, "output")}
+        {renderToolCallSection(t("chatMessageContent.request"), part.input, "input", t)}
+        {renderToolCallSection(t("chatMessageContent.response"), part.output, "output", t)}
       </details>,
     );
   }

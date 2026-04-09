@@ -5,6 +5,7 @@ export type ReviewSpeechSide = "front" | "back";
 
 type UseReviewSpeechParams = Readonly<{
   showMessage: (message: string) => void;
+  speechUnavailableMessage: string;
 }>;
 
 type UseReviewSpeechResult = Readonly<{
@@ -20,8 +21,6 @@ const REVIEW_UNORDERED_LIST_PATTERN = /^\s{0,3}[-*+]\s+/;
 const REVIEW_ORDERED_LIST_PATTERN = /^\s{0,3}\d+\.\s+/;
 const REVIEW_THEMATIC_BREAK_PATTERN = /^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$/;
 const REVIEW_TABLE_SEPARATOR_PATTERN = /^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$/;
-
-const SPEECH_UNAVAILABLE_MESSAGE = "Speech is unavailable on this device.";
 
 type LanguageHeuristic = Readonly<{
   languageTag: string;
@@ -241,7 +240,7 @@ function selectMatchingVoice(
 }
 
 export function useReviewSpeech(params: UseReviewSpeechParams): UseReviewSpeechResult {
-  const { showMessage } = params;
+  const { showMessage, speechUnavailableMessage } = params;
   const [activeSide, setActiveSide] = useState<ReviewSpeechSide | null>(null);
   const activeSideRef = useRef<ReviewSpeechSide | null>(null);
   const voicesRef = useRef<ReadonlyArray<SpeechSynthesisVoice>>([]);
@@ -276,7 +275,7 @@ export function useReviewSpeech(params: UseReviewSpeechParams): UseReviewSpeechR
     }
 
     if (typeof window.speechSynthesis === "undefined" || typeof window.SpeechSynthesisUtterance === "undefined") {
-      showMessageRef.current(SPEECH_UNAVAILABLE_MESSAGE);
+      showMessageRef.current(speechUnavailableMessage);
       return;
     }
 
@@ -318,7 +317,7 @@ export function useReviewSpeech(params: UseReviewSpeechParams): UseReviewSpeechR
         activeUtteranceRef.current = null;
       }
       setActiveSide((currentSide) => currentSide === side ? null : currentSide);
-      showMessageRef.current(SPEECH_UNAVAILABLE_MESSAGE);
+      showMessageRef.current(speechUnavailableMessage);
     };
 
     try {
@@ -326,9 +325,9 @@ export function useReviewSpeech(params: UseReviewSpeechParams): UseReviewSpeechR
     } catch {
       activeUtteranceRef.current = null;
       setActiveSide(null);
-      showMessageRef.current(SPEECH_UNAVAILABLE_MESSAGE);
+      showMessageRef.current(speechUnavailableMessage);
     }
-  }, [stopSpeech]);
+  }, [speechUnavailableMessage, stopSpeech]);
 
   useEffect(() => {
     if (typeof window.speechSynthesis === "undefined") {

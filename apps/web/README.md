@@ -13,6 +13,11 @@ The top-level product scope matches the other clients:
 - AI
 - Settings
 
+## Localization
+
+When adding a new web language, follow [docs/web-localization.md](../../docs/web-localization.md).
+That guide covers the real source-of-truth files, browser-local language override behavior, support/error-path audit points, auth locale coordination, and smoke-test expectations.
+
 ## Native Test Stack
 
 The web app uses the browser-native test stack already present in this package:

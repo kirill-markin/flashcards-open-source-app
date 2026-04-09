@@ -1,4 +1,5 @@
 import { useRef, type ReactElement } from "react";
+import { useI18n } from "../i18n";
 import type { EffortLevel } from "../types";
 
 export type BinaryPendingAttachment = Readonly<{
@@ -285,6 +286,7 @@ export async function prepareAttachment(file: File): Promise<PendingAttachment> 
 
 export function FileAttachment(props: Props): ReactElement {
   const { onAttach } = props;
+  const { t } = useI18n();
   const disabled = props.disabled === true;
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -331,8 +333,8 @@ export function FileAttachment(props: Props): ReactElement {
         type="button"
         className="chat-attach-btn"
         disabled={disabled}
-        aria-label="Add attachment"
-        title="Add attachment"
+        aria-label={t("chatPanel.actions.addAttachment")}
+        title={t("chatPanel.actions.addAttachment")}
         onClick={() => inputRef.current?.click()}
       >
         <svg

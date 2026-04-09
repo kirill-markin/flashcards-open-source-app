@@ -95,12 +95,7 @@ export async function waitForAiChatSendReadiness(
     const syncStatus = page.locator(".topbar-sync-status");
     await expect.poll(
       async () => {
-        const syncText = await syncStatus.first().textContent().catch(() => null);
-        if (syncText === null) {
-          return "ready";
-        }
-
-        return syncText.trim() === "Syncing..." ? "syncing" : "ready";
+        return await syncStatus.first().isVisible().catch(() => false) ? "syncing" : "ready";
       },
       { timeout: externalUiTimeoutMs },
     ).toBe("ready");
@@ -155,7 +150,7 @@ export async function waitForAiRunAccepted(
           break;
         }
 
-        const stopButtonVisible = await page.getByRole("button", { name: "Stop response" }).isVisible().catch(() => false);
+        const stopButtonVisible = await page.getByTestId("chat-stop-button").isVisible().catch(() => false);
         if (stopButtonVisible) {
           runAcceptanceState = "running";
           break;
@@ -206,7 +201,7 @@ export async function waitForAiRunCompletion(
           break;
         }
 
-        const sendVisible = await page.getByRole("button", { name: "Send message" }).isVisible().catch(() => false);
+        const sendVisible = await page.getByTestId("chat-send-button").isVisible().catch(() => false);
         if (sendVisible) {
           runCompletionState = "idle";
           break;

@@ -1,10 +1,12 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import { useAppData } from "../appData";
-import { ALL_CARDS_DECK_LABEL, ALL_CARDS_DECK_SLUG, formatDeckFilterDefinition } from "../deckFilters";
+import { ALL_CARDS_DECK_SLUG } from "../deckFilters";
+import { useI18n } from "../i18n";
 import { buildSettingsDeckDetailRoute, settingsDeckNewRoute } from "../routes";
 import { loadDecksListSnapshot } from "../localDb/decks";
 import type { DeckCardStats, DecksListSnapshot } from "../types";
+import { formatDeckFilterSummary } from "./featureFormatting";
 
 type DeckListEntry = Readonly<{
   id: string;
@@ -21,14 +23,14 @@ function buildDeckDetailPath(deckId: string): string {
 function makeDeckListEntries(decksSnapshot: DecksListSnapshot): ReadonlyArray<DeckListEntry> {
   return [{
     id: ALL_CARDS_DECK_SLUG,
-    title: ALL_CARDS_DECK_LABEL,
-    filterSummary: ALL_CARDS_DECK_LABEL,
+    title: "",
+    filterSummary: "",
     stats: decksSnapshot.allCardsStats,
     href: buildDeckDetailPath(ALL_CARDS_DECK_SLUG),
   }, ...decksSnapshot.deckSummaries.map((deckSummary) => ({
     id: deckSummary.deckId,
     title: deckSummary.name,
-    filterSummary: formatDeckFilterDefinition(deckSummary.filterDefinition),
+    filterSummary: "",
     stats: {
       totalCards: deckSummary.totalCards,
       dueCards: deckSummary.dueCards,
@@ -51,6 +53,7 @@ const emptyDecksSnapshot: DecksListSnapshot = {
 
 export function DecksScreen(): ReactElement {
   const { activeWorkspace, localReadVersion, refreshLocalData } = useAppData();
+  const { t, formatNumber } = useI18n();
   const [decksSnapshot, setDecksSnapshot] = useState<DecksListSnapshot>(emptyDecksSnapshot);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -99,8 +102,8 @@ export function DecksScreen(): ReactElement {
     return (
       <main className="container">
         <section className="panel">
-          <h1 className="title">Decks</h1>
-          <p className="subtitle">Loading decks…</p>
+          <h1 className="title">{t("decksScreen.title")}</h1>
+          <p className="subtitle">{t("loading.decks")}</p>
         </section>
       </main>
     );
@@ -110,10 +113,10 @@ export function DecksScreen(): ReactElement {
     return (
       <main className="container">
         <section className="panel">
-          <h1 className="title">Decks</h1>
+          <h1 className="title">{t("decksScreen.title")}</h1>
           <p className="error-banner">{errorMessage}</p>
           <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
-            Retry
+            {t("common.retry")}
           </button>
         </section>
       </main>
@@ -121,45 +124,59 @@ export function DecksScreen(): ReactElement {
   }
 
   return (
-    <main className="container">
+    <main className="container" data-testid="decks-screen">
       <section className="panel">
         <div className="screen-head">
           <div>
-            <h1 className="title">Decks</h1>
-            <p className="subtitle">Decks group related cards so you can study a topic together.</p>
+            <h1 className="title">{t("decksScreen.title")}</h1>
+            <p className="subtitle">{t("decksScreen.subtitle")}</p>
           </div>
           <div className="screen-actions">
-            <span className="badge">{deckListEntries.length} total</span>
-            <Link className="primary-btn" to={settingsDeckNewRoute}>New deck</Link>
+            <span className="badge">{t("decksScreen.counts.total", { count: formatNumber(deckListEntries.length) })}</span>
+            <Link className="primary-btn" to={settingsDeckNewRoute} data-testid="decks-new-deck">{t("decksScreen.newDeck")}</Link>
           </div>
         </div>
 
         <div className="deck-list">
-          {deckListEntries.map((deck) => (
+          {deckListEntries.map((deck) => {
+            const title = deck.id === ALL_CARDS_DECK_SLUG ? t("filters.allCards") : deck.title;
+            const filterSummary = deck.id === ALL_CARDS_DECK_SLUG
+              ? t("filters.allCards")
+              : formatDeckFilterSummary(
+                decksSnapshot.deckSummaries.find((deckSummary) => deckSummary.deckId === deck.id)?.filterDefinition ?? {
+                  version: 2,
+                  effortLevels: [],
+                  tags: [],
+                },
+                t,
+              );
+
+            return (
             <Link key={deck.id} className="deck-card-link" to={deck.href}>
               <article className="deck-card">
                 <div className="deck-card-head">
-                  <h2 className="deck-card-title">{deck.title}</h2>
-                  <span className="badge">{deck.stats.dueCards} due</span>
+                  <h2 className="deck-card-title">{title}</h2>
+                  <span className="badge">{t("decksScreen.counts.due", { count: formatNumber(deck.stats.dueCards) })}</span>
                 </div>
-                <p className="deck-card-summary">{deck.filterSummary}</p>
-                <div className="deck-card-stats" aria-label={`${deck.title} stats`}>
+                <p className="deck-card-summary">{filterSummary}</p>
+                <div className="deck-card-stats" aria-label={t("decksScreen.emptyStatsAriaLabel", { deckName: title })}>
                   <span className="deck-card-stat">
-                    <span className="deck-card-stat-value">{deck.stats.totalCards}</span>
-                    <span className="deck-card-stat-label">cards</span>
+                    <span className="deck-card-stat-value">{formatNumber(deck.stats.totalCards)}</span>
+                    <span className="deck-card-stat-label">{t("decksScreen.statLabels.cards")}</span>
                   </span>
                   <span className="deck-card-stat">
-                    <span className="deck-card-stat-value">{deck.stats.newCards}</span>
-                    <span className="deck-card-stat-label">new</span>
+                    <span className="deck-card-stat-value">{formatNumber(deck.stats.newCards)}</span>
+                    <span className="deck-card-stat-label">{t("decksScreen.statLabels.new")}</span>
                   </span>
                   <span className="deck-card-stat">
-                    <span className="deck-card-stat-value">{deck.stats.reviewedCards}</span>
-                    <span className="deck-card-stat-label">reviewed</span>
+                    <span className="deck-card-stat-value">{formatNumber(deck.stats.reviewedCards)}</span>
+                    <span className="deck-card-stat-label">{t("decksScreen.statLabels.reviewed")}</span>
                   </span>
                 </div>
               </article>
             </Link>
-          ))}
+            );
+          })}
         </div>
       </section>
     </main>

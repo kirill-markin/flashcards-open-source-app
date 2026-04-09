@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../appData";
 import { ALL_CARDS_REVIEW_FILTER } from "../appData/domain";
-import { ALL_CARDS_DECK_LABEL, ALL_CARDS_DECK_SLUG, formatDeckFilterDefinition } from "../deckFilters";
+import { ALL_CARDS_DECK_SLUG } from "../deckFilters";
+import { useI18n } from "../i18n";
 import { buildSettingsDeckEditRoute, reviewRoute, settingsDecksRoute } from "../routes";
 import { loadCardsMatchingDeck } from "../localDb/cards";
 import { loadDeckById, loadDecksListSnapshot } from "../localDb/decks";
 import type { Card, Deck, ReviewFilter } from "../types";
+import { formatDeckFilterSummary, formatEffortLevelLabel, formatNullableDateTime, formatTagSummary } from "./featureFormatting";
 
 type DeckDetailState = Readonly<{
   title: string;
@@ -17,18 +19,6 @@ type DeckDetailState = Readonly<{
   emptyMessage: string;
 }>;
 
-function formatTimestamp(value: string | null): string {
-  if (value === null) {
-    return "new";
-  }
-
-  return new Date(value).toLocaleString();
-}
-
-function renderTags(tags: ReadonlyArray<string>): string {
-  return tags.length === 0 ? "—" : tags.join(", ");
-}
-
 function buildDeckEditPath(deckId: string): string {
   return buildSettingsDeckEditRoute(deckId);
 }
@@ -36,6 +26,7 @@ function buildDeckEditPath(deckId: string): string {
 export function DeckDetailScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
+  const { t, formatCount, formatDateTime, formatNumber } = useI18n();
   const {
     activeWorkspace,
     deleteDeckItem,
@@ -53,7 +44,7 @@ export function DeckDetailScreen(): ReactElement {
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
     if (deckId === undefined) {
-      setScreenErrorMessage("Deck not found.");
+      setScreenErrorMessage(t("deckDetail.errors.notFound"));
       setIsLoading(false);
       return;
     }
@@ -74,12 +65,12 @@ export function DeckDetailScreen(): ReactElement {
           tags: [],
         });
         setDetailState({
-          title: ALL_CARDS_DECK_LABEL,
-          filterSummary: ALL_CARDS_DECK_LABEL,
+          title: t("filters.allCards"),
+          filterSummary: t("filters.allCards"),
           cards: allCards,
           reviewFilter: ALL_CARDS_REVIEW_FILTER,
           allowsEditing: false,
-          emptyMessage: "You haven't created any cards yet.",
+          emptyMessage: t("deckDetail.empty.allCards"),
         });
         setScreenErrorMessage("");
         setIsLoading(false);
@@ -90,7 +81,7 @@ export function DeckDetailScreen(): ReactElement {
       const deck = await loadDeckById(activeWorkspace.workspaceId, deckId);
       if (deck === null) {
         setDetailState(null);
-        setScreenErrorMessage("Deck not found.");
+        setScreenErrorMessage(t("deckDetail.errors.notFound"));
         setIsLoading(false);
         return;
       }
@@ -98,21 +89,21 @@ export function DeckDetailScreen(): ReactElement {
       const matchingCards = await loadCardsMatchingDeck(activeWorkspace.workspaceId, deck.filterDefinition);
       setDetailState({
         title: deck.name,
-        filterSummary: formatDeckFilterDefinition(deck.filterDefinition),
+        filterSummary: formatDeckFilterSummary(deck.filterDefinition, t),
         cards: matchingCards,
         reviewFilter: {
           kind: "deck",
           deckId: deck.deckId,
         },
         allowsEditing: true,
-        emptyMessage: "This deck doesn't have any matching cards yet.",
+        emptyMessage: t("deckDetail.empty.deckCards"),
       });
     } catch (error) {
       setScreenErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsLoading(false);
     }
-  }, [activeWorkspace, deckId]);
+  }, [activeWorkspace, deckId, t]);
 
   useEffect(() => {
     void loadScreenData();
@@ -120,11 +111,11 @@ export function DeckDetailScreen(): ReactElement {
 
   async function handleDelete(): Promise<void> {
     if (deckId === undefined || deckId === ALL_CARDS_DECK_SLUG) {
-      setScreenErrorMessage("System deck cannot be deleted.");
+      setScreenErrorMessage(t("deckDetail.errors.systemDeckDelete"));
       return;
     }
 
-    if (window.confirm("Delete this deck?") === false) {
+    if (window.confirm(t("deckDetail.deleteConfirmation")) === false) {
       return;
     }
 
@@ -155,8 +146,8 @@ export function DeckDetailScreen(): ReactElement {
     return (
       <main className="container">
         <section className="panel">
-          <h1 className="title">Deck</h1>
-          <p className="subtitle">Loading deck…</p>
+          <h1 className="title">{t("deckDetail.title")}</h1>
+          <p className="subtitle">{t("loading.deckDetails")}</p>
         </section>
       </main>
     );
@@ -166,10 +157,10 @@ export function DeckDetailScreen(): ReactElement {
     return (
       <main className="container">
         <section className="panel">
-          <h1 className="title">Deck</h1>
+          <h1 className="title">{t("deckDetail.title")}</h1>
           <p className="error-banner">{screenErrorMessage}</p>
           <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
-            Retry
+            {t("common.retry")}
           </button>
         </section>
       </main>
@@ -182,46 +173,46 @@ export function DeckDetailScreen(): ReactElement {
         {screenErrorMessage !== "" ? <p className="error-banner">{screenErrorMessage}</p> : null}
         <div className="screen-head">
           <div>
-            <h1 className="title">{detailState?.title ?? "Deck"}</h1>
-            <p className="subtitle">Inspect the deck rules, matching cards, and review entry point.</p>
+            <h1 className="title">{detailState?.title ?? t("deckDetail.title")}</h1>
+            <p className="subtitle">{t("deckDetail.subtitle")}</p>
           </div>
           <div className="screen-actions">
-            <Link className="ghost-btn" to={settingsDecksRoute}>Back</Link>
+            <Link className="ghost-btn" to={settingsDecksRoute}>{t("deckDetail.actions.back")}</Link>
             {detailState !== null ? (
-              <button type="button" className="primary-btn" onClick={handleOpenReview}>
-                Open review
+              <button type="button" className="primary-btn" onClick={handleOpenReview} data-testid="deck-detail-open-review">
+                {t("deckDetail.actions.openReview")}
               </button>
             ) : null}
             {detailState?.allowsEditing ? (
-              <Link className="ghost-btn" to={buildDeckEditPath(currentDeckId)}>Edit deck</Link>
+              <Link className="ghost-btn" to={buildDeckEditPath(currentDeckId)}>{t("deckDetail.actions.edit")}</Link>
             ) : null}
           </div>
         </div>
 
         {detailState === null ? (
           <section className="content-card deck-detail-empty">
-            <p className="subtitle">Deck not found.</p>
+            <p className="subtitle">{t("deckDetail.empty.notFound")}</p>
           </section>
         ) : (
           <div className="deck-detail-layout">
             <section className="deck-detail-panel">
-              <h2 className="panel-subtitle">Deck rules</h2>
+              <h2 className="panel-subtitle">{t("deckDetail.rules.title")}</h2>
               <div className="deck-detail-stats">
                 <div className="content-card deck-detail-stat-card">
-                  <span className="deck-detail-stat-label">Cards</span>
-                  <span className="deck-detail-stat-value">{detailState.cards.length}</span>
+                  <span className="deck-detail-stat-label">{t("deckDetail.rules.cards")}</span>
+                  <span className="deck-detail-stat-value">{formatNumber(detailState.cards.length)}</span>
                 </div>
                 <div className="content-card deck-detail-stat-card">
-                  <span className="deck-detail-stat-label">Due</span>
-                  <span className="deck-detail-stat-value">{detailState.cards.filter((card) => card.dueAt === null || new Date(card.dueAt).getTime() <= Date.now()).length}</span>
+                  <span className="deck-detail-stat-label">{t("deckDetail.rules.due")}</span>
+                  <span className="deck-detail-stat-value">{formatNumber(detailState.cards.filter((card) => card.dueAt === null || new Date(card.dueAt).getTime() <= Date.now()).length)}</span>
                 </div>
                 <div className="content-card deck-detail-stat-card">
-                  <span className="deck-detail-stat-label">New</span>
-                  <span className="deck-detail-stat-value">{detailState.cards.filter((card) => card.reps === 0 && card.lapses === 0).length}</span>
+                  <span className="deck-detail-stat-label">{t("deckDetail.rules.new")}</span>
+                  <span className="deck-detail-stat-value">{formatNumber(detailState.cards.filter((card) => card.reps === 0 && card.lapses === 0).length)}</span>
                 </div>
               </div>
               <div className="content-card deck-detail-summary-card">
-                <span className="deck-detail-stat-label">Summary</span>
+                <span className="deck-detail-stat-label">{t("deckDetail.rules.summary")}</span>
                 <p className="deck-card-summary">{detailState.filterSummary}</p>
               </div>
 
@@ -232,15 +223,18 @@ export function DeckDetailScreen(): ReactElement {
                   disabled={isDeleting}
                   onClick={() => void handleDelete()}
                 >
-                  {isDeleting ? "Deleting…" : "Delete deck"}
+                  {isDeleting ? t("deckDetail.actions.deleting") : t("deckDetail.actions.delete")}
                 </button>
               ) : null}
             </section>
 
             <section className="deck-detail-panel">
               <div className="deck-detail-cards-head">
-                <h2 className="panel-subtitle">Matching cards</h2>
-                <span className="badge">{detailState.cards.length} cards</span>
+                <h2 className="panel-subtitle">{t("deckDetail.matchingCards.title")}</h2>
+                <span className="badge">{formatCount(detailState.cards.length, {
+                  one: t("common.countLabels.card.one"),
+                  other: t("common.countLabels.card.other"),
+                })}</span>
               </div>
               {detailState.cards.length === 0 ? (
                 <section className="content-card deck-detail-empty">
@@ -251,15 +245,15 @@ export function DeckDetailScreen(): ReactElement {
                   {detailState.cards.map((card) => (
                     <article key={card.cardId} className="content-card deck-detail-card">
                       <div className="deck-detail-card-head">
-                        <span className="badge">{card.effortLevel}</span>
-                        <span className="badge">{renderTags(card.tags)}</span>
+                        <span className="badge">{formatEffortLevelLabel(t, card.effortLevel)}</span>
+                        <span className="badge">{formatTagSummary(card.tags)}</span>
                       </div>
                       <h3 className="panel-subtitle">{card.frontText}</h3>
-                      <p className="subtitle">{card.backText}</p>
+                      <p className="subtitle">{card.backText === "" ? t("common.noBackText") : card.backText}</p>
                       <div className="review-meta">
-                        <span>Due {formatTimestamp(card.dueAt)}</span>
-                        <span>Reps {card.reps}</span>
-                        <span>Lapses {card.lapses}</span>
+                        <span>{t("deckDetail.meta.due", { value: formatNullableDateTime(card.dueAt, formatDateTime, t) })}</span>
+                        <span>{t("deckDetail.meta.reps", { count: formatNumber(card.reps) })}</span>
+                        <span>{t("deckDetail.meta.lapses", { count: formatNumber(card.lapses) })}</span>
                       </div>
                     </article>
                   ))}

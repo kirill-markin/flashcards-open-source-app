@@ -19,6 +19,7 @@ import type {
   ChatSessionControllerState,
 } from "./state";
 import type { ChatSessionSnapshot } from "./snapshot";
+import type { ChatSessionControllerUiMessages } from "./types";
 import { useChatLiveSession } from "./useLiveSession";
 import type { ChatHistoryState } from "../useChatHistory";
 import type { ChatLiveEvent } from "../liveStream";
@@ -27,6 +28,7 @@ type UseChatSessionSnapshotSyncParams = Readonly<{
   controllerId: string;
   workspaceId: string | null;
   isRemoteReady: boolean;
+  uiMessages: ChatSessionControllerUiMessages;
   state: ChatSessionControllerState;
   dispatch: Dispatch<ChatSessionControllerAction>;
   history: ChatHistoryState;
@@ -271,6 +273,7 @@ export function useChatSessionSnapshotSync(
     controllerId,
     workspaceId,
     isRemoteReady,
+    uiMessages,
     state,
     dispatch,
     history,
@@ -499,7 +502,7 @@ export function useChatSessionSnapshotSync(
     triggerToolRunPostSyncIfNeeded();
     dispatch({
       type: "run_interrupted",
-      message: event.message ?? extractLatestAssistantMessageText(messagesRef.current) ?? "AI chat failed.",
+      message: event.message ?? extractLatestAssistantMessageText(messagesRef.current) ?? uiMessages.genericChatFailed,
     });
   }, [
     appendAssistantText,
@@ -510,6 +513,7 @@ export function useChatSessionSnapshotSync(
     state.currentSessionId,
     state.mainContentInvalidationVersion,
     triggerToolRunPostSyncIfNeeded,
+    uiMessages,
     setKnownLiveCursor,
     upsertAssistantReasoningSummary,
     upsertAssistantToolCall,
@@ -526,7 +530,7 @@ export function useChatSessionSnapshotSync(
     finalizeInterruptedRun: (message) => {
       dispatch({
         type: "run_interrupted",
-        message: toErrorMessage(new Error(message)),
+        message: toErrorMessage(new Error(message), uiMessages.errorFallbacks),
       });
     },
     onVisibleResumeRequested: () => {
@@ -580,7 +584,7 @@ export function useChatSessionSnapshotSync(
           detachLiveStream(null, null);
           dispatch({
             type: "run_interrupted",
-            message: `Chat refresh failed. ${toErrorMessage(error)}`,
+            message: `${uiMessages.refreshFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
           });
         } finally {
           if (visibilityResumePromiseRef.current === refreshPromise) {
@@ -624,13 +628,13 @@ export function useChatSessionSnapshotSync(
           if (snapshot.activeRun !== null && snapshot.activeRun.runId === runId) {
             dispatch({
               type: "run_interrupted",
-              message: "AI live stream ended before the run finished.",
+              message: uiMessages.liveStreamEndedBeforeCompletion,
             });
           }
         } catch (error) {
           dispatch({
             type: "run_interrupted",
-            message: `Chat refresh failed. ${toErrorMessage(error)}`,
+            message: `${uiMessages.refreshFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
           });
         }
       })();
@@ -729,7 +733,7 @@ export function useChatSessionSnapshotSync(
         replaceHistory,
         requestVersion,
         trigger,
-        message: toErrorMessage(error),
+        message: toErrorMessage(error, uiMessages.errorFallbacks),
       });
       throw error;
     }
@@ -739,6 +743,7 @@ export function useChatSessionSnapshotSync(
     markRunHadToolCallsFromSnapshot,
     replaceMessages,
     triggerToolRunPostSyncIfNeeded,
+    uiMessages,
     setKnownLiveCursor,
     workspaceId,
   ]);
@@ -801,7 +806,7 @@ export function useChatSessionSnapshotSync(
         detachLiveStream(null, null);
         dispatch({
           type: "run_interrupted",
-          message: `Chat refresh failed. ${toErrorMessage(error)}`,
+          message: `${uiMessages.refreshFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
         });
       }
     })();
@@ -812,6 +817,7 @@ export function useChatSessionSnapshotSync(
     isRemoteReady,
     loadAndApplySnapshot,
     startSnapshotLiveStream,
+    uiMessages,
     workspaceId,
   ]);
 

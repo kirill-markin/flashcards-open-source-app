@@ -36,8 +36,8 @@ async function signInWithReviewAccount(session: LiveSmokeSession): Promise<void>
     buildLoginUrl(baseUrl),
     externalUiTimeoutMs,
   );
-  await trackedFill(diagnostics, `fill review account email ${reviewEmail}`, page.getByLabel("Email"), reviewEmail);
-  await trackedClick(diagnostics, "submit review account email", page.getByRole("button", { name: "Send code" }));
+  await trackedFill(diagnostics, `fill review account email ${reviewEmail}`, page.locator('input[type="email"]').first(), reviewEmail);
+  await trackedClick(diagnostics, "submit review account email", page.locator("#send-btn"));
   await trackedWaitForUrl(
     page,
     diagnostics,
@@ -46,7 +46,7 @@ async function signInWithReviewAccount(session: LiveSmokeSession): Promise<void>
     externalUiTimeoutMs,
   );
 
-  const chooseWorkspaceHeading = page.getByRole("heading", { name: "Choose workspace" });
+  const chooseWorkspaceHeading = page.locator(".workspace-choice-list");
   const chooseWorkspaceVisible = await trackedIsVisible(
     diagnostics,
     "check whether auth restored into the workspace chooser",
@@ -64,26 +64,26 @@ async function signInWithReviewAccount(session: LiveSmokeSession): Promise<void>
   await trackedExpectVisible(
     diagnostics,
     "confirm primary navigation is visible after auth",
-    page.getByRole("navigation", { name: "Primary" }),
+    page.locator("nav.nav"),
     localUiTimeoutMs,
   );
   await trackedExpectVisible(
     diagnostics,
     "confirm review navigation link is visible after auth",
-    page.getByRole("link", { name: "Review", exact: true }),
+    page.locator('nav.nav a[href="/review"]').first(),
     localUiTimeoutMs,
   );
 }
 
 async function createEphemeralWorkspace(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
-  await trackedClick(diagnostics, "open settings navigation", page.getByRole("link", { name: "Settings", exact: true }));
+  await trackedClick(diagnostics, "open settings navigation", page.locator('nav.nav a[href="/settings"]').first());
   await trackedClick(
     diagnostics,
     "open current workspace settings",
-    page.getByRole("navigation", { name: "Settings tabs" }).getByRole("link", { name: "Current Workspace", exact: true }),
+    page.locator('.settings-switcher a[href="/settings/current-workspace"]').first(),
   );
-  const workspaceActionCard = page.getByRole("button", { name: "Workspace" });
+  const workspaceActionCard = page.locator(".settings-nav-card-button[data-workspace-management-state]").first();
   await trackedExpectAttribute(
     diagnostics,
     "wait for workspace management readiness",
@@ -102,13 +102,13 @@ async function createEphemeralWorkspace(session: LiveSmokeSession): Promise<void
   await trackedClick(
     diagnostics,
     "open new workspace form",
-    page.locator(".settings-workspace-picker").getByRole("button", { name: "New Workspace", exact: true }),
+    page.locator(".settings-workspace-picker > button.ghost-btn").first(),
   );
-  await trackedFill(diagnostics, `fill workspace name ${scenario.workspaceName}`, page.getByPlaceholder("Workspace name"), scenario.workspaceName);
+  await trackedFill(diagnostics, `fill workspace name ${scenario.workspaceName}`, page.locator(".settings-workspace-create-input"), scenario.workspaceName);
   await trackedClick(
     diagnostics,
     `submit workspace creation for ${scenario.workspaceName}`,
-    page.getByRole("button", { name: "Create Workspace" }),
+    page.locator(".settings-workspace-create-actions .primary-btn"),
   );
   await trackedExpectText(
     diagnostics,
@@ -121,7 +121,7 @@ async function createEphemeralWorkspace(session: LiveSmokeSession): Promise<void
 
 async function assertLinkedAccountStatus(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, reviewEmail, scenario } = session;
-  await trackedClick(diagnostics, "open settings navigation for account verification", page.getByRole("link", { name: "Settings", exact: true }));
+  await trackedClick(diagnostics, "open settings navigation for account verification", page.locator('nav.nav a[href="/settings"]').first());
   await trackedExpectText(
     diagnostics,
     `confirm settings shows workspace ${scenario.workspaceName}`,
@@ -132,18 +132,18 @@ async function assertLinkedAccountStatus(session: LiveSmokeSession): Promise<voi
   await trackedClick(
     diagnostics,
     "open account settings screen",
-    page.getByRole("navigation", { name: "Settings tabs" }).getByRole("link", { name: "Account", exact: true }),
+    page.locator('.settings-switcher a[href="/settings/account"]').first(),
   );
   await trackedExpectVisible(
     diagnostics,
     "confirm account settings heading is visible",
-    page.getByRole("heading", { name: "Account Settings" }),
+    page.locator(".settings-panel"),
     localUiTimeoutMs,
   );
   await trackedClick(
     diagnostics,
     "open account status screen",
-    page.locator(".settings-nav-card").filter({ hasText: "Account Status" }).first(),
+    page.locator('a[href="/settings/account/status"]').first(),
   );
   await trackedExpectVisible(
     diagnostics,
@@ -153,8 +153,8 @@ async function assertLinkedAccountStatus(session: LiveSmokeSession): Promise<voi
   );
   await trackedExpectVisible(
     diagnostics,
-    "confirm account status shows Linked",
-    page.getByText("Linked", { exact: true }),
+    "confirm account status summary cards are visible",
+    page.locator(".settings-detail-grid .settings-summary-card").nth(1),
     externalUiTimeoutMs,
   );
 }

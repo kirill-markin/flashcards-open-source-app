@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { useI18n } from "../i18n";
 import { SettingsShell } from "./SettingsShared";
 
 const privacyPolicyUrl: string = "https://flashcards-open-source-app.com/privacy/";
@@ -8,42 +9,42 @@ const supportEmailAddress: string = "kirill+flashcards@kirill-markin.com";
 const supportEmailUrl: string = `mailto:${supportEmailAddress}`;
 
 export function LegalSupportScreen(): ReactElement {
+  const { t } = useI18n();
+
   return (
     <SettingsShell
-      title="Legal & Support"
-      subtitle="Review policy links and support contact details for the hosted app."
+      title={t("legalSupport.title")}
+      subtitle={t("legalSupport.subtitle")}
       activeTab="account"
     >
       <div className="settings-nav-list">
         <article className="content-card settings-summary-card">
-          <span className="cell-secondary">Privacy Policy</span>
+          <span className="cell-secondary">{t("legalSupport.labels.privacyPolicy")}</span>
           <a className="ghost-btn" href={privacyPolicyUrl} rel="noreferrer" target="_blank">
-            Open policy
+            {t("legalSupport.actions.openPolicy")}
           </a>
         </article>
         <article className="content-card settings-summary-card">
-          <span className="cell-secondary">Terms of Service</span>
+          <span className="cell-secondary">{t("legalSupport.labels.termsOfService")}</span>
           <a className="ghost-btn" href={termsOfServiceUrl} rel="noreferrer" target="_blank">
-            Open terms
+            {t("legalSupport.actions.openTerms")}
           </a>
         </article>
         <article className="content-card settings-summary-card">
-          <span className="cell-secondary">Support</span>
+          <span className="cell-secondary">{t("legalSupport.labels.support")}</span>
           <a className="ghost-btn" href={supportUrl} rel="noreferrer" target="_blank">
-            Open support
+            {t("legalSupport.actions.openSupport")}
           </a>
         </article>
         <article className="content-card settings-summary-card">
-          <span className="cell-secondary">Support Email</span>
+          <span className="cell-secondary">{t("legalSupport.labels.supportEmail")}</span>
           <a className="ghost-btn" href={supportEmailUrl}>
             {supportEmailAddress}
           </a>
         </article>
         <article className="content-card settings-summary-card">
-          <span className="cell-secondary">Hosted app help</span>
-          <p className="subtitle">
-            Use the support page for hosted app questions, account deletion help, and billing or access follow-up.
-          </p>
+          <span className="cell-secondary">{t("legalSupport.labels.hostedAppHelp")}</span>
+          <p className="subtitle">{t("legalSupport.hostedHelpDescription")}</p>
         </article>
       </div>
     </SettingsShell>

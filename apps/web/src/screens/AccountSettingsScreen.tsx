@@ -1,4 +1,6 @@
+import type { ReactElement } from "react";
 import { useAppData } from "../appData";
+import { useI18n } from "../i18n";
 import {
   accountAgentConnectionsRoute,
   accountDangerZoneRoute,
@@ -7,11 +9,10 @@ import {
   accountStatusRoute,
 } from "../routes";
 import { SettingsGroup, SettingsNavigationCard, SettingsShell } from "./SettingsShared";
-import type { ReactElement } from "react";
 
-function accountStatusValue(linkedEmail: string | null): string {
+function accountStatusValue(linkedEmail: string | null, unavailableLabel: string): string {
   if (linkedEmail === null || linkedEmail === "") {
-    return "Unavailable";
+    return unavailableLabel;
   }
 
   return linkedEmail;
@@ -19,47 +20,48 @@ function accountStatusValue(linkedEmail: string | null): string {
 
 export function AccountSettingsScreen(): ReactElement {
   const { cloudSettings, session } = useAppData();
+  const { t } = useI18n();
 
   return (
     <SettingsShell
-      title="Account Settings"
-      subtitle="Manage account state, support, connections, and irreversible actions."
+      title={t("accountSettings.title")}
+      subtitle={t("accountSettings.subtitle")}
       activeTab="account"
     >
       <SettingsGroup>
         <div className="settings-nav-list">
           <SettingsNavigationCard
-            title="Account Status"
-            description="Review the signed-in account and current browser session state."
-            value={accountStatusValue(cloudSettings?.linkedEmail ?? session?.profile.email ?? null)}
+            title={t("accountSettings.accountStatus.title")}
+            description={t("accountSettings.accountStatus.description")}
+            value={accountStatusValue(cloudSettings?.linkedEmail ?? session?.profile.email ?? null, t("common.unavailable"))}
             to={accountStatusRoute}
           />
         </div>
       </SettingsGroup>
 
-      <SettingsGroup title="Support">
+      <SettingsGroup title={t("accountSettings.supportGroupTitle")}>
         <div className="settings-nav-list">
           <SettingsNavigationCard
-            title="Legal & Support"
-            description="Review privacy, terms, hosted support links, and support contact details."
-            value="Policies"
+            title={t("accountSettings.legalSupport.title")}
+            description={t("accountSettings.legalSupport.description")}
+            value={t("accountSettings.legalSupport.value")}
             to={accountLegalSupportRoute}
           />
           <SettingsNavigationCard
-            title="Open Source"
-            description="Review the repository, MIT license, and self-hosting links."
-            value="GitHub + MIT"
+            title={t("accountSettings.openSource.title")}
+            description={t("accountSettings.openSource.description")}
+            value={t("accountSettings.openSource.value")}
             to={accountOpenSourceRoute}
           />
         </div>
       </SettingsGroup>
 
-      <SettingsGroup title="Connections">
+      <SettingsGroup title={t("accountSettings.connectionsGroupTitle")}>
         <div className="settings-nav-list">
           <SettingsNavigationCard
-            title="Agent Connections"
-            description="Review and revoke long-lived bot connections for this account."
-            value="Connections"
+            title={t("accountSettings.agentConnections.title")}
+            description={t("accountSettings.agentConnections.description")}
+            value={t("accountSettings.agentConnections.value")}
             to={accountAgentConnectionsRoute}
           />
         </div>
@@ -68,9 +70,9 @@ export function AccountSettingsScreen(): ReactElement {
       <SettingsGroup>
         <div className="settings-nav-list">
           <SettingsNavigationCard
-            title="Danger Zone"
-            description="Delete the account and all cloud data."
-            value="Delete"
+            title={t("accountSettings.dangerZone.title")}
+            description={t("accountSettings.dangerZone.description")}
+            value={t("accountSettings.dangerZone.value")}
             to={accountDangerZoneRoute}
           />
         </div>

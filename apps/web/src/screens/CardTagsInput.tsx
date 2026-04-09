@@ -10,6 +10,7 @@ import {
   type ReactElement,
 } from "react";
 import { deriveActiveCards } from "../appData/domain";
+import { useI18n } from "../i18n";
 import type { Card, TagSuggestion } from "../types";
 
 type ExistingTagOption = Readonly<{
@@ -123,6 +124,7 @@ function getTagOptions(
   selectedTags: ReadonlyArray<string>,
   suggestions: ReadonlyArray<TagSuggestion>,
   draftValue: string,
+  createLabel: (tag: string) => string,
 ): ReadonlyArray<TagOption> {
   const normalizedDraft = normalizeTag(draftValue).toLowerCase();
   const existingOptions = suggestions
@@ -145,7 +147,7 @@ function getTagOptions(
     {
       key: `create:${draftTag}`,
       value: draftTag,
-      label: `Create "${draftTag}"`,
+      label: createLabel(draftTag),
       kind: "create",
     },
     ...existingOptions,
@@ -196,15 +198,15 @@ export function CardTagsValue(props: CardTagsValueProps): ReactElement {
   );
 }
 
-function renderTagSuggestionMeta(option: TagOption): ReactElement {
+function renderTagSuggestionMeta(option: TagOption, loadingLabel: string, newLabel: string): ReactElement {
   if (option.kind === "create") {
-    return <span className="tag-suggestion-kind">new</span>;
+    return <span className="tag-suggestion-kind">{newLabel}</span>;
   }
 
   if (option.suggestion.countState === "loading") {
     return (
       <span className="tag-suggestion-meta">
-        <span className="tag-suggestion-spinner" aria-label="Loading tag count" />
+        <span className="tag-suggestion-spinner" aria-label={loadingLabel} />
       </span>
     );
   }
@@ -218,14 +220,16 @@ function renderTagSuggestionMeta(option: TagOption): ReactElement {
 
 export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>(function CardTagsInput(props, ref) {
   const { value, suggestions, placeholder, inputId, inputName, onChange, onEscape } = props;
+  const { t } = useI18n();
   const [selectedTags, setSelectedTags] = useState<ReadonlyArray<string>>(value);
   const [draftValue, setDraftValue] = useState<string>("");
   const [highlightIndex, setHighlightIndex] = useState<number>(-1);
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const createTagLabel = (tag: string): string => t("cardTags.create", { tag });
   const options = useMemo(
-    () => getTagOptions(selectedTags, suggestions, draftValue),
-    [draftValue, selectedTags, suggestions],
+    () => getTagOptions(selectedTags, suggestions, draftValue, createTagLabel),
+    [createTagLabel, draftValue, selectedTags, suggestions],
   );
   const selectedTagSuggestions = useMemo(
     () => getSelectedTagSuggestions(selectedTags, suggestions),
@@ -384,7 +388,7 @@ export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>
             <button
               type="button"
               className="tag-chip-remove"
-              aria-label={`Remove ${suggestion.tag}`}
+              aria-label={t("cardTags.remove", { tag: suggestion.tag })}
               onMouseDown={(event) => event.preventDefault()}
               onClick={(event) => {
                 event.stopPropagation();
@@ -419,10 +423,10 @@ export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>
 
       {isFocused ? (
         <div className="tag-suggestions">
-          <div className="tag-suggestions-head">Select or create tags</div>
+          <div className="tag-suggestions-head">{t("cardTags.selectOrCreate")}</div>
           <div className="tag-suggestions-list">
             {options.length === 0 ? (
-              <div className="tag-suggestions-empty">No matching tags</div>
+              <div className="tag-suggestions-empty">{t("cardTags.empty")}</div>
             ) : (
               options.map((option, index) => {
                 const isHighlighted = index === highlightIndex;
@@ -443,7 +447,7 @@ export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>
                     onClick={() => handleSelect(option.value)}
                   >
                     <span className="tag-suggestion-label">{option.label}</span>
-                    {renderTagSuggestionMeta(option)}
+                    {renderTagSuggestionMeta(option, t("cardTags.loadingCount"), t("cardTags.new"))}
                   </button>
                 );
               })

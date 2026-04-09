@@ -16,10 +16,12 @@ import {
   type WarmStartChatSessionSnapshot,
 } from "./warmStart";
 import type { ChatHistoryState } from "../useChatHistory";
+import type { ChatSessionControllerUiMessages } from "./types";
 
 type UseChatSessionHydrationLifecycleParams = Readonly<{
   workspaceId: string | null;
   isRemoteReady: boolean;
+  uiMessages: ChatSessionControllerUiMessages;
   state: ChatSessionControllerState;
   dispatch: Dispatch<ChatSessionControllerAction>;
   history: ChatHistoryState;
@@ -37,6 +39,7 @@ export function useChatSessionHydrationLifecycle(
   const {
     workspaceId,
     isRemoteReady,
+    uiMessages,
     state,
     dispatch,
     history,
@@ -188,7 +191,7 @@ export function useChatSessionHydrationLifecycle(
 
         dispatch({
           type: "error_shown",
-          message: `Chat refresh failed. ${toErrorMessage(error)}`,
+          message: `${uiMessages.refreshFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
         });
       } finally {
         if (isDisposedRef.current === false) {

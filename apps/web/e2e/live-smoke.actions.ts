@@ -242,15 +242,15 @@ export async function trackedWaitForDeleteWorkspaceRetryTransition(
 export async function observeDeleteWorkspaceDialogState(
   dialog: Locator,
 ): Promise<DeleteWorkspaceDialogObservation> {
-  const confirmationInput = dialog.getByLabel("Type the phrase exactly to continue.");
-  const confirmationPhrase = dialog.getByLabel("confirmation phrase");
-  const retryButton = dialog.getByRole("button", { name: "Retry" });
-  const loadingText = dialog.getByText("Loading delete details…", { exact: true });
+  const confirmationInput = dialog.locator("#delete-workspace-confirmation");
+  const confirmationPhrase = dialog.locator(".settings-delete-phrase");
+  const retryButton = dialog.locator(".screen-actions .primary-btn").first();
+  const errorBanner = dialog.locator(".error-banner").first();
 
   const isConfirmationInputVisible = await confirmationInput.isVisible().catch(() => false);
   const isConfirmationPhraseVisible = await confirmationPhrase.isVisible().catch(() => false);
   const isRetryVisible = await retryButton.isVisible().catch(() => false);
-  const isLoadingVisible = await loadingText.isVisible().catch(() => false);
+  const isLoadingVisible = await errorBanner.isVisible().catch(() => false) === false && isConfirmationInputVisible === false;
 
   const state: DeleteWorkspaceDialogState = isConfirmationInputVisible && isConfirmationPhraseVisible
     ? "confirmation"

@@ -1,11 +1,8 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
+import { useI18n } from "../i18n";
 import { loadWorkspaceTagsSummary } from "../localDb/workspace";
 import type { WorkspaceTagsSummary } from "../types";
-
-function formatCardsCount(cardsCount: number): string {
-  return `${cardsCount} ${cardsCount === 1 ? "card" : "cards"}`;
-}
 
 const emptyTagsSummary: WorkspaceTagsSummary = {
   tags: [],
@@ -14,6 +11,7 @@ const emptyTagsSummary: WorkspaceTagsSummary = {
 
 export function TagsScreen(): ReactElement {
   const { activeWorkspace, localReadVersion, refreshLocalData } = useAppData();
+  const { t, formatCount, formatNumber } = useI18n();
   const [tagsSummary, setTagsSummary] = useState<WorkspaceTagsSummary>(emptyTagsSummary);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -60,8 +58,8 @@ export function TagsScreen(): ReactElement {
     return (
       <main className="container">
         <section className="panel tags-screen-panel">
-          <h1 className="title">Tags</h1>
-          <p className="subtitle">Loading tags…</p>
+          <h1 className="title">{t("tagsScreen.title")}</h1>
+          <p className="subtitle">{t("loading.tags")}</p>
         </section>
       </main>
     );
@@ -71,10 +69,10 @@ export function TagsScreen(): ReactElement {
     return (
       <main className="container">
         <section className="panel tags-screen-panel">
-          <h1 className="title">Tags</h1>
+          <h1 className="title">{t("tagsScreen.title")}</h1>
           <p className="error-banner">{errorMessage}</p>
           <button className="primary-btn" type="button" onClick={() => void refreshLocalData()}>
-            Retry
+            {t("common.retry")}
           </button>
         </section>
       </main>
@@ -86,24 +84,25 @@ export function TagsScreen(): ReactElement {
       <section className="panel tags-screen-panel">
         <div className="screen-head">
           <div>
-            <h1 className="title">Tags</h1>
-            <p className="subtitle">
-              Tags group cards across the workspace. Per-tag counts can overlap when one card has multiple tags.
-            </p>
+            <h1 className="title">{t("tagsScreen.title")}</h1>
+            <p className="subtitle">{t("tagsScreen.subtitle")}</p>
           </div>
           <div className="screen-actions">
-            <span className="badge">{tagsSummary.tags.length} total</span>
+            <span className="badge">{t("tagsScreen.counts.total", { count: formatNumber(tagsSummary.tags.length) })}</span>
           </div>
         </div>
 
         <div className="tags-summary-list">
           {tagsSummary.tags.length === 0 ? (
-            <div className="content-card">No tags have been used yet.</div>
+            <div className="content-card">{t("tagsScreen.empty")}</div>
           ) : tagsSummary.tags.map((tagSummary) => (
             <article key={tagSummary.tag} className="content-card tags-summary-card">
               <div className="tags-summary-card-head">
                 <strong className="panel-subtitle">{tagSummary.tag}</strong>
-                <span className="badge">{formatCardsCount(tagSummary.cardsCount)}</span>
+                <span className="badge">{formatCount(tagSummary.cardsCount, {
+                  one: t("common.countLabels.card.one"),
+                  other: t("common.countLabels.card.other"),
+                })}</span>
               </div>
             </article>
           ))}
@@ -111,10 +110,10 @@ export function TagsScreen(): ReactElement {
 
         <article className="content-card content-card-muted tags-total-card">
           <div className="tags-total-card-head">
-            <span className="cell-secondary">Total cards</span>
-            <strong className="panel-subtitle">{tagsSummary.totalCards}</strong>
+            <span className="cell-secondary">{t("tagsScreen.totalCards.label")}</span>
+            <strong className="panel-subtitle">{formatNumber(tagsSummary.totalCards)}</strong>
           </div>
-          <p className="subtitle">This is the workspace-wide card count, so it does not double-count cards that share tags.</p>
+          <p className="subtitle">{t("tagsScreen.totalCards.description")}</p>
         </article>
       </section>
     </main>

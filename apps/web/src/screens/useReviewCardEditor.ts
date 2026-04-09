@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { TranslationKey } from "../i18n";
 import { toCardFormState, type CardFormState } from "./CardForm";
 import type { Card, TagSuggestion } from "../types";
 
@@ -7,6 +8,7 @@ type UseReviewCardEditorParams = Readonly<{
   queueCards: ReadonlyArray<Card>;
   selectedCard: Card | null;
   setErrorMessage: (message: string) => void;
+  t: (key: TranslationKey) => string;
   updateCardItem: (cardId: string, input: Readonly<{
     frontText: string;
     backText: string;
@@ -35,6 +37,7 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
     queueCards,
     selectedCard,
     setErrorMessage,
+    t,
     updateCardItem,
   } = params;
   const [isEditorPresented, setIsEditorPresented] = useState<boolean>(false);
@@ -53,7 +56,7 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
 
   async function handleEditorSave(): Promise<void> {
     if (editingCardId === "") {
-      setEditorErrorMessage("Card not found");
+      setEditorErrorMessage(t("reviewEditor.errors.cardNotFound"));
       return;
     }
 
@@ -78,7 +81,7 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
 
   async function handleEditorSaveForAiHandoff(): Promise<Card | null> {
     if (editingCardId === "") {
-      setEditorErrorMessage("Card not found");
+      setEditorErrorMessage(t("reviewEditor.errors.cardNotFound"));
       return null;
     }
 
@@ -104,11 +107,11 @@ export function useReviewCardEditor(params: UseReviewCardEditorParams): UseRevie
 
   async function handleEditorDelete(): Promise<void> {
     if (editingCardId === "") {
-      setEditorErrorMessage("Card not found");
+      setEditorErrorMessage(t("reviewEditor.errors.cardNotFound"));
       return;
     }
 
-    if (window.confirm("Delete this card?") === false) {
+    if (window.confirm(t("reviewEditor.deleteConfirmation")) === false) {
       return;
     }
 

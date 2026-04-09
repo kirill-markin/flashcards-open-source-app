@@ -6,9 +6,9 @@ import type {
   ReasoningSummaryContentPart,
   ToolCallContentPart,
 } from "../../types";
-import { sanitizeErrorText } from "../chatHelpers";
+import { sanitizeErrorTextWithFallbackMessages, type ChatErrorFallbackMessages } from "../chatHelpers";
 import type { ChatLiveEvent } from "../liveStream";
-import { OPTIMISTIC_ASSISTANT_STATUS_TEXT, type StoredMessage } from "../useChatHistory";
+import { isOptimisticAssistantStatusText, type StoredMessage } from "../useChatHistory";
 
 const CHAT_DEBUG_LOG_PREFIX = "chat_debug ";
 const CHAT_DEBUG_STORAGE_KEY = "flashcards-chat-debug";
@@ -24,9 +24,9 @@ type StreamPosition = Readonly<{
   sequenceNumber: number | null;
 }>;
 
-export function toErrorMessage(error: unknown): string {
+export function toErrorMessage(error: unknown, fallbackMessages: ChatErrorFallbackMessages): string {
   if (error instanceof Error) {
-    return sanitizeErrorText(500, error.message);
+    return sanitizeErrorTextWithFallbackMessages(500, error.message, fallbackMessages);
   }
 
   return String(error);
@@ -238,7 +238,7 @@ function extractStoredMessageTextContent(message: StoredMessage): string {
       return result;
     }
 
-    if (part.text === OPTIMISTIC_ASSISTANT_STATUS_TEXT) {
+    if (isOptimisticAssistantStatusText(part.text)) {
       return result;
     }
 

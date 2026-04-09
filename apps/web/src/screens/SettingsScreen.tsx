@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { useAppData } from "../appData";
+import { useI18n } from "../i18n";
 import {
   accountSettingsRoute,
   settingsAccessRoute,
@@ -8,7 +9,7 @@ import {
   workspaceSettingsRoute,
 } from "../routes";
 import { useTransientMessage } from "../useTransientMessage";
-import { isWorkspaceManagementLocked, workspaceManagementLockedBannerMessage } from "../workspaceManagement";
+import { isWorkspaceManagementLocked } from "../workspaceManagement";
 import {
   SettingsActionCard,
   SettingsGroup,
@@ -22,14 +23,16 @@ export function SettingsScreen(): ReactElement {
     cloudSettings,
     isSessionVerified,
   } = useAppData();
+  const { t } = useI18n();
   const { message, showMessage } = useTransientMessage(3000);
   const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
-  const currentWorkspaceName = activeWorkspace?.name ?? "Unavailable";
+  const currentWorkspaceName = activeWorkspace?.name ?? t("common.unavailable");
+  const workspaceManagementLockedMessage = t("workspaceManagement.lockedMessage");
 
   return (
     <SettingsShell
-      title="Settings"
-      subtitle="Manage the current workspace, account, this device, and browser access."
+      title={t("settingsHome.title")}
+      subtitle={t("settingsHome.subtitle")}
       activeTab="general"
     >
       {message === "" ? null : <p className="settings-temporary-banner" role="status">{message}</p>}
@@ -38,16 +41,16 @@ export function SettingsScreen(): ReactElement {
         <div className="settings-nav-list">
           {isWorkspaceLocked ? (
             <SettingsActionCard
-              title="Current Workspace"
-              description="Change the active workspace or create a new workspace for this account."
+              title={t("settingsHome.currentWorkspace.title")}
+              description={t("settingsHome.currentWorkspace.description")}
               value={currentWorkspaceName}
-              onClick={() => showMessage(workspaceManagementLockedBannerMessage)}
+              onClick={() => showMessage(workspaceManagementLockedMessage)}
               isMuted
             />
           ) : (
             <SettingsNavigationCard
-              title="Current Workspace"
-              description="Change the active workspace or create a new workspace for this account."
+              title={t("settingsHome.currentWorkspace.title")}
+              description={t("settingsHome.currentWorkspace.description")}
               value={currentWorkspaceName}
               to={settingsCurrentWorkspaceRoute}
             />
@@ -58,15 +61,15 @@ export function SettingsScreen(): ReactElement {
       <SettingsGroup>
         <div className="settings-nav-list">
           <SettingsNavigationCard
-            title="Workspace Settings"
-            description="Review overview, workspace data, scheduler settings, notifications, and export."
-            value="Workspace"
+            title={t("settingsHome.workspaceSettings.title")}
+            description={t("settingsHome.workspaceSettings.description")}
+            value={t("settingsHome.workspaceSettings.value")}
             to={workspaceSettingsRoute}
           />
           <SettingsNavigationCard
-            title="Account Settings"
-            description="Review account status, support, connections, and danger-zone actions."
-            value="Account"
+            title={t("settingsHome.accountSettings.title")}
+            description={t("settingsHome.accountSettings.description")}
+            value={t("settingsHome.accountSettings.value")}
             to={accountSettingsRoute}
           />
         </div>
@@ -75,15 +78,15 @@ export function SettingsScreen(): ReactElement {
       <SettingsGroup>
         <div className="settings-inline-nav-list">
           <SettingsNavigationCard
-            title="This Device"
-            description="Review browser, build, storage, and device-local workspace details."
-            value="Device"
+            title={t("settingsHome.device.title")}
+            description={t("settingsHome.device.description")}
+            value={t("settingsHome.device.value")}
             to={settingsDeviceRoute}
           />
           <SettingsNavigationCard
-            title="Access"
-            description="Review browser permissions for files, camera, and microphone."
-            value="Permissions"
+            title={t("settingsHome.access.title")}
+            description={t("settingsHome.access.description")}
+            value={t("settingsHome.access.value")}
             to={settingsAccessRoute}
           />
         </div>

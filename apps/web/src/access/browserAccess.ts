@@ -1,3 +1,5 @@
+import type { TranslationKey } from "../i18n";
+
 export type BrowserMediaPermissionKind = "camera" | "microphone";
 export type BrowserPermissionState = "denied" | "granted" | "prompt" | "unsupported";
 
@@ -32,24 +34,6 @@ export async function queryBrowserPermissionState(kind: BrowserMediaPermissionKi
   }
 }
 
-export function formatBrowserPermissionState(state: BrowserPermissionState): string {
-  switch (state) {
-    case "granted":
-      return "Allowed";
-    case "prompt":
-      return "Ask every time";
-    case "denied":
-      return "Blocked";
-    case "unsupported":
-      return "Unavailable";
-  }
-}
-
-export function browserPermissionSettingsGuidance(kind: BrowserMediaPermissionKind): string {
-  const resourceLabel = kind === "camera" ? "camera" : "microphone";
-  return `If access is blocked, use the site controls in your browser bar to enable ${resourceLabel} access for this site.`;
-}
-
 export async function requestBrowserMediaPermission(kind: BrowserMediaPermissionKind): Promise<void> {
   const mediaDevices = navigator.mediaDevices;
   if (mediaDevices === undefined || typeof mediaDevices.getUserMedia !== "function") {
@@ -75,23 +59,41 @@ export function explainBrowserMediaPermissionError(
   kind: BrowserMediaPermissionKind,
   error: unknown,
   permissionState: BrowserPermissionState,
+  t: (key: TranslationKey) => string,
 ): string {
-  const resourceLabel = kind === "camera" ? "camera" : "microphone";
   if (error instanceof DOMException) {
     if (error.name === "NotAllowedError") {
       if (permissionState === "denied") {
-        return `Flashcards cannot use your ${resourceLabel}. Click the site controls in your browser bar and enable ${resourceLabel} access, then try again.`;
+        return kind === "camera"
+          ? t("accessSettings.permission.errorNotAllowedDeniedCamera")
+          : t("accessSettings.permission.errorNotAllowedDeniedMicrophone");
       }
 
-      return `${resourceLabel[0]?.toUpperCase() ?? ""}${resourceLabel.slice(1)} access was not granted.`;
+      return kind === "camera"
+        ? t("accessSettings.permission.errorNotAllowedCamera")
+        : t("accessSettings.permission.errorNotAllowedMicrophone");
     }
 
     if (error.name === "NotFoundError") {
-      return `No ${resourceLabel} is available on this device.`;
+      return kind === "camera"
+        ? t("accessSettings.permission.errorNotFoundCamera")
+        : t("accessSettings.permission.errorNotFoundMicrophone");
     }
 
     if (error.name === "NotReadableError") {
-      return `The ${resourceLabel} is busy in another app. Close the other app and try again.`;
+      return kind === "camera"
+        ? t("accessSettings.permission.errorNotReadableCamera")
+        : t("accessSettings.permission.errorNotReadableMicrophone");
+    }
+  }
+
+  if (error instanceof Error) {
+    if (error.message === "Media device access is unavailable in this browser.") {
+      return t("accessSettings.permission.errorMediaUnavailable");
+    }
+
+    if (error.message === "Media permissions require HTTPS or localhost.") {
+      return t("accessSettings.permission.errorSecureContext");
     }
   }
 

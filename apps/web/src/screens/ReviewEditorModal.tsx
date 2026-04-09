@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { useI18n } from "../i18n";
 import { CardFormFields, type CardFormState } from "./CardForm";
 import type { Card, TagSuggestion } from "../types";
 
@@ -30,6 +31,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
     onSave,
     tagSuggestions,
   } = props;
+  const { t } = useI18n();
 
   if (!isEditorPresented || editingCard === null) {
     return null;
@@ -40,8 +42,8 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
       <section className="panel review-editor-modal" role="dialog" aria-modal="true" aria-labelledby="review-editor-title">
         <div className="screen-head">
           <div>
-            <h2 id="review-editor-title" className="title">Edit card</h2>
-            <p className="subtitle">Update the current review card without leaving review.</p>
+            <h2 id="review-editor-title" className="title">{t("reviewEditor.title")}</h2>
+            <p className="subtitle">{t("reviewEditor.subtitle")}</p>
           </div>
           <div className="screen-actions">
             <button
@@ -49,8 +51,9 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
               className="ghost-btn review-editor-ai-btn"
               disabled={isEditorSaving}
               onClick={() => void onEditWithAi()}
+              data-testid="review-editor-edit-with-ai"
             >
-              Edit with AI
+              {t("reviewEditor.editWithAi")}
             </button>
             <button
               type="button"
@@ -58,7 +61,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
               disabled={isEditorSaving}
               onClick={onClose}
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               type="button"
@@ -66,7 +69,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
               disabled={isEditorSaving}
               onClick={() => void onDelete()}
             >
-              Delete
+              {t("reviewEditor.delete")}
             </button>
             <button
               type="button"
@@ -74,7 +77,7 @@ export function ReviewEditorModal(props: ReviewEditorModalProps): ReactElement |
               disabled={isEditorSaving}
               onClick={() => void onSave()}
             >
-              {isEditorSaving ? "Saving…" : "Save card"}
+              {isEditorSaving ? t("reviewEditor.saving") : t("reviewEditor.save")}
             </button>
           </div>
         </div>

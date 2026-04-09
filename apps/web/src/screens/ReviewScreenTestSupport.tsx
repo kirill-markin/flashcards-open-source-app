@@ -4,6 +4,7 @@ import { act } from "react";
 import ReactDOM from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, vi } from "vitest";
+import { I18nProvider } from "../i18n";
 import type { AppDataContextValue } from "../appData/types";
 import { clearLoadingSnapshotFallbackStorage } from "./loadingSnapshots";
 import type {
@@ -393,9 +394,11 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
 
     await act(async () => {
       currentRoot.render(
-        <MemoryRouter>
-          <ReviewScreen />
-        </MemoryRouter>,
+        <I18nProvider>
+          <MemoryRouter>
+            <ReviewScreen />
+          </MemoryRouter>
+        </I18nProvider>,
       );
     });
   }

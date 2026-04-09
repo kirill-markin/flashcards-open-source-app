@@ -8,6 +8,7 @@ import {
   type ReactElement,
 } from "react";
 import { createPortal } from "react-dom";
+import { useI18n } from "../i18n";
 import type { TagSuggestion } from "../types";
 import { areSameTags, CardTagsInput, CardTagsValue, type CardTagsInputHandle } from "./CardTagsInput";
 
@@ -109,6 +110,7 @@ function useOutsidePointerClose(
 
 export function CardFormTagsField(props: CardFormTagsFieldProps): ReactElement {
   const { value, suggestions, inputId, inputName, onChange, disabled } = props;
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [overlayRect, setOverlayRect] = useState<OverlayRect | null>(null);
   const [draftTags, setDraftTags] = useState<ReadonlyArray<string>>(value);
@@ -173,8 +175,9 @@ export function CardFormTagsField(props: CardFormTagsFieldProps): ReactElement {
         ref={triggerRef}
         className={triggerClassName}
         onClick={disabled ? undefined : handleOpen}
+        data-testid="card-form-tags-trigger"
       >
-        <CardTagsValue tags={value} emptyLabel="Click to add tags" />
+        <CardTagsValue tags={value} emptyLabel={t("cardTags.triggerEmpty")} />
       </div>
 
       {isOpen && overlayStyle !== null && createPortal(
@@ -183,7 +186,7 @@ export function CardFormTagsField(props: CardFormTagsFieldProps): ReactElement {
             ref={editorRef}
             value={draftTags}
             suggestions={suggestions}
-            placeholder="Type and press Enter"
+            placeholder={t("cardTags.inputPlaceholder")}
             inputId={inputId}
             inputName={inputName}
             onChange={setDraftTags}

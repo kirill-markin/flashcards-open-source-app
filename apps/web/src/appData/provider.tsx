@@ -6,6 +6,7 @@ import {
   useState,
   type ReactElement,
 } from "react";
+import { useI18n } from "../i18n";
 import { loadActiveCardCount } from "../localDb/cards";
 import type { CloudSettings, ReviewFilter, SessionInfo, WorkspaceSchedulerSettings, WorkspaceSummary } from "../types";
 import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "./domain";
@@ -85,6 +86,7 @@ function loadSelectedReviewFilter(): ReviewFilter {
 
 export function AppDataProvider(props: Props): ReactElement {
   const { children } = props;
+  const { t } = useI18n();
   const [warmStartSnapshot] = useState(loadWarmStartSnapshot);
   const [sessionLoadState, setSessionLoadState] = useState<SessionLoadState>(
     warmStartSnapshot === null ? "loading" : "ready",
@@ -188,6 +190,7 @@ export function AppDataProvider(props: Props): ReactElement {
     loadWorkspaceResetProgressPreview,
     resetWorkspaceProgress,
   } = useWorkspaceSession({
+    t,
     sessionLoadState,
     sessionVerificationState,
     session,

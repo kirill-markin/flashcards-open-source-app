@@ -11,8 +11,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { useI18n } from "../i18n";
 import type { EffortLevel, TagSuggestion } from "../types";
 import { areSameTags, CardTagsInput, type CardTagsInputHandle } from "./CardTagsInput";
+import { formatEffortLevelLabel } from "./featureFormatting";
 
 type OverlayRect = Readonly<{
   top: number;
@@ -46,15 +48,9 @@ type EditableTagsCellProps = Readonly<{
 }>;
 
 type EffortOption = Readonly<{
-  value: EffortLevel;
   label: string;
+  value: EffortLevel;
 }>;
-
-const EFFORT_OPTIONS: ReadonlyArray<EffortOption> = [
-  { value: "fast", label: "fast" },
-  { value: "medium", label: "medium" },
-  { value: "long", label: "long" },
-];
 
 function getOverlayRect(element: HTMLTableCellElement): OverlayRect {
   const rect = element.getBoundingClientRect();
@@ -263,6 +259,7 @@ export function EditableCardTextCell(props: EditableTextCellProps): ReactElement
 
 export function EditableCardEffortCell(props: EditableEffortCellProps): ReactElement {
   const { value, saving, onCommit, cellClassName } = props;
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [overlayRect, setOverlayRect] = useState<OverlayRect | null>(null);
   const [searchValue, setSearchValue] = useState<string>("");
@@ -270,6 +267,11 @@ export function EditableCardEffortCell(props: EditableEffortCellProps): ReactEle
   const cellRef = useRef<HTMLTableCellElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const effortOptions: ReadonlyArray<EffortOption> = [
+    { value: "fast", label: formatEffortLevelLabel(t, "fast") },
+    { value: "medium", label: formatEffortLevelLabel(t, "medium") },
+    { value: "long", label: formatEffortLevelLabel(t, "long") },
+  ];
 
   useOverlayTracking(isOpen, cellRef, setOverlayRect);
   useOutsidePointerClose(isOpen, overlayRef, handleClose);
@@ -337,13 +339,14 @@ export function EditableCardEffortCell(props: EditableEffortCellProps): ReactEle
     }
   }
 
-  const filteredOptions = EFFORT_OPTIONS.filter((option) => option.label.toLowerCase().includes(searchValue));
+  const normalizedSearchValue = searchValue.trim().toLowerCase();
+  const filteredOptions = effortOptions.filter((option) => option.label.toLowerCase().includes(normalizedSearchValue));
   const className = `txn-cell ${cellClassName}${saving ? " cards-cell-disabled" : " drilldown-editable drilldown-editable-select"}`;
   const overlayStyle = overlayRect === null ? null : getSelectOverlayStyle(overlayRect);
 
   return (
     <td ref={cellRef} className={className} onClick={saving ? undefined : handleOpen}>
-      {value}
+      {formatEffortLevelLabel(t, value)}
       {isOpen && overlayStyle !== null && createPortal(
         <div ref={overlayRef} className="cell-select-overlay" style={overlayStyle}>
           <input
@@ -352,7 +355,7 @@ export function EditableCardEffortCell(props: EditableEffortCellProps): ReactEle
             className="cell-select-search"
             type="text"
             value={searchValue}
-            placeholder="Search..."
+            placeholder={t("cardsScreen.search.label")}
             onChange={(event: ChangeEvent<HTMLInputElement>) => {
               setSearchValue(event.target.value);
               setHighlightIndex(-1);
@@ -393,6 +396,7 @@ export function EditableCardEffortCell(props: EditableEffortCellProps): ReactEle
 
 export function EditableCardTagsCell(props: EditableTagsCellProps): ReactElement {
   const { value, suggestions, saving, onCommit, cellClassName } = props;
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [overlayRect, setOverlayRect] = useState<OverlayRect | null>(null);
   const [draftTags, setDraftTags] = useState<ReadonlyArray<string>>(value);
@@ -468,7 +472,7 @@ export function EditableCardTagsCell(props: EditableTagsCellProps): ReactElement
             ref={editorRef}
             value={draftTags}
             suggestions={suggestions}
-            placeholder="Type and press Enter"
+            placeholder={t("cardTags.inputPlaceholder")}
             inputName="card-tags-editor"
             onChange={setDraftTags}
             onEscape={handleClose}

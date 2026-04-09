@@ -1,7 +1,8 @@
 import { type FormEvent, type ReactElement, useState } from "react";
 import { useAppData } from "../appData";
+import { useI18n } from "../i18n";
 import { useTransientMessage } from "../useTransientMessage";
-import { isWorkspaceManagementLocked, workspaceManagementLockedBannerMessage } from "../workspaceManagement";
+import { isWorkspaceManagementLocked } from "../workspaceManagement";
 import { SettingsActionCard, SettingsGroup, SettingsShell } from "./SettingsShared";
 
 export function CurrentWorkspaceScreen(): ReactElement {
@@ -16,14 +17,16 @@ export function CurrentWorkspaceScreen(): ReactElement {
     isSessionVerified,
     cloudSettings,
   } = useAppData();
+  const { t, formatDateTime } = useI18n();
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const { message, showMessage } = useTransientMessage(3000);
   const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
-  const currentWorkspaceName = activeWorkspace?.name ?? "Unavailable";
+  const currentWorkspaceName = activeWorkspace?.name ?? t("common.unavailable");
   const workspaceManagementState = isWorkspaceLocked ? "locked" : "ready";
+  const workspaceManagementLockedMessage = t("workspaceManagement.lockedMessage");
 
   function buildWorkspaceInteractionLogDetails(workspaceId: string | null, errorMessage: string | null): Readonly<{
     sessionVerificationState: string;
@@ -60,7 +63,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
 
     const trimmedName = newWorkspaceName.trim();
     if (trimmedName === "") {
-      setErrorMessage("Workspace name is required");
+      setErrorMessage(t("settingsCurrentWorkspace.workspaceNameRequired"));
       return;
     }
 
@@ -78,7 +81,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
   function handleWorkspaceRowClick(): void {
     if (isWorkspaceLocked) {
       console.info("workspace_management_interaction_blocked", buildWorkspaceInteractionLogDetails(null, null));
-      showMessage(workspaceManagementLockedBannerMessage);
+      showMessage(workspaceManagementLockedMessage);
       return;
     }
 
@@ -88,8 +91,8 @@ export function CurrentWorkspaceScreen(): ReactElement {
 
   return (
     <SettingsShell
-      title="Current Workspace"
-      subtitle="Choose which workspace is active in this browser or create a new workspace for this account."
+      title={t("settingsCurrentWorkspace.title")}
+      subtitle={t("settingsCurrentWorkspace.subtitle")}
       activeTab="current-workspace"
     >
       {message === "" ? null : <p className="settings-temporary-banner" role="status">{message}</p>}
@@ -97,8 +100,8 @@ export function CurrentWorkspaceScreen(): ReactElement {
       <SettingsGroup>
         <div className="settings-nav-list">
           <SettingsActionCard
-            title="Workspace"
-            description="Change the active workspace or create a new workspace for this account."
+            title={t("settingsCurrentWorkspace.workspaceCardTitle")}
+            description={t("settingsCurrentWorkspace.workspaceCardDescription")}
             value={currentWorkspaceName}
             onClick={handleWorkspaceRowClick}
             isMuted={isWorkspaceLocked}
@@ -118,7 +121,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
                   disabled={isChoosingWorkspace}
                 >
                   <span className="settings-workspace-choice-name">{workspace.name}</span>
-                  <span className="settings-workspace-choice-meta">{workspace.createdAt}</span>
+                  <span className="settings-workspace-choice-meta">{formatDateTime(workspace.createdAt)}</span>
                 </button>
               ))}
             </div>
@@ -133,21 +136,21 @@ export function CurrentWorkspaceScreen(): ReactElement {
                 }}
                 disabled={isChoosingWorkspace}
               >
-                New Workspace
+                {t("settingsCurrentWorkspace.newWorkspace")}
               </button>
             ) : (
               <form className="settings-workspace-create-form" onSubmit={(event) => void handleCreateWorkspace(event)}>
                 <input
                   className="settings-workspace-create-input"
                   type="text"
-                  placeholder="Workspace name"
+                  placeholder={t("settingsCurrentWorkspace.workspaceNamePlaceholder")}
                   value={newWorkspaceName}
                   onChange={(event) => setNewWorkspaceName(event.target.value)}
                   disabled={isChoosingWorkspace}
                 />
                 <div className="settings-workspace-create-actions">
                   <button className="primary-btn" type="submit" disabled={isChoosingWorkspace}>
-                    Create Workspace
+                    {t("settingsCurrentWorkspace.createWorkspace")}
                   </button>
                   <button
                     className="ghost-btn"
@@ -159,7 +162,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
                     }}
                     disabled={isChoosingWorkspace}
                   >
-                    Cancel
+                    {t("common.cancel")}
                   </button>
                 </div>
               </form>

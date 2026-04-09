@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState, type ChangeEvent, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../appData";
-import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition, EFFORT_LEVELS, formatDeckFilterDefinition } from "../deckFilters";
+import { ALL_CARDS_DECK_SLUG, buildDeckFilterDefinition, EFFORT_LEVELS } from "../deckFilters";
+import { useI18n } from "../i18n";
 import { buildSettingsDeckDetailRoute, settingsDecksRoute } from "../routes";
 import { CardFormTagsField } from "./CardFormTagsField";
 import { loadWorkspaceTagsSummary } from "../localDb/workspace";
 import type { EffortLevel, TagSuggestion, UpdateDeckInput } from "../types";
+import { formatDeckFilterSummary, formatEffortLevelLabel } from "./featureFormatting";
 
 type FormState = Readonly<{
   name: string;
@@ -35,6 +37,7 @@ function toggleEffortLevel(
 export function DeckFormScreen(): ReactElement {
   const { deckId } = useParams();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const {
     activeWorkspace,
     createDeckItem,
@@ -52,7 +55,7 @@ export function DeckFormScreen(): ReactElement {
   const nameFieldId = "deck-name";
   const tagsFieldId = "deck-tags-input";
   const isCreateMode = deckId === undefined;
-  const screenTitle = isCreateMode ? "New deck" : "Edit deck";
+  const screenTitle = isCreateMode ? t("deckForm.title.new") : t("deckForm.title.edit");
   const backHref = isCreateMode || deckId === undefined ? settingsDecksRoute : buildSettingsDeckDetailRoute(deckId);
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
@@ -69,7 +72,7 @@ export function DeckFormScreen(): ReactElement {
         deckId === undefined
           ? Promise.resolve(null)
           : deckId === ALL_CARDS_DECK_SLUG
-            ? Promise.reject(new Error("System deck cannot be edited."))
+            ? Promise.reject(new Error(t("deckForm.systemDeckReadonly")))
             : getDeckById(deckId),
       ]);
 
@@ -92,7 +95,7 @@ export function DeckFormScreen(): ReactElement {
     } finally {
       setIsLoading(false);
     }
-  }, [activeWorkspace, deckId, getDeckById]);
+  }, [activeWorkspace, deckId, getDeckById, t]);
 
   useEffect(() => {
     void loadScreenData();
@@ -134,7 +137,7 @@ export function DeckFormScreen(): ReactElement {
       <main className="container">
         <section className="panel">
           <h1 className="title">{screenTitle}</h1>
-          <p className="subtitle">Loading deck data…</p>
+          <p className="subtitle">{t("loading.deckEditor")}</p>
         </section>
       </main>
     );
@@ -147,7 +150,7 @@ export function DeckFormScreen(): ReactElement {
           <h1 className="title">{screenTitle}</h1>
           <p className="error-banner">{screenErrorMessage}</p>
           <button className="primary-btn" type="button" onClick={() => void loadScreenData()}>
-            Retry
+            {t("common.retry")}
           </button>
         </section>
       </main>
@@ -160,17 +163,18 @@ export function DeckFormScreen(): ReactElement {
         <div className="screen-head">
           <div>
             <h1 className="title">{screenTitle}</h1>
-            <p className="subtitle">{isCreateMode ? "Save a reusable card filter set." : "Update a reusable card filter set."}</p>
+            <p className="subtitle">{isCreateMode ? t("deckForm.subtitles.new") : t("deckForm.subtitles.edit")}</p>
           </div>
           <div className="screen-actions">
-            <Link className="ghost-btn" to={backHref}>Back</Link>
+            <Link className="ghost-btn" to={backHref}>{t("deckForm.actions.back")}</Link>
             <button
               type="button"
               className="primary-btn"
               disabled={isSaving}
               onClick={() => void handleSubmit()}
+              data-testid="deck-form-save"
             >
-              {isSaving ? "Saving…" : isCreateMode ? "Save deck" : "Save changes"}
+              {isSaving ? t("deckForm.actions.saving") : isCreateMode ? t("deckForm.actions.saveDeck") : t("deckForm.actions.saveChanges")}
             </button>
           </div>
         </div>
@@ -178,18 +182,19 @@ export function DeckFormScreen(): ReactElement {
         <div className="card-form-layout">
           <section className="card-form-panel">
             <label className="form-label content-card content-card-section" htmlFor={nameFieldId}>
-              <span>Name</span>
+              <span>{t("deckForm.fields.name")}</span>
               <input
                 id={nameFieldId}
                 name="name"
                 className="settings-input"
                 value={formState.name}
+                data-testid="deck-form-name-input"
                 onChange={(event: ChangeEvent<HTMLInputElement>) => updateField("name", event.target.value)}
               />
             </label>
 
             <div className="form-label content-card content-card-section deck-form-fieldset">
-              <span className="deck-form-label">Effort</span>
+              <span className="deck-form-label">{t("deckForm.fields.effort")}</span>
               <div className="deck-checkbox-list">
                 {EFFORT_LEVELS.map((effortLevel) => (
                   <label key={effortLevel} className="deck-checkbox-option">
@@ -200,7 +205,7 @@ export function DeckFormScreen(): ReactElement {
                       checked={formState.effortLevels.includes(effortLevel)}
                       onChange={() => updateField("effortLevels", toggleEffortLevel(formState.effortLevels, effortLevel))}
                     />
-                    <span>{effortLevel}</span>
+                    <span>{formatEffortLevelLabel(t, effortLevel)}</span>
                   </label>
                 ))}
               </div>
@@ -208,7 +213,7 @@ export function DeckFormScreen(): ReactElement {
 
             <div className="form-label content-card content-card-section">
               <label htmlFor={tagsFieldId}>
-                <span>Tags</span>
+                <span>{t("deckForm.fields.tags")}</span>
               </label>
               <CardFormTagsField
                 value={formState.tags}
@@ -222,11 +227,11 @@ export function DeckFormScreen(): ReactElement {
           </section>
 
           <aside className="card-meta-panel">
-            <h2 className="panel-subtitle">Filter preview</h2>
+            <h2 className="panel-subtitle">{t("deckForm.filterPreview")}</h2>
             <dl className="meta-list">
               <div className="meta-row">
-                <dt>Summary</dt>
-                <dd>{formatDeckFilterDefinition(filterDefinition)}</dd>
+                <dt>{t("deckForm.fields.summary")}</dt>
+                <dd>{formatDeckFilterSummary(filterDefinition, t)}</dd>
               </div>
             </dl>
           </aside>

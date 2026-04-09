@@ -1,33 +1,32 @@
 import type { ReactElement } from "react";
+import { useI18n } from "../i18n";
 import { SettingsShell } from "./SettingsShared";
 
 const repositoryUrl: string = "https://github.com/kirill-markin/flashcards-open-source-app";
 
 export function OpenSourceSettingsScreen(): ReactElement {
+  const { t } = useI18n();
+
   return (
     <SettingsShell
-      title="Open Source"
-      subtitle="Review the repository, license, and self-hosting references for the app stack."
+      title={t("openSourceSettings.title")}
+      subtitle={t("openSourceSettings.subtitle")}
       activeTab="account"
     >
       <div className="settings-nav-list">
         <article className="content-card settings-summary-card">
-          <span className="cell-secondary">Open-source stack</span>
-          <p className="subtitle">
-            The iOS app and the backend are fully open source. You can inspect the code, use the MIT license, and run the same stack on your own servers.
-          </p>
+          <span className="cell-secondary">{t("openSourceSettings.labels.stack")}</span>
+          <p className="subtitle">{t("openSourceSettings.stackDescription")}</p>
         </article>
         <article className="content-card settings-summary-card">
-          <span className="cell-secondary">GitHub Repository (MIT License)</span>
+          <span className="cell-secondary">{t("openSourceSettings.labels.repository")}</span>
           <a className="ghost-btn" href={repositoryUrl} rel="noreferrer" target="_blank">
-            Open repository
+            {t("openSourceSettings.repositoryAction")}
           </a>
         </article>
         <article className="content-card settings-summary-card">
-          <span className="cell-secondary">Self-hosting</span>
-          <p className="subtitle">
-            If you need your own backend, deploy the same open-source stack on your infrastructure and use your own web and iOS clients with that deployment.
-          </p>
+          <span className="cell-secondary">{t("openSourceSettings.labels.selfHosting")}</span>
+          <p className="subtitle">{t("openSourceSettings.selfHostingDescription")}</p>
         </article>
       </div>
     </SettingsShell>

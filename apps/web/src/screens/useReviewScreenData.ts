@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ALL_CARDS_REVIEW_FILTER, formatEffortLevelTitle, isReviewFilterEqual } from "../appData/domain";
+import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "../appData/domain";
+import { useI18n } from "../i18n";
 import { loadDecksListSnapshot } from "../localDb/decks";
 import {
   loadReviewQueueChunk,
@@ -22,6 +23,7 @@ import {
   type ReviewLoadingSnapshot,
   writeReviewLoadingSnapshot,
 } from "./loadingSnapshots";
+import { formatEffortLevelLabel } from "./featureFormatting";
 
 type UseReviewScreenDataParams = Readonly<{
   activeWorkspaceId: string | null;
@@ -66,20 +68,22 @@ function toTagSuggestions(reviewTagSummaries: ReadonlyArray<WorkspaceTagSummary>
 function resolveReviewFilterTitle(
   reviewFilter: ReviewFilter,
   deckSummaries: ReadonlyArray<DeckSummary>,
+  allCardsLabel: string,
+  formatEffortLabel: (effortLevel: "fast" | "medium" | "long") => string,
 ): string {
   if (reviewFilter.kind === "allCards") {
-    return "All cards";
+    return allCardsLabel;
   }
 
   if (reviewFilter.kind === "effort") {
-    return formatEffortLevelTitle(reviewFilter.effortLevel);
+    return formatEffortLabel(reviewFilter.effortLevel);
   }
 
   if (reviewFilter.kind === "tag") {
     return reviewFilter.tag;
   }
 
-  return deckSummaries.find((deck) => deck.deckId === reviewFilter.deckId)?.name ?? "All cards";
+  return deckSummaries.find((deck) => deck.deckId === reviewFilter.deckId)?.name ?? allCardsLabel;
 }
 
 function buildDisplayedReviewQueue(
@@ -138,6 +142,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     setErrorMessage,
     submitReviewItem,
   } = params;
+  const { t } = useI18n();
   const [canonicalReviewQueue, setCanonicalReviewQueue] = useState<ReadonlyArray<Card>>([]);
   const [queueCards, setQueueCards] = useState<ReadonlyArray<Card>>([]);
   const [reviewCounts, setReviewCounts] = useState<ReviewCounts>(createEmptyReviewCounts);
@@ -146,7 +151,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const [tagSuggestions, setTagSuggestions] = useState<ReadonlyArray<TagSuggestion>>([]);
   const [deckSummaries, setDeckSummaries] = useState<ReadonlyArray<DeckSummary>>([]);
   const [resolvedReviewFilter, setResolvedReviewFilter] = useState<ReviewFilter>(ALL_CARDS_REVIEW_FILTER);
-  const [selectedReviewFilterTitle, setSelectedReviewFilterTitle] = useState<string>("All cards");
+  const [selectedReviewFilterTitle, setSelectedReviewFilterTitle] = useState<string>(t("filters.allCards"));
   const [isReviewLoading, setIsReviewLoading] = useState<boolean>(true);
   const [reviewLoadErrorMessage, setReviewLoadErrorMessage] = useState<string>("");
   const [hasLoadedReviewData, setHasLoadedReviewData] = useState<boolean>(false);
@@ -200,6 +205,8 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         const nextSelectedReviewFilterTitle = resolveReviewFilterTitle(
           nextResolvedReviewFilter,
           decksSnapshot.deckSummaries,
+          t("filters.allCards"),
+          (effortLevel) => formatEffortLevelLabel(t, effortLevel),
         );
         const nextPresentedCardId = shouldShowBlockingLoader
           ? resolvePresentedCardId(reviewQueueSnapshot.cards, null)

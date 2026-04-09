@@ -41,6 +41,7 @@ export function useChatSessionController(
     workspaceId,
     isRemoteReady,
     onToolRunPostSyncRequested,
+    uiMessages,
   } = params;
   const controllerIdRef = useRef<string>(createChatControllerDebugId());
   const controllerId = controllerIdRef.current;
@@ -64,6 +65,7 @@ export function useChatSessionController(
     controllerId,
     workspaceId,
     isRemoteReady,
+    uiMessages,
     state,
     dispatch,
     history,
@@ -75,6 +77,7 @@ export function useChatSessionController(
   const actions = useChatSessionActions({
     workspaceId,
     isRemoteReady,
+    uiMessages,
     state,
     dispatch,
     history,
@@ -84,6 +87,7 @@ export function useChatSessionController(
   useChatSessionHydrationLifecycle({
     workspaceId,
     isRemoteReady,
+    uiMessages,
     state,
     dispatch,
     history,

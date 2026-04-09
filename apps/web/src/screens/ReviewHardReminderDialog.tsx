@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { useI18n } from "../i18n";
 
 type ReviewHardReminderDialogProps = Readonly<{
   isOpen: boolean;
@@ -10,6 +11,7 @@ type ReviewHardReminderDialogProps = Readonly<{
  */
 export function ReviewHardReminderDialog(props: ReviewHardReminderDialogProps): ReactElement | null {
   const { isOpen, onDismiss } = props;
+  const { t } = useI18n();
 
   if (isOpen === false) {
     return null;
@@ -25,15 +27,15 @@ export function ReviewHardReminderDialog(props: ReviewHardReminderDialogProps): 
         aria-describedby="review-hard-reminder-body"
       >
         <div>
-          <h2 id="review-hard-reminder-title" className="title">Quick reminder</h2>
+          <h2 id="review-hard-reminder-title" className="title">{t("reviewHardReminder.title")}</h2>
           <p id="review-hard-reminder-body" className="subtitle review-hard-reminder-body">
-            If you did not know the answer, choose "Again". "Hard" is only for answers you knew but it was difficult to recall.
+            {t("reviewHardReminder.body")}
           </p>
         </div>
 
         <div className="review-hard-reminder-actions">
           <button type="button" className="primary-btn" onClick={onDismiss}>
-            Got it
+            {t("reviewHardReminder.dismiss")}
           </button>
         </div>
       </section>

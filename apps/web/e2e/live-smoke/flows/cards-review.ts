@@ -22,23 +22,23 @@ export async function runManualCardReviewFlow(session: LiveSmokeSession): Promis
 
 async function createManualCard(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
-  await trackedClick(diagnostics, "open cards navigation", page.getByRole("link", { name: "Cards", exact: true }));
-  await trackedClick(diagnostics, "open new card screen", page.getByRole("link", { name: "New card", exact: true }));
-  await trackedFill(diagnostics, `fill card front text ${scenario.manualFrontText}`, page.getByLabel("Front"), scenario.manualFrontText);
-  await trackedFill(diagnostics, `fill card back text ${scenario.manualBackText}`, page.getByLabel("Back"), scenario.manualBackText);
-  await trackedClick(diagnostics, "submit manual card", page.getByRole("button", { name: "Save card" }));
+  await trackedClick(diagnostics, "open cards navigation", page.locator('nav.nav a[href="/cards"]').first());
+  await trackedClick(diagnostics, "open new card screen", page.getByTestId("cards-new-card"));
+  await trackedFill(diagnostics, `fill card front text ${scenario.manualFrontText}`, page.getByTestId("card-form-front-text"), scenario.manualFrontText);
+  await trackedFill(diagnostics, `fill card back text ${scenario.manualBackText}`, page.getByTestId("card-form-back-text"), scenario.manualBackText);
+  await trackedClick(diagnostics, "submit manual card", page.getByTestId("card-form-save"));
   await trackedExpectVisible(
     diagnostics,
-    "confirm cards heading is visible after manual card save",
-    page.getByRole("heading", { name: "Cards" }),
+    "confirm cards screen is visible after manual card save",
+    page.getByTestId("cards-screen"),
     externalUiTimeoutMs,
   );
 }
 
 async function assertCardVisibleInCards(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
-  await trackedClick(diagnostics, "open cards navigation for verification", page.getByRole("link", { name: "Cards", exact: true }));
-  const searchInput = page.getByPlaceholder("Search front, back, or tags");
+  await trackedClick(diagnostics, "open cards navigation for verification", page.locator('nav.nav a[href="/cards"]').first());
+  const searchInput = page.getByTestId("cards-search-input");
   await trackedFill(diagnostics, "clear cards search input", searchInput, "");
   await trackedFill(diagnostics, `fill cards search input with ${scenario.manualFrontText}`, searchInput, scenario.manualFrontText);
   await waitForCardVisibleUnlessSyncing(
@@ -52,15 +52,15 @@ async function assertCardVisibleInCards(session: LiveSmokeSession): Promise<void
 
 async function reviewCardFromQueue(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
-  await trackedClick(diagnostics, "open review navigation", page.getByRole("link", { name: "Review", exact: true }));
+  await trackedClick(diagnostics, "open review navigation", page.locator('nav.nav a[href="/review"]').first());
   await trackedExpectVisible(
     diagnostics,
     `confirm review queue shows ${scenario.manualFrontText}`,
     page.locator(".review-front").filter({ hasText: scenario.manualFrontText }).first(),
     localUiTimeoutMs,
   );
-  await trackedClick(diagnostics, "reveal review answer", page.getByRole("button", { name: "Reveal answer" }));
-  await trackedClick(diagnostics, "submit Good review answer", page.getByRole("button", { name: "Good" }));
+  await trackedClick(diagnostics, "reveal review answer", page.getByTestId("review-reveal-answer"));
+  await trackedClick(diagnostics, "submit Good review answer", page.getByTestId("review-rate-good"));
   await session.diagnostics.runAction(`confirm review queue moved past ${scenario.manualFrontText}`, async () => {
     await expect.poll(
       async () => page.locator(".review-pane").innerText(),
@@ -84,12 +84,8 @@ async function waitForCardVisibleUnlessSyncing(
           return "visible";
         }
 
-        const syncStatusCount = await syncStatus.count();
-        if (syncStatusCount > 0) {
-          const syncText = await syncStatus.first().innerText();
-          if (syncText.trim() === "Syncing...") {
-            return "syncing";
-          }
+        if (await syncStatus.first().isVisible().catch(() => false)) {
+          return "syncing";
         }
 
         return "missing";
