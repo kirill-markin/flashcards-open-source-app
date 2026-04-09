@@ -76,12 +76,6 @@ internal class AiChatRuntime(
         )
         lifecycleCoordinator = AiChatRuntimeLifecycleCoordinator(
             context = context,
-            startFreshConversationForEntry = { workspaceId, shouldFocusComposer ->
-                startFreshConversationForEntry(
-                    workspaceId = workspaceId,
-                    shouldFocusComposer = shouldFocusComposer
-                )
-            },
             startConversationBootstrap = { forceReloadState, resumeDiagnostics ->
                 bootstrapCoordinator.startConversationBootstrap(
                     forceReloadState = forceReloadState,
@@ -833,19 +827,6 @@ internal class AiChatRuntime(
             && state.persistedState.messages.isEmpty()
             && state.activeRun == null
             && state.composerPhase == AiComposerPhase.IDLE
-    }
-
-    fun startFreshConversationForEntry(
-        workspaceId: String?,
-        shouldFocusComposer: Boolean
-    ) {
-        initializeFreshConversation(
-            workspaceId = workspaceId,
-            targetSessionId = makeClientChatSessionId(),
-            draftMessage = "",
-            pendingAttachments = emptyList(),
-            shouldFocusComposer = shouldFocusComposer
-        )
     }
 
     private fun startFreshConversation(

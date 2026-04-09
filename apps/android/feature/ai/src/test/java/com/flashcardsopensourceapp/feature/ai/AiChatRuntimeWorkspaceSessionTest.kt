@@ -11,8 +11,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -97,7 +95,7 @@ class AiChatRuntimeWorkspaceSessionTest {
     }
 
     @Test
-    fun stalePersistedChatOpensFreshLocalSessionAndSkipsBootstrap() = runTest {
+    fun stalePersistedChatPreservesCurrentBootstrapPath() = runTest {
         val repository = FakeAiChatRepository()
         val nowMillis = System.currentTimeMillis()
         val staleTimestamp = nowMillis - aiChatStalenessThresholdMillis - 1_000L
@@ -115,38 +113,20 @@ class AiChatRuntimeWorkspaceSessionTest {
                 )
             )
         )
-        repository.draftStates[defaultTestWorkspaceId to oldSessionId] = AiChatDraftState(
-            draftMessage = "Keep me here",
-            pendingAttachments = listOf(
-                makeAiChatCardAttachment(
-                    cardId = "card-keep",
-                    frontText = "Front",
-                    backText = "Back",
-                    tags = listOf("tag"),
-                    effortLevel = EffortLevel.MEDIUM
-                )
-            )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = oldSessionId,
+            activeRun = null
         )
         val runtime = makeRuntime(scope = this, repository = repository)
 
         runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
         advanceUntilIdle()
 
-        assertEquals(0, repository.loadBootstrapCalls)
-        assertEquals(1, repository.createNewSessionRequests.size)
-        val newSessionId = repository.createNewSessionRequests.single()
-        assertTrue(newSessionId.isNotBlank())
-        assertFalse(newSessionId == oldSessionId)
-        assertEquals(newSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertEquals(1, repository.loadBootstrapCalls)
+        assertTrue(repository.createNewSessionRequests.isEmpty())
+        assertEquals(oldSessionId, runtime.state.value.persistedState.chatSessionId)
         assertTrue(runtime.state.value.persistedState.messages.isEmpty())
-        assertEquals("", runtime.state.value.draftMessage)
-        assertTrue(runtime.state.value.pendingAttachments.isEmpty())
         assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
-        assertEquals(
-            "Keep me here",
-            repository.draftStates[defaultTestWorkspaceId to oldSessionId]?.draftMessage
-        )
-        assertNull(repository.draftStates[defaultTestWorkspaceId to newSessionId])
     }
 
     @Test
