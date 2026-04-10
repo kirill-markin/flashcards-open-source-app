@@ -29,18 +29,19 @@ import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
-import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.AiUiState
+import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
+import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
+import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.formatAiConsentWorkspaceDisclosureText
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -308,6 +309,51 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     @Test
+    fun loadingStateDoesNotExposeConversationOrComposerSemantics() {
+        val loadingTitle = composeRule.activity.getString(AiFeatureR.string.ai_loading_chat_title)
+        val loadingBody = composeRule.activity.getString(AiFeatureR.string.ai_loading_chat_body)
+
+        composeRule.setContent {
+            FlashcardsTheme {
+                AiRoute(
+                    uiState = makeAiUiState(
+                        isConversationReady = true,
+                        isConversationLoading = true
+                    ),
+                    onAcceptConsent = {},
+                    onDraftMessageChange = {},
+                    onApplyComposerSuggestion = {},
+                    onSendMessage = {},
+                    onCancelStreaming = {},
+                    onNewChat = {},
+                    onOpenAccountStatus = {},
+                    onDismissErrorMessage = {},
+                    onDismissAlert = {},
+                    onAddPendingAttachment = {},
+                    onRemovePendingAttachment = {},
+                    onStartDictationPermissionRequest = {},
+                    onStartDictationRecording = {},
+                    onTranscribeRecordedAudio = { _, _, _ -> },
+                    onCancelDictation = {},
+                    onScreenVisible = {},
+                    onScreenHidden = {},
+                    onWarmUpSessionIfNeeded = {},
+                    onRetryConversationLoad = {},
+                    onShowAlert = {},
+                    onShowErrorMessage = {}
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(aiConversationLoadingTag).assertIsDisplayed()
+        composeRule.onNodeWithText(loadingTitle).assertIsDisplayed()
+        composeRule.onNodeWithText(loadingBody).assertIsDisplayed()
+        assertTrue(composeRule.onAllNodesWithTag(aiConversationSurfaceTag).fetchSemanticsNodes().isEmpty())
+        assertTrue(composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes().isEmpty())
+        assertTrue(composeRule.onAllNodesWithTag(aiComposerSendButtonTag).fetchSemanticsNodes().isEmpty())
+    }
+
+    @Test
     fun shortUserMessageUsesCompactRightAlignedBubble() {
         composeRule.setContent {
             FlashcardsTheme {
@@ -546,6 +592,7 @@ private fun makeAiUiState(
     canSend: Boolean = false,
     isComposerBusy: Boolean = false,
     isConversationReady: Boolean = true,
+    isConversationLoading: Boolean = false,
     conversationErrorMessage: String = "",
     canRetryConversationLoad: Boolean = true,
     showOpenAccountStatusForConversationError: Boolean = false,
@@ -561,7 +608,7 @@ private fun makeAiUiState(
         isConsentRequired = isConsentRequired,
         isLinked = false,
         isConversationReady = isConversationReady,
-        isConversationLoading = false,
+        isConversationLoading = isConversationLoading,
         conversationErrorMessage = conversationErrorMessage,
         canRetryConversationLoad = canRetryConversationLoad,
         showOpenAccountStatusForConversationError = showOpenAccountStatusForConversationError,

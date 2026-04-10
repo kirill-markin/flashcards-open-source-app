@@ -26,6 +26,8 @@ import com.flashcardsopensourceapp.feature.ai.aiAssistantMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.aiAssistantTextPartTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
+import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
+import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
 import com.flashcardsopensourceapp.feature.ai.aiNewChatButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
@@ -161,9 +163,8 @@ internal fun LiveSmokeContext.createAiCardWithConfirmation() {
     openAiTab()
     dismissAiConsentIfNeeded()
     waitForGuestCloudWorkspaceReady(context = "before filling the AI create prompt")
-    waitForAiComposerButtonState(
+    waitForAiInteractiveReady(
         expectedLabel = sendLabel,
-        expectedEnabled = false,
         context = "before filling the AI create prompt"
     )
 
@@ -304,9 +305,8 @@ internal fun LiveSmokeContext.createGuestAiConversationForReset() {
     openAiTab()
     dismissAiConsentIfNeeded()
     waitForGuestCloudWorkspaceReady(context = "before creating the AI reset conversation")
-    waitForAiComposerButtonState(
+    waitForAiInteractiveReady(
         expectedLabel = sendLabel,
-        expectedEnabled = false,
         context = "before filling the AI reset prompt"
     )
 
@@ -580,6 +580,36 @@ private fun LiveSmokeContext.waitForAiComposerButtonState(
                 "ExpectedEnabled=$expectedEnabled " +
                 "ActualState=${aiComposerSendButtonStateOrNull(expectedLabel = expectedLabel)} " +
                 "ActualDraft='${aiComposerDraftTextOrNull()}' " +
+                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+            error
+        )
+    }
+}
+
+private fun LiveSmokeContext.waitForAiInteractiveReady(
+    expectedLabel: String,
+    context: String
+) {
+    try {
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for AI interactive readiness $context"
+        ) {
+            countNodesWithTagInAnySemanticsTree(tag = aiConversationLoadingTag) == 0 &&
+                countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0 &&
+                aiComposerFieldIsEditable() &&
+                aiComposerSendButtonMatchesState(
+                    expectedLabel = expectedLabel,
+                    expectedEnabled = false
+                )
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "AI interactive readiness did not arrive $context. " +
+                "LoadingVisible=${countNodesWithTagInAnySemanticsTree(tag = aiConversationLoadingTag) > 0} " +
+                "ConversationSurfaceVisible=${countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0} " +
+                "ActualDraft='${aiComposerDraftTextOrNull()}' " +
+                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = expectedLabel)} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )

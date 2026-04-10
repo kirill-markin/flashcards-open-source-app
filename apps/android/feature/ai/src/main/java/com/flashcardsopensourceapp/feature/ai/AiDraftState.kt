@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
+import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import java.util.UUID
 
@@ -24,12 +25,47 @@ internal enum class AiConversationBootstrapState {
     FAILED
 }
 
+internal data class AiAccessContextRuntimeKey(
+    val workspaceId: String?,
+    val cloudState: CloudAccountState
+)
+
 internal data class AiAccessContext(
     val workspaceId: String?,
-    val cloudState: com.flashcardsopensourceapp.data.local.model.CloudAccountState,
+    val cloudState: CloudAccountState,
     val linkedUserId: String?,
     val activeWorkspaceId: String?
 )
+
+internal fun AiAccessContext.runtimeKey(): AiAccessContextRuntimeKey {
+    return AiAccessContextRuntimeKey(
+        workspaceId = workspaceId,
+        cloudState = cloudState
+    )
+}
+
+internal fun shouldBootstrapConversation(
+    accessContext: AiAccessContext?,
+    hasConsent: Boolean
+): Boolean {
+    val resolvedAccessContext = accessContext ?: return false
+    if (resolvedAccessContext.workspaceId == null || hasConsent.not()) {
+        return false
+    }
+
+    return resolvedAccessContext.cloudState == CloudAccountState.GUEST ||
+        resolvedAccessContext.cloudState == CloudAccountState.LINKED
+}
+
+internal fun shouldPrepareGuestAccess(
+    accessContext: AiAccessContext?,
+    hasConsent: Boolean
+): Boolean {
+    val resolvedAccessContext = accessContext ?: return false
+    return resolvedAccessContext.workspaceId != null &&
+        hasConsent &&
+        resolvedAccessContext.cloudState == CloudAccountState.DISCONNECTED
+}
 
 internal data class AiDraftState(
     val workspaceId: String?,

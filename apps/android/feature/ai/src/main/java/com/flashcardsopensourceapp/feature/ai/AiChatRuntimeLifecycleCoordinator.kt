@@ -14,7 +14,12 @@ internal class AiChatRuntimeLifecycleCoordinator(
     private val detachLiveStream: (String) -> Unit
 ) {
     fun updateAccessContext(accessContext: AiAccessContext) {
+        val previousAccessContext = context.activeAccessContext
         context.activeAccessContext = accessContext
+        if (previousAccessContext?.runtimeKey() == accessContext.runtimeKey()) {
+            retryBootstrapIfLoadingWithoutOwner(accessContext = accessContext)
+            return
+        }
         context.activeSendJob?.cancel(
             cause = CancellationException("AI send cancelled because access context changed.")
         )
@@ -72,10 +77,10 @@ internal class AiChatRuntimeLifecycleCoordinator(
             ).copy(
                 draftMessage = draftState.draftMessage,
                 pendingAttachments = draftState.pendingAttachments,
-                conversationBootstrapState = if (
-                    accessContext.workspaceId != null
-                    && context.hasConsent()
-                    && accessContext.cloudState != CloudAccountState.LINKING_READY
+                conversationBootstrapState = if (shouldBootstrapConversation(
+                        accessContext = accessContext,
+                        hasConsent = context.hasConsent()
+                    )
                 ) {
                     AiConversationBootstrapState.LOADING
                 } else {
@@ -88,10 +93,19 @@ internal class AiChatRuntimeLifecycleCoordinator(
             if (accessContext.workspaceId == null) {
                 return@launch
             }
-            if (context.hasConsent().not()) {
+            if (shouldPrepareGuestAccess(
+                    accessContext = accessContext,
+                    hasConsent = context.hasConsent()
+                )
+            ) {
+                prepareGuestAccessIfNeeded(accessContext = accessContext)
                 return@launch
             }
-            if (accessContext.cloudState == CloudAccountState.LINKING_READY) {
+            if (shouldBootstrapConversation(
+                    accessContext = accessContext,
+                    hasConsent = context.hasConsent()
+                ).not()
+            ) {
                 return@launch
             }
             startConversationBootstrap(false, null)
@@ -135,7 +149,19 @@ internal class AiChatRuntimeLifecycleCoordinator(
         var warmUpJob: Job? = null
         warmUpJob = context.scope.launch {
             try {
-                startConversationBootstrap(false, resumeDiagnostics)
+                if (shouldPrepareGuestAccess(
+                        accessContext = accessContext,
+                        hasConsent = context.hasConsent()
+                    )
+                ) {
+                    context.aiChatRepository.prepareSessionForAi(workspaceId = accessContext.workspaceId)
+                } else if (shouldBootstrapConversation(
+                        accessContext = accessContext,
+                        hasConsent = context.hasConsent()
+                    )
+                ) {
+                    startConversationBootstrap(false, resumeDiagnostics)
+                }
             } catch (error: CancellationException) {
                 AiChatDiagnosticsLogger.info(
                     event = "warm_up_cancelled",
@@ -171,16 +197,59 @@ internal class AiChatRuntimeLifecycleCoordinator(
                     )
                 }
             } finally {
-                val shouldRetryWarmUp = context.pendingWarmUpAfterWorkspaceSwitch
+                val shouldRetryWarmUp = shouldRetryWarmUpAfterWorkspaceSwitch()
                 if (context.activeWarmUpJob === warmUpJob) {
                     context.activeWarmUpJob = null
                 }
-                if (shouldRetryWarmUp) {
+                if (context.pendingWarmUpAfterWorkspaceSwitch) {
                     context.pendingWarmUpAfterWorkspaceSwitch = false
+                }
+                if (shouldRetryWarmUp) {
                     warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
                 }
             }
         }
         context.activeWarmUpJob = warmUpJob
+    }
+
+    private fun retryBootstrapIfLoadingWithoutOwner(accessContext: AiAccessContext) {
+        val currentState = context.runtimeStateMutable.value
+        if (
+            currentState.workspaceId != accessContext.workspaceId ||
+            currentState.conversationBootstrapState != AiConversationBootstrapState.LOADING
+        ) {
+            return
+        }
+        if (context.activeBootstrapJob != null || context.activeWarmUpJob != null) {
+            return
+        }
+        if (shouldBootstrapConversation(accessContext = accessContext, hasConsent = context.hasConsent()).not()) {
+            return
+        }
+        startConversationBootstrap(false, null)
+    }
+
+    private fun prepareGuestAccessIfNeeded(accessContext: AiAccessContext) {
+        if (shouldPrepareGuestAccess(accessContext = accessContext, hasConsent = context.hasConsent()).not()) {
+            return
+        }
+        if (context.activeWarmUpJob != null) {
+            return
+        }
+        warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
+    }
+
+    private fun shouldRetryWarmUpAfterWorkspaceSwitch(): Boolean {
+        if (context.pendingWarmUpAfterWorkspaceSwitch.not()) {
+            return false
+        }
+        if (context.activeBootstrapJob != null) {
+            return false
+        }
+
+        return shouldPrepareGuestAccess(
+            accessContext = context.activeAccessContext,
+            hasConsent = context.hasConsent()
+        )
     }
 }
