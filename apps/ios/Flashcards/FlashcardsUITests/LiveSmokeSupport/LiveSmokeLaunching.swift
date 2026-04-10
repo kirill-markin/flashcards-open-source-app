@@ -7,9 +7,23 @@ extension LiveSmokeTestCase {
         selectedTab: LiveSmokeSelectedTab
     ) throws {
         try self.launchApplication(
+            resetState: resetState,
+            selectedTab: selectedTab,
+            launchLocalization: .english
+        )
+    }
+
+    @MainActor
+    func launchApplication(
+        resetState: LiveSmokeLaunchResetState?,
+        selectedTab: LiveSmokeSelectedTab,
+        launchLocalization: LiveSmokeLaunchLocalization
+    ) throws {
+        try self.launchApplication(
             request: LiveSmokeLaunchRequest(
                 resetState: resetState,
                 selectedTab: selectedTab,
+                launchLocalization: launchLocalization,
                 appNotificationTapType: nil
             )
         )
@@ -21,10 +35,26 @@ extension LiveSmokeTestCase {
         selectedTab: LiveSmokeSelectedTab,
         appNotificationTapType: LiveSmokeAppNotificationTapType
     ) throws {
+        try self.launchApplicationWithAppNotificationTap(
+            resetState: resetState,
+            selectedTab: selectedTab,
+            launchLocalization: .english,
+            appNotificationTapType: appNotificationTapType
+        )
+    }
+
+    @MainActor
+    func launchApplicationWithAppNotificationTap(
+        resetState: LiveSmokeLaunchResetState?,
+        selectedTab: LiveSmokeSelectedTab,
+        launchLocalization: LiveSmokeLaunchLocalization,
+        appNotificationTapType: LiveSmokeAppNotificationTapType
+    ) throws {
         try self.launchApplication(
             request: LiveSmokeLaunchRequest(
                 resetState: resetState,
                 selectedTab: selectedTab,
+                launchLocalization: launchLocalization,
                 appNotificationTapType: appNotificationTapType
             )
         )
@@ -138,20 +168,33 @@ extension LiveSmokeTestCase {
         self.app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.resetStateEnvironmentKey)
         self.app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.appNotificationTapTypeEnvironmentKey)
         self.app.launchEnvironment[LiveSmokeConfiguration.selectedTabEnvironmentKey] = request.selectedTab.rawValue
-        self.app.launchArguments = self.app.launchArguments.filter { argument in
-            argument != "-AppleLanguages" && argument != "(en)" && argument != "-AppleLocale" && argument != "en_US"
-        }
-        self.app.launchArguments += [
-            "-AppleLanguages",
-            "(en)",
-            "-AppleLocale",
-            "en_US"
-        ]
+        self.app.launchArguments = self.strippingAppleLocalizationLaunchArguments(
+            arguments: self.app.launchArguments
+        )
+        self.app.launchArguments += request.launchLocalization.launchArguments
         if let resetState = request.resetState {
             self.app.launchEnvironment[LiveSmokeConfiguration.resetStateEnvironmentKey] = resetState.rawValue
         }
         if let appNotificationTapType = request.appNotificationTapType {
             self.app.launchEnvironment[LiveSmokeConfiguration.appNotificationTapTypeEnvironmentKey] = appNotificationTapType.rawValue
         }
+    }
+
+    private func strippingAppleLocalizationLaunchArguments(arguments: [String]) -> [String] {
+        var sanitizedArguments: [String] = []
+        var index = 0
+
+        while index < arguments.count {
+            let argument = arguments[index]
+            if argument == "-AppleLanguages" || argument == "-AppleLocale" {
+                index += 2
+                continue
+            }
+
+            sanitizedArguments.append(argument)
+            index += 1
+        }
+
+        return sanitizedArguments
     }
 }

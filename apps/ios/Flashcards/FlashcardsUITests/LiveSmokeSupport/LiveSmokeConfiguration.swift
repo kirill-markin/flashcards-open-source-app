@@ -17,7 +17,40 @@ enum LiveSmokeConfiguration {
 struct LiveSmokeLaunchRequest {
     let resetState: LiveSmokeLaunchResetState?
     let selectedTab: LiveSmokeSelectedTab
+    let launchLocalization: LiveSmokeLaunchLocalization
     let appNotificationTapType: LiveSmokeAppNotificationTapType?
+}
+
+enum LiveSmokeLaunchLocalization {
+    case english
+    case arabic
+
+    var appleLanguage: String {
+        switch self {
+        case .english:
+            return "en"
+        case .arabic:
+            return "ar"
+        }
+    }
+
+    var appleLocale: String {
+        switch self {
+        case .english:
+            return "en_US"
+        case .arabic:
+            return "ar_SA"
+        }
+    }
+
+    var launchArguments: [String] {
+        [
+            "-AppleLanguages",
+            "(\(self.appleLanguage))",
+            "-AppleLocale",
+            self.appleLocale
+        ]
+    }
 }
 
 let smokeLogger = Logger(
