@@ -1,6 +1,39 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from "vitest";
-import { buildLoginUrl, getPreferredAuthUiLocale } from "./api";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  AuthRedirectError,
+  buildLoginUrl,
+  getPreferredAuthUiLocale,
+  getSession,
+  resetApiClientStateForTests,
+  setNavigationHandlerForTests,
+} from "./api";
+import { persistLocalePreference } from "./i18n/runtime";
+
+function createStorageMock(): Storage {
+  const state = new Map<string, string>();
+
+  return {
+    get length(): number {
+      return state.size;
+    },
+    clear(): void {
+      state.clear();
+    },
+    getItem(key: string): string | null {
+      return state.get(key) ?? null;
+    },
+    key(index: number): string | null {
+      return [...state.keys()][index] ?? null;
+    },
+    removeItem(key: string): void {
+      state.delete(key);
+    },
+    setItem(key: string, value: string): void {
+      state.set(key, value);
+    },
+  };
+}
 
 function setNavigatorLanguages(languages: ReadonlyArray<string>, language: string): void {
   Object.defineProperty(window.navigator, "languages", {
@@ -13,11 +46,30 @@ function setNavigatorLanguages(languages: ReadonlyArray<string>, language: strin
   });
 }
 
+beforeEach(() => {
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: createStorageMock(),
+  });
+  window.localStorage.clear();
+  resetApiClientStateForTests();
+});
+
 afterEach(() => {
+  window.localStorage.clear();
   setNavigatorLanguages([], "");
+  resetApiClientStateForTests();
+  vi.restoreAllMocks();
 });
 
 describe("auth locale login URL plumbing", () => {
+  it("prefers the stored app locale over raw browser detection", () => {
+    persistLocalePreference("ar");
+    setNavigatorLanguages(["fr-FR", "pt-BR"], "fr-FR");
+
+    expect(getPreferredAuthUiLocale()).toBe("ar");
+  });
+
   it("prefers the first supported browser language", () => {
     setNavigatorLanguages(["fr-FR", "es-MX", "en-GB"], "fr-FR");
 
@@ -49,5 +101,25 @@ describe("auth locale login URL plumbing", () => {
     const loginUrl = new URL(buildLoginUrl("https://app.flashcards-open-source-app.com/review", "es"));
 
     expect(loginUrl.searchParams.get("locale")).toBe("es-ES");
+  });
+
+  it("uses the stored app locale when auth recovery redirects to login", async () => {
+    persistLocalePreference("ar");
+    setNavigatorLanguages(["fr-FR", "pt-BR"], "fr-FR");
+
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 401 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    let redirectedUrl = "";
+    setNavigationHandlerForTests((url: string) => {
+      redirectedUrl = url;
+    });
+
+    await expect(getSession()).rejects.toBeInstanceOf(AuthRedirectError);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(new URL(redirectedUrl).searchParams.get("locale")).toBe("ar");
   });
 });

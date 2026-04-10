@@ -15,7 +15,6 @@ import {
   buildLogoutLocalUrl,
   buildLogoutUrl,
   deleteMyAccount,
-  getPreferredAuthUiLocale,
   primeSessionCsrfToken,
 } from "./api";
 import { ChatDraftProvider } from "./chat/ChatDraftContext";
@@ -230,7 +229,7 @@ function LegacyDeckEditRedirect(): ReactElement {
 }
 
 export function AppShell(): ReactElement {
-  const { t, formatDateTime } = useI18n();
+  const { locale, t, formatDateTime } = useI18n();
   const {
     sessionLoadState,
     sessionVerificationState,
@@ -354,7 +353,7 @@ export function AppShell(): ReactElement {
         <section className="panel panel-center state-panel">
           <h1 className="title">{t("app.title")}</h1>
           <p className="subtitle">{sessionErrorMessage}</p>
-          <a className="primary-btn" href={buildLoginUrl(window.location.origin, getPreferredAuthUiLocale())}>
+          <a className="primary-btn" href={buildLoginUrl(window.location.origin, locale)}>
             {t("app.signInAgain")}
           </a>
         </section>
