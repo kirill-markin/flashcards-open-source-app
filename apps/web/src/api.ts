@@ -26,6 +26,7 @@ import {
 import { getAppConfig } from "./config";
 import { webAppVersion } from "./clientIdentity";
 import { getDefaultLocale, resolveSupportedLocale } from "./i18n/locales";
+import { readStoredLocalePreference, resolveLocaleState } from "./i18n/runtime";
 import type { Locale } from "./i18n/types";
 import type {
   AgentApiKeyConnection,
@@ -199,27 +200,9 @@ function normalizeAuthUiLocale(localeHint: string): AuthUiLocale | null {
   return resolveSupportedLocale(localeHint);
 }
 
-function getNavigatorLanguages(): ReadonlyArray<string> {
-  if (Array.isArray(navigator.languages) && navigator.languages.length > 0) {
-    return navigator.languages;
-  }
-
-  if (typeof navigator.language === "string" && navigator.language.trim() !== "") {
-    return [navigator.language];
-  }
-
-  return [];
-}
-
 export function getPreferredAuthUiLocale(): AuthUiLocale {
-  for (const localeHint of getNavigatorLanguages()) {
-    const resolvedLocale = normalizeAuthUiLocale(localeHint);
-    if (resolvedLocale !== null) {
-      return resolvedLocale;
-    }
-  }
-
-  return getDefaultLocale();
+  const resolvedLocale = normalizeAuthUiLocale(resolveLocaleState(readStoredLocalePreference()).locale);
+  return resolvedLocale ?? getDefaultLocale();
 }
 
 /**
