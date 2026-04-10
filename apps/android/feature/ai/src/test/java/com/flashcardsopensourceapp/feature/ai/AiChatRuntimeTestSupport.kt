@@ -421,8 +421,6 @@ internal class FakeAiChatRepository : AiChatRepository {
     override suspend fun stopRun(workspaceId: String?, sessionId: String): AiChatStopRunResponse {
         return AiChatStopRunResponse(
             sessionId = sessionId,
-            conversationScopeId = sessionId,
-            runId = null,
             stopped = true,
             stillRunning = false
         )

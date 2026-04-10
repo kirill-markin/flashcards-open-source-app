@@ -206,8 +206,6 @@ export type NewChatSessionResponse = Readonly<{
 
 export type StopChatRunResponse = Readonly<{
   sessionId: string;
-  conversationScopeId: string;
-  runId: string | null;
   stopped: boolean;
   stillRunning: boolean;
 }>;

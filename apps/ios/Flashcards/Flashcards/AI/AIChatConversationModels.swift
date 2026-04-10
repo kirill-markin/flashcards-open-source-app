@@ -27,7 +27,6 @@ struct AIChatServerConfig: Codable, Hashable, Sendable {
     let model: AIChatModelDescriptor
     let reasoning: AIChatReasoningDescriptor
     let features: AIChatFeatureFlags
-    let liveUrl: String?
 }
 
 let aiChatDefaultServerConfig = AIChatServerConfig(
@@ -48,8 +47,7 @@ let aiChatDefaultServerConfig = AIChatServerConfig(
         modelPickerEnabled: false,
         dictationEnabled: true,
         attachmentsEnabled: true
-    ),
-    liveUrl: nil
+    )
 )
 
 struct AIChatStartRunRequestBody: Codable, Hashable, Sendable {
@@ -188,8 +186,6 @@ struct AIChatNewSessionResponse: Codable, Hashable, Sendable {
 
 struct AIChatStopRunResponse: Decodable, Hashable, Sendable {
     let sessionId: String
-    let conversationScopeId: String
-    let runId: String?
     let stopped: Bool
     let stillRunning: Bool
 }

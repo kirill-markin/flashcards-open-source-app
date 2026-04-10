@@ -103,6 +103,10 @@ export type ChatContentPart =
   | ChatToolCallContentPart;
 
 export type ChatRequestBody = Readonly<{
+  // First-party clients at 1.1.3 no longer rely on omitting sessionId on
+  // /chat. Keep this optional only for temporary backward compatibility with
+  // older released clients, and remove the session-less path in a future
+  // legacy chat cleanup.
   sessionId?: string;
   clientRequestId: string;
   content: ReadonlyArray<ChatContentPart>;
@@ -114,6 +118,10 @@ export type ChatRequestBody = Readonly<{
 }>;
 
 type NewChatRequestBody = Readonly<{
+  // First-party clients at 1.1.3 no longer rely on omitting sessionId on
+  // /chat/new. Keep this optional only for temporary backward compatibility
+  // with older released clients, and remove the session-less path in a future
+  // legacy chat cleanup.
   sessionId?: string;
   // Optional for backward compatibility with released clients that still send
   // the pre-uiLocale request shape. Remove once the minimum supported client
@@ -153,6 +161,9 @@ type ChatResumeDiagnosticsHeaders = Readonly<{
 }>;
 
 const UNSUPPORTED_CHAT_REQUEST_FIELDS = [
+  // First-party clients at 1.1.3 no longer send these legacy request-shape
+  // fields. Keep rejecting them while the remaining compatibility branches are
+  // still present, then revisit this guard in the future legacy chat cleanup.
   "messages",
   "model",
   "selectedModel",
@@ -860,11 +871,13 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     const workspaceId = await requireAccessibleSelectedWorkspaceIdFn(requestContext);
     const body = parseNewChatRequestBody(await parseJsonBody(context.req.raw));
 
-    // Preferred modern flow: clients send an explicit client-generated sessionId.
+    // Preferred modern flow: clients send an explicit client-generated
+    // sessionId. First-party clients at 1.1.3 already follow that flow.
     // When an explicit id is present, this route is idempotent: create exactly
     // that session if it does not exist yet, otherwise return the existing
-    // session unchanged. The omitted-sessionId path below stays intentionally
-    // preserved for backward compatibility with older clients.
+    // session unchanged. The omitted-sessionId path below stays temporarily
+    // for backward compatibility with older clients and should be removed in a
+    // future legacy chat cleanup.
     if (body.sessionId !== undefined) {
       let existingSessionId: string | null;
       try {
@@ -1009,6 +1022,9 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
 
     return context.json({
       sessionId: stopState.sessionId,
+      // First-party clients at 1.1.3 no longer depend on these duplicate
+      // legacy stop-response fields. Keep returning them temporarily for older
+      // released clients and remove them in a future legacy chat cleanup.
       conversationScopeId: stopState.sessionId,
       runId: stopState.runId,
       stopped: stopState.stopped,

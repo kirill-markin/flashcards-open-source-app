@@ -480,8 +480,6 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     }));
     stopChatRunMock.mockResolvedValue({
       sessionId: "session-1",
-      conversationScopeId: "session-1",
-      runId: "run-1",
       stopped: true,
       stillRunning: false,
     });

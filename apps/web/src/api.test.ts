@@ -9,6 +9,7 @@ import {
   resetApiClientStateForTests,
   setNavigationHandlerForTests,
   startChatRun,
+  stopChatRun,
 } from "./api";
 import { persistLocalePreference } from "./i18n/runtime";
 
@@ -134,6 +135,19 @@ function createNewChatSessionResponse(): Response {
   });
 }
 
+function createStopChatRunResponse(): Response {
+  return new Response(JSON.stringify({
+    sessionId: "session-1",
+    stopped: true,
+    stillRunning: false,
+  }), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
 beforeEach(() => {
   Object.defineProperty(window, "localStorage", {
     configurable: true,
@@ -251,6 +265,25 @@ describe("AI chat locale transport", () => {
     expect(chatRequestInit?.body).toBe(JSON.stringify({
       sessionId: "session-1",
       uiLocale: "es-ES",
+    }));
+  });
+
+  it("accepts reduced POST /chat/stop responses without unused run identifiers", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createSessionResponse())
+      .mockResolvedValueOnce(createStopChatRunResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getSession();
+    await expect(stopChatRun("session-1")).resolves.toEqual({
+      sessionId: "session-1",
+      stopped: true,
+      stillRunning: false,
+    });
+
+    const chatRequestInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    expect(chatRequestInit?.body).toBe(JSON.stringify({
+      sessionId: "session-1",
     }));
   });
 });
