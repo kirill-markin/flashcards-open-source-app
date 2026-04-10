@@ -39,10 +39,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.io.IOException
+import java.util.Locale
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CloudSignInViewModelTest {
     private val dispatcher = StandardTestDispatcher()
+    private val strings: SettingsStringResolver = TestSettingsStringResolver()
 
     @After
     fun tearDown() {
@@ -56,7 +58,8 @@ class CloudSignInViewModelTest {
         val viewModel = CloudSignInViewModel(
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
-            messageController = TransientMessageController { }
+            messageController = TransientMessageController { },
+            strings = strings
         )
         val postAuthCollection = backgroundScope.async {
             viewModel.postAuthUiState.collect()
@@ -118,7 +121,8 @@ class CloudSignInViewModelTest {
         val viewModel = CloudSignInViewModel(
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
-            messageController = TransientMessageController { }
+            messageController = TransientMessageController { },
+            strings = strings
         )
         val uiStateCollection = backgroundScope.async {
             viewModel.uiState.collect()
@@ -154,7 +158,8 @@ class CloudSignInViewModelTest {
         val viewModel = CloudSignInViewModel(
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
-            messageController = TransientMessageController { }
+            messageController = TransientMessageController { },
+            strings = strings
         )
         val uiStateCollection = backgroundScope.async {
             viewModel.uiState.collect()
@@ -187,7 +192,8 @@ class CloudSignInViewModelTest {
         val viewModel = CloudSignInViewModel(
             cloudAccountRepository = repository,
             syncRepository = FakeSyncRepository(),
-            messageController = TransientMessageController { }
+            messageController = TransientMessageController { },
+            strings = strings
         )
         val uiStateCollection = backgroundScope.async {
             viewModel.uiState.collect()
@@ -399,6 +405,68 @@ private class FakeCloudAccountRepository : CloudAccountRepository {
 
     override suspend fun resetToOfficialServer() {
         throw UnsupportedOperationException()
+    }
+}
+
+private class TestSettingsStringResolver : SettingsStringResolver {
+    override fun get(stringResId: Int, vararg formatArgs: Any): String {
+        val pattern = when (stringResId) {
+            R.string.settings_sign_in_request_code_first -> "Request a sign-in code first."
+            R.string.settings_sign_in_cancelled_message -> {
+                "Signed-in setup was cancelled. This device is disconnected."
+            }
+
+            R.string.settings_sign_in_send_code_transport_failed -> {
+                "We could not confirm that the code was sent. Check your connection and try again."
+            }
+
+            R.string.settings_sign_in_send_code_failed -> "Could not send the sign-in code."
+            R.string.settings_sign_in_verify_transport_failed -> {
+                "We could not verify the code right now. Check your connection and try again."
+            }
+
+            R.string.settings_sign_in_verify_failed -> "Could not verify the code."
+            R.string.settings_current_workspace_create_new_title -> "Create new workspace"
+            R.string.settings_current_workspace_create_new_summary -> {
+                "Start a new linked workspace in the cloud"
+            }
+
+            R.string.settings_unavailable -> "Unavailable"
+            R.string.settings_never -> "Never"
+            R.string.settings_post_auth_upgrading_title -> "Upgrading guest account"
+            R.string.settings_post_auth_linking_title -> "Linking workspace"
+            R.string.settings_post_auth_upgrading_body -> {
+                "Preparing your Guest AI session for a linked Android cloud account."
+            }
+
+            R.string.settings_post_auth_linking_body -> {
+                "Preparing your cloud workspace on this Android device."
+            }
+
+            R.string.settings_post_auth_guest_upgrade_failed -> "Guest account upgrade failed."
+            R.string.settings_post_auth_setup_failed -> "Cloud workspace setup failed."
+            R.string.settings_post_auth_syncing_title -> "Syncing workspace"
+            R.string.settings_post_auth_syncing_body -> {
+                "Keep this screen open while Android finishes the initial cloud sync."
+            }
+
+            R.string.settings_post_auth_signed_in_and_synced -> "Signed in and synced %1\$s."
+            R.string.settings_post_auth_sync_failed -> "Initial sync failed."
+            else -> error("Unexpected string resource id in CloudSignInViewModelTest: $stringResId")
+        }
+        return if (formatArgs.isEmpty()) {
+            pattern
+        } else {
+            String.format(Locale.ENGLISH, pattern, *formatArgs)
+        }
+    }
+
+    override fun getQuantity(pluralsResId: Int, quantity: Int, vararg formatArgs: Any): String {
+        error("Unexpected plurals resource id in CloudSignInViewModelTest: $pluralsResId")
+    }
+
+    override fun locale(): Locale {
+        return Locale.ENGLISH
     }
 }
 
