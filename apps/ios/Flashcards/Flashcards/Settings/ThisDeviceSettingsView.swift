@@ -95,9 +95,17 @@ struct ThisDeviceSettingsView: View {
     }
 }
 
-#Preview {
+#Preview("Default") {
     NavigationStack {
         ThisDeviceSettingsView()
             .environment(FlashcardsStore())
     }
+}
+
+#Preview("Arabic RTL") {
+    NavigationStack {
+        ThisDeviceSettingsView()
+            .environment(FlashcardsStore())
+    }
+    .arabicRTLPreview()
 }

@@ -79,8 +79,7 @@ struct AccountStatusView: View {
 
                     if let lastSuccessfulCloudSyncAt = store.lastSuccessfulCloudSyncAt {
                         LabeledContent(aiSettingsLocalized("settings.account.status.lastSync", "Last sync")) {
-                            Text(lastSuccessfulCloudSyncAt)
-                                .font(.caption.monospaced())
+                            Text(formatOptionalIsoTimestampForDisplay(value: lastSuccessfulCloudSyncAt))
                                 .multilineTextAlignment(.trailing)
                         }
                     }

@@ -77,9 +77,17 @@ struct AccountSettingsView: View {
     }
 }
 
-#Preview {
+#Preview("Default") {
     NavigationStack {
         AccountSettingsView()
             .environment(FlashcardsStore())
     }
+}
+
+#Preview("Arabic RTL") {
+    NavigationStack {
+        AccountSettingsView()
+            .environment(FlashcardsStore())
+    }
+    .arabicRTLPreview()
 }

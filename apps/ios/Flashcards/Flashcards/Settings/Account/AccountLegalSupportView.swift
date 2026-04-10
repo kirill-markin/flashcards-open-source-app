@@ -118,9 +118,17 @@ struct AccountLegalSupportView: View {
     }
 }
 
-#Preview {
+#Preview("Default") {
     NavigationStack {
         AccountLegalSupportView()
             .environment(FlashcardsStore())
     }
+}
+
+#Preview("Arabic RTL") {
+    NavigationStack {
+        AccountLegalSupportView()
+            .environment(FlashcardsStore())
+    }
+    .arabicRTLPreview()
 }

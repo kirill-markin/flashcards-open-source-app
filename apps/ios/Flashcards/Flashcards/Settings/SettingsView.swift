@@ -168,9 +168,17 @@ func isSyncInFlight(status: SyncStatus) -> Bool {
     }
 }
 
-#Preview {
+#Preview("Default") {
     NavigationStack {
         SettingsView()
             .environment(FlashcardsStore())
     }
+}
+
+#Preview("Arabic RTL") {
+    NavigationStack {
+        SettingsView()
+            .environment(FlashcardsStore())
+    }
+    .arabicRTLPreview()
 }
