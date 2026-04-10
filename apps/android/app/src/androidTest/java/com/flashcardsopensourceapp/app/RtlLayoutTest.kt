@@ -1,15 +1,16 @@
 package com.flashcardsopensourceapp.app
 
+import android.app.LocaleManager
+import android.os.LocaleList
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.unit.LayoutDirection
+import androidx.core.text.BidiFormatter
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
@@ -24,6 +25,9 @@ import com.flashcardsopensourceapp.feature.review.ReviewUiState
 import com.flashcardsopensourceapp.feature.settings.CloudSignInCodeRoute
 import com.flashcardsopensourceapp.feature.settings.CloudSignInUiState
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
+import java.util.Locale
+import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -34,9 +38,17 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
+    @After
+    fun resetApplicationLocale() {
+        composeRule.runOnUiThread {
+            val localeManager = composeRule.activity.getSystemService(LocaleManager::class.java)
+            localeManager.applicationLocales = LocaleList.getEmptyLocaleList()
+        }
+    }
+
     @Test
     fun cloudSignInCodeRoutePlacesBackButtonOnTrailingEdgeInRtl() {
-        setRtlContent {
+        setArabicLocaleContent {
             CloudSignInCodeRoute(
                 uiState = CloudSignInUiState(
                     email = "rtl@example.com",
@@ -56,6 +68,7 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
 
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_sign_in_verify_title)).assertIsDisplayed()
         composeRule.onNodeWithText("rtl@example.com", substring = true).assertIsDisplayed()
+        assertEquals(View.LAYOUT_DIRECTION_RTL, composeRule.activity.window.decorView.layoutDirection)
         assertNodeIsOnRightHalf(
             contentDescription = settingsString(SettingsR.string.settings_back_content_description)
         )
@@ -69,7 +82,7 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
         val backText = "Answer: SELECT * FROM cards;"
         val tagsLabel = "db, sql"
 
-        setRtlContent {
+        setArabicLocaleContent {
             ReviewPreviewRoute(
                 uiState = ReviewUiState(
                     isLoading = false,
@@ -129,24 +142,44 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
             )
         }
 
-        composeRule.onNodeWithText(previewTitle).assertIsDisplayed()
-        composeRule.onNodeWithText(sectionTitle).assertIsDisplayed()
-        composeRule.onNodeWithText(frontText).assertIsDisplayed()
-        composeRule.onNodeWithText(backText).assertIsDisplayed()
-        composeRule.onNodeWithText(tagsLabel).assertIsDisplayed()
+        assertTextIsWrappedForArabicLocale(previewTitle)
+        assertTextIsWrappedForArabicLocale(sectionTitle)
+        assertTextIsWrappedForArabicLocale(frontText)
+        assertTextIsWrappedForArabicLocale(backText)
+        assertTextIsWrappedForArabicLocale(tagsLabel)
         assertNodeIsOnRightHalf(
             contentDescription = reviewString(ReviewR.string.review_preview_back_content_description)
         )
     }
 
-    private fun setRtlContent(content: @Composable () -> Unit) {
+    private fun setArabicLocaleContent(content: @Composable () -> Unit) {
+        applyApplicationLocale(locale = arabicLocale)
         composeRule.setContent {
             FlashcardsTheme {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    content()
-                }
+                content()
             }
         }
+    }
+
+    private fun applyApplicationLocale(locale: Locale) {
+        composeRule.runOnUiThread {
+            val localeManager = composeRule.activity.getSystemService(LocaleManager::class.java)
+            localeManager.applicationLocales = LocaleList.forLanguageTags(locale.toLanguageTag())
+        }
+        composeRule.waitUntil(timeoutMillis = 5_000L) {
+            val configuration = composeRule.activity.resources.configuration
+            val currentLocale = configuration.locales[0]
+            currentLocale.language == locale.language
+        }
+    }
+
+    private fun assertTextIsWrappedForArabicLocale(text: String) {
+        composeRule.onNodeWithText(
+            bidiWrapForLocale(
+                locale = arabicLocale,
+                text = text
+            )
+        ).assertIsDisplayed()
     }
 
     private fun assertNodeIsOnRightHalf(contentDescription: String) {
@@ -169,5 +202,13 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private fun settingsString(resourceId: Int): String {
         return composeRule.activity.getString(resourceId)
+    }
+
+    private companion object {
+        val arabicLocale: Locale = Locale.forLanguageTag("ar")
+
+        fun bidiWrapForLocale(locale: Locale, text: String): String {
+            return BidiFormatter.getInstance(locale).unicodeWrap(text)
+        }
     }
 }
