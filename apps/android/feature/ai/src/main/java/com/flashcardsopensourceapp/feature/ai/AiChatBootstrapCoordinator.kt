@@ -18,6 +18,18 @@ internal class AiChatBootstrapCoordinator(
         com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?
     ) -> Unit
 ) {
+    private fun canApplyBootstrapResult(
+        workspaceId: String,
+        sessionId: String
+    ): Boolean {
+        val currentState = context.runtimeStateMutable.value
+        if (currentState.workspaceId != workspaceId) {
+            return false
+        }
+        val currentSessionId = currentState.persistedState.chatSessionId
+        return currentSessionId.isBlank() || currentSessionId == sessionId
+    }
+
     fun startConversationBootstrap(
         forceReloadState: Boolean,
         resumeDiagnostics: com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?
@@ -101,6 +113,9 @@ internal class AiChatBootstrapCoordinator(
                 }
                 val ensuredSnapshot = ensuredSession.snapshot
                 if (ensuredSnapshot != null) {
+                    if (canApplyBootstrapResult(workspaceId = workspaceId, sessionId = ensuredSession.sessionId).not()) {
+                        return@launch
+                    }
                     persistedState = persistedState.copy(
                         chatSessionId = ensuredSession.sessionId,
                         lastKnownChatConfig = ensuredSnapshot.chatConfig
@@ -118,6 +133,9 @@ internal class AiChatBootstrapCoordinator(
                     resumeDiagnostics = resumeDiagnostics
                 )
                 if (context.activeAccessContext != accessContext) {
+                    return@launch
+                }
+                if (canApplyBootstrapResult(workspaceId = workspaceId, sessionId = ensuredSession.sessionId).not()) {
                     return@launch
                 }
 

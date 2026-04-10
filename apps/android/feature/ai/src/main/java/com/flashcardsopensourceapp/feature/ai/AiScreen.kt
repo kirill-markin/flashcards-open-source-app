@@ -98,7 +98,7 @@ internal fun AiRouteContent(
     val currentScreenHiddenAction by rememberUpdatedState(onScreenHidden)
     val currentShowAlertAction by rememberUpdatedState(onShowAlert)
     val dismissComposerFocus: () -> Unit = {
-        focusManager.clearFocus(force = false)
+        focusManager.clearFocus(force = true)
     }
 
     val takePictureLauncher = rememberLauncherForActivityResult(
