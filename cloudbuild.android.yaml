@@ -10,6 +10,44 @@ substitutions:
 timeout: 3600s
 
 steps:
+  - id: Validate Firebase Test Lab configuration
+    name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        project_id="${PROJECT_ID}"
+        device_model="${_ANDROID_FTL_DEVICE_MODEL}"
+        device_version="${_ANDROID_FTL_DEVICE_VERSION}"
+        results_bucket="${_ANDROID_FTL_RESULTS_BUCKET}"
+        results_dir="${_ANDROID_FTL_RESULTS_DIR}"
+        missing_values=()
+
+        if [[ -z "${project_id}" ]]; then
+          missing_values+=("PROJECT_ID")
+        fi
+
+        if [[ -z "${device_model}" ]]; then
+          missing_values+=("_ANDROID_FTL_DEVICE_MODEL")
+        fi
+
+        if [[ -z "${device_version}" ]]; then
+          missing_values+=("_ANDROID_FTL_DEVICE_VERSION")
+        fi
+
+        if [[ -z "${results_bucket}" ]]; then
+          missing_values+=("_ANDROID_FTL_RESULTS_BUCKET")
+        fi
+
+        if [[ -z "${results_dir}" ]]; then
+          missing_values+=("_ANDROID_FTL_RESULTS_DIR")
+        fi
+
+        if [[ "${#missing_values[@]}" -gt 0 ]]; then
+          printf 'Missing required Cloud Build substitutions for Firebase Test Lab: %s\n' "${missing_values[*]}" >&2
+          exit 1
+        fi
+
   - id: Build Android CI image
     name: gcr.io/cloud-builders/docker
     args:
@@ -40,6 +78,7 @@ steps:
           --app-path "/workspace/apps/android/app/build/outputs/apk/debug/app-debug.apk"
           --test-path "/workspace/apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk"
           --timeout "30m"
+          --max-matrix-duration "35m"
           --test-targets "package com.flashcardsopensourceapp.app notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest"
           --results-bucket "${_ANDROID_FTL_RESULTS_BUCKET}"
           --results-dir "${_ANDROID_FTL_RESULTS_DIR}"
