@@ -1,0 +1,3 @@
+"NSCameraUsageDescription" = "AI チャットの添付用写真を撮るためにカメラへのアクセスを許可してください。";
+"NSMicrophoneUsageDescription" = "AI チャットでテキストを音声入力するためにマイクへのアクセスを許可してください。";
+"NSPhotoLibraryUsageDescription" = "AI チャットの添付用写真を選ぶために写真ライブラリへのアクセスを許可してください。";

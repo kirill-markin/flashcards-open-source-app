@@ -15,6 +15,23 @@ The iOS app must follow Apple-native localization behavior:
 - the user can override the app language in iOS Settings
 - we do not build a custom in-app language picker unless there is an explicit product requirement
 
+## Supported App Locales
+
+The iOS app currently declares support for these Apple locale identifiers:
+
+- `en` as the development and source language
+- `ar`
+- `zh-Hans`
+- `de`
+- `hi`
+- `ja`
+- `ru`
+- `es-MX`
+- `es-ES`
+
+Do not register or ship generic `es` for app localization.
+Spanish support is split explicitly between `es-MX` and `es-ES`.
+
 ## Current Localization Layout
 
 The iOS client currently uses three localization buckets plus localized `InfoPlist.strings`:
@@ -28,12 +45,16 @@ The iOS client currently uses three localization buckets plus localized `InfoPli
 - [apps/ios/Flashcards/Flashcards/AISettingsLocalization.swift](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/AISettingsLocalization.swift)
   Helper for AI, Settings, Account, Workspace, and related support/error strings.
 
-- [apps/ios/Flashcards/Flashcards/es.lproj/AISettings.strings](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/es.lproj/AISettings.strings)
+- `apps/ios/Flashcards/Flashcards/<locale>.lproj/AISettings.strings`
   Language-specific translation file for keys resolved through `aiSettingsLocalized(...)`.
+  Supported Spanish app locales must use `es-MX.lproj` and `es-ES.lproj`.
 
 - [apps/ios/Flashcards/Flashcards/Resources/Localization/en.lproj/InfoPlist.strings](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/Resources/Localization/en.lproj/InfoPlist.strings)
-- [apps/ios/Flashcards/Flashcards/Resources/Localization/es.lproj/InfoPlist.strings](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/Resources/Localization/es.lproj/InfoPlist.strings)
+- `apps/ios/Flashcards/Flashcards/Resources/Localization/<locale>.lproj/InfoPlist.strings`
   Localized permission prompts and any future localized Info.plist-facing copy.
+
+English remains the development language.
+For Spanish, supported app locales must use `es-MX.lproj` and `es-ES.lproj`; generic `es.lproj` is legacy migration material only and must not be treated as a supported app locale.
 
 ## Source Of Truth
 
@@ -60,15 +81,18 @@ Choose the exact Apple locale identifier you want to support.
 
 Examples:
 
-- `es`
+- `ar`
+- `zh-Hans`
 - `fr`
 - `de`
 - `pt-PT`
 - `pt-BR`
 - `es-MX`
+- `es-ES`
 
 Use a generic language code only when we want one shared copy for that language.
 Use a region-specific code only when the product copy truly differs by region.
+For Spanish in this app, region-specific codes are required: use `es-MX` and `es-ES`, never generic `es`.
 
 ### 2. Register the locale in the Xcode project
 
@@ -102,7 +126,8 @@ Create a new file:
 
 - `apps/ios/Flashcards/Flashcards/Resources/Localization/<locale>.lproj/InfoPlist.strings`
 
-Translate every key already present in the existing `en.lproj` and `es.lproj` files.
+Translate every key already present in the existing English file and every key required by the current supported locale set.
+Do not add new generic `es.lproj` app resources. Spanish resource files must use `es-MX.lproj` or `es-ES.lproj`.
 
 At minimum, keep these aligned:
 
@@ -153,7 +178,8 @@ Create:
 
 Then translate every key currently used through `aiSettingsLocalized(...)` and `aiSettingsLocalizedFormat(...)`.
 
-Use [apps/ios/Flashcards/Flashcards/es.lproj/AISettings.strings](/Users/kirill/_my_local/code-local/personal-workspace/flashcards-open-source-app/apps/ios/Flashcards/Flashcards/es.lproj/AISettings.strings) as the reference shape.
+Use an existing completed locale file as the reference shape for keys and formatting.
+If you find an older `es.lproj/AISettings.strings` file during migration work, treat it as source material only and move supported Spanish copy into `es-MX.lproj` and `es-ES.lproj`.
 
 This file currently owns:
 
@@ -233,6 +259,8 @@ Run this checklist every time you add a new language.
 - `jq empty apps/ios/Flashcards/Flashcards/ReviewCards.xcstrings`
 - `plutil -lint apps/ios/Flashcards/Flashcards/Resources/Localization/<locale>.lproj/InfoPlist.strings`
 - `plutil -lint apps/ios/Flashcards/Flashcards/<locale>.lproj/AISettings.strings`
+- `plutil -lint apps/ios/Flashcards/Config/Info.plist`
+- `rg -n 'knownRegions|developmentRegion' "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj/project.pbxproj"`
 
 If you want to validate the string catalog more directly:
 

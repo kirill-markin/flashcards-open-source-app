@@ -1,0 +1,3 @@
+"NSCameraUsageDescription" = "Erlaube den Kamerazugriff, um Fotos für KI-Chat-Anhänge aufzunehmen.";
+"NSMicrophoneUsageDescription" = "Erlaube den Mikrofonzugriff, um Text in den KI-Chat zu diktieren.";
+"NSPhotoLibraryUsageDescription" = "Erlaube den Zugriff auf die Fotomediathek, um Fotos für KI-Chat-Anhänge auszuwählen.";
