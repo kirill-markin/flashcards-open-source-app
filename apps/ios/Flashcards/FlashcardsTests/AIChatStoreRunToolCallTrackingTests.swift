@@ -110,7 +110,7 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
         )
 
         store.applyBootstrap(envelope)
-        await waitForBackgroundAIChatTasks()
+        await waitForBackgroundAIChatTasks(store: store)
 
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
         XCTAssertFalse(store.runHadToolCalls)
@@ -384,7 +384,7 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
             )
         )
 
-        await waitForBackgroundAIChatTasks()
+        await waitForBackgroundAIChatTasks(store: store)
         await store.waitForPendingStatePersistence()
 
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
@@ -582,7 +582,7 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
             conversationId: "conversation-1"
         )
 
-        await waitForBackgroundAIChatTasks()
+        await waitForBackgroundAIChatTasks(store: store)
 
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
         XCTAssertFalse(store.pendingToolRunPostSync)
@@ -646,7 +646,7 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
             )
         )
 
-        await waitForBackgroundAIChatTasks()
+        await waitForBackgroundAIChatTasks(store: store)
 
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
         XCTAssertFalse(store.pendingToolRunPostSync)
@@ -907,7 +907,7 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
             )
         )
 
-        await waitForBackgroundAIChatTasks()
+        await waitForBackgroundAIChatTasks(store: store)
 
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 0)
         XCTAssertFalse(store.pendingToolRunPostSync)
@@ -952,7 +952,7 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
             )
         )
 
-        await waitForBackgroundAIChatTasks()
+        await waitForBackgroundAIChatTasks(store: store)
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
 
         await gate.release()
@@ -1868,63 +1868,181 @@ private func makeAssistantTextMessage(
     )
 }
 
-private func waitForBackgroundAIChatTasks() async {
-    for _ in 0..<20 {
-        await Task.yield()
+private let aiChatBackgroundTaskTimeout: Duration = .seconds(2)
+private let aiChatTaskTimeout: Duration = .seconds(3)
+private let aiChatToolRunPostSyncTaskTimeout: Duration = .seconds(5)
+private let aiChatTaskPollInterval: Duration = .milliseconds(10)
+
+@MainActor
+private func waitForBackgroundAIChatTasks(store: AIChatStore) async {
+    _ = await waitForAIChatCondition(
+        description: "AI chat background tasks to become idle",
+        timeout: aiChatBackgroundTaskTimeout,
+        pollInterval: aiChatTaskPollInterval,
+        condition: {
+            store.activeToolRunPostSyncTask == nil
+                && store.activeBootstrapTask == nil
+                && store.activeSendTask == nil
+                && store.activeDictationTask == nil
+                && store.activeNewSessionTask == nil
+                && store.activePersistTask == nil
+                && store.pendingPersistState == nil
+        }
+    )
+}
+
+@MainActor
+private func waitForAIChatCondition(
+    description: String,
+    timeout: Duration,
+    pollInterval: Duration,
+    condition: @escaping @MainActor () -> Bool
+) async -> Bool {
+    let clock = ContinuousClock()
+    let deadline = clock.now.advanced(by: timeout)
+
+    while true {
+        if condition() {
+            return true
+        }
+
+        if clock.now >= deadline {
+            XCTFail("Timed out waiting for \(description).")
+            return false
+        }
+
+        try? await Task.sleep(for: pollInterval)
     }
+}
+
+private func waitForAIChatTaskHandleToComplete(
+    description: String,
+    task: Task<Void, Never>,
+    timeout: Duration
+) async -> Bool {
+    await withTaskGroup(of: Bool.self) { group in
+        group.addTask {
+            await task.value
+            return true
+        }
+        group.addTask {
+            try? await Task.sleep(for: timeout)
+            return false
+        }
+
+        let didComplete = await group.next() ?? false
+        group.cancelAll()
+        if didComplete == false {
+            await MainActor.run {
+                XCTFail("Timed out waiting for \(description) task to complete.")
+            }
+        }
+        return didComplete
+    }
+}
+
+@MainActor
+private func waitForAIChatTaskToClear(
+    description: String,
+    timeout: Duration,
+    pollInterval: Duration,
+    taskProvider: @escaping @MainActor () -> Task<Void, Never>?
+) async -> Bool {
+    if let task = taskProvider() {
+        let didComplete = await waitForAIChatTaskHandleToComplete(
+            description: description,
+            task: task,
+            timeout: timeout
+        )
+        if didComplete == false {
+            return false
+        }
+    }
+
+    return await waitForAIChatCondition(
+        description: "\(description) became nil",
+        timeout: timeout,
+        pollInterval: pollInterval,
+        condition: {
+            taskProvider() == nil
+        }
+    )
+}
+
+@MainActor
+private func waitForAIChatPendingStatePersistenceToDrain(store: AIChatStore) async {
+    _ = await waitForAIChatCondition(
+        description: "pending state persistence drained",
+        timeout: aiChatTaskTimeout,
+        pollInterval: aiChatTaskPollInterval,
+        condition: {
+            store.activePersistTask == nil && store.pendingPersistState == nil
+        }
+    )
 }
 
 @MainActor
 private func waitForAIChatToolRunPostSyncToSettle(store: AIChatStore) async {
-    for _ in 0..<200 {
-        if store.activeToolRunPostSyncTask == nil {
-            await store.waitForPendingStatePersistence()
-            return
+    let didSettle = await waitForAIChatTaskToClear(
+        description: "activeToolRunPostSyncTask",
+        timeout: aiChatToolRunPostSyncTaskTimeout,
+        pollInterval: aiChatTaskPollInterval,
+        taskProvider: {
+            store.activeToolRunPostSyncTask
         }
-        await Task.yield()
+    )
+    if didSettle == false {
+        return
     }
-
-    XCTFail("AI chat tool-run post-sync task did not settle.")
+    await waitForAIChatPendingStatePersistenceToDrain(store: store)
 }
 
 @MainActor
 private func waitForAIChatBootstrapToSettle(store: AIChatStore) async {
-    for _ in 0..<100 {
-        if store.activeBootstrapTask == nil {
-            return
+    _ = await waitForAIChatTaskToClear(
+        description: "activeBootstrapTask",
+        timeout: aiChatTaskTimeout,
+        pollInterval: aiChatTaskPollInterval,
+        taskProvider: {
+            store.activeBootstrapTask
         }
-        await Task.yield()
-    }
+    )
 }
 
 @MainActor
 private func waitForAIChatSendToSettle(store: AIChatStore) async {
-    for _ in 0..<100 {
-        if store.activeSendTask == nil {
-            return
+    _ = await waitForAIChatTaskToClear(
+        description: "activeSendTask",
+        timeout: aiChatTaskTimeout,
+        pollInterval: aiChatTaskPollInterval,
+        taskProvider: {
+            store.activeSendTask
         }
-        await Task.yield()
-    }
+    )
 }
 
 @MainActor
 private func waitForAIChatDictationToSettle(store: AIChatStore) async {
-    for _ in 0..<100 {
-        if store.activeDictationTask == nil {
-            return
+    _ = await waitForAIChatTaskToClear(
+        description: "activeDictationTask",
+        timeout: aiChatTaskTimeout,
+        pollInterval: aiChatTaskPollInterval,
+        taskProvider: {
+            store.activeDictationTask
         }
-        await Task.yield()
-    }
+    )
 }
 
 @MainActor
 private func waitForAIChatNewSessionToSettle(store: AIChatStore) async {
-    for _ in 0..<100 {
-        if store.activeNewSessionTask == nil {
-            return
+    _ = await waitForAIChatTaskToClear(
+        description: "activeNewSessionTask",
+        timeout: aiChatTaskTimeout,
+        pollInterval: aiChatTaskPollInterval,
+        taskProvider: {
+            store.activeNewSessionTask
         }
-        await Task.yield()
-    }
+    )
 }
 
 private func makeNewSessionResponse(sessionId: String) -> AIChatNewSessionResponse {
