@@ -13,6 +13,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.flashcardsopensourceapp.app.MainActivity
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.core.ui.bidiWrap
+import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 
 /**
  * Prefix used to identify review reminder notifications for cleanup.
@@ -41,8 +42,12 @@ fun buildReviewReminderNotificationContent(
         context = context,
         requestId = requestId
     )
+    val locale = currentResourceLocale(resources = context.resources)
     val appName = context.getString(R.string.app_name)
-    val bidiSafeFrontText = bidiWrap(text = frontText)
+    val bidiSafeFrontText = bidiWrap(
+        text = frontText,
+        locale = locale
+    )
     val notification = NotificationCompat.Builder(context, reviewNotificationChannelId)
         .setSmallIcon(android.R.drawable.ic_dialog_info)
         .setContentTitle(appName)

@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
 import com.flashcardsopensourceapp.feature.settings.openExternalUrl
 
@@ -34,6 +35,7 @@ internal fun ConsentGate(
     modifier: Modifier
 ) {
     val context = LocalContext.current
+    val locale = currentResourceLocale(resources = context.resources)
     val privacyUrl = stringResource(id = SettingsR.string.flashcards_privacy_policy_url)
     val termsUrl = stringResource(id = SettingsR.string.flashcards_terms_of_service_url)
     val supportUrl = stringResource(id = SettingsR.string.flashcards_support_url)
@@ -68,7 +70,8 @@ internal fun ConsentGate(
                 Text(
                     text = formatAiConsentWorkspaceDisclosureText(
                         template = workspaceDisclosureTemplate,
-                        currentWorkspaceName = currentWorkspaceName
+                        currentWorkspaceName = currentWorkspaceName,
+                        locale = locale
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
