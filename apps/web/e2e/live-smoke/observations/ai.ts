@@ -220,11 +220,12 @@ export async function waitForAiRunCompletion(
   diagnostics: LiveSmokeDiagnostics,
   actionLabel: string,
   previousAssistantErrorCount: number,
+  timeoutMs: number,
 ): Promise<AiCreateAttemptResolution> {
   return diagnostics.runAction(
     `wait for ${actionLabel} to finish and return the composer to idle`,
     async (): Promise<AiCreateAttemptResolution> => {
-      const timeoutAt = Date.now() + externalUiTimeoutMs;
+      const timeoutAt = Date.now() + timeoutMs;
       let runCompletionState: "running" | "idle" | "inserted" | "error" = "running";
       let matchedInsertToolCall: CompletedSqlToolCall | null = await findCompletedCardInsertToolCall(page);
 

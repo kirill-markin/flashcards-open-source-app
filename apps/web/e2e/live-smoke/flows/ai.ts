@@ -47,6 +47,8 @@ type AiCreatePostInsertComposerObservation = Readonly<{
   state: AiCreateComposerLifecycleState;
 }>;
 
+const aiCreateCompletionTimeoutMs = 60_000;
+
 export async function runAiCardCreationFlow(session: LiveSmokeSession): Promise<void> {
   await runLiveSmokeStep(session, "create one AI card with explicit confirmation and confirm the insert completed", async () => {
     await runAiCardCreationWithConfirmation(session);
@@ -147,6 +149,7 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
           diagnostics,
           createAttemptActionLabel,
           previousAssistantErrorCount,
+          aiCreateCompletionTimeoutMs,
         );
 
         if (attemptResolution.completionState === "inserted") {
