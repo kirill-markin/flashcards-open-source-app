@@ -1,8 +1,11 @@
-export const supportedLocales = ["en", "es"] as const;
+export const supportedLocales = ["en", "ar", "zh-Hans", "de", "hi", "ja", "ru", "es-MX", "es-ES"] as const;
+export const defaultLocale = "en" as const;
+export const defaultSpanishLocale = "es-ES" as const;
 export const autoLocalePreference = "auto" as const;
 
 export type Locale = (typeof supportedLocales)[number];
 export type LocalePreference = Locale | typeof autoLocalePreference;
+export type LocaleDirection = "ltr" | "rtl";
 
 export type TranslationValues = Readonly<Record<string, number | string>>;
 

@@ -39,7 +39,8 @@ export function I18nProvider(props: Props): ReactElement {
 
   useEffect(() => {
     document.documentElement.lang = resolvedLocaleState.locale;
-  }, [resolvedLocaleState.locale]);
+    document.documentElement.dir = resolvedLocaleState.direction;
+  }, [resolvedLocaleState.direction, resolvedLocaleState.locale]);
 
   function setLocalePreference(nextLocalePreference: LocalePreference): void {
     setLocalePreferenceState(nextLocalePreference);

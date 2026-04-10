@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Locale } from "../i18n/types";
 import { classifyReviewContentPresentation } from "./reviewContentPresentation";
 
 export type ReviewSpeechSide = "front" | "back";
 
 type UseReviewSpeechParams = Readonly<{
+  locale: Locale;
   showMessage: (message: string) => void;
   speechUnavailableMessage: string;
 }>;
@@ -60,12 +62,22 @@ function sanitizeLanguageTag(languageTag: string): string {
   return normalizedTag === "" ? "en-US" : normalizedTag;
 }
 
-function fallbackSpeechLanguage(): string {
-  if (typeof navigator.language === "string" && navigator.language.trim() !== "") {
-    return sanitizeLanguageTag(navigator.language);
+function primaryLanguageSubtag(languageTag: string): string {
+  const normalizedTag = sanitizeLanguageTag(languageTag).toLocaleLowerCase();
+  const [primaryLanguage] = normalizedTag.split("-");
+
+  return primaryLanguage ?? normalizedTag;
+}
+
+function resolveDetectedLanguageTag(detectedLanguageTag: string, fallbackLanguageTag: string): string {
+  const normalizedDetectedLanguageTag = sanitizeLanguageTag(detectedLanguageTag);
+  const normalizedFallbackLanguageTag = sanitizeLanguageTag(fallbackLanguageTag);
+
+  if (primaryLanguageSubtag(normalizedDetectedLanguageTag) === primaryLanguageSubtag(normalizedFallbackLanguageTag)) {
+    return normalizedFallbackLanguageTag;
   }
 
-  return "en-US";
+  return normalizedDetectedLanguageTag;
 }
 
 function normalizeSpeakableInlineText(text: string): string {
@@ -158,46 +170,46 @@ export function detectReviewSpeechLanguage(text: string, fallbackLanguageTag: st
   const normalizedText = ` ${text.toLocaleLowerCase()} `;
 
   if (/[\u3040-\u30ff]/u.test(normalizedText)) {
-    return "ja-JP";
+    return resolveDetectedLanguageTag("ja-JP", fallbackLanguageTag);
   }
   if (/[\uac00-\ud7af]/u.test(normalizedText)) {
-    return "ko-KR";
+    return resolveDetectedLanguageTag("ko-KR", fallbackLanguageTag);
   }
   if (/[\u4e00-\u9fff]/u.test(normalizedText)) {
-    return "zh-CN";
+    return resolveDetectedLanguageTag("zh-CN", fallbackLanguageTag);
   }
   if (/[\u0400-\u04ff]/u.test(normalizedText)) {
-    return "ru-RU";
+    return resolveDetectedLanguageTag("ru-RU", fallbackLanguageTag);
   }
   if (/[\u0370-\u03ff]/u.test(normalizedText)) {
-    return "el-GR";
+    return resolveDetectedLanguageTag("el-GR", fallbackLanguageTag);
   }
   if (/[\u0590-\u05ff]/u.test(normalizedText)) {
-    return "he-IL";
+    return resolveDetectedLanguageTag("he-IL", fallbackLanguageTag);
   }
   if (/[\u0600-\u06ff]/u.test(normalizedText)) {
-    return "ar-SA";
+    return resolveDetectedLanguageTag("ar-SA", fallbackLanguageTag);
   }
   if (/[\u0e00-\u0e7f]/u.test(normalizedText)) {
-    return "th-TH";
+    return resolveDetectedLanguageTag("th-TH", fallbackLanguageTag);
   }
   if (/[\u0900-\u097f]/u.test(normalizedText)) {
-    return "hi-IN";
+    return resolveDetectedLanguageTag("hi-IN", fallbackLanguageTag);
   }
   if (/[¿¡ñ]/u.test(normalizedText)) {
-    return "es-ES";
+    return resolveDetectedLanguageTag("es-ES", fallbackLanguageTag);
   }
   if (/[äöüß]/u.test(normalizedText)) {
-    return "de-DE";
+    return resolveDetectedLanguageTag("de-DE", fallbackLanguageTag);
   }
   if (/[ãõ]/u.test(normalizedText)) {
-    return "pt-PT";
+    return resolveDetectedLanguageTag("pt-PT", fallbackLanguageTag);
   }
   if (/[àèìòù]/u.test(normalizedText)) {
-    return "it-IT";
+    return resolveDetectedLanguageTag("it-IT", fallbackLanguageTag);
   }
   if (/[çœæ]/u.test(normalizedText)) {
-    return "fr-FR";
+    return resolveDetectedLanguageTag("fr-FR", fallbackLanguageTag);
   }
 
   let bestLanguageTag: string | null = null;
@@ -212,7 +224,7 @@ export function detectReviewSpeechLanguage(text: string, fallbackLanguageTag: st
   }
 
   if (bestLanguageTag !== null && bestScore > 0) {
-    return bestLanguageTag;
+    return resolveDetectedLanguageTag(bestLanguageTag, fallbackLanguageTag);
   }
 
   return sanitizeLanguageTag(fallbackLanguageTag);
@@ -240,7 +252,7 @@ function selectMatchingVoice(
 }
 
 export function useReviewSpeech(params: UseReviewSpeechParams): UseReviewSpeechResult {
-  const { showMessage, speechUnavailableMessage } = params;
+  const { locale, showMessage, speechUnavailableMessage } = params;
   const [activeSide, setActiveSide] = useState<ReviewSpeechSide | null>(null);
   const activeSideRef = useRef<ReviewSpeechSide | null>(null);
   const voicesRef = useRef<ReadonlyArray<SpeechSynthesisVoice>>([]);
@@ -290,7 +302,7 @@ export function useReviewSpeech(params: UseReviewSpeechParams): UseReviewSpeechR
     activeUtteranceRef.current = null;
 
     const utterance = new window.SpeechSynthesisUtterance(speakableText);
-    const languageTag = detectReviewSpeechLanguage(speakableText, fallbackSpeechLanguage());
+    const languageTag = detectReviewSpeechLanguage(speakableText, locale);
     const voices = synthesis.getVoices();
     const availableVoices = voices.length === 0 ? voicesRef.current : voices;
     const selectedVoice = selectMatchingVoice(availableVoices, languageTag);
@@ -327,7 +339,7 @@ export function useReviewSpeech(params: UseReviewSpeechParams): UseReviewSpeechR
       setActiveSide(null);
       showMessageRef.current(speechUnavailableMessage);
     }
-  }, [speechUnavailableMessage, stopSpeech]);
+  }, [locale, speechUnavailableMessage, stopSpeech]);
 
   useEffect(() => {
     if (typeof window.speechSynthesis === "undefined") {

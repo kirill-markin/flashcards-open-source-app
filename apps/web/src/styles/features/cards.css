@@ -41,7 +41,7 @@
 .cards-filter-popover {
   position: absolute;
   top: calc(100% + 10px);
-  right: 0;
+  inset-inline-end: 0;
   z-index: 30;
   display: grid;
   gap: 16px;
@@ -623,8 +623,8 @@
   }
 
   .cards-filter-popover {
-    left: 0;
-    right: auto;
+    inset-inline-start: 0;
+    inset-inline-end: auto;
     width: min(100%, 420px);
   }
 

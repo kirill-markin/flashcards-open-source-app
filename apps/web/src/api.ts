@@ -25,6 +25,8 @@ import {
 } from "./apiContracts";
 import { getAppConfig } from "./config";
 import { webAppVersion } from "./clientIdentity";
+import { getDefaultLocale, resolveSupportedLocale } from "./i18n/locales";
+import type { Locale } from "./i18n/types";
 import type {
   AgentApiKeyConnection,
   AgentApiKeyConnectionsResponse,
@@ -83,7 +85,7 @@ type NavigateToUrl = (url: string) => void;
 type ChatResumeRequestDiagnostics = Readonly<{
   resumeAttemptId: number;
 }>;
-export type AuthUiLocale = "en" | "es";
+export type AuthUiLocale = Locale;
 
 const collectionPageLimit = 100;
 
@@ -194,17 +196,7 @@ function getCurrentReturnUrl(): string {
 }
 
 function normalizeAuthUiLocale(localeHint: string): AuthUiLocale | null {
-  const normalizedLocaleHint = localeHint.replaceAll("_", "-").trim().toLowerCase();
-  if (normalizedLocaleHint === "") {
-    return null;
-  }
-
-  const primaryLanguage = normalizedLocaleHint.split("-")[0];
-  if (primaryLanguage === "en" || primaryLanguage === "es") {
-    return primaryLanguage;
-  }
-
-  return null;
+  return resolveSupportedLocale(localeHint);
 }
 
 function getNavigatorLanguages(): ReadonlyArray<string> {
@@ -227,7 +219,7 @@ export function getPreferredAuthUiLocale(): AuthUiLocale {
     }
   }
 
-  return "en";
+  return getDefaultLocale();
 }
 
 /**

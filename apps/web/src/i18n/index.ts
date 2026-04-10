@@ -19,9 +19,12 @@ export {
 } from "./runtime";
 export {
   autoLocalePreference,
+  defaultLocale,
+  defaultSpanishLocale,
   supportedLocales,
   type DateTimeValue,
   type Locale,
+  type LocaleDirection,
   type LocalePreference,
   type PluralCountLabels,
   type TranslationValues,

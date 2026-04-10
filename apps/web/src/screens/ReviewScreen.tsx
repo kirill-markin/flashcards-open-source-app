@@ -413,7 +413,7 @@ export function ReviewScreen(): ReactElement {
     deleteCardItem,
     setErrorMessage,
   } = useAppData();
-  const { t, formatCount, formatDateTime, formatNumber } = useI18n();
+  const { locale, t, formatCount, formatDateTime, formatNumber } = useI18n();
   const [isAnswerVisible, setIsAnswerVisible] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [reviewSubmitState, setReviewSubmitState] = useState<ReviewSubmitState>("idle");
@@ -448,6 +448,7 @@ export function ReviewScreen(): ReactElement {
     stopSpeech,
     toggleSpeech,
   } = useReviewSpeech({
+    locale,
     showMessage: showReviewSpeechMessage,
     speechUnavailableMessage: t("reviewScreen.speechUnavailable"),
   });

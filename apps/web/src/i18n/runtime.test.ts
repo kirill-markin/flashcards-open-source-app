@@ -42,28 +42,41 @@ describe("i18n runtime", () => {
     window.localStorage.clear();
   });
 
-  it("matches a supported locale from navigator.languages with BCP47 regional tags", () => {
+  it("prefers an exact supported locale match from navigator.languages", () => {
     const resolution = resolveBrowserLocaleFromSnapshot({
       language: "en-US",
-      languages: ["fr-FR", "es-MX", "en-GB"],
+      languages: ["es-MX", "es", "en-GB"],
     });
 
     expect(resolution).toEqual({
-      locale: "es",
+      locale: "es-MX",
       matchedLanguageTag: "es-MX",
+      source: "navigator.languages",
+    });
+  });
+
+  it("falls back to a supported locale family when the browser tag is more specific than the app locale", () => {
+    const resolution = resolveBrowserLocaleFromSnapshot({
+      language: "en-US",
+      languages: ["zh-CN"],
+    });
+
+    expect(resolution).toEqual({
+      locale: "zh-Hans",
+      matchedLanguageTag: "zh-CN",
       source: "navigator.languages",
     });
   });
 
   it("falls back to navigator.language when navigator.languages does not match", () => {
     const resolution = resolveBrowserLocaleFromSnapshot({
-      language: "en-GB",
+      language: "es",
       languages: ["fr-FR"],
     });
 
     expect(resolution).toEqual({
-      locale: "en",
-      matchedLanguageTag: "en-GB",
+      locale: "es-ES",
+      matchedLanguageTag: "es",
       source: "navigator.language",
     });
   });
@@ -71,7 +84,7 @@ describe("i18n runtime", () => {
   it("falls back to English when no supported browser locale is available", () => {
     const resolution = resolveBrowserLocaleFromSnapshot({
       language: "fr-FR",
-      languages: ["de-DE", "pt-BR"],
+      languages: ["pt-BR", "it-IT"],
     });
 
     expect(resolution).toEqual({
@@ -84,22 +97,36 @@ describe("i18n runtime", () => {
   it("persists explicit locale preferences and clears auto mode from storage", () => {
     expect(readStoredLocalePreference()).toBe("auto");
 
-    persistLocalePreference("es");
-    expect(readStoredLocalePreference()).toBe("es");
+    persistLocalePreference("es-MX");
+    expect(readStoredLocalePreference()).toBe("es-MX");
 
     persistLocalePreference("auto");
     expect(readStoredLocalePreference()).toBe("auto");
   });
 
+  it("migrates a legacy stored Spanish preference to an exact locale tag", () => {
+    window.localStorage.setItem("flashcards-web-locale-preference", "es");
+
+    expect(readStoredLocalePreference()).toBe("es-ES");
+    expect(window.localStorage.getItem("flashcards-web-locale-preference")).toBe("es-ES");
+  });
+
   it("uses the explicit locale preference ahead of browser detection", () => {
-    const localeState = resolveLocaleState("es");
+    const localeState = resolveLocaleState("es-MX");
 
     expect(localeState).toEqual({
-      locale: "es",
-      localePreference: "es",
+      locale: "es-MX",
+      direction: "ltr",
+      localePreference: "es-MX",
       matchedBrowserLanguageTag: null,
       source: "storage",
     });
     expect(translateMessage(localeState.locale, "navigation.review", undefined)).toBe("Repasar");
+  });
+
+  it("exposes rtl direction metadata for supported rtl locales", () => {
+    const localeState = resolveLocaleState("ar");
+
+    expect(localeState.direction).toBe("rtl");
   });
 });
