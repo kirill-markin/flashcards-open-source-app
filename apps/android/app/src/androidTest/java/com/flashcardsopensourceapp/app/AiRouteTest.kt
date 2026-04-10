@@ -23,6 +23,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.core.ui.bidiWrap
+import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
@@ -55,7 +57,8 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         val consentTitle = composeRule.activity.getString(AiFeatureR.string.ai_consent_title)
         val consentDisclosure = formatAiConsentWorkspaceDisclosureText(
             template = composeRule.activity.getString(AiFeatureR.string.ai_consent_workspace_disclosure),
-            currentWorkspaceName = "Personal"
+            currentWorkspaceName = "Personal",
+            locale = currentResourceLocale(resources = composeRule.activity.resources)
         )
         val privacyPolicy = composeRule.activity.getString(AiFeatureR.string.ai_privacy_policy)
         val termsOfService = composeRule.activity.getString(AiFeatureR.string.ai_terms_of_service)
@@ -476,7 +479,10 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     fun unknownContentShowsUnsupportedPlaceholder() {
         val unsupportedType = composeRule.activity.getString(
             AiFeatureR.string.ai_unknown_type_subtitle,
-            "audio_transcript_v2"
+            bidiWrap(
+                text = "audio_transcript_v2",
+                locale = currentResourceLocale(resources = composeRule.activity.resources)
+            )
         )
         composeRule.setContent {
             FlashcardsTheme {
