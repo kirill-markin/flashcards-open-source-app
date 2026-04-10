@@ -252,6 +252,7 @@ export function AppShell(): ReactElement {
   const sessionRestoringMessage = sessionVerificationState === "unverified" ? t("loading.restoringSession") : "";
   const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
   const workspaceManagementLockedMessage = t("workspaceManagement.lockedMessage");
+  const activeWorkspaceId: string | null = activeWorkspace?.workspaceId ?? null;
   const activeWorkspaceName: string | null = activeWorkspace?.name ?? null;
   const activeWorkspaceLabel: string = activeWorkspaceName ?? t("app.workspaceUnavailable");
 
@@ -401,8 +402,14 @@ export function AppShell(): ReactElement {
                 {isSyncing ? <span className="topbar-sync-status">{t("app.syncing")}</span> : null}
                 {!isSyncing && sessionRestoringMessage !== "" ? <span className="topbar-sync-status">{sessionRestoringMessage}</span> : null}
               </div>
+              <span data-testid="topbar-active-workspace-id-value" hidden>{activeWorkspaceId ?? ""}</span>
               <span data-testid="topbar-active-workspace-value" hidden>{activeWorkspaceName ?? ""}</span>
-              <p className="topbar-workspace" data-testid="topbar-active-workspace" data-workspace-name={activeWorkspaceName ?? ""}>
+              <p
+                className="topbar-workspace"
+                data-testid="topbar-active-workspace"
+                data-workspace-id={activeWorkspaceId ?? ""}
+                data-workspace-name={activeWorkspaceName ?? ""}
+              >
                 {activeWorkspaceLabel}
               </p>
             </div>
