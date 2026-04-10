@@ -43,10 +43,10 @@ extension LiveSmokeTestCase {
     @MainActor
     func currentScreenSummary() -> String {
         guard self.app != nil else {
-            return "appState=uninitialized screens=[-]"
+            return "appState=uninitialized screens=[-] tabs=[-]"
         }
         guard self.isApplicationRunning else {
-            return "appState=\(self.appStateDescription()) screens=[-]"
+            return "appState=\(self.appStateDescription()) screens=[-] tabs=[-]"
         }
 
         let visibleScreenTitles = LiveSmokeScreen.allCases
@@ -55,10 +55,12 @@ extension LiveSmokeTestCase {
             }
             .map(\.title)
             .joined(separator: ", ")
+        let visibleTabBarItems = self.visibleTabBarItemSnapshot()
 
         return """
         appState=\(self.appStateDescription()) \
-        screens=[\(visibleScreenTitles.isEmpty ? "-" : visibleScreenTitles)]
+        screens=[\(visibleScreenTitles.isEmpty ? "-" : visibleScreenTitles)] \
+        tabs=[\(visibleTabBarItems)]
         """
     }
 
@@ -115,6 +117,27 @@ extension LiveSmokeTestCase {
             let exists = self.app.descendants(matching: .any).matching(identifier: screen.identifier).firstMatch.exists
             return "\(screen.identifier)=\(exists)"
         }.joined(separator: " | ")
+    }
+
+    @MainActor
+    func visibleTabBarItemSnapshot() -> String {
+        guard self.app != nil else {
+            return "-"
+        }
+        guard self.isApplicationRunning else {
+            return "-"
+        }
+
+        let buttons = self.elements(query: self.app.tabBars.buttons)
+        guard buttons.isEmpty == false else {
+            return "-"
+        }
+
+        return buttons.enumerated().map { index, button in
+            let label = button.label.isEmpty ? "<empty>" : button.label
+            let identifier = button.identifier.isEmpty ? "-" : button.identifier
+            return "\(label){index=\(index),id=\(identifier),hittable=\(button.isHittable)}"
+        }.joined(separator: ", ")
     }
 
     @MainActor

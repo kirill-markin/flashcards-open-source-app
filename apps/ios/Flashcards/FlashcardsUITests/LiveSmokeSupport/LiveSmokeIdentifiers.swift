@@ -85,6 +85,12 @@ enum LiveSmokeLaunchResetState: String {
     case localGuestSeededAIReviewCard = "local_guest_seeded_ai_review_card"
 }
 
+struct LiveSmokeTabBarItemLookup {
+    let identifier: String
+    let localizedTitle: String
+    let stableIndex: Int
+}
+
 enum LiveSmokeSelectedTab: String {
     case review
     case cards
@@ -114,6 +120,48 @@ enum LiveSmokeSelectedTab: String {
             return .ai
         case .settings:
             return .settings
+        }
+    }
+
+    func tabBarItemLookup(localization: LiveSmokeLaunchLocalization) -> LiveSmokeTabBarItemLookup {
+        LiveSmokeTabBarItemLookup(
+            identifier: self.itemIdentifier,
+            localizedTitle: self.localizedTitle(localization: localization),
+            stableIndex: self.stableTabIndex
+        )
+    }
+
+    var stableTabIndex: Int {
+        switch self {
+        case .review:
+            return 0
+        case .cards:
+            return 1
+        case .ai:
+            return 2
+        case .settings:
+            return 3
+        }
+    }
+
+    func localizedTitle(localization: LiveSmokeLaunchLocalization) -> String {
+        switch (self, localization) {
+        case (.review, .english):
+            return "Review"
+        case (.review, .arabic):
+            return "المراجعة"
+        case (.cards, .english):
+            return "Cards"
+        case (.cards, .arabic):
+            return "البطاقات"
+        case (.ai, .english):
+            return "AI"
+        case (.ai, .arabic):
+            return "الذكاء الاصطناعي"
+        case (.settings, .english):
+            return "Settings"
+        case (.settings, .arabic):
+            return "الإعدادات"
         }
     }
 }
