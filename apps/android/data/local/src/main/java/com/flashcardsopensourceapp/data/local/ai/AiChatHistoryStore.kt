@@ -258,7 +258,6 @@ class AiChatHistoryStore(
                     .put("dictationEnabled", config.features.dictationEnabled)
                     .put("attachmentsEnabled", config.features.attachmentsEnabled)
             )
-            .put("liveUrl", config.liveUrl ?: JSONObject.NULL)
     }
 
     private fun decodeChatConfig(jsonObject: JSONObject): AiChatServerConfig {
@@ -289,8 +288,7 @@ class AiChatHistoryStore(
                 modelPickerEnabled = features.optBoolean("modelPickerEnabled", false),
                 dictationEnabled = features.optBoolean("dictationEnabled", true),
                 attachmentsEnabled = features.optBoolean("attachmentsEnabled", true)
-            ),
-            liveUrl = jsonObject.optString("liveUrl", "").ifBlank { null }
+            )
         )
     }
 

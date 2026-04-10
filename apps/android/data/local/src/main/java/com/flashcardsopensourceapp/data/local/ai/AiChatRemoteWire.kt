@@ -113,8 +113,7 @@ private data class AiChatServerConfigWire(
     val provider: AiChatProviderWire,
     val model: AiChatServerModelWire,
     val reasoning: AiChatReasoningWire,
-    val features: AiChatFeaturesWire,
-    val liveUrl: StrictRemoteString? = null
+    val features: AiChatFeaturesWire
 )
 
 @Serializable
@@ -179,8 +178,6 @@ private data class AiChatAcceptedConversationEnvelopeWire(
 @Serializable
 private data class AiChatStopRunResponseWire(
     val sessionId: StrictRemoteString,
-    val conversationScopeId: StrictRemoteString,
-    val runId: StrictRemoteString? = null,
     val stopped: StrictRemoteBoolean,
     val stillRunning: StrictRemoteBoolean
 )
@@ -513,8 +510,6 @@ internal fun decodeAiChatStopRunResponse(payload: String): AiChatStopRunResponse
     val wire = decodeAiChatWire<AiChatStopRunResponseWire>(payload = payload, context = "chat.stop")
     return AiChatStopRunResponse(
         sessionId = wire.sessionId.value,
-        conversationScopeId = wire.conversationScopeId.value,
-        runId = wire.runId?.value?.ifBlank { null },
         stopped = wire.stopped.value,
         stillRunning = wire.stillRunning.value
     )
@@ -697,8 +692,7 @@ private fun AiChatServerConfigWire.asDomain(): AiChatServerConfig {
             modelPickerEnabled = this.features.modelPickerEnabled.value,
             dictationEnabled = this.features.dictationEnabled.value,
             attachmentsEnabled = this.features.attachmentsEnabled.value
-        ),
-        liveUrl = this.liveUrl?.value?.ifBlank { null }
+        )
     )
 }
 

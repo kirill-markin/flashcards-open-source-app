@@ -984,8 +984,6 @@ export function parseStopChatRunResponse(value: unknown, endpoint: string): Stop
   const objectValue = parseObject(value, endpoint, "");
   return {
     sessionId: parseRequiredField(objectValue, "sessionId", endpoint, "", parseString),
-    conversationScopeId: parseRequiredField(objectValue, "conversationScopeId", endpoint, "", parseString),
-    runId: parseRequiredField(objectValue, "runId", endpoint, "", parseNullableString),
     stopped: parseRequiredField(objectValue, "stopped", endpoint, "", parseBoolean),
     stillRunning: parseRequiredField(objectValue, "stillRunning", endpoint, "", parseBoolean),
   };

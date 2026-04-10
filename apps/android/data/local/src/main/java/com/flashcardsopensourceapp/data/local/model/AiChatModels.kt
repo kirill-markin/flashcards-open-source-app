@@ -56,8 +56,7 @@ data class AiChatServerConfig(
     val provider: AiChatProvider,
     val model: AiChatServerModel,
     val reasoning: AiChatReasoning,
-    val features: AiChatFeatures,
-    val liveUrl: String?
+    val features: AiChatFeatures
 )
 
 data class AiChatLiveStreamEnvelope(
@@ -115,8 +114,7 @@ val defaultAiChatServerConfig: AiChatServerConfig = AiChatServerConfig(
         modelPickerEnabled = false,
         dictationEnabled = true,
         attachmentsEnabled = true
-    ),
-    liveUrl = null
+    )
 )
 
 enum class AiChatRole {
@@ -376,8 +374,6 @@ typealias AiChatBootstrapResponse = AiChatConversationEnvelope
 
 data class AiChatStopRunResponse(
     val sessionId: String,
-    val conversationScopeId: String,
-    val runId: String?,
     val stopped: Boolean,
     val stillRunning: Boolean
 )

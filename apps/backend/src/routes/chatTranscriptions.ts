@@ -52,8 +52,9 @@ async function resolveChatTranscriptionSessionId(
     throw new HttpError(400, "sessionId must be a UUID", "CHAT_SESSION_ID_INVALID");
   }
 
-  // Older clients may still omit sessionId here. Keep that path for backward
-  // compatibility even though the preferred current flow is an explicit id.
+  // First-party clients at 1.1.3 no longer omit sessionId here. Keep this
+  // legacy session-less path temporarily for older released clients, then
+  // remove it in a future legacy chat cleanup.
   try {
     const snapshot = await getRecoveredChatSessionSnapshotFn(userId, workspaceId, requestedSessionId);
     return snapshot.sessionId;
