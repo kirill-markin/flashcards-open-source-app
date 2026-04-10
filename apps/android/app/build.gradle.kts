@@ -96,10 +96,6 @@ android {
         compose = true
     }
 
-    androidResources {
-        generateLocaleConfig = true
-    }
-
     testOptions {
         animationsDisabled = true
         execution = "ANDROIDX_TEST_ORCHESTRATOR"
