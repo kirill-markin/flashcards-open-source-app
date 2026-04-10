@@ -210,6 +210,7 @@ internal class FakeAiChatRepository : AiChatRepository {
     val createNewSessionRequests: MutableList<String> = mutableListOf()
     val createNewSessionGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val createNewSessionResponses: ArrayDeque<AiChatSessionSnapshot> = ArrayDeque()
+    val savePersistedStateGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val persistedStates: MutableMap<String?, AiChatPersistedState> = mutableMapOf()
     val draftStates: MutableMap<Pair<String?, String?>, AiChatDraftState> = mutableMapOf()
     val ensureSessionRequests: MutableList<String> = mutableListOf()
@@ -265,6 +266,9 @@ internal class FakeAiChatRepository : AiChatRepository {
     }
 
     override suspend fun savePersistedState(workspaceId: String?, state: AiChatPersistedState) {
+        if (savePersistedStateGates.isNotEmpty()) {
+            savePersistedStateGates.removeFirst().await()
+        }
         persistedStates[workspaceId] = state
     }
 

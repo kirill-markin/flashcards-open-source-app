@@ -136,7 +136,13 @@ fun WorkspaceTagsRoute(
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("${uiState.totalCards}")
+                                Text(
+                                    text = pluralStringResource(
+                                        id = R.plurals.settings_cards_count,
+                                        count = uiState.totalCards,
+                                        uiState.totalCards
+                                    )
+                                )
                                 Text(
                                     stringResource(R.string.settings_workspace_tags_total_cards_body),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant

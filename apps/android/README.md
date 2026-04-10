@@ -89,6 +89,18 @@ Run commands from `apps/android/`.
 
 - Add a new app language safely: [`docs/add-language-checklist.md`](docs/add-language-checklist.md)
 
+## Localization Rule
+
+Android app-internal translations are Play-first.
+
+- Keep the Android source tree authoritative for the base English strings, stable string keys/plurals, base locale metadata, and the explicit supported-language list used to advertise app languages to Android system settings.
+- Google Play App strings translation is the source of truth for translated Android UI copy. Do not sync Play-managed translations back into repository-owned Android `values-xx` trees.
+- Do not rely on AGP locale generation from checked-in resources as the source of supported translated languages. Play-managed languages must still be advertised explicitly from the checked-in Android locale plumbing so Android's per-app language settings can list them.
+- Keep the explicit Android supported-language list aligned with the languages enabled for Play App strings in the release you are shipping.
+- Keep store listing text, screenshots, and other marketing localization separate from in-app Android strings. Those are Play Console and media-asset concerns, not a reason to reintroduce repository-managed Android UI translations.
+- When a new Android app language is needed, add the English source strings or locale-ready formatting in repo, update the explicit locale-advertising config, upload a draft release to Google Play, review the Play-managed translations there, verify the Play-delivered build, and publish later from Play Console.
+- A local debug build is useful only for base-resource sanity and locale-plumbing checks. Treat the Play-delivered draft build as the source of truth for translated UI copy and final per-app language availability.
+
 ## Media Assets
 
 Store committed Android marketing assets and reference screenshots in `apps/android/docs/media/`.
@@ -161,9 +173,11 @@ The repository policy for Android CI/CD is:
 - Firebase Test Lab is the cloud device test runner
 - `cloudbuild.android.yaml` is the Google-native Cloud Build entrypoint
 - Google auth from GitHub must use Workload Identity Federation, not a JSON key
-- the release gate order is Android unit tests plus build/lint first, then GitHub-hosted `data:local` instrumentation, then Firebase Test Lab app UI instrumentation, then Google Play release
+- the GitHub-hosted Android release gate is unit tests plus build/lint first, then GitHub-hosted `data:local` instrumentation; after that succeeds, CI uploads a Google Play production-track draft
+- Firebase Test Lab still runs the full app UI instrumentation suite for the same SHA and run, but it does not block the Play draft upload path; review those results before publishing from Play Console
 - after pushing to `main`, watch `Android Release` when Android-impacting files changed; it runs independently from the AWS/Web release workflow
-- manual Android workflow runs also go through `Android Release`, and Google Play publish stays opt-in there
+- after the workflow uploads the AAB, review Play App strings translations in Play Console, confirm the Play language set still matches the app's explicit supported-language list, verify the Play-delivered build, and publish the release there manually
+- manual Android workflow runs also go through `Android Release`, and Play draft upload stays opt-in there
 
 ## Respect Existing Code
 

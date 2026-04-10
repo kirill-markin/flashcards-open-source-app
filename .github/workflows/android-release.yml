@@ -20,8 +20,8 @@ on:
         description: Git SHA to release
         required: true
         type: string
-      publish_to_play:
-        description: Publish the signed bundle to Google Play after Android CI succeeds
+      upload_to_play_draft:
+        description: Upload the signed bundle to Google Play as a draft production release after Android CI succeeds
         required: true
         default: false
         type: boolean
@@ -108,11 +108,11 @@ jobs:
           TARGET_SHA: ${{ steps.resolve.outputs.target_sha }}
           ANDROID_CHANGED: ${{ steps.resolve.outputs.android_changed }}
           BLOCK_REASON: ${{ steps.resolve.outputs.block_reason }}
-          PUBLISH_TO_PLAY: ${{ inputs.publish_to_play }}
+          UPLOAD_TO_PLAY_DRAFT: ${{ inputs.upload_to_play_draft }}
         run: |
           set -euo pipefail
 
-          if [[ "${ANDROID_CHANGED}" != "true" ]] && [[ "${EVENT_NAME}" == "push" || "${PUBLISH_TO_PLAY}" == "true" ]]; then
+          if [[ "${ANDROID_CHANGED}" != "true" ]] && [[ "${EVENT_NAME}" == "push" || "${UPLOAD_TO_PLAY_DRAFT}" == "true" ]]; then
             echo "Android release requires Android changes for ${TARGET_SHA}. Block reason: ${BLOCK_REASON}." >&2
             exit 1
           fi
@@ -127,7 +127,8 @@ jobs:
             echo "- Android changed: \`${{ steps.resolve.outputs.android_changed }}\`"
             echo "- Block reason: \`${{ steps.resolve.outputs.block_reason || 'n/a' }}\`"
             echo "- Event: \`${{ github.event_name }}\`"
-            echo "- Publish to Play: \`${{ github.event_name == 'push' || inputs.publish_to_play }}\`"
+            echo "- Upload draft to Play: \`${{ github.event_name == 'push' || inputs.upload_to_play_draft }}\`"
+            echo "- Play publish mode: \`draft production release uploaded by CI; final publish happens later in Play Console\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
   android_ci:
@@ -144,11 +145,11 @@ jobs:
     secrets: inherit
 
   publish_android:
-    name: Publish Android bundle to Google Play production track
+    name: Upload Android bundle to Google Play production draft release
     needs:
       - preflight
       - android_ci
-    if: ${{ needs.android_ci.result == 'success' && (github.event_name == 'push' || inputs.publish_to_play) }}
+    if: ${{ needs.android_ci.result == 'success' && (github.event_name == 'push' || inputs.upload_to_play_draft) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     concurrency:
@@ -250,10 +251,17 @@ jobs:
           printf 'ANDROID_KEYSTORE_PATH=%s\n' "${keystore_path}" >> "${GITHUB_ENV}"
 
       - name: Resolve Android release version code
+        env:
+          TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
+          set -euo pipefail
+
           base_epoch_seconds=1767225600
           current_epoch_seconds="$(date -u +%s)"
           version_code=$(( current_epoch_seconds - base_epoch_seconds ))
+          target_short_sha="$(printf '%s' "${TARGET_SHA}" | cut -c1-8)"
 
           if [[ "${version_code}" -le 0 ]]; then
             echo "Resolved Android version code must be positive. Got: ${version_code}." >&2
@@ -265,8 +273,14 @@ jobs:
             exit 1
           fi
 
+          if [[ "${#target_short_sha}" -ne 8 ]]; then
+            echo "Resolved target SHA prefix must be 8 characters. Got: ${target_short_sha}." >&2
+            exit 1
+          fi
+
           printf 'ANDROID_VERSION_CODE=%s\n' "${version_code}" >> "${GITHUB_ENV}"
-          printf 'ANDROID_PLAY_RELEASE_NAME=main-%s\n' "${version_code}" >> "${GITHUB_ENV}"
+          printf 'ANDROID_TARGET_SHORT_SHA=%s\n' "${target_short_sha}" >> "${GITHUB_ENV}"
+          printf 'ANDROID_PLAY_RELEASE_NAME=main-draft-%s-r%sa%s-s%s\n' "${version_code}" "${GITHUB_RUN_ID}" "${GITHUB_RUN_ATTEMPT}" "${target_short_sha}" >> "${GITHUB_ENV}"
 
       - name: Build signed Android App Bundle
         env:
@@ -288,15 +302,32 @@ jobs:
           if-no-files-found: error
           path: apps/android/app/build/outputs/bundle/release/app-release.aab
 
-      - name: Upload bundle to Google Play production track
+      - name: Upload bundle to Google Play production track as draft release
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
           packageName: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
           releaseFiles: apps/android/app/build/outputs/bundle/release/app-release.aab
           track: production
-          status: completed
+          status: draft
           releaseName: ${{ env.ANDROID_PLAY_RELEASE_NAME }}
+
+      - name: Summarize Play draft upload
+        run: |
+          {
+            echo "## Android Play draft upload"
+            echo ""
+            echo "- Production track release name: \`${ANDROID_PLAY_RELEASE_NAME}\`"
+            echo "- Version code: \`${ANDROID_VERSION_CODE}\`"
+            echo "- Target SHA: \`${{ needs.preflight.outputs.target_sha }}\`"
+            echo "- GitHub run: \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`"
+            echo "- GitHub run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "- Upload state: \`draft\`"
+            echo "- Firebase Test Lab submission: \`${{ needs.android_ci.outputs.firebase_test_lab_submission_state || 'n/a' }}\`"
+            echo "- Firebase Test Lab matrix ID: \`${{ needs.android_ci.outputs.firebase_test_lab_matrix_id || 'n/a' }}\`"
+            echo "- Firebase Test Lab results path: \`${{ needs.android_ci.outputs.firebase_test_lab_results_path || 'n/a' }}\`"
+            echo "- Next step: review Play App strings translations in Play Console, then publish the release manually."
+          } >> "${GITHUB_STEP_SUMMARY}"
 
   release_summary:
     name: Android release summary
@@ -317,6 +348,11 @@ jobs:
             echo "- Android changed: \`${{ needs.preflight.outputs.android_changed }}\`"
             echo "- Block reason: \`${{ needs.preflight.outputs.block_reason || 'n/a' }}\`"
             echo "- Android CI result: \`${{ needs.android_ci.result }}\`"
-            echo "- Android publish result: \`${{ needs.publish_android.result }}\`"
+            echo "- Android Play draft upload result: \`${{ needs.publish_android.result }}\`"
+            echo "- Firebase Test Lab submission: \`${{ needs.android_ci.outputs.firebase_test_lab_submission_state || 'n/a' }}\`"
+            echo "- Firebase Test Lab matrix ID: \`${{ needs.android_ci.outputs.firebase_test_lab_matrix_id || 'n/a' }}\`"
+            echo "- Firebase Test Lab results path: \`${{ needs.android_ci.outputs.firebase_test_lab_results_path || 'n/a' }}\`"
+            echo "- Firebase Test Lab device: \`${{ needs.android_ci.outputs.firebase_test_lab_device_descriptor || 'n/a' }}\`"
+            echo "- Play publish mode: \`CI uploads a production-track draft only; Play Console publication remains manual\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"

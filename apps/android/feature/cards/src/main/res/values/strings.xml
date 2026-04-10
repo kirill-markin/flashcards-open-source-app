@@ -29,6 +29,7 @@
     <string name="cards_text_preview_placeholder">Tap to edit</string>
     <string name="cards_no_tags_selected">No tags selected</string>
     <string name="cards_no_tags_label">No tags</string>
+    <string name="cards_tag_with_count">%1$s (%2$d)</string>
     <string name="cards_due_new">New</string>
     <string name="cards_filter_summary_effort">Effort: %1$s</string>
     <string name="cards_filter_summary_tags">Tags: %1$s</string>

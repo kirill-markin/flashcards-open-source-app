@@ -5,6 +5,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -13,6 +14,37 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AiChatRuntimeContextTest {
+    @Test
+    fun persistStateKeepsNewestSnapshotWhenOlderWriteFinishesLast() = runTest {
+        val repository = FakeAiChatRepository()
+        val firstSaveGate = CompletableDeferred<Unit>()
+        repository.savePersistedStateGates += firstSaveGate
+        val context = makeRuntimeContext(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository()
+        )
+        val olderSnapshot = makeAiDraftState(
+            workspaceId = defaultTestWorkspaceId,
+            persistedState = makeDefaultAiChatPersistedState().copy(chatSessionId = "session-1")
+        )
+        val newerSnapshot = makeAiDraftState(
+            workspaceId = defaultTestWorkspaceId,
+            persistedState = makeDefaultAiChatPersistedState().copy(chatSessionId = "session-2")
+        )
+
+        context.persistState(snapshot = olderSnapshot)
+        runCurrent()
+        context.persistState(snapshot = newerSnapshot)
+        firstSaveGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(
+            "session-2",
+            repository.persistedStates[defaultTestWorkspaceId]?.chatSessionId
+        )
+    }
+
     @Test
     fun autoSyncCompletionClearsOnlyTheOriginWorkspaceAfterWorkspaceSwitch() = runTest {
         val repository = FakeAiChatRepository()

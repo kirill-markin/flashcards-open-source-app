@@ -7,6 +7,7 @@ This repository uses one reusable Android validation workflow plus one dedicated
 - `.github/workflows/android-ci-reusable.yml` contains the actual Android CI implementation
 - `.github/workflows/android-release.yml` is the canonical Android workflow for `push main` and manual runs
 - Android release is fully independent from the AWS/Web release workflow on `main`
+- the Android release workflow uploads a production-track draft release to Google Play; final publication still happens later in Play Console
 - `cloudbuild.android.yaml` is the Google-native entrypoint for Cloud Build triggers in the Google Cloud console
 
 This setup keeps repository-native checks in GitHub while still using Google-managed device testing and avoiding long-lived Google service account keys.
@@ -60,19 +61,38 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 - Uploads `data:local` instrumentation reports from the emulator run when the Gradle task produced them
 - Validates the Firebase Test Lab configuration whenever the reusable workflow is called with app instrumentation enabled
 - Runs Firebase Test Lab against the full app instrumentation package `com.flashcardsopensourceapp.app`, excluding `com.flashcardsopensourceapp.app.ManualOnlyAndroidTest`
-- Waits up to 30 minutes for the Firebase Test Lab matrix to finish on the GitHub side, then explicitly cancels the matrix and fails the workflow with a timeout error
+- Tracks Firebase Test Lab results in the configured Cloud Storage results path, namespaced per GitHub run as `${ANDROID_FTL_RESULTS_DIR}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}`
 - Fails the workflow instead of silently skipping the Firebase Test Lab app instrumentation gate when the required repository variables are missing
 
-The intended Android release order is:
+The Android release flow is:
 
 1. Android unit tests, debug builds, and lint in GitHub Actions
 2. `data:local` Android instrumentation on a GitHub-hosted Android 16 emulator
-3. Full app UI instrumentation suite in Firebase Test Lab on the configured Android 16 device
-4. Google Play production release from `android-release.yml`
+3. `android-release.yml` uploads a Google Play production-track draft release after the GitHub-hosted gate succeeds
+4. Firebase Test Lab continues tracking the full app UI instrumentation suite for the same SHA and run outside the Play draft upload critical path
 
 After pushing to `main`, watch `Android Release` separately when Android-impacting files changed.
 
-`Android Release` runs independently on `push main` for Android-impacting changes and on manual `workflow_dispatch` with an explicit target SHA. Manual runs execute Android CI plus Firebase Test Lab app instrumentation, and publish to Google Play only when `publish_to_play` is explicitly enabled.
+`Android Release` runs independently on `push main` for Android-impacting changes and on manual `workflow_dispatch` with an explicit target SHA. Push runs upload a Play draft automatically after the GitHub-hosted Android gate succeeds. Manual runs execute the same GitHub-hosted gate, still start Firebase Test Lab app instrumentation for the target SHA, and upload a Play draft only when `upload_to_play_draft` is explicitly enabled.
+
+For Android, a green `Android Release` run always means the GitHub-hosted Android gate passed for that SHA. On `push main` runs and manual runs with `upload_to_play_draft=true`, it also means CI uploaded the Play draft successfully. On manual runs with `upload_to_play_draft=false`, the workflow can still finish green with the Play draft upload intentionally skipped. A non-green `Android Release` run means the GitHub-hosted gate failed, or the Play draft upload failed in a run that was supposed to upload it. It does not mean Firebase Test Lab has already finished, and it does not mean the release is already live.
+
+To match a Play draft to the exact SHA, GitHub run, and Firebase results:
+
+- use the `Android release preflight` summary to get the target SHA
+- use the `Android Play draft upload` summary to get the Play draft release name `main-draft-<versionCode>-r<runId>a<attempt>-s<shortSha>` and version code
+- use the `Run details` link in the release summary to open the exact GitHub Actions run
+- use the same run's Firebase results path `${ANDROID_FTL_RESULTS_DIR}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}` in the configured results bucket to inspect the device-lab outcome
+
+## Android translation model
+
+Android app-internal translations are Play-first:
+
+- Keep the repository authoritative for the base English Android strings and locale plumbing.
+- Do not add or maintain repository-owned Android `values-xx` translation trees by default, including Spanish.
+- After CI uploads the signed AAB as a draft production release, use Google Play App strings translation and Gemini in Play Console to create or update translated Android UI copy.
+- Review and publish that draft later in Play Console after the Play-managed translations are ready.
+- Treat Google Play listing localization separately from in-app Android strings.
 
 Cross-client live smoke references:
 
@@ -96,6 +116,7 @@ This is the current recommended shape for this repository:
 - Do not store Google service account JSON keys in GitHub secrets
 - Use Firebase Test Lab for instrumentation tests instead of self-hosted emulators
 - Use a separate Google Cloud service account for Google Play uploads, scoped in Play Console to this app only
+- Use Google Play production-track draft uploads so translation review and final release approval stay in Play Console
 - Use a dedicated Cloud Storage bucket for Test Lab results so you do not need broad `roles/editor`
 
 Google's current documentation supports this direction:
@@ -244,22 +265,28 @@ Then set:
 
 Set the required repository variables listed above before expecting the Firebase Test Lab job to run in GitHub Actions.
 
-Set the Google Play release variables and secrets before expecting `.github/workflows/android-release.yml` to succeed.
+Set the Google Play release variables and secrets before expecting `.github/workflows/android-release.yml` to upload a draft release successfully.
 
 `ANDROID_PLAY_PACKAGE_NAME` should match the Android `applicationId`. In this repository that value is `com.flashcardsopensourceapp.app`.
 
 ## One-time Play Console setup
 
-Before the release workflow can publish to Google Play, complete this one-time setup in Play Console:
+Before the release workflow can upload draft releases to Google Play, complete this one-time setup in Play Console:
 
 1. Create the app with package name `com.flashcardsopensourceapp.app`.
 2. Complete the required Play Console setup sections for the app shell, including app access, ads declaration, content rating, target audience, privacy policy, and Data safety if Play requires them for release submission.
 3. Enable Play App Signing for the app.
 4. Configure production availability in Play Console, including countries and regions for the production track.
-5. Invite `GCP_PLAY_SERVICE_ACCOUNT_EMAIL` in Play Console under Users and permissions, then grant the app-specific permissions needed to release builds to the production track.
+5. Invite `GCP_PLAY_SERVICE_ACCOUNT_EMAIL` in Play Console under Users and permissions, then grant the app-specific permissions needed to upload production-track draft releases.
 6. Make the first signed upload manually in Play Console using the same upload keystore that CI will use later.
 
-That first manual upload is the safest bootstrap step because it establishes the app entry, Play App Signing state, and first track release before CI takes over subsequent uploads.
+That first manual upload is the safest bootstrap step because it establishes the app entry, Play App Signing state, and first track release before CI takes over subsequent draft uploads.
+
+After CI uploads a draft release:
+
+1. Open Play Console and review the new production-track draft release.
+2. Review or generate Android App strings translations there with the Play Console workflow and Gemini.
+3. Publish the release manually from Play Console when translation review is complete.
 
 ## Cloud Build trigger setup
 

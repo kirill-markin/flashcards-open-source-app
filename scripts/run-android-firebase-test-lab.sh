@@ -13,6 +13,7 @@ RESULTS_DIR=""
 TEST_TIMEOUT=""
 MAX_MATRIX_DURATION=""
 TEST_TARGETS=()
+ASYNC_SUBMISSION="false"
 MAX_INFRASTRUCTURE_RETRIES=2
 MATRIX_POLL_INTERVAL_SECONDS=30
 MATRIX_CANCEL_POLL_TIMEOUT_SECONDS=120
@@ -32,6 +33,7 @@ while [[ $# -gt 0 ]]; do
     --timeout) TEST_TIMEOUT="$2"; shift 2 ;;
     --max-matrix-duration) MAX_MATRIX_DURATION="$2"; shift 2 ;;
     --test-targets) TEST_TARGETS+=("$2"); shift 2 ;;
+    --async) ASYNC_SUBMISSION="true"; shift 1 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -76,7 +78,7 @@ if [[ -z "${TEST_TIMEOUT}" ]]; then
   exit 1
 fi
 
-if [[ -z "${MAX_MATRIX_DURATION}" ]]; then
+if [[ "${ASYNC_SUBMISSION}" != "true" ]] && [[ -z "${MAX_MATRIX_DURATION}" ]]; then
   echo "ERROR: --max-matrix-duration is required." >&2
   exit 1
 fi
@@ -86,7 +88,7 @@ if ! command -v gcloud >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! command -v curl >/dev/null 2>&1; then
+if [[ "${ASYNC_SUBMISSION}" != "true" ]] && ! command -v curl >/dev/null 2>&1; then
   echo "ERROR: curl is required to monitor Firebase Test Lab matrices." >&2
   exit 1
 fi
@@ -125,14 +127,16 @@ print(hours * 3600 + minutes * 60 + seconds)
 PY
 }
 
-MAX_MATRIX_DURATION_SECONDS="$(parse_duration_to_seconds "${MAX_MATRIX_DURATION}")" || {
-  echo "ERROR: Invalid --max-matrix-duration value: ${MAX_MATRIX_DURATION}." >&2
-  exit 1
-}
+if [[ "${ASYNC_SUBMISSION}" != "true" ]]; then
+  MAX_MATRIX_DURATION_SECONDS="$(parse_duration_to_seconds "${MAX_MATRIX_DURATION}")" || {
+    echo "ERROR: Invalid --max-matrix-duration value: ${MAX_MATRIX_DURATION}." >&2
+    exit 1
+  }
 
-if [[ "${MAX_MATRIX_DURATION_SECONDS}" -le 0 ]]; then
-  echo "ERROR: --max-matrix-duration must be greater than zero." >&2
-  exit 1
+  if [[ "${MAX_MATRIX_DURATION_SECONDS}" -le 0 ]]; then
+    echo "ERROR: --max-matrix-duration must be greater than zero." >&2
+    exit 1
+  fi
 fi
 
 perform_testing_api_request() {
@@ -408,6 +412,11 @@ while true; do
     if [[ -z "${MATRIX_ID}" ]]; then
       echo "ERROR: Firebase Test Lab matrix id was not found in gcloud output." >&2
       exit 1
+    fi
+
+    if [[ "${ASYNC_SUBMISSION}" == "true" ]]; then
+      echo "INFO: Firebase Test Lab matrix submitted asynchronously. Matrix=${MATRIX_ID} ResultsBucket=${RESULTS_BUCKET} ResultsDir=${RESULTS_DIR}" >&2
+      exit 0
     fi
 
     MATRIX_ACTIVE="true"
