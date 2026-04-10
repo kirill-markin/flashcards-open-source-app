@@ -39,6 +39,8 @@ const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
 const REVIEW_MARKDOWN_SYMBOL_ONLY_LIST_ITEM_PATTERN = /^(\s{0,3}[-*+]\s+)([+*\-#>])(\s*)$/;
 
 type MarkdownFenceMarker = "`" | "~";
+type ReviewPaneState = "loading" | "card" | "empty";
+type ReviewPaneEmptyReason = "none" | "nothing-due" | "no-cards";
 
 const reviewAnswerOptions: ReadonlyArray<ReviewRating> = [0, 2, 1, 3];
 
@@ -216,6 +218,30 @@ function escapeSymbolOnlyListItem(line: string): string {
   const trailingWhitespace = match[3];
 
   return `${listMarker}\\${symbolToken}${trailingWhitespace}`;
+}
+
+function resolveReviewPaneState(isInitialReviewLoad: boolean, selectedCard: Card | null): ReviewPaneState {
+  if (isInitialReviewLoad) {
+    return "loading";
+  }
+
+  if (selectedCard !== null) {
+    return "card";
+  }
+
+  return "empty";
+}
+
+function resolveReviewPaneEmptyReason(
+  isInitialReviewLoad: boolean,
+  selectedCard: Card | null,
+  hasCards: boolean,
+): ReviewPaneEmptyReason {
+  if (isInitialReviewLoad || selectedCard !== null) {
+    return "none";
+  }
+
+  return hasCards ? "nothing-due" : "no-cards";
 }
 
 export function normalizeReviewMarkdownForWeb(text: string): string {
@@ -539,6 +565,8 @@ export function ReviewScreen(): ReactElement {
 
   const leftReviewButtonOptions = reviewButtonOptions.slice(0, REVIEW_BUTTONS_PER_COLUMN);
   const rightReviewButtonOptions = reviewButtonOptions.slice(REVIEW_BUTTONS_PER_COLUMN, REVIEW_BUTTONS_PER_COLUMN * 2);
+  const reviewPaneState = resolveReviewPaneState(isInitialReviewLoad, selectedCard);
+  const reviewPaneEmptyReason = resolveReviewPaneEmptyReason(isInitialReviewLoad, selectedCard, hasCards);
 
   return (
     <main className="container" data-testid="review-screen">
@@ -582,7 +610,12 @@ export function ReviewScreen(): ReactElement {
         </div>
 
         <div className="review-layout">
-          <section className="review-pane">
+          <section
+            className="review-pane"
+            data-testid="review-pane"
+            data-review-pane-state={reviewPaneState}
+            data-review-pane-empty-reason={reviewPaneEmptyReason}
+          >
             {isInitialReviewLoad ? (
               <>
                 <div className="review-pane-head">
