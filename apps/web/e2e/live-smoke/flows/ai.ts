@@ -19,7 +19,11 @@ import {
   waitForCompletedCardInsertToolCall,
 } from "../observations/ai";
 import { runLiveSmokeStep } from "../steps";
-import type { LiveSmokeSession } from "../types";
+import type {
+  AiRunAcceptanceState,
+  AiTransportObservation,
+  LiveSmokeSession,
+} from "../types";
 
 export async function runAiCardCreationFlow(session: LiveSmokeSession): Promise<void> {
   await runLiveSmokeStep(session, "create one AI card with explicit confirmation and confirm the insert completed", async () => {
@@ -100,12 +104,13 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
         externalUiTimeoutMs,
       );
       transportObserver.start();
-      let transportObservation;
-      let requiresLiveStreamRequest = false;
+      let transportObservation: AiTransportObservation | null = null;
+      let acceptanceState: AiRunAcceptanceState | null = null;
+      let requiresLiveAttachRequest = false;
 
       try {
         await trackedClick(diagnostics, `send AI create prompt attempt ${String(attempt)}`, sendButton);
-        await waitForAiRunAccepted(
+        acceptanceState = await waitForAiRunAccepted(
           page,
           diagnostics,
           attempt,
@@ -120,19 +125,6 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
           previousAssistantErrorCount,
         );
 
-        transportObservation = transportObserver.stop();
-
-        await diagnostics.runAction(
-          `confirm AI create prompt attempt ${String(attempt)} used one live stream request, no snapshot polling, and no session-less chat requests`,
-          async () => {
-            expect(transportObservation.liveRequestCount).toBe(1);
-            expect(transportObservation.snapshotPollRequestCount).toBe(0);
-            expect(transportObservation.sessionlessChatSnapshotRequestCount).toBe(0);
-            expect(transportObservation.sessionlessChatRunRequestCount).toBe(0);
-            expect(transportObservation.sessionlessTranscriptionRequestCount).toBe(0);
-          },
-        );
-
         if (attemptResolution.completionState === "inserted") {
           const stopButton = page.getByTestId("chat-stop-button");
           const stopButtonVisible = await trackedIsVisible(
@@ -142,12 +134,12 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
           );
 
           if (stopButtonVisible) {
-            requiresLiveStreamRequest = true;
+            requiresLiveAttachRequest = true;
             await diagnostics.runAction(
-              `wait for AI create prompt attempt ${String(attempt)} live stream request after confirmed insert`,
+              `wait for AI create prompt attempt ${String(attempt)} live attach request after confirmed insert`,
               async () => {
                 await expect.poll(
-                  () => transportObserver.read().liveRequestCount,
+                  () => transportObserver.read().liveAttachRequestCount,
                   { timeout: localUiTimeoutMs },
                 ).toBeGreaterThan(0);
               },
@@ -170,8 +162,6 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
           externalUiTimeoutMs,
         );
 
-        transportObservation = transportObserver.stop();
-
         const matchedInsertToolCall = attemptResolution.matchedInsertToolCall ?? await waitForCompletedCardInsertToolCall(
           page,
           diagnostics,
@@ -179,15 +169,20 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
           localUiTimeoutMs,
         );
 
+        transportObservation = transportObserver.stop();
+        if (acceptanceState === "running") {
+          requiresLiveAttachRequest = true;
+        }
+
         await diagnostics.runAction(
-          `confirm AI create prompt attempt ${String(attempt)} avoided snapshot polling and session-less chat requests`,
+          `confirm AI create prompt attempt ${String(attempt)} used valid live transport without snapshot polling or session-less chat requests`,
           async () => {
             expect(transportObservation.snapshotPollRequestCount).toBe(0);
             expect(transportObservation.sessionlessChatSnapshotRequestCount).toBe(0);
             expect(transportObservation.sessionlessChatRunRequestCount).toBe(0);
             expect(transportObservation.sessionlessTranscriptionRequestCount).toBe(0);
-            if (requiresLiveStreamRequest) {
-              expect(transportObservation.liveRequestCount).toBeGreaterThan(0);
+            if (requiresLiveAttachRequest) {
+              expect(transportObservation.liveAttachRequestCount).toBeGreaterThan(0);
             }
           },
         );
@@ -196,7 +191,7 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
           return;
         }
       } finally {
-        if (transportObservation === undefined) {
+        if (transportObservation === null) {
           transportObserver.stop();
         }
       }

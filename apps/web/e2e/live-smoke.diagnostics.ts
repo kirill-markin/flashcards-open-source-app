@@ -6,6 +6,8 @@ import {
   type TestInfo,
 } from "@playwright/test";
 
+import { classifyAiTransportGetRequest } from "./live-smoke/aiTransport";
+
 const failureSummaryTailSize = 25;
 
 type DiagnosticTimelineEvent = "step_started" | "step_completed" | "action_started" | "action_completed";
@@ -57,6 +59,7 @@ type NetworkDiagnosticEvent = Readonly<{
   requestUrl: string;
   method: string;
   resourceType: string;
+  requestHeaders: Readonly<Record<string, string | undefined>>;
   isNavigationRequest: boolean;
   status: number | null;
   statusText: string | null;
@@ -197,6 +200,7 @@ export function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
       requestUrl: request.url(),
       method: request.method(),
       resourceType: request.resourceType(),
+      requestHeaders: request.headers(),
       isNavigationRequest: request.isNavigationRequest(),
       status: null,
       statusText: null,
@@ -217,6 +221,7 @@ export function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
       requestUrl: response.url(),
       method: request.method(),
       resourceType: request.resourceType(),
+      requestHeaders: request.headers(),
       isNavigationRequest: request.isNavigationRequest(),
       status: response.status(),
       statusText: response.statusText(),
@@ -236,6 +241,7 @@ export function createLiveSmokeDiagnostics(page: Page): LiveSmokeDiagnostics {
       requestUrl: request.url(),
       method: request.method(),
       resourceType: request.resourceType(),
+      requestHeaders: request.headers(),
       isNavigationRequest: request.isNavigationRequest(),
       status: null,
       statusText: null,
@@ -401,7 +407,7 @@ function buildFailureSummary(record: FailureDiagnosticRecord): string {
   const recentTimeline = record.actionTimeline.slice(-failureSummaryTailSize);
   const recentConsoleEvents = record.consoleEvents.slice(-failureSummaryTailSize);
   const recentNetworkEvents = record.networkEvents.slice(-failureSummaryTailSize);
-  const chatRequestSummary = summarizeChatRequests(record.networkEvents);
+  const chatRequestSummary = summarizeAiTransportRequests(record.networkEvents);
 
   return [
     `Current test: ${record.currentTest ?? "unknown"}`,
@@ -417,10 +423,9 @@ function buildFailureSummary(record: FailureDiagnosticRecord): string {
     `Console events: ${record.consoleEvents.length}`,
     `Page errors: ${record.pageErrors.length}`,
     `Network events: ${record.networkEvents.length}`,
-    `Chat requests: ${String(chatRequestSummary.total)}`,
-    `Chat requests without sessionId: ${String(chatRequestSummary.withoutSessionId)}`,
-    `Chat requests with sessionId: ${String(chatRequestSummary.withSessionId)}`,
-    `Chat requests with afterCursor: ${String(chatRequestSummary.withAfterCursor)}`,
+    `AI live attach requests: ${String(chatRequestSummary.liveAttachRequestCount)}`,
+    `AI snapshot poll requests: ${String(chatRequestSummary.snapshotPollRequestCount)}`,
+    `AI session-less snapshot requests: ${String(chatRequestSummary.sessionlessChatSnapshotRequestCount)}`,
     "",
     "Recent timeline:",
     ...formatTimelineEntries(recentTimeline),
@@ -439,46 +444,36 @@ function buildFailureSummary(record: FailureDiagnosticRecord): string {
   ].join("\n");
 }
 
-type ChatRequestSummary = Readonly<{
-  total: number;
-  withoutSessionId: number;
-  withSessionId: number;
-  withAfterCursor: number;
+type AiTransportRequestSummary = Readonly<{
+  liveAttachRequestCount: number;
+  snapshotPollRequestCount: number;
+  sessionlessChatSnapshotRequestCount: number;
 }>;
 
-function summarizeChatRequests(
+function summarizeAiTransportRequests(
   events: ReadonlyArray<NetworkDiagnosticEvent>,
-): ChatRequestSummary {
-  return events.reduce<ChatRequestSummary>((summary, event) => {
+): AiTransportRequestSummary {
+  return events.reduce<AiTransportRequestSummary>((summary, event) => {
     if (event.kind !== "request") {
       return summary;
     }
 
-    let url: URL;
-    try {
-      url = new URL(event.requestUrl);
-    } catch {
-      return summary;
-    }
-
-    if (url.pathname !== "/v1/chat") {
-      return summary;
-    }
-
-    const hasSessionId = url.searchParams.has("sessionId");
-    const hasAfterCursor = url.searchParams.has("afterCursor");
+    const requestKind = classifyAiTransportGetRequest({
+      method: event.method,
+      url: event.requestUrl,
+      resourceType: event.resourceType,
+      headers: event.requestHeaders,
+    });
 
     return {
-      total: summary.total + 1,
-      withoutSessionId: summary.withoutSessionId + (hasSessionId ? 0 : 1),
-      withSessionId: summary.withSessionId + (hasSessionId ? 1 : 0),
-      withAfterCursor: summary.withAfterCursor + (hasAfterCursor ? 1 : 0),
+      liveAttachRequestCount: summary.liveAttachRequestCount + (requestKind === "live_attach" ? 1 : 0),
+      snapshotPollRequestCount: summary.snapshotPollRequestCount + (requestKind === "snapshot_poll" ? 1 : 0),
+      sessionlessChatSnapshotRequestCount: summary.sessionlessChatSnapshotRequestCount + (requestKind === "sessionless_chat_snapshot" ? 1 : 0),
     };
   }, {
-    total: 0,
-    withoutSessionId: 0,
-    withSessionId: 0,
-    withAfterCursor: 0,
+    liveAttachRequestCount: 0,
+    snapshotPollRequestCount: 0,
+    sessionlessChatSnapshotRequestCount: 0,
   });
 }
 
