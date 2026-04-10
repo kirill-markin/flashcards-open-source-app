@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import kotlinx.coroutines.delay
 
@@ -183,7 +184,10 @@ private fun AiConversationEmptyState(
             textAlign = TextAlign.Center
         )
         Text(
-            text = stringResource(id = R.string.ai_empty_body, currentWorkspaceName),
+            text = stringResource(
+                id = R.string.ai_empty_body,
+                bidiWrap(text = currentWorkspaceName)
+            ),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

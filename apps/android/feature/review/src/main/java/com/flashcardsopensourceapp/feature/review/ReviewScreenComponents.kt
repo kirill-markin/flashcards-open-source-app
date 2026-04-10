@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewEffortFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
@@ -430,7 +431,10 @@ private fun ReviewCardContent(
         ) {
             ReviewMetadataItem(
                 icon = Icons.Outlined.AccessTime,
-                label = stringResource(id = R.string.review_due_label, currentCard.dueLabel)
+                label = stringResource(
+                    id = R.string.review_due_label,
+                    bidiWrap(text = currentCard.dueLabel)
+                )
             )
             ReviewMetadataItem(
                 icon = Icons.Outlined.Autorenew,
@@ -492,9 +496,15 @@ private fun ReviewCardSideSection(
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
                             contentDescription = if (isSpeechPlaying) {
-                                stringResource(id = R.string.review_stop_speech, label)
+                                stringResource(
+                                    id = R.string.review_stop_speech,
+                                    bidiWrap(text = label)
+                                )
                             } else {
-                                stringResource(id = R.string.review_speak, label)
+                                stringResource(
+                                    id = R.string.review_speak,
+                                    bidiWrap(text = label)
+                                )
                             },
                             modifier = Modifier.size(reviewSpeechIconSize)
                         )
@@ -778,7 +788,7 @@ internal fun ReviewFilterSheet(
                     ReviewFilterOptionRow(
                         title = stringResource(
                             id = R.string.review_filter_title_with_count,
-                            deck.title,
+                            bidiWrap(text = deck.title),
                             deck.totalCount
                         ),
                         subtitle = stringResource(id = R.string.review_filtered_deck_subtitle),
@@ -803,7 +813,7 @@ internal fun ReviewFilterSheet(
                 ReviewFilterOptionRow(
                     title = stringResource(
                         id = R.string.review_filter_title_with_count,
-                        reviewEffortLabel(effortLevel = effortFilter.effortLevel),
+                        bidiWrap(text = reviewEffortLabel(effortLevel = effortFilter.effortLevel)),
                         effortFilter.totalCount
                     ),
                     subtitle = stringResource(id = R.string.review_virtual_effort_filter_subtitle),
@@ -828,7 +838,7 @@ internal fun ReviewFilterSheet(
                     ReviewFilterOptionRow(
                         title = stringResource(
                             id = R.string.review_filter_title_with_count,
-                            tag.tag,
+                            bidiWrap(text = tag.tag),
                             tag.totalCount
                         ),
                         subtitle = stringResource(id = R.string.review_workspace_tag_subtitle),

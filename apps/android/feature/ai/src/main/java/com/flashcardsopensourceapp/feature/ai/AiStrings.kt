@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai
 
 import android.content.Context
+import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.feature.settings.AccessCapability
@@ -125,7 +126,10 @@ data class AiTextProvider(
     }
 
     fun messageWithRequestId(message: String, requestId: String): String {
-        return messageWithRequestIdFormat.format(message, requestId)
+        return messageWithRequestIdFormat.format(
+            bidiWrap(text = message),
+            bidiWrap(text = requestId)
+        )
     }
 
     fun unsupportedFileType(extension: String): String {
@@ -134,7 +138,9 @@ data class AiTextProvider(
             return selectedFileTypeUnsupported
         }
 
-        return selectedFileTypeUnsupportedWithExtensionFormat.format(normalizedExtension)
+        return selectedFileTypeUnsupportedWithExtensionFormat.format(
+            bidiWrap(text = normalizedExtension)
+        )
     }
 
     fun effortLabel(effortLevel: EffortLevel): String {
