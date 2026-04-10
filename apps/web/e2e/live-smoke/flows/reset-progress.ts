@@ -1,13 +1,13 @@
+import { expect } from "@playwright/test";
+
 import {
   trackedClick,
   trackedExpectAttribute,
   trackedExpectText,
   trackedExpectVisible,
   trackedFill,
-  trackedGoto,
   trackedReadRequiredTextContent,
 } from "../../live-smoke.actions";
-import { workspaceSettingsRoute } from "../../../src/routes";
 import { externalUiTimeoutMs, localUiTimeoutMs } from "../config";
 import { runLiveSmokeStep } from "../steps";
 import type { LiveSmokeSession } from "../types";
@@ -47,14 +47,25 @@ async function confirmReviewedManualCardStillExists(session: LiveSmokeSession): 
 }
 
 async function completeResetProgressFlow(session: LiveSmokeSession): Promise<void> {
-  const { page, diagnostics, baseUrl } = session;
+  const { page, diagnostics } = session;
 
-  await trackedGoto(
-    page,
+  await ensureScenarioWorkspaceSelected(session, "before reset progress flow");
+
+  await trackedClick(
     diagnostics,
-    "open workspace settings route before reset",
-    `${baseUrl}${workspaceSettingsRoute}`,
-    externalUiTimeoutMs,
+    "open settings navigation before reset",
+    page.locator('nav.nav a[href="/settings"]').first(),
+  );
+  await trackedExpectVisible(
+    diagnostics,
+    "confirm settings screen is visible before opening workspace settings",
+    page.locator(".settings-panel"),
+    localUiTimeoutMs,
+  );
+  await trackedClick(
+    diagnostics,
+    "open workspace settings screen before reset",
+    page.locator('.settings-switcher a[href="/settings/workspace"]').first(),
   );
   await trackedExpectVisible(
     diagnostics,
@@ -129,4 +140,85 @@ async function confirmReviewedManualCardBecomesDueAgain(session: LiveSmokeSessio
     scenario.manualFrontText,
     externalUiTimeoutMs,
   );
+}
+
+async function ensureScenarioWorkspaceSelected(
+  session: LiveSmokeSession,
+  actionSuffix: string,
+): Promise<void> {
+  const { page, diagnostics, scenario } = session;
+  const activeWorkspaceValue = page.getByTestId("topbar-active-workspace-value");
+
+  const currentWorkspaceName = await diagnostics.runAction(
+    `read active workspace ${actionSuffix}`,
+    async () => (await activeWorkspaceValue.textContent())?.trim() ?? "",
+  );
+
+  if (currentWorkspaceName !== scenario.workspaceName) {
+    await trackedClick(
+      diagnostics,
+      `open settings navigation to recover workspace ${actionSuffix}`,
+      page.locator('nav.nav a[href="/settings"]').first(),
+    );
+    await trackedExpectVisible(
+      diagnostics,
+      `confirm settings screen is visible while recovering workspace ${actionSuffix}`,
+      page.locator(".settings-panel"),
+      localUiTimeoutMs,
+    );
+    await trackedClick(
+      diagnostics,
+      `open current workspace settings while recovering workspace ${actionSuffix}`,
+      page.locator('.settings-switcher a[href="/settings/current-workspace"]').first(),
+    );
+    const workspaceActionCard = page.locator(".settings-nav-card-button[data-workspace-management-state]").first();
+    await trackedExpectAttribute(
+      diagnostics,
+      `wait for workspace picker readiness while recovering workspace ${actionSuffix}`,
+      workspaceActionCard,
+      "data-workspace-management-state",
+      "ready",
+      externalUiTimeoutMs,
+    );
+    await trackedClick(
+      diagnostics,
+      `expand workspace picker while recovering workspace ${actionSuffix}`,
+      workspaceActionCard,
+    );
+    await trackedExpectVisible(
+      diagnostics,
+      `confirm workspace picker is visible while recovering workspace ${actionSuffix}`,
+      page.locator(".settings-workspace-picker"),
+      externalUiTimeoutMs,
+    );
+    await trackedClick(
+      diagnostics,
+      `select scenario workspace ${scenario.workspaceName} while recovering workspace ${actionSuffix}`,
+      page.locator(".settings-workspace-choice").filter({ hasText: scenario.workspaceName }).first(),
+    );
+  }
+
+  await trackedExpectText(
+    diagnostics,
+    `confirm topbar shows scenario workspace ${scenario.workspaceName} ${actionSuffix}`,
+    activeWorkspaceValue,
+    scenario.workspaceName,
+    externalUiTimeoutMs,
+  );
+  await waitForSyncIndicatorToDisappear(session, actionSuffix);
+}
+
+async function waitForSyncIndicatorToDisappear(
+  session: LiveSmokeSession,
+  actionSuffix: string,
+): Promise<void> {
+  const { page, diagnostics } = session;
+
+  await diagnostics.runAction(`wait for sync indicator to disappear ${actionSuffix}`, async () => {
+    const syncStatus = page.locator(".topbar-sync-status");
+    await expect.poll(
+      async () => syncStatus.first().isVisible().catch(() => false),
+      { timeout: resetPreviewTimeoutMs },
+    ).toBe(false);
+  });
 }
