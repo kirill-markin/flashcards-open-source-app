@@ -56,13 +56,12 @@ async function completeResetProgressFlow(session: LiveSmokeSession): Promise<voi
     page.locator(".settings-panel"),
     localUiTimeoutMs,
   );
+  const resetDialog = page.getByTestId("workspace-reset-progress-dialog");
   await trackedClick(
     diagnostics,
     "open reset all progress dialog",
-    page.locator('button.settings-danger-btn').first(),
+    page.getByTestId("workspace-reset-progress-open"),
   );
-
-  const resetDialog = page.locator(".settings-delete-dialog-backdrop");
   await trackedExpectVisible(
     diagnostics,
     "confirm reset all progress dialog is visible",
@@ -86,10 +85,10 @@ async function completeResetProgressFlow(session: LiveSmokeSession): Promise<voi
   await trackedClick(
     diagnostics,
     "continue to reset progress preview",
-    resetDialog.locator(".screen-actions .settings-danger-btn").first(),
+    resetDialog.getByTestId("workspace-reset-progress-continue-to-preview"),
   );
 
-  const resetPreviewCount = page.getByTestId("workspace-reset-progress-preview-count");
+  const resetPreviewCount = resetDialog.getByTestId("workspace-reset-progress-preview-count");
   await trackedExpectText(
     diagnostics,
     "confirm reset preview shows exactly one card",
@@ -100,7 +99,7 @@ async function completeResetProgressFlow(session: LiveSmokeSession): Promise<voi
   await trackedClick(
     diagnostics,
     "confirm reset all progress",
-    resetDialog.locator(".screen-actions .primary-btn").first(),
+    resetDialog.getByTestId("workspace-reset-progress-confirm-reset"),
   );
 }
 

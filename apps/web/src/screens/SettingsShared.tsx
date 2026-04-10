@@ -31,6 +31,7 @@ type SettingsActionCardProps = Readonly<{
   description: string;
   value: string;
   onClick: () => void;
+  testId?: string;
   isMuted?: boolean;
   disabled?: boolean;
   workspaceManagementState?: "locked" | "ready";
@@ -138,7 +139,7 @@ export function SettingsNavigationCard(props: SettingsNavigationCardProps): Reac
 }
 
 export function SettingsActionCard(props: SettingsActionCardProps): ReactElement {
-  const { title, description, value, onClick, isMuted, disabled, workspaceManagementState } = props;
+  const { title, description, value, onClick, testId, isMuted, disabled, workspaceManagementState } = props;
 
   return (
     <button
@@ -148,6 +149,7 @@ export function SettingsActionCard(props: SettingsActionCardProps): ReactElement
       disabled={disabled}
       aria-disabled={workspaceManagementState === undefined ? undefined : workspaceManagementState === "locked" ? "true" : "false"}
       data-workspace-management-state={workspaceManagementState}
+      data-testid={testId}
     >
       <div className="settings-nav-card-copy">
         <strong className="panel-subtitle">{title}</strong>
