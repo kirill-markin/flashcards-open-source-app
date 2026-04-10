@@ -174,7 +174,9 @@ The repository policy for Android CI/CD is:
 - `cloudbuild.android.yaml` is the Google-native Cloud Build entrypoint
 - Google auth from GitHub must use Workload Identity Federation, not a JSON key
 - the GitHub-hosted Android release gate is unit tests plus build/lint first, then GitHub-hosted `data:local` instrumentation; after that succeeds, CI uploads a Google Play production-track draft
-- Firebase Test Lab still runs the full app UI instrumentation suite for the same SHA and run, but it does not block the Play draft upload path; review those results before publishing from Play Console
+- one shared `ANDROID_VERSION_CODE` is resolved once per release run and reused across Android release artifacts and the Play draft bundle
+- one shared manager-readable release identifier, currently `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`, is reused in the Play release name and Firebase Test Lab result naming so the same release stays traceable across GitHub, Play, and Firebase
+- Firebase Test Lab still runs the full app UI instrumentation suite for the same SHA and release metadata from the top-level `firebase_test_lab_submission` job, but its submission and completion do not block the Play draft upload path; review those results before publishing from Play Console
 - after pushing to `main`, watch `Android Release` when Android-impacting files changed; it runs independently from the AWS/Web release workflow
 - after the workflow uploads the AAB, review Play App strings translations in Play Console, confirm the Play language set still matches the app's explicit supported-language list, verify the Play-delivered build, and publish the release there manually
 - manual Android workflow runs also go through `Android Release`, and Play draft upload stays opt-in there
