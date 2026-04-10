@@ -104,7 +104,7 @@ async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void
   await trackedExpectNotText(
     diagnostics,
     `confirm topbar no longer shows workspace ${scenario.workspaceName}`,
-    page.locator(".topbar-workspace"),
+    page.getByTestId("topbar-active-workspace-value"),
     scenario.workspaceName,
     externalUiTimeoutMs,
   );

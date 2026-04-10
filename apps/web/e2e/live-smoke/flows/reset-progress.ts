@@ -1,5 +1,6 @@
 import {
   trackedClick,
+  trackedExpectAttribute,
   trackedExpectText,
   trackedExpectVisible,
   trackedFill,
@@ -36,7 +37,7 @@ async function confirmReviewedManualCardStillExists(session: LiveSmokeSession): 
   await trackedExpectVisible(
     diagnostics,
     `confirm cards list still shows ${scenario.manualFrontText}`,
-    page.getByText(scenario.manualFrontText, { exact: true }),
+    page.locator(`[data-testid="cards-row"][data-card-front-text=${JSON.stringify(scenario.manualFrontText)}]`).first(),
     externalUiTimeoutMs,
   );
 }
@@ -107,10 +108,12 @@ async function confirmReviewedManualCardBecomesDueAgain(session: LiveSmokeSessio
   const { page, diagnostics, scenario } = session;
 
   await trackedClick(diagnostics, "open review navigation after reset", page.locator('nav.nav a[href="/review"]').first());
-  await trackedExpectVisible(
+  await trackedExpectAttribute(
     diagnostics,
     `confirm the reviewed card becomes due again: ${scenario.manualFrontText}`,
-    page.locator(".review-front").filter({ hasText: scenario.manualFrontText }).first(),
+    page.getByTestId("review-current-front-card"),
+    "data-card-front-text",
+    scenario.manualFrontText,
     externalUiTimeoutMs,
   );
 }

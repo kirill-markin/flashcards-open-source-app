@@ -252,6 +252,8 @@ export function AppShell(): ReactElement {
   const sessionRestoringMessage = sessionVerificationState === "unverified" ? t("loading.restoringSession") : "";
   const isWorkspaceLocked = isWorkspaceManagementLocked(isSessionVerified, cloudSettings);
   const workspaceManagementLockedMessage = t("workspaceManagement.lockedMessage");
+  const activeWorkspaceName: string | null = activeWorkspace?.name ?? null;
+  const activeWorkspaceLabel: string = activeWorkspaceName ?? t("app.workspaceUnavailable");
 
   const completeAccountDeletion = useCallback(async function completeAccountDeletion(): Promise<void> {
     if (isSessionVerified === false) {
@@ -399,7 +401,10 @@ export function AppShell(): ReactElement {
                 {isSyncing ? <span className="topbar-sync-status">{t("app.syncing")}</span> : null}
                 {!isSyncing && sessionRestoringMessage !== "" ? <span className="topbar-sync-status">{sessionRestoringMessage}</span> : null}
               </div>
-              <p className="topbar-workspace">{activeWorkspace?.name ?? t("app.workspaceUnavailable")}</p>
+              <span data-testid="topbar-active-workspace-value" hidden>{activeWorkspaceName ?? ""}</span>
+              <p className="topbar-workspace" data-testid="topbar-active-workspace" data-workspace-name={activeWorkspaceName ?? ""}>
+                {activeWorkspaceLabel}
+              </p>
             </div>
             <nav className="nav" aria-label={t("shell.primaryNavigation")}>
               <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={reviewRoute}>

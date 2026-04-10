@@ -585,7 +585,13 @@ export function CardsScreen(): ReactElement {
               ) : cardsQueryState.items.map((card) => {
                 const isSaving = savingCardId === card.cardId;
                 return (
-                  <tr key={card.cardId} className="txn-row cards-row">
+                  <tr
+                    key={card.cardId}
+                    className="txn-row cards-row"
+                    data-testid="cards-row"
+                    data-card-id={card.cardId}
+                    data-card-front-text={card.frontText}
+                  >
                     <td className="txn-cell cards-open-cell cards-col-open">
                       <Link className="row-open-link" to={`/cards/${card.cardId}`}>{t("cardsScreen.table.open")}</Link>
                     </td>
