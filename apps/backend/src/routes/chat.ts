@@ -12,6 +12,9 @@ import {
   type ChatStopResponse,
 } from "../chat/contract";
 import {
+  type ChatComposerSuggestionsLocale,
+  localizeInitialChatComposerSuggestions,
+  normalizeChatComposerSuggestionsUiLocale,
   type ChatComposerSuggestion,
 } from "../chat/composerSuggestions";
 import { getChatConfig } from "../chat/config";
@@ -104,10 +107,18 @@ export type ChatRequestBody = Readonly<{
   clientRequestId: string;
   content: ReadonlyArray<ChatContentPart>;
   timezone: string;
+  // Optional for backward compatibility with released clients that still send
+  // the pre-uiLocale request shape. Remove once the minimum supported client
+  // versions all send uiLocale.
+  uiLocale?: ChatComposerSuggestionsLocale;
 }>;
 
 type NewChatRequestBody = Readonly<{
   sessionId?: string;
+  // Optional for backward compatibility with released clients that still send
+  // the pre-uiLocale request shape. Remove once the minimum supported client
+  // versions all send uiLocale.
+  uiLocale?: ChatComposerSuggestionsLocale;
 }>;
 
 type StopChatRequestBody = Readonly<{
@@ -174,6 +185,29 @@ function expectString(value: unknown, fieldName: string): string {
   }
 
   return value;
+}
+
+/**
+ * `uiLocale` remains optional for backward compatibility while clients migrate
+ * to the explicit request field. Older clients still omit it and intentionally
+ * receive the English fallback path. Once every supported client sends
+ * `uiLocale`, this parser branch can be simplified.
+ */
+function parseOptionalUiLocale(
+  value: unknown,
+  fieldName: string,
+): ChatComposerSuggestionsLocale | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const uiLocale = expectNonEmptyString(value, fieldName);
+
+  try {
+    return normalizeChatComposerSuggestionsUiLocale(uiLocale);
+  } catch {
+    throw new HttpError(400, `${fieldName} is invalid`);
+  }
 }
 
 /**
@@ -285,6 +319,7 @@ export function parseChatRequestBody(value: unknown): ChatRequestBody {
     clientRequestId: expectNonEmptyString(body.clientRequestId, "clientRequestId"),
     content: parseChatContentParts(body.content, "content"),
     timezone: expectNonEmptyString(body.timezone, "timezone"),
+    uiLocale: parseOptionalUiLocale(body.uiLocale, "uiLocale"),
   };
 }
 
@@ -298,6 +333,7 @@ export function parseNewChatRequestBody(value: unknown): NewChatRequestBody {
     sessionId: body.sessionId === undefined
       ? undefined
       : expectUuidString(body.sessionId, "sessionId"),
+    uiLocale: parseOptionalUiLocale(body.uiLocale, "uiLocale"),
   };
 }
 
@@ -775,6 +811,9 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
         body.content,
         body.clientRequestId,
         body.timezone,
+        // Older clients still omit uiLocale, so keep the null fallback until
+        // every supported app version has migrated to the explicit field.
+        body.uiLocale ?? null,
       );
     } catch (error) {
       return mapStoreError(error);
@@ -844,6 +883,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
             requestContext.userId,
             workspaceId,
             body.sessionId,
+            body.uiLocale ?? null,
           );
           const createdSnapshot = await getRecoveredChatSessionSnapshotFn(
             requestContext.userId,
@@ -854,7 +894,10 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
           return context.json({
             ok: true,
             sessionId: createdSnapshot.sessionId,
-            composerSuggestions: createdSnapshot.composerSuggestions,
+            composerSuggestions: localizeInitialChatComposerSuggestions(
+              createdSnapshot.composerSuggestions,
+              body.uiLocale,
+            ),
             chatConfig: getChatConfig(),
           } satisfies ChatNewResponse);
         } catch (error) {
@@ -872,7 +915,10 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
         return context.json({
           ok: true,
           sessionId: existingSnapshot.sessionId,
-          composerSuggestions: existingSnapshot.composerSuggestions,
+          composerSuggestions: localizeInitialChatComposerSuggestions(
+            existingSnapshot.composerSuggestions,
+            body.uiLocale,
+          ),
           chatConfig: getChatConfig(),
         } satisfies ChatNewResponse);
       } catch (error) {
@@ -895,7 +941,10 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       return context.json({
         ok: true,
         sessionId: snapshot.sessionId,
-        composerSuggestions: snapshot.composerSuggestions,
+        composerSuggestions: localizeInitialChatComposerSuggestions(
+          snapshot.composerSuggestions,
+          body.uiLocale,
+        ),
         chatConfig: getChatConfig(),
       } satisfies ChatNewResponse);
     }
@@ -906,6 +955,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
         requestContext.userId,
         workspaceId,
         snapshot.sessionId,
+        body.uiLocale ?? null,
       );
       newSnapshot = await getRecoveredChatSessionSnapshotFn(
         requestContext.userId,
@@ -919,7 +969,10 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
     return context.json({
       ok: true,
       sessionId: newSnapshot.sessionId,
-      composerSuggestions: newSnapshot.composerSuggestions,
+      composerSuggestions: localizeInitialChatComposerSuggestions(
+        newSnapshot.composerSuggestions,
+        body.uiLocale,
+      ),
       chatConfig: getChatConfig(),
     } satisfies ChatNewResponse);
   });

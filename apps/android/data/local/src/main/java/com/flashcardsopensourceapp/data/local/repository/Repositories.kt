@@ -153,7 +153,8 @@ interface AiChatRepository {
     suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot?
     suspend fun ensureSessionId(
         workspaceId: String?,
-        persistedState: AiChatPersistedState
+        persistedState: AiChatPersistedState,
+        uiLocale: String?
     ): AiChatSessionProvisioningResult
     suspend fun loadBootstrap(
         workspaceId: String?,
@@ -161,7 +162,11 @@ interface AiChatRepository {
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse
-    suspend fun createNewSession(workspaceId: String?, sessionId: String): AiChatSessionSnapshot
+    suspend fun createNewSession(
+        workspaceId: String?,
+        sessionId: String,
+        uiLocale: String?
+    ): AiChatSessionSnapshot
     suspend fun transcribeAudio(
         workspaceId: String?,
         sessionId: String,
@@ -173,7 +178,8 @@ interface AiChatRepository {
     suspend fun startRun(
         workspaceId: String?,
         state: AiChatPersistedState,
-        content: List<com.flashcardsopensourceapp.data.local.model.AiChatContentPart>
+        content: List<com.flashcardsopensourceapp.data.local.model.AiChatContentPart>,
+        uiLocale: String?
     ): AiChatStartRunResponse
     fun attachLiveRun(
         workspaceId: String?,

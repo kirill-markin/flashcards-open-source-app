@@ -1,3 +1,4 @@
+import type { Locale } from "../../i18n/types";
 import type { ChatConfig, ChatComposerSuggestion } from "../../types";
 import type { ChatErrorFallbackMessages } from "../chatHelpers";
 import type { PendingAttachment } from "../FileAttachment";
@@ -24,6 +25,7 @@ export type ChatSessionControllerUiMessages = Readonly<{
 export type UseChatSessionControllerParams = Readonly<{
   workspaceId: string | null;
   isRemoteReady: boolean;
+  uiLocale: Locale;
   onToolRunPostSyncRequested: () => Promise<void>;
   uiMessages: ChatSessionControllerUiMessages;
 }>;

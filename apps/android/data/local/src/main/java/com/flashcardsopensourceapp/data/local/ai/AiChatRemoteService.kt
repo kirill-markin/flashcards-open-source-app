@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.cloud.requireCloudLong
 import com.flashcardsopensourceapp.data.local.cloud.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
+import com.flashcardsopensourceapp.data.local.model.AiChatNewSessionRequest
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
@@ -208,7 +209,7 @@ class AiChatRemoteService(
     suspend fun createNewSession(
         apiBaseUrl: String,
         authorizationHeader: String,
-        sessionId: String
+        request: AiChatNewSessionRequest
     ): AiChatSessionSnapshot = withContext(dispatchers.io) {
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
@@ -222,8 +223,7 @@ class AiChatRemoteService(
             connection.doOutput = true
             connection.outputStream.use { outputStream ->
                 outputStream.write(
-                    JSONObject()
-                        .put("sessionId", sessionId)
+                    encodeNewSessionRequest(request = request)
                         .toString()
                         .toByteArray(StandardCharsets.UTF_8)
                 )
@@ -352,11 +352,37 @@ class AiChatRemoteService(
     }
 
     private fun encodeStartRunRequest(request: AiChatStartRunRequest): JSONObject {
-        return JSONObject()
+        val payload = JSONObject()
             .put("sessionId", request.sessionId)
             .put("clientRequestId", request.clientRequestId)
             .put("content", JSONArray(request.content.map(::encodeWireContentPart)))
             .put("timezone", request.timezone)
+
+        return putOptionalUiLocale(
+            payload = payload,
+            uiLocale = request.uiLocale
+        )
+    }
+
+    private fun encodeNewSessionRequest(request: AiChatNewSessionRequest): JSONObject {
+        val payload = JSONObject()
+            .put("sessionId", request.sessionId)
+
+        return putOptionalUiLocale(
+            payload = payload,
+            uiLocale = request.uiLocale
+        )
+    }
+
+    private fun putOptionalUiLocale(
+        payload: JSONObject,
+        uiLocale: String?
+    ): JSONObject {
+        // Keep uiLocale optional so older backend deployments still accept requests during rollout.
+        uiLocale?.takeIf { value -> value.isNotBlank() }?.let { locale ->
+            payload.put("uiLocale", locale)
+        }
+        return payload
     }
 
     private fun encodeWireContentPart(part: com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart): JSONObject {

@@ -4,6 +4,7 @@ import {
   startChatRun,
   stopChatRun,
 } from "../../api";
+import type { Locale } from "../../i18n/types";
 import type { NewChatSessionResponse } from "../../types";
 import { loadStoredChatConfig, storeChatConfig } from "./config";
 import {
@@ -31,6 +32,7 @@ import type { ChatHistoryState } from "../useChatHistory";
 type UseChatSessionActionsParams = Readonly<{
   workspaceId: string | null;
   isRemoteReady: boolean;
+  uiLocale: Locale;
   uiMessages: ChatSessionControllerUiMessages;
   state: ChatSessionControllerState;
   dispatch: Dispatch<ChatSessionControllerAction>;
@@ -44,7 +46,8 @@ type ChatSessionActions = Readonly<{
   clearConversation: () => Promise<string | null>;
   ensureRemoteSession: () => Promise<string>;
   ensureRemoteSessionForHydration: () => Promise<string>;
-  ensureFreshSession: (sessionId: string) => void;
+  ensureFreshSession: (sessionId: string, requestSequence: number) => void;
+  getFreshSessionRequestSequence: () => number;
 }>;
 
 export function useChatSessionActions(
@@ -53,6 +56,7 @@ export function useChatSessionActions(
   const {
     workspaceId,
     isRemoteReady,
+    uiLocale,
     uiMessages,
     state,
     dispatch,
@@ -77,9 +81,12 @@ export function useChatSessionActions(
     startActiveRunLiveStream,
   } = snapshotSync;
   const clearConversationRequestSequenceRef = useRef<number>(0);
+  const currentUiLocaleRef = useRef<Locale>(uiLocale);
+  currentUiLocaleRef.current = uiLocale;
   const remoteSessionProvisioningRef = useRef<Readonly<{
     workspaceId: string | null;
     sessionId: string;
+    uiLocale: Locale;
     promise: Promise<NewChatSessionResponse>;
   }> | null>(null);
 
@@ -106,7 +113,11 @@ export function useChatSessionActions(
     promise: Promise<NewChatSessionResponse>;
   }> | null {
     const provisioningState = remoteSessionProvisioningRef.current;
-    if (provisioningState === null || provisioningState.workspaceId !== workspaceId) {
+    if (
+      provisioningState === null
+      || provisioningState.workspaceId !== workspaceId
+      || provisioningState.uiLocale !== uiLocale
+    ) {
       return null;
     }
 
@@ -124,10 +135,11 @@ export function useChatSessionActions(
       return activeProvisioning.promise;
     }
 
-    const nextPromise = createNewChatSession(sessionId);
+    const nextPromise = createNewChatSession(sessionId, uiLocale);
     remoteSessionProvisioningRef.current = {
       workspaceId,
       sessionId,
+      uiLocale,
       promise: nextPromise,
     };
 
@@ -139,11 +151,12 @@ export function useChatSessionActions(
         currentProvisioning !== null
         && currentProvisioning.workspaceId === workspaceId
         && currentProvisioning.sessionId === sessionId
+        && currentProvisioning.uiLocale === uiLocale
       ) {
         remoteSessionProvisioningRef.current = null;
       }
     }
-  }, [workspaceId]);
+  }, [uiLocale, workspaceId]);
 
   const beginFreshSessionRequestSequence = useCallback((): number => {
     const nextSequence = clearConversationRequestSequenceRef.current + 1;
@@ -151,20 +164,30 @@ export function useChatSessionActions(
     return nextSequence;
   }, []);
 
+  const getActiveRequestSequence = useCallback((): number => {
+    return clearConversationRequestSequenceRef.current;
+  }, []);
+
+  const isRequestSequenceCurrent = useCallback((requestSequence: number): boolean => {
+    return clearConversationRequestSequenceRef.current === requestSequence
+      && runtimeRefs.currentWorkspaceIdRef.current === workspaceId;
+  }, [runtimeRefs, workspaceId]);
+
   const isFreshSessionEnsureCurrent = useCallback((
     sessionId: string,
     requestSequence: number,
+    requestLocale: Locale,
   ): boolean => {
     return clearConversationRequestSequenceRef.current === requestSequence
       && runtimeRefs.currentWorkspaceIdRef.current === workspaceId
       && runtimeRefs.currentSessionIdRef.current === sessionId
       && runtimeRefs.messagesRef.current.length === 0
-      && runtimeRefs.runStateRef.current === "idle";
+      && runtimeRefs.runStateRef.current === "idle"
+      && currentUiLocaleRef.current === requestLocale;
   }, [runtimeRefs, workspaceId]);
 
-  const ensureFreshSession = useCallback((sessionId: string): void => {
-    const requestSequence = beginFreshSessionRequestSequence();
-
+  const ensureFreshSession = useCallback((sessionId: string, requestSequence: number): void => {
+    const requestLocale = uiLocale;
     void (async (): Promise<void> => {
       try {
         const response = await provisionRemoteSession(sessionId);
@@ -172,7 +195,9 @@ export function useChatSessionActions(
           return;
         }
 
-        if (isFreshSessionEnsureCurrent(sessionId, requestSequence) === false) {
+        // Locale changes must invalidate earlier /chat/new responses so the
+        // empty-session suggestions cannot snap back to an older language.
+        if (isFreshSessionEnsureCurrent(sessionId, requestSequence, requestLocale) === false) {
           return;
         }
 
@@ -184,7 +209,7 @@ export function useChatSessionActions(
         });
         storeChatConfig(response.chatConfig);
       } catch (error) {
-        if (isFreshSessionEnsureCurrent(sessionId, requestSequence)) {
+        if (isFreshSessionEnsureCurrent(sessionId, requestSequence, requestLocale)) {
           dispatch({
             type: "error_shown",
             message: `${uiMessages.newChatFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
@@ -192,7 +217,7 @@ export function useChatSessionActions(
         }
       }
     })();
-  }, [beginFreshSessionRequestSequence, dispatch, isFreshSessionEnsureCurrent, provisionRemoteSession, uiMessages]);
+  }, [dispatch, isFreshSessionEnsureCurrent, provisionRemoteSession, uiMessages]);
 
   const ensureRemoteSession = useCallback(async (): Promise<string> => {
     if (workspaceId === null) {
@@ -322,10 +347,15 @@ export function useChatSessionActions(
       return { accepted: false, sessionId: state.currentSessionId };
     }
 
+    const requestSequence = getActiveRequestSequence();
     let sessionId: string;
     try {
       sessionId = await ensureRemoteSession();
     } catch (error) {
+      if (isRequestSequenceCurrent(requestSequence) === false) {
+        return { accepted: false, sessionId: runtimeRefs.currentSessionIdRef.current };
+      }
+
       dispatch({
         type: "error_shown",
         message: `${uiMessages.requestFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
@@ -339,6 +369,8 @@ export function useChatSessionActions(
       clientRequestId: sendParams.clientRequestId,
       content: contentParts,
       timezone,
+      // Optional on the wire so older backend/client contract phases keep working.
+      uiLocale,
     };
     if (toRequestBodySizeBytes(requestBody) > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
       dispatch({
@@ -350,6 +382,13 @@ export function useChatSessionActions(
 
     try {
       const response = await startChatRun(requestBody);
+      if (isRequestSequenceCurrent(requestSequence) === false) {
+        return {
+          accepted: false,
+          sessionId: runtimeRefs.currentSessionIdRef.current,
+        };
+      }
+
       // Accepted responses can already include tool-call content for the
       // current run, whether the snapshot is terminal or still active. The
       // accepted response is compared against the current local history so
@@ -382,6 +421,10 @@ export function useChatSessionActions(
         sessionId: response.sessionId,
       };
     } catch (error) {
+      if (isRequestSequenceCurrent(requestSequence) === false) {
+        return { accepted: false, sessionId: runtimeRefs.currentSessionIdRef.current };
+      }
+
       if (isChatApiError(error) && error.code === "CHAT_ACTIVE_RUN_IN_PROGRESS") {
         dispatch({
           type: "error_shown",
@@ -399,10 +442,13 @@ export function useChatSessionActions(
   }, [
     appendUserMessage,
     dispatch,
+    getActiveRequestSequence,
     isDocumentVisibleRef,
     isRemoteReady,
+    isRequestSequenceCurrent,
     markRunHadToolCallsFromSnapshot,
     reconcileTerminalSnapshot,
+    runtimeRefs,
     setKnownLiveCursor,
     startActiveRunLiveStream,
     startAssistantMessage,
@@ -413,6 +459,7 @@ export function useChatSessionActions(
     state.runState,
     uiMessages,
     workspaceId,
+    uiLocale,
   ]);
 
   const stopMessage = useCallback(async (): Promise<void> => {
@@ -456,6 +503,8 @@ export function useChatSessionActions(
   ]);
 
   const clearConversation = useCallback(async (): Promise<string | null> => {
+    beginFreshSessionRequestSequence();
+
     if (workspaceId === null) {
       detachLiveStream(null, null);
       invalidatePendingSnapshotRequests();
@@ -475,9 +524,10 @@ export function useChatSessionActions(
       sessionId: nextSessionId,
       chatConfig: loadStoredChatConfig(),
     });
-    ensureFreshSession(nextSessionId);
+    ensureFreshSession(nextSessionId, clearConversationRequestSequenceRef.current);
     return nextSessionId;
   }, [
+    beginFreshSessionRequestSequence,
     clearHistory,
     detachLiveStream,
     dispatch,
@@ -494,5 +544,6 @@ export function useChatSessionActions(
     ensureRemoteSession,
     ensureRemoteSessionForHydration,
     ensureFreshSession,
+    getFreshSessionRequestSequence: getActiveRequestSequence,
   };
 }

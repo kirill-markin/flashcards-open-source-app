@@ -31,7 +31,8 @@ internal class AiChatRuntime(
     hasConsent: () -> Boolean,
     currentCloudState: () -> CloudAccountState,
     currentServerConfiguration: () -> CloudServiceConfiguration,
-    currentSyncStatus: () -> SyncStatus
+    currentSyncStatus: () -> SyncStatus,
+    currentUiLocaleTag: () -> String?
 ) {
     private val context = AiChatRuntimeContext(
         scope = scope,
@@ -42,7 +43,8 @@ internal class AiChatRuntime(
         hasConsent = hasConsent,
         currentCloudState = currentCloudState,
         currentServerConfiguration = currentServerConfiguration,
-        currentSyncStatus = currentSyncStatus
+        currentSyncStatus = currentSyncStatus,
+        currentUiLocaleTag = currentUiLocaleTag
     )
     private lateinit var bootstrapCoordinator: AiChatBootstrapCoordinator
     private lateinit var liveStreamCoordinator: AiChatLiveStreamCoordinator
@@ -567,7 +569,8 @@ internal class AiChatRuntime(
                 val response = context.aiChatRepository.startRun(
                     workspaceId = runtimeStateMutable.value.workspaceId,
                     state = nextPersistedState,
-                    content = outgoingContent
+                    content = outgoingContent,
+                    uiLocale = context.currentUiLocaleTag()
                 )
                 didAcceptRun = true
                 applyAcceptedRunResponse(
@@ -965,7 +968,8 @@ internal class AiChatRuntime(
             try {
                 val snapshot = context.aiChatRepository.createNewSession(
                     workspaceId = workspaceId,
-                    sessionId = targetSessionId
+                    sessionId = targetSessionId,
+                    uiLocale = context.currentUiLocaleTag()
                 )
                 if (
                     snapshot.sessionId != targetSessionId
@@ -1032,7 +1036,8 @@ internal class AiChatRuntime(
         }
         val ensuredSession = context.aiChatRepository.ensureSessionId(
             workspaceId = currentState.workspaceId,
-            persistedState = currentState.persistedState
+            persistedState = currentState.persistedState,
+            uiLocale = context.currentUiLocaleTag()
         )
         val ensuredSnapshot = ensuredSession.snapshot
         if (ensuredSnapshot != null) {

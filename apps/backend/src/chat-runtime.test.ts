@@ -28,6 +28,7 @@ function createParams(): StartPersistedChatRunParams {
     workspaceId: "workspace-1",
     sessionId: "session-1",
     timezone: "Europe/Madrid",
+    uiLocale: "es-MX",
     assistantItemId: "assistant-item-1",
     localMessages: [],
     turnInput: [{ type: "text", text: "hello" }],
@@ -50,6 +51,7 @@ function createDependencies(overrides: DependencyOverrides): ChatRuntimeDependen
     startOpenAILoop: async (_params, _onEvent) => ({
       openaiItems: [],
     }),
+    generateFollowUpChatComposerSuggestions: async () => [],
     completeChatRun: async () => undefined,
     persistAssistantCancelled: async () => undefined,
     persistAssistantTerminalError: async () => undefined,
@@ -439,6 +441,7 @@ test("runPersistedChatSessionWithDeps exits without failing when the claimed run
 
 test("runPersistedChatSessionWithDeps completes a successful run and persists completion once", async () => {
   let completedPersistCount = 0;
+  let composerSuggestionUiLocale: string | null | undefined = undefined;
 
   const logs = await withCapturedLogs(async () => {
     const result = await runPersistedChatSessionWithDeps(
@@ -460,6 +463,15 @@ test("runPersistedChatSessionWithDeps completes a successful run and persists co
             openaiItems: [],
           };
         },
+        generateFollowUpChatComposerSuggestions: async (
+          _userContent,
+          _assistantContent,
+          _assistantItemId,
+          uiLocale,
+        ) => {
+          composerSuggestionUiLocale = uiLocale;
+          return [];
+        },
         completeChatRun: async () => {
           completedPersistCount += 1;
         },
@@ -475,6 +487,7 @@ test("runPersistedChatSessionWithDeps completes a successful run and persists co
   });
 
   assert.equal(completedPersistCount, 1);
+  assert.equal(composerSuggestionUiLocale, "es-MX");
   assert.equal(findLog(logs, "chat_worker_terminal_state_persisted")?.runStatus, "completed");
 });
 

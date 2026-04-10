@@ -71,7 +71,10 @@ extension AIChatStore {
         let task = Task {
             try await self.chatService.createNewSession(
                 session: session,
-                sessionId: sessionId
+                request: AIChatNewSessionRequestBody(
+                    sessionId: sessionId,
+                    uiLocale: currentAIChatUILocaleIdentifier()
+                )
             )
         }
         self.activeRemoteSessionProvisionRequest = AIChatRemoteSessionProvisionRequest(

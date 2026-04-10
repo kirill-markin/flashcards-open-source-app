@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
+import com.flashcardsopensourceapp.data.local.model.AiChatNewSessionRequest
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionProvisioningResult
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionSnapshot
@@ -154,7 +155,8 @@ class LocalAiChatRepository(
 
     override suspend fun ensureSessionId(
         workspaceId: String?,
-        persistedState: AiChatPersistedState
+        persistedState: AiChatPersistedState,
+        uiLocale: String?
     ): AiChatSessionProvisioningResult {
         val normalizedSessionId = resolveAiChatSessionIdOrNull(
             persistedState = persistedState
@@ -169,7 +171,8 @@ class LocalAiChatRepository(
         val explicitSessionId = UUID.randomUUID().toString().lowercase()
         val snapshot = createNewSession(
             workspaceId = workspaceId,
-            sessionId = explicitSessionId
+            sessionId = explicitSessionId,
+            uiLocale = uiLocale
         )
         require(snapshot.sessionId == explicitSessionId) {
             "AI chat session provisioning returned mismatched sessionId. requestedSessionId=$explicitSessionId responseSessionId=${snapshot.sessionId}"
@@ -198,13 +201,17 @@ class LocalAiChatRepository(
 
     override suspend fun createNewSession(
         workspaceId: String?,
-        sessionId: String
+        sessionId: String,
+        uiLocale: String?
     ): AiChatSessionSnapshot {
         val session = authorizedSession(workspaceId = workspaceId)
         return aiChatRemoteService.createNewSession(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader,
-            sessionId = sessionId
+            request = AiChatNewSessionRequest(
+                sessionId = sessionId,
+                uiLocale = uiLocale
+            )
         )
     }
 
@@ -245,7 +252,8 @@ class LocalAiChatRepository(
     override suspend fun startRun(
         workspaceId: String?,
         state: AiChatPersistedState,
-        content: List<AiChatContentPart>
+        content: List<AiChatContentPart>,
+        uiLocale: String?
     ): AiChatStartRunResponse {
         val session = authorizedSession(workspaceId = workspaceId)
         val resolvedSessionId = requireExplicitAiChatSessionIdForRun(state = state)
@@ -254,6 +262,7 @@ class LocalAiChatRepository(
             clientRequestId = java.util.UUID.randomUUID().toString().lowercase(),
             content = buildAiChatRequestContent(content = content),
             timezone = TimeZone.getDefault().id,
+            uiLocale = uiLocale,
         )
 
         AiChatDiagnosticsLogger.info(

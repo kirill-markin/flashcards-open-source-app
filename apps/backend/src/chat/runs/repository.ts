@@ -9,6 +9,7 @@ import {
   CHAT_MODEL_ID,
   CHAT_MODEL_REASONING_EFFORT,
 } from "../config";
+import type { ChatComposerSuggestionsLocale } from "../composerSuggestions";
 import type { ChatSessionRunState } from "../store";
 import type { ChatSessionRow } from "../store/repository";
 import type { ContentPart } from "../types";
@@ -23,6 +24,7 @@ export type ChatRunRow = Readonly<{
   model_id: string;
   reasoning_effort: string;
   timezone: string;
+  ui_locale: ChatComposerSuggestionsLocale | null;
   turn_input: ReadonlyArray<ContentPart>;
   worker_claimed_at: string | null;
   worker_heartbeat_at: string | null;
@@ -37,6 +39,7 @@ export type InsertChatRunParams = Readonly<{
   assistantItemId: string;
   requestId: string;
   timezone: string;
+  uiLocale: ChatComposerSuggestionsLocale | null;
   turnInput: ReadonlyArray<ContentPart>;
 }>;
 
@@ -71,6 +74,7 @@ const SELECT_CHAT_RUN_SQL = `
     model_id,
     reasoning_effort,
     timezone,
+    ui_locale,
     turn_input,
     worker_claimed_at,
     worker_heartbeat_at,
@@ -92,6 +96,7 @@ const SELECT_CHAT_RUN_FOR_UPDATE_SQL = `
     model_id,
     reasoning_effort,
     timezone,
+    ui_locale,
     turn_input,
     worker_claimed_at,
     worker_heartbeat_at,
@@ -113,10 +118,11 @@ const INSERT_CHAT_RUN_SQL = `
     model_id,
     reasoning_effort,
     timezone,
+    ui_locale,
     turn_input,
     updated_at
   )
-  VALUES ($1, $2, 'queued', $3, $4, $5, $6, $7::jsonb, now())
+  VALUES ($1, $2, 'queued', $3, $4, $5, $6, $7, $8::jsonb, now())
   RETURNING
     run_id,
     session_id,
@@ -126,6 +132,7 @@ const INSERT_CHAT_RUN_SQL = `
     model_id,
     reasoning_effort,
     timezone,
+    ui_locale,
     turn_input,
     worker_claimed_at,
     worker_heartbeat_at,
@@ -155,6 +162,7 @@ const UPDATE_CHAT_RUN_STATUS_SQL = `
     model_id,
     reasoning_effort,
     timezone,
+    ui_locale,
     turn_input,
     worker_claimed_at,
     worker_heartbeat_at,
@@ -192,6 +200,7 @@ const SELECT_CHAT_RUN_BY_SESSION_REQUEST_SQL = `
     model_id,
     reasoning_effort,
     timezone,
+    ui_locale,
     turn_input,
     worker_claimed_at,
     worker_heartbeat_at,
@@ -347,6 +356,7 @@ export async function insertChatRunWithExecutor(
       CHAT_MODEL_ID,
       CHAT_MODEL_REASONING_EFFORT,
       params.timezone,
+      params.uiLocale,
       JSON.stringify(params.turnInput),
     ]);
     return requireRunRow(rows[0], "insert");

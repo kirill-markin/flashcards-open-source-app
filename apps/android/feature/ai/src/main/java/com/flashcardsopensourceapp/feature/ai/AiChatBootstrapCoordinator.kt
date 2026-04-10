@@ -106,7 +106,8 @@ internal class AiChatBootstrapCoordinator(
                 }
                 val ensuredSession = context.aiChatRepository.ensureSessionId(
                     workspaceId = workspaceId,
-                    persistedState = persistedState
+                    persistedState = persistedState,
+                    uiLocale = context.currentUiLocaleTag()
                 )
                 if (context.activeAccessContext != accessContext) {
                     return@launch

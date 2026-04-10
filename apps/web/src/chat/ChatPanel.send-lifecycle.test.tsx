@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
+import { persistLocalePreference } from "../i18n/runtime";
 import {
   ApiErrorMock,
   consumeChatLiveStreamMock,
@@ -241,6 +242,23 @@ describe("ChatPanel send lifecycle", () => {
     expect(startChatRunMock).toHaveBeenCalledTimes(1);
     expect(startChatRunMock.mock.calls[0]?.[0]).toEqual(expect.objectContaining({
       sessionId: createNewChatSessionMock.mock.calls[0]?.[0],
+    }));
+  });
+
+  it("includes the current app locale in the first send request body", async () => {
+    persistLocalePreference("ar");
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    await sendMessage("hello");
+    await flushAsync();
+    await flushAsync();
+
+    expect(startChatRunMock).toHaveBeenCalledTimes(1);
+    expect(startChatRunMock.mock.calls[0]?.[0]).toEqual(expect.objectContaining({
+      uiLocale: "ar",
     }));
   });
 
@@ -511,7 +529,7 @@ describe("ChatPanel send lifecycle", () => {
     expect(sendButton).toBeNull();
   });
 
-  it("disables starting a new chat while turn acceptance is still in flight", async () => {
+  it("keeps starting a new chat enabled while turn acceptance is still in flight", async () => {
     let resolveStartRun: (() => void) | null = null;
     startChatRunMock.mockImplementation(() => new Promise((resolve) => {
       resolveStartRun = () => resolve({
@@ -528,7 +546,7 @@ describe("ChatPanel send lifecycle", () => {
     const newButton = [...getContainer().querySelectorAll("button")]
       .find((button) => button.textContent?.trim() === "New");
     expect(newButton).not.toBeUndefined();
-    expect((newButton as HTMLButtonElement).disabled).toBe(true);
+    expect((newButton as HTMLButtonElement).disabled).toBe(false);
 
     resolveStartRun?.();
     await flushAsync();

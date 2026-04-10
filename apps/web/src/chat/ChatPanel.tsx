@@ -221,6 +221,7 @@ export function ChatPanel(props: Props): ReactElement {
   const pendingComposerFocusRestoreRef = useRef<boolean>(false);
   const shouldRestoreTextareaFocusAfterDictationRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
+  const sendLifecycleRequestSequenceRef = useRef<number>(0);
 
   const { handleMessagesScroll } = useChatAutoScroll({
     isHydrated: isHistoryLoaded,
@@ -350,6 +351,16 @@ export function ChatPanel(props: Props): ReactElement {
 
   function requestComposerFocusRestore(): void {
     pendingComposerFocusRestoreRef.current = true;
+  }
+
+  function invalidateSendLifecycleRequests(): number {
+    const nextSequence = sendLifecycleRequestSequenceRef.current + 1;
+    sendLifecycleRequestSequenceRef.current = nextSequence;
+    return nextSequence;
+  }
+
+  function isSendLifecycleRequestCurrent(requestSequence: number): boolean {
+    return sendLifecycleRequestSequenceRef.current === requestSequence;
   }
 
   useEffect(() => {
@@ -649,19 +660,36 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
 
+    const requestSequence = sendLifecycleRequestSequenceRef.current;
     setSendPhase("preparingSend");
 
     try {
       await appData.runSync();
+      if (isSendLifecycleRequestCurrent(requestSequence) === false) {
+        return;
+      }
+
       const outboxRecords = await listOutboxRecords(activeWorkspaceId);
+      if (isSendLifecycleRequestCurrent(requestSequence) === false) {
+        return;
+      }
+
       if (outboxRecords.length > 0) {
         appData.setErrorMessage(t("chatPanel.transientErrors.pendingSync"));
         setSendPhase("idle");
         return;
       }
     } catch (error) {
+      if (isSendLifecycleRequestCurrent(requestSequence) === false) {
+        return;
+      }
+
       appData.setErrorMessage(error instanceof Error ? error.message : String(error));
       setSendPhase("idle");
+      return;
+    }
+
+    if (isSendLifecycleRequestCurrent(requestSequence) === false) {
       return;
     }
 
@@ -673,6 +701,9 @@ export function ChatPanel(props: Props): ReactElement {
         text: nextText,
         attachments: nextAttachments,
       });
+      if (isSendLifecycleRequestCurrent(requestSequence) === false) {
+        return;
+      }
 
       if (result.accepted) {
         clearDraftForSession(sourceSessionId);
@@ -685,7 +716,9 @@ export function ChatPanel(props: Props): ReactElement {
         requestComposerFocusRestore();
       }
     } finally {
-      setSendPhase("idle");
+      if (isSendLifecycleRequestCurrent(requestSequence)) {
+        setSendPhase("idle");
+      }
     }
   }
 
@@ -791,6 +824,8 @@ export function ChatPanel(props: Props): ReactElement {
             type="button"
             className="chat-close-btn"
             onClick={() => {
+              invalidateSendLifecycleRequests();
+              setSendPhase("idle");
               discardDictation();
               if (currentSessionId === null) {
                 clearDraftForSession(null);
@@ -804,7 +839,7 @@ export function ChatPanel(props: Props): ReactElement {
                   requestComposerFocusRestore();
                 });
             }}
-            disabled={isComposerTransientBusy || isStopping}
+            disabled={isStopping}
             data-testid="chat-new-button"
           >
             {t("chatPanel.actions.newChat")}

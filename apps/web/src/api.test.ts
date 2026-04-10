@@ -3,10 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AuthRedirectError,
   buildLoginUrl,
+  createNewChatSession,
   getPreferredAuthUiLocale,
   getSession,
   resetApiClientStateForTests,
   setNavigationHandlerForTests,
+  startChatRun,
 } from "./api";
 import { persistLocalePreference } from "./i18n/runtime";
 
@@ -43,6 +45,92 @@ function setNavigatorLanguages(languages: ReadonlyArray<string>, language: strin
   Object.defineProperty(window.navigator, "language", {
     configurable: true,
     value: language,
+  });
+}
+
+function createSessionResponse(): Response {
+  return new Response(JSON.stringify({
+    userId: "user-1",
+    selectedWorkspaceId: "workspace-1",
+    authTransport: "session",
+    csrfToken: "csrf-token-1",
+    profile: {
+      email: "user@example.com",
+      locale: "en",
+      createdAt: "2026-04-10T00:00:00.000Z",
+    },
+  }), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+function createChatConfigResponseValue(): Readonly<{
+  provider: Readonly<{ id: "openai"; label: string }>;
+  model: Readonly<{ id: string; label: string; badgeLabel: string }>;
+  reasoning: Readonly<{ effort: "medium"; label: string }>;
+  features: Readonly<{
+    modelPickerEnabled: boolean;
+    dictationEnabled: boolean;
+    attachmentsEnabled: boolean;
+  }>;
+}> {
+  return {
+    provider: {
+      id: "openai",
+      label: "OpenAI",
+    },
+    model: {
+      id: "gpt-5",
+      label: "GPT-5",
+      badgeLabel: "Fast",
+    },
+    reasoning: {
+      effort: "medium",
+      label: "Balanced",
+    },
+    features: {
+      modelPickerEnabled: true,
+      dictationEnabled: true,
+      attachmentsEnabled: true,
+    },
+  };
+}
+
+function createStartChatRunResponse(): Response {
+  return new Response(JSON.stringify({
+    accepted: true,
+    sessionId: "session-1",
+    conversationScopeId: "session-1",
+    conversation: {
+      messages: [],
+      updatedAt: 1,
+      mainContentInvalidationVersion: 0,
+    },
+    composerSuggestions: [],
+    chatConfig: createChatConfigResponseValue(),
+    activeRun: null,
+  }), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+function createNewChatSessionResponse(): Response {
+  return new Response(JSON.stringify({
+    ok: true,
+    sessionId: "session-1",
+    composerSuggestions: [],
+    chatConfig: createChatConfigResponseValue(),
+  }), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+    },
   });
 }
 
@@ -121,5 +209,48 @@ describe("auth locale login URL plumbing", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(new URL(redirectedUrl).searchParams.get("locale")).toBe("ar");
+  });
+});
+
+describe("AI chat locale transport", () => {
+  it("includes uiLocale in POST /chat requests", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createSessionResponse())
+      .mockResolvedValueOnce(createStartChatRunResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getSession();
+    await startChatRun({
+      sessionId: "session-1",
+      clientRequestId: "request-1",
+      content: [{ type: "text", text: "hello" }],
+      timezone: "Europe/Madrid",
+      uiLocale: "ja",
+    });
+
+    const chatRequestInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    expect(chatRequestInit?.body).toBe(JSON.stringify({
+      sessionId: "session-1",
+      clientRequestId: "request-1",
+      content: [{ type: "text", text: "hello" }],
+      timezone: "Europe/Madrid",
+      uiLocale: "ja",
+    }));
+  });
+
+  it("includes uiLocale in POST /chat/new requests", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createSessionResponse())
+      .mockResolvedValueOnce(createNewChatSessionResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getSession();
+    await createNewChatSession("session-1", "es-ES");
+
+    const chatRequestInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    expect(chatRequestInit?.body).toBe(JSON.stringify({
+      sessionId: "session-1",
+      uiLocale: "es-ES",
+    }));
   });
 });

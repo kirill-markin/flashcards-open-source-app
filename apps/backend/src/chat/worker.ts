@@ -81,6 +81,7 @@ export async function handleChatWorkerEvent(
     workspaceId: claimedRun.workspaceId,
     sessionId: claimedRun.sessionId,
     timezone: claimedRun.timezone,
+    uiLocale: claimedRun.uiLocale,
     assistantItemId: claimedRun.assistantItemId,
     localMessages: claimedRun.localMessages,
     turnInput: claimedRun.turnInput,

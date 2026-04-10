@@ -1,3 +1,5 @@
+import type { Locale } from "./i18n/types";
+
 /**
  * Web FSRS types mirror the backend scheduler contract and the iOS/Android data models.
  * The web app does not contain a standalone FSRS scheduler implementation in
@@ -180,11 +182,19 @@ export type StartChatRunRequestBody = Readonly<{
   clientRequestId: string;
   content: ReadonlyArray<ContentPart>;
   timezone: string;
+  // Optional so newer clients can hint the active UI locale without breaking older contract phases.
+  uiLocale?: Locale;
 }>;
 
 export type StartChatRunResponse = ChatSessionSnapshot & Readonly<{
   accepted: true;
   deduplicated?: boolean;
+}>;
+
+export type NewChatSessionRequestBody = Readonly<{
+  sessionId: string;
+  // Optional so newer clients can hint the active UI locale without breaking older contract phases.
+  uiLocale?: Locale;
 }>;
 
 export type NewChatSessionResponse = Readonly<{

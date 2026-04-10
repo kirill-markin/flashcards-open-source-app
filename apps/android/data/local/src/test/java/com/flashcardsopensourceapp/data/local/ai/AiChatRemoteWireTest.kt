@@ -4,8 +4,11 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudContractMismatchExcepti
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveStreamEnvelope
+import com.flashcardsopensourceapp.data.local.model.AiChatNewSessionRequest
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatRunTerminalOutcome
+import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
+import com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
@@ -13,6 +16,7 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -21,6 +25,7 @@ import org.junit.Test
 
 class AiChatRemoteWireTest {
     private val appVersion: String = "1.1.3"
+    private val testUiLocale: String = "es-ES"
 
     private fun makeDispatchers(): AiCoroutineDispatchers {
         return AiCoroutineDispatchers(io = Dispatchers.IO)
@@ -111,6 +116,178 @@ class AiChatRemoteWireTest {
             assertEquals("41", headersRef.get()["X-chat-resume-attempt-id"])
             assertEquals("android", headersRef.get()["X-client-platform"])
             assertEquals(appVersion, headersRef.get()["X-client-version"])
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun startRunIncludesUiLocaleWhenPresent() = runBlocking {
+        val requestBodyRef = AtomicReference("")
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/chat") { exchange ->
+            requestBodyRef.set(exchange.requestBody.bufferedReader().use { reader -> reader.readText() })
+            val body = """
+                {
+                  "accepted": true,
+                  "sessionId": "session-1",
+                  "conversationScopeId": "session-1",
+                  "conversation": {
+                    "updatedAt": 100,
+                    "mainContentInvalidationVersion": 200,
+                    "messages": [],
+                    "hasOlder": false,
+                    "oldestCursor": null
+                  },
+                  "composerSuggestions": [],
+                  "chatConfig": {
+                    "provider": { "id": "openai", "label": "OpenAI" },
+                    "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                    "reasoning": { "effort": "medium", "label": "Medium" },
+                    "features": {
+                      "modelPickerEnabled": false,
+                      "dictationEnabled": true,
+                      "attachmentsEnabled": true
+                    },
+                    "liveUrl": null
+                  },
+                  "activeRun": null
+                }
+            """.trimIndent().toByteArray()
+            exchange.sendResponseHeaders(200, body.size.toLong())
+            exchange.responseBody.use { outputStream -> outputStream.write(body) }
+        }
+        server.start()
+
+        try {
+            val service = makeRemoteService()
+            service.startRun(
+                apiBaseUrl = "http://127.0.0.1:${server.address.port}",
+                authorizationHeader = "Bearer token-1",
+                request = AiChatStartRunRequest(
+                    sessionId = "session-1",
+                    clientRequestId = "request-1",
+                    content = listOf(AiChatWireContentPart.Text(text = "Hello")),
+                    timezone = "Europe/Madrid",
+                    uiLocale = testUiLocale
+                )
+            )
+
+            val requestBody = JSONObject(requestBodyRef.get())
+            assertEquals("session-1", requestBody.getString("sessionId"))
+            assertEquals(testUiLocale, requestBody.getString("uiLocale"))
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun createNewSessionIncludesUiLocaleWhenPresent() = runBlocking {
+        val requestBodyRef = AtomicReference("")
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/chat/new") { exchange ->
+            requestBodyRef.set(exchange.requestBody.bufferedReader().use { reader -> reader.readText() })
+            val body = """
+                {
+                  "sessionId": "session-1",
+                  "conversationScopeId": "session-1",
+                  "conversation": {
+                    "updatedAt": 100,
+                    "mainContentInvalidationVersion": 200,
+                    "messages": [],
+                    "hasOlder": false,
+                    "oldestCursor": null
+                  },
+                  "composerSuggestions": [],
+                  "chatConfig": {
+                    "provider": { "id": "openai", "label": "OpenAI" },
+                    "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                    "reasoning": { "effort": "medium", "label": "Medium" },
+                    "features": {
+                      "modelPickerEnabled": false,
+                      "dictationEnabled": true,
+                      "attachmentsEnabled": true
+                    },
+                    "liveUrl": null
+                  },
+                  "activeRun": null
+                }
+            """.trimIndent().toByteArray()
+            exchange.sendResponseHeaders(200, body.size.toLong())
+            exchange.responseBody.use { outputStream -> outputStream.write(body) }
+        }
+        server.start()
+
+        try {
+            val service = makeRemoteService()
+            service.createNewSession(
+                apiBaseUrl = "http://127.0.0.1:${server.address.port}",
+                authorizationHeader = "Bearer token-1",
+                request = AiChatNewSessionRequest(
+                    sessionId = "session-1",
+                    uiLocale = testUiLocale
+                )
+            )
+
+            val requestBody = JSONObject(requestBodyRef.get())
+            assertEquals("session-1", requestBody.getString("sessionId"))
+            assertEquals(testUiLocale, requestBody.getString("uiLocale"))
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun createNewSessionOmitsUiLocaleWhenMissing() = runBlocking {
+        val requestBodyRef = AtomicReference("")
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/chat/new") { exchange ->
+            requestBodyRef.set(exchange.requestBody.bufferedReader().use { reader -> reader.readText() })
+            val body = """
+                {
+                  "sessionId": "session-1",
+                  "conversationScopeId": "session-1",
+                  "conversation": {
+                    "updatedAt": 100,
+                    "mainContentInvalidationVersion": 200,
+                    "messages": [],
+                    "hasOlder": false,
+                    "oldestCursor": null
+                  },
+                  "composerSuggestions": [],
+                  "chatConfig": {
+                    "provider": { "id": "openai", "label": "OpenAI" },
+                    "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                    "reasoning": { "effort": "medium", "label": "Medium" },
+                    "features": {
+                      "modelPickerEnabled": false,
+                      "dictationEnabled": true,
+                      "attachmentsEnabled": true
+                    },
+                    "liveUrl": null
+                  },
+                  "activeRun": null
+                }
+            """.trimIndent().toByteArray()
+            exchange.sendResponseHeaders(200, body.size.toLong())
+            exchange.responseBody.use { outputStream -> outputStream.write(body) }
+        }
+        server.start()
+
+        try {
+            val service = makeRemoteService()
+            service.createNewSession(
+                apiBaseUrl = "http://127.0.0.1:${server.address.port}",
+                authorizationHeader = "Bearer token-1",
+                request = AiChatNewSessionRequest(
+                    sessionId = "session-1",
+                    uiLocale = null
+                )
+            )
+
+            val requestBody = JSONObject(requestBodyRef.get())
+            assertEquals("session-1", requestBody.getString("sessionId"))
+            assertFalse(requestBody.has("uiLocale"))
         } finally {
             server.stop(0)
         }

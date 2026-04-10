@@ -34,7 +34,8 @@ internal class AiChatRuntimeContext(
     val hasConsent: () -> Boolean,
     val currentCloudState: () -> CloudAccountState,
     val currentServerConfiguration: () -> CloudServiceConfiguration,
-    val currentSyncStatus: () -> SyncStatus
+    val currentSyncStatus: () -> SyncStatus,
+    val currentUiLocaleTag: () -> String?
 ) {
     private data class ToolRunPostSyncOrigin(
         val workspaceId: String?,

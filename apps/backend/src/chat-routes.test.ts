@@ -107,7 +107,7 @@ test("POST /chat/new returns the current session when history is empty", async (
     getChatSessionIdFn: async () => SESSION_ONE,
     getRecoveredChatSessionSnapshotFn: async () => ({
       ...createSnapshot([]),
-      composerSuggestions: buildInitialChatComposerSuggestions(),
+      composerSuggestions: buildInitialChatComposerSuggestions(undefined),
     }),
     rolloverToFreshChatSessionFn: async () => {
       rolloverCallCount += 1;
@@ -130,8 +130,90 @@ test("POST /chat/new returns the current session when history is empty", async (
   assert.deepEqual(await response.json(), {
     ok: true,
     sessionId: SESSION_ONE,
-    composerSuggestions: buildInitialChatComposerSuggestions(),
+    composerSuggestions: buildInitialChatComposerSuggestions(undefined),
     chatConfig: createExpectedChatConfig(),
+  });
+});
+
+test("POST /chat/new localizes initial suggestions from uiLocale", async () => {
+  const app = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    getChatSessionIdFn: async () => SESSION_ONE,
+    getRecoveredChatSessionSnapshotFn: async () => ({
+      ...createSnapshot([]),
+      composerSuggestions: buildInitialChatComposerSuggestions(undefined),
+    }),
+  });
+
+  const response = await app.request("http://localhost/chat/new", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId: SESSION_ONE,
+      uiLocale: "es_MX",
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    ok: true,
+    sessionId: SESSION_ONE,
+    composerSuggestions: buildInitialChatComposerSuggestions("es-MX"),
+    chatConfig: createExpectedChatConfig(),
+  });
+});
+
+test("POST /chat/new rejects an invalid uiLocale", async () => {
+  const routes = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+  });
+  const app = new Hono();
+  app.onError((error, context) => {
+    const httpError = toHttpErrorLike(error);
+    if (httpError !== null) {
+      context.status(httpError.statusCode as ContentfulStatusCode);
+      return context.json({
+        error: httpError.message,
+        requestId: null,
+        code: httpError.code,
+      });
+    }
+
+    context.status(500);
+    return context.json({
+      error: "Request failed. Try again.",
+      requestId: null,
+      code: "INTERNAL_ERROR",
+    });
+  });
+  app.route("/", routes);
+
+  const response = await app.request("http://localhost/chat/new", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId: SESSION_ONE,
+      uiLocale: "bad locale!!!",
+    }),
+  });
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), {
+    error: "uiLocale is invalid",
+    requestId: null,
+    code: null,
   });
 });
 
@@ -163,7 +245,7 @@ test("POST /chat/new returns the existing explicit session unchanged when histor
             itemId: null,
           },
         ]),
-        composerSuggestions: buildInitialChatComposerSuggestions(),
+        composerSuggestions: buildInitialChatComposerSuggestions(undefined),
       };
     },
     rolloverToFreshChatSessionFn: async () => {
@@ -188,7 +270,7 @@ test("POST /chat/new returns the existing explicit session unchanged when histor
   assert.deepEqual(await response.json(), {
     ok: true,
     sessionId: SESSION_ONE,
-    composerSuggestions: buildInitialChatComposerSuggestions(),
+    composerSuggestions: buildInitialChatComposerSuggestions(undefined),
     chatConfig: createExpectedChatConfig(),
   });
 });
@@ -209,7 +291,7 @@ test("POST /chat/new returns the existing explicit session unchanged when run st
     ) => {
       return {
         ...createRunningSnapshot([]),
-        composerSuggestions: buildInitialChatComposerSuggestions(),
+        composerSuggestions: buildInitialChatComposerSuggestions(undefined),
       };
     },
     rolloverToFreshChatSessionFn: async () => {
@@ -233,7 +315,7 @@ test("POST /chat/new returns the existing explicit session unchanged when run st
   assert.deepEqual(await response.json(), {
     ok: true,
     sessionId: SESSION_ONE,
-    composerSuggestions: buildInitialChatComposerSuggestions(),
+    composerSuggestions: buildInitialChatComposerSuggestions(undefined),
     chatConfig: createExpectedChatConfig(),
   });
 });
@@ -241,6 +323,7 @@ test("POST /chat/new returns the existing explicit session unchanged when run st
 test("POST /chat/new creates the exact explicit session when it does not exist yet", async () => {
   const requestedSessionIds: Array<string | undefined> = [];
   const createdSessionIds: string[] = [];
+  const createdUiLocales: Array<string | null> = [];
   const app = createChatRoutes({
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
@@ -248,9 +331,10 @@ test("POST /chat/new creates the exact explicit session when it does not exist y
       requestContext: createRequestContext(),
     }),
     getChatSessionIdFn: async () => null,
-    createFreshChatSessionFn: async (_userId, _workspaceId, requestedSessionId) => {
+    createFreshChatSessionFn: async (_userId, _workspaceId, requestedSessionId, uiLocale) => {
       assert.equal(requestedSessionId, SESSION_TWO);
       createdSessionIds.push(requestedSessionId ?? "");
+      createdUiLocales.push(uiLocale);
       return requestedSessionId ?? SESSION_TWO;
     },
     getRecoveredChatSessionSnapshotFn: async (_userId, _workspaceId, sessionId) => {
@@ -258,7 +342,7 @@ test("POST /chat/new creates the exact explicit session when it does not exist y
       return {
         ...createSnapshot([]),
         sessionId: sessionId ?? SESSION_ONE,
-        composerSuggestions: buildInitialChatComposerSuggestions(),
+        composerSuggestions: buildInitialChatComposerSuggestions(undefined),
       };
     },
   });
@@ -275,12 +359,71 @@ test("POST /chat/new creates the exact explicit session when it does not exist y
 
   assert.equal(response.status, 200);
   assert.deepEqual(createdSessionIds, [SESSION_TWO]);
+  assert.deepEqual(createdUiLocales, [null]);
   assert.deepEqual(requestedSessionIds, [SESSION_TWO]);
   assert.deepEqual(await response.json(), {
     ok: true,
     sessionId: SESSION_TWO,
-    composerSuggestions: buildInitialChatComposerSuggestions(),
+    composerSuggestions: buildInitialChatComposerSuggestions(undefined),
     chatConfig: createExpectedChatConfig(),
+  });
+});
+
+test("POST /chat/new persists localized initial suggestions for a created explicit session", async () => {
+  let persistedUiLocale: string | null = null;
+  const app = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    getChatSessionIdFn: async () => null,
+    createFreshChatSessionFn: async (_userId, _workspaceId, requestedSessionId, uiLocale) => {
+      assert.equal(requestedSessionId, SESSION_TWO);
+      persistedUiLocale = uiLocale;
+      return requestedSessionId ?? SESSION_TWO;
+    },
+    getRecoveredChatSessionSnapshotFn: async (_userId, _workspaceId, sessionId) => ({
+      ...createSnapshot([]),
+      sessionId: sessionId ?? SESSION_TWO,
+      composerSuggestions: buildInitialChatComposerSuggestions(persistedUiLocale),
+    }),
+  });
+
+  const createResponse = await app.request("http://localhost/chat/new", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId: SESSION_TWO,
+      uiLocale: "es_MX",
+    }),
+  });
+
+  assert.equal(createResponse.status, 200);
+  assert.equal(persistedUiLocale, "es-MX");
+  assert.deepEqual(await createResponse.json(), {
+    ok: true,
+    sessionId: SESSION_TWO,
+    composerSuggestions: buildInitialChatComposerSuggestions("es-MX"),
+    chatConfig: createExpectedChatConfig(),
+  });
+
+  const readResponse = await app.request(`http://localhost/chat?sessionId=${SESSION_TWO}`);
+
+  assert.equal(readResponse.status, 200);
+  assert.deepEqual(await readResponse.json(), {
+    sessionId: SESSION_TWO,
+    conversationScopeId: SESSION_TWO,
+    conversation: {
+      updatedAt: 1,
+      mainContentInvalidationVersion: 0,
+      messages: [],
+    },
+    composerSuggestions: buildInitialChatComposerSuggestions("es-MX"),
+    chatConfig: createExpectedChatConfig(),
+    activeRun: null,
   });
 });
 
@@ -338,6 +481,7 @@ test("POST /chat/new returns a stable conflict when the requested session id is 
 test("POST /chat/new without sessionId preserves the legacy rollover behavior", async () => {
   const requestedSessionIds: Array<string | undefined> = [];
   let rolloverCallCount = 0;
+  const rolloverUiLocales: Array<string | null> = [];
   const app = createChatRoutes({
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
@@ -350,17 +494,18 @@ test("POST /chat/new without sessionId preserves the legacy rollover behavior", 
         return {
           ...createSnapshot([]),
           sessionId: SESSION_TWO,
-          composerSuggestions: buildInitialChatComposerSuggestions(),
+          composerSuggestions: buildInitialChatComposerSuggestions(undefined),
         };
       }
 
       return {
         ...createRunningSnapshot([]),
-        composerSuggestions: buildInitialChatComposerSuggestions(),
+        composerSuggestions: buildInitialChatComposerSuggestions(undefined),
       };
     },
-    rolloverToFreshChatSessionFn: async () => {
+    rolloverToFreshChatSessionFn: async (_userId, _workspaceId, _previousSessionId, uiLocale) => {
       rolloverCallCount += 1;
+      rolloverUiLocales.push(uiLocale);
       return SESSION_TWO;
     },
   });
@@ -376,11 +521,86 @@ test("POST /chat/new without sessionId preserves the legacy rollover behavior", 
   assert.equal(response.status, 200);
   assert.deepEqual(requestedSessionIds, [undefined, SESSION_TWO]);
   assert.equal(rolloverCallCount, 1);
+  assert.deepEqual(rolloverUiLocales, [null]);
   assert.deepEqual(await response.json(), {
     ok: true,
     sessionId: SESSION_TWO,
-    composerSuggestions: buildInitialChatComposerSuggestions(),
+    composerSuggestions: buildInitialChatComposerSuggestions(undefined),
     chatConfig: createExpectedChatConfig(),
+  });
+});
+
+test("POST /chat/new persists localized initial suggestions for rollover-created sessions", async () => {
+  let persistedUiLocale: string | null = null;
+  const app = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    getRecoveredChatSessionSnapshotFn: async (_userId, _workspaceId, sessionId) => {
+      if (sessionId === SESSION_TWO) {
+        return {
+          ...createSnapshot([]),
+          sessionId: SESSION_TWO,
+          composerSuggestions: buildInitialChatComposerSuggestions(persistedUiLocale),
+        };
+      }
+
+      return {
+        ...createSnapshot([{
+          role: "user",
+          content: [{ type: "text", text: "hello" }],
+          timestamp: 1,
+          isError: false,
+          isStopped: false,
+          cursor: "1",
+          itemId: null,
+        }]),
+        sessionId: SESSION_ONE,
+        composerSuggestions: buildInitialChatComposerSuggestions(undefined),
+      };
+    },
+    rolloverToFreshChatSessionFn: async (_userId, _workspaceId, previousSessionId, uiLocale) => {
+      assert.equal(previousSessionId, SESSION_ONE);
+      persistedUiLocale = uiLocale;
+      return SESSION_TWO;
+    },
+  });
+
+  const createResponse = await app.request("http://localhost/chat/new", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      uiLocale: "de-DE",
+    }),
+  });
+
+  assert.equal(createResponse.status, 200);
+  assert.equal(persistedUiLocale, "de");
+  assert.deepEqual(await createResponse.json(), {
+    ok: true,
+    sessionId: SESSION_TWO,
+    composerSuggestions: buildInitialChatComposerSuggestions("de"),
+    chatConfig: createExpectedChatConfig(),
+  });
+
+  const readResponse = await app.request(`http://localhost/chat?sessionId=${SESSION_TWO}`);
+
+  assert.equal(readResponse.status, 200);
+  assert.deepEqual(await readResponse.json(), {
+    sessionId: SESSION_TWO,
+    conversationScopeId: SESSION_TWO,
+    conversation: {
+      updatedAt: 1,
+      mainContentInvalidationVersion: 0,
+      messages: [],
+    },
+    composerSuggestions: buildInitialChatComposerSuggestions("de"),
+    chatConfig: createExpectedChatConfig(),
+    activeRun: null,
   });
 });
 
@@ -709,6 +929,7 @@ test("GET /chat paginated history returns assistant item ids and sanitized conte
 
 test("POST /chat can return an active run before the current turn appears in messages", async () => {
   let preparedClientRequestId: string | null = null;
+  let preparedUiLocale: string | null = null;
   let invokeCallCount = 0;
   const app = createChatRoutes({
     allowedOrigins: [],
@@ -723,8 +944,10 @@ test("POST /chat can return an active run before the current turn appears in mes
       content,
       clientRequestId,
       timezone,
+      uiLocale,
     ) => {
       preparedClientRequestId = clientRequestId;
+      preparedUiLocale = uiLocale;
       assert.equal(requestedSessionId, SESSION_ONE);
       assert.equal(content.length, 1);
       assert.equal(timezone, "Europe/Madrid");
@@ -776,11 +999,13 @@ test("POST /chat can return an active run before the current turn appears in mes
       clientRequestId: "client-request-1",
       content: [{ type: "text", text: "hello" }],
       timezone: "Europe/Madrid",
+      uiLocale: "de-DE",
     }),
   });
 
   assert.equal(response.status, 200);
   assert.equal(preparedClientRequestId, "client-request-1");
+  assert.equal(preparedUiLocale, "de");
   assert.equal(invokeCallCount, 0);
   assert.equal(response.headers.get("X-Chat-Request-Id"), "client-request-1");
   assert.deepEqual(await response.json(), {
@@ -811,6 +1036,81 @@ test("POST /chat can return an active run before the current turn appears in mes
     },
     deduplicated: true,
   });
+});
+
+test("POST /chat without uiLocale preserves the legacy request contract", async () => {
+  let preparedUiLocale: string | null = "unexpected";
+  const app = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    prepareChatRunFn: async (
+      _userId,
+      _workspaceId,
+      requestedSessionId,
+      content,
+      clientRequestId,
+      timezone,
+      uiLocale,
+    ) => {
+      preparedUiLocale = uiLocale;
+      assert.equal(requestedSessionId, SESSION_ONE);
+      assert.equal(content.length, 1);
+      assert.equal(clientRequestId, "legacy-client-request");
+      assert.equal(timezone, "Europe/Madrid");
+      return {
+        sessionId: SESSION_ONE,
+        runId: "run-legacy",
+        clientRequestId,
+        runState: "running",
+        deduplicated: false,
+        shouldInvokeWorker: false,
+      };
+    },
+    getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot([]),
+    resolveLiveCursorFn: async () => null,
+    listChatMessagesLatestFn: async () => ({
+      messages: [{
+        sessionId: SESSION_ONE,
+        itemId: "assistant-item-legacy",
+        itemOrder: 1,
+        role: "assistant",
+        content: [{ type: "text", text: "thinking" }],
+        state: "in_progress",
+        isError: false,
+        isStopped: false,
+        timestamp: 1,
+        updatedAt: 1,
+      }],
+      oldestCursor: "1",
+      newestCursor: "1",
+      hasOlder: false,
+    }),
+    createChatLiveStreamEnvelopeFn: async () => ({
+      url: "https://chat-live.example.com",
+      authorization: "Live test-token",
+      expiresAt: 1_000,
+    }),
+  });
+
+  const response = await app.request("http://localhost/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId: SESSION_ONE,
+      clientRequestId: "legacy-client-request",
+      content: [{ type: "text", text: "hello" }],
+      timezone: "Europe/Madrid",
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(preparedUiLocale, null);
+  assert.equal(response.headers.get("X-Chat-Request-Id"), "legacy-client-request");
 });
 
 test("POST /chat maps active-run conflicts to a stable machine-readable code", async () => {

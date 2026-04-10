@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
@@ -31,7 +32,8 @@ class AiViewModel(
     workspaceRepository: WorkspaceRepository,
     cloudAccountRepository: CloudAccountRepository,
     appVersion: String,
-    textProvider: AiTextProvider
+    textProvider: AiTextProvider,
+    currentUiLocaleTag: () -> String?
 ) : ViewModel() {
     private val workspaceState = workspaceRepository.observeWorkspace().stateIn(
         scope = viewModelScope,
@@ -76,7 +78,8 @@ class AiViewModel(
         hasConsent = { consentState.value },
         currentCloudState = { cloudSettingsState.value.cloudState },
         currentServerConfiguration = { serverConfigurationState.value },
-        currentSyncStatus = { syncStatusState.value.status }
+        currentSyncStatus = { syncStatusState.value.status },
+        currentUiLocaleTag = currentUiLocaleTag
     )
 
     val uiState: StateFlow<AiUiState> = combine(
@@ -251,7 +254,10 @@ fun createAiViewModelFactory(
                 workspaceRepository = workspaceRepository,
                 cloudAccountRepository = cloudAccountRepository,
                 appVersion = appVersion,
-                textProvider = aiTextProvider(context = application)
+                textProvider = aiTextProvider(context = application),
+                currentUiLocaleTag = {
+                    currentResourceLocale(resources = application.resources).toLanguageTag()
+                }
             )
         }
     }
