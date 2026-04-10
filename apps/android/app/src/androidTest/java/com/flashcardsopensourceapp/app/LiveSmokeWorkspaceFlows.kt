@@ -16,7 +16,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.feature.settings.cloudPostAuthWorkspaceRowTag
+import com.flashcardsopensourceapp.feature.settings.cloudPostAuthExistingButtonTag
 import com.flashcardsopensourceapp.feature.settings.cloudSignInEmailFieldTag
 import com.flashcardsopensourceapp.feature.settings.cloudSignInSendCodeButtonTag
 import com.flashcardsopensourceapp.feature.settings.currentWorkspaceCreateButtonTag
@@ -53,6 +55,7 @@ import com.flashcardsopensourceapp.feature.settings.workspaceOverviewDeleteWorks
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewErrorMessageTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewNameFieldTag
 import com.flashcardsopensourceapp.feature.settings.workspaceOverviewSaveNameButtonTag
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -60,6 +63,19 @@ private enum class DeletePreviewResolution {
     PREVIEW_READY,
     ERROR_VISIBLE
 }
+
+private data class LinkedWorkspaceSelectionSnapshot(
+    val cloudState: CloudAccountState,
+    val activeWorkspaceId: String?,
+    val linkedWorkspaceId: String?,
+    val workspaceId: String?,
+    val workspaceName: String?
+)
+
+internal data class EphemeralWorkspaceHandle(
+    val workspaceId: String,
+    val workspaceName: String
+)
 
 private const val linkedSignInTimeoutMillis: Long = 120_000L
 private const val cloudPostAuthLinkingWorkspaceTitle: String = "Linking workspace"
@@ -125,12 +141,21 @@ private fun LiveSmokeContext.completeCloudPostAuthWorkspaceSelectionIfNeeded() {
         )
     }
 
-    val preferredRowIndex: Int = visibleRows.indexOfFirst { row -> row.contains(other = "(Current)") }
-        .takeIf { index -> index >= 0 }
-        ?: 0
     runWithInlineRawScreenStateOnFailure(action = "click_post_auth_workspace_row") {
         dismissExternalSystemDialogIfPresent()
-        composeRule.onAllNodesWithTag(cloudPostAuthWorkspaceRowTag)[preferredRowIndex].performClick()
+        val preferredWorkspaceId: String? = currentActiveWorkspaceIdOrNull()
+        if (
+            preferredWorkspaceId != null &&
+            composeRule.onAllNodesWithTag(
+                testTag = cloudPostAuthExistingButtonTag(workspaceId = preferredWorkspaceId)
+            ).fetchSemanticsNodes().isNotEmpty()
+        ) {
+            composeRule.onNodeWithTag(
+                testTag = cloudPostAuthExistingButtonTag(workspaceId = preferredWorkspaceId)
+            ).performClick()
+        } else {
+            composeRule.onAllNodesWithTag(cloudPostAuthWorkspaceRowTag)[0].performClick()
+        }
         composeRule.waitForIdle()
     }
 }
@@ -163,7 +188,7 @@ private fun LiveSmokeContext.waitForLinkedAccountStatusAfterSignIn() {
     }
 }
 
-internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String) {
+internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): EphemeralWorkspaceHandle {
     openSettingsTab()
     clickText(text = "Current Workspace", substring = false)
     waitForCurrentWorkspaceScreenToSettle()
@@ -178,22 +203,41 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String) {
     val selectedWorkspaceSummaryBeforeCreate: String = selectedWorkspaceSummary(
         context = "before creating a linked workspace"
     )
+    val selectedWorkspaceIdBeforeCreate: String = currentWorkspaceIdOrThrow(
+        context = "before creating a linked workspace"
+    )
     composeRule.onNodeWithTag(currentWorkspaceListTag).performScrollToNode(
         matcher = hasTestTag(currentWorkspaceCreateButtonTag)
     )
     clickTag(tag = currentWorkspaceCreateButtonTag, label = "Create new workspace")
+    val createdWorkspaceSelection: LinkedWorkspaceSelectionSnapshot = waitForLinkedWorkspaceSelectionToChange(
+        previousWorkspaceId = selectedWorkspaceIdBeforeCreate,
+        timeoutMillis = externalUiTimeoutMillis,
+        context = "after creating a linked workspace"
+    )
     waitForSelectedWorkspaceSummaryToChange(
         beforeSummary = selectedWorkspaceSummaryBeforeCreate,
         context = "after creating a linked workspace",
         timeoutMillis = externalUiTimeoutMillis
     )
+    waitForCurrentWorkspaceOperationToFinish()
     tapBackIcon()
 
     openSettingsSection(sectionTitle = "Workspace")
     clickText(text = "Overview", substring = false)
+    waitForWorkspaceOverviewReady(
+        expectedWorkspaceName = workspaceName,
+        requireExpectedWorkspaceName = false,
+        context = "before renaming the linked workspace"
+    )
     composeRule.onNodeWithTag(workspaceOverviewNameFieldTag).performTextReplacement(workspaceName)
     clickTag(tag = workspaceOverviewSaveNameButtonTag, label = "Save workspace name")
     waitForWorkspaceRenameOutcome(expectedWorkspaceName = workspaceName)
+    val renamedWorkspaceSelection: LinkedWorkspaceSelectionSnapshot = waitForLinkedWorkspaceName(
+        expectedWorkspaceName = workspaceName,
+        timeoutMillis = externalUiTimeoutMillis,
+        context = "after renaming the linked workspace"
+    )
     tapBackIcon()
     tapBackIcon()
     openSettingsTab()
@@ -201,11 +245,21 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String) {
     waitForCurrentWorkspaceScreenToSettle()
     waitForCurrentWorkspaceName(expectedWorkspaceName = workspaceName)
     tapBackIcon()
+
+    return EphemeralWorkspaceHandle(
+        workspaceId = renamedWorkspaceSelection.workspaceId ?: createdWorkspaceSelection.workspaceId
+            ?: throw AssertionError(
+                "Created linked workspace did not expose a stable workspace ID. " +
+                    "CloudSettings=${currentCloudSettingsSummary()} " +
+                    "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}"
+            ),
+        workspaceName = workspaceName
+    )
 }
 
-internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceName: String) {
+internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceHandle: EphemeralWorkspaceHandle) {
     forceLinkedSyncAndWaitForWorkspace(
-        expectedWorkspaceName = workspaceName,
+        workspaceHandle = workspaceHandle,
         timeoutMillis = externalUiTimeoutMillis
     )
     openSettingsTab()
@@ -215,7 +269,7 @@ internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceName: String) {
         matcher = hasText("Create new workspace"),
         timeoutMillis = internalUiTimeoutMillis
     )
-    if (composeRule.onAllNodesWithText(workspaceName).fetchSemanticsNodes().isEmpty()) {
+    if (composeRule.onAllNodesWithText(workspaceHandle.workspaceName).fetchSemanticsNodes().isEmpty()) {
         tapBackIcon()
         return
     }
@@ -227,18 +281,28 @@ internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceName: String) {
 
     openSettingsSection(sectionTitle = "Workspace")
     clickText(text = "Overview", substring = false)
-    openDeletePreview(workspaceName = workspaceName)
+    waitForWorkspaceOverviewReady(
+        expectedWorkspaceName = workspaceHandle.workspaceName,
+        requireExpectedWorkspaceName = true,
+        context = "before deleting the isolated linked workspace"
+    )
+    openDeletePreview(workspaceName = workspaceHandle.workspaceName)
     clickTag(
         tag = workspaceOverviewDeletePreviewContinueButtonTag,
         label = "Continue workspace delete preview"
     )
-    waitForDeleteConfirmationReady(workspaceName = workspaceName)
+    waitForDeleteConfirmationReady(workspaceName = workspaceHandle.workspaceName)
     val confirmationPhrase: String = requireNotNull(deleteConfirmationPhraseOrNull()) {
-        "Delete confirmation phrase was missing for workspace '$workspaceName'."
+        "Delete confirmation phrase was missing for workspace '${workspaceHandle.workspaceName}'."
     }
     composeRule.onNodeWithTag(workspaceOverviewDeleteConfirmationFieldTag)
         .performTextReplacement(confirmationPhrase)
-    tapDeleteWorkspaceConfirmation(workspaceName = workspaceName)
+    tapDeleteWorkspaceConfirmation(workspaceName = workspaceHandle.workspaceName)
+    waitForLinkedWorkspaceSelectionToChange(
+        previousWorkspaceId = workspaceHandle.workspaceId,
+        timeoutMillis = externalUiTimeoutMillis,
+        context = "after deleting the isolated linked workspace"
+    )
     tapBackIcon()
     openSettingsTab()
     clickText(text = "Current Workspace", substring = false)
@@ -250,13 +314,13 @@ internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceName: String) {
         ) {
             val currentWorkspaceName: String? = currentWorkspaceNameOrNull()
             val selectedSummary: String? = selectedWorkspaceSummaryOrNull()
-            composeRule.onAllNodesWithText(workspaceName).fetchSemanticsNodes().isEmpty() &&
-                currentWorkspaceName != workspaceName &&
-                selectedSummary?.contains(other = workspaceName) != true
+            composeRule.onAllNodesWithText(workspaceHandle.workspaceName).fetchSemanticsNodes().isEmpty() &&
+                currentWorkspaceName != workspaceHandle.workspaceName &&
+                selectedSummary?.contains(other = workspaceHandle.workspaceName) != true
         }
     } catch (error: Throwable) {
         throw AssertionError(
-            "Workspace deletion did not switch away from '$workspaceName'. " +
+            "Workspace deletion did not switch away from '${workspaceHandle.workspaceName}'. " +
                 "CurrentWorkspace=${currentWorkspaceSummaryOrNull()} " +
                 "CloudSettings=${currentCloudSettingsSummary()} " +
                 "VisibleRows=${captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)} " +
@@ -274,9 +338,14 @@ internal fun LiveSmokeContext.deleteEphemeralWorkspace(workspaceName: String) {
 }
 
 internal fun LiveSmokeContext.forceLinkedSyncAndWaitForWorkspace(
-    expectedWorkspaceName: String,
+    workspaceHandle: EphemeralWorkspaceHandle,
     timeoutMillis: Long
 ) {
+    waitForLinkedWorkspaceHandle(
+        workspaceHandle = workspaceHandle,
+        timeoutMillis = timeoutMillis,
+        context = "before forcing linked sync before cleanup"
+    )
     val appGraph = (composeRule.activity.application as FlashcardsApplication).appGraph
     try {
         runBlocking {
@@ -285,17 +354,23 @@ internal fun LiveSmokeContext.forceLinkedSyncAndWaitForWorkspace(
     } catch (error: Throwable) {
         throw AssertionError(
             "Forced linked sync before cleanup failed. " +
-                "Workspace=$expectedWorkspaceName " +
+                "WorkspaceId=${workspaceHandle.workspaceId} " +
+                "WorkspaceName=${workspaceHandle.workspaceName} " +
                 "CloudSettings=${currentCloudSettingsSummary()} " +
                 "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}",
             error
         )
     }
+    waitForLinkedWorkspaceHandle(
+        workspaceHandle = workspaceHandle,
+        timeoutMillis = timeoutMillis,
+        context = "after forcing linked sync before cleanup"
+    )
 
     openSettingsTab()
     clickText(text = "Current Workspace", substring = false)
     waitForCurrentWorkspaceScreenToSettle()
-    waitForCurrentWorkspaceName(expectedWorkspaceName = expectedWorkspaceName)
+    waitForCurrentWorkspaceName(expectedWorkspaceName = workspaceHandle.workspaceName)
     waitForSelectedWorkspaceSummary(
         context = "after forcing linked sync before cleanup",
         timeoutMillis = timeoutMillis
@@ -303,10 +378,11 @@ internal fun LiveSmokeContext.forceLinkedSyncAndWaitForWorkspace(
     val selectedWorkspace: String = selectedWorkspaceSummary(
         context = "after forcing linked sync before cleanup"
     )
-    if (selectedWorkspace.contains(other = expectedWorkspaceName).not()) {
+    if (selectedWorkspace.contains(other = workspaceHandle.workspaceName).not()) {
         throw AssertionError(
             "Forced linked sync kept the wrong workspace selected before cleanup. " +
-                "ExpectedWorkspace=$expectedWorkspaceName " +
+                "ExpectedWorkspaceId=${workspaceHandle.workspaceId} " +
+                "ExpectedWorkspaceName=${workspaceHandle.workspaceName} " +
                 "SelectedWorkspace=$selectedWorkspace " +
                 "CloudSettings=${currentCloudSettingsSummary()} " +
                 "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}"
@@ -802,6 +878,37 @@ private fun LiveSmokeContext.waitForWorkspaceRenameOutcome(expectedWorkspaceName
     }
 }
 
+private fun LiveSmokeContext.waitForWorkspaceOverviewReady(
+    expectedWorkspaceName: String,
+    requireExpectedWorkspaceName: Boolean,
+    context: String
+) {
+    try {
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for workspace overview readiness $context"
+        ) {
+            val workspaceNameFieldValue: String? = workspaceOverviewNameFieldValueOrNull()
+            workspaceOverviewErrorMessageOrNull() == null &&
+                hasVisibleText(text = "Saving...", substring = false).not() &&
+                workspaceNameFieldValue != null &&
+                workspaceNameFieldValue != "Unavailable" &&
+                (
+                    requireExpectedWorkspaceName.not() ||
+                        workspaceNameFieldValue == expectedWorkspaceName
+                    )
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "Workspace overview did not settle $context. " +
+                "ExpectedWorkspaceName=$expectedWorkspaceName " +
+                "FieldValue=${workspaceOverviewNameFieldValueOrNull()} " +
+                "Error=${workspaceOverviewErrorMessageOrNull()}",
+            error
+        )
+    }
+}
+
 internal fun LiveSmokeContext.waitForCurrentWorkspaceName(expectedWorkspaceName: String) {
     try {
         waitUntilWithMitigation(
@@ -832,12 +939,16 @@ internal fun LiveSmokeContext.selectedWorkspaceSummaryOrNull(): String? {
         .fetchSemanticsNodes()
         .singleOrNull()
         ?.let(::nodeSummary)
+        ?.takeIf { summary -> summary.isNotBlank() }
     if (taggedSelection != null) {
         return taggedSelection
     }
     scrollCurrentWorkspaceListToSelectedWorkspace()
-    return captureVisibleWorkspaceRows(rowTag = currentWorkspaceExistingRowTag)
-        .firstOrNull { row -> row.contains(other = "(Current)") }
+    return composeRule.onAllNodesWithTag(currentWorkspaceSelectedSummaryTag)
+        .fetchSemanticsNodes()
+        .singleOrNull()
+        ?.let(::nodeSummary)
+        ?.takeIf { summary -> summary.isNotBlank() }
 }
 
 internal fun LiveSmokeContext.workspaceOverviewNameFieldValueOrNull(): String? {
@@ -888,9 +999,11 @@ private fun LiveSmokeContext.scrollCurrentWorkspaceListToSelectedWorkspace() {
     if (composeRule.onAllNodesWithTag(currentWorkspaceListTag).fetchSemanticsNodes().isEmpty()) {
         return
     }
-    composeRule.onNodeWithTag(currentWorkspaceListTag).performScrollToNode(
-        matcher = hasText("(Current)", substring = true)
-    )
+    runCatching {
+        composeRule.onNodeWithTag(currentWorkspaceListTag).performScrollToNode(
+            matcher = hasTestTag(currentWorkspaceSelectedSummaryTag)
+        )
+    }
 }
 
 private fun LiveSmokeContext.scrollCurrentWorkspaceListToTopCard() {
@@ -927,6 +1040,127 @@ internal fun LiveSmokeContext.currentWorkspaceSummaryOrNull(): String? {
             "workspaceId=${workspace.workspaceId} name=${workspace.name}"
         }
     }
+}
+
+private fun LiveSmokeContext.currentActiveWorkspaceIdOrNull(): String? {
+    return runBlocking {
+        appGraph().cloudAccountRepository.observeCloudSettings().first().activeWorkspaceId
+    }
+}
+
+private fun LiveSmokeContext.currentWorkspaceIdOrThrow(context: String): String {
+    return runBlocking {
+        requireNotNull(appGraph().workspaceRepository.observeWorkspace().first()?.workspaceId) {
+            "Workspace ID was missing $context."
+        }
+    }
+}
+
+private fun LiveSmokeContext.waitForLinkedWorkspaceSelection(
+    timeoutMillis: Long,
+    context: String,
+    predicate: (LinkedWorkspaceSelectionSnapshot) -> Boolean
+): LinkedWorkspaceSelectionSnapshot {
+    val appGraph = appGraph()
+    try {
+        return waitForFlowValue(
+            timeoutMillis = timeoutMillis,
+            context = "while waiting for linked workspace selection $context",
+            flow = combine(
+                appGraph.cloudAccountRepository.observeCloudSettings(),
+                appGraph.workspaceRepository.observeWorkspace()
+            ) { cloudSettings, workspace ->
+                LinkedWorkspaceSelectionSnapshot(
+                    cloudState = cloudSettings.cloudState,
+                    activeWorkspaceId = cloudSettings.activeWorkspaceId,
+                    linkedWorkspaceId = cloudSettings.linkedWorkspaceId,
+                    workspaceId = workspace?.workspaceId,
+                    workspaceName = workspace?.name
+                )
+            },
+            predicate = predicate
+        )
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "Linked workspace selection did not settle $context. " +
+                "Snapshot=${currentLinkedWorkspaceSelectionSnapshotSummary()} " +
+                "CloudSettings=${currentCloudSettingsSummary()} " +
+                "CurrentWorkspace=${currentWorkspaceSummaryOrNull()}",
+            error
+        )
+    }
+}
+
+private fun LiveSmokeContext.waitForLinkedWorkspaceSelectionToChange(
+    previousWorkspaceId: String,
+    timeoutMillis: Long,
+    context: String
+): LinkedWorkspaceSelectionSnapshot {
+    return waitForLinkedWorkspaceSelection(
+        timeoutMillis = timeoutMillis,
+        context = context
+    ) { snapshot ->
+        snapshot.isStableLinkedSelection() &&
+            snapshot.workspaceId != previousWorkspaceId
+    }
+}
+
+private fun LiveSmokeContext.waitForLinkedWorkspaceName(
+    expectedWorkspaceName: String,
+    timeoutMillis: Long,
+    context: String
+): LinkedWorkspaceSelectionSnapshot {
+    return waitForLinkedWorkspaceSelection(
+        timeoutMillis = timeoutMillis,
+        context = context
+    ) { snapshot ->
+        snapshot.isStableLinkedSelection() &&
+            snapshot.workspaceName == expectedWorkspaceName
+    }
+}
+
+private fun LiveSmokeContext.waitForLinkedWorkspaceHandle(
+    workspaceHandle: EphemeralWorkspaceHandle,
+    timeoutMillis: Long,
+    context: String
+): LinkedWorkspaceSelectionSnapshot {
+    return waitForLinkedWorkspaceSelection(
+        timeoutMillis = timeoutMillis,
+        context = context
+    ) { snapshot ->
+        snapshot.isStableLinkedSelection() &&
+            snapshot.workspaceId == workspaceHandle.workspaceId &&
+            snapshot.workspaceName == workspaceHandle.workspaceName
+    }
+}
+
+private fun LinkedWorkspaceSelectionSnapshot.isStableLinkedSelection(): Boolean {
+    return cloudState == CloudAccountState.LINKED &&
+        activeWorkspaceId != null &&
+        activeWorkspaceId == linkedWorkspaceId &&
+        activeWorkspaceId == workspaceId
+}
+
+private fun LiveSmokeContext.currentLinkedWorkspaceSelectionSnapshotSummary(): String {
+    val snapshot = runBlocking {
+        combine(
+            appGraph().cloudAccountRepository.observeCloudSettings(),
+            appGraph().workspaceRepository.observeWorkspace()
+        ) { cloudSettings, workspace ->
+            LinkedWorkspaceSelectionSnapshot(
+                cloudState = cloudSettings.cloudState,
+                activeWorkspaceId = cloudSettings.activeWorkspaceId,
+                linkedWorkspaceId = cloudSettings.linkedWorkspaceId,
+                workspaceId = workspace?.workspaceId,
+                workspaceName = workspace?.name
+            )
+        }.first()
+    }
+    return "cloudState=${snapshot.cloudState} " +
+        "activeWorkspaceId=${snapshot.activeWorkspaceId} " +
+        "linkedWorkspaceId=${snapshot.linkedWorkspaceId} " +
+        "workspaceId=${snapshot.workspaceId} " +
+        "workspaceName=${snapshot.workspaceName}"
 }
 
 private fun LiveSmokeContext.isDeletePreviewDialogVisible(): Boolean {

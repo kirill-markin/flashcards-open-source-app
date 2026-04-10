@@ -48,7 +48,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -64,7 +64,8 @@ sealed interface AppStartupState {
 class AppGraph(
     context: Context
 ) {
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val appJob = SupervisorJob()
+    private val appScope = CoroutineScope(appJob + Dispatchers.IO)
     private val startupStateMutable = MutableStateFlow<AppStartupState>(AppStartupState.Loading)
     private var startupJob: Job? = null
 
@@ -228,10 +229,10 @@ class AppGraph(
         startStartup()
     }
 
-    fun close() {
-        startupJob?.cancel()
+    suspend fun close() {
+        startupJob?.cancelAndJoin()
         reviewNotificationsManager.close()
-        appScope.cancel()
+        appJob.cancelAndJoin()
         closeAppDatabase(database = database)
     }
 }
