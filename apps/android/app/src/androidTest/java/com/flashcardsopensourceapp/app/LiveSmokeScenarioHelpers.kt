@@ -24,6 +24,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.feature.ai.aiAssistantMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.aiAssistantTextPartTag
+import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSuggestionPrefixTag
@@ -276,6 +277,7 @@ internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
         context = "before resetting the AI conversation"
     )
     clickTag(tag = aiNewChatButtonTag, label = "New chat")
+    waitForAiConversationResetTransition(expectedSendLabel = sendLabel)
     try {
         waitForAiPersistedState(
             timeoutMillis = externalUiTimeoutMillis,
@@ -350,6 +352,43 @@ internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
                 "EmptyStateVisible=${composeRule.onAllNodesWithTag(aiEmptyStateTag).fetchSemanticsNodes().isNotEmpty()} " +
                 "AssistantMessages=${countNodesWithTagInAnySemanticsTree(tag = aiAssistantMessageBubbleTag)} " +
                 "UserMessages=${countNodesWithTagInAnySemanticsTree(tag = aiUserMessageBubbleTag)} " +
+                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+            error
+        )
+    }
+}
+
+private fun LiveSmokeContext.waitForAiConversationResetTransition(expectedSendLabel: String) {
+    try {
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for the AI conversation to enter the resetting state"
+        ) {
+            countNodesWithTagInAnySemanticsTree(tag = aiConversationLoadingTag) > 0 ||
+                countNodesWithTagInAnySemanticsTree(tag = aiComposerMessageFieldTag) == 0
+        }
+        waitForTagToDisappear(
+            tag = aiConversationLoadingTag,
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for the AI reset loading state to finish"
+        )
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for the AI conversation to return to ready after resetting"
+        ) {
+            aiComposerFieldIsEditable() &&
+                aiComposerSendButtonMatchesState(
+                    expectedLabel = expectedSendLabel,
+                    expectedEnabled = false
+                ) &&
+                tagIsEnabled(tag = aiNewChatButtonTag).not()
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "AI conversation did not complete the resetting transition after New chat. " +
+                "LoadingVisible=${countNodesWithTagInAnySemanticsTree(tag = aiConversationLoadingTag) > 0} " +
+                "ActualState=${aiComposerSendButtonStateOrNull(expectedLabel = expectedSendLabel)} " +
+                "PersistedState=${currentAiPersistedStateSummary()} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )

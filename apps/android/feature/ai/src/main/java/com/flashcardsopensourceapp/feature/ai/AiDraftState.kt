@@ -20,6 +20,7 @@ internal enum class AiComposerPhase {
 internal enum class AiConversationBootstrapState {
     READY,
     LOADING,
+    RESETTING,
     FAILED
 }
 
