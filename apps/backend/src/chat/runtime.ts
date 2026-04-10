@@ -6,6 +6,7 @@ import OpenAI from "openai";
 import {
   emptyChatComposerSuggestions,
   generateFollowUpChatComposerSuggestions,
+  type ChatComposerSuggestionsLocale,
   type ChatComposerSuggestion,
 } from "./composerSuggestions";
 import { isChatStorageEntityNotFoundError } from "./errors";
@@ -61,6 +62,7 @@ export type StartPersistedChatRunParams = Readonly<{
   workspaceId: string;
   sessionId: string;
   timezone: string;
+  uiLocale: ChatComposerSuggestionsLocale | null;
   assistantItemId: string;
   localMessages: ReadonlyArray<ServerChatMessage>;
   turnInput: ReadonlyArray<ContentPart>;
@@ -89,6 +91,7 @@ export class ChatRunOwnershipLostError extends Error {
 export type ChatRuntimeDependencies = Readonly<{
   startChatTurnObservation: typeof startChatTurnObservation;
   startOpenAILoop: typeof startOpenAILoop;
+  generateFollowUpChatComposerSuggestions: typeof generateFollowUpChatComposerSuggestions;
   completeChatRun: typeof completeClaimedChatRun;
   persistAssistantCancelled: typeof persistClaimedChatRunCancelled;
   persistAssistantTerminalError: typeof persistClaimedChatRunTerminalError;
@@ -102,6 +105,7 @@ export type ChatRuntimeDependencies = Readonly<{
 const DEFAULT_CHAT_RUNTIME_DEPENDENCIES: ChatRuntimeDependencies = {
   startChatTurnObservation,
   startOpenAILoop,
+  generateFollowUpChatComposerSuggestions,
   completeChatRun: completeClaimedChatRun,
   persistAssistantCancelled: persistClaimedChatRunCancelled,
   persistAssistantTerminalError: persistClaimedChatRunTerminalError,
@@ -365,12 +369,14 @@ async function generateTerminalComposerSuggestions(
   params: StartPersistedChatRunParams,
   assistantContent: ReadonlyArray<ContentPart>,
   logContext: ChatWorkerLogContext,
+  dependencies: ChatRuntimeDependencies,
 ): Promise<ReadonlyArray<ChatComposerSuggestion>> {
   try {
-    return await generateFollowUpChatComposerSuggestions(
+    return await dependencies.generateFollowUpChatComposerSuggestions(
       params.turnInput,
       assistantContent,
       params.assistantItemId,
+      params.uiLocale,
     );
   } catch (error) {
     const errorContext = getErrorLogContext(error);
@@ -498,6 +504,7 @@ export async function runPersistedChatSessionWithDeps(
       params,
       assistantContent,
       logContext,
+      dependencies,
     );
     const finishedAt = new Date();
     await dependencies.completeChatRun(params.userId, params.workspaceId, {

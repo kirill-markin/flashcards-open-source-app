@@ -160,7 +160,7 @@ protocol AIChatSessionServicing: Sendable {
 
     func createNewSession(
         session: CloudLinkedSession,
-        sessionId: String?
+        request: AIChatNewSessionRequestBody
     ) async throws -> AIChatNewSessionResponse
 
     func stopRun(

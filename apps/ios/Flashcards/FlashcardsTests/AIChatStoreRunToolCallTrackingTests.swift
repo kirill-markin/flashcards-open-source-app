@@ -1083,10 +1083,11 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
         store.acceptExternalProviderConsent()
-        context.chatService.createNewSessionHandler = { sessionId in
-            guard let sessionId, sessionId.isEmpty == false else {
+        context.chatService.createNewSessionHandler = { request in
+            guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
                 throw LocalStoreError.validation("Expected an explicit AI chat session id during linked bootstrap.")
             }
+            XCTAssertEqual(request.uiLocale, currentAIChatUILocaleIdentifier())
             return makeNewSessionResponse(sessionId: sessionId)
         }
         context.chatService.loadBootstrapHandler = { sessionId in
@@ -1121,10 +1122,11 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
         try context.configureGuestCloudSession()
         let store = context.makeStore()
         store.acceptExternalProviderConsent()
-        context.chatService.createNewSessionHandler = { sessionId in
-            guard let sessionId, sessionId.isEmpty == false else {
+        context.chatService.createNewSessionHandler = { request in
+            guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
                 throw LocalStoreError.validation("Expected an explicit AI chat session id during guest bootstrap.")
             }
+            XCTAssertEqual(request.uiLocale, currentAIChatUILocaleIdentifier())
             return makeNewSessionResponse(sessionId: sessionId)
         }
         context.chatService.loadBootstrapHandler = { sessionId in
@@ -1162,16 +1164,18 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
         store.chatSessionId = ""
         store.conversationScopeId = ""
         store.inputText = "Help me review this."
-        context.chatService.createNewSessionHandler = { sessionId in
-            guard let sessionId, sessionId.isEmpty == false else {
+        context.chatService.createNewSessionHandler = { request in
+            guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
                 throw LocalStoreError.validation("Expected an explicit AI chat session id before the first send.")
             }
+            XCTAssertEqual(request.uiLocale, currentAIChatUILocaleIdentifier())
             return makeNewSessionResponse(sessionId: sessionId)
         }
         context.chatService.startRunHandler = { request in
             guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
                 throw LocalStoreError.validation("Expected an explicit AI chat session id in the first send request.")
             }
+            XCTAssertEqual(request.uiLocale, currentAIChatUILocaleIdentifier())
             return makeAcceptedStartRunResponse(sessionId: sessionId, userText: "Help me review this.")
         }
 
@@ -1203,10 +1207,11 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
         store.chatSessionId = ""
         store.conversationScopeId = ""
         store.dictationState = .recording
-        context.chatService.createNewSessionHandler = { sessionId in
-            guard let sessionId, sessionId.isEmpty == false else {
+        context.chatService.createNewSessionHandler = { request in
+            guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
                 throw LocalStoreError.validation("Expected an explicit AI chat session id before the first dictation.")
             }
+            XCTAssertEqual(request.uiLocale, currentAIChatUILocaleIdentifier())
             return makeNewSessionResponse(sessionId: sessionId)
         }
 
@@ -1230,10 +1235,11 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
         let store = context.makeStore()
         store.acceptExternalProviderConsent()
         var createAttempts = 0
-        context.chatService.createNewSessionHandler = { sessionId in
-            guard let sessionId, sessionId.isEmpty == false else {
+        context.chatService.createNewSessionHandler = { request in
+            guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
                 throw LocalStoreError.validation("Expected an explicit AI chat session id for retry coverage.")
             }
+            XCTAssertEqual(request.uiLocale, currentAIChatUILocaleIdentifier())
             createAttempts += 1
             if createAttempts == 1 {
                 throw LocalStoreError.validation("Transient AI chat provisioning failure.")
@@ -1488,17 +1494,21 @@ private final class AIChatStoreTestChatService: AIChatSessionServicing, @uncheck
     var loadSnapshotSessionIds: [String?]
     var loadBootstrapSessionIds: [String?]
     var startRunRequests: [AIChatStartRunRequestBody]
-    var createNewSessionSessionIds: [String?]
+    var createNewSessionRequests: [AIChatNewSessionRequestBody]
     var loadBootstrapHandler: ((String?) throws -> AIChatBootstrapResponse)?
     var startRunHandler: ((AIChatStartRunRequestBody) throws -> AIChatStartRunResponse)?
-    var createNewSessionHandler: ((String?) throws -> AIChatNewSessionResponse)?
+    var createNewSessionHandler: ((AIChatNewSessionRequestBody) throws -> AIChatNewSessionResponse)?
+
+    var createNewSessionSessionIds: [String?] {
+        self.createNewSessionRequests.map(\.sessionId)
+    }
 
     init() {
         self.events = []
         self.loadSnapshotSessionIds = []
         self.loadBootstrapSessionIds = []
         self.startRunRequests = []
-        self.createNewSessionSessionIds = []
+        self.createNewSessionRequests = []
         self.loadBootstrapHandler = nil
         self.startRunHandler = nil
         self.createNewSessionHandler = nil
@@ -1559,15 +1569,15 @@ private final class AIChatStoreTestChatService: AIChatSessionServicing, @uncheck
 
     func createNewSession(
         session: CloudLinkedSession,
-        sessionId: String?
+        request: AIChatNewSessionRequestBody
     ) async throws -> AIChatNewSessionResponse {
         _ = session
-        self.events.append("createNewSession:\(sessionId ?? "nil")")
-        self.createNewSessionSessionIds.append(sessionId)
+        self.events.append("createNewSession:\(request.sessionId ?? "nil")")
+        self.createNewSessionRequests.append(request)
         guard let createNewSessionHandler else {
             throw LocalStoreError.validation("Unexpected AI chat new-session request in tests.")
         }
-        return try createNewSessionHandler(sessionId)
+        return try createNewSessionHandler(request)
     }
 
     func stopRun(

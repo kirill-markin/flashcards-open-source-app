@@ -40,6 +40,7 @@ export function useChatSessionController(
   const {
     workspaceId,
     isRemoteReady,
+    uiLocale,
     onToolRunPostSyncRequested,
     uiMessages,
   } = params;
@@ -77,6 +78,7 @@ export function useChatSessionController(
   const actions = useChatSessionActions({
     workspaceId,
     isRemoteReady,
+    uiLocale,
     uiMessages,
     state,
     dispatch,
@@ -87,6 +89,7 @@ export function useChatSessionController(
   useChatSessionHydrationLifecycle({
     workspaceId,
     isRemoteReady,
+    uiLocale,
     uiMessages,
     state,
     dispatch,
@@ -97,6 +100,7 @@ export function useChatSessionController(
     initialShouldBootstrapFreshLocalSession: bootstrap.shouldBootstrapFreshLocalSession,
     ensureRemoteSessionForHydration: actions.ensureRemoteSessionForHydration,
     ensureFreshSession: actions.ensureFreshSession,
+    getFreshSessionRequestSequence: actions.getFreshSessionRequestSequence,
   });
 
   useEffect(() => {

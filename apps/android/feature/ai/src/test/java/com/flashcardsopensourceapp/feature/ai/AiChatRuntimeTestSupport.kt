@@ -41,6 +41,7 @@ internal const val defaultTestWorkspaceId: String = "workspace-1"
 internal const val secondaryTestWorkspaceId: String = "workspace-2"
 
 private const val testAppVersion: String = "1.1.3"
+internal const val testUiLocaleTag: String = "en-US"
 
 internal fun makeRuntime(scope: TestScope, repository: FakeAiChatRepository): AiChatRuntime {
     return makeRuntimeWithAutoSync(
@@ -64,7 +65,8 @@ internal fun makeRuntimeContext(
         hasConsent = { repository.consent.value },
         currentCloudState = { CloudAccountState.GUEST },
         currentServerConfiguration = { makeOfficialCloudServiceConfiguration() },
-        currentSyncStatus = { SyncStatus.Idle }
+        currentSyncStatus = { SyncStatus.Idle },
+        currentUiLocaleTag = { testUiLocaleTag }
     )
 }
 
@@ -96,7 +98,8 @@ internal fun makeRuntimeWithCloudState(
         hasConsent = { repository.consent.value },
         currentCloudState = { cloudState },
         currentServerConfiguration = { makeOfficialCloudServiceConfiguration() },
-        currentSyncStatus = { SyncStatus.Idle }
+        currentSyncStatus = { SyncStatus.Idle },
+        currentUiLocaleTag = { testUiLocaleTag }
     )
 }
 
@@ -208,6 +211,7 @@ internal class FakeAiChatRepository : AiChatRepository {
     val attachRunIds: MutableList<String> = mutableListOf()
     val loadBootstrapSessionIds: MutableList<String> = mutableListOf()
     val createNewSessionRequests: MutableList<String> = mutableListOf()
+    val createNewSessionUiLocales: MutableList<String?> = mutableListOf()
     val createNewSessionGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val createNewSessionResponses: ArrayDeque<AiChatSessionSnapshot> = ArrayDeque()
     val savePersistedStateGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
@@ -224,6 +228,7 @@ internal class FakeAiChatRepository : AiChatRepository {
     var loadBootstrapCalls: Int = 0
     var startRunCalls: Int = 0
     var lastStartRunState: AiChatPersistedState? = null
+    var lastStartRunUiLocale: String? = null
     var startRunResponse: AiChatStartRunResponse = AiChatAcceptedConversationEnvelope(
         accepted = true,
         sessionId = "session-1",
@@ -303,7 +308,8 @@ internal class FakeAiChatRepository : AiChatRepository {
 
     override suspend fun ensureSessionId(
         workspaceId: String?,
-        persistedState: AiChatPersistedState
+        persistedState: AiChatPersistedState,
+        uiLocale: String?
     ): AiChatSessionProvisioningResult {
         val normalizedSessionId = persistedState.chatSessionId.trim()
         ensureSessionRequests += normalizedSessionId
@@ -317,7 +323,8 @@ internal class FakeAiChatRepository : AiChatRepository {
         val sessionId = nextEnsureSessionId
         val snapshot = createNewSession(
             workspaceId = workspaceId,
-            sessionId = sessionId
+            sessionId = sessionId,
+            uiLocale = uiLocale
         )
         return AiChatSessionProvisioningResult(
             sessionId = sessionId,
@@ -341,9 +348,11 @@ internal class FakeAiChatRepository : AiChatRepository {
 
     override suspend fun createNewSession(
         workspaceId: String?,
-        sessionId: String
+        sessionId: String,
+        uiLocale: String?
     ): AiChatSessionSnapshot {
         createNewSessionRequests += sessionId
+        createNewSessionUiLocales += uiLocale
         if (createNewSessionGates.isNotEmpty()) {
             createNewSessionGates.removeFirst().await()
         }
@@ -384,10 +393,12 @@ internal class FakeAiChatRepository : AiChatRepository {
     override suspend fun startRun(
         workspaceId: String?,
         state: AiChatPersistedState,
-        content: List<AiChatContentPart>
+        content: List<AiChatContentPart>,
+        uiLocale: String?
     ): AiChatStartRunResponse {
         startRunCalls += 1
         lastStartRunState = state
+        lastStartRunUiLocale = uiLocale
         val error: Exception? = startRunError
         if (error != null) {
             throw error

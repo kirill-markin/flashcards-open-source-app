@@ -43,8 +43,10 @@ class AiChatRuntimeConversationResetAndSendTest {
         advanceUntilIdle()
 
         assertEquals(listOf("send-session-1"), repository.createNewSessionRequests)
+        assertEquals(listOf(testUiLocaleTag), repository.createNewSessionUiLocales)
         assertEquals(0, repository.loadBootstrapCalls)
         assertEquals("send-session-1", repository.lastStartRunState?.chatSessionId)
+        assertEquals(testUiLocaleTag, repository.lastStartRunUiLocale)
         assertEquals("send-session-1", runtime.state.value.persistedState.chatSessionId)
     }
 
@@ -132,6 +134,7 @@ class AiChatRuntimeConversationResetAndSendTest {
 
         assertEquals(1, repository.createNewSessionRequests.size)
         val localSessionId = repository.createNewSessionRequests.single()
+        assertEquals(testUiLocaleTag, repository.createNewSessionUiLocales.single())
         assertTrue(localSessionId.isNotBlank())
         assertFalse(localSessionId == "session-1")
         assertEquals(localSessionId, runtime.state.value.persistedState.chatSessionId)

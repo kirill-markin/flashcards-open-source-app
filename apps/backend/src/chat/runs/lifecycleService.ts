@@ -6,6 +6,7 @@ import {
 import type { StoredOpenAIReplayItem } from "../openai/replayItems";
 import type { ChatSessionRunState } from "../store";
 import {
+  type ChatComposerSuggestionsLocale,
   type ChatComposerSuggestion,
 } from "../composerSuggestions";
 import {
@@ -59,6 +60,7 @@ export async function prepareChatRun(
   content: ReadonlyArray<ContentPart>,
   requestId: string,
   timezone: string,
+  uiLocale: ChatComposerSuggestionsLocale | null,
 ): Promise<PreparedChatRun> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const scope = { userId, workspaceId };
@@ -110,6 +112,7 @@ export async function prepareChatRun(
       assistantItemId: assistantItem.itemId,
       requestId,
       timezone,
+      uiLocale,
       turnInput: content,
     });
 
@@ -207,6 +210,7 @@ export async function claimChatRun(
       userId,
       workspaceId,
       timezone: claimedRun.timezone,
+      uiLocale: claimedRun.ui_locale,
       assistantItemId: claimedRun.assistant_item_id,
       localMessages: messages,
       turnInput: claimedRun.turn_input,

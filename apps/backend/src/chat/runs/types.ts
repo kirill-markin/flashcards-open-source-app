@@ -1,4 +1,5 @@
 import type { ServerChatMessage } from "../openai/replayItems";
+import type { ChatComposerSuggestionsLocale } from "../composerSuggestions";
 import type {
   ChatSessionRunState,
   ChatSessionSnapshot,
@@ -41,6 +42,7 @@ export type ClaimedChatRun = Readonly<{
   userId: string;
   workspaceId: string;
   timezone: string;
+  uiLocale: ChatComposerSuggestionsLocale | null;
   assistantItemId: string;
   localMessages: ReadonlyArray<ServerChatMessage>;
   turnInput: ReadonlyArray<ContentPart>;

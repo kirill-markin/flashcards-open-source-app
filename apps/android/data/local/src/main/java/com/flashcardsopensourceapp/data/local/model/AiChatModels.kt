@@ -298,6 +298,12 @@ data class AiChatStartRunRequest(
     val clientRequestId: String,
     val content: List<AiChatWireContentPart>,
     val timezone: String,
+    val uiLocale: String?,
+)
+
+data class AiChatNewSessionRequest(
+    val sessionId: String,
+    val uiLocale: String?,
 )
 
 data class AiToolCallRequest(

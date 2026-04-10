@@ -16,7 +16,7 @@ const ChatSessionControllerContext = createContext<ChatSessionController | null>
 export function ChatSessionControllerProvider(props: Props): ReactElement {
   const { children } = props;
   const appData = useAppData();
-  const { t, formatNumber } = useI18n();
+  const { locale, t, formatNumber } = useI18n();
   const activeWorkspaceId = appData.activeWorkspace?.workspaceId ?? null;
   const runSync = appData.runSync;
   const setAppErrorMessage = appData.setErrorMessage;
@@ -37,6 +37,7 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
   const controller = useChatSessionController({
     workspaceId: activeWorkspaceId,
     isRemoteReady: appData.sessionVerificationState === "verified",
+    uiLocale: locale,
     onToolRunPostSyncRequested: handleToolRunPostSyncRequested,
     uiMessages: {
       activeRunInProgress: t("chatPanel.errors.activeRunInProgress"),

@@ -2,6 +2,7 @@ import { transactionWithWorkspaceScope, type DatabaseExecutor, type WorkspaceDat
 import {
   buildInitialChatComposerSuggestions,
   emptyChatComposerSuggestions,
+  type ChatComposerSuggestionsLocale,
   type ChatComposerSuggestion,
   type ChatComposerSuggestionInvalidationReason,
   type ChatComposerSuggestionSource,
@@ -115,8 +116,9 @@ export async function createInitialChatComposerSuggestionGenerationWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
   sessionId: string,
+  uiLocale: ChatComposerSuggestionsLocale | null,
 ): Promise<void> {
-  const suggestions = buildInitialChatComposerSuggestions();
+  const suggestions = buildInitialChatComposerSuggestions(uiLocale);
   const generation = await insertChatComposerSuggestionGenerationWithExecutor(executor, scope, {
     sessionId,
     assistantItemId: null,

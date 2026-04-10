@@ -1,8 +1,9 @@
-import { act, createElement } from "react";
+import { act, createElement, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, expect, vi } from "vitest";
-import { I18nProvider } from "../i18n";
-import type { ChatSessionSnapshot } from "../types";
+import { I18nProvider, useI18n } from "../i18n";
+import type { Locale, LocalePreference } from "../i18n/types";
+import type { ChatSessionSnapshot, StartChatRunRequestBody } from "../types";
 import { defaultChatConfig } from "./sessionController/config";
 import { ChatDraftProvider } from "./ChatDraftContext";
 import { ChatSessionControllerProvider } from "./sessionController";
@@ -127,6 +128,7 @@ type ChatPanelTestHarness = Readonly<{
   setMobileViewport: (isMobile: boolean) => void;
   flushAsync: () => Promise<void>;
   renderChatPanel: (mode?: "sidebar" | "fullscreen") => Promise<void>;
+  setLocalePreference: (localePreference: LocalePreference) => Promise<void>;
   unmountChatPanel: () => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
   clickNewConversation: () => Promise<void>;
@@ -324,6 +326,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
   let scrollToMock: ReturnType<typeof vi.fn> | null = null;
   let clipboardWriteTextMock: ReturnType<typeof vi.fn> | null = null;
   let alertMock: ReturnType<typeof vi.fn> | null = null;
+  let setLocalePreferenceRef: ((localePreference: LocalePreference) => void) | null = null;
   let isMobileViewport = false;
   const matchMediaListeners = new Set<(event: MediaQueryListEvent) => void>();
 
@@ -407,6 +410,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
+    setLocalePreferenceRef = null;
     clipboardWriteTextMock = vi.fn().mockResolvedValue(undefined);
     alertMock = vi.fn();
     Object.defineProperty(window.navigator, "clipboard", {
@@ -455,7 +459,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       sessionId,
       conversationScopeId: sessionId,
     }));
-    startChatRunMock.mockImplementation(async (requestBody: { sessionId: string }) => ({
+    startChatRunMock.mockImplementation(async (requestBody: StartChatRunRequestBody) => ({
       accepted: true,
       sessionId: requestBody.sessionId,
       conversationScopeId: requestBody.sessionId,
@@ -468,7 +472,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       chatConfig: defaultChatConfig,
       activeRun: createChatActiveRun(),
     }));
-    createNewChatSessionMock.mockImplementation(async (sessionId: string) => ({
+    createNewChatSessionMock.mockImplementation(async (sessionId: string, _uiLocale: Locale) => ({
       ok: true,
       sessionId,
       composerSuggestions: [],
@@ -599,6 +603,21 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     });
   }
 
+  function LocalePreferenceProbe(): null {
+    const { setLocalePreference } = useI18n();
+
+    useEffect(() => {
+      setLocalePreferenceRef = setLocalePreference;
+      return () => {
+        if (setLocalePreferenceRef === setLocalePreference) {
+          setLocalePreferenceRef = null;
+        }
+      };
+    }, [setLocalePreference]);
+
+    return null;
+  }
+
   async function renderChatPanel(mode: "sidebar" | "fullscreen" = "fullscreen"): Promise<void> {
     expect(root).not.toBeNull();
     await act(async () => {
@@ -612,11 +631,24 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
             createElement(
               ChatDraftProvider,
               null,
+              createElement(LocalePreferenceProbe),
               createElement(ChatPanel, { key: mode, mode }),
             ),
           ),
         ),
       );
+      await Promise.resolve();
+    });
+  }
+
+  async function setLocalePreference(localePreference: LocalePreference): Promise<void> {
+    expect(setLocalePreferenceRef).not.toBeNull();
+    if (setLocalePreferenceRef === null) {
+      throw new Error("Expected locale preference setter");
+    }
+
+    await act(async () => {
+      setLocalePreferenceRef?.(localePreference);
       await Promise.resolve();
     });
   }
@@ -701,6 +733,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     setMobileViewport,
     flushAsync,
     renderChatPanel,
+    setLocalePreference,
     unmountChatPanel,
     sendMessage,
     clickNewConversation,

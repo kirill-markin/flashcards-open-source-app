@@ -57,6 +57,8 @@ struct AIChatStartRunRequestBody: Codable, Hashable, Sendable {
     let clientRequestId: String
     let content: [AIChatContentPart]
     let timezone: String
+    // Keep this additive field optional while older client and backend builds roll out independently.
+    let uiLocale: String?
 }
 
 enum AIChatComposerPhase: String, Hashable, Sendable {
@@ -155,6 +157,8 @@ struct AIChatLiveStreamEnvelope: Codable, Hashable, Sendable {
 
 struct AIChatNewSessionRequestBody: Codable, Hashable, Sendable {
     let sessionId: String?
+    // Keep this additive field optional while older client and backend builds roll out independently.
+    let uiLocale: String?
 }
 
 struct AIChatNewSessionResponse: Codable, Hashable, Sendable {
@@ -188,4 +192,24 @@ struct AIChatStopRunResponse: Decodable, Hashable, Sendable {
     let runId: String?
     let stopped: Bool
     let stillRunning: Bool
+}
+
+func currentAIChatUILocaleIdentifier() -> String? {
+    currentAIChatUILocaleIdentifier(
+        preferredLocalizations: Bundle.main.preferredLocalizations
+    )
+}
+
+func currentAIChatUILocaleIdentifier(
+    preferredLocalizations: [String]
+) -> String? {
+    let localeIdentifier = preferredLocalizations.first { candidate in
+        candidate.isEmpty == false && candidate != "Base"
+    }
+
+    guard let localeIdentifier else {
+        return nil
+    }
+
+    return localeIdentifier.replacingOccurrences(of: "_", with: "-")
 }

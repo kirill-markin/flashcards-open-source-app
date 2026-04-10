@@ -43,6 +43,7 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
         advanceUntilIdle()
 
         assertEquals(listOf("guest-session-1"), repository.createNewSessionRequests)
+        assertEquals(listOf(testUiLocaleTag), repository.createNewSessionUiLocales)
         assertEquals(listOf("guest-session-1"), repository.loadBootstrapSessionIds)
         assertEquals(
             "guest-session-1",
@@ -79,6 +80,7 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
         advanceUntilIdle()
 
         assertEquals(listOf("linked-session-1"), repository.createNewSessionRequests)
+        assertEquals(listOf(testUiLocaleTag), repository.createNewSessionUiLocales)
         assertEquals(listOf("linked-session-1"), repository.loadBootstrapSessionIds)
         assertEquals(
             "linked-session-1",

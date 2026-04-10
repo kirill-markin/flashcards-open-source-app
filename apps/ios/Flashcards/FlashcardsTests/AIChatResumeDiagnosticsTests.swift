@@ -75,6 +75,116 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         await self.fulfillment(of: [expectation], timeout: 1.0)
     }
 
+    func testStartRunEncodesUILocaleInRequestBody() async throws {
+        let expectation = XCTestExpectation(description: "Start run request captured")
+        let service = AIChatService(
+            session: self.makeURLSession(),
+            encoder: JSONEncoder(),
+            decoder: makeFlashcardsRemoteJSONDecoder()
+        )
+        AIChatTestURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.path, "/chat")
+            let body = try XCTUnwrap(aiChatRequestBodyData(request: request))
+            let payload = try JSONDecoder().decode(AIChatEncodedStartRunRequest.self, from: body)
+            XCTAssertEqual(payload.sessionId, "session-1")
+            XCTAssertEqual(payload.timezone, TimeZone.current.identifier)
+            XCTAssertEqual(payload.uiLocale, currentAIChatUILocaleIdentifier())
+            expectation.fulfill()
+            return (
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!,
+                Data(Self.startRunResponseJSON.utf8)
+            )
+        }
+
+        let response = try await service.startRun(
+            session: self.makeLinkedSession(),
+            request: AIChatStartRunRequestBody(
+                sessionId: "session-1",
+                clientRequestId: "request-1",
+                content: [.text("Help me review this.")],
+                timezone: TimeZone.current.identifier,
+                uiLocale: currentAIChatUILocaleIdentifier()
+            )
+        )
+
+        XCTAssertEqual(response.sessionId, "session-1")
+        await self.fulfillment(of: [expectation], timeout: 1.0)
+    }
+
+    func testCreateNewSessionEncodesUILocaleInRequestBody() async throws {
+        let expectation = XCTestExpectation(description: "New session request captured")
+        let service = AIChatService(
+            session: self.makeURLSession(),
+            encoder: JSONEncoder(),
+            decoder: makeFlashcardsRemoteJSONDecoder()
+        )
+        AIChatTestURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.path, "/chat/new")
+            let body = try XCTUnwrap(aiChatRequestBodyData(request: request))
+            let payload = try JSONDecoder().decode(AIChatEncodedNewSessionRequest.self, from: body)
+            XCTAssertEqual(payload.sessionId, "session-1")
+            XCTAssertEqual(payload.uiLocale, currentAIChatUILocaleIdentifier())
+            expectation.fulfill()
+            return (
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!,
+                Data(Self.newSessionResponseJSON.utf8)
+            )
+        }
+
+        let response = try await service.createNewSession(
+            session: self.makeLinkedSession(),
+            request: AIChatNewSessionRequestBody(
+                sessionId: "session-1",
+                uiLocale: currentAIChatUILocaleIdentifier()
+            )
+        )
+
+        XCTAssertEqual(response.sessionId, "session-1")
+        await self.fulfillment(of: [expectation], timeout: 1.0)
+    }
+
+    func testRequestBodiesOmitUILocaleWhenUnavailable() throws {
+        let encoder = JSONEncoder()
+        let startRunData = try encoder.encode(
+            AIChatStartRunRequestBody(
+                sessionId: "session-1",
+                clientRequestId: "request-1",
+                content: [.text("Help me review this.")],
+                timezone: "Europe/Madrid",
+                uiLocale: nil
+            )
+        )
+        let startRunPayload = String(
+            decoding: startRunData,
+            as: UTF8.self
+        )
+        let newSessionData = try encoder.encode(
+            AIChatNewSessionRequestBody(
+                sessionId: "session-1",
+                uiLocale: nil
+            )
+        )
+        let newSessionPayload = String(
+            decoding: newSessionData,
+            as: UTF8.self
+        )
+
+        XCTAssertFalse(startRunPayload.contains("\"uiLocale\""))
+        XCTAssertFalse(newSessionPayload.contains("\"uiLocale\""))
+    }
+
     func testLiveStreamConnectIncludesResumeDiagnosticsHeaders() async throws {
         let expectation = XCTestExpectation(description: "Live request captured")
         let client = AIChatLiveStreamClient(urlSession: self.makeURLSession())
@@ -194,4 +304,95 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
       }
     }
     """
+
+    private static let startRunResponseJSON: String = """
+    {
+      "accepted": true,
+      "sessionId": "session-1",
+      "conversationScopeId": "session-1",
+      "conversation": {
+        "messages": [],
+        "updatedAt": 123,
+        "mainContentInvalidationVersion": 1,
+        "hasOlder": false,
+        "oldestCursor": null
+      },
+      "composerSuggestions": [],
+      "chatConfig": {
+        "provider": { "id": "openai", "label": "OpenAI" },
+        "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+        "reasoning": { "effort": "medium", "label": "Medium" },
+        "features": {
+          "modelPickerEnabled": false,
+          "dictationEnabled": true,
+          "attachmentsEnabled": true
+        },
+        "liveUrl": "https://api.example.com/chat/live"
+      },
+      "activeRun": null
+    }
+    """
+
+    private static let newSessionResponseJSON: String = """
+    {
+      "ok": true,
+      "sessionId": "session-1",
+      "composerSuggestions": [],
+      "chatConfig": {
+        "provider": { "id": "openai", "label": "OpenAI" },
+        "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+        "reasoning": { "effort": "medium", "label": "Medium" },
+        "features": {
+          "modelPickerEnabled": false,
+          "dictationEnabled": true,
+          "attachmentsEnabled": true
+        },
+        "liveUrl": "https://api.example.com/chat/live"
+      }
+    }
+    """
+}
+
+private struct AIChatEncodedStartRunRequest: Decodable {
+    let sessionId: String?
+    let clientRequestId: String
+    let content: [AIChatContentPart]
+    let timezone: String
+    let uiLocale: String?
+}
+
+private struct AIChatEncodedNewSessionRequest: Decodable {
+    let sessionId: String?
+    let uiLocale: String?
+}
+
+private func aiChatRequestBodyData(request: URLRequest) -> Data? {
+    if let httpBody = request.httpBody {
+        return httpBody
+    }
+
+    guard let bodyStream = request.httpBodyStream else {
+        return nil
+    }
+
+    bodyStream.open()
+    defer {
+        bodyStream.close()
+    }
+
+    var data = Data()
+    var buffer = [UInt8](repeating: 0, count: 1024)
+
+    while bodyStream.hasBytesAvailable {
+        let readCount = bodyStream.read(&buffer, maxLength: buffer.count)
+        if readCount < 0 {
+            return nil
+        }
+        if readCount == 0 {
+            break
+        }
+        data.append(buffer, count: readCount)
+    }
+
+    return data
 }

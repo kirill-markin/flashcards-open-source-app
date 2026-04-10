@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
+import { persistLocalePreference } from "../i18n/runtime";
 import {
+  createChatActiveRun,
   createChatSnapshot,
   createNewChatSessionMock,
   getChatSnapshotMock,
@@ -26,6 +28,7 @@ const {
   flushAsync,
   getContainer,
   renderChatPanel,
+  setLocalePreference,
   unmountChatPanel,
   clickNewConversation,
   clickAddAttachment,
@@ -240,6 +243,60 @@ describe("ChatPanel new chat", () => {
     expect(document.activeElement).toBe(textarea);
   });
 
+  it("ignores a late accepted send from the previous conversation after a new chat reset", async () => {
+    let resolveStartRun: (() => void) | null = null;
+    let initialSessionId: string | null = null;
+    const staleSuggestions = [{
+      id: "stale-1",
+      text: "Stale suggestion",
+      source: "assistant_follow_up" as const,
+      assistantItemId: "assistant-stale",
+    }];
+
+    startChatRunMock.mockImplementation(async (requestBody) => new Promise((resolve) => {
+      initialSessionId = requestBody.sessionId;
+      resolveStartRun = () => resolve({
+        ...createChatSnapshot({
+          sessionId: requestBody.sessionId,
+          conversationScopeId: requestBody.sessionId,
+          composerSuggestions: staleSuggestions,
+          activeRun: createChatActiveRun(),
+        }),
+        accepted: true,
+      });
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    await sendMessage("hello before reset");
+    await flushAsync();
+
+    const newButton = getContainer().querySelector('[data-testid="chat-new-button"]') as HTMLButtonElement | null;
+    expect(newButton).not.toBeNull();
+    expect(newButton?.disabled).toBe(false);
+
+    await clickNewConversation();
+    await flushAsync();
+
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(2);
+
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(textarea).not.toBeNull();
+
+    await setTextareaValue(textarea as HTMLTextAreaElement, "fresh draft");
+    await flushAsync();
+
+    resolveStartRun?.();
+    await flushAsync();
+    await flushAsync();
+
+    expect(initialSessionId).not.toBeNull();
+    expect(textarea?.value).toBe("fresh draft");
+    expect(getContainer().querySelectorAll(".chat-msg").length).toBe(0);
+    expect(getContainer().textContent).not.toContain("Stale suggestion");
+  });
+
   it("waits for the new-session provisioning response before starting the next send", async () => {
     let resolveNewSession: ((value: {
       ok: true;
@@ -286,6 +343,184 @@ describe("ChatPanel new chat", () => {
     }));
   });
 
+  it("sends the current app locale when provisioning a fresh chat session", async () => {
+    persistLocalePreference("es-MX");
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    expect(createNewChatSessionMock).toHaveBeenCalledWith(
+      expect.any(String),
+      "es-MX",
+    );
+  });
+
+  it("reprovisions idle composer suggestions when the app locale changes", async () => {
+    const englishSuggestion = [{
+      id: "suggestion-en",
+      text: "Study with spaced repetition",
+      source: "initial" as const,
+      assistantItemId: null,
+    }];
+    const spanishSuggestion = [{
+      id: "suggestion-es",
+      text: "Estudia con repeticion espaciada",
+      source: "initial" as const,
+      assistantItemId: null,
+    }];
+    let secondRequestResolved = false;
+    let resolveSecondRequest: ((value: {
+      ok: true;
+      sessionId: string;
+      composerSuggestions: typeof spanishSuggestion;
+      chatConfig: ReturnType<typeof createChatSnapshot>["chatConfig"];
+    }) => void) | null = null;
+
+    getChatSnapshotMock.mockImplementation(async (sessionId: string) => createChatSnapshot({
+      sessionId,
+      conversationScopeId: sessionId,
+      composerSuggestions: englishSuggestion,
+      conversation: {
+        updatedAt: 1,
+        mainContentInvalidationVersion: 0,
+        messages: [],
+      },
+    }));
+    createNewChatSessionMock.mockImplementation((sessionId: string, uiLocale: string) => {
+      if (uiLocale === "en") {
+        return Promise.resolve({
+          ok: true,
+          sessionId,
+          composerSuggestions: [],
+          chatConfig: createChatSnapshot().chatConfig,
+        });
+      }
+
+      return new Promise((resolve) => {
+        resolveSecondRequest = (value) => {
+          secondRequestResolved = true;
+          resolve(value);
+        };
+      });
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    expect(getContainer().textContent).toContain("Study with spaced repetition");
+
+    await setLocalePreference("es-MX");
+    await flushAsync();
+
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(2);
+    expect(createNewChatSessionMock.mock.calls[0]?.[0]).toBe(createNewChatSessionMock.mock.calls[1]?.[0]);
+    expect(createNewChatSessionMock.mock.calls[1]?.[1]).toBe("es-MX");
+    expect(getContainer().textContent).not.toContain("Study with spaced repetition");
+    expect(secondRequestResolved).toBe(false);
+
+    resolveSecondRequest?.({
+      ok: true,
+      sessionId: createNewChatSessionMock.mock.calls[1]?.[0] as string,
+      composerSuggestions: spanishSuggestion,
+      chatConfig: createChatSnapshot().chatConfig,
+    });
+    await flushAsync();
+    await flushAsync();
+
+    expect(getContainer().textContent).toContain("Estudia con repeticion espaciada");
+    expect(getContainer().textContent).not.toContain("Study with spaced repetition");
+  });
+
+  it("ignores late fresh-session provisioning responses from the previous locale", async () => {
+    const englishSuggestion = [{
+      id: "suggestion-en",
+      text: "Old locale suggestion",
+      source: "initial" as const,
+      assistantItemId: null,
+    }];
+    const spanishSuggestion = [{
+      id: "suggestion-es",
+      text: "Nueva sugerencia",
+      source: "initial" as const,
+      assistantItemId: null,
+    }];
+    let freshSessionId: string | null = null;
+    let resolveEnglishRequest: ((value: {
+      ok: true;
+      sessionId: string;
+      composerSuggestions: typeof englishSuggestion;
+      chatConfig: ReturnType<typeof createChatSnapshot>["chatConfig"];
+    }) => void) | null = null;
+    let resolveSpanishRequest: ((value: {
+      ok: true;
+      sessionId: string;
+      composerSuggestions: typeof spanishSuggestion;
+      chatConfig: ReturnType<typeof createChatSnapshot>["chatConfig"];
+    }) => void) | null = null;
+
+    createNewChatSessionMock.mockImplementation((sessionId: string, uiLocale: string) => {
+      if (uiLocale === "en") {
+        if (createNewChatSessionMock.mock.calls.length === 1) {
+          return Promise.resolve({
+            ok: true,
+            sessionId,
+            composerSuggestions: [],
+            chatConfig: createChatSnapshot().chatConfig,
+          });
+        }
+
+        freshSessionId = sessionId;
+        return new Promise((resolve) => {
+          resolveEnglishRequest = resolve;
+        });
+      }
+
+      freshSessionId = sessionId;
+      return new Promise((resolve) => {
+        resolveSpanishRequest = resolve;
+      });
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+
+    await clickNewConversation();
+    await flushAsync();
+
+    await setLocalePreference("es-MX");
+    await flushAsync();
+
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(3);
+    expect(createNewChatSessionMock.mock.calls[1]?.[0]).toBe(freshSessionId);
+    expect(createNewChatSessionMock.mock.calls[2]?.[0]).toBe(freshSessionId);
+    expect(createNewChatSessionMock.mock.calls[2]?.[1]).toBe("es-MX");
+
+    resolveSpanishRequest?.({
+      ok: true,
+      sessionId: freshSessionId ?? "session-1",
+      composerSuggestions: spanishSuggestion,
+      chatConfig: createChatSnapshot().chatConfig,
+    });
+    await flushAsync();
+    await flushAsync();
+
+    expect(getContainer().textContent).toContain("Nueva sugerencia");
+
+    resolveEnglishRequest?.({
+      ok: true,
+      sessionId: freshSessionId ?? "session-1",
+      composerSuggestions: englishSuggestion,
+      chatConfig: createChatSnapshot().chatConfig,
+    });
+    await flushAsync();
+    await flushAsync();
+
+    expect(getContainer().textContent).toContain("Nueva sugerencia");
+    expect(getContainer().textContent).not.toContain("Old locale suggestion");
+  });
+
   it("does not let a late new-session ensure overwrite fresh suggestions after send", async () => {
     const initialSuggestions = [{
       id: "initial-1",
@@ -323,7 +558,7 @@ describe("ChatPanel new chat", () => {
         resolveEnsure = resolve;
       });
     });
-    startChatRunMock.mockImplementation(async (requestBody: { sessionId: string }) => {
+    startChatRunMock.mockImplementation(async (requestBody) => {
       expect(requestBody.sessionId).toBe(createdSessionId);
       return {
         accepted: true,

@@ -9,6 +9,7 @@ import {
   clearActiveChatComposerSuggestionGenerationWithExecutor,
   createInitialChatComposerSuggestionGenerationWithExecutor,
 } from "./composerSuggestionService";
+import type { ChatComposerSuggestionsLocale } from "../composerSuggestions";
 import {
   insertGeneratedChatSessionRowWithExecutor,
   insertRequestedChatSessionRowWithExecutor,
@@ -26,6 +27,7 @@ async function createChatSessionWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
   requestedSessionId: string | undefined,
+  uiLocale: ChatComposerSuggestionsLocale | null,
 ): Promise<ChatSessionRow> {
   const insertedSession = requestedSessionId === undefined
     ? await insertGeneratedChatSessionRowWithExecutor(executor, scope, scope.userId, scope.workspaceId)
@@ -54,6 +56,7 @@ async function createChatSessionWithExecutor(
     executor,
     scope,
     insertedSession.session_id,
+    uiLocale,
   );
   return resolveRequestedChatSessionWithExecutor(executor, scope, insertedSession.session_id);
 }
@@ -107,7 +110,7 @@ export async function resolveRequestedOrCreateChatSessionWithExecutor(
     return row;
   }
 
-  return createChatSessionWithExecutor(executor, scope, sessionId);
+  return createChatSessionWithExecutor(executor, scope, sessionId, null);
 }
 
 export async function resolveLatestOrCreateChatSessionWithExecutor(
@@ -119,7 +122,7 @@ export async function resolveLatestOrCreateChatSessionWithExecutor(
     return latestSession;
   }
 
-  return createChatSessionWithExecutor(executor, scope, undefined);
+  return createChatSessionWithExecutor(executor, scope, undefined, null);
 }
 
 export const getChatSessionIdWithExecutor = async (
@@ -143,8 +146,9 @@ export const createFreshChatSessionWithExecutor = async (
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
   requestedSessionId: string | undefined,
+  uiLocale: ChatComposerSuggestionsLocale | null,
 ): Promise<string> => {
-  const row = await createChatSessionWithExecutor(executor, scope, requestedSessionId);
+  const row = await createChatSessionWithExecutor(executor, scope, requestedSessionId, uiLocale);
   return row.session_id;
 };
 
@@ -219,14 +223,16 @@ export const createFreshChatSession = async (
   userId: string,
   workspaceId: string,
   requestedSessionId: string | undefined,
+  uiLocale: ChatComposerSuggestionsLocale | null,
 ): Promise<string> =>
   transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
-    createFreshChatSessionWithExecutor(executor, { userId, workspaceId }, requestedSessionId));
+    createFreshChatSessionWithExecutor(executor, { userId, workspaceId }, requestedSessionId, uiLocale));
 
 export const rolloverToFreshChatSession = async (
   userId: string,
   workspaceId: string,
   previousSessionId: string,
+  uiLocale: ChatComposerSuggestionsLocale | null,
 ): Promise<string> =>
   transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const scope = { userId, workspaceId };
@@ -236,7 +242,7 @@ export const rolloverToFreshChatSession = async (
       previousSessionId,
       "new_chat_rollover",
     );
-    return createFreshChatSessionWithExecutor(executor, scope, undefined);
+    return createFreshChatSessionWithExecutor(executor, scope, undefined, uiLocale);
   });
 
 export const touchChatSessionHeartbeat = async (

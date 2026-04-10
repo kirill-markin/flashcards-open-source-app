@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useEffectEvent, useRef, type Dispatch } from "react";
+import type { Locale } from "../../i18n/types";
 import { loadStoredChatConfig } from "./config";
 import type {
   ChatSessionControllerAction,
@@ -21,6 +22,7 @@ import type { ChatSessionControllerUiMessages } from "./types";
 type UseChatSessionHydrationLifecycleParams = Readonly<{
   workspaceId: string | null;
   isRemoteReady: boolean;
+  uiLocale: Locale;
   uiMessages: ChatSessionControllerUiMessages;
   state: ChatSessionControllerState;
   dispatch: Dispatch<ChatSessionControllerAction>;
@@ -30,7 +32,8 @@ type UseChatSessionHydrationLifecycleParams = Readonly<{
   initialFreshSessionId: string;
   initialShouldBootstrapFreshLocalSession: boolean;
   ensureRemoteSessionForHydration: () => Promise<string>;
-  ensureFreshSession: (sessionId: string) => void;
+  ensureFreshSession: (sessionId: string, requestSequence: number) => void;
+  getFreshSessionRequestSequence: () => number;
 }>;
 
 export function useChatSessionHydrationLifecycle(
@@ -39,6 +42,7 @@ export function useChatSessionHydrationLifecycle(
   const {
     workspaceId,
     isRemoteReady,
+    uiLocale,
     uiMessages,
     state,
     dispatch,
@@ -49,6 +53,7 @@ export function useChatSessionHydrationLifecycle(
     initialShouldBootstrapFreshLocalSession,
     ensureRemoteSessionForHydration,
     ensureFreshSession,
+    getFreshSessionRequestSequence,
   } = params;
   const { replaceMessages } = history;
   const {
@@ -61,6 +66,7 @@ export function useChatSessionHydrationLifecycle(
     startSnapshotLiveStream,
   } = snapshotSync;
   const hydratedWorkspaceIdRef = useRef<string | null>(initialWarmStartSnapshot?.workspaceId ?? null);
+  const hydratedUiLocaleRef = useRef<Locale | null>(workspaceId === null ? null : uiLocale);
   const shouldBootstrapFreshLocalSessionRef = useRef<boolean>(initialShouldBootstrapFreshLocalSession);
 
   const applyWarmStartSnapshot = useCallback((nextWorkspaceId: string): boolean => {
@@ -80,6 +86,7 @@ export function useChatSessionHydrationLifecycle(
       });
       resetSnapshotTracking(null);
       hydratedWorkspaceIdRef.current = nextWorkspaceId;
+      hydratedUiLocaleRef.current = uiLocale;
       shouldBootstrapFreshLocalSessionRef.current = true;
       return true;
     }
@@ -95,11 +102,15 @@ export function useChatSessionHydrationLifecycle(
     });
     resetSnapshotTracking(warmStartSnapshot.updatedAt);
     hydratedWorkspaceIdRef.current = nextWorkspaceId;
+    hydratedUiLocaleRef.current = uiLocale;
     return true;
-  }, [detachLiveStream, dispatch, replaceMessages, resetSnapshotTracking]);
+  }, [detachLiveStream, dispatch, replaceMessages, resetSnapshotTracking, uiLocale]);
 
   const runHydrationLifecycle = useEffectEvent((isDisposedRef: { current: boolean }): void => {
     const isWorkspaceTransition = hydratedWorkspaceIdRef.current !== workspaceId;
+    const isLocaleTransition = isWorkspaceTransition === false
+      && workspaceId !== null
+      && hydratedUiLocaleRef.current !== uiLocale;
     const initialHydrationSessionId = isWorkspaceTransition
       ? null
       : resolveInitialHydrationSessionId(workspaceId, runtimeRefs.currentSessionIdRef.current);
@@ -113,6 +124,7 @@ export function useChatSessionHydrationLifecycle(
       runtimeRefs.currentSessionIdRef.current = null;
       dispatch({ type: "workspace_cleared" });
       hydratedWorkspaceIdRef.current = null;
+      hydratedUiLocaleRef.current = null;
       return;
     }
 
@@ -120,15 +132,42 @@ export function useChatSessionHydrationLifecycle(
       shouldBootstrapFreshLocalSessionRef.current = false;
     }
 
+    if (isLocaleTransition) {
+      hydratedUiLocaleRef.current = uiLocale;
+      const currentSessionId = runtimeRefs.currentSessionIdRef.current ?? initialFreshSessionId;
+      const shouldRefreshIdleFreshSession = state.isHistoryLoaded
+        && runtimeRefs.messagesRef.current.length === 0
+        && runtimeRefs.runStateRef.current === "idle";
+
+      if (shouldRefreshIdleFreshSession === false) {
+        return;
+      }
+
+      invalidatePendingSnapshotRequests();
+      dispatch({
+        type: "fresh_session_requested",
+        sessionId: currentSessionId,
+        chatConfig: loadStoredChatConfig(),
+      });
+      if (isRemoteReady) {
+        ensureFreshSession(currentSessionId, getFreshSessionRequestSequence());
+      }
+      return;
+    }
+
     if (shouldBootstrapFreshLocalSessionRef.current) {
       invalidatePendingSnapshotRequests();
       hydratedWorkspaceIdRef.current = workspaceId;
+      hydratedUiLocaleRef.current = uiLocale;
       if (isRemoteReady === false) {
         return;
       }
 
       shouldBootstrapFreshLocalSessionRef.current = false;
-      ensureFreshSession(runtimeRefs.currentSessionIdRef.current ?? initialFreshSessionId);
+      ensureFreshSession(
+        runtimeRefs.currentSessionIdRef.current ?? initialFreshSessionId,
+        0,
+      );
       dispatch({
         type: "set_history_loaded",
         isHistoryLoaded: true,
@@ -147,6 +186,7 @@ export function useChatSessionHydrationLifecycle(
           runtimeRefs.currentSessionIdRef.current = null;
           dispatch({ type: "workspace_hydration_started" });
           hydratedWorkspaceIdRef.current = workspaceId;
+          hydratedUiLocaleRef.current = uiLocale;
         }
       }
       invalidatePendingSnapshotRequests();
@@ -161,6 +201,7 @@ export function useChatSessionHydrationLifecycle(
       runtimeRefs.currentSessionIdRef.current = null;
       dispatch({ type: "workspace_hydration_started" });
       hydratedWorkspaceIdRef.current = workspaceId;
+      hydratedUiLocaleRef.current = uiLocale;
     }
 
     void (async (): Promise<void> => {
@@ -177,6 +218,7 @@ export function useChatSessionHydrationLifecycle(
         }
 
         hydratedWorkspaceIdRef.current = workspaceId;
+        hydratedUiLocaleRef.current = uiLocale;
         if (snapshot.activeRun !== null && isDocumentVisibleRef.current) {
           startSnapshotLiveStream(snapshot, null);
         }
@@ -210,7 +252,7 @@ export function useChatSessionHydrationLifecycle(
     return () => {
       isDisposedRef.current = true;
     };
-  }, [isRemoteReady, workspaceId]);
+  }, [isRemoteReady, uiLocale, workspaceId]);
 
   useEffect(() => {
     if (state.isHistoryLoaded) {

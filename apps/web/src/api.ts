@@ -38,6 +38,7 @@ import type {
   DeleteWorkspaceResponse,
   QueryCardsInput,
   QueryCardsPage,
+  NewChatSessionRequestBody,
   NewChatSessionResponse,
   ReviewEvent,
   SessionInfo,
@@ -696,12 +697,16 @@ export async function startChatRun(body: StartChatRunRequestBody): Promise<Start
 
 export async function createNewChatSession(
   sessionId: string,
+  uiLocale: Locale,
 ): Promise<NewChatSessionResponse> {
+  const requestBody: NewChatSessionRequestBody = {
+    sessionId,
+    uiLocale,
+  };
+
   return parseNewChatSessionResponse(await requestJson("/chat/new", {
     method: "POST",
-    body: JSON.stringify({
-      sessionId,
-    }),
+    body: JSON.stringify(requestBody),
   }, allowAuthRecovery), "POST /chat/new");
 }
 

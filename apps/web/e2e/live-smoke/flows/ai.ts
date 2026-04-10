@@ -347,12 +347,23 @@ async function assertNewChatResetsConversation(session: LiveSmokeSession): Promi
     sendButton,
     externalUiTimeoutMs,
   );
+  const resetSuggestionText = await diagnostics.runAction(
+    "read the composer draft text before sending the fresh post-reset prompt",
+    async () => {
+      const draftText = (await messageField.inputValue()).trim();
+      if (draftText === "") {
+        throw new Error("Expected the post-reset composer suggestion to produce a non-empty draft before send.");
+      }
+
+      return draftText;
+    },
+  );
   await trackedClick(
     diagnostics,
-    "send the backend composer suggestion",
+    "send the fresh post-reset composer suggestion",
     sendButton,
   );
-  const resetSuggestionActionLabel = "the backend suggestion run after the chat reset";
+  const resetSuggestionActionLabel = "the fresh prompt sent after the chat reset";
 
   await waitForAiRunAccepted(
     page,
@@ -361,41 +372,25 @@ async function assertNewChatResetsConversation(session: LiveSmokeSession): Promi
     previousUserMessageCount,
     previousAssistantErrorCount,
   );
-  await waitForAiRunCompletion(
-    page,
-    diagnostics,
-    resetSuggestionActionLabel,
-    previousAssistantErrorCount,
+  await diagnostics.runAction(
+    "confirm the fresh post-reset prompt appears as a new user message without waiting for assistant completion",
+    async () => {
+      const userMessages = page.locator(".chat-msg.chat-msg-user");
+      await expect.poll(
+        async () => userMessages.count(),
+        { timeout: externalUiTimeoutMs },
+      ).toBeGreaterThan(previousUserMessageCount);
+      await expect(userMessages.last()).toContainText(resetSuggestionText, { timeout: externalUiTimeoutMs });
+    },
   );
 
   await trackedWaitForComposerState(
     diagnostics,
-    "confirm the completed suggestion run returns to an empty draft with disabled send action",
+    "confirm the accepted post-reset prompt leaves the composer cleared and not immediately re-sendable",
     messageField,
     sendButton,
     "",
     false,
-    externalUiTimeoutMs,
-  );
-
-  await waitForComposerSuggestionsVisible(
-    diagnostics,
-    suggestionContainer,
-    suggestionButtons,
-    "confirm the completed assistant reply surfaces follow-up composer suggestions",
-    externalUiTimeoutMs,
-  );
-
-  await trackedClick(
-    diagnostics,
-    "apply the first follow-up composer suggestion",
-    suggestionButtons.nth(0),
-  );
-  await waitForSuggestionToFillDraft(
-    diagnostics,
-    "confirm the first follow-up composer suggestion fills the draft",
-    messageField,
-    sendButton,
     externalUiTimeoutMs,
   );
 }

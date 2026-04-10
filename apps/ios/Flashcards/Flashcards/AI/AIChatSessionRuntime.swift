@@ -56,7 +56,8 @@ actor AIChatSessionRuntime {
                     sessionId: effectiveSessionId,
                     clientRequestId: makeAIChatClientRequestId(),
                     content: outgoingContent,
-                    timezone: TimeZone.current.identifier
+                    timezone: TimeZone.current.identifier,
+                    uiLocale: currentAIChatUILocaleIdentifier()
                 )
             )
             await eventHandler(.accepted(startResponse))
