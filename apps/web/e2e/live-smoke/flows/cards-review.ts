@@ -17,7 +17,7 @@ type ReviewSubmitState = "idle" | "submitting" | "settled" | "failed" | "missing
 type ReviewSubmitRating = "0" | "1" | "2" | "3" | "none" | "missing";
 
 type PostReviewObservation = Readonly<{
-  currentFrontText: string | null;
+  currentCardId: string | null;
   lastSubmittedCardId: string | null;
   lastSubmittedRating: ReviewSubmitRating;
   reviewPaneEmptyReason: ReviewPaneEmptyReason;
@@ -92,8 +92,8 @@ async function reviewCardFromQueue(session: LiveSmokeSession): Promise<void> {
   await session.diagnostics.runAction(`confirm review pane and queue update after reviewing ${scenario.manualFrontText}`, async () => {
     await expect.poll(
       async (): Promise<boolean> => {
-        const observation = await observePostReviewState(reviewPane, currentReviewFrontCard, reviewedQueueCard);
-        return isValidPostReviewObservation(observation, reviewedCardId, scenario.manualFrontText);
+        const observation = await observePostReviewState(reviewPane, reviewedQueueCard);
+        return isValidPostReviewObservation(observation, reviewedCardId);
       },
       { timeout: reviewPostSubmitTimeoutMs },
     ).toBe(true);
@@ -128,21 +128,18 @@ async function waitForCardVisibleUnlessSyncing(
 
 async function observePostReviewState(
   reviewPane: Locator,
-  currentReviewFrontCard: Locator,
   reviewedQueueCard: Locator,
 ): Promise<PostReviewObservation> {
   const reviewPaneState = toReviewPaneState(await reviewPane.getAttribute("data-review-pane-state"));
   const reviewPaneEmptyReason = toReviewPaneEmptyReason(await reviewPane.getAttribute("data-review-pane-empty-reason"));
+  const currentCardId = toNullableAttributeValue(await reviewPane.getAttribute("data-review-current-card-id"));
   const reviewSubmitState = toReviewSubmitState(await reviewPane.getAttribute("data-review-submit-state"));
   const lastSubmittedCardId = toNullableAttributeValue(await reviewPane.getAttribute("data-review-last-submitted-card-id"));
   const lastSubmittedRating = toReviewSubmitRating(await reviewPane.getAttribute("data-review-last-submitted-rating"));
   const reviewedCardQueueDueState = toReviewQueueDueState(await reviewedQueueCard.getAttribute("data-card-due-state"));
-  const currentFrontText = reviewPaneState === "card"
-    ? await currentReviewFrontCard.getAttribute("data-card-front-text")
-    : null;
 
   return {
-    currentFrontText,
+    currentCardId,
     lastSubmittedCardId,
     lastSubmittedRating,
     reviewPaneEmptyReason,
@@ -155,7 +152,6 @@ async function observePostReviewState(
 function isValidPostReviewObservation(
   observation: PostReviewObservation,
   reviewedCardId: string,
-  reviewedFrontText: string,
 ): boolean {
   if (observation.reviewSubmitState !== "settled") {
     return false;
@@ -178,7 +174,9 @@ function isValidPostReviewObservation(
   }
 
   if (observation.reviewPaneState === "card") {
-    return observation.reviewPaneEmptyReason === "none" && observation.currentFrontText !== null && observation.currentFrontText !== reviewedFrontText;
+    return observation.reviewPaneEmptyReason === "none"
+      && observation.currentCardId !== null
+      && observation.currentCardId !== reviewedCardId;
   }
 
   return false;

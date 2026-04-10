@@ -638,6 +638,7 @@ export function ReviewScreen(): ReactElement {
             data-testid="review-pane"
             data-review-pane-state={reviewPaneState}
             data-review-pane-empty-reason={reviewPaneEmptyReason}
+            data-review-current-card-id={selectedCard?.cardId ?? ""}
             data-review-submit-state={reviewSubmitState}
             data-review-last-submitted-card-id={lastSubmittedReview?.cardId ?? ""}
             data-review-last-submitted-rating={formatReviewSubmitRating(lastSubmittedReview)}
