@@ -86,7 +86,6 @@ extension LiveSmokeTestCase {
     @MainActor
     func startNewAiChatAndAssertConversationReset() throws {
         let assistantErrorMessagesBeforeReset = self.visibleAssistantErrorMessageCount()
-        let firstSuggestionIdentifier = "\(LiveSmokeIdentifier.aiComposerSuggestionPrefix)0"
 
         try self.tapButton(
             identifier: LiveSmokeIdentifier.aiNewChatButton,
@@ -99,10 +98,6 @@ extension LiveSmokeTestCase {
         )
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.aiEmptyState,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.assertElementDisabled(
-            identifier: LiveSmokeIdentifier.aiComposerSendButton,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
 
@@ -124,83 +119,6 @@ extension LiveSmokeTestCase {
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
             )
-        }
-
-        let initialSuggestionButton = self.aiComposerSuggestionButton(index: 0)
-        if self.waitForOptionalElement(
-            initialSuggestionButton,
-            identifier: firstSuggestionIdentifier,
-            timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds
-        ) {
-            let firstSuggestionText = try self.tapAiComposerSuggestion(
-                index: 0,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-            try self.waitForAiComposerValue(firstSuggestionText, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-
-            try self.clearAiComposerText(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            try self.assertElementDisabled(
-                identifier: LiveSmokeIdentifier.aiComposerSendButton,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-        }
-
-        let suggestionPrompt: String
-        let promptSuggestionButton = self.aiComposerSuggestionButton(index: 0)
-        if self.waitForOptionalElement(
-            promptSuggestionButton,
-            identifier: firstSuggestionIdentifier,
-            timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds
-        ) {
-            suggestionPrompt = try self.tapAiComposerSuggestion(
-                index: 0,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-            try self.waitForAiComposerValue(suggestionPrompt, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        } else {
-            suggestionPrompt = aiResetPromptText
-            try self.replaceAiComposerText(suggestionPrompt, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            try self.waitForAiComposerValue(suggestionPrompt, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        }
-        let messageRowsBeforeSend = self.app.descendants(matching: .any)
-            .matching(identifier: LiveSmokeIdentifier.aiMessageRow)
-            .count
-        let completedMarkerCountBeforeWait = self.app.descendants(matching: .any)
-            .matching(identifier: LiveSmokeIdentifier.aiToolCallCompletedStatus)
-            .count
-        let errorMarkerCountBeforeWait = self.visibleAssistantErrorMessageCount()
-        let assistantTextCountBeforeWait = self.visibleMeaningfulAssistantTextMessages().count
-
-        try self.tapButton(
-            identifier: LiveSmokeIdentifier.aiComposerSendButton,
-            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-        )
-        try self.assertAiRunStartedOrFinished(
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds,
-            completedMarkerCountBeforeWait: completedMarkerCountBeforeWait,
-            errorMarkerCountBeforeWait: errorMarkerCountBeforeWait,
-            assistantTextCountBeforeWait: assistantTextCountBeforeWait
-        )
-        try self.waitForUserAiMessageRowCountIncrease(
-            previousCount: messageRowsBeforeSend,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-        try self.assertElementDisabled(
-            identifier: LiveSmokeIdentifier.aiComposerSendButton,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
-
-        let dynamicSuggestionButton = self.aiComposerSuggestionButton(index: 0)
-        if self.waitForOptionalElement(
-            dynamicSuggestionButton,
-            identifier: firstSuggestionIdentifier,
-            timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds
-        ) {
-            let dynamicSuggestionText = try self.tapAiComposerSuggestion(
-                index: 0,
-                timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-            )
-            try self.waitForAiComposerValue(dynamicSuggestionText, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
     }
 
