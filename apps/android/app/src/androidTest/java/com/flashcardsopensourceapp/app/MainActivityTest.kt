@@ -4,8 +4,6 @@ import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.test.assertIsFocused
-import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
@@ -22,6 +20,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
@@ -44,6 +43,7 @@ import com.flashcardsopensourceapp.feature.settings.schedulerSaveButtonTag
 import com.flashcardsopensourceapp.feature.settings.workspaceTagCardsCountTag
 import com.flashcardsopensourceapp.feature.settings.workspaceTagRowTag
 import com.flashcardsopensourceapp.feature.settings.workspaceTagsSearchFieldTag
+import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
 import com.flashcardsopensourceapp.app.R as AppR
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
 import org.junit.Assert.assertTrue
@@ -151,7 +151,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         openAiTabAndAssertConsentGate()
         acceptAiConsentAndWaitForConversation()
         composeRule.onNodeWithTag(aiConversationSurfaceTag).fetchSemanticsNode()
-        composeRule.onNodeWithText("Message").fetchSemanticsNode()
+        composeRule.onNodeWithText(aiString(AiFeatureR.string.ai_message_label)).fetchSemanticsNode()
     }
 
     @Test
@@ -161,12 +161,18 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         openAiTabAndAssertConsentGate()
         acceptAiConsentAndWaitForConversation()
 
-        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performClick()
-        composeRule.onNodeWithTag(aiComposerMessageFieldTag).assertIsFocused()
+        focusAiComposerAndWaitUntilFocused()
+        assertTrue(
+            "Expected the AI composer to be focused before dismissing focus.",
+            aiComposerFocusStateOrNull() == true
+        )
 
         composeRule.onNodeWithTag(aiConversationSurfaceTag).performClick()
         waitUntilComposerIsNotFocused()
-        composeRule.onNodeWithTag(aiComposerMessageFieldTag).assertIsNotFocused()
+        assertTrue(
+            "Expected tapping the AI conversation surface to clear the composer focus.",
+            aiComposerFocusStateOrNull() == false
+        )
     }
 
     @Test
@@ -268,7 +274,10 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
         openSettingsSection(sectionTitle = settingsString(SettingsR.string.settings_section_workspace))
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_workspace_tags_title)).performClick()
-        composeRule.onNodeWithTag(workspaceTagsSearchFieldTag).performTextInput("ui")
+        waitForWorkspaceTagsScreen()
+        composeRule.onNodeWithTag(workspaceTagsSearchFieldTag).performClick()
+        composeRule.onNodeWithTag(workspaceTagsSearchFieldTag).performTextReplacement("ui")
+        waitForWorkspaceTagsFilteredResult(tag = "ui", cardsCount = 1, excludedTag = "storage")
         composeRule.onNodeWithTag(workspaceTagRowTag(tag = "ui")).fetchSemanticsNode()
         composeRule.onNodeWithTag(workspaceTagCardsCountTag(tag = "ui")).fetchSemanticsNode()
     }
@@ -475,26 +484,98 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private fun assertAiConsentGateIsVisible() {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText("OK").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText(aiString(AiFeatureR.string.ai_consent_title)).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText(aiString(AiFeatureR.string.ai_consent_accept)).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithText("Before you use AI").fetchSemanticsNode()
+        composeRule.onNodeWithText(aiString(AiFeatureR.string.ai_consent_title)).fetchSemanticsNode()
     }
 
     private fun acceptAiConsentAndWaitForConversation() {
-        composeRule.onNodeWithText("OK").performClick()
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodesWithText("Before you use AI").fetchSemanticsNodes().isEmpty() &&
-                composeRule.onAllNodesWithTag(aiConversationSurfaceTag).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes().isNotEmpty()
-        }
+        composeRule.onNodeWithText(aiString(AiFeatureR.string.ai_consent_accept)).performClick()
+        waitForAiConversationReady()
     }
 
     private fun waitUntilComposerIsNotFocused() {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            val composerNodes = composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes()
-            composerNodes.size == 1 && composerNodes[0].config.getOrNull(SemanticsProperties.Focused) == false
+            aiComposerFocusStateOrNull() == false
         }
+    }
+
+    private fun waitForAiConversationReady() {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText(aiString(AiFeatureR.string.ai_consent_title)).fetchSemanticsNodes().isEmpty() &&
+                countNodesWithTagInAnySemanticsTree(tag = aiConversationLoadingTag) == 0 &&
+                countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0 &&
+                aiComposerFocusStateOrNull() != null
+        }
+    }
+
+    private fun focusAiComposerAndWaitUntilFocused() {
+        waitForAiConversationReady()
+        composeRule.onNodeWithTag(aiComposerMessageFieldTag).performClick()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            aiComposerFocusStateOrNull() == true
+        }
+    }
+
+    private fun aiComposerFocusStateOrNull(): Boolean? {
+        val mergedFocusState: Boolean? = composeRule.onAllNodesWithTag(aiComposerMessageFieldTag)
+            .fetchSemanticsNodes()
+            .firstOrNull()
+            ?.config
+            ?.getOrNull(SemanticsProperties.Focused)
+        if (mergedFocusState != null) {
+            return mergedFocusState
+        }
+
+        return composeRule.onAllNodesWithTag(aiComposerMessageFieldTag, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .firstOrNull()
+            ?.config
+            ?.getOrNull(SemanticsProperties.Focused)
+    }
+
+    private fun countNodesWithTagInAnySemanticsTree(tag: String): Int {
+        val mergedCount: Int = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().size
+        val unmergedCount: Int = composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().size
+        return maxOf(mergedCount, unmergedCount)
+    }
+
+    private fun waitForWorkspaceTagsScreen() {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(workspaceTagsSearchFieldTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(workspaceTagRowTag(tag = "storage")).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(workspaceTagRowTag(tag = "ui")).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun waitForWorkspaceTagsFilteredResult(tag: String, cardsCount: Int, excludedTag: String) {
+        val expectedCardsCountText: String = settingsQuantityString(
+            SettingsR.plurals.settings_tag_cards_count,
+            cardsCount,
+            cardsCount
+        )
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            searchFieldValue(tag = workspaceTagsSearchFieldTag) == tag &&
+                composeRule.onAllNodesWithTag(workspaceTagRowTag(tag = tag)).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(workspaceTagCardsCountTag(tag = tag))
+                    .fetchSemanticsNodes()
+                    .any { node ->
+                        node.config.getOrNull(SemanticsProperties.Text)?.any { text ->
+                            text.text == expectedCardsCountText
+                        } == true
+                    } &&
+                composeRule.onAllNodesWithTag(workspaceTagRowTag(tag = excludedTag)).fetchSemanticsNodes().isEmpty()
+        }
+    }
+
+    private fun searchFieldValue(tag: String): String? {
+        return composeRule.onAllNodesWithTag(tag)
+            .fetchSemanticsNodes()
+            .firstOrNull()
+            ?.config
+            ?.getOrNull(SemanticsProperties.EditableText)
+            ?.text
     }
 
     private fun createCard(frontText: String, backText: String, tags: List<String>) {
@@ -639,6 +720,10 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     private fun appString(@StringRes resId: Int): String {
+        return composeRule.activity.getString(resId)
+    }
+
+    private fun aiString(@StringRes resId: Int): String {
         return composeRule.activity.getString(resId)
     }
 
