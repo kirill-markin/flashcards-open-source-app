@@ -39,7 +39,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
@@ -58,7 +58,8 @@ class ReviewNotificationsManager(
     private val reviewNotificationsStore: ReviewNotificationsStore
 ) {
     private val workManager: WorkManager = WorkManager.getInstance(context)
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val scopeJob = SupervisorJob()
+    private val scope = CoroutineScope(scopeJob + Dispatchers.Default)
     private var activeReconcileJob: Job? = null
     private val reconcileGeneration = AtomicLong(0)
 
@@ -114,9 +115,9 @@ class ReviewNotificationsManager(
         }
     }
 
-    fun close() {
-        activeReconcileJob?.cancel()
-        scope.cancel()
+    suspend fun close() {
+        activeReconcileJob?.cancelAndJoin()
+        scopeJob.cancelAndJoin()
     }
 
     private suspend fun reconcileCurrentWorkspaceReviewNotifications(

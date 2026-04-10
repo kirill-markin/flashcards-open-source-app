@@ -37,12 +37,11 @@ class AppStateResetRule : ExternalResource() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val application = context as FlashcardsApplication
 
-        application.closeAppGraph()
         runBlocking {
             withTimeout(appResetTimeoutMillis) {
+                application.closeAppGraph()
                 clearTestOnlySharedPreferences(context = context)
-                application.recreateAppGraph()
-                application.awaitAppGraphStartup()
+                application.recreateAppGraphAndAwaitStartup()
                 application.appGraph.cloudAccountRepository.logout()
             }
         }

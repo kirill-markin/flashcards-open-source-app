@@ -45,28 +45,27 @@ internal fun LiveSmokeContext.withLinkedWorkspaceSession(
     action: () -> Unit
 ) {
     var primaryFailure: Throwable? = null
-    var shouldDeleteWorkspace: Boolean = false
+    var ephemeralWorkspaceHandle: EphemeralWorkspaceHandle? = null
 
     try {
         step("sign in with the configured review account") {
             signInWithReviewAccount(reviewEmail = reviewEmail)
         }
         step("create an isolated linked workspace for this run") {
-            shouldDeleteWorkspace = true
-            createEphemeralWorkspace(workspaceName = workspaceName)
+            ephemeralWorkspaceHandle = createEphemeralWorkspace(workspaceName = workspaceName)
         }
         action()
     } catch (error: Throwable) {
         primaryFailure = error
         throw error
     } finally {
-        if (shouldDeleteWorkspace) {
+        if (ephemeralWorkspaceHandle != null) {
             if (primaryFailure != null) {
                 resetInlineRawScreenStateFailureGuard()
             }
             try {
                 step("delete the isolated workspace") {
-                    deleteEphemeralWorkspace(workspaceName = workspaceName)
+                    deleteEphemeralWorkspace(workspaceHandle = requireNotNull(ephemeralWorkspaceHandle))
                 }
             } catch (cleanupError: Throwable) {
                 if (primaryFailure != null) {

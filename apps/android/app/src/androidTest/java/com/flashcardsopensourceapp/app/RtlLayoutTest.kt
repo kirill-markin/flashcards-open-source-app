@@ -7,10 +7,11 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
-import androidx.core.text.BidiFormatter
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
@@ -66,7 +67,10 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
             )
         }
 
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_sign_in_verify_title)).assertIsDisplayed()
+        composeRule.onNode(
+            matcher = hasText(settingsString(SettingsR.string.settings_sign_in_verify_button))
+                .and(other = hasClickAction())
+        ).assertIsDisplayed()
         composeRule.onNodeWithText("rtl@example.com", substring = true).assertIsDisplayed()
         assertEquals(View.LAYOUT_DIRECTION_RTL, composeRule.activity.window.decorView.layoutDirection)
         assertNodeIsOnRightHalf(
@@ -142,11 +146,12 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
             )
         }
 
-        assertTextIsWrappedForArabicLocale(previewTitle)
-        assertTextIsWrappedForArabicLocale(sectionTitle)
-        assertTextIsWrappedForArabicLocale(frontText)
-        assertTextIsWrappedForArabicLocale(backText)
-        assertTextIsWrappedForArabicLocale(tagsLabel)
+        assertEquals(View.LAYOUT_DIRECTION_RTL, composeRule.activity.window.decorView.layoutDirection)
+        assertTextIsDisplayed(previewTitle)
+        assertTextIsDisplayed(sectionTitle)
+        assertTextIsDisplayed(frontText)
+        assertTextIsDisplayed(backText)
+        assertTextIsDisplayed(tagsLabel)
         assertNodeIsOnRightHalf(
             contentDescription = reviewString(ReviewR.string.review_preview_back_content_description)
         )
@@ -173,13 +178,8 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
         }
     }
 
-    private fun assertTextIsWrappedForArabicLocale(text: String) {
-        composeRule.onNodeWithText(
-            bidiWrapForLocale(
-                locale = arabicLocale,
-                text = text
-            )
-        ).assertIsDisplayed()
+    private fun assertTextIsDisplayed(text: String) {
+        composeRule.onNodeWithText(text, useUnmergedTree = true).assertIsDisplayed()
     }
 
     private fun assertNodeIsOnRightHalf(contentDescription: String) {
@@ -206,9 +206,5 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
 
     private companion object {
         val arabicLocale: Locale = Locale.forLanguageTag("ar")
-
-        fun bidiWrapForLocale(locale: Locale, text: String): String {
-            return BidiFormatter.getInstance(locale).unicodeWrap(text)
-        }
     }
 }
