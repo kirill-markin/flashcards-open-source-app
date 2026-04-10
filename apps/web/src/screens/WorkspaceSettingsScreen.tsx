@@ -352,6 +352,9 @@ export function WorkspaceSettingsScreen(): ReactElement {
                   {resetErrorMessage !== "" ? <p className="error-banner">{resetErrorMessage}</p> : null}
                   <p className="subtitle">{t("settingsWorkspace.resetProgress.previewHelp")}</p>
                   <p className="subtitle settings-delete-phrase">
+                    <span data-testid="workspace-reset-progress-preview-count-value" hidden>
+                      {resetPreview.cardsToResetCount}
+                    </span>
                     <span data-testid="workspace-reset-progress-preview-count">
                       {t("settingsWorkspace.resetProgress.previewSummary", {
                         count: formatCount(resetPreview.cardsToResetCount, {

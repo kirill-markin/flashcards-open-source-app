@@ -88,10 +88,10 @@ async function completeResetProgressFlow(session: LiveSmokeSession): Promise<voi
     resetDialog.getByTestId("workspace-reset-progress-continue-to-preview"),
   );
 
-  const resetPreviewCount = resetDialog.getByTestId("workspace-reset-progress-preview-count");
+  const resetPreviewCount = resetDialog.getByTestId("workspace-reset-progress-preview-count-value");
   await trackedExpectText(
     diagnostics,
-    "confirm reset preview shows exactly one card",
+    "confirm reset preview machine-readable count shows exactly one card",
     resetPreviewCount,
     "1",
     externalUiTimeoutMs,
