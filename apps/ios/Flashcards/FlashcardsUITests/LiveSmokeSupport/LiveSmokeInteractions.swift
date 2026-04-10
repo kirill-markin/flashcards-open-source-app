@@ -1,10 +1,43 @@
 import XCTest
 import Foundation
 
+private struct LiveSmokeTabBarItemCandidate {
+    let element: XCUIElement
+    let identifier: String
+    let note: String
+}
+
 extension LiveSmokeTestCase {
     @MainActor
     func tapTabBarItem(selectedTab: LiveSmokeSelectedTab, timeout: TimeInterval) throws {
-        try self.tapTabBarItem(identifier: selectedTab.itemIdentifier, timeout: timeout)
+        try self.runWithInlineRawScreenStateOnFailure(action: "tap_tab.\(selectedTab.rawValue)") {
+            let tabBarItemLookup = selectedTab.tabBarItemLookup(localization: self.currentLaunchLocalization)
+            let tabBarItemCandidates = self.tabBarItemCandidates(lookup: tabBarItemLookup)
+            let deadline = Date().addingTimeInterval(timeout)
+
+            while Date() < deadline {
+                for candidate in tabBarItemCandidates {
+                    if candidate.element.exists && candidate.element.isHittable {
+                        try self.tapExistingElement(
+                            candidate.element,
+                            identifier: candidate.identifier,
+                            action: "tap_tab",
+                            note: candidate.note
+                        )
+                        return
+                    }
+                }
+
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+
+            throw LiveSmokeFailure.missingElement(
+                identifier: self.tabBarLookupDescription(selectedTab: selectedTab, lookup: tabBarItemLookup),
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
     }
 
     @MainActor
@@ -63,6 +96,53 @@ extension LiveSmokeTestCase {
                 step: self.currentStepTitle
             )
         }
+    }
+
+    @MainActor
+    private func tabBarItemCandidates(lookup: LiveSmokeTabBarItemLookup) -> [LiveSmokeTabBarItemCandidate] {
+        return [
+            LiveSmokeTabBarItemCandidate(
+                element: self.app.tabBars.buttons.matching(identifier: lookup.identifier).firstMatch,
+                identifier: lookup.identifier,
+                note: "tab bar button tapped via accessibility identifier"
+            ),
+            LiveSmokeTabBarItemCandidate(
+                element: self.app.tabBars.buttons[lookup.localizedTitle].firstMatch,
+                identifier: "tab.\(lookup.localizedTitle)",
+                note: "tab bar button tapped via localized label fallback"
+            ),
+            LiveSmokeTabBarItemCandidate(
+                element: self.app.tabBars.buttons.element(boundBy: lookup.stableIndex),
+                identifier: "tab.index.\(lookup.stableIndex)",
+                note: "tab bar button tapped via stable index fallback"
+            )
+        ]
+    }
+
+    @MainActor
+    private func tabBarLookupDescription(
+        selectedTab: LiveSmokeSelectedTab,
+        lookup: LiveSmokeTabBarItemLookup
+    ) -> String {
+        let visibleTabButtons = self.visibleTabBarButtonSummary()
+        return "tab.\(selectedTab.rawValue) tried identifier='\(lookup.identifier)' label='\(lookup.localizedTitle)' index=\(lookup.stableIndex) visibleButtons=[\(visibleTabButtons)]"
+    }
+
+    @MainActor
+    private func visibleTabBarButtonSummary() -> String {
+        let visibleButtons = self.elements(query: self.app.tabBars.buttons).enumerated().map { index, button in
+            let label = button.label.trimmingCharacters(in: .whitespacesAndNewlines)
+            let identifier = button.identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+            let resolvedLabel = label.isEmpty ? "-" : label
+            let resolvedIdentifier = identifier.isEmpty ? "-" : identifier
+            return "\(resolvedLabel){index=\(index),id=\(resolvedIdentifier)}"
+        }
+
+        if visibleButtons.isEmpty {
+            return "<none>"
+        }
+
+        return visibleButtons.joined(separator: ", ")
     }
 
     @MainActor
