@@ -39,6 +39,10 @@ jobs:
       compare_base_sha: ${{ steps.resolve.outputs.compare_base_sha }}
       android_changed: ${{ steps.resolve.outputs.android_changed }}
       block_reason: ${{ steps.resolve.outputs.block_reason }}
+      android_version_code: ${{ steps.release-metadata.outputs.android_version_code }}
+      android_target_short_sha: ${{ steps.release-metadata.outputs.android_target_short_sha }}
+      android_release_id: ${{ steps.release-metadata.outputs.android_release_id }}
+      android_play_release_name: ${{ steps.release-metadata.outputs.android_play_release_name }}
 
     steps:
       - uses: actions/checkout@v6
@@ -117,6 +121,44 @@ jobs:
             exit 1
           fi
 
+      - name: Resolve Android release metadata
+        id: release-metadata
+        env:
+          TARGET_SHA: ${{ steps.resolve.outputs.target_sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+
+          base_epoch_seconds=1767225600
+          current_epoch_seconds="$(date -u +%s)"
+          version_code=$(( current_epoch_seconds - base_epoch_seconds ))
+          target_short_sha="$(printf '%s' "${TARGET_SHA}" | cut -c1-8)"
+          release_id="vc${version_code}-r${GITHUB_RUN_ID}a${GITHUB_RUN_ATTEMPT}-s${target_short_sha}"
+          play_release_name="main-draft-${release_id}"
+
+          if [[ "${version_code}" -le 0 ]]; then
+            echo "Resolved Android version code must be positive. Got: ${version_code}." >&2
+            exit 1
+          fi
+
+          if [[ "${version_code}" -gt 2100000000 ]]; then
+            echo "Resolved Android version code exceeds Google Play limit. Got: ${version_code}." >&2
+            exit 1
+          fi
+
+          if [[ "${#target_short_sha}" -ne 8 ]]; then
+            echo "Resolved target SHA prefix must be 8 characters. Got: ${target_short_sha}." >&2
+            exit 1
+          fi
+
+          {
+            echo "android_version_code=${version_code}"
+            echo "android_target_short_sha=${target_short_sha}"
+            echo "android_release_id=${release_id}"
+            echo "android_play_release_name=${play_release_name}"
+          } >> "${GITHUB_OUTPUT}"
+
       - name: Summarize preflight
         run: |
           {
@@ -126,6 +168,9 @@ jobs:
             echo "- Compare base SHA: \`${{ steps.resolve.outputs.compare_base_sha || 'n/a' }}\`"
             echo "- Android changed: \`${{ steps.resolve.outputs.android_changed }}\`"
             echo "- Block reason: \`${{ steps.resolve.outputs.block_reason || 'n/a' }}\`"
+            echo "- Version code: \`${{ steps.release-metadata.outputs.android_version_code }}\`"
+            echo "- Release ID: \`${{ steps.release-metadata.outputs.android_release_id }}\`"
+            echo "- Play release name: \`${{ steps.release-metadata.outputs.android_play_release_name }}\`"
             echo "- Event: \`${{ github.event_name }}\`"
             echo "- Upload draft to Play: \`${{ github.event_name == 'push' || inputs.upload_to_play_draft }}\`"
             echo "- Play publish mode: \`draft production release uploaded by CI; final publish happens later in Play Console\`"
@@ -140,9 +185,248 @@ jobs:
       cancel-in-progress: true
     uses: ./.github/workflows/android-ci-reusable.yml
     with:
-      run_app_instrumentation: true
       target_ref: ${{ needs.preflight.outputs.target_sha }}
+      android_version_code: ${{ needs.preflight.outputs.android_version_code }}
     secrets: inherit
+
+  firebase_test_lab_submission:
+    name: Firebase Test Lab app instrumentation
+    needs:
+      - preflight
+      - android_ci
+    if: ${{ needs.android_ci.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      submission_state: ${{ steps.collect.outputs.submission_state }}
+      matrix_id: ${{ steps.collect.outputs.matrix_id }}
+      results_path: ${{ steps.collect.outputs.results_path }}
+      device_descriptor: ${{ steps.collect.outputs.device_descriptor }}
+
+    steps:
+      - name: Validate Firebase Test Lab configuration
+        id: validate-config
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          GCP_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
+          ANDROID_FTL_DEVICE_MODEL: ${{ vars.ANDROID_FTL_DEVICE_MODEL }}
+          ANDROID_FTL_DEVICE_VERSION: ${{ vars.ANDROID_FTL_DEVICE_VERSION }}
+          ANDROID_FTL_RESULTS_BUCKET: ${{ vars.ANDROID_FTL_RESULTS_BUCKET }}
+          ANDROID_FTL_RESULTS_DIR: ${{ vars.ANDROID_FTL_RESULTS_DIR }}
+          INPUT_RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
+        run: |
+          set -euo pipefail
+
+          missing_values=()
+
+          for variable_name in \
+            GCP_PROJECT_ID \
+            GCP_WORKLOAD_IDENTITY_PROVIDER \
+            GCP_SERVICE_ACCOUNT_EMAIL \
+            ANDROID_FTL_DEVICE_MODEL \
+            ANDROID_FTL_DEVICE_VERSION \
+            ANDROID_FTL_RESULTS_BUCKET \
+            ANDROID_FTL_RESULTS_DIR; do
+            if [[ -z "${!variable_name}" ]]; then
+              missing_values+=("${variable_name}")
+            fi
+          done
+
+          results_dir=""
+          results_path=""
+          device_descriptor=""
+
+          if [[ -n "${ANDROID_FTL_RESULTS_DIR}" ]]; then
+            results_dir="${ANDROID_FTL_RESULTS_DIR%/}/${INPUT_RELEASE_ID}"
+          fi
+
+          if [[ -n "${ANDROID_FTL_RESULTS_BUCKET}" ]] && [[ -n "${results_dir}" ]]; then
+            results_path="${ANDROID_FTL_RESULTS_BUCKET%/}/${results_dir}"
+          fi
+
+          if [[ -n "${ANDROID_FTL_DEVICE_MODEL}" ]] && [[ -n "${ANDROID_FTL_DEVICE_VERSION}" ]]; then
+            device_descriptor="model=${ANDROID_FTL_DEVICE_MODEL},version=${ANDROID_FTL_DEVICE_VERSION},locale=en,orientation=portrait"
+          fi
+
+          if [[ "${#missing_values[@]}" -gt 0 ]]; then
+            printf 'Missing required GitHub Actions variables for Android app instrumentation: %s\n' "${missing_values[*]}" >&2
+            echo "Configure them with bash scripts/setup-github-android.sh or in the GitHub repository settings." >&2
+            echo "submission_state=configuration_invalid" >> "${GITHUB_OUTPUT}"
+          else
+            echo "submission_state=ready" >> "${GITHUB_OUTPUT}"
+          fi
+
+          {
+            echo "results_dir=${results_dir}"
+            echo "results_path=${results_path}"
+            echo "device_descriptor=${device_descriptor}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - uses: actions/checkout@v6
+        if: ${{ steps.validate-config.outputs.submission_state == 'ready' }}
+        with:
+          ref: ${{ needs.preflight.outputs.target_sha }}
+
+      - uses: google-github-actions/auth@v3
+        id: auth
+        if: ${{ steps.validate-config.outputs.submission_state == 'ready' }}
+        continue-on-error: true
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+        id: setup-gcloud
+        if: ${{ steps.validate-config.outputs.submission_state == 'ready' && steps.auth.outcome == 'success' }}
+        continue-on-error: true
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Download debug APKs
+        id: download-debug-apks
+        if: ${{ steps.validate-config.outputs.submission_state == 'ready' && steps.auth.outcome == 'success' && steps.setup-gcloud.outcome == 'success' }}
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: android-debug-apks
+          path: /tmp/android-debug-apks
+
+      - name: Resolve debug APK paths
+        id: resolve-debug-apks
+        if: ${{ steps.validate-config.outputs.submission_state == 'ready' && steps.auth.outcome == 'success' && steps.setup-gcloud.outcome == 'success' && steps.download-debug-apks.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          app_apk_path="$(find /tmp/android-debug-apks -type f -name 'app-debug.apk' | head -n 1)"
+          test_apk_path="$(find /tmp/android-debug-apks -type f -name 'app-debug-androidTest.apk' | head -n 1)"
+
+          if [[ -z "${app_apk_path}" ]]; then
+            echo "App APK not found in downloaded artifact." >&2
+            find /tmp/android-debug-apks -maxdepth 5 -type f >&2
+            exit 1
+          fi
+
+          if [[ -z "${test_apk_path}" ]]; then
+            echo "Android test APK not found in downloaded artifact." >&2
+            find /tmp/android-debug-apks -maxdepth 5 -type f >&2
+            exit 1
+          fi
+
+          printf 'APP_APK_PATH=%s\n' "${app_apk_path}" >> "${GITHUB_ENV}"
+          printf 'TEST_APK_PATH=%s\n' "${test_apk_path}" >> "${GITHUB_ENV}"
+
+      - name: Submit app instrumentation tests to Firebase Test Lab
+        id: submit
+        if: ${{ steps.validate-config.outputs.submission_state == 'ready' && steps.auth.outcome == 'success' && steps.setup-gcloud.outcome == 'success' && steps.download-debug-apks.outcome == 'success' && steps.resolve-debug-apks.outcome == 'success' }}
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          ANDROID_FTL_DEVICE_MODEL: ${{ vars.ANDROID_FTL_DEVICE_MODEL }}
+          ANDROID_FTL_DEVICE_VERSION: ${{ vars.ANDROID_FTL_DEVICE_VERSION }}
+          ANDROID_FTL_RESULTS_BUCKET: ${{ vars.ANDROID_FTL_RESULTS_BUCKET }}
+          RESULTS_DIR: ${{ steps.validate-config.outputs.results_dir }}
+          RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
+        run: |
+          set -euo pipefail
+
+          command_output_file="${RUNNER_TEMP}/firebase-test-lab-submit.log"
+
+          set +e
+          bash scripts/run-android-firebase-test-lab.sh \
+            --project-id "${GCP_PROJECT_ID}" \
+            --device-model "${ANDROID_FTL_DEVICE_MODEL}" \
+            --device-version "${ANDROID_FTL_DEVICE_VERSION}" \
+            --app-path "${APP_APK_PATH}" \
+            --test-path "${TEST_APK_PATH}" \
+            --timeout "30m" \
+            --test-targets "package com.flashcardsopensourceapp.app" \
+            --results-bucket "${ANDROID_FTL_RESULTS_BUCKET}" \
+            --results-dir "${RESULTS_DIR}" \
+            --async \
+            > "${command_output_file}" 2>&1
+          command_exit_code=$?
+          set -e
+
+          cat "${command_output_file}"
+
+          matrix_id="$(grep -o 'matrix-[[:alnum:]]\+' "${command_output_file}" | head -n 1 || true)"
+
+          if [[ "${command_exit_code}" -eq 0 ]] && [[ -n "${matrix_id}" ]]; then
+            submission_state="submitted"
+          else
+            submission_state="submission_failed"
+            echo "Firebase Test Lab submission failed. Exit code: ${command_exit_code}. Release ID: ${RELEASE_ID}." >&2
+          fi
+
+          {
+            echo "submission_state=${submission_state}"
+            echo "matrix_id=${matrix_id}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Collect Firebase Test Lab outcome
+        if: always()
+        id: collect
+        env:
+          VALIDATION_STATE: ${{ steps.validate-config.outputs.submission_state }}
+          AUTH_STEP_OUTCOME: ${{ steps.auth.outcome }}
+          GCLOUD_STEP_OUTCOME: ${{ steps.setup-gcloud.outcome }}
+          DOWNLOAD_STEP_OUTCOME: ${{ steps.download-debug-apks.outcome }}
+          RESOLVE_STEP_OUTCOME: ${{ steps.resolve-debug-apks.outcome }}
+          SUBMIT_STATE: ${{ steps.submit.outputs.submission_state }}
+          SUBMIT_MATRIX_ID: ${{ steps.submit.outputs.matrix_id }}
+          RESULTS_PATH: ${{ steps.validate-config.outputs.results_path }}
+          DEVICE_DESCRIPTOR: ${{ steps.validate-config.outputs.device_descriptor }}
+        run: |
+          set -euo pipefail
+
+          submission_state="${VALIDATION_STATE}"
+          matrix_id="${SUBMIT_MATRIX_ID}"
+
+          if [[ "${VALIDATION_STATE}" == "ready" ]]; then
+            if [[ "${AUTH_STEP_OUTCOME}" != "success" ]]; then
+              submission_state="auth_failed"
+            elif [[ "${GCLOUD_STEP_OUTCOME}" != "success" ]]; then
+              submission_state="setup_failed"
+            elif [[ "${DOWNLOAD_STEP_OUTCOME}" != "success" ]]; then
+              submission_state="artifact_download_failed"
+            elif [[ "${RESOLVE_STEP_OUTCOME}" != "success" ]]; then
+              submission_state="artifact_resolution_failed"
+            elif [[ -n "${SUBMIT_STATE}" ]]; then
+              submission_state="${SUBMIT_STATE}"
+            else
+              submission_state="submission_failed"
+            fi
+          fi
+
+          {
+            echo "submission_state=${submission_state}"
+            echo "matrix_id=${matrix_id}"
+            echo "results_path=${RESULTS_PATH}"
+            echo "device_descriptor=${DEVICE_DESCRIPTOR}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Summarize Firebase Test Lab submission
+        if: always()
+        env:
+          SUBMISSION_STATE: ${{ steps.collect.outputs.submission_state }}
+          MATRIX_ID: ${{ steps.collect.outputs.matrix_id }}
+          RESULTS_PATH: ${{ steps.collect.outputs.results_path }}
+          DEVICE_DESCRIPTOR: ${{ steps.collect.outputs.device_descriptor }}
+          RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
+        run: |
+          {
+            echo "## Firebase Test Lab submission"
+            echo ""
+            echo "- Submission state: \`${SUBMISSION_STATE}\`"
+            echo "- Release ID: \`${RELEASE_ID}\`"
+            echo "- Target SHA: \`${{ needs.preflight.outputs.target_sha }}\`"
+            echo "- Matrix ID: \`${MATRIX_ID:-n/a}\`"
+            echo "- Results path: \`${RESULTS_PATH:-n/a}\`"
+            echo "- Device: \`${DEVICE_DESCRIPTOR:-n/a}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
 
   publish_android:
     name: Upload Android bundle to Google Play production draft release
@@ -155,6 +439,10 @@ jobs:
     concurrency:
       group: android-release-publish-main
       cancel-in-progress: false
+    env:
+      ANDROID_VERSION_CODE: ${{ needs.preflight.outputs.android_version_code }}
+      ANDROID_RELEASE_ID: ${{ needs.preflight.outputs.android_release_id }}
+      ANDROID_PLAY_RELEASE_NAME: ${{ needs.preflight.outputs.android_play_release_name }}
 
     steps:
       - uses: actions/checkout@v6
@@ -250,38 +538,6 @@ jobs:
 
           printf 'ANDROID_KEYSTORE_PATH=%s\n' "${keystore_path}" >> "${GITHUB_ENV}"
 
-      - name: Resolve Android release version code
-        env:
-          TARGET_SHA: ${{ needs.preflight.outputs.target_sha }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
-        run: |
-          set -euo pipefail
-
-          base_epoch_seconds=1767225600
-          current_epoch_seconds="$(date -u +%s)"
-          version_code=$(( current_epoch_seconds - base_epoch_seconds ))
-          target_short_sha="$(printf '%s' "${TARGET_SHA}" | cut -c1-8)"
-
-          if [[ "${version_code}" -le 0 ]]; then
-            echo "Resolved Android version code must be positive. Got: ${version_code}." >&2
-            exit 1
-          fi
-
-          if [[ "${version_code}" -gt 2100000000 ]]; then
-            echo "Resolved Android version code exceeds Google Play limit. Got: ${version_code}." >&2
-            exit 1
-          fi
-
-          if [[ "${#target_short_sha}" -ne 8 ]]; then
-            echo "Resolved target SHA prefix must be 8 characters. Got: ${target_short_sha}." >&2
-            exit 1
-          fi
-
-          printf 'ANDROID_VERSION_CODE=%s\n' "${version_code}" >> "${GITHUB_ENV}"
-          printf 'ANDROID_TARGET_SHORT_SHA=%s\n' "${target_short_sha}" >> "${GITHUB_ENV}"
-          printf 'ANDROID_PLAY_RELEASE_NAME=main-draft-%s-r%sa%s-s%s\n' "${version_code}" "${GITHUB_RUN_ID}" "${GITHUB_RUN_ATTEMPT}" "${target_short_sha}" >> "${GITHUB_ENV}"
-
       - name: Build signed Android App Bundle
         env:
           ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
@@ -317,15 +573,14 @@ jobs:
           {
             echo "## Android Play draft upload"
             echo ""
+            echo "- Release ID: \`${ANDROID_RELEASE_ID}\`"
             echo "- Production track release name: \`${ANDROID_PLAY_RELEASE_NAME}\`"
             echo "- Version code: \`${ANDROID_VERSION_CODE}\`"
             echo "- Target SHA: \`${{ needs.preflight.outputs.target_sha }}\`"
             echo "- GitHub run: \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`"
             echo "- GitHub run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo "- Upload state: \`draft\`"
-            echo "- Firebase Test Lab submission: \`${{ needs.android_ci.outputs.firebase_test_lab_submission_state || 'n/a' }}\`"
-            echo "- Firebase Test Lab matrix ID: \`${{ needs.android_ci.outputs.firebase_test_lab_matrix_id || 'n/a' }}\`"
-            echo "- Firebase Test Lab results path: \`${{ needs.android_ci.outputs.firebase_test_lab_results_path || 'n/a' }}\`"
+            echo "- Firebase Test Lab submission runs in parallel after the fast Android gate."
             echo "- Next step: review Play App strings translations in Play Console, then publish the release manually."
           } >> "${GITHUB_STEP_SUMMARY}"
 
@@ -335,6 +590,7 @@ jobs:
     needs:
       - preflight
       - android_ci
+      - firebase_test_lab_submission
       - publish_android
     runs-on: ubuntu-24.04
 
@@ -347,12 +603,16 @@ jobs:
             echo "- Target SHA: \`${{ needs.preflight.outputs.target_sha }}\`"
             echo "- Android changed: \`${{ needs.preflight.outputs.android_changed }}\`"
             echo "- Block reason: \`${{ needs.preflight.outputs.block_reason || 'n/a' }}\`"
+            echo "- Version code: \`${{ needs.preflight.outputs.android_version_code || 'n/a' }}\`"
+            echo "- Release ID: \`${{ needs.preflight.outputs.android_release_id || 'n/a' }}\`"
+            echo "- Play release name: \`${{ needs.preflight.outputs.android_play_release_name || 'n/a' }}\`"
             echo "- Android CI result: \`${{ needs.android_ci.result }}\`"
+            echo "- Firebase Test Lab submission result: \`${{ needs.firebase_test_lab_submission.result }}\`"
             echo "- Android Play draft upload result: \`${{ needs.publish_android.result }}\`"
-            echo "- Firebase Test Lab submission: \`${{ needs.android_ci.outputs.firebase_test_lab_submission_state || 'n/a' }}\`"
-            echo "- Firebase Test Lab matrix ID: \`${{ needs.android_ci.outputs.firebase_test_lab_matrix_id || 'n/a' }}\`"
-            echo "- Firebase Test Lab results path: \`${{ needs.android_ci.outputs.firebase_test_lab_results_path || 'n/a' }}\`"
-            echo "- Firebase Test Lab device: \`${{ needs.android_ci.outputs.firebase_test_lab_device_descriptor || 'n/a' }}\`"
+            echo "- Firebase Test Lab submission: \`${{ needs.firebase_test_lab_submission.outputs.submission_state || 'n/a' }}\`"
+            echo "- Firebase Test Lab matrix ID: \`${{ needs.firebase_test_lab_submission.outputs.matrix_id || 'n/a' }}\`"
+            echo "- Firebase Test Lab results path: \`${{ needs.firebase_test_lab_submission.outputs.results_path || 'n/a' }}\`"
+            echo "- Firebase Test Lab device: \`${{ needs.firebase_test_lab_submission.outputs.device_descriptor || 'n/a' }}\`"
             echo "- Play publish mode: \`CI uploads a production-track draft only; Play Console publication remains manual\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"

@@ -3,25 +3,12 @@ name: Android CI reusable
 on:
   workflow_call:
     inputs:
-      run_app_instrumentation:
-        required: true
-        type: boolean
       target_ref:
         required: true
         type: string
-    outputs:
-      firebase_test_lab_submission_state:
-        description: Firebase Test Lab submission state for app instrumentation
-        value: ${{ jobs.firebase-test-lab-app-instrumentation.outputs.submission_state }}
-      firebase_test_lab_matrix_id:
-        description: Firebase Test Lab matrix id for app instrumentation
-        value: ${{ jobs.firebase-test-lab-app-instrumentation.outputs.matrix_id }}
-      firebase_test_lab_results_path:
-        description: Firebase Test Lab results path for app instrumentation
-        value: ${{ jobs.firebase-test-lab-app-instrumentation.outputs.results_path }}
-      firebase_test_lab_device_descriptor:
-        description: Firebase Test Lab device descriptor for app instrumentation
-        value: ${{ jobs.firebase-test-lab-app-instrumentation.outputs.device_descriptor }}
+      android_version_code:
+        required: true
+        type: string
 
 jobs:
   build:
@@ -52,6 +39,8 @@ jobs:
             "build-tools;36.0.0"
 
       - name: Run Android unit tests, build debug artifacts, and lint
+        env:
+          ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
         run: bash scripts/run-android-ci.sh
 
       - name: Upload debug APKs
@@ -124,7 +113,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
-          script: cd apps/android && ./gradlew --no-daemon :data:local:connectedDebugAndroidTest
+          script: cd apps/android && ANDROID_VERSION_CODE="${{ inputs.android_version_code }}" ./gradlew --no-daemon :data:local:connectedDebugAndroidTest
 
       - name: Detect data:local instrumentation reports
         if: always()
@@ -154,168 +143,3 @@ jobs:
           path: |
             apps/android/data/local/**/build/outputs/androidTest-results/**
             apps/android/data/local/**/build/reports/androidTests/**
-
-  app-instrumentation-config:
-    name: Validate Android app instrumentation configuration
-    if: ${{ inputs.run_app_instrumentation }}
-    runs-on: ubuntu-24.04
-
-    steps:
-      - name: Validate Firebase Test Lab configuration
-        env:
-          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          GCP_SERVICE_ACCOUNT_EMAIL: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
-          ANDROID_FTL_DEVICE_MODEL: ${{ vars.ANDROID_FTL_DEVICE_MODEL }}
-          ANDROID_FTL_DEVICE_VERSION: ${{ vars.ANDROID_FTL_DEVICE_VERSION }}
-          ANDROID_FTL_RESULTS_BUCKET: ${{ vars.ANDROID_FTL_RESULTS_BUCKET }}
-          ANDROID_FTL_RESULTS_DIR: ${{ vars.ANDROID_FTL_RESULTS_DIR }}
-        run: |
-          missing_values=()
-
-          for variable_name in \
-            GCP_PROJECT_ID \
-            GCP_WORKLOAD_IDENTITY_PROVIDER \
-            GCP_SERVICE_ACCOUNT_EMAIL \
-            ANDROID_FTL_DEVICE_MODEL \
-            ANDROID_FTL_DEVICE_VERSION \
-            ANDROID_FTL_RESULTS_BUCKET \
-            ANDROID_FTL_RESULTS_DIR; do
-            if [[ -z "${!variable_name}" ]]; then
-              missing_values+=("${variable_name}")
-            fi
-          done
-
-          if [[ "${#missing_values[@]}" -gt 0 ]]; then
-            printf 'Missing required GitHub Actions variables for Android app instrumentation: %s\n' "${missing_values[*]}" >&2
-            echo "Configure them with bash scripts/setup-github-android.sh or in the GitHub repository settings." >&2
-            exit 1
-          fi
-
-  firebase-test-lab-app-instrumentation:
-    name: Firebase Test Lab app instrumentation
-    needs:
-      - build
-      - emulator-data-local-instrumentation
-      - app-instrumentation-config
-    if: ${{ inputs.run_app_instrumentation && needs.app-instrumentation-config.result == 'success' && needs.emulator-data-local-instrumentation.result == 'success' }}
-    runs-on: ubuntu-24.04
-    timeout-minutes: 40
-    permissions:
-      contents: read
-      id-token: write
-    outputs:
-      submission_state: ${{ steps.submit.outputs.submission_state }}
-      matrix_id: ${{ steps.submit.outputs.matrix_id }}
-      results_path: ${{ steps.submit.outputs.results_path }}
-      device_descriptor: ${{ steps.submit.outputs.device_descriptor }}
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.target_ref }}
-
-      - uses: google-github-actions/auth@v3
-        with:
-          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
-          project_id: ${{ vars.GCP_PROJECT_ID }}
-
-      - uses: google-github-actions/setup-gcloud@v3
-        with:
-          project_id: ${{ vars.GCP_PROJECT_ID }}
-
-      - name: Download debug APKs
-        uses: actions/download-artifact@v8
-        with:
-          name: android-debug-apks
-          path: /tmp/android-debug-apks
-
-      - name: Resolve debug APK paths
-        run: |
-          app_apk_path="$(find /tmp/android-debug-apks -type f -name 'app-debug.apk' | head -n 1)"
-          test_apk_path="$(find /tmp/android-debug-apks -type f -name 'app-debug-androidTest.apk' | head -n 1)"
-
-          if [[ -z "${app_apk_path}" ]]; then
-            echo "App APK not found in downloaded artifact." >&2
-            find /tmp/android-debug-apks -maxdepth 5 -type f >&2
-            exit 1
-          fi
-
-          if [[ -z "${test_apk_path}" ]]; then
-            echo "Android test APK not found in downloaded artifact." >&2
-            find /tmp/android-debug-apks -maxdepth 5 -type f >&2
-            exit 1
-          fi
-
-          printf 'APP_APK_PATH=%s\n' "${app_apk_path}" >> "${GITHUB_ENV}"
-          printf 'TEST_APK_PATH=%s\n' "${test_apk_path}" >> "${GITHUB_ENV}"
-
-      - name: Submit app instrumentation tests to Firebase Test Lab
-        id: submit
-        env:
-          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
-          ANDROID_FTL_DEVICE_MODEL: ${{ vars.ANDROID_FTL_DEVICE_MODEL }}
-          ANDROID_FTL_DEVICE_VERSION: ${{ vars.ANDROID_FTL_DEVICE_VERSION }}
-          ANDROID_FTL_RESULTS_BUCKET: ${{ vars.ANDROID_FTL_RESULTS_BUCKET }}
-          ANDROID_FTL_RESULTS_DIR: ${{ vars.ANDROID_FTL_RESULTS_DIR }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
-        run: |
-          set -euo pipefail
-
-          results_dir="${ANDROID_FTL_RESULTS_DIR}"
-
-          if [[ -n "${results_dir}" ]]; then
-            results_dir="${results_dir}/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          fi
-
-          command_output="$(
-            bash scripts/run-android-firebase-test-lab.sh \
-              --project-id "${GCP_PROJECT_ID}" \
-              --device-model "${ANDROID_FTL_DEVICE_MODEL}" \
-              --device-version "${ANDROID_FTL_DEVICE_VERSION}" \
-              --app-path "${APP_APK_PATH}" \
-              --test-path "${TEST_APK_PATH}" \
-              --timeout "30m" \
-              --test-targets "package com.flashcardsopensourceapp.app" \
-              --results-bucket "${ANDROID_FTL_RESULTS_BUCKET}" \
-              --results-dir "${results_dir}" \
-              --async
-          )"
-
-          printf '%s\n' "${command_output}"
-
-          matrix_id="$(printf '%s\n' "${command_output}" | grep -o 'matrix-[[:alnum:]]\+' | head -n 1 || true)"
-
-          if [[ -z "${matrix_id}" ]]; then
-            echo "Firebase Test Lab matrix id was not found after asynchronous submission." >&2
-            exit 1
-          fi
-
-          results_path="${ANDROID_FTL_RESULTS_BUCKET%/}/${results_dir}"
-          device_descriptor="model=${ANDROID_FTL_DEVICE_MODEL},version=${ANDROID_FTL_DEVICE_VERSION},locale=en,orientation=portrait"
-
-          # Keep Firebase Test Lab targeting aligned with AndroidJUnitRunner filtering.
-          # The custom runner excludes @ManualOnlyAndroidTest by default, which keeps
-          # manual marketing screenshot entrypoints out of CI/CD runs.
-
-          {
-            echo "submission_state=submitted"
-            echo "matrix_id=${matrix_id}"
-            echo "results_path=${results_path}"
-            echo "device_descriptor=${device_descriptor}"
-          } >> "${GITHUB_OUTPUT}"
-
-      - name: Summarize Firebase Test Lab submission
-        run: |
-          {
-            echo "## Firebase Test Lab submission"
-            echo ""
-            echo "- Submission state: \`${{ steps.submit.outputs.submission_state }}\`"
-            echo "- Target SHA: \`${{ inputs.target_ref }}\`"
-            echo "- GitHub run: \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`"
-            echo "- Matrix ID: \`${{ steps.submit.outputs.matrix_id }}\`"
-            echo "- Results path: \`${{ steps.submit.outputs.results_path }}\`"
-            echo "- Device: \`${{ steps.submit.outputs.device_descriptor }}\`"
-          } >> "${GITHUB_STEP_SUMMARY}"
