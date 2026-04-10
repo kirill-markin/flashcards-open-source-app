@@ -4,9 +4,9 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 android_dir="$repo_root/apps/android"
-output_path="$repo_root/apps/android/docs/media/play-store-screenshots/review-card-result-google-play-mitigate.png"
+output_path="$repo_root/apps/android/docs/media/play-store-screenshots/review-card-result-google-play-opportunity-cost.png"
 script_class="com.flashcardsopensourceapp.app.MarketingReviewScreenshotScript"
-remote_screenshot_path="/sdcard/Download/flashcards-marketing-screenshots/review-card-result-google-play-mitigate.png"
+remote_screenshot_path="/sdcard/Download/flashcards-marketing-screenshots/review-card-result-google-play-opportunity-cost.png"
 
 if [[ "$(adb get-state 2>/dev/null)" != "device" ]]; then
     echo "No Android device or emulator is connected." >&2

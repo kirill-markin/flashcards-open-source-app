@@ -218,17 +218,18 @@ fun CurrentWorkspaceRoute(
                                                     )
                                                 }
                                             )
-                                            .then(
-                                                if (workspace.isSelected) {
-                                                    Modifier.testTag(tag = currentWorkspaceSelectedSummaryTag)
-                                                } else {
-                                                    Modifier
-                                                }
-                                            )
                                     ) {
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(4.dp),
-                                            modifier = Modifier.fillMaxWidth()
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .then(
+                                                    if (workspace.isSelected) {
+                                                        Modifier.testTag(tag = currentWorkspaceSelectedSummaryTag)
+                                                    } else {
+                                                        Modifier
+                                                    }
+                                                )
                                         ) {
                                             Text(
                                                 text = if (workspace.isSelected) {
