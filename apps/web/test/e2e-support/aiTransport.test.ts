@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { classifyAiTransportGetRequest } from "./aiTransport";
+import { classifyAiTransportGetRequest } from "../../e2e/support/aiTransport";
 
 describe("classifyAiTransportGetRequest", () => {
   it("classifies lambda SSE attaches as live attach requests", () => {

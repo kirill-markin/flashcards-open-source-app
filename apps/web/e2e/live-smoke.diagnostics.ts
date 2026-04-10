@@ -6,7 +6,7 @@ import {
   type TestInfo,
 } from "@playwright/test";
 
-import { classifyAiTransportGetRequest } from "./live-smoke/aiTransport";
+import { classifyAiTransportGetRequest } from "./support/aiTransport";
 
 const failureSummaryTailSize = 25;
 

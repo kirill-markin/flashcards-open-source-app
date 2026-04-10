@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page, type Request } from "@playwright/test";
 
 import type { LiveSmokeDiagnostics } from "../../live-smoke.diagnostics";
-import { classifyAiTransportGetRequest } from "../aiTransport";
+import { classifyAiTransportGetRequest } from "../../support/aiTransport";
 import { externalUiTimeoutMs } from "../config";
 import type {
   AiCreateAttemptResolution,

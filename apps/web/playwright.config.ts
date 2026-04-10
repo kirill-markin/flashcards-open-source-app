@@ -16,6 +16,8 @@ const shouldUseManagedLocalWebServer = e2eEnvironment.target === "local";
 
 export default defineConfig({
   testDir: "./e2e",
+  testMatch: ["**/*.spec.ts"],
+  testIgnore: ["**/*.test.ts"],
   timeout: 10 * 60 * 1000,
   fullyParallel: false,
   reporter: [
