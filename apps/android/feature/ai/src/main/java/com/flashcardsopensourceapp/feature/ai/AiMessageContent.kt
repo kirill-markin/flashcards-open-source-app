@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.flashcardsopensourceapp.core.ui.bidiWrap
+import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
@@ -122,6 +123,9 @@ private fun MessageBubbleContent(
     textProvider: AiTextProvider,
     modifier: Modifier
 ) {
+    val context = LocalContext.current
+    val locale = currentResourceLocale(resources = context.resources)
+
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = modifier
@@ -207,7 +211,10 @@ private fun MessageBubbleContent(
                         title = contentPart.summaryText,
                         subtitle = stringResource(
                             id = R.string.ai_unknown_type_subtitle,
-                            bidiWrap(text = contentPart.originalType)
+                            bidiWrap(
+                                text = contentPart.originalType,
+                                locale = locale
+                            )
                         ),
                         icon = Icons.Outlined.WarningAmber
                     )
@@ -292,6 +299,8 @@ private fun CardContextContentCard(
     effortLevel: com.flashcardsopensourceapp.data.local.model.EffortLevel,
     textProvider: AiTextProvider
 ) {
+    val context = LocalContext.current
+    val locale = currentResourceLocale(resources = context.resources)
     var isPromptContextVisible by remember { mutableStateOf(value = false) }
     val promptContextXml = buildAiChatCardContextXml(
         cardId = cardId,
@@ -332,7 +341,10 @@ private fun CardContextContentCard(
                     Text(
                         text = stringResource(
                             id = R.string.ai_card_id_label,
-                            bidiWrap(text = cardId)
+                            bidiWrap(
+                                text = cardId,
+                                locale = locale
+                            )
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -344,7 +356,10 @@ private fun CardContextContentCard(
                 Text(
                     text = stringResource(
                         id = R.string.ai_card_tags_label,
-                        bidiWrap(text = tags.joinToString(separator = ", "))
+                        bidiWrap(
+                            text = tags.joinToString(separator = ", "),
+                            locale = locale
+                        )
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -354,7 +369,10 @@ private fun CardContextContentCard(
             Text(
                 text = stringResource(
                     id = R.string.ai_card_effort_label,
-                    bidiWrap(text = textProvider.effortLabel(effortLevel = effortLevel))
+                    bidiWrap(
+                        text = textProvider.effortLabel(effortLevel = effortLevel),
+                        locale = locale
+                    )
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -410,6 +428,9 @@ internal fun RepairStatusCard(
     status: AiChatRepairAttemptStatus,
     textProvider: AiTextProvider
 ) {
+    val context = LocalContext.current
+    val locale = currentResourceLocale(resources = context.resources)
+
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.tertiaryContainer
@@ -442,7 +463,10 @@ internal fun RepairStatusCard(
                 Text(
                     text = stringResource(
                         id = R.string.ai_tool_label,
-                        bidiWrap(text = textProvider.toolLabel(name = toolName))
+                        bidiWrap(
+                            text = textProvider.toolLabel(name = toolName),
+                            locale = locale
+                        )
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -481,6 +505,8 @@ private fun AccountUpgradeCard(
 
 @Composable
 private fun aiCardAttachmentLabel(frontText: String): String {
+    val context = LocalContext.current
+    val locale = currentResourceLocale(resources = context.resources)
     val trimmedFrontText = frontText.trim()
     if (trimmedFrontText.isEmpty()) {
         return stringResource(id = R.string.ai_card_attachment_fallback_title)
@@ -488,6 +514,9 @@ private fun aiCardAttachmentLabel(frontText: String): String {
 
     return stringResource(
         id = R.string.ai_card_attachment_title,
-        bidiWrap(text = trimmedFrontText.take(n = 72))
+        bidiWrap(
+            text = trimmedFrontText.take(n = 72),
+            locale = locale
+        )
     )
 }

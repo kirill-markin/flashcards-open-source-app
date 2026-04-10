@@ -29,11 +29,13 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.bidiWrap
+import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import kotlinx.coroutines.delay
 
@@ -171,6 +173,9 @@ private fun AiConversationEmptyState(
     currentWorkspaceName: String,
     modifier: Modifier
 ) {
+    val context = LocalContext.current
+    val locale = currentResourceLocale(resources = context.resources)
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -186,7 +191,10 @@ private fun AiConversationEmptyState(
         Text(
             text = stringResource(
                 id = R.string.ai_empty_body,
-                bidiWrap(text = currentWorkspaceName)
+                bidiWrap(
+                    text = currentWorkspaceName,
+                    locale = locale
+                )
             ),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

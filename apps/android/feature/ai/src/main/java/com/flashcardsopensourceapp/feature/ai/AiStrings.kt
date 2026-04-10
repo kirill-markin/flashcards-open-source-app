@@ -2,9 +2,11 @@ package com.flashcardsopensourceapp.feature.ai
 
 import android.content.Context
 import com.flashcardsopensourceapp.core.ui.bidiWrap
+import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.feature.settings.AccessCapability
+import java.util.Locale
 
 data class AiTextProvider(
     val loadingLabel: String,
@@ -65,7 +67,8 @@ data class AiTextProvider(
     private val fastLabel: String,
     private val mediumLabel: String,
     private val longLabel: String,
-    private val messageWithRequestIdFormat: String
+    private val messageWithRequestIdFormat: String,
+    private val bidiLocale: Locale
 ) {
     fun generalError(message: String): AiAlertState {
         return AiAlertState.GeneralError(
@@ -127,8 +130,14 @@ data class AiTextProvider(
 
     fun messageWithRequestId(message: String, requestId: String): String {
         return messageWithRequestIdFormat.format(
-            bidiWrap(text = message),
-            bidiWrap(text = requestId)
+            bidiWrap(
+                text = message,
+                locale = bidiLocale
+            ),
+            bidiWrap(
+                text = requestId,
+                locale = bidiLocale
+            )
         )
     }
 
@@ -139,7 +148,10 @@ data class AiTextProvider(
         }
 
         return selectedFileTypeUnsupportedWithExtensionFormat.format(
-            bidiWrap(text = normalizedExtension)
+            bidiWrap(
+                text = normalizedExtension,
+                locale = bidiLocale
+            )
         )
     }
 
@@ -212,7 +224,8 @@ fun aiTextProvider(context: Context): AiTextProvider {
         fastLabel = context.getString(R.string.ai_fast),
         mediumLabel = context.getString(R.string.ai_medium),
         longLabel = context.getString(R.string.ai_long),
-        messageWithRequestIdFormat = context.getString(R.string.ai_message_with_request_id)
+        messageWithRequestIdFormat = context.getString(R.string.ai_message_with_request_id),
+        bidiLocale = currentResourceLocale(resources = context.resources)
     )
 }
 
@@ -276,6 +289,7 @@ fun testAiTextProvider(): AiTextProvider {
         fastLabel = "Fast",
         mediumLabel = "Medium",
         longLabel = "Long",
-        messageWithRequestIdFormat = "%1\$s Request ID: %2\$s"
+        messageWithRequestIdFormat = "%1\$s Request ID: %2\$s",
+        bidiLocale = Locale.ENGLISH
     )
 }
