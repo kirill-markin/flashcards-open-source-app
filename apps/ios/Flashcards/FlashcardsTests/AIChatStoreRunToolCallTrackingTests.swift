@@ -334,8 +334,7 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
         XCTAssertTrue(context.historyStore.loadState().pendingToolRunPostSync)
 
         await gate.release()
-        await waitForBackgroundAIChatTasks()
-        await store.waitForPendingStatePersistence()
+        await waitForAIChatToolRunPostSyncToSettle(store: store)
 
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
         XCTAssertFalse(store.pendingToolRunPostSync)
@@ -462,7 +461,7 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
         )
 
         await self.fulfillment(of: [firstSyncExpectation], timeout: 1.0)
-        await waitForBackgroundAIChatTasks()
+        await waitForAIChatToolRunPostSyncToSettle(store: firstStore)
         XCTAssertTrue(context.historyStore.loadState().pendingToolRunPostSync)
 
         let secondStore = context.makeStore()
@@ -1017,8 +1016,7 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
         XCTAssertTrue(store.pendingToolRunPostSync)
 
         await gate.release()
-        await waitForBackgroundAIChatTasks()
-        await store.waitForPendingStatePersistence()
+        await waitForAIChatToolRunPostSyncToSettle(store: store)
 
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
         XCTAssertEqual(store.chatSessionId, "session-2")
@@ -1066,8 +1064,7 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
         await store.waitForPendingStatePersistence()
 
         await gate.release()
-        await waitForBackgroundAIChatTasks()
-        await store.waitForPendingStatePersistence()
+        await waitForAIChatToolRunPostSyncToSettle(store: store)
 
         let persistedState = context.historyStore.loadState()
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
@@ -1867,6 +1864,19 @@ private func waitForBackgroundAIChatTasks() async {
     for _ in 0..<20 {
         await Task.yield()
     }
+}
+
+@MainActor
+private func waitForAIChatToolRunPostSyncToSettle(store: AIChatStore) async {
+    for _ in 0..<200 {
+        if store.activeToolRunPostSyncTask == nil {
+            await store.waitForPendingStatePersistence()
+            return
+        }
+        await Task.yield()
+    }
+
+    XCTFail("AI chat tool-run post-sync task did not settle.")
 }
 
 @MainActor
