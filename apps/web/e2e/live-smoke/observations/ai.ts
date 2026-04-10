@@ -11,6 +11,22 @@ import type {
   CompletedSqlToolCall,
 } from "../types";
 
+type AiComposerState = "idle" | "preparingSend" | "startingRun" | "running" | "stopping";
+type AiComposerAction = "send" | "stop";
+type AiChatRunState = "idle" | "running" | "interrupted";
+type AiSendPhase = "idle" | "preparingSend" | "startingRun";
+type AiDraftState = "empty" | "filled";
+type AiCanSend = "true" | "false";
+
+type AiComposerContract = Readonly<{
+  composerState: AiComposerState;
+  composerAction: AiComposerAction;
+  chatRunState: AiChatRunState;
+  sendPhase: AiSendPhase;
+  draftState: AiDraftState;
+  canSend: AiCanSend;
+}>;
+
 export function createAiTransportObserver(page: Page): AiTransportObserver {
   let isObserving = false;
   let liveAttachRequestCount = 0;
@@ -166,14 +182,19 @@ export async function waitForAiRunAccepted(
           break;
         }
 
-        const stopButtonVisible = await page.getByTestId("chat-stop-button").isVisible().catch(() => false);
-        if (stopButtonVisible) {
+        const composerContract = await readAiComposerContract(page);
+        if (isAiRunRunning(composerContract)) {
           runAcceptanceState = "running";
           break;
         }
 
         const currentUserMessageCount = await page.locator(".chat-msg.chat-msg-user").count();
-        if (currentUserMessageCount > previousUserMessageCount) {
+        if (isAiRunQueued(composerContract)) {
+          runAcceptanceState = "queued";
+          break;
+        }
+
+        if (currentUserMessageCount > previousUserMessageCount && isAiComposerTerminalIdle(composerContract)) {
           runAcceptanceState = "queued";
           break;
         }
@@ -219,8 +240,8 @@ export async function waitForAiRunCompletion(
           break;
         }
 
-        const sendVisible = await page.getByTestId("chat-send-button").isVisible().catch(() => false);
-        if (sendVisible) {
+        const composerContract = await readAiComposerContract(page);
+        if (isAiComposerTerminalIdle(composerContract)) {
           runCompletionState = "idle";
           break;
         }
@@ -288,49 +309,42 @@ export async function findCompletedCardInsertToolCall(
 }
 
 export async function readCompletedSqlToolCalls(page: Page): Promise<ReadonlyArray<CompletedSqlToolCall>> {
-  return page.locator(".chat-sidebar-fullscreen").evaluate((chatRoot) => {
-    function readSectionText(
-      toolCallElement: Element,
-      expectedTitle: string,
-    ): string | null {
-      const sections = toolCallElement.querySelectorAll(".chat-tool-call-section");
-      for (const section of sections) {
-        const titleElement = section.querySelector(".chat-tool-call-section-title");
-        if (titleElement?.textContent?.trim() !== expectedTitle) {
-          continue;
+  return page
+    .locator('[data-testid="chat-tool-call"][data-tool-call-kind="tool"][data-tool-call-name="sql"][data-tool-call-status="completed"]')
+    .evaluateAll((toolCallElements) => {
+      function readRequiredAttribute(element: Element, attributeName: string): string {
+        const attributeValue = element.getAttribute(attributeName);
+        if (attributeValue === null || attributeValue.trim() === "") {
+          throw new Error(`Missing AI tool-call contract attribute "${attributeName}".`);
         }
 
-        const contentElement = section.querySelector(".chat-tool-call-input, .chat-tool-call-output");
-        const contentText = contentElement?.textContent;
+        return attributeValue.trim();
+      }
+
+      function readSectionText(
+        toolCallElement: Element,
+        sectionName: "input" | "output",
+      ): string | null {
+        const sectionElement = toolCallElement.querySelector(`[data-tool-call-section="${sectionName}"]`);
+        if (sectionElement === null) {
+          return null;
+        }
+
+        const contentText = sectionElement.querySelector("pre")?.textContent;
         if (contentText === undefined || contentText === null) {
           return null;
         }
 
-        return contentText.trim();
+        const trimmedContentText = contentText.trim();
+        return trimmedContentText === "" ? null : trimmedContentText;
       }
 
-      return null;
-    }
-
-    const toolCallElements = Array.from(chatRoot.querySelectorAll(".chat-tool-call.chat-tool-call-completed"));
-    return toolCallElements
-      .map((toolCallElement) => {
-        const summary = toolCallElement.querySelector(".chat-tool-call-summary-main")?.textContent?.trim() ?? "";
-        const status = toolCallElement.querySelector(".chat-tool-call-status")?.textContent?.trim() ?? "";
-        return {
-          summary,
-          status,
-          request: readSectionText(toolCallElement, "Request"),
-          response: readSectionText(toolCallElement, "Response"),
-        };
-      })
-      .filter((toolCall) => toolCall.status === "Done" && toolCall.summary.startsWith("SQL"))
-      .map((toolCall) => ({
-        summary: toolCall.summary,
-        request: toolCall.request,
-        response: toolCall.response,
+      return toolCallElements.map((toolCallElement) => ({
+        summary: readRequiredAttribute(toolCallElement, "data-tool-call-summary"),
+        request: readSectionText(toolCallElement, "input"),
+        response: readSectionText(toolCallElement, "output"),
       }));
-  });
+    });
 }
 
 export async function readComposerSuggestionTexts(
@@ -340,4 +354,109 @@ export async function readComposerSuggestionTexts(
     elements
       .map((element) => element.textContent?.trim() ?? "")
       .filter((text) => text.length > 0));
+}
+
+async function readAiComposerContract(page: Page): Promise<AiComposerContract> {
+  return page.getByTestId("chat-composer-state").evaluate((element) => {
+    function readRequiredAttribute(attributeName: string): string {
+      const attributeValue = element.getAttribute(attributeName);
+      if (attributeValue === null || attributeValue.trim() === "") {
+        throw new Error(`Missing AI composer contract attribute "${attributeName}".`);
+      }
+
+      return attributeValue.trim();
+    }
+
+    function readComposerState(attributeName: string): AiComposerState {
+      const attributeValue = readRequiredAttribute(attributeName);
+      if (
+        attributeValue !== "idle"
+        && attributeValue !== "preparingSend"
+        && attributeValue !== "startingRun"
+        && attributeValue !== "running"
+        && attributeValue !== "stopping"
+      ) {
+        throw new Error(`Unsupported AI composer state "${attributeValue}".`);
+      }
+
+      return attributeValue;
+    }
+
+    function readComposerAction(attributeName: string): AiComposerAction {
+      const attributeValue = readRequiredAttribute(attributeName);
+      if (attributeValue !== "send" && attributeValue !== "stop") {
+        throw new Error(`Unsupported AI composer action "${attributeValue}".`);
+      }
+
+      return attributeValue;
+    }
+
+    function readChatRunState(attributeName: string): AiChatRunState {
+      const attributeValue = readRequiredAttribute(attributeName);
+      if (attributeValue !== "idle" && attributeValue !== "running" && attributeValue !== "interrupted") {
+        throw new Error(`Unsupported AI chat run state "${attributeValue}".`);
+      }
+
+      return attributeValue;
+    }
+
+    function readSendPhase(attributeName: string): AiSendPhase {
+      const attributeValue = readRequiredAttribute(attributeName);
+      if (attributeValue !== "idle" && attributeValue !== "preparingSend" && attributeValue !== "startingRun") {
+        throw new Error(`Unsupported AI send phase "${attributeValue}".`);
+      }
+
+      return attributeValue;
+    }
+
+    function readDraftState(attributeName: string): AiDraftState {
+      const attributeValue = readRequiredAttribute(attributeName);
+      if (attributeValue !== "empty" && attributeValue !== "filled") {
+        throw new Error(`Unsupported AI draft state "${attributeValue}".`);
+      }
+
+      return attributeValue;
+    }
+
+    function readCanSend(attributeName: string): AiCanSend {
+      const attributeValue = readRequiredAttribute(attributeName);
+      if (attributeValue !== "true" && attributeValue !== "false") {
+        throw new Error(`Unsupported AI can-send state "${attributeValue}".`);
+      }
+
+      return attributeValue;
+    }
+
+    return {
+      composerState: readComposerState("data-composer-state"),
+      composerAction: readComposerAction("data-composer-action"),
+      chatRunState: readChatRunState("data-chat-run-state"),
+      sendPhase: readSendPhase("data-send-phase"),
+      draftState: readDraftState("data-draft-state"),
+      canSend: readCanSend("data-can-send"),
+    };
+  });
+}
+
+function isAiRunRunning(contract: AiComposerContract): boolean {
+  return contract.composerState === "running"
+    || contract.composerState === "stopping"
+    || contract.composerAction === "stop"
+    || contract.chatRunState === "running";
+}
+
+function isAiRunQueued(contract: AiComposerContract): boolean {
+  return contract.composerState === "preparingSend"
+    || contract.composerState === "startingRun"
+    || contract.sendPhase === "preparingSend"
+    || contract.sendPhase === "startingRun";
+}
+
+function isAiComposerTerminalIdle(contract: AiComposerContract): boolean {
+  return contract.composerState === "idle"
+    && contract.composerAction === "send"
+    && contract.chatRunState !== "running"
+    && contract.sendPhase === "idle"
+    && contract.draftState === "empty"
+    && contract.canSend === "false";
 }

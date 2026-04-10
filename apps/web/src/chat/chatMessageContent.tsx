@@ -105,7 +105,10 @@ function renderToolCallSection(
   }
 
   return (
-    <section className={`chat-tool-call-section chat-tool-call-section-${sectionClassName}`}>
+    <section
+      className={`chat-tool-call-section chat-tool-call-section-${sectionClassName}`}
+      data-tool-call-section={sectionClassName}
+    >
       <div className="chat-tool-call-section-header">
         <span className="chat-tool-call-section-title">{sectionTitle}</span>
         <button
@@ -199,7 +202,13 @@ export function renderStoredMessageContent(message: StoredMessage, t: Translate)
       const reasoningStatus = part.status ?? "completed";
       const reasoningText = part.summary === "" ? t("chatMessageContent.thinking") : part.summary;
       elements.push(
-        <details key={`reasoning-${index}`} className={`chat-tool-call chat-tool-call-${reasoningStatus}`}>
+        <details
+          key={`reasoning-${index}`}
+          className={`chat-tool-call chat-tool-call-${reasoningStatus}`}
+          data-testid="chat-tool-call"
+          data-tool-call-kind="reasoning"
+          data-tool-call-status={reasoningStatus}
+        >
           <summary className="chat-tool-call-summary">
             <span className="chat-tool-call-summary-main" title={reasoningText}>{t("chatMessageContent.reasoning")}</span>
             <span className="chat-tool-call-status">{reasoningStatusLabel(part.status, t)}</span>
@@ -217,6 +226,11 @@ export function renderStoredMessageContent(message: StoredMessage, t: Translate)
       <details
         key={`tool-${index}`}
         className={`chat-tool-call chat-tool-call-${part.status}`}
+        data-testid="chat-tool-call"
+        data-tool-call-kind="tool"
+        data-tool-call-name={part.name}
+        data-tool-call-status={part.status}
+        data-tool-call-summary={summaryText}
       >
         <summary className="chat-tool-call-summary">
           <span className="chat-tool-call-summary-main" title={summaryText}>{summaryText}</span>
