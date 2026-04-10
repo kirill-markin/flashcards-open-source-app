@@ -10,6 +10,7 @@ import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncSource
 import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -41,6 +42,8 @@ internal class AiChatRuntimeContext(
     )
 
     private val toolRunPostSyncMutex = Mutex()
+    private val persistedStateWriteMutex = Mutex()
+    private val persistedStateWriteRequestVersion = AtomicLong(0L)
     private var isToolRunPostSyncInFlight: Boolean = false
     val runtimeStateMutable = MutableStateFlow(makeDefaultAiDraftState())
     var activeSendJob: Job? = null
@@ -74,18 +77,13 @@ internal class AiChatRuntimeContext(
     }
 
     fun persistState(snapshot: AiChatRuntimeState) {
+        val requestVersion = persistedStateWriteRequestVersion.incrementAndGet()
         scope.launch {
-            aiChatRepository.savePersistedState(
-                workspaceId = snapshot.workspaceId,
-                state = snapshot.persistedState
-            )
-            val chatSessionId = snapshot.persistedState.chatSessionId.ifBlank { null }
-            if (chatSessionId != null) {
-                aiChatRepository.saveDraftState(
-                    workspaceId = snapshot.workspaceId,
-                    sessionId = chatSessionId,
-                    state = snapshot.toDraftState()
-                )
+            persistedStateWriteMutex.withLock {
+                if (requestVersion != persistedStateWriteRequestVersion.get()) {
+                    return@withLock
+                }
+                persistStateSnapshot(snapshot = snapshot)
             }
         }
     }
@@ -104,6 +102,16 @@ internal class AiChatRuntimeContext(
     }
 
     private suspend fun persistStateNow(snapshot: AiChatRuntimeState) {
+        val requestVersion = persistedStateWriteRequestVersion.incrementAndGet()
+        persistedStateWriteMutex.withLock {
+            if (requestVersion != persistedStateWriteRequestVersion.get()) {
+                return@withLock
+            }
+            persistStateSnapshot(snapshot = snapshot)
+        }
+    }
+
+    private suspend fun persistStateSnapshot(snapshot: AiChatRuntimeState) {
         aiChatRepository.savePersistedState(
             workspaceId = snapshot.workspaceId,
             state = snapshot.persistedState

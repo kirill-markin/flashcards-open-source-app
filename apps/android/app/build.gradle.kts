@@ -98,7 +98,6 @@ android {
 
     androidResources {
         generateLocaleConfig = true
-        localeFilters += listOf("en", "es")
     }
 
     testOptions {

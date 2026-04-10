@@ -6,10 +6,12 @@ Pushes to `main` use three independent release streams:
 - when AWS/backend/web changed, it deploys production, runs the native Playwright smoke in `apps/web/e2e/live-smoke.spec.ts`, runs the external agent API smoke in `scripts/check-agent-api-smoke.sh`, and only finishes healthy when both post-deploy checks pass
 - rollback is automatic only when the failed AWS release did not include new DB migrations
 - migration-bearing AWS failures are explicit fix-forward cases; the next push must still be allowed to run
-- when Android-impacting files changed, `.github/workflows/android-release.yml` runs independently and handles Android CI, Firebase Test Lab, and Google Play publication
+- when Android-impacting files changed, `.github/workflows/android-release.yml` runs independently, enforces the GitHub-hosted Android gate, uploads the Google Play production-track draft, and keeps Firebase Test Lab results traceable for the same run
 - when iOS changed, Xcode Cloud runs independently for the same `main` SHA
 
 When a change lands on `main`, monitor `AWS/Web Release` for backend/web outcome when AWS-impacting files changed, including both post-deploy smoke jobs, monitor `Android Release` when Android-impacting files changed, and monitor Xcode Cloud separately when iOS changed.
+For Android, a green `Android Release` run always means the GitHub-hosted Android gate passed for that SHA. On `push main` runs and manual runs with `upload_to_play_draft=true`, it also means CI uploaded a Play draft successfully. On manual runs with `upload_to_play_draft=false`, the workflow can still finish green with the Play draft upload intentionally skipped. It does not mean Firebase Test Lab has finished or passed yet, and it does not mean the release is already live. A non-green `Android Release` run means the GitHub-hosted gate failed, or the Play draft upload failed in a run that was supposed to upload it. Translation review and final publication still happen later in Play Console.
+To trace the exact Android release, open the GitHub Actions run summary for the target SHA, note the Play draft release name and version code shown there, and inspect the Firebase Test Lab results stored under the configured results directory suffix `<run_id>-<run_attempt>` for that same run.
 If you need to inspect Xcode Cloud directly instead of relying only on the web UI, use `docs/xcode-cloud-data-access.md`. It documents the local `.env` secrets, App Store Connect API flow, example commands, returned data formats, artifact types, and how to extract timing/debugging insights from cloud test runs.
 
 Cross-client live smoke references:

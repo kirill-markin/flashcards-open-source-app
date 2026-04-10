@@ -1,9 +1,9 @@
 <resources>
-    <string name="flashcards_privacy_policy_url">https://flashcards-open-source-app.com/privacy/</string>
-    <string name="flashcards_terms_of_service_url">https://flashcards-open-source-app.com/terms/</string>
-    <string name="flashcards_support_url">https://flashcards-open-source-app.com/support/</string>
-    <string name="flashcards_repository_url">https://github.com/kirill-markin/flashcards-open-source-app</string>
-    <string name="flashcards_support_email_address">kirill+flashcards@kirill-markin.com</string>
+    <string name="flashcards_privacy_policy_url" translatable="false">https://flashcards-open-source-app.com/privacy/</string>
+    <string name="flashcards_terms_of_service_url" translatable="false">https://flashcards-open-source-app.com/terms/</string>
+    <string name="flashcards_support_url" translatable="false">https://flashcards-open-source-app.com/support/</string>
+    <string name="flashcards_repository_url" translatable="false">https://github.com/kirill-markin/flashcards-open-source-app</string>
+    <string name="flashcards_support_email_address" translatable="false">kirill+flashcards@kirill-markin.com</string>
 
     <string name="settings_back_content_description">Back</string>
     <string name="settings_loading">Loading...</string>
@@ -249,6 +249,7 @@
     <string name="settings_workspace_tags_search_label">Search tags</string>
     <string name="settings_workspace_tags_empty">No tags have been used yet.</string>
     <string name="settings_workspace_tags_empty_search">No tags match this search.</string>
+    <string name="settings_workspace_tag_with_count">%1$s (%2$d)</string>
     <string name="settings_workspace_tags_total_cards_title">Total cards</string>
     <string name="settings_workspace_tags_total_cards_body">This count is for the full workspace and does not double-count cards that share tags.</string>
 

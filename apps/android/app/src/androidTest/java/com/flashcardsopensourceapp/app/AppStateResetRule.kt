@@ -13,7 +13,8 @@ import org.junit.rules.ExternalResource
 private val testOnlyPreferenceNames: List<String> = listOf(
     "flashcards-review-preferences",
     "flashcards-ai-chat-preferences",
-    "flashcards-ai-chat-history"
+    "flashcards-ai-chat-history",
+    "flashcards-ai-chat-guest-session"
 )
 
 class AppStateResetRule : ExternalResource() {
@@ -36,14 +37,16 @@ class AppStateResetRule : ExternalResource() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val application = context as FlashcardsApplication
 
+        application.closeAppGraph()
         runBlocking {
             withTimeout(appResetTimeoutMillis) {
+                clearTestOnlySharedPreferences(context = context)
+                application.recreateAppGraph()
                 application.awaitAppGraphStartup()
                 application.appGraph.cloudAccountRepository.logout()
             }
         }
         NotificationManagerCompat.from(context).cancelAll()
-        clearTestOnlySharedPreferences(context = context)
         waitForUiIdle(phase = "after resetting app state")
     }
 

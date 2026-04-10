@@ -334,7 +334,10 @@ internal fun AiRouteContent(
             )
         },
         bottomBar = {
-            if (uiState.isConsentRequired.not() && uiState.isConversationReady) {
+            if (
+                uiState.isConsentRequired.not()
+                && (uiState.isConversationReady || uiState.isConversationLoading)
+            ) {
                 AiComposer(
                     uiState = uiState,
                     onDraftMessageChange = onDraftMessageChange,
@@ -379,11 +382,24 @@ internal fun AiRouteContent(
             Box(
                 modifier = contentModifier
             ) {
+                AiConversation(
+                    messages = uiState.messages,
+                    currentWorkspaceName = uiState.currentWorkspaceName,
+                    isStreaming = uiState.isStreaming,
+                    onOpenAccountStatus = onOpenAccountStatus,
+                    onDismissComposerFocus = dismissComposerFocus,
+                    contentPadding = PaddingValues(
+                        horizontal = 16.dp,
+                        vertical = 16.dp
+                    ),
+                    modifier = Modifier.fillMaxSize()
+                )
+
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
-                        .fillMaxSize()
                         .padding(24.dp)
+                        .align(androidx.compose.ui.Alignment.Center)
                         .testTag(tag = aiConversationLoadingTag)
                 ) {
                     CircularProgressIndicator()

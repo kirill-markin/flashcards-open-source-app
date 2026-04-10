@@ -60,8 +60,11 @@ internal fun AiComposer(
 ) {
     val context = LocalContext.current
     val textProvider = remember(context) { aiTextProvider(context = context) }
-    val canEditDraft = uiState.isComposerBusy.not() && uiState.dictationState == AiChatDictationState.IDLE
-    val canManageAttachments = uiState.isComposerBusy.not() && uiState.dictationState == AiChatDictationState.IDLE
+    val canEditDraft = uiState.isStreaming.not() && uiState.dictationState == AiChatDictationState.IDLE
+    val canManageAttachments =
+        uiState.isConversationLoading.not()
+            && uiState.isComposerBusy.not()
+            && uiState.dictationState == AiChatDictationState.IDLE
     val isDictationBusy = uiState.dictationState == AiChatDictationState.REQUESTING_PERMISSION
         || uiState.dictationState == AiChatDictationState.TRANSCRIBING
     val focusRequester = remember { FocusRequester() }

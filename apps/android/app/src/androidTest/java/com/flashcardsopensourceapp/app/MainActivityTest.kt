@@ -149,9 +149,8 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForCardsEmptyState()
 
         openAiTabAndAssertConsentGate()
-        acceptAiConsentAndWaitForConversation()
+        acceptAiConsentAndWaitForConversationSurface()
         composeRule.onNodeWithTag(aiConversationSurfaceTag).fetchSemanticsNode()
-        composeRule.onNodeWithText(aiString(AiFeatureR.string.ai_message_label)).fetchSemanticsNode()
     }
 
     @Test
@@ -159,7 +158,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForCardsEmptyState()
 
         openAiTabAndAssertConsentGate()
-        acceptAiConsentAndWaitForConversation()
+        acceptAiConsentAndWaitForConversationComposer()
 
         focusAiComposerAndWaitUntilFocused()
         assertTrue(
@@ -493,9 +492,34 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithText(aiString(AiFeatureR.string.ai_consent_title)).fetchSemanticsNode()
     }
 
-    private fun acceptAiConsentAndWaitForConversation() {
+    private fun acceptAiConsentAndWaitForConversationSurface() {
+        composeRule.onNodeWithText(aiString(AiFeatureR.string.ai_consent_accept)).performClick()
+        waitForAiConversationSurface()
+    }
+
+    private fun acceptAiConsentAndWaitForConversationReady() {
         composeRule.onNodeWithText(aiString(AiFeatureR.string.ai_consent_accept)).performClick()
         waitForAiConversationReady()
+    }
+
+    private fun acceptAiConsentAndWaitForConversationComposer() {
+        composeRule.onNodeWithText(aiString(AiFeatureR.string.ai_consent_accept)).performClick()
+        waitForAiConversationComposer()
+    }
+
+    private fun waitForAiConversationSurface() {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText(aiString(AiFeatureR.string.ai_consent_title)).fetchSemanticsNodes().isEmpty() &&
+                countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0
+        }
+    }
+
+    private fun waitForAiConversationComposer() {
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithText(aiString(AiFeatureR.string.ai_consent_title)).fetchSemanticsNodes().isEmpty() &&
+                countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0 &&
+                countNodesWithTagInAnySemanticsTree(tag = aiComposerMessageFieldTag) > 0
+        }
     }
 
     private fun waitUntilComposerIsNotFocused() {
@@ -509,12 +533,12 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
             composeRule.onAllNodesWithText(aiString(AiFeatureR.string.ai_consent_title)).fetchSemanticsNodes().isEmpty() &&
                 countNodesWithTagInAnySemanticsTree(tag = aiConversationLoadingTag) == 0 &&
                 countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0 &&
-                aiComposerFocusStateOrNull() != null
+                countNodesWithTagInAnySemanticsTree(tag = aiComposerMessageFieldTag) > 0
         }
     }
 
     private fun focusAiComposerAndWaitUntilFocused() {
-        waitForAiConversationReady()
+        waitForAiConversationComposer()
         composeRule.onNodeWithTag(aiComposerMessageFieldTag).performClick()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             aiComposerFocusStateOrNull() == true

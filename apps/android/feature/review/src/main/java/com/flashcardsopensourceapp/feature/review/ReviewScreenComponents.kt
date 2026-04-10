@@ -117,7 +117,13 @@ internal fun ReviewTopBar(
                     onClick = onOpenPreview,
                     enabled = totalCount > 0
                 ) {
-                    Text("$remainingCount / $totalCount")
+                    Text(
+                        text = stringResource(
+                            id = R.string.review_progress_fraction,
+                            remainingCount,
+                            totalCount
+                        )
+                    )
                 }
             }
 
@@ -770,7 +776,11 @@ internal fun ReviewFilterSheet(
                 items(availableDeckFilters.size) { index ->
                     val deck = availableDeckFilters[index]
                     ReviewFilterOptionRow(
-                        title = "${deck.title} (${deck.totalCount})",
+                        title = stringResource(
+                            id = R.string.review_filter_title_with_count,
+                            deck.title,
+                            deck.totalCount
+                        ),
                         subtitle = stringResource(id = R.string.review_filtered_deck_subtitle),
                         selected = selectedFilter == ReviewFilter.Deck(deckId = deck.deckId),
                         onClick = {
@@ -791,7 +801,11 @@ internal fun ReviewFilterSheet(
             items(availableEffortFilters.size) { index ->
                 val effortFilter = availableEffortFilters[index]
                 ReviewFilterOptionRow(
-                    title = "${reviewEffortLabel(effortLevel = effortFilter.effortLevel)} (${effortFilter.totalCount})",
+                    title = stringResource(
+                        id = R.string.review_filter_title_with_count,
+                        reviewEffortLabel(effortLevel = effortFilter.effortLevel),
+                        effortFilter.totalCount
+                    ),
                     subtitle = stringResource(id = R.string.review_virtual_effort_filter_subtitle),
                     selected = selectedFilter == ReviewFilter.Effort(effortLevel = effortFilter.effortLevel),
                     onClick = {
@@ -812,7 +826,11 @@ internal fun ReviewFilterSheet(
                 items(availableTagFilters.size) { index ->
                     val tag = availableTagFilters[index]
                     ReviewFilterOptionRow(
-                        title = "${tag.tag} (${tag.totalCount})",
+                        title = stringResource(
+                            id = R.string.review_filter_title_with_count,
+                            tag.tag,
+                            tag.totalCount
+                        ),
                         subtitle = stringResource(id = R.string.review_workspace_tag_subtitle),
                         selected = selectedFilter == ReviewFilter.Tag(tag = tag.tag),
                         onClick = {

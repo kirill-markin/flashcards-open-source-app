@@ -245,7 +245,13 @@ fun CardTagsRoute(
                                     onToggleSuggestedTag(tagSummary.tag)
                                 },
                                 label = {
-                                    Text("${tagSummary.tag} (${tagSummary.cardsCount})")
+                                    Text(
+                                        text = stringResource(
+                                            id = R.string.cards_tag_with_count,
+                                            tagSummary.tag,
+                                            tagSummary.cardsCount
+                                        )
+                                    )
                                 }
                             )
                         }
