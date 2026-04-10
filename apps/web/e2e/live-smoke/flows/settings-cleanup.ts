@@ -4,9 +4,10 @@ import {
   trackedClick,
   trackedExpectVisible,
   trackedFill,
-  trackedIsVisible,
+  trackedGoto,
   trackedReadRequiredTextContent,
 } from "../../live-smoke.actions";
+import { settingsOverviewRoute } from "../../../src/routes";
 import { externalUiTimeoutMs, localUiTimeoutMs } from "../config";
 import { waitForDeleteWorkspaceConfirmation } from "../observations/workspace-delete";
 import { runLiveSmokeStep } from "../steps";
@@ -19,58 +20,21 @@ export async function runWorkspaceCleanupFlow(session: LiveSmokeSession): Promis
 }
 
 async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void> {
-  const { page, diagnostics, scenario } = session;
+  const { page, diagnostics, scenario, baseUrl } = session;
   const activeWorkspaceTopbar = page.getByTestId("topbar-active-workspace");
-  const settingsTabs = page.locator(".settings-switcher");
-  const hasSettingsTabs = await trackedIsVisible(
+  await trackedGoto(
+    page,
     diagnostics,
-    "check whether settings tabs are already visible before cleanup",
-    settingsTabs,
+    "open workspace overview route before cleanup",
+    `${baseUrl}${settingsOverviewRoute}`,
+    externalUiTimeoutMs,
   );
-
-  if (hasSettingsTabs === false) {
-    await trackedClick(
-      diagnostics,
-      "open settings navigation before cleanup",
-      page.locator('nav.nav a[href="/settings"]').first(),
-    );
-    await trackedExpectVisible(
-      diagnostics,
-      "confirm settings tabs are visible before cleanup",
-      settingsTabs,
-      localUiTimeoutMs,
-    );
-  }
-
-  const startsOnOverview = await diagnostics.runAction(
-    "check whether cleanup already starts on workspace overview",
-    async () => page.url().endsWith("/settings/workspace/overview"),
+  await trackedExpectVisible(
+    diagnostics,
+    "confirm workspace overview screen is visible before cleanup",
+    page.locator('button.settings-danger-btn').first(),
+    localUiTimeoutMs,
   );
-
-  if (startsOnOverview === false) {
-    await trackedClick(
-      diagnostics,
-      "open workspace tab from settings shell",
-      page.locator('.settings-switcher a[href="/settings/workspace"]').first(),
-    );
-    await trackedExpectVisible(
-      diagnostics,
-      "confirm workspace settings screen is visible",
-      page.locator(".settings-panel"),
-      localUiTimeoutMs,
-    );
-    await trackedClick(
-      diagnostics,
-      "open workspace overview screen",
-      page.locator('a[href="/settings/workspace/overview"]').first(),
-    );
-    await trackedExpectVisible(
-      diagnostics,
-      "confirm workspace overview screen is visible",
-      page.locator('button.settings-danger-btn').first(),
-      localUiTimeoutMs,
-    );
-  }
 
   const deletedWorkspaceId = await readRequiredActiveWorkspaceId(
     diagnostics,

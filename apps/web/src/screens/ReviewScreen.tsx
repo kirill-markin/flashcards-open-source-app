@@ -41,6 +41,12 @@ const REVIEW_MARKDOWN_SYMBOL_ONLY_LIST_ITEM_PATTERN = /^(\s{0,3}[-*+]\s+)([+*\-#
 type MarkdownFenceMarker = "`" | "~";
 type ReviewPaneState = "loading" | "card" | "empty";
 type ReviewPaneEmptyReason = "none" | "nothing-due" | "no-cards";
+type ReviewSubmitState = "idle" | "submitting" | "settled" | "failed";
+
+type LastSubmittedReview = Readonly<{
+  cardId: string;
+  rating: ReviewRating;
+}>;
 
 const reviewAnswerOptions: ReadonlyArray<ReviewRating> = [0, 2, 1, 3];
 
@@ -274,6 +280,14 @@ export function normalizeReviewMarkdownForWeb(text: string): string {
   return normalizedLines.join("\n");
 }
 
+function formatReviewSubmitRating(lastSubmittedReview: LastSubmittedReview | null): `${ReviewRating}` | "none" {
+  if (lastSubmittedReview === null) {
+    return "none";
+  }
+
+  return `${lastSubmittedReview.rating}`;
+}
+
 function ReviewCardMarkdown({ text }: Readonly<{ text: string }>): ReactElement {
   const normalizedText = normalizeReviewMarkdownForWeb(text);
 
@@ -402,6 +416,8 @@ export function ReviewScreen(): ReactElement {
   const { t, formatCount, formatDateTime, formatNumber } = useI18n();
   const [isAnswerVisible, setIsAnswerVisible] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [reviewSubmitState, setReviewSubmitState] = useState<ReviewSubmitState>("idle");
+  const [lastSubmittedReview, setLastSubmittedReview] = useState<LastSubmittedReview | null>(null);
   const [isHardReminderVisible, setIsHardReminderVisible] = useState<boolean>(false);
   const [hardReminderLastShownAt, setHardReminderLastShownAt] = useState<number | null>(() => loadReviewHardReminderLastShownAt());
   const recentReviewRatingsRef = useRef<Array<ReviewRating>>([]);
@@ -529,9 +545,15 @@ export function ReviewScreen(): ReactElement {
 
   async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<void> {
     setIsSubmitting(true);
+    setReviewSubmitState("submitting");
+    setLastSubmittedReview({
+      cardId: card.cardId,
+      rating,
+    });
+    let didSaveReview = false;
 
     try {
-      const didSaveReview = await handleReviewData(card, rating);
+      didSaveReview = await handleReviewData(card, rating);
       if (didSaveReview === false) {
         return;
       }
@@ -550,6 +572,7 @@ export function ReviewScreen(): ReactElement {
       }
     } finally {
       setIsSubmitting(false);
+      setReviewSubmitState(didSaveReview ? "settled" : "failed");
     }
   }
 
@@ -615,6 +638,9 @@ export function ReviewScreen(): ReactElement {
             data-testid="review-pane"
             data-review-pane-state={reviewPaneState}
             data-review-pane-empty-reason={reviewPaneEmptyReason}
+            data-review-submit-state={reviewSubmitState}
+            data-review-last-submitted-card-id={lastSubmittedReview?.cardId ?? ""}
+            data-review-last-submitted-rating={formatReviewSubmitRating(lastSubmittedReview)}
           >
             {isInitialReviewLoad ? (
               <>

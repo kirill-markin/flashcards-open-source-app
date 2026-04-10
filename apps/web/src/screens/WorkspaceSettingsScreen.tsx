@@ -14,6 +14,8 @@ import { loadDecksListSnapshot } from "../localDb/decks";
 import { loadWorkspaceTagsSummary } from "../localDb/workspace";
 import { SettingsActionCard, SettingsGroup, SettingsNavigationCard, SettingsShell } from "./SettingsShared";
 
+type ResetDialogState = "confirmation" | "preview-loading" | "preview-ready" | "executing";
+
 export function WorkspaceSettingsScreen(): ReactElement {
   const {
     activeWorkspace,
@@ -43,6 +45,13 @@ export function WorkspaceSettingsScreen(): ReactElement {
     && cloudSettings?.cloudState === "linked"
     && activeWorkspace !== null;
   const isResetConfirmationMatched = resetConfirmationValue === resetWorkspaceProgressConfirmationText;
+  const resetDialogState: ResetDialogState = isResetExecuting
+    ? "executing"
+    : isResetPreviewLoading
+      ? "preview-loading"
+      : resetPreview === null
+        ? "confirmation"
+        : "preview-ready";
   const workspaceUnavailableMessage = t("workspaceOverview.workspaceUnavailable");
   const cardCountLabel = formatCount(activeCardCount, {
     one: t("settingsWorkspace.countLabels.card.one"),
@@ -292,6 +301,9 @@ export function WorkspaceSettingsScreen(): ReactElement {
           aria-modal="true"
           aria-labelledby="reset-workspace-progress-title"
           data-testid="workspace-reset-progress-dialog"
+          data-reset-progress-state={resetDialogState}
+          data-reset-progress-preview-count={resetPreview === null ? "" : String(resetPreview.cardsToResetCount)}
+          aria-busy={isResetPreviewLoading || isResetExecuting}
         >
           <div className="panel settings-delete-dialog">
             <div className="cell-stack">
@@ -374,6 +386,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
                 type="button"
                 disabled={isResetPreviewLoading || isResetExecuting}
                 onClick={closeResetDialog}
+                data-testid="workspace-reset-progress-cancel"
               >
                 {t("common.cancel")}
               </button>
