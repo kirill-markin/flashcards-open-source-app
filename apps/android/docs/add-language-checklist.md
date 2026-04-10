@@ -30,6 +30,8 @@ The default Play-first path keeps locale advertising explicit without reintroduc
 
 - Verify `apps/android/app/src/main/res/resources.properties` still points `unqualifiedResLocale` at the base language. Today that is `en`; adding a translated app language does not require changing the base locale.
 - Maintain the checked-in explicit supported-language locale config that the app uses to advertise languages to Android system settings. Update that config whenever an app language is added or removed.
+- The Android app build reads `apps/android/app/src/main/res/xml/locales_config.xml` and mirrors that list into `androidResources.localeFilters`, so keep the XML list authoritative and complete.
+- The Android app bundle ships the full supported locale set instead of relying on Play language splits. This keeps Play translation preview, RTL checks, and offline app-language switching deterministic.
 - Do not rely on AGP locale generation from checked-in resources as the only way Android discovers supported languages. That path cannot advertise Play-managed translations by itself once repository-owned `values-xx` folders are gone.
 - Keep the explicit Android supported-language list aligned with the languages that will actually be translated in Play App strings for the release.
 - Do not reintroduce app-startup locale forcing such as `AppLocaleInitializer.kt` unless the user explicitly asks for a custom locale-selection policy.

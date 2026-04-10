@@ -1,14 +1,59 @@
 import org.gradle.api.GradleException
+import java.util.Locale
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
 
+fun readSupportedAndroidLocales(): List<String> {
+    val localesConfig = layout.projectDirectory.file("src/main/res/xml/locales_config.xml").asFile
+    val localeNamePattern = Regex("""<locale\s+android:name="([^"]+)"""")
+    val supportedLocales = localeNamePattern.findAll(localesConfig.readText())
+        .map { matchResult ->
+            matchResult.groupValues[1]
+        }
+        .toList()
+
+    if (supportedLocales.isEmpty()) {
+        throw GradleException("apps/android/app/src/main/res/xml/locales_config.xml must declare at least one supported locale.")
+    }
+
+    return supportedLocales
+}
+
+fun toAndroidLocaleFilter(localeTag: String): String {
+    val locale = Locale.forLanguageTag(localeTag)
+    val language = locale.language
+
+    if (language.isBlank()) {
+        throw GradleException("Unsupported locale tag in locales_config.xml: $localeTag")
+    }
+
+    val script = locale.script
+    val country = locale.country
+
+    return when {
+        script.isNotBlank() -> buildList {
+            add("b")
+            add(language)
+            add(script)
+            if (country.isNotBlank()) {
+                add(country)
+            }
+        }.joinToString(separator = "+")
+
+        country.isNotBlank() -> "$language-r$country"
+        else -> language
+    }
+}
+
 val requestedTaskNames: List<String> = gradle.startParameter.taskNames
 val isReleaseTaskRequested: Boolean = requestedTaskNames.any { taskName ->
     taskName.contains("Release", ignoreCase = true)
 }
+val supportedAndroidLocales: List<String> = readSupportedAndroidLocales()
+val supportedAndroidLocaleFilters: List<String> = supportedAndroidLocales.map(::toAndroidLocaleFilter)
 
 val androidVersionCodeValue: String? = providers.environmentVariable("ANDROID_VERSION_CODE").orNull
 val androidVersionCode: Int? = androidVersionCodeValue?.toIntOrNull()
@@ -94,6 +139,16 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    androidResources {
+        localeFilters += supportedAndroidLocaleFilters
+    }
+
+    bundle {
+        language {
+            enableSplit = false
+        }
     }
 
     testOptions {
