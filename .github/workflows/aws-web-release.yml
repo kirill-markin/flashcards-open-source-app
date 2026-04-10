@@ -10,7 +10,12 @@ on:
       - 'apps/web/**'
       - 'db/**'
       - 'infra/**'
-      - 'scripts/**'
+      - 'scripts/check-agent-api-smoke.sh'
+      - 'scripts/check-api-health.sh'
+      - 'scripts/check-demo-cognito-users.sh'
+      - 'scripts/check-public-endpoints.sh'
+      - 'scripts/deploy-web.sh'
+      - 'scripts/migrate-aws.sh'
       - '.github/workflows/aws-web-release.yml'
   workflow_dispatch:
 
@@ -53,6 +58,8 @@ jobs:
         run: |
           set -euo pipefail
 
+          aws_release_script_pattern='^scripts/(check-agent-api-smoke\.sh|check-api-health\.sh|check-demo-cognito-users\.sh|check-public-endpoints\.sh|deploy-web\.sh|migrate-aws\.sh)$'
+
           changed_files_path="${RUNNER_TEMP}/changed-files.txt"
           before_sha="${PUSH_BEFORE_SHA:-}"
 
@@ -65,7 +72,7 @@ jobs:
           fi
 
           aws_changed=false
-          if grep -Eq '^(api/|apps/auth/|apps/backend/|apps/web/|db/|infra/|scripts/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+          if grep -Eq "^(api/|apps/auth/|apps/backend/|apps/web/|db/|infra/|\\.github/workflows/aws-web-release\\.yml$)" "${changed_files_path}" || grep -Eq "${aws_release_script_pattern}" "${changed_files_path}"; then
             aws_changed=true
           fi
 
