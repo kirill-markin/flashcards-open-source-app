@@ -272,6 +272,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
               description={t("settingsWorkspace.resetProgress.description")}
               value={t("settingsWorkspace.resetProgress.value")}
               onClick={openResetDialog}
+              testId="workspace-reset-progress-open"
               isMuted={isResetAvailable === false}
               disabled={isResetAvailable === false}
             />
@@ -290,6 +291,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
           role="dialog"
           aria-modal="true"
           aria-labelledby="reset-workspace-progress-title"
+          data-testid="workspace-reset-progress-dialog"
         >
           <div className="panel settings-delete-dialog">
             <div className="cell-stack">
@@ -378,6 +380,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
                   type="button"
                   disabled={isResetConfirmationMatched === false || isResetPreviewLoading || isResetExecuting}
                   onClick={handleResetPrimaryAction}
+                  data-testid="workspace-reset-progress-continue-to-preview"
                 >
                   {isResetPreviewLoading ? t("common.loading") : t("common.continue")}
                 </button>
@@ -387,6 +390,7 @@ export function WorkspaceSettingsScreen(): ReactElement {
                   type="button"
                   disabled={isResetExecuting}
                   onClick={handleResetPrimaryAction}
+                  data-testid="workspace-reset-progress-confirm-reset"
                 >
                   {isResetExecuting ? t("settingsWorkspace.resetProgress.resetting") : t("common.ok")}
                 </button>
