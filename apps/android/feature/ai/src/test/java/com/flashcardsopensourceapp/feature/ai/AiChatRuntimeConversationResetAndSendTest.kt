@@ -1,8 +1,10 @@
 package com.flashcardsopensourceapp.feature.ai
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
+import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
@@ -108,7 +110,7 @@ class AiChatRuntimeConversationResetAndSendTest {
     }
 
     @Test
-    fun clearConversationSwitchesToLocalSessionBeforeServerEnsureCompletes() = runTest {
+    fun clearConversationSwitchesToLocalReadySessionBeforeServerEnsureCompletes() = runTest {
         val repository = FakeAiChatRepository()
         repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
             chatSessionId = "session-1"
@@ -133,8 +135,9 @@ class AiChatRuntimeConversationResetAndSendTest {
         assertTrue(localSessionId.isNotBlank())
         assertFalse(localSessionId == "session-1")
         assertEquals(localSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertEquals(localSessionId, runtime.state.value.conversationScopeId)
         assertTrue(runtime.state.value.persistedState.messages.isEmpty())
-        assertEquals(AiConversationBootstrapState.RESETTING, runtime.state.value.conversationBootstrapState)
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
 
         createSessionGate.complete(Unit)
         advanceUntilIdle()
@@ -143,7 +146,209 @@ class AiChatRuntimeConversationResetAndSendTest {
     }
 
     @Test
-    fun sendMessageIsBlockedWhileConversationIsResetting() = runTest {
+    fun clearConversationKeepsFreshLocalSessionWhileBootstrapReloadIsInFlight() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null,
+        ).copy(
+            conversation = com.flashcardsopensourceapp.data.local.model.AiChatConversation(
+                messages = listOf(
+                    makeUserMessage(
+                        content = listOf(AiChatContentPart.Text(text = "Hello")),
+                        timestampMillis = 1L
+                    ),
+                    makeAssistantStatusMessage(timestampMillis = 2L)
+                ),
+                updatedAtMillis = 100L,
+                mainContentInvalidationVersion = 0L,
+                hasOlder = false,
+                oldestCursor = null
+            )
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+        assertEquals(2, runtime.state.value.persistedState.messages.size)
+
+        val bootstrapGate = CompletableDeferred<Unit>()
+        repository.loadBootstrapGates += bootstrapGate
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null,
+        ).copy(
+            conversation = com.flashcardsopensourceapp.data.local.model.AiChatConversation(
+                messages = listOf(
+                    makeUserMessage(
+                        content = listOf(AiChatContentPart.Text(text = "Reloaded")),
+                        timestampMillis = 3L
+                    )
+                ),
+                updatedAtMillis = 100L,
+                mainContentInvalidationVersion = 0L,
+                hasOlder = false,
+                oldestCursor = null
+            )
+        )
+        val createSessionGate = CompletableDeferred<Unit>()
+        repository.createNewSessionGates += createSessionGate
+
+        runtime.warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
+        runCurrent()
+        assertEquals(AiConversationBootstrapState.LOADING, runtime.state.value.conversationBootstrapState)
+        assertEquals(2, runtime.state.value.persistedState.messages.size)
+
+        runtime.clearConversation()
+        runCurrent()
+
+        assertEquals(1, repository.createNewSessionRequests.size)
+        val freshSessionId = repository.createNewSessionRequests.single()
+        assertEquals(freshSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertEquals(freshSessionId, runtime.state.value.conversationScopeId)
+        assertTrue(runtime.state.value.persistedState.messages.isEmpty())
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+
+        bootstrapGate.complete(Unit)
+        createSessionGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+        assertEquals(freshSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertTrue(runtime.state.value.persistedState.messages.isEmpty())
+    }
+
+    @Test
+    fun clearConversationKeepsDraftAttachmentsAndSuggestionsClearedDuringBootstrapReload() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.draftStates[defaultTestWorkspaceId to "session-1"] =
+            com.flashcardsopensourceapp.data.local.model.AiChatDraftState(
+                draftMessage = "Keep the old draft",
+                pendingAttachments = listOf(
+                    AiChatAttachment.Binary(
+                        id = "attachment-1",
+                        fileName = "notes.txt",
+                        mediaType = "text/plain",
+                        base64Data = "ZmlsZQ=="
+                    )
+                )
+            )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null,
+        ).copy(
+            composerSuggestions = listOf(
+                AiChatComposerSuggestion(
+                    id = "suggestion-1",
+                    text = "Existing suggestion",
+                    source = "server",
+                    assistantItemId = null
+                )
+            )
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+
+        assertEquals("Keep the old draft", runtime.state.value.draftMessage)
+        assertEquals(1, runtime.state.value.pendingAttachments.size)
+        assertEquals(
+            listOf("suggestion-1"),
+            runtime.state.value.serverComposerSuggestions.map { suggestion -> suggestion.id }
+        )
+
+        val bootstrapGate = CompletableDeferred<Unit>()
+        repository.loadBootstrapGates += bootstrapGate
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null,
+        ).copy(
+            composerSuggestions = listOf(
+                AiChatComposerSuggestion(
+                    id = "stale-suggestion",
+                    text = "Stale suggestion",
+                    source = "server",
+                    assistantItemId = null
+                )
+            ),
+            conversation = com.flashcardsopensourceapp.data.local.model.AiChatConversation(
+                messages = listOf(
+                    makeUserMessage(
+                        content = listOf(AiChatContentPart.Text(text = "Reloaded")),
+                        timestampMillis = 3L
+                    )
+                ),
+                updatedAtMillis = 100L,
+                mainContentInvalidationVersion = 0L,
+                hasOlder = false,
+                oldestCursor = null
+            )
+        )
+        val createSessionGate = CompletableDeferred<Unit>()
+        repository.createNewSessionGates += createSessionGate
+
+        runtime.warmUpLinkedSessionIfNeeded(resumeDiagnostics = null)
+        runCurrent()
+        assertEquals(AiConversationBootstrapState.LOADING, runtime.state.value.conversationBootstrapState)
+
+        runtime.clearConversation()
+        runCurrent()
+
+        val freshSessionId = repository.createNewSessionRequests.single()
+        assertEquals(freshSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertEquals(freshSessionId, runtime.state.value.conversationScopeId)
+        assertEquals("", runtime.state.value.draftMessage)
+        assertTrue(runtime.state.value.pendingAttachments.isEmpty())
+        assertTrue(runtime.state.value.serverComposerSuggestions.isEmpty())
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+
+        bootstrapGate.complete(Unit)
+        createSessionGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(freshSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertEquals("", runtime.state.value.draftMessage)
+        assertTrue(runtime.state.value.pendingAttachments.isEmpty())
+        assertTrue(runtime.state.value.serverComposerSuggestions.isEmpty())
+        assertTrue(runtime.state.value.persistedState.messages.isEmpty())
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+    }
+
+    @Test
+    fun clearConversationIsIgnoredWhileDictationRecording() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+
+        runtime.startDictationRecording()
+        runtime.clearConversation()
+        runCurrent()
+
+        assertTrue(repository.createNewSessionRequests.isEmpty())
+        assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
+        assertEquals(AiChatDictationState.RECORDING, runtime.state.value.dictationState)
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+    }
+
+    @Test
+    fun sendMessageWaitsForFreshSessionProvisioningAfterClearConversation() = runTest {
         val repository = FakeAiChatRepository()
         repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
             chatSessionId = "session-1"
@@ -161,24 +366,37 @@ class AiChatRuntimeConversationResetAndSendTest {
 
         runtime.clearConversation()
         runCurrent()
-        assertEquals(AiConversationBootstrapState.RESETTING, runtime.state.value.conversationBootstrapState)
+        val freshSessionId = repository.createNewSessionRequests.single()
+        repository.startRunResponse = makeAcceptedStartRunResponse(
+            sessionId = freshSessionId,
+            activeRun = null,
+            messages = listOf(
+                makeUserMessage(
+                    content = listOf(AiChatContentPart.Text(text = "Hello after reset")),
+                    timestampMillis = 1L
+                ),
+                makeAssistantStatusMessage(timestampMillis = 2L)
+            ),
+            composerSuggestions = emptyList()
+        )
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
 
         runtime.updateDraftMessage(draftMessage = "Hello after reset")
         runtime.sendMessage()
         runCurrent()
 
         assertEquals(0, repository.startRunCalls)
-        assertEquals(AiConversationBootstrapState.RESETTING, runtime.state.value.conversationBootstrapState)
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+        assertEquals(AiComposerPhase.PREPARING_SEND, runtime.state.value.composerPhase)
 
         createSessionGate.complete(Unit)
         advanceUntilIdle()
 
         assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
-
-        runtime.sendMessage()
-        advanceUntilIdle()
-
         assertEquals(1, repository.startRunCalls)
+        assertEquals(freshSessionId, repository.lastStartRunState?.chatSessionId)
+        assertEquals(freshSessionId, runtime.state.value.persistedState.chatSessionId)
+        assertEquals("", runtime.state.value.draftMessage)
     }
 
     @Test

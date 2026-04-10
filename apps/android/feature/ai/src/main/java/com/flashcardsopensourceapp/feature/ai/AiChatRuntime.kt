@@ -17,7 +17,6 @@ import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -277,10 +276,8 @@ internal class AiChatRuntime(
     }
 
     fun clearConversation() {
-        if (runtimeStateMutable.value.conversationBootstrapState != AiConversationBootstrapState.READY) {
-            return
-        }
-        if (runtimeStateMutable.value.composerPhase != AiComposerPhase.IDLE) {
+        val currentState = runtimeStateMutable.value
+        if (canClearConversation(state = currentState).not()) {
             return
         }
 
@@ -532,14 +529,17 @@ internal class AiChatRuntime(
         val pendingAttachmentsBackup = runtimeStateMutable.value.pendingAttachments
 
         context.activeSendJob?.cancel()
-        context.activeSendJob = context.scope.launch {
+        var sendJob: Job? = null
+        sendJob = context.scope.launch {
             var didAcceptRun = false
             var didAppendOptimisticMessages = false
+            var requestSessionId = currentState.persistedState.chatSessionId
             try {
                 // AI send is blocked on a direct sync so the backend run never starts
                 // from stale local writes that are still sitting in the outbox.
                 context.aiChatRepository.ensureReadyForSend(workspaceId = runtimeStateMutable.value.workspaceId)
-                ensureSessionIdIfNeeded()
+                val ensuredSession = ensureSessionIdIfNeeded()
+                requestSessionId = ensuredSession.sessionId
                 val nextPersistedState = runtimeStateMutable.value.persistedState.copy(
                     messages = runtimeStateMutable.value.persistedState.messages + listOf(
                         makeUserMessage(
@@ -570,12 +570,16 @@ internal class AiChatRuntime(
                     content = outgoingContent
                 )
                 didAcceptRun = true
-                applyAcceptedRunResponse(response = response)
+                applyAcceptedRunResponse(
+                    response = response,
+                    targetSessionId = requestSessionId
+                )
             } catch (error: CancellationException) {
                 throw error
             } catch (error: AiChatRemoteException) {
                 handleSendFailure(
                     error = error,
+                    targetSessionId = requestSessionId,
                     didAcceptRun = didAcceptRun,
                     didAppendOptimisticMessages = didAppendOptimisticMessages,
                     previousPersistedState = previousPersistedState,
@@ -585,6 +589,7 @@ internal class AiChatRuntime(
             } catch (error: Exception) {
                 handleSendFailure(
                     error = error,
+                    targetSessionId = requestSessionId,
                     didAcceptRun = didAcceptRun,
                     didAppendOptimisticMessages = didAppendOptimisticMessages,
                     previousPersistedState = previousPersistedState,
@@ -592,6 +597,9 @@ internal class AiChatRuntime(
                     pendingAttachments = pendingAttachmentsBackup
                 )
             } finally {
+                if (context.activeSendJob !== sendJob) {
+                    return@launch
+                }
                 runtimeStateMutable.update { state ->
                     state.copy(
                         composerPhase = when (state.composerPhase) {
@@ -640,8 +648,12 @@ internal class AiChatRuntime(
     }
 
     private suspend fun applyAcceptedRunResponse(
-        response: com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse
+        response: com.flashcardsopensourceapp.data.local.model.AiChatStartRunResponse,
+        targetSessionId: String
     ) {
+        if (canApplySessionScopedResult(targetSessionId = targetSessionId).not()) {
+            return
+        }
         // Accepted responses can still mirror older recovered history before the
         // current turn is fully visible. We intentionally keep the accepted-path
         // detection broad here because an occasional zero-diff post-run sync is
@@ -693,12 +705,16 @@ internal class AiChatRuntime(
 
     private fun handleSendFailure(
         error: Exception,
+        targetSessionId: String,
         didAcceptRun: Boolean,
         didAppendOptimisticMessages: Boolean,
         previousPersistedState: com.flashcardsopensourceapp.data.local.model.AiChatPersistedState,
         draftMessage: String,
         pendingAttachments: List<AiChatAttachment>
     ) {
+        if (canApplySessionScopedResult(targetSessionId = targetSessionId).not()) {
+            return
+        }
         val remoteError = error as? AiChatRemoteException
         if (remoteError?.code == "GUEST_AI_LIMIT_REACHED") {
             AiChatDiagnosticsLogger.warn(
@@ -788,7 +804,17 @@ internal class AiChatRuntime(
         }
     }
 
-    private fun handleNewChatFailure(error: Exception) {
+    private fun handleNewChatFailure(
+        workspaceId: String?,
+        targetSessionId: String,
+        error: Exception
+    ) {
+        if (
+            runtimeStateMutable.value.workspaceId != workspaceId
+            || canApplySessionScopedResult(targetSessionId = targetSessionId).not()
+        ) {
+            return
+        }
         val remoteError = error as? AiChatRemoteException
         val message = makeAiUserFacingErrorMessage(
             error = error,
@@ -837,15 +863,35 @@ internal class AiChatRuntime(
             || state.composerPhase != AiComposerPhase.IDLE
     }
 
-    private fun canApplyFreshSessionEnsureResponse(
-        state: AiChatRuntimeState,
+    private fun canClearConversation(state: AiChatRuntimeState): Boolean {
+        if (state.activeRun != null) {
+            return false
+        }
+        if (state.composerPhase != AiComposerPhase.IDLE) {
+            return false
+        }
+        if (state.dictationState != AiChatDictationState.IDLE) {
+            return false
+        }
+        return true
+    }
+
+    private fun canApplySessionScopedResult(
         targetSessionId: String
     ): Boolean {
+        val state = runtimeStateMutable.value
         return state.persistedState.chatSessionId == targetSessionId
-            && state.persistedState.messages.isEmpty()
-            && state.activeRun == null
-            && state.composerPhase == AiComposerPhase.IDLE
-            && state.conversationBootstrapState == AiConversationBootstrapState.RESETTING
+    }
+
+    private suspend fun awaitActiveFreshSessionProvisioningIfNeeded(targetSessionId: String) {
+        val activeFreshSessionJob = context.activeFreshSessionJob
+        if (activeFreshSessionJob?.isActive != true) {
+            return
+        }
+        if (context.activeFreshSessionTargetSessionId != targetSessionId) {
+            return
+        }
+        activeFreshSessionJob.join()
     }
 
     private fun startFreshConversation(
@@ -879,13 +925,14 @@ internal class AiChatRuntime(
                 serverComposerSuggestions = emptyList(),
                 composerPhase = AiComposerPhase.IDLE,
                 dictationState = AiChatDictationState.IDLE,
-                conversationBootstrapState = AiConversationBootstrapState.RESETTING,
+                conversationBootstrapState = AiConversationBootstrapState.READY,
                 conversationBootstrapErrorMessage = "",
                 repairStatus = null,
                 activeAlert = null,
                 errorMessage = ""
             )
         }
+        persistCurrentState()
         initializeFreshConversation(
             workspaceId = currentState.workspaceId,
             targetSessionId = targetSessionId
@@ -899,30 +946,31 @@ internal class AiChatRuntime(
         context.activeFreshSessionJob?.cancel(
             cause = CancellationException("AI fresh session creation cancelled because a newer reset was requested.")
         )
+        context.activeFreshSessionTargetSessionId = targetSessionId
+        context.activeSendJob?.cancel(
+            cause = CancellationException("AI send cancelled because a new chat was requested.")
+        )
+        context.activeSendJob = null
+        context.activeBootstrapJob?.cancel(
+            cause = CancellationException("AI bootstrap cancelled because a new chat was requested.")
+        )
+        context.activeBootstrapJob = null
+        context.activeWarmUpJob?.cancel(
+            cause = CancellationException("AI warm-up cancelled because a new chat was requested.")
+        )
+        context.activeWarmUpJob = null
+        liveStreamCoordinator.detachLiveStream(reason = "AI live stream detached because a new chat was requested.")
         var freshSessionJob: Job? = null
         freshSessionJob = context.scope.launch {
             try {
-                context.activeSendJob?.cancelAndJoin()
-                context.activeSendJob = null
-                context.activeBootstrapJob?.cancel(
-                    cause = CancellationException("AI bootstrap cancelled because a new chat was requested.")
-                )
-                context.activeBootstrapJob = null
-                context.activeWarmUpJob?.cancel(
-                    cause = CancellationException("AI warm-up cancelled because a new chat was requested.")
-                )
-                context.activeWarmUpJob = null
-                liveStreamCoordinator.detachLiveStream(reason = "AI live stream detached because a new chat was requested.")
                 val snapshot = context.aiChatRepository.createNewSession(
                     workspaceId = workspaceId,
                     sessionId = targetSessionId
                 )
                 if (
                     snapshot.sessionId != targetSessionId
-                    || canApplyFreshSessionEnsureResponse(
-                        state = runtimeStateMutable.value,
-                        targetSessionId = targetSessionId
-                    ).not()
+                    || runtimeStateMutable.value.workspaceId != workspaceId
+                    || canApplySessionScopedResult(targetSessionId = targetSessionId).not()
                 ) {
                     return@launch
                 }
@@ -934,7 +982,6 @@ internal class AiChatRuntime(
                                 lastKnownChatConfig = snapshot.chatConfig
                             ),
                             conversationScopeId = snapshot.conversationScopeId,
-                            conversationBootstrapState = AiConversationBootstrapState.READY,
                             activeAlert = null,
                             errorMessage = ""
                         ),
@@ -954,10 +1001,15 @@ internal class AiChatRuntime(
                 )
                 throw error
             } catch (error: Exception) {
-                handleNewChatFailure(error = error)
+                handleNewChatFailure(
+                    workspaceId = workspaceId,
+                    targetSessionId = targetSessionId,
+                    error = error
+                )
             } finally {
                 if (context.activeFreshSessionJob === freshSessionJob) {
                     context.activeFreshSessionJob = null
+                    context.activeFreshSessionTargetSessionId = null
                 }
             }
         }
@@ -974,6 +1026,10 @@ internal class AiChatRuntime(
 
     private suspend fun ensureSessionIdIfNeeded(): AiChatSessionProvisioningResult {
         val currentState = runtimeStateMutable.value
+        val currentSessionId = currentState.persistedState.chatSessionId
+        if (currentSessionId.isNotBlank()) {
+            awaitActiveFreshSessionProvisioningIfNeeded(targetSessionId = currentSessionId)
+        }
         val ensuredSession = context.aiChatRepository.ensureSessionId(
             workspaceId = currentState.workspaceId,
             persistedState = currentState.persistedState
