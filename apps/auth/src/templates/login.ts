@@ -1,4 +1,4 @@
-import type { LoginPageLocale } from "../routes/loginPageLocale.js";
+import { getLoginPageLocaleDirection, type LoginPageLocale } from "../routes/loginPageLocale.js";
 
 const AUTH_FAVICON_URL =
   "data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22512%22%20height=%22512%22%20viewBox=%220%200%20512%20512%22%3E%3Crect%20width=%22512%22%20height=%22512%22%20rx=%2296%22%20fill=%22%23232323%22/%3E%3Crect%20x=%22104%22%20y=%2292%22%20width=%22184%22%20height=%22264%22%20rx=%2232%22%20fill=%22%23f8f3ec%22/%3E%3Crect%20x=%22212%22%20y=%22156%22%20width=%22196%22%20height=%22272%22%20rx=%2232%22%20fill=%22%23c44b2d%22/%3E%3C/svg%3E";
@@ -41,7 +41,121 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
     verifyCodeTransportErrorMessage:
       "We couldn't confirm whether sign-in finished. Try the code again, or refresh the page to check whether you're already signed in.",
   },
-  es: {
+  ar: {
+    pageTitle: "تسجيل الدخول",
+    backToWebsite: "العودة إلى الموقع",
+    signInTitle: "تسجيل الدخول",
+    checkingSession: "جارٍ التحقق من الجلسة...",
+    emailLabel: "البريد الإلكتروني",
+    sendCode: "إرسال الرمز",
+    sendingCode: "جارٍ الإرسال...",
+    checkEmailForCode: "تحقق من بريدك الإلكتروني للحصول على رمز مكوّن من 8 أرقام",
+    verificationCodeLabel: "رمز التحقق",
+    verify: "تحقق",
+    verifying: "جارٍ التحقق...",
+    technicalDetails: "التفاصيل التقنية",
+    genericErrorPrefix: "خطأ",
+    sendCodeTransportErrorMessage:
+      "لم نتمكن من تأكيد اكتمال طلب الرمز. تحقق من بريدك الإلكتروني بحثًا عن الرمز، ثم حاول مرة أخرى إذا لزم الأمر.",
+    verifyCodeTransportErrorMessage:
+      "لم نتمكن من تأكيد اكتمال تسجيل الدخول. حاول إدخال الرمز مرة أخرى أو أعد تحميل الصفحة للتحقق مما إذا كنت قد سجلت الدخول بالفعل.",
+  },
+  "zh-Hans": {
+    pageTitle: "登录",
+    backToWebsite: "返回网站",
+    signInTitle: "登录",
+    checkingSession: "正在检查会话...",
+    emailLabel: "电子邮件",
+    sendCode: "发送验证码",
+    sendingCode: "发送中...",
+    checkEmailForCode: "请查看电子邮件中的 8 位验证码",
+    verificationCodeLabel: "验证码",
+    verify: "验证",
+    verifying: "验证中...",
+    technicalDetails: "技术详情",
+    genericErrorPrefix: "错误",
+    sendCodeTransportErrorMessage:
+      "我们无法确认验证码请求是否已完成。请检查电子邮件中的验证码，如有需要请重试。",
+    verifyCodeTransportErrorMessage:
+      "我们无法确认登录是否已完成。请再次输入验证码，或刷新页面检查你是否已经登录。",
+  },
+  de: {
+    pageTitle: "Anmelden",
+    backToWebsite: "Zur Website zurück",
+    signInTitle: "Anmelden",
+    checkingSession: "Sitzung wird geprüft...",
+    emailLabel: "E-Mail",
+    sendCode: "Code senden",
+    sendingCode: "Wird gesendet...",
+    checkEmailForCode: "Prüfe deine E-Mail auf einen 8-stelligen Code",
+    verificationCodeLabel: "Bestätigungscode",
+    verify: "Bestätigen",
+    verifying: "Wird bestätigt...",
+    technicalDetails: "Technische Details",
+    genericErrorPrefix: "Fehler",
+    sendCodeTransportErrorMessage:
+      "Wir konnten nicht bestätigen, ob die Code-Anfrage abgeschlossen wurde. Prüfe deine E-Mails auf einen Code und versuche es bei Bedarf erneut.",
+    verifyCodeTransportErrorMessage:
+      "Wir konnten nicht bestätigen, ob die Anmeldung abgeschlossen wurde. Versuche den Code erneut oder lade die Seite neu, um zu prüfen, ob du bereits angemeldet bist.",
+  },
+  hi: {
+    pageTitle: "साइन इन",
+    backToWebsite: "वेबसाइट पर वापस जाएं",
+    signInTitle: "साइन इन",
+    checkingSession: "सेशन जांचा जा रहा है...",
+    emailLabel: "ईमेल",
+    sendCode: "कोड भेजें",
+    sendingCode: "भेजा जा रहा है...",
+    checkEmailForCode: "8 अंकों का कोड पाने के लिए अपना ईमेल देखें",
+    verificationCodeLabel: "सत्यापन कोड",
+    verify: "सत्यापित करें",
+    verifying: "सत्यापित किया जा रहा है...",
+    technicalDetails: "तकनीकी विवरण",
+    genericErrorPrefix: "त्रुटि",
+    sendCodeTransportErrorMessage:
+      "हम पुष्टि नहीं कर सके कि कोड अनुरोध पूरा हुआ या नहीं। कोड के लिए अपना ईमेल देखें, फिर जरूरत हो तो दोबारा कोशिश करें।",
+    verifyCodeTransportErrorMessage:
+      "हम पुष्टि नहीं कर सके कि साइन-इन पूरा हुआ या नहीं। कोड फिर से आजमाएं, या यह देखने के लिए पेज रीफ्रेश करें कि क्या आप पहले से साइन इन हैं।",
+  },
+  ja: {
+    pageTitle: "サインイン",
+    backToWebsite: "Webサイトに戻る",
+    signInTitle: "サインイン",
+    checkingSession: "セッションを確認しています...",
+    emailLabel: "メールアドレス",
+    sendCode: "コードを送信",
+    sendingCode: "送信中...",
+    checkEmailForCode: "メールで 8 桁のコードを確認してください",
+    verificationCodeLabel: "確認コード",
+    verify: "確認",
+    verifying: "確認中...",
+    technicalDetails: "技術的な詳細",
+    genericErrorPrefix: "エラー",
+    sendCodeTransportErrorMessage:
+      "コード送信リクエストが完了したか確認できませんでした。メールでコードを確認し、必要に応じてもう一度お試しください。",
+    verifyCodeTransportErrorMessage:
+      "サインインが完了したか確認できませんでした。コードをもう一度試すか、ページを再読み込みして、すでにサインイン済みか確認してください。",
+  },
+  ru: {
+    pageTitle: "Войти",
+    backToWebsite: "Вернуться на сайт",
+    signInTitle: "Войти",
+    checkingSession: "Проверяем сеанс...",
+    emailLabel: "Электронная почта",
+    sendCode: "Отправить код",
+    sendingCode: "Отправка...",
+    checkEmailForCode: "Проверьте почту: там есть 8-значный код",
+    verificationCodeLabel: "Код подтверждения",
+    verify: "Подтвердить",
+    verifying: "Проверка...",
+    technicalDetails: "Технические детали",
+    genericErrorPrefix: "Ошибка",
+    sendCodeTransportErrorMessage:
+      "Мы не смогли подтвердить, завершился ли запрос кода. Проверьте почту на наличие кода и при необходимости попробуйте еще раз.",
+    verifyCodeTransportErrorMessage:
+      "Мы не смогли подтвердить, завершился ли вход. Попробуйте ввести код еще раз или обновите страницу, чтобы проверить, вошли ли вы уже в систему.",
+  },
+  "es-MX": {
     pageTitle: "Iniciar sesión",
     backToWebsite: "Volver al sitio web",
     signInTitle: "Iniciar sesión",
@@ -60,6 +174,25 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
     verifyCodeTransportErrorMessage:
       "No pudimos confirmar si el inicio de sesión terminó. Intenta usar el código otra vez o recarga la página para comprobar si ya iniciaste sesión.",
   },
+  "es-ES": {
+    pageTitle: "Iniciar sesión",
+    backToWebsite: "Volver al sitio web",
+    signInTitle: "Iniciar sesión",
+    checkingSession: "Comprobando la sesión...",
+    emailLabel: "Correo electrónico",
+    sendCode: "Enviar código",
+    sendingCode: "Enviando...",
+    checkEmailForCode: "Revisa tu correo para encontrar un código de 8 dígitos",
+    verificationCodeLabel: "Código de verificación",
+    verify: "Verificar",
+    verifying: "Verificando...",
+    technicalDetails: "Detalles técnicos",
+    genericErrorPrefix: "Error",
+    sendCodeTransportErrorMessage:
+      "No pudimos confirmar si la solicitud del código terminó. Revisa tu correo para encontrar un código y vuelve a intentarlo si hace falta.",
+    verifyCodeTransportErrorMessage:
+      "No pudimos confirmar si el inicio de sesión terminó. Intenta usar el código otra vez o recarga la página para comprobar si ya has iniciado sesión.",
+  },
 };
 
 /**
@@ -70,9 +203,10 @@ const LOGIN_PAGE_COPY: Readonly<Record<LoginPageLocale, LoginPageCopy>> = {
 
 export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, locale: LoginPageLocale): string => {
   const copy = LOGIN_PAGE_COPY[locale];
+  const direction = getLoginPageLocaleDirection(locale);
 
   return `<!DOCTYPE html>
-<html lang="${locale}" dir="ltr">
+<html lang="${locale}" dir="${direction}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">

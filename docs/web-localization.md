@@ -9,14 +9,16 @@ The auth UI is a separate app, so login-language coordination is a follow-up con
 
 Adding a new web language must cover all of these behaviors together:
 
-- the locale is declared in one source-of-truth locale list
+- the locale is declared as an exact supported tag in one source-of-truth locale list
 - the translation catalog stays complete and type-safe
-- automatic browser/device locale detection still resolves correctly
+- automatic browser/device locale detection still resolves to the intended supported locale
 - the browser-local language override still works and persists correctly
+- `document.documentElement.lang` and `document.documentElement.dir` stay aligned with the resolved locale
+- RTL presentation stays correct where layout or text alignment depends on direction
 - support copy, runtime-error paths, chat UI messages, and review speech do not stay half-English by accident
-- smoke checks stay deterministic
+- smoke checks stay deterministic regardless of the machine browser locale
 
-The recent `en` and `es` rollout showed that the misses are usually not the obvious screens. They are the support layers, runtime errors, browser-local preference handling, and smoke helpers.
+The misses are usually not the obvious screens. They are the support layers, runtime errors, browser-local preference handling, speech fallback, RTL-sensitive styles, and smoke helpers.
 
 ## Current Web Localization Layout
 
@@ -25,6 +27,9 @@ The current web i18n system is centered on these files:
 - [apps/web/src/i18n/types.ts](../apps/web/src/i18n/types.ts)
   Source of truth for `supportedLocales`, `Locale`, and `LocalePreference`.
 
+- [apps/web/src/i18n/locales.ts](../apps/web/src/i18n/locales.ts)
+  Exact-tag normalization, browser-language matching, legacy preference migration, and locale direction.
+
 - [apps/web/src/i18n/catalog.ts](../apps/web/src/i18n/catalog.ts)
   Typed translation catalogs. `enCatalog` defines the shape, `TranslationKey` is derived from it, and `translationCatalogs` must include every supported locale.
 
@@ -32,7 +37,7 @@ The current web i18n system is centered on these files:
   Browser language detection, locale matching, localStorage persistence, translation lookup, and `Intl` formatting helpers.
 
 - [apps/web/src/i18n/context.tsx](../apps/web/src/i18n/context.tsx)
-  `I18nProvider`, `useI18n()`, and the `document.documentElement.lang` update.
+  `I18nProvider`, `useI18n()`, and the `document.documentElement.lang` / `dir` updates.
 
 - [apps/web/src/main.tsx](../apps/web/src/main.tsx)
   Provider bootstrap.
@@ -40,30 +45,34 @@ The current web i18n system is centered on these files:
 - [apps/web/src/App.tsx](../apps/web/src/App.tsx)
   App-shell loading, fallback, auth, and session-state copy that must not be skipped during a localization audit.
 
+- [apps/web/e2e/live-smoke/fixture.ts](../apps/web/e2e/live-smoke/fixture.ts)
+  Browser-locale pinning for deterministic smoke assertions.
+
 ## Source Of Truth Checklist
 
 When adding a new web locale, inspect all of these places:
 
 1. [apps/web/src/i18n/types.ts](../apps/web/src/i18n/types.ts)
-2. [apps/web/src/i18n/catalog.ts](../apps/web/src/i18n/catalog.ts)
-3. [apps/web/src/i18n/runtime.ts](../apps/web/src/i18n/runtime.ts)
-4. [apps/web/src/i18n/context.tsx](../apps/web/src/i18n/context.tsx)
-5. [apps/web/src/main.tsx](../apps/web/src/main.tsx)
-6. [apps/web/src/App.tsx](../apps/web/src/App.tsx)
-7. [apps/web/src/appData/provider.tsx](../apps/web/src/appData/provider.tsx)
-8. [apps/web/src/appData/useWorkspaceSession.ts](../apps/web/src/appData/useWorkspaceSession.ts)
-9. [apps/web/src/api.ts](../apps/web/src/api.ts)
-10. [apps/web/src/access/browserAccess.ts](../apps/web/src/access/browserAccess.ts)
-11. [apps/web/src/chat/sessionController/context.tsx](../apps/web/src/chat/sessionController/context.tsx)
-12. [apps/web/src/chat/useChatHistory.ts](../apps/web/src/chat/useChatHistory.ts)
-13. [apps/web/src/chat/chatMessageContent.tsx](../apps/web/src/chat/chatMessageContent.tsx)
-14. [apps/web/src/screens/reviewSpeech.ts](../apps/web/src/screens/reviewSpeech.ts)
-15. [apps/web/src/screens/useReviewCardEditor.ts](../apps/web/src/screens/useReviewCardEditor.ts)
-16. [apps/web/src/screens/ThisDeviceSettingsScreen.tsx](../apps/web/src/screens/ThisDeviceSettingsScreen.tsx)
-17. [apps/web/src/screens/AccessPermissionDetailScreen.tsx](../apps/web/src/screens/AccessPermissionDetailScreen.tsx)
-18. [apps/web/src/i18n/runtime.test.ts](../apps/web/src/i18n/runtime.test.ts)
-19. [apps/web/src/api.test.ts](../apps/web/src/api.test.ts)
-20. [apps/web/e2e/live-smoke/](../apps/web/e2e/live-smoke/)
+2. [apps/web/src/i18n/locales.ts](../apps/web/src/i18n/locales.ts)
+3. [apps/web/src/i18n/catalog.ts](../apps/web/src/i18n/catalog.ts)
+4. [apps/web/src/i18n/runtime.ts](../apps/web/src/i18n/runtime.ts)
+5. [apps/web/src/i18n/context.tsx](../apps/web/src/i18n/context.tsx)
+6. [apps/web/src/main.tsx](../apps/web/src/main.tsx)
+7. [apps/web/src/App.tsx](../apps/web/src/App.tsx)
+8. [apps/web/src/appData/provider.tsx](../apps/web/src/appData/provider.tsx)
+9. [apps/web/src/appData/useWorkspaceSession.ts](../apps/web/src/appData/useWorkspaceSession.ts)
+10. [apps/web/src/api.ts](../apps/web/src/api.ts)
+11. [apps/web/src/access/browserAccess.ts](../apps/web/src/access/browserAccess.ts)
+12. [apps/web/src/chat/sessionController/context.tsx](../apps/web/src/chat/sessionController/context.tsx)
+13. [apps/web/src/chat/useChatHistory.ts](../apps/web/src/chat/useChatHistory.ts)
+14. [apps/web/src/chat/chatMessageContent.tsx](../apps/web/src/chat/chatMessageContent.tsx)
+15. [apps/web/src/screens/reviewSpeech.ts](../apps/web/src/screens/reviewSpeech.ts)
+16. [apps/web/src/screens/useReviewCardEditor.ts](../apps/web/src/screens/useReviewCardEditor.ts)
+17. [apps/web/src/screens/ThisDeviceSettingsScreen.tsx](../apps/web/src/screens/ThisDeviceSettingsScreen.tsx)
+18. [apps/web/src/screens/AccessPermissionDetailScreen.tsx](../apps/web/src/screens/AccessPermissionDetailScreen.tsx)
+19. [apps/web/src/i18n/runtime.test.ts](../apps/web/src/i18n/runtime.test.ts)
+20. [apps/web/src/api.test.ts](../apps/web/src/api.test.ts)
+21. [apps/web/e2e/live-smoke/](../apps/web/e2e/live-smoke/)
 
 If any of these are skipped, the app can compile and still ship with partially untranslated behavior.
 
@@ -71,17 +80,22 @@ If any of these are skipped, the app can compile and still ship with partially u
 
 Use this checklist in order.
 
-### 1. Choose the locale code that the current web architecture actually supports
+### 1. Choose the exact locale tag that the current web architecture supports
 
-Today the web locale model uses base language codes such as `en` and `es` in [apps/web/src/i18n/types.ts](../apps/web/src/i18n/types.ts).
+The web locale model now supports exact locale tags in [apps/web/src/i18n/types.ts](../apps/web/src/i18n/types.ts), for example:
+
+- `en`
+- `ar`
+- `zh-Hans`
+- `es-MX`
+- `es-ES`
 
 Important:
 
-- browser inputs can be regional tags like `es-MX` or `en-GB`
-- [apps/web/src/i18n/runtime.ts](../apps/web/src/i18n/runtime.ts) reduces those to the primary language subtag
-- that means a normal new locale should be added as `fr`, `de`, `pt`, not `fr-FR` or `pt-BR`
-
-If the product ever needs region-specific web locales, that is a broader refactor. Do not assume the current runtime can represent them safely.
+- browser inputs can be broader or different exact tags such as `es-AR`, `es-MX`, `zh-CN`, or `en-GB`
+- [apps/web/src/i18n/locales.ts](../apps/web/src/i18n/locales.ts) is responsible for mapping those browser tags to the supported locale list
+- choose the exact tag the product actually wants to expose in the app, not a placeholder base language if region or script differences matter
+- if you add a locale with RTL directionality, update its direction in `locales.ts` in the same change
 
 ### 2. Add the locale to the source-of-truth locale list
 
@@ -91,7 +105,13 @@ Update [apps/web/src/i18n/types.ts](../apps/web/src/i18n/types.ts):
 - let `Locale` expand from that list automatically
 - keep `autoLocalePreference` unchanged unless product behavior is deliberately changing
 
-This file drives both runtime validation and the browser-local language override.
+Then update [apps/web/src/i18n/locales.ts](../apps/web/src/i18n/locales.ts):
+
+- add the locale direction to `localeDirections`
+- update browser-tag matching rules in `resolveSupportedLocale(...)` when the new locale needs exact-tag routing
+- add or update legacy preference migration only when existing stored values must move to the new exact locale
+
+These two files together drive runtime validation, browser auto-resolution, and the browser-local language override.
 
 ### 3. Add a complete translation catalog entry
 
@@ -116,7 +136,7 @@ Why this matters:
 
 Review [apps/web/src/i18n/runtime.ts](../apps/web/src/i18n/runtime.ts) after adding the locale:
 
-- `matchSupportedLocale(...)` should resolve browser tags like `fr-CA` to `fr`
+- `resolveSupportedLocale(...)` in `locales.ts` should resolve browser tags like `fr-CA` or `es-AR` to the intended supported locale
 - `resolveBrowserLocaleFromSnapshot(...)` should return the new locale when the browser advertises it
 - `resolveLocaleState(...)` should still honor an explicit stored preference before browser auto-detection
 - `persistLocalePreference(...)` should keep storing the explicit locale value and clear storage in `auto` mode
@@ -124,6 +144,8 @@ Review [apps/web/src/i18n/runtime.ts](../apps/web/src/i18n/runtime.ts) after add
 Current browser-local preference storage key:
 
 - `flashcards-web-locale-preference`
+
+If an old stored locale must migrate to a new exact tag, cover that explicitly in `migrateLegacyLocalePreference(...)` and in [apps/web/src/i18n/runtime.test.ts](../apps/web/src/i18n/runtime.test.ts).
 
 ### 5. Keep provider wiring and document language behavior intact
 
@@ -138,6 +160,7 @@ The new locale should still flow through:
 - `I18nProvider`
 - `useI18n()`
 - `document.documentElement.lang = resolvedLocaleState.locale`
+- `document.documentElement.dir = resolvedLocaleState.direction`
 - `Intl.DateTimeFormat`, `Intl.NumberFormat`, and `Intl.PluralRules` calls that already consume `locale`
 - any provider-owned translation handoff into lower app-data hooks such as `useWorkspaceSession(...)`
 
@@ -151,7 +174,7 @@ This is an easy place to miss required work because it does more than render tra
 - it parses the stored override selection
 - it renders the language picker options
 - it displays both the current app language and the saved preference
-- `localeNameKey(...)` is currently hardcoded for `en` and `es`
+- it derives locale-name translation keys from the exact `Locale` union, so new locale names must exist in every catalog
 
 If you add a locale and forget this file, the app can still build while the device-language UI shows the wrong label or falls back incorrectly.
 
@@ -186,21 +209,26 @@ These files are required audit points for a new locale:
 The goal is not just to translate the happy path.
 It is to make sure loading, retry, denied-permission, interrupted-run, and dialog flows do not stay English.
 
-### 8. Review speech support if the new language should sound correct when spoken
+### 8. Review speech support if the locale should sound correct when spoken
 
 Review [apps/web/src/screens/reviewSpeech.ts](../apps/web/src/screens/reviewSpeech.ts).
 
-Adding a UI locale does not automatically make speech output feel correct.
-If the new language matters for text-to-speech:
+Adding a UI locale does not automatically make speech output feel correct. The current web behavior should follow this rule:
+
+- use the resolved app locale as the fallback speech locale
+- if content clearly looks like another language, prefer that detected language
+- if detection and app locale share the same primary language, keep the exact app locale tag so speech stays aligned with the app locale model
+
+If the locale matters for text-to-speech:
 
 - add or adjust detection heuristics
-- verify the fallback language tag
+- verify the fallback uses the resolved app locale, not a raw browser default
 - verify voice matching still selects a reasonable browser voice
 - verify markdown normalization still sounds natural for that language
 
 If speech behavior is intentionally unchanged, call that out in the PR so it is explicit.
 
-### 9. Coordinate auth locale hints only if login should support the same language
+### 9. Coordinate auth locale hints only if login should support the same locale
 
 The web app builds a login locale hint in [apps/web/src/api.ts](../apps/web/src/api.ts):
 
@@ -212,7 +240,8 @@ The web app builds a login locale hint in [apps/web/src/api.ts](../apps/web/src/
 Important:
 
 - auth is a separate app
-- web can support a new locale even if auth still falls back to English
+- web can support a new locale even if auth still falls back to English or to a smaller supported auth-locale set
+- when the web locale list changes, confirm whether `AuthUiLocale`, `normalizeAuthUiLocale(...)`, and `getPreferredAuthUiLocale()` should preserve the new exact tag, map it to another auth-supported tag, or intentionally fall back
 - do not modify `apps/auth` as part of a normal web-locale change unless the product explicitly wants auth localized too
 
 If auth should also support the new locale, coordinate a separate auth change and update [apps/web/src/api.test.ts](../apps/web/src/api.test.ts) in the same branch.
@@ -280,8 +309,11 @@ Validate the new locale in a real browser session:
 5. Confirm the override persists through the `flashcards-web-locale-preference` storage key.
 6. Switch back to `Automatic` and confirm the explicit storage entry is removed.
 7. Verify `document.documentElement.lang` matches the resolved locale.
-8. Verify at least one date, time, number, and pluralized count in the UI.
-9. Exercise at least one denied-permission or transient-error path, not only normal navigation.
+8. Verify `document.documentElement.dir` matches the resolved direction.
+9. Verify at least one date, time, number, and pluralized count in the UI.
+10. For RTL locales, inspect at least one filter menu, one table/list surface, and one markdown-rich review card for direction-sensitive layout issues.
+11. Exercise at least one denied-permission or transient-error path, not only normal navigation.
+12. Trigger review speech once and confirm the chosen voice/language is reasonable for the current locale and sample content.
 
 ### Smoke-test expectations
 
@@ -291,10 +323,12 @@ Current state:
 
 - many smoke flows use stable selectors, routes, `data-testid`, or user-created text and should not need changes just because a locale was added
 - however, [apps/web/e2e/live-smoke/observations/ai.ts](../apps/web/e2e/live-smoke/observations/ai.ts) currently reads English UI text such as `Request`, `Response`, `Done`, and `SQL`
+- [apps/web/e2e/live-smoke/fixture.ts](../apps/web/e2e/live-smoke/fixture.ts) should pin the browser locale to `en-US` unless the smoke suite is intentionally made locale-aware
 
 That means:
 
 - keep smoke deterministic in English unless there is a deliberate decision to make smoke locale-aware
+- do not let the runner machine's browser locale silently change expectations
 - if you introduce a non-English smoke context, update the AI observation helpers instead of assuming they are locale-independent
 - if you rename visible labels or remove stable selectors during the same change, update the affected smoke flows in `apps/web/e2e/live-smoke/flows/`
 
@@ -303,9 +337,13 @@ That means:
 Do not consider a new web locale complete until all of these are true:
 
 - the locale is in `supportedLocales`
+- exact locale matching and direction are configured in `locales.ts`
 - `translationCatalogs` includes a complete new catalog
 - the device/browser-local language override works
+- `document.documentElement.lang` and `dir` stay correct
+- RTL-sensitive presentation was audited where applicable
 - support and error layers were audited explicitly
 - auth locale-hint behavior was either updated intentionally or left as an explicit English fallback
+- review speech fallback was verified against the resolved app locale
 - lightweight automated checks passed
 - at least one real browser validation pass confirmed auto mode, explicit override mode, and one non-happy-path flow

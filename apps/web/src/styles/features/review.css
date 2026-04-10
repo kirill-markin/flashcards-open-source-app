@@ -64,7 +64,7 @@
 .review-filter-menu {
   position: absolute;
   top: calc(100% + 10px);
-  right: 0;
+  inset-inline-end: 0;
   z-index: 30;
   display: grid;
   gap: 4px;
@@ -239,7 +239,7 @@
   display: inline-flex;
   align-items: flex-start;
   gap: 10px;
-  margin-left: auto;
+  margin-inline-start: auto;
   flex-shrink: 0;
 }
 
@@ -477,7 +477,7 @@
   line-height: 1.5;
   letter-spacing: normal;
   font-weight: 450;
-  text-align: left;
+  text-align: start;
 }
 
 .review-card-content-markdown {
@@ -528,7 +528,7 @@
 .review-markdown-ul,
 .review-markdown-ol {
   margin: 0 0 0.9em;
-  padding-left: 1.35em;
+  padding-inline-start: 1.35em;
 }
 
 .review-markdown-li + .review-markdown-li {
@@ -555,8 +555,8 @@
 }
 
 .review-markdown-blockquote {
-  padding-left: 1em;
-  border-left: 3px solid rgba(255, 255, 255, 0.18);
+  padding-inline-start: 1em;
+  border-inline-start: 3px solid rgba(255, 255, 255, 0.18);
   color: var(--text-secondary);
 }
 
@@ -596,7 +596,7 @@
 .review-markdown-td {
   padding: 0.45rem 0.6rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  text-align: left;
+  text-align: start;
 }
 
 .review-meta {
@@ -699,7 +699,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  padding-right: 4px;
+  padding-inline-end: 4px;
 }
 
 .review-queue-card {
@@ -710,7 +710,7 @@
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 
@@ -839,7 +839,7 @@
   .review-queue-list {
     overflow: visible;
     scrollbar-gutter: auto;
-    padding-right: 0;
+    padding-inline-end: 0;
   }
 
   .review-editor-overlay {

@@ -1,9 +1,17 @@
 import { type TranslationKey, type TranslationMessages, translationCatalogs } from "./catalog";
 import {
+  getDefaultLocale,
+  getLocaleDirection,
+  migrateLegacyLocalePreference,
+  normalizeLanguageTag,
+  normalizeSupportedLocale,
+  resolveSupportedLocale,
+} from "./locales";
+import {
   autoLocalePreference,
-  supportedLocales,
   type DateTimeValue,
   type Locale,
+  type LocaleDirection,
   type LocalePreference,
   type PluralCountLabels,
   type TranslationValues,
@@ -34,50 +42,13 @@ export type BrowserLocaleResolution = Readonly<{
 
 export type ResolvedLocaleState = Readonly<{
   locale: Locale;
+  direction: LocaleDirection;
   localePreference: LocalePreference;
   matchedBrowserLanguageTag: string | null;
   source: ResolvedLocaleSource;
 }>;
 
 const LOCALE_PREFERENCE_STORAGE_KEY = "flashcards-web-locale-preference";
-
-function isSupportedLocale(value: string): value is Locale {
-  return supportedLocales.includes(value as Locale);
-}
-
-function isLocalePreference(value: string): value is LocalePreference {
-  return value === autoLocalePreference || isSupportedLocale(value);
-}
-
-function normalizeLanguageTag(languageTag: string): string | null {
-  const normalizedTag = languageTag.replaceAll("_", "-").trim();
-
-  if (normalizedTag === "") {
-    return null;
-  }
-
-  try {
-    const canonicalLanguageTag = Intl.getCanonicalLocales(normalizedTag)[0];
-    return canonicalLanguageTag ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function matchSupportedLocale(languageTag: string): Locale | null {
-  const normalizedLanguageTag = normalizeLanguageTag(languageTag);
-
-  if (normalizedLanguageTag === null) {
-    return null;
-  }
-
-  const primaryLanguage = normalizedLanguageTag.split("-")[0]?.toLocaleLowerCase();
-  if (primaryLanguage === undefined) {
-    return null;
-  }
-
-  return isSupportedLocale(primaryLanguage) ? primaryLanguage : null;
-}
 
 function buildBrowserLanguageCandidates(snapshot: BrowserLanguageSnapshot): ReadonlyArray<BrowserLanguageCandidate> {
   const candidates: Array<BrowserLanguageCandidate> = [];
@@ -98,12 +69,15 @@ function buildBrowserLanguageCandidates(snapshot: BrowserLanguageSnapshot): Read
 
   if (snapshot.language !== null) {
     const normalizedLanguageTag = normalizeLanguageTag(snapshot.language);
-    if (normalizedLanguageTag !== null && seenLanguageTags.has(normalizedLanguageTag) === false) {
-      candidates.push({
-        languageTag: normalizedLanguageTag,
-        source: "navigator.language",
-      });
+    if (normalizedLanguageTag === null || seenLanguageTags.has(normalizedLanguageTag)) {
+      return candidates;
     }
+
+    seenLanguageTags.add(normalizedLanguageTag);
+    candidates.push({
+      languageTag: normalizedLanguageTag,
+      source: "navigator.language",
+    });
   }
 
   return candidates;
@@ -184,7 +158,7 @@ export function resolveBrowserLocaleFromSnapshot(snapshot: BrowserLanguageSnapsh
   const candidates = buildBrowserLanguageCandidates(snapshot);
 
   for (const candidate of candidates) {
-    const locale = matchSupportedLocale(candidate.languageTag);
+    const locale = resolveSupportedLocale(candidate.languageTag);
     if (locale !== null) {
       return {
         locale,
@@ -195,7 +169,7 @@ export function resolveBrowserLocaleFromSnapshot(snapshot: BrowserLanguageSnapsh
   }
 
   return {
-    locale: "en",
+    locale: getDefaultLocale(),
     matchedLanguageTag: null,
     source: "fallback",
   };
@@ -215,7 +189,26 @@ export function readStoredLocalePreference(): LocalePreference {
     return autoLocalePreference;
   }
 
-  return isLocalePreference(storedValue) ? storedValue : autoLocalePreference;
+  if (storedValue === autoLocalePreference) {
+    return autoLocalePreference;
+  }
+
+  const normalizedStoredLocale = normalizeSupportedLocale(storedValue);
+  if (normalizedStoredLocale !== null) {
+    if (normalizedStoredLocale !== storedValue) {
+      window.localStorage.setItem(LOCALE_PREFERENCE_STORAGE_KEY, normalizedStoredLocale);
+    }
+
+    return normalizedStoredLocale;
+  }
+
+  const migratedStoredLocale = migrateLegacyLocalePreference(storedValue);
+  if (migratedStoredLocale !== null) {
+    window.localStorage.setItem(LOCALE_PREFERENCE_STORAGE_KEY, migratedStoredLocale);
+    return migratedStoredLocale;
+  }
+
+  return autoLocalePreference;
 }
 
 export function persistLocalePreference(localePreference: LocalePreference): void {
@@ -235,6 +228,7 @@ export function resolveLocaleState(localePreference: LocalePreference): Resolved
   if (localePreference !== autoLocalePreference) {
     return {
       locale: localePreference,
+      direction: getLocaleDirection(localePreference),
       localePreference,
       matchedBrowserLanguageTag: null,
       source: "storage",
@@ -245,6 +239,7 @@ export function resolveLocaleState(localePreference: LocalePreference): Resolved
 
   return {
     locale: browserLocale.locale,
+    direction: getLocaleDirection(browserLocale.locale),
     localePreference,
     matchedBrowserLanguageTag: browserLocale.matchedLanguageTag,
     source: browserLocale.source,

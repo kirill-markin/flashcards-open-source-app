@@ -22,6 +22,8 @@ type WebDeviceInfoStaticStrings = Readonly<{
   workspaceScope: string;
 }>;
 
+type LocaleNameTranslationKey = `locale.names.${Locale}`;
+
 function formatUnavailable(value: string | null, unavailableLabel: string): string {
   if (value === null || value.trim() === "") {
     return unavailableLabel;
@@ -74,8 +76,8 @@ function detectBrowser(userAgent: string): string {
   return "";
 }
 
-function localeNameKey(locale: Locale): TranslationKey {
-  return locale === "es" ? "locale.names.es" : "locale.names.en";
+function localeNameKey(locale: Locale): LocaleNameTranslationKey {
+  return `locale.names.${locale}`;
 }
 
 function parseLocalePreference(value: string): LocalePreference {

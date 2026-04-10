@@ -17,10 +17,13 @@ type LiveSmokeTestFixtures = {
   liveSmokeGroup: void;
 };
 
+const liveSmokeBrowserLocale = "en-US";
+
 export const test = base.extend<LiveSmokeTestFixtures, LiveSmokeWorkerFixtures>({
   liveSmokeSession: [async ({ browser }, use) => {
     const context = await browser.newContext({
       ignoreHTTPSErrors: true,
+      locale: liveSmokeBrowserLocale,
     });
     const page = await context.newPage();
     const diagnostics = createLiveSmokeDiagnostics(page);

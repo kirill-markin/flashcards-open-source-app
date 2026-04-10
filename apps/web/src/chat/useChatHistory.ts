@@ -32,10 +32,9 @@ export type ChatHistoryState = Readonly<{
   clearHistory: () => void;
 }>;
 
-const OPTIMISTIC_ASSISTANT_STATUS_TEXTS = new Set<string>([
-  translationCatalogs.en.chatPanel.status.searchingCards,
-  translationCatalogs.es.chatPanel.status.searchingCards,
-]);
+const OPTIMISTIC_ASSISTANT_STATUS_TEXTS = new Set<string>(
+  Object.values(translationCatalogs).map((catalog) => catalog.chatPanel.status.searchingCards),
+);
 
 export function isOptimisticAssistantStatusText(text: string): boolean {
   return OPTIMISTIC_ASSISTANT_STATUS_TEXTS.has(text);
