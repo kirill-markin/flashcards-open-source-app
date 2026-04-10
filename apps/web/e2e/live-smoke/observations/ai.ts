@@ -165,12 +165,12 @@ export async function waitForAiChatSendReadiness(
 export async function waitForAiRunAccepted(
   page: Page,
   diagnostics: LiveSmokeDiagnostics,
-  attemptNumber: number,
+  actionLabel: string,
   previousUserMessageCount: number,
   previousAssistantErrorCount: number,
 ): Promise<AiRunAcceptanceState> {
   return diagnostics.runAction(
-    `confirm AI create prompt attempt ${String(attemptNumber)} was accepted by the chat composer`,
+    `confirm ${actionLabel} was accepted by the chat composer`,
     async (): Promise<AiRunAcceptanceState> => {
       const timeoutAt = Date.now() + externalUiTimeoutMs;
       let runAcceptanceState: "waiting" | "running" | "queued" | "error" = "waiting";
@@ -203,11 +203,11 @@ export async function waitForAiRunAccepted(
       }
 
       if (runAcceptanceState === "waiting") {
-        throw new Error(`AI create prompt attempt ${String(attemptNumber)} was not accepted before timeout.`);
+        throw new Error(`${actionLabel} was not accepted before timeout.`);
       }
 
       if (runAcceptanceState === "error") {
-        throw new Error(`AI create prompt attempt ${String(attemptNumber)} reported an assistant error before the run was accepted.`);
+        throw new Error(`${actionLabel} reported an assistant error before the run was accepted.`);
       }
 
       return runAcceptanceState;
@@ -218,11 +218,11 @@ export async function waitForAiRunAccepted(
 export async function waitForAiRunCompletion(
   page: Page,
   diagnostics: LiveSmokeDiagnostics,
-  attemptNumber: number,
+  actionLabel: string,
   previousAssistantErrorCount: number,
 ): Promise<AiCreateAttemptResolution> {
   return diagnostics.runAction(
-    `wait for AI create prompt attempt ${String(attemptNumber)} run to finish and return send action`,
+    `wait for ${actionLabel} to finish and return the composer to idle`,
     async (): Promise<AiCreateAttemptResolution> => {
       const timeoutAt = Date.now() + externalUiTimeoutMs;
       let runCompletionState: "running" | "idle" | "inserted" | "error" = "running";
@@ -251,11 +251,11 @@ export async function waitForAiRunCompletion(
       }
 
       if (runCompletionState === "running") {
-        throw new Error(`AI create prompt attempt ${String(attemptNumber)} did not finish before timeout.`);
+        throw new Error(`${actionLabel} did not finish before timeout.`);
       }
 
       if (runCompletionState === "error") {
-        throw new Error(`AI create prompt attempt ${String(attemptNumber)} reported an assistant error before the run completed.`);
+        throw new Error(`${actionLabel} reported an assistant error before the run completed.`);
       }
 
       return {

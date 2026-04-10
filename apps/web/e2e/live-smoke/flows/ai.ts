@@ -130,13 +130,14 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
       let transportObservation: AiTransportObservation | null = null;
       let acceptanceState: AiRunAcceptanceState | null = null;
       let requiresLiveAttachRequest = false;
+      const createAttemptActionLabel = `AI create prompt attempt ${String(attempt)}`;
 
       try {
         await trackedClick(diagnostics, `send AI create prompt attempt ${String(attempt)}`, sendButton);
         acceptanceState = await waitForAiRunAccepted(
           page,
           diagnostics,
-          attempt,
+          createAttemptActionLabel,
           previousUserMessageCount,
           previousAssistantErrorCount,
         );
@@ -144,7 +145,7 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
         const attemptResolution = await waitForAiRunCompletion(
           page,
           diagnostics,
-          attempt,
+          createAttemptActionLabel,
           previousAssistantErrorCount,
         );
 
@@ -351,56 +352,20 @@ async function assertNewChatResetsConversation(session: LiveSmokeSession): Promi
     "send the backend composer suggestion",
     sendButton,
   );
+  const resetSuggestionActionLabel = "the backend suggestion run after the chat reset";
 
-  await diagnostics.runAction(
-    "confirm the assistant run accepts the backend composer suggestion",
-    async () => {
-      const timeoutAt = Date.now() + externalUiTimeoutMs;
-
-      while (Date.now() < timeoutAt) {
-        const assistantErrorCount = await page.locator(".chat-msg-error").count();
-        if (assistantErrorCount > previousAssistantErrorCount) {
-          throw new Error("The assistant reported an error before the suggestion run was accepted.");
-        }
-
-        const stopVisible = await page.getByTestId("chat-stop-button").isVisible().catch(() => false);
-        if (stopVisible) {
-          return;
-        }
-
-        const currentUserMessageCount = await page.locator(".chat-msg.chat-msg-user").count();
-        if (currentUserMessageCount > previousUserMessageCount) {
-          return;
-        }
-
-        await page.waitForTimeout(250);
-      }
-
-      throw new Error("The assistant run did not accept the suggestion message before timeout.");
-    },
+  await waitForAiRunAccepted(
+    page,
+    diagnostics,
+    resetSuggestionActionLabel,
+    previousUserMessageCount,
+    previousAssistantErrorCount,
   );
-
-  await diagnostics.runAction(
-    "confirm the assistant run finishes and returns the composer to idle after the backend suggestion",
-    async () => {
-      const timeoutAt = Date.now() + externalUiTimeoutMs;
-
-      while (Date.now() < timeoutAt) {
-        const assistantErrorCount = await page.locator(".chat-msg-error").count();
-        if (assistantErrorCount > previousAssistantErrorCount) {
-          throw new Error("The assistant reported an error before the suggestion run completed.");
-        }
-
-        const sendVisible = await sendButton.isVisible().catch(() => false);
-        if (sendVisible) {
-          return;
-        }
-
-        await page.waitForTimeout(250);
-      }
-
-      throw new Error("The assistant run did not complete before timeout.");
-    },
+  await waitForAiRunCompletion(
+    page,
+    diagnostics,
+    resetSuggestionActionLabel,
+    previousAssistantErrorCount,
   );
 
   await trackedWaitForComposerState(
