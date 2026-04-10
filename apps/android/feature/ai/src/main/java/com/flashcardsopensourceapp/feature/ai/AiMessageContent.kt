@@ -40,6 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatReasoningSummary
@@ -204,7 +205,10 @@ private fun MessageBubbleContent(
                 is AiChatContentPart.Unknown -> {
                     AttachmentContentCard(
                         title = contentPart.summaryText,
-                        subtitle = stringResource(id = R.string.ai_unknown_type_subtitle, contentPart.originalType),
+                        subtitle = stringResource(
+                            id = R.string.ai_unknown_type_subtitle,
+                            bidiWrap(text = contentPart.originalType)
+                        ),
                         icon = Icons.Outlined.WarningAmber
                     )
                 }
@@ -326,7 +330,10 @@ private fun CardContextContentCard(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = stringResource(id = R.string.ai_card_id_label, cardId),
+                        text = stringResource(
+                            id = R.string.ai_card_id_label,
+                            bidiWrap(text = cardId)
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -337,7 +344,7 @@ private fun CardContextContentCard(
                 Text(
                     text = stringResource(
                         id = R.string.ai_card_tags_label,
-                        tags.joinToString(separator = ", ")
+                        bidiWrap(text = tags.joinToString(separator = ", "))
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -347,7 +354,7 @@ private fun CardContextContentCard(
             Text(
                 text = stringResource(
                     id = R.string.ai_card_effort_label,
-                    textProvider.effortLabel(effortLevel = effortLevel)
+                    bidiWrap(text = textProvider.effortLabel(effortLevel = effortLevel))
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -435,7 +442,7 @@ internal fun RepairStatusCard(
                 Text(
                     text = stringResource(
                         id = R.string.ai_tool_label,
-                        textProvider.toolLabel(name = toolName)
+                        bidiWrap(text = textProvider.toolLabel(name = toolName))
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -481,6 +488,6 @@ private fun aiCardAttachmentLabel(frontText: String): String {
 
     return stringResource(
         id = R.string.ai_card_attachment_title,
-        trimmedFrontText.take(n = 72)
+        bidiWrap(text = trimmedFrontText.take(n = 72))
     )
 }

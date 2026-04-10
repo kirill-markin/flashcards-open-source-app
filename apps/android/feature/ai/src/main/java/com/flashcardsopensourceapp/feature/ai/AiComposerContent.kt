@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 
@@ -312,6 +313,6 @@ private fun aiCardAttachmentLabel(frontText: String): String {
 
     return stringResource(
         id = R.string.ai_card_attachment_title,
-        trimmedFrontText.take(n = 72)
+        bidiWrap(text = trimmedFrontText.take(n = 72))
     )
 }
