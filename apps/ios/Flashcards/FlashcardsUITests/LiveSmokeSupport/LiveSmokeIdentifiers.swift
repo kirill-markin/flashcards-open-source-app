@@ -3,6 +3,10 @@ import Foundation
 enum LiveSmokeIdentifier {
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
     static let cloudSignInScreen: String = "cloudSignIn.screen"
+    static let rootTabReviewItem: String = "rootTab.review.item"
+    static let rootTabCardsItem: String = "rootTab.cards.item"
+    static let rootTabAIItem: String = "rootTab.ai.item"
+    static let rootTabSettingsItem: String = "rootTab.settings.item"
     static let reviewScreen: String = "review.screen"
     static let cardsScreen: String = "cards.screen"
     static let aiScreen: String = "ai.screen"
@@ -87,16 +91,16 @@ enum LiveSmokeSelectedTab: String {
     case ai
     case settings
 
-    var localizationKey: String {
+    var itemIdentifier: String {
         switch self {
         case .review:
-            return "root_tab.review.title"
+            return LiveSmokeIdentifier.rootTabReviewItem
         case .cards:
-            return "root_tab.cards.title"
+            return LiveSmokeIdentifier.rootTabCardsItem
         case .ai:
-            return "root_tab.ai.title"
+            return LiveSmokeIdentifier.rootTabAIItem
         case .settings:
-            return "root_tab.settings.title"
+            return LiveSmokeIdentifier.rootTabSettingsItem
         }
     }
 
@@ -111,13 +115,6 @@ enum LiveSmokeSelectedTab: String {
         case .settings:
             return .settings
         }
-    }
-
-    func localizedTabBarButtonLabel(localization: LiveSmokeLaunchLocalization) throws -> String {
-        try LiveSmokeLocalizationCatalog.localizedString(
-            key: self.localizationKey,
-            localization: localization
-        )
     }
 }
 
@@ -217,111 +214,3 @@ let aiResetPromptMaximumAttempts: Int = 3
 let aiCreateRunCompletionTimeoutSeconds: TimeInterval = 90
 let liveSmokeFocusPollIntervalSeconds: TimeInterval = 0.2
 let aiConsentRetryTapIntervalSeconds: TimeInterval = 1
-
-private enum LiveSmokeLocalizationCatalog {
-    static func localizedString(
-        key: String,
-        localization: LiveSmokeLaunchLocalization
-    ) throws -> String {
-        let catalog = try Self.catalogLoadResult.get()
-        let catalogPath = Self.catalogURL.path
-
-        guard let entry = catalog.strings[key] else {
-            throw LiveSmokeLocalizationCatalogError.missingKey(
-                key: key,
-                catalogPath: catalogPath
-            )
-        }
-
-        guard let localizations = entry.localizations,
-              let localizationEntry = localizations[localization.appleLanguage] else {
-            throw LiveSmokeLocalizationCatalogError.missingLocalization(
-                key: key,
-                localization: localization.appleLanguage,
-                catalogPath: catalogPath
-            )
-        }
-
-        guard let value = localizationEntry.stringUnit?.value,
-              value.isEmpty == false else {
-            throw LiveSmokeLocalizationCatalogError.missingValue(
-                key: key,
-                localization: localization.appleLanguage,
-                catalogPath: catalogPath
-            )
-        }
-
-        return value
-    }
-
-    private static let catalogURL: URL = {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Flashcards/Resources/Localization/Foundation.xcstrings")
-    }()
-
-    private static let catalogLoadResult: Result<LiveSmokeXCStringsCatalog, LiveSmokeLocalizationCatalogError> =
-        Self.loadCatalog()
-
-    private static func loadCatalog() -> Result<LiveSmokeXCStringsCatalog, LiveSmokeLocalizationCatalogError> {
-        let catalogPath = Self.catalogURL.path
-
-        guard FileManager.default.fileExists(atPath: catalogPath) else {
-            return .failure(.missingCatalogFile(catalogPath: catalogPath))
-        }
-
-        do {
-            let catalogData = try Data(contentsOf: Self.catalogURL)
-            let catalog = try JSONDecoder().decode(LiveSmokeXCStringsCatalog.self, from: catalogData)
-            return .success(catalog)
-        } catch {
-            return .failure(
-                .unreadableCatalogFile(
-                    catalogPath: catalogPath,
-                    underlyingError: error.localizedDescription
-                )
-            )
-        }
-    }
-}
-
-private struct LiveSmokeXCStringsCatalog: Decodable {
-    let strings: [String: LiveSmokeXCStringsEntry]
-}
-
-private struct LiveSmokeXCStringsEntry: Decodable {
-    let localizations: [String: LiveSmokeXCStringsLocalization]?
-}
-
-private struct LiveSmokeXCStringsLocalization: Decodable {
-    let stringUnit: LiveSmokeXCStringsStringUnit?
-}
-
-private struct LiveSmokeXCStringsStringUnit: Decodable {
-    let value: String
-}
-
-private enum LiveSmokeLocalizationCatalogError: LocalizedError {
-    case missingCatalogFile(catalogPath: String)
-    case unreadableCatalogFile(catalogPath: String, underlyingError: String)
-    case missingKey(key: String, catalogPath: String)
-    case missingLocalization(key: String, localization: String, catalogPath: String)
-    case missingValue(key: String, localization: String, catalogPath: String)
-
-    var errorDescription: String? {
-        switch self {
-        case .missingCatalogFile(let catalogPath):
-            return "Missing Foundation.xcstrings catalog at \(catalogPath)."
-        case .unreadableCatalogFile(let catalogPath, let underlyingError):
-            return "Failed to load Foundation.xcstrings catalog at \(catalogPath): \(underlyingError)"
-        case .missingKey(let key, let catalogPath):
-            return "Missing localization key \(key) in Foundation.xcstrings catalog at \(catalogPath)."
-        case .missingLocalization(let key, let localization, let catalogPath):
-            return "Missing localization \(localization) for key \(key) in Foundation.xcstrings catalog at \(catalogPath)."
-        case .missingValue(let key, let localization, let catalogPath):
-            return "Missing localized value for key \(key) and localization \(localization) in Foundation.xcstrings catalog at \(catalogPath)."
-        }
-    }
-}

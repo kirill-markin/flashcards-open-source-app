@@ -4,10 +4,36 @@ import Foundation
 extension LiveSmokeTestCase {
     @MainActor
     func tapTabBarItem(selectedTab: LiveSmokeSelectedTab, timeout: TimeInterval) throws {
-        let localizedLabel = try selectedTab.localizedTabBarButtonLabel(
-            localization: self.currentLaunchLocalization
-        )
-        try self.tapTabBarItem(named: localizedLabel, timeout: timeout)
+        try self.tapTabBarItem(identifier: selectedTab.itemIdentifier, timeout: timeout)
+    }
+
+    @MainActor
+    func tapTabBarItem(identifier: String, timeout: TimeInterval) throws {
+        try self.runWithInlineRawScreenStateOnFailure(action: "tap_tab.\(identifier)") {
+            let tabBarItem = self.app.tabBars.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            let deadline = Date().addingTimeInterval(timeout)
+
+            while Date() < deadline {
+                if tabBarItem.exists && tabBarItem.isHittable {
+                    try self.tapExistingElement(
+                        tabBarItem,
+                        identifier: identifier,
+                        action: "tap_tab",
+                        note: "tab bar item tapped"
+                    )
+                    return
+                }
+
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+            }
+
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
     }
 
     @MainActor
