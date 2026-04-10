@@ -378,8 +378,10 @@ bash scripts/run-android-firebase-test-lab.sh \
   --app-path "apps/android/app/build/outputs/apk/debug/app-debug.apk" \
   --test-path "apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk" \
   --timeout "30m" \
-  --max-matrix-duration "30m" \
+  --max-matrix-duration "35m" \
   --test-targets "package com.flashcardsopensourceapp.app notAnnotation com.flashcardsopensourceapp.app.ManualOnlyAndroidTest" \
   --results-bucket "gs://flashcards-open-source-app-test-lab-results" \
   --results-dir "manual/local"
 ```
+
+Keep `--max-matrix-duration` slightly above `--timeout` so Test Lab still has room to finish device startup and final matrix reporting cleanly. This matters more when Orchestrator is enabled because it adds per-test process startup overhead.
