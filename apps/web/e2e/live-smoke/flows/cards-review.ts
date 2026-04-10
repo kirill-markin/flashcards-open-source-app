@@ -6,18 +6,23 @@ import {
   trackedExpectVisible,
   trackedFill,
 } from "../../live-smoke.actions";
-import { externalUiTimeoutMs, localUiTimeoutMs } from "../config";
+import { externalUiTimeoutMs, localUiTimeoutMs, reviewPostSubmitTimeoutMs } from "../config";
 import { runLiveSmokeStep } from "../steps";
 import type { LiveSmokeSession } from "../types";
 
 type ReviewPaneState = "loading" | "card" | "empty" | "missing";
 type ReviewPaneEmptyReason = "none" | "nothing-due" | "no-cards" | "missing";
 type ReviewQueueDueState = "due" | "upcoming" | "missing";
+type ReviewSubmitState = "idle" | "submitting" | "settled" | "failed" | "missing";
+type ReviewSubmitRating = "0" | "1" | "2" | "3" | "none" | "missing";
 
 type PostReviewObservation = Readonly<{
   currentFrontText: string | null;
+  lastSubmittedCardId: string | null;
+  lastSubmittedRating: ReviewSubmitRating;
   reviewPaneEmptyReason: ReviewPaneEmptyReason;
   reviewPaneState: ReviewPaneState;
+  reviewSubmitState: ReviewSubmitState;
   reviewedCardQueueDueState: ReviewQueueDueState;
 }>;
 
@@ -78,15 +83,19 @@ async function reviewCardFromQueue(session: LiveSmokeSession): Promise<void> {
     scenario.manualFrontText,
     localUiTimeoutMs,
   );
+  const reviewedCardId = await currentReviewFrontCard.getAttribute("data-card-id");
+  if (reviewedCardId === null || reviewedCardId === "") {
+    throw new Error(`Review current card id is unavailable for ${scenario.manualFrontText}`);
+  }
   await trackedClick(diagnostics, "reveal review answer", page.getByTestId("review-reveal-answer"));
   await trackedClick(diagnostics, "submit Good review answer", page.getByTestId("review-rate-good"));
   await session.diagnostics.runAction(`confirm review pane and queue update after reviewing ${scenario.manualFrontText}`, async () => {
     await expect.poll(
       async (): Promise<boolean> => {
         const observation = await observePostReviewState(reviewPane, currentReviewFrontCard, reviewedQueueCard);
-        return isValidPostReviewObservation(observation, scenario.manualFrontText);
+        return isValidPostReviewObservation(observation, reviewedCardId, scenario.manualFrontText);
       },
-      { timeout: localUiTimeoutMs },
+      { timeout: reviewPostSubmitTimeoutMs },
     ).toBe(true);
   });
 }
@@ -124,6 +133,9 @@ async function observePostReviewState(
 ): Promise<PostReviewObservation> {
   const reviewPaneState = toReviewPaneState(await reviewPane.getAttribute("data-review-pane-state"));
   const reviewPaneEmptyReason = toReviewPaneEmptyReason(await reviewPane.getAttribute("data-review-pane-empty-reason"));
+  const reviewSubmitState = toReviewSubmitState(await reviewPane.getAttribute("data-review-submit-state"));
+  const lastSubmittedCardId = toNullableAttributeValue(await reviewPane.getAttribute("data-review-last-submitted-card-id"));
+  const lastSubmittedRating = toReviewSubmitRating(await reviewPane.getAttribute("data-review-last-submitted-rating"));
   const reviewedCardQueueDueState = toReviewQueueDueState(await reviewedQueueCard.getAttribute("data-card-due-state"));
   const currentFrontText = reviewPaneState === "card"
     ? await currentReviewFrontCard.getAttribute("data-card-front-text")
@@ -131,16 +143,32 @@ async function observePostReviewState(
 
   return {
     currentFrontText,
+    lastSubmittedCardId,
+    lastSubmittedRating,
     reviewPaneEmptyReason,
     reviewPaneState,
+    reviewSubmitState,
     reviewedCardQueueDueState,
   };
 }
 
 function isValidPostReviewObservation(
   observation: PostReviewObservation,
+  reviewedCardId: string,
   reviewedFrontText: string,
 ): boolean {
+  if (observation.reviewSubmitState !== "settled") {
+    return false;
+  }
+
+  if (observation.lastSubmittedCardId !== reviewedCardId) {
+    return false;
+  }
+
+  if (observation.lastSubmittedRating !== "2") {
+    return false;
+  }
+
   if (observation.reviewedCardQueueDueState !== "upcoming") {
     return false;
   }
@@ -178,4 +206,28 @@ function toReviewQueueDueState(value: string | null): ReviewQueueDueState {
   }
 
   return "missing";
+}
+
+function toReviewSubmitState(value: string | null): ReviewSubmitState {
+  if (value === "idle" || value === "submitting" || value === "settled" || value === "failed") {
+    return value;
+  }
+
+  return "missing";
+}
+
+function toReviewSubmitRating(value: string | null): ReviewSubmitRating {
+  if (value === "0" || value === "1" || value === "2" || value === "3" || value === "none") {
+    return value;
+  }
+
+  return "missing";
+}
+
+function toNullableAttributeValue(value: string | null): string | null {
+  if (value === null || value === "") {
+    return null;
+  }
+
+  return value;
 }

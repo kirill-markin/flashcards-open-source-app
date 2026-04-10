@@ -4,11 +4,15 @@ import {
   trackedExpectText,
   trackedExpectVisible,
   trackedFill,
+  trackedGoto,
   trackedReadRequiredTextContent,
 } from "../../live-smoke.actions";
+import { workspaceSettingsRoute } from "../../../src/routes";
 import { externalUiTimeoutMs, localUiTimeoutMs } from "../config";
 import { runLiveSmokeStep } from "../steps";
 import type { LiveSmokeSession } from "../types";
+
+const resetPreviewTimeoutMs = externalUiTimeoutMs + localUiTimeoutMs;
 
 export async function runResetProgressFlow(session: LiveSmokeSession): Promise<void> {
   await runLiveSmokeStep(session, "confirm the reviewed manual card still exists in cards", async () => {
@@ -43,13 +47,14 @@ async function confirmReviewedManualCardStillExists(session: LiveSmokeSession): 
 }
 
 async function completeResetProgressFlow(session: LiveSmokeSession): Promise<void> {
-  const { page, diagnostics } = session;
+  const { page, diagnostics, baseUrl } = session;
 
-  await trackedClick(diagnostics, "open settings navigation before reset", page.locator('nav.nav a[href="/settings"]').first());
-  await trackedClick(
+  await trackedGoto(
+    page,
     diagnostics,
-    "open workspace settings screen before reset",
-    page.locator('.settings-switcher a[href="/settings/workspace"]').first(),
+    "open workspace settings route before reset",
+    `${baseUrl}${workspaceSettingsRoute}`,
+    externalUiTimeoutMs,
   );
   await trackedExpectVisible(
     diagnostics,
@@ -87,6 +92,14 @@ async function completeResetProgressFlow(session: LiveSmokeSession): Promise<voi
     diagnostics,
     "continue to reset progress preview",
     resetDialog.getByTestId("workspace-reset-progress-continue-to-preview"),
+  );
+  await trackedExpectAttribute(
+    diagnostics,
+    "wait for reset preview dialog to reach preview-ready state",
+    resetDialog,
+    "data-reset-progress-state",
+    "preview-ready",
+    resetPreviewTimeoutMs,
   );
 
   const resetPreviewCount = resetDialog.getByTestId("workspace-reset-progress-preview-count-value");
