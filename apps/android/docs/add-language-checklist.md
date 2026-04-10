@@ -176,6 +176,16 @@ When updating tests:
 
 - Change tests that intentionally verify app copy.
 - Leave seeded card content or other user-generated text alone unless the test is specifically about localization.
+- Prefer one or two focused instrumentation checks for RTL mirroring over broad churn across unrelated test files.
+- Keep RTL instrumentation layout-oriented and predictable: assert start/end mirroring on existing routes instead of rewriting the suite around translated copy.
+- The current focused RTL entry point is `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/RtlLayoutTest.kt`. Extend that path first if a new screen needs explicit RTL coverage.
+
+For RTL validation in tests:
+
+- Force `LayoutDirection.Rtl` around an existing route or screen under test.
+- Verify navigation and other directional affordances render on the trailing or leading edge through start/end behavior, not hardcoded left/right assumptions.
+- Include at least one real UI surface that mixes RTL text with LTR user content such as email addresses, tags, URLs, or code snippets.
+- Prefer routes that already use `Icons.AutoMirrored` or other directional Compose APIs so the test covers the actual app wiring.
 
 ## 8. Run Android-specific manual verification
 
@@ -184,10 +194,13 @@ Before publishing the Play draft release, verify the new locale in a real Androi
 Minimum checklist:
 
 - Install the Play-delivered draft build that already includes the Play-managed strings for the target language. Do not treat a local debug build as the source of truth for translated copy or app-language availability.
-- Switch the device language to the target language and relaunch the app.
+- Switch the device language to the target language and relaunch the app. For RTL work, use a real RTL language such as Arabic first, and use an RTL pseudolocale only as a secondary stress check if needed.
 - If Android's per-app language settings show the target language for this build, verify that path too. Do not assume it is available until the Play-delivered build is in hand.
 - If the Play-delivered build does not show the target language in Android's per-app language settings, treat that as a locale-advertising regression even if the Play translation exists.
 - Check top-level navigation labels.
+- Check that app bars, back arrows, and other directional icons mirror correctly and that the touch targets stay on the expected start or end edge for RTL.
+- Check rows, cards, search fields, and metadata chips for start/end spacing issues. Do not validate RTL by assuming left/right placement from the LTR build.
+- Check mixed-direction content in actual flows: Arabic or Hebrew UI copy alongside email addresses, deck names, tags, numbers, URLs, and code snippets typed by the user.
 - Check Review empty states, queue errors, interval labels, and due/date formatting.
 - Check review speech playback and unsupported-locale fallback behavior.
 - Check Cards editor and list/filter surfaces.
