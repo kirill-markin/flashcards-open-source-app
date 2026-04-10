@@ -1587,8 +1587,6 @@ private final class AIChatStoreTestChatService: AIChatSessionServicing, @uncheck
         _ = session
         return AIChatStopRunResponse(
             sessionId: sessionId,
-            conversationScopeId: sessionId,
-            runId: nil,
             stopped: false,
             stillRunning: false
         )
