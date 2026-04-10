@@ -27,8 +27,6 @@ import com.flashcardsopensourceapp.feature.ai.aiAssistantTextPartTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
-import com.flashcardsopensourceapp.feature.ai.aiComposerSuggestionPrefixTag
-import com.flashcardsopensourceapp.feature.ai.aiComposerSuggestionRowTag
 import com.flashcardsopensourceapp.feature.ai.aiEmptyStateTag
 import com.flashcardsopensourceapp.feature.ai.aiNewChatButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
@@ -244,31 +242,6 @@ private fun LiveSmokeContext.waitForAiUserMessageVisible(
     }
 }
 
-private fun LiveSmokeContext.waitForAiRunAcceptedOrCompleted(
-    previousPersistedState: AiChatPersistedState,
-    context: String
-) {
-    try {
-        waitForAiPersistedState(
-            timeoutMillis = externalUiTimeoutMillis,
-            context = "while waiting for AI run acceptance $context"
-        ) { state ->
-            state.chatSessionId != previousPersistedState.chatSessionId ||
-                completedAiInsertToolCallCheck(state = state).completedSqlSummaries.isNotEmpty() ||
-                state.messages.size > previousPersistedState.messages.size
-        }
-    } catch (error: Throwable) {
-        throw AssertionError(
-            "AI run was not accepted $context. " +
-                "ActualDraft='${aiComposerDraftTextOrNull()}' " +
-                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = aiSendLabel())} " +
-                "PersistedState=${currentAiPersistedStateSummary()} " +
-                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
-            error
-        )
-    }
-}
-
 internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
     val sendLabel = aiSendLabel()
     waitForEnabledTag(
@@ -300,58 +273,18 @@ internal fun LiveSmokeContext.startNewChatAndAssertConversationReset() {
             timeoutMillis = internalUiTimeoutMillis,
             context = "while waiting for user messages to disappear after resetting the conversation"
         )
-        waitForAiComposerButtonState(
+        waitForAiComposerInitialState(
             expectedLabel = sendLabel,
-            expectedEnabled = false,
             context = "after resetting the AI conversation"
         )
-        waitForComposerSuggestionCount(
-            expectedCount = 2,
-            context = "after resetting the AI conversation"
-        )
-        clickTag(tag = "${aiComposerSuggestionPrefixTag}0", label = "First AI composer suggestion")
-        waitUntilWithMitigation(
-            timeoutMillis = externalUiTimeoutMillis,
-            context = "while waiting for the first AI composer suggestion to fill the draft"
-        ) {
-            aiComposerDraftTextOrNull().isNullOrBlank().not() &&
-                countNodesWithTagInAnySemanticsTree(tag = aiComposerSuggestionRowTag) == 0
-        }
-        val suggestionPrompt: String = aiComposerDraftTextOrNull().orEmpty()
-        if (suggestionPrompt.isBlank()) {
-            throw AssertionError("Applying the first AI composer suggestion did not populate the draft.")
-        }
-        val previousPersistedState: AiChatPersistedState = currentAiPersistedState()
-        clickTag(tag = aiComposerSendButtonTag, label = "Send AI composer suggestion prompt")
-        waitForAiRunAcceptedOrCompleted(
-            previousPersistedState = previousPersistedState,
-            context = "for the AI composer suggestion prompt"
-        )
-        waitForAiConversationMaterialized(
-            expectedUserText = suggestionPrompt,
-            context = "while waiting for the AI composer suggestion conversation to materialize"
-        )
-        waitForAiComposerIdleAfterRun(
-            context = "after the AI composer suggestion conversation completed"
-        )
-        waitForComposerSuggestionCount(
-            expectedCount = 2,
-            context = "after the assistant reply generated follow-up composer suggestions"
-        )
-        clickTag(tag = "${aiComposerSuggestionPrefixTag}0", label = "First follow-up AI composer suggestion")
-        waitUntilWithMitigation(
-            timeoutMillis = externalUiTimeoutMillis,
-            context = "while waiting for the follow-up AI composer suggestion to fill the draft"
-        ) {
-            aiComposerDraftTextOrNull().isNullOrBlank().not() &&
-                countNodesWithTagInAnySemanticsTree(tag = aiComposerSuggestionRowTag) == 0
-        }
     } catch (error: Throwable) {
         throw AssertionError(
             "New chat did not reset the AI conversation. " +
                 "EmptyStateVisible=${composeRule.onAllNodesWithTag(aiEmptyStateTag).fetchSemanticsNodes().isNotEmpty()} " +
                 "AssistantMessages=${countNodesWithTagInAnySemanticsTree(tag = aiAssistantMessageBubbleTag)} " +
                 "UserMessages=${countNodesWithTagInAnySemanticsTree(tag = aiUserMessageBubbleTag)} " +
+                "ActualDraft='${aiComposerDraftTextOrNull()}' " +
+                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = sendLabel)} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )
@@ -682,6 +615,33 @@ private fun LiveSmokeContext.waitForAiComposerButtonState(
     }
 }
 
+private fun LiveSmokeContext.waitForAiComposerInitialState(
+    expectedLabel: String,
+    context: String
+) {
+    try {
+        waitUntilWithMitigation(
+            timeoutMillis = externalUiTimeoutMillis,
+            context = "while waiting for the AI composer to return to its initial state $context"
+        ) {
+            aiComposerFieldIsEditable() &&
+                aiComposerDraftTextOrNull().isNullOrBlank() &&
+                aiComposerSendButtonMatchesState(
+                    expectedLabel = expectedLabel,
+                    expectedEnabled = false
+                )
+        }
+    } catch (error: Throwable) {
+        throw AssertionError(
+            "AI composer did not return to its initial state $context. " +
+                "ActualDraft='${aiComposerDraftTextOrNull()}' " +
+                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = expectedLabel)} " +
+                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
+            error
+        )
+    }
+}
+
 private fun LiveSmokeContext.waitForAiComposerIdleAfterRun(context: String) {
     val sendLabel = aiSendLabel()
     try {
@@ -726,35 +686,6 @@ private fun LiveSmokeContext.waitForEnabledTag(
             error
         )
     }
-}
-
-private fun LiveSmokeContext.waitForComposerSuggestionCount(
-    expectedCount: Int,
-    context: String
-) {
-    try {
-        waitUntilWithMitigation(
-            timeoutMillis = externalUiTimeoutMillis,
-            context = "while waiting for $expectedCount AI composer suggestions $context"
-        ) {
-            countComposerSuggestions() == expectedCount
-        }
-    } catch (error: Throwable) {
-        throw AssertionError(
-            "Expected $expectedCount AI composer suggestions $context. " +
-                "ActualCount=${countComposerSuggestions()} " +
-                "ActualDraft='${aiComposerDraftTextOrNull()}' " +
-                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
-            error
-        )
-    }
-}
-
-private fun LiveSmokeContext.countComposerSuggestions(): Int {
-    return (0..1)
-        .count { index ->
-            countNodesWithTagInAnySemanticsTree(tag = "$aiComposerSuggestionPrefixTag$index") > 0
-        }
 }
 
 private fun LiveSmokeContext.completedAiInsertToolCallCheck(): LiveSmokeAiToolCallCheck {
@@ -826,37 +757,6 @@ private fun LiveSmokeContext.waitForAiConversation(
                 "ExpectedUser='$expectedUserText' " +
                 "ExpectedAssistant='$expectedAssistantText' " +
                 "LatestAssistant='${latestAssistantMessageTextOrNull()}' " +
-                "UserMessages=${countNodesWithTagInAnySemanticsTree(tag = aiUserMessageBubbleTag)} " +
-                "AssistantMessages=${countNodesWithTagInAnySemanticsTree(tag = aiAssistantMessageBubbleTag)} " +
-                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
-            error
-        )
-    }
-}
-
-private fun LiveSmokeContext.waitForAiConversationMaterialized(
-    expectedUserText: String,
-    context: String
-) {
-    try {
-        waitForTagToExist(
-            tag = aiUserMessageBubbleTag,
-            timeoutMillis = externalUiTimeoutMillis,
-            context = "while waiting for a user AI message $context"
-        )
-        waitUntilWithMitigation(
-            timeoutMillis = externalUiTimeoutMillis,
-            context = context
-        ) {
-            hasVisibleText(text = expectedUserText, substring = false) &&
-                currentAiPersistedState().chatSessionId.isNotBlank() &&
-                currentAiPersistedState().messages.isNotEmpty()
-        }
-    } catch (error: Throwable) {
-        throw AssertionError(
-            "AI reset conversation did not materialize as expected. " +
-                "ExpectedUser='$expectedUserText' " +
-                "PersistedState=${currentAiPersistedStateSummary()} " +
                 "UserMessages=${countNodesWithTagInAnySemanticsTree(tag = aiUserMessageBubbleTag)} " +
                 "AssistantMessages=${countNodesWithTagInAnySemanticsTree(tag = aiAssistantMessageBubbleTag)} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",

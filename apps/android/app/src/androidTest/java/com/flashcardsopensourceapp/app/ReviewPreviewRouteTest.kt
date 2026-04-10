@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.feature.review.R as ReviewStringResources
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewUiState
 import org.junit.Assert.assertEquals
@@ -21,9 +22,13 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
+    private fun reviewString(resourceId: Int): String =
+        composeRule.activity.getString(resourceId)
+
     @Test
     fun loadingStateStartsPreviewWithoutShowingEmptyOrErrorState() {
         var startPreviewCalls = 0
+        val emptyTitle = reviewString(ReviewStringResources.string.review_preview_empty_title)
 
         composeRule.setContent {
             FlashcardsTheme {
@@ -68,7 +73,7 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithText("All cards").assertIsDisplayed()
         assertEquals(
             0,
-            composeRule.onAllNodesWithText("No Matching Cards").fetchSemanticsNodes().size
+            composeRule.onAllNodesWithText(emptyTitle).fetchSemanticsNodes().size
         )
         assertEquals(
             0,
@@ -79,6 +84,9 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
 
     @Test
     fun emptyStateShowsNoMatchingCardsMessage() {
+        val emptyTitle = reviewString(ReviewStringResources.string.review_preview_empty_title)
+        val emptyBody = reviewString(ReviewStringResources.string.review_preview_empty_body)
+
         composeRule.setContent {
             FlashcardsTheme {
                 ReviewPreviewRoute(
@@ -114,10 +122,8 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithText("No Matching Cards").assertIsDisplayed()
-        composeRule.onNodeWithText(
-            "This review filter does not include any cards yet."
-        ).assertIsDisplayed()
+        composeRule.onNodeWithText(emptyTitle).assertIsDisplayed()
+        composeRule.onNodeWithText(emptyBody).assertIsDisplayed()
     }
 
     @Test
