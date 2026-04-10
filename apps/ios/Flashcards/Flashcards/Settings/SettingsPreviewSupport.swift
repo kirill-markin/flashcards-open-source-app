@@ -1,6 +1,5 @@
 import SwiftUI
 
-#if DEBUG
 private let arabicPreviewLocale = Locale(identifier: "ar")
 
 extension View {
@@ -10,4 +9,3 @@ extension View {
             .environment(\.layoutDirection, .rightToLeft)
     }
 }
-#endif
