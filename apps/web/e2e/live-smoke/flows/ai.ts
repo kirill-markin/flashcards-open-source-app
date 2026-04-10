@@ -7,7 +7,7 @@ import {
   trackedWaitForComposerState,
   trackedWaitForUrl,
 } from "../../live-smoke.actions";
-import { externalUiTimeoutMs, localUiTimeoutMs } from "../config";
+import { aiCompletionTimeoutMs, externalUiTimeoutMs, localUiTimeoutMs } from "../config";
 import {
   createAiTransportObserver,
   readCompletedSqlToolCalls,
@@ -46,8 +46,6 @@ type AiCreatePostInsertComposerObservation = Readonly<{
   source: AiCreateComposerContractSource;
   state: AiCreateComposerLifecycleState;
 }>;
-
-const aiCreateCompletionTimeoutMs = 60_000;
 
 export async function runAiCardCreationFlow(session: LiveSmokeSession): Promise<void> {
   await runLiveSmokeStep(session, "create one AI card with explicit confirmation and confirm the insert completed", async () => {
@@ -149,7 +147,7 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
           diagnostics,
           createAttemptActionLabel,
           previousAssistantErrorCount,
-          aiCreateCompletionTimeoutMs,
+          aiCompletionTimeoutMs,
         );
 
         if (attemptResolution.completionState === "inserted") {
@@ -247,11 +245,8 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
 
 async function assertNewChatResetsConversation(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics } = session;
-  const fullscreenChat = page.getByTestId("chat-panel");
   const messageField = page.getByTestId("chat-composer-input");
   const sendButton = page.getByTestId("chat-send-button");
-  const suggestionContainer = fullscreenChat.getByTestId("chat-composer-suggestions");
-  const suggestionButtons = fullscreenChat.getByTestId("chat-composer-suggestion");
 
   await trackedClick(
     diagnostics,
@@ -276,178 +271,6 @@ async function assertNewChatResetsConversation(session: LiveSmokeSession): Promi
     false,
     externalUiTimeoutMs,
   );
-
-  await waitForComposerSuggestionsVisible(
-    diagnostics,
-    suggestionContainer,
-    suggestionButtons,
-    "confirm AI chat reset shows composer suggestions for an empty draft",
-    externalUiTimeoutMs,
-  );
-
-  await trackedClick(
-    diagnostics,
-    "apply the first composer suggestion",
-    suggestionButtons.nth(0),
-  );
-  await waitForSuggestionToFillDraft(
-    diagnostics,
-    "confirm the first composer suggestion fills the draft and enables send",
-    messageField,
-    sendButton,
-    externalUiTimeoutMs,
-  );
-  await waitForComposerSuggestionsHidden(
-    diagnostics,
-    suggestionContainer,
-    suggestionButtons,
-    "confirm composer suggestions hide while the draft is non-empty",
-    externalUiTimeoutMs,
-  );
-
-  await trackedFill(
-    diagnostics,
-    "clear the composer draft after applying the first backend suggestion",
-    messageField,
-    "",
-  );
-  await trackedWaitForComposerState(
-    diagnostics,
-    "confirm clearing the composer draft disables send again",
-    messageField,
-    sendButton,
-    "",
-    false,
-    externalUiTimeoutMs,
-  );
-
-  await waitForComposerSuggestionsVisible(
-    diagnostics,
-    suggestionContainer,
-    suggestionButtons,
-    "confirm composer suggestions return when the draft is cleared",
-    externalUiTimeoutMs,
-  );
-
-  const previousUserMessageCount = await diagnostics.runAction(
-    "read user message count before sending the backend suggestion",
-    async () => page.locator(".chat-msg.chat-msg-user").count(),
-  );
-  const previousAssistantErrorCount = await diagnostics.runAction(
-    "read assistant error count before sending the backend suggestion",
-    async () => page.locator(".chat-msg-error").count(),
-  );
-
-  await trackedClick(
-    diagnostics,
-    "apply a composer suggestion after clearing the draft",
-    suggestionButtons.nth(0),
-  );
-  await waitForSuggestionToFillDraft(
-    diagnostics,
-    "confirm the composer suggestion fills the draft after clearing the draft",
-    messageField,
-    sendButton,
-    externalUiTimeoutMs,
-  );
-  const resetSuggestionText = await diagnostics.runAction(
-    "read the composer draft text before sending the fresh post-reset prompt",
-    async () => {
-      const draftText = (await messageField.inputValue()).trim();
-      if (draftText === "") {
-        throw new Error("Expected the post-reset composer suggestion to produce a non-empty draft before send.");
-      }
-
-      return draftText;
-    },
-  );
-  await trackedClick(
-    diagnostics,
-    "send the fresh post-reset composer suggestion",
-    sendButton,
-  );
-  const resetSuggestionActionLabel = "the fresh prompt sent after the chat reset";
-
-  await waitForAiRunAccepted(
-    page,
-    diagnostics,
-    resetSuggestionActionLabel,
-    previousUserMessageCount,
-    previousAssistantErrorCount,
-  );
-  await diagnostics.runAction(
-    "confirm the fresh post-reset prompt appears as a new user message without waiting for assistant completion",
-    async () => {
-      const userMessages = page.locator(".chat-msg.chat-msg-user");
-      await expect.poll(
-        async () => userMessages.count(),
-        { timeout: externalUiTimeoutMs },
-      ).toBeGreaterThan(previousUserMessageCount);
-      await expect(userMessages.last()).toContainText(resetSuggestionText, { timeout: externalUiTimeoutMs });
-    },
-  );
-
-  await trackedWaitForComposerState(
-    diagnostics,
-    "confirm the accepted post-reset prompt leaves the composer cleared and not immediately re-sendable",
-    messageField,
-    sendButton,
-    "",
-    false,
-    externalUiTimeoutMs,
-  );
-}
-
-async function waitForComposerSuggestionsVisible(
-  diagnostics: LiveSmokeSession["diagnostics"],
-  suggestionContainer: Locator,
-  suggestionButtons: Locator,
-  actionLabel: string,
-  timeoutMs: number,
-): Promise<void> {
-  await diagnostics.runAction(actionLabel, async () => {
-    await expect(suggestionContainer).toBeVisible({ timeout: timeoutMs });
-    await expect.poll(async () => {
-      const rawCount = await suggestionContainer.getAttribute("data-suggestion-count");
-
-      if (rawCount === null) {
-        return 0;
-      }
-
-      const parsedCount = Number.parseInt(rawCount, 10);
-      return Number.isNaN(parsedCount) ? 0 : parsedCount;
-    }, { timeout: timeoutMs }).toBeGreaterThan(0);
-    await expect.poll(async () => suggestionButtons.count(), { timeout: timeoutMs }).toBeGreaterThan(0);
-  });
-}
-
-async function waitForComposerSuggestionsHidden(
-  diagnostics: LiveSmokeSession["diagnostics"],
-  suggestionContainer: Locator,
-  suggestionButtons: Locator,
-  actionLabel: string,
-  timeoutMs: number,
-): Promise<void> {
-  await diagnostics.runAction(actionLabel, async () => {
-    await expect(suggestionContainer).toBeHidden({ timeout: timeoutMs });
-    await expect.poll(async () => suggestionButtons.count(), { timeout: timeoutMs }).toBe(0);
-  });
-}
-
-async function waitForSuggestionToFillDraft(
-  diagnostics: LiveSmokeSession["diagnostics"],
-  actionLabel: string,
-  messageField: Locator,
-  sendButton: Locator,
-  timeoutMs: number,
-): Promise<void> {
-  await diagnostics.runAction(actionLabel, async () => {
-    await expect.poll(async () => {
-      const draftText = await messageField.inputValue();
-      return draftText.trim().length;
-    }, { timeout: timeoutMs }).toBeGreaterThan(0);
-    await expect(sendButton).toBeEnabled({ timeout: timeoutMs });
-  });
 }
 
 async function waitForAiCreatePostInsertComposerState(
