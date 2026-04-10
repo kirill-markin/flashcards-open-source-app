@@ -1,6 +1,7 @@
+import { expect, type Locator } from "@playwright/test";
+
 import {
   trackedClick,
-  trackedExpectNotText,
   trackedExpectVisible,
   trackedFill,
   trackedIsVisible,
@@ -19,6 +20,7 @@ export async function runWorkspaceCleanupFlow(session: LiveSmokeSession): Promis
 
 async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
+  const activeWorkspaceTopbar = page.getByTestId("topbar-active-workspace");
   const settingsTabs = page.locator(".settings-switcher");
   const hasSettingsTabs = await trackedIsVisible(
     diagnostics,
@@ -70,6 +72,12 @@ async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void
     );
   }
 
+  const deletedWorkspaceId = await readRequiredActiveWorkspaceId(
+    diagnostics,
+    "capture active workspace id before deleting the isolated workspace",
+    activeWorkspaceTopbar,
+  );
+
   await trackedClick(diagnostics, "open delete workspace dialog", page.locator('button.settings-danger-btn').first());
   const deleteDialog = page.locator(".settings-delete-dialog-backdrop");
   await trackedExpectVisible(
@@ -101,11 +109,36 @@ async function deleteEphemeralWorkspace(session: LiveSmokeSession): Promise<void
     `submit workspace deletion for ${scenario.workspaceName}`,
     deleteDialog.locator(".screen-actions .settings-danger-btn").first(),
   );
-  await trackedExpectNotText(
-    diagnostics,
-    `confirm topbar no longer shows workspace ${scenario.workspaceName}`,
-    page.getByTestId("topbar-active-workspace-value"),
-    scenario.workspaceName,
-    externalUiTimeoutMs,
+  await diagnostics.runAction(
+    `confirm topbar active workspace id switched away from deleted workspace ${deletedWorkspaceId}`,
+    async () => {
+      await expect.poll(
+        async () => {
+          const activeWorkspaceId = await readActiveWorkspaceId(activeWorkspaceTopbar);
+          return activeWorkspaceId !== "" && activeWorkspaceId !== deletedWorkspaceId;
+        },
+        { timeout: externalUiTimeoutMs },
+      ).toBe(true);
+    },
   );
+}
+
+async function readRequiredActiveWorkspaceId(
+  diagnostics: LiveSmokeSession["diagnostics"],
+  actionName: string,
+  locator: Locator,
+): Promise<string> {
+  return diagnostics.runAction(actionName, async () => {
+    const activeWorkspaceId = await readActiveWorkspaceId(locator);
+    if (activeWorkspaceId === "") {
+      throw new Error("Topbar active workspace id contract is missing");
+    }
+
+    return activeWorkspaceId;
+  });
+}
+
+async function readActiveWorkspaceId(locator: Locator): Promise<string> {
+  const activeWorkspaceId = await locator.getAttribute("data-workspace-id");
+  return activeWorkspaceId?.trim() ?? "";
 }

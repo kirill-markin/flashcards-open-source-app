@@ -850,12 +850,20 @@ export function ChatPanel(props: Props): ReactElement {
         ) : null}
 
         {canShowComposerSuggestions ? (
-          <div className="chat-composer-suggestions" aria-label={t("chatPanel.suggestedReplies")}>
-            {composerSuggestions.map((suggestion) => (
+          <div
+            className="chat-composer-suggestions"
+            aria-label={t("chatPanel.suggestedReplies")}
+            data-testid="chat-composer-suggestions"
+            data-suggestion-count={composerSuggestions.length}
+          >
+            {composerSuggestions.map((suggestion, index) => (
               <button
                 key={suggestion.id}
                 type="button"
                 className="chat-composer-suggestion"
+                data-testid="chat-composer-suggestion"
+                data-suggestion-id={suggestion.id}
+                data-suggestion-index={index}
                 onClick={() => {
                   updateInputText((currentText) =>
                     currentText.length === 0
