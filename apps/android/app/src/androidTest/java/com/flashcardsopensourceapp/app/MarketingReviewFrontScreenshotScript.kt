@@ -9,11 +9,11 @@ import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 import org.junit.runner.RunWith
 
-private const val reviewResultScreenshotFileName: String = "review-card-result-google-play-opportunity-cost.png"
+private const val reviewFrontScreenshotFileName: String = "review-card-front-google-play-opportunity-cost.png"
 
 @ManualOnlyAndroidTest
 @RunWith(AndroidJUnit4::class)
-class MarketingReviewScreenshotScript {
+class MarketingReviewFrontScreenshotScript {
     private val appStateResetRule = AppStateResetRule()
     private val composeRule = createAndroidComposeRule<MainActivity>()
 
@@ -23,14 +23,13 @@ class MarketingReviewScreenshotScript {
         .around(composeRule)
 
     @Test
-    fun generateOpportunityCostReviewResultScreenshot() {
+    fun generateOpportunityCostReviewFrontScreenshot() {
         val robot = MarketingScreenshotRobot(composeRule = composeRule)
 
         robot.prepareOpportunityCostReviewCardForReview()
-        robot.revealAnswerAndWaitForRatings()
 
-        val screenshotPath = robot.saveScreenshot(fileName = reviewResultScreenshotFileName)
+        val screenshotPath = robot.saveScreenshot(fileName = reviewFrontScreenshotFileName)
         val screenshotListing = robot.runShellCommand(command = "ls $screenshotPath")
-        assertTrue("Expected screenshot file at $screenshotPath.", screenshotListing.contains(reviewResultScreenshotFileName))
+        assertTrue("Expected screenshot file at $screenshotPath.", screenshotListing.contains(reviewFrontScreenshotFileName))
     }
 }

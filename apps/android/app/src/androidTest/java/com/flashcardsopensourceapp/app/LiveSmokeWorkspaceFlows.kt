@@ -935,19 +935,30 @@ internal fun LiveSmokeContext.selectedWorkspaceSummary(context: String): String 
 }
 
 internal fun LiveSmokeContext.selectedWorkspaceSummaryOrNull(): String? {
-    val taggedSelection: String? = composeRule.onAllNodesWithTag(currentWorkspaceSelectedSummaryTag)
-        .fetchSemanticsNodes()
-        .singleOrNull()
-        ?.let(::nodeSummary)
-        ?.takeIf { summary -> summary.isNotBlank() }
+    val taggedSelection: String? = selectedWorkspaceSummaryFromCurrentSemanticsTree()
     if (taggedSelection != null) {
         return taggedSelection
     }
     scrollCurrentWorkspaceListToSelectedWorkspace()
-    return composeRule.onAllNodesWithTag(currentWorkspaceSelectedSummaryTag)
+    return selectedWorkspaceSummaryFromCurrentSemanticsTree()
+}
+
+private fun LiveSmokeContext.selectedWorkspaceSummaryFromCurrentSemanticsTree(): String? {
+    return selectedWorkspaceSummaryFromSemanticsTree(useUnmergedTree = false)
+        ?: selectedWorkspaceSummaryFromSemanticsTree(useUnmergedTree = true)
+}
+
+private fun LiveSmokeContext.selectedWorkspaceSummaryFromSemanticsTree(
+    useUnmergedTree: Boolean
+): String? {
+    return composeRule.onAllNodesWithTag(
+        testTag = currentWorkspaceSelectedSummaryTag,
+        useUnmergedTree = useUnmergedTree
+    )
         .fetchSemanticsNodes()
         .singleOrNull()
-        ?.let(::nodeSummary)
+        ?.let(::nodeSummaryIncludingDescendants)
+        ?.trim()
         ?.takeIf { summary -> summary.isNotBlank() }
 }
 

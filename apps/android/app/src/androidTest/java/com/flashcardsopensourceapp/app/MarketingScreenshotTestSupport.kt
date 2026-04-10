@@ -27,6 +27,26 @@ import java.io.InputStreamReader
 private const val screenshotUiTimeoutMillis: Long = 10_000L
 private const val emptyCardsMessage: String = "No cards yet. Tap the add button to create the first card."
 private const val marketingScreenshotDirectoryPath: String = "/sdcard/Download/flashcards-marketing-screenshots"
+private const val opportunityCostReviewFrontText: String =
+    "In economics, what is opportunity cost?"
+private const val opportunityCostReviewBackText: String =
+    "Opportunity cost is the value of the next best alternative you give up when you choose one option over another.\n\n" +
+        "Exam example: If you spend Saturday studying for a microeconomics exam instead of working a paid shift, " +
+        "the lost wages are part of the opportunity cost."
+
+private data class MarketingReviewCardFixture(
+    val frontText: String,
+    val backText: String,
+    val tags: List<String>,
+    val effortLevelTitle: String
+)
+
+private val opportunityCostReviewCardFixture: MarketingReviewCardFixture = MarketingReviewCardFixture(
+    frontText = opportunityCostReviewFrontText,
+    backText = opportunityCostReviewBackText,
+    tags = listOf("economics"),
+    effortLevelTitle = "Medium"
+)
 
 internal typealias MainActivityComposeRule =
     AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActivity>
@@ -76,6 +96,18 @@ internal class MarketingScreenshotRobot(
         composeRule.onNode(
             matcher = hasText("Review").and(other = hasClickAction())
         ).performClick()
+    }
+
+    fun prepareOpportunityCostReviewCardForReview() {
+        waitForCardsEmptyState()
+        createCard(
+            frontText = opportunityCostReviewCardFixture.frontText,
+            backText = opportunityCostReviewCardFixture.backText,
+            tags = opportunityCostReviewCardFixture.tags,
+            effortLevelTitle = opportunityCostReviewCardFixture.effortLevelTitle
+        )
+        openReviewTab()
+        waitForReviewPrompt(frontText = opportunityCostReviewCardFixture.frontText)
     }
 
     fun revealAnswerAndWaitForRatings() {
@@ -133,6 +165,13 @@ internal class MarketingScreenshotRobot(
     private fun waitForNode(matcher: SemanticsMatcher) {
         composeRule.waitUntil(timeoutMillis = screenshotUiTimeoutMillis) {
             composeRule.onAllNodes(matcher = matcher).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun waitForReviewPrompt(frontText: String) {
+        composeRule.waitUntil(timeoutMillis = screenshotUiTimeoutMillis) {
+            composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
     }
 

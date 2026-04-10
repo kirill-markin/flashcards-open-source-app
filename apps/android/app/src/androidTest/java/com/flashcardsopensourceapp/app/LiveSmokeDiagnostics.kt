@@ -306,6 +306,22 @@ internal fun nodeSummary(node: SemanticsNode): String {
     return texts.joinToString(separator = " | ")
 }
 
+internal fun nodeSummaryIncludingDescendants(node: SemanticsNode): String {
+    val texts = linkedSetOf<String>()
+    collectNodeTexts(node = node, texts = texts)
+    return texts.joinToString(separator = " | ")
+}
+
+private fun collectNodeTexts(node: SemanticsNode, texts: MutableSet<String>) {
+    node.config.getOrNull(SemanticsProperties.Text)
+        ?.map { text -> text.text.trim() }
+        ?.filter { text -> text.isNotBlank() }
+        ?.forEach(texts::add)
+    node.children.forEach { child ->
+        collectNodeTexts(node = child, texts = texts)
+    }
+}
+
 internal fun LiveSmokeContext.dismissExternalSystemDialogIfPresent(): String? {
     val summary: String = currentBlockingSystemDialogSummaryOrNull() ?: return null
     val waitButton = device.findObject(By.text(systemDialogWaitButtonText)) ?: return summary

@@ -4,9 +4,9 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 android_dir="$repo_root/apps/android"
-output_path="$repo_root/apps/android/docs/media/play-store-screenshots/review-card-result-google-play-opportunity-cost.png"
-script_class="com.flashcardsopensourceapp.app.MarketingReviewScreenshotScript"
-remote_screenshot_path="/sdcard/Download/flashcards-marketing-screenshots/review-card-result-google-play-opportunity-cost.png"
+output_path="$repo_root/apps/android/docs/media/play-store-screenshots/review-card-front-google-play-opportunity-cost.png"
+script_class="com.flashcardsopensourceapp.app.MarketingReviewFrontScreenshotScript"
+remote_screenshot_path="/sdcard/Download/flashcards-marketing-screenshots/review-card-front-google-play-opportunity-cost.png"
 
 if [[ "$(adb get-state 2>/dev/null)" != "device" ]]; then
     echo "No Android device or emulator is connected." >&2
@@ -20,7 +20,7 @@ if [[ "$device_sdk" != "36" ]]; then
 fi
 
 cd "$android_dir"
-echo "Running manual Android marketing screenshot script for the Review screen."
+echo "Running manual Android marketing screenshot script for the Review front state."
 ./gradlew :app:connectedDebugAndroidTest \
   "-Pandroid.testInstrumentationRunnerArguments.includeManualOnly=true" \
   "-Pandroid.testInstrumentationRunnerArguments.class=$script_class"
