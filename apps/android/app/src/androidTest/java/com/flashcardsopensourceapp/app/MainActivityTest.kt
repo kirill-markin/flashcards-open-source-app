@@ -279,7 +279,10 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(workspaceTagsSearchFieldTag).performTextReplacement("ui")
         waitForWorkspaceTagsFilteredResult(tag = "ui", cardsCount = 1, excludedTag = "storage")
         composeRule.onNodeWithTag(workspaceTagRowTag(tag = "ui")).fetchSemanticsNode()
-        composeRule.onNodeWithTag(workspaceTagCardsCountTag(tag = "ui")).fetchSemanticsNode()
+        composeRule.onNodeWithTag(
+            testTag = workspaceTagCardsCountTag(tag = "ui"),
+            useUnmergedTree = true
+        ).fetchSemanticsNode()
     }
 
     @Test
@@ -558,7 +561,10 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             searchFieldValue(tag = workspaceTagsSearchFieldTag) == tag &&
                 composeRule.onAllNodesWithTag(workspaceTagRowTag(tag = tag)).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithTag(workspaceTagCardsCountTag(tag = tag))
+                composeRule.onAllNodesWithTag(
+                    testTag = workspaceTagCardsCountTag(tag = tag),
+                    useUnmergedTree = true
+                )
                     .fetchSemanticsNodes()
                     .any { node ->
                         node.config.getOrNull(SemanticsProperties.Text)?.any { text ->
