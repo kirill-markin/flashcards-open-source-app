@@ -2,6 +2,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
 
 import {
   trackedClick,
+  trackedExpectAttribute,
   trackedExpectVisible,
   trackedFill,
 } from "../../live-smoke.actions";
@@ -45,27 +46,30 @@ async function assertCardVisibleInCards(session: LiveSmokeSession): Promise<void
     page,
     diagnostics,
     `confirm cards list shows ${scenario.manualFrontText}`,
-    page.getByText(scenario.manualFrontText, { exact: true }),
+    page.locator(`[data-testid="cards-row"][data-card-front-text=${JSON.stringify(scenario.manualFrontText)}]`).first(),
     localUiTimeoutMs,
   );
 }
 
 async function reviewCardFromQueue(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
+  const currentReviewFrontCard = page.getByTestId("review-current-front-card");
   await trackedClick(diagnostics, "open review navigation", page.locator('nav.nav a[href="/review"]').first());
-  await trackedExpectVisible(
+  await trackedExpectAttribute(
     diagnostics,
     `confirm review queue shows ${scenario.manualFrontText}`,
-    page.locator(".review-front").filter({ hasText: scenario.manualFrontText }).first(),
+    currentReviewFrontCard,
+    "data-card-front-text",
+    scenario.manualFrontText,
     localUiTimeoutMs,
   );
   await trackedClick(diagnostics, "reveal review answer", page.getByTestId("review-reveal-answer"));
   await trackedClick(diagnostics, "submit Good review answer", page.getByTestId("review-rate-good"));
   await session.diagnostics.runAction(`confirm review queue moved past ${scenario.manualFrontText}`, async () => {
     await expect.poll(
-      async () => page.locator(".review-pane").innerText(),
+      async () => currentReviewFrontCard.getAttribute("data-card-front-text"),
       { timeout: localUiTimeoutMs },
-    ).not.toContain(scenario.manualFrontText);
+    ).not.toBe(scenario.manualFrontText);
   });
 }
 

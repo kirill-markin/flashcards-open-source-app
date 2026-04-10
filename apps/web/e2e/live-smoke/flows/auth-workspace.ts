@@ -113,7 +113,7 @@ async function createEphemeralWorkspace(session: LiveSmokeSession): Promise<void
   await trackedExpectText(
     diagnostics,
     `confirm topbar switched to workspace ${scenario.workspaceName}`,
-    page.locator(".topbar-workspace"),
+    page.getByTestId("topbar-active-workspace-value"),
     scenario.workspaceName,
     externalUiTimeoutMs,
   );
@@ -125,7 +125,7 @@ async function assertLinkedAccountStatus(session: LiveSmokeSession): Promise<voi
   await trackedExpectText(
     diagnostics,
     `confirm settings shows workspace ${scenario.workspaceName}`,
-    page.locator(".topbar-workspace"),
+    page.getByTestId("topbar-active-workspace-value"),
     scenario.workspaceName,
     localUiTimeoutMs,
   );
@@ -145,10 +145,11 @@ async function assertLinkedAccountStatus(session: LiveSmokeSession): Promise<voi
     "open account status screen",
     page.locator('a[href="/settings/account/status"]').first(),
   );
-  await trackedExpectVisible(
+  await trackedExpectText(
     diagnostics,
     `confirm account status shows ${reviewEmail}`,
-    page.getByText(reviewEmail, { exact: true }),
+    page.getByTestId("account-status-email-value"),
+    reviewEmail,
     externalUiTimeoutMs,
   );
   await trackedExpectVisible(

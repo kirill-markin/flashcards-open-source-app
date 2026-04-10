@@ -52,7 +52,10 @@ type ReviewCardSideProps = Readonly<{
   showAiButton: boolean;
   showSpeechButton: boolean;
   speechButtonAriaLabel: string | null;
+  surfaceCardId?: string;
   surfaceClassName?: string;
+  surfaceFrontText?: string;
+  surfaceTestId?: string;
   text: string;
 }>;
 
@@ -293,13 +296,21 @@ function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
     showAiButton,
     showSpeechButton,
     speechButtonAriaLabel,
+    surfaceCardId,
     surfaceClassName,
+    surfaceFrontText,
+    surfaceTestId,
     text,
   } = props;
   const presentationMode = classifyReviewContentPresentation(text);
 
   return (
-    <div className={surfaceClassName === undefined ? "review-card-surface" : surfaceClassName}>
+    <div
+      className={surfaceClassName === undefined ? "review-card-surface" : surfaceClassName}
+      data-testid={surfaceTestId}
+      data-card-id={surfaceCardId}
+      data-card-front-text={surfaceFrontText}
+    >
       <div className="review-label">{label}</div>
       <div className="review-card-body">
         <div className="review-card-content-wrap">
@@ -611,7 +622,10 @@ export function ReviewScreen(): ReactElement {
                       showAiButton={false}
                       showSpeechButton={false}
                       speechButtonAriaLabel={null}
+                      surfaceCardId={loadingReviewCurrentCard.cardId}
                       surfaceClassName="review-card-surface review-card-surface-front"
+                      surfaceFrontText={loadingReviewCurrentCard.frontText}
+                      surfaceTestId="review-current-front-card"
                     />
                   ) : (
                     <div className="review-card-surface review-card-surface-front review-loading-card-surface" aria-hidden="true">
@@ -711,7 +725,10 @@ export function ReviewScreen(): ReactElement {
                     speechButtonAriaLabel={t(activeSpeechSide === "front" ? "reviewScreen.speakAriaLabel.stop" : "reviewScreen.speakAriaLabel.start", {
                       side: t("reviewScreen.sides.front").toLowerCase(),
                     })}
+                    surfaceCardId={selectedCard.cardId}
                     surfaceClassName="review-card-surface review-card-surface-front"
+                    surfaceFrontText={selectedCard.frontText}
+                    surfaceTestId="review-current-front-card"
                   />
 
                   {isAnswerVisible ? (
@@ -817,6 +834,10 @@ export function ReviewScreen(): ReactElement {
                       <div
                         key={card.cardId}
                         className={`review-queue-card${isDue ? "" : " review-queue-card-upcoming"}${isActive ? " review-queue-card-active" : ""}`}
+                        data-testid="review-queue-card"
+                        data-card-due-state={isDue ? "due" : "upcoming"}
+                        data-card-front-text={card.frontText}
+                        data-card-id={card.cardId}
                       >
                         <span className="review-queue-card-title">{card.frontText}</span>
                         <span className="review-queue-card-tags">{formatTagSummary(card.tags)}</span>
@@ -851,6 +872,10 @@ export function ReviewScreen(): ReactElement {
                     <div
                       key={card.cardId}
                       className={`review-queue-card${isDue ? "" : " review-queue-card-upcoming"}${selectedCard?.cardId === card.cardId ? " review-queue-card-active" : ""}`}
+                      data-testid="review-queue-card"
+                      data-card-due-state={isDue ? "due" : "upcoming"}
+                      data-card-front-text={card.frontText}
+                      data-card-id={card.cardId}
                     >
                       <span className="review-queue-card-title">{card.frontText}</span>
                       <span className="review-queue-card-tags">{formatTagSummary(card.tags)}</span>

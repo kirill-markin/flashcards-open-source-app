@@ -20,6 +20,8 @@ export function AccountStatusScreen(): ReactElement {
   const { cloudSettings, session } = useAppData();
   const { t, formatDateTime } = useI18n();
   const unavailableLabel = t("common.unavailable");
+  const accountEmail: string | null = cloudSettings?.linkedEmail ?? session?.profile.email ?? null;
+  const accountEmailLabel: string = accountEmail ?? unavailableLabel;
 
   return (
     <SettingsShell
@@ -30,7 +32,14 @@ export function AccountStatusScreen(): ReactElement {
       <div className="settings-detail-grid">
         <article className="content-card settings-summary-card">
           <span className="cell-secondary">{t("accountStatus.labels.email")}</span>
-          <strong className="panel-subtitle">{cloudSettings?.linkedEmail ?? session?.profile.email ?? unavailableLabel}</strong>
+          <span data-testid="account-status-email-value" hidden>{accountEmail ?? ""}</span>
+          <strong
+            className="panel-subtitle"
+            data-testid="account-status-email"
+            data-email={accountEmail ?? ""}
+          >
+            {accountEmailLabel}
+          </strong>
         </article>
         <article className="content-card settings-summary-card">
           <span className="cell-secondary">{t("accountStatus.labels.accountState")}</span>
