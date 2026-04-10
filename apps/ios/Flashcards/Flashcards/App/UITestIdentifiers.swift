@@ -3,10 +3,6 @@ import Foundation
 enum UITestIdentifier {
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
     static let cloudSignInScreen: String = "cloudSignIn.screen"
-    static let rootTabReviewItem: String = "rootTab.review.item"
-    static let rootTabCardsItem: String = "rootTab.cards.item"
-    static let rootTabAIItem: String = "rootTab.ai.item"
-    static let rootTabSettingsItem: String = "rootTab.settings.item"
     static let reviewScreen: String = "review.screen"
     static let cardsScreen: String = "cards.screen"
     static let aiScreen: String = "ai.screen"
