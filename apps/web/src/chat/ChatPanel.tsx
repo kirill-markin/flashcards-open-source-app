@@ -45,13 +45,47 @@ import {
   type ChatDictationState,
 } from "./chatDictation";
 import { useChatSession } from "./sessionController";
+import type { ChatComposerAction } from "./sessionController/runState";
 
 type Props = Readonly<{
   mode: "sidebar" | "fullscreen";
 }>;
 
 type ChatSendPhase = "idle" | "preparingSend" | "startingRun";
+type ChatComposerState = "idle" | "preparingSend" | "startingRun" | "running" | "stopping";
 const MOBILE_CHAT_BREAKPOINT_QUERY = "(max-width: 768px)";
+
+function getChatComposerState(params: Readonly<{
+  composerAction: ChatComposerAction;
+  isAssistantRunActive: boolean;
+  isStopping: boolean;
+  sendPhase: ChatSendPhase;
+}>): ChatComposerState {
+  const {
+    composerAction,
+    isAssistantRunActive,
+    isStopping,
+    sendPhase,
+  } = params;
+
+  if (sendPhase === "preparingSend") {
+    return "preparingSend";
+  }
+
+  if (sendPhase === "startingRun") {
+    return "startingRun";
+  }
+
+  if (isStopping) {
+    return "stopping";
+  }
+
+  if (composerAction === "stop" || isAssistantRunActive) {
+    return "running";
+  }
+
+  return "idle";
+}
 
 function matchesMobileChatBreakpoint(): boolean {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -154,6 +188,7 @@ export function ChatPanel(props: Props): ReactElement {
 
   const activeWorkspaceId = appData.activeWorkspace?.workspaceId ?? null;
   const {
+    runState,
     messages,
     isHistoryLoaded,
     isAssistantRunActive,
@@ -680,13 +715,20 @@ export function ChatPanel(props: Props): ReactElement {
   const isChatActionLocked = appData.isSessionVerified === false;
   const areAttachmentsEnabled = chatConfig.features.attachmentsEnabled;
   const isDictationEnabled = chatConfig.features.dictationEnabled;
+  const hasDraftContent = inputText.trim().length > 0 || pendingAttachments.length > 0;
+  const composerState = getChatComposerState({
+    composerAction,
+    isAssistantRunActive,
+    isStopping,
+    sendPhase,
+  });
   const canSendPendingMessage = isHistoryLoaded
     && composerAction === "send"
     && sendPhase === "idle"
     && !isStopping
     && !isChatActionLocked
     && dictationState === "idle"
-    && (inputText.trim().length > 0 || pendingAttachments.length > 0);
+    && hasDraftContent;
   const canShowComposerSuggestions = isHistoryLoaded
     && composerAction === "send"
     && sendPhase === "idle"
@@ -822,7 +864,18 @@ export function ChatPanel(props: Props): ReactElement {
         </div>
       </div>
 
-      <div className="chat-input-area">
+      <div
+        className="chat-input-area"
+        data-testid="chat-composer-state"
+        data-composer-state={composerState}
+        data-composer-action={composerAction}
+        data-chat-run-state={runState}
+        data-send-phase={sendPhase}
+        data-assistant-run-active={isAssistantRunActive ? "true" : "false"}
+        data-stopping={isStopping ? "true" : "false"}
+        data-draft-state={hasDraftContent ? "filled" : "empty"}
+        data-can-send={canSendPendingMessage ? "true" : "false"}
+      >
         {pendingAttachments.length > 0 ? (
           <div className="chat-attachment-preview">
             {pendingAttachments.map((attachment, index) => (
