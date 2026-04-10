@@ -1,9 +1,11 @@
 import { expect, type Locator, type Page, type Request } from "@playwright/test";
 
 import type { LiveSmokeDiagnostics } from "../../live-smoke.diagnostics";
+import { classifyAiTransportGetRequest } from "../aiTransport";
 import { externalUiTimeoutMs } from "../config";
 import type {
   AiCreateAttemptResolution,
+  AiRunAcceptanceState,
   AiTransportObservation,
   AiTransportObserver,
   CompletedSqlToolCall,
@@ -11,7 +13,7 @@ import type {
 
 export function createAiTransportObserver(page: Page): AiTransportObserver {
   let isObserving = false;
-  let liveRequestCount = 0;
+  let liveAttachRequestCount = 0;
   let snapshotPollRequestCount = 0;
   let sessionlessChatSnapshotRequestCount = 0;
   let sessionlessChatRunRequestCount = 0;
@@ -19,7 +21,7 @@ export function createAiTransportObserver(page: Page): AiTransportObserver {
 
   function buildObservation(): AiTransportObservation {
     return {
-      liveRequestCount,
+      liveAttachRequestCount,
       snapshotPollRequestCount,
       sessionlessChatSnapshotRequestCount,
       sessionlessChatRunRequestCount,
@@ -33,19 +35,33 @@ export function createAiTransportObserver(page: Page): AiTransportObserver {
     }
 
     const url = request.url();
+    const getRequestKind = classifyAiTransportGetRequest({
+      method: request.method(),
+      url,
+      resourceType: request.resourceType(),
+      headers: request.headers(),
+    });
+
+    if (getRequestKind === "sessionless_chat_snapshot") {
+      sessionlessChatSnapshotRequestCount += 1;
+      return;
+    }
+
+    if (getRequestKind === "snapshot_poll") {
+      snapshotPollRequestCount += 1;
+      return;
+    }
+
+    if (getRequestKind === "live_attach") {
+      liveAttachRequestCount += 1;
+      return;
+    }
+
     if (request.method() === "GET" && url.includes("/v1/chat")) {
       if (url.includes("sessionId=") === false) {
         sessionlessChatSnapshotRequestCount += 1;
         return;
       }
-
-      if (url.includes("/v1/chat?sessionId=")) {
-        snapshotPollRequestCount += 1;
-        return;
-      }
-
-      liveRequestCount += 1;
-      return;
     }
 
     if (request.method() === "POST" && url.endsWith("/v1/chat")) {
@@ -68,7 +84,7 @@ export function createAiTransportObserver(page: Page): AiTransportObserver {
 
   return {
     start: (): void => {
-      liveRequestCount = 0;
+      liveAttachRequestCount = 0;
       snapshotPollRequestCount = 0;
       sessionlessChatSnapshotRequestCount = 0;
       sessionlessChatRunRequestCount = 0;
@@ -136,10 +152,10 @@ export async function waitForAiRunAccepted(
   attemptNumber: number,
   previousUserMessageCount: number,
   previousAssistantErrorCount: number,
-): Promise<void> {
-  await diagnostics.runAction(
+): Promise<AiRunAcceptanceState> {
+  return diagnostics.runAction(
     `confirm AI create prompt attempt ${String(attemptNumber)} was accepted by the chat composer`,
-    async () => {
+    async (): Promise<AiRunAcceptanceState> => {
       const timeoutAt = Date.now() + externalUiTimeoutMs;
       let runAcceptanceState: "waiting" | "running" | "queued" | "error" = "waiting";
 
@@ -172,6 +188,8 @@ export async function waitForAiRunAccepted(
       if (runAcceptanceState === "error") {
         throw new Error(`AI create prompt attempt ${String(attemptNumber)} reported an assistant error before the run was accepted.`);
       }
+
+      return runAcceptanceState;
     },
   );
 }

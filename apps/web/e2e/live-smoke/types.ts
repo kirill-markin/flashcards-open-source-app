@@ -15,12 +15,14 @@ export type CompletedSqlToolCall = Readonly<{
 }>;
 
 export type AiTransportObservation = Readonly<{
-  liveRequestCount: number;
+  liveAttachRequestCount: number;
   snapshotPollRequestCount: number;
   sessionlessChatSnapshotRequestCount: number;
   sessionlessChatRunRequestCount: number;
   sessionlessTranscriptionRequestCount: number;
 }>;
+
+export type AiRunAcceptanceState = "running" | "queued";
 
 export type AiCreateAttemptResolution = Readonly<{
   completionState: "idle" | "inserted";
