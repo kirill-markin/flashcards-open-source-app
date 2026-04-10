@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.app.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -65,6 +66,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
     composable(route = SettingsCurrentWorkspaceDestination.route) {
         val context = LocalContext.current
+        val manageSignInMessage = stringResource(
+            id = com.flashcardsopensourceapp.feature.settings.R.string.settings_current_workspace_manage_sign_in_message
+        )
         val currentWorkspaceViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.CurrentWorkspaceViewModel>(
             factory = createCurrentWorkspaceViewModelFactory(
                 workspaceRepository = appGraph.workspaceRepository,
@@ -96,9 +100,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             },
             onOpenSignIn = {
                 appGraph.appMessageBus.showMessage(
-                    message = context.getString(
-                        com.flashcardsopensourceapp.feature.settings.R.string.settings_current_workspace_manage_sign_in_message
-                    )
+                    message = manageSignInMessage
                 )
                 navController.navigate(route = SettingsAccountSignInEmailDestination.route)
             },
