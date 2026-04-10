@@ -20,7 +20,6 @@ struct RootTabView: View {
                     ),
                     systemImage: "rectangle.on.rectangle"
                 )
-                .accessibilityIdentifier(UITestIdentifier.rootTabReviewItem)
             }
             .tag(AppTab.review)
 
@@ -36,7 +35,6 @@ struct RootTabView: View {
                     ),
                     systemImage: "rectangle.stack"
                 )
-                .accessibilityIdentifier(UITestIdentifier.rootTabCardsItem)
             }
             .tag(AppTab.cards)
 
@@ -52,7 +50,6 @@ struct RootTabView: View {
                     ),
                     systemImage: "sparkles.rectangle.stack"
                 )
-                .accessibilityIdentifier(UITestIdentifier.rootTabAIItem)
             }
             .tag(AppTab.ai)
 
@@ -110,7 +107,6 @@ struct RootTabView: View {
                     ),
                     systemImage: "gearshape"
                 )
-                .accessibilityIdentifier(UITestIdentifier.rootTabSettingsItem)
             }
             .tag(AppTab.settings)
         }

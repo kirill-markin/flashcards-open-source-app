@@ -245,7 +245,7 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func openWorkspaceResetProgressFlow() throws {
-        try self.tapTabBarItem(named: LiveSmokeScreen.settings.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapTabBarItem(selectedTab: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.tapButton(
             identifier: LiveSmokeIdentifier.settingsWorkspaceSettingsRow,

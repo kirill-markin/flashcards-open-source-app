@@ -11,13 +11,13 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
 
-            try self.tapTabBarItem(named: LiveSmokeScreen.review.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
 
-            try self.tapTabBarItem(named: LiveSmokeScreen.ai.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.tapTabBarItem(selectedTab: .ai, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertAiEntrySurfaceVisible()
 
-            try self.tapTabBarItem(named: LiveSmokeScreen.settings.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.tapTabBarItem(selectedTab: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.openAccountStatus()
             try self.assertElementExists(
@@ -48,12 +48,12 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
 
         try self.runSignedInLinkedWorkspaceScenario(context: context, reviewEmail: reviewEmail) {
             try self.step("create one manual card in the linked workspace") {
-                try self.tapTabBarItem(named: LiveSmokeScreen.cards.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.tapTabBarItem(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.createManualCard(frontText: context.manualFrontText, backText: context.manualBackText)
             }
 
             try self.step("review the manual card once") {
-                try self.tapTabBarItem(named: LiveSmokeScreen.review.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.reviewCurrentCard(expectedFrontText: context.manualFrontText)
             }
 
@@ -78,9 +78,9 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             }
 
             try self.step("verify the reset card is reviewable again") {
-                try self.tapTabBarItem(named: LiveSmokeScreen.review.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 try self.reviewCurrentCard(expectedFrontText: context.manualFrontText)
-                try self.tapTabBarItem(named: LiveSmokeScreen.settings.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.tapTabBarItem(selectedTab: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
                 let workspaceSettingsScreen = self.app.descendants(matching: .any)
                     .matching(identifier: LiveSmokeIdentifier.workspaceSettingsScreen)
                     .firstMatch
@@ -102,7 +102,7 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
             )
             try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
 
-            try self.tapTabBarItem(named: LiveSmokeScreen.cards.title, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.tapTabBarItem(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
 
             XCUIDevice.shared.press(.home)

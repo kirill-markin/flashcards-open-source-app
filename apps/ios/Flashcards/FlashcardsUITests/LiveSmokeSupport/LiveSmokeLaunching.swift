@@ -165,6 +165,7 @@ extension LiveSmokeTestCase {
 
     @MainActor
     private func configureLaunchEnvironment(request: LiveSmokeLaunchRequest) {
+        self.currentLaunchLocalization = request.launchLocalization
         self.app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.resetStateEnvironmentKey)
         self.app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.appNotificationTapTypeEnvironmentKey)
         self.app.launchEnvironment[LiveSmokeConfiguration.selectedTabEnvironmentKey] = request.selectedTab.rawValue
