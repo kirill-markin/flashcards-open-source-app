@@ -16,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -810,6 +811,8 @@ internal class AiChatRuntime(
 
         runtimeStateMutable.update { state ->
             state.copy(
+                conversationBootstrapState = AiConversationBootstrapState.FAILED,
+                conversationBootstrapErrorMessage = message,
                 activeAlert = context.textProvider.generalError(message = message),
                 errorMessage = ""
             )
@@ -842,6 +845,7 @@ internal class AiChatRuntime(
             && state.persistedState.messages.isEmpty()
             && state.activeRun == null
             && state.composerPhase == AiComposerPhase.IDLE
+            && state.conversationBootstrapState == AiConversationBootstrapState.RESETTING
     }
 
     private fun startFreshConversation(
@@ -851,23 +855,52 @@ internal class AiChatRuntime(
     ) {
         val currentState = runtimeStateMutable.value
         persistCurrentDraft(snapshot = currentState)
+        val targetSessionId = makeAiChatSessionId()
+        runtimeStateMutable.update { state ->
+            state.copy(
+                persistedState = state.persistedState.copy(
+                    messages = emptyList(),
+                    chatSessionId = targetSessionId,
+                    pendingToolRunPostSync = false
+                ),
+                conversationScopeId = targetSessionId,
+                hasOlder = false,
+                oldestCursor = null,
+                activeRun = null,
+                runHadToolCalls = false,
+                isLiveAttached = false,
+                draftMessage = draftMessage,
+                pendingAttachments = pendingAttachments,
+                focusComposerRequestVersion = if (shouldFocusComposer) {
+                    state.focusComposerRequestVersion + 1L
+                } else {
+                    state.focusComposerRequestVersion
+                },
+                serverComposerSuggestions = emptyList(),
+                composerPhase = AiComposerPhase.IDLE,
+                dictationState = AiChatDictationState.IDLE,
+                conversationBootstrapState = AiConversationBootstrapState.RESETTING,
+                conversationBootstrapErrorMessage = "",
+                repairStatus = null,
+                activeAlert = null,
+                errorMessage = ""
+            )
+        }
         initializeFreshConversation(
             workspaceId = currentState.workspaceId,
-            targetSessionId = makeAiChatSessionId(),
-            draftMessage = draftMessage,
-            pendingAttachments = pendingAttachments,
-            shouldFocusComposer = shouldFocusComposer
+            targetSessionId = targetSessionId
         )
     }
 
     private fun initializeFreshConversation(
         workspaceId: String?,
-        targetSessionId: String,
-        draftMessage: String,
-        pendingAttachments: List<AiChatAttachment>,
-        shouldFocusComposer: Boolean
+        targetSessionId: String
     ) {
-        context.scope.launch {
+        context.activeFreshSessionJob?.cancel(
+            cause = CancellationException("AI fresh session creation cancelled because a newer reset was requested.")
+        )
+        var freshSessionJob: Job? = null
+        freshSessionJob = context.scope.launch {
             try {
                 context.activeSendJob?.cancelAndJoin()
                 context.activeSendJob = null
@@ -880,38 +913,6 @@ internal class AiChatRuntime(
                 )
                 context.activeWarmUpJob = null
                 liveStreamCoordinator.detachLiveStream(reason = "AI live stream detached because a new chat was requested.")
-                runtimeStateMutable.update { state ->
-                    state.copy(
-                        workspaceId = workspaceId,
-                        persistedState = state.persistedState.copy(
-                            messages = emptyList(),
-                            chatSessionId = targetSessionId,
-                            pendingToolRunPostSync = false
-                        ),
-                        conversationScopeId = targetSessionId,
-                        hasOlder = false,
-                        oldestCursor = null,
-                        activeRun = null,
-                        runHadToolCalls = false,
-                        isLiveAttached = false,
-                        draftMessage = draftMessage,
-                        pendingAttachments = pendingAttachments,
-                        focusComposerRequestVersion = if (shouldFocusComposer) {
-                            state.focusComposerRequestVersion + 1L
-                        } else {
-                            state.focusComposerRequestVersion
-                        },
-                        serverComposerSuggestions = emptyList(),
-                        composerPhase = AiComposerPhase.IDLE,
-                        dictationState = AiChatDictationState.IDLE,
-                        conversationBootstrapState = AiConversationBootstrapState.READY,
-                        conversationBootstrapErrorMessage = "",
-                        repairStatus = null,
-                        activeAlert = null,
-                        errorMessage = ""
-                    )
-                }
-                persistCurrentState()
                 val snapshot = context.aiChatRepository.createNewSession(
                     workspaceId = workspaceId,
                     sessionId = targetSessionId
@@ -928,10 +929,12 @@ internal class AiChatRuntime(
                 runtimeStateMutable.update { state ->
                     updateComposerSuggestions(
                         state = state.copy(
+                            workspaceId = workspaceId,
                             persistedState = state.persistedState.copy(
                                 lastKnownChatConfig = snapshot.chatConfig
                             ),
                             conversationScopeId = snapshot.conversationScopeId,
+                            conversationBootstrapState = AiConversationBootstrapState.READY,
                             activeAlert = null,
                             errorMessage = ""
                         ),
@@ -952,8 +955,13 @@ internal class AiChatRuntime(
                 throw error
             } catch (error: Exception) {
                 handleNewChatFailure(error = error)
+            } finally {
+                if (context.activeFreshSessionJob === freshSessionJob) {
+                    context.activeFreshSessionJob = null
+                }
             }
         }
+        context.activeFreshSessionJob = freshSessionJob
     }
 
     private fun currentCloudState(): CloudAccountState {

@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.ai
 
 const val aiEmptyStateTag: String = "ai_empty_state"
 const val aiEmptyStateContentTag: String = "ai_empty_state_content"
+const val aiConversationLoadingTag: String = "ai_conversation_loading"
 const val aiNewChatButtonTag: String = "ai_new_chat_button"
 const val aiComposerSuggestionRowTag: String = "ai_composer_suggestion_row"
 const val aiComposerSuggestionPrefixTag: String = "ai_composer_suggestion_"

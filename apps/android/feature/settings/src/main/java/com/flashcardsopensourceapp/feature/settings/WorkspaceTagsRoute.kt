@@ -22,9 +22,21 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.data.local.model.normalizeTagKey
+
+const val workspaceTagsSearchFieldTag: String = "workspace_tags_search_field"
+
+fun workspaceTagRowTag(tag: String): String {
+    return "workspace_tag_row_${normalizeTagKey(tag = tag)}"
+}
+
+fun workspaceTagCardsCountTag(tag: String): String {
+    return "workspace_tag_cards_count_${normalizeTagKey(tag = tag)}"
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +79,9 @@ fun WorkspaceTagsRoute(
                     label = {
                         Text(stringResource(R.string.settings_workspace_tags_search_label))
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(tag = workspaceTagsSearchFieldTag)
                 )
             }
 
@@ -86,7 +100,11 @@ fun WorkspaceTagsRoute(
                 }
             } else {
                 items(uiState.tags, key = { tag -> tag.tag }) { tagSummary ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(tag = workspaceTagRowTag(tag = tagSummary.tag))
+                    ) {
                         ListItem(
                             headlineContent = {
                                 Text(tagSummary.tag)
@@ -97,6 +115,9 @@ fun WorkspaceTagsRoute(
                                         R.plurals.settings_tag_cards_count,
                                         tagSummary.cardsCount,
                                         tagSummary.cardsCount
+                                    ),
+                                    modifier = Modifier.testTag(
+                                        tag = workspaceTagCardsCountTag(tag = tagSummary.tag)
                                     )
                                 )
                             }

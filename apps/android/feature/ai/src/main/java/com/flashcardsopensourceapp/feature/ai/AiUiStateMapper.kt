@@ -46,6 +46,7 @@ internal fun mapToAiUiState(
     val hasSendableAttachments = runtimeState.pendingAttachments.any(::isSendableAiChatAttachment)
     val isConversationReady = runtimeState.conversationBootstrapState == AiConversationBootstrapState.READY
     val isConversationLoading = runtimeState.conversationBootstrapState == AiConversationBootstrapState.LOADING
+        || runtimeState.conversationBootstrapState == AiConversationBootstrapState.RESETTING
     val hasActiveRun = runtimeState.activeRun != null
     val isStreaming = hasActiveRun || runtimeState.composerPhase == AiComposerPhase.STOPPING
     val isComposerBusy = runtimeState.composerPhase != AiComposerPhase.IDLE || isConversationLoading || hasActiveRun

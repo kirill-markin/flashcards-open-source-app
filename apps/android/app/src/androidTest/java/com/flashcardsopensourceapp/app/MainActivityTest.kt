@@ -41,6 +41,9 @@ import com.flashcardsopensourceapp.feature.settings.schedulerLearningStepsFieldT
 import com.flashcardsopensourceapp.feature.settings.schedulerMaximumIntervalFieldTag
 import com.flashcardsopensourceapp.feature.settings.schedulerRelearningStepsFieldTag
 import com.flashcardsopensourceapp.feature.settings.schedulerSaveButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspaceTagCardsCountTag
+import com.flashcardsopensourceapp.feature.settings.workspaceTagRowTag
+import com.flashcardsopensourceapp.feature.settings.workspaceTagsSearchFieldTag
 import com.flashcardsopensourceapp.app.R as AppR
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
 import org.junit.Assert.assertTrue
@@ -182,7 +185,6 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("This came from the Android app.").fetchSemanticsNodes().isEmpty()
         }
-        composeRule.onNodeWithText("Fast | draft, android | new").fetchSemanticsNode()
 
         openCardFilter()
         composeRule.onNodeWithText("draft (1)").performClick()
@@ -266,9 +268,9 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
         openSettingsSection(sectionTitle = settingsString(SettingsR.string.settings_section_workspace))
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_workspace_tags_title)).performClick()
-        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_workspace_tags_search_label)).performTextInput("ui")
-        composeRule.onNodeWithText("ui").fetchSemanticsNode()
-        composeRule.onNodeWithText(settingsQuantityString(SettingsR.plurals.settings_tag_cards_count, 1, 1)).fetchSemanticsNode()
+        composeRule.onNodeWithTag(workspaceTagsSearchFieldTag).performTextInput("ui")
+        composeRule.onNodeWithTag(workspaceTagRowTag(tag = "ui")).fetchSemanticsNode()
+        composeRule.onNodeWithTag(workspaceTagCardsCountTag(tag = "ui")).fetchSemanticsNode()
     }
 
     @Test

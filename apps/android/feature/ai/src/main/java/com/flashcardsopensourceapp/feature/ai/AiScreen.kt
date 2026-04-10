@@ -384,6 +384,7 @@ internal fun AiRouteContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(24.dp)
+                        .testTag(tag = aiConversationLoadingTag)
                 ) {
                     CircularProgressIndicator()
                     Text(stringResource(id = R.string.ai_loading_chat_title))

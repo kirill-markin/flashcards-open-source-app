@@ -28,6 +28,12 @@ internal class AiChatRuntimeLifecycleCoordinator(
             )
             context.activeBootstrapJob = null
         }
+        if (context.activeFreshSessionJob != null) {
+            context.activeFreshSessionJob?.cancel(
+                cause = CancellationException("AI fresh session creation cancelled because access context changed.")
+            )
+            context.activeFreshSessionJob = null
+        }
         if (context.activeWarmUpJob != null) {
             context.pendingWarmUpAfterWorkspaceSwitch = true
             AiChatDiagnosticsLogger.info(

@@ -134,9 +134,51 @@ class AiChatRuntimeConversationResetAndSendTest {
         assertFalse(localSessionId == "session-1")
         assertEquals(localSessionId, runtime.state.value.persistedState.chatSessionId)
         assertTrue(runtime.state.value.persistedState.messages.isEmpty())
+        assertEquals(AiConversationBootstrapState.RESETTING, runtime.state.value.conversationBootstrapState)
 
         createSessionGate.complete(Unit)
         advanceUntilIdle()
+
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+    }
+
+    @Test
+    fun sendMessageIsBlockedWhileConversationIsResetting() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val createSessionGate = CompletableDeferred<Unit>()
+        repository.createNewSessionGates += createSessionGate
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+
+        runtime.clearConversation()
+        runCurrent()
+        assertEquals(AiConversationBootstrapState.RESETTING, runtime.state.value.conversationBootstrapState)
+
+        runtime.updateDraftMessage(draftMessage = "Hello after reset")
+        runtime.sendMessage()
+        runCurrent()
+
+        assertEquals(0, repository.startRunCalls)
+        assertEquals(AiConversationBootstrapState.RESETTING, runtime.state.value.conversationBootstrapState)
+
+        createSessionGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+
+        runtime.sendMessage()
+        advanceUntilIdle()
+
+        assertEquals(1, repository.startRunCalls)
     }
 
     @Test
@@ -181,7 +223,7 @@ class AiChatRuntimeConversationResetAndSendTest {
     }
 
     @Test
-    fun lateEnsureResponseDoesNotOverwriteFreshSuggestionsAfterSend() = runTest {
+    fun acceptedRunSuggestionsReplaceFreshSessionSuggestionsAfterReset() = runTest {
         val repository = FakeAiChatRepository()
         repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
             chatSessionId = "session-1"
@@ -205,13 +247,21 @@ class AiChatRuntimeConversationResetAndSendTest {
             sessionId = newSessionId,
             composerSuggestions = listOf(
                 AiChatComposerSuggestion(
-                    id = "stale-suggestion",
-                    text = "Stale ensure suggestion",
+                    id = "fresh-session-suggestion",
+                    text = "Fresh session suggestion",
                     source = "server",
                     assistantItemId = null
                 )
             )
         )
+        createSessionGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("fresh-session-suggestion"),
+            runtime.state.value.serverComposerSuggestions.map { suggestion -> suggestion.id }
+        )
+
         repository.startRunResponse = makeAcceptedStartRunResponse(
             sessionId = newSessionId,
             activeRun = null,
@@ -234,14 +284,6 @@ class AiChatRuntimeConversationResetAndSendTest {
 
         runtime.updateDraftMessage(draftMessage = "Hello")
         runtime.sendMessage()
-        advanceUntilIdle()
-
-        assertEquals(
-            listOf("fresh-suggestion"),
-            runtime.state.value.serverComposerSuggestions.map { suggestion -> suggestion.id }
-        )
-
-        createSessionGate.complete(Unit)
         advanceUntilIdle()
 
         assertEquals(
