@@ -34,6 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -100,6 +101,9 @@ internal fun AiRouteContent(
     val dismissComposerFocus: () -> Unit = {
         focusManager.clearFocus(force = true)
     }
+    val showInteractiveConversation = uiState.isConsentRequired.not() &&
+        uiState.isConversationReady &&
+        uiState.isConversationLoading.not()
 
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
@@ -334,10 +338,7 @@ internal fun AiRouteContent(
             )
         },
         bottomBar = {
-            if (
-                uiState.isConsentRequired.not()
-                && (uiState.isConversationReady || uiState.isConversationLoading)
-            ) {
+            if (showInteractiveConversation) {
                 AiComposer(
                     uiState = uiState,
                     onDraftMessageChange = onDraftMessageChange,
@@ -379,34 +380,9 @@ internal fun AiRouteContent(
                 modifier = contentModifier
             )
         } else if (uiState.isConversationLoading) {
-            Box(
+            AiConversationLoading(
                 modifier = contentModifier
-            ) {
-                AiConversation(
-                    messages = uiState.messages,
-                    currentWorkspaceName = uiState.currentWorkspaceName,
-                    isStreaming = uiState.isStreaming,
-                    onOpenAccountStatus = onOpenAccountStatus,
-                    onDismissComposerFocus = dismissComposerFocus,
-                    contentPadding = PaddingValues(
-                        horizontal = 16.dp,
-                        vertical = 16.dp
-                    ),
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier
-                        .padding(24.dp)
-                        .align(androidx.compose.ui.Alignment.Center)
-                        .testTag(tag = aiConversationLoadingTag)
-                ) {
-                    CircularProgressIndicator()
-                    Text(stringResource(id = R.string.ai_loading_chat_title))
-                    Text(stringResource(id = R.string.ai_loading_chat_body))
-                }
-            }
+            )
         } else if (uiState.isConversationReady.not()) {
             Box(
                 modifier = contentModifier
@@ -529,5 +505,24 @@ internal fun AiRouteContent(
                 null
             }
         )
+    }
+}
+
+@Composable
+private fun AiConversationLoading(modifier: Modifier) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .padding(24.dp)
+                .testTag(tag = aiConversationLoadingTag)
+        ) {
+            CircularProgressIndicator()
+            Text(stringResource(id = R.string.ai_loading_chat_title))
+            Text(stringResource(id = R.string.ai_loading_chat_body))
+        }
     }
 }

@@ -120,7 +120,9 @@ class AiViewModel(
                     linkedUserId = cloudSettings.linkedUserId,
                     activeWorkspaceId = cloudSettings.activeWorkspaceId
                 )
-            }.distinctUntilChanged().collect { accessContext ->
+            }.distinctUntilChanged { previous, next ->
+                previous.runtimeKey() == next.runtimeKey()
+            }.collect { accessContext ->
                 chatRuntime.updateAccessContext(accessContext = accessContext)
             }
         }

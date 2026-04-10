@@ -18,6 +18,10 @@ internal class AiChatBootstrapCoordinator(
         com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?
     ) -> Unit
 ) {
+    private fun isCurrentBootstrapContext(expectedContext: AiAccessContext): Boolean {
+        return context.activeAccessContext?.runtimeKey() == expectedContext.runtimeKey()
+    }
+
     private fun canApplyBootstrapResult(
         workspaceId: String,
         sessionId: String
@@ -101,7 +105,12 @@ internal class AiChatBootstrapCoordinator(
                 }
 
                 context.aiChatRepository.prepareSessionForAi(workspaceId = workspaceId)
-                if (context.activeAccessContext != accessContext) {
+                if (isCurrentBootstrapContext(expectedContext = accessContext).not()) {
+                    logBootstrapSuperseded(
+                        workspaceId = workspaceId,
+                        expectedContext = accessContext,
+                        stage = "prepare_session"
+                    )
                     return@launch
                 }
                 val ensuredSession = context.aiChatRepository.ensureSessionId(
@@ -109,7 +118,12 @@ internal class AiChatBootstrapCoordinator(
                     persistedState = persistedState,
                     uiLocale = context.currentUiLocaleTag()
                 )
-                if (context.activeAccessContext != accessContext) {
+                if (isCurrentBootstrapContext(expectedContext = accessContext).not()) {
+                    logBootstrapSuperseded(
+                        workspaceId = workspaceId,
+                        expectedContext = accessContext,
+                        stage = "ensure_session"
+                    )
                     return@launch
                 }
                 val ensuredSnapshot = ensuredSession.snapshot
@@ -133,7 +147,12 @@ internal class AiChatBootstrapCoordinator(
                     limit = aiChatBootstrapPageLimit,
                     resumeDiagnostics = resumeDiagnostics
                 )
-                if (context.activeAccessContext != accessContext) {
+                if (isCurrentBootstrapContext(expectedContext = accessContext).not()) {
+                    logBootstrapSuperseded(
+                        workspaceId = workspaceId,
+                        expectedContext = accessContext,
+                        stage = "load_bootstrap"
+                    )
                     return@launch
                 }
                 if (canApplyBootstrapResult(workspaceId = workspaceId, sessionId = ensuredSession.sessionId).not()) {
@@ -156,7 +175,12 @@ internal class AiChatBootstrapCoordinator(
                 )
                 throw error
             } catch (error: Exception) {
-                if (context.activeAccessContext != accessContext) {
+                if (isCurrentBootstrapContext(expectedContext = accessContext).not()) {
+                    logBootstrapSuperseded(
+                        workspaceId = workspaceId,
+                        expectedContext = accessContext,
+                        stage = "failure"
+                    )
                     return@launch
                 }
 
@@ -208,6 +232,25 @@ internal class AiChatBootstrapCoordinator(
             }
         }
         context.activeBootstrapJob = bootstrapJob
+    }
+
+    private fun logBootstrapSuperseded(
+        workspaceId: String,
+        expectedContext: AiAccessContext,
+        stage: String
+    ) {
+        val currentAccessContext = context.activeAccessContext
+        AiChatDiagnosticsLogger.info(
+            event = "conversation_bootstrap_superseded",
+            fields = listOf(
+                "workspaceId" to workspaceId,
+                "expectedWorkspaceId" to expectedContext.workspaceId,
+                "expectedCloudState" to expectedContext.cloudState.name,
+                "currentWorkspaceId" to currentAccessContext?.workspaceId,
+                "currentCloudState" to currentAccessContext?.cloudState?.name,
+                "stage" to stage
+            )
+        )
     }
 
     suspend fun applyActiveBootstrap(response: AiChatBootstrapResponse) {

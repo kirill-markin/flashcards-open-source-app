@@ -212,6 +212,8 @@ internal class FakeAiChatRepository : AiChatRepository {
     val loadBootstrapSessionIds: MutableList<String> = mutableListOf()
     val createNewSessionRequests: MutableList<String> = mutableListOf()
     val createNewSessionUiLocales: MutableList<String?> = mutableListOf()
+    val prepareSessionRequests: MutableList<String?> = mutableListOf()
+    val prepareSessionGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val createNewSessionGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val createNewSessionResponses: ArrayDeque<AiChatSessionSnapshot> = ArrayDeque()
     val savePersistedStateGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
@@ -259,7 +261,10 @@ internal class FakeAiChatRepository : AiChatRepository {
     }
 
     override suspend fun prepareSessionForAi(workspaceId: String?) {
-        Unit
+        prepareSessionRequests += workspaceId
+        if (prepareSessionGates.isNotEmpty()) {
+            prepareSessionGates.removeFirst().await()
+        }
     }
 
     override suspend fun ensureReadyForSend(workspaceId: String?) {

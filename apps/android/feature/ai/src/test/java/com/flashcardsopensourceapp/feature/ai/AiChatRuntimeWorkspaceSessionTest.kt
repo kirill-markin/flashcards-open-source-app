@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.ai
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.makeAiChatCardAttachment
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
@@ -11,11 +12,190 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AiChatRuntimeWorkspaceSessionTest {
+    @Test
+    fun guestMetadataOnlyAccessContextChangeDoesNotRestartBootstrap() = runTest {
+        val repository = FakeAiChatRepository()
+        val createSessionGate = CompletableDeferred<Unit>()
+        repository.createNewSessionGates += createSessionGate
+        repository.setPersistedState(
+            workspaceId = defaultTestWorkspaceId,
+            state = makeDefaultAiChatPersistedState()
+        )
+        repository.nextEnsureSessionId = "session-1"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntime(scope = this, repository = repository)
+
+        runtime.onScreenVisible()
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                linkedUserId = "guest-user-1",
+                activeWorkspaceId = defaultTestWorkspaceId
+            )
+        )
+        advanceUntilIdle()
+
+        createSessionGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(listOf("session-1"), repository.createNewSessionRequests)
+        assertEquals(1, repository.loadBootstrapCalls)
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+        assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
+        assertNull(runtime.state.value.activeRun)
+    }
+
+    @Test
+    fun disconnectedAccessPreparesGuestSessionBeforeGuestBootstrapStarts() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.setPersistedState(
+            workspaceId = defaultTestWorkspaceId,
+            state = makeDefaultAiChatPersistedState()
+        )
+        repository.nextEnsureSessionId = "guest-session-1"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "guest-session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.DISCONNECTED
+        )
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals(listOf(defaultTestWorkspaceId), repository.prepareSessionRequests)
+        assertEquals(0, repository.loadBootstrapCalls)
+        assertEquals(
+            AiConversationBootstrapState.READY,
+            runtime.state.value.conversationBootstrapState
+        )
+
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+
+        assertEquals(1, repository.loadBootstrapCalls)
+        assertEquals(listOf("guest-session-1"), repository.createNewSessionRequests)
+        assertEquals("guest-session-1", runtime.state.value.persistedState.chatSessionId)
+        assertEquals(
+            AiConversationBootstrapState.READY,
+            runtime.state.value.conversationBootstrapState
+        )
+    }
+
+    @Test
+    fun cancelledWarmUpDoesNotRestartGuestBootstrapAfterAccessHandoff() = runTest {
+        val repository = FakeAiChatRepository()
+        val prepareSessionGate = CompletableDeferred<Unit>()
+        val guestBootstrapGate = CompletableDeferred<Unit>()
+        repository.prepareSessionGates += prepareSessionGate
+        repository.loadBootstrapGates += guestBootstrapGate
+        repository.setPersistedState(
+            workspaceId = defaultTestWorkspaceId,
+            state = makeDefaultAiChatPersistedState()
+        )
+        repository.nextEnsureSessionId = "guest-session-1"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "guest-session-1",
+            activeRun = null
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "guest-session-1",
+            activeRun = null
+        )
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.DISCONNECTED
+        )
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        advanceUntilIdle()
+
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        prepareSessionGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(1, repository.loadBootstrapCalls)
+        assertEquals(listOf("guest-session-1"), repository.createNewSessionRequests)
+
+        guestBootstrapGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(1, repository.loadBootstrapCalls)
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
+        assertEquals("guest-session-1", runtime.state.value.persistedState.chatSessionId)
+    }
+
+    @Test
+    fun cancelledWarmUpStillRetriesWhenNextAccessStillNeedsGuestPreparation() = runTest {
+        val repository = FakeAiChatRepository()
+        val firstPrepareSessionGate = CompletableDeferred<Unit>()
+        repository.prepareSessionGates += firstPrepareSessionGate
+        repository.setPersistedState(
+            workspaceId = defaultTestWorkspaceId,
+            state = makeDefaultAiChatPersistedState()
+        )
+        repository.setPersistedState(
+            workspaceId = secondaryTestWorkspaceId,
+            state = makeDefaultAiChatPersistedState()
+        )
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.DISCONNECTED
+        )
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        advanceUntilIdle()
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = secondaryTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        firstPrepareSessionGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(defaultTestWorkspaceId, secondaryTestWorkspaceId),
+            repository.prepareSessionRequests
+        )
+        assertEquals(0, repository.loadBootstrapCalls)
+        assertEquals(
+            AiConversationBootstrapState.READY,
+            runtime.state.value.conversationBootstrapState
+        )
+    }
+
     @Test
     fun accessContextSwitchCancelsBootstrapAndRestoresNewWorkspaceBaseline() = runTest {
         val repository = FakeAiChatRepository()
