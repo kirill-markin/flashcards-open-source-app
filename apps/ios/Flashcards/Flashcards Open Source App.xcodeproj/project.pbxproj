@@ -208,8 +208,15 @@
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				ar,
+				de,
 				en,
-				es,
+				es-ES,
+				es-MX,
+				hi,
+				ja,
+				ru,
+				zh-Hans,
 				Base,
 			);
 			mainGroup = A10000000000000000000002;

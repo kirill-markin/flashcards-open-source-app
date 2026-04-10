@@ -6,8 +6,15 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleLocalizations</key>
 	<array>
+		<string>ar</string>
+		<string>de</string>
 		<string>en</string>
-		<string>es</string>
+		<string>es-ES</string>
+		<string>es-MX</string>
+		<string>hi</string>
+		<string>ja</string>
+		<string>ru</string>
+		<string>zh-Hans</string>
 	</array>
 	<key>CFBundleDisplayName</key>
 	<string>$(APP_DISPLAY_NAME)</string>

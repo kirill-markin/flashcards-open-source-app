@@ -1,0 +1,3 @@
+"NSCameraUsageDescription" = "允许访问相机，以便为 AI 聊天附件拍摄照片。";
+"NSMicrophoneUsageDescription" = "允许访问麦克风，以便在 AI 聊天中进行语音输入。";
+"NSPhotoLibraryUsageDescription" = "允许访问照片图库，以便为 AI 聊天附件选择照片。";

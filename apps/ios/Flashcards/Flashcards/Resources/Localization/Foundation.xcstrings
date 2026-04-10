@@ -4,16 +4,58 @@
     "access_permission.camera.description" : {
       "comment" : "Camera permission description",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "التقط صورًا مباشرةً من دردشة الذكاء الاصطناعي."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nimm Fotos direkt im KI-Chat auf."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Take photos directly from AI chat."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Haz fotos directamente desde el chat con IA."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haz fotos directamente desde el chat con IA."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI चैट से सीधे फ़ोटो लें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIチャットから直接写真を撮影します。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Делайте фотографии прямо из чата с ИИ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接在 AI 聊天中拍照。"
           }
         }
       }
@@ -21,16 +63,58 @@
     "access_permission.camera.title" : {
       "comment" : "Camera permission title",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الكاميرا"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamera"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Camera"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cámara"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cámara"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कैमरा"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラ"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Камера"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "相机"
           }
         }
       }
@@ -38,16 +122,58 @@
     "access_permission.microphone.description" : {
       "comment" : "Microphone permission description",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أملِ النص إلى دردشة الذكاء الاصطناعي."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diktiere Text in den KI-Chat."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dictate text into AI chat."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dicta texto en el chat con IA."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dicta texto en el chat con IA."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI चैट में टेक्स्ट बोलकर लिखें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIチャットにテキストを音声入力します。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Надиктуйте текст в чат с ИИ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将文本口述到 AI 聊天中。"
           }
         }
       }
@@ -55,16 +181,58 @@
     "access_permission.microphone.title" : {
       "comment" : "Microphone permission title",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الميكروفون"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofon"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Microphone"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Micrófono"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Micrófono"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "माइक्रोफ़ोन"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マイク"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Микрофон"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "麦克风"
           }
         }
       }
@@ -72,16 +240,58 @@
     "access_permission.photos.description" : {
       "comment" : "Photos permission description",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اختر صورًا لمرفقات دردشة الذكاء الاصطناعي."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle Fotos für Anhänge im KI-Chat aus."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose photos for AI chat attachments."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Elige fotos para los archivos adjuntos del chat con IA."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige fotos para los archivos adjuntos del chat con IA."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI चैट अटैचमेंट के लिए फ़ोटो चुनें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AIチャットの添付用に写真を選択します。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Выберите фотографии для вложений в чате с ИИ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "为 AI 聊天附件选择照片。"
           }
         }
       }
@@ -89,16 +299,58 @@
     "access_permission.photos.title" : {
       "comment" : "Photos permission title",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الصور"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Photos"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fotos"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotos"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फ़ोटो"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фото"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片"
           }
         }
       }
@@ -106,16 +358,58 @@
     "access_permission_guidance.allowed" : {
       "comment" : "Guidance when permission is allowed",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إذا أردت إيقاف هذا الوصول، فافتح الإعدادات."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffne die Einstellungen, wenn du diesen Zugriff deaktivieren möchtest."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open Settings if you want to turn this access off."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abre Ajustes si quieres desactivar este acceso."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre Ajustes si quieres desactivar este acceso."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अगर आप यह एक्सेस बंद करना चाहते हैं, तो सेटिंग्स खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアクセスをオフにするには、「設定」を開いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Откройте «Настройки», если хотите отключить этот доступ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果你想关闭此访问权限，请打开“设置”。"
           }
         }
       }
@@ -123,16 +417,58 @@
     "access_permission_guidance.ask_every_time" : {
       "comment" : "Guidance when permission has not been requested yet",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اطلب الوصول الآن، أو افتح الإعدادات لاحقًا إذا أردت إدارته يدويًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fordere den Zugriff jetzt an oder öffne später die Einstellungen, wenn du ihn manuell verwalten möchtest."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Request access now, or open Settings later if you want to manage it manually."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Solicita acceso ahora o abre Ajustes más tarde si quieres gestionarlo manualmente."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solicita acceso ahora o abre Ajustes más tarde si quieres gestionarlo manualmente."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अभी एक्सेस माँगें, या यदि आप इसे मैन्युअल रूप से प्रबंधित करना चाहते हैं तो बाद में सेटिंग्स खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今すぐアクセスをリクエストするか、手動で管理したい場合は後で「設定」を開いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запросите доступ сейчас или позже откройте «Настройки», если хотите управлять им вручную."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "现在请求访问权限，或者稍后打开“设置”手动管理。"
           }
         }
       }
@@ -140,16 +476,58 @@
     "access_permission_guidance.camera.blocked" : {
       "comment" : "Guidance when camera permission is blocked",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Flashcards Open Source App. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييره."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Kamerazugriff für Flashcards Open Source App ist deaktiviert. Öffne Einstellungen > Datenschutz und Sicherheit > Kamera, um das zu ändern."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Camera access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Camera to change it."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El acceso a la cámara está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Cámara para cambiarlo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a la cámara está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Cámara para cambiarlo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App के लिए कैमरा एक्सेस बंद है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > कैमरा खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App のカメラへのアクセスはオフです。変更するには「設定」>「プライバシーとセキュリティ」>「カメラ」を開いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к камере для Flashcards Open Source App отключен. Чтобы изменить это, откройте «Настройки» > «Конфиденциальность и безопасность» > «Камера»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App 的相机访问权限已关闭。打开“设置”>“隐私与安全性”>“相机”进行更改。"
           }
         }
       }
@@ -157,16 +535,58 @@
     "access_permission_guidance.limited" : {
       "comment" : "Guidance when permission is limited",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "افتح الإعدادات لمراجعة هذا الوصول أو توسيعه."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffne die Einstellungen, um diesen Zugriff zu prüfen oder zu erweitern."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open Settings to review or expand this access."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abre Ajustes para revisar o ampliar este acceso."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre Ajustes para revisar o ampliar este acceso."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इस एक्सेस की समीक्षा करने या इसे बढ़ाने के लिए सेटिंग्स खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアクセスを確認または拡張するには、「設定」を開いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Откройте «Настройки», чтобы проверить или расширить этот доступ."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开“设置”以查看或扩大此访问权限。"
           }
         }
       }
@@ -174,16 +594,58 @@
     "access_permission_guidance.microphone.blocked" : {
       "comment" : "Guidance when microphone permission is blocked",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Flashcards Open Source App. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Mikrofonzugriff für Flashcards Open Source App ist deaktiviert. Öffne Einstellungen > Datenschutz und Sicherheit > Mikrofon, um das zu ändern."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Microphone access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Microphone to change it."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El acceso al micrófono está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Micrófono para cambiarlo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso al micrófono está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Micrófono para cambiarlo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App के लिए माइक्रोफ़ोन एक्सेस बंद है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > माइक्रोफ़ोन खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App のマイクへのアクセスはオフです。変更するには「設定」>「プライバシーとセキュリティ」>「マイク」を開いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к микрофону для Flashcards Open Source App отключен. Чтобы изменить это, откройте «Настройки» > «Конфиденциальность и безопасность» > «Микрофон»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App 的麦克风访问权限已关闭。打开“设置”>“隐私与安全性”>“麦克风”进行更改。"
           }
         }
       }
@@ -191,16 +653,58 @@
     "access_permission_guidance.photos.blocked" : {
       "comment" : "Guidance when photo permission is blocked",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم إيقاف الوصول إلى الصور لتطبيق Flashcards Open Source App. افتح الإعدادات > الخصوصية والأمان > الصور لتغييره."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Zugriff auf Fotos für Flashcards Open Source App ist deaktiviert. Öffne Einstellungen > Datenschutz und Sicherheit > Fotos, um das zu ändern."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Photo access is turned off for Flashcards Open Source App. Open Settings > Privacy & Security > Photos to change it."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El acceso a Fotos está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Fotos para cambiarlo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a Fotos está desactivado para Flashcards Open Source App. Abre Ajustes > Privacidad y seguridad > Fotos para cambiarlo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App के लिए फ़ोटो एक्सेस बंद है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > फ़ोटो खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App の写真へのアクセスはオフです。変更するには「設定」>「プライバシーとセキュリティ」>「写真」を開いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к фото для Flashcards Open Source App отключен. Чтобы изменить это, откройте «Настройки» > «Конфиденциальность и безопасность» > «Фото»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App 的照片访问权限已关闭。打开“设置”>“隐私与安全性”>“照片”进行更改。"
           }
         }
       }
@@ -208,16 +712,58 @@
     "access_permission_guidance.photos.limited" : {
       "comment" : "Guidance when photo permission is limited",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الصور الوحيدة المتاحة هي التي سبق أن شاركتها مع Flashcards Open Source App. افتح الإعدادات لمنح وصول أوسع إلى الصور."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es sind nur die Fotos verfügbar, die du bereits mit Flashcards Open Source App geteilt hast. Öffne die Einstellungen, um umfassenderen Fotozugriff zu gewähren."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Only the photos you already shared with Flashcards Open Source App are available. Open Settings to grant broader photo access."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Solo están disponibles las fotos que ya compartiste con Flashcards Open Source App. Abre Ajustes para conceder un acceso más amplio a Fotos."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo están disponibles las fotos que ya compartiste con Flashcards Open Source App. Abre Ajustes para conceder un acceso más amplio a Fotos."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "केवल वही फ़ोटो उपलब्ध हैं जिन्हें आपने पहले से Flashcards Open Source App के साथ साझा किया है। फ़ोटो का व्यापक एक्सेस देने के लिए सेटिंग्स खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App とすでに共有した写真のみ利用できます。より広い写真アクセスを許可するには、「設定」を開いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступны только те фотографии, которыми вы уже поделились с Flashcards Open Source App. Откройте «Настройки», чтобы предоставить более широкий доступ к фото."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前只可使用你已与 Flashcards Open Source App 共享的照片。打开“设置”以授予更广泛的照片访问权限。"
           }
         }
       }
@@ -225,16 +771,58 @@
     "access_permission_guidance.unavailable" : {
       "comment" : "Guidance when permission is unavailable",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هذا الوصول غير متاح على الجهاز الحالي."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Zugriff ist auf dem aktuellen Gerät nicht verfügbar."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "This access is unavailable on the current device."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Este acceso no está disponible en el dispositivo actual."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este acceso no está disponible en el dispositivo actual."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यह एक्सेस वर्तमान डिवाइस पर उपलब्ध नहीं है।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアクセスは現在のデバイスでは利用できません。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот доступ недоступен на текущем устройстве."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前设备不支持此访问权限。"
           }
         }
       }
@@ -242,16 +830,58 @@
     "access_permission_status.allowed.title" : {
       "comment" : "Permission status title for allowed",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسموح"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erlaubt"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Allowed"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Permitido"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitido"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनुमत"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "許可済み"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешено"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已允许"
           }
         }
       }
@@ -259,16 +889,58 @@
     "access_permission_status.ask_every_time.title" : {
       "comment" : "Permission status title for ask every time",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "السؤال في كل مرة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jedes Mal fragen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ask every time"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Preguntar cada vez"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preguntar cada vez"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "हर बार पूछें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "毎回確認"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спрашивать каждый раз"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每次都询问"
           }
         }
       }
@@ -276,16 +948,58 @@
     "access_permission_status.blocked.title" : {
       "comment" : "Permission status title for blocked",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "محظور"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blockiert"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Blocked"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bloqueado"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloqueado"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अवरुद्ध"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブロック済み"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заблокировано"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已阻止"
           }
         }
       }
@@ -293,16 +1007,58 @@
     "access_permission_status.limited.title" : {
       "comment" : "Permission status title for limited",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "محدود"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eingeschränkt"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Limited"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Limitado"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limitado"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सीमित"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "制限あり"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ограничено"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "受限"
           }
         }
       }
@@ -310,16 +1066,58 @@
     "access_permission_status.unavailable.title" : {
       "comment" : "Permission status title for unavailable",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "غير متاح"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht verfügbar"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unavailable"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "No disponible"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No disponible"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "उपलब्ध नहीं"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用不可"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Недоступно"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不可用"
           }
         }
       }
@@ -327,16 +1125,58 @@
     "ai_chat_alert.microphone.message" : {
       "comment" : "AI chat alert message when microphone access is blocked",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Flashcards Open Source App. افتح الإعدادات للسماح به."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Mikrofonzugriff für Flashcards Open Source App ist deaktiviert. Öffne die Einstellungen, um ihn zu erlauben."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Microphone access is turned off for Flashcards Open Source App. Open Settings to allow it."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El acceso al micrófono está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso al micrófono está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App के लिए माइक्रोफ़ोन एक्सेस बंद है। इसे अनुमति देने के लिए सेटिंग्स खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App のマイクへのアクセスはオフです。許可するには「設定」を開いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к микрофону для Flashcards Open Source App отключен. Откройте «Настройки», чтобы разрешить его."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App 的麦克风访问权限已关闭。打开“设置”以允许访问。"
           }
         }
       }
@@ -344,16 +1184,58 @@
     "ai_chat_alert.microphone.title" : {
       "comment" : "AI chat alert title when microphone access is needed",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مطلوب الوصول إلى الميكروفون"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofonzugriff erforderlich"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Microphone Access Needed"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Se necesita acceso al micrófono"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se necesita acceso al micrófono"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "माइक्रोफ़ोन एक्सेस आवश्यक है"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マイクへのアクセスが必要です"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Требуется доступ к микрофону"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要麦克风访问权限"
           }
         }
       }
@@ -361,16 +1243,58 @@
     "ai_chat_attachment_settings.camera.message" : {
       "comment" : "AI chat alert message when camera access is blocked",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Flashcards Open Source App. افتح الإعدادات للسماح به."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Kamerazugriff für Flashcards Open Source App ist deaktiviert. Öffne die Einstellungen, um ihn zu erlauben."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Camera access is turned off for Flashcards Open Source App. Open Settings to allow it."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El acceso a la cámara está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a la cámara está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App के लिए कैमरा एक्सेस बंद है। इसे अनुमति देने के लिए सेटिंग्स खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App のカメラへのアクセスはオフです。許可するには「設定」を開いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к камере для Flashcards Open Source App отключен. Откройте «Настройки», чтобы разрешить его."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App 的相机访问权限已关闭。打开“设置”以允许访问。"
           }
         }
       }
@@ -378,16 +1302,58 @@
     "ai_chat_attachment_settings.camera.title" : {
       "comment" : "AI chat alert title when camera access is needed",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مطلوب الوصول إلى الكاميرا"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kamerazugriff erforderlich"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Camera Access Needed"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Se necesita acceso a la cámara"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se necesita acceso a la cámara"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कैमरा एक्सेस आवश्यक है"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラへのアクセスが必要です"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Требуется доступ к камере"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要相机访问权限"
           }
         }
       }
@@ -395,16 +1361,58 @@
     "ai_chat_attachment_settings.files.message" : {
       "comment" : "AI chat alert message when file access is blocked",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم إيقاف الوصول إلى الملفات لتطبيق Flashcards Open Source App. افتح الإعدادات للسماح به."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Dateizugriff für Flashcards Open Source App ist deaktiviert. Öffne die Einstellungen, um ihn zu erlauben."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "File access is turned off for Flashcards Open Source App. Open Settings to allow it."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El acceso a Archivos está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a Archivos está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App के लिए फ़ाइल एक्सेस बंद है। इसे अनुमति देने के लिए सेटिंग्स खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App のファイルへのアクセスはオフです。許可するには「設定」を開いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к файлам для Flashcards Open Source App отключен. Откройте «Настройки», чтобы разрешить его."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App 的文件访问权限已关闭。打开“设置”以允许访问。"
           }
         }
       }
@@ -412,16 +1420,58 @@
     "ai_chat_attachment_settings.files.title" : {
       "comment" : "AI chat alert title when file access is needed",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مطلوب الوصول إلى الملفات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dateizugriff erforderlich"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "File Access Needed"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Se necesita acceso a Archivos"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se necesita acceso a Archivos"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फ़ाइल एक्सेस आवश्यक है"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイルへのアクセスが必要です"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Требуется доступ к файлам"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要文件访问权限"
           }
         }
       }
@@ -429,16 +1479,58 @@
     "ai_chat_attachment_settings.photos.message" : {
       "comment" : "AI chat alert message when photo access is blocked",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم إيقاف الوصول إلى الصور لتطبيق Flashcards Open Source App. افتح الإعدادات للسماح به."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Zugriff auf Fotos für Flashcards Open Source App ist deaktiviert. Öffne die Einstellungen, um ihn zu erlauben."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Photo access is turned off for Flashcards Open Source App. Open Settings to allow it."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El acceso a Fotos está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a Fotos está desactivado para Flashcards Open Source App. Abre Ajustes para permitirlo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App के लिए फ़ोटो एक्सेस बंद है। इसे अनुमति देने के लिए सेटिंग्स खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App の写真へのアクセスはオフです。許可するには「設定」を開いてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к фото для Flashcards Open Source App отключен. Откройте «Настройки», чтобы разрешить его."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards Open Source App 的照片访问权限已关闭。打开“设置”以允许访问。"
           }
         }
       }
@@ -446,16 +1538,58 @@
     "ai_chat_attachment_settings.photos.title" : {
       "comment" : "AI chat alert title when photo access is needed",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مطلوب الوصول إلى الصور"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zugriff auf Fotos erforderlich"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Photo Access Needed"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Se necesita acceso a Fotos"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se necesita acceso a Fotos"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फ़ोटो एक्सेस आवश्यक है"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真へのアクセスが必要です"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Требуется доступ к фото"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要照片访问权限"
           }
         }
       }
@@ -463,16 +1597,58 @@
     "cards.all_cards_deck_label" : {
       "comment" : "System deck label for all cards",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "كل البطاقات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Karten"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "All cards"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Todas las tarjetas"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas las tarjetas"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सभी कार्ड"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのカード"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Все карточки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有卡片"
           }
         }
       }
@@ -480,16 +1656,58 @@
     "cloud_account_state.disconnected.title" : {
       "comment" : "Cloud account state title for disconnected",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "غير متصل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Getrennt"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Disconnected"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Desconectado"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desconectado"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "डिस्कनेक्टेड"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未接続"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отключено"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未连接"
           }
         }
       }
@@ -497,16 +1715,58 @@
     "cloud_account_state.guest.title" : {
       "comment" : "Cloud account state title for guest",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ضيف"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gast"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Guest"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Invitado"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invitado"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अतिथि"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ゲスト"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Гость"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "访客"
           }
         }
       }
@@ -514,16 +1774,58 @@
     "cloud_account_state.linked.title" : {
       "comment" : "Cloud account state title for linked",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مرتبط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verknüpft"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Linked"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vinculado"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vinculado"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लिंक किया गया"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リンク済み"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Связан"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已关联"
           }
         }
       }
@@ -531,16 +1833,58 @@
     "cloud_account_state.linking_ready.title" : {
       "comment" : "Cloud account state title for linking ready",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جاهز للربط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bereit zum Verknüpfen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Linking ready"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Listo para vincular"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listo para vincular"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लिंक करने के लिए तैयार"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連携の準備完了"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Готово к привязке"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可关联"
           }
         }
       }
@@ -548,16 +1892,58 @@
     "cloud_auth.error.invalid_base_url" : {
       "comment" : "Cloud auth error when the auth base URL is invalid",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تسجيل الدخول السحابي غير متاح. تحقّق من إعدادات التطبيق."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Cloud-Anmeldung ist nicht verfügbar. Prüfe die App-Konfiguration."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cloud sign-in is unavailable. Check the app configuration."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El inicio de sesión en la nube no está disponible. Revisa la configuración de la app."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El inicio de sesión en la nube no está disponible. Revisa la configuración de la app."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्लाउड साइन-इन उपलब्ध नहीं है। ऐप कॉन्फ़िगरेशन जाँचें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クラウドサインインは利用できません。アプリの設定を確認してください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вход в облако недоступен. Проверьте конфигурацию приложения."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "云端登录不可用。请检查应用配置。"
           }
         }
       }
@@ -565,16 +1951,58 @@
     "cloud_auth.error.invalid_email" : {
       "comment" : "Cloud auth error when the email address is invalid",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "أدخل عنوان بريد إلكتروني صالحًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gib eine gültige E-Mail-Adresse ein."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enter a valid email address."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Introduce una dirección de correo válida."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Introduce una dirección de correo válida."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मान्य ईमेल पता दर्ज करें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有効なメールアドレスを入力してください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Введите действительный адрес электронной почты."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入有效的电子邮件地址。"
           }
         }
       }
@@ -582,16 +2010,58 @@
     "cloud_auth.error.otp_challenge_consumed" : {
       "comment" : "Cloud auth error when the OTP challenge was already used",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم استخدام الرمز بالفعل. اطلب رمزًا جديدًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Code wurde bereits verwendet. Fordere einen neuen an."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Code already used. Request a new one."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El código ya se ha usado. Solicita uno nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El código ya se ha usado. Solicita uno nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोड पहले ही इस्तेमाल हो चुका है। नया कोड माँगें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードはすでに使用されています。新しいコードをリクエストしてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Код уже использован. Запросите новый."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "该验证码已被使用。请重新获取一个。"
           }
         }
       }
@@ -599,16 +2069,58 @@
     "cloud_auth.error.otp_code_invalid" : {
       "comment" : "Cloud auth error when the OTP code is invalid",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الرمز غير صالح. حاول مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Code ist ungültig. Versuch es erneut."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Code is invalid. Try again."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El código no es válido. Inténtalo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El código no es válido. Inténtalo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोड मान्य नहीं है। फिर से कोशिश करें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードが無効です。もう一度お試しください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Код недействителен. Попробуйте снова."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证码无效。请重试。"
           }
         }
       }
@@ -616,16 +2128,58 @@
     "cloud_auth.error.otp_send_failed" : {
       "comment" : "Cloud auth error when sending the OTP code failed",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذّر إرسال الرمز. حاول مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Code konnte nicht gesendet werden. Versuch es erneut."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Could not send a code. Try again."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo enviar el código. Inténtalo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo enviar el código. Inténtalo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोड भेजा नहीं जा सका। फिर से कोशिश करें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードを送信できませんでした。もう一度お試しください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось отправить код. Попробуйте снова."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法发送验证码。请重试。"
           }
         }
       }
@@ -633,16 +2187,58 @@
     "cloud_auth.error.otp_session_expired" : {
       "comment" : "Cloud auth error when the OTP session expired",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "انتهت صلاحية الرمز. اطلب رمزًا جديدًا."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Code ist abgelaufen. Fordere einen neuen an."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Code expired. Request a new one."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "El código ha caducado. Solicita uno nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El código ya expiró. Solicita uno nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोड की समय-सीमा समाप्त हो गई है। नया कोड माँगें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードの有効期限が切れています。新しいコードをリクエストしてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Срок действия кода истек. Запросите новый."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证码已过期。请重新获取一个。"
           }
         }
       }
@@ -650,16 +2246,58 @@
     "cloud_auth.error.otp_verify_failed" : {
       "comment" : "Cloud auth error when verifying the OTP code failed",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تعذّر التحقق من الرمز. حاول مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Code konnte nicht überprüft werden. Versuch es erneut."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Could not verify the code. Try again."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo verificar el código. Inténtalo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo verificar el código. Inténtalo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोड सत्यापित नहीं किया जा सका। फिर से कोशिश करें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードを確認できませんでした。もう一度お試しください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось проверить код. Попробуйте снова."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法验证验证码。请重试。"
           }
         }
       }
@@ -667,16 +2305,58 @@
     "cloud_auth.error.sign_in_failed" : {
       "comment" : "Cloud auth error for an unknown sign-in failure",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "فشل تسجيل الدخول السحابي. حاول مرة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Cloud-Anmeldung ist fehlgeschlagen. Versuch es erneut."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cloud sign-in failed. Try again."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "No se pudo iniciar sesión en la nube. Inténtalo de nuevo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se pudo iniciar sesión en la nube. Inténtalo de nuevo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्लाउड साइन-इन विफल रहा। फिर से कोशिश करें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クラウドサインインに失敗しました。もう一度お試しください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не удалось выполнить вход в облако. Попробуйте снова."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "云端登录失败。请重试。"
           }
         }
       }
@@ -684,16 +2364,58 @@
     "cloud_auth.error.transport.send_code_interrupted" : {
       "comment" : "Cloud auth inline error when the network connection drops while sending the OTP code",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "انقطع الاتصال أثناء إرسال الرمز. تحقّق من بريدك الإلكتروني، ثم حاول مرة أخرى إذا لزم الأمر."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Verbindung wurde beim Senden des Codes unterbrochen. Prüfe deine E-Mails und versuche es bei Bedarf erneut."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The connection was interrupted while sending the code. Check your email, then try again if needed."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "La conexión se interrumpió mientras se enviaba el código. Revisa tu correo y, si hace falta, vuelve a intentarlo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La conexión se interrumpió mientras se enviaba el código. Revisa tu correo y, si hace falta, vuelve a intentarlo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोड भेजते समय कनेक्शन बाधित हो गया। अपना ईमेल जाँचें, फिर ज़रूरत हो तो दोबारा कोशिश करें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードの送信中に接続が中断されました。メールを確認し、必要に応じてもう一度お試しください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Соединение прервалось во время отправки кода. Проверьте почту, затем при необходимости попробуйте еще раз."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送验证码时连接中断。请先检查你的邮箱，如有需要再重试。"
           }
         }
       }
@@ -701,16 +2423,58 @@
     "cloud_auth.error.transport.verify_code_interrupted" : {
       "comment" : "Cloud auth inline error when the network connection drops while verifying the OTP code",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "انقطع الاتصال أثناء التحقق من الرمز. حاول مرة أخرى، أو اطلب رمزًا جديدًا إذا لزم الأمر."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Verbindung wurde beim Bestätigen des Codes unterbrochen. Versuch es erneut oder fordere bei Bedarf einen neuen Code an."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The connection was interrupted while verifying the code. Try again, or request a new code if needed."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "La conexión se interrumpió mientras se verificaba el código. Inténtalo de nuevo o solicita un código nuevo si hace falta."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La conexión se interrumpió mientras se verificaba el código. Inténtalo de nuevo o solicita un código nuevo si hace falta."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोड सत्यापित करते समय कनेक्शन बाधित हो गया। फिर से कोशिश करें, या ज़रूरत हो तो नया कोड माँगें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードの確認中に接続が中断されました。もう一度お試しいただくか、必要に応じて新しいコードをリクエストしてください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Соединение прервалось во время проверки кода. Попробуйте снова или при необходимости запросите новый код."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证验证码时连接中断。请重试，或在需要时重新获取一个。"
           }
         }
       }
@@ -718,16 +2482,58 @@
     "effort.fast.title" : {
       "comment" : "Fast effort level title",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سريع"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schnell"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fast"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rápido"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rápido"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "तेज़"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "速い"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Быстрый"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速"
           }
         }
       }
@@ -735,16 +2541,58 @@
     "effort.long.title" : {
       "comment" : "Long effort level title",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "طويل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lang"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Long"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Largo"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Largo"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लंबा"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "長い"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Долгий"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "较长"
           }
         }
       }
@@ -752,16 +2600,58 @@
     "effort.medium.title" : {
       "comment" : "Medium effort level title",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "متوسط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mittel"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Medium"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Medio"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medio"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मध्यम"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "普通"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Средний"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中等"
           }
         }
       }
@@ -769,16 +2659,58 @@
     "review_notification.fallback_body" : {
       "comment" : "Fallback review notification body text",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "واصل جلسة الدراسة في Flashcards."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setze deine Lernsitzung in Flashcards fort."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Continue your study session in Flashcards."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Continúa tu sesión de estudio en Flashcards."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continúa tu sesión de estudio en Flashcards."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards में अपना अध्ययन सत्र जारी रखें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Flashcards で学習セッションを続けましょう。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжите занятие в Flashcards."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Flashcards 中继续你的学习。"
           }
         }
       }
@@ -786,16 +2718,58 @@
     "review_notification.mode.daily" : {
       "comment" : "Daily review notification mode title",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يومي"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Täglich"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Daily"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Diario"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diario"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "दैनिक"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "毎日"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ежедневно"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每天"
           }
         }
       }
@@ -803,16 +2777,58 @@
     "review_notification.mode.inactivity" : {
       "comment" : "Inactivity review notification mode title",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "عدم النشاط"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inaktivität"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inactivity"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Inactividad"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inactividad"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "निष्क्रियता"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非アクティブ時"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Бездействие"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不活跃"
           }
         }
       }
@@ -820,16 +2836,58 @@
     "review_notification_permission.allow_notifications" : {
       "comment" : "Notifications permission action title to allow notifications",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "السماح بالإشعارات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mitteilungen erlauben"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Allow Notifications"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Permitir notificaciones"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitir notificaciones"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सूचनाओं की अनुमति दें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知を許可"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешить уведомления"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许通知"
           }
         }
       }
@@ -837,16 +2895,58 @@
     "review_notification_permission.allowed" : {
       "comment" : "Notifications permission title for allowed",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مسموح"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erlaubt"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Allowed"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Permitido"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permitido"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनुमत"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "許可済み"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Разрешено"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已允许"
           }
         }
       }
@@ -854,16 +2954,58 @@
     "review_notification_permission.blocked" : {
       "comment" : "Notifications permission title for blocked",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "محظور"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blockiert"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Blocked"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bloqueado"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloqueado"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अवरुद्ध"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブロック済み"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заблокировано"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已阻止"
           }
         }
       }
@@ -871,16 +3013,58 @@
     "review_notification_permission.not_requested" : {
       "comment" : "Notifications permission title for not requested",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لم يُطلب"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht angefordert"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not requested"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "No solicitado"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No solicitado"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अनुरोध नहीं किया गया"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未リクエスト"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не запрашивалось"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未请求"
           }
         }
       }
@@ -888,16 +3072,58 @@
     "review_rating.again.title" : {
       "comment" : "Review rating title for Again",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "مرة أخرى"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nochmal"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Again"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "De nuevo"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De nuevo"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फिर से"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一度"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Снова"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重来"
           }
         }
       }
@@ -905,16 +3131,58 @@
     "review_rating.easy.title" : {
       "comment" : "Review rating title for Easy",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سهل"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leicht"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Easy"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fácil"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fácil"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आसान"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "簡単"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Легко"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "简单"
           }
         }
       }
@@ -922,16 +3190,58 @@
     "review_rating.good.title" : {
       "comment" : "Review rating title for Good",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جيد"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gut"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Good"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Bien"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bien"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अच्छा"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "良い"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Хорошо"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "良好"
           }
         }
       }
@@ -939,16 +3249,58 @@
     "review_rating.hard.title" : {
       "comment" : "Review rating title for Hard",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "صعب"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schwer"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hard"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Difícil"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Difícil"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कठिन"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "難しい"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Трудно"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "困难"
           }
         }
       }
@@ -956,16 +3308,58 @@
     "root_tab.account_deleted.title" : {
       "comment" : "Account deletion success alert title",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم حذف الحساب"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto gelöscht"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Account deleted"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cuenta eliminada"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuenta eliminada"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "खाता हटा दिया गया"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを削除しました"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аккаунт удален"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "账户已删除"
           }
         }
       }
@@ -973,16 +3367,58 @@
     "root_tab.ai.title" : {
       "comment" : "AI tab title",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الذكاء الاصطناعي"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "KI"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "AI"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "IA"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IA"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ИИ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI"
           }
         }
       }
@@ -990,16 +3426,58 @@
     "root_tab.cards.title" : {
       "comment" : "Cards tab title",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "البطاقات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karten"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cards"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tarjetas"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarjetas"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कार्ड"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カード"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Карточки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卡片"
           }
         }
       }
@@ -1007,16 +3485,58 @@
     "root_tab.review.title" : {
       "comment" : "Review tab title",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "المراجعة"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederholen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Review"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Repasar"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repasar"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "समीक्षा"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "復習"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повторение"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复习"
           }
         }
       }
@@ -1024,16 +3544,58 @@
     "root_tab.settings.title" : {
       "comment" : "Settings tab title",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الإعدادات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Settings"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ajustes"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सेटिंग्स"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置"
           }
         }
       }
@@ -1041,16 +3603,58 @@
     "shared.action.open_settings" : {
       "comment" : "Shared action title to open Settings",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "افتح الإعدادات"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen öffnen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Open Settings"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Abrir Ajustes"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ajustes"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सेटिंग्स खोलें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「設定」を開く"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть «Настройки»"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开“设置”"
           }
         }
       }
@@ -1058,16 +3662,58 @@
     "shared.action.request_access" : {
       "comment" : "Shared action title to request access",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "اطلب الوصول"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zugriff anfordern"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Request access"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Solicitar acceso"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solicitar acceso"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "एक्सेस का अनुरोध करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクセスをリクエスト"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запросить доступ"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请求访问权限"
           }
         }
       }
@@ -1075,16 +3721,58 @@
     "shared.ok" : {
       "comment" : "Confirmation button title",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "حسنًا"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "OK"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aceptar"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aceptar"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ठीक है"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ОК"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好"
           }
         }
       }
@@ -1092,16 +3780,58 @@
     "transient_banner.ai_chat_active_run" : {
       "comment" : "Banner message when an AI response is already in progress",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "هناك رد جارٍ بالفعل. انتظر حتى ينتهي أو أوقِفه قبل إرسال رسالة أخرى."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Antwort wird bereits erstellt. Warte, bis sie fertig ist, oder stoppe sie, bevor du eine weitere Nachricht sendest."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "A response is already in progress. Wait for it to finish or stop it before sending another message."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ya hay una respuesta en curso. Espera a que termine o detenla antes de enviar otro mensaje."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ya hay una respuesta en curso. Espera a que termine o detenla antes de enviar otro mensaje."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "एक जवाब पहले से जारी है। उसके पूरा होने तक प्रतीक्षा करें या दूसरा संदेश भेजने से पहले उसे रोकें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すでに応答を生成中です。完了するまで待つか、停止してから別のメッセージを送信してください。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ответ уже создается. Дождитесь завершения или остановите его перед отправкой другого сообщения."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已有回复正在生成中。请等待其完成，或先停止它再发送另一条消息。"
           }
         }
       }
@@ -1109,16 +3839,58 @@
     "transient_banner.ai_chat_offline" : {
       "comment" : "Banner message when AI chat is unavailable offline",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "لا يوجد اتصال بالإنترنت. تتطلب دردشة الذكاء الاصطناعي اتصالًا بالإنترنت."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Internetverbindung. Der KI-Chat benötigt Internetzugang."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "No internet connection. AI chat requires internet access."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "No hay conexión a internet. El chat con IA requiere acceso a internet."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay conexión a internet. El chat con IA requiere acceso a internet."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इंटरनेट कनेक्शन नहीं है। AI चैट के लिए इंटरनेट एक्सेस चाहिए।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インターネット接続がありません。AIチャットにはインターネット接続が必要です。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нет подключения к интернету. Для чата с ИИ нужен доступ к интернету."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有网络连接。AI 聊天需要互联网连接。"
           }
         }
       }
@@ -1126,16 +3898,58 @@
     "transient_banner.cards_updated_from_cloud" : {
       "comment" : "Banner message when cards update from the cloud",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم تحديث البطاقات من السحابة."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Karten wurden aus der Cloud aktualisiert."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cards updated from the cloud."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Tarjetas actualizadas desde la nube."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tarjetas actualizadas desde la nube."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कार्ड क्लाउड से अपडेट किए गए।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードがクラウドから更新されました。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Карточки обновлены из облака."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卡片已从云端更新。"
           }
         }
       }
@@ -1143,16 +3957,58 @@
     "transient_banner.review_speech_unavailable" : {
       "comment" : "Banner message when speech is unavailable on the device",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "الكلام غير متاح على هذا الجهاز."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprache ist auf diesem Gerät nicht verfügbar."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Speech is unavailable on this device."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "La voz no está disponible en este dispositivo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La voz no está disponible en este dispositivo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इस डिवाइस पर वॉइस उपलब्ध नहीं है।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスでは音声を利用できません。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Речь недоступна на этом устройстве."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此设备不支持语音。"
           }
         }
       }
@@ -1160,16 +4016,58 @@
     "transient_banner.review_updated_on_another_device" : {
       "comment" : "Banner message when a review is updated on another device",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم تحديث هذه المراجعة على جهاز آخر."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Wiederholung wurde auf einem anderen Gerät aktualisiert."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "This review updated on another device."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Esta revisión se actualizó en otro dispositivo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esta revisión se actualizó en otro dispositivo."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यह समीक्षा किसी दूसरे डिवाइस पर अपडेट की गई।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この復習は別のデバイスで更新されました。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это повторение было обновлено на другом устройстве."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此复习已在另一台设备上更新。"
           }
         }
       }
@@ -1177,16 +4075,58 @@
     "transient_banner.workspace_changes_require_account" : {
       "comment" : "Banner message when workspace changes require an account",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تغييرات مساحة العمل متاحة فقط بعد إنشاء حساب."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Änderungen am Arbeitsbereich sind erst verfügbar, nachdem du ein Konto erstellt hast."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Workspace changes are available only after you create an account."
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Los cambios del espacio de trabajo solo están disponibles después de crear una cuenta."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los cambios del espacio de trabajo solo están disponibles después de crear una cuenta."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "वर्कस्पेस में बदलाव केवल खाता बनाने के बाद उपलब्ध होते हैं।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ワークスペースの変更は、アカウントを作成した後にのみ利用できます。"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Изменения рабочего пространства доступны только после создания аккаунта."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有在创建账户后才能使用工作区更改。"
           }
         }
       }
@@ -1194,16 +4134,58 @@
     "workspace.reset_progress_confirmation_text" : {
       "comment" : "Confirmation phrase for resetting all workspace card progress",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إعادة تعيين كل التقدم لجميع البطاقات في مساحة العمل هذه"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "den gesamten Fortschritt aller Karten in diesem Arbeitsbereich zurücksetzen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "reset all progress for all cards in this workspace"
           }
         },
-        "es" : {
+        "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "restablecer todo el progreso de todas las tarjetas de este espacio de trabajo"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "restablecer todo el progreso de todas las tarjetas de este espacio de trabajo"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इस वर्कस्पेस में सभी कार्डों की पूरी प्रगति रीसेट करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このワークスペース内のすべてのカードの進捗をすべてリセットする"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "сбросить весь прогресс по всем карточкам в этом рабочем пространстве"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置此工作区中所有卡片的全部进度"
           }
         }
       }
