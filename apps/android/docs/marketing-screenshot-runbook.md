@@ -22,6 +22,30 @@ bash scripts/capture-android-cards-screenshot.sh
 bash scripts/capture-android-review-ai-draft-screenshot.sh
 ```
 
+To target a configured locale prefix other than the default `en`, set `FLASHCARDS_MARKETING_LOCALE_PREFIX` for the wrapper run:
+
+```bash
+FLASHCARDS_MARKETING_LOCALE_PREFIX=en bash scripts/capture-android-review-front-screenshot.sh
+```
+
+The wrapper passes that prefix into the manual AndroidTest entrypoint, which resolves the matching screenshot locale configuration before preparing the app state and file names.
+
+The currently configured screenshot locale prefixes are:
+
+- `en`
+- `en-US`
+- `ar`
+- `zh-CN`
+- `de-DE`
+- `hi-IN`
+- `ja-JP`
+- `ru-RU`
+- `es-419`
+- `es-ES`
+- `es-US`
+
+Today the default remains `en`.
+
 The current output files are:
 
 - `apps/android/docs/media/play-store-screenshots/en-1_review-card-front-google-play-opportunity-cost.png`
@@ -84,6 +108,11 @@ Each wrapper script does the following:
 2. Dismisses blocking system dialogs.
 3. Runs one manual-only instrumentation class through `:app:connectedDebugAndroidTest`.
 4. Pulls the generated PNG from `/sdcard/Download/flashcards-marketing-screenshots/` into the committed media directory.
+
+The locale-specific card texts, AI draft texts, file-name prefixes, and UI labels used by these screenshot flows are defined in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotCatalog.kt`.
+
+Before running a new non-English locale at scale, verify that the catalog's UI labels still match the actual Play-delivered Android UI for that locale.
+The screenshot automation depends on those labels for clicks and waits.
 
 ## Verify the result
 

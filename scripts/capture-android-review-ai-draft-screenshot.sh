@@ -4,9 +4,11 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 android_dir="$repo_root/apps/android"
-output_path="$repo_root/apps/android/docs/media/play-store-screenshots/en-4_review-card-ai-draft-google-play-opportunity-cost.png"
+locale_prefix="${FLASHCARDS_MARKETING_LOCALE_PREFIX:-en}"
+file_name="${locale_prefix}-4_review-card-ai-draft-google-play-opportunity-cost.png"
+output_path="$repo_root/apps/android/docs/media/play-store-screenshots/$file_name"
 script_class="com.flashcardsopensourceapp.app.MarketingReviewAiDraftScreenshotScript"
-remote_screenshot_path="/sdcard/Download/flashcards-marketing-screenshots/en-4_review-card-ai-draft-google-play-opportunity-cost.png"
+remote_screenshot_path="/sdcard/Download/flashcards-marketing-screenshots/$file_name"
 
 if [[ "$(adb get-state 2>/dev/null)" != "device" ]]; then
     echo "No Android device or emulator is connected." >&2
@@ -25,6 +27,7 @@ cd "$android_dir"
 echo "Running manual Android marketing screenshot script for the Review AI draft state."
 ./gradlew :app:connectedDebugAndroidTest \
   "-Pandroid.testInstrumentationRunnerArguments.includeManualOnly=true" \
+  "-Pandroid.testInstrumentationRunnerArguments.marketingLocalePrefix=$locale_prefix" \
   "-Pandroid.testInstrumentationRunnerArguments.class=$script_class"
 
 mkdir -p "$(dirname "$output_path")"

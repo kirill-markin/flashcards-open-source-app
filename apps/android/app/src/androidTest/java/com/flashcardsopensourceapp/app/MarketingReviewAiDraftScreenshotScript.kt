@@ -9,10 +9,8 @@ import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 import org.junit.runner.RunWith
 
-private const val reviewAiDraftScreenshotFileName: String =
-    "en-4_review-card-ai-draft-google-play-opportunity-cost.png"
-private const val reviewAiDraftMessage: String =
-    "Create 6 new flashcards on the same economics topic, covering closely related ideas that are not already in this deck."
+private const val reviewAiDraftScreenshotSlug: String =
+    "review-card-ai-draft-google-play-opportunity-cost"
 
 @ManualOnlyAndroidTest
 @RunWith(AndroidJUnit4::class)
@@ -27,11 +25,22 @@ class MarketingReviewAiDraftScreenshotScript {
 
     @Test
     fun generateOpportunityCostReviewAiDraftScreenshot() {
-        val robot = MarketingScreenshotRobot(composeRule = composeRule)
+        val localeConfig = activeMarketingScreenshotLocaleConfig()
+        val robot = MarketingScreenshotRobot(
+            composeRule = composeRule,
+            localeConfig = localeConfig
+        )
+        val reviewAiDraftScreenshotFileName = marketingScreenshotFileName(
+            localeConfig = localeConfig,
+            screenshotIndex = 4,
+            screenshotSlug = reviewAiDraftScreenshotSlug
+        )
 
         robot.prepareOpportunityCostReviewCardForReview()
         robot.revealAnswerAndWaitForRatings()
-        robot.openAiFromRevealedOpportunityCostCardAndPrepareDraft(draftText = reviewAiDraftMessage)
+        robot.openAiFromRevealedOpportunityCostCardAndPrepareDraft(
+            draftText = localeConfig.reviewAiDraftMessage
+        )
 
         val screenshotPath = robot.saveScreenshot(fileName = reviewAiDraftScreenshotFileName)
         val screenshotListing = robot.runShellCommand(command = "ls $screenshotPath")

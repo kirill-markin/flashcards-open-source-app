@@ -9,7 +9,7 @@ import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 import org.junit.runner.RunWith
 
-private const val reviewFrontScreenshotFileName: String = "en-1_review-card-front-google-play-opportunity-cost.png"
+private const val reviewFrontScreenshotSlug: String = "review-card-front-google-play-opportunity-cost"
 
 @ManualOnlyAndroidTest
 @RunWith(AndroidJUnit4::class)
@@ -24,7 +24,16 @@ class MarketingReviewFrontScreenshotScript {
 
     @Test
     fun generateOpportunityCostReviewFrontScreenshot() {
-        val robot = MarketingScreenshotRobot(composeRule = composeRule)
+        val localeConfig = activeMarketingScreenshotLocaleConfig()
+        val robot = MarketingScreenshotRobot(
+            composeRule = composeRule,
+            localeConfig = localeConfig
+        )
+        val reviewFrontScreenshotFileName = marketingScreenshotFileName(
+            localeConfig = localeConfig,
+            screenshotIndex = 1,
+            screenshotSlug = reviewFrontScreenshotSlug
+        )
 
         robot.prepareOpportunityCostReviewCardForReview()
 
