@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.app
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -42,7 +43,7 @@ class MarketingCardsScreenshotScript {
                 frontText = card.frontText,
                 backText = card.backText,
                 tags = listOf(card.subjectTag),
-                effortLevelTitle = "Medium"
+                effortLevel = EffortLevel.MEDIUM
             )
         }
 

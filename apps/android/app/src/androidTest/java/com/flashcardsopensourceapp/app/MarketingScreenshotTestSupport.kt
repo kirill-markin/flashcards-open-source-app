@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -22,10 +23,29 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
+import com.flashcardsopensourceapp.app.navigation.AiDestination
+import com.flashcardsopensourceapp.app.navigation.CardsDestination
+import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorEffortLevelTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorFrontSummaryCardTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorFrontTextFieldTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorSaveButtonTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorTagsSummaryCardTag
+import com.flashcardsopensourceapp.feature.cards.cardTagsAddButtonTag
+import com.flashcardsopensourceapp.feature.cards.cardTagsInputFieldTag
+import com.flashcardsopensourceapp.feature.cards.cardsAddCardButtonTag
+import com.flashcardsopensourceapp.feature.cards.cardsEmptyStateTag
+import com.flashcardsopensourceapp.feature.cards.cardsSearchFieldTag
+import com.flashcardsopensourceapp.feature.review.reviewRateAgainButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewRateEasyButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewRateHardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
 import java.io.BufferedReader
@@ -51,50 +71,51 @@ internal class MarketingScreenshotRobot(
         ensureLocaleApplied()
         openCardsTab()
         waitUntilWithSystemDialogMitigation {
-            composeRule.onAllNodesWithText(localeConfig.uiText.searchCardsPlaceholder).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText(localeConfig.uiText.emptyCardsMessage).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithTag(cardsSearchFieldTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(cardsEmptyStateTag).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
-    fun createCard(frontText: String, backText: String, tags: List<String>, effortLevelTitle: String) {
+    fun createCard(frontText: String, backText: String, tags: List<String>, effortLevel: EffortLevel) {
         ensureLocaleApplied()
         openCardsTab()
-        clickContentDescription(contentDescription = localeConfig.uiText.addCardContentDescription)
-        updateCardText(fieldTitle = localeConfig.uiText.frontFieldTitle, value = frontText)
-        updateCardText(fieldTitle = localeConfig.uiText.backFieldTitle, value = backText)
-        scrollToText(text = effortLevelTitle)
-        clickText(text = effortLevelTitle)
+        clickTag(tag = cardsAddCardButtonTag)
+        updateCardText(
+            summaryCardTag = cardEditorFrontSummaryCardTag,
+            textFieldTag = cardEditorFrontTextFieldTag,
+            value = frontText
+        )
+        updateCardText(
+            summaryCardTag = cardEditorBackSummaryCardTag,
+            textFieldTag = cardEditorBackTextFieldTag,
+            value = backText
+        )
+        scrollToNode(matcher = hasTestTag(cardEditorEffortLevelTag(effortLevel = effortLevel)))
+        clickTag(tag = cardEditorEffortLevelTag(effortLevel = effortLevel))
 
         if (tags.isNotEmpty()) {
-            clickText(text = localeConfig.uiText.tagsFieldTitle)
+            clickTag(tag = cardEditorTagsSummaryCardTag)
             tags.forEach { tag ->
                 dismissExternalSystemDialogIfPresent()
-                composeRule.onNodeWithText(localeConfig.uiText.addTagFieldTitle).performTextInput(tag)
+                composeRule.onNodeWithTag(cardTagsInputFieldTag).performTextInput(tag)
                 composeRule.waitForIdle()
                 dismissExternalSystemDialogIfPresent()
-                clickText(text = localeConfig.uiText.addTagButtonTitle)
+                clickTag(tag = cardTagsAddButtonTag)
             }
             tapBackIcon()
         }
 
-        scrollToText(text = localeConfig.uiText.saveButtonTitle)
-        waitForNode(
-            matcher = hasClickAction().and(other = hasText(localeConfig.uiText.saveButtonTitle))
-        )
-        clickNode(
-            matcher = hasClickAction().and(other = hasText(localeConfig.uiText.saveButtonTitle))
-        )
+        scrollToNode(matcher = hasTestTag(cardEditorSaveButtonTag))
+        clickTag(tag = cardEditorSaveButtonTag)
         waitUntilWithSystemDialogMitigation {
-            composeRule.onAllNodesWithText(localeConfig.uiText.searchCardsPlaceholder).fetchSemanticsNodes().isNotEmpty() &&
+            composeRule.onAllNodesWithTag(cardsSearchFieldTag).fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     fun openReviewTab() {
         ensureLocaleApplied()
-        clickNode(
-            matcher = hasText(localeConfig.uiText.reviewTabTitle).and(other = hasClickAction())
-        )
+        clickTag(tag = ReviewDestination.testTag)
     }
 
     fun prepareAiChatForCardHandoff() {
@@ -127,7 +148,7 @@ internal class MarketingScreenshotRobot(
             frontText = localeConfig.reviewCard.frontText,
             backText = localeConfig.reviewCard.backText,
             tags = localeConfig.reviewCard.tags,
-            effortLevelTitle = localeConfig.reviewCard.effortLevelTitle
+            effortLevel = EffortLevel.MEDIUM
         )
         openReviewTab()
         waitForReviewPrompt(frontText = localeConfig.reviewCard.frontText)
@@ -140,10 +161,10 @@ internal class MarketingScreenshotRobot(
         }
         clickTag(tag = reviewShowAnswerButtonTag)
         waitUntilWithSystemDialogMitigation {
-            composeRule.onAllNodesWithText(localeConfig.uiText.ratingAgainTitle).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText(localeConfig.uiText.ratingHardTitle).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText(localeConfig.uiText.ratingGoodTitle).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText(localeConfig.uiText.ratingEasyTitle).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithTag(reviewRateAgainButtonTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(reviewRateHardButtonTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(reviewRateGoodButtonTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(reviewRateEasyButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag(reviewRateGoodButtonTag).fetchSemanticsNode()
     }
@@ -199,15 +220,11 @@ internal class MarketingScreenshotRobot(
     }
 
     private fun openCardsTab() {
-        clickNode(
-            matcher = hasText(localeConfig.uiText.cardsTabTitle).and(other = hasClickAction())
-        )
+        clickTag(tag = CardsDestination.testTag)
     }
 
     private fun openAiTab() {
-        clickNode(
-            matcher = hasText(localeConfig.uiText.aiTabTitle).and(other = hasClickAction())
-        )
+        clickTag(tag = AiDestination.testTag)
     }
 
     private fun ensureLocaleApplied() {
@@ -229,10 +246,10 @@ internal class MarketingScreenshotRobot(
         hasAppliedLocale = true
     }
 
-    private fun updateCardText(fieldTitle: String, value: String) {
-        clickText(text = fieldTitle)
+    private fun updateCardText(summaryCardTag: String, textFieldTag: String, value: String) {
+        clickTag(tag = summaryCardTag)
         dismissExternalSystemDialogIfPresent()
-        composeRule.onAllNodes(hasSetTextAction())[0].performTextReplacement(value)
+        composeRule.onNodeWithTag(textFieldTag).performTextReplacement(value)
         composeRule.waitForIdle()
         dismissExternalSystemDialogIfPresent()
         tapBackIcon()
@@ -254,14 +271,17 @@ internal class MarketingScreenshotRobot(
         dismissExternalSystemDialogIfPresent()
     }
 
-    private fun scrollToText(text: String) {
-        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(text))
-    }
-
     private fun waitForNode(matcher: SemanticsMatcher) {
         waitUntilWithSystemDialogMitigation {
             composeRule.onAllNodes(matcher = matcher).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    private fun scrollToNode(matcher: SemanticsMatcher) {
+        dismissExternalSystemDialogIfPresent()
+        composeRule.onNode(hasScrollToNodeAction()).performScrollToNode(matcher)
+        composeRule.waitForIdle()
+        dismissExternalSystemDialogIfPresent()
     }
 
     private fun waitForReviewPrompt(frontText: String) {
@@ -324,13 +344,6 @@ internal class MarketingScreenshotRobot(
     private fun clickTag(tag: String) {
         dismissExternalSystemDialogIfPresent()
         composeRule.onNodeWithTag(tag).performClick()
-        composeRule.waitForIdle()
-        dismissExternalSystemDialogIfPresent()
-    }
-
-    private fun clickContentDescription(contentDescription: String) {
-        dismissExternalSystemDialogIfPresent()
-        composeRule.onNodeWithContentDescription(contentDescription).performClick()
         composeRule.waitForIdle()
         dismissExternalSystemDialogIfPresent()
     }
