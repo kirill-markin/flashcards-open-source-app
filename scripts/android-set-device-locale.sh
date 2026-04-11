@@ -18,6 +18,9 @@ case "$locale_prefix" in
     en)
         device_locale="en-US"
         ;;
+    ar)
+        device_locale="ar-EG"
+        ;;
     *)
         device_locale="$locale_prefix"
         ;;
