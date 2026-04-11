@@ -1,88 +1,253 @@
 # iOS Marketing Screenshots
 
-This document tracks repeatable iOS screenshot scripts for App Store marketing assets.
+This document explains the manual iOS App Store screenshot generator.
 
-## Current inventory
+The generator is a small manual pipeline built from:
 
-There are currently three iOS marketing screenshot themes and four tracked output PNG targets.
+- manual-only XCUITest entrypoints in `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/`
+- one shared wrapper script, `scripts/capture-ios-marketing-screenshot.sh`
+- four thin per-screenshot wrapper scripts in `scripts/`
+- deterministic localized fixture data used by both the UI tests and app-side UI-test seeding
 
-The review screenshot flow captures an exam-prep concept card about opportunity cost in two states:
+It is meant for committed App Store marketing PNG assets, not for CI or release-gate validation.
 
-- front-only before answer reveal
-- revealed answer with the rating buttons visible
+## What is included
 
-- Manual screenshot entrypoints:
-  - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingReviewFrontScreenshotTests.swift`
-  - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingReviewResultScreenshotTests.swift`
-- Shared screenshot helpers:
-  - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingManualScreenshotTestCase.swift`
-  - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingScreenshotFixtures.swift`
-- Manual wrapper scripts:
-  - `scripts/capture-ios-review-front-screenshot.sh`
-  - `scripts/capture-ios-review-screenshot.sh`
-- Output PNG targets:
-  - `apps/ios/docs/media/app-store-screenshots/iphone/en-1_review-card-front-app-store-opportunity-cost.png`
-  - `apps/ios/docs/media/app-store-screenshots/ipad/en-1_review-card-front-app-store-opportunity-cost.png`
-  - `apps/ios/docs/media/app-store-screenshots/iphone/en-2_review-card-result-app-store-opportunity-cost.png`
-  - `apps/ios/docs/media/app-store-screenshots/ipad/en-2_review-card-result-app-store-opportunity-cost.png`
+The current inventory is four screenshot outputs per locale:
 
-The AI draft screenshot flow starts from the same opportunity-cost review card, reveals the answer, opens the AI handoff from the review card, and captures the AI screen with the handed-off card attached plus an unsent draft request.
+1. Review front state
+2. Review revealed-answer state
+3. Cards list state
+4. Review AI draft state
 
-- Manual screenshot entrypoint: `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingReviewAiDraftScreenshotTests.swift`
-- Shared screenshot helpers:
-  - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingManualScreenshotTestCase.swift`
-  - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingScreenshotFixtures.swift`
-- Manual wrapper script: `scripts/capture-ios-review-ai-draft-screenshot.sh`
-- Output PNG targets:
-  - `apps/ios/docs/media/app-store-screenshots/iphone/en-4_review-card-ai-draft-app-store-opportunity-cost.png`
-  - `apps/ios/docs/media/app-store-screenshots/ipad/en-4_review-card-ai-draft-app-store-opportunity-cost.png`
+The review screenshots use the same opportunity-cost card in two UI states. The cards screenshot shows a localized concept-card list. The AI draft screenshot starts from the review card, reveals the answer, opens the AI handoff, and captures the pre-send draft state.
 
-The cards screenshot flow captures the `Cards` tab filled with exam-prep concept cards across multiple subjects.
+## Files involved
 
-- Manual screenshot entrypoint: `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingCardsScreenshotTests.swift`
-- Shared screenshot helpers:
-  - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingManualScreenshotTestCase.swift`
-  - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingScreenshotFixtures.swift`
-- Manual wrapper script: `scripts/capture-ios-cards-screenshot.sh`
-- Output PNG targets:
-  - `apps/ios/docs/media/app-store-screenshots/iphone/en-3_cards-list-app-store-vocabulary.png`
-  - `apps/ios/docs/media/app-store-screenshots/ipad/en-3_cards-list-app-store-vocabulary.png`
+Main scripts:
 
-## Run the flows
+- `scripts/capture-ios-marketing-screenshot.sh`
+- `scripts/capture-ios-review-front-screenshot.sh`
+- `scripts/capture-ios-review-screenshot.sh`
+- `scripts/capture-ios-cards-screenshot.sh`
+- `scripts/capture-ios-review-ai-draft-screenshot.sh`
 
-Prerequisites:
+Manual XCUITest entrypoints:
 
-- Boot one local iOS 26 simulator manually before running a wrapper script.
-- If more than one simulator is booted, set `FLASHCARDS_IOS_SIMULATOR_ID=<device-uuid>` explicitly.
-- Run from the repository root.
+- `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingReviewFrontScreenshotTests.swift`
+- `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingReviewResultScreenshotTests.swift`
+- `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingCardsScreenshotTests.swift`
+- `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingReviewAiDraftScreenshotTests.swift`
 
-Command:
+Shared screenshot support:
+
+- `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingManualScreenshotTestCase.swift`
+- `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingScreenshotFixtures.swift`
+- `apps/ios/Flashcards/Flashcards/Cloud/FlashcardsStore+CloudUITest.swift`
+
+What each layer does:
+
+- `capture-ios-marketing-screenshot.sh` resolves the locale, selects the already booted simulator, derives the device family, runs one `-only-testing` XCUITest target, and verifies that the PNG was written.
+- The four thin wrapper scripts only provide the test identifier, screenshot index, screenshot slug, and description for one screenshot.
+- `MarketingManualScreenshotTestCase.swift` gates these tests behind `FLASHCARDS_INCLUDE_MANUAL_SCREENSHOT_TESTS=true`, applies the launch environment, and writes the PNG file.
+- `MarketingScreenshotFixtures.swift` defines the canonical locale list, locale aliases, localized fixture text, and the expected output filenames.
+- `FlashcardsStore+CloudUITest.swift` seeds the localized UI-test content used by the screenshot flows.
+
+## Supported locales
+
+Canonical supported locale codes:
+
+- `en-US`
+- `ar`
+- `zh-Hans`
+- `de`
+- `hi`
+- `ja`
+- `ru`
+- `es-MX`
+- `es-ES`
+
+Default locale:
+
+- `en-US`
+
+Supported input aliases:
+
+- `en` -> `en-US`
+- `zh-CN` -> `zh-Hans`
+- `de-DE` -> `de`
+- `hi-IN` -> `hi`
+- `ja-JP` -> `ja`
+- `ru-RU` -> `ru`
+- `es-419` -> `es-MX`
+
+How locale selection works:
+
+1. `--locale <code>` wins if you pass it.
+2. Otherwise `FLASHCARDS_MARKETING_SCREENSHOT_LOCALE` is used if set.
+3. Otherwise the generator falls back to `en-US`.
+
+List the canonical locale codes with:
 
 ```bash
+bash scripts/capture-ios-marketing-screenshot.sh --list-locales
+```
+
+If you pass an unsupported locale or alias, the wrapper exits with an error before running XCUITest.
+
+## iPhone vs iPad output selection
+
+The generator does not have a `--family` flag.
+
+It derives the output family from the one already booted simulator:
+
+- simulator name contains `iPhone` -> writes into `iphone/`
+- simulator name contains `iPad` -> writes into `ipad/`
+
+This means:
+
+- boot an iPhone simulator if you want iPhone screenshots
+- boot an iPad simulator if you want iPad screenshots
+- if more than one simulator is booted, set `FLASHCARDS_IOS_SIMULATOR_ID=<device-uuid>`
+
+The scripts do not boot or switch simulators for you. They only resolve a booted simulator, wait for `bootstatus`, and run the selected manual test.
+
+## Output paths and filenames
+
+Outputs are written directly into:
+
+- `apps/ios/docs/media/app-store-screenshots/iphone/`
+- `apps/ios/docs/media/app-store-screenshots/ipad/`
+
+There are no locale subdirectories. Locale is encoded in the file name:
+
+- `<locale>-<index>_<slug>.png`
+
+Current filenames:
+
+- `<locale>-1_review-card-front-app-store-opportunity-cost.png`
+- `<locale>-2_review-card-result-app-store-opportunity-cost.png`
+- `<locale>-3_cards-list-app-store-vocabulary.png`
+- `<locale>-4_review-card-ai-draft-app-store-opportunity-cost.png`
+
+Examples:
+
+- `apps/ios/docs/media/app-store-screenshots/iphone/en-US-1_review-card-front-app-store-opportunity-cost.png`
+- `apps/ios/docs/media/app-store-screenshots/ipad/ar-4_review-card-ai-draft-app-store-opportunity-cost.png`
+
+## Prerequisites
+
+Before running any screenshot script:
+
+- start from the repository root
+- boot exactly one local iOS simulator manually
+- use an iPhone simulator for iPhone output or an iPad simulator for iPad output
+- if multiple simulators are already booted, set `FLASHCARDS_IOS_SIMULATOR_ID`
+
+These flows are manual on purpose:
+
+- they are not part of default `xcodebuild test`
+- they are not part of iOS CI
+- they are not part of the release-gate smoke suite
+
+## Run one screenshot
+
+Each wrapper script generates one PNG.
+
+Review front:
+
+```bash
+bash scripts/capture-ios-review-front-screenshot.sh
+```
+
+Review result:
+
+```bash
+bash scripts/capture-ios-review-screenshot.sh
+```
+
+Cards list:
+
+```bash
+bash scripts/capture-ios-cards-screenshot.sh
+```
+
+Review AI draft:
+
+```bash
+bash scripts/capture-ios-review-ai-draft-screenshot.sh
+```
+
+Run one screenshot for a specific locale:
+
+```bash
+bash scripts/capture-ios-review-front-screenshot.sh --locale es-ES
+```
+
+Or use the environment variable instead:
+
+```bash
+FLASHCARDS_MARKETING_SCREENSHOT_LOCALE=zh-Hans bash scripts/capture-ios-cards-screenshot.sh
+```
+
+## Generate all four screenshots for one locale
+
+Use one locale explicitly and run the four wrappers in order:
+
+```bash
+bash scripts/capture-ios-review-front-screenshot.sh --locale es-ES
+bash scripts/capture-ios-review-screenshot.sh --locale es-ES
+bash scripts/capture-ios-cards-screenshot.sh --locale es-ES
+bash scripts/capture-ios-review-ai-draft-screenshot.sh --locale es-ES
+```
+
+Or set the locale once in the environment:
+
+```bash
+export FLASHCARDS_MARKETING_SCREENSHOT_LOCALE=es-ES
+
 bash scripts/capture-ios-review-front-screenshot.sh
 bash scripts/capture-ios-review-screenshot.sh
 bash scripts/capture-ios-cards-screenshot.sh
 bash scripts/capture-ios-review-ai-draft-screenshot.sh
 ```
 
-These scripts are not part of iOS CI, release gates, or default `xcodebuild test` runs.
-They execute only when the wrapper script sets `FLASHCARDS_INCLUDE_MANUAL_SCREENSHOT_TESTS=true`.
+## Generate for multiple locales
 
-Each wrapper script:
+For a clean multi-locale run, keep one simulator family booted and loop through the locales:
 
-1. Resolves one already booted simulator.
-2. Detects whether that simulator is an iPhone or iPad.
-3. Runs one manual-only XCUITest entrypoint with `-only-testing`.
-4. Saves the PNG directly into `apps/ios/docs/media/app-store-screenshots/<iphone|ipad>/`.
+```bash
+for locale in en-US ar zh-Hans de hi ja ru es-MX es-ES; do
+  bash scripts/capture-ios-review-front-screenshot.sh --locale "$locale"
+  bash scripts/capture-ios-review-screenshot.sh --locale "$locale"
+  bash scripts/capture-ios-cards-screenshot.sh --locale "$locale"
+  bash scripts/capture-ios-review-ai-draft-screenshot.sh --locale "$locale"
+done
+```
 
-## Pattern for future flows
+If you need both iPhone and iPad assets, run the full locale loop twice:
 
-Future iOS marketing screenshot flows should follow the same structure:
+1. once with one booted iPhone simulator
+2. once with one booted iPad simulator
 
-1. Add a dedicated manual screenshot entrypoint that prepares the required in-app state.
-2. Seed deterministic data through the existing UI-test reset-state mechanism when possible.
+That keeps filenames predictable and ensures outputs land in the correct family folder.
+
+## Important constraints and caveats
+
+- Only one booted simulator is allowed unless you set `FLASHCARDS_IOS_SIMULATOR_ID`.
+- Device family is inferred from the simulator name, so the booted simulator directly controls whether output lands in `iphone/` or `ipad/`.
+- The scripts expect the screenshot file to exist after the XCUITest finishes and fail if it was not written.
+- Manual screenshot tests run only through the wrapper scripts because the wrapper sets the required environment variables.
+- Locale-specific content is deterministic and comes from the fixture files listed above. Update those files if the screenshot copy or seeded cards need to change.
+
+## Pattern for future screenshot flows
+
+Future marketing screenshot flows should keep the same shape:
+
+1. Add one dedicated manual XCUITest entrypoint for the new surface.
+2. Seed deterministic locale-aware data through the existing UI-test reset-state path.
 3. Drive the UI only as far as needed for the exact marketing surface.
-4. Save the PNG directly from XCUITest into the committed iOS marketing media directory.
-5. Add a small shell wrapper in `scripts/` that runs only that entrypoint with `-only-testing`.
+4. Save the PNG directly into `apps/ios/docs/media/app-store-screenshots/<family>/`.
+5. Add one small wrapper in `scripts/` that calls `capture-ios-marketing-screenshot.sh` with the new test identifier, index, and slug.
 
-This keeps screenshot generation deterministic, reviewable, runnable without manual simulator interaction after boot, and fully separate from the normal iOS smoke suite.
+That keeps the pipeline reviewable, deterministic, localized, and separate from the normal iOS smoke suite.

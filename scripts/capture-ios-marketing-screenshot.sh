@@ -2,15 +2,152 @@
 
 set -euo pipefail
 
-if [[ $# -ne 4 ]]; then
-    echo "Usage: $0 <test_identifier> <output_file_name> <localization_code> <description>" >&2
+supported_locales=(
+    "en-US"
+    "ar"
+    "zh-Hans"
+    "de"
+    "hi"
+    "ja"
+    "ru"
+    "es-MX"
+    "es-ES"
+)
+
+print_usage() {
+    cat <<'EOF' >&2
+Usage:
+  capture-ios-marketing-screenshot.sh [--locale <code>] <test_identifier> <screenshot_index> <screenshot_slug> <description>
+  capture-ios-marketing-screenshot.sh --list-locales
+
+Supported locales:
+  en-US
+  ar
+  zh-Hans
+  de
+  hi
+  ja
+  ru
+  es-MX
+  es-ES
+
+Environment:
+  FLASHCARDS_MARKETING_SCREENSHOT_LOCALE   Canonical locale code or supported alias.
+  FLASHCARDS_IOS_SIMULATOR_ID              Booted simulator device UUID.
+EOF
+}
+
+print_supported_locales() {
+    printf '%s\n' "${supported_locales[@]}"
+}
+
+canonicalize_locale() {
+    local raw_locale="$1"
+
+    case "$raw_locale" in
+        en | en-US)
+            echo "en-US"
+            ;;
+        ar)
+            echo "ar"
+            ;;
+        zh-CN | zh-Hans)
+            echo "zh-Hans"
+            ;;
+        de | de-DE)
+            echo "de"
+            ;;
+        hi | hi-IN)
+            echo "hi"
+            ;;
+        ja | ja-JP)
+            echo "ja"
+            ;;
+        ru | ru-RU)
+            echo "ru"
+            ;;
+        es-MX | es-419)
+            echo "es-MX"
+            ;;
+        es-ES)
+            echo "es-ES"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+resolve_requested_locale() {
+    local cli_locale="$1"
+    local env_locale="${FLASHCARDS_MARKETING_SCREENSHOT_LOCALE:-}"
+    local requested_locale=""
+
+    if [[ -n "$cli_locale" ]]; then
+        requested_locale="$cli_locale"
+    elif [[ -n "$env_locale" ]]; then
+        requested_locale="$env_locale"
+    else
+        requested_locale="en-US"
+    fi
+
+    if ! canonicalize_locale "$requested_locale"; then
+        echo "Unsupported iOS marketing screenshot locale: $requested_locale" >&2
+        echo "Supported locales: ${supported_locales[*]}" >&2
+        exit 1
+    fi
+}
+
+if [[ $# -eq 0 ]]; then
+    print_usage
     exit 1
 fi
 
-test_identifier="$1"
-output_file_name="$2"
-localization_code="$3"
-description="$4"
+requested_locale=""
+positional_arguments=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --locale)
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Missing value after --locale." >&2
+                print_usage
+                exit 1
+            fi
+            requested_locale="$1"
+            shift
+            ;;
+        --locale=*)
+            requested_locale="${1#*=}"
+            shift
+            ;;
+        --list-locales)
+            print_supported_locales
+            exit 0
+            ;;
+        --help | -h)
+            print_usage
+            exit 0
+            ;;
+        *)
+            positional_arguments+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [[ "${#positional_arguments[@]}" -ne 4 ]]; then
+    print_usage
+    exit 1
+fi
+
+test_identifier="${positional_arguments[0]}"
+screenshot_index="${positional_arguments[1]}"
+screenshot_slug="${positional_arguments[2]}"
+description="${positional_arguments[3]}"
+localization_code="$(resolve_requested_locale "$requested_locale")"
+output_file_name="${localization_code}-${screenshot_index}_${screenshot_slug}.png"
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 project_path="$repo_root/apps/ios/Flashcards/Flashcards Open Source App.xcodeproj"
@@ -76,6 +213,7 @@ output_path="$output_directory/$output_file_name"
 mkdir -p "$output_directory"
 
 echo "Running manual iOS marketing screenshot script for $description on $simulator_name."
+echo "Locale: $localization_code"
 xcrun simctl bootstatus "$simulator_id" -b
 
 FLASHCARDS_INCLUDE_MANUAL_SCREENSHOT_TESTS="true" \

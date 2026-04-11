@@ -4,13 +4,15 @@ import XCTest
 final class MarketingReviewResultScreenshotTests: MarketingManualScreenshotTestCase {
     @MainActor
     func testGenerateOpportunityCostReviewResultScreenshot() throws {
+        let localeFixture = try self.marketingLocaleFixture()
+
         try self.step("launch opportunity cost review result state") {
             try self.launchMarketingApplication(
                 resetState: .marketingOpportunityCostReviewCard,
                 selectedTab: .review
             )
             try self.assertTextExists(
-                MarketingScreenshotFixture.opportunityCostReviewFrontText,
+                localeFixture.reviewCard.frontText,
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
             try self.tapButton(
@@ -26,7 +28,7 @@ final class MarketingReviewResultScreenshotTests: MarketingManualScreenshotTestC
 
         try self.step("capture review result screenshot") {
             let screenshotURL = try self.captureMarketingScreenshot(
-                fileName: MarketingScreenshotFixture.reviewResultFileName
+                fileName: localeFixture.reviewResultFileName
             )
             XCTAssertTrue(
                 FileManager.default.fileExists(atPath: screenshotURL.path),
