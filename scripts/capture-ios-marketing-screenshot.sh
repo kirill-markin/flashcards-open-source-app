@@ -258,6 +258,9 @@ echo "Running manual iOS marketing screenshot script for $description on $simula
 echo "Locale: $localization_code"
 xcrun simctl bootstatus "$simulator_id" -b
 
+FLASHCARDS_INCLUDE_MANUAL_SCREENSHOT_TESTS=true \
+FLASHCARDS_MARKETING_SCREENSHOT_OUTPUT_DIRECTORY="$output_directory" \
+FLASHCARDS_MARKETING_SCREENSHOT_LOCALIZATION="$localization_code" \
 xcodebuild \
   -project "$project_path" \
   -scheme "$scheme_name" \

@@ -23,9 +23,8 @@ final class MarketingReviewScreenshotsTests: MarketingManualScreenshotTestCase {
         }
 
         try self.step("open review AI draft state") {
-            try self.openAiFromRevealedReviewCardAndPrepareDraft(
-                draftText: localeFixture.reviewAiDraftMessage
-            )
+            try self.launchOpportunityCostReviewCardAiHandoff()
+            try self.prepareAiDraftWithCurrentAttachment(draftText: localeFixture.reviewAiDraftMessage)
             try self.waitForAiComposerValue(
                 localeFixture.reviewAiDraftMessage,
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
