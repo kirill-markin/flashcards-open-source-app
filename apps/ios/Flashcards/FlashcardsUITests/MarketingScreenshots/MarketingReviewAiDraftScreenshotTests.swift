@@ -11,8 +11,8 @@ final class MarketingReviewAiDraftScreenshotTests: MarketingManualScreenshotTest
                 resetState: .marketingOpportunityCostReviewCard,
                 selectedTab: .review
             )
-            try self.assertTextExists(
-                localeFixture.reviewCard.frontText,
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
             try self.tapButton(
@@ -23,7 +23,7 @@ final class MarketingReviewAiDraftScreenshotTests: MarketingManualScreenshotTest
             try self.openAiFromRevealedReviewCardAndPrepareDraft(
                 draftText: localeFixture.reviewAiDraftMessage
             )
-            try self.assertTextExists(
+            try self.waitForAiComposerValue(
                 localeFixture.reviewAiDraftMessage,
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
