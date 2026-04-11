@@ -77,7 +77,7 @@ private fun makeEnglishUnitedStatesMarketingScreenshotLocaleConfig(
             tags = listOf("economics"),
             effortLevelTitle = "Medium"
         ),
-        reviewAiDraftMessage = "Create 6 new flashcards on the same economics topic, covering closely related ideas that are not already in this deck.",
+        reviewAiDraftMessage = "Create 6 new flashcards on the same economics topic, covering closely related ideas that we do not already have.",
         cards = listOf(
             MarketingConceptCard(
                 frontText = "In economics, what is opportunity cost?",
@@ -486,7 +486,7 @@ private val russianMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleCon
         tags = listOf("экономика"),
         effortLevelTitle = "Средний"
     ),
-    reviewAiDraftMessage = "Создай 6 новых карточек по той же теме экономики, которые охватывают тесно связанные идеи и которых ещё нет в этой колоде.",
+    reviewAiDraftMessage = "Создай 6 новых карточек по той же теме экономики, которые охватывают тесно связанные идеи и которых у нас ещё нет.",
     cards = listOf(
         MarketingConceptCard(
             frontText = "Что такое альтернативная стоимость в экономике?",
