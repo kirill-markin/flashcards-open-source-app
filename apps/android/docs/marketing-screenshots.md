@@ -9,7 +9,7 @@ Screenshot-only translated app resources belong in `apps/android/app/src/marketi
 
 ## Current inventory
 
-There are currently three Android marketing screenshot themes and four tracked output PNG targets.
+There are currently two Android manual capture flows and four tracked output PNG targets.
 
 The screenshot catalog currently defines these locale prefixes:
 
@@ -25,28 +25,19 @@ The screenshot catalog currently defines these locale prefixes:
 - `es-ES`
 - `es-US`
 
-The review screenshot flow captures an exam-prep concept card about opportunity cost in two states:
+The review screenshot chain captures an exam-prep concept card about opportunity cost in three states:
 
 - front-only before answer reveal
 - revealed answer with the rating buttons visible
+- AI handoff screen with the handed-off card attached plus an unsent draft request
 
-- Manual screenshot entrypoints:
-  - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingReviewFrontScreenshotScript.kt`
-  - `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingReviewScreenshotScript.kt`
+- Manual screenshot entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingReviewScreenshotScript.kt`
 - Shared screenshot helpers: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotTestSupport.kt`
-- Manual wrapper scripts:
-  - `scripts/capture-android-review-front-screenshot.sh`
-  - `scripts/capture-android-review-screenshot.sh`
+- Manual wrapper script: `scripts/capture-android-review-screenshot.sh`
 - Output PNG targets:
   - `apps/android/docs/media/play-store-screenshots/en-1_review-card-front-google-play-opportunity-cost.png`
   - `apps/android/docs/media/play-store-screenshots/en-2_review-card-result-google-play-opportunity-cost.png`
-
-The AI draft screenshot flow starts from the same opportunity-cost review card, reveals the answer, opens the AI handoff from the review card, and captures the AI screen with the handed-off card attached plus an unsent draft request.
-
-- Manual screenshot entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingReviewAiDraftScreenshotScript.kt`
-- Shared screenshot helpers: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotTestSupport.kt`
-- Manual wrapper script: `scripts/capture-android-review-ai-draft-screenshot.sh`
-- Output PNG target: `apps/android/docs/media/play-store-screenshots/en-4_review-card-ai-draft-google-play-opportunity-cost.png`
+  - `apps/android/docs/media/play-store-screenshots/en-4_review-card-ai-draft-google-play-opportunity-cost.png`
 
 The cards screenshot flow captures the `Cards` tab filled with exam-prep concept cards across multiple subjects.
 
@@ -65,29 +56,23 @@ Prerequisites:
 Command:
 
 ```bash
-bash scripts/capture-android-review-front-screenshot.sh
 bash scripts/capture-android-review-screenshot.sh
-bash scripts/capture-android-review-ai-draft-screenshot.sh
 bash scripts/capture-android-cards-screenshot.sh
 ```
 
 To target a configured locale other than the default `en`, set `FLASHCARDS_MARKETING_LOCALE_PREFIX` for the wrapper run:
 
 ```bash
-FLASHCARDS_MARKETING_LOCALE_PREFIX=de-DE bash scripts/capture-android-review-front-screenshot.sh
+FLASHCARDS_MARKETING_LOCALE_PREFIX=de-DE bash scripts/capture-android-review-screenshot.sh
 ```
 
 These scripts are not part of Android CI, release gates, or default `androidTest` runs.
 They exist only to generate marketing screenshots on demand.
 They run `:app:connectedMarketingScreenshotAndroidTest`, not the normal debug instrumentation task, so screenshot-only translations do not affect the Play-first `debug` and `release` builds.
 
-The review front wrapper script runs the manual-only pre-reveal review entrypoint, saves the front-only PNG into `/sdcard/Download/flashcards-marketing-screenshots/`, and then pulls that file into the committed marketing media directory.
+The review wrapper script runs the combined manual-only review-chain entrypoint, saves screenshots 1, 2, and 4 into `/sdcard/Download/flashcards-marketing-screenshots/`, and then pulls those files into the committed marketing media directory.
 
-The review result wrapper script runs the manual-only revealed-answer review entrypoint, saves the revealed-answer PNG into the same device directory, and then pulls that file into the committed marketing media directory.
-
-The review AI draft wrapper script runs the manual-only AI handoff entrypoint, saves the AI draft PNG into the same device directory, and then pulls that file into the committed marketing media directory.
-
-The cards wrapper script runs the manual-only cards screenshot entrypoint, saves the cards PNG into the same device directory, and then pulls that file into the committed marketing media directory.
+The cards wrapper script runs the manual-only cards screenshot entrypoint, saves screenshot 3 into the same device directory, and then pulls that file into the committed marketing media directory.
 
 ## Pattern for future flows
 
@@ -95,7 +80,7 @@ Future marketing screenshot flows should follow the same structure:
 
 1. Add a dedicated manual screenshot entrypoint that creates or prepares the required in-app state.
 2. Drive the UI to the exact screen that marketing needs.
-3. Save the screenshot PNG into `/sdcard/Download/flashcards-marketing-screenshots/` from instrumentation.
+3. Save the screenshot PNG or PNGs into `/sdcard/Download/flashcards-marketing-screenshots/` from instrumentation.
 4. Add a small shell wrapper in `scripts/` that runs just that manual entrypoint and pulls the generated PNG file or files into `apps/android/docs/media/play-store-screenshots/`.
 
 This keeps screenshot generation deterministic, reviewable, runnable without manual emulator interaction, and fully separate from the normal Android test suite and shipping Play-first localization flow.
