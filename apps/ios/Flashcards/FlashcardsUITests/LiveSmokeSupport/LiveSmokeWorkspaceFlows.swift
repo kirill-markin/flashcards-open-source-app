@@ -446,26 +446,42 @@ extension LiveSmokeTestCase {
     func completeCloudWorkspaceSelectionIfNeeded() throws -> Bool {
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds * 3)
         var didUseWorkspaceChooser = false
+        var lastObservedState: LiveSmokeCloudSignInPostSendState = .unknown
 
         while Date() < deadline {
-            if self.isAccountStatusLinked() {
+            let currentState = self.resolvedCloudSignInPostSendState()
+            lastObservedState = currentState
+
+            switch currentState {
+            case .linkedAccount:
                 return didUseWorkspaceChooser
+            case .workspaceChooser:
+                if didUseWorkspaceChooser == false {
+                    try self.createWorkspaceInChooser()
+                    didUseWorkspaceChooser = true
+                    continue
+                }
+            case .sendCodeInFlight, .postAuthLoading, .postAuthSync, .unknown:
+                break
+            case .authError(let message):
+                throw LiveSmokeFailure.unexpectedAccountState(
+                    message: "Cloud sign-in send-code flow failed before workspace selection. Visible auth error: \(message)",
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            case .postAuthFailure(let message):
+                throw LiveSmokeFailure.unexpectedAccountState(
+                    message: "Cloud sign-in finished authentication but failed during workspace setup or initial sync. Visible post-auth failure: \(message)",
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
             }
 
-            let chooserScreen = self.app.collectionViews[LiveSmokeIdentifier.cloudWorkspaceChooserScreen].firstMatch
-            let chooserVisible = chooserScreen.exists
-
-            if chooserVisible {
-                try self.createWorkspaceInChooser()
-                didUseWorkspaceChooser = true
-                continue
-            }
-
-            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
         }
 
         throw LiveSmokeFailure.unexpectedAccountState(
-            message: "Timed out waiting for linked account state after post-auth workspace selection.",
+            message: "Timed out waiting for a terminal post-send cloud sign-in state. Last observed state: \(lastObservedState.diagnosticLabel).",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
@@ -506,12 +522,12 @@ extension LiveSmokeTestCase {
     func tapFirstExistingWorkspaceButtonInChooser() throws {
         let chooserList = self.app.collectionViews[LiveSmokeIdentifier.cloudWorkspaceChooserScreen].firstMatch
         let existingWorkspaceButton = chooserList.buttons
-            .matching(NSPredicate(format: "identifier BEGINSWITH %@", "cloudSignIn.existingWorkspace."))
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", LiveSmokeIdentifier.cloudSignInExistingWorkspacePrefix))
             .firstMatch
 
         if existingWorkspaceButton.exists == false {
             throw LiveSmokeFailure.missingElement(
-                identifier: "cloudSignIn.existingWorkspace.*",
+                identifier: "\(LiveSmokeIdentifier.cloudSignInExistingWorkspacePrefix)*",
                 timeoutSeconds: LiveSmokeConfiguration.shortUiTimeoutSeconds,
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
@@ -521,7 +537,7 @@ extension LiveSmokeTestCase {
         let identifier = existingWorkspaceButton.identifier
         if identifier.isEmpty {
             throw LiveSmokeFailure.missingElement(
-                identifier: "cloudSignIn.existingWorkspace.*",
+                identifier: "\(LiveSmokeIdentifier.cloudSignInExistingWorkspacePrefix)*",
                 timeoutSeconds: LiveSmokeConfiguration.shortUiTimeoutSeconds,
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
