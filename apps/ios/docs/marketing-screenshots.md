@@ -103,11 +103,13 @@ It derives the output family from the one already booted simulator:
 
 This means:
 
-- boot an iPhone simulator if you want iPhone screenshots
+- boot `iPhone 14 Plus` if you want iPhone screenshots
 - boot an iPad simulator if you want iPad screenshots
 - if more than one simulator is booted, set `FLASHCARDS_IOS_SIMULATOR_ID=<device-uuid>`
 
 The scripts do not boot or switch simulators for you. They only resolve a booted simulator, wait for `bootstatus`, and run the selected manual test.
+
+For the committed iPhone App Store assets, treat `iPhone 14 Plus` as the canonical simulator target. Do not regenerate the iPhone PNG set on a different iPhone model unless the screenshot policy is intentionally changed in this document.
 
 ## Output paths and filenames
 
@@ -138,7 +140,7 @@ Before running any screenshot script:
 
 - start from the repository root
 - boot exactly one local iOS simulator manually
-- use an iPhone simulator for iPhone output or an iPad simulator for iPad output
+- use `iPhone 14 Plus` for iPhone output or an iPad simulator for iPad output
 - if multiple simulators are already booted, set `FLASHCARDS_IOS_SIMULATOR_ID`
 
 These flows are manual on purpose:
