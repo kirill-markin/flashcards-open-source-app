@@ -952,11 +952,11 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
             )
         )
 
-        await waitForBackgroundAIChatTasks(store: store)
+        await waitForAIChatBootstrapToSettle(store: store)
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
 
         await gate.release()
-        await store.waitForPendingStatePersistence()
+        await waitForAIChatToolRunPostSyncToSettle(store: store)
 
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
         XCTAssertFalse(store.pendingToolRunPostSync)
