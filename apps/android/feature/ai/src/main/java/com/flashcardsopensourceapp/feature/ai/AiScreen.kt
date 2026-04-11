@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddComment
@@ -336,36 +337,6 @@ internal fun AiRouteContent(
                     }
                 }
             )
-        },
-        bottomBar = {
-            if (showInteractiveConversation) {
-                AiComposer(
-                    uiState = uiState,
-                    onDraftMessageChange = onDraftMessageChange,
-                    onApplyComposerSuggestion = onApplyComposerSuggestion,
-                    onSendMessage = onSendMessage,
-                    onCancelStreaming = onCancelStreaming,
-                    onRemovePendingAttachment = onRemovePendingAttachment,
-                    onOpenAttachmentMenu = {
-                        isAttachmentSheetVisible = true
-                    },
-                    onToggleDictation = {
-                        handleDictationToggle(
-                            activity = activity,
-                            dictationState = uiState.dictationState,
-                            textProvider = textProvider,
-                            dictationRecorder = dictationRecorder,
-                            onStartDictationPermissionRequest = onStartDictationPermissionRequest,
-                            onStartDictationRecording = onStartDictationRecording,
-                            onTranscribeRecordedAudio = onTranscribeRecordedAudio,
-                            onCancelDictation = onCancelDictation,
-                            onShowAlert = onShowAlert,
-                            onShowErrorMessage = onShowErrorMessage,
-                            microphonePermissionLauncher = microphonePermissionLauncher
-                        )
-                    }
-                )
-            }
         }
     ) { innerPadding ->
         val contentModifier = Modifier
@@ -408,18 +379,54 @@ internal fun AiRouteContent(
                 }
             }
         } else {
-            AiConversation(
-                messages = uiState.messages,
-                currentWorkspaceName = uiState.currentWorkspaceName,
-                isStreaming = uiState.isStreaming,
-                onOpenAccountStatus = onOpenAccountStatus,
-                onDismissComposerFocus = dismissComposerFocus,
-                contentPadding = PaddingValues(
-                    horizontal = 16.dp,
-                    vertical = 16.dp
-                ),
+            Column(
                 modifier = contentModifier
-            )
+            ) {
+                AiConversation(
+                    messages = uiState.messages,
+                    currentWorkspaceName = uiState.currentWorkspaceName,
+                    isStreaming = uiState.isStreaming,
+                    onOpenAccountStatus = onOpenAccountStatus,
+                    onDismissComposerFocus = dismissComposerFocus,
+                    contentPadding = PaddingValues(
+                        horizontal = 16.dp,
+                        vertical = 16.dp
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(weight = 1f)
+                )
+
+                if (showInteractiveConversation) {
+                    AiComposer(
+                        uiState = uiState,
+                        onDraftMessageChange = onDraftMessageChange,
+                        onApplyComposerSuggestion = onApplyComposerSuggestion,
+                        onSendMessage = onSendMessage,
+                        onCancelStreaming = onCancelStreaming,
+                        onRemovePendingAttachment = onRemovePendingAttachment,
+                        onOpenAttachmentMenu = {
+                            isAttachmentSheetVisible = true
+                        },
+                        onToggleDictation = {
+                            handleDictationToggle(
+                                activity = activity,
+                                dictationState = uiState.dictationState,
+                                textProvider = textProvider,
+                                dictationRecorder = dictationRecorder,
+                                onStartDictationPermissionRequest = onStartDictationPermissionRequest,
+                                onStartDictationRecording = onStartDictationRecording,
+                                onTranscribeRecordedAudio = onTranscribeRecordedAudio,
+                                onCancelDictation = onCancelDictation,
+                                onShowAlert = onShowAlert,
+                                onShowErrorMessage = onShowErrorMessage,
+                                microphonePermissionLauncher = microphonePermissionLauncher
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
     }
 
