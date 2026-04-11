@@ -46,7 +46,7 @@ What each layer does:
 - `capture-ios-marketing-screenshot.sh` resolves the locale, selects the already booted simulator, derives the device family, runs one `-only-testing` XCUITest target, and verifies that each expected PNG was written.
 - `capture-ios-review-screenshots.sh` runs the combined review scenario and verifies screenshots 1, 2, and 4 in one pass.
 - `capture-ios-cards-screenshot.sh` runs the separate cards-list scenario and verifies screenshot 3.
-- `MarketingManualScreenshotTestCase.swift` gates these tests behind `FLASHCARDS_INCLUDE_MANUAL_SCREENSHOT_TESTS=true`, applies the launch environment, and writes the PNG file.
+- `MarketingManualScreenshotTestCase.swift` gates these tests behind the wrapper-provided runtime configuration, falls back to the launch environment only if that file is absent, and writes the PNG file.
 - `MarketingScreenshotFixtures.swift` defines the canonical locale list, locale aliases, localized fixture text, and the expected output filenames.
 - `FlashcardsStore+CloudUITest.swift` seeds the localized UI-test content used by the screenshot flows.
 
@@ -224,10 +224,10 @@ That keeps filenames predictable and ensures outputs land in the correct family 
 
 - Only one booted simulator is allowed unless you set `FLASHCARDS_IOS_SIMULATOR_ID`.
 - Device family is inferred from the simulator name, so the booted simulator directly controls whether output lands in `iphone/` or `ipad/`.
-- Run screenshot wrappers sequentially, not in parallel. The current generator uses one shared runtime configuration file in `/tmp`, so overlapping runs can make one flow skip or read the wrong configuration.
+- Run screenshot wrappers sequentially, not in parallel. The current generator uses one shared runtime configuration file at `/tmp/flashcards-open-source-app-ios-marketing-screenshot-config.json`, so overlapping runs can make one flow skip or read the wrong configuration.
 - Prefer running the generator without a visible simulator window. The wrappers do not require interactive simulator UI, and hiding `Simulator.app` avoids unnecessary rendering load on the local machine.
 - The scripts expect every declared screenshot file to exist after the XCUITest finishes and fail if any expected PNG was not written.
-- Manual screenshot tests run only through the wrapper scripts because the wrapper sets the required environment variables.
+- Manual screenshot tests run only through the wrapper scripts because the wrapper writes the required runtime configuration file and also provides environment fallback values.
 - Locale-specific content is deterministic and comes from the fixture files listed above. Update those files if the screenshot copy or seeded cards need to change.
 
 ## Pattern for future screenshot flows
