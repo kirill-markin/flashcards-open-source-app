@@ -188,6 +188,8 @@ bash scripts/capture-ios-review-screenshots.sh --locale es-ES
 bash scripts/capture-ios-cards-screenshot.sh --locale es-ES
 ```
 
+Do not run these two wrappers at the same time. Run the second command only after the first one exits.
+
 Or set the locale once in the environment:
 
 ```bash
@@ -219,6 +221,7 @@ That keeps filenames predictable and ensures outputs land in the correct family 
 
 - Only one booted simulator is allowed unless you set `FLASHCARDS_IOS_SIMULATOR_ID`.
 - Device family is inferred from the simulator name, so the booted simulator directly controls whether output lands in `iphone/` or `ipad/`.
+- Run screenshot wrappers sequentially, not in parallel. The current generator uses one shared runtime configuration file in `/tmp`, so overlapping runs can make one flow skip or read the wrong configuration.
 - The scripts expect every declared screenshot file to exist after the XCUITest finishes and fail if any expected PNG was not written.
 - Manual screenshot tests run only through the wrapper scripts because the wrapper sets the required environment variables.
 - Locale-specific content is deterministic and comes from the fixture files listed above. Update those files if the screenshot copy or seeded cards need to change.
