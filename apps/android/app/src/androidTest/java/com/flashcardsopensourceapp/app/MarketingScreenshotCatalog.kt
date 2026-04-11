@@ -146,7 +146,7 @@ private val arabicMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleConf
         tags = listOf("اقتصاد"),
         effortLevelTitle = "متوسط"
     ),
-    reviewAiDraftMessage = "أنشئ 6 بطاقات تعليمية جديدة حول الموضوع الاقتصادي نفسه، تغطي أفكارًا مرتبطة به ارتباطًا وثيقًا وغير موجودة بالفعل في هذه المجموعة.",
+    reviewAiDraftMessage = "أنشئ 6 بطاقات تعليمية جديدة حول الموضوع الاقتصادي نفسه، تغطي أفكارًا مرتبطة به ارتباطًا وثيقًا ولا نملكها بعد.",
     cards = listOf(
         MarketingConceptCard(
             frontText = "في الاقتصاد، ما هي تكلفة الفرصة البديلة؟",
@@ -214,7 +214,7 @@ private val chineseSimplifiedMarketingScreenshotLocaleConfig: MarketingScreensho
         tags = listOf("经济学"),
         effortLevelTitle = "中等"
     ),
-    reviewAiDraftMessage = "请围绕同一经济学主题再创建 6 张新卡片，覆盖与之密切相关且当前这套卡组中尚未包含的概念。",
+    reviewAiDraftMessage = "请围绕同一经济学主题再创建 6 张新卡片，覆盖与之密切相关且我们目前还没有的概念。",
     cards = listOf(
         MarketingConceptCard(
             frontText = "在经济学中，什么是机会成本？",
@@ -282,7 +282,7 @@ private val germanMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleConf
         tags = listOf("Volkswirtschaft"),
         effortLevelTitle = "Mittel"
     ),
-    reviewAiDraftMessage = "Erstelle 6 neue Lernkarten zum selben volkswirtschaftlichen Thema, die eng verwandte Ideen abdecken und in diesem Stapel noch nicht vorkommen.",
+    reviewAiDraftMessage = "Erstelle 6 neue Lernkarten zum selben volkswirtschaftlichen Thema, die eng verwandte Ideen abdecken und die wir noch nicht haben.",
     cards = listOf(
         MarketingConceptCard(
             frontText = "Was sind in der Volkswirtschaftslehre Opportunitätskosten?",
@@ -350,7 +350,7 @@ private val hindiMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleConfi
         tags = listOf("अर्थशास्त्र"),
         effortLevelTitle = "मध्यम"
     ),
-    reviewAiDraftMessage = "इसी अर्थशास्त्र विषय पर 6 नई फ्लैशकार्ड बनाओ, जो इससे करीबी रूप से जुड़े विचारों को कवर करें और इस डेक में पहले से मौजूद न हों।",
+    reviewAiDraftMessage = "इसी अर्थशास्त्र विषय पर 6 नई फ्लैशकार्ड बनाओ, जो इससे करीबी रूप से जुड़े विचारों को कवर करें और जो हमारे पास पहले से मौजूद न हों।",
     cards = listOf(
         MarketingConceptCard(
             frontText = "अर्थशास्त्र में अवसर लागत क्या होती है?",
@@ -418,7 +418,7 @@ private val japaneseMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleCo
         tags = listOf("経済学"),
         effortLevelTitle = "中"
     ),
-    reviewAiDraftMessage = "同じ経済学のテーマについて、このデッキにまだない関連性の高い考え方を扱う新しいフラッシュカードを 6 枚作ってください。",
+    reviewAiDraftMessage = "同じ経済学のテーマについて、関連性が高く、まだ私たちが持っていない内容の新しいフラッシュカードを 6 枚作ってください。",
     cards = listOf(
         MarketingConceptCard(
             frontText = "経済学でいう機会費用とは何ですか？",
@@ -554,7 +554,7 @@ private val spanishLatinAmericaMarketingScreenshotLocaleConfig: MarketingScreens
         tags = listOf("economía"),
         effortLevelTitle = "Medio"
     ),
-    reviewAiDraftMessage = "Crea 6 tarjetas nuevas sobre el mismo tema de economía, que cubran ideas estrechamente relacionadas y que todavía no estén en este mazo.",
+    reviewAiDraftMessage = "Crea 6 tarjetas nuevas sobre el mismo tema de economía, que cubran ideas estrechamente relacionadas y que todavía no tengamos.",
     cards = listOf(
         MarketingConceptCard(
             frontText = "En economía, ¿qué es el costo de oportunidad?",
@@ -622,7 +622,7 @@ private val spanishSpainMarketingScreenshotLocaleConfig: MarketingScreenshotLoca
         tags = listOf("economía"),
         effortLevelTitle = "Media"
     ),
-    reviewAiDraftMessage = "Crea 6 tarjetas nuevas sobre el mismo tema de economía, que cubran ideas estrechamente relacionadas y que todavía no aparezcan en esta baraja.",
+    reviewAiDraftMessage = "Crea 6 tarjetas nuevas sobre el mismo tema de economía, que cubran ideas estrechamente relacionadas y que todavía no tengamos.",
     cards = listOf(
         MarketingConceptCard(
             frontText = "En economía, ¿qué es el coste de oportunidad?",
@@ -690,7 +690,7 @@ private val spanishUnitedStatesMarketingScreenshotLocaleConfig: MarketingScreens
         tags = listOf("economía"),
         effortLevelTitle = "Medio"
     ),
-    reviewAiDraftMessage = "Crea 6 tarjetas nuevas sobre el mismo tema de economía, que cubran ideas estrechamente relacionadas y que todavía no estén en este mazo.",
+    reviewAiDraftMessage = "Crea 6 tarjetas nuevas sobre el mismo tema de economía, que cubran ideas estrechamente relacionadas y que todavía no tengamos.",
     cards = listOf(
         MarketingConceptCard(
             frontText = "En economía, ¿qué es el costo de oportunidad?",
