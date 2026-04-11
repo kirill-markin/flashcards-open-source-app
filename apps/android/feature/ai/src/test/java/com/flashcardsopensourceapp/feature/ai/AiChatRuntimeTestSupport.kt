@@ -40,7 +40,7 @@ import kotlinx.coroutines.test.TestScope
 internal const val defaultTestWorkspaceId: String = "workspace-1"
 internal const val secondaryTestWorkspaceId: String = "workspace-2"
 
-private const val testAppVersion: String = "1.1.3"
+private const val testAppVersion: String = "1.1.4"
 internal const val testUiLocaleTag: String = "en-US"
 
 internal fun makeRuntime(scope: TestScope, repository: FakeAiChatRepository): AiChatRuntime {
