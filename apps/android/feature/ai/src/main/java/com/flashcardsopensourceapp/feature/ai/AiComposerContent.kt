@@ -59,7 +59,8 @@ internal fun AiComposer(
     onCancelStreaming: () -> Unit,
     onRemovePendingAttachment: (String) -> Unit,
     onOpenAttachmentMenu: () -> Unit,
-    onToggleDictation: () -> Unit
+    onToggleDictation: () -> Unit,
+    modifier: Modifier
 ) {
     val context = LocalContext.current
     val textProvider = remember(context) { aiTextProvider(context = context) }
@@ -79,7 +80,7 @@ internal fun AiComposer(
     }
 
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .imePadding(),
         tonalElevation = 4.dp

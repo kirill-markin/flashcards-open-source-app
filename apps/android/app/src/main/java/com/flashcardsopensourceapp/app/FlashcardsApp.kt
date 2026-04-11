@@ -4,8 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Button
@@ -26,9 +28,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldValue
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
+import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -40,8 +48,10 @@ import androidx.navigation.compose.rememberNavController
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.di.AppStartupState
 import com.flashcardsopensourceapp.app.navigation.AppNavHost
+import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
+import com.flashcardsopensourceapp.app.navigation.TopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.currentVisibleAppScreen
 import com.flashcardsopensourceapp.app.navigation.currentTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
@@ -87,6 +97,18 @@ fun FlashcardsApp(appGraph: AppGraph) {
         val lifecycleOwner = LocalLifecycleOwner.current
         val currentDestination = currentTopLevelDestination(navController = navController)
         val currentVisibleAppScreen = currentVisibleAppScreen(navController = navController)
+        val adaptiveInfo = currentWindowAdaptiveInfo()
+        val navigationSuiteType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(
+            adaptiveInfo = adaptiveInfo
+        )
+        val navigationSuiteState = rememberNavigationSuiteScaffoldState()
+        val density = LocalDensity.current
+        val isImeVisible = WindowInsets.ime.getBottom(density = density) > 0
+        val shouldHideNavigationSuite = shouldHideNavigationSuite(
+            destination = currentDestination,
+            navigationSuiteType = navigationSuiteType,
+            isImeVisible = isImeVisible
+        )
         val snackbarHostState = remember { SnackbarHostState() }
         val cloudSettings by appGraph.cloudAccountRepository.observeCloudSettings().collectAsStateWithLifecycle(
             initialValue = CloudSettings(
@@ -137,6 +159,19 @@ fun FlashcardsApp(appGraph: AppGraph) {
             appGraph.visibleAppScreenController.updateVisibleAppScreen(
                 screen = currentVisibleAppScreen
             )
+        }
+
+        LaunchedEffect(shouldHideNavigationSuite) {
+            if (shouldHideNavigationSuite) {
+                if (navigationSuiteState.targetValue != NavigationSuiteScaffoldValue.Hidden) {
+                    navigationSuiteState.snapTo(targetValue = NavigationSuiteScaffoldValue.Hidden)
+                }
+                return@LaunchedEffect
+            }
+
+            if (navigationSuiteState.targetValue != NavigationSuiteScaffoldValue.Visible) {
+                navigationSuiteState.show()
+            }
         }
 
         LaunchedEffect(
@@ -225,6 +260,8 @@ fun FlashcardsApp(appGraph: AppGraph) {
         }
 
         NavigationSuiteScaffold(
+            state = navigationSuiteState,
+            layoutType = navigationSuiteType,
             navigationSuiteItems = {
                 topLevelDestinations.forEach { destination ->
                     item(
@@ -288,6 +325,16 @@ fun FlashcardsApp(appGraph: AppGraph) {
             }
         }
     }
+}
+
+private fun shouldHideNavigationSuite(
+    destination: TopLevelDestination,
+    navigationSuiteType: NavigationSuiteType,
+    isImeVisible: Boolean
+): Boolean {
+    return destination == AiDestination &&
+        navigationSuiteType == NavigationSuiteType.NavigationBar &&
+        isImeVisible
 }
 
 @Composable
