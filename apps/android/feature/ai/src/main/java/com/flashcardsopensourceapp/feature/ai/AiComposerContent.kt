@@ -47,6 +47,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 
 const val aiComposerMessageFieldTag: String = "ai_composer_message_field"
+const val aiComposerPendingAttachmentTag: String = "ai_composer_pending_attachment"
 const val aiComposerSendButtonTag: String = "ai_composer_send_button"
 
 @Composable
@@ -130,6 +131,7 @@ internal fun AiComposer(
                         FilterChip(
                             selected = true,
                             onClick = {},
+                            modifier = Modifier.testTag(tag = aiComposerPendingAttachmentTag),
                             label = {
                                 Text(
                                     when (attachment) {
