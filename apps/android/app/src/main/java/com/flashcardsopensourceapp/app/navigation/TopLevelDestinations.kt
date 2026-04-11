@@ -20,6 +20,12 @@ sealed interface TopLevelDestination {
     @get:StringRes
     val labelResId: Int
     val icon: ImageVector
+    val testTag: String
+        get() = topLevelDestinationTestTag(route = route)
+}
+
+fun topLevelDestinationTestTag(route: String): String {
+    return "top_level_destination_$route"
 }
 
 data object ReviewDestination : TopLevelDestination {

@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -129,9 +130,11 @@ fun CardsRoute(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onCreateCard,
-                modifier = Modifier.semantics {
-                    contentDescription = resources.getString(R.string.cards_add_card_content_description)
-                }
+                modifier = Modifier
+                    .testTag(cardsAddCardButtonTag)
+                    .semantics {
+                        contentDescription = resources.getString(R.string.cards_add_card_content_description)
+                    }
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Add,
@@ -157,7 +160,9 @@ fun CardsRoute(
                     label = {
                         Text(stringResource(id = R.string.cards_search_label))
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(cardsSearchFieldTag)
                 )
             }
 
@@ -200,7 +205,9 @@ fun CardsRoute(
                                 else ->
                                     stringResource(id = R.string.cards_empty_no_search_matches)
                             },
-                            modifier = Modifier.padding(20.dp)
+                            modifier = Modifier
+                                .padding(20.dp)
+                                .testTag(cardsEmptyStateTag)
                         )
                     }
                 }

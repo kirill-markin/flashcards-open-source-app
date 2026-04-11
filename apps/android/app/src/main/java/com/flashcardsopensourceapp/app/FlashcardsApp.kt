@@ -254,6 +254,7 @@ fun FlashcardsApp(appGraph: AppGraph) {
                                 destination = destination
                             )
                         },
+                        modifier = Modifier.testTag(destination.testTag),
                         icon = {
                             Icon(
                                 imageVector = destination.icon,

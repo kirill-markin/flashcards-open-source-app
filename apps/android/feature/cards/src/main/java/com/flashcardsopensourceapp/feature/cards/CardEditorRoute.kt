@@ -181,7 +181,7 @@ fun CardEditorRoute(
 
             item {
                 NavigationSummaryCard(
-                    modifier = Modifier,
+                    modifier = Modifier.testTag(cardEditorTagsSummaryCardTag),
                     title = stringResource(id = R.string.cards_tags_title),
                     summary = formatCardsTagSelectionSummary(resources = resources, tags = uiState.selectedTags),
                     supportingText = if (uiState.availableTagSuggestions.isEmpty()) {
@@ -258,6 +258,7 @@ fun CardEditorRoute(
                             onClick = {
                                 onEffortLevelChange(option)
                             },
+                            modifier = Modifier.testTag(cardEditorEffortLevelTag(effortLevel = option)),
                             shape = SegmentedButtonDefaults.itemShape(
                                 index = index,
                                 count = options.size
@@ -282,7 +283,9 @@ fun CardEditorRoute(
                     }
                     Button(
                         onClick = onSave,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(cardEditorSaveButtonTag)
                     ) {
                         Text(stringResource(id = R.string.cards_save))
                     }

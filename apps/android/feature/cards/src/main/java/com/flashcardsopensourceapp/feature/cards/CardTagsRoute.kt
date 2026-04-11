@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.normalizeTagKey
@@ -110,7 +111,9 @@ fun CardTagsRoute(
                     supportingText = {
                         Text(stringResource(id = R.string.cards_add_tag_supporting_text))
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(cardTagsInputFieldTag)
                 )
             }
 
@@ -137,7 +140,9 @@ fun CardTagsRoute(
                             onAddTag(draftTagValue)
                             draftTagValue = ""
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(cardTagsAddButtonTag)
                     ) {
                         Text(stringResource(id = R.string.cards_add_tag))
                     }

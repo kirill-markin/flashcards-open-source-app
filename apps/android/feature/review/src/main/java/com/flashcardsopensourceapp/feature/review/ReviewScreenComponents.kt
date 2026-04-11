@@ -71,7 +71,10 @@ import com.flashcardsopensourceapp.data.local.model.ReviewTagFilterOption
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 
 const val reviewShowAnswerButtonTag: String = "review_show_answer_button"
+const val reviewRateAgainButtonTag: String = "review_rate_again_button"
+const val reviewRateHardButtonTag: String = "review_rate_hard_button"
 const val reviewRateGoodButtonTag: String = "review_rate_good_button"
+const val reviewRateEasyButtonTag: String = "review_rate_easy_button"
 const val reviewFilterButtonTag: String = "review_filter_button"
 const val reviewEditCardButtonTag: String = "review_edit_card_button"
 const val reviewAiCardButtonTag: String = "review_ai_card_button"
@@ -722,11 +725,15 @@ private fun RatingButton(
 
     Button(
         onClick = onClick,
-        modifier = if (option.rating == ReviewRating.GOOD) {
-            modifier.testTag(reviewRateGoodButtonTag)
-        } else {
-            modifier
-        }
+        modifier = modifier
+            .testTag(
+                when (option.rating) {
+                    ReviewRating.AGAIN -> reviewRateAgainButtonTag
+                    ReviewRating.HARD -> reviewRateHardButtonTag
+                    ReviewRating.GOOD -> reviewRateGoodButtonTag
+                    ReviewRating.EASY -> reviewRateEasyButtonTag
+                }
+            )
             .heightIn(min = reviewRatingButtonMinHeight)
     ) {
         Column(
