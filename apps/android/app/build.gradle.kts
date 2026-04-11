@@ -43,6 +43,7 @@ fun toAndroidLocaleFilter(localeTag: String): String {
             }
         }.joinToString(separator = "+")
 
+        country.any(Char::isDigit) -> listOf("b", language, country).joinToString(separator = "+")
         country.isNotBlank() -> "$language-r$country"
         else -> language
     }
@@ -52,8 +53,24 @@ val requestedTaskNames: List<String> = gradle.startParameter.taskNames
 val isReleaseTaskRequested: Boolean = requestedTaskNames.any { taskName ->
     taskName.contains("Release", ignoreCase = true)
 }
+val isMarketingScreenshotTaskRequested: Boolean = requestedTaskNames.any { taskName ->
+    taskName.contains("MarketingScreenshot", ignoreCase = true)
+}
 val supportedAndroidLocales: List<String> = readSupportedAndroidLocales()
 val supportedAndroidLocaleFilters: List<String> = supportedAndroidLocales.map(::toAndroidLocaleFilter)
+val marketingScreenshotLocales: List<String> = listOf(
+    "en-US",
+    "ar",
+    "zh-CN",
+    "de-DE",
+    "hi-IN",
+    "ja-JP",
+    "ru-RU",
+    "es-419",
+    "es-ES",
+    "es-US"
+)
+val marketingScreenshotLocaleFilters: List<String> = marketingScreenshotLocales.map(::toAndroidLocaleFilter)
 
 val androidVersionCodeValue: String? = providers.environmentVariable("ANDROID_VERSION_CODE").orNull
 val androidVersionCode: Int? = androidVersionCodeValue?.toIntOrNull()
@@ -118,6 +135,11 @@ android {
     }
 
     buildTypes {
+        create("marketingScreenshot") {
+            initWith(getByName("debug"))
+            matchingFallbacks += listOf("debug")
+        }
+
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("release")
@@ -143,6 +165,9 @@ android {
 
     androidResources {
         localeFilters += supportedAndroidLocaleFilters
+        if (isMarketingScreenshotTaskRequested) {
+            localeFilters += marketingScreenshotLocaleFilters
+        }
     }
 
     bundle {
@@ -154,6 +179,12 @@ android {
     testOptions {
         animationsDisabled = true
         execution = "ANDROIDX_TEST_ORCHESTRATOR"
+    }
+
+    testBuildType = if (isMarketingScreenshotTaskRequested) {
+        "marketingScreenshot"
+    } else {
+        "debug"
     }
 }
 
@@ -196,4 +227,6 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    add("marketingScreenshotImplementation", libs.androidx.compose.ui.tooling)
+    add("marketingScreenshotImplementation", libs.androidx.compose.ui.test.manifest)
 }

@@ -5,6 +5,7 @@ This document tracks repeatable Android screenshot scripts for marketing assets.
 For the operational capture procedure, clean-emulator workflow, and verification checklist, use [`marketing-screenshot-runbook.md`](marketing-screenshot-runbook.md).
 
 The locale-specific screenshot texts, file-name prefixes, and UI labels currently live in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotCatalog.kt`.
+Screenshot-only translated app resources belong in `apps/android/app/src/marketingScreenshot/res` and are packaged only in the dedicated `marketingScreenshot` build type used by the wrapper scripts.
 
 ## Current inventory
 
@@ -78,6 +79,7 @@ FLASHCARDS_MARKETING_LOCALE_PREFIX=de-DE bash scripts/capture-android-review-fro
 
 These scripts are not part of Android CI, release gates, or default `androidTest` runs.
 They exist only to generate marketing screenshots on demand.
+They run `:app:connectedMarketingScreenshotAndroidTest`, not the normal debug instrumentation task, so screenshot-only translations do not affect the Play-first `debug` and `release` builds.
 
 The review front wrapper script runs the manual-only pre-reveal review entrypoint, saves the front-only PNG into `/sdcard/Download/flashcards-marketing-screenshots/`, and then pulls that file into the committed marketing media directory.
 
@@ -96,4 +98,4 @@ Future marketing screenshot flows should follow the same structure:
 3. Save the screenshot PNG into `/sdcard/Download/flashcards-marketing-screenshots/` from instrumentation.
 4. Add a small shell wrapper in `scripts/` that runs just that manual entrypoint and pulls the generated PNG file or files into `apps/android/docs/media/play-store-screenshots/`.
 
-This keeps screenshot generation deterministic, reviewable, runnable without manual emulator interaction, and fully separate from the normal Android test suite.
+This keeps screenshot generation deterministic, reviewable, runnable without manual emulator interaction, and fully separate from the normal Android test suite and shipping Play-first localization flow.

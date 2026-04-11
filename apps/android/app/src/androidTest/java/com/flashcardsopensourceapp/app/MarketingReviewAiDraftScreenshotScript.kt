@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.app
 
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -16,7 +15,7 @@ private const val reviewAiDraftScreenshotSlug: String =
 @RunWith(AndroidJUnit4::class)
 class MarketingReviewAiDraftScreenshotScript {
     private val appStateResetRule = AppStateResetRule()
-    private val composeRule = createAndroidComposeRule<MainActivity>()
+    private val composeRule = createMarketingScreenshotComposeRule()
 
     @get:Rule
     val ruleChain: TestRule = RuleChain

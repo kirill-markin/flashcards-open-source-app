@@ -1,0 +1,58 @@
+<resources>
+    <string name="top_level_review">पुनरावलोकन</string>
+    <string name="top_level_cards">कार्ड</string>
+    <string name="top_level_ai">AI</string>
+    <string name="top_level_settings">सेटिंग्स</string>
+
+    <string name="cards_title">कार्ड</string>
+    <string name="cards_add_card_content_description">कार्ड जोड़ें</string>
+    <string name="cards_search_label">कार्ड खोजें</string>
+    <string name="cards_empty_no_cards">अभी तक कोई कार्ड नहीं है। पहला कार्ड बनाने के लिए जोड़ें बटन पर टैप करें।</string>
+    <string name="cards_medium">मध्यम</string>
+    <string name="cards_due_new">नया</string>
+
+    <string name="review_title">पुनरावलोकन</string>
+    <string name="review_all_cards">सभी कार्ड</string>
+    <string name="review_front_label">सामने</string>
+    <string name="review_back_label">पीछे</string>
+    <string name="review_due_label">देय: %1$s</string>
+    <string name="review_due_new">नया</string>
+    <string name="review_reps_label">दोहराव %1$d</string>
+    <string name="review_lapses_label">भूल %1$d</string>
+    <string name="review_show_answer">उत्तर दिखाएं</string>
+    <string name="review_again">फिर से</string>
+    <string name="review_hard">कठिन</string>
+    <string name="review_good">अच्छा</string>
+    <string name="review_easy">आसान</string>
+    <string name="review_medium">मध्यम</string>
+    <string name="review_interval_now">अभी</string>
+    <string name="review_interval_less_than_one_minute">एक मिनट से भी कम में</string>
+    <plurals name="review_interval_minutes">
+        <item quantity="one">%d मिनट में</item>
+        <item quantity="other">%d मिनट में</item>
+    </plurals>
+    <plurals name="review_interval_hours">
+        <item quantity="one">%d घंटे में</item>
+        <item quantity="other">%d घंटे में</item>
+    </plurals>
+    <plurals name="review_interval_days">
+        <item quantity="one">%d दिन में</item>
+        <item quantity="other">%d दिन में</item>
+    </plurals>
+
+    <string name="ai_title">AI</string>
+    <string name="ai_card_attachment_title">कार्ड · %1$s</string>
+    <string name="ai_consent_title">AI इस्तेमाल करने से पहले</string>
+    <string name="ai_consent_warning">AI गलत हो सकता है। महत्वपूर्ण नतीजों पर भरोसा करने से पहले उन्हें जांच लें।</string>
+    <string name="ai_consent_accept">ठीक है</string>
+    <string name="ai_privacy_policy">गोपनीयता नीति</string>
+    <string name="ai_terms_of_service">सेवा की शर्तें</string>
+    <string name="ai_support">सहायता</string>
+    <string name="ai_consent_workspace_disclosure">&quot;%1$s&quot; वर्कस्पेस से किए गए AI अनुरोध प्रॉम्प्ट, अपलोड की गई फाइलें, छवियां और बोलकर दर्ज किया गया ऑडियो OpenAI को भेज सकते हैं।</string>
+    <string name="ai_message_label">संदेश</string>
+    <string name="ai_attach">संलग्न करें</string>
+    <string name="ai_dictate">बोलकर लिखें</string>
+    <string name="ai_send">भेजें</string>
+    <string name="ai_empty_title">नई AI चैट शुरू करें</string>
+    <string name="ai_empty_body">कार्ड्स, रिव्यू हिस्ट्री के बारे में पूछें, या %1$s में सामग्री निकालने के लिए नोट्स संलग्न करें।</string>
+</resources>

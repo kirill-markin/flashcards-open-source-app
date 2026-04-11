@@ -15,6 +15,28 @@ if [[ -z "$device_serial" ]]; then
     exit 0
 fi
 
+dump_ui_xml_with_timeout() {
+    local output_file
+    output_file="$(mktemp)"
+    adb -s "$device_serial" exec-out uiautomator dump /dev/tty >"$output_file" 2>/dev/null &
+    local dump_pid="$!"
+
+    for _ in $(seq 1 16); do
+        if ! kill -0 "$dump_pid" >/dev/null 2>&1; then
+            wait "$dump_pid" >/dev/null 2>&1 || true
+            cat "$output_file"
+            rm -f "$output_file"
+            return 0
+        fi
+        sleep 0.5
+    done
+
+    kill "$dump_pid" >/dev/null 2>&1 || true
+    wait "$dump_pid" >/dev/null 2>&1 || true
+    rm -f "$output_file"
+    return 0
+}
+
 wait_for_dialog_to_clear() {
     local xml_dump="$1"
     if ! printf '%s' "$xml_dump" | rg -q "isn't responding|android:id/aerr_wait"; then
@@ -48,7 +70,7 @@ tap_wait_if_present() {
 }
 
 for _ in $(seq 1 8); do
-    xml_dump="$(adb -s "$device_serial" exec-out uiautomator dump /dev/tty 2>/dev/null || true)"
+    xml_dump="$(dump_ui_xml_with_timeout)"
     if wait_for_dialog_to_clear "$xml_dump"; then
         exit 0
     fi

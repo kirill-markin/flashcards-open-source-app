@@ -747,18 +747,31 @@ private val marketingScreenshotLocaleConfigs: List<MarketingScreenshotLocaleConf
 private val defaultMarketingScreenshotLocaleConfig: MarketingScreenshotLocaleConfig =
     marketingScreenshotLocaleConfigs.first { config -> config.localePrefix == "en" }
 
-internal fun activeMarketingScreenshotLocaleConfig(): MarketingScreenshotLocaleConfig {
-    val configuredPrefix = InstrumentationRegistry.getArguments()
+private fun configuredMarketingScreenshotLocalePrefixOrNull(): String? {
+    return InstrumentationRegistry.getArguments()
         .getString(marketingLocalePrefixInstrumentationArg)
         ?.trim()
         ?.takeIf { value -> value.isNotEmpty() }
-        ?: defaultMarketingScreenshotLocaleConfig.localePrefix
+}
 
+private fun marketingScreenshotLocaleConfigForPrefix(
+    localePrefix: String
+): MarketingScreenshotLocaleConfig {
     return marketingScreenshotLocaleConfigs.firstOrNull { config ->
-        config.localePrefix == configuredPrefix
+        config.localePrefix == localePrefix
     } ?: throw IllegalArgumentException(
-        "Unsupported marketing screenshot locale prefix '$configuredPrefix'."
+        "Unsupported marketing screenshot locale prefix '$localePrefix'."
     )
+}
+
+internal fun configuredMarketingScreenshotLocaleConfigOrNull(): MarketingScreenshotLocaleConfig? {
+    val configuredPrefix = configuredMarketingScreenshotLocalePrefixOrNull() ?: return null
+    return marketingScreenshotLocaleConfigForPrefix(localePrefix = configuredPrefix)
+}
+
+internal fun activeMarketingScreenshotLocaleConfig(): MarketingScreenshotLocaleConfig {
+    val configuredLocaleConfig = configuredMarketingScreenshotLocaleConfigOrNull()
+    return configuredLocaleConfig ?: defaultMarketingScreenshotLocaleConfig
 }
 
 internal fun marketingScreenshotFileName(

@@ -1,0 +1,58 @@
+<resources>
+    <string name="top_level_review">Repasar</string>
+    <string name="top_level_cards">Tarjetas</string>
+    <string name="top_level_ai">AI</string>
+    <string name="top_level_settings">Ajustes</string>
+
+    <string name="cards_title">Tarjetas</string>
+    <string name="cards_add_card_content_description">Agregar tarjeta</string>
+    <string name="cards_search_label">Buscar tarjetas</string>
+    <string name="cards_empty_no_cards">Todavía no hay tarjetas. Toca el botón de agregar para crear la primera tarjeta.</string>
+    <string name="cards_medium">Medio</string>
+    <string name="cards_due_new">Nueva</string>
+
+    <string name="review_title">Repasar</string>
+    <string name="review_all_cards">Todas las tarjetas</string>
+    <string name="review_front_label">Frente</string>
+    <string name="review_back_label">Reverso</string>
+    <string name="review_due_label">Vence: %1$s</string>
+    <string name="review_due_new">Nueva</string>
+    <string name="review_reps_label">Repasos %1$d</string>
+    <string name="review_lapses_label">Errores %1$d</string>
+    <string name="review_show_answer">Mostrar respuesta</string>
+    <string name="review_again">Otra vez</string>
+    <string name="review_hard">Difícil</string>
+    <string name="review_good">Bien</string>
+    <string name="review_easy">Fácil</string>
+    <string name="review_medium">Medio</string>
+    <string name="review_interval_now">ahora</string>
+    <string name="review_interval_less_than_one_minute">en menos de un minuto</string>
+    <plurals name="review_interval_minutes">
+        <item quantity="one">en %d minuto</item>
+        <item quantity="other">en %d minutos</item>
+    </plurals>
+    <plurals name="review_interval_hours">
+        <item quantity="one">en %d hora</item>
+        <item quantity="other">en %d horas</item>
+    </plurals>
+    <plurals name="review_interval_days">
+        <item quantity="one">en %d día</item>
+        <item quantity="other">en %d días</item>
+    </plurals>
+
+    <string name="ai_title">AI</string>
+    <string name="ai_card_attachment_title">Tarjeta · %1$s</string>
+    <string name="ai_consent_title">Antes de usar AI</string>
+    <string name="ai_consent_warning">AI puede equivocarse. Revisa los resultados importantes antes de confiar en ellos.</string>
+    <string name="ai_consent_accept">OK</string>
+    <string name="ai_privacy_policy">Política de privacidad</string>
+    <string name="ai_terms_of_service">Términos del servicio</string>
+    <string name="ai_support">Soporte</string>
+    <string name="ai_consent_workspace_disclosure">Las solicitudes de AI del espacio de trabajo &quot;%1$s&quot; pueden enviar a OpenAI indicaciones, archivos subidos, imágenes y audio dictado.</string>
+    <string name="ai_message_label">Mensaje</string>
+    <string name="ai_attach">Adjuntar</string>
+    <string name="ai_dictate">Dictar</string>
+    <string name="ai_send">Enviar</string>
+    <string name="ai_empty_title">Inicia un nuevo chat con AI</string>
+    <string name="ai_empty_body">Pregunta sobre tarjetas, historial de repaso o adjunta notas para extraer contenido en %1$s.</string>
+</resources>

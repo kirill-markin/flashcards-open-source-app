@@ -1,0 +1,55 @@
+<resources>
+    <string name="top_level_review">复习</string>
+    <string name="top_level_cards">卡片</string>
+    <string name="top_level_ai">AI</string>
+    <string name="top_level_settings">设置</string>
+
+    <string name="cards_title">卡片</string>
+    <string name="cards_add_card_content_description">添加卡片</string>
+    <string name="cards_search_label">搜索卡片</string>
+    <string name="cards_empty_no_cards">还没有卡片。点按添加按钮来创建第一张卡片。</string>
+    <string name="cards_medium">中等</string>
+    <string name="cards_due_new">新卡</string>
+
+    <string name="review_title">复习</string>
+    <string name="review_all_cards">所有卡片</string>
+    <string name="review_front_label">正面</string>
+    <string name="review_back_label">背面</string>
+    <string name="review_due_label">到期：%1$s</string>
+    <string name="review_due_new">新卡</string>
+    <string name="review_reps_label">次数 %1$d</string>
+    <string name="review_lapses_label">遗忘 %1$d</string>
+    <string name="review_show_answer">显示答案</string>
+    <string name="review_again">再来一次</string>
+    <string name="review_hard">困难</string>
+    <string name="review_good">良好</string>
+    <string name="review_easy">简单</string>
+    <string name="review_medium">中等</string>
+    <string name="review_interval_now">现在</string>
+    <string name="review_interval_less_than_one_minute">不到 1 分钟后</string>
+    <plurals name="review_interval_minutes">
+        <item quantity="other">%d 分钟后</item>
+    </plurals>
+    <plurals name="review_interval_hours">
+        <item quantity="other">%d 小时后</item>
+    </plurals>
+    <plurals name="review_interval_days">
+        <item quantity="other">%d 天后</item>
+    </plurals>
+
+    <string name="ai_title">AI</string>
+    <string name="ai_card_attachment_title">卡片 · %1$s</string>
+    <string name="ai_consent_title">使用 AI 之前</string>
+    <string name="ai_consent_warning">AI 可能会出错。在依赖重要结果之前请先核对。</string>
+    <string name="ai_consent_accept">好</string>
+    <string name="ai_privacy_policy">隐私政策</string>
+    <string name="ai_terms_of_service">服务条款</string>
+    <string name="ai_support">支持</string>
+    <string name="ai_consent_workspace_disclosure">来自“%1$s”工作区的 AI 请求可能会将提示、上传的文件、图片和语音输入发送给 OpenAI。</string>
+    <string name="ai_message_label">消息</string>
+    <string name="ai_attach">附加</string>
+    <string name="ai_dictate">语音输入</string>
+    <string name="ai_send">发送</string>
+    <string name="ai_empty_title">开始新的 AI 对话</string>
+    <string name="ai_empty_body">询问卡片、复习历史，或附加笔记以在 %1$s 中提取内容。</string>
+</resources>

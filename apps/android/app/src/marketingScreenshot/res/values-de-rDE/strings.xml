@@ -1,0 +1,58 @@
+<resources>
+    <string name="top_level_review">Wiederholen</string>
+    <string name="top_level_cards">Karten</string>
+    <string name="top_level_ai">AI</string>
+    <string name="top_level_settings">Einstellungen</string>
+
+    <string name="cards_title">Karten</string>
+    <string name="cards_add_card_content_description">Karte hinzufügen</string>
+    <string name="cards_search_label">Karten suchen</string>
+    <string name="cards_empty_no_cards">Es gibt noch keine Karten. Tippe auf die Hinzufügen-Schaltfläche, um die erste Karte zu erstellen.</string>
+    <string name="cards_medium">Mittel</string>
+    <string name="cards_due_new">Neu</string>
+
+    <string name="review_title">Wiederholen</string>
+    <string name="review_all_cards">Alle Karten</string>
+    <string name="review_front_label">Vorderseite</string>
+    <string name="review_back_label">Rückseite</string>
+    <string name="review_due_label">Fällig: %1$s</string>
+    <string name="review_due_new">Neu</string>
+    <string name="review_reps_label">Wdh. %1$d</string>
+    <string name="review_lapses_label">Fehler %1$d</string>
+    <string name="review_show_answer">Antwort anzeigen</string>
+    <string name="review_again">Nochmal</string>
+    <string name="review_hard">Schwer</string>
+    <string name="review_good">Gut</string>
+    <string name="review_easy">Leicht</string>
+    <string name="review_medium">Mittel</string>
+    <string name="review_interval_now">jetzt</string>
+    <string name="review_interval_less_than_one_minute">in weniger als einer Minute</string>
+    <plurals name="review_interval_minutes">
+        <item quantity="one">in %d Minute</item>
+        <item quantity="other">in %d Minuten</item>
+    </plurals>
+    <plurals name="review_interval_hours">
+        <item quantity="one">in %d Stunde</item>
+        <item quantity="other">in %d Stunden</item>
+    </plurals>
+    <plurals name="review_interval_days">
+        <item quantity="one">in %d Tag</item>
+        <item quantity="other">in %d Tagen</item>
+    </plurals>
+
+    <string name="ai_title">AI</string>
+    <string name="ai_card_attachment_title">Karte · %1$s</string>
+    <string name="ai_consent_title">Bevor du AI nutzt</string>
+    <string name="ai_consent_warning">AI kann falsch liegen. Prüfe wichtige Ergebnisse, bevor du dich darauf verlässt.</string>
+    <string name="ai_consent_accept">OK</string>
+    <string name="ai_privacy_policy">Datenschutz</string>
+    <string name="ai_terms_of_service">Nutzungsbedingungen</string>
+    <string name="ai_support">Support</string>
+    <string name="ai_consent_workspace_disclosure">AI-Anfragen aus dem Arbeitsbereich &quot;%1$s&quot; können Eingaben, hochgeladene Dateien, Bilder und diktierte Audiodaten an OpenAI senden.</string>
+    <string name="ai_message_label">Nachricht</string>
+    <string name="ai_attach">Anhängen</string>
+    <string name="ai_dictate">Diktieren</string>
+    <string name="ai_send">Senden</string>
+    <string name="ai_empty_title">Starte einen neuen AI-Chat</string>
+    <string name="ai_empty_body">Frage nach Karten und Wiederholungsverlauf oder hänge Notizen an, um Inhalte in %1$s zu extrahieren.</string>
+</resources>

@@ -21,11 +21,12 @@ if [[ "$device_sdk" != "36" ]]; then
     exit 1
 fi
 
+"$repo_root/scripts/android-set-device-locale.sh" "$locale_prefix"
 "$repo_root/scripts/android-dismiss-system-dialogs.sh"
 
 cd "$android_dir"
 echo "Running manual Android marketing screenshot script for the Review AI draft state."
-./gradlew :app:connectedDebugAndroidTest \
+./gradlew :app:connectedMarketingScreenshotAndroidTest \
   "-Pandroid.testInstrumentationRunnerArguments.includeManualOnly=true" \
   "-Pandroid.testInstrumentationRunnerArguments.marketingLocalePrefix=$locale_prefix" \
   "-Pandroid.testInstrumentationRunnerArguments.class=$script_class"
