@@ -2,6 +2,8 @@
 
 This document tracks repeatable Android screenshot scripts for marketing assets.
 
+For the operational capture procedure, clean-emulator workflow, and verification checklist, use [`marketing-screenshot-runbook.md`](marketing-screenshot-runbook.md).
+
 ## Current inventory
 
 There are currently three Android marketing screenshot themes and four tracked output PNG targets.

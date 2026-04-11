@@ -1,0 +1,107 @@
+# Android Marketing Screenshot Runbook
+
+This document explains how to run the manual Android marketing screenshot flows reliably on a local machine.
+
+Use this runbook when you want to regenerate one or more committed Play Store screenshots from the Android app.
+
+## Goal
+
+These screenshot flows are manual-only Android instrumentation entrypoints.
+
+They are not part of Android CI, release gates, or default `androidTest` runs.
+Each flow prepares a specific in-app state, captures a PNG on the emulator, and pulls that file into `apps/android/docs/media/play-store-screenshots/`.
+
+## Current wrapper scripts
+
+Run these commands from the repository root:
+
+```bash
+bash scripts/capture-android-review-front-screenshot.sh
+bash scripts/capture-android-review-screenshot.sh
+bash scripts/capture-android-cards-screenshot.sh
+bash scripts/capture-android-review-ai-draft-screenshot.sh
+```
+
+The current output files are:
+
+- `apps/android/docs/media/play-store-screenshots/en-1_review-card-front-google-play-opportunity-cost.png`
+- `apps/android/docs/media/play-store-screenshots/en-2_review-card-result-google-play-opportunity-cost.png`
+- `apps/android/docs/media/play-store-screenshots/en-3_cards-list-google-play-vocabulary.png`
+- `apps/android/docs/media/play-store-screenshots/en-4_review-card-ai-draft-google-play-opportunity-cost.png`
+
+## Reliable local process
+
+Use this sequence for every screenshot run:
+
+1. Stop all Android emulators.
+2. Stop all booted iOS simulators.
+3. Verify `adb devices` is empty before starting a new Android run.
+4. Start exactly one Android API 36 emulator, currently `Medium_Phone_API_36.1`.
+5. Wait for full device readiness, not just `adb` visibility.
+6. Dismiss any blocking Android system dialog before the run.
+7. Run one screenshot wrapper script at a time.
+8. Open the generated PNG and verify the actual image, not just the green test result.
+9. Stop the emulator after the run so the next screenshot starts from a clean machine state.
+
+Do not batch all screenshot scripts together when the machine is under load.
+Running one wrapper at a time is slower, but it is more reliable and makes failures easier to diagnose.
+
+## Required emulator readiness checks
+
+Treat the device as ready only when all of the following are true:
+
+- `adb devices` shows exactly one connected emulator
+- `adb shell getprop sys.boot_completed` returns `1`
+- `adb shell getprop dev.bootcomplete` returns `1`
+- `adb shell service check package` reports `Service package: found`
+- `adb shell service check activity` reports `Service activity: found`
+
+If the emulator is visible in `adb` but the `package` or `activity` services are still missing, do not start the screenshot run yet.
+That state is a common cause of install and instrumentation flakiness.
+
+## System dialog handling
+
+Before each wrapper run, dismiss blocking Android system dialogs with:
+
+```bash
+bash scripts/android-dismiss-system-dialogs.sh
+```
+
+The screenshot helpers also defend against recurring system ANR dialogs during the run.
+For the current marketing flows, the intended behavior is to press `Wait`, let Android settle, and continue.
+
+## Run one screenshot
+
+Example:
+
+```bash
+bash scripts/capture-android-review-ai-draft-screenshot.sh
+```
+
+Each wrapper script does the following:
+
+1. Verifies that an Android API 36 device is connected.
+2. Dismisses blocking system dialogs.
+3. Runs one manual-only instrumentation class through `:app:connectedDebugAndroidTest`.
+4. Pulls the generated PNG from `/sdcard/Download/flashcards-marketing-screenshots/` into the committed media directory.
+
+## Verify the result
+
+After a wrapper finishes:
+
+1. Check that the expected PNG exists in `apps/android/docs/media/play-store-screenshots/`.
+2. Open the actual PNG file.
+3. Verify that there is no system dialog overlay, loading spinner, missing handoff state, or stale content.
+
+A green instrumentation result is not enough on its own.
+The final check is always the screenshot image itself.
+
+## Clean shutdown
+
+After verification:
+
+1. Stop the Android emulator.
+2. Shut down any booted iOS simulators.
+3. Confirm `adb devices` is empty again.
+
+This keeps the next run deterministic and avoids hidden resource contention between screenshot sessions.
