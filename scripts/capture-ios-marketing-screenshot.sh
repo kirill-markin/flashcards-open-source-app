@@ -159,7 +159,7 @@ scheme_name="Flashcards Open Source App"
 runtime_configuration_path="/tmp/flashcards-open-source-app-ios-marketing-screenshot-config.json"
 
 list_booted_simulator_lines() {
-    xcrun simctl list devices booted | sed -nE '/^[[:space:]]+.+ \([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\) \(Booted\)$/p'
+    xcrun simctl list devices booted | sed -nE '/^[[:space:]]+.+ \([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\) \(Booted\)[[:space:]]*$/p'
 }
 
 escape_json_string() {
@@ -199,7 +199,7 @@ resolve_booted_simulator_id() {
     fi
 
     mapfile -t booted_ids < <(
-        list_booted_simulator_lines | sed -nE 's/^.*\(([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})\) \(Booted\)$/\1/p'
+        list_booted_simulator_lines | sed -nE 's/^.*\(([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})\) \(Booted\)[[:space:]]*$/\1/p'
     )
 
     if [[ "${#booted_ids[@]}" -eq 0 ]]; then
@@ -225,7 +225,7 @@ resolve_simulator_name() {
         exit 1
     fi
 
-    echo "$simulator_line" | sed -E 's/^[[:space:]]*//; s/[[:space:]]+\([^)]*\)[[:space:]]+\(Booted\)$//'
+    echo "$simulator_line" | sed -E 's/^[[:space:]]*//; s/[[:space:]]+\([^)]*\)[[:space:]]+\(Booted\)[[:space:]]*$//'
 }
 
 resolve_device_family() {
