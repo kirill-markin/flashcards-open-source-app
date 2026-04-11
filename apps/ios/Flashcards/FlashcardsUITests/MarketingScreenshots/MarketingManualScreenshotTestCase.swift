@@ -2,15 +2,21 @@ import Foundation
 import XCTest
 
 private enum MarketingManualScreenshotError: LocalizedError {
-    case missingEnvironmentValue(String)
+    case runtimeConfigurationReadFailed(String, underlying: Error)
+    case runtimeConfigurationNotLoaded(String)
+    case missingRuntimeConfigurationValue(String)
     case unsupportedLocalization(String)
     case outputDirectoryCreationFailed(String, underlying: Error)
     case screenshotWriteFailed(String, underlying: Error)
 
     var errorDescription: String? {
         switch self {
-        case .missingEnvironmentValue(let key):
-            return "Manual iOS marketing screenshot environment is missing '\(key)'."
+        case .runtimeConfigurationReadFailed(let path, let underlying):
+            return "Failed to read iOS marketing screenshot runtime configuration at '\(path)': \(underlying.localizedDescription)"
+        case .runtimeConfigurationNotLoaded(let path):
+            return "Manual iOS marketing screenshot runtime configuration was not loaded from '\(path)'."
+        case .missingRuntimeConfigurationValue(let key):
+            return "Manual iOS marketing screenshot runtime configuration is missing '\(key)'."
         case .unsupportedLocalization(let value):
             let supportedValues = MarketingScreenshotFixture.supportedLocalizationCodes.joined(separator: ", ")
             return "Unsupported iOS marketing screenshot localization '\(value)'. Supported values: \(supportedValues)."
@@ -23,25 +29,54 @@ private enum MarketingManualScreenshotError: LocalizedError {
 }
 
 enum MarketingScreenshotEnvironment {
-    static let includeManualOnlyKey: String = "FLASHCARDS_INCLUDE_MANUAL_SCREENSHOT_TESTS"
-    static let outputDirectoryKey: String = "FLASHCARDS_MARKETING_SCREENSHOT_OUTPUT_DIR"
     static let localizationKey: String = "FLASHCARDS_MARKETING_SCREENSHOT_LOCALIZATION"
 }
 
+private enum MarketingScreenshotRuntimeConfigurationStorage {
+    static let filePath: String = "/tmp/flashcards-open-source-app-ios-marketing-screenshot-config.json"
+}
+
+private struct MarketingScreenshotRuntimeConfiguration: Decodable {
+    let includeManualScreenshotTests: Bool
+    let outputDirectoryPath: String
+    let localizationCode: String
+
+    func validated() throws -> MarketingScreenshotRuntimeConfiguration {
+        let trimmedOutputDirectoryPath = self.outputDirectoryPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedOutputDirectoryPath.isEmpty == false else {
+            throw MarketingManualScreenshotError.missingRuntimeConfigurationValue("outputDirectoryPath")
+        }
+
+        let trimmedLocalizationCode = self.localizationCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmedLocalizationCode.isEmpty == false else {
+            throw MarketingManualScreenshotError.missingRuntimeConfigurationValue("localizationCode")
+        }
+
+        return MarketingScreenshotRuntimeConfiguration(
+            includeManualScreenshotTests: self.includeManualScreenshotTests,
+            outputDirectoryPath: trimmedOutputDirectoryPath,
+            localizationCode: trimmedLocalizationCode
+        )
+    }
+}
+
 class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
+    private var runtimeConfiguration: MarketingScreenshotRuntimeConfiguration?
+
     override func setUpWithError() throws {
         try super.setUpWithError()
 
-        let includeManualOnly = ProcessInfo.processInfo.environment[MarketingScreenshotEnvironment.includeManualOnlyKey]
+        let runtimeConfiguration = try self.loadRuntimeConfigurationIfPresent()
         try XCTSkipUnless(
-            includeManualOnly == "true",
+            runtimeConfiguration?.includeManualScreenshotTests == true,
             "Manual iOS marketing screenshot tests run only from explicit wrapper scripts."
         )
+        self.runtimeConfiguration = runtimeConfiguration
     }
 
     @MainActor
     func marketingLocaleFixture() throws -> MarketingScreenshotLocaleFixture {
-        let rawValue = try self.requiredEnvironmentValue(key: MarketingScreenshotEnvironment.localizationKey)
+        let rawValue = try self.manualRuntimeConfiguration().localizationCode
         guard let localeFixture = MarketingScreenshotFixture.localeFixture(localizationCode: rawValue) else {
             throw MarketingManualScreenshotError.unsupportedLocalization(rawValue)
         }
@@ -180,7 +215,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     private func outputDirectoryURL() throws -> URL {
-        let outputDirectoryPath = try self.requiredEnvironmentValue(key: MarketingScreenshotEnvironment.outputDirectoryKey)
+        let outputDirectoryPath = try self.manualRuntimeConfiguration().outputDirectoryPath
         let outputDirectoryURL = URL(fileURLWithPath: outputDirectoryPath, isDirectory: true)
 
         do {
@@ -196,17 +231,42 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         return outputDirectoryURL
     }
 
-    private func requiredEnvironmentValue(key: String) throws -> String {
-        guard let value = ProcessInfo.processInfo.environment[key] else {
-            throw MarketingManualScreenshotError.missingEnvironmentValue(key)
+    private func manualRuntimeConfiguration() throws -> MarketingScreenshotRuntimeConfiguration {
+        guard let runtimeConfiguration = self.runtimeConfiguration else {
+            throw MarketingManualScreenshotError.runtimeConfigurationNotLoaded(
+                MarketingScreenshotRuntimeConfigurationStorage.filePath
+            )
         }
 
-        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmedValue.isEmpty == false else {
-            throw MarketingManualScreenshotError.missingEnvironmentValue(key)
+        return runtimeConfiguration
+    }
+
+    private func loadRuntimeConfigurationIfPresent() throws -> MarketingScreenshotRuntimeConfiguration? {
+        let configurationURL = URL(
+            fileURLWithPath: MarketingScreenshotRuntimeConfigurationStorage.filePath,
+            isDirectory: false
+        )
+
+        guard FileManager.default.fileExists(atPath: configurationURL.path) else {
+            return nil
         }
 
-        return trimmedValue
+        do {
+            let configurationData = try Data(contentsOf: configurationURL)
+            let decodedConfiguration = try JSONDecoder().decode(
+                MarketingScreenshotRuntimeConfiguration.self,
+                from: configurationData
+            )
+
+            return try decodedConfiguration.validated()
+        } catch let error as MarketingManualScreenshotError {
+            throw error
+        } catch {
+            throw MarketingManualScreenshotError.runtimeConfigurationReadFailed(
+                configurationURL.path,
+                underlying: error
+            )
+        }
     }
 
     private func strippingMarketingAppleLocalizationLaunchArguments(arguments: [String]) -> [String] {
