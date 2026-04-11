@@ -1,0 +1,64 @@
+<resources>
+    <string name="top_level_review">Повторение</string>
+    <string name="top_level_cards">Карточки</string>
+    <string name="top_level_ai">AI</string>
+    <string name="top_level_settings">Настройки</string>
+
+    <string name="cards_title">Карточки</string>
+    <string name="cards_add_card_content_description">Добавить карточку</string>
+    <string name="cards_search_label">Поиск карточек</string>
+    <string name="cards_empty_no_cards">Карточек пока нет. Нажмите кнопку добавления, чтобы создать первую карточку.</string>
+    <string name="cards_medium">Средний</string>
+    <string name="cards_due_new">Новая</string>
+
+    <string name="review_title">Повторение</string>
+    <string name="review_all_cards">Все карточки</string>
+    <string name="review_front_label">Лицевая сторона</string>
+    <string name="review_back_label">Обратная сторона</string>
+    <string name="review_due_label">Срок: %1$s</string>
+    <string name="review_due_new">Новая</string>
+    <string name="review_reps_label">Повторы %1$d</string>
+    <string name="review_lapses_label">Ошибки %1$d</string>
+    <string name="review_show_answer">Показать ответ</string>
+    <string name="review_again">Снова</string>
+    <string name="review_hard">Трудно</string>
+    <string name="review_good">Хорошо</string>
+    <string name="review_easy">Легко</string>
+    <string name="review_medium">Средний</string>
+    <string name="review_interval_now">сейчас</string>
+    <string name="review_interval_less_than_one_minute">меньше чем через минуту</string>
+    <plurals name="review_interval_minutes">
+        <item quantity="one">через %d минуту</item>
+        <item quantity="few">через %d минуты</item>
+        <item quantity="many">через %d минут</item>
+        <item quantity="other">через %d минуты</item>
+    </plurals>
+    <plurals name="review_interval_hours">
+        <item quantity="one">через %d час</item>
+        <item quantity="few">через %d часа</item>
+        <item quantity="many">через %d часов</item>
+        <item quantity="other">через %d часа</item>
+    </plurals>
+    <plurals name="review_interval_days">
+        <item quantity="one">через %d день</item>
+        <item quantity="few">через %d дня</item>
+        <item quantity="many">через %d дней</item>
+        <item quantity="other">через %d дня</item>
+    </plurals>
+
+    <string name="ai_title">AI</string>
+    <string name="ai_card_attachment_title">Карточка · %1$s</string>
+    <string name="ai_consent_title">Перед использованием AI</string>
+    <string name="ai_consent_warning">AI может ошибаться. Проверяйте важные результаты, прежде чем на них полагаться.</string>
+    <string name="ai_consent_accept">OK</string>
+    <string name="ai_privacy_policy">Политика конфиденциальности</string>
+    <string name="ai_terms_of_service">Условия использования</string>
+    <string name="ai_support">Поддержка</string>
+    <string name="ai_consent_workspace_disclosure">AI-запросы из рабочего пространства &quot;%1$s&quot; могут отправлять в OpenAI подсказки, загруженные файлы, изображения и продиктованное аудио.</string>
+    <string name="ai_message_label">Сообщение</string>
+    <string name="ai_attach">Прикрепить</string>
+    <string name="ai_dictate">Диктовать</string>
+    <string name="ai_send">Отправить</string>
+    <string name="ai_empty_title">Начните новый AI-чат</string>
+    <string name="ai_empty_body">Спрашивайте о карточках и истории повторений или прикрепляйте заметки для извлечения в %1$s.</string>
+</resources>

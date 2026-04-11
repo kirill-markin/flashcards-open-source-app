@@ -1,0 +1,70 @@
+<resources>
+    <string name="top_level_review">المراجعة</string>
+    <string name="top_level_cards">البطاقات</string>
+    <string name="top_level_ai">AI</string>
+    <string name="top_level_settings">الإعدادات</string>
+
+    <string name="cards_title">البطاقات</string>
+    <string name="cards_add_card_content_description">إضافة بطاقة</string>
+    <string name="cards_search_label">ابحث في البطاقات</string>
+    <string name="cards_empty_no_cards">لا توجد بطاقات بعد. اضغط على زر الإضافة لإنشاء أول بطاقة.</string>
+    <string name="cards_medium">متوسط</string>
+    <string name="cards_due_new">جديدة</string>
+
+    <string name="review_title">المراجعة</string>
+    <string name="review_all_cards">كل البطاقات</string>
+    <string name="review_front_label">الوجه الأمامي</string>
+    <string name="review_back_label">الوجه الخلفي</string>
+    <string name="review_due_label">الاستحقاق: %1$s</string>
+    <string name="review_due_new">جديدة</string>
+    <string name="review_reps_label">مرات %1$d</string>
+    <string name="review_lapses_label">أخطاء %1$d</string>
+    <string name="review_show_answer">إظهار الإجابة</string>
+    <string name="review_again">مرة أخرى</string>
+    <string name="review_hard">صعب</string>
+    <string name="review_good">جيد</string>
+    <string name="review_easy">سهل</string>
+    <string name="review_medium">متوسط</string>
+    <string name="review_interval_now">الآن</string>
+    <string name="review_interval_less_than_one_minute">خلال أقل من دقيقة</string>
+    <plurals name="review_interval_minutes">
+        <item quantity="zero">خلال أقل من دقيقة</item>
+        <item quantity="one">خلال دقيقة واحدة</item>
+        <item quantity="two">خلال دقيقتين</item>
+        <item quantity="few">خلال %d دقائق</item>
+        <item quantity="many">خلال %d دقيقة</item>
+        <item quantity="other">خلال %d دقيقة</item>
+    </plurals>
+    <plurals name="review_interval_hours">
+        <item quantity="zero">خلال أقل من ساعة</item>
+        <item quantity="one">خلال ساعة واحدة</item>
+        <item quantity="two">خلال ساعتين</item>
+        <item quantity="few">خلال %d ساعات</item>
+        <item quantity="many">خلال %d ساعة</item>
+        <item quantity="other">خلال %d ساعة</item>
+    </plurals>
+    <plurals name="review_interval_days">
+        <item quantity="zero">خلال أقل من يوم</item>
+        <item quantity="one">خلال يوم واحد</item>
+        <item quantity="two">خلال يومين</item>
+        <item quantity="few">خلال %d أيام</item>
+        <item quantity="many">خلال %d يومًا</item>
+        <item quantity="other">خلال %d يوم</item>
+    </plurals>
+
+    <string name="ai_title">AI</string>
+    <string name="ai_card_attachment_title">بطاقة · %1$s</string>
+    <string name="ai_consent_title">قبل استخدام AI</string>
+    <string name="ai_consent_warning">قد يخطئ AI. راجع النتائج المهمة قبل الاعتماد عليها.</string>
+    <string name="ai_consent_accept">موافق</string>
+    <string name="ai_privacy_policy">سياسة الخصوصية</string>
+    <string name="ai_terms_of_service">شروط الخدمة</string>
+    <string name="ai_support">الدعم</string>
+    <string name="ai_consent_workspace_disclosure">قد ترسل طلبات AI من مساحة العمل &quot;%1$s&quot; المطالبات والملفات المرفوعة والصور والصوت المملى إلى OpenAI.</string>
+    <string name="ai_message_label">الرسالة</string>
+    <string name="ai_attach">إرفاق</string>
+    <string name="ai_dictate">إملاء</string>
+    <string name="ai_send">إرسال</string>
+    <string name="ai_empty_title">ابدأ محادثة AI جديدة</string>
+    <string name="ai_empty_body">اسأل عن البطاقات وسجل المراجعة، أو أرفق ملاحظات لاستخراجها في %1$s.</string>
+</resources>

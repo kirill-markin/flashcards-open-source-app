@@ -1,6 +1,5 @@
 package com.flashcardsopensourceapp.app
 
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
@@ -17,7 +16,7 @@ private const val cardsScreenshotSlug: String = "cards-list-google-play-vocabula
 @RunWith(AndroidJUnit4::class)
 class MarketingCardsScreenshotScript {
     private val appStateResetRule = AppStateResetRule()
-    private val composeRule = createAndroidComposeRule<MainActivity>()
+    private val composeRule = createMarketingScreenshotComposeRule()
 
     @get:Rule
     val ruleChain: TestRule = RuleChain

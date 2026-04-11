@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.app
 import android.app.LocaleManager
 import android.os.LocaleList
 import android.os.ParcelFileDescriptor
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
@@ -20,6 +21,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
@@ -51,6 +53,9 @@ import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.Locale
+import org.junit.rules.TestRule
+import org.junit.runner.Description
+import org.junit.runners.model.Statement
 
 private const val screenshotUiTimeoutMillis: Long = 10_000L
 private const val aiScreenshotUiTimeoutMillis: Long = 30_000L
@@ -58,7 +63,53 @@ private const val aiAttachmentUiTimeoutMillis: Long = 60_000L
 private const val marketingScreenshotDirectoryPath: String = "/sdcard/Download/flashcards-marketing-screenshots"
 
 internal typealias MainActivityComposeRule =
-    AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActivity>
+    AndroidComposeTestRule<DeferredActivityScenarioRule<MainActivity>, MainActivity>
+
+internal class DeferredActivityScenarioRule<A : ComponentActivity>(
+    private val activityClass: Class<A>
+) : TestRule {
+    private var scenario: ActivityScenario<A>? = null
+
+    override fun apply(base: Statement, description: Description): Statement {
+        return object : Statement() {
+            override fun evaluate() {
+                try {
+                    base.evaluate()
+                } finally {
+                    scenario?.close()
+                    scenario = null
+                }
+            }
+        }
+    }
+
+    fun launchActivityIfNeeded() {
+        if (scenario != null) {
+            return
+        }
+
+        scenario = ActivityScenario.launch(activityClass)
+    }
+
+    fun requireActivity(): A {
+        val activeScenario = scenario
+            ?: throw IllegalStateException("Activity ${activityClass.simpleName} was not launched.")
+        var activity: A? = null
+        activeScenario.onActivity { launchedActivity ->
+            activity = launchedActivity
+        }
+        return activity
+            ?: throw IllegalStateException("Activity ${activityClass.simpleName} was unavailable.")
+    }
+}
+
+internal fun createMarketingScreenshotComposeRule(): MainActivityComposeRule {
+    val activityRule = DeferredActivityScenarioRule(activityClass = MainActivity::class.java)
+    return AndroidComposeTestRule(
+        activityRule = activityRule,
+        activityProvider = { rule -> rule.requireActivity() }
+    )
+}
 
 internal class MarketingScreenshotRobot(
     private val composeRule: MainActivityComposeRule,
@@ -228,18 +279,25 @@ internal class MarketingScreenshotRobot(
     }
 
     private fun ensureLocaleApplied() {
+        composeRule.activityRule.launchActivityIfNeeded()
         if (hasAppliedLocale) {
             return
         }
 
         val expectedLocale: Locale = Locale.forLanguageTag(localeConfig.appLocaleTag)
+        val currentLocale = composeRule.activity.resources.configuration.locales[0]
+        if (currentLocale.toLanguageTag() == expectedLocale.toLanguageTag()) {
+            hasAppliedLocale = true
+            return
+        }
+
         composeRule.runOnUiThread {
             val localeManager = composeRule.activity.getSystemService(LocaleManager::class.java)
             localeManager.applicationLocales = LocaleList.forLanguageTags(localeConfig.appLocaleTag)
         }
         composeRule.waitUntil(timeoutMillis = screenshotUiTimeoutMillis) {
             val currentLocale = composeRule.activity.resources.configuration.locales[0]
-            currentLocale.language == expectedLocale.language
+            currentLocale.toLanguageTag() == expectedLocale.toLanguageTag()
         }
         composeRule.waitForIdle()
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()

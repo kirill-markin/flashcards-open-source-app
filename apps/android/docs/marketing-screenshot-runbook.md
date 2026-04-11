@@ -10,6 +10,7 @@ These screenshot flows are manual-only Android instrumentation entrypoints.
 
 They are not part of Android CI, release gates, or default `androidTest` runs.
 Each flow prepares a specific in-app state, captures a PNG on the emulator, and pulls that file into `apps/android/docs/media/play-store-screenshots/`.
+The wrappers run the dedicated `marketingScreenshot` app variant, which can include screenshot-only resource overlays from `apps/android/app/src/marketingScreenshot/res` without changing normal `debug` or `release` builds.
 
 ## Current wrapper scripts
 
@@ -106,13 +107,13 @@ Each wrapper script does the following:
 
 1. Verifies that an Android API 36 device is connected.
 2. Dismisses blocking system dialogs.
-3. Runs one manual-only instrumentation class through `:app:connectedDebugAndroidTest`.
+3. Runs one manual-only instrumentation class through `:app:connectedMarketingScreenshotAndroidTest`.
 4. Pulls the generated PNG from `/sdcard/Download/flashcards-marketing-screenshots/` into the committed media directory.
 
 The locale-specific card texts, AI draft texts, file-name prefixes, and UI labels used by these screenshot flows are defined in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotCatalog.kt`.
 
-Before running a new non-English locale at scale, verify that the catalog's UI labels still match the actual Play-delivered Android UI for that locale.
-The screenshot automation depends on those labels for clicks and waits.
+The screenshot-only variant exists to package repository-owned screenshot translations without leaking them into shipping builds.
+Keep normal Android UI localization Play-first, and limit repository-managed screenshot overlays to screenshot capture only.
 
 ## Verify the result
 

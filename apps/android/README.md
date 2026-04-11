@@ -84,6 +84,7 @@ Run commands from `apps/android/`.
 
 - Build the debug app: `./gradlew :app:assembleDebug`
 - Build AndroidTest APKs: `./gradlew :app:assembleDebugAndroidTest :data:local:assembleDebugAndroidTest`
+- Build the screenshot-only app variant: `./gradlew :app:assembleMarketingScreenshot :app:assembleMarketingScreenshotAndroidTest`
 
 ## Android Docs
 
@@ -103,6 +104,7 @@ Android app-internal translations are Play-first.
 - Do not rely on AGP locale generation from checked-in resources as the source of supported translated languages. Play-managed languages must still be advertised explicitly from the checked-in Android locale plumbing so Android's per-app language settings can list them.
 - Keep the explicit Android supported-language list aligned with the languages enabled for Play App strings in the release you are shipping.
 - Keep store listing text, screenshots, and other marketing localization separate from in-app Android strings. Those are Play Console and media-asset concerns, not a reason to reintroduce repository-managed Android UI translations.
+- Screenshot-only UI translation overlays belong in `apps/android/app/src/marketingScreenshot/res` and are packaged only into the dedicated `marketingScreenshot` build type used by the manual screenshot wrappers. They must not be used to change normal `debug` or `release` builds.
 - When a new Android app language is needed, add the English source strings or locale-ready formatting in repo, update the explicit locale-advertising config, upload a draft release to Google Play, review the Play-managed translations there, verify the Play-delivered build, and publish later from Play Console.
 - A local debug build is useful only for base-resource sanity and locale-plumbing checks. Treat the Play-delivered draft build as the source of truth for translated UI copy and final per-app language availability.
 

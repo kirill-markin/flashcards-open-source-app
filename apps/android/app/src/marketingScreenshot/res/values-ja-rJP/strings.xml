@@ -1,0 +1,55 @@
+<resources>
+    <string name="top_level_review">復習</string>
+    <string name="top_level_cards">カード</string>
+    <string name="top_level_ai">AI</string>
+    <string name="top_level_settings">設定</string>
+
+    <string name="cards_title">カード</string>
+    <string name="cards_add_card_content_description">カードを追加</string>
+    <string name="cards_search_label">カードを検索</string>
+    <string name="cards_empty_no_cards">まだカードがありません。追加ボタンをタップして最初のカードを作成してください。</string>
+    <string name="cards_medium">中</string>
+    <string name="cards_due_new">新規</string>
+
+    <string name="review_title">復習</string>
+    <string name="review_all_cards">すべてのカード</string>
+    <string name="review_front_label">表面</string>
+    <string name="review_back_label">裏面</string>
+    <string name="review_due_label">期限: %1$s</string>
+    <string name="review_due_new">新規</string>
+    <string name="review_reps_label">復習 %1$d</string>
+    <string name="review_lapses_label">忘れ %1$d</string>
+    <string name="review_show_answer">答えを表示</string>
+    <string name="review_again">もう一度</string>
+    <string name="review_hard">難しい</string>
+    <string name="review_good">良い</string>
+    <string name="review_easy">簡単</string>
+    <string name="review_medium">中</string>
+    <string name="review_interval_now">今</string>
+    <string name="review_interval_less_than_one_minute">1分未満で</string>
+    <plurals name="review_interval_minutes">
+        <item quantity="other">%d分後</item>
+    </plurals>
+    <plurals name="review_interval_hours">
+        <item quantity="other">%d時間後</item>
+    </plurals>
+    <plurals name="review_interval_days">
+        <item quantity="other">%d日後</item>
+    </plurals>
+
+    <string name="ai_title">AI</string>
+    <string name="ai_card_attachment_title">カード・%1$s</string>
+    <string name="ai_consent_title">AIを使う前に</string>
+    <string name="ai_consent_warning">AIは誤ることがあります。重要な結果に頼る前に確認してください。</string>
+    <string name="ai_consent_accept">OK</string>
+    <string name="ai_privacy_policy">プライバシーポリシー</string>
+    <string name="ai_terms_of_service">利用規約</string>
+    <string name="ai_support">サポート</string>
+    <string name="ai_consent_workspace_disclosure">「%1$s」ワークスペースからのAIリクエストでは、プロンプト、アップロードしたファイル、画像、音声入力がOpenAIに送信されることがあります。</string>
+    <string name="ai_message_label">メッセージ</string>
+    <string name="ai_attach">添付</string>
+    <string name="ai_dictate">音声入力</string>
+    <string name="ai_send">送信</string>
+    <string name="ai_empty_title">新しいAIチャットを始める</string>
+    <string name="ai_empty_body">カードや復習履歴について質問したり、%1$s で抽出するためのノートを添付したりできます。</string>
+</resources>
