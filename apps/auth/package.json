@@ -10,7 +10,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@aws-sdk/client-secrets-manager": "^3.1027.0",
+    "@aws-sdk/client-secrets-manager": "^3.1029.0",
     "@hono/node-server": "^1.19.13",
     "aws-jwt-verify": "^5.1.1",
     "hono": "^4.12.12",
