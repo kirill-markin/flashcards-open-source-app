@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.app
 
+import android.app.LocaleManager
+import android.os.LocaleList
 import android.os.ParcelFileDescriptor
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasClickAction
@@ -28,85 +30,70 @@ import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.util.Locale
 
 private const val screenshotUiTimeoutMillis: Long = 10_000L
 private const val aiScreenshotUiTimeoutMillis: Long = 30_000L
 private const val aiAttachmentUiTimeoutMillis: Long = 60_000L
-private const val emptyCardsMessage: String = "No cards yet. Tap the add button to create the first card."
 private const val marketingScreenshotDirectoryPath: String = "/sdcard/Download/flashcards-marketing-screenshots"
-private const val opportunityCostReviewFrontText: String =
-    "In economics, what is opportunity cost?"
-private const val opportunityCostReviewBackText: String =
-    "Opportunity cost is the value of the next best alternative you give up when you choose one option over another.\n\n" +
-        "Exam example: If you spend Saturday studying for a microeconomics exam instead of working a paid shift, " +
-        "the lost wages are part of the opportunity cost."
-
-private data class MarketingReviewCardFixture(
-    val frontText: String,
-    val backText: String,
-    val tags: List<String>,
-    val effortLevelTitle: String
-)
-
-private val opportunityCostReviewCardFixture: MarketingReviewCardFixture = MarketingReviewCardFixture(
-    frontText = opportunityCostReviewFrontText,
-    backText = opportunityCostReviewBackText,
-    tags = listOf("economics"),
-    effortLevelTitle = "Medium"
-)
 
 internal typealias MainActivityComposeRule =
     AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActivity>
 
 internal class MarketingScreenshotRobot(
-    private val composeRule: MainActivityComposeRule
+    private val composeRule: MainActivityComposeRule,
+    private val localeConfig: MarketingScreenshotLocaleConfig
 ) {
     private val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+    private var hasAppliedLocale: Boolean = false
 
     fun waitForCardsEmptyState() {
+        ensureLocaleApplied()
         openCardsTab()
         waitUntilWithSystemDialogMitigation {
-            composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText(emptyCardsMessage).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText(localeConfig.uiText.searchCardsPlaceholder).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText(localeConfig.uiText.emptyCardsMessage).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     fun createCard(frontText: String, backText: String, tags: List<String>, effortLevelTitle: String) {
+        ensureLocaleApplied()
         openCardsTab()
-        clickContentDescription(contentDescription = "Add card")
-        updateCardText(fieldTitle = "Front", value = frontText)
-        updateCardText(fieldTitle = "Back", value = backText)
+        clickContentDescription(contentDescription = localeConfig.uiText.addCardContentDescription)
+        updateCardText(fieldTitle = localeConfig.uiText.frontFieldTitle, value = frontText)
+        updateCardText(fieldTitle = localeConfig.uiText.backFieldTitle, value = backText)
         scrollToText(text = effortLevelTitle)
         clickText(text = effortLevelTitle)
 
         if (tags.isNotEmpty()) {
-            clickText(text = "Tags")
+            clickText(text = localeConfig.uiText.tagsFieldTitle)
             tags.forEach { tag ->
                 dismissExternalSystemDialogIfPresent()
-                composeRule.onNodeWithText("Add a tag").performTextInput(tag)
+                composeRule.onNodeWithText(localeConfig.uiText.addTagFieldTitle).performTextInput(tag)
                 composeRule.waitForIdle()
                 dismissExternalSystemDialogIfPresent()
-                clickText(text = "Add tag")
+                clickText(text = localeConfig.uiText.addTagButtonTitle)
             }
             tapBackIcon()
         }
 
-        scrollToText(text = "Save")
+        scrollToText(text = localeConfig.uiText.saveButtonTitle)
         waitForNode(
-            matcher = hasClickAction().and(other = hasText("Save"))
+            matcher = hasClickAction().and(other = hasText(localeConfig.uiText.saveButtonTitle))
         )
         clickNode(
-            matcher = hasClickAction().and(other = hasText("Save"))
+            matcher = hasClickAction().and(other = hasText(localeConfig.uiText.saveButtonTitle))
         )
         waitUntilWithSystemDialogMitigation {
-            composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty() &&
+            composeRule.onAllNodesWithText(localeConfig.uiText.searchCardsPlaceholder).fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     fun openReviewTab() {
+        ensureLocaleApplied()
         clickNode(
-            matcher = hasText("Review").and(other = hasClickAction())
+            matcher = hasText(localeConfig.uiText.reviewTabTitle).and(other = hasClickAction())
         )
     }
 
@@ -131,41 +118,43 @@ internal class MarketingScreenshotRobot(
 
     fun returnToOpportunityCostReviewCard() {
         openReviewTab()
-        waitForReviewPrompt(frontText = opportunityCostReviewCardFixture.frontText)
+        waitForReviewPrompt(frontText = localeConfig.reviewCard.frontText)
     }
 
     fun prepareOpportunityCostReviewCardForReview() {
         waitForCardsEmptyState()
         createCard(
-            frontText = opportunityCostReviewCardFixture.frontText,
-            backText = opportunityCostReviewCardFixture.backText,
-            tags = opportunityCostReviewCardFixture.tags,
-            effortLevelTitle = opportunityCostReviewCardFixture.effortLevelTitle
+            frontText = localeConfig.reviewCard.frontText,
+            backText = localeConfig.reviewCard.backText,
+            tags = localeConfig.reviewCard.tags,
+            effortLevelTitle = localeConfig.reviewCard.effortLevelTitle
         )
         openReviewTab()
-        waitForReviewPrompt(frontText = opportunityCostReviewCardFixture.frontText)
+        waitForReviewPrompt(frontText = localeConfig.reviewCard.frontText)
     }
 
     fun revealAnswerAndWaitForRatings() {
+        ensureLocaleApplied()
         waitUntilWithSystemDialogMitigation {
             composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
         clickTag(tag = reviewShowAnswerButtonTag)
         waitUntilWithSystemDialogMitigation {
-            composeRule.onAllNodesWithText("Again").fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText("Hard").fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText("Good").fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText("Easy").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText(localeConfig.uiText.ratingAgainTitle).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText(localeConfig.uiText.ratingHardTitle).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText(localeConfig.uiText.ratingGoodTitle).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText(localeConfig.uiText.ratingEasyTitle).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithTag(reviewRateGoodButtonTag).fetchSemanticsNode()
     }
 
     fun openAiFromRevealedOpportunityCostCardAndPrepareDraft(draftText: String) {
+        ensureLocaleApplied()
         val consentTitle = composeRule.activity.getString(AiFeatureR.string.ai_consent_title)
         val consentAccept = composeRule.activity.getString(AiFeatureR.string.ai_consent_accept)
         val attachmentLabel = composeRule.activity.getString(
             AiFeatureR.string.ai_card_attachment_title,
-            opportunityCostReviewCardFixture.frontText
+            localeConfig.reviewCard.frontText
         )
         waitUntilWithSystemDialogMitigation(timeoutMillis = aiScreenshotUiTimeoutMillis) {
             composeRule.onAllNodesWithTag(reviewAiCardButtonTag).fetchSemanticsNodes().isNotEmpty()
@@ -197,6 +186,7 @@ internal class MarketingScreenshotRobot(
     }
 
     fun saveScreenshot(fileName: String): String {
+        ensureLocaleApplied()
         dismissExternalSystemDialogIfPresent()
         composeRule.waitForIdle()
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
@@ -210,14 +200,33 @@ internal class MarketingScreenshotRobot(
 
     private fun openCardsTab() {
         clickNode(
-            matcher = hasText("Cards").and(other = hasClickAction())
+            matcher = hasText(localeConfig.uiText.cardsTabTitle).and(other = hasClickAction())
         )
     }
 
     private fun openAiTab() {
         clickNode(
-            matcher = hasText("AI").and(other = hasClickAction())
+            matcher = hasText(localeConfig.uiText.aiTabTitle).and(other = hasClickAction())
         )
+    }
+
+    private fun ensureLocaleApplied() {
+        if (hasAppliedLocale) {
+            return
+        }
+
+        val expectedLocale: Locale = Locale.forLanguageTag(localeConfig.appLocaleTag)
+        composeRule.runOnUiThread {
+            val localeManager = composeRule.activity.getSystemService(LocaleManager::class.java)
+            localeManager.applicationLocales = LocaleList.forLanguageTags(localeConfig.appLocaleTag)
+        }
+        composeRule.waitUntil(timeoutMillis = screenshotUiTimeoutMillis) {
+            val currentLocale = composeRule.activity.resources.configuration.locales[0]
+            currentLocale.language == expectedLocale.language
+        }
+        composeRule.waitForIdle()
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        hasAppliedLocale = true
     }
 
     private fun updateCardText(fieldTitle: String, value: String) {

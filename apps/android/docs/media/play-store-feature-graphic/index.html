@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-US">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,13 +7,36 @@
     <style>
         :root {
             --ink: #101417;
-            --ink-soft: #182028;
             --mist: #f8f3ec;
             --sand: #d6c4b4;
             --accent: #c44b2d;
             --accent-soft: #df7659;
             --line: rgba(248, 243, 236, 0.12);
             --shadow: rgba(0, 0, 0, 0.28);
+            --body-font: "Avenir Next", "Segoe UI", sans-serif;
+            --headline-font: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+            --content-padding-y: 50px;
+            --content-padding-x: 60px;
+            --copy-max-width: 448px;
+            --eyebrow-size: 14px;
+            --eyebrow-letter-spacing: 0.18em;
+            --eyebrow-transform: uppercase;
+            --headline-size: 54px;
+            --headline-line-height: 0.98;
+            --headline-letter-spacing: -0.04em;
+            --summary-size: 18px;
+            --summary-line-height: 1.35;
+            --chips-gap: 9px;
+            --chips-margin-top: 22px;
+            --chip-font-size: 13px;
+            --chip-padding-y: 8px;
+            --chip-padding-x: 13px;
+            --badge-width: auto;
+            --badge-title-size: 13px;
+            --badge-letter-spacing: 0.08em;
+            --badge-transform: uppercase;
+            --badge-copy-size: 15px;
+            --badge-copy-line-height: 1.25;
         }
 
         * {
@@ -31,7 +54,7 @@
         }
 
         body {
-            font-family: "Avenir Next", "Segoe UI", sans-serif;
+            font-family: var(--body-font);
         }
 
         .canvas {
@@ -76,33 +99,33 @@
             gap: 24px;
             width: 100%;
             height: 100%;
-            padding: 58px 60px;
+            padding: var(--content-padding-y) var(--content-padding-x);
         }
 
         .copy {
             display: flex;
             flex-direction: column;
             justify-content: center;
-            max-width: 440px;
+            max-width: var(--copy-max-width);
         }
 
         .eyebrow {
-            margin: 0 0 18px;
+            margin: 0 0 16px;
             color: var(--sand);
-            font-size: 15px;
+            font-size: var(--eyebrow-size);
             font-weight: 600;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
+            letter-spacing: var(--eyebrow-letter-spacing);
+            text-transform: var(--eyebrow-transform);
         }
 
         h1 {
             margin: 0;
             color: var(--mist);
-            font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
-            font-size: 60px;
-            line-height: 0.98;
+            font-family: var(--headline-font);
+            font-size: var(--headline-size);
+            line-height: var(--headline-line-height);
             font-weight: 700;
-            letter-spacing: -0.04em;
+            letter-spacing: var(--headline-letter-spacing);
         }
 
         .accent {
@@ -110,27 +133,27 @@
         }
 
         .summary {
-            margin: 22px 0 0;
+            margin: 18px 0 0;
             color: rgba(248, 243, 236, 0.82);
-            font-size: 21px;
-            line-height: 1.35;
+            font-size: var(--summary-size);
+            line-height: var(--summary-line-height);
             letter-spacing: -0.01em;
         }
 
         .chips {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 28px;
+            gap: var(--chips-gap);
+            margin-top: var(--chips-margin-top);
         }
 
         .chip {
-            padding: 9px 14px;
+            padding: var(--chip-padding-y) var(--chip-padding-x);
             border: 1px solid rgba(248, 243, 236, 0.14);
             border-radius: 999px;
             background: rgba(248, 243, 236, 0.05);
             color: var(--mist);
-            font-size: 14px;
+            font-size: var(--chip-font-size);
             line-height: 1;
             white-space: nowrap;
             backdrop-filter: blur(6px);
@@ -256,6 +279,7 @@
             position: absolute;
             right: 18px;
             bottom: 8px;
+            width: var(--badge-width);
             padding: 14px 16px 13px;
             border: 1px solid rgba(248, 243, 236, 0.12);
             border-radius: 18px;
@@ -267,17 +291,42 @@
         .badge-title {
             margin: 0 0 5px;
             color: var(--mist);
-            font-size: 13px;
+            font-size: var(--badge-title-size);
             font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
+            letter-spacing: var(--badge-letter-spacing);
+            text-transform: var(--badge-transform);
         }
 
         .badge-copy {
             margin: 0;
             color: rgba(248, 243, 236, 0.76);
-            font-size: 15px;
-            line-height: 1.25;
+            font-size: var(--badge-copy-size);
+            line-height: var(--badge-copy-line-height);
+        }
+
+        .rtl .content {
+            grid-template-columns: 0.95fr 1.05fr;
+        }
+
+        .rtl .copy {
+            order: 2;
+            text-align: right;
+            margin-left: auto;
+            align-items: flex-end;
+        }
+
+        .rtl .art {
+            order: 1;
+        }
+
+        .rtl .chips {
+            justify-content: flex-end;
+        }
+
+        .rtl .badge {
+            left: 18px;
+            right: auto;
+            text-align: right;
         }
     </style>
 </head>
@@ -285,18 +334,10 @@
     <main class="canvas">
         <section class="content">
             <div class="copy">
-                <p class="eyebrow">Flashcards for Android</p>
-                <h1>Study <span class="accent">offline</span><br />with calm focus</h1>
-                <p class="summary">
-                    Spaced repetition, AI help, and sync when you need it.
-                </p>
-                <div class="chips" aria-label="Feature highlights">
-                    <span class="chip">Review</span>
-                    <span class="chip">Decks</span>
-                    <span class="chip">Tags</span>
-                    <span class="chip">AI</span>
-                    <span class="chip">Sync</span>
-                </div>
+                <p class="eyebrow" id="eyebrow"></p>
+                <h1 id="headline"></h1>
+                <p class="summary" id="summary"></p>
+                <div class="chips" id="chips" aria-label="Feature highlights"></div>
             </div>
 
             <div class="art" aria-hidden="true">
@@ -308,12 +349,294 @@
                     <div class="spark two"></div>
                     <div class="spark three"></div>
                     <div class="badge">
-                        <p class="badge-title">Built for study</p>
-                        <p class="badge-copy">Fast review, local-first,<br />clean Android UI</p>
+                        <p class="badge-title" id="badge-title"></p>
+                        <p class="badge-copy" id="badge-copy"></p>
                     </div>
                 </div>
             </div>
         </section>
     </main>
+
+    <script>
+        const localeConfigs = {
+            "en-US": {
+                dir: "ltr",
+                eyebrow: "AI-powered flashcards",
+                headlineHtml: "<span class=\"accent\">AI</span> flashcards<br />for serious<br />daily study",
+                summary: "Review due cards, improve content with AI, and sync when you need it.",
+                chips: ["Review", "AI Chat", "Decks", "Tags", "Sync"],
+                badgeTitle: "AI in the workflow",
+                badgeCopyLines: ["Explore cards, improve content,", "plan your study"],
+                style: {
+                    "--copy-max-width": "448px"
+                }
+            },
+            "ar": {
+                dir: "rtl",
+                eyebrow: "بطاقات بالذكاء الاصطناعي",
+                headlineHtml: "بطاقات <span class=\"accent\">بالذكاء</span><br />الاصطناعي<br />لدراسة جادة",
+                summary: "راجع البطاقات المستحقة، حسّن المحتوى بالذكاء الاصطناعي، وزامن عند الحاجة.",
+                chips: ["مراجعة", "AI", "مجموعات", "وسوم", "مزامنة"],
+                badgeTitle: "الذكاء في الدراسة",
+                badgeCopyLines: ["استكشف البطاقات، حسّن المحتوى،", "وخطّط لمذاكرتك"],
+                style: {
+                    "--body-font": "\"Geeza Pro\", \"SF Arabic\", \"Noto Naskh Arabic\", \"Noto Sans Arabic\", sans-serif",
+                    "--headline-font": "\"Geeza Pro\", \"Al Bayan\", \"SF Arabic\", \"Noto Naskh Arabic\", serif",
+                    "--headline-size": "50px",
+                    "--headline-line-height": "1.08",
+                    "--headline-letter-spacing": "0",
+                    "--summary-size": "17px",
+                    "--summary-line-height": "1.5",
+                    "--eyebrow-letter-spacing": "0.04em",
+                    "--eyebrow-transform": "none",
+                    "--chip-font-size": "12px",
+                    "--badge-title-size": "12px",
+                    "--badge-letter-spacing": "0.02em",
+                    "--badge-transform": "none",
+                    "--badge-copy-size": "14px",
+                    "--badge-width": "244px",
+                    "--copy-max-width": "468px"
+                }
+            },
+            "zh-CN": {
+                dir: "ltr",
+                eyebrow: "AI 闪卡",
+                headlineHtml: "<span class=\"accent\">AI</span> 闪卡<br />助你认真<br />每日学习",
+                summary: "复习到期卡片，用 AI 优化内容，并在需要时同步。",
+                chips: ["复习", "AI", "牌组", "标签", "同步"],
+                badgeTitle: "AI 融入学习流程",
+                badgeCopyLines: ["探索卡片，优化内容，", "规划你的学习"],
+                style: {
+                    "--body-font": "\"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif",
+                    "--headline-font": "\"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", \"Noto Sans CJK SC\", sans-serif",
+                    "--headline-size": "58px",
+                    "--headline-line-height": "1.04",
+                    "--headline-letter-spacing": "-0.02em",
+                    "--summary-size": "19px",
+                    "--summary-line-height": "1.42",
+                    "--eyebrow-letter-spacing": "0.08em",
+                    "--eyebrow-transform": "none",
+                    "--badge-title-size": "12px",
+                    "--badge-letter-spacing": "0.02em",
+                    "--badge-transform": "none",
+                    "--badge-width": "236px",
+                    "--copy-max-width": "432px"
+                }
+            },
+            "de-DE": {
+                dir: "ltr",
+                eyebrow: "KI-gestützte Karteikarten",
+                headlineHtml: "<span class=\"accent\">KI</span>-Karteikarten<br />für ernsthaftes<br />tägliches Lernen",
+                summary: "Fällige Karten wiederholen, Inhalte mit KI verbessern und bei Bedarf synchronisieren.",
+                chips: ["Wiederholen", "KI", "Stapel", "Tags", "Sync"],
+                badgeTitle: "KI im Lernfluss",
+                badgeCopyLines: ["Karten erkunden, Inhalte verbessern,", "Lernen planen"],
+                style: {
+                    "--headline-size": "47px",
+                    "--headline-line-height": "1.01",
+                    "--summary-size": "16px",
+                    "--summary-line-height": "1.42",
+                    "--eyebrow-size": "13px",
+                    "--chip-font-size": "12px",
+                    "--badge-title-size": "12px",
+                    "--badge-copy-size": "14px",
+                    "--badge-width": "254px",
+                    "--copy-max-width": "466px"
+                }
+            },
+            "hi-IN": {
+                dir: "ltr",
+                eyebrow: "AI फ्लैशकार्ड",
+                headlineHtml: "गंभीर रोज़ाना<br />पढ़ाई के लिए<br /><span class=\"accent\">AI</span> फ्लैशकार्ड",
+                summary: "ड्यू कार्ड रिव्यू करें, AI से कंटेंट बेहतर करें, और ज़रूरत पर सिंक करें.",
+                chips: ["रिव्यू", "AI", "डेक्स", "टैग", "सिंक"],
+                badgeTitle: "वर्कफ़्लो में AI",
+                badgeCopyLines: ["कार्ड समझें, कंटेंट सुधारें,", "पढ़ाई प्लान करें"],
+                style: {
+                    "--body-font": "\"Kohinoor Devanagari\", \"Nirmala UI\", \"Noto Sans Devanagari\", sans-serif",
+                    "--headline-font": "\"Kohinoor Devanagari\", \"Nirmala UI\", \"Noto Serif Devanagari\", serif",
+                    "--headline-size": "46px",
+                    "--headline-line-height": "1.14",
+                    "--headline-letter-spacing": "-0.01em",
+                    "--summary-size": "17px",
+                    "--summary-line-height": "1.48",
+                    "--eyebrow-transform": "none",
+                    "--eyebrow-letter-spacing": "0.03em",
+                    "--chip-font-size": "12px",
+                    "--badge-title-size": "12px",
+                    "--badge-letter-spacing": "0.02em",
+                    "--badge-transform": "none",
+                    "--badge-copy-size": "14px",
+                    "--badge-width": "244px",
+                    "--copy-max-width": "468px"
+                }
+            },
+            "ja-JP": {
+                dir: "ltr",
+                eyebrow: "AI搭載フラッシュカード",
+                headlineHtml: "本気の<br />毎日学習に<br /><span class=\"accent\">AI</span>暗記カード",
+                summary: "期日カードを復習し、AIで内容を改善し、必要なときだけ同期。",
+                chips: ["復習", "AI", "デッキ", "タグ", "同期"],
+                badgeTitle: "学習フローにAI",
+                badgeCopyLines: ["カードを深掘りし、内容を改善、", "学習を計画"],
+                style: {
+                    "--body-font": "\"Hiragino Sans\", \"Yu Gothic\", \"Meiryo\", \"Noto Sans CJK JP\", sans-serif",
+                    "--headline-font": "\"Hiragino Mincho ProN\", \"Yu Mincho\", \"Noto Serif CJK JP\", serif",
+                    "--headline-size": "52px",
+                    "--headline-line-height": "1.08",
+                    "--headline-letter-spacing": "-0.02em",
+                    "--summary-size": "18px",
+                    "--summary-line-height": "1.45",
+                    "--eyebrow-transform": "none",
+                    "--eyebrow-letter-spacing": "0.08em",
+                    "--badge-title-size": "12px",
+                    "--badge-letter-spacing": "0.02em",
+                    "--badge-transform": "none",
+                    "--badge-width": "238px",
+                    "--copy-max-width": "444px"
+                }
+            },
+            "ru-RU": {
+                dir: "ltr",
+                eyebrow: "ИИ-флешкарты",
+                headlineHtml: "<span class=\"accent\">ИИ</span>-флешкарты<br />для серьезной<br />учебы каждый день",
+                summary: "Повторяйте карточки к сроку, улучшайте их с ИИ и синхронизируйте всё при необходимости.",
+                chips: ["Повтор", "ИИ", "Колоды", "Теги", "Синхро"],
+                badgeTitle: "ИИ в учебном процессе",
+                badgeCopyLines: ["Разбирайте карточки, улучшайте контент,", "планируйте учебу"],
+                style: {
+                    "--headline-size": "48px",
+                    "--headline-line-height": "1.02",
+                    "--summary-size": "16px",
+                    "--summary-line-height": "1.42",
+                    "--eyebrow-transform": "none",
+                    "--eyebrow-letter-spacing": "0.08em",
+                    "--chip-font-size": "12px",
+                    "--badge-title-size": "12px",
+                    "--badge-letter-spacing": "0.04em",
+                    "--badge-transform": "none",
+                    "--badge-copy-size": "14px",
+                    "--badge-width": "262px",
+                    "--copy-max-width": "472px"
+                }
+            },
+            "es-419": {
+                dir: "ltr",
+                eyebrow: "Flashcards con IA",
+                headlineHtml: "Flashcards con <span class=\"accent\">IA</span><br />para estudiar<br />en serio cada día",
+                summary: "Repasa tarjetas pendientes, mejora contenido con IA y sincroniza cuando lo necesites.",
+                chips: ["Repaso", "IA", "Mazos", "Etiquetas", "Sync"],
+                badgeTitle: "IA en el estudio",
+                badgeCopyLines: ["Explora tarjetas, mejora contenido,", "planea tu estudio"],
+                style: {
+                    "--headline-size": "47px",
+                    "--headline-line-height": "1.01",
+                    "--summary-size": "16px",
+                    "--summary-line-height": "1.42",
+                    "--eyebrow-transform": "none",
+                    "--eyebrow-letter-spacing": "0.08em",
+                    "--chip-font-size": "12px",
+                    "--badge-title-size": "12px",
+                    "--badge-copy-size": "14px",
+                    "--badge-width": "248px",
+                    "--copy-max-width": "472px"
+                }
+            },
+            "es-ES": {
+                dir: "ltr",
+                eyebrow: "Flashcards con IA",
+                headlineHtml: "Flashcards con <span class=\"accent\">IA</span><br />para estudiar<br />de verdad cada día",
+                summary: "Repasa tarjetas pendientes, mejora contenido con IA y sincroniza cuando haga falta.",
+                chips: ["Repaso", "IA", "Mazos", "Etiquetas", "Sync"],
+                badgeTitle: "IA en el estudio",
+                badgeCopyLines: ["Explora tarjetas, mejora contenido,", "planifica tu estudio"],
+                style: {
+                    "--headline-size": "46px",
+                    "--headline-line-height": "1.01",
+                    "--summary-size": "16px",
+                    "--summary-line-height": "1.42",
+                    "--eyebrow-transform": "none",
+                    "--eyebrow-letter-spacing": "0.08em",
+                    "--chip-font-size": "12px",
+                    "--badge-title-size": "12px",
+                    "--badge-copy-size": "14px",
+                    "--badge-width": "252px",
+                    "--copy-max-width": "474px"
+                }
+            },
+            "es-US": {
+                dir: "ltr",
+                eyebrow: "Flashcards con IA",
+                headlineHtml: "Flashcards con <span class=\"accent\">IA</span><br />para estudiar<br />en serio cada día",
+                summary: "Repasa tarjetas pendientes, mejora contenido con IA y sincroniza cuando lo necesites.",
+                chips: ["Repaso", "IA", "Mazos", "Etiquetas", "Sync"],
+                badgeTitle: "IA en el estudio",
+                badgeCopyLines: ["Explora tarjetas, mejora contenido,", "planea tu estudio"],
+                style: {
+                    "--headline-size": "47px",
+                    "--headline-line-height": "1.01",
+                    "--summary-size": "16px",
+                    "--summary-line-height": "1.42",
+                    "--eyebrow-transform": "none",
+                    "--eyebrow-letter-spacing": "0.08em",
+                    "--chip-font-size": "12px",
+                    "--badge-title-size": "12px",
+                    "--badge-copy-size": "14px",
+                    "--badge-width": "248px",
+                    "--copy-max-width": "472px"
+                }
+            }
+        };
+
+        const rootElement = document.documentElement;
+        const canvasElement = document.querySelector(".canvas");
+        const eyebrowElement = document.getElementById("eyebrow");
+        const headlineElement = document.getElementById("headline");
+        const summaryElement = document.getElementById("summary");
+        const chipsElement = document.getElementById("chips");
+        const badgeTitleElement = document.getElementById("badge-title");
+        const badgeCopyElement = document.getElementById("badge-copy");
+
+        const renderChips = (chips) => {
+            chipsElement.innerHTML = "";
+
+            chips.forEach((chip) => {
+                const chipElement = document.createElement("span");
+                chipElement.className = "chip";
+                chipElement.textContent = chip;
+                chipsElement.appendChild(chipElement);
+            });
+        };
+
+        const applyLocale = (locale) => {
+            const config = localeConfigs[locale];
+
+            if (!config) {
+                throw new Error(`Unsupported locale: ${locale}`);
+            }
+
+            rootElement.lang = locale;
+            rootElement.dir = config.dir;
+            document.title = `Flashcards Play Store Feature Graphic - ${locale}`;
+            canvasElement.classList.toggle("rtl", config.dir === "rtl");
+
+            Object.entries(config.style).forEach(([name, value]) => {
+                rootElement.style.setProperty(name, value);
+            });
+
+            eyebrowElement.textContent = config.eyebrow;
+            headlineElement.innerHTML = config.headlineHtml;
+            summaryElement.textContent = config.summary;
+            renderChips(config.chips);
+            badgeTitleElement.textContent = config.badgeTitle;
+            badgeCopyElement.innerHTML = config.badgeCopyLines.join("<br />");
+            canvasElement.dataset.ready = "true";
+        };
+
+        const params = new URLSearchParams(window.location.search);
+        const locale = params.get("locale") || "en-US";
+
+        applyLocale(locale);
+    </script>
 </body>
 </html>

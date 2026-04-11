@@ -91,6 +91,9 @@ Run commands from `apps/android/`.
 - Run Android marketing screenshot captures reliably: [`docs/marketing-screenshot-runbook.md`](docs/marketing-screenshot-runbook.md)
 - Track current Android marketing screenshot inventory: [`docs/marketing-screenshots.md`](docs/marketing-screenshots.md)
 
+The marketing screenshot docs cover locale-prefixed runs as well.
+Use them when adding or validating multi-language Play screenshot content.
+
 ## Localization Rule
 
 Android app-internal translations are Play-first.
@@ -113,6 +116,12 @@ Use that directory for assets such as:
 - feature graphic source files
 - exported PNGs used in store listings
 
+Current committed Android feature graphic files:
+
+- source HTML template: `apps/android/docs/media/play-store-feature-graphic/index.html`
+- exported store PNGs: `apps/android/docs/media/play-store-feature-graphic/<locale>-feature-graphic.png`
+- supported locales: `en-US`, `ar`, `zh-CN`, `de-DE`, `hi-IN`, `ja-JP`, `ru-RU`, `es-419`, `es-ES`, `es-US`
+
 These files are updated manually and are part of the repository on purpose.
 Media-only changes inside `apps/android/docs/media/` must not trigger Android CI builds.
 
@@ -123,6 +132,12 @@ That workflow works well for:
 - creating realistic demo cards and AI chats
 - taking clean store screenshots by hand
 - generating a feature graphic source and exporting the final PNG
+
+For the current Android Play Store feature graphics, the expected workflow is:
+
+1. Edit `apps/android/docs/media/play-store-feature-graphic/index.html`.
+2. Run `bash scripts/export-android-feature-graphic.sh <locale>` for one locale, or `bash scripts/export-android-feature-graphics.sh` for the full supported set.
+3. Verify that each exported file in `apps/android/docs/media/play-store-feature-graphic/` is 1024 x 500.
 
 The current local Android app uses:
 

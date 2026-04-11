@@ -4,9 +4,25 @@ This document tracks repeatable Android screenshot scripts for marketing assets.
 
 For the operational capture procedure, clean-emulator workflow, and verification checklist, use [`marketing-screenshot-runbook.md`](marketing-screenshot-runbook.md).
 
+The locale-specific screenshot texts, file-name prefixes, and UI labels currently live in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotCatalog.kt`.
+
 ## Current inventory
 
 There are currently three Android marketing screenshot themes and four tracked output PNG targets.
+
+The screenshot catalog currently defines these locale prefixes:
+
+- `en`
+- `en-US`
+- `ar`
+- `zh-CN`
+- `de-DE`
+- `hi-IN`
+- `ja-JP`
+- `ru-RU`
+- `es-419`
+- `es-ES`
+- `es-US`
 
 The review screenshot flow captures an exam-prep concept card about opportunity cost in two states:
 
@@ -52,6 +68,12 @@ bash scripts/capture-android-review-front-screenshot.sh
 bash scripts/capture-android-review-screenshot.sh
 bash scripts/capture-android-review-ai-draft-screenshot.sh
 bash scripts/capture-android-cards-screenshot.sh
+```
+
+To target a configured locale other than the default `en`, set `FLASHCARDS_MARKETING_LOCALE_PREFIX` for the wrapper run:
+
+```bash
+FLASHCARDS_MARKETING_LOCALE_PREFIX=de-DE bash scripts/capture-android-review-front-screenshot.sh
 ```
 
 These scripts are not part of Android CI, release gates, or default `androidTest` runs.
