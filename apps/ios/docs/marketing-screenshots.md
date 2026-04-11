@@ -142,6 +142,7 @@ Before running any screenshot script:
 - boot exactly one local iOS simulator manually
 - use `iPhone 14 Plus` for iPhone output or an iPad simulator for iPad output
 - if multiple simulators are already booted, set `FLASHCARDS_IOS_SIMULATOR_ID`
+- keep the simulator UI hidden while the generator runs; do not keep `Simulator.app` visible on screen during screenshot capture
 
 These flows are manual on purpose:
 
@@ -224,6 +225,7 @@ That keeps filenames predictable and ensures outputs land in the correct family 
 - Only one booted simulator is allowed unless you set `FLASHCARDS_IOS_SIMULATOR_ID`.
 - Device family is inferred from the simulator name, so the booted simulator directly controls whether output lands in `iphone/` or `ipad/`.
 - Run screenshot wrappers sequentially, not in parallel. The current generator uses one shared runtime configuration file in `/tmp`, so overlapping runs can make one flow skip or read the wrong configuration.
+- Prefer running the generator without a visible simulator window. The wrappers do not require interactive simulator UI, and hiding `Simulator.app` avoids unnecessary rendering load on the local machine.
 - The scripts expect every declared screenshot file to exist after the XCUITest finishes and fail if any expected PNG was not written.
 - Manual screenshot tests run only through the wrapper scripts because the wrapper sets the required environment variables.
 - Locale-specific content is deterministic and comes from the fixture files listed above. Update those files if the screenshot copy or seeded cards need to change.
