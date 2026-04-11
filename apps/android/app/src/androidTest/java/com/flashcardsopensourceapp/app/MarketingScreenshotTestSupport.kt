@@ -248,7 +248,7 @@ internal class MarketingScreenshotRobot(
         waitUntilWithSystemDialogMitigation(timeoutMillis = aiAttachmentUiTimeoutMillis) {
             composeRule.onAllNodesWithTag(aiComposerPendingAttachmentTag).fetchSemanticsNodes().isNotEmpty()
         }
-        waitForAiComposerInitialState(sendLabel = sendLabel)
+        waitForAiComposerCardHandoffState(sendLabel = sendLabel)
         fillAiComposerDraft(draftText = draftText)
         clearAiComposerFocus()
     }
@@ -437,14 +437,23 @@ internal class MarketingScreenshotRobot(
         }
     }
 
-    private fun waitForAiComposerInitialState(sendLabel: String) {
-        waitUntilWithSystemDialogMitigation(timeoutMillis = aiAttachmentUiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(aiComposerPendingAttachmentTag).fetchSemanticsNodes().isNotEmpty() &&
-                aiComposerDraftTextOrNull().isNullOrBlank() &&
-                aiComposerSendButtonMatchesState(
-                    expectedLabel = sendLabel,
-                    expectedEnabled = false
-                )
+    private fun waitForAiComposerCardHandoffState(sendLabel: String) {
+        try {
+            waitUntilWithSystemDialogMitigation(timeoutMillis = aiAttachmentUiTimeoutMillis) {
+                composeRule.onAllNodesWithTag(aiComposerPendingAttachmentTag).fetchSemanticsNodes().isNotEmpty() &&
+                    aiComposerDraftTextOrNull().isNullOrBlank() &&
+                    aiComposerSendButtonMatchesState(
+                        expectedLabel = sendLabel,
+                        expectedEnabled = true
+                    )
+            }
+        } catch (error: Throwable) {
+            throw AssertionError(
+                "AI composer did not reach the card handoff state for marketing screenshot. " +
+                    "ActualDraft='${aiComposerDraftTextOrNull()}' " +
+                    "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = sendLabel)}",
+                error
+            )
         }
     }
 
