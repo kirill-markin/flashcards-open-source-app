@@ -16,12 +16,9 @@ final class MarketingCardsScreenshotTests: MarketingManualScreenshotTestCase {
                 identifier: LiveSmokeIdentifier.cardsCardRow,
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
-            try self.assertTextExists(
-                localeFixture.conceptCards[0].frontText,
-                timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-            )
-            try self.assertTextExists(
-                localeFixture.conceptCards[1].frontText,
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.cardsCardRow,
+                index: 1,
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
         }

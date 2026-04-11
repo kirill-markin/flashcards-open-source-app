@@ -99,6 +99,33 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     @MainActor
+    func assertElementExists(
+        identifier: String,
+        index: Int,
+        timeout: TimeInterval
+    ) throws {
+        try self.runWithInlineRawScreenStateOnFailure(action: "assert_element_exists.\(identifier).\(index)") {
+            let indexedIdentifier = "\(identifier)[\(index)]"
+            let element = self.app.descendants(matching: .any)
+                .matching(identifier: identifier)
+                .element(boundBy: index)
+
+            if self.waitForOptionalElement(
+                element,
+                identifier: indexedIdentifier,
+                timeout: timeout
+            ) == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: indexedIdentifier,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+        }
+    }
+
+    @MainActor
     private func configureMarketingLaunchEnvironment(
         app: XCUIApplication,
         resetState: LiveSmokeLaunchResetState,

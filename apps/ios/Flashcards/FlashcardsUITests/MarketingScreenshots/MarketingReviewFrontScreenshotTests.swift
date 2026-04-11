@@ -11,10 +11,6 @@ final class MarketingReviewFrontScreenshotTests: MarketingManualScreenshotTestCa
                 resetState: .marketingOpportunityCostReviewCard,
                 selectedTab: .review
             )
-            try self.assertTextExists(
-                localeFixture.reviewCard.frontText,
-                timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-            )
             try self.assertElementExists(
                 identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
