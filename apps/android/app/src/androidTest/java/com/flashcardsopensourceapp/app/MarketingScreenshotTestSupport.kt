@@ -8,7 +8,6 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
@@ -19,8 +18,11 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
@@ -30,6 +32,8 @@ import com.flashcardsopensourceapp.app.navigation.CardsDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
+import com.flashcardsopensourceapp.feature.ai.aiComposerPendingAttachmentTag
+import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
@@ -224,10 +228,7 @@ internal class MarketingScreenshotRobot(
         ensureLocaleApplied()
         val consentTitle = composeRule.activity.getString(AiFeatureR.string.ai_consent_title)
         val consentAccept = composeRule.activity.getString(AiFeatureR.string.ai_consent_accept)
-        val attachmentLabel = composeRule.activity.getString(
-            AiFeatureR.string.ai_card_attachment_title,
-            localeConfig.reviewCard.frontText
-        )
+        val sendLabel = composeRule.activity.getString(AiFeatureR.string.ai_send)
         waitUntilWithSystemDialogMitigation(timeoutMillis = aiScreenshotUiTimeoutMillis) {
             composeRule.onAllNodesWithTag(reviewAiCardButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
@@ -245,15 +246,10 @@ internal class MarketingScreenshotRobot(
                 composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes().isNotEmpty()
         }
         waitUntilWithSystemDialogMitigation(timeoutMillis = aiAttachmentUiTimeoutMillis) {
-            composeRule.onAllNodesWithText(attachmentLabel).fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithTag(aiComposerPendingAttachmentTag).fetchSemanticsNodes().isNotEmpty()
         }
-        clickTag(tag = aiComposerMessageFieldTag)
-        dismissExternalSystemDialogIfPresent()
-        composeRule.onAllNodes(hasSetTextAction())[0].performTextReplacement(draftText)
-        composeRule.waitForIdle()
-        waitUntilWithSystemDialogMitigation(timeoutMillis = aiScreenshotUiTimeoutMillis) {
-            composeRule.onAllNodesWithText(draftText).fetchSemanticsNodes().isNotEmpty()
-        }
+        waitForAiComposerInitialState(sendLabel = sendLabel)
+        fillAiComposerDraft(draftText = draftText)
         clearAiComposerFocus()
     }
 
@@ -374,6 +370,133 @@ internal class MarketingScreenshotRobot(
     private fun dismissExternalSystemDialogIfPresent() {
         device.dismissBlockingSystemDialogIfPresent()
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+    }
+
+    private fun fillAiComposerDraft(draftText: String) {
+        val sendLabel = composeRule.activity.getString(AiFeatureR.string.ai_send)
+        val filled = tryFillAiComposerDraftWithTextReplacement(
+            draftText = draftText,
+            sendLabel = sendLabel
+        ) || tryFillAiComposerDraftWithTextInput(
+            draftText = draftText,
+            sendLabel = sendLabel
+        )
+        if (filled) {
+            return
+        }
+
+        throw AssertionError(
+            "AI composer draft was not ready for screenshot. " +
+                "ExpectedDraft='$draftText' " +
+                "ActualDraft='${aiComposerDraftTextOrNull()}' " +
+                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = sendLabel)}"
+        )
+    }
+
+    private fun tryFillAiComposerDraftWithTextReplacement(draftText: String, sendLabel: String): Boolean {
+        val composerField = composeRule.onNodeWithTag(aiComposerMessageFieldTag)
+        return try {
+            dismissExternalSystemDialogIfPresent()
+            composerField.performClick()
+            composeRule.waitForIdle()
+            composerField.performTextClearance()
+            composeRule.waitForIdle()
+            composerField.performTextReplacement(draftText)
+            composeRule.waitForIdle()
+            waitForAiComposerDraftReady(draftText = draftText, sendLabel = sendLabel)
+            true
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    private fun tryFillAiComposerDraftWithTextInput(draftText: String, sendLabel: String): Boolean {
+        val composerField = composeRule.onNodeWithTag(aiComposerMessageFieldTag)
+        return try {
+            dismissExternalSystemDialogIfPresent()
+            composerField.performClick()
+            composeRule.waitForIdle()
+            composerField.performTextClearance()
+            composeRule.waitForIdle()
+            composerField.performTextInput(draftText)
+            composeRule.waitForIdle()
+            waitForAiComposerDraftReady(draftText = draftText, sendLabel = sendLabel)
+            true
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    private fun waitForAiComposerDraftReady(draftText: String, sendLabel: String) {
+        waitUntilWithSystemDialogMitigation(timeoutMillis = aiScreenshotUiTimeoutMillis) {
+            aiComposerDraftTextOrNull() == draftText &&
+                aiComposerSendButtonMatchesState(
+                    expectedLabel = sendLabel,
+                    expectedEnabled = true
+                )
+        }
+    }
+
+    private fun waitForAiComposerInitialState(sendLabel: String) {
+        waitUntilWithSystemDialogMitigation(timeoutMillis = aiAttachmentUiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(aiComposerPendingAttachmentTag).fetchSemanticsNodes().isNotEmpty() &&
+                aiComposerDraftTextOrNull().isNullOrBlank() &&
+                aiComposerSendButtonMatchesState(
+                    expectedLabel = sendLabel,
+                    expectedEnabled = false
+                )
+        }
+    }
+
+    private fun aiComposerDraftTextOrNull(): String? {
+        val mergedValue = composeRule.onAllNodesWithTag(aiComposerMessageFieldTag)
+            .fetchSemanticsNodes()
+            .singleOrNull()
+            ?.config
+            ?.getOrNull(SemanticsProperties.EditableText)
+            ?.text
+        if (mergedValue != null) {
+            return mergedValue
+        }
+
+        return composeRule.onAllNodesWithTag(aiComposerMessageFieldTag, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .singleOrNull()
+            ?.config
+            ?.getOrNull(SemanticsProperties.EditableText)
+            ?.text
+    }
+
+    private fun aiComposerSendButtonMatchesState(expectedLabel: String, expectedEnabled: Boolean): Boolean {
+        val state = aiComposerSendButtonStateOrNull(expectedLabel = expectedLabel)
+        return if (expectedEnabled) {
+            state == "enabled"
+        } else {
+            state == "disabled"
+        }
+    }
+
+    private fun aiComposerSendButtonStateOrNull(expectedLabel: String): String? {
+        val mergedNode = composeRule.onAllNodes(
+            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText(expectedLabel))
+        ).fetchSemanticsNodes().singleOrNull()
+        if (mergedNode != null) {
+            return if (mergedNode.config.contains(SemanticsProperties.Disabled)) {
+                "disabled"
+            } else {
+                "enabled"
+            }
+        }
+
+        val unmergedNode = composeRule.onAllNodes(
+            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText(expectedLabel)),
+            useUnmergedTree = true
+        ).fetchSemanticsNodes().singleOrNull() ?: return null
+        return if (unmergedNode.config.contains(SemanticsProperties.Disabled)) {
+            "disabled"
+        } else {
+            "enabled"
+        }
     }
 
     private fun clearAiComposerFocus() {
