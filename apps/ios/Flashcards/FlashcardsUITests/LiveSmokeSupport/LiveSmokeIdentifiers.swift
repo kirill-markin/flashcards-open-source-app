@@ -3,6 +3,13 @@ import Foundation
 enum LiveSmokeIdentifier {
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
     static let cloudSignInScreen: String = "cloudSignIn.screen"
+    static let cloudSignInInlineAuthError: String = "cloudSignIn.inlineAuthError"
+    static let cloudSignInInlineAuthErrorMessage: String = "cloudSignIn.inlineAuthErrorMessage"
+    static let cloudSignInPostAuthLoadingScreen: String = "cloudSignIn.postAuthLoading.screen"
+    static let cloudSignInPostAuthSyncScreen: String = "cloudSignIn.postAuthSync.screen"
+    static let cloudSignInPostAuthFailureScreen: String = "cloudSignIn.postAuthFailure.screen"
+    static let cloudSignInPostAuthFailureMessage: String = "cloudSignIn.postAuthFailure.message"
+    static let cloudSignInExistingWorkspacePrefix: String = "cloudSignIn.existingWorkspace."
     static let rootTabReviewItem: String = "rootTab.review.item"
     static let rootTabCardsItem: String = "rootTab.cards.item"
     static let rootTabAIItem: String = "rootTab.ai.item"
@@ -234,6 +241,11 @@ enum LiveSmokeScreen: CaseIterable {
     case cards
     case ai
     case settings
+    case cloudSignIn
+    case cloudWorkspaceChooser
+    case cloudSignInPostAuthLoading
+    case cloudSignInPostAuthSync
+    case cloudSignInPostAuthFailure
     case currentWorkspace
     case workspaceSettings
     case workspaceOverview
@@ -251,6 +263,16 @@ enum LiveSmokeScreen: CaseIterable {
             return LiveSmokeIdentifier.aiScreen
         case .settings:
             return LiveSmokeIdentifier.settingsScreen
+        case .cloudSignIn:
+            return LiveSmokeIdentifier.cloudSignInScreen
+        case .cloudWorkspaceChooser:
+            return LiveSmokeIdentifier.cloudWorkspaceChooserScreen
+        case .cloudSignInPostAuthLoading:
+            return LiveSmokeIdentifier.cloudSignInPostAuthLoadingScreen
+        case .cloudSignInPostAuthSync:
+            return LiveSmokeIdentifier.cloudSignInPostAuthSyncScreen
+        case .cloudSignInPostAuthFailure:
+            return LiveSmokeIdentifier.cloudSignInPostAuthFailureScreen
         case .currentWorkspace:
             return LiveSmokeIdentifier.currentWorkspaceScreen
         case .workspaceSettings:
@@ -276,6 +298,16 @@ enum LiveSmokeScreen: CaseIterable {
             return "AI"
         case .settings:
             return "Settings"
+        case .cloudSignIn:
+            return "Cloud Sign In"
+        case .cloudWorkspaceChooser:
+            return "Cloud Workspace Chooser"
+        case .cloudSignInPostAuthLoading:
+            return "Cloud Sign In Post-Auth Loading"
+        case .cloudSignInPostAuthSync:
+            return "Cloud Sign In Post-Auth Sync"
+        case .cloudSignInPostAuthFailure:
+            return "Cloud Sign In Post-Auth Failure"
         case .currentWorkspace:
             return "Current Workspace"
         case .workspaceSettings:

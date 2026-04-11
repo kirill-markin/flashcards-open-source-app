@@ -112,6 +112,7 @@ private struct CloudAuthInlineErrorView: View {
                 .foregroundStyle(.red)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .textSelection(.enabled)
+                .accessibilityIdentifier(UITestIdentifier.cloudSignInInlineAuthErrorMessage)
 
             if let technicalDetails = self.presentation.technicalDetails {
                 DisclosureGroup(aiSettingsLocalized("settings.account.cloudSignIn.technicalDetails", "Technical details")) {
@@ -130,6 +131,8 @@ private struct CloudAuthInlineErrorView: View {
                 .tint(.secondary)
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(UITestIdentifier.cloudSignInInlineAuthError)
     }
 }
 
@@ -952,6 +955,7 @@ private struct CloudPostAuthFailureSheet: View {
                 Form {
                     Section {
                         CopyableErrorMessageView(message: self.state.message)
+                            .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthFailureMessage)
                     }
 
                     Section(aiSettingsLocalized("settings.account.cloudSignIn.section.cloudAccount", "Cloud account")) {
@@ -982,6 +986,7 @@ private struct CloudPostAuthFailureSheet: View {
                     }
                 }
             }
+            .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthFailureScreen)
             .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.cloudSyncTitle", "Cloud sync"))
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -1018,6 +1023,7 @@ private struct CloudPostAuthLoadingSheet: View {
                     }
                 }
             }
+            .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthLoadingScreen)
             .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.cloudSyncTitle", "Cloud sync"))
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -1047,6 +1053,7 @@ private struct CloudPostAuthSyncSheet: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .accessibilityIdentifier(UITestIdentifier.cloudSignInPostAuthSyncScreen)
             .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.cloudSyncTitle", "Cloud sync"))
             .navigationBarTitleDisplayMode(.inline)
         }

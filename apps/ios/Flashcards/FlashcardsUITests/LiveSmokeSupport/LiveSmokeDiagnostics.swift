@@ -10,6 +10,38 @@ private let liveSmokeAiDiagnosticIdentifiers: Set<String> = [
     LiveSmokeIdentifier.aiToolCallResponseText
 ]
 
+enum LiveSmokeCloudSignInPostSendState: Equatable {
+    case linkedAccount
+    case workspaceChooser
+    case sendCodeInFlight
+    case postAuthLoading
+    case postAuthSync
+    case authError(message: String)
+    case postAuthFailure(message: String)
+    case unknown
+
+    var diagnosticLabel: String {
+        switch self {
+        case .linkedAccount:
+            return "linkedAccount"
+        case .workspaceChooser:
+            return "workspaceChooser"
+        case .sendCodeInFlight:
+            return "sendCodeInFlight"
+        case .postAuthLoading:
+            return "postAuthLoading"
+        case .postAuthSync:
+            return "postAuthSync"
+        case .authError(let message):
+            return "authError(\(message))"
+        case .postAuthFailure(let message):
+            return "postAuthFailure(\(message))"
+        case .unknown:
+            return "unknown"
+        }
+    }
+}
+
 struct LiveSmokeDiagnosticsSnapshot {
     let currentScreenSummary: String
     let launchEnvironmentSummary: String
@@ -43,10 +75,10 @@ extension LiveSmokeTestCase {
     @MainActor
     func currentScreenSummary() -> String {
         guard self.app != nil else {
-            return "appState=uninitialized screens=[-] tabs=[-]"
+            return "appState=uninitialized screens=[-] overlays=[-] tabs=[-]"
         }
         guard self.isApplicationRunning else {
-            return "appState=\(self.appStateDescription()) screens=[-] tabs=[-]"
+            return "appState=\(self.appStateDescription()) screens=[-] overlays=[-] tabs=[-]"
         }
 
         let visibleScreenTitles = LiveSmokeScreen.allCases
@@ -55,11 +87,13 @@ extension LiveSmokeTestCase {
             }
             .map(\.title)
             .joined(separator: ", ")
+        let visibleOverlayTitles = self.visibleCloudSignInOverlaySummaryItems().joined(separator: ", ")
         let visibleTabBarItems = self.visibleTabBarItemSnapshot()
 
         return """
         appState=\(self.appStateDescription()) \
         screens=[\(visibleScreenTitles.isEmpty ? "-" : visibleScreenTitles)] \
+        overlays=[\(visibleOverlayTitles.isEmpty ? "-" : visibleOverlayTitles)] \
         tabs=[\(visibleTabBarItems)]
         """
     }
@@ -138,6 +172,64 @@ extension LiveSmokeTestCase {
             let identifier = button.identifier.isEmpty ? "-" : button.identifier
             return "\(label){index=\(index),id=\(identifier),hittable=\(button.isHittable)}"
         }.joined(separator: ", ")
+    }
+
+    @MainActor
+    func resolvedCloudSignInPostSendState() -> LiveSmokeCloudSignInPostSendState {
+        if self.isAccountStatusLinked() {
+            return .linkedAccount
+        }
+
+        let chooserScreen = self.app.collectionViews[LiveSmokeIdentifier.cloudWorkspaceChooserScreen].firstMatch
+        if chooserScreen.exists {
+            return .workspaceChooser
+        }
+
+        if self.elementExists(identifier: LiveSmokeIdentifier.cloudSignInPostAuthFailureScreen) {
+            return .postAuthFailure(
+                message: self.visibleCloudPostAuthFailureMessage() ?? "messageUnavailable"
+            )
+        }
+
+        if self.elementExists(identifier: LiveSmokeIdentifier.cloudSignInPostAuthLoadingScreen) {
+            return .postAuthLoading
+        }
+
+        if self.elementExists(identifier: LiveSmokeIdentifier.cloudSignInPostAuthSyncScreen) {
+            return .postAuthSync
+        }
+
+        if self.isCloudSignInSendCodeInFlightVisible() {
+            return .sendCodeInFlight
+        }
+
+        if self.elementExists(identifier: LiveSmokeIdentifier.cloudSignInInlineAuthError) {
+            return .authError(
+                message: self.visibleCloudSignInInlineAuthErrorMessage() ?? "messageUnavailable"
+            )
+        }
+
+        return .unknown
+    }
+
+    @MainActor
+    func visibleCloudSignInOverlaySummaryItems() -> [String] {
+        switch self.resolvedCloudSignInPostSendState() {
+        case .workspaceChooser:
+            return ["cloudSignIn.workspaceChooser"]
+        case .sendCodeInFlight:
+            return ["cloudSignIn.sendCodeInFlight"]
+        case .postAuthLoading:
+            return ["cloudSignIn.postAuthLoading"]
+        case .postAuthSync:
+            return ["cloudSignIn.postAuthSync"]
+        case .authError(let message):
+            return ["cloudSignIn.authError(\(message))"]
+        case .postAuthFailure(let message):
+            return ["cloudSignIn.postAuthFailure(\(message))"]
+        case .linkedAccount, .unknown:
+            return []
+        }
     }
 
     @MainActor
@@ -454,5 +546,41 @@ extension LiveSmokeTestCase {
             .filter { label in
                 label.isEmpty == false && ignoredExactLabels.contains(label) == false
             }
+    }
+
+    @MainActor
+    private func visibleCloudSignInInlineAuthErrorMessage() -> String? {
+        self.visibleElementText(identifier: LiveSmokeIdentifier.cloudSignInInlineAuthErrorMessage)
+    }
+
+    @MainActor
+    private func visibleCloudPostAuthFailureMessage() -> String? {
+        self.visibleElementText(identifier: LiveSmokeIdentifier.cloudSignInPostAuthFailureMessage)
+    }
+
+    @MainActor
+    private func isCloudSignInSendCodeInFlightVisible() -> Bool {
+        let cloudSignInScreen = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.cloudSignInScreen)
+            .firstMatch
+        let sendCodeButton = self.app.buttons[LiveSmokeIdentifier.cloudSignInSendCodeButton].firstMatch
+
+        return cloudSignInScreen.exists && sendCodeButton.exists && sendCodeButton.isEnabled == false
+    }
+
+    @MainActor
+    private func elementExists(identifier: String) -> Bool {
+        self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch.exists
+    }
+
+    @MainActor
+    private func visibleElementText(identifier: String) -> String? {
+        let element = self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+        guard element.exists else {
+            return nil
+        }
+
+        let text = self.elementValue(element: element)
+        return text.isEmpty ? nil : text
     }
 }

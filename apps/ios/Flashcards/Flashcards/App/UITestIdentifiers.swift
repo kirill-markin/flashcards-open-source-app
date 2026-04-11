@@ -3,6 +3,12 @@ import Foundation
 enum UITestIdentifier {
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
     static let cloudSignInScreen: String = "cloudSignIn.screen"
+    static let cloudSignInInlineAuthError: String = "cloudSignIn.inlineAuthError"
+    static let cloudSignInInlineAuthErrorMessage: String = "cloudSignIn.inlineAuthErrorMessage"
+    static let cloudSignInPostAuthLoadingScreen: String = "cloudSignIn.postAuthLoading.screen"
+    static let cloudSignInPostAuthSyncScreen: String = "cloudSignIn.postAuthSync.screen"
+    static let cloudSignInPostAuthFailureScreen: String = "cloudSignIn.postAuthFailure.screen"
+    static let cloudSignInPostAuthFailureMessage: String = "cloudSignIn.postAuthFailure.message"
     static let rootTabReviewItem: String = "rootTab.review.item"
     static let rootTabCardsItem: String = "rootTab.cards.item"
     static let rootTabAIItem: String = "rootTab.ai.item"
