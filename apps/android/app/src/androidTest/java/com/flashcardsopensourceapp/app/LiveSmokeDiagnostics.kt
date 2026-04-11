@@ -18,6 +18,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.Until
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.time.Instant
@@ -25,6 +27,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+
+private const val systemDialogDismissPollMillis: Long = 250L
+private const val systemDialogDismissQuietPeriodMillis: Long = 3_000L
 
 internal fun LiveSmokeContext.resetInlineRawScreenStateFailureGuard() {
     hasPrintedInlineRawScreenStateForCurrentFailure = false
@@ -322,34 +327,66 @@ private fun collectNodeTexts(node: SemanticsNode, texts: MutableSet<String>) {
     }
 }
 
-internal fun LiveSmokeContext.dismissExternalSystemDialogIfPresent(): String? {
-    val summary: String = currentBlockingSystemDialogSummaryOrNull() ?: return null
-    val waitButton = device.findObject(By.text(systemDialogWaitButtonText)) ?: return summary
-    if (device.findObject(By.text(systemDialogCloseAppButtonText)) == null) {
-        return summary
+internal fun UiDevice.dismissBlockingSystemDialogIfPresent(): String? {
+    val initialSummary: String = currentBlockingSystemDialogSummaryOrNull() ?: return null
+    var latestSummary: String = initialSummary
+    val deadlineMillis = System.currentTimeMillis() + internalUiTimeoutMillis
+    var quietPeriodStartMillis: Long? = null
+
+    while (System.currentTimeMillis() < deadlineMillis) {
+        val currentSummary: String? = currentBlockingSystemDialogSummaryOrNull()
+        if (currentSummary == null) {
+            val quietSinceMillis: Long = quietPeriodStartMillis ?: System.currentTimeMillis().also { timestamp ->
+                quietPeriodStartMillis = timestamp
+            }
+            if (System.currentTimeMillis() - quietSinceMillis >= systemDialogDismissQuietPeriodMillis) {
+                return latestSummary
+            }
+            Thread.sleep(systemDialogDismissPollMillis)
+            continue
+        }
+
+        quietPeriodStartMillis = null
+        latestSummary = currentSummary
+        val waitButtons = findObjects(By.res(systemDialogWaitButtonResourceId))
+        val closeAppButtons = findObjects(By.res(systemDialogCloseAppButtonResourceId))
+        val waitButton = waitButtons.lastOrNull()
+        if (waitButton == null || closeAppButtons.isEmpty()) {
+            Thread.sleep(systemDialogDismissPollMillis)
+            continue
+        }
+
+        waitButton.click()
+        waitForIdle()
+        wait(Until.gone(By.res(systemDialogWaitButtonResourceId)), systemDialogDismissPollMillis)
+        wait(Until.gone(By.res(systemDialogCloseAppButtonResourceId)), systemDialogDismissPollMillis)
+        Thread.sleep(systemDialogDismissPollMillis)
     }
-    waitButton.click()
-    device.waitForIdle()
-    return summary
+
+    return latestSummary
 }
 
-internal fun LiveSmokeContext.currentBlockingSystemDialogSummaryOrNull(): String? {
-    val dialogTitle: String? = blockingSystemDialogTitles.firstNotNullOfOrNull { title ->
-        if (device.findObject(By.text(title)) != null) {
-            title
-        } else {
-            null
-        }
-    }
-    val dialogMessage: String? = device.findObject(By.textContains("isn't responding"))?.text
-    val waitButtonVisible: Boolean = device.findObject(By.text(systemDialogWaitButtonText)) != null
-    val closeAppButtonVisible: Boolean = device.findObject(By.text(systemDialogCloseAppButtonText)) != null
+internal fun UiDevice.currentBlockingSystemDialogSummaryOrNull(): String? {
+    val dialogTitle: String? = findObjects(By.res(systemDialogAlertTitleResourceId))
+        .mapNotNull { titleNode -> titleNode.text?.trim() }
+        .firstOrNull { title -> title.contains("isn't responding") }
+    val dialogMessage: String? = findObject(By.textContains("isn't responding"))?.text
+    val waitButtonVisible: Boolean = findObjects(By.res(systemDialogWaitButtonResourceId)).isNotEmpty()
+    val closeAppButtonVisible: Boolean = findObjects(By.res(systemDialogCloseAppButtonResourceId)).isNotEmpty()
     if (waitButtonVisible.not() || closeAppButtonVisible.not()) {
         return null
     }
     return listOfNotNull(dialogTitle, dialogMessage).joinToString(separator = " | ").ifBlank {
         "external_system_dialog"
     }
+}
+
+internal fun LiveSmokeContext.dismissExternalSystemDialogIfPresent(): String? {
+    return device.dismissBlockingSystemDialogIfPresent()
+}
+
+internal fun LiveSmokeContext.currentBlockingSystemDialogSummaryOrNull(): String? {
+    return device.currentBlockingSystemDialogSummaryOrNull()
 }
 
 private fun runShellCommand(command: String): String {

@@ -8,6 +8,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.createAiViewModelFactory
 
@@ -36,14 +37,55 @@ internal fun NavGraphBuilder.registerAiNavGraph(
             appGraph.appHandoffCoordinator.consumeAiEntryPrefill(requestId = request.requestId)
         }
 
-        LaunchedEffect(cardHandoffRequest?.requestId, uiState.isConversationReady, uiState.dictationState) {
+        LaunchedEffect(
+            cardHandoffRequest?.requestId,
+            uiState.isCardHandoffReady,
+            uiState.dictationState
+        ) {
             val request = cardHandoffRequest ?: return@LaunchedEffect
+            AiChatDiagnosticsLogger.info(
+                event = "ai_nav_handoff_effect_started",
+                fields = listOf(
+                    "requestId" to request.requestId.toString(),
+                    "cardId" to request.cardId,
+                    "uiCardHandoffReady" to uiState.isCardHandoffReady.toString(),
+                    "uiConsentRequired" to uiState.isConsentRequired.toString(),
+                    "uiConversationReady" to uiState.isConversationReady.toString(),
+                    "uiConversationLoading" to uiState.isConversationLoading.toString(),
+                    "uiDictationState" to uiState.dictationState.name,
+                    "uiPendingAttachmentCount" to uiState.pendingAttachments.size.toString(),
+                    "uiDraftLength" to uiState.draftMessage.length.toString()
+                )
+            )
+            if (uiState.isCardHandoffReady.not()) {
+                AiChatDiagnosticsLogger.info(
+                    event = "ai_nav_handoff_effect_deferred",
+                    fields = listOf(
+                        "requestId" to request.requestId.toString(),
+                        "cardId" to request.cardId,
+                        "uiCardHandoffReady" to uiState.isCardHandoffReady.toString(),
+                        "isConsentRequired" to uiState.isConsentRequired.toString(),
+                        "uiConversationReady" to uiState.isConversationReady.toString(),
+                        "uiConversationLoading" to uiState.isConversationLoading.toString(),
+                        "uiDictationState" to uiState.dictationState.name
+                    )
+                )
+                return@LaunchedEffect
+            }
             val didApplyRequest = aiViewModel.handoffCardToChat(
                 cardId = request.cardId,
                 frontText = request.frontText,
                 backText = request.backText,
                 tags = request.tags,
                 effortLevel = request.effortLevel
+            )
+            AiChatDiagnosticsLogger.info(
+                event = "ai_nav_handoff_effect_finished",
+                fields = listOf(
+                    "requestId" to request.requestId.toString(),
+                    "cardId" to request.cardId,
+                    "didApplyRequest" to didApplyRequest.toString()
+                )
             )
             if (didApplyRequest) {
                 appGraph.appHandoffCoordinator.consumeAiCardHandoff(requestId = request.requestId)

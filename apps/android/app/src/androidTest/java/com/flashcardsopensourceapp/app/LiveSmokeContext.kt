@@ -13,10 +13,9 @@ internal const val cloudSyncChooserPrompt: String =
     "Choose a linked workspace to open on this Android device, or create a new one."
 internal const val systemDialogWaitButtonText: String = "Wait"
 internal const val systemDialogCloseAppButtonText: String = "Close app"
-internal val blockingSystemDialogTitles: List<String> = listOf(
-    "System UI",
-    "Digital Wellbeing"
-)
+internal const val systemDialogAlertTitleResourceId: String = "android:id/alertTitle"
+internal const val systemDialogWaitButtonResourceId: String = "android:id/aerr_wait"
+internal const val systemDialogCloseAppButtonResourceId: String = "android:id/aerr_close"
 
 internal class LiveSmokeContext(
     val composeRule: AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActivity>,

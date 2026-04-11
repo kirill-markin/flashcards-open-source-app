@@ -77,7 +77,9 @@ internal class AiChatRuntimeLifecycleCoordinator(
             ).copy(
                 draftMessage = draftState.draftMessage,
                 pendingAttachments = draftState.pendingAttachments,
-                conversationBootstrapState = if (shouldBootstrapConversation(
+                conversationBootstrapState = if (accessContext.workspaceId == null) {
+                    AiConversationBootstrapState.LOADING
+                } else if (shouldBootstrapConversation(
                         accessContext = accessContext,
                         hasConsent = context.hasConsent()
                     )

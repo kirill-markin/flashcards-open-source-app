@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.core.app.NotificationManagerCompat
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiDevice
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.CountDownLatch
@@ -18,6 +19,8 @@ private val testOnlyPreferenceNames: List<String> = listOf(
 )
 
 class AppStateResetRule : ExternalResource() {
+    private val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+
     companion object {
         private const val appResetTimeoutMillis: Long = 20_000L
         private const val uiIdleTimeoutMillis: Long = 5_000L
@@ -50,14 +53,18 @@ class AppStateResetRule : ExternalResource() {
     }
 
     private fun waitForUiIdle(phase: String) {
+        device.dismissBlockingSystemDialogIfPresent()
         val latch = CountDownLatch(1)
         InstrumentationRegistry.getInstrumentation().waitForIdle {
             latch.countDown()
         }
         val didBecomeIdle = latch.await(uiIdleTimeoutMillis, TimeUnit.MILLISECONDS)
+        device.dismissBlockingSystemDialogIfPresent()
         if (didBecomeIdle.not()) {
+            val blockingSystemDialogSummary = device.currentBlockingSystemDialogSummaryOrNull() ?: "none"
             throw IllegalStateException(
-                "Timed out after $uiIdleTimeoutMillis ms waiting for instrumentation to become idle $phase."
+                "Timed out after $uiIdleTimeoutMillis ms waiting for instrumentation to become idle $phase. " +
+                    "blockingSystemDialog=$blockingSystemDialogSummary"
             )
         }
     }

@@ -12,6 +12,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
@@ -69,6 +70,16 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 appGraph.appHandoffCoordinator.requestCardEditor(cardId = cardId)
             },
             onOpenCurrentCardWithAi = { cardId, frontText, backText, tags, effortLevel ->
+                AiChatDiagnosticsLogger.info(
+                    event = "review_ai_handoff_requested",
+                    fields = listOf(
+                        "cardId" to cardId,
+                        "frontText" to frontText,
+                        "backTextLength" to backText.length.toString(),
+                        "tagsCount" to tags.size.toString(),
+                        "effortLevel" to effortLevel.name
+                    )
+                )
                 appGraph.appHandoffCoordinator.requestAiCardHandoff(
                     cardId = cardId,
                     frontText = frontText,

@@ -19,12 +19,19 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.UiDevice
+import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
+import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
+import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
 private const val screenshotUiTimeoutMillis: Long = 10_000L
+private const val aiScreenshotUiTimeoutMillis: Long = 30_000L
+private const val aiAttachmentUiTimeoutMillis: Long = 60_000L
 private const val emptyCardsMessage: String = "No cards yet. Tap the add button to create the first card."
 private const val marketingScreenshotDirectoryPath: String = "/sdcard/Download/flashcards-marketing-screenshots"
 private const val opportunityCostReviewFrontText: String =
@@ -54,9 +61,11 @@ internal typealias MainActivityComposeRule =
 internal class MarketingScreenshotRobot(
     private val composeRule: MainActivityComposeRule
 ) {
+    private val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+
     fun waitForCardsEmptyState() {
         openCardsTab()
-        composeRule.waitUntil(timeoutMillis = screenshotUiTimeoutMillis) {
+        waitUntilWithSystemDialogMitigation {
             composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithText(emptyCardsMessage).fetchSemanticsNodes().isNotEmpty()
         }
@@ -64,17 +73,20 @@ internal class MarketingScreenshotRobot(
 
     fun createCard(frontText: String, backText: String, tags: List<String>, effortLevelTitle: String) {
         openCardsTab()
-        composeRule.onNodeWithContentDescription("Add card").performClick()
+        clickContentDescription(contentDescription = "Add card")
         updateCardText(fieldTitle = "Front", value = frontText)
         updateCardText(fieldTitle = "Back", value = backText)
         scrollToText(text = effortLevelTitle)
-        composeRule.onNodeWithText(effortLevelTitle).performClick()
+        clickText(text = effortLevelTitle)
 
         if (tags.isNotEmpty()) {
-            composeRule.onNodeWithText("Tags").performClick()
+            clickText(text = "Tags")
             tags.forEach { tag ->
+                dismissExternalSystemDialogIfPresent()
                 composeRule.onNodeWithText("Add a tag").performTextInput(tag)
-                composeRule.onNodeWithText("Add tag").performClick()
+                composeRule.waitForIdle()
+                dismissExternalSystemDialogIfPresent()
+                clickText(text = "Add tag")
             }
             tapBackIcon()
         }
@@ -83,19 +95,43 @@ internal class MarketingScreenshotRobot(
         waitForNode(
             matcher = hasClickAction().and(other = hasText("Save"))
         )
-        composeRule.onNode(
+        clickNode(
             matcher = hasClickAction().and(other = hasText("Save"))
-        ).performClick()
-        composeRule.waitUntil(timeoutMillis = screenshotUiTimeoutMillis) {
+        )
+        waitUntilWithSystemDialogMitigation {
             composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     fun openReviewTab() {
-        composeRule.onNode(
+        clickNode(
             matcher = hasText("Review").and(other = hasClickAction())
-        ).performClick()
+        )
+    }
+
+    fun prepareAiChatForCardHandoff() {
+        val consentTitle = composeRule.activity.getString(AiFeatureR.string.ai_consent_title)
+        val consentAccept = composeRule.activity.getString(AiFeatureR.string.ai_consent_accept)
+
+        openAiTab()
+        waitUntilWithSystemDialogMitigation(timeoutMillis = aiScreenshotUiTimeoutMillis) {
+            composeRule.onAllNodesWithText(consentTitle).fetchSemanticsNodes().isNotEmpty() ||
+                (
+                    composeRule.onAllNodesWithTag(aiConversationSurfaceTag).fetchSemanticsNodes().isNotEmpty() &&
+                        composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes().isNotEmpty()
+                    )
+        }
+        dismissAiConsentIfNeeded(consentTitle = consentTitle, consentAccept = consentAccept)
+        waitUntilWithSystemDialogMitigation(timeoutMillis = aiScreenshotUiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(aiConversationSurfaceTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    fun returnToOpportunityCostReviewCard() {
+        openReviewTab()
+        waitForReviewPrompt(frontText = opportunityCostReviewCardFixture.frontText)
     }
 
     fun prepareOpportunityCostReviewCardForReview() {
@@ -111,11 +147,11 @@ internal class MarketingScreenshotRobot(
     }
 
     fun revealAnswerAndWaitForRatings() {
-        composeRule.waitUntil(timeoutMillis = screenshotUiTimeoutMillis) {
+        waitUntilWithSystemDialogMitigation {
             composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
-        composeRule.onNodeWithTag(reviewShowAnswerButtonTag).performClick()
-        composeRule.waitUntil(timeoutMillis = screenshotUiTimeoutMillis) {
+        clickTag(tag = reviewShowAnswerButtonTag)
+        waitUntilWithSystemDialogMitigation {
             composeRule.onAllNodesWithText("Again").fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithText("Hard").fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithText("Good").fetchSemanticsNodes().isNotEmpty() &&
@@ -124,9 +160,47 @@ internal class MarketingScreenshotRobot(
         composeRule.onNodeWithTag(reviewRateGoodButtonTag).fetchSemanticsNode()
     }
 
+    fun openAiFromRevealedOpportunityCostCardAndPrepareDraft(draftText: String) {
+        val consentTitle = composeRule.activity.getString(AiFeatureR.string.ai_consent_title)
+        val consentAccept = composeRule.activity.getString(AiFeatureR.string.ai_consent_accept)
+        val attachmentLabel = composeRule.activity.getString(
+            AiFeatureR.string.ai_card_attachment_title,
+            opportunityCostReviewCardFixture.frontText
+        )
+        waitUntilWithSystemDialogMitigation(timeoutMillis = aiScreenshotUiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(reviewAiCardButtonTag).fetchSemanticsNodes().isNotEmpty()
+        }
+        clickTag(tag = reviewAiCardButtonTag)
+        waitUntilWithSystemDialogMitigation(timeoutMillis = aiScreenshotUiTimeoutMillis) {
+            composeRule.onAllNodesWithText(consentTitle).fetchSemanticsNodes().isNotEmpty() ||
+                (
+                    composeRule.onAllNodesWithTag(aiConversationSurfaceTag).fetchSemanticsNodes().isNotEmpty() &&
+                        composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes().isNotEmpty()
+                    )
+        }
+        dismissAiConsentIfNeeded(consentTitle = consentTitle, consentAccept = consentAccept)
+        waitUntilWithSystemDialogMitigation(timeoutMillis = aiScreenshotUiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(aiConversationSurfaceTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes().isNotEmpty()
+        }
+        waitUntilWithSystemDialogMitigation(timeoutMillis = aiAttachmentUiTimeoutMillis) {
+            composeRule.onAllNodesWithText(attachmentLabel).fetchSemanticsNodes().isNotEmpty()
+        }
+        clickTag(tag = aiComposerMessageFieldTag)
+        dismissExternalSystemDialogIfPresent()
+        composeRule.onAllNodes(hasSetTextAction())[0].performTextReplacement(draftText)
+        composeRule.waitForIdle()
+        waitUntilWithSystemDialogMitigation(timeoutMillis = aiScreenshotUiTimeoutMillis) {
+            composeRule.onAllNodesWithText(draftText).fetchSemanticsNodes().isNotEmpty()
+        }
+        clearAiComposerFocus()
+    }
+
     fun saveScreenshot(fileName: String): String {
+        dismissExternalSystemDialogIfPresent()
         composeRule.waitForIdle()
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        dismissExternalSystemDialogIfPresent()
 
         val screenshotPath = "$marketingScreenshotDirectoryPath/$fileName"
         runShellCommand(command = "mkdir -p $marketingScreenshotDirectoryPath")
@@ -135,20 +209,32 @@ internal class MarketingScreenshotRobot(
     }
 
     private fun openCardsTab() {
-        composeRule.onNode(
+        clickNode(
             matcher = hasText("Cards").and(other = hasClickAction())
-        ).performClick()
+        )
+    }
+
+    private fun openAiTab() {
+        clickNode(
+            matcher = hasText("AI").and(other = hasClickAction())
+        )
     }
 
     private fun updateCardText(fieldTitle: String, value: String) {
-        composeRule.onNodeWithText(fieldTitle).performClick()
+        clickText(text = fieldTitle)
+        dismissExternalSystemDialogIfPresent()
         composeRule.onAllNodes(hasSetTextAction())[0].performTextReplacement(value)
+        composeRule.waitForIdle()
+        dismissExternalSystemDialogIfPresent()
         tapBackIcon()
     }
 
     private fun tapBackIcon() {
+        dismissExternalSystemDialogIfPresent()
         if (composeRule.onAllNodes(matcher = hasContentDescription("Back")).fetchSemanticsNodes().isNotEmpty()) {
             composeRule.onNodeWithContentDescription("Back").performClick()
+            composeRule.waitForIdle()
+            dismissExternalSystemDialogIfPresent()
             return
         }
 
@@ -156,6 +242,7 @@ internal class MarketingScreenshotRobot(
             composeRule.activity.onBackPressedDispatcher.onBackPressed()
         }
         composeRule.waitForIdle()
+        dismissExternalSystemDialogIfPresent()
     }
 
     private fun scrollToText(text: String) {
@@ -163,16 +250,80 @@ internal class MarketingScreenshotRobot(
     }
 
     private fun waitForNode(matcher: SemanticsMatcher) {
-        composeRule.waitUntil(timeoutMillis = screenshotUiTimeoutMillis) {
+        waitUntilWithSystemDialogMitigation {
             composeRule.onAllNodes(matcher = matcher).fetchSemanticsNodes().isNotEmpty()
         }
     }
 
     private fun waitForReviewPrompt(frontText: String) {
-        composeRule.waitUntil(timeoutMillis = screenshotUiTimeoutMillis) {
+        waitUntilWithSystemDialogMitigation {
             composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    private fun waitUntilWithSystemDialogMitigation(condition: () -> Boolean) {
+        waitUntilWithSystemDialogMitigation(
+            timeoutMillis = screenshotUiTimeoutMillis,
+            condition = condition
+        )
+    }
+
+    private fun waitUntilWithSystemDialogMitigation(timeoutMillis: Long, condition: () -> Boolean) {
+        dismissExternalSystemDialogIfPresent()
+        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
+            dismissExternalSystemDialogIfPresent()
+            condition()
+        }
+        dismissExternalSystemDialogIfPresent()
+    }
+
+    private fun dismissAiConsentIfNeeded(consentTitle: String, consentAccept: String) {
+        if (composeRule.onAllNodesWithText(consentTitle).fetchSemanticsNodes().isNotEmpty()) {
+            clickText(text = consentAccept)
+        }
+    }
+
+    private fun dismissExternalSystemDialogIfPresent() {
+        device.dismissBlockingSystemDialogIfPresent()
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+    }
+
+    private fun clearAiComposerFocus() {
+        dismissExternalSystemDialogIfPresent()
+        if (composeRule.onAllNodesWithTag(aiConversationSurfaceTag).fetchSemanticsNodes().isNotEmpty()) {
+            composeRule.onNodeWithTag(aiConversationSurfaceTag).performClick()
+            composeRule.waitForIdle()
+        }
+        dismissExternalSystemDialogIfPresent()
+    }
+
+    private fun clickNode(matcher: SemanticsMatcher) {
+        dismissExternalSystemDialogIfPresent()
+        composeRule.onNode(matcher = matcher).performClick()
+        composeRule.waitForIdle()
+        dismissExternalSystemDialogIfPresent()
+    }
+
+    private fun clickText(text: String) {
+        dismissExternalSystemDialogIfPresent()
+        composeRule.onNodeWithText(text).performClick()
+        composeRule.waitForIdle()
+        dismissExternalSystemDialogIfPresent()
+    }
+
+    private fun clickTag(tag: String) {
+        dismissExternalSystemDialogIfPresent()
+        composeRule.onNodeWithTag(tag).performClick()
+        composeRule.waitForIdle()
+        dismissExternalSystemDialogIfPresent()
+    }
+
+    private fun clickContentDescription(contentDescription: String) {
+        dismissExternalSystemDialogIfPresent()
+        composeRule.onNodeWithContentDescription(contentDescription).performClick()
+        composeRule.waitForIdle()
+        dismissExternalSystemDialogIfPresent()
     }
 
     fun runShellCommand(command: String): String {
@@ -183,4 +334,5 @@ internal class MarketingScreenshotRobot(
             }
         }
     }
+
 }

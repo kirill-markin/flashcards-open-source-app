@@ -9,7 +9,7 @@ import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 import org.junit.runner.RunWith
 
-private const val reviewResultScreenshotFileName: String = "review-card-result-google-play-opportunity-cost.png"
+private const val reviewResultScreenshotFileName: String = "en-2_review-card-result-google-play-opportunity-cost.png"
 
 @ManualOnlyAndroidTest
 @RunWith(AndroidJUnit4::class)

@@ -381,13 +381,53 @@ internal class AiChatRuntime(
         effortLevel: EffortLevel
     ): Boolean {
         val currentState = runtimeStateMutable.value
+        AiChatDiagnosticsLogger.info(
+            event = "ai_runtime_handoff_requested",
+            fields = listOf(
+                "workspaceId" to currentState.workspaceId,
+                "cardId" to cardId,
+                "conversationBootstrapState" to currentState.conversationBootstrapState.name,
+                "dictationState" to currentState.dictationState.name,
+                "composerPhase" to currentState.composerPhase.name,
+                "chatSessionIdBlank" to currentState.persistedState.chatSessionId.isBlank().toString(),
+                "pendingAttachmentCount" to currentState.pendingAttachments.size.toString(),
+                "draftLength" to currentState.draftMessage.length.toString(),
+                "messageCount" to currentState.persistedState.messages.size.toString()
+            )
+        )
         if (
-            currentState.conversationBootstrapState != AiConversationBootstrapState.READY
+            currentState.workspaceId == null
+            || currentState.conversationBootstrapState != AiConversationBootstrapState.READY
             || currentState.dictationState != AiChatDictationState.IDLE
         ) {
+            AiChatDiagnosticsLogger.warn(
+                event = "ai_runtime_handoff_rejected_not_ready",
+                fields = listOf(
+                    "workspaceId" to currentState.workspaceId,
+                    "cardId" to cardId,
+                    "conversationBootstrapState" to currentState.conversationBootstrapState.name,
+                    "dictationState" to currentState.dictationState.name
+                )
+            )
             return false
         }
-
+        if (
+            shouldPrepareGuestAccess(
+                accessContext = context.activeAccessContext,
+                hasConsent = context.hasConsent()
+            )
+        ) {
+            AiChatDiagnosticsLogger.warn(
+                event = "ai_runtime_handoff_rejected_access_preparing",
+                fields = listOf(
+                    "workspaceId" to currentState.workspaceId,
+                    "cardId" to cardId,
+                    "cloudState" to currentCloudState().name,
+                    "conversationBootstrapState" to currentState.conversationBootstrapState.name
+                )
+            )
+            return false
+        }
         val pendingCardAttachment = makeAiChatCardAttachment(
             cardId = cardId,
             frontText = frontText,
@@ -401,6 +441,18 @@ internal class AiChatRuntime(
                 state = currentState
             )
         ) {
+            AiChatDiagnosticsLogger.warn(
+                event = "ai_runtime_handoff_rejected_dirty_state",
+                fields = listOf(
+                    "workspaceId" to currentState.workspaceId,
+                    "cardId" to cardId,
+                    "composerPhase" to currentState.composerPhase.name,
+                    "pendingAttachmentCount" to currentState.pendingAttachments.size.toString(),
+                    "draftLength" to currentState.draftMessage.length.toString(),
+                    "messageCount" to currentState.persistedState.messages.size.toString(),
+                    "hasActiveRun" to (currentState.activeRun != null).toString()
+                )
+            )
             runtimeStateMutable.update { state ->
                 state.copy(
                     activeAlert = context.textProvider.generalError(
@@ -413,6 +465,13 @@ internal class AiChatRuntime(
         }
 
         if (currentState.persistedState.chatSessionId.isBlank()) {
+            AiChatDiagnosticsLogger.info(
+                event = "ai_runtime_handoff_start_fresh_conversation",
+                fields = listOf(
+                    "workspaceId" to currentState.workspaceId,
+                    "cardId" to cardId
+                )
+            )
             persistCurrentDraft(snapshot = currentState)
             startFreshConversation(
                 draftMessage = "",
@@ -432,6 +491,15 @@ internal class AiChatRuntime(
             )
         }
         persistCurrentDraft()
+        AiChatDiagnosticsLogger.info(
+            event = "ai_runtime_handoff_applied_to_existing_session",
+            fields = listOf(
+                "workspaceId" to currentState.workspaceId,
+                "cardId" to cardId,
+                "chatSessionId" to currentState.persistedState.chatSessionId,
+                "pendingAttachmentCount" to "1"
+            )
+        )
         return true
     }
 
