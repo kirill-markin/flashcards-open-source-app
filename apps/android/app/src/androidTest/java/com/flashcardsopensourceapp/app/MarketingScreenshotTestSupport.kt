@@ -258,12 +258,19 @@ internal class MarketingScreenshotRobot(
         dismissExternalSystemDialogIfPresent()
         composeRule.waitForIdle()
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+        collapseStatusBar()
         dismissExternalSystemDialogIfPresent()
 
         val screenshotPath = "$marketingScreenshotDirectoryPath/$fileName"
         runShellCommand(command = "mkdir -p $marketingScreenshotDirectoryPath")
         runShellCommand(command = "screencap -p $screenshotPath")
         return screenshotPath
+    }
+
+    private fun collapseStatusBar() {
+        runShellCommand(command = "cmd statusbar collapse")
+        device.waitForIdle()
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync()
     }
 
     private fun openCardsTab() {

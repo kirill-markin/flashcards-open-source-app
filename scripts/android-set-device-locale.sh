@@ -24,6 +24,9 @@ case "$locale_prefix" in
     zh-CN)
         device_locale="zh-Hans-CN"
         ;;
+    es-419)
+        device_locale="es-MX"
+        ;;
     *)
         device_locale="$locale_prefix"
         ;;

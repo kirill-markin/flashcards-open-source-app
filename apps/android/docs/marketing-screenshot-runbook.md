@@ -96,6 +96,24 @@ bash scripts/android-dismiss-system-dialogs.sh
 The screenshot helpers also defend against recurring system ANR dialogs during the run.
 For the current marketing flows, the intended behavior is to press `Wait`, let Android settle, and continue.
 
+One more failure mode is common on a freshly booted Play Store emulator, especially on a weak local machine:
+
+- the first wrapper run after boot can fail before the test body really starts
+- Gradle may report `Tests found: 1, Tests run: 0`
+- the underlying cause is often a temporary Android system ANR such as `Application Not Responding: system` or `Application Not Responding: com.android.systemui`
+
+This is usually not a locale-specific product failure.
+It is most often emulator startup churn plus package install, locale reconfiguration, Google Play services work, keyboard startup, and other system work all overlapping at once.
+
+If that happens:
+
+1. Check for ANR windows with `adb shell dumpsys window windows | grep -E 'Application Not Responding|aerr_wait|isn.t responding'`.
+2. Dismiss system dialogs again with `bash scripts/android-dismiss-system-dialogs.sh`.
+3. Re-run the same screenshot wrapper once on the same already-booted emulator.
+
+Do not immediately switch locale or assume the screenshot content is wrong.
+If the rerun starts as `Starting 1 tests` instead of the broken `0/0` path, the emulator has usually stabilized enough for the wrapper to complete.
+
 ## Run one screenshot
 
 Example:
@@ -110,6 +128,9 @@ Each wrapper script does the following:
 2. Dismisses blocking system dialogs.
 3. Runs one manual-only instrumentation class through `:app:connectedMarketingScreenshotAndroidTest`.
 4. Pulls the generated PNG file or files from `/sdcard/Download/flashcards-marketing-screenshots/` into the committed media directory.
+
+The screenshot capture step now explicitly collapses the Android status bar before running `screencap`.
+That prevents an already-open notification shade from being captured on top of an otherwise-correct app screen.
 
 The review wrapper runs one combined review-chain entrypoint and pulls screenshots 1, 2, and 4 from the same instrumentation run.
 The cards wrapper remains separate because screenshot 3 uses a different app setup flow.
