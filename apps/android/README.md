@@ -88,6 +88,8 @@ Run commands from `apps/android/`.
 ## Android Docs
 
 - Add a new app language safely: [`docs/add-language-checklist.md`](docs/add-language-checklist.md)
+- Run Android marketing screenshot captures reliably: [`docs/marketing-screenshot-runbook.md`](docs/marketing-screenshot-runbook.md)
+- Track current Android marketing screenshot inventory: [`docs/marketing-screenshots.md`](docs/marketing-screenshots.md)
 
 ## Localization Rule
 
