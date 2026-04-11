@@ -156,6 +156,41 @@ localization_code="$(resolve_requested_locale "$requested_locale")"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 project_path="$repo_root/apps/ios/Flashcards/Flashcards Open Source App.xcodeproj"
 scheme_name="Flashcards Open Source App"
+runtime_configuration_path="/tmp/flashcards-open-source-app-ios-marketing-screenshot-config.json"
+
+list_booted_simulator_lines() {
+    xcrun simctl list devices booted | sed -nE '/^[[:space:]]+.+ \([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\) \(Booted\)$/p'
+}
+
+escape_json_string() {
+    local raw_value="$1"
+    local escaped_value="$raw_value"
+
+    escaped_value="${escaped_value//\\/\\\\}"
+    escaped_value="${escaped_value//\"/\\\"}"
+    escaped_value="${escaped_value//$'\n'/\\n}"
+    escaped_value="${escaped_value//$'\r'/\\r}"
+    escaped_value="${escaped_value//$'\t'/\\t}"
+
+    printf '%s' "$escaped_value"
+}
+
+write_runtime_configuration() {
+    local output_directory="$1"
+    local localization_code="$2"
+
+    cat >"$runtime_configuration_path" <<EOF
+{
+  "includeManualScreenshotTests": true,
+  "outputDirectoryPath": "$(escape_json_string "$output_directory")",
+  "localizationCode": "$(escape_json_string "$localization_code")"
+}
+EOF
+}
+
+cleanup_runtime_configuration() {
+    rm -f "$runtime_configuration_path"
+}
 
 resolve_booted_simulator_id() {
     if [[ -n "${FLASHCARDS_IOS_SIMULATOR_ID:-}" ]]; then
@@ -163,7 +198,9 @@ resolve_booted_simulator_id() {
         return
     fi
 
-    mapfile -t booted_ids < <(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $(NF-1)}')
+    mapfile -t booted_ids < <(
+        list_booted_simulator_lines | sed -nE 's/^.*\(([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})\) \(Booted\)$/\1/p'
+    )
 
     if [[ "${#booted_ids[@]}" -eq 0 ]]; then
         echo "No booted iOS simulator was found. Boot one simulator manually first." >&2
@@ -181,7 +218,7 @@ resolve_booted_simulator_id() {
 resolve_simulator_name() {
     local simulator_id="$1"
     local simulator_line
-    simulator_line="$(xcrun simctl list devices booted | rg "$simulator_id" | head -n 1 || true)"
+    simulator_line="$(list_booted_simulator_lines | rg -F "($simulator_id) (Booted)" | head -n 1 || true)"
 
     if [[ -z "$simulator_line" ]]; then
         echo "Failed to resolve the booted simulator line for $simulator_id." >&2
@@ -214,14 +251,13 @@ device_family="$(resolve_device_family "$simulator_name")"
 output_directory="$repo_root/apps/ios/docs/media/app-store-screenshots/$device_family"
 
 mkdir -p "$output_directory"
+trap cleanup_runtime_configuration EXIT
+write_runtime_configuration "$output_directory" "$localization_code"
 
 echo "Running manual iOS marketing screenshot script for $description on $simulator_name."
 echo "Locale: $localization_code"
 xcrun simctl bootstatus "$simulator_id" -b
 
-FLASHCARDS_INCLUDE_MANUAL_SCREENSHOT_TESTS="true" \
-FLASHCARDS_MARKETING_SCREENSHOT_OUTPUT_DIR="$output_directory" \
-FLASHCARDS_MARKETING_SCREENSHOT_LOCALIZATION="$localization_code" \
 xcodebuild \
   -project "$project_path" \
   -scheme "$scheme_name" \
