@@ -102,6 +102,32 @@ The preferred tone is short, plain English from the user's point of view:
 - omit internal refactors, test-only work, CI/CD changes, and backend-only
   plumbing unless users would notice the result directly
 
+When generating the final output for App Store release notes in this repository,
+return one fenced `text` code block per locale instead of prose outside code
+blocks.
+
+Use the current iOS App Store locale set and keep this order:
+
+- `English (U.S.)`
+- `Arabic`
+- `Chinese (Simplified)`
+- `German`
+- `Hindi`
+- `Japanese`
+- `Russian`
+- `Spanish (Mexico)`
+- `Spanish (Spain)`
+
+Inside each code block:
+
+- use flat `-` bullets only
+- keep the copy high-level and user-facing
+- order bullets from most important to least important
+- avoid technical wording unless the user would recognize it in the app
+
+If the user asks for localized release notes, provide all of those locales in
+the same response unless they explicitly ask for a smaller subset.
+
 For this repository, a `git log` review of commit titles across the version range
 is usually enough for a first draft, and deeper code inspection is only needed
 when the user-facing effect is unclear.

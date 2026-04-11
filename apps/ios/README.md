@@ -131,6 +131,7 @@ Use that document when you need to regenerate localized marketing PNGs. It expla
 ## CI/CD
 
 iOS CI/CD is documented in [`docs/ios-ci-cd.md`](../../docs/ios-ci-cd.md).
+App Store release-note drafting guidance is documented in [`docs/version-bump.md`](../../docs/version-bump.md#app-store-release-notes).
 
 The expected release gate is:
 
