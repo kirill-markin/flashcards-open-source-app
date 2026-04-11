@@ -80,6 +80,35 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     @MainActor
+    func launchOpportunityCostReviewCard() throws -> MarketingScreenshotLocaleFixture {
+        let localeFixture = try self.marketingLocaleFixture()
+
+        try self.launchMarketingApplication(
+            resetState: .marketingOpportunityCostReviewCard,
+            selectedTab: .review
+        )
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+
+        return localeFixture
+    }
+
+    @MainActor
+    func revealOpportunityCostReviewAnswer() throws {
+        try self.tapButton(
+            identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+            timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+        )
+        try self.waitForReviewAnswerReveal()
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.reviewRateGoodButton,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+    }
+
+    @MainActor
     func captureMarketingScreenshot(fileName: String) throws -> URL {
         let outputDirectoryURL = try self.outputDirectoryURL()
         let screenshotURL = outputDirectoryURL.appendingPathComponent(fileName, isDirectory: false)
@@ -96,6 +125,15 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         }
 
         return screenshotURL
+    }
+
+    @MainActor
+    func captureMarketingScreenshotAndAssertWritten(fileName: String) throws {
+        let screenshotURL = try self.captureMarketingScreenshot(fileName: fileName)
+        XCTAssertTrue(
+            FileManager.default.fileExists(atPath: screenshotURL.path),
+            "Expected screenshot file at \(screenshotURL.path)."
+        )
     }
 
     @MainActor

@@ -17,7 +17,7 @@ supported_locales=(
 print_usage() {
     cat <<'EOF' >&2
 Usage:
-  capture-ios-marketing-screenshot.sh [--locale <code>] <test_identifier> <screenshot_index> <screenshot_slug> <description>
+  capture-ios-marketing-screenshot.sh [--locale <code>] <test_identifier> <description> <screenshot_index> <screenshot_slug> [<screenshot_index> <screenshot_slug> ...]
   capture-ios-marketing-screenshot.sh --list-locales
 
 Supported locales:
@@ -137,17 +137,21 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ "${#positional_arguments[@]}" -ne 4 ]]; then
+if [[ "${#positional_arguments[@]}" -lt 4 ]]; then
     print_usage
     exit 1
 fi
 
 test_identifier="${positional_arguments[0]}"
-screenshot_index="${positional_arguments[1]}"
-screenshot_slug="${positional_arguments[2]}"
-description="${positional_arguments[3]}"
+description="${positional_arguments[1]}"
+expected_screenshot_arguments=("${positional_arguments[@]:2}")
+
+if (( ${#expected_screenshot_arguments[@]} % 2 != 0 )); then
+    print_usage
+    exit 1
+fi
+
 localization_code="$(resolve_requested_locale "$requested_locale")"
-output_file_name="${localization_code}-${screenshot_index}_${screenshot_slug}.png"
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 project_path="$repo_root/apps/ios/Flashcards/Flashcards Open Source App.xcodeproj"
@@ -208,7 +212,6 @@ simulator_id="$(resolve_booted_simulator_id)"
 simulator_name="$(resolve_simulator_name "$simulator_id")"
 device_family="$(resolve_device_family "$simulator_name")"
 output_directory="$repo_root/apps/ios/docs/media/app-store-screenshots/$device_family"
-output_path="$output_directory/$output_file_name"
 
 mkdir -p "$output_directory"
 
@@ -226,9 +229,16 @@ xcodebuild \
   "-only-testing:Flashcards Open Source App UI Tests/$test_identifier" \
   test
 
-if [[ ! -f "$output_path" ]]; then
-    echo "Expected screenshot file at $output_path." >&2
-    exit 1
-fi
+for ((index = 0; index < ${#expected_screenshot_arguments[@]}; index += 2)); do
+    screenshot_index="${expected_screenshot_arguments[$index]}"
+    screenshot_slug="${expected_screenshot_arguments[$((index + 1))]}"
+    output_file_name="${localization_code}-${screenshot_index}_${screenshot_slug}.png"
+    output_path="$output_directory/$output_file_name"
 
-echo "Saved screenshot to $output_path"
+    if [[ ! -f "$output_path" ]]; then
+        echo "Expected screenshot file at $output_path." >&2
+        exit 1
+    fi
+
+    echo "Saved screenshot to $output_path"
+done
