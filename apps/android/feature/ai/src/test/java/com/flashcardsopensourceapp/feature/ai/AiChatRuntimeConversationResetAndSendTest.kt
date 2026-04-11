@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
+import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import kotlinx.coroutines.CompletableDeferred
@@ -36,7 +37,21 @@ class AiChatRuntimeConversationResetAndSendTest {
             ),
             composerSuggestions = emptyList()
         )
-        val runtime = makeRuntime(scope = this, repository = repository)
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.DISCONNECTED
+        )
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
 
         runtime.updateDraftMessage(draftMessage = "Hello")
         runtime.sendMessage()
@@ -58,7 +73,21 @@ class AiChatRuntimeConversationResetAndSendTest {
             text = "dictated text",
             sessionId = "dictation-session-1"
         )
-        val runtime = makeRuntime(scope = this, repository = repository)
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.DISCONNECTED
+        )
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals(AiConversationBootstrapState.READY, runtime.state.value.conversationBootstrapState)
 
         runtime.startDictationRecording()
         runtime.transcribeRecordedAudio(

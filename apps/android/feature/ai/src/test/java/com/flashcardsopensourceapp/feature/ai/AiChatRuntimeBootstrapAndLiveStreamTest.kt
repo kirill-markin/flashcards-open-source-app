@@ -96,6 +96,11 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
     fun reasoningSummaryStaysAfterExistingTextWhenItArrivesLater() = runTest {
         val repository = FakeAiChatRepository()
         val liveEvents = MutableSharedFlow<AiChatLiveEvent>()
+        repository.nextEnsureSessionId = "session-1"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
         repository.startRunResponse = makeAcceptedStartRunResponse(
             sessionId = "session-1",
             activeRun = makeActiveRun(runId = "run-1", cursor = "0"),
@@ -112,6 +117,8 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
         val runtime = makeRuntime(scope = this, repository = repository)
 
         runtime.onScreenVisible()
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
         runtime.updateDraftMessage(draftMessage = "What should I study next?")
         runtime.sendMessage()
         advanceUntilIdle()
@@ -252,6 +259,11 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
     fun assistantMessageDoneKeepsActiveRunUntilRunTerminalCompleted() = runTest {
         val repository = FakeAiChatRepository()
         val liveEvents = MutableSharedFlow<AiChatLiveEvent>()
+        repository.nextEnsureSessionId = "session-1"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
         repository.startRunResponse = makeAcceptedStartRunResponse(
             sessionId = "session-1",
             activeRun = makeActiveRun(runId = "run-1", cursor = "0"),
@@ -268,6 +280,8 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
         val runtime = makeRuntime(scope = this, repository = repository)
 
         runtime.onScreenVisible()
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
         runtime.updateDraftMessage(draftMessage = "Hello")
         runtime.sendMessage()
         advanceUntilIdle()
@@ -352,6 +366,11 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
     @Test
     fun acceptedRunDoesNotAttachLiveWhenScreenIsHidden() = runTest {
         val repository = FakeAiChatRepository()
+        repository.nextEnsureSessionId = "session-1"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
         repository.startRunResponse = makeAcceptedStartRunResponse(
             sessionId = "session-1",
             activeRun = makeActiveRun(runId = "run-1", cursor = "0"),
@@ -366,6 +385,8 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
         )
         val runtime = makeRuntime(scope = this, repository = repository)
 
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
         runtime.updateDraftMessage(draftMessage = "Hello")
         runtime.sendMessage()
         advanceUntilIdle()
@@ -379,6 +400,11 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
     fun acceptedTerminalResponseWithToolCallTriggersOneAutoSync() = runTest {
         val repository = FakeAiChatRepository()
         val autoSyncEventRepository = FakeAutoSyncEventRepository()
+        repository.nextEnsureSessionId = "session-1"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
         repository.startRunResponse = makeAcceptedStartRunResponse(
             sessionId = "session-1",
             activeRun = null,
@@ -410,6 +436,8 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
             autoSyncEventRepository = autoSyncEventRepository
         )
 
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
         runtime.updateDraftMessage(draftMessage = "Check my cards")
         runtime.sendMessage()
         advanceUntilIdle()
@@ -424,6 +452,11 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
     fun acceptedTerminalAssistantOnlyResponseWithToolCallTriggersOneAutoSync() = runTest {
         val repository = FakeAiChatRepository()
         val autoSyncEventRepository = FakeAutoSyncEventRepository()
+        repository.nextEnsureSessionId = "session-1"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
         repository.startRunResponse = makeAcceptedStartRunResponse(
             sessionId = "session-1",
             activeRun = null,
@@ -451,6 +484,8 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
             autoSyncEventRepository = autoSyncEventRepository
         )
 
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
         runtime.updateDraftMessage(draftMessage = "Check my cards")
         runtime.sendMessage()
         advanceUntilIdle()
@@ -466,6 +501,11 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
         val repository = FakeAiChatRepository()
         val autoSyncEventRepository = FakeAutoSyncEventRepository()
         autoSyncEventRepository.runAutoSyncErrors += IllegalStateException("sync failed")
+        repository.nextEnsureSessionId = "session-1"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
         repository.startRunResponse = makeAcceptedStartRunResponse(
             sessionId = "session-1",
             activeRun = null,
@@ -497,6 +537,8 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
             autoSyncEventRepository = autoSyncEventRepository
         )
 
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
         runtime.updateDraftMessage(draftMessage = "Check my cards")
         runtime.sendMessage()
         advanceUntilIdle()
@@ -515,6 +557,11 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
     fun acceptedTerminalResponseWithHistoricalToolCallAndNewPlainTextDoesNotTriggerAutoSync() = runTest {
         val repository = FakeAiChatRepository()
         val autoSyncEventRepository = FakeAutoSyncEventRepository()
+        repository.nextEnsureSessionId = "session-1"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
         repository.startRunResponse = makeAcceptedStartRunResponse(
             sessionId = "session-1",
             activeRun = null,
@@ -556,6 +603,8 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
             autoSyncEventRepository = autoSyncEventRepository
         )
 
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
         runtime.updateDraftMessage(draftMessage = "Explain spaced repetition")
         runtime.sendMessage()
         advanceUntilIdle()
@@ -570,6 +619,11 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
     fun acceptedTerminalAssistantOnlyPlainTextWithOlderToolCallDoesNotTriggerAutoSync() = runTest {
         val repository = FakeAiChatRepository()
         val autoSyncEventRepository = FakeAutoSyncEventRepository()
+        repository.nextEnsureSessionId = "session-1"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
         repository.startRunResponse = makeAcceptedStartRunResponse(
             sessionId = "session-1",
             activeRun = null,
@@ -603,6 +657,8 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
             autoSyncEventRepository = autoSyncEventRepository
         )
 
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
         runtime.updateDraftMessage(draftMessage = "Explain spaced repetition")
         runtime.sendMessage()
         advanceUntilIdle()
@@ -617,6 +673,11 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
     fun acceptedResponseWithActiveRunAndTrailingToolCallRaisesPendingFlag() = runTest {
         val repository = FakeAiChatRepository()
         val liveEvents = MutableSharedFlow<AiChatLiveEvent>()
+        repository.nextEnsureSessionId = "session-1"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
         repository.startRunResponse = makeAcceptedStartRunResponse(
             sessionId = "session-1",
             activeRun = makeActiveRun(runId = "run-1", cursor = "0"),
@@ -641,6 +702,8 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
         repository.liveFlows["run-1"] = liveEvents
         val runtime = makeRuntime(scope = this, repository = repository)
 
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
         runtime.updateDraftMessage(draftMessage = "Check my due cards")
         runtime.sendMessage()
         advanceUntilIdle()
@@ -855,6 +918,11 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
     fun liveAssistantToolCallDuringActiveRunRaisesPendingFlag() = runTest {
         val repository = FakeAiChatRepository()
         val liveEvents = MutableSharedFlow<AiChatLiveEvent>()
+        repository.nextEnsureSessionId = "session-1"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
         repository.startRunResponse = makeAcceptedStartRunResponse(
             sessionId = "session-1",
             activeRun = makeActiveRun(runId = "run-1", cursor = "0"),
@@ -871,6 +939,8 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
         val runtime = makeRuntime(scope = this, repository = repository)
 
         runtime.onScreenVisible()
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
         runtime.updateDraftMessage(draftMessage = "Check my due cards")
         runtime.sendMessage()
         advanceUntilIdle()
@@ -906,6 +976,11 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
     @Test
     fun acceptedResponseWithEmptyConversationMessagesAndActiveRunDoesNotRaisePendingToolCallFlag() = runTest {
         val repository = FakeAiChatRepository()
+        repository.nextEnsureSessionId = "session-1"
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
         repository.startRunResponse = makeAcceptedStartRunResponse(
             sessionId = "session-1",
             activeRun = makeActiveRun(runId = "run-1", cursor = "0"),
@@ -914,6 +989,8 @@ class AiChatRuntimeBootstrapAndLiveStreamTest {
         )
         val runtime = makeRuntime(scope = this, repository = repository)
 
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
         runtime.updateDraftMessage(draftMessage = "Hello")
         runtime.sendMessage()
         advanceUntilIdle()
