@@ -176,6 +176,16 @@ extension AIChatView {
                         self.isComposerFocused = true
                     }
                 )
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+
+                        Button(aiSettingsLocalized("common.done", "Done")) {
+                            self.dismissComposerFocus()
+                        }
+                        .accessibilityIdentifier(UITestIdentifier.aiComposerDismissKeyboardButton)
+                    }
+                }
 
                 HStack {
                     self.composerModelControl

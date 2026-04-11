@@ -3,6 +3,7 @@ import SwiftUI
 private let flashcardsUITestResetStateEnvironmentKey: String = "FLASHCARDS_UI_TEST_RESET_STATE"
 private let flashcardsUITestSelectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
 private let flashcardsUITestAppNotificationTapTypeEnvironmentKey: String = "FLASHCARDS_UI_TEST_APP_NOTIFICATION_TAP_TYPE"
+private let flashcardsUITestAIHandoffCardEnvironmentKey: String = "FLASHCARDS_UI_TEST_AI_HANDOFF_CARD"
 @MainActor
 private var hasConsumedFlashcardsUITestAppNotificationTapEnvironment: Bool = false
 
@@ -24,6 +25,10 @@ private enum FlashcardsUITestSelectedTab: String {
             return .settings
         }
     }
+}
+
+private enum FlashcardsUITestAIHandoffCard: String {
+    case firstCard = "first_card"
 }
 
 private struct CloudSyncPollingTaskID: Hashable {
@@ -49,6 +54,26 @@ private func consumeFlashcardsUITestAppNotificationTapRequest(processInfo: Proce
     return parseAppNotificationTapRequest(userInfo: userInfo)
 }
 
+@MainActor
+private func makeFlashcardsUITestAIChatPresentationRequest(
+    processInfo: ProcessInfo,
+    store: FlashcardsStore
+) -> AIChatPresentationRequest? {
+    guard let rawValue = processInfo.environment[flashcardsUITestAIHandoffCardEnvironmentKey],
+          let handoffCard = FlashcardsUITestAIHandoffCard(rawValue: rawValue) else {
+        return nil
+    }
+
+    switch handoffCard {
+    case .firstCard:
+        guard let card = store.cards.first else {
+            return nil
+        }
+
+        return .attachCard(makeAIChatCardReference(card: card))
+    }
+}
+
 @main
 struct FlashcardsApp: App {
     @Environment(\.scenePhase) private var scenePhase
@@ -59,10 +84,11 @@ struct FlashcardsApp: App {
     @MainActor
     init() {
         let store = FlashcardsStore()
-        let selectedTab = ProcessInfo.processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey]
+        let processInfo = ProcessInfo.processInfo
+        let selectedTab = processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey]
             .flatMap(FlashcardsUITestSelectedTab.init(rawValue:))
             .map(\.appTab) ?? .review
-        if let resetStateRawValue = ProcessInfo.processInfo.environment[flashcardsUITestResetStateEnvironmentKey],
+        if let resetStateRawValue = processInfo.environment[flashcardsUITestResetStateEnvironmentKey],
            let resetState = FlashcardsUITestResetState(rawValue: resetStateRawValue) {
             do {
                 try store.applyUITestResetState(resetState: resetState)
@@ -70,7 +96,11 @@ struct FlashcardsApp: App {
                 store.globalErrorMessage = Flashcards.errorMessage(error: error)
             }
         }
-        if let request = consumeFlashcardsUITestAppNotificationTapRequest(processInfo: ProcessInfo.processInfo) {
+        let aiChatPresentationRequest = makeFlashcardsUITestAIChatPresentationRequest(
+            processInfo: processInfo,
+            store: store
+        )
+        if let request = consumeFlashcardsUITestAppNotificationTapRequest(processInfo: processInfo) {
             let receivedMetadata = makeAppNotificationTapLogMetadata(
                 request: request,
                 source: .uiTestEnvironment,
@@ -121,7 +151,7 @@ struct FlashcardsApp: App {
                 selectedTab: selectedTab,
                 settingsPath: [],
                 cardsPresentationRequest: nil,
-                aiChatPresentationRequest: nil
+                aiChatPresentationRequest: aiChatPresentationRequest
             )
         )
     }

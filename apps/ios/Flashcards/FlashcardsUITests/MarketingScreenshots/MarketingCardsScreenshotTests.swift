@@ -9,7 +9,8 @@ final class MarketingCardsScreenshotTests: MarketingManualScreenshotTestCase {
         try self.step("launch marketing cards list state") {
             try self.launchMarketingApplication(
                 resetState: .marketingConceptCards,
-                selectedTab: .cards
+                selectedTab: .cards,
+                aiHandoffCard: nil
             )
             try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
             try self.assertElementExists(

@@ -29,7 +29,10 @@ private enum MarketingManualScreenshotError: LocalizedError {
 }
 
 enum MarketingScreenshotEnvironment {
+    static let includeManualTestsKey: String = "FLASHCARDS_INCLUDE_MANUAL_SCREENSHOT_TESTS"
     static let localizationKey: String = "FLASHCARDS_MARKETING_SCREENSHOT_LOCALIZATION"
+    static let outputDirectoryPathKey: String = "FLASHCARDS_MARKETING_SCREENSHOT_OUTPUT_DIRECTORY"
+    static let aiHandoffCardKey: String = "FLASHCARDS_UI_TEST_AI_HANDOFF_CARD"
 }
 
 private enum MarketingScreenshotRuntimeConfigurationStorage {
@@ -87,7 +90,8 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     @MainActor
     func launchMarketingApplication(
         resetState: LiveSmokeLaunchResetState,
-        selectedTab: LiveSmokeSelectedTab
+        selectedTab: LiveSmokeSelectedTab,
+        aiHandoffCard: String?
     ) throws {
         let localeFixture = try self.marketingLocaleFixture()
         self.app = XCUIApplication()
@@ -96,7 +100,8 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             app: self.app,
             resetState: resetState,
             selectedTab: selectedTab,
-            localeFixture: localeFixture
+            localeFixture: localeFixture,
+            aiHandoffCard: aiHandoffCard
         )
 
         self.logActionStart(action: "launch_app", identifier: "application")
@@ -120,7 +125,8 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
 
         try self.launchMarketingApplication(
             resetState: .marketingOpportunityCostReviewCard,
-            selectedTab: .review
+            selectedTab: .review,
+            aiHandoffCard: nil
         )
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
@@ -131,11 +137,39 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     @MainActor
+    func launchOpportunityCostReviewCardAiHandoff() throws -> MarketingScreenshotLocaleFixture {
+        let localeFixture = try self.marketingLocaleFixture()
+
+        if self.isApplicationRunning {
+            self.app.terminate()
+        }
+
+        try self.launchMarketingApplication(
+            resetState: .marketingOpportunityCostReviewCard,
+            selectedTab: .ai,
+            aiHandoffCard: "first_card"
+        )
+
+        return localeFixture
+    }
+
+    @MainActor
     func revealOpportunityCostReviewAnswer() throws {
+        let rateGoodButton = self.app.buttons[LiveSmokeIdentifier.reviewRateGoodButton]
         try self.tapButton(
             identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
             timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
         )
+        if self.waitForOptionalElement(
+            rateGoodButton,
+            identifier: LiveSmokeIdentifier.reviewRateGoodButton,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        ) == false && self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].exists {
+            try self.tapButton(
+                identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+                timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds
+            )
+        }
         try self.waitForReviewAnswerReveal()
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.reviewRateGoodButton,
@@ -203,13 +237,18 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         app: XCUIApplication,
         resetState: LiveSmokeLaunchResetState,
         selectedTab: LiveSmokeSelectedTab,
-        localeFixture: MarketingScreenshotLocaleFixture
+        localeFixture: MarketingScreenshotLocaleFixture,
+        aiHandoffCard: String?
     ) {
         app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.resetStateEnvironmentKey)
         app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.appNotificationTapTypeEnvironmentKey)
+        app.launchEnvironment.removeValue(forKey: MarketingScreenshotEnvironment.aiHandoffCardKey)
         app.launchEnvironment[LiveSmokeConfiguration.selectedTabEnvironmentKey] = selectedTab.rawValue
         app.launchEnvironment[LiveSmokeConfiguration.resetStateEnvironmentKey] = resetState.rawValue
         app.launchEnvironment[MarketingScreenshotEnvironment.localizationKey] = localeFixture.localizationCode
+        if let aiHandoffCard {
+            app.launchEnvironment[MarketingScreenshotEnvironment.aiHandoffCardKey] = aiHandoffCard
+        }
         app.launchArguments = self.strippingMarketingAppleLocalizationLaunchArguments(arguments: app.launchArguments)
         app.launchArguments += localeFixture.launchArguments
     }
@@ -247,18 +286,38 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             isDirectory: false
         )
 
-        guard FileManager.default.fileExists(atPath: configurationURL.path) else {
+        if FileManager.default.fileExists(atPath: configurationURL.path) {
+            do {
+                let configurationData = try Data(contentsOf: configurationURL)
+                let decodedConfiguration = try JSONDecoder().decode(
+                    MarketingScreenshotRuntimeConfiguration.self,
+                    from: configurationData
+                )
+
+                return try decodedConfiguration.validated()
+            } catch let error as MarketingManualScreenshotError {
+                throw error
+            } catch {
+                throw MarketingManualScreenshotError.runtimeConfigurationReadFailed(
+                    configurationURL.path,
+                    underlying: error
+                )
+            }
+        }
+
+        let environment = ProcessInfo.processInfo.environment
+        guard environment[MarketingScreenshotEnvironment.includeManualTestsKey] == "true" else {
             return nil
         }
 
-        do {
-            let configurationData = try Data(contentsOf: configurationURL)
-            let decodedConfiguration = try JSONDecoder().decode(
-                MarketingScreenshotRuntimeConfiguration.self,
-                from: configurationData
-            )
+        let runtimeConfiguration = MarketingScreenshotRuntimeConfiguration(
+            includeManualScreenshotTests: true,
+            outputDirectoryPath: environment[MarketingScreenshotEnvironment.outputDirectoryPathKey] ?? "",
+            localizationCode: environment[MarketingScreenshotEnvironment.localizationKey] ?? ""
+        )
 
-            return try decodedConfiguration.validated()
+        do {
+            return try runtimeConfiguration.validated()
         } catch let error as MarketingManualScreenshotError {
             throw error
         } catch {

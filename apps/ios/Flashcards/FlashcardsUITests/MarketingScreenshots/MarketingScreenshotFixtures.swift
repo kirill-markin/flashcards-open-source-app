@@ -595,11 +595,7 @@ enum MarketingScreenshotFixture {
 
 extension MarketingManualScreenshotTestCase {
     @MainActor
-    func openAiFromRevealedReviewCardAndPrepareDraft(draftText: String) throws {
-        try self.tapButton(
-            identifier: LiveSmokeIdentifier.reviewAiButton,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        )
+    func prepareAiDraftWithCurrentAttachment(draftText: String) throws {
         try self.assertScreenVisible(screen: .ai, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.assertAiEntrySurfaceVisible()
 
@@ -637,17 +633,71 @@ extension MarketingManualScreenshotTestCase {
             return
         }
 
-        let dismissalSurface = self.app.otherElements[LiveSmokeIdentifier.aiScreen].firstMatch
+        let dismissalSurface = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiScreen)
+            .firstMatch
+        let emptyStateLabel = self.app.staticTexts
+            .matching(identifier: LiveSmokeIdentifier.aiEmptyState)
+            .element(boundBy: 0)
+        let dismissKeyboardButton = self.app.buttons[LiveSmokeIdentifier.aiComposerDismissKeyboardButton]
+        let navigationBar = self.app.navigationBars.firstMatch
+        let composerTextField = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.aiComposerTextField)
+            .firstMatch
         let deadline = Date().addingTimeInterval(timeout)
 
         while Date() < deadline {
-            if dismissalSurface.exists && dismissalSurface.isHittable {
-                dismissalSurface.tap()
+            if dismissKeyboardButton.exists && dismissKeyboardButton.isHittable {
+                dismissKeyboardButton.tap()
+            } else if dismissalSurface.exists && dismissalSurface.isHittable {
+                dismissalSurface.coordinate(
+                    withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)
+                ).tap()
+            } else if emptyStateLabel.exists && emptyStateLabel.isHittable {
+                emptyStateLabel.tap()
+            } else if navigationBar.exists && navigationBar.isHittable {
+                navigationBar.tap()
             } else {
                 let coordinate = self.app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2))
                 coordinate.tap()
             }
 
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+            if self.softwareKeyboardIsVisible() == false {
+                return
+            }
+        }
+
+        if dismissalSurface.exists && dismissalSurface.isHittable {
+            dismissalSurface.swipeDown()
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+            if self.softwareKeyboardIsVisible() == false {
+                return
+            }
+        }
+
+        if navigationBar.exists && navigationBar.isHittable {
+            navigationBar.tap()
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+            if self.softwareKeyboardIsVisible() == false {
+                return
+            }
+        }
+
+        let returnButtons = self.app.keyboards.buttons.matching(identifier: "Return")
+        for index in 0..<returnButtons.count {
+            let returnButton = returnButtons.element(boundBy: index)
+            if returnButton.exists && returnButton.isHittable {
+                returnButton.tap()
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+                if self.softwareKeyboardIsVisible() == false {
+                    return
+                }
+            }
+        }
+
+        if composerTextField.exists && self.elementHasKeyboardFocus(element: composerTextField) {
+            composerTextField.typeText(XCUIKeyboardKey.return.rawValue)
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
             if self.softwareKeyboardIsVisible() == false {
                 return
