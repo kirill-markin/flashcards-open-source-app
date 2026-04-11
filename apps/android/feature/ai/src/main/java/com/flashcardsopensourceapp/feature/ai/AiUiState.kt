@@ -19,6 +19,7 @@ data class AiUiState(
     val isLinked: Boolean,
     val isConversationReady: Boolean,
     val isConversationLoading: Boolean,
+    val isCardHandoffReady: Boolean,
     val conversationErrorMessage: String,
     val canRetryConversationLoad: Boolean,
     val showOpenAccountStatusForConversationError: Boolean,

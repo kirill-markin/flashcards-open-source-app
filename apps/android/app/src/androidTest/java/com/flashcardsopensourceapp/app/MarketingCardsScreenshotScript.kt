@@ -10,29 +10,49 @@ import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 import org.junit.runner.RunWith
 
-private const val cardsScreenshotFileName: String = "cards-list-google-play-vocabulary.png"
+private const val cardsScreenshotFileName: String = "en-3_cards-list-google-play-vocabulary.png"
 
-private data class MarketingVocabularyCard(
+private data class MarketingConceptCard(
     val frontText: String,
-    val backText: String
+    val backText: String,
+    val subjectTag: String
 )
 
-private val marketingVocabularyCards: List<MarketingVocabularyCard> = listOf(
-    MarketingVocabularyCard(
-        frontText = "meticulous",
-        backText = "Very careful and precise, with strong attention to small details and accuracy."
+private val marketingConceptCards: List<MarketingConceptCard> = listOf(
+    MarketingConceptCard(
+        frontText = "In economics, what is opportunity cost?",
+        backText = "The value of the next best alternative you give up when you choose one option over another.",
+        subjectTag = "economics"
     ),
-    MarketingVocabularyCard(
-        frontText = "ambivalent",
-        backText = "Having mixed or conflicting feelings about a person, choice, or situation."
+    MarketingConceptCard(
+        frontText = "In biology, what is osmosis?",
+        backText = "The movement of water through a membrane from lower solute concentration to higher solute concentration.",
+        subjectTag = "biology"
     ),
-    MarketingVocabularyCard(
-        frontText = "pragmatic",
-        backText = "Focused on practical results and realistic solutions rather than ideal theories."
+    MarketingConceptCard(
+        frontText = "In statistics, what is standard deviation?",
+        backText = "A measure of how spread out values are around the average.",
+        subjectTag = "statistics"
     ),
-    MarketingVocabularyCard(
-        frontText = "mitigate",
-        backText = "Make something less severe or harmful, especially when you cannot remove the problem completely."
+    MarketingConceptCard(
+        frontText = "In chemistry, what is a catalyst?",
+        backText = "A substance that speeds up a chemical reaction without being consumed by it.",
+        subjectTag = "chemistry"
+    ),
+    MarketingConceptCard(
+        frontText = "In psychology, what is cognitive bias?",
+        backText = "A systematic pattern of thinking that can distort judgment and decision-making.",
+        subjectTag = "psychology"
+    ),
+    MarketingConceptCard(
+        frontText = "In physics, what is velocity?",
+        backText = "The speed of an object together with the direction of its motion.",
+        subjectTag = "physics"
+    ),
+    MarketingConceptCard(
+        frontText = "In computer science, what is recursion?",
+        backText = "A method where a function solves a problem by calling itself on smaller versions of that problem.",
+        subjectTag = "computer science"
     )
 )
 
@@ -48,24 +68,27 @@ class MarketingCardsScreenshotScript {
         .around(composeRule)
 
     @Test
-    fun generateVocabularyCardsListScreenshot() {
+    fun generateConceptCardsListScreenshot() {
         val robot = MarketingScreenshotRobot(composeRule = composeRule)
 
         robot.waitForCardsEmptyState()
-        marketingVocabularyCards.forEach { card ->
+        marketingConceptCards.forEach { card ->
             robot.createCard(
                 frontText = card.frontText,
                 backText = card.backText,
-                tags = listOf("vocabulary"),
+                tags = listOf(card.subjectTag),
                 effortLevelTitle = "Medium"
             )
         }
 
         composeRule.waitUntil(timeoutMillis = 10_000L) {
-            composeRule.onAllNodesWithText("mitigate").fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText("pragmatic").fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText("ambivalent").fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText("meticulous").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText("In economics, what is opportunity cost?").fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText("In biology, what is osmosis?").fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText("In statistics, what is standard deviation?").fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText("In chemistry, what is a catalyst?").fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText("In psychology, what is cognitive bias?").fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText("In physics, what is velocity?").fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithText("In computer science, what is recursion?").fetchSemanticsNodes().isNotEmpty()
         }
 
         val screenshotPath = robot.saveScreenshot(fileName = cardsScreenshotFileName)

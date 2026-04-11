@@ -107,7 +107,7 @@ internal fun makeDefaultAiDraftState(): AiDraftState {
         serverComposerSuggestions = emptyList(),
         composerPhase = AiComposerPhase.IDLE,
         dictationState = AiChatDictationState.IDLE,
-        conversationBootstrapState = AiConversationBootstrapState.READY,
+        conversationBootstrapState = AiConversationBootstrapState.LOADING,
         conversationBootstrapErrorMessage = "",
         repairStatus = null,
         activeAlert = null,

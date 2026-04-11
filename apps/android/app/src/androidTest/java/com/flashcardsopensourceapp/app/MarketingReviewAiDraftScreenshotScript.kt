@@ -9,11 +9,14 @@ import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
 import org.junit.runner.RunWith
 
-private const val reviewFrontScreenshotFileName: String = "en-1_review-card-front-google-play-opportunity-cost.png"
+private const val reviewAiDraftScreenshotFileName: String =
+    "en-4_review-card-ai-draft-google-play-opportunity-cost.png"
+private const val reviewAiDraftMessage: String =
+    "Create 6 new flashcards on the same economics topic, covering closely related ideas that are not already in this deck."
 
 @ManualOnlyAndroidTest
 @RunWith(AndroidJUnit4::class)
-class MarketingReviewFrontScreenshotScript {
+class MarketingReviewAiDraftScreenshotScript {
     private val appStateResetRule = AppStateResetRule()
     private val composeRule = createAndroidComposeRule<MainActivity>()
 
@@ -23,13 +26,18 @@ class MarketingReviewFrontScreenshotScript {
         .around(composeRule)
 
     @Test
-    fun generateOpportunityCostReviewFrontScreenshot() {
+    fun generateOpportunityCostReviewAiDraftScreenshot() {
         val robot = MarketingScreenshotRobot(composeRule = composeRule)
 
         robot.prepareOpportunityCostReviewCardForReview()
+        robot.revealAnswerAndWaitForRatings()
+        robot.openAiFromRevealedOpportunityCostCardAndPrepareDraft(draftText = reviewAiDraftMessage)
 
-        val screenshotPath = robot.saveScreenshot(fileName = reviewFrontScreenshotFileName)
+        val screenshotPath = robot.saveScreenshot(fileName = reviewAiDraftScreenshotFileName)
         val screenshotListing = robot.runShellCommand(command = "ls $screenshotPath")
-        assertTrue("Expected screenshot file at $screenshotPath.", screenshotListing.contains(reviewFrontScreenshotFileName))
+        assertTrue(
+            "Expected screenshot file at $screenshotPath.",
+            screenshotListing.contains(reviewAiDraftScreenshotFileName)
+        )
     }
 }

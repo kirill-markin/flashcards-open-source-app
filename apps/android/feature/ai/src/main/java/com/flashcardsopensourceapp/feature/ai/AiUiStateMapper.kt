@@ -47,6 +47,19 @@ internal fun mapToAiUiState(
     val isConversationReady = runtimeState.conversationBootstrapState == AiConversationBootstrapState.READY
     val isConversationLoading = runtimeState.conversationBootstrapState == AiConversationBootstrapState.LOADING
         || runtimeState.conversationBootstrapState == AiConversationBootstrapState.RESETTING
+    val isCardHandoffReady = hasConsent &&
+        runtimeState.workspaceId != null &&
+        isConversationReady &&
+        runtimeState.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE &&
+        shouldPrepareGuestAccess(
+            accessContext = AiAccessContext(
+                workspaceId = runtimeState.workspaceId,
+                cloudState = cloudState,
+                linkedUserId = null,
+                activeWorkspaceId = null
+            ),
+            hasConsent = hasConsent
+        ).not()
     val hasActiveRun = runtimeState.activeRun != null
     val isStreaming = hasActiveRun || runtimeState.composerPhase == AiComposerPhase.STOPPING
     val isComposerBusy = runtimeState.composerPhase != AiComposerPhase.IDLE || isConversationLoading || hasActiveRun
@@ -78,6 +91,7 @@ internal fun mapToAiUiState(
         isLinked = isLinked,
         isConversationReady = isConversationReady,
         isConversationLoading = isConversationLoading,
+        isCardHandoffReady = isCardHandoffReady,
         conversationErrorMessage = runtimeState.conversationBootstrapErrorMessage,
         canRetryConversationLoad = isCloudIdentityBlocked.not(),
         showOpenAccountStatusForConversationError = isCloudIdentityBlocked,
@@ -110,8 +124,9 @@ internal fun makeInitialAiUiState(hasConsent: Boolean, textProvider: AiTextProvi
         chatConfig = defaultAiChatServerConfig,
         isConsentRequired = hasConsent.not(),
         isLinked = false,
-        isConversationReady = true,
-        isConversationLoading = false,
+        isConversationReady = false,
+        isConversationLoading = true,
+        isCardHandoffReady = false,
         conversationErrorMessage = "",
         canRetryConversationLoad = true,
         showOpenAccountStatusForConversationError = false,

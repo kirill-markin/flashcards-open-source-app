@@ -83,6 +83,8 @@ enum LiveSmokeLaunchResetState: String {
     case localGuest = "local_guest"
     case localGuestSeededManualReviewCard = "local_guest_seeded_manual_review_card"
     case localGuestSeededAIReviewCard = "local_guest_seeded_ai_review_card"
+    case marketingOpportunityCostReviewCard = "marketing_opportunity_cost_review_card"
+    case marketingConceptCards = "marketing_concept_cards"
 }
 
 struct LiveSmokeTabBarItemLookup {
