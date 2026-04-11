@@ -152,18 +152,74 @@ enum LiveSmokeSelectedTab: String {
             return "Review"
         case (.review, .arabic):
             return "المراجعة"
+        case (.review, .chineseSimplified):
+            return "复习"
+        case (.review, .german):
+            return "Wiederholen"
+        case (.review, .hindi):
+            return "समीक्षा"
+        case (.review, .japanese):
+            return "復習"
+        case (.review, .russian):
+            return "Повторение"
+        case (.review, .spanishMexico):
+            return "Repasar"
+        case (.review, .spanishSpain):
+            return "Repasar"
         case (.cards, .english):
             return "Cards"
         case (.cards, .arabic):
             return "البطاقات"
+        case (.cards, .chineseSimplified):
+            return "卡片"
+        case (.cards, .german):
+            return "Karten"
+        case (.cards, .hindi):
+            return "कार्ड"
+        case (.cards, .japanese):
+            return "カード"
+        case (.cards, .russian):
+            return "Карточки"
+        case (.cards, .spanishMexico):
+            return "Tarjetas"
+        case (.cards, .spanishSpain):
+            return "Tarjetas"
         case (.ai, .english):
             return "AI"
         case (.ai, .arabic):
             return "الذكاء الاصطناعي"
+        case (.ai, .chineseSimplified):
+            return "AI"
+        case (.ai, .german):
+            return "KI"
+        case (.ai, .hindi):
+            return "AI"
+        case (.ai, .japanese):
+            return "AI"
+        case (.ai, .russian):
+            return "ИИ"
+        case (.ai, .spanishMexico):
+            return "IA"
+        case (.ai, .spanishSpain):
+            return "IA"
         case (.settings, .english):
             return "Settings"
         case (.settings, .arabic):
             return "الإعدادات"
+        case (.settings, .chineseSimplified):
+            return "设置"
+        case (.settings, .german):
+            return "Einstellungen"
+        case (.settings, .hindi):
+            return "सेटिंग्स"
+        case (.settings, .japanese):
+            return "設定"
+        case (.settings, .russian):
+            return "Настройки"
+        case (.settings, .spanishMexico):
+            return "Ajustes"
+        case (.settings, .spanishSpain):
+            return "Ajustes"
         }
     }
 }

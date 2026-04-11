@@ -122,6 +122,12 @@ The grouped smoke suite still maps to the same top-level live-smoke contract as 
 - Android equivalent: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
 - Web equivalent: `apps/web/e2e/live-smoke.spec.ts`
 
+## Marketing Screenshots
+
+The iOS App Store screenshot generator is documented in [`docs/marketing-screenshots.md`](docs/marketing-screenshots.md).
+
+Use that document when you need to regenerate localized marketing PNGs. It explains the manual XCUITest entrypoints, wrapper scripts, locale selection, simulator-family-to-output-folder behavior, and the expected output paths under `apps/ios/docs/media/app-store-screenshots/`.
+
 ## CI/CD
 
 iOS CI/CD is documented in [`docs/ios-ci-cd.md`](../../docs/ios-ci-cd.md).

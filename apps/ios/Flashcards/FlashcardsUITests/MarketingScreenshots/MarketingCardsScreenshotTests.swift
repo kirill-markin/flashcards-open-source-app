@@ -4,6 +4,8 @@ import XCTest
 final class MarketingCardsScreenshotTests: MarketingManualScreenshotTestCase {
     @MainActor
     func testGenerateConceptCardsListScreenshot() throws {
+        let localeFixture = try self.marketingLocaleFixture()
+
         try self.step("launch marketing cards list state") {
             try self.launchMarketingApplication(
                 resetState: .marketingConceptCards,
@@ -15,18 +17,18 @@ final class MarketingCardsScreenshotTests: MarketingManualScreenshotTestCase {
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
             try self.assertTextExists(
-                MarketingScreenshotFixture.conceptCards[0].frontText,
+                localeFixture.conceptCards[0].frontText,
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
             try self.assertTextExists(
-                MarketingScreenshotFixture.conceptCards[1].frontText,
+                localeFixture.conceptCards[1].frontText,
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
         }
 
         try self.step("capture cards list screenshot") {
             let screenshotURL = try self.captureMarketingScreenshot(
-                fileName: MarketingScreenshotFixture.cardsFileName
+                fileName: localeFixture.cardsFileName
             )
             XCTAssertTrue(
                 FileManager.default.fileExists(atPath: screenshotURL.path),

@@ -6,6 +6,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 "$repo_root/scripts/capture-ios-marketing-screenshot.sh" \
   "MarketingReviewResultScreenshotTests/testGenerateOpportunityCostReviewResultScreenshot" \
-  "en-2_review-card-result-app-store-opportunity-cost.png" \
-  "en" \
-  "the Review result state"
+  "2" \
+  "review-card-result-app-store-opportunity-cost" \
+  "the Review result state" \
+  "$@"

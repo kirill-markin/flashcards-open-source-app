@@ -12,7 +12,8 @@ private enum MarketingManualScreenshotError: LocalizedError {
         case .missingEnvironmentValue(let key):
             return "Manual iOS marketing screenshot environment is missing '\(key)'."
         case .unsupportedLocalization(let value):
-            return "Unsupported iOS marketing screenshot localization '\(value)'."
+            let supportedValues = MarketingScreenshotFixture.supportedLocalizationCodes.joined(separator: ", ")
+            return "Unsupported iOS marketing screenshot localization '\(value)'. Supported values: \(supportedValues)."
         case .outputDirectoryCreationFailed(let path, let underlying):
             return "Failed to create iOS marketing screenshot output directory at '\(path)': \(underlying.localizedDescription)"
         case .screenshotWriteFailed(let path, let underlying):
@@ -39,17 +40,13 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     @MainActor
-    func marketingLaunchLocalization() throws -> LiveSmokeLaunchLocalization {
+    func marketingLocaleFixture() throws -> MarketingScreenshotLocaleFixture {
         let rawValue = try self.requiredEnvironmentValue(key: MarketingScreenshotEnvironment.localizationKey)
-
-        switch rawValue {
-        case "en":
-            return .english
-        case "ar":
-            return .arabic
-        default:
+        guard let localeFixture = MarketingScreenshotFixture.localeFixture(localizationCode: rawValue) else {
             throw MarketingManualScreenshotError.unsupportedLocalization(rawValue)
         }
+
+        return localeFixture
     }
 
     @MainActor
@@ -57,11 +54,28 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         resetState: LiveSmokeLaunchResetState,
         selectedTab: LiveSmokeSelectedTab
     ) throws {
-        let localization = try self.marketingLaunchLocalization()
-        try self.launchApplication(
+        let localeFixture = try self.marketingLocaleFixture()
+        self.app = XCUIApplication()
+        self.currentLaunchLocalization = localeFixture.tabBarFallbackLocalization
+        self.configureMarketingLaunchEnvironment(
+            app: self.app,
             resetState: resetState,
             selectedTab: selectedTab,
-            launchLocalization: localization
+            localeFixture: localeFixture
+        )
+
+        self.logActionStart(action: "launch_app", identifier: "application")
+        self.app.launch()
+        try self.waitForApplicationToReachForeground(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.waitForSelectedTabScreen(
+            selectedTab: selectedTab,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+        self.logActionEnd(
+            action: "launch_app",
+            identifier: "application",
+            result: "success",
+            note: "application launched"
         )
     }
 
@@ -81,6 +95,22 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         }
 
         return screenshotURL
+    }
+
+    @MainActor
+    private func configureMarketingLaunchEnvironment(
+        app: XCUIApplication,
+        resetState: LiveSmokeLaunchResetState,
+        selectedTab: LiveSmokeSelectedTab,
+        localeFixture: MarketingScreenshotLocaleFixture
+    ) {
+        app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.resetStateEnvironmentKey)
+        app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.appNotificationTapTypeEnvironmentKey)
+        app.launchEnvironment[LiveSmokeConfiguration.selectedTabEnvironmentKey] = selectedTab.rawValue
+        app.launchEnvironment[LiveSmokeConfiguration.resetStateEnvironmentKey] = resetState.rawValue
+        app.launchEnvironment[MarketingScreenshotEnvironment.localizationKey] = localeFixture.localizationCode
+        app.launchArguments = self.strippingMarketingAppleLocalizationLaunchArguments(arguments: app.launchArguments)
+        app.launchArguments += localeFixture.launchArguments
     }
 
     private func outputDirectoryURL() throws -> URL {
@@ -111,5 +141,23 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         }
 
         return trimmedValue
+    }
+
+    private func strippingMarketingAppleLocalizationLaunchArguments(arguments: [String]) -> [String] {
+        var sanitizedArguments: [String] = []
+        var index = 0
+
+        while index < arguments.count {
+            let argument = arguments[index]
+            if argument == "-AppleLanguages" || argument == "-AppleLocale" {
+                index += 2
+                continue
+            }
+
+            sanitizedArguments.append(argument)
+            index += 1
+        }
+
+        return sanitizedArguments
     }
 }

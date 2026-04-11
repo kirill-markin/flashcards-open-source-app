@@ -21,17 +21,25 @@ struct LiveSmokeLaunchRequest {
     let appNotificationTapType: LiveSmokeAppNotificationTapType?
 }
 
-enum LiveSmokeLaunchLocalization {
-    case english
-    case arabic
+enum LiveSmokeLaunchLocalization: String, CaseIterable {
+    case english = "en"
+    case arabic = "ar"
+    case chineseSimplified = "zh-Hans"
+    case german = "de"
+    case hindi = "hi"
+    case japanese = "ja"
+    case russian = "ru"
+    case spanishMexico = "es-MX"
+    case spanishSpain = "es-ES"
+
+    static var supportedLocalizationCodes: [String] {
+        Self.allCases.map { localization in
+            localization.rawValue
+        }
+    }
 
     var appleLanguage: String {
-        switch self {
-        case .english:
-            return "en"
-        case .arabic:
-            return "ar"
-        }
+        self.rawValue
     }
 
     var appleLocale: String {
@@ -40,6 +48,20 @@ enum LiveSmokeLaunchLocalization {
             return "en_US"
         case .arabic:
             return "ar_SA"
+        case .chineseSimplified:
+            return "zh_CN"
+        case .german:
+            return "de_DE"
+        case .hindi:
+            return "hi_IN"
+        case .japanese:
+            return "ja_JP"
+        case .russian:
+            return "ru_RU"
+        case .spanishMexico:
+            return "es_MX"
+        case .spanishSpain:
+            return "es_ES"
         }
     }
 
