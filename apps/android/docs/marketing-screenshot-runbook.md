@@ -17,16 +17,14 @@ The wrappers run the dedicated `marketingScreenshot` app variant, which can incl
 Run these commands from the repository root:
 
 ```bash
-bash scripts/capture-android-review-front-screenshot.sh
 bash scripts/capture-android-review-screenshot.sh
 bash scripts/capture-android-cards-screenshot.sh
-bash scripts/capture-android-review-ai-draft-screenshot.sh
 ```
 
 To target a configured locale prefix other than the default `en`, set `FLASHCARDS_MARKETING_LOCALE_PREFIX` for the wrapper run:
 
 ```bash
-FLASHCARDS_MARKETING_LOCALE_PREFIX=en bash scripts/capture-android-review-front-screenshot.sh
+FLASHCARDS_MARKETING_LOCALE_PREFIX=en bash scripts/capture-android-review-screenshot.sh
 ```
 
 The wrapper passes that prefix into the manual AndroidTest entrypoint, which resolves the matching screenshot locale configuration before preparing the app state and file names.
@@ -103,7 +101,7 @@ For the current marketing flows, the intended behavior is to press `Wait`, let A
 Example:
 
 ```bash
-bash scripts/capture-android-review-ai-draft-screenshot.sh
+bash scripts/capture-android-review-screenshot.sh
 ```
 
 Each wrapper script does the following:
@@ -111,7 +109,10 @@ Each wrapper script does the following:
 1. Verifies that an Android API 36 device is connected.
 2. Dismisses blocking system dialogs.
 3. Runs one manual-only instrumentation class through `:app:connectedMarketingScreenshotAndroidTest`.
-4. Pulls the generated PNG from `/sdcard/Download/flashcards-marketing-screenshots/` into the committed media directory.
+4. Pulls the generated PNG file or files from `/sdcard/Download/flashcards-marketing-screenshots/` into the committed media directory.
+
+The review wrapper runs one combined review-chain entrypoint and pulls screenshots 1, 2, and 4 from the same instrumentation run.
+The cards wrapper remains separate because screenshot 3 uses a different app setup flow.
 
 The locale-specific card texts, AI draft texts, file-name prefixes, and UI labels used by these screenshot flows are defined in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotCatalog.kt`.
 

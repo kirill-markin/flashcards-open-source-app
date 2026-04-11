@@ -93,6 +93,7 @@ Run commands from `apps/android/`.
 - Track current Android marketing screenshot inventory: [`docs/marketing-screenshots.md`](docs/marketing-screenshots.md)
 
 The marketing screenshot docs cover locale-prefixed runs as well.
+The current wrapper layout is one combined review-chain flow for screenshots 1, 2, and 4, plus a separate cards flow for screenshot 3.
 Use them when adding or validating multi-language Play screenshot content.
 
 ## Localization Rule
