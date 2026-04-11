@@ -12,7 +12,7 @@
     <string name="cards_due_new">Nueva</string>
 
     <string name="review_title">Repasar</string>
-    <string name="review_all_cards">Todas las tarjetas</string>
+    <string name="review_all_cards">Todas</string>
     <string name="review_front_label">Anverso</string>
     <string name="review_back_label">Reverso</string>
     <string name="review_due_label">Vence: %1$s</string>
