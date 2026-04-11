@@ -58,10 +58,13 @@ The current output files are:
 
 Use this sequence for every screenshot run:
 
+Run the Android emulator headlessly, without a visible emulator window.
+For marketing screenshot generation, the visible emulator UI is unnecessary and wastes local machine resources; only the final PNG output matters.
+
 1. Stop all Android emulators.
 2. Stop all booted iOS simulators.
 3. Verify `adb devices` is empty before starting a new Android run.
-4. Start exactly one Android API 36 emulator, currently `Medium_Phone_API_36.1`.
+4. Start exactly one Android API 36 emulator in headless mode, currently `Medium_Phone_API_36.1`.
 5. Wait for full device readiness, not just `adb` visibility.
 6. Dismiss any blocking Android system dialog before the run.
 7. Run one screenshot wrapper script at a time.
