@@ -79,6 +79,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         )
     }
 
+    @MainActor
     func captureMarketingScreenshot(fileName: String) throws -> URL {
         let outputDirectoryURL = try self.outputDirectoryURL()
         let screenshotURL = outputDirectoryURL.appendingPathComponent(fileName, isDirectory: false)

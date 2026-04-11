@@ -1016,12 +1016,18 @@ final class AIChatStoreRunToolCallTrackingTests: XCTestCase {
         XCTAssertTrue(store.pendingToolRunPostSync)
 
         await gate.release()
-        await waitForAIChatToolRunPostSyncToSettle(store: store)
+        await waitForAIChatToolRunPostSyncWorkspaceSwitchToSettle(
+            store: store,
+            historyStore: context.historyStore,
+            originalWorkspaceId: originalWorkspaceId,
+            replacementWorkspaceId: replacementWorkspaceId
+        )
 
         XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 1)
         XCTAssertEqual(store.chatSessionId, "session-2")
         XCTAssertTrue(store.pendingToolRunPostSync)
-        XCTAssertTrue(context.historyStore.loadState().pendingToolRunPostSync)
+        XCTAssertFalse(context.historyStore.loadState(workspaceId: originalWorkspaceId).pendingToolRunPostSync)
+        XCTAssertTrue(context.historyStore.loadState(workspaceId: replacementWorkspaceId).pendingToolRunPostSync)
     }
 
     func testTerminalPostSyncLocalSessionResetKeepsNewSessionState() async throws {
@@ -1871,6 +1877,7 @@ private func makeAssistantTextMessage(
 private let aiChatBackgroundTaskTimeout: Duration = .seconds(2)
 private let aiChatTaskTimeout: Duration = .seconds(3)
 private let aiChatToolRunPostSyncTaskTimeout: Duration = .seconds(5)
+private let aiChatWorkspaceSwitchToolRunPostSyncTimeout: Duration = .seconds(8)
 private let aiChatTaskPollInterval: Duration = .milliseconds(10)
 
 @MainActor
@@ -1915,32 +1922,6 @@ private func waitForAIChatCondition(
     }
 }
 
-private func waitForAIChatTaskHandleToComplete(
-    description: String,
-    task: Task<Void, Never>,
-    timeout: Duration
-) async -> Bool {
-    await withTaskGroup(of: Bool.self) { group in
-        group.addTask {
-            await task.value
-            return true
-        }
-        group.addTask {
-            try? await Task.sleep(for: timeout)
-            return false
-        }
-
-        let didComplete = await group.next() ?? false
-        group.cancelAll()
-        if didComplete == false {
-            await MainActor.run {
-                XCTFail("Timed out waiting for \(description) task to complete.")
-            }
-        }
-        return didComplete
-    }
-}
-
 @MainActor
 private func waitForAIChatTaskToClear(
     description: String,
@@ -1948,17 +1929,6 @@ private func waitForAIChatTaskToClear(
     pollInterval: Duration,
     taskProvider: @escaping @MainActor () -> Task<Void, Never>?
 ) async -> Bool {
-    if let task = taskProvider() {
-        let didComplete = await waitForAIChatTaskHandleToComplete(
-            description: description,
-            task: task,
-            timeout: timeout
-        )
-        if didComplete == false {
-            return false
-        }
-    }
-
     return await waitForAIChatCondition(
         description: "\(description) became nil",
         timeout: timeout,
@@ -1995,6 +1965,31 @@ private func waitForAIChatToolRunPostSyncToSettle(store: AIChatStore) async {
         return
     }
     await waitForAIChatPendingStatePersistenceToDrain(store: store)
+}
+
+@MainActor
+private func waitForAIChatToolRunPostSyncWorkspaceSwitchToSettle(
+    store: AIChatStore,
+    historyStore: any AIChatHistoryStoring,
+    originalWorkspaceId: String,
+    replacementWorkspaceId: String
+) async {
+    _ = await waitForAIChatCondition(
+        description: "workspace-switch post-sync settled",
+        timeout: aiChatWorkspaceSwitchToolRunPostSyncTimeout,
+        pollInterval: aiChatTaskPollInterval,
+        condition: {
+            let originalState = historyStore.loadState(workspaceId: originalWorkspaceId)
+            let replacementState = historyStore.loadState(workspaceId: replacementWorkspaceId)
+            return store.activeToolRunPostSyncTask == nil
+                && store.activePersistTask == nil
+                && store.pendingPersistState == nil
+                && store.chatSessionId == replacementState.chatSessionId
+                && store.pendingToolRunPostSync
+                && originalState.pendingToolRunPostSync == false
+                && replacementState.pendingToolRunPostSync
+        }
+    )
 }
 
 @MainActor
