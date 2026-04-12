@@ -121,6 +121,9 @@ struct AIChatView: View {
             self.syncChatSurface(refreshConsent: false)
             self.scheduleDeferredBottomSyncIfNeeded()
         }
+        .onChange(of: self.isComposerFocused) { _, isFocused in
+            self.handleComposerFocusChange(isFocused: isFocused)
+        }
         .onChange(of: self.chatStore.dictationState) { _, nextState in
             self.handleDictationStateChange(nextState)
             guard nextState == .idle else {
@@ -149,14 +152,7 @@ struct AIChatView: View {
             allowedContentTypes: aiChatImporterContentTypes(),
             allowsMultipleSelection: true
         ) { result in
-            switch result {
-            case .success(let urls):
-                Task {
-                    await self.handleImportedFiles(urls)
-                }
-            case .failure(let error):
-                self.handleFileImportFailure(error)
-            }
+            self.handleFileImportResult(result: result)
         }
         .photosPicker(
             isPresented: self.$isPhotoPickerPresented,
@@ -563,6 +559,27 @@ struct AIChatView: View {
             from: nil,
             for: nil
         )
+    }
+
+    func handleComposerFocusChange(isFocused: Bool) {
+        guard isFocused, self.isAutoFollowEnabled else {
+            return
+        }
+
+        // Preserve a manual scroll-away, but if the user was still pinned to the
+        // bottom, let the keyboard settle first and then realign the latest chat.
+        self.scheduleDeferredBottomSyncIfNeeded()
+    }
+
+    func handleFileImportResult(result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            Task {
+                await self.handleImportedFiles(urls)
+            }
+        case .failure(let error):
+            self.handleFileImportFailure(error)
+        }
     }
 
 }
