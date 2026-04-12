@@ -446,7 +446,6 @@ struct AIChatView: View {
             .scrollTargetLayout()
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .containerRelativeFrame(.vertical, alignment: .bottom)
         }
     }
 
