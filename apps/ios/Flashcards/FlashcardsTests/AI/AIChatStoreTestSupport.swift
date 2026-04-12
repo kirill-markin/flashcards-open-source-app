@@ -211,6 +211,7 @@ enum AIChatStoreTestSupport {
         var events: [String]
         var loadSnapshotSessionIds: [String?]
         var loadBootstrapSessionIds: [String?]
+        var loadBootstrapGate: AsyncGate?
         var startRunRequests: [AIChatStartRunRequestBody]
         var createNewSessionRequests: [AIChatNewSessionRequestBody]
         var loadBootstrapHandler: ((String?) throws -> AIChatBootstrapResponse)?
@@ -225,6 +226,7 @@ enum AIChatStoreTestSupport {
             self.events = []
             self.loadSnapshotSessionIds = []
             self.loadBootstrapSessionIds = []
+            self.loadBootstrapGate = nil
             self.startRunRequests = []
             self.createNewSessionRequests = []
             self.loadBootstrapHandler = nil
@@ -253,6 +255,9 @@ enum AIChatStoreTestSupport {
             _ = resumeAttemptDiagnostics
             self.events.append("loadBootstrap:\(sessionId ?? "nil")")
             self.loadBootstrapSessionIds.append(sessionId)
+            if let loadBootstrapGate = self.loadBootstrapGate {
+                await loadBootstrapGate.wait()
+            }
             guard let loadBootstrapHandler else {
                 throw LocalStoreError.validation("Unexpected AI chat bootstrap request in tests.")
             }

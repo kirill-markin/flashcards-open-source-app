@@ -256,6 +256,9 @@ extension AIChatStore {
         self.oldestCursor = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
+        self.optimisticOutgoingTurnState = restoredAIChatOptimisticOutgoingTurnState(
+            messages: persistedState.messages
+        )
         self.runHadToolCalls = persistedState.pendingToolRunPostSync
         self.pendingToolRunPostSync = persistedState.pendingToolRunPostSync
         self.activeResumeErrorAttemptSequence = nil
@@ -330,6 +333,7 @@ extension AIChatStore {
         self.transitionToIdle()
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
+        self.clearOptimisticOutgoingTurnState()
         self.resetRunToolCallTracking()
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
@@ -370,6 +374,7 @@ extension AIChatStore {
         self.transitionToIdle()
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
+        self.clearOptimisticOutgoingTurnState()
         self.resetRunToolCallTracking()
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
