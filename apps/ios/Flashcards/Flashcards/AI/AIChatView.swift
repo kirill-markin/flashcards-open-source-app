@@ -16,6 +16,7 @@ struct AIChatView: View {
     @State var isAutoFollowEnabled: Bool
     @State var scrollPosition: ScrollPosition
     @State var autoScrollTask: Task<Void, Never>?
+    @State var deferredBottomSyncTask: Task<Void, Never>?
     @State var shouldRestoreComposerFocusAfterDictation: Bool
     @State var composerSelection: TextSelection?
     @State var composerDictationInsertionSelection: AIChatDictationInsertionSelection?
@@ -32,6 +33,7 @@ struct AIChatView: View {
         self.isAutoFollowEnabled = true
         self.scrollPosition = ScrollPosition(idType: String.self)
         self.autoScrollTask = nil
+        self.deferredBottomSyncTask = nil
         self.shouldRestoreComposerFocusAfterDictation = false
         self.composerSelection = nil
         self.composerDictationInsertionSelection = nil
@@ -111,11 +113,13 @@ struct AIChatView: View {
         }
         .onChange(of: self.navigation.selectedTab) { _, nextTab in
             guard nextTab == .ai else {
+                self.cancelDeferredBottomSync()
                 self.shouldRestoreComposerFocusAfterDictation = false
                 self.syncChatSurface(refreshConsent: false)
                 return
             }
             self.syncChatSurface(refreshConsent: false)
+            self.scheduleDeferredBottomSyncIfNeeded()
         }
         .onChange(of: self.chatStore.dictationState) { _, nextState in
             self.handleDictationStateChange(nextState)
@@ -392,11 +396,13 @@ struct AIChatView: View {
             }
         }
         .onAppear {
+            self.scheduleDeferredBottomSyncIfNeeded()
             if self.chatStore.isStreaming {
                 self.startAutoScrollTask()
             }
         }
         .onDisappear {
+            self.cancelDeferredBottomSync()
             self.stopAutoScrollTask()
         }
         .onChange(of: self.chatStore.messages) { _, messages in
