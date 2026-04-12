@@ -286,10 +286,6 @@ extension LiveSmokeTestCase {
             identifier: LiveSmokeIdentifier.aiComposerTextField,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
-        try self.assertElementExists(
-            identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton,
-            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-        )
         try self.assertAiComposerKeyboardVisible(
             context: "after focusing the AI composer before the keyboard-open scroll assertion"
         )

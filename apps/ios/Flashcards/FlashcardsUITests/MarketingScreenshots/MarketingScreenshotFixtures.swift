@@ -639,7 +639,6 @@ extension MarketingManualScreenshotTestCase {
         let emptyStateLabel = self.app.staticTexts
             .matching(identifier: LiveSmokeIdentifier.aiEmptyState)
             .element(boundBy: 0)
-        let dismissKeyboardButton = self.app.buttons[LiveSmokeIdentifier.aiComposerDismissKeyboardButton]
         let navigationBar = self.app.navigationBars.firstMatch
         let composerTextField = self.app.descendants(matching: .any)
             .matching(identifier: LiveSmokeIdentifier.aiComposerTextField)
@@ -647,9 +646,7 @@ extension MarketingManualScreenshotTestCase {
         let deadline = Date().addingTimeInterval(timeout)
 
         while Date() < deadline {
-            if dismissKeyboardButton.exists && dismissKeyboardButton.isHittable {
-                dismissKeyboardButton.tap()
-            } else if dismissalSurface.exists && dismissalSurface.isHittable {
+            if dismissalSurface.exists && dismissalSurface.isHittable {
                 dismissalSurface.coordinate(
                     withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)
                 ).tap()
