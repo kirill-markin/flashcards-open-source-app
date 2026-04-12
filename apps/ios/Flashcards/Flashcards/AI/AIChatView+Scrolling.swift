@@ -28,6 +28,50 @@ func aiChatScrollState(
 }
 
 extension AIChatView {
+    func scheduleDeferredBottomSyncIfNeeded() {
+        guard self.navigation.selectedTab == .ai else {
+            return
+        }
+        guard self.accessState == .ready else {
+            return
+        }
+        guard self.chatStore.bootstrapPhase == .ready else {
+            return
+        }
+        guard self.isAutoFollowEnabled else {
+            return
+        }
+
+        self.cancelDeferredBottomSync()
+        self.deferredBottomSyncTask = Task { @MainActor in
+            await Task.yield()
+
+            guard Task.isCancelled == false else {
+                return
+            }
+            guard self.navigation.selectedTab == .ai else {
+                self.deferredBottomSyncTask = nil
+                return
+            }
+            guard self.accessState == .ready else {
+                self.deferredBottomSyncTask = nil
+                return
+            }
+            guard self.chatStore.bootstrapPhase == .ready else {
+                self.deferredBottomSyncTask = nil
+                return
+            }
+
+            self.scrollToBottomIfNeeded(isAnimated: false)
+            self.deferredBottomSyncTask = nil
+        }
+    }
+
+    func cancelDeferredBottomSync() {
+        self.deferredBottomSyncTask?.cancel()
+        self.deferredBottomSyncTask = nil
+    }
+
     func scrollToBottomIfNeeded(isAnimated: Bool) {
         guard self.isAutoFollowEnabled else {
             return
