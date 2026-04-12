@@ -52,22 +52,8 @@ struct AIChatView: View {
         .accessibilityIdentifier(UITestIdentifier.aiScreen)
         .navigationTitle(aiSettingsLocalized("ai.title", "AI"))
         .navigationBarTitleDisplayMode(.inline)
-        .safeAreaBar(edge: .bottom, spacing: 0) {
-            if self.accessState == .ready && self.chatStore.isChatInteractive {
-                self.composerAccessory
-            }
-        }
-        .toolbar {
-            if self.accessState == .ready {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(aiSettingsLocalized("ai.newChat", "New")) {
-                        self.chatStore.clearHistory()
-                    }
-                    .accessibilityIdentifier(UITestIdentifier.aiNewChatButton)
-                    .disabled(self.isNewChatDisabled || self.chatStore.isChatInteractive == false)
-                }
-            }
-        }
+        .safeAreaBar(edge: .bottom, spacing: 0, content: self.bottomBarContent)
+        .toolbar(content: self.toolbarContent)
         .onAppear(perform: self.handleViewAppear)
         .onChange(of: self.navigation.aiChatPresentationRequest) { _, request in
             self.handlePresentationRequestChange(request: request)
@@ -138,25 +124,11 @@ struct AIChatView: View {
             )
         }
         .alert(
-            self.chatStore.activeAlert?.title ?? "",
-            isPresented: self.isAlertPresentedBinding
-        ) {
-            if self.chatStore.activeAlert?.showsSettingsAction == true {
-                Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {
-                    self.chatStore.dismissAlert()
-                }
-                Button(aiSettingsLocalized("common.openSettings", "Open Settings")) {
-                    self.chatStore.dismissAlert()
-                    openApplicationSettings()
-                }
-            } else {
-                Button(aiSettingsLocalized("common.ok", "OK"), role: .cancel) {
-                    self.chatStore.dismissAlert()
-                }
-            }
-        } message: {
-            Text(self.chatStore.activeAlert?.message ?? "")
-        }
+            self.activeAlertTitle,
+            isPresented: self.isAlertPresentedBinding,
+            actions: self.alertActionsContent,
+            message: self.alertMessageContent
+        )
     }
 
     var isNewChatDisabled: Bool {
@@ -180,8 +152,54 @@ struct AIChatView: View {
         )
     }
 
+    var activeAlertTitle: String {
+        self.chatStore.activeAlert?.title ?? ""
+    }
+
     var accessState: AIChatAccessState {
         aiChatAccessState(hasExternalProviderConsent: self.chatStore.hasExternalProviderConsent)
+    }
+
+    @ViewBuilder
+    var bottomBarContent: some View {
+        if self.accessState == .ready && self.chatStore.isChatInteractive {
+            self.composerAccessory
+        }
+    }
+
+    @ViewBuilder
+    func alertActionsContent() -> some View {
+        if self.chatStore.activeAlert?.showsSettingsAction == true {
+            Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {
+                self.chatStore.dismissAlert()
+            }
+            Button(aiSettingsLocalized("common.openSettings", "Open Settings")) {
+                self.chatStore.dismissAlert()
+                openApplicationSettings()
+            }
+        } else {
+            Button(aiSettingsLocalized("common.ok", "OK"), role: .cancel) {
+                self.chatStore.dismissAlert()
+            }
+        }
+    }
+
+    @ViewBuilder
+    func alertMessageContent() -> some View {
+        Text(self.chatStore.activeAlert?.message ?? "")
+    }
+
+    @ToolbarContentBuilder
+    var toolbarContent: some ToolbarContent {
+        if self.accessState == .ready {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(aiSettingsLocalized("ai.newChat", "New")) {
+                    self.chatStore.clearHistory()
+                }
+                .accessibilityIdentifier(UITestIdentifier.aiNewChatButton)
+                .disabled(self.isNewChatDisabled || self.chatStore.isChatInteractive == false)
+            }
+        }
     }
 
     var consentGate: some View {
