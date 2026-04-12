@@ -33,10 +33,19 @@ extension AIChatStore {
                 allowsPlaceholderAdoption: true
             )
             let message = self.messages[messageIndex]
+            let replacesOptimisticPlaceholder =
+                text.isEmpty == false && self.isOptimisticAssistantPlaceholder(messageId: message.id)
+            if replacesOptimisticPlaceholder {
+                _ = self.consumeOptimisticAssistantPlaceholder(messageId: message.id)
+            }
             self.messages[messageIndex] = AIChatMessage(
                 id: message.id,
                 role: message.role,
-                content: appendingAIChatText(content: message.content, text: text),
+                content: appendingAIChatText(
+                    content: message.content,
+                    text: text,
+                    replacesOptimisticPlaceholder: replacesOptimisticPlaceholder
+                ),
                 timestamp: message.timestamp,
                 isError: message.isError,
                 isStopped: message.isStopped,
@@ -65,10 +74,17 @@ extension AIChatStore {
                 allowsPlaceholderAdoption: true
             )
             let message = self.messages[messageIndex]
+            let removesOptimisticPlaceholder = self.consumeOptimisticAssistantPlaceholder(
+                messageId: message.id
+            )
             self.messages[messageIndex] = AIChatMessage(
                 id: message.id,
                 role: message.role,
-                content: upsertingAIChatToolCall(content: message.content, toolCall: toolCall),
+                content: upsertingAIChatToolCall(
+                    content: message.content,
+                    toolCall: toolCall,
+                    removesOptimisticPlaceholder: removesOptimisticPlaceholder
+                ),
                 timestamp: message.timestamp,
                 isError: message.isError,
                 isStopped: message.isStopped,
@@ -101,6 +117,9 @@ extension AIChatStore {
                 allowsPlaceholderAdoption: true
             )
             let message = self.messages[messageIndex]
+            let removesOptimisticPlaceholder = self.consumeOptimisticAssistantPlaceholder(
+                messageId: message.id
+            )
             self.messages[messageIndex] = AIChatMessage(
                 id: message.id,
                 role: message.role,
@@ -110,7 +129,8 @@ extension AIChatStore {
                         id: reasoningId,
                         summary: "",
                         status: .started
-                    )
+                    ),
+                    removesOptimisticPlaceholder: removesOptimisticPlaceholder
                 ),
                 timestamp: message.timestamp,
                 isError: message.isError,
@@ -145,6 +165,9 @@ extension AIChatStore {
                 allowsPlaceholderAdoption: true
             )
             let message = self.messages[messageIndex]
+            let removesOptimisticPlaceholder = self.consumeOptimisticAssistantPlaceholder(
+                messageId: message.id
+            )
             self.messages[messageIndex] = AIChatMessage(
                 id: message.id,
                 role: message.role,
@@ -154,7 +177,8 @@ extension AIChatStore {
                         id: reasoningId,
                         summary: summary,
                         status: .started
-                    )
+                    ),
+                    removesOptimisticPlaceholder: removesOptimisticPlaceholder
                 ),
                 timestamp: message.timestamp,
                 isError: message.isError,
@@ -187,10 +211,17 @@ extension AIChatStore {
                 allowsPlaceholderAdoption: true
             )
             let message = self.messages[messageIndex]
+            let removesOptimisticPlaceholder = self.consumeOptimisticAssistantPlaceholder(
+                messageId: message.id
+            )
             self.messages[messageIndex] = AIChatMessage(
                 id: message.id,
                 role: message.role,
-                content: completingAIChatReasoningSummary(content: message.content, reasoningId: reasoningId),
+                content: completingAIChatReasoningSummary(
+                    content: message.content,
+                    reasoningId: reasoningId,
+                    removesOptimisticPlaceholder: removesOptimisticPlaceholder
+                ),
                 timestamp: message.timestamp,
                 isError: message.isError,
                 isStopped: message.isStopped,
@@ -219,7 +250,6 @@ extension AIChatStore {
                 self.reloadConversationFromBootstrap()
                 return
             }
-            let finalizedContent = finalizingAIChatContent(content: content)
             let messageIndex = self.resolveTerminalAssistantMessageIndex(
                 itemId: itemId,
                 cursor: cursor
@@ -236,13 +266,21 @@ extension AIChatStore {
                             "reason": "message_not_found",
                             "isError": isError ? "true" : "false",
                             "isStopped": isStopped ? "true" : "false",
-                            "contentCount": String(finalizedContent.count)
+                            "contentCount": String(content.count)
                         ]
                     )
                 )
                 self.reloadConversationFromBootstrap()
                 return
             }
+            let message = self.messages[messageIndex]
+            let removesOptimisticPlaceholder = self.isOptimisticAssistantPlaceholder(
+                messageId: message.id
+            )
+            let finalizedContent = finalizingAIChatContent(
+                content: content,
+                removesOptimisticPlaceholder: removesOptimisticPlaceholder
+            )
             guard aiChatTerminalEventHasRenderableContent(
                 content: finalizedContent,
                 isError: isError,
@@ -266,7 +304,7 @@ extension AIChatStore {
                 self.reloadConversationFromBootstrap()
                 return
             }
-            let message = self.messages[messageIndex]
+            _ = self.consumeOptimisticAssistantPlaceholder(messageId: message.id)
             logAIChatUnknownContentParts(
                 content: finalizedContent,
                 sessionId: metadata.sessionId,
@@ -329,9 +367,15 @@ extension AIChatStore {
             isError: let isError,
             isStopped: let isStopped
         ):
+            var shouldPersistCurrentState = true
             switch outcome {
             case .completed:
-                self.clearActiveRunTracking(resetComposer: true)
+                if self.shouldPreserveOptimisticPlaceholderDuringBootstrapRepair() {
+                    self.clearActiveRunTrackingPreservingOptimisticTurn(resetComposer: true)
+                    shouldPersistCurrentState = false
+                } else {
+                    self.clearActiveRunTracking(resetComposer: true)
+                }
                 self.syncLinkedDataAfterTerminalRunIfNeeded()
             case .stopped:
                 if let cursor = metadata.cursor, let assistantItemId {
@@ -359,7 +403,9 @@ extension AIChatStore {
                 self.reloadConversationFromBootstrap()
             }
 
-            self.schedulePersistCurrentState()
+            if shouldPersistCurrentState {
+                self.schedulePersistCurrentState()
+            }
             logAIChatStoreEvent(
                 action: "ai_live_run_terminal_applied",
                 metadata: self.metadataForAppliedStreamingEvent(
@@ -636,10 +682,44 @@ extension AIChatStore {
         self.clearActiveRunSession()
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
+        self.clearOptimisticOutgoingTurnState()
         self.repairStatus = nil
         if resetComposer {
             self.transitionToIdle()
         }
+    }
+
+    func clearActiveRunTrackingPreservingOptimisticTurn(resetComposer: Bool) {
+        self.clearActiveRunSession()
+        self.activeStreamingMessageId = nil
+        self.activeStreamingItemId = nil
+        self.repairStatus = nil
+        if resetComposer {
+            self.transitionToIdle()
+        }
+    }
+
+    func shouldPreserveOptimisticPlaceholderDuringBootstrapRepair() -> Bool {
+        guard let optimisticOutgoingTurnState = self.optimisticOutgoingTurnState else {
+            return false
+        }
+        guard let assistantMessage = self.messages.last else {
+            return false
+        }
+        guard assistantMessage.id == optimisticOutgoingTurnState.assistantMessageId else {
+            return false
+        }
+        guard assistantMessage.role == .assistant else {
+            return false
+        }
+        guard assistantMessage.isError == false else {
+            return false
+        }
+        guard assistantMessage.isStopped == false else {
+            return false
+        }
+
+        return isOptimisticAIChatStatusContent(content: assistantMessage.content)
     }
 
     func resolveTerminalAssistantMessageIndex(itemId: String, cursor: String) -> Int {

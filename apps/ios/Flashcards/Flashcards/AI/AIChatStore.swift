@@ -16,6 +16,11 @@ struct AIChatRemoteSessionProvisionRequest {
     let task: Task<AIChatNewSessionResponse, Error>
 }
 
+struct AIChatOptimisticOutgoingTurnState {
+    let userMessageId: String
+    let assistantMessageId: String
+}
+
 @MainActor
 @Observable
 final class AIChatStore {
@@ -131,6 +136,7 @@ final class AIChatStore {
     @ObservationIgnored var activeResumeErrorAttemptSequence: Int?
     @ObservationIgnored var activeLiveResumeAttemptSequence: Int?
     @ObservationIgnored var requiresRemoteSessionProvisioning: Bool
+    @ObservationIgnored var optimisticOutgoingTurnState: AIChatOptimisticOutgoingTurnState?
 
     var hasOlderMessages: Bool {
         get { self.conversationState.hasOlderMessages }
@@ -569,6 +575,9 @@ final class AIChatStore {
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
         self.requiresRemoteSessionProvisioning = false
+        self.optimisticOutgoingTurnState = restoredAIChatOptimisticOutgoingTurnState(
+            messages: persistedState.messages
+        )
         self.activateAccessContext(
             force: true,
             nextAccessContext: self.currentAccessContext()

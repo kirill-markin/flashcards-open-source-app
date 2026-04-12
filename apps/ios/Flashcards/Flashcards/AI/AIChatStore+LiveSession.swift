@@ -1,6 +1,41 @@
 import Foundation
 
 extension AIChatStore {
+    func currentFailedLiveOptimisticFallbackAnchor() -> AIChatFailedLiveOptimisticFallbackAnchor? {
+        guard let optimisticTurn = self.currentOptimisticOutgoingTurn() else {
+            return nil
+        }
+
+        let previousMessageId: String?
+        if self.messages.count > 2 {
+            previousMessageId = self.messages[self.messages.count - 3].id
+        } else {
+            previousMessageId = nil
+        }
+
+        return AIChatFailedLiveOptimisticFallbackAnchor(
+            userMessageId: optimisticTurn.userMessage.id,
+            assistantMessageId: optimisticTurn.assistantMessage.id,
+            previousMessageId: previousMessageId
+        )
+    }
+
+    func currentOptimisticOutgoingTurn(
+        matching fallbackAnchor: AIChatFailedLiveOptimisticFallbackAnchor
+    ) -> AIChatOptimisticOutgoingTurn? {
+        guard let optimisticTurn = self.currentOptimisticOutgoingTurn() else {
+            return nil
+        }
+        guard optimisticTurn.userMessage.id == fallbackAnchor.userMessageId else {
+            return nil
+        }
+        guard optimisticTurn.assistantMessage.id == fallbackAnchor.assistantMessageId else {
+            return nil
+        }
+
+        return optimisticTurn
+    }
+
     func setChatVisibility(isVisible: Bool) {
         if self.shouldKeepLiveAttached == isVisible {
             return
@@ -259,6 +294,7 @@ extension AIChatStore {
         sessionId: String,
         fallbackMessage: String
     ) async {
+        let fallbackAnchor = self.currentFailedLiveOptimisticFallbackAnchor()
         do {
             let session = try await self.flashcardsStore.cloudSessionForAI()
             let response = try await self.chatService.loadBootstrap(
@@ -273,25 +309,41 @@ extension AIChatStore {
             guard self.chatSessionId == sessionId else {
                 return
             }
-            self.applyBootstrap(response)
+            if let fallbackAnchor {
+                guard self.currentOptimisticOutgoingTurn(matching: fallbackAnchor) != nil else {
+                    return
+                }
+            }
 
             if let errorMessage = aiChatLatestAssistantErrorMessage(messages: response.conversation.messages) {
+                self.applyBootstrap(response)
                 self.transitionToIdle()
                 self.showGeneralError(message: errorMessage)
                 return
             }
 
             if response.activeRun != nil {
+                self.applyBootstrap(response)
                 self.attachBootstrapLiveIfNeeded(response: response, session: session, resumeAttemptDiagnostics: nil)
                 return
             }
 
-            self.transitionToIdle()
-            if self.messages.last.map({ message in
-                message.role == .assistant && isOptimisticAIChatStatusContent(content: message.content)
-            }) == true {
+            let shouldApplyOptimisticFallback = fallbackAnchor.map { fallbackAnchor in
+                aiChatShouldApplyFailedLiveOptimisticFallback(
+                    responseMessages: response.conversation.messages,
+                    fallbackAnchor: fallbackAnchor
+                )
+            } ?? false
+            if shouldApplyOptimisticFallback {
+                self.applyBootstrapMetadataPreservingMessages(response)
+                self.transitionToIdle()
                 self.markAssistantError(message: fallbackMessage)
+                self.schedulePersistCurrentState()
+                return
             }
+
+            self.applyBootstrap(response)
+            self.transitionToIdle()
         } catch {
             if isAIChatRequestCancellationError(error: error) {
                 return
@@ -338,6 +390,25 @@ extension AIChatStore {
     }
 }
 
+extension AIChatStore {
+    func applyBootstrapMetadataPreservingMessages(_ response: AIChatBootstrapResponse) {
+        self.chatSessionId = response.sessionId
+        self.conversationScopeId = response.conversationScopeId
+        self.requiresRemoteSessionProvisioning = false
+        self.serverChatConfig = response.chatConfig
+        self.applyComposerSuggestions(response.composerSuggestions)
+        self.hasOlderMessages = response.conversation.hasOlder
+        self.oldestCursor = response.conversation.oldestCursor
+        self.repairStatus = nil
+    }
+}
+
+struct AIChatFailedLiveOptimisticFallbackAnchor {
+    let userMessageId: String
+    let assistantMessageId: String
+    let previousMessageId: String?
+}
+
 func aiChatLatestAssistantErrorMessage(messages: [AIChatMessage]) -> String? {
     guard let assistantMessage = messages.last(where: { $0.role == .assistant && $0.isError }) else {
         return nil
@@ -350,4 +421,26 @@ func aiChatLatestAssistantErrorMessage(messages: [AIChatMessage]) -> String? {
     }.trimmingCharacters(in: .whitespacesAndNewlines)
 
     return message.isEmpty ? nil : message
+}
+
+func aiChatShouldApplyFailedLiveOptimisticFallback(
+    responseMessages: [AIChatMessage],
+    fallbackAnchor: AIChatFailedLiveOptimisticFallbackAnchor
+) -> Bool {
+    let messagesAfterAnchor: ArraySlice<AIChatMessage>
+    if let previousMessageId = fallbackAnchor.previousMessageId {
+        guard let previousMessageIndex = responseMessages.lastIndex(where: { message in
+            message.id == previousMessageId
+        }) else {
+            return true
+        }
+        let nextMessageIndex = responseMessages.index(after: previousMessageIndex)
+        messagesAfterAnchor = responseMessages[nextMessageIndex...]
+    } else {
+        messagesAfterAnchor = responseMessages[responseMessages.startIndex...]
+    }
+
+    return messagesAfterAnchor.contains(where: { message in
+        message.role == .assistant
+    }) == false
 }

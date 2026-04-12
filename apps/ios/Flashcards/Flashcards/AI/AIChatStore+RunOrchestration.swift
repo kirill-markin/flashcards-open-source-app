@@ -178,18 +178,17 @@ extension AIChatStore {
     }
 
     func appendOptimisticOutgoingTurn(content: [AIChatContentPart]) {
-        self.messages.append(
-            AIChatMessage(
-                id: UUID().uuidString.lowercased(),
-                role: .user,
-                content: content,
-                timestamp: nowIsoTimestamp(),
-                isError: false,
-                isStopped: false,
-                cursor: nil,
-                itemId: nil
-            )
+        let userMessage = AIChatMessage(
+            id: UUID().uuidString.lowercased(),
+            role: .user,
+            content: content,
+            timestamp: nowIsoTimestamp(),
+            isError: false,
+            isStopped: false,
+            cursor: nil,
+            itemId: nil
         )
+        self.messages.append(userMessage)
         let assistantMessage = AIChatMessage(
             id: UUID().uuidString.lowercased(),
             role: .assistant,
@@ -201,6 +200,10 @@ extension AIChatStore {
             itemId: nil
         )
         self.messages.append(assistantMessage)
+        self.setOptimisticOutgoingTurnState(
+            userMessageId: userMessage.id,
+            assistantMessageId: assistantMessage.id
+        )
         self.activeStreamingMessageId = assistantMessage.id
         self.activeStreamingItemId = nil
     }
@@ -381,6 +384,7 @@ extension AIChatStore {
                     return
                 }
                 self.messages = []
+                self.clearOptimisticOutgoingTurnState()
                 let resolvedSessionId = aiChatResolvedSessionId(
                     workspaceId: self.historyWorkspaceId(),
                     sessionId: self.chatSessionId
@@ -441,11 +445,13 @@ extension AIChatStore {
             self.appendAssistantAccountUpgradePrompt(message: message, buttonTitle: buttonTitle)
         case .finish:
             self.repairStatus = nil
+            self.clearOptimisticOutgoingTurnState()
             if self.activeConversationId == conversationId {
                 self.transitionToIdle()
             }
         case .fail(let message):
             self.repairStatus = nil
+            self.clearOptimisticOutgoingTurnState()
             self.showGeneralError(message: message)
             if self.activeConversationId == conversationId {
                 self.transitionToIdle()
@@ -479,25 +485,36 @@ extension AIChatStore {
     }
 
     func currentOptimisticOutgoingTurn() -> AIChatOptimisticOutgoingTurn? {
-        guard self.messages.count >= 2 else {
+        guard let optimisticOutgoingTurnState = self.optimisticOutgoingTurnState else {
+            return nil
+        }
+        guard
+            let assistantIndex = self.messages.lastIndex(where: { message in
+                message.id == optimisticOutgoingTurnState.assistantMessageId
+            }),
+            assistantIndex > 0
+        else {
             return nil
         }
 
-        let assistantMessage = self.messages[self.messages.count - 1]
-        let userMessage = self.messages[self.messages.count - 2]
+        let assistantMessage = self.messages[assistantIndex]
+        let userMessage = self.messages[assistantIndex - 1]
+        guard assistantIndex == self.messages.count - 1 else {
+            return nil
+        }
+        guard userMessage.id == optimisticOutgoingTurnState.userMessageId else {
+            return nil
+        }
         guard userMessage.role == .user else {
             return nil
         }
         guard assistantMessage.role == .assistant else {
             return nil
         }
-        guard isOptimisticAIChatStatusContent(content: assistantMessage.content) else {
-            return nil
-        }
-        guard assistantMessage.itemId == nil else {
-            return nil
-        }
         guard assistantMessage.isStopped == false else {
+            return nil
+        }
+        guard assistantMessage.isError == false else {
             return nil
         }
 
@@ -625,11 +642,13 @@ extension AIChatStore {
             self.messages.last?.id == optimisticTurn.assistantMessage.id
         else {
             self.activeStreamingMessageId = nil
+            self.clearOptimisticOutgoingTurnState()
             return
         }
 
         self.messages.removeLast()
         self.activeStreamingMessageId = nil
+        self.clearOptimisticOutgoingTurnState()
     }
 
     func restorePreSendState(_ preSendSnapshot: AIChatPreSendSnapshot) {
@@ -645,6 +664,7 @@ extension AIChatStore {
         )
         self.chatSessionId = resolvedSessionId
         self.conversationScopeId = resolvedSessionId
+        self.clearOptimisticOutgoingTurnState()
     }
 
     func applyEnvelope(_ envelope: AIChatConversationEnvelope) {
@@ -657,6 +677,7 @@ extension AIChatStore {
         self.hasOlderMessages = envelope.conversation.hasOlder
         self.oldestCursor = envelope.conversation.oldestCursor
         self.repairStatus = nil
+        self.clearOptimisticOutgoingTurnState()
 
         if let activeRun = envelope.activeRun {
             self.transitionToStreaming(
@@ -757,6 +778,79 @@ extension AIChatStore {
 struct AIChatOptimisticOutgoingTurn {
     let userMessage: AIChatMessage
     let assistantMessage: AIChatMessage
+}
+
+func restoredAIChatOptimisticOutgoingTurnState(
+    messages: [AIChatMessage]
+) -> AIChatOptimisticOutgoingTurnState? {
+    guard messages.count >= 2 else {
+        return nil
+    }
+
+    let assistantMessage = messages[messages.count - 1]
+    let userMessage = messages[messages.count - 2]
+    guard userMessage.role == .user else {
+        return nil
+    }
+    guard userMessage.cursor == nil else {
+        return nil
+    }
+    guard userMessage.itemId == nil else {
+        return nil
+    }
+    guard userMessage.isError == false else {
+        return nil
+    }
+    guard userMessage.isStopped == false else {
+        return nil
+    }
+    guard assistantMessage.role == .assistant else {
+        return nil
+    }
+    guard isOptimisticAIChatStatusContent(content: assistantMessage.content) else {
+        return nil
+    }
+    guard assistantMessage.isError == false else {
+        return nil
+    }
+    guard assistantMessage.isStopped == false else {
+        return nil
+    }
+
+    return AIChatOptimisticOutgoingTurnState(
+        userMessageId: userMessage.id,
+        assistantMessageId: assistantMessage.id
+    )
+}
+
+extension AIChatStore {
+    func setOptimisticOutgoingTurnState(
+        userMessageId: String,
+        assistantMessageId: String
+    ) {
+        self.optimisticOutgoingTurnState = AIChatOptimisticOutgoingTurnState(
+            userMessageId: userMessageId,
+            assistantMessageId: assistantMessageId
+        )
+    }
+
+    func clearOptimisticOutgoingTurnState() {
+        self.optimisticOutgoingTurnState = nil
+    }
+
+    func isOptimisticAssistantPlaceholder(messageId: String) -> Bool {
+        self.optimisticOutgoingTurnState?.assistantMessageId == messageId
+    }
+
+    @discardableResult
+    func consumeOptimisticAssistantPlaceholder(messageId: String) -> Bool {
+        guard self.isOptimisticAssistantPlaceholder(messageId: messageId) else {
+            return false
+        }
+
+        self.clearOptimisticOutgoingTurnState()
+        return true
+    }
 }
 
 func isAIChatRequestCancellationError(error: Error) -> Bool {

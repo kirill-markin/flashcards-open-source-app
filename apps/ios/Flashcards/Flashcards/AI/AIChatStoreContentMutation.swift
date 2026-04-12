@@ -9,10 +9,17 @@ extension AIChatStore {
         if let targetIndex {
             let lastMessage = self.messages[targetIndex]
             let separator = extractAIChatTextContent(parts: lastMessage.content).isEmpty ? "" : "\n\n"
+            let replacesOptimisticPlaceholder = self.consumeOptimisticAssistantPlaceholder(
+                messageId: lastMessage.id
+            )
             self.messages[targetIndex] = AIChatMessage(
                 id: lastMessage.id,
                 role: lastMessage.role,
-                content: appendingAIChatText(content: lastMessage.content, text: separator + message),
+                content: appendingAIChatText(
+                    content: lastMessage.content,
+                    text: separator + message,
+                    replacesOptimisticPlaceholder: replacesOptimisticPlaceholder
+                ),
                 timestamp: lastMessage.timestamp,
                 isError: true,
                 isStopped: lastMessage.isStopped,
@@ -41,6 +48,7 @@ extension AIChatStore {
     func appendAssistantAccountUpgradePrompt(message: String, buttonTitle: String) {
         if let lastIndex = self.messages.indices.last, self.messages[lastIndex].role == .assistant {
             let lastMessage = self.messages[lastIndex]
+            _ = self.consumeOptimisticAssistantPlaceholder(messageId: lastMessage.id)
             self.messages[lastIndex] = AIChatMessage(
                 id: lastMessage.id,
                 role: lastMessage.role,
@@ -88,27 +96,21 @@ extension AIChatStore {
     }
 
     func clearOptimisticAssistantStatusIfNeeded() {
-        guard let lastIndex = self.messages.indices.last else {
-            return
-        }
-        guard self.messages[lastIndex].role == .assistant else {
-            return
-        }
-        guard isOptimisticAIChatStatusContent(content: self.messages[lastIndex].content) else {
+        guard let optimisticTurn = self.currentOptimisticOutgoingTurn() else {
             return
         }
 
-        let lastMessage = self.messages[lastIndex]
-        self.messages[lastIndex] = AIChatMessage(
-            id: lastMessage.id,
-            role: lastMessage.role,
+        self.messages[self.messages.count - 1] = AIChatMessage(
+            id: optimisticTurn.assistantMessage.id,
+            role: optimisticTurn.assistantMessage.role,
             content: [],
-            timestamp: lastMessage.timestamp,
-            isError: lastMessage.isError,
-            isStopped: lastMessage.isStopped,
-            cursor: lastMessage.cursor,
-            itemId: lastMessage.itemId
+            timestamp: optimisticTurn.assistantMessage.timestamp,
+            isError: optimisticTurn.assistantMessage.isError,
+            isStopped: optimisticTurn.assistantMessage.isStopped,
+            cursor: optimisticTurn.assistantMessage.cursor,
+            itemId: optimisticTurn.assistantMessage.itemId
         )
+        self.clearOptimisticOutgoingTurnState()
     }
 
     func finalizeStoppedAssistantMessageIfNeeded() {
@@ -118,10 +120,16 @@ extension AIChatStore {
         }
 
         let message = self.messages[messageIndex]
+        let removesOptimisticPlaceholder = self.consumeOptimisticAssistantPlaceholder(
+            messageId: message.id
+        )
         self.messages[messageIndex] = AIChatMessage(
             id: message.id,
             role: message.role,
-            content: removingOptimisticAIChatStatus(content: message.content),
+            content: removingOptimisticAIChatStatus(
+                content: message.content,
+                removesOptimisticPlaceholder: removesOptimisticPlaceholder
+            ),
             timestamp: message.timestamp,
             isError: message.isError,
             isStopped: true,
@@ -145,15 +153,30 @@ func isOptimisticAIChatStatusContent(content: [AIChatContentPart]) -> Bool {
 }
 
 private func removingOptimisticAIChatStatus(content: [AIChatContentPart]) -> [AIChatContentPart] {
-    return isOptimisticAIChatStatusContent(content: content) ? [] : content
+    return removingOptimisticAIChatStatus(
+        content: content,
+        removesOptimisticPlaceholder: isOptimisticAIChatStatusContent(content: content)
+    )
 }
 
 func appendingAIChatText(content: [AIChatContentPart], text: String) -> [AIChatContentPart] {
+    return appendingAIChatText(
+        content: content,
+        text: text,
+        replacesOptimisticPlaceholder: isOptimisticAIChatStatusContent(content: content)
+    )
+}
+
+func appendingAIChatText(
+    content: [AIChatContentPart],
+    text: String,
+    replacesOptimisticPlaceholder: Bool
+) -> [AIChatContentPart] {
     guard text.isEmpty == false else {
         return content
     }
 
-    if isOptimisticAIChatStatusContent(content: content) {
+    if replacesOptimisticPlaceholder {
         return [.text(text)]
     }
 
@@ -171,7 +194,22 @@ func upsertingAIChatToolCall(
     content: [AIChatContentPart],
     toolCall: AIChatToolCall
 ) -> [AIChatContentPart] {
-    var updatedContent = removingOptimisticAIChatStatus(content: content)
+    return upsertingAIChatToolCall(
+        content: content,
+        toolCall: toolCall,
+        removesOptimisticPlaceholder: isOptimisticAIChatStatusContent(content: content)
+    )
+}
+
+func upsertingAIChatToolCall(
+    content: [AIChatContentPart],
+    toolCall: AIChatToolCall,
+    removesOptimisticPlaceholder: Bool
+) -> [AIChatContentPart] {
+    var updatedContent = removingOptimisticAIChatStatus(
+        content: content,
+        removesOptimisticPlaceholder: removesOptimisticPlaceholder
+    )
     if let existingIndex = updatedContent.firstIndex(where: { part in
         if case .toolCall(let existing) = part {
             return existing.id == toolCall.id
@@ -194,7 +232,22 @@ func upsertingAIChatReasoningSummary(
     content: [AIChatContentPart],
     reasoningSummary: AIChatReasoningSummary
 ) -> [AIChatContentPart] {
-    var updatedContent = removingOptimisticAIChatStatus(content: content)
+    return upsertingAIChatReasoningSummary(
+        content: content,
+        reasoningSummary: reasoningSummary,
+        removesOptimisticPlaceholder: isOptimisticAIChatStatusContent(content: content)
+    )
+}
+
+func upsertingAIChatReasoningSummary(
+    content: [AIChatContentPart],
+    reasoningSummary: AIChatReasoningSummary,
+    removesOptimisticPlaceholder: Bool
+) -> [AIChatContentPart] {
+    var updatedContent = removingOptimisticAIChatStatus(
+        content: content,
+        removesOptimisticPlaceholder: removesOptimisticPlaceholder
+    )
     if let existingIndex = updatedContent.firstIndex(where: { part in
         if case .reasoningSummary(let existing) = part {
             return existing.id == reasoningSummary.id
@@ -223,7 +276,22 @@ func completingAIChatReasoningSummary(
     content: [AIChatContentPart],
     reasoningId: String
 ) -> [AIChatContentPart] {
-    removingOptimisticAIChatStatus(content: content).compactMap { part in
+    return completingAIChatReasoningSummary(
+        content: content,
+        reasoningId: reasoningId,
+        removesOptimisticPlaceholder: isOptimisticAIChatStatusContent(content: content)
+    )
+}
+
+func completingAIChatReasoningSummary(
+    content: [AIChatContentPart],
+    reasoningId: String,
+    removesOptimisticPlaceholder: Bool
+) -> [AIChatContentPart] {
+    removingOptimisticAIChatStatus(
+        content: content,
+        removesOptimisticPlaceholder: removesOptimisticPlaceholder
+    ).compactMap { part in
         guard case .reasoningSummary(let reasoningSummary) = part else {
             return part
         }
@@ -247,7 +315,20 @@ func completingAIChatReasoningSummary(
 }
 
 func finalizingAIChatContent(content: [AIChatContentPart]) -> [AIChatContentPart] {
-    removingOptimisticAIChatStatus(content: content).compactMap { part in
+    return finalizingAIChatContent(
+        content: content,
+        removesOptimisticPlaceholder: isOptimisticAIChatStatusContent(content: content)
+    )
+}
+
+func finalizingAIChatContent(
+    content: [AIChatContentPart],
+    removesOptimisticPlaceholder: Bool
+) -> [AIChatContentPart] {
+    removingOptimisticAIChatStatus(
+        content: content,
+        removesOptimisticPlaceholder: removesOptimisticPlaceholder
+    ).compactMap { part in
         guard case .reasoningSummary(let reasoningSummary) = part else {
             return part
         }
@@ -264,6 +345,13 @@ func finalizingAIChatContent(content: [AIChatContentPart]) -> [AIChatContentPart
             )
         )
     }
+}
+
+private func removingOptimisticAIChatStatus(
+    content: [AIChatContentPart],
+    removesOptimisticPlaceholder: Bool
+) -> [AIChatContentPart] {
+    removesOptimisticPlaceholder ? [] : content
 }
 
 func aiChatCurrentRunHasAssistantToolCalls(messages: [AIChatMessage]) -> Bool {
