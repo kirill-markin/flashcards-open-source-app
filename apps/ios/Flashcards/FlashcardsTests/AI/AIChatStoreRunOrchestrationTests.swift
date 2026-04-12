@@ -360,7 +360,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         XCTAssertEqual(store.messages.count, 2)
         XCTAssertEqual(store.chatSessionId, "session-restore")
         let activeRun = AIChatStoreTestSupport.makeActiveRun()
-        store.shouldKeepLiveAttached = true
+        AIChatStoreTestSupport.setAISurfaceVisibility(store: store, isVisible: true)
         store.transitionToStreaming(
             activeRun: AIChatActiveRunSession(
                 sessionId: "session-restore",
@@ -436,7 +436,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         )
 
         let activeRun = AIChatStoreTestSupport.makeActiveRun()
-        store.shouldKeepLiveAttached = true
+        AIChatStoreTestSupport.setAISurfaceVisibility(store: store, isVisible: true)
         store.transitionToStreaming(
             activeRun: AIChatActiveRunSession(
                 sessionId: "session-restore",
@@ -990,7 +990,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         )
         store.chatSessionId = "session-1"
         store.conversationScopeId = "session-1"
-        store.shouldKeepLiveAttached = true
+        AIChatStoreTestSupport.setAISurfaceVisibility(store: store, isVisible: true)
         store.transitionToStreaming(
             activeRun: AIChatActiveRunSession(
                 sessionId: "session-1",
@@ -1146,7 +1146,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         )
         store.chatSessionId = "session-1"
         store.conversationScopeId = "session-1"
-        store.shouldKeepLiveAttached = true
+        AIChatStoreTestSupport.setAISurfaceVisibility(store: store, isVisible: true)
         store.transitionToStreaming(
             activeRun: AIChatActiveRunSession(
                 sessionId: "session-1",
@@ -1259,7 +1259,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         )
         store.chatSessionId = "session-1"
         store.conversationScopeId = "session-1"
-        store.shouldKeepLiveAttached = true
+        AIChatStoreTestSupport.setAISurfaceVisibility(store: store, isVisible: true)
         store.transitionToStreaming(
             activeRun: AIChatActiveRunSession(
                 sessionId: "session-1",
@@ -1375,7 +1375,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         )
         store.chatSessionId = "session-1"
         store.conversationScopeId = "session-1"
-        store.shouldKeepLiveAttached = true
+        AIChatStoreTestSupport.setAISurfaceVisibility(store: store, isVisible: true)
         store.transitionToStreaming(
             activeRun: AIChatActiveRunSession(
                 sessionId: "session-1",

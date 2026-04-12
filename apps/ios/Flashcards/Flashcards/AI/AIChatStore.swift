@@ -173,12 +173,7 @@ final class AIChatStore {
     }
 
     var shouldKeepLiveAttached: Bool {
-        get { self.surfaceState.shouldKeepLiveAttached }
-        set {
-            var updatedState = self.surfaceState
-            updatedState.shouldKeepLiveAttached = newValue
-            self.surfaceState = updatedState
-        }
+        self.surfaceState.activity.isVisible
     }
 
     func transitionToIdle() {
@@ -530,8 +525,7 @@ final class AIChatStore {
                 activeWorkspaceId: flashcardsStore.cloudSettings?.activeWorkspaceId
             ),
             activeAccessContext: nil,
-            bootstrapPhase: .ready,
-            shouldKeepLiveAttached: false
+            bootstrapPhase: .ready
         )
         self.runLifecycle = .idle
         self.activeRunSession = nil
