@@ -688,9 +688,6 @@ const esEsCatalog: TranslationCatalog = {
     loadingTitle: "Cargando el chat con IA...",
     pendingAttachmentCardPrefix: "Tarjeta",
     providerTitle: "Chat con IA",
-    status: {
-      searchingCards: "Revisando tus tarjetas...",
-    },
     suggestedReplies: "Respuestas sugeridas",
     transientErrors: {
       pendingSync: "El chat con IA está bloqueado hasta que se suban todas las operaciones pendientes de sincronización.",

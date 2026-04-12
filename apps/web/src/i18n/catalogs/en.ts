@@ -686,9 +686,6 @@ const enCatalog = {
     loadingTitle: "Loading AI chat...",
     pendingAttachmentCardPrefix: "Card",
     providerTitle: "AI chat",
-    status: {
-      searchingCards: "Looking through your cards...",
-    },
     suggestedReplies: "Suggested replies",
     transientErrors: {
       pendingSync: "AI chat is blocked until all pending sync operations are uploaded.",

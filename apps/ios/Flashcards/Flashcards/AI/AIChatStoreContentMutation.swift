@@ -142,14 +142,7 @@ extension AIChatStore {
 }
 
 func isOptimisticAIChatStatusContent(content: [AIChatContentPart]) -> Bool {
-    guard content.count == 1 else {
-        return false
-    }
-    guard case .text(let text) = content[0] else {
-        return false
-    }
-
-    return text == aiChatOptimisticAssistantStatusText
+    return content.isEmpty
 }
 
 private func removingOptimisticAIChatStatus(content: [AIChatContentPart]) -> [AIChatContentPart] {

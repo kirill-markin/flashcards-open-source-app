@@ -688,9 +688,6 @@ export const ruCatalog = {
     loadingTitle: "Загрузка AI-чата...",
     pendingAttachmentCardPrefix: "Карточка",
     providerTitle: "AI-чат",
-    status: {
-      searchingCards: "Ищем по вашим карточкам...",
-    },
     suggestedReplies: "Предлагаемые ответы",
     transientErrors: {
       pendingSync: "AI-чат заблокирован, пока не будут загружены все ожидающие операции синхронизации.",

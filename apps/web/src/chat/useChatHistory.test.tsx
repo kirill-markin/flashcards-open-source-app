@@ -210,7 +210,7 @@ describe("useChatHistory", () => {
 
     act(() => {
       const api = harness.getApi();
-      api.startAssistantMessage("Looking through your cards...");
+      api.startAssistantMessage(null);
       api.appendAssistantText("Partial text", "assistant-item-1", "cursor-1");
     });
 

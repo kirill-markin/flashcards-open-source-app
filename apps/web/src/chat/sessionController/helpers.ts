@@ -8,7 +8,7 @@ import type {
 } from "../../types";
 import { sanitizeErrorTextWithFallbackMessages, type ChatErrorFallbackMessages } from "../chatHelpers";
 import type { ChatLiveEvent } from "../liveStream";
-import { isOptimisticAssistantStatusText, type StoredMessage } from "../useChatHistory";
+import type { StoredMessage } from "../useChatHistory";
 
 const CHAT_DEBUG_LOG_PREFIX = "chat_debug ";
 const CHAT_DEBUG_STORAGE_KEY = "flashcards-chat-debug";
@@ -235,10 +235,6 @@ export function areComposerSuggestionsEqual(
 function extractStoredMessageTextContent(message: StoredMessage): string {
   return message.content.reduce<string>((result, part) => {
     if (part.type !== "text") {
-      return result;
-    }
-
-    if (isOptimisticAssistantStatusText(part.text)) {
       return result;
     }
 

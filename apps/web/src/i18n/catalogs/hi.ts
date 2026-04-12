@@ -688,9 +688,6 @@ const hiCatalog: TranslationCatalog = {
     loadingTitle: "AI चैट लोड हो रही है...",
     pendingAttachmentCardPrefix: "कार्ड",
     providerTitle: "AI चैट",
-    status: {
-      searchingCards: "आपके कार्ड देखे जा रहे हैं...",
-    },
     suggestedReplies: "सुझाए गए जवाब",
     transientErrors: {
       pendingSync: "जब तक सभी लंबित सिंक ऑपरेशन अपलोड नहीं हो जाते, AI चैट अवरुद्ध रहेगी।",

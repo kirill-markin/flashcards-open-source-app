@@ -688,9 +688,6 @@ const arCatalog: TranslationCatalog = {
     loadingTitle: "جارٍ تحميل دردشة الذكاء الاصطناعي...",
     pendingAttachmentCardPrefix: "بطاقة",
     providerTitle: "دردشة الذكاء الاصطناعي",
-    status: {
-      searchingCards: "جارٍ البحث في بطاقاتك...",
-    },
     suggestedReplies: "ردود مقترحة",
     transientErrors: {
       pendingSync: "دردشة الذكاء الاصطناعي محظورة حتى يتم رفع كل عمليات المزامنة المعلقة.",

@@ -51,7 +51,6 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
       genericChatFailed: t("chatPanel.errors.genericFailure"),
       liveStreamEndedBeforeCompletion: t("chatPanel.errors.liveStreamEndedBeforeCompletion"),
       newChatFailedPrefix: t("chatPanel.errors.newChatFailedPrefix"),
-      optimisticAssistantStatus: t("chatPanel.status.searchingCards"),
       refreshFailedPrefix: t("chatPanel.errors.refreshFailedPrefix"),
       remoteNotReady: t("chatPanel.transientErrors.remoteNotReady"),
       requestFailedPrefix: t("chatPanel.errors.requestFailedPrefix"),

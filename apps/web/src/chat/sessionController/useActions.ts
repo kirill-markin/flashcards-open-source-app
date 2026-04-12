@@ -400,7 +400,7 @@ export function useChatSessionActions(
         contentParts,
       );
       appendUserMessage(contentParts);
-      startAssistantMessage(uiMessages.optimisticAssistantStatus);
+      startAssistantMessage(null);
       dispatch({
         type: "run_started",
         sessionId: response.sessionId,

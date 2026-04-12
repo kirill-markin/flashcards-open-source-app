@@ -12,7 +12,6 @@ export type ChatSessionControllerUiMessages = Readonly<{
   genericChatFailed: string;
   liveStreamEndedBeforeCompletion: string;
   newChatFailedPrefix: string;
-  optimisticAssistantStatus: string;
   refreshFailedPrefix: string;
   remoteNotReady: string;
   requestFailedPrefix: string;

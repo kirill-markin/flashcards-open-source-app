@@ -32,6 +32,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
+import com.flashcardsopensourceapp.data.local.model.aiChatOptimisticAssistantStatusToken
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.feature.ai.AiRoute
 import com.flashcardsopensourceapp.feature.ai.AiUiState
@@ -193,7 +194,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                             AiChatMessage(
                                 messageId = "assistant-streaming",
                                 role = AiChatRole.ASSISTANT,
-                                content = listOf(AiChatContentPart.Text(text = "Looking through your cards...")),
+                                content = listOf(AiChatContentPart.Text(text = aiChatOptimisticAssistantStatusToken)),
                                 timestampMillis = 1L,
                                 isError = false,
                                 isStopped = false,
