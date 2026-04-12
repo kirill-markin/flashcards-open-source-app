@@ -41,6 +41,92 @@ struct AIChatView: View {
     }
 
     var body: some View {
+        self.bodyPresentationModifiers
+    }
+
+    var bodyPresentationModifiers: some View {
+        self.bodyLifecycleModifiers
+            .fileImporter(
+                isPresented: self.$isFileImporterPresented,
+                allowedContentTypes: aiChatImporterContentTypes(),
+                allowsMultipleSelection: true
+            ) { result in
+                self.handleFileImportResult(result: result)
+            }
+            .photosPicker(
+                isPresented: self.$isPhotoPickerPresented,
+                selection: self.$selectedPhotoItem,
+                matching: .images,
+                preferredItemEncoding: .current,
+                photoLibrary: .shared()
+            )
+            .sheet(isPresented: self.$isCameraPresented, content: self.cameraPickerSheetContent)
+            .alert(
+                self.activeAlertTitle,
+                isPresented: self.isAlertPresentedBinding,
+                actions: self.alertActionsContent,
+                message: self.alertMessageContent
+            )
+    }
+
+    var bodyLifecycleModifiers: some View {
+        self.bodyBaseModifiers
+            .onAppear(perform: self.handleViewAppear)
+            .onChange(of: self.navigation.aiChatPresentationRequest) { _, request in
+                self.handlePresentationRequestChange(request: request)
+            }
+            .onChange(of: self.chatStore.bootstrapPhase) { _, nextPhase in
+                self.handleBootstrapPhaseChange(nextPhase: nextPhase)
+            }
+            .onChange(of: self.chatStore.composerPhase) { _, nextPhase in
+                self.handleComposerPhaseChange(nextPhase: nextPhase)
+            }
+            .onChange(of: self.scenePhase) { _, nextPhase in
+                self.handleScenePhaseChange(nextPhase: nextPhase)
+            }
+            .onChange(of: self.flashcardsStore.workspace?.workspaceId) { _, _ in
+                self.handleSurfaceInputsChange()
+            }
+            .onChange(of: self.flashcardsStore.cloudSettings?.cloudState) { _, _ in
+                self.handleSurfaceInputsChange()
+            }
+            .onChange(of: self.flashcardsStore.cloudSettings?.linkedUserId) { _, _ in
+                self.handleSurfaceInputsChange()
+            }
+            .onChange(of: self.flashcardsStore.cloudSettings?.activeWorkspaceId) { _, _ in
+                self.handleSurfaceInputsChange()
+            }
+            .onChange(of: self.navigation.selectedTab) { _, nextTab in
+                self.handleSelectedTabChange(nextTab: nextTab)
+            }
+            .onChange(of: self.isComposerFocused) { _, isFocused in
+                self.handleComposerFocusChange(isFocused: isFocused)
+            }
+            .onChange(of: self.chatStore.dictationState) { _, nextState in
+                self.handleDictationStateViewChange(nextState: nextState)
+            }
+            .onChange(of: self.chatStore.completedDictationTranscript) { _, nextTranscript in
+                self.handleCompletedDictationTranscriptChange(nextTranscript: nextTranscript)
+            }
+            .onChange(of: self.selectedPhotoItem) { _, newItem in
+                self.handleSelectedPhotoItemChange(newItem: newItem)
+            }
+    }
+
+    var bodyBaseModifiers: some View {
+        self.bodyContent
+            .accessibilityIdentifier(UITestIdentifier.aiScreen)
+            .navigationTitle(aiSettingsLocalized("ai.title", "AI"))
+            .navigationBarTitleDisplayMode(.inline)
+            .safeAreaBar(edge: .bottom, spacing: 0) {
+                self.bottomBarContent
+            }
+            .toolbar {
+                self.toolbarContent
+            }
+    }
+
+    var bodyContent: some View {
         VStack(spacing: 0) {
             switch self.accessState {
             case .consentRequired:
@@ -49,86 +135,6 @@ struct AIChatView: View {
                 self.chatContent
             }
         }
-        .accessibilityIdentifier(UITestIdentifier.aiScreen)
-        .navigationTitle(aiSettingsLocalized("ai.title", "AI"))
-        .navigationBarTitleDisplayMode(.inline)
-        .safeAreaBar(edge: .bottom, spacing: 0, content: self.bottomBarContent)
-        .toolbar(content: self.toolbarContent)
-        .onAppear(perform: self.handleViewAppear)
-        .onChange(of: self.navigation.aiChatPresentationRequest) { _, request in
-            self.handlePresentationRequestChange(request: request)
-        }
-        .onChange(of: self.chatStore.bootstrapPhase) { _, nextPhase in
-            self.handleBootstrapPhaseChange(nextPhase: nextPhase)
-        }
-        .onChange(of: self.chatStore.composerPhase) { _, nextPhase in
-            self.handleComposerPhaseChange(nextPhase: nextPhase)
-        }
-        .onChange(of: self.scenePhase) { _, nextPhase in
-            self.handleScenePhaseChange(nextPhase: nextPhase)
-        }
-        .onChange(of: self.flashcardsStore.workspace?.workspaceId) { _, _ in
-            self.handleSurfaceInputsChange()
-        }
-        .onChange(of: self.flashcardsStore.cloudSettings?.cloudState) { _, _ in
-            self.handleSurfaceInputsChange()
-        }
-        .onChange(of: self.flashcardsStore.cloudSettings?.linkedUserId) { _, _ in
-            self.handleSurfaceInputsChange()
-        }
-        .onChange(of: self.flashcardsStore.cloudSettings?.activeWorkspaceId) { _, _ in
-            self.handleSurfaceInputsChange()
-        }
-        .onChange(of: self.navigation.selectedTab) { _, nextTab in
-            self.handleSelectedTabChange(nextTab: nextTab)
-        }
-        .onChange(of: self.isComposerFocused) { _, isFocused in
-            self.handleComposerFocusChange(isFocused: isFocused)
-        }
-        .onChange(of: self.chatStore.dictationState) { _, nextState in
-            self.handleDictationStateViewChange(nextState: nextState)
-        }
-        .onChange(of: self.chatStore.completedDictationTranscript) { _, nextTranscript in
-            self.handleCompletedDictationTranscriptChange(nextTranscript: nextTranscript)
-        }
-        .onChange(of: self.selectedPhotoItem) { _, newItem in
-            self.handleSelectedPhotoItemChange(newItem: newItem)
-        }
-        .fileImporter(
-            isPresented: self.$isFileImporterPresented,
-            allowedContentTypes: aiChatImporterContentTypes(),
-            allowsMultipleSelection: true
-        ) { result in
-            self.handleFileImportResult(result: result)
-        }
-        .photosPicker(
-            isPresented: self.$isPhotoPickerPresented,
-            selection: self.$selectedPhotoItem,
-            matching: .images,
-            preferredItemEncoding: .current,
-            photoLibrary: .shared()
-        )
-        .sheet(isPresented: self.$isCameraPresented) {
-            AIChatCameraPicker(
-                onCapture: { data in
-                    self.isCameraPresented = false
-                    self.handleCapturedPhotoData(data)
-                },
-                onFailure: { error in
-                    self.isCameraPresented = false
-                    self.chatStore.showGeneralError(error: error)
-                },
-                onCancel: {
-                    self.isCameraPresented = false
-                }
-            )
-        }
-        .alert(
-            self.activeAlertTitle,
-            isPresented: self.isAlertPresentedBinding,
-            actions: self.alertActionsContent,
-            message: self.alertMessageContent
-        )
     }
 
     var isNewChatDisabled: Bool {
@@ -187,6 +193,15 @@ struct AIChatView: View {
     @ViewBuilder
     func alertMessageContent() -> some View {
         Text(self.chatStore.activeAlert?.message ?? "")
+    }
+
+    @ViewBuilder
+    func cameraPickerSheetContent() -> some View {
+        AIChatCameraPicker(
+            onCapture: self.handleCameraCapture,
+            onFailure: self.handleCameraFailure,
+            onCancel: self.handleCameraCancel
+        )
     }
 
     @ToolbarContentBuilder
@@ -630,6 +645,20 @@ struct AIChatView: View {
         Task {
             await self.handleSelectedPhotoItem(newItem)
         }
+    }
+
+    func handleCameraCapture(data: Data) {
+        self.isCameraPresented = false
+        self.handleCapturedPhotoData(data)
+    }
+
+    func handleCameraFailure(error: Error) {
+        self.isCameraPresented = false
+        self.chatStore.showGeneralError(error: error)
+    }
+
+    func handleCameraCancel() {
+        self.isCameraPresented = false
     }
 
     func handleFileImportResult(result: Result<[URL], Error>) {
