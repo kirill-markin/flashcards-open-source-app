@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.feature.ai
 
+import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
+
 enum class AiEntryPrefill {
     CREATE_CARD
 }

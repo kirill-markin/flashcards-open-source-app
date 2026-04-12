@@ -17,6 +17,16 @@ import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
+import com.flashcardsopensourceapp.feature.ai.runtime.AiAccessContext
+import com.flashcardsopensourceapp.feature.ai.runtime.AiAlertState
+import com.flashcardsopensourceapp.feature.ai.runtime.AiChatRuntime
+import com.flashcardsopensourceapp.feature.ai.runtime.initialAiAppMetadataSummary
+import com.flashcardsopensourceapp.feature.ai.runtime.initialAiCloudSettings
+import com.flashcardsopensourceapp.feature.ai.runtime.makeInitialAiUiState
+import com.flashcardsopensourceapp.feature.ai.runtime.mapToAiUiState
+import com.flashcardsopensourceapp.feature.ai.runtime.runtimeKey
+import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
+import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
