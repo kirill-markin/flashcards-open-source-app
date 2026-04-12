@@ -75,7 +75,6 @@ enum LiveSmokeIdentifier {
     static let aiConversationScrollSurface: String = "ai.conversationScrollSurface"
     static let aiMessageRow: String = "ai.messageRow"
     static let aiComposerTextField: String = "ai.composerTextField"
-    static let aiComposerDismissKeyboardButton: String = "ai.composerDismissKeyboardButton"
     static let aiComposerSendButton: String = "ai.composerSendButton"
     static let aiComposerCardAttachmentChip: String = "ai.composerCardAttachmentChip"
     static let aiComposerSuggestionRow: String = "ai.composerSuggestionRow"
