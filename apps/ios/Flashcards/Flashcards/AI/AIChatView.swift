@@ -430,7 +430,8 @@ struct AIChatView: View {
             .containerRelativeFrame(.vertical, alignment: .center)
             .padding(.vertical, 12)
         } else {
-            LazyVStack(alignment: .leading, spacing: 12) {
+            // Keep this as VStack: LazyVStack caused blank chat history during keyboard-driven relayout here, and stability matters more than lazy virtualization on this screen.
+            VStack(alignment: .leading, spacing: 12) {
                 ForEach(Array(self.chatStore.messages.enumerated()), id: \.element.id) { index, message in
                     self.messageRow(
                         message: message,
