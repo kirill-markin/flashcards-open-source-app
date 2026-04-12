@@ -362,7 +362,6 @@ struct AIChatView: View {
         .contentMargins(.horizontal, aiChatMessageListHorizontalPadding, for: .scrollContent)
         .contentMargins(.horizontal, 0, for: .scrollIndicators)
         .contentShape(Rectangle())
-        .scrollDismissesKeyboard(.interactively)
         .onTapGesture {
             self.dismissComposerFocus()
         }
