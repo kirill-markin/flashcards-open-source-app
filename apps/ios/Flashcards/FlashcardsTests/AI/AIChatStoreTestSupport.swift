@@ -700,7 +700,7 @@ enum AIChatStoreTestSupport {
                     && store.activeDictationTask == nil
                     && store.activeNewSessionTask == nil
                     && store.activePersistTask == nil
-                    && store.pendingPersistState == nil
+                    && store.hasPendingStatePersistence() == false
             }
         )
     }
@@ -753,7 +753,7 @@ enum AIChatStoreTestSupport {
             timeout: self.taskTimeout,
             pollInterval: self.taskPollInterval,
             condition: {
-                store.activePersistTask == nil && store.pendingPersistState == nil
+                store.activePersistTask == nil && store.hasPendingStatePersistence() == false
             }
         )
     }
@@ -790,7 +790,7 @@ enum AIChatStoreTestSupport {
                 let replacementState = historyStore.loadState(workspaceId: replacementWorkspaceId)
                 return store.activeToolRunPostSyncTask == nil
                     && store.activePersistTask == nil
-                    && store.pendingPersistState == nil
+                    && store.hasPendingStatePersistence() == false
                     && store.chatSessionId == replacementState.chatSessionId
                     && store.pendingToolRunPostSync
                     && originalState.pendingToolRunPostSync == false
