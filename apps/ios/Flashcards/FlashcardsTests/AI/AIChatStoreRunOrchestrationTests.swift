@@ -88,7 +88,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
             role: .assistant,
-            content: [.text(aiChatOptimisticAssistantStatusText)],
+            content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
             isStopped: false,
@@ -290,7 +290,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
             role: .assistant,
-            content: [.text(aiChatOptimisticAssistantStatusText)],
+            content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
             isStopped: false,
@@ -338,7 +338,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
             role: .assistant,
-            content: [.text(aiChatOptimisticAssistantStatusText)],
+            content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
             isStopped: false,
@@ -416,7 +416,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
             role: .assistant,
-            content: [.text(aiChatOptimisticAssistantStatusText)],
+            content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
             isStopped: false,
@@ -465,7 +465,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
 
         XCTAssertEqual(store.messages.count, 2)
         XCTAssertEqual(store.messages[1].id, optimisticAssistantMessage.id)
-        XCTAssertEqual(store.messages[1].content, [.text(aiChatOptimisticAssistantStatusText)])
+        XCTAssertEqual(store.messages[1].content, [])
         XCTAssertEqual(store.messages[1].cursor, "cursor-2")
         XCTAssertEqual(store.messages[1].itemId, "item-restore")
         XCTAssertEqual(store.activeStreamingMessageId, optimisticAssistantMessage.id)
@@ -518,7 +518,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         let stampedOptimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
             role: .assistant,
-            content: [.text(aiChatOptimisticAssistantStatusText)],
+            content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
             isStopped: false,
@@ -594,7 +594,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
             role: .assistant,
-            content: [.text(aiChatOptimisticAssistantStatusText)],
+            content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
             isStopped: false,
@@ -697,7 +697,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
             role: .assistant,
-            content: [.text(aiChatOptimisticAssistantStatusText)],
+            content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
             isStopped: false,
@@ -839,7 +839,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
             role: .assistant,
-            content: [.text(aiChatOptimisticAssistantStatusText)],
+            content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
             isStopped: false,
@@ -956,7 +956,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
             role: .assistant,
-            content: [.text(aiChatOptimisticAssistantStatusText)],
+            content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
             isStopped: false,
@@ -1043,7 +1043,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
 
         XCTAssertTrue(didStartBootstrapRepair)
         XCTAssertTrue(store.isOptimisticAssistantPlaceholder(messageId: optimisticAssistantMessage.id))
-        XCTAssertEqual(store.messages.last?.content, [.text(aiChatOptimisticAssistantStatusText)])
+        XCTAssertEqual(store.messages.last?.content, [])
         XCTAssertEqual(store.messages.last?.cursor, "cursor-2")
         XCTAssertEqual(store.messages.last?.itemId, "item-current")
 
@@ -1067,7 +1067,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         await store.waitForPendingStatePersistence()
 
         XCTAssertTrue(store.isOptimisticAssistantPlaceholder(messageId: optimisticAssistantMessage.id))
-        XCTAssertEqual(store.messages.last?.content, [.text(aiChatOptimisticAssistantStatusText)])
+        XCTAssertEqual(store.messages.last?.content, [])
 
         let persistedState = context.historyStore.loadState()
         XCTAssertEqual(
@@ -1127,7 +1127,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         let stampedOptimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
             role: .assistant,
-            content: [.text(aiChatOptimisticAssistantStatusText)],
+            content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
             isStopped: false,
@@ -1240,7 +1240,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
             role: .assistant,
-            content: [.text(aiChatOptimisticAssistantStatusText)],
+            content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
             isStopped: false,
@@ -1343,7 +1343,7 @@ final class AIChatStoreRunOrchestrationTests: XCTestCase {
         let optimisticAssistantMessage = AIChatMessage(
             id: "message-local-assistant",
             role: .assistant,
-            content: [.text(aiChatOptimisticAssistantStatusText)],
+            content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
             isStopped: false,

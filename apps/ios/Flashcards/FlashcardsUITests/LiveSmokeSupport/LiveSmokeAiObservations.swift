@@ -48,7 +48,6 @@ extension LiveSmokeTestCase {
             .filter { message in
                 message.isEmpty == false
                     && message != "Assistant"
-                    && message != "Looking through your cards..."
                     && message != "Assistant is typing"
             }
             .filter { message in

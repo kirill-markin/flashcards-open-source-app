@@ -70,7 +70,6 @@
     <string name="ai_chat_failed">AI chat failed.</string>
     <string name="ai_live_stream_ended_before_completion">AI live stream ended before message completion.</string>
     <string name="ai_consent_required_message">Review AI data use and accept it on this device before using AI features.</string>
-    <string name="ai_optimistic_assistant_status">Looking through your cards...</string>
     <string name="ai_guest_quota_reached_message">Your free guest AI limit for this month is used up. Create an account or log in to keep using AI.</string>
     <string name="ai_guest_quota_button_title">Create account or Log in</string>
     <string name="ai_alert_microphone_title">Microphone access needed</string>

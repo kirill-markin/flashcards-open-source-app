@@ -192,7 +192,7 @@ extension AIChatStore {
         let assistantMessage = AIChatMessage(
             id: UUID().uuidString.lowercased(),
             role: .assistant,
-            content: [.text(aiChatOptimisticAssistantStatusText)],
+            content: [],
             timestamp: nowIsoTimestamp(),
             isError: false,
             isStopped: false,

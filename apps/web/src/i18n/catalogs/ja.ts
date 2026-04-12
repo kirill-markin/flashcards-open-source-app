@@ -688,9 +688,6 @@ export const jaCatalog = {
     loadingTitle: "AI チャットを読み込んでいます...",
     pendingAttachmentCardPrefix: "カード",
     providerTitle: "AI チャット",
-    status: {
-      searchingCards: "カードを検索しています...",
-    },
     suggestedReplies: "返信候補",
     transientErrors: {
       pendingSync: "保留中の同期操作がすべてアップロードされるまで、AI チャットは利用できません。",

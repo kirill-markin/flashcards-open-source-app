@@ -688,9 +688,6 @@ export const zhHansCatalog = {
     loadingTitle: "正在加载 AI 聊天...",
     pendingAttachmentCardPrefix: "卡片",
     providerTitle: "AI 聊天",
-    status: {
-      searchingCards: "正在检索您的卡片...",
-    },
     suggestedReplies: "建议回复",
     transientErrors: {
       pendingSync: "在所有待同步操作上传完成之前，AI 聊天将被阻止。",

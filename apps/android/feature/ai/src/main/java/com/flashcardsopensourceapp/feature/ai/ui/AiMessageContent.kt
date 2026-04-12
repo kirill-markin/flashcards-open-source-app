@@ -147,16 +147,14 @@ private fun MessageBubbleContent(
         message.content.forEach { contentPart ->
             when (contentPart) {
                 is AiChatContentPart.Text -> {
-                    if (showsStreamingIndicator && contentPart.text == aiChatOptimisticAssistantStatusToken) {
-                        TypingIndicatorRow()
+                    if (contentPart.text == aiChatOptimisticAssistantStatusToken) {
+                        if (showsStreamingIndicator) {
+                            TypingIndicatorRow()
+                        }
                     } else {
                         SelectionContainer {
                             Text(
-                                text = if (contentPart.text == aiChatOptimisticAssistantStatusToken) {
-                                    textProvider.optimisticAssistantStatusText
-                                } else {
-                                    contentPart.text
-                                },
+                                text = contentPart.text,
                                 modifier = if (message.role == AiChatRole.ASSISTANT) {
                                     Modifier.testTag(tag = aiAssistantTextPartTag)
                                 } else {

@@ -1,5 +1,4 @@
 import { useCallback, useRef, useState } from "react";
-import { translationCatalogs } from "../i18n";
 import type { ContentPart, ReasoningSummaryContentPart, ToolCallContentPart } from "../types";
 
 export type StoredMessage = Readonly<{
@@ -32,25 +31,11 @@ export type ChatHistoryState = Readonly<{
   clearHistory: () => void;
 }>;
 
-const OPTIMISTIC_ASSISTANT_STATUS_TEXTS = new Set<string>(
-  Object.values(translationCatalogs).map((catalog) => catalog.chatPanel.status.searchingCards),
-);
-
-export function isOptimisticAssistantStatusText(text: string): boolean {
-  return OPTIMISTIC_ASSISTANT_STATUS_TEXTS.has(text);
-}
-
-function isOptimisticAssistantStatusContent(content: ReadonlyArray<ContentPart>): boolean {
-  return content.length === 1
-    && content[0]?.type === "text"
-    && isOptimisticAssistantStatusText(content[0].text);
-}
-
 export function appendAssistantErrorContent(
   content: ReadonlyArray<ContentPart>,
   errorText: string,
 ): ReadonlyArray<ContentPart> {
-  if (isOptimisticAssistantStatusContent(content) || content.length === 0) {
+  if (content.length === 0) {
     return [{ type: "text", text: errorText }];
   }
 
@@ -58,12 +43,6 @@ export function appendAssistantErrorContent(
   const errorPrefix = lastPart?.type === "text" ? "\n\n" : "";
 
   return [...content, { type: "text", text: `${errorPrefix}${errorText}` }];
-}
-
-function removeOptimisticAssistantStatusContent(
-  content: ReadonlyArray<ContentPart>,
-): ReadonlyArray<ContentPart> {
-  return isOptimisticAssistantStatusContent(content) ? [] : content;
 }
 
 function appendAssistantTextContent(
@@ -74,35 +53,33 @@ function appendAssistantTextContent(
     return content;
   }
 
-  const normalizedContent = removeOptimisticAssistantStatusContent(content);
-  const lastPart = normalizedContent[normalizedContent.length - 1];
+  const lastPart = content[content.length - 1];
   if (lastPart?.type === "text") {
     return [
-      ...normalizedContent.slice(0, -1),
+      ...content.slice(0, -1),
       { type: "text", text: lastPart.text + text },
     ];
   }
 
-  return [...normalizedContent, { type: "text", text }];
+  return [...content, { type: "text", text }];
 }
 
 function upsertAssistantToolCallContent(
   content: ReadonlyArray<ContentPart>,
   toolCall: ToolCallContentPart,
 ): ReadonlyArray<ContentPart> {
-  const normalizedContent = removeOptimisticAssistantStatusContent(content);
   const toolCallId = resolveToolCallId(toolCall);
-  const existingIndex = normalizedContent.findIndex((part) => {
+  const existingIndex = content.findIndex((part) => {
     return part.type === "tool_call"
       && toolCallId !== null
       && resolveToolCallId(part) === toolCallId;
   });
 
   if (existingIndex < 0) {
-    return [...normalizedContent, toolCall];
+    return [...content, toolCall];
   }
 
-  return normalizedContent.map((part, index) => index === existingIndex ? toolCall : part);
+  return content.map((part, index) => index === existingIndex ? toolCall : part);
 }
 
 function resolveToolCallId(part: ToolCallContentPart): string | null {
@@ -131,9 +108,8 @@ function upsertAssistantReasoningSummaryContent(
   content: ReadonlyArray<ContentPart>,
   reasoningSummary: ReasoningSummaryContentPart,
 ): ReadonlyArray<ContentPart> {
-  const normalizedContent = removeOptimisticAssistantStatusContent(content);
   const reasoningId = resolveReasoningId(reasoningSummary);
-  const existingIndex = normalizedContent.findIndex((part) =>
+  const existingIndex = content.findIndex((part) =>
     part.type === "reasoning_summary"
     && reasoningId !== null
     && resolveReasoningId(part) === reasoningId,
@@ -143,10 +119,10 @@ function upsertAssistantReasoningSummaryContent(
     // Keep reasoning in the existing assistant-content order.
     // The renderer consumes message.content sequentially, so prepending here would
     // make later reasoning jump to the top of the visible transcript.
-    return [...normalizedContent, reasoningSummary];
+    return [...content, reasoningSummary];
   }
 
-  return normalizedContent.map((part, index) => {
+  return content.map((part, index) => {
     if (index !== existingIndex || part.type !== "reasoning_summary") {
       return part;
     }
@@ -187,8 +163,7 @@ function completeAssistantReasoningSummaryContent(
 function finalizeAssistantContent(
   content: ReadonlyArray<ContentPart>,
 ): ReadonlyArray<ContentPart> {
-  const normalizedContent = removeOptimisticAssistantStatusContent(content);
-  return normalizedContent.reduce<ContentPart[]>((nextContent, part) => {
+  return content.reduce<ContentPart[]>((nextContent, part) => {
     if (part.type !== "reasoning_summary") {
       nextContent.push(part);
       return nextContent;

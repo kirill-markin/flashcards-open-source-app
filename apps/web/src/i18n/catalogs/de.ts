@@ -688,9 +688,6 @@ const deCatalog: TranslationCatalog = {
     loadingTitle: "AI-Chat wird geladen...",
     pendingAttachmentCardPrefix: "Karte",
     providerTitle: "AI-Chat",
-    status: {
-      searchingCards: "Deine Karten werden durchsucht...",
-    },
     suggestedReplies: "Vorgeschlagene Antworten",
     transientErrors: {
       pendingSync: "AI-Chat ist blockiert, bis alle ausstehenden Synchronisierungsvorgänge hochgeladen wurden.",
