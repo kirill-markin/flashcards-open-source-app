@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
+import com.flashcardsopensourceapp.feature.ai.runtime.AiAlertState
 
 data class AiUiState(
     val currentWorkspaceName: String,

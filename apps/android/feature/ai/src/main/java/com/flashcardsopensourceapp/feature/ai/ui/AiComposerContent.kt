@@ -1,0 +1,332 @@
+package com.flashcardsopensourceapp.feature.ai.ui
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.CollectionsBookmark
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Stop
+import androidx.compose.material.icons.outlined.WarningAmber
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.feature.ai.AiUiState
+import com.flashcardsopensourceapp.feature.ai.R
+import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
+import com.flashcardsopensourceapp.feature.ai.aiComposerPendingAttachmentTag
+import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
+import com.flashcardsopensourceapp.feature.ai.aiComposerSuggestionPrefixTag
+import com.flashcardsopensourceapp.feature.ai.aiComposerSuggestionRowTag
+import com.flashcardsopensourceapp.feature.ai.input.dictationStatusLabel
+import com.flashcardsopensourceapp.core.ui.bidiWrap
+import com.flashcardsopensourceapp.core.ui.currentResourceLocale
+import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
+import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
+
+@Composable
+internal fun AiComposer(
+    uiState: AiUiState,
+    onDraftMessageChange: (String) -> Unit,
+    onApplyComposerSuggestion: (com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion) -> Unit,
+    onSendMessage: () -> Unit,
+    onCancelStreaming: () -> Unit,
+    onRemovePendingAttachment: (String) -> Unit,
+    onOpenAttachmentMenu: () -> Unit,
+    onToggleDictation: () -> Unit,
+    modifier: Modifier
+) {
+    val context = LocalContext.current
+    val textProvider = remember(context) { aiTextProvider(context = context) }
+    val canEditDraft = uiState.isStreaming.not() && uiState.dictationState == AiChatDictationState.IDLE
+    val canManageAttachments =
+        uiState.isConversationLoading.not()
+            && uiState.isComposerBusy.not()
+            && uiState.dictationState == AiChatDictationState.IDLE
+    val isDictationBusy = uiState.dictationState == AiChatDictationState.REQUESTING_PERMISSION
+        || uiState.dictationState == AiChatDictationState.TRANSCRIBING
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(uiState.focusComposerRequestVersion) {
+        if (uiState.focusComposerRequestVersion > 0L) {
+            focusRequester.requestFocus()
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .imePadding(),
+        tonalElevation = 4.dp
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                AssistChip(
+                    onClick = {},
+                    enabled = false,
+                    label = {
+                        Text(uiState.chatConfig.model.badgeLabel)
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Outlined.AutoAwesome,
+                            contentDescription = null
+                        )
+                    }
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = uiState.chatConfig.provider.label,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                if (uiState.isStreaming) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.width(20.dp)
+                    )
+                }
+            }
+
+            if (uiState.pendingAttachments.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    uiState.pendingAttachments.forEach { attachment ->
+                        FilterChip(
+                            selected = true,
+                            onClick = {},
+                            modifier = Modifier.testTag(tag = aiComposerPendingAttachmentTag),
+                            label = {
+                                Text(
+                                    when (attachment) {
+                                        is AiChatAttachment.Binary -> attachment.fileName
+                                        is AiChatAttachment.Card -> aiCardAttachmentLabel(
+                                            frontText = attachment.frontText
+                                        )
+                                        is AiChatAttachment.Unknown -> attachment.summaryText
+                                    }
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = when (attachment) {
+                                        is AiChatAttachment.Binary -> {
+                                            if (attachment.isImage) {
+                                                Icons.Outlined.Image
+                                            } else {
+                                                Icons.Outlined.Description
+                                            }
+                                        }
+
+                                        is AiChatAttachment.Card -> Icons.Outlined.CollectionsBookmark
+                                        is AiChatAttachment.Unknown -> Icons.Outlined.WarningAmber
+                                    },
+                                    contentDescription = null
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = {
+                                        onRemovePendingAttachment(attachment.id)
+                                    },
+                                    enabled = canManageAttachments
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Close,
+                                        contentDescription = stringResource(id = R.string.ai_remove_attachment_content_description)
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+
+            if (uiState.composerSuggestions.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(tag = aiComposerSuggestionRowTag)
+                ) {
+                    uiState.composerSuggestions.forEachIndexed { index, suggestion ->
+                        AssistChip(
+                            onClick = {
+                                onApplyComposerSuggestion(suggestion)
+                            },
+                            label = {
+                                Text(suggestion.text)
+                            },
+                            modifier = Modifier.testTag(tag = "$aiComposerSuggestionPrefixTag$index")
+                        )
+                    }
+                }
+            }
+
+            uiState.repairStatus?.let { status ->
+                RepairStatusCard(
+                    status = status,
+                    textProvider = textProvider
+                )
+            }
+
+            if (uiState.dictationState != AiChatDictationState.IDLE) {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = dictationStatusLabel(
+                            dictationState = uiState.dictationState,
+                            textProvider = textProvider
+                        ),
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = uiState.draftMessage,
+                onValueChange = onDraftMessageChange,
+                label = {
+                    Text(stringResource(id = R.string.ai_message_label))
+                },
+                minLines = 3,
+                enabled = canEditDraft,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .testTag(tag = aiComposerMessageFieldTag)
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Button(
+                    onClick = onOpenAttachmentMenu,
+                    enabled = canManageAttachments && uiState.chatConfig.features.attachmentsEnabled,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.AttachFile,
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(id = R.string.ai_attach))
+                }
+
+                Button(
+                    onClick = onToggleDictation,
+                    enabled = uiState.isComposerBusy.not() && isDictationBusy.not() && uiState.chatConfig.features.dictationEnabled,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = if (uiState.dictationState == AiChatDictationState.RECORDING) {
+                            Icons.Outlined.Stop
+                        } else {
+                            Icons.Outlined.Mic
+                        },
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        if (uiState.dictationState == AiChatDictationState.RECORDING) {
+                            stringResource(id = R.string.ai_stop)
+                        } else {
+                            stringResource(id = R.string.ai_dictate)
+                        }
+                    )
+                }
+            }
+
+            Button(
+                onClick = if (uiState.canStopStreaming) {
+                    onCancelStreaming
+                } else {
+                    onSendMessage
+                },
+                enabled = uiState.canStopStreaming || uiState.canSend,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(tag = aiComposerSendButtonTag)
+            ) {
+                Icon(
+                    imageVector = if (uiState.canStopStreaming) {
+                        Icons.Outlined.Stop
+                    } else {
+                        Icons.AutoMirrored.Outlined.Send
+                    },
+                    contentDescription = null
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    if (uiState.canStopStreaming) {
+                        stringResource(id = R.string.ai_stop)
+                    } else {
+                        stringResource(id = R.string.ai_send)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun aiCardAttachmentLabel(frontText: String): String {
+    val context = LocalContext.current
+    val locale = currentResourceLocale(resources = context.resources)
+    val trimmedFrontText = frontText.trim()
+    if (trimmedFrontText.isEmpty()) {
+        return stringResource(id = R.string.ai_card_attachment_fallback_title)
+    }
+
+    return stringResource(
+        id = R.string.ai_card_attachment_title,
+        bidiWrap(
+            text = trimmedFrontText.take(n = 72),
+            locale = locale
+        )
+    )
+}
