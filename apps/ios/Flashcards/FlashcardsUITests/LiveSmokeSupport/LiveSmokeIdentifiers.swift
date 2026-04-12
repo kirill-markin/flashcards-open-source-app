@@ -72,6 +72,7 @@ enum LiveSmokeIdentifier {
     static let aiConsentAcceptButton: String = "ai.consentAcceptButton"
     static let aiNewChatButton: String = "ai.newChatButton"
     static let aiEmptyState: String = "ai.emptyState"
+    static let aiConversationScrollSurface: String = "ai.conversationScrollSurface"
     static let aiMessageRow: String = "ai.messageRow"
     static let aiComposerTextField: String = "ai.composerTextField"
     static let aiComposerDismissKeyboardButton: String = "ai.composerDismissKeyboardButton"
@@ -91,6 +92,7 @@ enum LiveSmokeLaunchResetState: String {
     case localGuest = "local_guest"
     case localGuestSeededManualReviewCard = "local_guest_seeded_manual_review_card"
     case localGuestSeededAIReviewCard = "local_guest_seeded_ai_review_card"
+    case localGuestSeededLongAIConversation = "local_guest_seeded_long_ai_conversation"
     case marketingOpportunityCostReviewCard = "marketing_opportunity_cost_review_card"
     case marketingConceptCards = "marketing_concept_cards"
 }
