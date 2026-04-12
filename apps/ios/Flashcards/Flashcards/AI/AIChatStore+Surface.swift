@@ -402,11 +402,9 @@ extension AIChatStore {
         pendingAttachments: [AIChatAttachment]
     ) {
         let requestSequence = self.beginNewSessionRequestSequence()
-        let shouldKeepLiveAttached = self.surfaceState.activity.isVisible
         let requestedAccessContext = self.surfaceState.activeAccessContext ?? self.currentAccessContext()
         let previousSessionId = self.chatSessionId.isEmpty ? nil : self.chatSessionId
         let previousDraft = self.currentComposerDraft()
-        self.shouldKeepLiveAttached = false
         self.schedulePersistDraftState(
             workspaceId: self.historyWorkspaceId(),
             sessionId: previousSessionId,
@@ -435,10 +433,8 @@ extension AIChatStore {
                     return
                 }
                 guard provisionedSessionId == sessionId else {
-                    self.shouldKeepLiveAttached = shouldKeepLiveAttached
                     return
                 }
-                self.shouldKeepLiveAttached = shouldKeepLiveAttached
             } catch is CancellationError {
             } catch {
                 if isAIChatRequestCancellationError(error: error) {
@@ -451,7 +447,6 @@ extension AIChatStore {
                     return
                 }
 
-                self.shouldKeepLiveAttached = shouldKeepLiveAttached
                 self.showGeneralError(error: error)
             }
         }
