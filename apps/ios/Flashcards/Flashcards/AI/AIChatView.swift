@@ -68,84 +68,45 @@ struct AIChatView: View {
                 }
             }
         }
-        .onAppear {
-            self.syncChatSurface(refreshConsent: true)
-            self.captureAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
-            self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
-        }
+        .onAppear(perform: self.handleViewAppear)
         .onChange(of: self.navigation.aiChatPresentationRequest) { _, request in
-            self.captureAIChatPresentationRequest(request: request)
-            self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+            self.handlePresentationRequestChange(request: request)
         }
         .onChange(of: self.chatStore.bootstrapPhase) { _, nextPhase in
-            guard nextPhase == .ready else {
-                return
-            }
-
-            self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+            self.handleBootstrapPhaseChange(nextPhase: nextPhase)
         }
         .onChange(of: self.chatStore.composerPhase) { _, nextPhase in
-            guard nextPhase == .idle else {
-                return
-            }
-
-            self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+            self.handleComposerPhaseChange(nextPhase: nextPhase)
         }
         .onChange(of: self.scenePhase) { _, nextPhase in
-            guard nextPhase == .active else {
-                self.shouldRestoreComposerFocusAfterDictation = false
-                self.syncChatSurface(refreshConsent: false)
-                return
-            }
-            self.syncChatSurface(refreshConsent: true)
+            self.handleScenePhaseChange(nextPhase: nextPhase)
         }
         .onChange(of: self.flashcardsStore.workspace?.workspaceId) { _, _ in
-            self.syncChatSurface(refreshConsent: false)
+            self.handleSurfaceInputsChange()
         }
         .onChange(of: self.flashcardsStore.cloudSettings?.cloudState) { _, _ in
-            self.syncChatSurface(refreshConsent: false)
+            self.handleSurfaceInputsChange()
         }
         .onChange(of: self.flashcardsStore.cloudSettings?.linkedUserId) { _, _ in
-            self.syncChatSurface(refreshConsent: false)
+            self.handleSurfaceInputsChange()
         }
         .onChange(of: self.flashcardsStore.cloudSettings?.activeWorkspaceId) { _, _ in
-            self.syncChatSurface(refreshConsent: false)
+            self.handleSurfaceInputsChange()
         }
         .onChange(of: self.navigation.selectedTab) { _, nextTab in
-            guard nextTab == .ai else {
-                self.cancelDeferredBottomSync()
-                self.shouldRestoreComposerFocusAfterDictation = false
-                self.syncChatSurface(refreshConsent: false)
-                return
-            }
-            self.syncChatSurface(refreshConsent: false)
-            self.scheduleDeferredBottomSyncIfNeeded()
+            self.handleSelectedTabChange(nextTab: nextTab)
         }
         .onChange(of: self.isComposerFocused) { _, isFocused in
             self.handleComposerFocusChange(isFocused: isFocused)
         }
         .onChange(of: self.chatStore.dictationState) { _, nextState in
-            self.handleDictationStateChange(nextState)
-            guard nextState == .idle else {
-                return
-            }
-            self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+            self.handleDictationStateViewChange(nextState: nextState)
         }
         .onChange(of: self.chatStore.completedDictationTranscript) { _, nextTranscript in
-            guard let nextTranscript else {
-                return
-            }
-
-            self.handleCompletedDictationTranscript(nextTranscript)
+            self.handleCompletedDictationTranscriptChange(nextTranscript: nextTranscript)
         }
         .onChange(of: self.selectedPhotoItem) { _, newItem in
-            guard let newItem else {
-                return
-            }
-
-            Task {
-                await self.handleSelectedPhotoItem(newItem)
-            }
+            self.handleSelectedPhotoItemChange(newItem: newItem)
         }
         .fileImporter(
             isPresented: self.$isFileImporterPresented,
@@ -569,6 +530,88 @@ struct AIChatView: View {
         // Preserve a manual scroll-away, but if the user was still pinned to the
         // bottom, let the keyboard settle first and then realign the latest chat.
         self.scheduleDeferredBottomSyncIfNeeded()
+    }
+
+    func handleViewAppear() {
+        self.syncChatSurface(refreshConsent: true)
+        self.captureAIChatPresentationRequest(request: self.navigation.aiChatPresentationRequest)
+        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+    }
+
+    func handlePresentationRequestChange(request: AIChatPresentationRequest?) {
+        self.captureAIChatPresentationRequest(request: request)
+        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+    }
+
+    func handleBootstrapPhaseChange(nextPhase: AIChatBootstrapPhase) {
+        guard nextPhase == .ready else {
+            return
+        }
+
+        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+    }
+
+    func handleComposerPhaseChange(nextPhase: AIChatComposerPhase) {
+        guard nextPhase == .idle else {
+            return
+        }
+
+        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+    }
+
+    func handleScenePhaseChange(nextPhase: ScenePhase) {
+        guard nextPhase == .active else {
+            self.shouldRestoreComposerFocusAfterDictation = false
+            self.syncChatSurface(refreshConsent: false)
+            return
+        }
+
+        self.syncChatSurface(refreshConsent: true)
+    }
+
+    func handleSurfaceInputsChange() {
+        self.syncChatSurface(refreshConsent: false)
+    }
+
+    func handleSelectedTabChange(nextTab: AppTab) {
+        guard nextTab == .ai else {
+            self.cancelDeferredBottomSync()
+            self.shouldRestoreComposerFocusAfterDictation = false
+            self.syncChatSurface(refreshConsent: false)
+            return
+        }
+
+        self.syncChatSurface(refreshConsent: false)
+        self.scheduleDeferredBottomSyncIfNeeded()
+    }
+
+    func handleDictationStateViewChange(nextState: AIChatDictationState) {
+        self.handleDictationStateChange(nextState)
+        guard nextState == .idle else {
+            return
+        }
+
+        self.handleAIChatPresentationRequest(request: self.deferredPresentationRequest)
+    }
+
+    func handleCompletedDictationTranscriptChange(
+        nextTranscript: AIChatCompletedDictationTranscript?
+    ) {
+        guard let nextTranscript else {
+            return
+        }
+
+        self.handleCompletedDictationTranscript(nextTranscript)
+    }
+
+    func handleSelectedPhotoItemChange(newItem: PhotosPickerItem?) {
+        guard let newItem else {
+            return
+        }
+
+        Task {
+            await self.handleSelectedPhotoItem(newItem)
+        }
     }
 
     func handleFileImportResult(result: Result<[URL], Error>) {
