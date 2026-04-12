@@ -37,6 +37,7 @@
 "ai.error.summary.invalidResponse" = "Se recibio una respuesta de IA no valida";
 "ai.error.summary.configuration" = "Error de configuracion de IA";
 "ai.error.live.invalidHttpResponse" = "La transmision en vivo de IA no recibio una respuesta HTTP.";
+"ai.error.live.staleStream" = "La respuesta de IA dejo de actualizarse antes de que terminara la ejecucion.";
 "ai.error.live.invalidUrl" = "La URL de la transmision en vivo de IA no es valida.";
 "ai.error.detail.reference" = "Referencia: %@";
 "ai.error.detail.debug" = "Depuracion: %@";

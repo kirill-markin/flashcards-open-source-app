@@ -37,6 +37,7 @@
 "ai.error.summary.invalidResponse" = "無効な AI 応答を受信しました";
 "ai.error.summary.configuration" = "AI 構成エラー";
 "ai.error.live.invalidHttpResponse" = "AI ライブ ストリームは HTTP 応答を受信しませんでした。";
+"ai.error.live.staleStream" = "実行が完了する前に AI の応答更新が停止しました。";
 "ai.error.live.invalidUrl" = "AI ライブ ストリーム URL が無効です。";
 "ai.error.detail.reference" = "参照: %@";
 "ai.error.detail.debug" = "デバッグ: %@";

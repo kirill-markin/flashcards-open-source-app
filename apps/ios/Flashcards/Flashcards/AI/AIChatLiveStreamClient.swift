@@ -5,16 +5,42 @@
  */
 import Foundation
 
+struct AIChatLiveStreamConfiguration: Sendable {
+    let requestTimeoutSeconds: TimeInterval
+    let resourceTimeoutSeconds: TimeInterval
+    let inactivityTimeoutSeconds: TimeInterval
+}
+
+private let aiChatDefaultLiveStreamConfiguration = AIChatLiveStreamConfiguration(
+    requestTimeoutSeconds: 600,
+    resourceTimeoutSeconds: 600,
+    inactivityTimeoutSeconds: 45
+)
+
 actor AIChatLiveStreamClient {
     private let fallbackSession: URLSession
     private let decoder: JSONDecoder
+    private let configuration: AIChatLiveStreamConfiguration
 
     init(
         urlSession: URLSession,
         decoder: JSONDecoder = makeFlashcardsRemoteJSONDecoder()
     ) {
+        self.init(
+            urlSession: urlSession,
+            decoder: decoder,
+            configuration: aiChatDefaultLiveStreamConfiguration
+        )
+    }
+
+    init(
+        urlSession: URLSession,
+        decoder: JSONDecoder,
+        configuration: AIChatLiveStreamConfiguration
+    ) {
         self.fallbackSession = urlSession
         self.decoder = decoder
+        self.configuration = configuration
     }
 
     func connect(
@@ -28,6 +54,7 @@ actor AIChatLiveStreamClient {
     ) -> AsyncThrowingStream<AIChatLiveEvent, Error> {
         let decoder = self.decoder
         let fallbackConfiguration = self.fallbackSession.configuration
+        let liveConfiguration = self.configuration
         return AsyncThrowingStream { continuation in
             do {
                 let url = try makeAIChatLiveStreamURL(
@@ -62,7 +89,7 @@ actor AIChatLiveStreamClient {
                     request.setValue(aiChatClientPlatform, forHTTPHeaderField: "X-Client-Platform")
                     request.setValue(aiChatAppVersion(), forHTTPHeaderField: "X-Client-Version")
                 }
-                request.timeoutInterval = 600
+                request.timeoutInterval = liveConfiguration.requestTimeoutSeconds
 
                 let delegate = AIChatLiveStreamTaskDelegate(
                     continuation: continuation,
@@ -70,17 +97,24 @@ actor AIChatLiveStreamClient {
                     runId: runId,
                     afterCursor: afterCursor,
                     configurationMode: configurationMode,
-                    decoder: decoder
+                    decoder: decoder,
+                    liveConfiguration: liveConfiguration,
+                    callbackQueue: DispatchQueue(
+                        label: "AIChatLiveStreamClient.callback.\(sessionId).\(runId)"
+                    )
                 )
                 let configuration = fallbackConfiguration.copy() as? URLSessionConfiguration
                     ?? .ephemeral
-                configuration.timeoutIntervalForRequest = 600
-                configuration.timeoutIntervalForResource = 600
+                configuration.timeoutIntervalForRequest = liveConfiguration.requestTimeoutSeconds
+                configuration.timeoutIntervalForResource = liveConfiguration.resourceTimeoutSeconds
                 configuration.waitsForConnectivity = false
+                let delegateQueue = OperationQueue()
+                delegateQueue.maxConcurrentOperationCount = 1
+                delegateQueue.underlyingQueue = delegate.callbackQueue
                 let session = URLSession(
                     configuration: configuration,
                     delegate: delegate,
-                    delegateQueue: nil
+                    delegateQueue: delegateQueue
                 )
                 let task = session.dataTask(with: request)
                 delegate.start(task: task, session: session)
@@ -103,6 +137,8 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
     private let afterCursor: String?
     private let configurationMode: CloudServiceConfigurationMode
     private let decoder: JSONDecoder
+    private let liveConfiguration: AIChatLiveStreamConfiguration
+    let callbackQueue: DispatchQueue
     private var session: URLSession?
     private var task: URLSessionDataTask?
     private var httpResponse: HTTPURLResponse?
@@ -111,6 +147,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
     private var currentEventType: String?
     private var currentDataLines: [String] = []
     private var didFinish: Bool = false
+    private var inactivityTimeoutWorkItem: DispatchWorkItem?
 
     init(
         continuation: AsyncThrowingStream<AIChatLiveEvent, Error>.Continuation,
@@ -118,7 +155,9 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
         runId: String,
         afterCursor: String?,
         configurationMode: CloudServiceConfigurationMode,
-        decoder: JSONDecoder
+        decoder: JSONDecoder,
+        liveConfiguration: AIChatLiveStreamConfiguration,
+        callbackQueue: DispatchQueue
     ) {
         self.continuation = continuation
         self.sessionId = sessionId
@@ -126,6 +165,8 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
         self.afterCursor = afterCursor
         self.configurationMode = configurationMode
         self.decoder = decoder
+        self.liveConfiguration = liveConfiguration
+        self.callbackQueue = callbackQueue
     }
 
     func start(task: URLSessionDataTask, session: URLSession) {
@@ -156,6 +197,9 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
                 "requestId": extractAIChatLiveRequestId(httpResponse: httpResponse) ?? "-"
             ]
         )
+        if httpResponse.statusCode == 200 {
+            self.armInactivityTimeout()
+        }
         completionHandler(.allow)
     }
 
@@ -178,6 +222,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
             return
         }
 
+        self.armInactivityTimeout()
         self.bufferedBytes.append(data)
         self.processBufferedLines()
     }
@@ -341,6 +386,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
         }
 
         self.didFinish = true
+        self.cancelInactivityTimeout()
         self.task?.cancel()
         self.session?.invalidateAndCancel()
         self.task = nil
@@ -374,6 +420,36 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
             ]
         )
         self.continuation.finish()
+    }
+
+    private func armInactivityTimeout() {
+        guard self.liveConfiguration.inactivityTimeoutSeconds > 0 else {
+            return
+        }
+        guard self.didFinish == false else {
+            return
+        }
+
+        self.inactivityTimeoutWorkItem?.cancel()
+        let idleTimeoutSeconds = self.liveConfiguration.inactivityTimeoutSeconds
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self else {
+                return
+            }
+            self.finish(throwing: AIChatLiveStreamError.staleStream(
+                idleTimeoutSeconds: idleTimeoutSeconds
+            ))
+        }
+        self.inactivityTimeoutWorkItem = workItem
+        self.callbackQueue.asyncAfter(
+            deadline: .now() + idleTimeoutSeconds,
+            execute: workItem
+        )
+    }
+
+    private func cancelInactivityTimeout() {
+        self.inactivityTimeoutWorkItem?.cancel()
+        self.inactivityTimeoutWorkItem = nil
     }
 
     private func metadataForParsedEvent(_ event: AIChatLiveEvent) -> [String: String] {
@@ -461,6 +537,7 @@ private final class AIChatLiveStreamTaskDelegate: NSObject, URLSessionDataDelega
 enum AIChatLiveStreamError: LocalizedError {
     case invalidUrl(String)
     case invalidResponse
+    case staleStream(idleTimeoutSeconds: TimeInterval)
     case invalidStatusCode(
         httpStatusCode: Int,
         errorDetails: CloudApiErrorDetails,
@@ -473,6 +550,8 @@ enum AIChatLiveStreamError: LocalizedError {
             return "AI live stream URL is invalid: \(liveUrl)"
         case .invalidResponse:
             return "AI live stream did not receive an HTTP response."
+        case .staleStream:
+            return "AI response stopped updating before the run finished."
         case .invalidStatusCode(let httpStatusCode, let errorDetails, let configurationMode):
             let message = makeAIChatUserFacingErrorMessage(
                 rawMessage: errorDetails.message,
@@ -555,6 +634,13 @@ func aiChatErrorLogMetadata(error: Error) -> [String: String] {
                 "failureKind": "transport_failure",
                 "stage": AIChatFailureStage.invalidHttpResponse.rawValue,
                 "errorKind": AIChatFailureKind.invalidHttpResponse.rawValue,
+            ]
+        case .staleStream(let idleTimeoutSeconds):
+            return [
+                "failureKind": "transport_stale_stream",
+                "stage": AIChatFailureStage.readingLine.rawValue,
+                "errorKind": AIChatFailureKind.staleStream.rawValue,
+                "idleTimeoutSeconds": String(idleTimeoutSeconds)
             ]
         case .invalidStatusCode(let httpStatusCode, let errorDetails, _):
             var metadata: [String: String] = [

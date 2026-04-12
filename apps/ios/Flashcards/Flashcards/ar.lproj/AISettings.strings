@@ -37,6 +37,7 @@
 "ai.error.summary.invalidResponse" = "تم تلقي استجابة AI غير صالحة";
 "ai.error.summary.configuration" = "خطأ في تكوين الذكاء الاصطناعي";
 "ai.error.live.invalidHttpResponse" = "لم يتلق البث المباشر للذكاء الاصطناعي استجابة HTTP.";
+"ai.error.live.staleStream" = "توقف تحديث استجابة الذكاء الاصطناعي قبل انتهاء التشغيل.";
 "ai.error.live.invalidUrl" = "عنوان URL لبث الذكاء الاصطناعي المباشر غير صالح.";
 "ai.error.detail.reference" = "المرجع: %@";
 "ai.error.detail.debug" = "تصحيح الأخطاء: %@";
