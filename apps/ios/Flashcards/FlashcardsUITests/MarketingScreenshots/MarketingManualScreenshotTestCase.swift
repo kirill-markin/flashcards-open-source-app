@@ -137,9 +137,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     @MainActor
-    func launchOpportunityCostReviewCardAiHandoff() throws -> MarketingScreenshotLocaleFixture {
-        let localeFixture = try self.marketingLocaleFixture()
-
+    func launchOpportunityCostReviewCardAiHandoff() throws {
         if self.isApplicationRunning {
             self.app.terminate()
         }
@@ -149,8 +147,6 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             selectedTab: .ai,
             aiHandoffCard: "first_card"
         )
-
-        return localeFixture
     }
 
     @MainActor
