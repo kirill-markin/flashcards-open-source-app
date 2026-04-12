@@ -560,7 +560,9 @@ extension AIChatStore {
     ) -> Bool {
         if let preSendSnapshot = self.preSendSnapshot(conversationId: conversationId) {
             guard let baselineAnchorId = preSendSnapshot.persistedState.messages.last?.id else {
-                return false
+                return envelope.conversation.messages.contains { message in
+                    message.role == .user && message.content == preSendSnapshot.outgoingContent
+                }
             }
             guard
                 let anchorIndex = envelope.conversation.messages.lastIndex(where: { message in
