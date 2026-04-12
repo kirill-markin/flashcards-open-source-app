@@ -12,9 +12,12 @@ import {
 } from "./contract";
 import type { ChatComposerSuggestion } from "./composerSuggestions";
 import { getErrorLogContext, logCloudRouteEvent } from "../server/logging";
-import { getChatRunSnapshot, type ChatRunSnapshot } from "./runs";
 import {
-  getChatSessionSnapshot,
+  getChatRunSnapshot,
+  getRecoveredChatSessionSnapshot,
+  type ChatRunSnapshot,
+} from "./runs";
+import {
   listChatMessagesAfterCursor,
   listChatMessagesLatest,
   stripBase64FromContentParts,
@@ -36,7 +39,7 @@ const KEEPALIVE_INTERVAL_MS = 15_000;
 const MAX_CONNECTION_DURATION_MS = 9 * 60 * 1000;
 
 type ChatLiveStreamDependencies = Readonly<{
-  getChatSessionSnapshot: typeof getChatSessionSnapshot;
+  getRecoveredChatSessionSnapshot: typeof getRecoveredChatSessionSnapshot;
   getChatRunSnapshot: typeof getChatRunSnapshot;
   listChatMessagesAfterCursor: typeof listChatMessagesAfterCursor;
   listChatMessagesLatest: typeof listChatMessagesLatest;
@@ -64,7 +67,7 @@ type BacklogReplayState = Readonly<{
 }>;
 
 const defaultChatLiveStreamDependencies: ChatLiveStreamDependencies = {
-  getChatSessionSnapshot,
+  getRecoveredChatSessionSnapshot,
   getChatRunSnapshot,
   listChatMessagesAfterCursor,
   listChatMessagesLatest,
@@ -505,7 +508,7 @@ export async function runLiveStreamWithDependencies(
         lastKeepalive = Date.now();
       }
 
-      const run = await dependencies.getChatRunSnapshot(
+      let run = await dependencies.getChatRunSnapshot(
         params.userId,
         params.workspaceId,
         params.runId,
@@ -517,17 +520,33 @@ export async function runLiveStreamWithDependencies(
       }
 
       if (isOpenRunStatus(run.status)) {
-        const snapshot = await dependencies.getChatSessionSnapshot(
+        const snapshot = await dependencies.getRecoveredChatSessionSnapshot(
           params.userId,
           params.workspaceId,
           params.sessionId,
         );
         if (snapshot.activeRunId !== params.runId || snapshot.runState !== "running") {
-          emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, run.assistantItemId));
-          terminationReason = "stale_run_attach";
-          break;
-        }
+          const refreshedRun = await dependencies.getChatRunSnapshot(
+            params.userId,
+            params.workspaceId,
+            params.runId,
+          );
+          if (refreshedRun === null || refreshedRun.sessionId !== params.sessionId) {
+            emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, run.assistantItemId));
+            terminationReason = "missing_run";
+            break;
+          }
 
+          run = refreshedRun;
+          if (isOpenRunStatus(run.status)) {
+            emitTerminal(buildResetRequiredPayload(lastDeliveredCursor, run.assistantItemId));
+            terminationReason = "stale_run_attach";
+            break;
+          }
+        }
+      }
+
+      if (isOpenRunStatus(run.status)) {
         const newMessages = await dependencies.listChatMessagesAfterCursor(
           params.userId,
           params.workspaceId,
@@ -626,7 +645,7 @@ export async function runLiveStreamWithDependencies(
         }
 
         if (!hasEmittedComposerSuggestions) {
-          const sessionSnapshot = await dependencies.getChatSessionSnapshot(
+          const sessionSnapshot = await dependencies.getRecoveredChatSessionSnapshot(
             params.userId,
             params.workspaceId,
             params.sessionId,

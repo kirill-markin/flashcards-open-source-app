@@ -244,6 +244,22 @@ private func aiChatAlertPresentation(
             requestId: nil,
             resumeAttemptSequence: resumeAttemptSequence
         )
+    case .staleStream:
+        return aiChatAlertPresentation(
+            diagnostics: nil,
+            summary: aiSettingsLocalized(
+                "ai.error.summary.couldNotContinue",
+                "Couldn't Continue the AI Response"
+            ),
+            rawDetails: aiSettingsLocalized(
+                "ai.error.live.staleStream",
+                "The AI response stopped updating before the run finished."
+            ),
+            code: nil,
+            statusCode: nil,
+            requestId: nil,
+            resumeAttemptSequence: resumeAttemptSequence
+        )
     case .invalidUrl:
         return aiChatAlertPresentation(
             diagnostics: nil,

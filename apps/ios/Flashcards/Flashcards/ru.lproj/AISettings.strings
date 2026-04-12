@@ -37,6 +37,7 @@
 "ai.error.summary.invalidResponse" = "Получен неверный ответ AI";
 "ai.error.summary.configuration" = "Ошибка конфигурации ИИ";
 "ai.error.live.invalidHttpResponse" = "Прямая трансляция AI не получила HTTP-ответ.";
+"ai.error.live.staleStream" = "Ответ AI перестал обновляться до завершения запуска.";
 "ai.error.live.invalidUrl" = "URL-адрес прямой трансляции AI недействителен.";
 "ai.error.detail.reference" = "Ссылка: %@";
 "ai.error.detail.debug" = "Отладка: %@";

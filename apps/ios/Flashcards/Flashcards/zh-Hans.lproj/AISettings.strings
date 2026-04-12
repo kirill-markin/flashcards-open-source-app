@@ -37,6 +37,7 @@
 "ai.error.summary.invalidResponse" = "收到无效的 AI 响应";
 "ai.error.summary.configuration" = "AI配置错误";
 "ai.error.live.invalidHttpResponse" = "AI直播未收到HTTP响应。";
+"ai.error.live.staleStream" = "AI 回复在运行结束前停止了更新。";
 "ai.error.live.invalidUrl" = "AI直播地址无效";
 "ai.error.detail.reference" = "参考：%@";
 "ai.error.detail.debug" = "调试：%@";

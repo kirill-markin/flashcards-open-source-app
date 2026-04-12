@@ -4,6 +4,8 @@ import XCTest
 
 private final class AIChatLiveStreamTestURLProtocol: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var requestHandler: (@Sendable (URLRequest) throws -> (HTTPURLResponse, Data))?
+    nonisolated(unsafe) static var loadingHandler: (@Sendable (AIChatLiveStreamTestURLProtocol, URLRequest) throws -> Void)?
+    private var loadingTask: Task<Void, Never>?
 
     override class func canInit(with request: URLRequest) -> Bool {
         true
@@ -14,6 +16,15 @@ private final class AIChatLiveStreamTestURLProtocol: URLProtocol, @unchecked Sen
     }
 
     override func startLoading() {
+        if let loadingHandler = Self.loadingHandler {
+            do {
+                try loadingHandler(self, self.request)
+            } catch {
+                self.client?.urlProtocol(self, didFailWithError: error)
+            }
+            return
+        }
+
         guard let handler = Self.requestHandler else {
             XCTFail("Expected request handler.")
             return
@@ -31,12 +42,34 @@ private final class AIChatLiveStreamTestURLProtocol: URLProtocol, @unchecked Sen
         }
     }
 
-    override func stopLoading() {}
+    override func stopLoading() {
+        self.loadingTask?.cancel()
+        self.loadingTask = nil
+    }
+
+    func emit(response: HTTPURLResponse) {
+        self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+    }
+
+    func emit(data: Data) {
+        self.client?.urlProtocol(self, didLoad: data)
+    }
+
+    func finishLoadingSuccessfully() {
+        self.client?.urlProtocolDidFinishLoading(self)
+    }
+
+    func scheduleLoading(_ operation: @escaping @Sendable () async -> Void) {
+        self.loadingTask = Task {
+            await operation()
+        }
+    }
 }
 
 final class AIChatLiveStreamClientTests: XCTestCase {
     override func tearDown() {
         AIChatLiveStreamTestURLProtocol.requestHandler = nil
+        AIChatLiveStreamTestURLProtocol.loadingHandler = nil
         super.tearDown()
     }
 
@@ -340,6 +373,115 @@ final class AIChatLiveStreamClientTests: XCTestCase {
         XCTAssertNil(assistantItemId)
         XCTAssertNil(isError)
         XCTAssertNil(isStopped)
+    }
+
+    func testLiveStreamFailsWhenConnectionTurnsSilent() async throws {
+        let client = AIChatLiveStreamClient(
+            urlSession: self.makeURLSession(),
+            decoder: makeFlashcardsRemoteJSONDecoder(),
+            configuration: AIChatLiveStreamConfiguration(
+                requestTimeoutSeconds: 600,
+                resourceTimeoutSeconds: 600,
+                inactivityTimeoutSeconds: 0.15
+            )
+        )
+        AIChatLiveStreamTestURLProtocol.loadingHandler = { liveProtocol, request in
+            let response = HTTPURLResponse(
+                url: try XCTUnwrap(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "text/event-stream"]
+            )!
+            liveProtocol.emit(response: response)
+        }
+
+        let stream = await client.connect(
+            liveUrl: "https://api.example.com/chat/live",
+            authorization: "Live token",
+            sessionId: "session-1",
+            runId: "run-1",
+            afterCursor: "5",
+            configurationMode: .official,
+            resumeAttemptDiagnostics: nil
+        )
+
+        do {
+            for try await _ in stream {
+                XCTFail("Expected the stalled live stream to fail.")
+            }
+            XCTFail("Expected a stale stream error.")
+        } catch let error as AIChatLiveStreamError {
+            guard case .staleStream(let idleTimeoutSeconds) = error else {
+                return XCTFail("Expected stale stream error, got \(error).")
+            }
+            XCTAssertEqual(idleTimeoutSeconds, 0.15, accuracy: 0.001)
+        } catch {
+            XCTFail("Expected AIChatLiveStreamError, got \(error).")
+        }
+    }
+
+    func testLiveStreamKeepsConnectionAliveAcrossKeepaliveComments() async throws {
+        let client = AIChatLiveStreamClient(
+            urlSession: self.makeURLSession(),
+            decoder: makeFlashcardsRemoteJSONDecoder(),
+            configuration: AIChatLiveStreamConfiguration(
+                requestTimeoutSeconds: 600,
+                resourceTimeoutSeconds: 600,
+                inactivityTimeoutSeconds: 0.15
+            )
+        )
+        AIChatLiveStreamTestURLProtocol.loadingHandler = { liveProtocol, request in
+            let response = HTTPURLResponse(
+                url: try XCTUnwrap(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "text/event-stream"]
+            )!
+            liveProtocol.emit(response: response)
+            liveProtocol.scheduleLoading {
+                try? await Task.sleep(for: .milliseconds(50))
+                guard Task.isCancelled == false else {
+                    return
+                }
+                liveProtocol.emit(data: Data(": keepalive\n\n".utf8))
+
+                try? await Task.sleep(for: .milliseconds(50))
+                guard Task.isCancelled == false else {
+                    return
+                }
+                liveProtocol.emit(data: Data(
+                    """
+                    event: run_terminal
+                    data: {"sessionId":"session-1","conversationScopeId":"session-1","runId":"run-1","cursor":"16","sequenceNumber":9,"streamEpoch":"epoch-1","outcome":"completed"}
+
+                    """.utf8
+                ))
+                liveProtocol.finishLoadingSuccessfully()
+            }
+        }
+
+        let stream = await client.connect(
+            liveUrl: "https://api.example.com/chat/live",
+            authorization: "Live token",
+            sessionId: "session-1",
+            runId: "run-1",
+            afterCursor: "5",
+            configurationMode: .official,
+            resumeAttemptDiagnostics: nil
+        )
+
+        var receivedEvents: [AIChatLiveEvent] = []
+        for try await event in stream {
+            receivedEvents.append(event)
+        }
+
+        XCTAssertEqual(receivedEvents.count, 1)
+        guard case .runTerminal(metadata: let metadata, outcome: let outcome, message: _, assistantItemId: _, isError: _, isStopped: _) = try XCTUnwrap(receivedEvents.first) else {
+            return XCTFail("Expected run_terminal event.")
+        }
+        XCTAssertEqual(metadata.sessionId, "session-1")
+        XCTAssertEqual(metadata.runId, "run-1")
+        XCTAssertEqual(outcome, .completed)
     }
 
     private func makeURLSession() -> URLSession {

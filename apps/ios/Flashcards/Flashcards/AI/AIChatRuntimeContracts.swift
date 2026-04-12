@@ -61,6 +61,7 @@ enum AIChatFailureKind: String, Codable, Hashable, Sendable {
     case invalidBaseUrl = "invalid_base_url"
     case invalidStreamResponse = "invalid_stream_response"
     case invalidHttpResponse = "invalid_http_response"
+    case staleStream = "stale_stream"
     case invalidSSEFraming = "invalid_sse_framing"
     case invalidSSEEventJSON = "invalid_sse_event_json"
     case invalidStreamContract = "invalid_stream_contract"

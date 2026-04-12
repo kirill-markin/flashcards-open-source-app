@@ -37,6 +37,7 @@
 "ai.error.summary.invalidResponse" = "Es wurde eine ungültige AI-Antwort empfangen";
 "ai.error.summary.configuration" = "KI-Konfigurationsfehler";
 "ai.error.live.invalidHttpResponse" = "Der AI-Livestream hat keine HTTP-Antwort erhalten.";
+"ai.error.live.staleStream" = "Die AI-Antwort wurde vor Abschluss des Laufs nicht mehr aktualisiert.";
 "ai.error.live.invalidUrl" = "Die AI-Livestream-URL ist ungültig.";
 "ai.error.detail.reference" = "Referenz: %@";
 "ai.error.detail.debug" = "Debuggen: %@";
