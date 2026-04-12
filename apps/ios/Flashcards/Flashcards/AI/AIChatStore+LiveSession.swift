@@ -37,12 +37,6 @@ extension AIChatStore {
     }
 
     func setChatVisibility(isVisible: Bool) {
-        if self.shouldKeepLiveAttached == isVisible {
-            return
-        }
-
-        self.shouldKeepLiveAttached = isVisible
-
         if isVisible {
             if self.shouldAutoStartFreshLocalSession(persistedState: self.currentPersistedState()) {
                 self.startFreshLocalSession(

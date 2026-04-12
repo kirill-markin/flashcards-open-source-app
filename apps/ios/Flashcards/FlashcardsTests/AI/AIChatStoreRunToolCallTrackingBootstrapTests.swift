@@ -134,7 +134,7 @@ final class AIChatStoreRunToolCallTrackingBootstrapTests: XCTestCase {
         )
 
         let store = context.makeStore()
-        store.shouldKeepLiveAttached = true
+        AIChatStoreTestSupport.setAISurfaceVisibility(store: store, isVisible: true)
         let syncExpectation = XCTestExpectation(description: "Linked sync started once after resumed run terminal")
         context.cloudSyncService.syncExpectation = syncExpectation
 
@@ -220,7 +220,7 @@ final class AIChatStoreRunToolCallTrackingBootstrapTests: XCTestCase {
             messages: [AIChatStoreTestSupport.makeAssistantTextMessage(itemId: "item-1")],
             activeRun: activeRun
         )
-        store.shouldKeepLiveAttached = true
+        AIChatStoreTestSupport.setAISurfaceVisibility(store: store, isVisible: true)
         store.applyEnvelope(envelope)
         store.resetRunToolCallTracking()
 

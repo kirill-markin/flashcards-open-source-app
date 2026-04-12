@@ -187,7 +187,6 @@ struct AIChatSurfaceState {
     var activity: AIChatSurfaceActivity
     var activeAccessContext: AIChatAccessContext?
     var bootstrapPhase: AIChatBootstrapPhase
-    var shouldKeepLiveAttached: Bool
 }
 
 struct AIChatActiveRunSession {
