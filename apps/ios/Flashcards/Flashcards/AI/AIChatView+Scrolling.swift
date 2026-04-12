@@ -28,6 +28,11 @@ func aiChatScrollState(
 }
 
 extension AIChatView {
+    func detachAutoFollowForExpandedContent() {
+        self.isAutoFollowEnabled = false
+        self.cancelDeferredBottomSync()
+    }
+
     func scheduleDeferredBottomSyncIfNeeded() {
         guard self.navigation.selectedTab == .ai else {
             return
