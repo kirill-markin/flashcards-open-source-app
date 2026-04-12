@@ -429,7 +429,8 @@ struct AIChatView: View {
                         showsTypingIndicator: aiChatShouldShowTypingIndicator(
                             message: message,
                             isLastMessage: index == self.chatStore.messages.indices.last,
-                            isStreaming: self.chatStore.isStreaming
+                            isStreaming: self.chatStore.isStreaming,
+                            optimisticAssistantMessageId: self.chatStore.optimisticOutgoingTurnState?.assistantMessageId
                         )
                     )
                     .id(message.id)

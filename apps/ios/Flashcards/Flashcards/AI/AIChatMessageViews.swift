@@ -49,9 +49,25 @@ struct AIChatTypingIndicator: View {
 func aiChatShouldShowTypingIndicator(
     message: AIChatMessage,
     isLastMessage: Bool,
-    isStreaming: Bool
+    isStreaming: Bool,
+    optimisticAssistantMessageId: String?
 ) -> Bool {
-    message.role == .assistant && isLastMessage && isStreaming
+    guard message.role == .assistant && isLastMessage else {
+        return false
+    }
+
+    if isStreaming {
+        return true
+    }
+
+    guard let optimisticAssistantMessageId else {
+        return false
+    }
+
+    return optimisticAssistantMessageId == message.id
+        && message.isError == false
+        && message.isStopped == false
+        && isOptimisticAIChatStatusContent(content: message.content)
 }
 
 func aiChatTypingIndicatorActiveDotCount(date: Date) -> Int {

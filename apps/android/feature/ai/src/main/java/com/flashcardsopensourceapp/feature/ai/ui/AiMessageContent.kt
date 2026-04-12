@@ -73,9 +73,15 @@ internal fun MessageRow(
     } else {
         MaterialTheme.colorScheme.surfaceContainerHighest
     }
+    val hasOptimisticAssistantStatus = message.content.any { contentPart ->
+        contentPart is AiChatContentPart.Text && contentPart.text == aiChatOptimisticAssistantStatusToken
+    }
+    val canShowOptimisticIndicator = hasOptimisticAssistantStatus &&
+        message.isError.not() &&
+        message.isStopped.not()
     val showsStreamingIndicator = message.role == AiChatRole.ASSISTANT
         && isLastMessage
-        && isStreaming
+        && (isStreaming || canShowOptimisticIndicator)
 
     Box(
         contentAlignment = alignment,
