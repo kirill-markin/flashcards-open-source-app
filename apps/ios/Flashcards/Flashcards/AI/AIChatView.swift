@@ -345,6 +345,7 @@ struct AIChatView: View {
         ScrollView {
             self.chatScrollContent
         }
+        .accessibilityIdentifier(UITestIdentifier.aiConversationScrollSurface)
         .defaultScrollAnchor(.bottom, for: .initialOffset)
         .defaultScrollAnchor(.bottom, for: .alignment)
         .scrollPosition(self.$scrollPosition, anchor: .bottom)

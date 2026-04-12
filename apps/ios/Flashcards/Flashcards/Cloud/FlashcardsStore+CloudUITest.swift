@@ -6,6 +6,7 @@ enum FlashcardsUITestResetState: String {
     case localGuest = "local_guest"
     case localGuestSeededManualReviewCard = "local_guest_seeded_manual_review_card"
     case localGuestSeededAIReviewCard = "local_guest_seeded_ai_review_card"
+    case localGuestSeededLongAIConversation = "local_guest_seeded_long_ai_conversation"
     case marketingOpportunityCostReviewCard = "marketing_opportunity_cost_review_card"
     case marketingConceptCards = "marketing_concept_cards"
 }
@@ -33,6 +34,8 @@ private enum FlashcardsUITestSeedData {
         backText: "Smoke seeded AI review answer",
         tags: ["smoke-seeded-ai-review"]
     )
+    static let longAIConversationMessagePairCount: Int = 18
+    static let longAIConversationSessionId: String = "ui-test-seeded-long-ai-conversation"
 }
 
 private enum FlashcardsUITestMarketingFixtureError: LocalizedError {
@@ -566,6 +569,8 @@ extension FlashcardsStore {
             try self.seedUITestCard(card: FlashcardsUITestSeedData.manualReviewCard)
         case .localGuestSeededAIReviewCard:
             try self.seedUITestCard(card: FlashcardsUITestSeedData.aiReviewCard)
+        case .localGuestSeededLongAIConversation:
+            try self.seedUITestLongAIConversation()
         case .marketingOpportunityCostReviewCard:
             let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: ProcessInfo.processInfo)
             try self.seedUITestCard(card: localeFixture.reviewCard)
@@ -592,4 +597,187 @@ extension FlashcardsStore {
             editingCardId: nil
         )
     }
+
+    private func seedUITestLongAIConversation() throws {
+        let persistedState = makeFlashcardsUITestLongAIConversationPersistedState(now: Date())
+        let scopedWorkspaceIds = flashcardsUITestAIHistorySeedWorkspaceIds(store: self)
+        for scopedWorkspaceId in scopedWorkspaceIds {
+            try storeAIChatHistoryStateSynchronously(
+                userDefaults: self.userDefaults,
+                encoder: self.encoder,
+                workspaceId: scopedWorkspaceId,
+                state: persistedState
+            )
+        }
+        grantAIChatExternalProviderConsent(userDefaults: self.userDefaults)
+    }
+}
+
+private func makeFlashcardsUITestLongAIConversationPersistedState(now: Date) -> AIChatPersistedState {
+    let sessionId = FlashcardsUITestSeedData.longAIConversationSessionId
+    return AIChatPersistedState(
+        messages: makeFlashcardsUITestLongAIConversationMessages(
+            pairCount: FlashcardsUITestSeedData.longAIConversationMessagePairCount,
+            now: now
+        ),
+        chatSessionId: sessionId,
+        lastKnownChatConfig: aiChatDefaultServerConfig,
+        pendingToolRunPostSync: false
+    )
+}
+
+private func makeFlashcardsUITestLongAIConversationMessages(
+    pairCount: Int,
+    now: Date
+) -> [AIChatMessage] {
+    var messages: [AIChatMessage] = []
+    messages.reserveCapacity(pairCount * 2)
+
+    for pairIndex in 1...pairCount {
+        let userTimestamp = now.addingTimeInterval(TimeInterval((pairIndex - pairCount) * 120))
+        let assistantTimestamp = userTimestamp.addingTimeInterval(45)
+        messages.append(
+            AIChatMessage(
+                id: "ui-test-long-ai-user-\(pairIndex)",
+                role: .user,
+                content: [.text(flashcardsUITestLongAIConversationUserText(pairIndex: pairIndex))],
+                timestamp: isoTimestampFromMilliseconds(Int(userTimestamp.timeIntervalSince1970 * 1000)),
+                isError: false,
+                isStopped: false,
+                cursor: nil,
+                itemId: nil
+            )
+        )
+        messages.append(
+            AIChatMessage(
+                id: "ui-test-long-ai-assistant-\(pairIndex)",
+                role: .assistant,
+                content: [.text(flashcardsUITestLongAIConversationAssistantText(pairIndex: pairIndex, pairCount: pairCount))],
+                timestamp: isoTimestampFromMilliseconds(Int(assistantTimestamp.timeIntervalSince1970 * 1000)),
+                isError: false,
+                isStopped: false,
+                cursor: nil,
+                itemId: "ui-test-long-ai-item-\(pairIndex)"
+            )
+        )
+    }
+
+    return messages
+}
+
+private func flashcardsUITestLongAIConversationUserText(pairIndex: Int) -> String {
+    "Smoke seeded user message \(pairIndex). Keep the scroll focused on the earlier assistant replies."
+}
+
+private func flashcardsUITestLongAIConversationAssistantText(
+    pairIndex: Int,
+    pairCount: Int
+) -> String {
+    if pairIndex == 1 {
+        return """
+        Smoke seeded oldest assistant message for AI scroll coverage.
+        This is the oldest seeded reply and should only appear after scrolling away from the bottom.
+        Keep this exact sentence stable so the XCUITest can detect it deterministically.
+        """
+    }
+
+    if pairIndex == pairCount {
+        return """
+        Smoke seeded latest assistant message near the composer.
+        This is the most recent seeded reply and should be visible near the bottom on launch.
+        The XCUITest uses it as the bottom anchor before opening the keyboard.
+        """
+    }
+
+    return """
+    Smoke seeded assistant message \(pairIndex) for long AI chat coverage.
+    This filler reply keeps the local conversation tall enough to require real scrolling.
+    Each seeded assistant block stays deterministic and avoids the live backend entirely.
+    """
+}
+
+@MainActor
+private func flashcardsUITestAIHistorySeedWorkspaceIds(store: FlashcardsStore) -> [String?] {
+    let workspaceCandidates = [
+        store.workspace?.workspaceId,
+        store.userSettings?.workspaceId,
+        store.cloudSettings?.activeWorkspaceId,
+        store.cloudSettings?.linkedWorkspaceId,
+        nil
+    ]
+    var scopedWorkspaceIds: [String?] = [nil]
+
+    for workspaceCandidate in workspaceCandidates {
+        scopedWorkspaceIds.append(
+            makeAIChatHistoryScopedWorkspaceId(
+                workspaceId: workspaceCandidate,
+                cloudSettings: store.cloudSettings
+            )
+        )
+        scopedWorkspaceIds.append(
+            flashcardsUITestAIHistoryScopeId(
+                cloudState: .disconnected,
+                linkedUserId: nil,
+                activeWorkspaceId: nil,
+                workspaceId: workspaceCandidate
+            )
+        )
+        scopedWorkspaceIds.append(
+            flashcardsUITestAIHistoryScopeId(
+                cloudState: .guest,
+                linkedUserId: nil,
+                activeWorkspaceId: nil,
+                workspaceId: workspaceCandidate
+            )
+        )
+    }
+
+    var seenKeys: Set<String> = []
+    return scopedWorkspaceIds.reduce(into: [String?]()) { partialResult, scopedWorkspaceId in
+        let dedupeKey = scopedWorkspaceId ?? "__legacy__"
+        if seenKeys.insert(dedupeKey).inserted {
+            partialResult.append(scopedWorkspaceId)
+        }
+    }
+}
+
+private func flashcardsUITestAIHistoryScopeId(
+    cloudState: CloudAccountState,
+    linkedUserId: String?,
+    activeWorkspaceId: String?,
+    workspaceId: String?
+) -> String {
+    let normalizedWorkspaceId = flashcardsUITestNormalizedAIHistorySeedComponent(
+        workspaceId,
+        fallback: "default"
+    )
+
+    switch cloudState {
+    case .linked:
+        let normalizedUserId = flashcardsUITestNormalizedAIHistorySeedComponent(
+            linkedUserId,
+            fallback: "linked-user"
+        )
+        let normalizedActiveWorkspaceId = flashcardsUITestNormalizedAIHistorySeedComponent(
+            activeWorkspaceId,
+            fallback: normalizedWorkspaceId
+        )
+        return "linked::\(normalizedUserId)::\(normalizedActiveWorkspaceId)"
+    case .guest:
+        let normalizedUserId = flashcardsUITestNormalizedAIHistorySeedComponent(
+            linkedUserId,
+            fallback: "guest-user"
+        )
+        return "guest::\(normalizedUserId)::\(normalizedWorkspaceId)"
+    case .disconnected, .linkingReady:
+        return "local::\(normalizedWorkspaceId)"
+    }
+}
+
+private func flashcardsUITestNormalizedAIHistorySeedComponent(
+    _ value: String?,
+    fallback: String
+) -> String {
+    let trimmedValue = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmedValue?.isEmpty == false ? trimmedValue! : fallback
 }
