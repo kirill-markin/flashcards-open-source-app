@@ -352,6 +352,20 @@ struct AIChatView: View {
         .contentMargins(.horizontal, 0, for: .scrollIndicators)
         .contentShape(Rectangle())
         .scrollDismissesKeyboard(.interactively)
+        // Re-anchor only while auto-follow is still active so keyboard and
+        // container height changes keep short chats bottom-aligned without
+        // overriding a deliberate manual scroll-away.
+        .onGeometryChange(for: CGFloat.self, of: { geometry in
+            geometry.size.height
+        }) { oldHeight, newHeight in
+            guard oldHeight != newHeight else {
+                return
+            }
+
+            Task { @MainActor in
+                self.scrollToBottomIfNeeded(isAnimated: false)
+            }
+        }
         .onTapGesture {
             self.dismissComposerFocus()
         }
@@ -430,8 +444,9 @@ struct AIChatView: View {
                 }
             }
             .scrollTargetLayout()
-            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .containerRelativeFrame(.vertical, alignment: .bottom)
         }
     }
 

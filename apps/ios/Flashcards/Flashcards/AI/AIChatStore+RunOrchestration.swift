@@ -1,5 +1,17 @@
 import Foundation
 
+struct AIChatPreSendSnapshot: Sendable {
+    let persistedState: AIChatPersistedState
+    let requiresRemoteSessionProvisioning: Bool
+    let outgoingContent: [AIChatContentPart]
+}
+
+enum AIChatAcceptedEnvelopeReconciliation: Equatable, Sendable {
+    case applyCanonicalEnvelope
+    case preserveOptimisticMessages
+    case reloadCanonicalConversation
+}
+
 extension AIChatStore {
     func warmUpSessionIfNeeded() {
         guard self.isChatInteractive else {
@@ -51,6 +63,11 @@ extension AIChatStore {
 
         self.activeAlert = nil
         self.repairStatus = nil
+        let preSendSnapshot = AIChatPreSendSnapshot(
+            persistedState: self.currentPersistedState(),
+            requiresRemoteSessionProvisioning: self.requiresRemoteSessionProvisioning,
+            outgoingContent: content
+        )
         let resolvedSessionId = aiChatResolvedSessionId(
             workspaceId: self.historyWorkspaceId(),
             sessionId: self.chatSessionId
@@ -61,40 +78,27 @@ extension AIChatStore {
         let conversationId = UUID().uuidString.lowercased()
         let draftText = self.inputText
         let draftAttachments = self.pendingAttachments
+        self.appendOptimisticOutgoingTurn(content: content)
+        self.storePreSendSnapshot(preSendSnapshot, conversationId: conversationId)
 
         let task = Task {
-            var didAppendOptimisticMessages = false
+            let didAppendOptimisticMessages = true
+            defer {
+                self.clearPreSendSnapshot(conversationId: conversationId)
+                if self.activeConversationId == conversationId {
+                    if self.shouldResetComposerPhaseAfterSendTaskCompletion() {
+                        self.transitionToIdle()
+                    }
+                    self.activeConversationId = nil
+                }
+                self.activeSendTask = nil
+            }
+
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
                 try await self.ensureAIChatReadyForSend(linkedSession: session)
                 let explicitSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
                 self.resetRunToolCallTracking()
-                self.messages.append(
-                    AIChatMessage(
-                        id: UUID().uuidString.lowercased(),
-                        role: .user,
-                        content: content,
-                        timestamp: nowIsoTimestamp(),
-                        isError: false,
-                        isStopped: false,
-                        cursor: nil,
-                        itemId: nil
-                    )
-                )
-                let assistantMessage = AIChatMessage(
-                    id: UUID().uuidString.lowercased(),
-                    role: .assistant,
-                    content: [.text(aiChatOptimisticAssistantStatusText)],
-                    timestamp: nowIsoTimestamp(),
-                    isError: false,
-                    isStopped: false,
-                    cursor: nil,
-                    itemId: nil
-                )
-                self.messages.append(assistantMessage)
-                self.activeStreamingMessageId = assistantMessage.id
-                self.activeStreamingItemId = nil
-                didAppendOptimisticMessages = true
                 self.transitionToStartingRun()
                 self.activeConversationId = conversationId
                 try await self.runtime.run(
@@ -112,18 +116,11 @@ extension AIChatStore {
                     error,
                     didAcceptRun: self.composerPhase == .running,
                     didAppendOptimisticMessages: didAppendOptimisticMessages,
+                    preSendSnapshot: preSendSnapshot,
                     draftText: draftText,
                     draftAttachments: draftAttachments
                 )
             }
-
-            if self.activeConversationId == conversationId {
-                if self.shouldResetComposerPhaseAfterSendTaskCompletion() {
-                    self.transitionToIdle()
-                }
-                self.activeConversationId = nil
-            }
-            self.activeSendTask = nil
         }
 
         self.activeSendTask = task
@@ -180,6 +177,34 @@ extension AIChatStore {
         }
     }
 
+    func appendOptimisticOutgoingTurn(content: [AIChatContentPart]) {
+        self.messages.append(
+            AIChatMessage(
+                id: UUID().uuidString.lowercased(),
+                role: .user,
+                content: content,
+                timestamp: nowIsoTimestamp(),
+                isError: false,
+                isStopped: false,
+                cursor: nil,
+                itemId: nil
+            )
+        )
+        let assistantMessage = AIChatMessage(
+            id: UUID().uuidString.lowercased(),
+            role: .assistant,
+            content: [.text(aiChatOptimisticAssistantStatusText)],
+            timestamp: nowIsoTimestamp(),
+            isError: false,
+            isStopped: false,
+            cursor: nil,
+            itemId: nil
+        )
+        self.messages.append(assistantMessage)
+        self.activeStreamingMessageId = assistantMessage.id
+        self.activeStreamingItemId = nil
+    }
+
     func shutdownForTests() {
         self.activeBootstrapTask?.cancel()
         self.activeBootstrapTask = nil
@@ -189,6 +214,7 @@ extension AIChatStore {
         self.invalidatePendingRemoteSessionProvisionRequest()
         self.cancelStreaming()
         self.cancelDictation()
+        self.clearAllPreSendSnapshots()
     }
 
     func ensureAIChatReadyForSend(linkedSession: CloudLinkedSession) async throws {
@@ -257,27 +283,22 @@ extension AIChatStore {
         _ error: Error,
         didAcceptRun: Bool,
         didAppendOptimisticMessages: Bool,
+        preSendSnapshot: AIChatPreSendSnapshot,
         draftText: String,
         draftAttachments: [AIChatAttachment]
     ) {
-        let latestPersistedState = self.historyStore.loadState()
-        let resolvedSessionId = aiChatResolvedSessionId(
-            workspaceId: self.historyWorkspaceId(),
-            sessionId: latestPersistedState.chatSessionId
-        )
-        self.chatSessionId = resolvedSessionId
-        self.conversationScopeId = resolvedSessionId
         self.repairStatus = nil
         self.transitionToIdle()
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
 
         if didAcceptRun == false && didAppendOptimisticMessages {
-            self.messages = latestPersistedState.messages
+            self.restorePreSendState(preSendSnapshot)
             self.applyComposerDraft(
                 inputText: draftText,
                 pendingAttachments: draftAttachments
             )
+            self.schedulePersistCurrentState()
         }
 
         if didAcceptRun == false && isAIChatOfflineSendError(error: error) {
@@ -382,23 +403,37 @@ extension AIChatStore {
 
         switch event {
         case .accepted(let response):
-            self.applyEnvelope(response.envelope)
-            // Accepted responses can still reflect recovered older history
-            // before the current turn appears locally. We intentionally allow a
-            // speculative zero-diff post-run sync here because that tradeoff is
-            // simpler than adding more per-run disambiguation on the client.
-            self.markRunHadToolCallsFromSnapshot(
-                activeRun: response.activeRun,
-                messages: response.envelope.conversation.messages
+            let reconciliation = self.acceptedEnvelopeReconciliation(
+                for: response.envelope,
+                conversationId: conversationId
             )
+
+            if reconciliation == .preserveOptimisticMessages {
+                self.applyAcceptedEnvelopeMetadata(response.envelope)
+                self.markRunHadToolCallsFromSnapshot(
+                    activeRun: response.activeRun,
+                    messages: response.envelope.conversation.messages
+                )
+            } else if reconciliation == .reloadCanonicalConversation {
+                self.reconcileStaleAcceptedTerminalEnvelope(response.envelope)
+            } else {
+                self.applyEnvelope(response.envelope)
+                self.markRunHadToolCallsFromSnapshot(
+                    activeRun: response.activeRun,
+                    messages: response.envelope.conversation.messages
+                )
+            }
             self.applyComposerDraft(inputText: "", pendingAttachments: [])
             self.schedulePersistCurrentDraftState()
             self.repairStatus = nil
             if response.activeRun != nil {
                 self.attachActiveLiveStreamIfPossible()
+            } else if reconciliation == .reloadCanonicalConversation {
+                self.clearPreSendSnapshot(conversationId: conversationId)
             } else {
                 self.transitionToIdle()
                 self.syncLinkedDataAfterTerminalRunIfNeeded()
+                self.clearPreSendSnapshot(conversationId: conversationId)
             }
         case .liveEvent(let liveEvent):
             self.handleLiveEvent(liveEvent)
@@ -416,6 +451,200 @@ extension AIChatStore {
                 self.transitionToIdle()
             }
         }
+    }
+
+    func acceptedEnvelopeReconciliation(
+        for envelope: AIChatConversationEnvelope,
+        conversationId: String
+    ) -> AIChatAcceptedEnvelopeReconciliation {
+        guard let optimisticTurn = self.currentOptimisticOutgoingTurn() else {
+            return .applyCanonicalEnvelope
+        }
+
+        let acceptedEnvelopeContainsOutgoingTurn = self.acceptedEnvelopeContainsCurrentOutgoingTurn(
+            envelope,
+            conversationId: conversationId,
+            optimisticTurn: optimisticTurn
+        )
+
+        if acceptedEnvelopeContainsOutgoingTurn {
+            return .applyCanonicalEnvelope
+        }
+
+        if envelope.activeRun != nil {
+            return .preserveOptimisticMessages
+        }
+
+        return .reloadCanonicalConversation
+    }
+
+    func currentOptimisticOutgoingTurn() -> AIChatOptimisticOutgoingTurn? {
+        guard self.messages.count >= 2 else {
+            return nil
+        }
+
+        let assistantMessage = self.messages[self.messages.count - 1]
+        let userMessage = self.messages[self.messages.count - 2]
+        guard userMessage.role == .user else {
+            return nil
+        }
+        guard assistantMessage.role == .assistant else {
+            return nil
+        }
+        guard isOptimisticAIChatStatusContent(content: assistantMessage.content) else {
+            return nil
+        }
+        guard assistantMessage.itemId == nil else {
+            return nil
+        }
+        guard assistantMessage.isStopped == false else {
+            return nil
+        }
+
+        return AIChatOptimisticOutgoingTurn(
+            userMessage: userMessage,
+            assistantMessage: assistantMessage
+        )
+    }
+
+    func applyAcceptedEnvelopeMetadata(_ envelope: AIChatConversationEnvelope) {
+        self.chatSessionId = envelope.sessionId
+        self.conversationScopeId = envelope.conversationScopeId
+        self.requiresRemoteSessionProvisioning = false
+        self.serverChatConfig = envelope.chatConfig
+        self.applyComposerSuggestions(envelope.composerSuggestions)
+        self.hasOlderMessages = envelope.conversation.hasOlder
+        self.oldestCursor = envelope.conversation.oldestCursor
+        self.repairStatus = nil
+
+        guard let activeRun = envelope.activeRun else {
+            self.finalizeAcceptedTerminalEnvelopeWhilePreservingOptimisticTurn()
+            self.schedulePersistCurrentState()
+            return
+        }
+
+        self.transitionToStreaming(
+            activeRun: AIChatActiveRunSession(
+                sessionId: envelope.sessionId,
+                conversationScopeId: envelope.conversationScopeId,
+                runId: activeRun.runId,
+                liveStream: activeRun.live.stream,
+                liveCursor: activeRun.live.cursor,
+                streamEpoch: nil
+            )
+        )
+        self.schedulePersistCurrentState()
+    }
+
+    func acceptedEnvelopeContainsCurrentOutgoingTurn(
+        _ envelope: AIChatConversationEnvelope,
+        conversationId: String,
+        optimisticTurn: AIChatOptimisticOutgoingTurn
+    ) -> Bool {
+        if let preSendSnapshot = self.preSendSnapshot(conversationId: conversationId) {
+            guard let baselineAnchorId = preSendSnapshot.persistedState.messages.last?.id else {
+                return false
+            }
+            guard
+                let anchorIndex = envelope.conversation.messages.lastIndex(where: { message in
+                    message.id == baselineAnchorId
+                })
+            else {
+                return false
+            }
+
+            let messagesAfterAnchor = envelope.conversation.messages.suffix(
+                envelope.conversation.messages.count - anchorIndex - 1
+            )
+            return messagesAfterAnchor.contains { message in
+                message.role == .user && message.content == preSendSnapshot.outgoingContent
+            }
+        }
+
+        return envelope.conversation.messages.contains { message in
+            message.role == .user && message.content == optimisticTurn.userMessage.content
+        }
+    }
+
+    func reconcileStaleAcceptedTerminalEnvelope(_ envelope: AIChatConversationEnvelope) {
+        self.chatSessionId = envelope.sessionId
+        self.conversationScopeId = envelope.conversationScopeId
+        self.requiresRemoteSessionProvisioning = false
+        self.serverChatConfig = envelope.chatConfig
+        self.applyComposerSuggestions(envelope.composerSuggestions)
+        self.hasOlderMessages = envelope.conversation.hasOlder
+        self.oldestCursor = envelope.conversation.oldestCursor
+        self.repairStatus = nil
+        self.transitionToIdle()
+        self.activeStreamingItemId = nil
+        self.reloadCanonicalConversationAfterAcceptedTerminalEnvelope()
+    }
+
+    func reloadCanonicalConversationAfterAcceptedTerminalEnvelope() {
+        self.activeBootstrapTask?.cancel()
+        self.activeBootstrapTask = Task {
+            defer {
+                self.activeBootstrapTask = nil
+            }
+
+            do {
+                let session = try await self.flashcardsStore.cloudSessionForAI()
+                let requestedSessionId = try await self.ensureRemoteSessionIfNeeded(session: session)
+                let response = try await self.chatService.loadBootstrap(
+                    session: session,
+                    sessionId: requestedSessionId,
+                    limit: aiChatBootstrapPageLimit,
+                    resumeAttemptDiagnostics: nil
+                )
+                guard self.chatSessionId == requestedSessionId else {
+                    return
+                }
+                self.applyBootstrap(response)
+                self.attachBootstrapLiveIfNeeded(
+                    response: response,
+                    session: session,
+                    resumeAttemptDiagnostics: nil
+                )
+            } catch is CancellationError {
+            } catch {
+                if isAIChatRequestCancellationError(error: error) {
+                    return
+                }
+                self.finalizeAcceptedTerminalEnvelopeWhilePreservingOptimisticTurn()
+                self.showGeneralError(error: error)
+            }
+        }
+    }
+
+    func finalizeAcceptedTerminalEnvelopeWhilePreservingOptimisticTurn() {
+        self.transitionToIdle()
+        self.activeStreamingItemId = nil
+
+        guard
+            let optimisticTurn = self.currentOptimisticOutgoingTurn(),
+            self.messages.last?.id == optimisticTurn.assistantMessage.id
+        else {
+            self.activeStreamingMessageId = nil
+            return
+        }
+
+        self.messages.removeLast()
+        self.activeStreamingMessageId = nil
+    }
+
+    func restorePreSendState(_ preSendSnapshot: AIChatPreSendSnapshot) {
+        let preSendState = preSendSnapshot.persistedState
+        self.messages = preSendState.messages
+        self.serverChatConfig = preSendState.lastKnownChatConfig ?? aiChatDefaultServerConfig
+        self.requiresRemoteSessionProvisioning = preSendSnapshot.requiresRemoteSessionProvisioning
+        self.runHadToolCalls = preSendState.pendingToolRunPostSync
+        self.pendingToolRunPostSync = preSendState.pendingToolRunPostSync
+        let resolvedSessionId = aiChatResolvedSessionId(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: preSendState.chatSessionId
+        )
+        self.chatSessionId = resolvedSessionId
+        self.conversationScopeId = resolvedSessionId
     }
 
     func applyEnvelope(_ envelope: AIChatConversationEnvelope) {
@@ -457,6 +686,33 @@ extension AIChatStore {
         self.schedulePersistCurrentState()
     }
 
+    func storePreSendSnapshot(_ snapshot: AIChatPreSendSnapshot, conversationId: String) {
+        self.storedPreSendSnapshotConversationId = conversationId
+        self.storedPreSendSnapshot = snapshot
+    }
+
+    func preSendSnapshot(conversationId: String) -> AIChatPreSendSnapshot? {
+        guard self.storedPreSendSnapshotConversationId == conversationId else {
+            return nil
+        }
+
+        return self.storedPreSendSnapshot
+    }
+
+    func clearPreSendSnapshot(conversationId: String) {
+        guard self.storedPreSendSnapshotConversationId == conversationId else {
+            return
+        }
+
+        self.storedPreSendSnapshotConversationId = nil
+        self.storedPreSendSnapshot = nil
+    }
+
+    func clearAllPreSendSnapshots() {
+        self.storedPreSendSnapshotConversationId = nil
+        self.storedPreSendSnapshot = nil
+    }
+
     /// The accepted run response only confirms that the backend started or
     /// completed the run. Tool-backed changes are synced only after the run is
     /// terminal so the local review state refreshes once from the final data.
@@ -496,6 +752,11 @@ extension AIChatStore {
 
         self.activeToolRunPostSyncTask = postSyncTask
     }
+}
+
+struct AIChatOptimisticOutgoingTurn {
+    let userMessage: AIChatMessage
+    let assistantMessage: AIChatMessage
 }
 
 func isAIChatRequestCancellationError(error: Error) -> Bool {

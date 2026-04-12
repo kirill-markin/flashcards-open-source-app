@@ -119,6 +119,8 @@ final class AIChatStore {
     @ObservationIgnored var activeDraftPersistTask: Task<Void, Never>?
     @ObservationIgnored fileprivate var pendingDraftPersistStates: [AIChatDraftPersistKey: AIChatComposerDraft]
     @ObservationIgnored var activeConversationId: String?
+    @ObservationIgnored var storedPreSendSnapshotConversationId: String?
+    @ObservationIgnored var storedPreSendSnapshot: AIChatPreSendSnapshot?
     @ObservationIgnored var activeStreamingMessageId: String?
     @ObservationIgnored var activeStreamingItemId: String?
     @ObservationIgnored var runHadToolCalls: Bool
