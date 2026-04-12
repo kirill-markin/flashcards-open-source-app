@@ -61,6 +61,48 @@ func aiChatTypingIndicatorActiveDotCount(date: Date) -> Int {
     return animationStep.quotientAndRemainder(dividingBy: aiChatTypingIndicatorDotCount + 1).remainder
 }
 
+private struct AIChatExpandableDisclosureGroup<Label: View, Content: View>: View {
+    @State private var isExpanded: Bool
+    let onExpand: () -> Void
+    let content: () -> Content
+    let label: () -> Label
+
+    init(
+        onExpand: @escaping () -> Void,
+        @ViewBuilder content: @escaping () -> Content,
+        @ViewBuilder label: @escaping () -> Label
+    ) {
+        self._isExpanded = State(initialValue: false)
+        self.onExpand = onExpand
+        self.content = content
+        self.label = label
+    }
+
+    var body: some View {
+        DisclosureGroup(isExpanded: self.isExpandedBinding) {
+            self.content()
+        } label: {
+            self.label()
+        }
+    }
+
+    private var isExpandedBinding: Binding<Bool> {
+        Binding(
+            get: {
+                self.isExpanded
+            },
+            set: { nextValue in
+                let didExpand = self.isExpanded == false && nextValue
+                self.isExpanded = nextValue
+
+                if didExpand {
+                    self.onExpand()
+                }
+            }
+        )
+    }
+}
+
 extension AIChatView {
     @ViewBuilder
     func messageRow(
@@ -173,7 +215,11 @@ extension AIChatView {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         case .card(let card):
-            DisclosureGroup {
+            AIChatExpandableDisclosureGroup(
+                onExpand: {
+                    self.detachAutoFollowForExpandedContent()
+                }
+            ) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(buildAIChatCardContextXML(card: card))
                         .font(.caption.monospaced())
@@ -210,7 +256,11 @@ extension AIChatView {
             let summaryText = aiChatToolSummaryText(name: toolCall.name, input: toolCall.input)
             let sections = aiChatToolSections(input: toolCall.input, output: toolCall.output)
             VStack(alignment: .leading, spacing: 0) {
-                DisclosureGroup {
+                AIChatExpandableDisclosureGroup(
+                    onExpand: {
+                        self.detachAutoFollowForExpandedContent()
+                    }
+                ) {
                     VStack(alignment: .leading, spacing: 12) {
                         ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
                             VStack(alignment: .leading, spacing: 8) {
@@ -266,10 +316,14 @@ extension AIChatView {
                     .stroke(
                         aiChatToolBorderColor(status: toolCall.status),
                         style: aiChatToolBorderStrokeStyle(status: toolCall.status)
-                    )
+                )
             )
         case .reasoningSummary(let reasoningSummary):
-            DisclosureGroup {
+            AIChatExpandableDisclosureGroup(
+                onExpand: {
+                    self.detachAutoFollowForExpandedContent()
+                }
+            ) {
                 Text(
                     reasoningSummary.summary.isEmpty
                         ? aiSettingsLocalized("ai.message.reasoning.thinking", "Thinking...")
