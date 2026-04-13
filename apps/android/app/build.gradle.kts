@@ -109,7 +109,7 @@ android {
         minSdk = 34
         targetSdk = 36
         versionCode = androidVersionCode ?: 1
-        versionName = "1.1.4"
+        versionName = "1.1.5"
         testInstrumentationRunner = "com.flashcardsopensourceapp.app.FlashcardsAndroidTestRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
     }
