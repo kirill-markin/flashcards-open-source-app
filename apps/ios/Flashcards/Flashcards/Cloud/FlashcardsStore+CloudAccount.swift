@@ -2,6 +2,18 @@ import Foundation
 
 @MainActor
 extension FlashcardsStore {
+    func currentActiveCloudSessionForAI() throws -> CloudLinkedSession {
+        if case .blocked(let message) = self.syncStatus {
+            throw LocalStoreError.validation(message)
+        }
+
+        guard let activeSession = self.cloudRuntime.activeCloudSession() else {
+            throw LocalStoreError.uninitialized("Cloud session is unavailable")
+        }
+
+        return activeSession
+    }
+
     func logoutCloudAccount() throws {
         try self.resetLocalStateForCloudIdentityChange()
     }
@@ -198,6 +210,43 @@ extension FlashcardsStore {
             }
 
             throw error
+        }
+    }
+
+    func runLinkedSyncPreservingSessionContext(
+        linkedSession: CloudLinkedSession
+    ) async throws -> CloudSyncResult {
+        if case .blocked(let message) = self.syncStatus {
+            throw LocalStoreError.validation(message)
+        }
+
+        switch linkedSession.authorization {
+        case .guest:
+            return try await self.runLinkedSync(linkedSession: linkedSession)
+        case .bearer:
+            do {
+                return try await self.withStoredAuthenticatedCredentials { credentials, _ in
+                    let refreshedSession = CloudLinkedSession(
+                        userId: linkedSession.userId,
+                        workspaceId: linkedSession.workspaceId,
+                        email: linkedSession.email,
+                        configurationMode: linkedSession.configurationMode,
+                        apiBaseUrl: linkedSession.apiBaseUrl,
+                        authorization: .bearer(credentials.idToken)
+                    )
+                    return try await self.runLinkedSync(linkedSession: refreshedSession)
+                }
+            } catch {
+                if self.isCloudAccountDeletedError(error) {
+                    self.handleRemoteAccountDeletedCleanup()
+                }
+
+                if self.isCloudAuthorizationError(error) {
+                    try self.logoutCloudAccount()
+                }
+
+                throw error
+            }
         }
     }
 

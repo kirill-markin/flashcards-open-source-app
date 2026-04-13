@@ -124,6 +124,7 @@ final class AIChatStore {
     @ObservationIgnored var activeNewSessionTask: Task<Void, Never>?
     @ObservationIgnored var activeRemoteSessionProvisionRequest: AIChatRemoteSessionProvisionRequest?
     @ObservationIgnored var activePersistTask: Task<Void, Never>?
+    @ObservationIgnored fileprivate var activeStatePersistKey: AIChatStatePersistKey?
     @ObservationIgnored fileprivate var pendingPersistStates: [AIChatStatePersistKey: AIChatPersistedState]
     @ObservationIgnored var activeDraftPersistTask: Task<Void, Never>?
     @ObservationIgnored fileprivate var pendingDraftPersistStates: [AIChatDraftPersistKey: AIChatComposerDraft]
@@ -309,7 +310,7 @@ final class AIChatStore {
             return
         }
 
-        await self.waitForPendingStatePersistence()
+        await self.waitForPendingStatePersistence(workspaceId: origin.workspaceId)
         let persistedState = self.historyStore.loadState(workspaceId: origin.workspaceId)
         guard persistedState.chatSessionId == origin.sessionId else {
             return
@@ -346,17 +347,43 @@ final class AIChatStore {
         }
     }
 
-    func hasPendingStatePersistence() -> Bool {
-        self.pendingPersistStates.isEmpty == false
+    func waitForPendingStatePersistence(workspaceId: String?) async {
+        while true {
+            let persistTask = self.activePersistTask
+            let hasPendingState = self.hasPendingStatePersistence(workspaceId: workspaceId)
+
+            if let persistTask {
+                if hasPendingState == false {
+                    return
+                }
+
+                await persistTask.value
+                continue
+            }
+
+            if hasPendingState {
+                await Task.yield()
+                continue
+            }
+
+            return
+        }
     }
 
-    func schedulePersistState(
-        workspaceId: String?,
-        state: AIChatPersistedState
-    ) {
+    func hasPendingStatePersistence() -> Bool {
+        self.activeStatePersistKey != nil || self.pendingPersistStates.isEmpty == false
+    }
+
+    func hasPendingStatePersistence(workspaceId: String?) -> Bool {
         let key = AIChatStatePersistKey(workspaceId: workspaceId)
-        self.pendingPersistStates[key] = state
+        return self.activeStatePersistKey == key || self.pendingPersistStates[key] != nil
+    }
+
+    func startPersistTaskIfNeeded() {
         guard self.activePersistTask == nil else {
+            return
+        }
+        guard self.pendingPersistStates.isEmpty == false else {
             return
         }
 
@@ -370,6 +397,7 @@ final class AIChatStore {
                         return nil
                     }
 
+                    self.activeStatePersistKey = nextKey
                     return (nextKey, nextState)
                 }
                 guard let nextPersistState else {
@@ -378,12 +406,38 @@ final class AIChatStore {
 
                 let (nextKey, nextState) = nextPersistState
                 await self.historyStore.saveState(workspaceId: nextKey.workspaceId, state: nextState)
+                await MainActor.run { [weak self] in
+                    if self?.activeStatePersistKey == nextKey {
+                        self?.activeStatePersistKey = nil
+                    }
+                }
             }
 
-            await MainActor.run { [weak self] in
-                self?.activePersistTask = nil
+            let shouldRestart = await MainActor.run { () -> Bool in
+                guard let self else {
+                    return false
+                }
+
+                self.activeStatePersistKey = nil
+                self.activePersistTask = nil
+                return self.pendingPersistStates.isEmpty == false
+            }
+
+            if shouldRestart {
+                await MainActor.run { [weak self] in
+                    self?.startPersistTaskIfNeeded()
+                }
             }
         }
+    }
+
+    func schedulePersistState(
+        workspaceId: String?,
+        state: AIChatPersistedState
+    ) {
+        let key = AIChatStatePersistKey(workspaceId: workspaceId)
+        self.pendingPersistStates[key] = state
+        self.startPersistTaskIfNeeded()
     }
 
     func schedulePersistState(state: AIChatPersistedState) {
@@ -576,6 +630,7 @@ final class AIChatStore {
         self.activeNewSessionTask = nil
         self.activeRemoteSessionProvisionRequest = nil
         self.activePersistTask = nil
+        self.activeStatePersistKey = nil
         self.pendingPersistStates = [:]
         self.activeDraftPersistTask = nil
         self.pendingDraftPersistStates = [:]

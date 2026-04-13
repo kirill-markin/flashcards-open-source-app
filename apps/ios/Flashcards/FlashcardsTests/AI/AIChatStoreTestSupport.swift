@@ -781,22 +781,43 @@ enum AIChatStoreTestSupport {
         originalWorkspaceId: String,
         replacementWorkspaceId: String
     ) async {
-        _ = await self.waitForCondition(
-            description: "workspace-switch post-sync settled",
-            timeout: self.workspaceSwitchToolRunPostSyncTimeout,
-            pollInterval: self.taskPollInterval,
-            condition: {
-                let originalState = historyStore.loadState(workspaceId: originalWorkspaceId)
-                let replacementState = historyStore.loadState(workspaceId: replacementWorkspaceId)
-                return store.activeToolRunPostSyncTask == nil
-                    && store.activePersistTask == nil
-                    && store.hasPendingStatePersistence() == false
-                    && store.chatSessionId == replacementState.chatSessionId
-                    && store.pendingToolRunPostSync
-                    && originalState.pendingToolRunPostSync == false
-                    && replacementState.pendingToolRunPostSync
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: self.workspaceSwitchToolRunPostSyncTimeout)
+
+        while true {
+            let originalState = historyStore.loadState(workspaceId: originalWorkspaceId)
+            let replacementState = historyStore.loadState(workspaceId: replacementWorkspaceId)
+            let isSettled = store.activeToolRunPostSyncTask == nil
+                && store.activePersistTask == nil
+                && store.hasPendingStatePersistence() == false
+                && store.chatSessionId == replacementState.chatSessionId
+                && store.pendingToolRunPostSync
+                && originalState.pendingToolRunPostSync == false
+                && replacementState.pendingToolRunPostSync
+
+            if isSettled {
+                return
             }
-        )
+
+            if clock.now >= deadline {
+                XCTFail(
+                    """
+                    Timed out waiting for workspace-switch post-sync settled. \
+                    activeToolRunPostSyncTask=\(store.activeToolRunPostSyncTask != nil) \
+                    activePersistTask=\(store.activePersistTask != nil) \
+                    hasPendingStatePersistence=\(store.hasPendingStatePersistence()) \
+                    chatSessionId=\(store.chatSessionId) \
+                    replacementChatSessionId=\(replacementState.chatSessionId) \
+                    storePendingToolRunPostSync=\(store.pendingToolRunPostSync) \
+                    originalPendingToolRunPostSync=\(originalState.pendingToolRunPostSync) \
+                    replacementPendingToolRunPostSync=\(replacementState.pendingToolRunPostSync)
+                    """
+                )
+                return
+            }
+
+            try? await Task.sleep(for: self.taskPollInterval)
+        }
     }
 
     @MainActor

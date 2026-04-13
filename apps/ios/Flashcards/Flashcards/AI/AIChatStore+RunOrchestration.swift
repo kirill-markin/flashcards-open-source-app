@@ -748,6 +748,13 @@ extension AIChatStore {
         }
 
         let origin = self.currentToolRunPostSyncOrigin()
+        let linkedSession: CloudLinkedSession
+        do {
+            linkedSession = try self.flashcardsStore.currentActiveCloudSessionForAI()
+        } catch {
+            self.flashcardsStore.globalErrorMessage = Flashcards.errorMessage(error: error)
+            return
+        }
         let postSyncTask = Task { @MainActor in
             defer {
                 self.activeToolRunPostSyncTask = nil
@@ -757,12 +764,13 @@ extension AIChatStore {
                 guard self.hasPendingToolRunPostSync(origin: origin) else {
                     return
                 }
-                let session = try await self.flashcardsStore.cloudSessionForAI()
                 guard self.hasPendingToolRunPostSync(origin: origin) else {
                     return
                 }
 
-                _ = try await self.flashcardsStore.runLinkedSync(linkedSession: session)
+                _ = try await self.flashcardsStore.runLinkedSyncPreservingSessionContext(
+                    linkedSession: linkedSession
+                )
                 await self.completeToolRunPostSyncAfterSuccess(origin: origin)
             } catch {
                 if self.isCurrentToolRunPostSyncOrigin(origin) && self.pendingToolRunPostSync {
