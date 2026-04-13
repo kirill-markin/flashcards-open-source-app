@@ -27,6 +27,10 @@ Update these package manifests together:
 
 For each of those packages, also update the matching top-level package version fields in the adjacent `package-lock.json`.
 
+If backend comments or compatibility notes explicitly describe the currently
+released first-party client version, update those references in the same
+change so the documented minimum-compatible client behavior stays accurate.
+
 ### Web
 
 The checked-in web package version lives in:
@@ -60,6 +64,10 @@ Tests that assert the Android client version must stay aligned too, especially:
 
 - `apps/android/data/local/src/test/java/com/flashcardsopensourceapp/data/local/ai/AiChatRemoteWireTest.kt`
 
+Search for additional Android test fixtures or AndroidTest support files that
+embed the app version as request metadata or expected wire values, and keep
+them aligned in the same change.
+
 Android `versionCode` is not bumped manually in the repo. Release builds receive `ANDROID_VERSION_CODE` from CI, and the workflow computes that value at release time.
 
 ### iOS
@@ -78,9 +86,21 @@ Do not introduce aligned literals, overrides, or fallbacks for the iOS app versi
 
 Under the current release process, the repo-tracked iOS build number is intentionally left alone during normal version bumps. Xcode Cloud handles signed archive and distribution separately, and the repository documentation does not define an in-repo build-number bump workflow.
 
+If backend or client-side compatibility comments name the current iOS or
+first-party app version explicitly, update those references too so the release
+notes in code still describe the current shipped floor.
+
 ## Release Metadata
 
-If store or release metadata for the touched platform includes the current app version, update it in the same change. Today that includes:
+If store or release metadata for the touched platform explicitly includes the
+current app version, update it in the same change. Do not edit store metadata
+files that do not actually mention a version just because they are release
+adjacent.
+
+Today, there is no always-versioned store metadata file that must change on
+every app release. Check the touched platform metadata files case by case.
+
+Versioned metadata examples, when present, include:
 
 - `docs/google-play-store-metadata.md`
 
@@ -138,15 +158,17 @@ when the user-facing effect is unclear.
 2. By default, treat that version as the shared project version for backend, web, Android, and iOS.
 3. Search the repo for the current version strings so you can see every manifest, runtime reader, and test expectation that still reports the old value for the release.
 4. Update all repo-owned version surfaces that participate in that release, and keep each platform's runtime-reported version aligned with its checked-in version source.
-5. Update release metadata that names the current app version for the touched platform.
-6. Re-run targeted searches to confirm the old app version strings are gone from the intended version surfaces.
-7. Run the smallest useful verification commands for the touched platforms.
+5. Update version-coupled test fixtures, Android instrumentation support values, and compatibility comments that explicitly name the released first-party client version.
+6. Update release metadata only when that metadata actually names the current app version for the touched platform.
+7. Re-run targeted searches to confirm the old app version strings are gone from the intended version surfaces and any version-coupled fixtures or comments you intended to update.
+8. Run the smallest useful verification commands for the touched platforms.
 
 ## Minimum Verification
 
 After a version bump, use targeted checks instead of broad test runs:
 
 - repo search for stale old-version literals in intended version surfaces
+- repo search for stale old-version literals in version-coupled test fixtures and compatibility comments when the repo uses them
 - `npm run build --prefix apps/web`
 - `./gradlew :app:assembleDebug` from `apps/android/`
 
