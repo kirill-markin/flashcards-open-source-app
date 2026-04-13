@@ -1,6 +1,6 @@
 APP_DISPLAY_NAME = Flashcards
 APP_BUNDLE_IDENTIFIER = com.flashcards-open-source-app.app
-APP_MARKETING_VERSION = 1.1.4
+APP_MARKETING_VERSION = 1.1.5
 // Keep the repository default build number stable. Signed archives should
 // override this locally or in CI when a higher App Store Connect build number is required.
 APP_CURRENT_PROJECT_VERSION = 1

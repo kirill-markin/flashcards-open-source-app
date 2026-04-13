@@ -1,6 +1,6 @@
 {
   "name": "flashcards-open-source-app-backend",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "private": true,
   "scripts": {
     "dev": "npm run bundle --prefix ../../api && tsx watch src/index.ts",
