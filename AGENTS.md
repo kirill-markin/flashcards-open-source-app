@@ -20,6 +20,8 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 - Android app: Kotlin + Jetpack Compose. Before making any Android change, read [apps/android/README.md](apps/android/README.md).
 - Terminal / AI-agent API client: supported via the canonical machine API entrypoint `GET https://api.flashcards-open-source-app.com/v1/` (the same discovery payload is also available at `GET https://api.flashcards-open-source-app.com/v1/agent`)
 
+For iOS App Store screenshots and derived marketing materials, read [apps/ios/docs/marketing-screenshots.md](apps/ios/docs/marketing-screenshots.md).
+
 We support the web app, the iOS app, the Android app, and the terminal-first AI-agent API flow. When making changes, we try to keep all supported clients aligned where relevant.
 The platform READMEs are part of the working agreement for client work: [apps/web/README.md](apps/web/README.md) for web changes, [apps/ios/README.md](apps/ios/README.md) for iOS changes, and [apps/android/README.md](apps/android/README.md) for Android changes.
 Before bumping release versions anywhere in the repo, read [docs/version-bump.md](docs/version-bump.md) and follow that flow so backend, web, Android, iOS, runtime-reported versions, and release metadata stay aligned.

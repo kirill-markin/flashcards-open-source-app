@@ -124,9 +124,9 @@ The grouped smoke suite still maps to the same top-level live-smoke contract as 
 
 ## Marketing Screenshots
 
-The iOS App Store screenshot generator is documented in [`docs/marketing-screenshots.md`](docs/marketing-screenshots.md).
+The iOS App Store screenshot generator and the derived iOS marketing-material builder are documented in [`docs/marketing-screenshots.md`](docs/marketing-screenshots.md).
 
-Use that document when you need to regenerate localized marketing PNGs. It explains the manual XCUITest entrypoints, wrapper scripts, locale selection, the requirement to use `iPhone 14 Plus` for the committed iPhone screenshot set, simulator-family-to-output-folder behavior, and the expected output paths under `apps/ios/docs/media/app-store-screenshots/`.
+Use that document when you need to regenerate localized App Store screenshots or build the derived horizontal marketing materials from screenshots 1, 2, 3, and 4. It explains the manual XCUITest entrypoints, wrapper scripts, locale selection, the requirement to use `iPhone 14 Plus` for the committed iPhone screenshot set, simulator-family-to-output-folder behavior, and the expected output paths under `apps/ios/docs/media/app-store-screenshots/` and `apps/ios/docs/media/marketing-materials/`.
 
 ## CI/CD
 
