@@ -283,8 +283,8 @@
 .container {
   width: 100%;
   min-width: 0;
-  min-height: calc(100dvh - 176px);
-  padding: var(--chat-shell-pane-top, 20px) 0 var(--chat-shell-pane-bottom, 36px);
+  min-height: calc(100dvh - 104px);
+  padding: var(--chat-shell-pane-top, 20px) 0 var(--chat-shell-pane-bottom, 20px);
 }
 
 @media (min-width: 769px) {
@@ -345,7 +345,7 @@
   }
 
   .container {
-    min-height: calc(100dvh - 148px);
+    min-height: calc(100dvh - 104px);
   }
 
   .brand-full {
