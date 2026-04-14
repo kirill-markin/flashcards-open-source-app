@@ -1,8 +1,8 @@
 .review-screen-panel {
   grid-template-rows: auto minmax(0, 1fr);
-  height: min(760px, calc(100dvh - 176px));
-  min-height: min(760px, calc(100dvh - 176px));
-  max-height: calc(100dvh - 156px);
+  height: min(760px, calc(100dvh - 104px));
+  min-height: min(760px, calc(100dvh - 104px));
+  max-height: calc(100dvh - 84px);
   overflow: hidden;
 }
 
