@@ -886,3 +886,20 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (min-width: 1025px) {
+  .chat-layout-shell-sidebar-open .review-screen-panel {
+    height: var(--chat-shell-pane-height);
+    min-height: var(--chat-shell-pane-height);
+    max-height: none;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .chat-layout-shell-sidebar-open .review-screen-panel {
+    height: var(--chat-shell-pane-height);
+    min-height: var(--chat-shell-pane-height);
+    max-height: none;
+    overflow-y: auto;
+  }
+}

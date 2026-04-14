@@ -284,7 +284,17 @@
   width: 100%;
   min-width: 0;
   min-height: calc(100dvh - 176px);
-  padding: 20px 0 36px;
+  padding: var(--chat-shell-pane-top, 20px) 0 var(--chat-shell-pane-bottom, 36px);
+}
+
+@media (min-width: 769px) {
+  .chat-layout-shell-sidebar-open .chat-main-content > .container {
+    min-height: var(--chat-shell-content-height);
+  }
+
+  .chat-layout-shell-sidebar-open .chat-main-content > .container > .panel {
+    min-height: var(--chat-shell-pane-height);
+  }
 }
 
 .page-state {
