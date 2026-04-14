@@ -2,7 +2,7 @@
 
 AI-powered open-source flashcards app for iOS, Android, and web.
 
-![Flashcards Open Source App screenshots](docs/images/ios-app-screenshots.jpeg)
+![Flashcards Open Source App screenshots](docs/images/ios-app-screenshots.png)
 
 Flashcards Open Source App is an open-source AI-powered flashcards app built for serious daily study on iOS, Android, and the web. Use it to prepare for exams, learn vocabulary, memorize technical terms and facts, improve your material with AI, and review with spaced repetition. The project also includes an external agent API for terminal and AI-agent workflows.
 
