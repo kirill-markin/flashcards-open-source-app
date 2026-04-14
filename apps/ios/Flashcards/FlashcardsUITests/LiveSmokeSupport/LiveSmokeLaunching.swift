@@ -101,7 +101,15 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func waitForSelectedTabScreen(selectedTab: LiveSmokeSelectedTab, timeout: TimeInterval) throws {
-        try self.assertScreenVisible(screen: selectedTab.screen, timeout: timeout)
+        switch selectedTab {
+        case .review:
+            try self.assertElementExists(
+                identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+                timeout: timeout
+            )
+        case .cards, .ai, .settings:
+            try self.assertScreenVisible(screen: selectedTab.screen, timeout: timeout)
+        }
     }
 
     @MainActor
