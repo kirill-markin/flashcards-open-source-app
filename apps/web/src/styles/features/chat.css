@@ -5,6 +5,11 @@
 }
 
 .chat-layout-shell {
+  --chat-shell-pane-top: 20px;
+  --chat-shell-pane-bottom: 20px;
+  --chat-shell-content-height: calc(100dvh - 176px);
+  --chat-shell-pane-offset: calc(var(--chat-shell-pane-top) + var(--chat-shell-pane-bottom));
+  --chat-shell-pane-height: calc(var(--chat-shell-content-height) - var(--chat-shell-pane-offset));
   display: flex;
   flex: 1;
   min-height: 0;
@@ -44,8 +49,8 @@
   flex: 0 0 auto;
   width: 560px;
   min-width: 320px;
-  margin: 20px 0 36px;
-  height: calc(100% - 56px);
+  margin: var(--chat-shell-pane-top) 0 var(--chat-shell-pane-bottom);
+  height: var(--chat-shell-pane-height);
   align-self: stretch;
 }
 
