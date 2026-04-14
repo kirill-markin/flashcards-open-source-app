@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { PassThrough } from "node:stream";
-import { runLiveStreamWithDependencies } from "./chat/live";
-import type { ChatComposerSuggestion } from "./chat/composerSuggestions";
-import type { ChatRunSnapshot } from "./chat/runs";
-import type { PersistedChatMessageItem } from "./chat/store";
-import type { ContentPart } from "./chat/types";
+import { runLiveStreamWithDependencies } from "./live";
+import type { ChatComposerSuggestion } from "./composerSuggestions";
+import type { ChatRunSnapshot } from "./runs";
+import type { PersistedChatMessageItem } from "./store";
+import type { ContentPart } from "./types";
 
 function makeAssistantMessage(
   params: Readonly<{

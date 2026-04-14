@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { HttpError } from "./errors";
-import { createChatRoutes } from "./routes/chat";
-import type { RequestContext } from "./server/requestContext";
-import type { ChatSessionSnapshot, PersistedChatMessageItem } from "./chat/store";
+import { HttpError } from "../errors";
+import { createChatRoutes } from "../routes/chat";
+import type { RequestContext } from "../server/requestContext";
+import type { ChatSessionSnapshot, PersistedChatMessageItem } from "./store";
 
 const SESSION_ONE = "11111111-1111-4111-8111-111111111111";
 

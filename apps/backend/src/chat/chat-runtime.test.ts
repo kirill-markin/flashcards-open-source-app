@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ChatRunRowNotFoundError } from "./chat/errors";
-import type { ChatRuntimeDependencies, StartPersistedChatRunParams } from "./chat/runtime";
-import { runPersistedChatSessionWithDeps } from "./chat/runtime";
-import type { OpenAILoopCompletion, OpenAILoopEventSink, StartOpenAILoopParams } from "./chat/openai/loop";
+import { ChatRunRowNotFoundError } from "./errors";
+import type { ChatRuntimeDependencies, StartPersistedChatRunParams } from "./runtime";
+import { runPersistedChatSessionWithDeps } from "./runtime";
+import type { OpenAILoopCompletion, OpenAILoopEventSink, StartOpenAILoopParams } from "./openai/loop";
 
 type StructuredLogRecord = Readonly<Record<string, unknown>>;
 
