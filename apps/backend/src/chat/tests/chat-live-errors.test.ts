@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HttpError } from "../errors";
+import { HttpError } from "../../errors";
 import {
   CHAT_LIVE_RUN_ID_REQUIRED_CODE,
   createChatLiveErrorResponse,
-} from "./liveErrors";
-import { handleLiveRequest } from "./liveRequest";
+} from "../liveErrors";
+import { handleLiveRequest } from "../liveRequest";
 
 test("handleLiveRequest rejects a live attach request without runId using a stable error code", async () => {
   await assert.rejects(
