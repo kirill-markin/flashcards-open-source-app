@@ -48,7 +48,7 @@ export type ResolvedLocaleState = Readonly<{
   source: ResolvedLocaleSource;
 }>;
 
-const LOCALE_PREFERENCE_STORAGE_KEY = "flashcards-web-locale-preference";
+export const LOCALE_PREFERENCE_STORAGE_KEY = "flashcards-web-locale-preference";
 
 function buildBrowserLanguageCandidates(snapshot: BrowserLanguageSnapshot): ReadonlyArray<BrowserLanguageCandidate> {
   const candidates: Array<BrowserLanguageCandidate> = [];
