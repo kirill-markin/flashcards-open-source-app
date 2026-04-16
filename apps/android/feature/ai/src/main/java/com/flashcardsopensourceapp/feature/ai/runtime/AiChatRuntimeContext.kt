@@ -49,6 +49,7 @@ internal class AiChatRuntimeContext(
     private var isToolRunPostSyncInFlight: Boolean = false
     val runtimeStateMutable = MutableStateFlow(makeDefaultAiDraftState())
     var activeSendJob: Job? = null
+    var activeDictationJob: Job? = null
     var activeLiveJob: Job? = null
     var activeWarmUpJob: Job? = null
     var activeBootstrapJob: Job? = null

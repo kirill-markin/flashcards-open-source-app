@@ -15,13 +15,15 @@ import kotlinx.coroutines.launch
 
 internal class AiChatSessionCoordinator(
     private val context: AiChatRuntimeContext,
-    private val detachLiveStream: (String) -> Unit
+    private val detachLiveStream: (String) -> Unit,
+    private val cancelActiveDictation: (String) -> Unit
 ) {
     fun startFreshConversation(
         draftMessage: String,
         pendingAttachments: List<AiChatAttachment>,
         shouldFocusComposer: Boolean
     ) {
+        cancelActiveDictation("AI dictation cancelled because a new chat was requested.")
         val currentState = context.runtimeStateMutable.value
         context.persistDraft(snapshot = currentState)
         val targetSessionId = makeAiChatSessionId()

@@ -14,12 +14,10 @@ import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import com.flashcardsopensourceapp.feature.ai.AiEntryPrefill
 import com.flashcardsopensourceapp.feature.ai.aiEntryPrefillPrompt
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 internal class AiChatRuntime(
     scope: CoroutineScope,
@@ -50,6 +48,7 @@ internal class AiChatRuntime(
     private lateinit var lifecycleCoordinator: AiChatRuntimeLifecycleCoordinator
     private lateinit var sessionCoordinator: AiChatSessionCoordinator
     private lateinit var sendCoordinator: AiChatSendCoordinator
+    private lateinit var dictationCoordinator: AiChatDictationCoordinator
 
     init {
         liveStreamCoordinator = AiChatLiveStreamCoordinator(
@@ -68,6 +67,9 @@ internal class AiChatRuntime(
             context = context,
             detachLiveStream = { reason ->
                 liveStreamCoordinator.detachLiveStream(reason = reason)
+            },
+            cancelActiveDictation = { reason ->
+                dictationCoordinator.cancelActiveTranscription(reason = reason)
             }
         )
         bootstrapCoordinator = AiChatBootstrapCoordinator(
@@ -90,11 +92,18 @@ internal class AiChatRuntime(
             },
             detachLiveStream = { reason ->
                 liveStreamCoordinator.detachLiveStream(reason = reason)
+            },
+            cancelActiveDictation = { reason ->
+                dictationCoordinator.cancelActiveTranscription(reason = reason)
             }
         )
         sendCoordinator = AiChatSendCoordinator(
             context = context,
             liveStreamCoordinator = liveStreamCoordinator,
+            sessionCoordinator = sessionCoordinator
+        )
+        dictationCoordinator = AiChatDictationCoordinator(
+            context = context,
             sessionCoordinator = sessionCoordinator
         )
     }
@@ -166,46 +175,15 @@ internal class AiChatRuntime(
     }
 
     fun startDictationPermissionRequest() {
-        if (runtimeStateMutable.value.conversationBootstrapState != AiConversationBootstrapState.READY) {
-            return
-        }
-        if (runtimeStateMutable.value.composerPhase != AiComposerPhase.IDLE) {
-            return
-        }
-
-        runtimeStateMutable.update { state ->
-            state.copy(
-                dictationState = AiChatDictationState.REQUESTING_PERMISSION,
-                activeAlert = null,
-                errorMessage = ""
-            )
-        }
+        dictationCoordinator.startDictationPermissionRequest()
     }
 
     fun startDictationRecording() {
-        if (runtimeStateMutable.value.conversationBootstrapState != AiConversationBootstrapState.READY) {
-            return
-        }
-        if (runtimeStateMutable.value.composerPhase != AiComposerPhase.IDLE) {
-            return
-        }
-
-        runtimeStateMutable.update { state ->
-            state.copy(
-                dictationState = AiChatDictationState.RECORDING,
-                activeAlert = null,
-                errorMessage = ""
-            )
-        }
+        dictationCoordinator.startDictationRecording()
     }
 
     fun cancelDictation() {
-        runtimeStateMutable.update { state ->
-            state.copy(
-                dictationState = AiChatDictationState.IDLE,
-                repairStatus = null
-            )
-        }
+        dictationCoordinator.cancelDictation()
     }
 
     fun transcribeRecordedAudio(
@@ -213,80 +191,11 @@ internal class AiChatRuntime(
         mediaType: String,
         audioBytes: ByteArray
     ) {
-        if (runtimeStateMutable.value.conversationBootstrapState != AiConversationBootstrapState.READY) {
-            return
-        }
-        if (runtimeStateMutable.value.dictationState != AiChatDictationState.RECORDING) {
-            return
-        }
-
-        runtimeStateMutable.update { state ->
-            state.copy(
-                dictationState = AiChatDictationState.TRANSCRIBING,
-                activeAlert = null,
-                errorMessage = ""
-            )
-        }
-
-        context.scope.launch {
-            try {
-                val ensuredSession = sessionCoordinator.ensureSessionIdIfNeeded()
-                val transcription = context.aiChatRepository.transcribeAudio(
-                    workspaceId = runtimeStateMutable.value.workspaceId,
-                    sessionId = ensuredSession.sessionId,
-                    fileName = fileName,
-                    mediaType = mediaType,
-                    audioBytes = audioBytes
-                )
-                require(transcription.sessionId == ensuredSession.sessionId) {
-                    "AI dictation returned mismatched sessionId. expectedSessionId=${ensuredSession.sessionId} responseSessionId=${transcription.sessionId}"
-                }
-                val transcript = transcription.text.trim()
-
-                require(transcript.isNotEmpty()) {
-                    context.textProvider.noSpeechRecorded
-                }
-
-                runtimeStateMutable.update { state ->
-                    state.copy(
-                        persistedState = state.persistedState.copy(chatSessionId = ensuredSession.sessionId),
-                        draftMessage = appendTranscriptToDraft(
-                            currentDraft = state.draftMessage,
-                            transcript = transcript
-                        ),
-                        dictationState = AiChatDictationState.IDLE,
-                        activeAlert = null,
-                        errorMessage = ""
-                    )
-                }
-                persistCurrentState()
-            } catch (error: CancellationException) {
-                AiChatDiagnosticsLogger.info(
-                    event = "dictation_transcription_cancelled",
-                    fields = listOf(
-                        "workspaceId" to runtimeStateMutable.value.workspaceId,
-                        "cloudState" to currentCloudState().name,
-                        "chatSessionId" to runtimeStateMutable.value.persistedState.chatSessionId,
-                        "message" to error.message
-                    )
-                )
-                throw error
-            } catch (error: Exception) {
-                val message = makeAiUserFacingErrorMessage(
-                    error = error,
-                    surface = AiErrorSurface.DICTATION,
-                    configuration = currentServerConfiguration(),
-                    textProvider = context.textProvider
-                )
-                runtimeStateMutable.update { state ->
-                    state.copy(
-                        dictationState = AiChatDictationState.IDLE,
-                        activeAlert = context.textProvider.generalError(message = message),
-                        errorMessage = ""
-                    )
-                }
-            }
-        }
+        dictationCoordinator.transcribeRecordedAudio(
+            fileName = fileName,
+            mediaType = mediaType,
+            audioBytes = audioBytes
+        )
     }
 
     fun clearConversation() {
@@ -566,14 +475,6 @@ internal class AiChatRuntime(
 
     private fun currentCloudState(): CloudAccountState {
         return context.currentCloudState()
-    }
-
-    private fun currentServerConfiguration(): CloudServiceConfiguration {
-        return context.currentServerConfiguration()
-    }
-
-    private fun persistCurrentState() {
-        context.persistCurrentState()
     }
 
     private fun persistCurrentDraft(snapshot: AiChatRuntimeState = runtimeStateMutable.value) {
