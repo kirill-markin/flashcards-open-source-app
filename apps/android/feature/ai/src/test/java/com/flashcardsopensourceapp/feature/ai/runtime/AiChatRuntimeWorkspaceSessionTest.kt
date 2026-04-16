@@ -3,6 +3,8 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
+import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.makeAiChatCardAttachment
@@ -10,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedSt
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -194,6 +197,65 @@ class AiChatRuntimeWorkspaceSessionTest {
             AiConversationBootstrapState.READY,
             runtime.state.value.conversationBootstrapState
         )
+    }
+
+    @Test
+    fun accessContextSwitchCancelsInFlightTranscriptionAndIgnoresLateResult() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.setPersistedState(
+            workspaceId = defaultTestWorkspaceId,
+            state = makeDefaultAiChatPersistedState()
+        )
+        repository.setPersistedState(
+            workspaceId = secondaryTestWorkspaceId,
+            state = makeDefaultAiChatPersistedState()
+        )
+        repository.nextEnsureSessionId = "dictation-session-1"
+        repository.transcribeAudioResponse = AiChatTranscriptionResult(
+            text = "late transcript",
+            sessionId = "dictation-session-1"
+        )
+        val transcribeGate = CompletableDeferred<Unit>()
+        repository.transcribeAudioGates += transcribeGate
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.DISCONNECTED
+        )
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        advanceUntilIdle()
+
+        runtime.startDictationRecording()
+        runtime.transcribeRecordedAudio(
+            fileName = "clip.m4a",
+            mediaType = "audio/m4a",
+            audioBytes = byteArrayOf(1, 2, 3)
+        )
+        runCurrent()
+
+        assertEquals(AiChatDictationState.TRANSCRIBING, runtime.state.value.dictationState)
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = secondaryTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        runCurrent()
+
+        transcribeGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(secondaryTestWorkspaceId, runtime.state.value.workspaceId)
+        assertEquals(AiChatDictationState.IDLE, runtime.state.value.dictationState)
+        assertEquals("", runtime.state.value.draftMessage)
+        assertTrue(runtime.state.value.persistedState.chatSessionId.isBlank())
+        assertEquals(listOf(defaultTestWorkspaceId), repository.transcribeAudioWorkspaceIds)
     }
 
     @Test

@@ -216,17 +216,20 @@ internal class FakeAiChatRepository : AiChatRepository {
     val prepareSessionRequests: MutableList<String?> = mutableListOf()
     val prepareSessionGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val createNewSessionGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
+    val transcribeAudioGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val createNewSessionResponses: ArrayDeque<AiChatSessionSnapshot> = ArrayDeque()
     val savePersistedStateGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val persistedStates: MutableMap<String?, AiChatPersistedState> = mutableMapOf()
     val draftStates: MutableMap<Pair<String?, String?>, AiChatDraftState> = mutableMapOf()
     val ensureSessionRequests: MutableList<String> = mutableListOf()
+    val transcribeAudioWorkspaceIds: MutableList<String?> = mutableListOf()
     val transcribeAudioSessionIds: MutableList<String> = mutableListOf()
     var nextEnsureSessionId: String = "ensured-session-1"
     var transcribeAudioResponse: AiChatTranscriptionResult = AiChatTranscriptionResult(
         text = "transcribed speech",
         sessionId = nextEnsureSessionId
     )
+    var transcribeAudioError: Exception? = null
     var startRunError: Exception? = null
     var loadBootstrapCalls: Int = 0
     var startRunCalls: Int = 0
@@ -388,7 +391,15 @@ internal class FakeAiChatRepository : AiChatRepository {
         mediaType: String,
         audioBytes: ByteArray
     ): AiChatTranscriptionResult {
+        transcribeAudioWorkspaceIds += workspaceId
         transcribeAudioSessionIds += sessionId
+        if (transcribeAudioGates.isNotEmpty()) {
+            transcribeAudioGates.removeFirst().await()
+        }
+        val error = transcribeAudioError
+        if (error != null) {
+            throw error
+        }
         return transcribeAudioResponse
     }
 

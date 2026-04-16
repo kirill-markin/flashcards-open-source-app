@@ -105,6 +105,126 @@ class AiChatRuntimeConversationResetAndSendTest {
     }
 
     @Test
+    fun cancelDictationDuringTranscribingPreventsTranscriptAppend() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.nextEnsureSessionId = "dictation-session-1"
+        repository.transcribeAudioResponse = AiChatTranscriptionResult(
+            text = "late transcript",
+            sessionId = "dictation-session-1"
+        )
+        val transcribeGate = CompletableDeferred<Unit>()
+        repository.transcribeAudioGates += transcribeGate
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.DISCONNECTED
+        )
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        advanceUntilIdle()
+
+        runtime.startDictationRecording()
+        runtime.transcribeRecordedAudio(
+            fileName = "clip.m4a",
+            mediaType = "audio/m4a",
+            audioBytes = byteArrayOf(1, 2, 3)
+        )
+        runCurrent()
+
+        assertEquals(AiChatDictationState.TRANSCRIBING, runtime.state.value.dictationState)
+
+        runtime.cancelDictation()
+        runCurrent()
+
+        assertEquals(AiChatDictationState.IDLE, runtime.state.value.dictationState)
+        assertEquals("", runtime.state.value.draftMessage)
+
+        transcribeGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals("dictation-session-1", runtime.state.value.persistedState.chatSessionId)
+        assertEquals("", runtime.state.value.draftMessage)
+        assertEquals(listOf("dictation-session-1"), repository.transcribeAudioSessionIds)
+    }
+
+    @Test
+    fun dictationEmptyTranscriptReturnsIdleWithAlert() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.nextEnsureSessionId = "dictation-session-1"
+        repository.transcribeAudioResponse = AiChatTranscriptionResult(
+            text = "   ",
+            sessionId = "dictation-session-1"
+        )
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.DISCONNECTED
+        )
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        advanceUntilIdle()
+
+        runtime.startDictationRecording()
+        runtime.transcribeRecordedAudio(
+            fileName = "clip.m4a",
+            mediaType = "audio/m4a",
+            audioBytes = byteArrayOf(1, 2, 3)
+        )
+        advanceUntilIdle()
+
+        assertEquals(AiChatDictationState.IDLE, runtime.state.value.dictationState)
+        assertEquals("", runtime.state.value.draftMessage)
+        val alert = runtime.state.value.activeAlert as AiAlertState.GeneralError
+        assertEquals("No speech was recorded.", alert.message)
+    }
+
+    @Test
+    fun dictationMismatchedSessionIdReturnsIdleWithAlert() = runTest {
+        val repository = FakeAiChatRepository()
+        repository.nextEnsureSessionId = "dictation-session-1"
+        repository.transcribeAudioResponse = AiChatTranscriptionResult(
+            text = "dictated text",
+            sessionId = "different-session"
+        )
+        val runtime = makeRuntimeWithCloudState(
+            scope = this,
+            repository = repository,
+            autoSyncEventRepository = FakeAutoSyncEventRepository(),
+            cloudState = CloudAccountState.DISCONNECTED
+        )
+
+        runtime.updateAccessContext(
+            makeAccessContext(workspaceId = defaultTestWorkspaceId).copy(
+                cloudState = CloudAccountState.DISCONNECTED
+            )
+        )
+        advanceUntilIdle()
+
+        runtime.startDictationRecording()
+        runtime.transcribeRecordedAudio(
+            fileName = "clip.m4a",
+            mediaType = "audio/m4a",
+            audioBytes = byteArrayOf(1, 2, 3)
+        )
+        advanceUntilIdle()
+
+        assertEquals(AiChatDictationState.IDLE, runtime.state.value.dictationState)
+        assertEquals("", runtime.state.value.draftMessage)
+        val alert = runtime.state.value.activeAlert as AiAlertState.GeneralError
+        assertTrue(alert.message.contains("mismatched sessionId"))
+    }
+
+    @Test
     fun missingSessionSendFailureKeepsSessionIdAndRestoresDraft() = runTest {
         val repository = FakeAiChatRepository()
         repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(

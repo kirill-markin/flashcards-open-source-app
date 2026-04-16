@@ -11,7 +11,8 @@ import kotlinx.coroutines.launch
 internal class AiChatRuntimeLifecycleCoordinator(
     private val context: AiChatRuntimeContext,
     private val startConversationBootstrap: (Boolean, com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics?) -> Unit,
-    private val detachLiveStream: (String) -> Unit
+    private val detachLiveStream: (String) -> Unit,
+    private val cancelActiveDictation: (String) -> Unit
 ) {
     fun updateAccessContext(accessContext: AiAccessContext) {
         val previousAccessContext = context.activeAccessContext
@@ -20,6 +21,7 @@ internal class AiChatRuntimeLifecycleCoordinator(
             retryBootstrapIfLoadingWithoutOwner(accessContext = accessContext)
             return
         }
+        cancelActiveDictation("AI dictation cancelled because access context changed.")
         context.activeSendJob?.cancel(
             cause = CancellationException("AI send cancelled because access context changed.")
         )
