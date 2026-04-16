@@ -1,8 +1,8 @@
+import { getNormalizedCognitoErrorType } from "./cognitoErrors.js";
+
 export function isRejectedPasswordSignIn(error: unknown): boolean {
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  const cognitoType = error instanceof Error && "cognitoType" in error && typeof error.cognitoType === "string"
-    ? error.cognitoType.toLowerCase()
-    : "";
+  const cognitoType = getNormalizedCognitoErrorType(error);
 
   return (
     cognitoType.includes("notauthorizedexception")

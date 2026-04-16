@@ -17,6 +17,7 @@ import {
   type AgentOtpChallengeLookup,
 } from "../server/agentOtpChallenges.js";
 import { signInWithPassword, verifyEmailOtp, type TokenResult } from "../server/cognitoAuth.js";
+import { getNormalizedCognitoErrorType } from "../server/cognitoErrors.js";
 import { log } from "../server/logger.js";
 import { getPublicApiBaseUrl } from "../server/publicUrls.js";
 import {
@@ -55,11 +56,8 @@ type AgentVerifyCodeDependencies = Readonly<{
 
 function classifyVerifyFailure(error: unknown): VerifyFailureResult {
   const message = error instanceof Error ? error.message : String(error);
-  const cognitoType = error instanceof Error && "cognitoType" in error && typeof error.cognitoType === "string"
-    ? error.cognitoType
-    : "";
   const normalizedMessage = message.toLowerCase();
-  const normalizedType = cognitoType.toLowerCase();
+  const normalizedType = getNormalizedCognitoErrorType(error);
 
   if (
     normalizedMessage.includes("session can only be used once")

@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { createRefreshSessionApp } from "./routes/refreshSession.js";
 import { createRefreshTokenApp } from "./routes/refreshToken.js";
 import type { AuthAppEnv } from "./server/apiErrors.js";
+import { createCognitoTypedError, type CognitoTypedError } from "./server/cognitoErrors.js";
 
 type RefreshResult = Readonly<{
   idToken: string;
@@ -29,16 +30,12 @@ function createTestApp(routeApp: Hono<AuthAppEnv>): Hono<AuthAppEnv> {
   return app;
 }
 
-function createTerminalRefreshFailure(): Error & { cognitoType: string } {
-  const error = new Error("Refresh token is invalid") as Error & { cognitoType: string };
-  error.cognitoType = "NotAuthorizedException";
-  return error;
+function createTerminalRefreshFailure(): CognitoTypedError {
+  return createCognitoTypedError("Refresh token is invalid", "NotAuthorizedException");
 }
 
-function createNonTerminalRefreshFailure(): Error & { cognitoType: string } {
-  const error = new Error("Cognito internal error") as Error & { cognitoType: string };
-  error.cognitoType = "InternalErrorException";
-  return error;
+function createNonTerminalRefreshFailure(): CognitoTypedError {
+  return createCognitoTypedError("Cognito internal error", "InternalErrorException");
 }
 
 function getSetCookieValues(response: Response): ReadonlyArray<string> {

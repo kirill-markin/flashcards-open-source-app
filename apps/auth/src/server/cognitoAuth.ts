@@ -5,15 +5,16 @@
  * Uses USER_AUTH flow with EMAIL_OTP challenge (Essentials tier).
  */
 import { randomBytes } from "node:crypto";
+import {
+  createCognitoTypedError,
+  getCognitoErrorType,
+  getNormalizedCognitoErrorType,
+} from "./cognitoErrors.js";
 import { log, maskEmail } from "./logger.js";
 
 type CognitoErrorResponse = Readonly<{
   __type?: string;
   message?: string;
-}>;
-
-type CognitoError = Error & Readonly<{
-  cognitoType?: string;
 }>;
 
 type InitiateAuthResult = Readonly<{
@@ -69,19 +70,11 @@ const cognitoFetch = async (
     const error = await response.json() as CognitoErrorResponse;
     const errorType = error.__type ?? "";
     const errorMessage = error.message ?? `Cognito ${target} failed: ${response.status}`;
-    const err = new Error(errorMessage);
-    (err as Error & { cognitoType: string }).cognitoType = errorType;
-    throw err;
+    throw createCognitoTypedError(errorMessage, errorType);
   }
 
   return response.json() as Promise<Record<string, unknown>>;
 };
-
-function getNormalizedCognitoErrorType(error: unknown): string {
-  return error instanceof Error && "cognitoType" in error && typeof (error as CognitoError).cognitoType === "string"
-    ? (error as CognitoError).cognitoType.toLowerCase()
-    : "";
-}
 
 type CognitoFetchFunction = (
   target: string,
@@ -171,13 +164,13 @@ export const initiateEmailOtp = async (email: string): Promise<InitiateAuthResul
   try {
     result = await initiateAuth();
   } catch (err) {
-    const cognitoType = (err as Error & { cognitoType?: string }).cognitoType;
+    const cognitoType = getCognitoErrorType(err);
     if (cognitoType === "UserNotFoundException") {
       try {
         await signUpUser(email);
       } catch (signUpErr) {
         // Concurrent request already created the user — safe to proceed
-        const signUpType = (signUpErr as Error & { cognitoType?: string }).cognitoType;
+        const signUpType = getCognitoErrorType(signUpErr);
         if (signUpType !== "UsernameExistsException") throw signUpErr;
       }
       result = await initiateAuth();
