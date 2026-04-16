@@ -19,10 +19,12 @@ import type { AppEnv } from "../app";
 
 type SystemRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
+  loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
 }>;
 
 export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+  const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
 
   app.get("/", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
   app.get("/agent", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
@@ -39,7 +41,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   });
 
   app.get("/me", async (context) => {
-    const { requestAuthInputs, requestContext } = await loadRequestContextFromRequest(
+    const { requestAuthInputs, requestContext } = await loadRequestContextFromRequestFn(
       context.req.raw,
       options.allowedOrigins,
     );

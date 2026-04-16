@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AuthRedirectError,
@@ -11,7 +12,9 @@ import {
   startChatRun,
   stopChatRun,
 } from "./api";
-import { persistLocalePreference } from "./i18n/runtime";
+import { isAuthResetRequired } from "./accountDeletion";
+import { INSTALLATION_ID_STORAGE_KEY } from "./clientIdentity";
+import { LOCALE_PREFERENCE_STORAGE_KEY, persistLocalePreference } from "./i18n/runtime";
 
 function createStorageMock(): Storage {
   const state = new Map<string, string>();
@@ -36,6 +39,41 @@ function createStorageMock(): Storage {
       state.set(key, value);
     },
   };
+}
+
+function seedLocalBrowserState(): void {
+  window.localStorage.setItem(INSTALLATION_ID_STORAGE_KEY, "installation-1");
+  window.localStorage.setItem(LOCALE_PREFERENCE_STORAGE_KEY, "ar");
+  window.localStorage.setItem("flashcards-warm-start-snapshot", JSON.stringify({
+    version: 1,
+  }));
+  window.localStorage.setItem("flashcards-chat-drafts::workspace-1", JSON.stringify({
+    version: 1,
+  }));
+}
+
+function expectLocalBrowserStateCleared(): void {
+  expect(window.localStorage.getItem("flashcards-warm-start-snapshot")).toBeNull();
+  expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).toBeNull();
+  expect(window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY)).toBe("installation-1");
+  expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("ar");
+}
+
+function expectLocalBrowserStatePreserved(): void {
+  expect(window.localStorage.getItem("flashcards-warm-start-snapshot")).not.toBeNull();
+  expect(window.localStorage.getItem("flashcards-chat-drafts::workspace-1")).not.toBeNull();
+  expect(window.localStorage.getItem(INSTALLATION_ID_STORAGE_KEY)).toBe("installation-1");
+  expect(window.localStorage.getItem(LOCALE_PREFERENCE_STORAGE_KEY)).toBe("ar");
+}
+
+function mockBlockedDeleteDatabase(): ReturnType<typeof vi.spyOn> {
+  return vi.spyOn(indexedDB, "deleteDatabase").mockImplementation(() => {
+    const request = {} as IDBOpenDBRequest;
+    queueMicrotask(() => {
+      request.onblocked?.(new Event("blocked"));
+    });
+    return request;
+  });
 }
 
 function setNavigatorLanguages(languages: ReadonlyArray<string>, language: string): void {
@@ -206,8 +244,10 @@ describe("auth locale login URL plumbing", () => {
   });
 
   it("uses the stored app locale when auth recovery redirects to login", async () => {
+    seedLocalBrowserState();
     persistLocalePreference("ar");
     setNavigatorLanguages(["fr-FR", "pt-BR"], "fr-FR");
+    const deleteDatabaseSpy = vi.spyOn(indexedDB, "deleteDatabase");
 
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
@@ -222,7 +262,128 @@ describe("auth locale login URL plumbing", () => {
     await expect(getSession()).rejects.toBeInstanceOf(AuthRedirectError);
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(deleteDatabaseSpy).toHaveBeenCalledTimes(1);
     expect(new URL(redirectedUrl).searchParams.get("locale")).toBe("ar");
+    await vi.waitFor(() => {
+      expectLocalBrowserStateCleared();
+      expect(isAuthResetRequired()).toBe(false);
+    });
+  });
+
+  it("treats a second 401 after refresh recovery as an auth redirect", async () => {
+    seedLocalBrowserState();
+    const deleteDatabaseSpy = vi.spyOn(indexedDB, "deleteDatabase");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(createSessionResponse())
+      .mockResolvedValueOnce(new Response(null, { status: 401 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    let redirectedUrl = "";
+    setNavigationHandlerForTests((url: string) => {
+      redirectedUrl = url;
+    });
+
+    await expect(getSession()).rejects.toBeInstanceOf(AuthRedirectError);
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(deleteDatabaseSpy).toHaveBeenCalledTimes(1);
+    expect(new URL(redirectedUrl).pathname).toBe("/login");
+    await vi.waitFor(() => {
+      expectLocalBrowserStateCleared();
+      expect(isAuthResetRequired()).toBe(false);
+    });
+  });
+
+  it("surfaces a refresh-service 500 without redirecting to login", async () => {
+    seedLocalBrowserState();
+    const deleteDatabaseSpy = vi.spyOn(indexedDB, "deleteDatabase");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        error: "Authentication failed. Try again.",
+        code: "INTERNAL_ERROR",
+      }), {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    let redirectedUrl = "";
+    setNavigationHandlerForTests((url: string) => {
+      redirectedUrl = url;
+    });
+
+    await expect(getSession()).rejects.toThrow("Authentication failed. Try again.");
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(deleteDatabaseSpy).not.toHaveBeenCalled();
+    expect(redirectedUrl).toBe("");
+    expectLocalBrowserStatePreserved();
+  });
+
+  it("deduplicates cleanup for parallel requests that end in one auth redirect", async () => {
+    seedLocalBrowserState();
+    const deleteDatabaseSpy = vi.spyOn(indexedDB, "deleteDatabase");
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 401 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const redirectedUrls: Array<string> = [];
+    setNavigationHandlerForTests((url: string) => {
+      redirectedUrls.push(url);
+    });
+
+    const results = await Promise.allSettled([getSession(), getSession()]);
+
+    expect(results).toHaveLength(2);
+    for (const result of results) {
+      expect(result.status).toBe("rejected");
+      if (result.status === "rejected") {
+        expect(result.reason).toBeInstanceOf(AuthRedirectError);
+      }
+    }
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(deleteDatabaseSpy).toHaveBeenCalledTimes(1);
+    expect(redirectedUrls).toHaveLength(1);
+    await vi.waitFor(() => {
+      expectLocalBrowserStateCleared();
+      expect(isAuthResetRequired()).toBe(false);
+    });
+  });
+
+  it("redirects to login even when IndexedDB cleanup is blocked", async () => {
+    seedLocalBrowserState();
+    const deleteDatabaseSpy = mockBlockedDeleteDatabase();
+    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 401 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    let redirectedUrl = "";
+    setNavigationHandlerForTests((url: string) => {
+      redirectedUrl = url;
+    });
+
+    await expect(getSession()).rejects.toBeInstanceOf(AuthRedirectError);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(deleteDatabaseSpy).toHaveBeenCalledTimes(1);
+    expect(new URL(redirectedUrl).pathname).toBe("/login");
+    await vi.waitFor(() => {
+      expectLocalBrowserStateCleared();
+      expect(isAuthResetRequired()).toBe(true);
+    });
+    expect(consoleWarnSpy).toHaveBeenCalledWith("auth_reset_cleanup_deferred", {
+      errorMessage: "Failed to delete IndexedDB: delete request was blocked",
+    });
   });
 });
 

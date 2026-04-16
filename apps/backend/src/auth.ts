@@ -1,4 +1,13 @@
 import { CognitoJwtVerifier } from "aws-jwt-verify";
+import {
+  CognitoJwtInvalidClientIdError,
+  CognitoJwtInvalidTokenUseError,
+  JwtInvalidClaimError,
+  JwtInvalidSignatureAlgorithmError,
+  JwtInvalidSignatureError,
+  JwtParseError,
+  JwtWithoutValidKidError,
+} from "aws-jwt-verify/error";
 import { authenticateAgentApiKey } from "./agentApiKeys";
 import { getAuthConfig } from "./authConfig";
 import { unsafeQuery } from "./dbUnsafe";
@@ -32,6 +41,16 @@ export type AuthenticatedUserIdentity = Readonly<{
   email: string;
   cognitoUsername: string | null;
 }>;
+
+export function isTerminalJwtAuthFailure(error: unknown): boolean {
+  return error instanceof JwtParseError
+    || error instanceof JwtInvalidSignatureError
+    || error instanceof JwtInvalidSignatureAlgorithmError
+    || error instanceof JwtInvalidClaimError
+    || error instanceof CognitoJwtInvalidTokenUseError
+    || error instanceof CognitoJwtInvalidClientIdError
+    || error instanceof JwtWithoutValidKidError;
+}
 
 let verifier: ReturnType<typeof CognitoJwtVerifier.create> | undefined;
 
@@ -120,8 +139,12 @@ async function verifyIdToken(token: string): Promise<AuthenticatedUserIdentity> 
     const payload = await getVerifier().verify(token);
     return extractVerifiedIdTokenIdentity(payload as VerifiedIdTokenPayload);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    throw new AuthError(401, `Invalid token: ${message}`);
+    if (isTerminalJwtAuthFailure(err)) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new AuthError(401, `Invalid token: ${message}`);
+    }
+
+    throw err;
   }
 }
 

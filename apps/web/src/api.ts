@@ -23,6 +23,7 @@ import {
   parseWorkspaceEnvelopeResponse,
   parseWorkspacesEnvelopeResponse,
 } from "./apiContracts";
+import { markAuthResetRequired, runPendingAuthResetCleanup } from "./accountDeletion";
 import { getAppConfig } from "./config";
 import { webAppVersion } from "./clientIdentity";
 import { getDefaultLocale, resolveSupportedLocale } from "./i18n/locales";
@@ -84,6 +85,11 @@ export { ApiContractError };
 type SessionCsrfState = "unknown" | "session" | "non-session";
 type AuthRecoveryMode = "allow" | "skip";
 type NavigateToUrl = (url: string) => void;
+type PrepareForAuthRedirect = () => void;
+type RequestOptions = Readonly<{
+  authRecoveryMode: AuthRecoveryMode;
+  prepareForAuthRedirect: PrepareForAuthRedirect | null;
+}>;
 type ChatResumeRequestDiagnostics = Readonly<{
   resumeAttemptId: number;
 }>;
@@ -95,10 +101,30 @@ let sessionCsrfToken: string | null = null;
 let sessionCsrfState: SessionCsrfState = "unknown";
 let sessionRecoveryPromise: Promise<void> | null = null;
 let redirectInFlight = false;
+let authRedirectPreparationPromise: Promise<void> | null = null;
 let navigationHandler: NavigateToUrl | null = null;
 
-const allowAuthRecovery: Readonly<{ authRecoveryMode: AuthRecoveryMode }> = {
+/**
+ * Browser-local app state is discarded only once the client has already
+ * concluded that silent session recovery failed and an interactive login is
+ * required. Successful refresh paths never call this hook.
+ */
+function prepareForAuthRedirect(): void {
+  markAuthResetRequired();
+  if (authRedirectPreparationPromise !== null) {
+    return;
+  }
+
+  authRedirectPreparationPromise = runPendingAuthResetCleanup()
+    .then((): void => undefined)
+    .finally(() => {
+      authRedirectPreparationPromise = null;
+    });
+}
+
+const allowAuthRecovery: RequestOptions = {
   authRecoveryMode: "allow",
+  prepareForAuthRedirect,
 };
 /**
  * Returns `true` when the web API client has already started the auth redirect
@@ -125,6 +151,7 @@ export function resetApiClientStateForTests(): void {
   sessionCsrfState = "unknown";
   sessionRecoveryPromise = null;
   redirectInFlight = false;
+  authRedirectPreparationPromise = null;
   navigationHandler = null;
 }
 
@@ -211,9 +238,13 @@ export function getPreferredAuthUiLocale(): AuthUiLocale {
  * The current route is preserved so the user returns to the same screen after
  * refresh or interactive sign-in completes on the auth origin.
  */
-function redirectToLogin(): never {
+async function redirectToLogin(prepareForAuthRedirect: PrepareForAuthRedirect | null): Promise<never> {
   const redirectUrl = buildLoginUrl(getCurrentReturnUrl(), getPreferredAuthUiLocale());
   resetSessionState();
+
+  if (prepareForAuthRedirect !== null) {
+    prepareForAuthRedirect();
+  }
 
   if (redirectInFlight === false) {
     redirectInFlight = true;
@@ -330,7 +361,7 @@ async function refreshBrowserSession(): Promise<boolean> {
  * Performs a single shared auth recovery operation for all concurrent browser
  * requests that observe the same expired session token.
  */
-async function recoverSession(): Promise<void> {
+async function recoverSession(prepareForAuthRedirect: PrepareForAuthRedirect | null): Promise<void> {
   const activeRecovery = sessionRecoveryPromise;
   if (activeRecovery !== null) {
     return activeRecovery;
@@ -339,14 +370,14 @@ async function recoverSession(): Promise<void> {
   const recoveryTask = (async (): Promise<void> => {
     const refreshed = await refreshBrowserSession();
     if (refreshed === false) {
-      redirectToLogin();
+      await redirectToLogin(prepareForAuthRedirect);
     }
 
     try {
       await loadSessionInfoWithoutRecovery();
     } catch (error) {
       if (error instanceof ApiError && error.statusCode === 401) {
-        redirectToLogin();
+        await redirectToLogin(prepareForAuthRedirect);
       }
 
       throw error;
@@ -368,21 +399,26 @@ async function recoverSession(): Promise<void> {
 async function requestResponse(
   pathname: string,
   init: RequestInit,
-  options: Readonly<{ authRecoveryMode: AuthRecoveryMode }>,
+  options: RequestOptions,
 ): Promise<Response> {
   const response = await rawRequestResponse(pathname, init);
   if (response.status !== 401 || options.authRecoveryMode === "skip") {
     return response;
   }
 
-  await recoverSession();
-  return rawRequestResponse(pathname, init);
+  await recoverSession(options.prepareForAuthRedirect);
+  const retriedResponse = await rawRequestResponse(pathname, init);
+  if (retriedResponse.status === 401) {
+    await redirectToLogin(options.prepareForAuthRedirect);
+  }
+
+  return retriedResponse;
 }
 
 async function requestJson(
   pathname: string,
   init: RequestInit,
-  options: Readonly<{ authRecoveryMode: AuthRecoveryMode }>,
+  options: RequestOptions,
 ): Promise<unknown> {
   const response = await requestResponse(pathname, init, options);
   return parseJsonPayload(response);
@@ -409,7 +445,9 @@ export async function revalidateSession(): Promise<SessionInfo> {
  * from one expired session token without forcing a full page reload.
  */
 async function loadSessionInfoWithRecovery(): Promise<SessionInfo> {
-  const session = parseSessionInfoResponse(await requestJson("/me", { method: "GET" }, allowAuthRecovery), "GET /me");
+  const session = parseSessionInfoResponse(await requestJson("/me", {
+    method: "GET",
+  }, allowAuthRecovery), "GET /me");
   setSessionCsrfToken(session.csrfToken, session.authTransport);
   redirectInFlight = false;
   return session;

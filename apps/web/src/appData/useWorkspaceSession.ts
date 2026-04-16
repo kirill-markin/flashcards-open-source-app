@@ -17,7 +17,11 @@ import {
   selectWorkspace,
   resetWorkspaceProgress as resetWorkspaceProgressRequest,
 } from "../api";
-import { clearAllLocalBrowserData, consumeAccountDeletedMarker } from "../accountDeletion";
+import {
+  clearAllLocalBrowserData,
+  consumeAccountDeletedMarker,
+  runPendingAuthResetCleanup,
+} from "../accountDeletion";
 import { getStableInstallationId } from "../clientIdentity";
 import { loadCloudSettings, putCloudSettings } from "../localDb/cloudSettings";
 import type {
@@ -356,6 +360,13 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
     setErrorMessage("");
 
     try {
+      const pendingAuthResetCleanup = await runPendingAuthResetCleanup();
+      if (pendingAuthResetCleanup.completed === false) {
+        logWorkspaceTransition("auth_reset_cleanup_deferred", {
+          errorMessage: pendingAuthResetCleanup.error?.message,
+        });
+      }
+
       if (consumeLoggedOutMarker()) {
         await clearAllLocalBrowserData();
       }
@@ -369,10 +380,8 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
         return;
       }
 
-      const [currentSession, persistedCloudSettings] = await Promise.all([
-        getSession(),
-        loadCloudSettings(),
-      ]);
+      const currentSession = await getSession();
+      const persistedCloudSettings = await loadCloudSettings();
       if (
         persistedCloudSettings !== null
         && persistedCloudSettings.linkedUserId !== null
@@ -392,11 +401,23 @@ export function useWorkspaceSession(params: UseWorkspaceSessionParams): Workspac
       setSessionVerificationState("verified");
     } catch (error) {
       if (isAuthRedirectError(error)) {
+        logWorkspaceTransition("session_bootstrap_redirected", {
+          redirected: true,
+          sessionVerificationState,
+        });
+        setSession(null);
+        setActiveWorkspace(null);
+        setAvailableWorkspaces([]);
+        setCloudSettings(null);
         setSessionLoadState("redirecting");
         return;
       }
 
       const nextErrorMessage = getErrorMessage(error);
+      logWorkspaceTransitionError("session_bootstrap_failed", {
+        errorMessage: nextErrorMessage,
+        sessionVerificationState,
+      });
       setSessionLoadState("error");
       setSessionErrorMessage(nextErrorMessage);
     }

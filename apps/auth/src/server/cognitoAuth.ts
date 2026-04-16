@@ -12,6 +12,10 @@ type CognitoErrorResponse = Readonly<{
   message?: string;
 }>;
 
+type CognitoError = Error & Readonly<{
+  cognitoType?: string;
+}>;
+
 type InitiateAuthResult = Readonly<{
   session: string;
 }>;
@@ -72,6 +76,12 @@ const cognitoFetch = async (
 
   return response.json() as Promise<Record<string, unknown>>;
 };
+
+function getNormalizedCognitoErrorType(error: unknown): string {
+  return error instanceof Error && "cognitoType" in error && typeof (error as CognitoError).cognitoType === "string"
+    ? (error as CognitoError).cognitoType.toLowerCase()
+    : "";
+}
 
 type CognitoFetchFunction = (
   target: string,
@@ -293,6 +303,12 @@ export const refreshTokens = async (refreshToken: string): Promise<RefreshResult
 
   return extractRefreshResult(result, "Cognito REFRESH_TOKEN_AUTH");
 };
+
+export function isTerminalRefreshFailure(error: unknown): boolean {
+  const normalizedType = getNormalizedCognitoErrorType(error);
+  return normalizedType.includes("notauthorizedexception")
+    || normalizedType.includes("refreshtokenreuseexception");
+}
 
 export const revokeToken = async (refreshToken: string): Promise<void> => {
   await cognitoFetch("RevokeToken", {

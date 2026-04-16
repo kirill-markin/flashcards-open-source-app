@@ -5,46 +5,60 @@
  */
 import { Hono } from "hono";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "../server/apiErrors.js";
-import { refreshTokens } from "../server/cognitoAuth.js";
+import { isTerminalRefreshFailure, refreshTokens } from "../server/cognitoAuth.js";
 import { log } from "../server/logger.js";
 
-const app = new Hono<AuthAppEnv>();
+type RefreshTokenDependencies = Readonly<{
+  refreshTokens: (refreshToken: string) => Promise<Awaited<ReturnType<typeof refreshTokens>>>;
+}>;
 
-app.post("/api/refresh-token", async (c) => {
-  let body: { refreshToken?: string };
-  try {
-    body = await c.req.json<{ refreshToken?: string }>();
-  } catch {
-    return jsonAuthError(c, 400, "INVALID_REQUEST", "Invalid request.");
-  }
+export function createRefreshTokenApp(dependencies: RefreshTokenDependencies): Hono<AuthAppEnv> {
+  const app = new Hono<AuthAppEnv>();
 
-  const refreshToken = typeof body.refreshToken === "string" ? body.refreshToken : "";
+  app.post("/api/refresh-token", async (c) => {
+    let body: { refreshToken?: string };
+    try {
+      body = await c.req.json<{ refreshToken?: string }>();
+    } catch {
+      return jsonAuthError(c, 400, "INVALID_REQUEST", "Invalid request.");
+    }
 
-  if (refreshToken === "") {
-    return jsonAuthError(c, 400, "REFRESH_TOKEN_MISSING", "Sign in again.");
-  }
+    const refreshToken = typeof body.refreshToken === "string" ? body.refreshToken : "";
 
-  const requestId = getRequestId(c);
-  try {
-    const tokens = await refreshTokens(refreshToken);
-    return c.json({
-      ok: true,
-      idToken: tokens.idToken,
-      expiresIn: tokens.expiresIn,
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    log({
-      domain: "auth",
-      action: "refresh_token_error",
-      requestId,
-      route: c.req.path,
-      statusCode: 401,
-      code: "REFRESH_TOKEN_FAILED",
-      error: message,
-    });
-    return jsonAuthError(c, 401, "REFRESH_TOKEN_FAILED", "Sign in again.");
-  }
+    if (refreshToken === "") {
+      return jsonAuthError(c, 401, "REFRESH_TOKEN_MISSING", "Sign in again.");
+    }
+
+    const requestId = getRequestId(c);
+    try {
+      const tokens = await dependencies.refreshTokens(refreshToken);
+      return c.json({
+        ok: true,
+        idToken: tokens.idToken,
+        expiresIn: tokens.expiresIn,
+      });
+    } catch (error) {
+      if (isTerminalRefreshFailure(error)) {
+        const message = error instanceof Error ? error.message : String(error);
+        log({
+          domain: "auth",
+          action: "refresh_token_error",
+          requestId,
+          route: c.req.path,
+          statusCode: 401,
+          code: "REFRESH_TOKEN_FAILED",
+          error: message,
+        });
+        return jsonAuthError(c, 401, "REFRESH_TOKEN_FAILED", "Sign in again.");
+      }
+
+      throw error;
+    }
+  });
+
+  return app;
+}
+
+export default createRefreshTokenApp({
+  refreshTokens,
 });
-
-export default app;
