@@ -12,6 +12,7 @@ import { deleteCookie, getCookie } from "hono/cookie";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "../server/apiErrors.js";
 import { verifyEmailOtp } from "../server/cognitoAuth.js";
 import { setBrowserSessionCookies } from "../server/browserSession.js";
+import { getNormalizedCognitoErrorType } from "../server/cognitoErrors.js";
 import { verify } from "../server/crypto.js";
 import { log } from "../server/logger.js";
 import {
@@ -56,11 +57,8 @@ type VerifyCodeDependencies = Readonly<{
 
 function classifyVerifyFailure(error: unknown): VerifyFailureResult {
   const message = error instanceof Error ? error.message : String(error);
-  const cognitoType = error instanceof Error && "cognitoType" in error && typeof error.cognitoType === "string"
-    ? error.cognitoType
-    : "";
   const normalizedMessage = message.toLowerCase();
-  const normalizedType = cognitoType.toLowerCase();
+  const normalizedType = getNormalizedCognitoErrorType(error);
 
   if (
     normalizedMessage.includes("session can only be used once")
