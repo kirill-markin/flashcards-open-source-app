@@ -7,5 +7,6 @@ initializeLangfuseTelemetry();
 export const handler: Handler<ChatWorkerEvent, void> = async (event, context) => {
   await handleChatWorkerEvent(event, {
     lambdaRequestId: context.awsRequestId ?? null,
+    getRemainingTimeInMillis: (): number => context.getRemainingTimeInMillis(),
   });
 };

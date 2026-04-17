@@ -14,6 +14,7 @@ export type ChatWorkerEvent = Readonly<{
 
 type ChatWorkerExecutionContext = Readonly<{
   lambdaRequestId: string | null;
+  getRemainingTimeInMillis: () => number;
 }>;
 
 /**
@@ -86,6 +87,7 @@ export async function handleChatWorkerEvent(
     localMessages: claimedRun.localMessages,
     turnInput: claimedRun.turnInput,
     diagnostics: claimedRun.diagnostics,
+    getRemainingTimeInMillis: executionContext.getRemainingTimeInMillis,
   });
 
   logChatWorkerLifecycleEvent("chat_worker_finish", logContext, {
