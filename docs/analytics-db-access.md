@@ -107,16 +107,16 @@ The baseline schema migration creates a dedicated login role and its read-only g
 
 The baseline schema migration also enforces the persistent runtime policy for this role:
 
-- `NOSUPERUSER`
 - `NOCREATEDB`
 - `NOCREATEROLE`
 - `NOINHERIT`
-- `NOREPLICATION`
 - `default_transaction_read_only = on`
 - `statement_timeout = '30s'`
 - `lock_timeout = '5s'`
 - `idle_in_transaction_session_timeout = '60s'`
 - `CONNECTION LIMIT 3`
+
+Privileged role attributes such as `NOSUPERUSER` and `NOREPLICATION` are currently outside the normal migration path on RDS/PostgreSQL 18 and are not managed here.
 
 Important current behavior: this role is intentionally persistent across later bastion disablement because it is part of the baseline schema. The disable flow only removes the operator SSH access path.
 

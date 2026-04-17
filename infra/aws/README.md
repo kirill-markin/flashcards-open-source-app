@@ -108,7 +108,7 @@ That bastion is tunnel-only for the configured analytical SSH user: it allows SS
 
 The `reporting_readonly` password secret is also part of the baseline infrastructure in every environment. When this optional feature is disabled, only the bastion host and SSH-specific outputs are removed; the underlying `reporting_readonly` database principal and its current password secret remain part of the baseline environment.
 
-The reporting password secret now uses a stable baseline Secrets Manager name, but the supported operator discovery path remains the helper script or the stack outputs so operators always resolve the current deployed secret ARN. The database schema owns the persistent reporting_readonly role policy, while the deployed migration runner uses the secret only to rotate the current password.
+The reporting password secret now uses a stable baseline Secrets Manager name, but the supported operator discovery path remains the helper script or the stack outputs so operators always resolve the current deployed secret ARN. The database schema owns the reporting_readonly login role, read-only grants, and non-privileged role settings, while the deployed migration runner uses the secret only to rotate the current password.
 
 Details, granted database permissions, the helper script, manual tunnel workflow, and Metabase setup flow:
 
