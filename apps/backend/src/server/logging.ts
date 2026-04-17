@@ -138,6 +138,23 @@ export function logCloudRouteEvent(
   }));
 }
 
+export function logAdminQueryEvent(
+  payload: Readonly<{
+    requestId: string;
+    adminEmail: string;
+    statementCount: number;
+    durationMs: number;
+    success: boolean;
+    sqlFingerprint: string;
+  }>,
+): void {
+  console.log(JSON.stringify({
+    domain: "backend",
+    action: "admin_query",
+    ...payload,
+  }));
+}
+
 export function summarizeValidationIssues(
   error: HttpError | unknown,
 ): ReadonlyArray<Readonly<{ path: string; code: string }>> {

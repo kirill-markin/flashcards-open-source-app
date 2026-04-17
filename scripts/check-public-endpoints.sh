@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
-# Check public custom-domain endpoints for backend, auth, and web hosting.
+# Check public custom-domain endpoints for backend, auth, web, and optional admin hosting.
 
 set -euo pipefail
 
 STACK_NAME="FlashcardsOpenSourceApp"
 MAX_ATTEMPTS=30
 SLEEP_SECONDS=5
+SKIP_STATIC_SITES="false"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --stack-name) STACK_NAME="$2"; shift 2 ;;
     --max-attempts) MAX_ATTEMPTS="$2"; shift 2 ;;
     --sleep-seconds) SLEEP_SECONDS="$2"; shift 2 ;;
+    --skip-static-sites) SKIP_STATIC_SITES="true"; shift 1 ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -336,11 +338,24 @@ ME_URL="${API_PUBLIC_BASE%/}/me"
 
 check_url "${API_PUBLIC_BASE}/health" "200" "public API health"
 check_url "${AUTH_PUBLIC_BASE}/health" "200" "public auth health"
-check_url "${WEB_PUBLIC_BASE}" "200" "public web root"
 check_url "${API_PUBLIC_BASE}/auth/health" "404" "legacy public auth tombstone"
 check_api_json_endpoint "$ME_URL" "$WEB_PUBLIC_BASE" "public API session endpoint"
 check_api_json_endpoint "$WORKSPACES_URL" "$WEB_PUBLIC_BASE" "public API workspaces endpoint"
 check_api_preflight "$WORKSPACES_URL" "$WEB_PUBLIC_BASE" "GET" "content-type" "public API workspaces endpoint"
+
+if [[ "$SKIP_STATIC_SITES" != "true" ]]; then
+  check_url "${WEB_PUBLIC_BASE}" "200" "public web root"
+  ADMIN_PUBLIC_BASE=$(get_stack_output "AdminPublicBase")
+
+  if [[ -z "$ADMIN_PUBLIC_BASE" || "$ADMIN_PUBLIC_BASE" == "None" ]]; then
+    echo "ERROR: AdminPublicBase output not found. The supported admin public URL must be configured before release." >&2
+    exit 1
+  else
+    check_api_json_endpoint "$ME_URL" "$ADMIN_PUBLIC_BASE" "public API session endpoint from admin origin"
+    check_api_preflight "$WORKSPACES_URL" "$ADMIN_PUBLIC_BASE" "GET" "content-type" "public API workspaces endpoint from admin origin"
+    check_url "${ADMIN_PUBLIC_BASE}" "200" "public admin root"
+  fi
+fi
 
 if [[ -n "$APEX_REDIRECT_TARGET" && "$APEX_REDIRECT_TARGET" != "None" && -n "$BASE_DOMAIN" && "$BASE_DOMAIN" != "None" ]]; then
   check_redirect_url "https://${BASE_DOMAIN}" "308" "https://app.${BASE_DOMAIN}/" "public apex redirect"

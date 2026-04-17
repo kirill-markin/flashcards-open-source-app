@@ -107,4 +107,4 @@ ALTER ROLE reporting_readonly SET default_transaction_read_only = on;
 ALTER ROLE reporting_readonly SET statement_timeout = '30s';
 ALTER ROLE reporting_readonly SET lock_timeout = '5s';
 ALTER ROLE reporting_readonly SET idle_in_transaction_session_timeout = '60s';
-ALTER ROLE reporting_readonly CONNECTION LIMIT 3;
+ALTER ROLE reporting_readonly CONNECTION LIMIT 10;

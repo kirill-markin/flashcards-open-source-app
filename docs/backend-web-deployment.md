@@ -8,6 +8,7 @@ make db-up
 npm install --prefix apps/auth
 npm install --prefix apps/backend
 npm install --prefix apps/web
+npm install --prefix apps/admin
 ```
 
 Run the dev servers in separate terminals:
@@ -16,6 +17,7 @@ Run the dev servers in separate terminals:
 make auth-dev
 make backend-dev
 make web-dev
+make admin-dev
 ```
 
 This starts:
@@ -25,6 +27,7 @@ This starts:
 3. `auth` on port `8081`
 4. `backend` on port `8080`
 5. `web` on port `3000`
+6. `admin` on port `3001`
 
 By default `AUTH_MODE=none`, so backend accepts local requests as `userId=local`. Set `AUTH_MODE=cognito` and fill the Cognito values in `.env` to test the real OTP flow locally.
 
@@ -93,9 +96,10 @@ The first deploy flow:
 - stores required runtime secrets in AWS Secrets Manager
 - stores optional AI and demo auth secrets in AWS Secrets Manager when configured
 - requests ACM certificates for API, auth, web, and apex redirect when needed
+- requests the ACM certificate for `admin.<domain>` when needed
 - assembles `infra/aws/cdk.context.local.json` as the local CDK input
 - bootstraps and deploys CDK
-- uploads web assets
+- uploads web and admin assets
 - configures Cloudflare DNS when requested
 - populates missing deploy config in GitHub Actions variables without overwriting existing values
 
@@ -103,10 +107,13 @@ Public domains after deploy:
 
 - `https://<domain>`
 - `https://app.<domain>`
+- `https://admin.<domain>`
 - `https://api.<domain>/v1`
 - `https://auth.<domain>`
 
-If the apex domain already points to an existing site, bootstrap leaves it untouched and manages only `app.<domain>`, `api.<domain>`, and `auth.<domain>`.
+If the apex domain already points to an existing site, bootstrap leaves it untouched and manages only `app.<domain>`, `admin.<domain>`, `api.<domain>`, and `auth.<domain>`.
+
+For the admin app, the supported browser entrypoints are `http://localhost:3001` and `https://admin.<domain>`. Treat `admin.<domain>` as the only supported deployed browser entrypoint.
 
 ## Later secret updates
 
@@ -118,6 +125,7 @@ bash scripts/setup-github.sh
 ```
 
 Run only the secret setup scripts you actually need. `setup-github.sh` rediscovers the current AWS ARNs and fills in any missing matching GitHub variables afterward, leaving existing values untouched.
+This bootstrap-only rule also applies to `CDK_ADMIN_EMAILS`: after the first setup, change that GitHub variable manually when you need to change the deployed bootstrap admin list.
 
 ## Optional review/demo auth
 
@@ -136,19 +144,23 @@ We intentionally keep Cognito user creation manual instead of adding an automate
 GitHub Actions uses one dedicated `AWS/Web Release` workflow on push to `main`. The repository stores:
 
 - GitHub variables for all non-secret deploy config, including certificate ARNs and secret ARNs
+- `CDK_ADMIN_EMAILS` as the GitHub-managed deploy input for bootstrap admin grants
 - one GitHub secret for `AWS_DEPLOY_ROLE_ARN`
 
 The release workflow assembles its own `cdk.context.local.json` inside the job from GitHub deploy config.
+Root `.env` is not the live CI source of truth after bootstrap. If `CDK_ADMIN_EMAILS` must change for deployed environments, edit it manually in GitHub before the next release.
 
 For AWS-backed changes, the main-branch order is:
 
 1. detect whether AWS-related paths changed
-2. run the pre-deploy API/auth/backend/web/infra checks inside `AWS/Web Release`, including the auth route tests
-3. deploy backend, auth, infra, and web to production
-4. run the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts`
-5. run the external agent API smoke in `scripts/check-agent-api-smoke.sh`
-6. finish green only if both post-deploy checks pass
-7. finish red if either post-deploy smoke fails, without rolling production back
+2. run the pre-deploy build/test checks inside `AWS/Web Release`, including the auth route tests
+3. deploy backend, auth, infra, web, and admin hosting to production
+4. publish `apps/web` and `apps/admin` assets after CDK deploy
+5. run the deployed API/custom-domain checks after the full release is in place
+6. run the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts`
+7. run the external agent API smoke in `scripts/check-agent-api-smoke.sh`
+8. finish green only if the post-deploy checks pass
+9. finish red if a post-deploy smoke fails, without rolling production back
 
 Manual `workflow_dispatch` runs use the same embedded pre-deploy checks before the release starts.
 
@@ -161,6 +173,8 @@ Cross-client live smoke references:
 - Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
 
 After pushing to `main`, watch `AWS/Web Release` until the release either finishes green or fails clearly after deploy. This pipeline is intentionally fix-forward only: a failed post-deploy smoke leaves the deployed AWS/Web release in place, marks that run failed, and the next push must still be allowed to deploy.
+
+The workflow does not perform an automated production admin login smoke in v1. Use the manual checklist in [docs/admin-app.md](./admin-app.md) after deploy.
 
 Guest AI quota is configured separately:
 

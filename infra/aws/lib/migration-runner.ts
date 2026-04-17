@@ -14,6 +14,7 @@ export interface MigrationRunnerProps {
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   authDbSecret: cdk.aws_secretsmanager.Secret;
   reportingDbSecret: cdk.aws_secretsmanager.ISecret;
+  adminEmails: string | undefined;
 }
 
 const dbAssetPaths = {
@@ -60,6 +61,7 @@ export function migrationRunner(scope: Construct, props: MigrationRunnerProps): 
       DB_REPORTING_SECRET_ARN: props.reportingDbSecret.secretArn,
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
+      ADMIN_EMAILS: props.adminEmails ?? "",
     },
   });
 

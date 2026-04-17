@@ -37,7 +37,7 @@ type LoadRequestContextDependencies = Readonly<{
 }>;
 
 export function getAllowedOrigins(): Array<string> {
-  const raw = process.env.BACKEND_ALLOWED_ORIGINS ?? "http://localhost:3000";
+  const raw = process.env.BACKEND_ALLOWED_ORIGINS ?? "http://localhost:3000,http://localhost:3001";
   return raw
     .split(",")
     .map((value) => value.trim())

@@ -14,6 +14,17 @@ interface RuntimeRoleConfigurationResult {
   configured: boolean;
 }
 
+interface AdminGrantRow {
+  email: string;
+  source: string;
+  revoked_at: Date | string | null;
+}
+
+interface BootstrapAdminGrantPlan {
+  emailsToActivate: ReadonlyArray<string>;
+  emailsToRevoke: ReadonlyArray<string>;
+}
+
 export interface ManagedRuntimeRole {
   roleName: string;
   rolePassword: string;
@@ -35,6 +46,73 @@ function getRequiredEnv(name: string): string {
 
 function getSqlLiteral(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
+}
+
+function normalizeAdminEmail(email: string): string {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (normalizedEmail === "") {
+    throw new Error("ADMIN_EMAILS must not contain an empty email value");
+  }
+
+  if (!normalizedEmail.includes("@")) {
+    throw new Error(`ADMIN_EMAILS contains an invalid email value: ${email}`);
+  }
+
+  return normalizedEmail;
+}
+
+export function parseBootstrapAdminEmails(rawValue: string | undefined): ReadonlyArray<string> {
+  if (rawValue === undefined || rawValue.trim() === "") {
+    return [];
+  }
+
+  return Array.from(new Set(
+    rawValue
+      .split(",")
+      .map((value) => value.trim())
+      .filter((value) => value !== "")
+      .map((value) => normalizeAdminEmail(value)),
+  )).sort((left, right) => left.localeCompare(right));
+}
+
+export function planBootstrapAdminGrantSync(
+  existingRows: ReadonlyArray<AdminGrantRow>,
+  bootstrapAdminEmails: ReadonlyArray<string>,
+): BootstrapAdminGrantPlan {
+  const bootstrapEmails = new Set(bootstrapAdminEmails);
+  const emailsToActivate: Array<string> = [];
+  const emailsToRevoke: Array<string> = [];
+
+  for (const email of bootstrapAdminEmails) {
+    const existingRow = existingRows.find((row) => row.email === email);
+    if (existingRow === undefined) {
+      emailsToActivate.push(email);
+      continue;
+    }
+
+    if (existingRow.source === "manual") {
+      continue;
+    }
+
+    if (existingRow.revoked_at !== null) {
+      emailsToActivate.push(email);
+    }
+  }
+
+  for (const existingRow of existingRows) {
+    if (existingRow.source !== "bootstrap") {
+      continue;
+    }
+
+    if (!bootstrapEmails.has(existingRow.email) && existingRow.revoked_at === null) {
+      emailsToRevoke.push(existingRow.email);
+    }
+  }
+
+  return {
+    emailsToActivate,
+    emailsToRevoke,
+  };
 }
 
 async function listSqlFiles(directoryPath: string): Promise<ReadonlyArray<string>> {
@@ -165,6 +243,56 @@ function getViewsDirectoryPath(): string {
   return path.join(__dirname, "db", "views");
 }
 
+async function loadExistingAdminGrantRows(client: pg.Client): Promise<ReadonlyArray<AdminGrantRow>> {
+  const result = await client.query<AdminGrantRow>(
+    [
+      "SELECT email, source, revoked_at",
+      "FROM auth.admin_users",
+    ].join(" "),
+  );
+
+  return result.rows;
+}
+
+async function syncBootstrapAdminGrants(
+  client: pg.Client,
+  rawBootstrapAdminEmails: string | undefined,
+): Promise<void> {
+  const bootstrapAdminEmails = parseBootstrapAdminEmails(rawBootstrapAdminEmails);
+  const existingRows = await loadExistingAdminGrantRows(client);
+  const plan = planBootstrapAdminGrantSync(existingRows, bootstrapAdminEmails);
+
+  for (const email of plan.emailsToActivate) {
+    await client.query(
+      [
+        "INSERT INTO auth.admin_users (email, granted_at, granted_by, revoked_at, note, source)",
+        "VALUES ($1, now(), $2, NULL, NULL, 'bootstrap')",
+        "ON CONFLICT (email) DO UPDATE",
+        "SET granted_at = now(),",
+        "    granted_by = EXCLUDED.granted_by,",
+        "    revoked_at = NULL,",
+        "    note = NULL,",
+        "    source = 'bootstrap'",
+        "WHERE auth.admin_users.source = 'bootstrap'",
+      ].join(" "),
+      [email, "bootstrap:ADMIN_EMAILS"],
+    );
+  }
+
+  for (const email of plan.emailsToRevoke) {
+    await client.query(
+      [
+        "UPDATE auth.admin_users",
+        "SET revoked_at = now()",
+        "WHERE email = $1",
+        "  AND source = 'bootstrap'",
+        "  AND revoked_at IS NULL",
+      ].join(" "),
+      [email],
+    );
+  }
+}
+
 export async function runMigrations(): Promise<MigrationRunResult> {
   const ownerSecretArn = getRequiredEnv("DB_OWNER_SECRET_ARN");
   const backendSecretArn = getRequiredEnv("DB_BACKEND_SECRET_ARN");
@@ -189,6 +317,7 @@ export async function runMigrations(): Promise<MigrationRunResult> {
     await ensureSchemaMigrationsTable(client);
     const appliedMigrations = await applyPendingMigrations(client, getMigrationsDirectoryPath());
     const appliedViews = await applyViews(client, getViewsDirectoryPath());
+    await syncBootstrapAdminGrants(client, process.env.ADMIN_EMAILS);
     const managedRuntimeRoles = getManagedRuntimeRoles({
       backendAppPassword: backendCredentials.password,
       authAppPassword: authCredentials.password,

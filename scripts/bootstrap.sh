@@ -30,6 +30,7 @@ fi
 echo "=== Install dependencies ==="
 npm ci --silent --prefix "${ROOT_DIR}/api"
 npm ci --silent --prefix "${ROOT_DIR}/apps/backend"
+npm ci --silent --prefix "${ROOT_DIR}/apps/admin"
 npm ci --silent --prefix "${ROOT_DIR}/apps/web"
 npm ci --silent --prefix "$CDK_DIR"
 
@@ -68,6 +69,10 @@ bash "${ROOT_DIR}/scripts/check-api-health.sh" --stack-name "$STACK_NAME"
 echo "=== Build and deploy web ==="
 npm run build --silent --prefix "${ROOT_DIR}/apps/web"
 bash "${ROOT_DIR}/scripts/deploy-web.sh" --stack-name "$STACK_NAME"
+
+echo "=== Build and deploy admin ==="
+npm run build --silent --prefix "${ROOT_DIR}/apps/admin"
+bash "${ROOT_DIR}/scripts/deploy-admin.sh" --stack-name "$STACK_NAME"
 
 echo ""
 echo "=== Bootstrap complete ==="

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Configure Cloudflare DNS for API, auth, and web custom domains from stack outputs.
+# Configure Cloudflare DNS for API, auth, web, and admin custom domains from stack outputs.
 
 set -euo pipefail
 
@@ -130,6 +130,11 @@ AUTH_TARGET=$(aws cloudformation describe-stacks \
   --query "Stacks[0].Outputs[?OutputKey=='AuthCustomDomainTarget'].OutputValue" \
   --output text)
 
+ADMIN_TARGET=$(aws cloudformation describe-stacks \
+  --stack-name "$STACK_NAME" \
+  --query "Stacks[0].Outputs[?OutputKey=='AdminCustomDomainTarget'].OutputValue" \
+  --output text)
+
 APEX_REDIRECT_TARGET=$(aws cloudformation describe-stacks \
   --stack-name "$STACK_NAME" \
   --query "Stacks[0].Outputs[?OutputKey=='ApexRedirectCustomDomainTarget'].OutputValue" \
@@ -147,6 +152,10 @@ if [[ -z "$AUTH_TARGET" || "$AUTH_TARGET" == "None" ]]; then
   echo "WARNING: AuthCustomDomainTarget output not found. Skipping auth.${DOMAIN}."
 fi
 
+if [[ -z "$ADMIN_TARGET" || "$ADMIN_TARGET" == "None" ]]; then
+  echo "WARNING: AdminCustomDomainTarget output not found. Skipping admin.${DOMAIN}."
+fi
+
 if [[ -z "$APEX_REDIRECT_TARGET" || "$APEX_REDIRECT_TARGET" == "None" ]]; then
   echo "INFO: ApexRedirectCustomDomainTarget output not found. Skipping apex redirect DNS."
 fi
@@ -154,6 +163,7 @@ fi
 upsert_cname "api.${DOMAIN}" "api" "$API_TARGET"
 upsert_cname "auth.${DOMAIN}" "auth" "$AUTH_TARGET"
 upsert_cname "app.${DOMAIN}" "app" "$WEB_TARGET"
+upsert_cname "admin.${DOMAIN}" "admin" "$ADMIN_TARGET"
 upsert_apex_redirect_record "${DOMAIN}" "$APEX_REDIRECT_TARGET"
 
 echo "Done: https://api.${DOMAIN}/v1"

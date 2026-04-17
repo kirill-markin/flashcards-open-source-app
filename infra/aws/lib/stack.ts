@@ -10,6 +10,7 @@ import { ciCd } from "./ci-cd";
 import { backupPlan } from "./backup";
 import { outputs } from "./outputs";
 import { webApp } from "./web";
+import { adminApp } from "./admin";
 import { migrationRunner } from "./migration-runner";
 import { authGateway } from "./auth-gateway";
 import { analyticsAccess, type AnalyticsAccessResult } from "./analytics-access";
@@ -48,6 +49,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const apiCertificateArn = getOptionalContextValue(this, "apiCertificateArn");
     const authCertificateArn = getOptionalContextValue(this, "authCertificateArn");
     const webCertificateArnUsEast1 = getOptionalContextValue(this, "webCertificateArnUsEast1");
+    const adminCertificateArnUsEast1 = getOptionalContextValue(this, "adminCertificateArnUsEast1");
     const apexRedirectCertificateArnUsEast1 = getOptionalContextValue(this, "apexRedirectCertificateArnUsEast1");
     const githubOidcProviderArn = getOptionalContextValue(this, "githubOidcProviderArn");
     const openAiApiKeySecretArn = getOptionalContextValue(this, "openAiApiKeySecretArn");
@@ -56,6 +58,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const langfuseBaseUrl = getOptionalContextValue(this, "langfuseBaseUrl");
     const demoEmailDostip = getOptionalContextValue(this, "demoEmailDostip");
     const demoPasswordSecretArn = getOptionalContextValue(this, "demoPasswordSecretArn");
+    const adminEmails = getOptionalContextValue(this, "adminEmails");
     const guestAiWeightedMonthlyTokenCap = getOptionalContextValue(this, "guestAiWeightedMonthlyTokenCap");
     const resendApiKeySecretArn = getOptionalContextValue(this, "resendApiKeySecretArn");
     const resendSenderEmail = getOptionalContextValue(this, "resendSenderEmail");
@@ -125,12 +128,14 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       backendDbSecret: dbResult.backendDbSecret,
       authDbSecret: dbResult.authDbSecret,
       reportingDbSecret: dbResult.reportingDbSecret,
+      adminEmails,
     });
     const api = apiGateway(this, {
       vpc: net.vpc,
       lambdaSg: net.lambdaSg,
       db: dbResult.db,
       backendDbSecret: dbResult.backendDbSecret,
+      reportingDbSecret: dbResult.reportingDbSecret,
       baseDomain,
       apiCertificateArn,
       openAiApiKeySecretArn,
@@ -147,6 +152,10 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       baseDomain,
       webCertificateArnUsEast1,
       apexRedirectCertificateArnUsEast1,
+    });
+    const admin = adminApp(this, {
+      baseDomain,
+      adminCertificateArnUsEast1,
     });
 
     const mon = monitoring(this, {
@@ -168,6 +177,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       userPoolArn: authResult.userPool.userPoolArn,
       webBucket: web.bucket,
       webDistribution: web.distribution,
+      adminBucket: admin.bucket,
+      adminDistribution: admin.distribution,
     });
 
     backupPlan(this, { db: dbResult.db });
@@ -191,6 +202,9 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       webBucket: web.bucket,
       webDistribution: web.distribution,
       webCustomDomain: web.customDomain,
+      adminBucket: admin.bucket,
+      adminDistribution: admin.distribution,
+      adminCustomDomain: admin.customDomain,
       apexRedirectDistribution: web.apexRedirectDistribution,
       apexRedirectCustomDomain: web.apexRedirectCustomDomain,
       dbAccessInstance: analyticsAccessResult?.dbAccessInstance,

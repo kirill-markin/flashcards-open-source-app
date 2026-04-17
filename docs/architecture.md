@@ -4,6 +4,7 @@
 
 ```
 Web browser         -> Cloudflare -> app.<domain>  -> CloudFront + S3 web SPA
+Admin browser       -> Cloudflare -> admin.<domain> -> CloudFront + S3 admin SPA
 Browser auth        -> Cloudflare -> auth.<domain> -> API Gateway -> Auth Lambda -> Cognito EMAIL_OTP
 iOS app             -> Cloudflare -> auth.<domain> -> API Gateway -> Auth Lambda -> Cognito EMAIL_OTP
 iOS + web sync/API  -> Cloudflare -> api.<domain>  -> API Gateway -> Lambda backend -> Postgres
@@ -15,6 +16,7 @@ Apex fallback       -> Cloudflare -> <domain>      -> CloudFront redirect -> app
 The repository currently implements three public service surfaces:
 
 - `app.<domain>` for the web SPA in `apps/web`
+- `admin.<domain>` for the admin SPA in `apps/admin`
 - `auth.<domain>` for OTP login, session refresh, token refresh, and agent OTP bootstrap in `apps/auth`
 - `api.<domain>` for the main backend, sync API, AI chat transport, and the machine-facing agent API in `apps/backend`
 
@@ -25,6 +27,7 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 - `apps/backend`: Hono backend for human clients and agents
 - `apps/auth`: Hono auth service for browser, native, and agent OTP flows
 - `apps/web`: React + Vite web app with IndexedDB local storage
+- `apps/admin`: React + Vite admin app with server-side analytics data loading
 - `apps/ios`: SwiftUI iOS app with SQLite local storage
 - `api`: published OpenAPI source used by the backend and agent docs
 - `db/migrations`: PostgreSQL schema, security, and runtime-role migrations
@@ -39,6 +42,13 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 - `infra/aws/lib/web.ts` deploys the web app to S3 behind CloudFront.
 - SPA routing is handled by serving `index.html` for `403` and `404`.
 - The web app derives `api.<domain>/v1` and `auth.<domain>` from the current hostname unless local overrides are provided.
+
+### Admin
+
+- `infra/aws/lib/admin.ts` deploys the admin app to S3 behind CloudFront.
+- The admin app derives `api.<domain>/v1` and `auth.<domain>` from the current `admin.<domain>` hostname.
+- The supported admin browser entrypoints are `http://localhost:3001` and `https://admin.<domain>`.
+- Admin report data is loaded from backend-owned `/v1/admin/*` routes, not from direct browser access to Postgres.
 
 ### Auth service
 
