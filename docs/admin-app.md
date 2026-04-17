@@ -68,7 +68,8 @@ The query payload includes:
 Current v1 attribution contract for `review-events-by-date`:
 
 - the report is intended for the current single-effective-learner workspace model
-- `users[]` and `rows[].userId` are derived from the current `sync.workspace_replicas.user_id` label
+- `users[]` and `rows[].userId` are derived from the current `sync.workspace_replicas.user_id` label for stacked per-user event volume
+- platform charts derive `web` / `android` / `ios` from `content.review_events.replica_id -> sync.workspace_replicas.platform`
 - that label is acceptable for today's product shape, but it is not a durable historical review-author field
 - do not interpret this report as collaborative per-user analytics unless review authorship is stored immutably on each review event
 
@@ -140,6 +141,6 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 - a listed admin email loads the dashboard
 - a signed-in non-admin sees the access denied page
 - network traces show `POST /v1/admin/reports/query` for dashboard data
-- stacked chart, unique-users chart, legend, and tooltip all render
-- emails are hidden by default and can be revealed with the privacy toggle
+- unique-users, stacked-by-user, platform-users, and platform-events charts all render
+- no persistent email or user list is shown in the dashboard UI; stacked-by-user hover tooltips may reveal the current email and user ID for the hovered segment
 - backend logs do not show writes through the reporting path

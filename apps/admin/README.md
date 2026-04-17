@@ -53,5 +53,11 @@ v1 includes one dashboard page only:
 
 - `review-events-by-date`
 
-The dashboard keeps the privacy toggle in the UI and defaults it to hidden emails.
-Its SQL now lives in the admin frontend as a chart-owned query and runs through the generic admin reporting endpoint.
+The dashboard shows four review charts:
+
+- daily unique users
+- stacked review events by user
+- daily active users by platform
+- daily review events by platform
+
+Its SQL lives in the admin frontend as a chart-owned query and runs through the generic admin reporting endpoint.
