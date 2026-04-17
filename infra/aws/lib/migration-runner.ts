@@ -13,7 +13,7 @@ export interface MigrationRunnerProps {
   dbOwnerSecret: cdk.aws_secretsmanager.ISecret;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   authDbSecret: cdk.aws_secretsmanager.Secret;
-  reportingDbSecret?: cdk.aws_secretsmanager.ISecret;
+  reportingDbSecret: cdk.aws_secretsmanager.ISecret;
 }
 
 const dbAssetPaths = {
@@ -57,9 +57,7 @@ export function migrationRunner(scope: Construct, props: MigrationRunnerProps): 
       DB_OWNER_SECRET_ARN: props.dbOwnerSecret.secretArn,
       DB_BACKEND_SECRET_ARN: props.backendDbSecret.secretArn,
       DB_AUTH_SECRET_ARN: props.authDbSecret.secretArn,
-      ...(props.reportingDbSecret === undefined
-        ? {}
-        : { DB_REPORTING_SECRET_ARN: props.reportingDbSecret.secretArn }),
+      DB_REPORTING_SECRET_ARN: props.reportingDbSecret.secretArn,
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
     },
@@ -68,7 +66,7 @@ export function migrationRunner(scope: Construct, props: MigrationRunnerProps): 
   props.dbOwnerSecret.grantRead(migrationFn);
   props.backendDbSecret.grantRead(migrationFn);
   props.authDbSecret.grantRead(migrationFn);
-  props.reportingDbSecret?.grantRead(migrationFn);
+  props.reportingDbSecret.grantRead(migrationFn);
 
   return migrationFn;
 }

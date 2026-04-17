@@ -1,6 +1,5 @@
 import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
-import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 
 export interface AnalyticsAccessProps {
@@ -14,7 +13,6 @@ export interface AnalyticsAccessProps {
 
 export interface AnalyticsAccessResult {
   dbAccessInstance: ec2.Instance;
-  reportingDbSecret: secretsmanager.Secret;
   sshUsername: string;
 }
 
@@ -50,16 +48,6 @@ export function analyticsAccess(scope: Construct, props: AnalyticsAccessProps): 
   }
 
   props.dbSg.addIngressRule(dbAccessSg, ec2.Port.tcp(5432), "Analytical DB access host to Postgres");
-
-  const reportingDbSecret = new secretsmanager.Secret(scope, "ReportingDbSecret", {
-    description: "Generated credentials for the reporting_readonly Postgres role",
-    generateSecretString: {
-      secretStringTemplate: JSON.stringify({ username: "reporting_readonly" }),
-      generateStringKey: "password",
-      excludePunctuation: true,
-      passwordLength: 32,
-    },
-  });
 
   const dbAccessInstance = new ec2.Instance(scope, "DbAccessInstance", {
     vpc: props.vpc,
@@ -124,7 +112,6 @@ export function analyticsAccess(scope: Construct, props: AnalyticsAccessProps): 
 
   return {
     dbAccessInstance,
-    reportingDbSecret,
     sshUsername,
   };
 }

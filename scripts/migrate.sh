@@ -61,4 +61,12 @@ WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'role_name')
 SQL
 fi
 
+if [[ -n "${REPORTING_DB_PASSWORD:-}" ]]; then
+  run_psql -v "role_name=reporting_readonly" -v "role_pass=$REPORTING_DB_PASSWORD" <<'SQL'
+SELECT format('ALTER ROLE %I WITH PASSWORD %L', :'role_name', :'role_pass')
+WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'role_name')
+\gexec
+SQL
+fi
+
 echo "Migrations complete."

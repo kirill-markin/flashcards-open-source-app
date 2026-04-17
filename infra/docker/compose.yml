@@ -25,6 +25,7 @@ services:
       MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:-postgresql://flashcards_owner:flashcards_owner@postgres:5432/flashcards}
       BACKEND_DB_PASSWORD: ${BACKEND_DB_PASSWORD:-backend_app}
       AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth_app}
+      REPORTING_DB_PASSWORD: ${REPORTING_DB_PASSWORD:-reporting_readonly}
     volumes:
       - ../../scripts:/scripts:ro
       - ../../db:/db:ro
