@@ -69,4 +69,48 @@ WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'role_name')
 SQL
 fi
 
+run_psql -v "admin_emails=${ADMIN_EMAILS:-}" <<'SQL'
+CREATE TEMP TABLE desired_bootstrap_admins (
+  email TEXT PRIMARY KEY
+) ON COMMIT DROP;
+
+INSERT INTO desired_bootstrap_admins (email)
+SELECT DISTINCT lower(btrim(raw_email))
+FROM regexp_split_to_table(:'admin_emails', ',') AS raw_email
+WHERE btrim(raw_email) <> '';
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM desired_bootstrap_admins
+    WHERE position('@' IN email) = 0
+  ) THEN
+    RAISE EXCEPTION 'ADMIN_EMAILS contains one or more invalid email values';
+  END IF;
+END
+$$;
+
+INSERT INTO auth.admin_users (email, granted_at, granted_by, revoked_at, note, source)
+SELECT email, now(), 'bootstrap:ADMIN_EMAILS', NULL, NULL, 'bootstrap'
+FROM desired_bootstrap_admins
+ON CONFLICT (email) DO UPDATE
+SET granted_at = now(),
+    granted_by = EXCLUDED.granted_by,
+    revoked_at = NULL,
+    note = NULL,
+    source = 'bootstrap'
+WHERE auth.admin_users.source = 'bootstrap'
+  AND auth.admin_users.revoked_at IS NOT NULL;
+
+UPDATE auth.admin_users
+SET revoked_at = now()
+WHERE source = 'bootstrap'
+  AND revoked_at IS NULL
+  AND email NOT IN (
+    SELECT email
+    FROM desired_bootstrap_admins
+  );
+SQL
+
 echo "Migrations complete."

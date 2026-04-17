@@ -133,3 +133,16 @@ test("login page falls back safely to English when locale inputs are unsupported
   assert.match(html, />Sign in</);
   assert.match(html, />Back to website</);
 });
+
+test("login page accepts admin redirect origins", async () => {
+  setAllowedRedirectUris("https://app.flashcards-open-source-app.com,https://admin.flashcards-open-source-app.com");
+
+  const response = await loginPage.request(
+    "https://auth.flashcards-open-source-app.com/login?redirect_uri=https%3A%2F%2Fadmin.flashcards-open-source-app.com%2F",
+  );
+  const html = await readText(response);
+
+  assert.equal(response.status, 200);
+  assert.match(html, />Back to website</);
+  assert.match(html, /https:\/\/flashcards-open-source-app\.com\//);
+});

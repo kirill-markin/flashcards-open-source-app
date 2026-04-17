@@ -34,6 +34,7 @@ GITHUB_REPO="$(require_non_empty_value "${GITHUB_REPO_OVERRIDE:-${GITHUB_REPO:-}
 API_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "api.${DOMAIN_NAME}" "api-domain")"
 AUTH_CERTIFICATE_ARN="$(find_certificate_arn "${REGION}" "auth.${DOMAIN_NAME}" "auth-domain")"
 WEB_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "app.${DOMAIN_NAME}" "web-domain")"
+ADMIN_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "admin.${DOMAIN_NAME}" "admin-domain")"
 APEX_REDIRECT_CERTIFICATE_ARN="$(find_certificate_arn "us-east-1" "${DOMAIN_NAME}" "apex-redirect-domain")"
 
 OPENAI_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-app/openai-api-key")"
@@ -44,6 +45,7 @@ DEMO_PASSWORD_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-
 ANALYTICS_SSH_PUBLIC_KEYS="${ANALYTICS_SSH_PUBLIC_KEYS:-}"
 ANALYTICS_SSH_ALLOWED_CIDRS="${ANALYTICS_SSH_ALLOWED_CIDRS:-}"
 ANALYTICS_SSH_USERNAME="${ANALYTICS_SSH_USERNAME:-}"
+ADMIN_EMAILS="${ADMIN_EMAILS:-}"
 if [[ -n "${ANALYTICS_SSH_PUBLIC_KEYS}" || -n "${ANALYTICS_SSH_ALLOWED_CIDRS}" || -n "${ANALYTICS_SSH_USERNAME}" ]]; then
   require_non_empty_value "${ANALYTICS_SSH_PUBLIC_KEYS}" "Set ANALYTICS_SSH_PUBLIC_KEYS in root .env when enabling analytical SSH access." >/dev/null
   require_non_empty_value "${ANALYTICS_SSH_ALLOWED_CIDRS}" "Set ANALYTICS_SSH_ALLOWED_CIDRS in root .env when enabling analytical SSH access." >/dev/null
@@ -63,6 +65,7 @@ export GITHUB_REPO
 export API_CERTIFICATE_ARN
 export AUTH_CERTIFICATE_ARN
 export WEB_CERTIFICATE_ARN
+export ADMIN_CERTIFICATE_ARN
 export APEX_REDIRECT_CERTIFICATE_ARN
 export GITHUB_OIDC_PROVIDER_ARN
 export OPENAI_SECRET_ARN
@@ -74,6 +77,7 @@ export DEMO_PASSWORD_SECRET_ARN
 export ANALYTICS_SSH_PUBLIC_KEYS
 export ANALYTICS_SSH_ALLOWED_CIDRS
 export ANALYTICS_SSH_USERNAME
+export ADMIN_EMAILS
 
 python3 - "${OUTPUT_FILE}" <<'PY'
 import json
@@ -90,6 +94,7 @@ values = {
     "apiCertificateArn": os.environ.get("API_CERTIFICATE_ARN", ""),
     "authCertificateArn": os.environ.get("AUTH_CERTIFICATE_ARN", ""),
     "webCertificateArnUsEast1": os.environ.get("WEB_CERTIFICATE_ARN", ""),
+    "adminCertificateArnUsEast1": os.environ.get("ADMIN_CERTIFICATE_ARN", ""),
     "apexRedirectCertificateArnUsEast1": os.environ.get("APEX_REDIRECT_CERTIFICATE_ARN", ""),
     "githubOidcProviderArn": os.environ.get("GITHUB_OIDC_PROVIDER_ARN", ""),
     "openAiApiKeySecretArn": os.environ.get("OPENAI_SECRET_ARN", ""),
@@ -101,6 +106,7 @@ values = {
     "demoEmailDostip": os.environ.get("DEMO_EMAIL_DOSTIP", ""),
     "demoPasswordSecretArn": os.environ.get("DEMO_PASSWORD_SECRET_ARN", ""),
     "guestAiWeightedMonthlyTokenCap": os.environ.get("GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP", ""),
+    "adminEmails": os.environ.get("ADMIN_EMAILS", ""),
     "analyticsSshPublicKeys": os.environ.get("ANALYTICS_SSH_PUBLIC_KEYS", ""),
     "analyticsSshAllowedCidrs": os.environ.get("ANALYTICS_SSH_ALLOWED_CIDRS", ""),
     "analyticsSshUsername": os.environ.get("ANALYTICS_SSH_USERNAME", ""),

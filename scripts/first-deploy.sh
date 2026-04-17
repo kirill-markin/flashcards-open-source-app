@@ -63,6 +63,11 @@ if [[ -z "$(find_certificate_arn "us-east-1" "app.${DOMAIN}" "web-domain")" ]]; 
     --domain "$DOMAIN"
 fi
 
+if [[ -z "$(find_certificate_arn "us-east-1" "admin.${DOMAIN}" "admin-domain")" ]]; then
+  bash "${ROOT_DIR}/scripts/cloudflare/setup-admin-domain.sh" \
+    --domain "$DOMAIN"
+fi
+
 APEX_RECORDS_JSON=$(cloudflare_fetch_name_records "$DOMAIN")
 APEX_RECORD_COUNT=$(cloudflare_count_managed_name_records "$APEX_RECORDS_JSON")
 APEX_RECORD_SUMMARY=$(cloudflare_managed_name_summary "$APEX_RECORDS_JSON")

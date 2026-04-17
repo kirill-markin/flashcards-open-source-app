@@ -24,6 +24,8 @@ build:
 	npm run build --prefix apps/backend
 	npm ci --prefix apps/web
 	npm run build --prefix apps/web
+	npm ci --prefix apps/admin
+	npm run build --prefix apps/admin
 	npm ci --prefix infra/aws
 	npm run build --prefix infra/aws
 
@@ -33,6 +35,7 @@ lint:
 	npm run build --prefix apps/auth
 	npm run lint --prefix apps/backend
 	npm run build --prefix apps/web
+	npm run build --prefix apps/admin
 	npm run build --prefix infra/aws
 
 migrate:
@@ -55,3 +58,6 @@ backend-dev:
 
 web-dev:
 	cd apps/web && node --env-file=../../.env ./node_modules/vite/bin/vite.js
+
+admin-dev:
+	cd apps/admin && node --env-file=../../.env ./node_modules/vite/bin/vite.js

@@ -28,6 +28,9 @@ export interface OutputsProps {
   webBucket: s3.IBucket;
   webDistribution: cloudfront.Distribution;
   webCustomDomain: string | undefined;
+  adminBucket: s3.IBucket;
+  adminDistribution: cloudfront.Distribution;
+  adminCustomDomain: string | undefined;
   apexRedirectDistribution: cloudfront.Distribution | undefined;
   apexRedirectCustomDomain: string | undefined;
   dbAccessInstance?: ec2.Instance;
@@ -175,6 +178,33 @@ export function outputs(scope: Construct, props: OutputsProps): void {
     new cdk.CfnOutput(scope, "WebCustomDomainTarget", {
       value: props.webDistribution.domainName,
       description: "Create a Cloudflare CNAME for app.<domain> to this target",
+    });
+  }
+
+  new cdk.CfnOutput(scope, "AdminBucketName", {
+    value: props.adminBucket.bucketName,
+    description: "S3 bucket for deployed admin assets",
+  });
+
+  new cdk.CfnOutput(scope, "AdminDistributionId", {
+    value: props.adminDistribution.distributionId,
+    description: "CloudFront distribution ID for the admin app",
+  });
+
+  new cdk.CfnOutput(scope, "AdminDistributionDomainName", {
+    value: props.adminDistribution.domainName,
+    description: "CloudFront distribution domain name for the admin app",
+  });
+
+  if (props.adminCustomDomain !== undefined) {
+    new cdk.CfnOutput(scope, "AdminPublicBase", {
+      value: `https://${props.adminCustomDomain}`,
+      description: "Supported public admin URL for the admin app",
+    });
+
+    new cdk.CfnOutput(scope, "AdminCustomDomainTarget", {
+      value: props.adminDistribution.domainName,
+      description: "Create a Cloudflare CNAME for admin.<domain> to this target",
     });
   }
 

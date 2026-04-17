@@ -3,6 +3,7 @@
 # This helper is bootstrap-only: it creates missing repo vars and secrets,
 # but it does not update or remove existing values. If a configured value
 # needs to change later, update it manually in GitHub or via `gh`.
+# This includes CDK_ADMIN_EMAILS for CI/CD-driven bootstrap admin grants.
 
 set -euo pipefail
 
@@ -89,6 +90,7 @@ GITHUB_REPO_VALUE="$(require_non_empty_value "${GITHUB_REPO:-$REPO}" "Set GITHUB
 API_CERT_ARN="$(find_certificate_arn "$REGION" "api.${DOMAIN_NAME}" "api-domain")"
 AUTH_CERT_ARN="$(find_certificate_arn "$REGION" "auth.${DOMAIN_NAME}" "auth-domain")"
 WEB_CERT_ARN="$(find_certificate_arn "us-east-1" "app.${DOMAIN_NAME}" "web-domain")"
+ADMIN_CERT_ARN="$(find_certificate_arn "us-east-1" "admin.${DOMAIN_NAME}" "admin-domain")"
 APEX_REDIRECT_CERT_ARN="$(find_certificate_arn "us-east-1" "${DOMAIN_NAME}" "apex-redirect-domain")"
 OPENAI_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-source-app/openai-api-key")"
 LANGFUSE_PUBLIC_KEY_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-source-app/langfuse-public-key")"
@@ -97,6 +99,7 @@ RESEND_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-source-app/resen
 DEMO_PASSWORD_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-source-app/demo-password-dostip")"
 DEMO_EMAIL_DOSTIP="${DEMO_EMAIL_DOSTIP:-}"
 GUEST_AI_QUOTA_CAP="${GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP:-}"
+ADMIN_EMAILS="${ADMIN_EMAILS:-}"
 LANGFUSE_BASE_URL="${LANGFUSE_BASE_URL:-}"
 ANALYTICS_SSH_PUBLIC_KEYS="${ANALYTICS_SSH_PUBLIC_KEYS:-}"
 ANALYTICS_SSH_ALLOWED_CIDRS="${ANALYTICS_SSH_ALLOWED_CIDRS:-}"
@@ -126,6 +129,7 @@ set_variable_if_missing CDK_GITHUB_REPO "$GITHUB_REPO_VALUE"
 set_variable_if_missing CDK_API_CERTIFICATE_ARN "$API_CERT_ARN"
 set_variable_if_missing CDK_AUTH_CERTIFICATE_ARN "$AUTH_CERT_ARN"
 set_variable_if_missing CDK_WEB_CERTIFICATE_ARN_US_EAST_1 "$WEB_CERT_ARN"
+set_variable_if_missing CDK_ADMIN_CERTIFICATE_ARN_US_EAST_1 "$ADMIN_CERT_ARN"
 set_variable_if_missing CDK_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1 "$APEX_REDIRECT_CERT_ARN"
 set_variable_if_missing CDK_SES_SENDER_EMAIL ""
 set_variable_if_missing CDK_RESEND_API_KEY_SECRET_ARN "$RESEND_SECRET_ARN"
@@ -137,6 +141,10 @@ set_variable_if_missing CDK_LANGFUSE_BASE_URL "$LANGFUSE_BASE_URL"
 set_variable_if_missing CDK_DEMO_EMAIL_DOSTIP "$DEMO_EMAIL_DOSTIP"
 set_variable_if_missing CDK_DEMO_PASSWORD_SECRET_ARN "$DEMO_PASSWORD_SECRET_ARN"
 set_variable_if_missing CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP "$GUEST_AI_QUOTA_CAP"
+# CDK_ADMIN_EMAILS stays write-once here on purpose. After bootstrap,
+# GitHub is the deploy-time source of truth for this non-secret CI input,
+# so later admin-list changes must be edited manually in GitHub or via `gh`.
+set_variable_if_missing CDK_ADMIN_EMAILS "$ADMIN_EMAILS"
 set_variable_if_missing CDK_ANALYTICS_SSH_PUBLIC_KEYS "$ANALYTICS_SSH_PUBLIC_KEYS"
 set_variable_if_missing CDK_ANALYTICS_SSH_ALLOWED_CIDRS "$ANALYTICS_SSH_ALLOWED_CIDRS"
 set_variable_if_missing CDK_ANALYTICS_SSH_USERNAME "$ANALYTICS_SSH_USERNAME"

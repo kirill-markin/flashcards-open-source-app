@@ -1,0 +1,26 @@
+{
+  "name": "flashcards-open-source-app-admin",
+  "version": "1.1.5",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "d3": "^7.9.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.8"
+  },
+  "engines": {
+    "node": "24.x"
+  }
+}

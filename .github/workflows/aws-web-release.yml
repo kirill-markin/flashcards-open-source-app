@@ -8,12 +8,14 @@ on:
       - 'apps/auth/**'
       - 'apps/backend/**'
       - 'apps/web/**'
+      - 'apps/admin/**'
       - 'db/**'
       - 'infra/**'
       - 'scripts/check-agent-api-smoke.sh'
       - 'scripts/check-api-health.sh'
       - 'scripts/check-demo-cognito-users.sh'
       - 'scripts/check-public-endpoints.sh'
+      - 'scripts/deploy-admin.sh'
       - 'scripts/deploy-web.sh'
       - 'scripts/migrate-aws.sh'
       - '.github/workflows/aws-web-release.yml'
@@ -43,6 +45,7 @@ jobs:
       auth_changed: ${{ steps.detect.outputs.auth_changed }}
       backend_changed: ${{ steps.detect.outputs.backend_changed }}
       web_changed: ${{ steps.detect.outputs.web_changed }}
+      admin_changed: ${{ steps.detect.outputs.admin_changed }}
       infra_changed: ${{ steps.detect.outputs.infra_changed }}
       changed_files: ${{ steps.detect.outputs.changed_files }}
 
@@ -58,7 +61,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          aws_release_script_pattern='^scripts/(check-agent-api-smoke\.sh|check-api-health\.sh|check-demo-cognito-users\.sh|check-public-endpoints\.sh|deploy-web\.sh|migrate-aws\.sh)$'
+          aws_release_script_pattern='^scripts/(check-agent-api-smoke\.sh|check-api-health\.sh|check-demo-cognito-users\.sh|check-public-endpoints\.sh|deploy-admin\.sh|deploy-web\.sh|migrate-aws\.sh)$'
 
           changed_files_path="${RUNNER_TEMP}/changed-files.txt"
           before_sha="${PUSH_BEFORE_SHA:-}"
@@ -72,7 +75,7 @@ jobs:
           fi
 
           aws_changed=false
-          if grep -Eq "^(api/|apps/auth/|apps/backend/|apps/web/|db/|infra/|\\.github/workflows/aws-web-release\\.yml$)" "${changed_files_path}" || grep -Eq "${aws_release_script_pattern}" "${changed_files_path}"; then
+          if grep -Eq "^(api/|apps/auth/|apps/backend/|apps/web/|apps/admin/|db/|infra/|\\.github/workflows/aws-web-release\\.yml$)" "${changed_files_path}" || grep -Eq "${aws_release_script_pattern}" "${changed_files_path}"; then
             aws_changed=true
           fi
 
@@ -96,6 +99,11 @@ jobs:
             web_changed=true
           fi
 
+          admin_changed=false
+          if grep -Eq '^(apps/admin/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+            admin_changed=true
+          fi
+
           infra_changed=false
           if grep -Eq '^(infra/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
             infra_changed=true
@@ -107,6 +115,7 @@ jobs:
             echo "auth_changed=${auth_changed}"
             echo "backend_changed=${backend_changed}"
             echo "web_changed=${web_changed}"
+            echo "admin_changed=${admin_changed}"
             echo "infra_changed=${infra_changed}"
             echo 'changed_files<<EOF'
             cat "${changed_files_path}"
@@ -125,6 +134,7 @@ jobs:
             echo "- Auth changed: \`${{ steps.detect.outputs.auth_changed }}\`"
             echo "- Backend changed: \`${{ steps.detect.outputs.backend_changed }}\`"
             echo "- Web changed: \`${{ steps.detect.outputs.web_changed }}\`"
+            echo "- Admin changed: \`${{ steps.detect.outputs.admin_changed }}\`"
             echo "- Infra changed: \`${{ steps.detect.outputs.infra_changed }}\`"
             echo ""
             echo "### Changed files"
@@ -154,6 +164,7 @@ jobs:
             apps/auth/package-lock.json
             apps/backend/package-lock.json
             apps/web/package-lock.json
+            apps/admin/package-lock.json
             infra/aws/package-lock.json
 
       - name: Install dependencies
@@ -162,6 +173,7 @@ jobs:
           npm ci --prefix apps/auth
           npm ci --prefix apps/backend
           npm ci --prefix apps/web
+          npm ci --prefix apps/admin
           npm ci --prefix infra/aws
 
       - name: Lint OpenAPI spec
@@ -192,6 +204,10 @@ jobs:
         if: ${{ needs.changes.outputs.web_changed == 'true' }}
         run: npm run build --prefix apps/web
 
+      - name: Build admin app
+        if: ${{ needs.changes.outputs.admin_changed == 'true' }}
+        run: npm run build --prefix apps/admin
+
       - name: Build infra
         if: ${{ needs.changes.outputs.infra_changed == 'true' }}
         run: npm run build --prefix infra/aws
@@ -217,6 +233,7 @@ jobs:
             apps/auth/package-lock.json
             apps/backend/package-lock.json
             apps/web/package-lock.json
+            apps/admin/package-lock.json
             infra/aws/package-lock.json
 
       - name: Configure AWS credentials (OIDC)
@@ -231,6 +248,7 @@ jobs:
           npm ci --prefix apps/auth
           npm ci --prefix apps/backend
           npm ci --prefix apps/web
+          npm ci --prefix apps/admin
           npm ci --prefix infra/aws
 
       - name: Bundle OpenAPI spec
@@ -247,6 +265,8 @@ jobs:
           CDK_CONTEXT_API_CERTIFICATE_ARN: ${{ vars.CDK_API_CERTIFICATE_ARN }}
           CDK_CONTEXT_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1 }}
           CDK_CONTEXT_AUTH_CERTIFICATE_ARN: ${{ vars.CDK_AUTH_CERTIFICATE_ARN }}
+          CDK_CONTEXT_ADMIN_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_ADMIN_CERTIFICATE_ARN_US_EAST_1 }}
+          CDK_CONTEXT_ADMIN_EMAILS: ${{ vars.CDK_ADMIN_EMAILS }}
           CDK_CONTEXT_DEMO_EMAIL_DOSTIP: ${{ vars.CDK_DEMO_EMAIL_DOSTIP }}
           CDK_CONTEXT_DEMO_PASSWORD_SECRET_ARN: ${{ vars.CDK_DEMO_PASSWORD_SECRET_ARN }}
           CDK_CONTEXT_DOMAIN_NAME: ${{ vars.CDK_DOMAIN_NAME }}
@@ -277,6 +297,8 @@ jobs:
               "apiCertificateArn": os.environ.get("CDK_CONTEXT_API_CERTIFICATE_ARN", ""),
               "apexRedirectCertificateArnUsEast1": os.environ.get("CDK_CONTEXT_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1", ""),
               "authCertificateArn": os.environ.get("CDK_CONTEXT_AUTH_CERTIFICATE_ARN", ""),
+              "adminCertificateArnUsEast1": os.environ.get("CDK_CONTEXT_ADMIN_CERTIFICATE_ARN_US_EAST_1", ""),
+              "adminEmails": os.environ.get("CDK_CONTEXT_ADMIN_EMAILS", ""),
               "demoEmailDostip": os.environ.get("CDK_CONTEXT_DEMO_EMAIL_DOSTIP", ""),
               "demoPasswordSecretArn": os.environ.get("CDK_CONTEXT_DEMO_PASSWORD_SECRET_ARN", ""),
               "domainName": os.environ.get("CDK_CONTEXT_DOMAIN_NAME", ""),
@@ -306,17 +328,20 @@ jobs:
       - name: Run database migrations
         run: bash scripts/migrate-aws.sh --stack-name ${{ env.STACK_NAME }}
 
-      - name: Check API health
-        run: bash scripts/check-api-health.sh --stack-name ${{ env.STACK_NAME }}
-
-      - name: Check public API routes
-        run: bash scripts/check-public-endpoints.sh --stack-name ${{ env.STACK_NAME }}
-
       - name: Build web app
         run: npm run build --prefix apps/web
 
+      - name: Build admin app
+        run: npm run build --prefix apps/admin
+
       - name: Deploy web assets
         run: bash scripts/deploy-web.sh --stack-name ${{ env.STACK_NAME }}
+
+      - name: Deploy admin assets
+        run: bash scripts/deploy-admin.sh --stack-name ${{ env.STACK_NAME }}
+
+      - name: Check API health
+        run: bash scripts/check-api-health.sh --stack-name ${{ env.STACK_NAME }}
 
       - name: Check public custom domains
         run: bash scripts/check-public-endpoints.sh --stack-name ${{ env.STACK_NAME }}
@@ -329,6 +354,8 @@ jobs:
             echo "- Deployed SHA: \`${GITHUB_SHA}\`"
             echo "- Web post-deploy smoke: pending next job"
             echo "- Agent API post-deploy smoke: pending next job"
+            echo ""
+            echo "Manual admin smoke remains required for \`https://admin.<domain>\`."
           } >> "${GITHUB_STEP_SUMMARY}"
 
   web_smoke:

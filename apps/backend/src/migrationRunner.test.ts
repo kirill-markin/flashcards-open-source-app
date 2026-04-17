@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
-import { configureRuntimeRole, getManagedRuntimeRoles } from "./migrationRunner";
+import {
+  configureRuntimeRole,
+  getManagedRuntimeRoles,
+  parseBootstrapAdminEmails,
+  planBootstrapAdminGrantSync,
+} from "./migrationRunner";
 
 type QueryRowValue = string | number | boolean | null;
 
@@ -83,4 +88,70 @@ test("managed runtime roles always include reporting_readonly", () => {
     managedRuntimeRoles.map((managedRuntimeRole) => managedRuntimeRole.roleName),
     ["backend_app", "auth_app", "reporting_readonly"],
   );
+});
+
+test("parseBootstrapAdminEmails normalizes, deduplicates, and sorts emails", () => {
+  assert.deepEqual(
+    parseBootstrapAdminEmails("  Admin@example.com,admin@example.com,second@example.com "),
+    ["admin@example.com", "second@example.com"],
+  );
+});
+
+test("parseBootstrapAdminEmails ignores a trailing comma", () => {
+  assert.deepEqual(
+    parseBootstrapAdminEmails("admin@example.com,"),
+    ["admin@example.com"],
+  );
+});
+
+test("parseBootstrapAdminEmails ignores blank segments before validation", () => {
+  assert.deepEqual(
+    parseBootstrapAdminEmails(" admin@example.com, ,second@example.com,, "),
+    ["admin@example.com", "second@example.com"],
+  );
+});
+
+test("planBootstrapAdminGrantSync activates new and previously revoked bootstrap grants", () => {
+  const plan = planBootstrapAdminGrantSync(
+    [
+      { email: "active@example.com", source: "bootstrap", revoked_at: null },
+      { email: "revoked@example.com", source: "bootstrap", revoked_at: "2026-04-01T00:00:00Z" },
+    ],
+    ["active@example.com", "revoked@example.com", "new@example.com"],
+  );
+
+  assert.deepEqual(plan, {
+    emailsToActivate: ["revoked@example.com", "new@example.com"],
+    emailsToRevoke: [],
+  });
+});
+
+test("planBootstrapAdminGrantSync revokes removed bootstrap grants only", () => {
+  const plan = planBootstrapAdminGrantSync(
+    [
+      { email: "removed@example.com", source: "bootstrap", revoked_at: null },
+      { email: "manual@example.com", source: "manual", revoked_at: null },
+      { email: "already-revoked@example.com", source: "bootstrap", revoked_at: "2026-04-01T00:00:00Z" },
+    ],
+    ["manual@example.com"],
+  );
+
+  assert.deepEqual(plan, {
+    emailsToActivate: [],
+    emailsToRevoke: ["removed@example.com"],
+  });
+});
+
+test("planBootstrapAdminGrantSync never overwrites manual grants", () => {
+  const plan = planBootstrapAdminGrantSync(
+    [
+      { email: "manual@example.com", source: "manual", revoked_at: null },
+    ],
+    ["manual@example.com"],
+  );
+
+  assert.deepEqual(plan, {
+    emailsToActivate: [],
+    emailsToRevoke: [],
+  });
 });

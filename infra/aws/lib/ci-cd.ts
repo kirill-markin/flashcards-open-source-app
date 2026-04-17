@@ -15,6 +15,8 @@ export interface CiCdProps {
   userPoolArn: string;
   webBucket: s3.IBucket;
   webDistribution: cloudfront.Distribution;
+  adminBucket: s3.IBucket;
+  adminDistribution: cloudfront.Distribution;
 }
 
 export function ciCd(scope: Construct, props: CiCdProps): void {
@@ -79,6 +81,28 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
       sid: "InvalidateWebDistribution",
       actions: ["cloudfront:CreateInvalidation"],
       resources: [props.webDistribution.distributionArn],
+    }),
+    new iam.PolicyStatement({
+      sid: "DeployAdminAssets",
+      actions: [
+        "s3:GetBucketLocation",
+        "s3:ListBucket",
+      ],
+      resources: [props.adminBucket.bucketArn],
+    }),
+    new iam.PolicyStatement({
+      sid: "DeployAdminObjects",
+      actions: [
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:PutObject",
+      ],
+      resources: [`${props.adminBucket.bucketArn}/*`],
+    }),
+    new iam.PolicyStatement({
+      sid: "InvalidateAdminDistribution",
+      actions: ["cloudfront:CreateInvalidation"],
+      resources: [props.adminDistribution.distributionArn],
     }),
   ];
 

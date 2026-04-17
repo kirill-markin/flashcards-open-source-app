@@ -1,17 +1,20 @@
 # Analytical DB Access
 
-This document describes the optional operator access path used for analytical access to the private Postgres database and the exact database permissions granted to the persistent `reporting_readonly` role.
+This document describes the supported analytical access paths for the persistent `reporting_readonly` role and the exact database permissions granted to it.
 
 ## Purpose
 
-This access path exists for manual operator analytics and Metabase-style SSH tunneling without making the production RDS instance itself publicly reachable.
+The supported read-only access paths are:
 
-The `reporting_readonly` role is part of the baseline schema in every environment. When analytical access is enabled, the stack also creates:
+- manual/operator analytics and Metabase-style SSH tunneling without making the production RDS instance itself publicly reachable
+- controlled server-side admin analytics where the backend Lambda runs read-only admin reporting SQL inside the VPC
+
+The `reporting_readonly` role is part of the baseline schema in every environment. When analytical SSH access is enabled, the stack also creates:
 
 - a public EC2 bastion host dedicated to analytical SSH tunneling
 - a private network path from that bastion host to the RDS instance on `5432`
 
-The current `reporting_readonly` password secret is also part of the baseline infrastructure in every environment, even when the SSH bastion is disabled.
+The current `reporting_readonly` password secret is also part of the baseline infrastructure in every environment, even when the SSH bastion is disabled. The deployed backend Lambda uses that same role for server-side admin analytics through a separate read-only pool and without SSH.
 
 ## How to enable it
 
@@ -55,9 +58,9 @@ gh variable delete CDK_ANALYTICS_SSH_USERNAME --repo kirill-markin/flashcards-op
    - `AnalyticsSshPort`
    - `AnalyticsSshUsername`
 
-Important current behavior: this disable flow removes the AWS-side bastion path only. It does not remove the baseline Postgres role `reporting_readonly`, its read grants, or the current reporting password secret/output.
+Important current behavior: this disable flow removes the AWS-side bastion path only. It does not remove the baseline Postgres role `reporting_readonly`, its read grants, or the current reporting password secret/output used by server-side admin analytics.
 
-That means disabling analytics access should be treated as removing the supported operator access path only. It should not be treated as a full schema-level removal of `reporting_readonly`.
+That means disabling analytics SSH access should be treated as removing the supported operator access path only. It should not be treated as a full schema-level removal of `reporting_readonly`.
 
 ## What gets exposed
 
@@ -230,7 +233,7 @@ The reporting password secret now uses a stable baseline Secrets Manager name, b
 
 ## Usage guidance
 
-Use `reporting_readonly` only for analytical queries and investigation.
+Use `reporting_readonly` only for analytical queries and investigation. It must remain read-only for both operator SSH access and backend-owned admin analytics.
 
 Prefer querying stable business tables first:
 

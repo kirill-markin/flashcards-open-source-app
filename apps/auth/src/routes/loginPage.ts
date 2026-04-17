@@ -40,6 +40,10 @@ function stripKnownSubdomain(hostname: string): string {
     return hostname.slice("app.".length);
   }
 
+  if (hostname.startsWith("admin.")) {
+    return hostname.slice("admin.".length);
+  }
+
   if (hostname.startsWith("auth.")) {
     return hostname.slice("auth.".length);
   }

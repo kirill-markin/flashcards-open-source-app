@@ -14,6 +14,7 @@ export interface ApiGatewayProps {
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
+  reportingDbSecret: cdk.aws_secretsmanager.ISecret;
   baseDomain: string;
   apiCertificateArn: string | undefined;
   openAiApiKeySecretArn: string | undefined;
@@ -43,6 +44,7 @@ interface BackendFunctionProps {
   lambdaSg: ec2.SecurityGroup;
   db: rds.DatabaseInstance;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
+  reportingDbSecret: cdk.aws_secretsmanager.ISecret;
   backendCsrfSecret: cdk.aws_secretsmanager.Secret;
   backendChatLiveAuthSecret: cdk.aws_secretsmanager.Secret;
   allowedOrigins: string[];
@@ -144,6 +146,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
       DB_SECRET_ARN: props.backendDbSecret.secretArn,
+      REPORTING_DB_SECRET_ARN: props.reportingDbSecret.secretArn,
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
       AUTH_MODE: "cognito",
@@ -163,6 +166,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
   });
 
   props.backendDbSecret.grantRead(fn);
+  props.reportingDbSecret.grantRead(fn);
   props.backendCsrfSecret.grantRead(fn);
   props.backendChatLiveAuthSecret.grantRead(fn);
   fn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
@@ -206,7 +210,9 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
 export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGatewayResult {
   const allowedOrigins = [
     `https://app.${props.baseDomain}`,
+    `https://admin.${props.baseDomain}`,
     "http://localhost:3000",
+    "http://localhost:3001",
   ];
   const backendCsrfSecret = new cdk.aws_secretsmanager.Secret(scope, "BackendCsrfSecret", {
     secretName: "flashcards-open-source-app/backend-csrf-secret",
@@ -239,6 +245,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     lambdaSg: props.lambdaSg,
     db: props.db,
     backendDbSecret: props.backendDbSecret,
+    reportingDbSecret: props.reportingDbSecret,
     backendCsrfSecret,
     backendChatLiveAuthSecret,
     allowedOrigins,
@@ -260,6 +267,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     lambdaSg: props.lambdaSg,
     db: props.db,
     backendDbSecret: props.backendDbSecret,
+    reportingDbSecret: props.reportingDbSecret,
     backendCsrfSecret,
     backendChatLiveAuthSecret,
     allowedOrigins,
@@ -281,6 +289,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     lambdaSg: props.lambdaSg,
     db: props.db,
     backendDbSecret: props.backendDbSecret,
+    reportingDbSecret: props.reportingDbSecret,
     backendCsrfSecret,
     backendChatLiveAuthSecret,
     allowedOrigins,
@@ -333,9 +342,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       allowCredentials: true,
     },
   });
-  const gatewayErrorCorsOrigin = `'https://app.${props.baseDomain}'`;
   const gatewayErrorResponseHeaders = {
-    "Access-Control-Allow-Origin": gatewayErrorCorsOrigin,
+    "Access-Control-Allow-Origin": "method.request.header.Origin",
+    "Vary": "'Origin'",
     "Access-Control-Allow-Headers": `'${chatResumeCorsHeaders.join(",")}'`,
     "Access-Control-Allow-Methods": "'GET,POST,OPTIONS'",
     "Access-Control-Allow-Credentials": "'true'",
@@ -404,6 +413,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const me = restApi.root.addResource("me");
   me.addMethod("GET", integration);
   me.addResource("delete").addMethod("POST", integration);
+
+  const admin = restApi.root.addResource("admin");
+  admin.addResource("session").addMethod("GET", integration);
+  const adminReports = admin.addResource("reports");
+  adminReports.addResource("query").addMethod("POST", integration);
 
   const chat = restApi.root.addResource("chat");
   chat.addMethod("GET", integration);

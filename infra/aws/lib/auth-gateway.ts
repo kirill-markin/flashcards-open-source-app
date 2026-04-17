@@ -96,7 +96,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       COGNITO_USER_POOL_ID: props.userPoolId,
       COGNITO_CLIENT_ID: props.userPoolClientId,
       COGNITO_REGION: cdk.Stack.of(scope).region,
-      ALLOWED_REDIRECT_URIS: `https://${props.baseDomain},https://app.${props.baseDomain}`,
+      ALLOWED_REDIRECT_URIS: `https://${props.baseDomain},https://app.${props.baseDomain},https://admin.${props.baseDomain}`,
       COOKIE_DOMAIN: props.baseDomain,
       PUBLIC_AUTH_BASE_URL: `https://auth.${props.baseDomain}`,
       PUBLIC_API_BASE_URL: `https://api.${props.baseDomain}/v1`,

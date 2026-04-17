@@ -41,6 +41,7 @@ Keep these values in root `.env` before running setup or deploy scripts:
 - `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` when Langfuse tracing is enabled
 - `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` when review/demo bypass is enabled
 - `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP` when you want deployed guest AI enabled
+- `ADMIN_EMAILS` for initial bootstrap admin-grant setup
 - optional `ANALYTICS_SSH_PUBLIC_KEYS`, `ANALYTICS_SSH_ALLOWED_CIDRS`, and `ANALYTICS_SSH_USERNAME` when you want the analytical SSH bastion enabled
 
 Certificate ARNs and secret ARNs are discovered from AWS. They are not meant to be typed into local context by hand.
@@ -61,9 +62,10 @@ That flow:
 - creates or updates the required AWS Secrets Manager secrets from root `.env`
 - stores optional AI and demo auth secrets when configured
 - requests ACM certificates for API, auth, web, and apex redirect when needed
+- requests the ACM certificate for `admin.<domain>` when needed
 - generates `infra/aws/cdk.context.local.json` for the local CDK invocation
 - bootstraps and deploys CDK
-- uploads web assets
+- uploads web and admin assets
 - optionally configures Cloudflare DNS
 - populates missing deploy config in GitHub Actions variables without overwriting existing values
 
@@ -99,10 +101,16 @@ This script:
 The deploy workflow assembles its own `cdk.context.local.json` from those GitHub variables inside CI.
 
 `bash scripts/setup-github.sh` is intentionally bootstrap-oriented: it sets missing GitHub Actions variables and secrets, but it does not remove values that already exist in GitHub. If you need to disable an optional feature that was previously enabled through a GitHub variable, delete that GitHub variable explicitly and then redeploy.
+This also applies to `CDK_ADMIN_EMAILS`: root `.env` is not the deployed CI source of truth after bootstrap, so later changes to the deployed bootstrap admin list must be made manually in GitHub and then redeployed.
 
 ## Analytical DB access
 
-The `reporting_readonly` Postgres role is part of the baseline database schema in every environment. When the analytical SSH bastion variables are configured together, the stack also creates the optional operator access path used to reach that role through SSH tunneling into the private database.
+The `reporting_readonly` Postgres role is part of the baseline database schema in every environment. It is supported for two read-only paths:
+
+- manual/operator analytics through the optional analytical SSH bastion
+- controlled server-side admin analytics from the backend Lambda inside the VPC
+
+When the analytical SSH bastion variables are configured together, the stack also creates the optional operator access path used to reach that role through SSH tunneling into the private database.
 
 That bastion is tunnel-only for the configured analytical SSH user: it allows SSH key authentication and TCP forwarding to the private Postgres endpoint, but it does not provide interactive shell access.
 
@@ -163,6 +171,8 @@ bash scripts/check-demo-cognito-users.sh --stack-name FlashcardsOpenSourceApp --
 3. Configure Cloudflare public DNS with `bash scripts/cloudflare/setup-dns.sh --stack-name FlashcardsOpenSourceApp --domain <base-domain>`.
 4. Populate any missing GitHub Actions config with `bash scripts/setup-github.sh`.
 5. Run `bash scripts/check-public-endpoints.sh --stack-name FlashcardsOpenSourceApp` after DNS changes.
+
+The supported deployed admin browser entrypoint is `https://admin.<domain>` only.
 
 ## Auth flow
 
