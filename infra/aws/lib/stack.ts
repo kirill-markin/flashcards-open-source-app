@@ -12,6 +12,7 @@ import { outputs } from "./outputs";
 import { webApp } from "./web";
 import { migrationRunner } from "./migration-runner";
 import { authGateway } from "./auth-gateway";
+import { analyticsAccess, type AnalyticsAccessResult } from "./analytics-access";
 
 function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefined {
   const value = stack.node.tryGetContext(key);
@@ -21,6 +22,20 @@ function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefi
 
   const trimmedValue = value.trim();
   return trimmedValue === "" ? undefined : trimmedValue;
+}
+
+function parseCommaSeparatedValue(value: string): ReadonlyArray<string> {
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "");
+}
+
+function parseLineSeparatedValue(value: string): ReadonlyArray<string> {
+  return value
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry !== "");
 }
 
 export class FlashcardsOpenSourceAppStack extends cdk.Stack {
@@ -44,9 +59,46 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const guestAiWeightedMonthlyTokenCap = getOptionalContextValue(this, "guestAiWeightedMonthlyTokenCap");
     const resendApiKeySecretArn = getOptionalContextValue(this, "resendApiKeySecretArn");
     const resendSenderEmail = getOptionalContextValue(this, "resendSenderEmail");
+    const analyticsSshPublicKeysValue = getOptionalContextValue(this, "analyticsSshPublicKeys");
+    const analyticsSshAllowedCidrsValue = getOptionalContextValue(this, "analyticsSshAllowedCidrs");
+    const analyticsSshUsernameValue = getOptionalContextValue(this, "analyticsSshUsername");
+    const analyticsAccessRequested =
+      analyticsSshPublicKeysValue !== undefined ||
+      analyticsSshAllowedCidrsValue !== undefined ||
+      analyticsSshUsernameValue !== undefined;
 
     const net = networking(this);
     const dbResult = database(this, { vpc: net.vpc, dbSg: net.dbSg });
+    let analyticsAccessResult: AnalyticsAccessResult | undefined;
+    if (analyticsAccessRequested) {
+      if (analyticsSshPublicKeysValue === undefined) {
+        throw new Error("analyticsSshPublicKeys is required when enabling analytical SSH access");
+      }
+      if (analyticsSshAllowedCidrsValue === undefined) {
+        throw new Error("analyticsSshAllowedCidrs is required when enabling analytical SSH access");
+      }
+      if (analyticsSshUsernameValue === undefined) {
+        throw new Error("analyticsSshUsername is required when enabling analytical SSH access");
+      }
+
+      const analyticsSshPublicKeys = parseLineSeparatedValue(analyticsSshPublicKeysValue);
+      const analyticsSshAllowedCidrs = parseCommaSeparatedValue(analyticsSshAllowedCidrsValue);
+      if (analyticsSshPublicKeys.length === 0) {
+        throw new Error("analyticsSshPublicKeys must contain at least one public SSH key");
+      }
+      if (analyticsSshAllowedCidrs.length === 0) {
+        throw new Error("analyticsSshAllowedCidrs must contain at least one CIDR entry");
+      }
+
+      analyticsAccessResult = analyticsAccess(this, {
+        vpc: net.vpc,
+        dbSg: net.dbSg,
+        dbHost: dbResult.db.dbInstanceEndpointAddress,
+        sshAllowedCidrs: analyticsSshAllowedCidrs,
+        sshPublicKeys: analyticsSshPublicKeys,
+        sshUsername: analyticsSshUsernameValue,
+      });
+    }
     const preSignUpFn = preSignUp(this);
     const authResult = auth(this, {
       preSignUpFn,
@@ -72,6 +124,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       dbOwnerSecret: dbResult.dbOwnerSecret,
       backendDbSecret: dbResult.backendDbSecret,
       authDbSecret: dbResult.authDbSecret,
+      reportingDbSecret: analyticsAccessResult?.reportingDbSecret,
     });
     const api = apiGateway(this, {
       vpc: net.vpc,
@@ -140,6 +193,9 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       webCustomDomain: web.customDomain,
       apexRedirectDistribution: web.apexRedirectDistribution,
       apexRedirectCustomDomain: web.apexRedirectCustomDomain,
+      dbAccessInstance: analyticsAccessResult?.dbAccessInstance,
+      reportingDbSecret: analyticsAccessResult?.reportingDbSecret,
+      analyticsSshUsername: analyticsAccessResult?.sshUsername,
     });
   }
 }

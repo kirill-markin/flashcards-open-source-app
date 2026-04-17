@@ -41,6 +41,14 @@ LANGFUSE_PUBLIC_KEY_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-s
 LANGFUSE_SECRET_KEY_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-app/langfuse-secret-key")"
 RESEND_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-app/resend-api-key")"
 DEMO_PASSWORD_SECRET_ARN="$(find_secret_arn "${REGION}" "flashcards-open-source-app/demo-password-dostip")"
+ANALYTICS_SSH_PUBLIC_KEYS="${ANALYTICS_SSH_PUBLIC_KEYS:-}"
+ANALYTICS_SSH_ALLOWED_CIDRS="${ANALYTICS_SSH_ALLOWED_CIDRS:-}"
+ANALYTICS_SSH_USERNAME="${ANALYTICS_SSH_USERNAME:-}"
+if [[ -n "${ANALYTICS_SSH_PUBLIC_KEYS}" || -n "${ANALYTICS_SSH_ALLOWED_CIDRS}" || -n "${ANALYTICS_SSH_USERNAME}" ]]; then
+  require_non_empty_value "${ANALYTICS_SSH_PUBLIC_KEYS}" "Set ANALYTICS_SSH_PUBLIC_KEYS in root .env when enabling analytical SSH access." >/dev/null
+  require_non_empty_value "${ANALYTICS_SSH_ALLOWED_CIDRS}" "Set ANALYTICS_SSH_ALLOWED_CIDRS in root .env when enabling analytical SSH access." >/dev/null
+  require_non_empty_value "${ANALYTICS_SSH_USERNAME}" "Set ANALYTICS_SSH_USERNAME in root .env when enabling analytical SSH access." >/dev/null
+fi
 RESEND_SENDER_EMAIL=""
 if [[ -n "${RESEND_SECRET_ARN}" ]]; then
   RESEND_SENDER_EMAIL="$(build_resend_sender_email "${DOMAIN_NAME}")"
@@ -63,6 +71,9 @@ export LANGFUSE_SECRET_KEY_SECRET_ARN
 export RESEND_SECRET_ARN
 export RESEND_SENDER_EMAIL
 export DEMO_PASSWORD_SECRET_ARN
+export ANALYTICS_SSH_PUBLIC_KEYS
+export ANALYTICS_SSH_ALLOWED_CIDRS
+export ANALYTICS_SSH_USERNAME
 
 python3 - "${OUTPUT_FILE}" <<'PY'
 import json
@@ -90,6 +101,9 @@ values = {
     "demoEmailDostip": os.environ.get("DEMO_EMAIL_DOSTIP", ""),
     "demoPasswordSecretArn": os.environ.get("DEMO_PASSWORD_SECRET_ARN", ""),
     "guestAiWeightedMonthlyTokenCap": os.environ.get("GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP", ""),
+    "analyticsSshPublicKeys": os.environ.get("ANALYTICS_SSH_PUBLIC_KEYS", ""),
+    "analyticsSshAllowedCidrs": os.environ.get("ANALYTICS_SSH_ALLOWED_CIDRS", ""),
+    "analyticsSshUsername": os.environ.get("ANALYTICS_SSH_USERNAME", ""),
 }
 data = {key: value for key, value in values.items() if value}
 path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")

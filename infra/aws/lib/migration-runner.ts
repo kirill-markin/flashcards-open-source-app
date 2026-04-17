@@ -13,6 +13,7 @@ export interface MigrationRunnerProps {
   dbOwnerSecret: cdk.aws_secretsmanager.ISecret;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   authDbSecret: cdk.aws_secretsmanager.Secret;
+  reportingDbSecret?: cdk.aws_secretsmanager.ISecret;
 }
 
 const dbAssetPaths = {
@@ -36,6 +37,10 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
   },
 };
 
+/**
+ * Creates the migration Lambda that owns schema changes and runtime role
+ * password configuration for the private application database.
+ */
 export function migrationRunner(scope: Construct, props: MigrationRunnerProps): lambdaNodejs.NodejsFunction {
   const migrationFn = new lambdaNodejs.NodejsFunction(scope, "DbMigrationHandler", {
     entry: path.join(__dirname, "../../../apps/backend/src/migrate-lambda.ts"),
@@ -52,6 +57,9 @@ export function migrationRunner(scope: Construct, props: MigrationRunnerProps): 
       DB_OWNER_SECRET_ARN: props.dbOwnerSecret.secretArn,
       DB_BACKEND_SECRET_ARN: props.backendDbSecret.secretArn,
       DB_AUTH_SECRET_ARN: props.authDbSecret.secretArn,
+      ...(props.reportingDbSecret === undefined
+        ? {}
+        : { DB_REPORTING_SECRET_ARN: props.reportingDbSecret.secretArn }),
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
     },
@@ -60,6 +68,7 @@ export function migrationRunner(scope: Construct, props: MigrationRunnerProps): 
   props.dbOwnerSecret.grantRead(migrationFn);
   props.backendDbSecret.grantRead(migrationFn);
   props.authDbSecret.grantRead(migrationFn);
+  props.reportingDbSecret?.grantRead(migrationFn);
 
   return migrationFn;
 }

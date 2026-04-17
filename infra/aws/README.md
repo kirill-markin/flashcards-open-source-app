@@ -41,6 +41,7 @@ Keep these values in root `.env` before running setup or deploy scripts:
 - `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` when Langfuse tracing is enabled
 - `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` when review/demo bypass is enabled
 - `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP` when you want deployed guest AI enabled
+- optional `ANALYTICS_SSH_PUBLIC_KEYS`, `ANALYTICS_SSH_ALLOWED_CIDRS`, and `ANALYTICS_SSH_USERNAME` when you want the analytical SSH bastion enabled
 
 Certificate ARNs and secret ARNs are discovered from AWS. They are not meant to be typed into local context by hand.
 
@@ -96,6 +97,22 @@ This script:
 - leaves existing GitHub variables and secrets untouched
 
 The deploy workflow assembles its own `cdk.context.local.json` from those GitHub variables inside CI.
+
+`bash scripts/setup-github.sh` is intentionally bootstrap-oriented: it sets missing GitHub Actions variables and secrets, but it does not remove values that already exist in GitHub. If you need to disable an optional feature that was previously enabled through a GitHub variable, delete that GitHub variable explicitly and then redeploy.
+
+## Analytical DB access
+
+The `reporting_readonly` Postgres role is part of the baseline database schema in every environment. When the analytical SSH bastion variables are configured together, the stack also creates the optional operator access path used to reach that role through SSH tunneling into the private database.
+
+That bastion is tunnel-only for the configured analytical SSH user: it allows SSH key authentication and TCP forwarding to the private Postgres endpoint, but it does not provide interactive shell access.
+
+When this optional feature is disabled, the bastion host and the current reporting password secret are removed from the stack outputs, but the underlying `reporting_readonly` database principal remains part of the baseline schema.
+
+The current reporting password secret is discovered through CloudFormation outputs, not through a stable Secrets Manager name. Use the helper script or the stack outputs as the supported operator discovery path.
+
+Details, granted database permissions, the helper script, manual tunnel workflow, and Metabase setup flow:
+
+- [docs/analytics-db-access.md](../../docs/analytics-db-access.md)
 
 This AWS bootstrap helper does not manage the Android Google Cloud and Firebase Test Lab repository variables. Android CI/CD uses its own setup flow and helper script:
 

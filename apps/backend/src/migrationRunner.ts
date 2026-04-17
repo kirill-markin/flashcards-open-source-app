@@ -136,12 +136,16 @@ export async function runMigrations(): Promise<MigrationRunResult> {
   const ownerSecretArn = getRequiredEnv("DB_OWNER_SECRET_ARN");
   const backendSecretArn = getRequiredEnv("DB_BACKEND_SECRET_ARN");
   const authSecretArn = getRequiredEnv("DB_AUTH_SECRET_ARN");
+  const reportingSecretArn = process.env.DB_REPORTING_SECRET_ARN;
   const host = getRequiredEnv("DB_HOST");
   const dbName = getRequiredEnv("DB_NAME");
 
   const ownerCredentials = await getDatabaseCredentialsSecret(ownerSecretArn);
   const backendCredentials = await getDatabaseCredentialsSecret(backendSecretArn);
   const authCredentials = await getDatabaseCredentialsSecret(authSecretArn);
+  const reportingCredentials = reportingSecretArn === undefined
+    ? undefined
+    : await getDatabaseCredentialsSecret(reportingSecretArn);
   const connectionString = `postgresql://${ownerCredentials.username}:${encodeURIComponent(ownerCredentials.password)}@${host}:5432/${dbName}`;
 
   const client = new pg.Client({
@@ -163,6 +167,12 @@ export async function runMigrations(): Promise<MigrationRunResult> {
         roleName: "auth_app",
         configured: await configureRuntimeRole(client, "auth_app", authCredentials.password),
       },
+      ...(reportingCredentials === undefined
+        ? []
+        : [{
+          roleName: "reporting_readonly",
+          configured: await configureRuntimeRole(client, "reporting_readonly", reportingCredentials.password),
+        }]),
     ] satisfies ReadonlyArray<RuntimeRoleConfigurationResult>;
 
     return {
