@@ -32,7 +32,8 @@ type UseChatSessionHydrationLifecycleParams = Readonly<{
   initialFreshSessionId: string;
   initialShouldBootstrapFreshLocalSession: boolean;
   ensureRemoteSessionForHydration: () => Promise<string>;
-  ensureFreshSession: (sessionId: string, requestSequence: number) => void;
+  ensureFreshSessionInBackground: (sessionId: string, requestSequence: number) => void;
+  ensureFreshSessionWithRefreshError: (sessionId: string, requestSequence: number) => void;
   getFreshSessionRequestSequence: () => number;
 }>;
 
@@ -52,7 +53,8 @@ export function useChatSessionHydrationLifecycle(
     initialFreshSessionId,
     initialShouldBootstrapFreshLocalSession,
     ensureRemoteSessionForHydration,
-    ensureFreshSession,
+    ensureFreshSessionInBackground,
+    ensureFreshSessionWithRefreshError,
     getFreshSessionRequestSequence,
   } = params;
   const { replaceMessages } = history;
@@ -150,7 +152,7 @@ export function useChatSessionHydrationLifecycle(
         chatConfig: loadStoredChatConfig(),
       });
       if (isRemoteReady) {
-        ensureFreshSession(currentSessionId, getFreshSessionRequestSequence());
+        ensureFreshSessionWithRefreshError(currentSessionId, getFreshSessionRequestSequence());
       }
       return;
     }
@@ -164,7 +166,7 @@ export function useChatSessionHydrationLifecycle(
       }
 
       shouldBootstrapFreshLocalSessionRef.current = false;
-      ensureFreshSession(
+      ensureFreshSessionInBackground(
         runtimeRefs.currentSessionIdRef.current ?? initialFreshSessionId,
         0,
       );

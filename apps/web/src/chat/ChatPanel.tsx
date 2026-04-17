@@ -839,7 +839,7 @@ export function ChatPanel(props: Props): ReactElement {
                   requestComposerFocusRestore();
                 });
             }}
-            disabled={isStopping}
+            disabled={isStopping || isChatActionLocked}
             data-testid="chat-new-button"
           >
             {t("chatPanel.actions.newChat")}
