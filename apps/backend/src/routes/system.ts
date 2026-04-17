@@ -4,6 +4,7 @@ import { deleteAccountForAuthenticatedUser } from "../accountDeletion";
 import { createAgentDiscoveryEnvelope } from "../agentDiscovery";
 import { createAgentAccountEnvelope, shouldUseAgentSetupEnvelope } from "../agentSetup";
 import { HttpError } from "../errors";
+import { loadUserProgressSeries, parseProgressSeriesInputFromRequest, type ProgressSeries } from "../progress";
 import { unsafeQuery } from "../dbUnsafe";
 import { loadOpenApiDocument } from "../openapi";
 import {
@@ -20,11 +21,13 @@ import type { AppEnv } from "../app";
 type SystemRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
+  loadUserProgressSeriesFn?: typeof loadUserProgressSeries;
 }>;
 
 export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
+  const loadUserProgressSeriesFn = options.loadUserProgressSeriesFn ?? loadUserProgressSeries;
 
   app.get("/", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
   app.get("/agent", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
@@ -62,6 +65,66 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
         createdAt: requestContext.userSettingsCreatedAt,
       },
     });
+  });
+
+  app.get("/me/progress", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequestFn(
+      context.req.raw,
+      options.allowedOrigins,
+    );
+    const requestId = context.get("requestId");
+    const requestUrl = new URL(context.req.url);
+    const requestedTimeZone = requestUrl.searchParams.get("timeZone");
+    const requestedFrom = requestUrl.searchParams.get("from");
+    const requestedTo = requestUrl.searchParams.get("to");
+
+    try {
+      if (requestContext.transport === "api_key") {
+        throw new HttpError(
+          403,
+          "This endpoint requires Guest, Bearer, or Session authentication",
+          "PROGRESS_HUMAN_AUTH_REQUIRED",
+        );
+      }
+
+      const progressInput = parseProgressSeriesInputFromRequest(context.req.raw);
+      const progress = await loadUserProgressSeriesFn({
+        userId: requestContext.userId,
+        timeZone: progressInput.timeZone,
+        from: progressInput.from,
+        to: progressInput.to,
+      });
+      const hasNonZeroReviewDays = progress.dailyReviews.some((day) => day.reviewCount > 0);
+
+      logCloudRouteEvent("me_progress", {
+        requestId,
+        route: context.req.path,
+        statusCode: 200,
+        userId: requestContext.userId,
+        authTransport: requestContext.transport,
+        timeZone: progress.timeZone,
+        from: progress.from,
+        to: progress.to,
+        returnedDayCount: progress.dailyReviews.length,
+        hasNonZeroReviewDays,
+      }, false);
+
+      return context.json(progress satisfies ProgressSeries);
+    } catch (error) {
+      logCloudRouteEvent("me_progress_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        userId: requestContext.userId,
+        authTransport: requestContext.transport,
+        timeZone: requestedTimeZone,
+        from: requestedFrom,
+        to: requestedTo,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
   });
 
   app.post("/me/delete", async (context) => {
