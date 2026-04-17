@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Configure GitHub Actions vars and secrets for this repository.
+# This helper is bootstrap-only: it creates missing repo vars and secrets,
+# but it does not update or remove existing values. If a configured value
+# needs to change later, update it manually in GitHub or via `gh`.
 
 set -euo pipefail
 
@@ -95,6 +98,14 @@ DEMO_PASSWORD_SECRET_ARN="$(find_secret_arn "$REGION" "flashcards-open-source-ap
 DEMO_EMAIL_DOSTIP="${DEMO_EMAIL_DOSTIP:-}"
 GUEST_AI_QUOTA_CAP="${GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP:-}"
 LANGFUSE_BASE_URL="${LANGFUSE_BASE_URL:-}"
+ANALYTICS_SSH_PUBLIC_KEYS="${ANALYTICS_SSH_PUBLIC_KEYS:-}"
+ANALYTICS_SSH_ALLOWED_CIDRS="${ANALYTICS_SSH_ALLOWED_CIDRS:-}"
+ANALYTICS_SSH_USERNAME="${ANALYTICS_SSH_USERNAME:-}"
+if [[ -n "${ANALYTICS_SSH_PUBLIC_KEYS}" || -n "${ANALYTICS_SSH_ALLOWED_CIDRS}" || -n "${ANALYTICS_SSH_USERNAME}" ]]; then
+  require_non_empty_value "${ANALYTICS_SSH_PUBLIC_KEYS}" "Set ANALYTICS_SSH_PUBLIC_KEYS in root .env before running setup-github.sh when enabling analytical SSH access." >/dev/null
+  require_non_empty_value "${ANALYTICS_SSH_ALLOWED_CIDRS}" "Set ANALYTICS_SSH_ALLOWED_CIDRS in root .env before running setup-github.sh when enabling analytical SSH access." >/dev/null
+  require_non_empty_value "${ANALYTICS_SSH_USERNAME}" "Set ANALYTICS_SSH_USERNAME in root .env before running setup-github.sh when enabling analytical SSH access." >/dev/null
+fi
 RESEND_SENDER_EMAIL=""
 
 if [[ -n "$RESEND_SECRET_ARN" ]]; then
@@ -126,6 +137,9 @@ set_variable_if_missing CDK_LANGFUSE_BASE_URL "$LANGFUSE_BASE_URL"
 set_variable_if_missing CDK_DEMO_EMAIL_DOSTIP "$DEMO_EMAIL_DOSTIP"
 set_variable_if_missing CDK_DEMO_PASSWORD_SECRET_ARN "$DEMO_PASSWORD_SECRET_ARN"
 set_variable_if_missing CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP "$GUEST_AI_QUOTA_CAP"
+set_variable_if_missing CDK_ANALYTICS_SSH_PUBLIC_KEYS "$ANALYTICS_SSH_PUBLIC_KEYS"
+set_variable_if_missing CDK_ANALYTICS_SSH_ALLOWED_CIDRS "$ANALYTICS_SSH_ALLOWED_CIDRS"
+set_variable_if_missing CDK_ANALYTICS_SSH_USERNAME "$ANALYTICS_SSH_USERNAME"
 
 set_secret_if_missing AWS_DEPLOY_ROLE_ARN "$DEPLOY_ROLE_ARN"
 

@@ -5,6 +5,7 @@ import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as s3 from "aws-cdk-lib/aws-s3";
+import * as ec2 from "aws-cdk-lib/aws-ec2";
 import { Construct } from "constructs";
 
 export interface OutputsProps {
@@ -28,6 +29,9 @@ export interface OutputsProps {
   webCustomDomain: string | undefined;
   apexRedirectDistribution: cloudfront.Distribution | undefined;
   apexRedirectCustomDomain: string | undefined;
+  dbAccessInstance?: ec2.Instance;
+  reportingDbSecret?: cdk.aws_secretsmanager.ISecret;
+  analyticsSshUsername?: string;
 }
 
 export function outputs(scope: Construct, props: OutputsProps): void {
@@ -105,6 +109,32 @@ export function outputs(scope: Construct, props: OutputsProps): void {
     value: props.migrationFn.functionName,
     description: "Lambda function name for database migrations",
   });
+
+  if (props.dbAccessInstance !== undefined) {
+    new cdk.CfnOutput(scope, "AnalyticsSshHost", {
+      value: props.dbAccessInstance.instancePublicDnsName,
+      description: "Public DNS name of the analytical SSH bastion host",
+    });
+
+    new cdk.CfnOutput(scope, "AnalyticsSshPort", {
+      value: "22",
+      description: "SSH port for the analytical bastion host",
+    });
+  }
+
+  if (props.analyticsSshUsername !== undefined) {
+    new cdk.CfnOutput(scope, "AnalyticsSshUsername", {
+      value: props.analyticsSshUsername,
+      description: "SSH username for the analytical bastion host",
+    });
+  }
+
+  if (props.reportingDbSecret !== undefined) {
+    new cdk.CfnOutput(scope, "ReportingDbSecretArn", {
+      value: props.reportingDbSecret.secretArn,
+      description: "Secrets Manager ARN for reporting_readonly credentials",
+    });
+  }
 
   new cdk.CfnOutput(scope, "AlertTopicArn", {
     value: props.alertTopic.topicArn,
