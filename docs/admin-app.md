@@ -114,14 +114,21 @@ When the backend runs with `AUTH_MODE=none` and `ALLOW_INSECURE_LOCAL_AUTH=true`
 
 ## Self-hosted deploy
 
+For the first `admin.<domain>` rollout, use this exact order:
+
 1. Set `ADMIN_EMAILS` in root `.env` for the initial bootstrap.
 2. Run `bash scripts/cloudflare/setup-admin-domain.sh --domain <domain>` when the admin certificate does not exist yet.
-3. Run `bash scripts/setup-github.sh`.
-4. If the environment already exists and the deployed bootstrap admin list changes later, update `CDK_ADMIN_EMAILS` manually in GitHub before deploying.
-5. Deploy normally.
-6. Open `https://admin.<domain>`.
-7. Sign in with the existing Cognito email.
-8. Confirm that the dashboard loads.
+3. Run `bash scripts/setup-github.sh` so GitHub Actions picks up the admin certificate ARN and the initial bootstrap admin list.
+4. Deploy normally.
+5. Run `bash scripts/cloudflare/setup-dns.sh --stack-name <stack-name> --domain <domain>` after the stack exposes `AdminCustomDomainTarget`.
+6. Run `bash scripts/check-public-endpoints.sh --stack-name <stack-name>` after the DNS change.
+7. Open `https://admin.<domain>`.
+8. Sign in with the existing Cognito email.
+9. Confirm that the dashboard loads.
+
+Important rollout note: if `CDK_ADMIN_CERTIFICATE_ARN_US_EAST_1` or `CDK_ADMIN_EMAILS` was added to GitHub after a release workflow had already started, that in-flight workflow does not see the new values. In that case, finish the setup above and then run another deploy or rerun the workflow.
+
+If the environment already exists and the deployed bootstrap admin list changes later, update `CDK_ADMIN_EMAILS` manually in GitHub before deploying.
 
 The supported browser entrypoint is `https://admin.<domain>`.
 The admin frontend fails fast on any other non-local hostname. Do not serve the browser entry on a raw CloudFront or other non-admin hostname, and do not treat the raw CloudFront distribution hostname as a supported admin URL.
