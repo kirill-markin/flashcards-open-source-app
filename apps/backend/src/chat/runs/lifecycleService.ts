@@ -3,7 +3,9 @@ import {
   type DatabaseExecutor,
   type WorkspaceDatabaseScope,
 } from "../../db";
+import { ChatRunRowNotFoundError } from "../errors";
 import type { StoredOpenAIReplayItem } from "../openai/replayItems";
+import type { ChatSessionRow } from "../store/repository";
 import type { ChatSessionRunState } from "../store";
 import {
   type ChatComposerSuggestionsLocale,
@@ -22,6 +24,7 @@ import {
   STOPPED_BY_USER_TOOL_OUTPUT,
   updateChatItemWithExecutor,
   updateChatSessionRunStateWithExecutor,
+  INTERRUPTED_TOOL_CALL_OUTPUT,
 } from "../store";
 import { finalizePendingToolCallContent } from "../history";
 import { FAILED_TOOL_CALL_OUTPUT } from "../store";
@@ -42,6 +45,7 @@ import {
   selectChatRunForUpdateWithExecutor,
   selectSessionForUpdateWithExecutor,
   updateChatRunStatusWithExecutor,
+  type ChatRunRow,
 } from "./repository";
 import type {
   ChatRunHeartbeatState,
@@ -232,6 +236,20 @@ async function buildLocalMessagesForClaimedRun(
   );
 }
 
+export function assertClaimedRunStillActive(
+  run: ChatRunRow,
+  session: ChatSessionRow,
+  operation: string,
+): void {
+  if (
+    run.status !== "running"
+    || session.status !== "running"
+    || session.active_run_id !== run.run_id
+  ) {
+    throw new ChatRunRowNotFoundError(operation);
+  }
+}
+
 /**
  * Refreshes worker ownership for a claimed run and reports whether cancellation
  * or ownership loss occurred.
@@ -312,6 +330,8 @@ export async function completeClaimedChatRun(
       await selectChatRunForUpdateWithExecutor(executor, scope, params.runId) ?? undefined,
       "complete",
     );
+    const session = await selectSessionForUpdateWithExecutor(executor, scope, run.session_id);
+    assertClaimedRunStillActive(run, session, "complete");
 
     await updateChatItemWithExecutor(executor, scope, {
       itemId: params.assistantItemId,
@@ -363,10 +383,14 @@ export async function persistClaimedChatRunTerminalError(
       await selectChatRunForUpdateWithExecutor(executor, scope, params.runId) ?? undefined,
       "fail",
     );
+    const session = await selectSessionForUpdateWithExecutor(executor, scope, run.session_id);
+    assertClaimedRunStillActive(run, session, "fail");
     const finalizedAssistantContent = finalizePendingToolCallContent(
       params.assistantContent,
       "incomplete",
-      FAILED_TOOL_CALL_OUTPUT,
+      params.sessionState === "interrupted"
+        ? INTERRUPTED_TOOL_CALL_OUTPUT
+        : FAILED_TOOL_CALL_OUTPUT,
     );
 
     if (finalizedAssistantContent.length === 0) {
@@ -438,6 +462,8 @@ export async function persistClaimedChatRunCancelled(
       await selectChatRunForUpdateWithExecutor(executor, scope, params.runId) ?? undefined,
       "cancel",
     );
+    const session = await selectSessionForUpdateWithExecutor(executor, scope, run.session_id);
+    assertClaimedRunStillActive(run, session, "cancel");
 
     await updateChatItemWithExecutor(executor, scope, {
       itemId: params.assistantItemId,

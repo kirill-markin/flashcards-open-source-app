@@ -16,6 +16,7 @@ import type {
 import {
   FAILED_TOOL_CALL_OUTPUT,
   INCOMPLETE_TOOL_CALL_PROVIDER_STATUS,
+  INTERRUPTED_TOOL_CALL_OUTPUT,
 } from "./types";
 
 export const completeChatRun = async (
@@ -62,7 +63,9 @@ export const persistAssistantTerminalError = async (
     const finalizedAssistantContent = finalizePendingToolCallContent(
       params.assistantContent,
       INCOMPLETE_TOOL_CALL_PROVIDER_STATUS,
-      FAILED_TOOL_CALL_OUTPUT,
+      params.sessionState === "interrupted"
+        ? INTERRUPTED_TOOL_CALL_OUTPUT
+        : FAILED_TOOL_CALL_OUTPUT,
     );
 
     if (finalizedAssistantContent.length === 0) {

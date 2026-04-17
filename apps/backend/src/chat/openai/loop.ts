@@ -51,6 +51,7 @@ type OpenAILoopDependencies = Readonly<{
 
 export type OpenAILoopCompletion = Readonly<{
   openaiItems: ReadonlyArray<StoredOpenAIReplayItem>;
+  terminationReason: "completed" | "stopped_before_next_step";
 }>;
 
 export type OpenAILoopEventSink = (
@@ -88,6 +89,8 @@ export type StartOpenAILoopParams = Readonly<{
   turnInput: ReadonlyArray<ContentPart>;
   rootObservation: LangfuseObservation | null;
   signal?: AbortSignal;
+  onExecutionPhaseChanged?: (phase: "idle" | "model" | "tool") => void;
+  shouldStopBeforeNextStep?: () => boolean;
 }>;
 
 type ModelCallResult = Readonly<{
@@ -297,6 +300,17 @@ function buildOpenAIResponsesRequest(
   };
 }
 
+function setExecutionPhase(
+  params: StartOpenAILoopParams,
+  phase: "idle" | "model" | "tool",
+): void {
+  params.onExecutionPhaseChanged?.(phase);
+}
+
+function shouldStopBeforeNextStep(params: StartOpenAILoopParams): boolean {
+  return params.shouldStopBeforeNextStep?.() === true;
+}
+
 async function runOneModelCall(
   client: OpenAI,
   params: StartOpenAILoopParams,
@@ -435,6 +449,25 @@ async function runOneModelCall(
   };
 }
 
+async function runOneModelCallWithPhase(
+  client: OpenAI,
+  params: StartOpenAILoopParams,
+  onEvent: OpenAILoopEventSink,
+  request: OpenAIResponsesRequest,
+  callIndex: number,
+): Promise<ModelCallResult> {
+  setExecutionPhase(params, "model");
+  return runOneModelCall(
+    client,
+    params,
+    onEvent,
+    request,
+    callIndex,
+  ).finally(() => {
+    setExecutionPhase(params, "idle");
+  });
+}
+
 async function completeToolLimitSummaryTurn(
   params: StartOpenAILoopParams,
   onEvent: OpenAILoopEventSink,
@@ -443,7 +476,7 @@ async function completeToolLimitSummaryTurn(
   continuationItems: Array<StoredOpenAIReplayItem>,
 ): Promise<OpenAILoopCompletion> {
   const summaryCallIndex = CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS + 1;
-  const summaryCall = await runOneModelCall(
+  const summaryCall = await runOneModelCallWithPhase(
     client,
     params,
     onEvent,
@@ -470,6 +503,7 @@ async function completeToolLimitSummaryTurn(
     await onEvent({ type: "done" });
     return {
       openaiItems: continuationItems,
+      terminationReason: "completed",
     };
   }
 
@@ -481,6 +515,7 @@ async function completeToolLimitSummaryTurn(
   await onEvent({ type: "done" });
   return {
     openaiItems: continuationItems,
+    terminationReason: "completed",
   };
 }
 
@@ -498,7 +533,14 @@ async function runLoopWithDeps(
   const continuationItems: Array<StoredOpenAIReplayItem> = [];
 
   for (let callIndex = 1; callIndex <= CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS; callIndex += 1) {
-    const modelCall = await runOneModelCall(
+    if (shouldStopBeforeNextStep(params)) {
+      return {
+        openaiItems: continuationItems,
+        terminationReason: "stopped_before_next_step",
+      };
+    }
+
+    const modelCall = await runOneModelCallWithPhase(
       client,
       params,
       onEvent,
@@ -512,36 +554,63 @@ async function runLoopWithDeps(
       await onEvent({ type: "done" });
       return {
         openaiItems: continuationItems,
+        terminationReason: "completed",
+      };
+    }
+
+    if (shouldStopBeforeNextStep(params)) {
+      return {
+        openaiItems: continuationItems,
+        terminationReason: "stopped_before_next_step",
       };
     }
 
     let toolStates = modelCall.toolStates;
     for (const functionCall of modelCall.functionCalls) {
-      const output = await dependencies.runOneToolCall({
-        item: functionCall,
-        userId: params.userId,
-        workspaceId: params.workspaceId,
-        rootObservation: params.rootObservation,
-      });
-      const update = applyToolCallOutput(
-        toolStates,
-        {
-          type: "function_call_output",
-          callId: functionCall.call_id,
-          id: functionCall.id,
-          name: functionCall.name,
-        },
-        output.output,
-        Date.now(),
-        output.succeeded && output.isMutating,
-      );
-      toolStates = update.toolStates;
-      if (update.event !== null) {
-        await onEvent(update.event);
+      if (shouldStopBeforeNextStep(params)) {
+        return {
+          openaiItems: continuationItems,
+          terminationReason: "stopped_before_next_step",
+        };
       }
-      continuationItems.push(toStoredOpenAIReplayItem(
-        toFunctionCallOutputInputItem(functionCall.call_id, output.output),
-      ));
+
+      setExecutionPhase(params, "tool");
+      try {
+        const output = await dependencies.runOneToolCall({
+          item: functionCall,
+          userId: params.userId,
+          workspaceId: params.workspaceId,
+          rootObservation: params.rootObservation,
+        });
+        const update = applyToolCallOutput(
+          toolStates,
+          {
+            type: "function_call_output",
+            callId: functionCall.call_id,
+            id: functionCall.id,
+            name: functionCall.name,
+          },
+          output.output,
+          Date.now(),
+          output.succeeded && output.isMutating,
+        );
+        toolStates = update.toolStates;
+        if (update.event !== null) {
+          await onEvent(update.event);
+        }
+        continuationItems.push(toStoredOpenAIReplayItem(
+          toFunctionCallOutputInputItem(functionCall.call_id, output.output),
+        ));
+      } finally {
+        setExecutionPhase(params, "idle");
+      }
+
+      if (shouldStopBeforeNextStep(params)) {
+        return {
+          openaiItems: continuationItems,
+          terminationReason: "stopped_before_next_step",
+        };
+      }
     }
 
     if (callIndex === CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS) {
@@ -567,7 +636,10 @@ export async function startOpenAILoopWithDeps(
   onEvent: OpenAILoopEventSink,
   dependencies: OpenAILoopDependencies,
 ): Promise<OpenAILoopCompletion> {
-  return runLoopWithDeps(params, onEvent, dependencies);
+  setExecutionPhase(params, "idle");
+  return runLoopWithDeps(params, onEvent, dependencies).finally(() => {
+    setExecutionPhase(params, "idle");
+  });
 }
 
 /**

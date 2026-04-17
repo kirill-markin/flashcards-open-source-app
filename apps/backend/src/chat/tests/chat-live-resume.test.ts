@@ -30,17 +30,20 @@ function makeAssistantMessage(
 }
 
 function createRunSnapshot(
-  status: ChatRunSnapshot["status"],
-  assistantItemId: string,
+  params: Readonly<{
+    status: ChatRunSnapshot["status"];
+    assistantItemId: string;
+    lastErrorMessage: string | null;
+  }>,
 ): ChatRunSnapshot {
   return {
     runId: "run-1",
     sessionId: "session-1",
-    assistantItemId,
-    status,
+    assistantItemId: params.assistantItemId,
+    status: params.status,
     startedAt: 1,
-    finishedAt: status === "queued" || status === "running" ? null : 2,
-    lastErrorMessage: null,
+    finishedAt: params.status === "queued" || params.status === "running" ? null : 2,
+    lastErrorMessage: params.lastErrorMessage,
   };
 }
 
@@ -131,7 +134,11 @@ test("resume replay emits terminal assistant backlog after afterCursor", async (
       afterCursor: 5,
       requestId: "request-1",
     }, {
-      getChatRunSnapshot: async () => createRunSnapshot("completed", "assistant-1"),
+      getChatRunSnapshot: async () => createRunSnapshot({
+        status: "completed",
+        assistantItemId: "assistant-1",
+        lastErrorMessage: null,
+      }),
       getRecoveredChatSessionSnapshot: async () => createRunningSessionSnapshot(),
       listChatMessagesAfterCursor: async (_userId, _workspaceId, _sessionId, afterCursor) =>
         afterCursor === 5
@@ -218,7 +225,11 @@ test("completed live replay emits composer suggestions before the terminal event
       afterCursor: undefined,
       requestId: "request-1b",
     }, {
-      getChatRunSnapshot: async () => createRunSnapshot("completed", "assistant-1"),
+      getChatRunSnapshot: async () => createRunSnapshot({
+        status: "completed",
+        assistantItemId: "assistant-1",
+        lastErrorMessage: null,
+      }),
       getRecoveredChatSessionSnapshot: async () => createRunningSessionSnapshot(composerSuggestions),
       listChatMessagesAfterCursor: async () => [],
       listChatMessagesLatest: async () => ({
@@ -263,6 +274,61 @@ test("completed live replay emits composer suggestions before the terminal event
   ]);
 });
 
+test("interrupted live replay keeps the existing error outcome contract and includes the timeout message", async () => {
+  const timeoutMessage = "This response took too long, so I stopped the run before the server timeout. Please try again or split the request into smaller steps.";
+
+  const output = await collectStreamOutput(async (stream) => {
+    await runLiveStreamWithDependencies(stream, {
+      sessionId: "session-1",
+      runId: "run-1",
+      userId: "user-1",
+      workspaceId: "workspace-1",
+      afterCursor: undefined,
+      requestId: "request-interrupted-1",
+    }, {
+      getChatRunSnapshot: async () => createRunSnapshot({
+        status: "interrupted",
+        assistantItemId: "assistant-1",
+        lastErrorMessage: timeoutMessage,
+      }),
+      getRecoveredChatSessionSnapshot: async () => createInterruptedSessionSnapshot(),
+      listChatMessagesAfterCursor: async () => [],
+      listChatMessagesLatest: async () => ({
+        messages: [
+          makeAssistantMessage({
+            itemId: "assistant-1",
+            itemOrder: 6,
+            state: "completed",
+            content: [
+              { type: "text", text: "partial" },
+            ],
+          }),
+        ],
+        oldestCursor: "6",
+        newestCursor: "6",
+        hasOlder: false,
+      }),
+      waitForNextPollInterval: async () => false,
+    });
+  });
+
+  assert.deepEqual(parseLiveEvents(output), [
+    {
+      type: "run_terminal",
+      sessionId: "session-1",
+      conversationScopeId: "session-1",
+      runId: "run-1",
+      cursor: null,
+      sequenceNumber: 1,
+      streamEpoch: "run-1",
+      outcome: "error",
+      assistantItemId: "assistant-1",
+      message: timeoutMessage,
+      isError: true,
+    },
+  ]);
+});
+
 test("resume replay seeds in-progress assistant content and continues live deltas for the same item", async () => {
   const output = await collectStreamOutput(async (stream) => {
     await runLiveStreamWithDependencies(stream, {
@@ -273,7 +339,11 @@ test("resume replay seeds in-progress assistant content and continues live delta
       afterCursor: 5,
       requestId: "request-2",
     }, {
-      getChatRunSnapshot: async () => createRunSnapshot("running", "assistant-2"),
+      getChatRunSnapshot: async () => createRunSnapshot({
+        status: "running",
+        assistantItemId: "assistant-2",
+        lastErrorMessage: null,
+      }),
       getRecoveredChatSessionSnapshot: async () => createRunningSessionSnapshot(),
       listChatMessagesAfterCursor: async (_userId, _workspaceId, _sessionId, afterCursor) => {
         if (afterCursor === 5) {
@@ -347,8 +417,16 @@ test("terminal replay emits assistant_message_done before run_terminal when the 
       getChatRunSnapshot: async () => {
         runSnapshotReadCount += 1;
         return runSnapshotReadCount === 1
-          ? createRunSnapshot("running", "assistant-5")
-          : createRunSnapshot("completed", "assistant-5");
+          ? createRunSnapshot({
+            status: "running",
+            assistantItemId: "assistant-5",
+            lastErrorMessage: null,
+          })
+          : createRunSnapshot({
+            status: "completed",
+            assistantItemId: "assistant-5",
+            lastErrorMessage: null,
+          });
       },
       getRecoveredChatSessionSnapshot: async () => createRunningSessionSnapshot(),
       listChatMessagesAfterCursor: async (_userId, _workspaceId, _sessionId, afterCursor) => {
@@ -440,8 +518,16 @@ test("terminal replay falls back to reset_required when a completed run has only
       getChatRunSnapshot: async () => {
         runSnapshotReadCount += 1;
         return runSnapshotReadCount === 1
-          ? createRunSnapshot("running", "assistant-6")
-          : createRunSnapshot("completed", "assistant-6");
+          ? createRunSnapshot({
+            status: "running",
+            assistantItemId: "assistant-6",
+            lastErrorMessage: null,
+          })
+          : createRunSnapshot({
+            status: "completed",
+            assistantItemId: "assistant-6",
+            lastErrorMessage: null,
+          });
       },
       getRecoveredChatSessionSnapshot: async () => createRunningSessionSnapshot(),
       listChatMessagesAfterCursor: async (_userId, _workspaceId, _sessionId, afterCursor) => {
@@ -506,7 +592,11 @@ test("resume replay emits reset_required when backlog contains multiple in-progr
       afterCursor: 5,
       requestId: "request-3",
     }, {
-      getChatRunSnapshot: async () => createRunSnapshot("running", "assistant-3"),
+      getChatRunSnapshot: async () => createRunSnapshot({
+        status: "running",
+        assistantItemId: "assistant-3",
+        lastErrorMessage: null,
+      }),
       getRecoveredChatSessionSnapshot: async () => createRunningSessionSnapshot(),
       listChatMessagesAfterCursor: async () => [
         makeAssistantMessage({
@@ -563,8 +653,16 @@ test("recovered session read emits terminal events when the attached run finaliz
       getChatRunSnapshot: async () => {
         runSnapshotReadCount += 1;
         return runSnapshotReadCount === 1
-          ? createRunSnapshot("running", "assistant-7")
-          : createRunSnapshot("completed", "assistant-7");
+          ? createRunSnapshot({
+            status: "running",
+            assistantItemId: "assistant-7",
+            lastErrorMessage: null,
+          })
+          : createRunSnapshot({
+            status: "completed",
+            assistantItemId: "assistant-7",
+            lastErrorMessage: null,
+          });
       },
       getRecoveredChatSessionSnapshot: async () => createIdleSessionSnapshot([]),
       listChatMessagesAfterCursor: async (_userId, _workspaceId, _sessionId, afterCursor) => {
@@ -646,7 +744,11 @@ test("recovered session read emits reset_required immediately when the attached 
       afterCursor: 5,
       requestId: "request-7",
     }, {
-      getChatRunSnapshot: async () => createRunSnapshot("running", "assistant-8"),
+      getChatRunSnapshot: async () => createRunSnapshot({
+        status: "running",
+        assistantItemId: "assistant-8",
+        lastErrorMessage: null,
+      }),
       getRecoveredChatSessionSnapshot: async () => createInterruptedSessionSnapshot(),
       listChatMessagesAfterCursor: async () => [],
       listChatMessagesLatest: async () => ({

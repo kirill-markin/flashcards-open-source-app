@@ -19,8 +19,14 @@ import {
   upsertReasoningSummaryContent,
   upsertToolCallContent,
 } from "./history";
-import { startOpenAILoop } from "./openai/loop";
-import type { ServerChatMessage } from "./openai/replayItems";
+import {
+  startOpenAILoop,
+  type OpenAILoopCompletion,
+} from "./openai/loop";
+import type {
+  ServerChatMessage,
+  StoredOpenAIReplayItem,
+} from "./openai/replayItems";
 import {
   completeClaimedChatRun,
   persistClaimedChatRunCancelled,
@@ -42,6 +48,15 @@ import type {
 import { CHAT_RUN_HEARTBEAT_INTERVAL_MS } from "./workerLease";
 
 const INCOMPLETE_TOOL_CALL_PROVIDER_STATUS = "incomplete";
+/**
+ * We intentionally keep chat-run cancellation shallow.
+ * Instead of threading abort semantics through every tool and DB layer, the
+ * worker reserves a pessimistic final window and refuses to start more
+ * provider work once the remaining Lambda budget enters that window.
+ * Started tool work is therefore treated as a bounded non-preemptible section.
+ */
+const CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS = 180_000;
+const DEADLINE_REACHED_MESSAGE = "This response took too long, so I stopped the run before the server timeout. Please try again or split the request into smaller steps.";
 
 type ChatRunDiagnostics = Readonly<{
   requestId: string;
@@ -67,18 +82,22 @@ export type StartPersistedChatRunParams = Readonly<{
   localMessages: ReadonlyArray<ServerChatMessage>;
   turnInput: ReadonlyArray<ContentPart>;
   diagnostics: ChatRunDiagnostics;
+  getRemainingTimeInMillis: () => number;
 }>;
 
 type ChatWorkerAbortReason =
   | "user_cancelled"
   | "ownership_lost"
-  | "initial_cancel_state";
+  | "initial_cancel_state"
+  | "deadline_reached";
+
+type ChatWorkerExecutionPhase = "idle" | "model" | "tool";
 
 export type ChatWorkerRunResult = Readonly<{
-  outcome: "completed" | "cancelled" | "ownership_lost" | "failed";
+  outcome: "completed" | "cancelled" | "ownership_lost" | "failed" | "interrupted";
   abortReason: ChatWorkerAbortReason | null;
-  runStatus: "completed" | "cancelled" | "failed" | null;
-  sessionState: "idle" | null;
+  runStatus: "completed" | "cancelled" | "failed" | "interrupted" | null;
+  sessionState: "idle" | "interrupted" | null;
 }>;
 
 export class ChatRunOwnershipLostError extends Error {
@@ -206,8 +225,9 @@ function logTerminalStatePersisted(
   context: ChatWorkerLogContext,
   error: unknown | null,
   abortReason: ChatWorkerAbortReason | null,
-  runStatus: "completed" | "cancelled" | "failed",
-  sessionState: "idle",
+  signalAborted: boolean,
+  runStatus: "completed" | "cancelled" | "failed" | "interrupted",
+  sessionState: "idle" | "interrupted",
   cancellationRequested: boolean,
   ownershipLost: boolean,
   startedAt: Date,
@@ -218,7 +238,7 @@ function logTerminalStatePersisted(
 
   logChatWorkerLifecycleEvent("chat_worker_terminal_state_persisted", context, {
     abortReason,
-    signalAborted: abortReason !== null,
+    signalAborted,
     cancellationRequested,
     ownershipLost,
     runStatus,
@@ -430,6 +450,8 @@ export async function runPersistedChatSessionWithDeps(
   const seenInvalidationVersions = new Map<string, number>();
   const abortController = new AbortController();
   const startedAt = new Date();
+  let executionPhase: ChatWorkerExecutionPhase = "idle";
+  let softDeadlineTimer: ReturnType<typeof setTimeout> | null = null;
 
   const persistCancelled = async (
     reason: ChatWorkerAbortReason,
@@ -447,6 +469,7 @@ export async function runPersistedChatSessionWithDeps(
       logContext,
       null,
       reason,
+      abortController.signal.aborted,
       "cancelled",
       "idle",
       stopRequestedByUser,
@@ -481,6 +504,7 @@ export async function runPersistedChatSessionWithDeps(
       logContext,
       error,
       abortReason,
+      abortController.signal.aborted,
       "failed",
       "idle",
       stopRequestedByUser,
@@ -493,6 +517,42 @@ export async function runPersistedChatSessionWithDeps(
       abortReason,
       runStatus: "failed",
       sessionState: "idle",
+    };
+  };
+
+  const persistInterrupted = async (
+    errorMessage: string,
+    assistantOpenAIItems?: ReadonlyArray<StoredOpenAIReplayItem>,
+  ): Promise<ChatWorkerRunResult> => {
+    assistantContent = finalizeAssistantToolCalls(assistantContent);
+    const finishedAt = new Date();
+    await dependencies.persistAssistantTerminalError(params.userId, params.workspaceId, {
+      runId: params.runId,
+      sessionId: params.sessionId,
+      assistantItemId: params.assistantItemId,
+      assistantContent,
+      assistantOpenAIItems,
+      errorMessage,
+      sessionState: "interrupted",
+    });
+    isFinalized = true;
+    logTerminalStatePersisted(
+      logContext,
+      null,
+      abortReason,
+      abortController.signal.aborted,
+      "interrupted",
+      "interrupted",
+      stopRequestedByUser,
+      ownershipLost,
+      startedAt,
+      finishedAt,
+    );
+    return {
+      outcome: "interrupted",
+      abortReason,
+      runStatus: "interrupted",
+      sessionState: "interrupted",
     };
   };
 
@@ -520,6 +580,7 @@ export async function runPersistedChatSessionWithDeps(
       logContext,
       null,
       null,
+      abortController.signal.aborted,
       "completed",
       "idle",
       stopRequestedByUser,
@@ -535,18 +596,25 @@ export async function runPersistedChatSessionWithDeps(
     };
   };
 
+  /**
+   * The first abort reason wins and becomes the only terminal cause that may
+   * drive finalization for the rest of this worker execution.
+   */
   const recordAbortRequest = (
     reason: ChatWorkerAbortReason,
     heartbeatAt: Date | null,
     cancellationRequested: boolean,
     ownershipLostState: boolean,
+    abortSignal: boolean,
   ): void => {
     if (abortReason !== null) {
       return;
     }
 
     abortReason = reason;
-    abortController.abort();
+    if (abortSignal && !abortController.signal.aborted) {
+      abortController.abort();
+    }
     logAbortRequested(
       logContext,
       reason,
@@ -555,6 +623,54 @@ export async function runPersistedChatSessionWithDeps(
       ownershipLostState,
       abortController.signal.aborted,
     );
+  };
+
+  const requestHardAbort = (
+    reason: Exclude<ChatWorkerAbortReason, "deadline_reached">,
+    heartbeatAt: Date | null,
+    cancellationRequested: boolean,
+    ownershipLostState: boolean,
+  ): void => {
+    recordAbortRequest(
+      reason,
+      heartbeatAt,
+      cancellationRequested,
+      ownershipLostState,
+      true,
+    );
+  };
+
+  const requestSoftDeadlineStop = (): void => {
+    if (abortReason !== null) {
+      return;
+    }
+
+    recordAbortRequest(
+      "deadline_reached",
+      null,
+      false,
+      false,
+      executionPhase === "model",
+    );
+  };
+
+  const scheduleSoftDeadlineTimer = (): void => {
+    const remainingTimeMs = params.getRemainingTimeInMillis();
+    const softDeadlineDelayMs = remainingTimeMs - CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS;
+    if (softDeadlineDelayMs <= 0) {
+      requestSoftDeadlineStop();
+      return;
+    }
+
+    softDeadlineTimer = setTimeout(() => {
+      requestSoftDeadlineStop();
+    }, softDeadlineDelayMs);
+  };
+
+  const persistInterruptedIfDeadlineReached = async (): Promise<ChatWorkerRunResult | null> => {
+    return abortReason === "deadline_reached"
+      ? persistInterrupted(DEADLINE_REACHED_MESSAGE)
+      : null;
   };
 
   const heartbeatTimer = setInterval(() => {
@@ -567,7 +683,7 @@ export async function runPersistedChatSessionWithDeps(
     ).then((state) => {
       if (state.ownershipLost) {
         ownershipLost = true;
-        recordAbortRequest(
+        requestHardAbort(
           "ownership_lost",
           heartbeatAt,
           state.cancellationRequested,
@@ -578,7 +694,7 @@ export async function runPersistedChatSessionWithDeps(
 
       if (state.cancellationRequested) {
         stopRequestedByUser = true;
-        recordAbortRequest(
+        requestHardAbort(
           "user_cancelled",
           heartbeatAt,
           true,
@@ -599,7 +715,7 @@ export async function runPersistedChatSessionWithDeps(
     );
     if (initialHeartbeatState.ownershipLost) {
       ownershipLost = true;
-      recordAbortRequest(
+      requestHardAbort(
         "ownership_lost",
         initialHeartbeatAt,
         initialHeartbeatState.cancellationRequested,
@@ -614,8 +730,19 @@ export async function runPersistedChatSessionWithDeps(
     }
     stopRequestedByUser = initialHeartbeatState.cancellationRequested;
     if (stopRequestedByUser) {
-      recordAbortRequest("initial_cancel_state", initialHeartbeatAt, true, false);
+      requestHardAbort("initial_cancel_state", initialHeartbeatAt, true, false);
       return persistCancelled("initial_cancel_state");
+    }
+
+    scheduleSoftDeadlineTimer();
+    const afterInitialHeartbeatDeadlineResult = await persistInterruptedIfDeadlineReached();
+    if (afterInitialHeartbeatDeadlineResult !== null) {
+      return afterInitialHeartbeatDeadlineResult;
+    }
+
+    const beforeObservationDeadlineResult = await persistInterruptedIfDeadlineReached();
+    if (beforeObservationDeadlineResult !== null) {
+      return beforeObservationDeadlineResult;
     }
 
     await dependencies.startChatTurnObservation(
@@ -630,8 +757,13 @@ export async function runPersistedChatSessionWithDeps(
         turnInput: params.turnInput,
       },
       async (rootObservation): Promise<void> => {
+        runtimeResult = await persistInterruptedIfDeadlineReached();
+        if (runtimeResult !== null) {
+          return;
+        }
+
         logProviderCallStarted(logContext, new Date(), abortController.signal.aborted);
-        const completion = await dependencies.startOpenAILoop({
+        const completion: OpenAILoopCompletion = await dependencies.startOpenAILoop({
           requestId: params.requestId,
           userId: params.userId,
           workspaceId: params.workspaceId,
@@ -641,8 +773,18 @@ export async function runPersistedChatSessionWithDeps(
           turnInput: params.turnInput,
           rootObservation,
           signal: abortController.signal,
+          onExecutionPhaseChanged: (phase): void => {
+            executionPhase = phase;
+          },
+          shouldStopBeforeNextStep: (): boolean => abortReason === "deadline_reached",
         }, async (event): Promise<void> => {
-          if (stopRequestedByUser || ownershipLost) {
+          const shouldIgnoreEvent = stopRequestedByUser
+            || ownershipLost
+            || (
+              abortReason === "deadline_reached"
+              && !(executionPhase === "tool" && event.type === "tool_call" && event.status === "completed")
+            );
+          if (shouldIgnoreEvent) {
             return;
           }
 
@@ -689,6 +831,17 @@ export async function runPersistedChatSessionWithDeps(
 
         if (ownershipLost) {
           throw new ChatRunOwnershipLostError(params.runId);
+        }
+
+        if (
+          completion.terminationReason === "stopped_before_next_step"
+          || abortReason === "deadline_reached"
+        ) {
+          runtimeResult = await persistInterrupted(
+            DEADLINE_REACHED_MESSAGE,
+            completion.openaiItems,
+          );
+          return;
         }
 
         if (stopRequestedByUser) {
@@ -758,6 +911,10 @@ export async function runPersistedChatSessionWithDeps(
         };
       }
 
+      if (abortReason === "deadline_reached") {
+        return persistInterrupted(DEADLINE_REACHED_MESSAGE);
+      }
+
       return persistCancelled(abortReason);
     }
 
@@ -782,6 +939,9 @@ export async function runPersistedChatSessionWithDeps(
     return persistFailed(error);
   } finally {
     clearInterval(heartbeatTimer);
+    if (softDeadlineTimer !== null) {
+      clearTimeout(softDeadlineTimer);
+    }
     await dependencies.endTaskProtection();
   }
 }
