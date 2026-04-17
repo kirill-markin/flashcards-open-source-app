@@ -14,6 +14,17 @@ interface RuntimeRoleConfigurationResult {
   configured: boolean;
 }
 
+export interface ManagedRuntimeRole {
+  roleName: string;
+  rolePassword: string;
+}
+
+export interface RuntimeRolePasswords {
+  backendAppPassword: string;
+  authAppPassword: string;
+  reportingReadonlyPassword: string;
+}
+
 function getRequiredEnv(name: string): string {
   const value = process.env[name];
   if (!value || value.trim() === "") {
@@ -107,20 +118,42 @@ async function applyViews(client: pg.Client, directoryPath: string): Promise<Rea
   return appliedViews;
 }
 
+export function getManagedRuntimeRoles(
+  runtimeRolePasswords: RuntimeRolePasswords,
+): ReadonlyArray<ManagedRuntimeRole> {
+  return [
+    {
+      roleName: "backend_app",
+      rolePassword: runtimeRolePasswords.backendAppPassword,
+    },
+    {
+      roleName: "auth_app",
+      rolePassword: runtimeRolePasswords.authAppPassword,
+    },
+    {
+      roleName: "reporting_readonly",
+      rolePassword: runtimeRolePasswords.reportingReadonlyPassword,
+    },
+  ];
+}
+
+function getRuntimeRolePasswordSql(roleName: string, rolePassword: string): string {
+  return `ALTER ROLE ${pg.escapeIdentifier(roleName)} WITH PASSWORD ${getSqlLiteral(rolePassword)}`;
+}
+
 export async function configureRuntimeRole(
   client: Pick<pg.Client, "query">,
-  roleName: string,
-  rolePassword: string,
+  managedRuntimeRole: ManagedRuntimeRole,
 ): Promise<boolean> {
   const roleExists = await client.query<{ exists: number }>(
     "SELECT 1 AS exists FROM pg_roles WHERE rolname = $1",
-    [roleName],
+    [managedRuntimeRole.roleName],
   );
   if (roleExists.rowCount === 0) {
     return false;
   }
 
-  await client.query(`ALTER ROLE ${pg.escapeIdentifier(roleName)} WITH PASSWORD ${getSqlLiteral(rolePassword)}`);
+  await client.query(getRuntimeRolePasswordSql(managedRuntimeRole.roleName, managedRuntimeRole.rolePassword));
   return true;
 }
 
@@ -136,16 +169,14 @@ export async function runMigrations(): Promise<MigrationRunResult> {
   const ownerSecretArn = getRequiredEnv("DB_OWNER_SECRET_ARN");
   const backendSecretArn = getRequiredEnv("DB_BACKEND_SECRET_ARN");
   const authSecretArn = getRequiredEnv("DB_AUTH_SECRET_ARN");
-  const reportingSecretArn = process.env.DB_REPORTING_SECRET_ARN;
+  const reportingSecretArn = getRequiredEnv("DB_REPORTING_SECRET_ARN");
   const host = getRequiredEnv("DB_HOST");
   const dbName = getRequiredEnv("DB_NAME");
 
   const ownerCredentials = await getDatabaseCredentialsSecret(ownerSecretArn);
   const backendCredentials = await getDatabaseCredentialsSecret(backendSecretArn);
   const authCredentials = await getDatabaseCredentialsSecret(authSecretArn);
-  const reportingCredentials = reportingSecretArn === undefined
-    ? undefined
-    : await getDatabaseCredentialsSecret(reportingSecretArn);
+  const reportingCredentials = await getDatabaseCredentialsSecret(reportingSecretArn);
   const connectionString = `postgresql://${ownerCredentials.username}:${encodeURIComponent(ownerCredentials.password)}@${host}:5432/${dbName}`;
 
   const client = new pg.Client({
@@ -158,22 +189,19 @@ export async function runMigrations(): Promise<MigrationRunResult> {
     await ensureSchemaMigrationsTable(client);
     const appliedMigrations = await applyPendingMigrations(client, getMigrationsDirectoryPath());
     const appliedViews = await applyViews(client, getViewsDirectoryPath());
-    const configuredRuntimeRoles = [
-      {
-        roleName: "backend_app",
-        configured: await configureRuntimeRole(client, "backend_app", backendCredentials.password),
-      },
-      {
-        roleName: "auth_app",
-        configured: await configureRuntimeRole(client, "auth_app", authCredentials.password),
-      },
-      ...(reportingCredentials === undefined
-        ? []
-        : [{
-          roleName: "reporting_readonly",
-          configured: await configureRuntimeRole(client, "reporting_readonly", reportingCredentials.password),
-        }]),
-    ] satisfies ReadonlyArray<RuntimeRoleConfigurationResult>;
+    const managedRuntimeRoles = getManagedRuntimeRoles({
+      backendAppPassword: backendCredentials.password,
+      authAppPassword: authCredentials.password,
+      reportingReadonlyPassword: reportingCredentials.password,
+    });
+    const configuredRuntimeRoles: Array<RuntimeRoleConfigurationResult> = [];
+
+    for (const managedRuntimeRole of managedRuntimeRoles) {
+      configuredRuntimeRoles.push({
+        roleName: managedRuntimeRole.roleName,
+        configured: await configureRuntimeRole(client, managedRuntimeRole),
+      });
+    }
 
     return {
       appliedMigrations,

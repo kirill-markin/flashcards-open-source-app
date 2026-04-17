@@ -124,7 +124,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       dbOwnerSecret: dbResult.dbOwnerSecret,
       backendDbSecret: dbResult.backendDbSecret,
       authDbSecret: dbResult.authDbSecret,
-      reportingDbSecret: analyticsAccessResult?.reportingDbSecret,
+      reportingDbSecret: dbResult.reportingDbSecret,
     });
     const api = apiGateway(this, {
       vpc: net.vpc,
@@ -194,7 +194,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       apexRedirectDistribution: web.apexRedirectDistribution,
       apexRedirectCustomDomain: web.apexRedirectCustomDomain,
       dbAccessInstance: analyticsAccessResult?.dbAccessInstance,
-      reportingDbSecret: analyticsAccessResult?.reportingDbSecret,
+      reportingDbSecret: dbResult.reportingDbSecret,
       analyticsSshUsername: analyticsAccessResult?.sshUsername,
     });
   }

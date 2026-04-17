@@ -9,8 +9,9 @@ This access path exists for manual operator analytics and Metabase-style SSH tun
 The `reporting_readonly` role is part of the baseline schema in every environment. When analytical access is enabled, the stack also creates:
 
 - a public EC2 bastion host dedicated to analytical SSH tunneling
-- a dedicated Secrets Manager secret for the current `reporting_readonly` database role password
 - a private network path from that bastion host to the RDS instance on `5432`
+
+The current `reporting_readonly` password secret is also part of the baseline infrastructure in every environment, even when the SSH bastion is disabled.
 
 ## How to enable it
 
@@ -53,21 +54,23 @@ gh variable delete CDK_ANALYTICS_SSH_USERNAME --repo kirill-markin/flashcards-op
    - `AnalyticsSshHost`
    - `AnalyticsSshPort`
    - `AnalyticsSshUsername`
-   - `ReportingDbSecretArn`
 
-Important current behavior: this disable flow removes the AWS-side bastion path and the current reporting secret output, but it does not remove the baseline Postgres role `reporting_readonly` or its read grants.
+Important current behavior: this disable flow removes the AWS-side bastion path only. It does not remove the baseline Postgres role `reporting_readonly`, its read grants, or the current reporting password secret/output.
 
 That means disabling analytics access should be treated as removing the supported operator access path only. It should not be treated as a full schema-level removal of `reporting_readonly`.
 
 ## What gets exposed
 
-After deployment, CloudFormation outputs include:
+After deployment, CloudFormation always includes:
+
+- `ReportingDbSecretArn`
+- existing `DbEndpoint`
+
+When analytical access is enabled, CloudFormation also includes:
 
 - `AnalyticsSshHost`
 - `AnalyticsSshPort`
 - `AnalyticsSshUsername`
-- `ReportingDbSecretArn`
-- existing `DbEndpoint`
 
 Use those outputs as the source of truth for connection settings.
 
@@ -94,10 +97,16 @@ The bastion exists only to forward traffic into the private database network. Th
 
 ## Database role: `reporting_readonly`
 
-The migration creates a dedicated login role:
+The baseline schema migration creates a dedicated login role and its read-only grants:
 
 - role name: `reporting_readonly`
 - login enabled
+- `CONNECT` on database `flashcards`
+- `USAGE` on schemas `org`, `content`, `sync`
+- `SELECT` only on the allowed tables listed below
+
+The baseline schema migration also enforces the persistent runtime policy for this role:
+
 - `NOSUPERUSER`
 - `NOCREATEDB`
 - `NOCREATEROLE`
@@ -109,7 +118,7 @@ The migration creates a dedicated login role:
 - `idle_in_transaction_session_timeout = '60s'`
 - `CONNECTION LIMIT 3`
 
-Important current behavior: this role is intentionally persistent across later bastion disablement because it is part of the baseline schema. The disable flow only removes the operator access path and the current password discovery outputs.
+Important current behavior: this role is intentionally persistent across later bastion disablement because it is part of the baseline schema. The disable flow only removes the operator SSH access path.
 
 ## Granted schemas
 
@@ -136,7 +145,7 @@ No write access is granted.
 
 ## Row-level security behavior
 
-The migration creates explicit `FOR SELECT` policies for `reporting_readonly` on the same tables listed above.
+The baseline schema migration creates explicit `FOR SELECT` policies for `reporting_readonly` on the same tables listed above.
 
 Those policies currently use `USING (true)`, which means the role is allowed to read all rows from those allowed tables. This is intentional for manual operator analytics.
 
@@ -217,7 +226,7 @@ This stack still matches Metabase's SSH tunneling requirements:
 - the allowed tunnel destination is restricted to `<DbEndpoint>:5432`
 - no shell access is required for the Metabase connection flow
 
-Do not rely on a stable full Secrets Manager name for the reporting password secret. The supported contract is the current `ReportingDbSecretArn` stack output and the helper script that resolves it.
+The reporting password secret now uses a stable baseline Secrets Manager name, but the supported operator discovery path remains the current `ReportingDbSecretArn` stack output and the helper script that resolves it. The deployed migration runner uses that secret to rotate the current database password without changing the schema-owned role policy.
 
 ## Usage guidance
 

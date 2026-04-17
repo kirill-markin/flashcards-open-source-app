@@ -14,6 +14,7 @@ export interface OutputsProps {
   dbOwnerSecret: cdk.aws_secretsmanager.ISecret;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   authDbSecret: cdk.aws_secretsmanager.Secret;
+  reportingDbSecret: cdk.aws_secretsmanager.ISecret;
   alertTopic: sns.Topic;
   restApi: apigw.RestApi;
   authRestApi: apigw.RestApi;
@@ -30,7 +31,6 @@ export interface OutputsProps {
   apexRedirectDistribution: cloudfront.Distribution | undefined;
   apexRedirectCustomDomain: string | undefined;
   dbAccessInstance?: ec2.Instance;
-  reportingDbSecret?: cdk.aws_secretsmanager.ISecret;
   analyticsSshUsername?: string;
 }
 
@@ -129,12 +129,10 @@ export function outputs(scope: Construct, props: OutputsProps): void {
     });
   }
 
-  if (props.reportingDbSecret !== undefined) {
-    new cdk.CfnOutput(scope, "ReportingDbSecretArn", {
-      value: props.reportingDbSecret.secretArn,
-      description: "Secrets Manager ARN for reporting_readonly credentials",
-    });
-  }
+  new cdk.CfnOutput(scope, "ReportingDbSecretArn", {
+    value: props.reportingDbSecret.secretArn,
+    description: "Secrets Manager ARN for reporting_readonly credentials",
+  });
 
   new cdk.CfnOutput(scope, "AlertTopicArn", {
     value: props.alertTopic.topicArn,

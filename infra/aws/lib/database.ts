@@ -13,6 +13,7 @@ export interface DatabaseResult {
   dbOwnerSecret: cdk.aws_secretsmanager.ISecret;
   backendDbSecret: cdk.aws_secretsmanager.Secret;
   authDbSecret: cdk.aws_secretsmanager.Secret;
+  reportingDbSecret: cdk.aws_secretsmanager.Secret;
 }
 
 export function database(scope: Construct, props: DatabaseProps): DatabaseResult {
@@ -76,5 +77,16 @@ export function database(scope: Construct, props: DatabaseProps): DatabaseResult
     },
   });
 
-  return { db, dbOwnerSecret, backendDbSecret, authDbSecret };
+  const reportingDbSecret = new cdk.aws_secretsmanager.Secret(scope, "ReportingDbSecret", {
+    secretName: "flashcards-open-source-app/reporting-db-password",
+    description: "Generated credentials for the reporting_readonly Postgres role",
+    generateSecretString: {
+      secretStringTemplate: JSON.stringify({ username: "reporting_readonly" }),
+      generateStringKey: "password",
+      excludePunctuation: true,
+      passwordLength: 32,
+    },
+  });
+
+  return { db, dbOwnerSecret, backendDbSecret, authDbSecret, reportingDbSecret };
 }

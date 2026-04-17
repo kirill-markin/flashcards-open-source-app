@@ -2,8 +2,10 @@
 -- Introduces: the persistent read-only reporting role used for operator analytics against private storage.
 -- Current guidance: reporting_readonly is part of the baseline schema in every environment, but the operator access path remains optional and is provisioned separately by infra.
 -- Current guidance: reporting_readonly is limited to org, content, and sync reads for manual operator analytics and must not be reused as an application runtime role.
+-- Current guidance: this migration owns the persistent role attributes, role-level session settings, and connection limit for reporting_readonly.
+-- Current guidance: password rotation for reporting_readonly is managed outside the schema by migration runners and environment secrets.
 -- See also: infra/aws/README.md.
--- Create the baseline analytical reporting role and keep its privileges read-only.
+-- Create the baseline analytical reporting role and keep its grants and RLS policies read-only.
 
 DO $$
 BEGIN
