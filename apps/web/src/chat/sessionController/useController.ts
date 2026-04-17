@@ -99,7 +99,8 @@ export function useChatSessionController(
     initialFreshSessionId,
     initialShouldBootstrapFreshLocalSession: bootstrap.shouldBootstrapFreshLocalSession,
     ensureRemoteSessionForHydration: actions.ensureRemoteSessionForHydration,
-    ensureFreshSession: actions.ensureFreshSession,
+    ensureFreshSessionInBackground: actions.ensureFreshSessionInBackground,
+    ensureFreshSessionWithRefreshError: actions.ensureFreshSessionWithRefreshError,
     getFreshSessionRequestSequence: actions.getFreshSessionRequestSequence,
   });
 

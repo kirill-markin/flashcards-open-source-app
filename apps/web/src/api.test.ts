@@ -87,16 +87,34 @@ function setNavigatorLanguages(languages: ReadonlyArray<string>, language: strin
   });
 }
 
-function createSessionResponse(): Response {
+function createSessionResponse(
+  overrides?: Partial<Readonly<{
+    userId: string;
+    selectedWorkspaceId: string | null;
+    authTransport: "session" | "bearer";
+    csrfToken: string | null;
+    profile: Readonly<{
+      email: string | null;
+      locale: string;
+      createdAt: string;
+    }>;
+  }>>,
+): Response {
+  const baseProfile = {
+    email: "user@example.com",
+    locale: "en",
+    createdAt: "2026-04-10T00:00:00.000Z",
+  };
+
   return new Response(JSON.stringify({
     userId: "user-1",
     selectedWorkspaceId: "workspace-1",
     authTransport: "session",
     csrfToken: "csrf-token-1",
+    ...overrides,
     profile: {
-      email: "user@example.com",
-      locale: "en",
-      createdAt: "2026-04-10T00:00:00.000Z",
+      ...baseProfile,
+      ...overrides?.profile,
     },
   }), {
     status: 200,
@@ -159,10 +177,12 @@ function createStartChatRunResponse(): Response {
   });
 }
 
-function createNewChatSessionResponse(): Response {
+function createNewChatSessionResponse(
+  sessionId: string = "session-1",
+): Response {
   return new Response(JSON.stringify({
     ok: true,
-    sessionId: "session-1",
+    sessionId,
     composerSuggestions: [],
     chatConfig: createChatConfigResponseValue(),
   }), {
@@ -388,6 +408,73 @@ describe("auth locale login URL plumbing", () => {
 });
 
 describe("AI chat locale transport", () => {
+  it("bootstraps session transport before the first unsafe chat request", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createSessionResponse())
+      .mockResolvedValueOnce(createNewChatSessionResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createNewChatSession("session-1", "es-ES");
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:8080/v1/me");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("http://localhost:8080/v1/chat/new");
+
+    const chatRequestInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    expect(new Headers(chatRequestInit?.headers).get("X-CSRF-Token")).toBe("csrf-token-1");
+  });
+
+  it("deduplicates session transport bootstrap for parallel unsafe requests", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createSessionResponse())
+      .mockResolvedValueOnce(createNewChatSessionResponse("session-1"))
+      .mockResolvedValueOnce(createNewChatSessionResponse("session-2"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const [firstResponse, secondResponse] = await Promise.all([
+      createNewChatSession("session-1", "en"),
+      createNewChatSession("session-2", "en"),
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls.filter((call) => call[0] === "http://localhost:8080/v1/me")).toHaveLength(1);
+    expect(firstResponse.sessionId).toBe("session-1");
+    expect(secondResponse.sessionId).toBe("session-2");
+  });
+
+  it("recovers an expired session before the first unsafe chat request", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(createSessionResponse())
+      .mockResolvedValueOnce(createSessionResponse())
+      .mockResolvedValueOnce(createNewChatSessionResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await createNewChatSession("session-1", "en");
+
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:8080/v1/me");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("http://localhost:8081/api/refresh-session");
+    expect(fetchMock.mock.calls[2]?.[0]).toBe("http://localhost:8080/v1/me");
+    expect(fetchMock.mock.calls[3]?.[0]).toBe("http://localhost:8080/v1/me");
+    expect(fetchMock.mock.calls[4]?.[0]).toBe("http://localhost:8080/v1/chat/new");
+  });
+
+  it("surfaces local CSRF preconditions without mapping them to API unavailable", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createSessionResponse({
+        csrfToken: null,
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(createNewChatSession("session-1", "en")).rejects.toThrow(
+      "CSRF token is not loaded for this browser session",
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("includes uiLocale in POST /chat requests", async () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(createSessionResponse())

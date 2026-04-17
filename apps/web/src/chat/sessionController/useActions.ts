@@ -29,6 +29,8 @@ import {
 } from "../chatHelpers";
 import type { ChatHistoryState } from "../useChatHistory";
 
+type FreshSessionErrorPresentation = "new_chat" | "refresh" | "silent";
+
 type UseChatSessionActionsParams = Readonly<{
   workspaceId: string | null;
   isRemoteReady: boolean;
@@ -46,7 +48,8 @@ type ChatSessionActions = Readonly<{
   clearConversation: () => Promise<string | null>;
   ensureRemoteSession: () => Promise<string>;
   ensureRemoteSessionForHydration: () => Promise<string>;
-  ensureFreshSession: (sessionId: string, requestSequence: number) => void;
+  ensureFreshSessionInBackground: (sessionId: string, requestSequence: number) => void;
+  ensureFreshSessionWithRefreshError: (sessionId: string, requestSequence: number) => void;
   getFreshSessionRequestSequence: () => number;
 }>;
 
@@ -186,7 +189,11 @@ export function useChatSessionActions(
       && currentUiLocaleRef.current === requestLocale;
   }, [runtimeRefs, workspaceId]);
 
-  const ensureFreshSession = useCallback((sessionId: string, requestSequence: number): void => {
+  const ensureFreshSession = useCallback((
+    sessionId: string,
+    requestSequence: number,
+    errorPresentation: FreshSessionErrorPresentation,
+  ): void => {
     const requestLocale = uiLocale;
     void (async (): Promise<void> => {
       try {
@@ -209,15 +216,32 @@ export function useChatSessionActions(
         });
         storeChatConfig(response.chatConfig);
       } catch (error) {
-        if (isFreshSessionEnsureCurrent(sessionId, requestSequence, requestLocale)) {
-          dispatch({
-            type: "error_shown",
-            message: `${uiMessages.newChatFailedPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
-          });
+        if (isFreshSessionEnsureCurrent(sessionId, requestSequence, requestLocale) === false) {
+          return;
         }
+
+        if (errorPresentation === "silent") {
+          return;
+        }
+
+        const errorPrefix = errorPresentation === "new_chat"
+          ? uiMessages.newChatFailedPrefix
+          : uiMessages.refreshFailedPrefix;
+        dispatch({
+          type: "error_shown",
+          message: `${errorPrefix} ${toErrorMessage(error, uiMessages.errorFallbacks)}`,
+        });
       }
     })();
   }, [dispatch, isFreshSessionEnsureCurrent, provisionRemoteSession, uiMessages]);
+
+  const ensureFreshSessionInBackground = useCallback((sessionId: string, requestSequence: number): void => {
+    ensureFreshSession(sessionId, requestSequence, "silent");
+  }, [ensureFreshSession]);
+
+  const ensureFreshSessionWithRefreshError = useCallback((sessionId: string, requestSequence: number): void => {
+    ensureFreshSession(sessionId, requestSequence, "refresh");
+  }, [ensureFreshSession]);
 
   const ensureRemoteSession = useCallback(async (): Promise<string> => {
     if (workspaceId === null) {
@@ -524,7 +548,7 @@ export function useChatSessionActions(
       sessionId: nextSessionId,
       chatConfig: loadStoredChatConfig(),
     });
-    ensureFreshSession(nextSessionId, clearConversationRequestSequenceRef.current);
+    ensureFreshSession(nextSessionId, clearConversationRequestSequenceRef.current, "new_chat");
     return nextSessionId;
   }, [
     beginFreshSessionRequestSequence,
@@ -543,7 +567,8 @@ export function useChatSessionActions(
     clearConversation,
     ensureRemoteSession,
     ensureRemoteSessionForHydration,
-    ensureFreshSession,
+    ensureFreshSessionInBackground,
+    ensureFreshSessionWithRefreshError,
     getFreshSessionRequestSequence: getActiveRequestSequence,
   };
 }

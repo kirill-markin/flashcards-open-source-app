@@ -100,6 +100,7 @@ const collectionPageLimit = 100;
 let sessionCsrfToken: string | null = null;
 let sessionCsrfState: SessionCsrfState = "unknown";
 let sessionRecoveryPromise: Promise<void> | null = null;
+let sessionTransportReadyPromise: Promise<void> | null = null;
 let redirectInFlight = false;
 let authRedirectPreparationPromise: Promise<void> | null = null;
 let navigationHandler: NavigateToUrl | null = null;
@@ -150,6 +151,7 @@ export function resetApiClientStateForTests(): void {
   sessionCsrfToken = null;
   sessionCsrfState = "unknown";
   sessionRecoveryPromise = null;
+  sessionTransportReadyPromise = null;
   redirectInFlight = false;
   authRedirectPreparationPromise = null;
   navigationHandler = null;
@@ -209,6 +211,24 @@ function createHeaders(init: RequestInit): Headers {
   }
 
   return headers;
+}
+
+async function performFetch(pathname: string, init: RequestInit): Promise<Response> {
+  const config = getAppConfig();
+  const headers = createHeaders(init);
+
+  try {
+    return await fetch(`${config.apiBaseUrl}${pathname}`, {
+      ...init,
+      credentials: "include",
+      headers,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `The API is unavailable or not deployed yet. Try again. (${pathname}; ${message})`,
+    );
+  }
 }
 
 function navigateToUrl(url: string): void {
@@ -286,22 +306,6 @@ async function readJsonResponse(response: Response): Promise<unknown> {
   }
 }
 
-async function rawRequestResponse(pathname: string, init: RequestInit): Promise<Response> {
-  const config = getAppConfig();
-  try {
-    return await fetch(`${config.apiBaseUrl}${pathname}`, {
-      ...init,
-      credentials: "include",
-      headers: createHeaders(init),
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(
-      `The API is unavailable or not deployed yet. Try again. (${pathname}; ${message})`,
-    );
-  }
-}
-
 async function parseJsonPayload(response: Response): Promise<unknown> {
   const payload = await readJsonResponse(response);
 
@@ -318,7 +322,7 @@ async function parseJsonPayload(response: Response): Promise<unknown> {
  * only inside auth recovery to ensure a failed refresh cannot recurse forever.
  */
 async function loadSessionInfoWithoutRecovery(): Promise<SessionInfo> {
-  const response = await rawRequestResponse("/me", { method: "GET" });
+  const response = await performFetch("/me", { method: "GET" });
   const session = parseSessionInfoResponse(await parseJsonPayload(response), "GET /me");
   setSessionCsrfToken(session.csrfToken, session.authTransport);
   redirectInFlight = false;
@@ -391,6 +395,35 @@ async function recoverSession(prepareForAuthRedirect: PrepareForAuthRedirect | n
   return sessionRecoveryPromise;
 }
 
+async function ensureSessionTransportReadyForUnsafeRequest(): Promise<void> {
+  if (sessionCsrfState !== "unknown") {
+    return;
+  }
+
+  if (sessionRecoveryPromise !== null) {
+    await sessionRecoveryPromise;
+    return;
+  }
+
+  const activeBootstrap = sessionTransportReadyPromise;
+  if (activeBootstrap !== null) {
+    await activeBootstrap;
+    return;
+  }
+
+  const readinessTask = (async (): Promise<void> => {
+    await loadSessionInfoWithRecovery();
+  })();
+
+  const trackedReadinessTask = readinessTask.finally(() => {
+    if (sessionTransportReadyPromise === trackedReadinessTask) {
+      sessionTransportReadyPromise = null;
+    }
+  });
+  sessionTransportReadyPromise = trackedReadinessTask;
+  await trackedReadinessTask;
+}
+
 /**
  * Wraps raw API fetches with a single silent refresh attempt. Every request is
  * retried at most once, and the retry only runs after `/me` has reloaded the
@@ -401,13 +434,17 @@ async function requestResponse(
   init: RequestInit,
   options: RequestOptions,
 ): Promise<Response> {
-  const response = await rawRequestResponse(pathname, init);
+  if (isUnsafeMethod(getMethod(init))) {
+    await ensureSessionTransportReadyForUnsafeRequest();
+  }
+
+  const response = await performFetch(pathname, init);
   if (response.status !== 401 || options.authRecoveryMode === "skip") {
     return response;
   }
 
   await recoverSession(options.prepareForAuthRedirect);
-  const retriedResponse = await rawRequestResponse(pathname, init);
+  const retriedResponse = await performFetch(pathname, init);
   if (retriedResponse.status === 401) {
     await redirectToLogin(options.prepareForAuthRedirect);
   }

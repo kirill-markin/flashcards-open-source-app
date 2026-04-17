@@ -13,6 +13,7 @@ import {
 } from "./ChatPanelTestSupport";
 import {
   createCompletedToolCallAssistantMessage,
+  createUnverifiedWorkspaceAppDataMock,
   createVerifiedWorkspaceAppDataMock,
 } from "./ChatPanelTestFixtures";
 import {
@@ -185,7 +186,7 @@ describe("ChatPanel new chat", () => {
     expect(runSyncMock).toHaveBeenCalledTimes(1);
   });
 
-  it("shows an in-chat error dialog when background new-session ensure fails", async () => {
+  it("shows an in-chat error dialog when a user-initiated new chat reset fails", async () => {
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
       sessionId: "session-1",
       conversation: {
@@ -220,6 +221,50 @@ describe("ChatPanel new chat", () => {
     expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
     expect(getContainer().textContent).toContain("AI chat error");
     expect(getContainer().textContent).toContain("New chat failed. Request failed with status 500");
+  });
+
+  it("keeps stale warm-start background bootstrap failures silent", async () => {
+    const staleTimestamp = Date.UTC(2026, 0, 1, 0, 0, 0);
+    vi.setSystemTime(new Date(staleTimestamp + (6 * 60 * 60 * 1000) + 1_000));
+    storeChatSessionWarmStartSnapshot("workspace-1", createChatSnapshot({
+      sessionId: "session-stale",
+      conversationScopeId: "session-stale",
+      conversation: {
+        updatedAt: staleTimestamp,
+        mainContentInvalidationVersion: 0,
+        messages: [{
+          role: "user",
+          content: [{ type: "text", text: "Old question" }],
+          timestamp: staleTimestamp,
+          isError: false,
+          isStopped: false,
+        }],
+      },
+    }), false);
+    createNewChatSessionMock.mockRejectedValueOnce(new Error("Request failed with status 500"));
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(1);
+    expect(getContainer().textContent).not.toContain("AI chat error");
+    expect(getContainer().textContent).not.toContain("New chat failed. Request failed with status 500");
+  });
+
+  it("disables the new-chat action while the session is restoring", async () => {
+    useAppDataMock.mockReturnValue(createUnverifiedWorkspaceAppDataMock({
+      refreshLocalData: vi.fn(async (): Promise<void> => undefined),
+      runSync: vi.fn(async (): Promise<void> => undefined),
+      setErrorMessage: vi.fn(),
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+
+    const newButton = getContainer().querySelector('[data-testid="chat-new-button"]') as HTMLButtonElement | null;
+    expect(newButton).not.toBeNull();
+    expect(newButton?.disabled).toBe(true);
   });
 
   it("returns focus to the composer after a successful new chat reset", async () => {
@@ -430,6 +475,52 @@ describe("ChatPanel new chat", () => {
     await flushAsync();
 
     expect(getContainer().textContent).toContain("Estudia con repeticion espaciada");
+    expect(getContainer().textContent).not.toContain("Study with spaced repetition");
+  });
+
+  it("shows a refresh error when locale-driven fresh-session reprovisioning fails", async () => {
+    const englishSuggestion = [{
+      id: "suggestion-en",
+      text: "Study with spaced repetition",
+      source: "initial" as const,
+      assistantItemId: null,
+    }];
+
+    getChatSnapshotMock.mockImplementation(async (sessionId: string) => createChatSnapshot({
+      sessionId,
+      conversationScopeId: sessionId,
+      composerSuggestions: englishSuggestion,
+      conversation: {
+        updatedAt: 1,
+        mainContentInvalidationVersion: 0,
+        messages: [],
+      },
+    }));
+    createNewChatSessionMock.mockImplementation((sessionId: string, uiLocale: string) => {
+      if (uiLocale === "en") {
+        return Promise.resolve({
+          ok: true,
+          sessionId,
+          composerSuggestions: [],
+          chatConfig: createChatSnapshot().chatConfig,
+        });
+      }
+
+      return Promise.reject(new Error("Request failed with status 500"));
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    expect(getContainer().textContent).toContain("Study with spaced repetition");
+
+    await setLocalePreference("es-MX");
+    await flushAsync();
+    await flushAsync();
+
+    expect(createNewChatSessionMock).toHaveBeenCalledTimes(2);
+    expect(getContainer().textContent).toContain("Request failed with status 500");
     expect(getContainer().textContent).not.toContain("Study with spaced repetition");
   });
 
