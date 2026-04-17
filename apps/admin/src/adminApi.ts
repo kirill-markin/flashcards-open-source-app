@@ -33,10 +33,13 @@ export type AdminQueryResponse = Readonly<{
   resultSets: ReadonlyArray<AdminQueryResultSet>;
 }>;
 
+export const reviewEventPlatforms = ["web", "android", "ios"] as const;
+
+export type ReviewEventPlatform = (typeof reviewEventPlatforms)[number];
+
 export type ReviewEventsByDateUser = Readonly<{
   userId: string;
   email: string;
-  label: string;
   totalReviewEvents: number;
 }>;
 
@@ -45,10 +48,23 @@ export type ReviewEventsByDateTotal = Readonly<{
   totalReviewEvents: number;
 }>;
 
+export type ReviewEventsByDatePlatformActiveUserTotal = Readonly<{
+  date: string;
+  platform: ReviewEventPlatform;
+  activeUserCount: number;
+}>;
+
+export type ReviewEventsByDatePlatformReviewEventTotal = Readonly<{
+  date: string;
+  platform: ReviewEventPlatform;
+  reviewEventCount: number;
+}>;
+
 export type ReviewEventsByDateRow = Readonly<{
   date: string;
   userId: string;
   email: string;
+  platform: ReviewEventPlatform;
   reviewEventCount: number;
 }>;
 
@@ -60,6 +76,8 @@ export type ReviewEventsByDateReport = Readonly<{
   totalReviewEvents: number;
   users: ReadonlyArray<ReviewEventsByDateUser>;
   dateTotals: ReadonlyArray<ReviewEventsByDateTotal>;
+  platformActiveUserTotals: ReadonlyArray<ReviewEventsByDatePlatformActiveUserTotal>;
+  platformReviewEventTotals: ReadonlyArray<ReviewEventsByDatePlatformReviewEventTotal>;
   rows: ReadonlyArray<ReviewEventsByDateRow>;
 }>;
 

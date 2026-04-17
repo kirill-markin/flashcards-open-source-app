@@ -1,9 +1,13 @@
 import {
+  reviewEventPlatforms,
   runAdminQuery,
 } from "../../adminApi";
 import type {
   AdminQueryResultSet,
   AdminQueryValue,
+  ReviewEventPlatform,
+  ReviewEventsByDatePlatformActiveUserTotal,
+  ReviewEventsByDatePlatformReviewEventTotal,
   ReviewEventsByDateReport,
   ReviewEventsByDateRow,
   ReviewEventsByDateTotal,
@@ -16,6 +20,7 @@ type ReviewEventsByDateQueryRow = Readonly<{
   review_date: string;
   user_id: string;
   email: string;
+  platform: ReviewEventPlatform;
   review_event_count: string | number;
 }>;
 
@@ -86,11 +91,21 @@ function toInteger(value: AdminQueryValue, fieldName: string): number {
   throw new Error(`Review events report field "${fieldName}" must be an integer.`);
 }
 
+function assertPlatform(value: AdminQueryValue, fieldName: string): ReviewEventPlatform {
+  const platform = assertIsString(value, fieldName);
+  if (reviewEventPlatforms.includes(platform as ReviewEventPlatform) === false) {
+    throw new Error(`Review events report field "${fieldName}" must be a supported platform.`);
+  }
+
+  return platform as ReviewEventPlatform;
+}
+
 function toReviewEventsByDateQueryRow(resultSetRow: Readonly<Record<string, AdminQueryValue>>): ReviewEventsByDateQueryRow {
   return {
     review_date: assertIsString(resultSetRow.review_date ?? null, "review_date"),
     user_id: assertIsString(resultSetRow.user_id ?? null, "user_id"),
     email: assertIsString(resultSetRow.email ?? null, "email"),
+    platform: assertPlatform(resultSetRow.platform ?? null, "platform"),
     review_event_count: toInteger(resultSetRow.review_event_count ?? null, "review_event_count"),
   };
 }
@@ -100,12 +115,10 @@ function buildReviewEventsByDateUsers(rows: ReadonlyArray<ReviewEventsByDateRow>
 
   for (const row of rows) {
     const existingEntry = totalsByUserId.get(row.userId);
-    const nextTotal = (existingEntry?.totalReviewEvents ?? 0) + row.reviewEventCount;
     totalsByUserId.set(row.userId, {
       userId: row.userId,
-      email: row.email,
-      label: row.email === "(no email)" ? row.userId : row.email,
-      totalReviewEvents: nextTotal,
+      email: existingEntry?.email ?? row.email,
+      totalReviewEvents: (existingEntry?.totalReviewEvents ?? 0) + row.reviewEventCount,
     });
   }
 
@@ -114,14 +127,15 @@ function buildReviewEventsByDateUsers(rows: ReadonlyArray<ReviewEventsByDateRow>
       return right.totalReviewEvents - left.totalReviewEvents;
     }
 
-    return left.label.localeCompare(right.label);
+    const leftLabel = left.email === "(no email)" ? left.userId : left.email;
+    const rightLabel = right.email === "(no email)" ? right.userId : right.email;
+    return leftLabel.localeCompare(rightLabel);
   });
 }
 
 function buildReviewEventsByDateTotals(
   rows: ReadonlyArray<ReviewEventsByDateRow>,
-  from: string,
-  to: string,
+  dates: ReadonlyArray<string>,
 ): ReadonlyArray<ReviewEventsByDateTotal> {
   const totalsByDate = new Map<string, number>();
 
@@ -129,10 +143,46 @@ function buildReviewEventsByDateTotals(
     totalsByDate.set(row.date, (totalsByDate.get(row.date) ?? 0) + row.reviewEventCount);
   }
 
-  return buildRequestedDateRange(from, to).map((date) => ({
+  return dates.map((date) => ({
     date,
     totalReviewEvents: totalsByDate.get(date) ?? 0,
   }));
+}
+
+function buildPlatformActiveUserTotals(
+  rows: ReadonlyArray<ReviewEventsByDateRow>,
+  dates: ReadonlyArray<string>,
+): ReadonlyArray<ReviewEventsByDatePlatformActiveUserTotal> {
+  const countsByDatePlatform = new Map<string, number>();
+
+  for (const row of rows) {
+    const key = `${row.date}:${row.platform}`;
+    countsByDatePlatform.set(key, (countsByDatePlatform.get(key) ?? 0) + 1);
+  }
+
+  return dates.flatMap((date) => reviewEventPlatforms.map((platform) => ({
+    date,
+    platform,
+    activeUserCount: countsByDatePlatform.get(`${date}:${platform}`) ?? 0,
+  })));
+}
+
+function buildPlatformReviewEventTotals(
+  rows: ReadonlyArray<ReviewEventsByDateRow>,
+  dates: ReadonlyArray<string>,
+): ReadonlyArray<ReviewEventsByDatePlatformReviewEventTotal> {
+  const countsByDatePlatform = new Map<string, number>();
+
+  for (const row of rows) {
+    const key = `${row.date}:${row.platform}`;
+    countsByDatePlatform.set(key, (countsByDatePlatform.get(key) ?? 0) + row.reviewEventCount);
+  }
+
+  return dates.flatMap((date) => reviewEventPlatforms.map((platform) => ({
+    date,
+    platform,
+    reviewEventCount: countsByDatePlatform.get(`${date}:${platform}`) ?? 0,
+  })));
 }
 
 function buildReviewEventsByDateReport(
@@ -148,6 +198,7 @@ function buildReviewEventsByDateReport(
       date: row.review_date,
       userId: row.user_id,
       email: row.email,
+      platform: row.platform,
       reviewEventCount: toInteger(row.review_event_count, "review_event_count"),
     }))
     .sort((left, right) => {
@@ -159,10 +210,17 @@ function buildReviewEventsByDateReport(
         return right.reviewEventCount - left.reviewEventCount;
       }
 
-      return left.userId.localeCompare(right.userId);
+      if (left.userId !== right.userId) {
+        return left.userId.localeCompare(right.userId);
+      }
+
+      return left.platform.localeCompare(right.platform);
     });
 
-  const dateTotals = buildReviewEventsByDateTotals(rows, from, to);
+  const dates = buildRequestedDateRange(from, to);
+  const dateTotals = buildReviewEventsByDateTotals(rows, dates);
+  const platformActiveUserTotals = buildPlatformActiveUserTotals(rows, dates);
+  const platformReviewEventTotals = buildPlatformReviewEventTotals(rows, dates);
   const users = buildReviewEventsByDateUsers(rows);
   const totalReviewEvents = rows.reduce((sum, row) => sum + row.reviewEventCount, 0);
 
@@ -174,6 +232,8 @@ function buildReviewEventsByDateReport(
     totalReviewEvents,
     users,
     dateTotals,
+    platformActiveUserTotals,
+    platformReviewEventTotals,
     rows,
   };
 }
@@ -187,6 +247,7 @@ export function buildReviewEventsByDateSql(timezone: string, from: string, to: s
     "  )::date, 'YYYY-MM-DD') AS review_date,",
     "  workspace_replicas.user_id,",
     "  COALESCE(NULLIF(btrim(user_settings.email), ''), '(no email)') AS email,",
+    "  workspace_replicas.platform,",
     "  COUNT(*)::int AS review_event_count",
     "FROM content.review_events AS review_events",
     "INNER JOIN sync.workspace_replicas AS workspace_replicas",
@@ -199,14 +260,18 @@ export function buildReviewEventsByDateSql(timezone: string, from: string, to: s
     "  AND review_events.reviewed_at_server < (",
     `    (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE ${escapeSqlStringLiteral(timezone)}`,
     "  )",
+    "  AND workspace_replicas.actor_kind = 'client_installation'",
+    "  AND workspace_replicas.platform IN ('web', 'android', 'ios')",
     "GROUP BY",
     `  timezone(${escapeSqlStringLiteral(timezone)}, review_events.reviewed_at_server)::date,`,
     "  workspace_replicas.user_id,",
-    "  COALESCE(NULLIF(btrim(user_settings.email), ''), '(no email)')",
+    "  COALESCE(NULLIF(btrim(user_settings.email), ''), '(no email)'),",
+    "  workspace_replicas.platform",
     "ORDER BY",
     "  review_date ASC,",
     "  review_event_count DESC,",
-    "  workspace_replicas.user_id ASC",
+    "  workspace_replicas.user_id ASC,",
+    "  workspace_replicas.platform ASC",
   ].join("\n");
 }
 
