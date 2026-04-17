@@ -114,6 +114,7 @@ Public domains after deploy:
 If the apex domain already points to an existing site, bootstrap leaves it untouched and manages only `app.<domain>`, `admin.<domain>`, `api.<domain>`, and `auth.<domain>`.
 
 For the admin app, the supported browser entrypoints are `http://localhost:3001` and `https://admin.<domain>`. Treat `admin.<domain>` as the only supported deployed browser entrypoint.
+For the first admin-domain rollout, treat `bash scripts/cloudflare/setup-admin-domain.sh --domain <domain>`, `bash scripts/setup-github.sh`, a deploy, and then `bash scripts/cloudflare/setup-dns.sh --stack-name <stack-name> --domain <domain>` as one complete setup sequence. If the GitHub variables were created after a workflow had already started, run another deploy or rerun the workflow after the variables exist.
 
 ## Later secret updates
 
