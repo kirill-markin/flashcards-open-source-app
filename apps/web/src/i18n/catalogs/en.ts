@@ -41,6 +41,7 @@ const enCatalog = {
     ok: "OK",
     open: "Open",
     perAction: "Per action",
+    refresh: "Refresh",
     retry: "Retry",
     revoked: "Revoked",
     save: "Save",

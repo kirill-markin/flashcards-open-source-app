@@ -43,6 +43,7 @@ const hiCatalog: TranslationCatalog = {
     ok: "ठीक है",
     open: "खोलें",
     perAction: "प्रति कार्रवाई",
+    refresh: "रीफ़्रेश",
     retry: "फिर से कोशिश करें",
     revoked: "निरस्त",
     save: "सहेजें",

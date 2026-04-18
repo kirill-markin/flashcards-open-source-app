@@ -35,6 +35,7 @@ import com.flashcardsopensourceapp.data.local.model.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.normalizeTags
 import com.flashcardsopensourceapp.data.local.model.parseIsoTimestamp
+import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.loadCurrentWorkspaceOrNull
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
@@ -52,7 +53,8 @@ private const val cloudMigrationLogTag: String = "FlashcardsCloudMigration"
 
 class SyncLocalStore(
     private val database: AppDatabase,
-    private val preferencesStore: CloudPreferencesStore
+    private val preferencesStore: CloudPreferencesStore,
+    private val localProgressCacheStore: LocalProgressCacheStore
 ) {
     suspend fun enqueueCardUpsert(card: CardEntity, tags: List<String>) {
         val payloadJson = JSONObject()
@@ -419,20 +421,29 @@ class SyncLocalStore(
         if (events.isEmpty()) {
             return
         }
-        database.reviewLogDao().insertReviewLogs(
-            events.map { event ->
-                ReviewLogEntity(
-                    reviewLogId = event.reviewEventId,
-                    workspaceId = event.workspaceId,
-                    cardId = event.cardId,
-                    replicaId = event.replicaId,
-                    clientEventId = event.clientEventId,
-                    rating = ReviewRating.entries[event.rating],
-                    reviewedAtMillis = parseIsoTimestamp(event.reviewedAtClient),
-                    reviewedAtServerIso = event.reviewedAtServer
-                )
-            }
-        )
+        val reviewLogs = events.map { event ->
+            ReviewLogEntity(
+                reviewLogId = event.reviewEventId,
+                workspaceId = event.workspaceId,
+                cardId = event.cardId,
+                replicaId = event.replicaId,
+                clientEventId = event.clientEventId,
+                rating = ReviewRating.entries[event.rating],
+                reviewedAtMillis = parseIsoTimestamp(event.reviewedAtClient),
+                reviewedAtServerIso = event.reviewedAtServer
+            )
+        }
+        database.withTransaction {
+            val existingReviewLogs = database.reviewLogDao().loadReviewLogs(
+                reviewLogIds = reviewLogs.map(ReviewLogEntity::reviewLogId)
+            )
+            database.reviewLogDao().insertReviewLogs(reviewLogs)
+            localProgressCacheStore.applyReviewHistoryInTransaction(
+                reviewLogs = reviewLogs,
+                existingReviewLogs = existingReviewLogs,
+                updatedAtMillis = System.currentTimeMillis()
+            )
+        }
     }
 
     private suspend fun insertOutboxEntry(
@@ -473,6 +484,7 @@ class SyncLocalStore(
             database.outboxDao().deleteOutboxEntriesForWorkspace(workspaceId = currentLocalWorkspaceId)
         }
         database.reviewLogDao().deleteAllReviewLogs()
+        localProgressCacheStore.clearAllInTransaction()
         database.tagDao().deleteAllCardTags()
         database.cardDao().deleteAllCards()
         database.deckDao().deleteAllDecks()
@@ -543,6 +555,10 @@ class SyncLocalStore(
         database.deckDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
         database.tagDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
         database.reviewLogDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
+        localProgressCacheStore.reassignWorkspaceInTransaction(
+            oldWorkspaceId = currentWorkspace.workspaceId,
+            newWorkspaceId = workspace.workspaceId
+        )
         database.workspaceSchedulerSettingsDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
         database.outboxDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
         database.workspaceDao().deleteWorkspace(currentWorkspace.workspaceId)

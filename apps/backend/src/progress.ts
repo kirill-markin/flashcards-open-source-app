@@ -8,6 +8,14 @@ import { unsafeTransaction } from "./dbUnsafe";
 import { HttpError } from "./errors";
 import { listUserWorkspaceIdsInExecutor } from "./workspaces/queries";
 
+export type ProgressSummaryInput = Readonly<{
+  timeZone: string;
+}>;
+
+export type ProgressSummaryRequest = Readonly<{
+  userId: string;
+}> & ProgressSummaryInput;
+
 export type ProgressSeriesInput = Readonly<{
   timeZone: string;
   from: string;
@@ -23,11 +31,25 @@ export type DailyReviewPoint = Readonly<{
   reviewCount: number;
 }>;
 
+export type ProgressSummary = Readonly<{
+  currentStreakDays: number;
+  hasReviewedToday: boolean;
+  lastReviewedOn: string | null;
+  activeReviewDays: number;
+}>;
+
+export type ProgressSummaryResponse = Readonly<{
+  timeZone: string;
+  summary: ProgressSummary;
+  generatedAt: string;
+}>;
+
 export type ProgressSeries = Readonly<{
   timeZone: string;
   from: string;
   to: string;
   dailyReviews: ReadonlyArray<DailyReviewPoint>;
+  generatedAt: string;
 }>;
 
 type DailyReviewCountRow = Readonly<{
@@ -35,9 +57,22 @@ type DailyReviewCountRow = Readonly<{
   review_count: string | number;
 }>;
 
+type ReviewDateRow = Readonly<{
+  review_date: string;
+}>;
+
+type WorkspaceProgressSummaryRequest = Readonly<{
+  workspaceId: string;
+  timeZone: string;
+}>;
+
 type WorkspaceProgressSeriesRequest = Readonly<{
   workspaceId: string;
 }> & ProgressSeriesInput;
+
+type CurrentStreakInfo = Readonly<{
+  streakDayCount: number;
+}>;
 
 const maximumInclusiveProgressRangeDays = 366;
 const localDatePattern = /^\d{4}-\d{2}-\d{2}$/;
@@ -62,6 +97,12 @@ function validateTimeZone(value: string): string {
   }
 
   return trimmedValue;
+}
+
+function validateProgressSummaryInput(input: ProgressSummaryInput): ProgressSummaryInput {
+  return {
+    timeZone: validateTimeZone(input.timeZone),
+  };
 }
 
 function parseLocalDatePart(value: string, start: number, end: number): number {
@@ -110,6 +151,39 @@ function formatUtcDateAsLocalDate(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
 
+function getRequiredDatePart(
+  parts: ReadonlyArray<Intl.DateTimeFormatPart>,
+  partType: "year" | "month" | "day",
+): string {
+  const value = parts.find((part) => part.type === partType)?.value;
+  if (value === undefined || value === "") {
+    throw new Error(`Timezone date is missing ${partType}`);
+  }
+
+  return value;
+}
+
+function formatDateAsTimeZoneLocalDate(value: Date, timeZone: string): string {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = formatter.formatToParts(value);
+  const year = getRequiredDatePart(parts, "year");
+  const month = getRequiredDatePart(parts, "month");
+  const day = getRequiredDatePart(parts, "day");
+
+  return `${year}-${month}-${day}`;
+}
+
+function shiftLocalDate(value: string, offsetDays: number): string {
+  const date = createUtcDateFromLocalDate(value);
+  date.setUTCDate(date.getUTCDate() + offsetDays);
+  return formatUtcDateAsLocalDate(date);
+}
+
 function calculateInclusiveRangeDayCount(from: string, to: string): number {
   const fromDate = createUtcDateFromLocalDate(from);
   const toDate = createUtcDateFromLocalDate(to);
@@ -139,6 +213,19 @@ function validateProgressSeriesInput(input: ProgressSeriesInput): ProgressSeries
     from,
     to,
   };
+}
+
+export function parseProgressSummaryInputFromRequest(request: Request): ProgressSummaryInput {
+  const url = new URL(request.url);
+  const rawTimeZone = url.searchParams.get("timeZone");
+
+  if (rawTimeZone === null) {
+    throwProgressValidationError("timeZone is required", "PROGRESS_TIMEZONE_REQUIRED");
+  }
+
+  return validateProgressSummaryInput({
+    timeZone: rawTimeZone,
+  });
 }
 
 export function parseProgressSeriesInputFromRequest(request: Request): ProgressSeriesInput {
@@ -199,6 +286,15 @@ function accumulateDailyReviewCounts(
   }
 }
 
+function accumulateReviewDates(
+  aggregate: Set<string>,
+  rows: ReadonlyArray<ReviewDateRow>,
+): void {
+  for (const row of rows) {
+    aggregate.add(row.review_date);
+  }
+}
+
 function createDailyReviews(
   range: ReadonlyArray<string>,
   aggregate: ReadonlyMap<string, number>,
@@ -237,9 +333,125 @@ async function loadDailyReviewCountRowsInExecutor(
   return result.rows;
 }
 
-export async function loadUserProgressSeriesInExecutor(
+async function loadAllReviewDateRowsInExecutor(
+  executor: DatabaseExecutor,
+  request: WorkspaceProgressSummaryRequest,
+): Promise<ReadonlyArray<ReviewDateRow>> {
+  const queryParams: ReadonlyArray<SqlValue> = [
+    request.workspaceId,
+    request.timeZone,
+  ];
+  const result = await executor.query<ReviewDateRow>(
+    [
+      "SELECT",
+      "to_char(review_local_dates.review_local_date, 'YYYY-MM-DD') AS review_date",
+      "FROM (",
+      "SELECT DISTINCT timezone($2, review_events.reviewed_at_client)::date AS review_local_date",
+      "FROM content.review_events AS review_events",
+      "WHERE review_events.workspace_id = $1",
+      ") AS review_local_dates",
+      "ORDER BY review_local_dates.review_local_date DESC",
+    ].join(" "),
+    queryParams,
+  );
+
+  return result.rows;
+}
+
+function calculateCurrentStreakInfo(
+  reviewDates: ReadonlySet<string>,
+  timeZone: string,
+  now: Date,
+): CurrentStreakInfo {
+  const today = formatDateAsTimeZoneLocalDate(now, timeZone);
+  let currentDate = reviewDates.has(today) ? today : shiftLocalDate(today, -1);
+  let streakDayCount = 0;
+
+  while (reviewDates.has(currentDate)) {
+    streakDayCount += 1;
+    currentDate = shiftLocalDate(currentDate, -1);
+  }
+
+  return {
+    streakDayCount,
+  };
+}
+
+function findLatestReviewedOn(
+  currentLatest: string | null,
+  candidateLatest: string | null,
+): string | null {
+  if (candidateLatest === null) {
+    return currentLatest;
+  }
+
+  if (currentLatest === null) {
+    return candidateLatest;
+  }
+
+  return currentLatest.localeCompare(candidateLatest) >= 0 ? currentLatest : candidateLatest;
+}
+
+function createProgressSummary(
+  activeReviewDayCount: number,
+  currentStreakDays: number,
+  hasReviewedToday: boolean,
+  lastReviewedOn: string | null,
+): ProgressSummary {
+  return {
+    currentStreakDays,
+    hasReviewedToday,
+    lastReviewedOn,
+    activeReviewDays: activeReviewDayCount,
+  };
+}
+
+async function buildUserProgressSummaryInExecutor(
+  executor: DatabaseExecutor,
+  request: ProgressSummaryRequest,
+  generatedAtDate: Date,
+): Promise<ProgressSummaryResponse> {
+  const validatedInput = validateProgressSummaryInput(request);
+  const reviewDates = new Set<string>();
+  await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
+  const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
+  let lastReviewedOn: string | null = null;
+
+  for (const workspaceId of workspaceIds) {
+    await applyWorkspaceDatabaseScopeInExecutor(executor, {
+      userId: request.userId,
+      workspaceId,
+    });
+    const rows = await loadAllReviewDateRowsInExecutor(executor, {
+      workspaceId,
+      timeZone: validatedInput.timeZone,
+    });
+    accumulateReviewDates(reviewDates, rows);
+    lastReviewedOn = findLatestReviewedOn(lastReviewedOn, rows[0]?.review_date ?? null);
+  }
+
+  const today = formatDateAsTimeZoneLocalDate(generatedAtDate, validatedInput.timeZone);
+  // Future-dated rows can appear when a client clock is ahead, so today must
+  // be checked against the full normalized date set instead of the latest date.
+  const hasReviewedToday = reviewDates.has(today);
+  const currentStreakInfo = calculateCurrentStreakInfo(reviewDates, validatedInput.timeZone, generatedAtDate);
+
+  return {
+    timeZone: validatedInput.timeZone,
+    summary: createProgressSummary(
+      reviewDates.size,
+      currentStreakInfo.streakDayCount,
+      hasReviewedToday,
+      lastReviewedOn,
+    ),
+    generatedAt: generatedAtDate.toISOString(),
+  };
+}
+
+async function buildUserProgressSeriesInExecutor(
   executor: DatabaseExecutor,
   request: ProgressSeriesRequest,
+  generatedAtDate: Date,
 ): Promise<ProgressSeries> {
   const validatedInput = validateProgressSeriesInput(request);
   const dailyReviewCounts = new Map<string, number>();
@@ -270,7 +482,26 @@ export async function loadUserProgressSeriesInExecutor(
       createInclusiveLocalDateRange(validatedInput.from, validatedInput.to),
       dailyReviewCounts,
     ),
+    generatedAt: generatedAtDate.toISOString(),
   };
+}
+
+export async function loadUserProgressSummaryInExecutor(
+  executor: DatabaseExecutor,
+  request: ProgressSummaryRequest,
+): Promise<ProgressSummaryResponse> {
+  return buildUserProgressSummaryInExecutor(executor, request, new Date());
+}
+
+export async function loadUserProgressSeriesInExecutor(
+  executor: DatabaseExecutor,
+  request: ProgressSeriesRequest,
+): Promise<ProgressSeries> {
+  return buildUserProgressSeriesInExecutor(executor, request, new Date());
+}
+
+export async function loadUserProgressSummary(request: ProgressSummaryRequest): Promise<ProgressSummaryResponse> {
+  return unsafeTransaction(async (executor) => loadUserProgressSummaryInExecutor(executor, request));
 }
 
 export async function loadUserProgressSeries(request: ProgressSeriesRequest): Promise<ProgressSeries> {

@@ -43,6 +43,7 @@ export const ruCatalog = {
     ok: "OK",
     open: "Открыть",
     perAction: "За действие",
+    refresh: "Обновить",
     retry: "Повторить",
     revoked: "Отозвано",
     save: "Сохранить",

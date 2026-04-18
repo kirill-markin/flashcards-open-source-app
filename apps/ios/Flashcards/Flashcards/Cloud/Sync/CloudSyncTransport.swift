@@ -49,9 +49,25 @@ struct CloudSyncTransport {
         return workspaces
     }
 
-    func progressPath(timeZone: String, from: String, to: String) throws -> String {
-        guard var components = URLComponents(string: "/me/progress") else {
-            throw LocalStoreError.validation("Progress path could not be constructed")
+    func progressSummaryPath(timeZone: String) throws -> String {
+        guard var components = URLComponents(string: "/me/progress/summary") else {
+            throw LocalStoreError.validation("Progress summary path could not be constructed")
+        }
+
+        components.queryItems = [
+            URLQueryItem(name: "timeZone", value: timeZone),
+        ]
+
+        guard let path = components.string else {
+            throw LocalStoreError.validation("Progress summary query could not be constructed")
+        }
+
+        return path
+    }
+
+    func progressSeriesPath(timeZone: String, from: String, to: String) throws -> String {
+        guard var components = URLComponents(string: "/me/progress/series") else {
+            throw LocalStoreError.validation("Progress series path could not be constructed")
         }
 
         components.queryItems = [
@@ -61,7 +77,7 @@ struct CloudSyncTransport {
         ]
 
         guard let path = components.string else {
-            throw LocalStoreError.validation("Progress query could not be constructed")
+            throw LocalStoreError.validation("Progress series query could not be constructed")
         }
 
         return path

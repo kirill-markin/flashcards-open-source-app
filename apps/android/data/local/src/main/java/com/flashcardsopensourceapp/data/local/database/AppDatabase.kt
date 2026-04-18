@@ -22,9 +22,14 @@ private const val androidInstallationId: String = "android-installation"
         CardTagEntity::class,
         ReviewLogEntity::class,
         OutboxEntryEntity::class,
-        SyncStateEntity::class
+        SyncStateEntity::class,
+        ProgressSummaryCacheEntity::class,
+        ProgressSeriesCacheEntity::class,
+        ProgressLocalDayCountEntity::class,
+        ProgressReviewHistoryStateEntity::class,
+        ProgressLocalCacheStateEntity::class
     ],
-    version = 6,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(DatabaseTypeConverters::class)
@@ -38,6 +43,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun reviewLogDao(): ReviewLogDao
     abstract fun outboxDao(): OutboxDao
     abstract fun syncStateDao(): SyncStateDao
+    abstract fun progressRemoteCacheDao(): ProgressRemoteCacheDao
+    abstract fun progressLocalCacheDao(): ProgressLocalCacheDao
 }
 
 fun closeAppDatabase(database: AppDatabase) {
@@ -49,7 +56,16 @@ fun buildAppDatabase(context: Context): AppDatabase {
         context = context,
         klass = AppDatabase::class.java,
         name = appDatabaseName
-    ).addMigrations(migration2To3, migration3To4, migration4To5, migration5To6).build()
+    ).addMigrations(
+        migration2To3,
+        migration3To4,
+        migration4To5,
+        migration5To6,
+        migration6To7,
+        migration7To8,
+        migration8To9,
+        migration9To10
+    ).build()
 }
 
 val migration2To3: Migration = object : Migration(2, 3) {
@@ -370,5 +386,265 @@ val migration5To6: Migration = object : Migration(5, 6) {
             )
             """.trimIndent()
         )
+    }
+}
+
+val migration6To7: Migration = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS progress_snapshot_cache (
+                scopeKey TEXT NOT NULL PRIMARY KEY,
+                scopeId TEXT NOT NULL,
+                timeZone TEXT NOT NULL,
+                fromLocalDate TEXT NOT NULL,
+                toLocalDate TEXT NOT NULL,
+                generatedAt TEXT,
+                summaryCurrentStreakDays INTEGER,
+                summaryHasReviewedToday INTEGER,
+                summaryLastReviewedOn TEXT,
+                summaryActiveReviewDays INTEGER,
+                dailyReviewsJson TEXT NOT NULL,
+                updatedAtMillis INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+    }
+}
+
+val migration7To8: Migration = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS progress_snapshot_cache_v8 (
+                scopeKey TEXT NOT NULL PRIMARY KEY,
+                scopeId TEXT NOT NULL,
+                timeZone TEXT NOT NULL,
+                fromLocalDate TEXT NOT NULL,
+                toLocalDate TEXT NOT NULL,
+                generatedAt TEXT,
+                summaryCurrentStreakDays INTEGER,
+                summaryHasReviewedToday INTEGER,
+                summaryLastReviewedOn TEXT,
+                summaryActiveReviewDays INTEGER,
+                dailyReviewsJson TEXT NOT NULL,
+                updatedAtMillis INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO progress_snapshot_cache_v8 (
+                scopeKey,
+                scopeId,
+                timeZone,
+                fromLocalDate,
+                toLocalDate,
+                generatedAt,
+                summaryCurrentStreakDays,
+                summaryHasReviewedToday,
+                summaryLastReviewedOn,
+                summaryActiveReviewDays,
+                dailyReviewsJson,
+                updatedAtMillis
+            )
+            SELECT
+                scopeKey,
+                scopeId,
+                timeZone,
+                fromLocalDate,
+                toLocalDate,
+                generatedAt,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                dailyReviewsJson,
+                updatedAtMillis
+            FROM progress_snapshot_cache
+            """.trimIndent()
+        )
+        db.execSQL("DROP TABLE progress_snapshot_cache")
+        db.execSQL("ALTER TABLE progress_snapshot_cache_v8 RENAME TO progress_snapshot_cache")
+    }
+}
+
+val migration8To9: Migration = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        val escapedTimeZone = java.time.ZoneId.systemDefault().id.replace("'", "''")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS progress_local_day_counts (
+                timeZone TEXT NOT NULL,
+                workspaceId TEXT NOT NULL,
+                localDate TEXT NOT NULL,
+                reviewCount INTEGER NOT NULL,
+                PRIMARY KEY(timeZone, workspaceId, localDate),
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_progress_local_day_counts_workspaceId
+            ON progress_local_day_counts(workspaceId)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_progress_local_day_counts_timeZone
+            ON progress_local_day_counts(timeZone)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS progress_review_history_state (
+                workspaceId TEXT NOT NULL PRIMARY KEY,
+                historyVersion INTEGER NOT NULL,
+                reviewLogCount INTEGER NOT NULL,
+                maxReviewedAtMillis INTEGER NOT NULL,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_progress_review_history_state_workspaceId
+            ON progress_review_history_state(workspaceId)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS progress_local_cache_state (
+                timeZone TEXT NOT NULL,
+                workspaceId TEXT NOT NULL,
+                historyVersion INTEGER NOT NULL,
+                updatedAtMillis INTEGER NOT NULL,
+                PRIMARY KEY(timeZone, workspaceId),
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_progress_local_cache_state_workspaceId
+            ON progress_local_cache_state(workspaceId)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS index_progress_local_cache_state_timeZone
+            ON progress_local_cache_state(timeZone)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO progress_review_history_state (
+                workspaceId,
+                historyVersion,
+                reviewLogCount,
+                maxReviewedAtMillis
+            )
+            SELECT
+                workspaceId,
+                COUNT(*) AS historyVersion,
+                COUNT(*) AS reviewLogCount,
+                MAX(reviewedAtMillis) AS maxReviewedAtMillis
+            FROM review_logs
+            GROUP BY workspaceId
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO progress_local_day_counts (
+                timeZone,
+                workspaceId,
+                localDate,
+                reviewCount
+            )
+            SELECT
+                '$escapedTimeZone',
+                workspaceId,
+                date(reviewedAtMillis / 1000, 'unixepoch', 'localtime'),
+                COUNT(*)
+            FROM review_logs
+            GROUP BY workspaceId, date(reviewedAtMillis / 1000, 'unixepoch', 'localtime')
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO progress_local_cache_state (
+                timeZone,
+                workspaceId,
+                historyVersion,
+                updatedAtMillis
+            )
+            SELECT
+                '$escapedTimeZone',
+                workspaceId,
+                historyVersion,
+                maxReviewedAtMillis
+            FROM progress_review_history_state
+            """.trimIndent()
+        )
+    }
+}
+
+val migration9To10: Migration = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS progress_summary_cache (
+                scopeKey TEXT NOT NULL PRIMARY KEY,
+                scopeId TEXT NOT NULL,
+                timeZone TEXT NOT NULL,
+                generatedAt TEXT,
+                currentStreakDays INTEGER NOT NULL,
+                hasReviewedToday INTEGER NOT NULL,
+                lastReviewedOn TEXT,
+                activeReviewDays INTEGER NOT NULL,
+                updatedAtMillis INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS progress_series_cache (
+                scopeKey TEXT NOT NULL PRIMARY KEY,
+                scopeId TEXT NOT NULL,
+                timeZone TEXT NOT NULL,
+                fromLocalDate TEXT NOT NULL,
+                toLocalDate TEXT NOT NULL,
+                generatedAt TEXT,
+                dailyReviewsJson TEXT NOT NULL,
+                updatedAtMillis INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO progress_series_cache (
+                scopeKey,
+                scopeId,
+                timeZone,
+                fromLocalDate,
+                toLocalDate,
+                generatedAt,
+                dailyReviewsJson,
+                updatedAtMillis
+            )
+            SELECT
+                scopeKey,
+                scopeId,
+                timeZone,
+                fromLocalDate,
+                toLocalDate,
+                generatedAt,
+                dailyReviewsJson,
+                updatedAtMillis
+            FROM progress_snapshot_cache
+            """.trimIndent()
+        )
+        db.execSQL("DROP TABLE progress_snapshot_cache")
     }
 }

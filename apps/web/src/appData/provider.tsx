@@ -251,7 +251,11 @@ export function AppDataProvider(props: Props): ReactElement {
     submitReviewItem: syncEngine.submitReviewItem,
   };
 
-  return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
+  return (
+    <AppDataContext.Provider value={value}>
+      {children}
+    </AppDataContext.Provider>
+  );
 }
 
 export function useAppData(): AppDataContextValue {

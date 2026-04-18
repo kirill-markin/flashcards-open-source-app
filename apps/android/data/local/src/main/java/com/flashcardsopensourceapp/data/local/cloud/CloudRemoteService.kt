@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
@@ -152,6 +153,11 @@ interface CloudRemoteGateway {
         workspaceId: String,
         confirmationText: String
     ): CloudWorkspaceResetProgressResult
+    suspend fun loadProgressSummary(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String
+    ): CloudProgressSummary
     suspend fun loadProgressSeries(
         apiBaseUrl: String,
         authorizationHeader: String,
@@ -547,6 +553,23 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
+    suspend fun loadProgressSummary(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String
+    ): CloudProgressSummary {
+        val response = getJson(
+            baseUrl = apiBaseUrl,
+            path = buildProgressSummaryPath(timeZone = timeZone),
+            authorizationHeader = authorizationHeader
+        )
+        return parseCloudProgressSummaryResponse(
+            response = response,
+            fieldPath = "progressSummary"
+        )
+    }
+
+    override
     suspend fun loadProgressSeries(
         apiBaseUrl: String,
         authorizationHeader: String,
@@ -556,7 +579,7 @@ class CloudRemoteService : CloudRemoteGateway {
     ): CloudProgressSeries {
         val response = getJson(
             baseUrl = apiBaseUrl,
-            path = buildProgressPath(
+            path = buildProgressSeriesPath(
                 timeZone = timeZone,
                 from = from,
                 to = to
@@ -582,7 +605,9 @@ class CloudRemoteService : CloudRemoteGateway {
                         )
                     )
                 }
-            }
+            },
+            generatedAt = response.optCloudStringOrNull("generatedAt", "progress.generatedAt"),
+            summary = null
         )
     }
 
@@ -967,19 +992,48 @@ class CloudRemoteService : CloudRemoteGateway {
         return "$basePath?$query"
     }
 
-    private fun buildProgressPath(
+    private fun buildProgressSummaryPath(
+        timeZone: String
+    ): String {
+        return buildString {
+            append("/me/progress/summary?timeZone=")
+            append(URLEncoder.encode(timeZone, StandardCharsets.UTF_8))
+        }
+    }
+
+    private fun buildProgressSeriesPath(
         timeZone: String,
         from: String,
         to: String
     ): String {
         return buildString {
-            append("/me/progress?timeZone=")
+            append("/me/progress/series?timeZone=")
             append(URLEncoder.encode(timeZone, StandardCharsets.UTF_8))
             append("&from=")
             append(URLEncoder.encode(from, StandardCharsets.UTF_8))
             append("&to=")
             append(URLEncoder.encode(to, StandardCharsets.UTF_8))
         }
+    }
+
+    internal fun parseCloudProgressSummaryResponse(
+        response: JSONObject,
+        fieldPath: String
+    ): CloudProgressSummary {
+        return response.requireCloudObject("summary", "$fieldPath.summary").toCloudProgressSummary(
+            fieldPath = "$fieldPath.summary"
+        )
+    }
+
+    private fun JSONObject.toCloudProgressSummary(
+        fieldPath: String
+    ): CloudProgressSummary {
+        return CloudProgressSummary(
+            currentStreakDays = requireCloudInt("currentStreakDays", "$fieldPath.currentStreakDays"),
+            hasReviewedToday = requireCloudBoolean("hasReviewedToday", "$fieldPath.hasReviewedToday"),
+            lastReviewedOn = requireCloudNullableString("lastReviewedOn", "$fieldPath.lastReviewedOn"),
+            activeReviewDays = requireCloudInt("activeReviewDays", "$fieldPath.activeReviewDays")
+        )
     }
 
     private suspend fun getJson(

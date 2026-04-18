@@ -10,6 +10,7 @@ import type {
   Deck,
   DeckFilterDefinition,
   DeleteWorkspaceResponse,
+  ProgressSummaryPayload,
   ProgressSeries,
   QueryCardsPage,
   NewChatSessionResponse,
@@ -957,13 +958,38 @@ function parseDailyReviewPointArray(
   return parseArray(value, endpoint, path, parseDailyReviewPoint);
 }
 
+function parseProgressSummary(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressSummaryPayload["summary"] {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    currentStreakDays: parseRequiredField(objectValue, "currentStreakDays", endpoint, path, parseNumber),
+    hasReviewedToday: parseRequiredField(objectValue, "hasReviewedToday", endpoint, path, parseBoolean),
+    lastReviewedOn: parseRequiredField(objectValue, "lastReviewedOn", endpoint, path, parseNullableString),
+    activeReviewDays: parseRequiredField(objectValue, "activeReviewDays", endpoint, path, parseNumber),
+  };
+}
+
 export function parseProgressSeriesResponse(value: unknown, endpoint: string): ProgressSeries {
   const objectValue = parseObject(value, endpoint, "");
   return {
     timeZone: parseRequiredField(objectValue, "timeZone", endpoint, "", parseString),
     from: parseRequiredField(objectValue, "from", endpoint, "", parseString),
     to: parseRequiredField(objectValue, "to", endpoint, "", parseString),
+    generatedAt: parseOptionalField(objectValue, "generatedAt", endpoint, "", parseString) ?? null,
     dailyReviews: parseRequiredField(objectValue, "dailyReviews", endpoint, "", parseDailyReviewPointArray),
+  };
+}
+
+export function parseProgressSummaryResponse(value: unknown, endpoint: string): ProgressSummaryPayload {
+  const objectValue = parseObject(value, endpoint, "");
+
+  return {
+    timeZone: parseRequiredField(objectValue, "timeZone", endpoint, "", parseString),
+    generatedAt: parseOptionalField(objectValue, "generatedAt", endpoint, "", parseString) ?? null,
+    summary: parseRequiredField(objectValue, "summary", endpoint, "", parseProgressSummary),
   };
 }
 

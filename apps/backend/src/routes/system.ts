@@ -4,7 +4,14 @@ import { deleteAccountForAuthenticatedUser } from "../accountDeletion";
 import { createAgentDiscoveryEnvelope } from "../agentDiscovery";
 import { createAgentAccountEnvelope, shouldUseAgentSetupEnvelope } from "../agentSetup";
 import { HttpError } from "../errors";
-import { loadUserProgressSeries, parseProgressSeriesInputFromRequest, type ProgressSeries } from "../progress";
+import {
+  loadUserProgressSeries,
+  loadUserProgressSummary,
+  parseProgressSeriesInputFromRequest,
+  parseProgressSummaryInputFromRequest,
+  type ProgressSeries,
+  type ProgressSummaryResponse,
+} from "../progress";
 import { unsafeQuery } from "../dbUnsafe";
 import { loadOpenApiDocument } from "../openapi";
 import {
@@ -22,12 +29,38 @@ type SystemRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
   loadUserProgressSeriesFn?: typeof loadUserProgressSeries;
+  loadUserProgressSummaryFn?: typeof loadUserProgressSummary;
 }>;
+
+type ProgressRequestedParameters = Readonly<{
+  timeZone: string | null;
+  from: string | null;
+  to: string | null;
+}>;
+
+function readRequestedProgressParameters(requestUrl: URL): ProgressRequestedParameters {
+  return {
+    timeZone: requestUrl.searchParams.get("timeZone"),
+    from: requestUrl.searchParams.get("from"),
+    to: requestUrl.searchParams.get("to"),
+  };
+}
+
+function assertProgressHumanTransport(transport: string): void {
+  if (transport === "api_key") {
+    throw new HttpError(
+      403,
+      "This endpoint requires Guest, Bearer, or Session authentication",
+      "PROGRESS_HUMAN_AUTH_REQUIRED",
+    );
+  }
+}
 
 export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
   const loadUserProgressSeriesFn = options.loadUserProgressSeriesFn ?? loadUserProgressSeries;
+  const loadUserProgressSummaryFn = options.loadUserProgressSummaryFn ?? loadUserProgressSummary;
 
   app.get("/", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
   app.get("/agent", async (context) => context.json(createAgentDiscoveryEnvelope(context.req.url)));
@@ -67,25 +100,65 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
     });
   });
 
-  app.get("/me/progress", async (context) => {
+  app.get("/me/progress/summary", async (context) => {
     const { requestContext } = await loadRequestContextFromRequestFn(
       context.req.raw,
       options.allowedOrigins,
     );
     const requestId = context.get("requestId");
     const requestUrl = new URL(context.req.url);
-    const requestedTimeZone = requestUrl.searchParams.get("timeZone");
-    const requestedFrom = requestUrl.searchParams.get("from");
-    const requestedTo = requestUrl.searchParams.get("to");
+    const requestedParameters = readRequestedProgressParameters(requestUrl);
 
     try {
-      if (requestContext.transport === "api_key") {
-        throw new HttpError(
-          403,
-          "This endpoint requires Guest, Bearer, or Session authentication",
-          "PROGRESS_HUMAN_AUTH_REQUIRED",
-        );
-      }
+      assertProgressHumanTransport(requestContext.transport);
+
+      const progressInput = parseProgressSummaryInputFromRequest(context.req.raw);
+      const progress = await loadUserProgressSummaryFn({
+        userId: requestContext.userId,
+        timeZone: progressInput.timeZone,
+      });
+
+      logCloudRouteEvent("me_progress_summary", {
+        requestId,
+        route: context.req.path,
+        statusCode: 200,
+        userId: requestContext.userId,
+        authTransport: requestContext.transport,
+        timeZone: progress.timeZone,
+        currentStreakDays: progress.summary.currentStreakDays,
+        hasReviewedToday: progress.summary.hasReviewedToday,
+        lastReviewedOn: progress.summary.lastReviewedOn,
+        activeReviewDays: progress.summary.activeReviewDays,
+        generatedAt: progress.generatedAt,
+      }, false);
+
+      return context.json(progress satisfies ProgressSummaryResponse);
+    } catch (error) {
+      logCloudRouteEvent("me_progress_summary_error", {
+        requestId,
+        route: context.req.path,
+        statusCode: error instanceof HttpError ? error.statusCode : 500,
+        userId: requestContext.userId,
+        authTransport: requestContext.transport,
+        timeZone: requestedParameters.timeZone,
+        code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
+        validationIssues: summarizeValidationIssues(error),
+      }, true);
+      throw error;
+    }
+  });
+
+  app.get("/me/progress/series", async (context) => {
+    const { requestContext } = await loadRequestContextFromRequestFn(
+      context.req.raw,
+      options.allowedOrigins,
+    );
+    const requestId = context.get("requestId");
+    const requestUrl = new URL(context.req.url);
+    const requestedParameters = readRequestedProgressParameters(requestUrl);
+
+    try {
+      assertProgressHumanTransport(requestContext.transport);
 
       const progressInput = parseProgressSeriesInputFromRequest(context.req.raw);
       const progress = await loadUserProgressSeriesFn({
@@ -96,7 +169,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
       });
       const hasNonZeroReviewDays = progress.dailyReviews.some((day) => day.reviewCount > 0);
 
-      logCloudRouteEvent("me_progress", {
+      logCloudRouteEvent("me_progress_series", {
         requestId,
         route: context.req.path,
         statusCode: 200,
@@ -107,19 +180,20 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
         to: progress.to,
         returnedDayCount: progress.dailyReviews.length,
         hasNonZeroReviewDays,
+        generatedAt: progress.generatedAt,
       }, false);
 
       return context.json(progress satisfies ProgressSeries);
     } catch (error) {
-      logCloudRouteEvent("me_progress_error", {
+      logCloudRouteEvent("me_progress_series_error", {
         requestId,
         route: context.req.path,
         statusCode: error instanceof HttpError ? error.statusCode : 500,
         userId: requestContext.userId,
         authTransport: requestContext.transport,
-        timeZone: requestedTimeZone,
-        from: requestedFrom,
-        to: requestedTo,
+        timeZone: requestedParameters.timeZone,
+        from: requestedParameters.from,
+        to: requestedParameters.to,
         code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
         validationIssues: summarizeValidationIssues(error),
       }, true);

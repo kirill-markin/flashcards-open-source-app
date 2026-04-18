@@ -295,6 +295,10 @@ extension FlashcardsStore {
                     request: request
                 )
             )
+            self.handleProgressLocalMutation(
+                now: now,
+                reviewedAtClient: request.reviewedAtClient
+            )
             if bootstrapRefreshOutcome.didChange || didReconcileReviewState {
                 self.localReadVersion += 1
             }

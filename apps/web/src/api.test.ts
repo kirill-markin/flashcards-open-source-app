@@ -7,6 +7,8 @@ import {
   createNewChatSession,
   getPreferredAuthUiLocale,
   getSession,
+  loadProgressSummary,
+  loadProgressSeries,
   resetApiClientStateForTests,
   setNavigationHandlerForTests,
   startChatRun,
@@ -403,6 +405,97 @@ describe("auth locale login URL plumbing", () => {
     });
     expect(consoleWarnSpy).toHaveBeenCalledWith("auth_reset_cleanup_deferred", {
       errorMessage: "Failed to delete IndexedDB: delete request was blocked",
+    });
+  });
+});
+
+describe("progress API decoding", () => {
+  it("decodes progress summary responses with generatedAt metadata", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        generatedAt: "2026-04-18T09:15:00.000Z",
+        summary: {
+          currentStreakDays: 1,
+          hasReviewedToday: true,
+          lastReviewedOn: "2026-04-03",
+          activeReviewDays: 2,
+        },
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSummary({
+      timeZone: "Europe/Madrid",
+      today: "2026-04-18",
+    })).resolves.toEqual({
+      timeZone: "Europe/Madrid",
+      generatedAt: "2026-04-18T09:15:00.000Z",
+      summary: {
+        currentStreakDays: 1,
+        hasReviewedToday: true,
+        lastReviewedOn: "2026-04-03",
+        activeReviewDays: 2,
+      },
+    });
+  });
+
+  it("decodes progress series responses without summary metadata", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        timeZone: "Europe/Madrid",
+        from: "2026-04-01",
+        to: "2026-04-03",
+        generatedAt: "2026-04-18T09:15:00.000Z",
+        dailyReviews: [
+          {
+            date: "2026-04-01",
+            reviewCount: 3,
+          },
+          {
+            date: "2026-04-02",
+            reviewCount: 0,
+          },
+          {
+            date: "2026-04-03",
+            reviewCount: 1,
+          },
+        ],
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadProgressSeries({
+      timeZone: "Europe/Madrid",
+      from: "2026-04-01",
+      to: "2026-04-03",
+    })).resolves.toEqual({
+      timeZone: "Europe/Madrid",
+      from: "2026-04-01",
+      to: "2026-04-03",
+      generatedAt: "2026-04-18T09:15:00.000Z",
+      dailyReviews: [
+        {
+          date: "2026-04-01",
+          reviewCount: 3,
+        },
+        {
+          date: "2026-04-02",
+          reviewCount: 0,
+        },
+        {
+          date: "2026-04-03",
+          reviewCount: 1,
+        },
+      ],
     });
   });
 });

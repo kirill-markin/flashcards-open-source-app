@@ -32,6 +32,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
+import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
@@ -51,7 +52,9 @@ import com.flashcardsopensourceapp.data.local.repository.CloudGuestSessionCoordi
 import com.flashcardsopensourceapp.data.local.repository.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.LocalCloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.LocalSyncRepository
+import com.flashcardsopensourceapp.data.local.repository.SystemProgressTimeProvider
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import org.json.JSONObject
@@ -251,7 +254,11 @@ internal class CloudIdentityTestEnvironment private constructor(
     private fun createSyncLocalStore(): SyncLocalStore {
         return SyncLocalStore(
             database = database,
-            preferencesStore = cloudPreferencesStore
+            preferencesStore = cloudPreferencesStore,
+            localProgressCacheStore = LocalProgressCacheStore(
+                database = database,
+                timeProvider = SystemProgressTimeProvider
+            )
         )
     }
 }
@@ -691,6 +698,14 @@ internal class FakeCloudRemoteGateway private constructor(
         workspaceId: String,
         confirmationText: String
     ): CloudWorkspaceResetProgressResult {
+        throw UnsupportedOperationException()
+    }
+
+    override suspend fun loadProgressSummary(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String
+    ): CloudProgressSummary {
         throw UnsupportedOperationException()
     }
 

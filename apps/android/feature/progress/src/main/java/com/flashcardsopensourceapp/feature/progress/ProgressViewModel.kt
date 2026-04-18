@@ -5,16 +5,14 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
-import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
-import com.flashcardsopensourceapp.data.local.repository.SyncRepository
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
+import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
+import com.flashcardsopensourceapp.data.local.model.ProgressSnapshotSource
+import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
+import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
+import com.flashcardsopensourceapp.data.local.repository.progressHistoryDayCount
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,179 +20,75 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
 import java.util.Locale
 
-private const val progressHistoryDayCount: Long = 140L
 private const val streakWeekCount: Int = 5
 private const val daysPerWeek: Int = 7
 
 class ProgressViewModel(
-    private val cloudAccountRepository: CloudAccountRepository,
-    private val syncRepository: SyncRepository
+    private val progressRepository: ProgressRepository
 ) : ViewModel() {
     private val uiStateMutable = MutableStateFlow<ProgressUiState>(ProgressUiState.Loading)
     val uiState: StateFlow<ProgressUiState> = uiStateMutable.asStateFlow()
-    private val initialCloudStateReady = CompletableDeferred<Unit>()
-    private var currentCloudState: CloudAccountState? = null
-    private var activeLoadJob: Job? = null
-    private var latestLoadRequestId: Long = 0L
 
     init {
-        observeCloudState()
-    }
-
-    fun loadProgress() {
-        launchProgressLoad()
-    }
-
-    private fun observeCloudState() {
         viewModelScope.launch {
-            cloudAccountRepository.observeCloudSettings()
-                .map { cloudSettings -> cloudSettings.cloudState }
-                .distinctUntilChanged()
-                .collect { cloudState ->
-                    currentCloudState = cloudState
-                    if (initialCloudStateReady.isCompleted) {
-                        launchProgressLoad()
-                        return@collect
-                    }
-
-                    initialCloudStateReady.complete(Unit)
-                }
-        }
-    }
-
-    private fun launchProgressLoad() {
-        latestLoadRequestId += 1L
-        val requestId = latestLoadRequestId
-        activeLoadJob?.cancel()
-        activeLoadJob = viewModelScope.launch {
-            initialCloudStateReady.await()
-            loadProgressForCurrentCloudState(
-                requestId = requestId
-            )
-        }
-    }
-
-    private suspend fun loadProgressForCurrentCloudState(
-        requestId: Long
-    ) {
-        val cloudState = currentCloudState
-            ?: throw IllegalStateException("Cloud state was not observed before loading progress.")
-        val unsupportedUiState = unsupportedProgressUiStateForCloudState(
-            cloudState = cloudState
-        )
-        if (unsupportedUiState != null) {
-            if (!isLatestLoadRequest(requestId = requestId)) {
-                return
-            }
-            uiStateMutable.value = unsupportedUiState
-            return
-        }
-
-        val zoneId = ZoneId.systemDefault()
-        val today = LocalDate.now(zoneId)
-        val progressRequest = createProgressRequest(
-            today = today,
-            zoneId = zoneId
-        )
-
-        uiStateMutable.value = ProgressUiState.Loading
-
-        try {
-            // Progress is intentionally sourced from the server-backed account view
-            // after syncing the current workspace only. Pending review events from
-            // inactive local workspaces remain eventual-consistency data and are
-            // reflected here after that workspace becomes active and syncs.
-            syncRepository.syncNow()
-            val progressSeries = cloudAccountRepository.loadProgressSeries(
-                timeZone = progressRequest.timeZone,
-                from = progressRequest.from,
-                to = progressRequest.to
-            )
-            if (!isLatestLoadRequest(requestId = requestId)) {
-                return
-            }
-            uiStateMutable.value = progressSeries.toUiState(
-                locale = Locale.getDefault(),
-                today = today
-            )
-        } catch (error: Exception) {
-            if (error is CancellationException) {
-                throw error
-            }
-            if (!isLatestLoadRequest(requestId = requestId)) {
-                return
-            }
-            uiStateMutable.value = ProgressUiState.Error(
-                message = createProgressErrorMessage(
-                    request = progressRequest,
-                    cloudState = cloudState,
-                    error = error
+            combine(
+                progressRepository.observeSummarySnapshot(),
+                progressRepository.observeSeriesSnapshot()
+            ) { summarySnapshot, seriesSnapshot ->
+                createProgressUiState(
+                    summarySnapshot = summarySnapshot,
+                    seriesSnapshot = seriesSnapshot
                 )
-            )
+            }.collect { uiState ->
+                uiStateMutable.value = uiState
+            }
         }
     }
 
-    private fun isLatestLoadRequest(
-        requestId: Long
-    ): Boolean {
-        return requestId == latestLoadRequestId
+    fun refreshIfInvalidated() {
+        viewModelScope.launch { progressRepository.refreshSummaryIfInvalidated() }
+        viewModelScope.launch { progressRepository.refreshSeriesIfInvalidated() }
+    }
+
+    fun refreshManually() {
+        viewModelScope.launch { progressRepository.refreshSummaryManually() }
+        viewModelScope.launch { progressRepository.refreshSeriesManually() }
     }
 }
-
-internal fun unsupportedProgressUiStateForCloudState(
-    cloudState: CloudAccountState
-): ProgressUiState? {
-    return when (cloudState) {
-        CloudAccountState.DISCONNECTED -> ProgressUiState.SignInRequired
-        CloudAccountState.LINKING_READY -> ProgressUiState.Unavailable
-        CloudAccountState.GUEST,
-        CloudAccountState.LINKED -> null
-    }
-}
-
-private data class ProgressRequest(
-    val timeZone: String,
-    val from: String,
-    val to: String
-)
 
 private data class ParsedProgressPoint(
     val date: LocalDate,
     val reviewCount: Int
 )
 
-private fun createProgressRequest(
-    today: LocalDate,
-    zoneId: ZoneId
-): ProgressRequest {
-    val from = today.minusDays(progressHistoryDayCount - 1L)
+private fun createProgressUiState(
+    summarySnapshot: ProgressSummarySnapshot?,
+    seriesSnapshot: ProgressSeriesSnapshot?
+): ProgressUiState {
+    if (seriesSnapshot == null) {
+        return ProgressUiState.Loading
+    }
 
-    return ProgressRequest(
-        timeZone = zoneId.id,
-        from = from.toString(),
-        to = today.toString()
+    val today = LocalDate.parse(seriesSnapshot.renderedSeries.to)
+    return seriesSnapshot.renderedSeries.toUiState(
+        locale = Locale.getDefault(),
+        today = today,
+        source = seriesSnapshot.source,
+        isApproximate = seriesSnapshot.isApproximate,
+        summary = summarySnapshot?.toUiState() ?: ProgressSummaryUiState.Loading
     )
-}
-
-private fun createProgressErrorMessage(
-    request: ProgressRequest,
-    cloudState: CloudAccountState,
-    error: Exception
-): String {
-    val errorName = error::class.simpleName ?: "Exception"
-    val errorDetail = error.message ?: "No error message provided."
-
-    return "Failed to sync and load progress for cloudState=${cloudState.name}, timeZone=${request.timeZone}, from=${request.from}, to=${request.to}: $errorName: $errorDetail"
 }
 
 private fun CloudProgressSeries.toUiState(
     locale: Locale,
-    today: LocalDate
+    today: LocalDate,
+    source: ProgressSnapshotSource,
+    isApproximate: Boolean,
+    summary: ProgressSummaryUiState
 ): ProgressUiState {
     val parsedPoints = dailyReviews
         .map { point ->
@@ -218,8 +112,19 @@ private fun CloudProgressSeries.toUiState(
     )
 
     return ProgressUiState.Loaded(
+        summary = summary,
         streakSection = streakSection,
-        reviewsSection = reviewsSection
+        reviewsSection = reviewsSection,
+        source = source.toUiState(),
+        isApproximate = isApproximate
+    )
+}
+
+private fun ProgressSummarySnapshot.toUiState(): ProgressSummaryUiState {
+    return ProgressSummaryUiState.Loaded(
+        summary = renderedSummary,
+        source = source.toUiState(),
+        isApproximate = isApproximate
     )
 }
 
@@ -338,15 +243,23 @@ private fun startOfWeek(
     return date.minusDays(daysFromStartOfWeek.toLong())
 }
 
+private fun ProgressSnapshotSource.toUiState(): ProgressSourceUiState {
+    return when (this) {
+        ProgressSnapshotSource.LOCAL_ONLY -> ProgressSourceUiState.LOCAL_ONLY
+        ProgressSnapshotSource.SERVER_BASE -> ProgressSourceUiState.SERVER_BASE
+        ProgressSnapshotSource.SERVER_BASE_WITH_LOCAL_OVERLAY -> {
+            ProgressSourceUiState.SERVER_BASE_WITH_LOCAL_OVERLAY
+        }
+    }
+}
+
 fun createProgressViewModelFactory(
-    cloudAccountRepository: CloudAccountRepository,
-    syncRepository: SyncRepository
+    progressRepository: ProgressRepository
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             ProgressViewModel(
-                cloudAccountRepository = cloudAccountRepository,
-                syncRepository = syncRepository
+                progressRepository = progressRepository
             )
         }
     }

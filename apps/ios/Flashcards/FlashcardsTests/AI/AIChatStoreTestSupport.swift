@@ -336,7 +336,18 @@ enum AIChatStoreTestSupport {
             fatalError("Not used in AIChatStoreTestSupport.")
         }
 
-        func loadProgress(
+        func loadProgressSummary(
+            apiBaseUrl: String,
+            authorizationHeader: String,
+            timeZone: String
+        ) async throws -> UserProgressSummary {
+            _ = apiBaseUrl
+            _ = authorizationHeader
+            _ = timeZone
+            fatalError("Not used in AIChatStoreTestSupport.")
+        }
+
+        func loadProgressSeries(
             apiBaseUrl: String,
             authorizationHeader: String,
             timeZone: String,

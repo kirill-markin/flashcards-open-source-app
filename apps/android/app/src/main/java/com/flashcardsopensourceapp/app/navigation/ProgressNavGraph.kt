@@ -16,16 +16,15 @@ internal fun NavGraphBuilder.registerProgressNavGraph(
     composable(route = ProgressDestination.route) {
         val progressViewModel = viewModel<ProgressViewModel>(
             factory = createProgressViewModelFactory(
-                cloudAccountRepository = appGraph.cloudAccountRepository,
-                syncRepository = appGraph.syncRepository
+                progressRepository = appGraph.progressRepository
             )
         )
         val uiState by progressViewModel.uiState.collectAsStateWithLifecycle()
 
         ProgressRoute(
             uiState = uiState,
-            onScreenVisible = progressViewModel::loadProgress,
-            onRetry = progressViewModel::loadProgress
+            onScreenVisible = progressViewModel::refreshIfInvalidated,
+            onRetry = progressViewModel::refreshManually
         )
     }
 }

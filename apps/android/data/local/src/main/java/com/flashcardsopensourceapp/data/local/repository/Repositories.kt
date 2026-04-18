@@ -20,6 +20,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
+import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
@@ -35,6 +36,8 @@ import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.DeviceDiagnosticsSummary
 import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
+import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
+import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
@@ -103,6 +106,15 @@ interface SyncRepository {
     suspend fun syncNow()
 }
 
+interface ProgressRepository {
+    fun observeSummarySnapshot(): Flow<ProgressSummarySnapshot?>
+    fun observeSeriesSnapshot(): Flow<ProgressSeriesSnapshot?>
+    suspend fun refreshSummaryIfInvalidated()
+    suspend fun refreshSeriesIfInvalidated()
+    suspend fun refreshSummaryManually()
+    suspend fun refreshSeriesManually()
+}
+
 interface CloudAccountRepository {
     fun observeCloudSettings(): Flow<CloudSettings>
     fun observeAccountDeletionState(): Flow<AccountDeletionState>
@@ -128,6 +140,7 @@ interface CloudAccountRepository {
     suspend fun deleteCurrentWorkspace(confirmationText: String): CloudWorkspaceDeleteResult
     suspend fun loadCurrentWorkspaceResetProgressPreview(): CloudWorkspaceResetProgressPreview
     suspend fun resetCurrentWorkspaceProgress(confirmationText: String): CloudWorkspaceResetProgressResult
+    suspend fun loadProgressSummary(timeZone: String): CloudProgressSummary
     suspend fun loadProgressSeries(timeZone: String, from: String, to: String): CloudProgressSeries
     suspend fun deleteAccount(confirmationText: String)
     suspend fun listLinkedWorkspaces(): List<CloudWorkspaceSummary>

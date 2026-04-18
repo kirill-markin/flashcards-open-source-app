@@ -66,6 +66,9 @@ final class FlashcardsStore {
     var isReviewCountsLoading: Bool
     var isReviewQueueChunkLoading: Bool
     var homeSnapshot: HomeSnapshot
+    var progressSnapshot: ProgressSnapshot?
+    var progressErrorMessage: String
+    var isProgressRefreshing: Bool
     var globalErrorMessage: String
     var syncStatus: SyncStatus
     var lastSuccessfulCloudSyncAt: String?
@@ -99,6 +102,19 @@ final class FlashcardsStore {
     @ObservationIgnored var activeReviewNotificationsRescheduleTask: Task<Void, Never>?
     @ObservationIgnored var reviewNotificationsRescheduleGeneration: Int
     @ObservationIgnored var reviewHardReminderLastShownAt: Date?
+    @ObservationIgnored var progressSummaryServerBaseCache: PersistedProgressSummaryServerBase?
+    @ObservationIgnored var progressSeriesServerBaseCache: PersistedProgressSeriesServerBase?
+    @ObservationIgnored var progressObservedScopeKey: ProgressScopeKey?
+    @ObservationIgnored var progressSummaryInvalidatedScopeKeys: Set<ProgressSummaryScopeKey>
+    @ObservationIgnored var progressSeriesInvalidatedScopeKeys: Set<ProgressScopeKey>
+    @ObservationIgnored var progressSummaryRefreshToken: Int
+    @ObservationIgnored var progressSeriesRefreshToken: Int
+    @ObservationIgnored var progressActiveSummaryRefreshScopeKey: ProgressSummaryScopeKey?
+    @ObservationIgnored var progressActiveSeriesRefreshScopeKey: ProgressScopeKey?
+    @ObservationIgnored var progressActiveSummaryRefreshToken: Int?
+    @ObservationIgnored var progressActiveSeriesRefreshToken: Int?
+    @ObservationIgnored var isProgressSummaryRefreshing: Bool
+    @ObservationIgnored var isProgressSeriesRefreshing: Bool
 
     var aiChatStore: AIChatStore {
         if let cachedAIChatStore {
@@ -281,6 +297,9 @@ final class FlashcardsStore {
             newCount: 0,
             reviewedCount: 0
         )
+        self.progressSnapshot = nil
+        self.progressErrorMessage = ""
+        self.isProgressRefreshing = false
         self.globalErrorMessage = initialGlobalErrorMessage
         self.syncStatus = .idle
         self.lastSuccessfulCloudSyncAt = nil
@@ -322,6 +341,19 @@ final class FlashcardsStore {
         self.activeReviewNotificationsRescheduleTask = nil
         self.reviewNotificationsRescheduleGeneration = 0
         self.reviewHardReminderLastShownAt = loadReviewHardReminderLastShownAt(userDefaults: userDefaults)
+        self.progressSummaryServerBaseCache = nil
+        self.progressSeriesServerBaseCache = nil
+        self.progressObservedScopeKey = nil
+        self.progressSummaryInvalidatedScopeKeys = []
+        self.progressSeriesInvalidatedScopeKeys = []
+        self.progressSummaryRefreshToken = 0
+        self.progressSeriesRefreshToken = 0
+        self.progressActiveSummaryRefreshScopeKey = nil
+        self.progressActiveSeriesRefreshScopeKey = nil
+        self.progressActiveSummaryRefreshToken = nil
+        self.progressActiveSeriesRefreshToken = nil
+        self.isProgressSummaryRefreshing = false
+        self.isProgressSeriesRefreshing = false
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {

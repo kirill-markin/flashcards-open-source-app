@@ -15,7 +15,12 @@ protocol CloudAuthServing {
 @MainActor
 protocol CloudSyncServing {
     func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot
-    func loadProgress(
+    func loadProgressSummary(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String
+    ) async throws -> UserProgressSummary
+    func loadProgressSeries(
         apiBaseUrl: String,
         authorizationHeader: String,
         timeZone: String,

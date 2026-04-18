@@ -26,10 +26,12 @@ import com.flashcardsopensourceapp.data.local.repository.CardsRepository
 import com.flashcardsopensourceapp.data.local.repository.DecksRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalDecksRepository
+import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.LocalReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalWorkspaceRepository
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
+import com.flashcardsopensourceapp.data.local.repository.SystemProgressTimeProvider
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,7 +69,11 @@ class AppDatabaseTest {
         preferencesStore.hydrateCloudSettingsFromDatabase()
         syncLocalStore = SyncLocalStore(
             database = database,
-            preferencesStore = preferencesStore
+            preferencesStore = preferencesStore,
+            localProgressCacheStore = LocalProgressCacheStore(
+                database = database,
+                timeProvider = SystemProgressTimeProvider
+            )
         )
         syncRepository = FakeSyncRepository()
     }
@@ -677,7 +683,11 @@ class AppDatabaseTest {
         return LocalReviewRepository(
             database = database,
             preferencesStore = preferencesStore,
-            syncLocalStore = syncLocalStore
+            syncLocalStore = syncLocalStore,
+            localProgressCacheStore = LocalProgressCacheStore(
+                database = database,
+                timeProvider = SystemProgressTimeProvider
+            )
         )
     }
 }

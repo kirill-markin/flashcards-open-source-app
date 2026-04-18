@@ -9,6 +9,8 @@ import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.SyncOperationPayload
+import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
+import com.flashcardsopensourceapp.data.local.repository.SystemProgressTimeProvider
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -39,7 +41,11 @@ class SyncLocalStoreContractTest {
         preferencesStore = CloudPreferencesStore(context = context, database = database)
         syncLocalStore = SyncLocalStore(
             database = database,
-            preferencesStore = preferencesStore
+            preferencesStore = preferencesStore,
+            localProgressCacheStore = LocalProgressCacheStore(
+                database = database,
+                timeProvider = SystemProgressTimeProvider
+            )
         )
     }
 

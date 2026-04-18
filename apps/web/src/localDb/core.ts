@@ -51,10 +51,24 @@ export type CloudSettingsRecord = Readonly<{
   settings: CloudSettings;
 }>;
 
+export type ProgressDailyCountRecord = Readonly<{
+  workspaceId: string;
+  localDate: string;
+  reviewCount: number;
+}>;
+
+export type ProgressCacheStateRecord = Readonly<{
+  key: "progress_cache_state";
+  timeZone: string;
+  needsRebuild: boolean;
+  updatedAt: string;
+}>;
+
 export type DatabaseStores =
   | "cards"
   | "cardTags"
   | "decks"
+  | "progressDailyCounts"
   | "reviewEvents"
   | "workspaceSettings"
   | "workspaceSyncState"
@@ -62,7 +76,7 @@ export type DatabaseStores =
   | "meta";
 
 const databaseName = "flashcards-web-sync";
-const databaseVersion = 7;
+const databaseVersion = 9;
 
 function isQuotaExceededError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "QuotaExceededError";
@@ -83,6 +97,16 @@ export function describeIndexedDbError(prefix: string, error: unknown): Error {
 function deleteExistingStore(database: IDBDatabase, storeName: string): void {
   if (database.objectStoreNames.contains(storeName)) {
     database.deleteObjectStore(storeName);
+  }
+}
+
+function createReviewEventsIndexes(reviewEventsStore: IDBObjectStore): void {
+  if (!reviewEventsStore.indexNames.contains("workspaceId_reviewedAtClient_reviewEventId")) {
+    reviewEventsStore.createIndex(
+      "workspaceId_reviewedAtClient_reviewEventId",
+      ["workspaceId", "reviewedAtClient", "reviewEventId"],
+      { unique: false },
+    );
   }
 }
 
@@ -115,7 +139,12 @@ function createDecksStore(database: IDBDatabase): void {
 }
 
 function createReviewEventsStore(database: IDBDatabase): void {
-  database.createObjectStore("reviewEvents", { keyPath: ["workspaceId", "reviewEventId"] });
+  const reviewEventsStore = database.createObjectStore("reviewEvents", { keyPath: ["workspaceId", "reviewEventId"] });
+  createReviewEventsIndexes(reviewEventsStore);
+}
+
+function createProgressDailyCountsStore(database: IDBDatabase): void {
+  database.createObjectStore("progressDailyCounts", { keyPath: ["workspaceId", "localDate"] });
 }
 
 function createWorkspaceSettingsStore(database: IDBDatabase): void {
@@ -140,6 +169,7 @@ function upgradeToVersion4(database: IDBDatabase): void {
     "cards",
     "cardTags",
     "decks",
+    "progressDailyCounts",
     "reviewEvents",
     "workspaceSettings",
     "workspaceSyncState",
@@ -152,6 +182,7 @@ function upgradeToVersion4(database: IDBDatabase): void {
   createCardsStore(database);
   createCardTagsStore(database);
   createDecksStore(database);
+  createProgressDailyCountsStore(database);
   createReviewEventsStore(database);
   createWorkspaceSettingsStore(database);
   createWorkspaceSyncStateStore(database);
@@ -171,6 +202,17 @@ function upgradeToVersion6(database: IDBDatabase): void {
 function upgradeToVersion7(transaction: IDBTransaction): void {
   const cardsStore = transaction.objectStore("cards");
   createCardsUpdatedAtIndexes(cardsStore);
+}
+
+function upgradeToVersion8(transaction: IDBTransaction): void {
+  const reviewEventsStore = transaction.objectStore("reviewEvents");
+  createReviewEventsIndexes(reviewEventsStore);
+}
+
+function upgradeToVersion9(database: IDBDatabase): void {
+  if (database.objectStoreNames.contains("progressDailyCounts") === false) {
+    createProgressDailyCountsStore(database);
+  }
 }
 
 export function openDatabase(): Promise<IDBDatabase> {
@@ -203,6 +245,19 @@ export function openDatabase(): Promise<IDBDatabase> {
         }
 
         upgradeToVersion7(transaction);
+      }
+
+      if (oldVersion < 8) {
+        const transaction = request.transaction;
+        if (transaction === null) {
+          throw new Error("IndexedDB upgrade transaction is unavailable");
+        }
+
+        upgradeToVersion8(transaction);
+      }
+
+      if (oldVersion < 9) {
+        upgradeToVersion9(request.result);
       }
     };
 
@@ -313,4 +368,4 @@ export function deleteDatabase(): Promise<void> {
   });
 }
 
-export type StoredEntity = StoredCard | Deck | ReviewEvent;
+export type StoredEntity = StoredCard | Deck | ReviewEvent | ProgressDailyCountRecord;
