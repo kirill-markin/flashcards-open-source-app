@@ -418,11 +418,11 @@ export function AppShell(): ReactElement {
               <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={reviewRoute}>
                 {t("navigation.review")}
               </NavLink>
-              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={chatRoute}>
-                {t("navigation.aiChat")}
-              </NavLink>
               <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={progressRoute}>
                 {t("navigation.progress")}
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={chatRoute}>
+                {t("navigation.aiChat")}
               </NavLink>
               <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={cardsRoute}>
                 {t("navigation.cards")}

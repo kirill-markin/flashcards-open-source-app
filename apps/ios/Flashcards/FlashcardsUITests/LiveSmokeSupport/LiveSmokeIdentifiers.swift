@@ -104,8 +104,8 @@ struct LiveSmokeTabBarItemLookup {
 
 enum LiveSmokeSelectedTab: String {
     case review
-    case ai
     case progress
+    case ai
     case cards
     case settings
 
@@ -113,10 +113,10 @@ enum LiveSmokeSelectedTab: String {
         switch self {
         case .review:
             return LiveSmokeIdentifier.rootTabReviewItem
-        case .ai:
-            return LiveSmokeIdentifier.rootTabAIItem
         case .progress:
             return LiveSmokeIdentifier.rootTabProgressItem
+        case .ai:
+            return LiveSmokeIdentifier.rootTabAIItem
         case .cards:
             return LiveSmokeIdentifier.rootTabCardsItem
         case .settings:
@@ -128,10 +128,10 @@ enum LiveSmokeSelectedTab: String {
         switch self {
         case .review:
             return .review
-        case .ai:
-            return .ai
         case .progress:
             return .progress
+        case .ai:
+            return .ai
         case .cards:
             return .cards
         case .settings:
@@ -151,9 +151,9 @@ enum LiveSmokeSelectedTab: String {
         switch self {
         case .review:
             return 0
-        case .ai:
-            return 1
         case .progress:
+            return 1
+        case .ai:
             return 2
         case .cards:
             return 3
@@ -182,24 +182,6 @@ enum LiveSmokeSelectedTab: String {
             return "Repasar"
         case (.review, .spanishSpain):
             return "Repasar"
-        case (.ai, .english):
-            return "AI"
-        case (.ai, .arabic):
-            return "الذكاء الاصطناعي"
-        case (.ai, .chineseSimplified):
-            return "AI"
-        case (.ai, .german):
-            return "KI"
-        case (.ai, .hindi):
-            return "AI"
-        case (.ai, .japanese):
-            return "AI"
-        case (.ai, .russian):
-            return "ИИ"
-        case (.ai, .spanishMexico):
-            return "IA"
-        case (.ai, .spanishSpain):
-            return "IA"
         case (.progress, .english):
             return "Progress"
         case (.progress, .arabic):
@@ -218,6 +200,24 @@ enum LiveSmokeSelectedTab: String {
             return "Progreso"
         case (.progress, .spanishSpain):
             return "Progreso"
+        case (.ai, .english):
+            return "AI"
+        case (.ai, .arabic):
+            return "الذكاء الاصطناعي"
+        case (.ai, .chineseSimplified):
+            return "AI"
+        case (.ai, .german):
+            return "KI"
+        case (.ai, .hindi):
+            return "AI"
+        case (.ai, .japanese):
+            return "AI"
+        case (.ai, .russian):
+            return "ИИ"
+        case (.ai, .spanishMexico):
+            return "IA"
+        case (.ai, .spanishSpain):
+            return "IA"
         case (.cards, .english):
             return "Cards"
         case (.cards, .arabic):
