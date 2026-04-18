@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
@@ -407,6 +408,23 @@ class LocalCloudAccountRepository(
                 syncLocalStore = syncLocalStore
             )
             result
+        }
+    }
+
+    override suspend fun loadProgressSeries(
+        timeZone: String,
+        from: String,
+        to: String
+    ): CloudProgressSeries {
+        return operationCoordinator.runExclusive {
+            val progressSession = progressSession()
+            remoteService.loadProgressSeries(
+                apiBaseUrl = progressSession.apiBaseUrl,
+                authorizationHeader = progressSession.authorizationHeader,
+                timeZone = timeZone,
+                from = from,
+                to = to
+            )
         }
     }
 
@@ -832,6 +850,34 @@ class LocalCloudAccountRepository(
         return guestSessionStore.loadAnySession(configuration = configuration)
     }
 
+    private suspend fun progressSession(): ProgressCloudSession {
+        val cloudSettings = preferencesStore.currentCloudSettings()
+        return when (cloudSettings.cloudState) {
+            CloudAccountState.LINKED -> {
+                val authenticatedSession = authenticatedSession()
+                ProgressCloudSession(
+                    apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+                    authorizationHeader = "Bearer ${authenticatedSession.credentials.idToken}"
+                )
+            }
+
+            CloudAccountState.GUEST -> {
+                val configuration = preferencesStore.currentServerConfiguration()
+                val guestSession = requireNotNull(activeGuestSession(configuration = configuration)) {
+                    "Guest progress requires an active guest session."
+                }
+                ProgressCloudSession(
+                    apiBaseUrl = guestSession.apiBaseUrl,
+                    authorizationHeader = "Guest ${guestSession.guestToken}"
+                )
+            }
+
+            else -> {
+                throw IllegalStateException("Progress requires a linked or guest cloud account.")
+            }
+        }
+    }
+
     private suspend fun markGuestUpgradePreparationState() {
         val cloudSettings = preferencesStore.currentCloudSettings()
         preferencesStore.updateCloudSettings(
@@ -852,4 +898,9 @@ private data class AuthenticatedCloudSession(
     val configuration: CloudServiceConfiguration,
     val credentials: StoredCloudCredentials,
     val accountSnapshot: CloudAccountSnapshot
+)
+
+private data class ProgressCloudSession(
+    val apiBaseUrl: String,
+    val authorizationHeader: String
 )
