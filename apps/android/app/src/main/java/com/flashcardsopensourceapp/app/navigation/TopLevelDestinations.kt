@@ -61,8 +61,8 @@ data object SettingsDestination : TopLevelDestination {
 
 val topLevelDestinations: List<TopLevelDestination> = listOf(
     ReviewDestination,
-    AiDestination,
     ProgressDestination,
+    AiDestination,
     CardsDestination,
     SettingsDestination
 )

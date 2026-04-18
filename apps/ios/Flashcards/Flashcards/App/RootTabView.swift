@@ -25,23 +25,6 @@ struct RootTabView: View {
             .tag(AppTab.review)
 
             NavigationStack {
-                AIChatView(chatStore: store.aiChatStore)
-            }
-            .tabItem {
-                Label(
-                    String(
-                        localized: "root_tab.ai.title",
-                        defaultValue: "AI",
-                        table: "Foundation",
-                        comment: "AI tab title"
-                    ),
-                    systemImage: "sparkles.rectangle.stack"
-                )
-                .accessibilityIdentifier(UITestIdentifier.rootTabAIItem)
-            }
-            .tag(AppTab.ai)
-
-            NavigationStack {
                 ProgressScreen()
             }
             .tabItem {
@@ -57,6 +40,23 @@ struct RootTabView: View {
                 .accessibilityIdentifier(UITestIdentifier.rootTabProgressItem)
             }
             .tag(AppTab.progress)
+
+            NavigationStack {
+                AIChatView(chatStore: store.aiChatStore)
+            }
+            .tabItem {
+                Label(
+                    String(
+                        localized: "root_tab.ai.title",
+                        defaultValue: "AI",
+                        table: "Foundation",
+                        comment: "AI tab title"
+                    ),
+                    systemImage: "sparkles.rectangle.stack"
+                )
+                .accessibilityIdentifier(UITestIdentifier.rootTabAIItem)
+            }
+            .tag(AppTab.ai)
 
             NavigationStack {
                 CardsScreen()
