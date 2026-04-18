@@ -25,28 +25,13 @@ struct RootTabView: View {
             .tag(AppTab.review)
 
             NavigationStack {
-                CardsScreen()
-            }
-            .tabItem {
-                Label(
-                    String(
-                        localized: "root_tab.cards.title",
-                        table: "Foundation",
-                        comment: "Cards tab title"
-                    ),
-                    systemImage: "rectangle.stack"
-                )
-                .accessibilityIdentifier(UITestIdentifier.rootTabCardsItem)
-            }
-            .tag(AppTab.cards)
-
-            NavigationStack {
                 AIChatView(chatStore: store.aiChatStore)
             }
             .tabItem {
                 Label(
                     String(
                         localized: "root_tab.ai.title",
+                        defaultValue: "AI",
                         table: "Foundation",
                         comment: "AI tab title"
                     ),
@@ -55,6 +40,40 @@ struct RootTabView: View {
                 .accessibilityIdentifier(UITestIdentifier.rootTabAIItem)
             }
             .tag(AppTab.ai)
+
+            NavigationStack {
+                ProgressScreen()
+            }
+            .tabItem {
+                Label(
+                    String(
+                        localized: "root_tab.progress.title",
+                        defaultValue: "Progress",
+                        table: "Foundation",
+                        comment: "Progress tab title"
+                    ),
+                    systemImage: "chart.bar.xaxis"
+                )
+                .accessibilityIdentifier(UITestIdentifier.rootTabProgressItem)
+            }
+            .tag(AppTab.progress)
+
+            NavigationStack {
+                CardsScreen()
+            }
+            .tabItem {
+                Label(
+                    String(
+                        localized: "root_tab.cards.title",
+                        defaultValue: "Cards",
+                        table: "Foundation",
+                        comment: "Cards tab title"
+                    ),
+                    systemImage: "rectangle.stack"
+                )
+                .accessibilityIdentifier(UITestIdentifier.rootTabCardsItem)
+            }
+            .tag(AppTab.cards)
 
             NavigationStack(path: $navigation.settingsPath) {
                 SettingsView()

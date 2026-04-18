@@ -107,7 +107,7 @@ extension LiveSmokeTestCase {
                 identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
                 timeout: timeout
             )
-        case .cards, .ai, .settings:
+        case .ai, .progress, .cards, .settings:
             try self.assertScreenVisible(screen: selectedTab.screen, timeout: timeout)
         }
     }

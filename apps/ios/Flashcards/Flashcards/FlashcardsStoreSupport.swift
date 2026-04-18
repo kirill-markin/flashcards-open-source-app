@@ -15,6 +15,13 @@ protocol CloudAuthServing {
 @MainActor
 protocol CloudSyncServing {
     func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot
+    func loadProgress(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String,
+        from: String,
+        to: String
+    ) async throws -> UserProgressSeries
     func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary
     func renameWorkspace(
         apiBaseUrl: String,

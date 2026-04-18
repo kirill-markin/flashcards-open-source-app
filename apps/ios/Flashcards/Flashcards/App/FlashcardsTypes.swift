@@ -16,7 +16,7 @@ import Foundation
 
 /**
  Keep workspace navigation aligned with web and Android:
- the primary destinations are Review, Cards, AI, and Settings.
+ the primary destinations are Review, AI, Progress, Cards, and Settings.
  Decks and tags belong under workspace settings on both platforms.
  Web exposes account settings from the account menu, while iOS nests account
  settings inside the Settings tab. Android keeps the same product destinations
@@ -24,8 +24,9 @@ import Foundation
  */
 enum AppTab: Hashable, CaseIterable, Sendable {
     case review
-    case cards
     case ai
+    case progress
+    case cards
     case settings
 }
 

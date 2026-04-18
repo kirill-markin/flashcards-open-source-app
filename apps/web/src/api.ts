@@ -8,6 +8,7 @@ import {
   parseDeleteWorkspaceResponse,
   parseQueryCardsPageResponse,
   parseNewChatSessionResponse,
+  parseProgressSeriesResponse,
   parseSessionInfoResponse,
   parseResetWorkspaceProgressResponse,
   parseStartChatRunResponse,
@@ -41,6 +42,8 @@ import type {
   QueryCardsPage,
   NewChatSessionRequestBody,
   NewChatSessionResponse,
+  ProgressSeries,
+  ProgressSeriesInput,
   ReviewEvent,
   SessionInfo,
   StartChatRunRequestBody,
@@ -615,6 +618,21 @@ export async function deleteMyAccount(confirmationText: string): Promise<Readonl
       confirmationText,
     }),
   }, allowAuthRecovery), "POST /me/delete");
+}
+
+export async function loadProgressSeries(input: ProgressSeriesInput): Promise<ProgressSeries> {
+  const searchParams = new URLSearchParams({
+    timeZone: input.timeZone,
+    from: input.from,
+    to: input.to,
+  });
+
+  return parseProgressSeriesResponse(
+    await requestJson(`/me/progress?${searchParams.toString()}`, {
+      method: "GET",
+    }, allowAuthRecovery),
+    "GET /me/progress",
+  );
 }
 
 export async function pushSyncOperations(

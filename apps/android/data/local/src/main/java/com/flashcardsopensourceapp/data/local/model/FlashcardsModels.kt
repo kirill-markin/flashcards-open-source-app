@@ -110,6 +110,18 @@ data class CloudWorkspaceResetProgressResult(
     val cardsResetCount: Int
 )
 
+data class CloudDailyReviewPoint(
+    val date: String,
+    val reviewCount: Int
+)
+
+data class CloudProgressSeries(
+    val timeZone: String,
+    val from: String,
+    val to: String,
+    val dailyReviews: List<CloudDailyReviewPoint>
+)
+
 data class AgentApiKeyConnection(
     val connectionId: String,
     val label: String,

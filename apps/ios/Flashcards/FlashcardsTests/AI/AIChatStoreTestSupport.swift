@@ -336,6 +336,21 @@ enum AIChatStoreTestSupport {
             fatalError("Not used in AIChatStoreTestSupport.")
         }
 
+        func loadProgress(
+            apiBaseUrl: String,
+            authorizationHeader: String,
+            timeZone: String,
+            from: String,
+            to: String
+        ) async throws -> UserProgressSeries {
+            _ = apiBaseUrl
+            _ = authorizationHeader
+            _ = timeZone
+            _ = from
+            _ = to
+            fatalError("Not used in AIChatStoreTestSupport.")
+        }
+
         func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary {
             _ = apiBaseUrl
             _ = bearerToken

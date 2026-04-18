@@ -70,8 +70,9 @@ export const ruCatalog = {
   },
   navigation: {
     review: "Повторение",
-    cards: "Карточки",
     aiChat: "AI-чат",
+    progress: "Прогресс",
+    cards: "Карточки",
     settings: "Настройки",
   },
   shell: {
@@ -114,6 +115,26 @@ export const ruCatalog = {
     agentConnections: "Загрузка подключений агентов...",
     dangerZone: "Загрузка опасной зоны...",
     aiChat: "Загрузка AI-чата...",
+    progress: "Загрузка прогресса...",
+  },
+  progressScreen: {
+    title: "Прогресс",
+    subtitle: "Отслеживайте недавнюю серию и ежедневную историю повторений.",
+    streakTitle: "Серия",
+    reviewsTitle: "Повторения",
+    lastThirtyDays: "Последние 30 дней",
+    empty: "За этот 30-дневный период повторения не были записаны.",
+    rangeValue: "{{from}} - {{to}}",
+    labels: {
+      totalReviews: "Всего повторений",
+      activeDays: "Активные дни",
+      timeZone: "Часовой пояс",
+      range: "Период",
+    },
+    table: {
+      date: "Дата",
+      reviews: "Повторения",
+    },
   },
   app: {
     title: "Flashcards",

@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 enum class VisibleAppScreen {
     REVIEW,
+    PROGRESS,
     CARDS,
     SETTINGS_ROOT,
     SETTINGS_CURRENT_WORKSPACE,

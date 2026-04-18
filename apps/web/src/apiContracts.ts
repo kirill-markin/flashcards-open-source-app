@@ -10,6 +10,7 @@ import type {
   Deck,
   DeckFilterDefinition,
   DeleteWorkspaceResponse,
+  ProgressSeries,
   QueryCardsPage,
   NewChatSessionResponse,
   ReviewEvent,
@@ -298,6 +299,18 @@ function parseReviewEvent(value: unknown, endpoint: string, path: string): Revie
     rating: parseRequiredField(objectValue, "rating", endpoint, path, parseReviewRating),
     reviewedAtClient: parseRequiredField(objectValue, "reviewedAtClient", endpoint, path, parseString),
     reviewedAtServer: parseRequiredField(objectValue, "reviewedAtServer", endpoint, path, parseString),
+  };
+}
+
+function parseDailyReviewPoint(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressSeries["dailyReviews"][number] {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    date: parseRequiredField(objectValue, "date", endpoint, path, parseString),
+    reviewCount: parseRequiredField(objectValue, "reviewCount", endpoint, path, parseNumber),
   };
 }
 
@@ -934,6 +947,24 @@ export function parseQueryCardsPageResponse(value: unknown, endpoint: string): Q
 
 function parseCardArray(value: unknown, endpoint: string, path: string): ReadonlyArray<Card> {
   return parseArray(value, endpoint, path, parseCard);
+}
+
+function parseDailyReviewPointArray(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): ProgressSeries["dailyReviews"] {
+  return parseArray(value, endpoint, path, parseDailyReviewPoint);
+}
+
+export function parseProgressSeriesResponse(value: unknown, endpoint: string): ProgressSeries {
+  const objectValue = parseObject(value, endpoint, "");
+  return {
+    timeZone: parseRequiredField(objectValue, "timeZone", endpoint, "", parseString),
+    from: parseRequiredField(objectValue, "from", endpoint, "", parseString),
+    to: parseRequiredField(objectValue, "to", endpoint, "", parseString),
+    dailyReviews: parseRequiredField(objectValue, "dailyReviews", endpoint, "", parseDailyReviewPointArray),
+  };
 }
 
 export function parseChatSessionSnapshotResponse(value: unknown, endpoint: string): ChatSessionSnapshot {

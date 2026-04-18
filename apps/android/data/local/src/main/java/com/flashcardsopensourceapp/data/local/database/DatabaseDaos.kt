@@ -319,6 +319,9 @@ interface ReviewLogDao {
     @Query("SELECT * FROM review_logs ORDER BY reviewedAtMillis DESC")
     suspend fun loadReviewLogs(): List<ReviewLogEntity>
 
+    @Query("SELECT * FROM review_logs WHERE workspaceId = :workspaceId ORDER BY reviewedAtMillis DESC")
+    suspend fun loadReviewLogs(workspaceId: String): List<ReviewLogEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReviewLogs(reviewLogs: List<ReviewLogEntity>)
 
@@ -345,6 +348,17 @@ interface OutboxDao {
 
     @Query("SELECT * FROM outbox_entries WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC LIMIT :limit")
     suspend fun loadOutboxEntries(workspaceId: String, limit: Int): List<OutboxEntryEntity>
+
+    @Query(
+        """
+        SELECT * FROM outbox_entries
+        WHERE workspaceId = :workspaceId
+            AND entityType = 'review_event'
+            AND operationType = 'append'
+        ORDER BY createdAtMillis ASC
+        """
+    )
+    suspend fun loadPendingReviewEventOutboxEntries(workspaceId: String): List<OutboxEntryEntity>
 
     @Query("DELETE FROM outbox_entries WHERE workspaceId = :workspaceId")
     suspend fun deleteOutboxEntriesForWorkspace(workspaceId: String)

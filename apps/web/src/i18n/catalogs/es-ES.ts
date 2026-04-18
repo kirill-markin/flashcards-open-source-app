@@ -70,8 +70,9 @@ const esEsCatalog: TranslationCatalog = {
   },
   navigation: {
     review: "Repasar",
-    cards: "Tarjetas",
     aiChat: "Chat con IA",
+    progress: "Progreso",
+    cards: "Tarjetas",
     settings: "Ajustes",
   },
   shell: {
@@ -114,6 +115,26 @@ const esEsCatalog: TranslationCatalog = {
     agentConnections: "Cargando las conexiones de agentes...",
     dangerZone: "Cargando la zona de peligro...",
     aiChat: "Cargando el chat con IA...",
+    progress: "Cargando el progreso...",
+  },
+  progressScreen: {
+    title: "Progreso",
+    subtitle: "Sigue tu racha reciente y el historial diario de repasos.",
+    streakTitle: "Racha",
+    reviewsTitle: "Repasos",
+    lastThirtyDays: "Últimos 30 días",
+    empty: "No se registraron repasos en este rango de 30 días.",
+    rangeValue: "{{from}} - {{to}}",
+    labels: {
+      totalReviews: "Repasos totales",
+      activeDays: "Días activos",
+      timeZone: "Zona horaria",
+      range: "Rango",
+    },
+    table: {
+      date: "Fecha",
+      reviews: "Repasos",
+    },
   },
   app: {
     title: "Flashcards",

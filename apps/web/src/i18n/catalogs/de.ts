@@ -70,8 +70,9 @@ const deCatalog: TranslationCatalog = {
   },
   navigation: {
     review: "Wiederholen",
-    cards: "Karten",
     aiChat: "AI-Chat",
+    progress: "Fortschritt",
+    cards: "Karten",
     settings: "Einstellungen",
   },
   shell: {
@@ -114,6 +115,26 @@ const deCatalog: TranslationCatalog = {
     agentConnections: "Agent-Verbindungen werden geladen...",
     dangerZone: "Gefahrenbereich wird geladen...",
     aiChat: "AI-Chat wird geladen...",
+    progress: "Fortschritt wird geladen...",
+  },
+  progressScreen: {
+    title: "Fortschritt",
+    subtitle: "Verfolge deine aktuelle Serie und deinen täglichen Wiederholungsverlauf.",
+    streakTitle: "Serie",
+    reviewsTitle: "Wiederholungen",
+    lastThirtyDays: "Letzte 30 Tage",
+    empty: "Für diesen 30-Tage-Zeitraum wurden keine Wiederholungen erfasst.",
+    rangeValue: "{{from}} - {{to}}",
+    labels: {
+      totalReviews: "Wiederholungen gesamt",
+      activeDays: "Aktive Tage",
+      timeZone: "Zeitzone",
+      range: "Zeitraum",
+    },
+    table: {
+      date: "Datum",
+      reviews: "Wiederholungen",
+    },
   },
   app: {
     title: "Flashcards",

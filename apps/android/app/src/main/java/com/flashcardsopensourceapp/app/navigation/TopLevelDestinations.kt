@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.FlipToFront
+import androidx.compose.material.icons.outlined.QueryStats
 import androidx.compose.material.icons.outlined.Settings
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -46,6 +47,12 @@ data object AiDestination : TopLevelDestination {
     override val icon: ImageVector = Icons.Outlined.AutoAwesome
 }
 
+data object ProgressDestination : TopLevelDestination {
+    override val route: String = "progress"
+    override val labelResId: Int = R.string.top_level_progress
+    override val icon: ImageVector = Icons.Outlined.QueryStats
+}
+
 data object SettingsDestination : TopLevelDestination {
     override val route: String = "settings"
     override val labelResId: Int = R.string.top_level_settings
@@ -54,7 +61,8 @@ data object SettingsDestination : TopLevelDestination {
 
 val topLevelDestinations: List<TopLevelDestination> = listOf(
     ReviewDestination,
-    CardsDestination,
     AiDestination,
+    ProgressDestination,
+    CardsDestination,
     SettingsDestination
 )

@@ -80,6 +80,24 @@ export type ResetWorkspaceProgressResponse = Readonly<{
   cardsResetCount: number;
 }>;
 
+export type ProgressSeriesInput = Readonly<{
+  timeZone: string;
+  from: string;
+  to: string;
+}>;
+
+export type DailyReviewPoint = Readonly<{
+  date: string;
+  reviewCount: number;
+}>;
+
+export type ProgressSeries = Readonly<{
+  timeZone: string;
+  from: string;
+  to: string;
+  dailyReviews: ReadonlyArray<DailyReviewPoint>;
+}>;
+
 export type AgentApiKeyConnection = Readonly<{
   connectionId: string;
   label: string;

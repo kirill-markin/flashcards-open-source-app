@@ -70,8 +70,9 @@ export const jaCatalog = {
   },
   navigation: {
     review: "復習",
-    cards: "カード",
     aiChat: "AIチャット",
+    progress: "進捗",
+    cards: "カード",
     settings: "設定",
   },
   shell: {
@@ -114,6 +115,26 @@ export const jaCatalog = {
     agentConnections: "エージェント接続を読み込んでいます...",
     dangerZone: "危険な操作を読み込んでいます...",
     aiChat: "AIチャットを読み込んでいます...",
+    progress: "進捗を読み込んでいます...",
+  },
+  progressScreen: {
+    title: "進捗",
+    subtitle: "直近の連続日数と日ごとの復習履歴を確認できます。",
+    streakTitle: "連続日数",
+    reviewsTitle: "復習回数",
+    lastThirtyDays: "過去30日間",
+    empty: "この30日間では復習が記録されていません。",
+    rangeValue: "{{from}} - {{to}}",
+    labels: {
+      totalReviews: "総復習回数",
+      activeDays: "学習した日数",
+      timeZone: "タイムゾーン",
+      range: "期間",
+    },
+    table: {
+      date: "日付",
+      reviews: "復習回数",
+    },
   },
   app: {
     title: "Flashcards",

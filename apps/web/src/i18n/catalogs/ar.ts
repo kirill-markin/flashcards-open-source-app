@@ -70,8 +70,9 @@ const arCatalog: TranslationCatalog = {
   },
   navigation: {
     review: "مراجعة",
-    cards: "بطاقات",
     aiChat: "دردشة الذكاء الاصطناعي",
+    progress: "التقدم",
+    cards: "بطاقات",
     settings: "الإعدادات",
   },
   shell: {
@@ -114,6 +115,26 @@ const arCatalog: TranslationCatalog = {
     agentConnections: "جارٍ تحميل اتصالات الوكلاء...",
     dangerZone: "جارٍ تحميل منطقة الخطر...",
     aiChat: "جارٍ تحميل دردشة الذكاء الاصطناعي...",
+    progress: "جارٍ تحميل التقدم...",
+  },
+  progressScreen: {
+    title: "التقدم",
+    subtitle: "تتبّع سلسلة الأيام الأخيرة وسجل المراجعات اليومي.",
+    streakTitle: "السلسلة",
+    reviewsTitle: "المراجعات",
+    lastThirtyDays: "آخر 30 يومًا",
+    empty: "لم تُسجَّل أي مراجعات خلال نطاق الثلاثين يومًا هذا.",
+    rangeValue: "{{from}} - {{to}}",
+    labels: {
+      totalReviews: "إجمالي المراجعات",
+      activeDays: "الأيام النشطة",
+      timeZone: "المنطقة الزمنية",
+      range: "النطاق",
+    },
+    table: {
+      date: "التاريخ",
+      reviews: "المراجعات",
+    },
   },
   app: {
     title: "Flashcards",

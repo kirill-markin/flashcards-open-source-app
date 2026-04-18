@@ -146,7 +146,7 @@ extension LiveSmokeTestCase {
             return "<app not running>"
         }
 
-        let screens: [LiveSmokeScreen] = [.review, .cards, .ai, .settings]
+        let screens: [LiveSmokeScreen] = [.review, .ai, .progress, .cards, .settings]
         return screens.map { screen in
             let exists = self.app.descendants(matching: .any).matching(identifier: screen.identifier).firstMatch.exists
             return "\(screen.identifier)=\(exists)"

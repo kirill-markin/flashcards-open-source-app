@@ -68,8 +68,9 @@ const enCatalog = {
   },
   navigation: {
     review: "Review",
-    cards: "Cards",
     aiChat: "AI chat",
+    progress: "Progress",
+    cards: "Cards",
     settings: "Settings",
   },
   shell: {
@@ -112,6 +113,26 @@ const enCatalog = {
     agentConnections: "Loading agent connections...",
     dangerZone: "Loading danger zone...",
     aiChat: "Loading AI chat...",
+    progress: "Loading progress...",
+  },
+  progressScreen: {
+    title: "Progress",
+    subtitle: "Track your recent streak and daily review history.",
+    streakTitle: "Streak",
+    reviewsTitle: "Reviews",
+    lastThirtyDays: "Last 30 days",
+    empty: "No reviews were recorded for this 30-day range.",
+    rangeValue: "{{from}} - {{to}}",
+    labels: {
+      totalReviews: "Total reviews",
+      activeDays: "Active days",
+      timeZone: "Time zone",
+      range: "Range",
+    },
+    table: {
+      date: "Date",
+      reviews: "Reviews",
+    },
   },
   app: {
     title: "Flashcards",
