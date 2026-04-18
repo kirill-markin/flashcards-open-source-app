@@ -491,7 +491,8 @@ class LocalWorkspaceRepository(
 class LocalReviewRepository(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
-    private val syncLocalStore: SyncLocalStore
+    private val syncLocalStore: SyncLocalStore,
+    private val localProgressCacheStore: LocalProgressCacheStore
 ) : ReviewRepository {
     override fun observeReviewSession(
         selectedFilter: ReviewFilter,
@@ -626,20 +627,22 @@ class LocalReviewRepository(
                     fsrsScheduledDays = schedule.fsrsScheduledDays
                 )
             )
-            database.reviewLogDao().insertReviewLog(
-                reviewLog = ReviewLogEntity(
-                    reviewLogId = UUID.randomUUID().toString(),
-                    workspaceId = card.workspaceId,
-                    cardId = cardId,
-                    replicaId = preferencesStore.currentCloudSettings().installationId,
-                    clientEventId = UUID.randomUUID().toString(),
-                    rating = rating,
-                    reviewedAtMillis = reviewedAtMillis,
-                    reviewedAtServerIso = formatIsoTimestamp(reviewedAtMillis)
-                )
+            val reviewLog = ReviewLogEntity(
+                reviewLogId = UUID.randomUUID().toString(),
+                workspaceId = card.workspaceId,
+                cardId = cardId,
+                replicaId = preferencesStore.currentCloudSettings().installationId,
+                clientEventId = UUID.randomUUID().toString(),
+                rating = rating,
+                reviewedAtMillis = reviewedAtMillis,
+                reviewedAtServerIso = formatIsoTimestamp(reviewedAtMillis)
             )
-            val insertedReviewLog = database.reviewLogDao().loadReviewLogs().first()
-            syncLocalStore.enqueueReviewEventAppend(insertedReviewLog)
+            database.reviewLogDao().insertReviewLog(reviewLog = reviewLog)
+            localProgressCacheStore.recordReviewInTransaction(
+                reviewLog = reviewLog,
+                updatedAtMillis = reviewedAtMillis
+            )
+            syncLocalStore.enqueueReviewEventAppend(reviewLog)
             syncLocalStore.enqueueCardUpsert(
                 card = card.copy(
                     dueAtMillis = schedule.dueAtMillis,

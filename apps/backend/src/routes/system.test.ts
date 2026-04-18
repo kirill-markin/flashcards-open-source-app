@@ -4,9 +4,19 @@ import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { AppEnv } from "../app";
 import { HttpError } from "../errors";
-import type { ProgressSeries, ProgressSeriesRequest } from "../progress";
+import type {
+  ProgressSeries,
+  ProgressSeriesRequest,
+  ProgressSummaryResponse,
+} from "../progress";
 import { createSystemRoutes } from "./system";
 import type { RequestContext } from "../server/requestContext";
+
+type SystemTestAppOptions = Readonly<{
+  transport: RequestContext["transport"];
+  loadUserProgressSeriesFn?: (args: ProgressSeriesRequest) => Promise<ProgressSeries>;
+  loadUserProgressSummaryFn?: (args: Readonly<{ userId: string; timeZone: string }>) => Promise<ProgressSummaryResponse>;
+}>;
 
 function createRequestContext(
   transport: RequestContext["transport"],
@@ -20,6 +30,19 @@ function createRequestContext(
     userSettingsCreatedAt: "2026-04-01T00:00:00.000Z",
     transport,
     connectionId: transport === "api_key" ? "connection-1" : null,
+  };
+}
+
+function createProgressSummaryResponse(): ProgressSummaryResponse {
+  return {
+    timeZone: "Europe/Madrid",
+    summary: {
+      currentStreakDays: 3,
+      hasReviewedToday: true,
+      lastReviewedOn: "2026-04-17",
+      activeReviewDays: 12,
+    },
+    generatedAt: "2026-04-17T10:11:12.000Z",
   };
 }
 
@@ -37,13 +60,11 @@ function createProgressSeries(): ProgressSeries {
       { date: "2026-04-16", reviewCount: 0 },
       { date: "2026-04-17", reviewCount: 4 },
     ],
+    generatedAt: "2026-04-17T10:11:12.000Z",
   };
 }
 
-function createSystemTestApp(
-  transport: RequestContext["transport"],
-  loadUserProgressSeriesFn: (args: ProgressSeriesRequest) => Promise<ProgressSeries>,
-): Hono<AppEnv> {
+function createSystemTestApp(options: SystemTestAppOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   app.use("*", async (context, next) => {
     context.set("requestId", "request-1");
@@ -70,15 +91,16 @@ function createSystemTestApp(
     allowedOrigins: [],
     loadRequestContextFromRequestFn: async () => ({
       requestAuthInputs: {} as never,
-      requestContext: createRequestContext(transport),
+      requestContext: createRequestContext(options.transport),
     }),
-    loadUserProgressSeriesFn,
+    loadUserProgressSeriesFn: options.loadUserProgressSeriesFn,
+    loadUserProgressSummaryFn: options.loadUserProgressSummaryFn,
   }));
 
   return app;
 }
 
-test("GET /me/progress returns 200 for Session, Bearer, and Guest authentication", async () => {
+test("GET /me/progress/summary returns 200 for Session, Bearer, and Guest authentication", async () => {
   const transports: ReadonlyArray<RequestContext["transport"]> = [
     "session",
     "bearer",
@@ -86,15 +108,43 @@ test("GET /me/progress returns 200 for Session, Bearer, and Guest authentication
   ];
 
   for (const transport of transports) {
-    const app = createSystemTestApp(transport, async ({ userId, timeZone, from, to }) => {
-      assert.equal(userId, "user-1");
-      assert.equal(timeZone, "Europe/Madrid");
-      assert.equal(from, "2026-04-11");
-      assert.equal(to, "2026-04-17");
-      return createProgressSeries();
+    const app = createSystemTestApp({
+      transport,
+      loadUserProgressSummaryFn: async ({ userId, timeZone }) => {
+        assert.equal(userId, "user-1");
+        assert.equal(timeZone, "Europe/Madrid");
+        return createProgressSummaryResponse();
+      },
     });
     const response = await app.request(
-      "http://localhost/me/progress?timeZone=Europe/Madrid&from=2026-04-11&to=2026-04-17",
+      "http://localhost/me/progress/summary?timeZone=Europe/Madrid",
+    );
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), createProgressSummaryResponse());
+  }
+});
+
+test("GET /me/progress/series returns 200 for Session, Bearer, and Guest authentication", async () => {
+  const transports: ReadonlyArray<RequestContext["transport"]> = [
+    "session",
+    "bearer",
+    "guest",
+  ];
+
+  for (const transport of transports) {
+    const app = createSystemTestApp({
+      transport,
+      loadUserProgressSeriesFn: async ({ userId, timeZone, from, to }) => {
+        assert.equal(userId, "user-1");
+        assert.equal(timeZone, "Europe/Madrid");
+        assert.equal(from, "2026-04-11");
+        assert.equal(to, "2026-04-17");
+        return createProgressSeries();
+      },
+    });
+    const response = await app.request(
+      "http://localhost/me/progress/series?timeZone=Europe/Madrid&from=2026-04-11&to=2026-04-17",
     );
 
     assert.equal(response.status, 200);
@@ -102,65 +152,119 @@ test("GET /me/progress returns 200 for Session, Bearer, and Guest authentication
   }
 });
 
-test("GET /me/progress rejects ApiKey authentication", async () => {
-  let called = false;
-  const app = createSystemTestApp("api_key", async () => {
-    called = true;
-    return createProgressSeries();
+test("progress endpoints reject ApiKey authentication", async () => {
+  const cases = [
+    "http://localhost/me/progress/summary?timeZone=Europe/Madrid",
+    "http://localhost/me/progress/series?timeZone=Europe/Madrid&from=2026-04-11&to=2026-04-17",
+  ] as const;
+
+  for (const url of cases) {
+    let called = false;
+    const app = createSystemTestApp({
+      transport: "api_key",
+      loadUserProgressSeriesFn: async () => {
+        called = true;
+        return createProgressSeries();
+      },
+      loadUserProgressSummaryFn: async () => {
+        called = true;
+        return createProgressSummaryResponse();
+      },
+    });
+    const response = await app.request(url);
+
+    assert.equal(called, false);
+    assert.equal(response.status, 403);
+    assert.deepEqual(await response.json(), {
+      error: "This endpoint requires Guest, Bearer, or Session authentication",
+      requestId: "request-1",
+      code: "PROGRESS_HUMAN_AUTH_REQUIRED",
+    });
+  }
+});
+
+test("GET /me/progress returns 404 after legacy endpoint removal", async () => {
+  const app = createSystemTestApp({
+    transport: "session",
+    loadUserProgressSeriesFn: async () => createProgressSeries(),
+    loadUserProgressSummaryFn: async () => createProgressSummaryResponse(),
   });
   const response = await app.request(
     "http://localhost/me/progress?timeZone=Europe/Madrid&from=2026-04-11&to=2026-04-17",
   );
 
-  assert.equal(called, false);
-  assert.equal(response.status, 403);
-  assert.deepEqual(await response.json(), {
-    error: "This endpoint requires Guest, Bearer, or Session authentication",
-    requestId: "request-1",
-    code: "PROGRESS_HUMAN_AUTH_REQUIRED",
-  });
+  assert.equal(response.status, 404);
 });
 
-test("GET /me/progress validates required and malformed query parameters", async () => {
-  const app = createSystemTestApp("session", async () => createProgressSeries());
+test("GET /me/progress/summary validates required and malformed query parameters", async () => {
+  const app = createSystemTestApp({
+    transport: "session",
+    loadUserProgressSummaryFn: async () => createProgressSummaryResponse(),
+  });
   const invalidCases = [
     {
-      url: "http://localhost/me/progress?from=2026-04-11&to=2026-04-17",
+      url: "http://localhost/me/progress/summary",
       status: 400,
       code: "PROGRESS_TIMEZONE_REQUIRED",
     },
     {
-      url: "http://localhost/me/progress?timeZone=Mars/Olympus&from=2026-04-11&to=2026-04-17",
+      url: "http://localhost/me/progress/summary?timeZone=Mars/Olympus",
+      status: 400,
+      code: "PROGRESS_TIMEZONE_INVALID",
+    },
+  ] as const;
+
+  for (const invalidCase of invalidCases) {
+    const response = await app.request(invalidCase.url);
+    const payload = await response.json() as Readonly<{ code: string | null }>;
+    assert.equal(response.status, invalidCase.status);
+    assert.equal(payload.code, invalidCase.code);
+  }
+});
+
+test("GET /me/progress/series validates required and malformed query parameters", async () => {
+  const app = createSystemTestApp({
+    transport: "session",
+    loadUserProgressSeriesFn: async () => createProgressSeries(),
+  });
+  const invalidCases = [
+    {
+      url: "http://localhost/me/progress/series?from=2026-04-11&to=2026-04-17",
+      status: 400,
+      code: "PROGRESS_TIMEZONE_REQUIRED",
+    },
+    {
+      url: "http://localhost/me/progress/series?timeZone=Mars/Olympus&from=2026-04-11&to=2026-04-17",
       status: 400,
       code: "PROGRESS_TIMEZONE_INVALID",
     },
     {
-      url: "http://localhost/me/progress?timeZone=Europe/Madrid&to=2026-04-17",
+      url: "http://localhost/me/progress/series?timeZone=Europe/Madrid&to=2026-04-17",
       status: 400,
       code: "PROGRESS_FROM_REQUIRED",
     },
     {
-      url: "http://localhost/me/progress?timeZone=Europe/Madrid&from=2026-04-11",
+      url: "http://localhost/me/progress/series?timeZone=Europe/Madrid&from=2026-04-11",
       status: 400,
       code: "PROGRESS_TO_REQUIRED",
     },
     {
-      url: "http://localhost/me/progress?timeZone=Europe/Madrid&from=2026-04-31&to=2026-04-17",
+      url: "http://localhost/me/progress/series?timeZone=Europe/Madrid&from=2026-04-31&to=2026-04-17",
       status: 400,
       code: "PROGRESS_FROM_INVALID",
     },
     {
-      url: "http://localhost/me/progress?timeZone=Europe/Madrid&from=2026-04-11&to=2026-04-99",
+      url: "http://localhost/me/progress/series?timeZone=Europe/Madrid&from=2026-04-11&to=2026-04-99",
       status: 400,
       code: "PROGRESS_TO_INVALID",
     },
     {
-      url: "http://localhost/me/progress?timeZone=Europe/Madrid&from=2026-04-18&to=2026-04-17",
+      url: "http://localhost/me/progress/series?timeZone=Europe/Madrid&from=2026-04-18&to=2026-04-17",
       status: 400,
       code: "PROGRESS_RANGE_INVALID",
     },
     {
-      url: "http://localhost/me/progress?timeZone=Europe/Madrid&from=2025-04-16&to=2026-04-17",
+      url: "http://localhost/me/progress/series?timeZone=Europe/Madrid&from=2025-04-16&to=2026-04-17",
       status: 400,
       code: "PROGRESS_RANGE_TOO_LARGE",
     },

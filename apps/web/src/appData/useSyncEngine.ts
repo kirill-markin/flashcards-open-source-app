@@ -80,6 +80,7 @@ import {
   nowIso,
   toReviewableCardState,
 } from "./domain";
+import { invalidateLocalProgress, invalidateProgress } from "./progressInvalidation";
 import type { SessionLoadState } from "./types";
 import type { SessionVerificationState } from "./warmStart";
 
@@ -156,6 +157,12 @@ function findLastWorkspaceSettingsEntry(
   }
 
   return lastSettings;
+}
+
+function isProgressReviewEventOperation(
+  record: PersistedOutboxRecord,
+): boolean {
+  return record.operation.entityType === "review_event" && record.operation.action === "append";
 }
 
 export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
@@ -253,6 +260,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     const syncTask = (async (): Promise<void> => {
       try {
+        let didChangeProgressHistory = false;
         const cloudSettings = await loadCloudSettings();
         const installationId = requireCloudInstallationId(cloudSettings);
         const hotStateHydrated = await hasHydratedHotState(workspaceId);
@@ -298,6 +306,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         let currentOutbox = await listOutboxRecords(workspaceId);
         while (currentOutbox.length > 0) {
           const batch = currentOutbox.slice(0, 100);
+          const batchIncludesProgressReviewEvents = batch.some(isProgressReviewEventOperation);
           try {
             const pushResult = await pushSyncOperations(
               workspaceId,
@@ -311,6 +320,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
               if (result.status === "applied" || result.status === "ignored" || result.status === "duplicate") {
                 await deleteOutboxRecord(workspaceId, result.operationId);
               }
+            }
+
+            if (batchIncludesProgressReviewEvents) {
+              didChangeProgressHistory = true;
             }
           } catch (error) {
             const errorMessage = getErrorMessage(error);
@@ -374,6 +387,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
             markReviewHistoryHydrated: reviewHistoryHydrated === false && reviewHistoryResult.hasMore === false,
           });
 
+          if (reviewHistoryResult.reviewEvents.length > 0) {
+            didChangeProgressHistory = true;
+          }
+
           afterReviewSequenceId = reviewHistoryResult.nextReviewSequenceId;
 
           if (reviewHistoryResult.hasMore === false) {
@@ -382,6 +399,9 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         }
 
         await refreshWorkspaceView(workspaceId);
+        if (didChangeProgressHistory) {
+          invalidateProgress();
+        }
         setErrorMessage("");
       } catch (error) {
         if (isAuthRedirectError(error)) {
@@ -703,6 +723,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     await putOutboxRecord(reviewEventOutboxRecord);
     await putOutboxRecord(cardOutboxRecord);
     bumpLocalReadVersion();
+    invalidateLocalProgress();
     void runSyncForWorkspace(activeWorkspace);
     return nextCard;
   }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);

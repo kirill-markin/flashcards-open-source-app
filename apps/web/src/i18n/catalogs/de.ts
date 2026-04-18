@@ -43,6 +43,7 @@ const deCatalog: TranslationCatalog = {
     ok: "OK",
     open: "Öffnen",
     perAction: "Pro Aktion",
+    refresh: "Aktualisieren",
     retry: "Erneut versuchen",
     revoked: "Widerrufen",
     save: "Speichern",

@@ -3,7 +3,7 @@ import Foundation
 private let progressDaysPerWeek: Int = 7
 private let progressStreakWeekCount: Int = 5
 
-struct ProgressDay: Decodable, Hashable, Identifiable, Sendable {
+struct ProgressDay: Codable, Hashable, Identifiable, Sendable {
     let date: String
     let reviewCount: Int
 
@@ -12,46 +12,139 @@ struct ProgressDay: Decodable, Hashable, Identifiable, Sendable {
     }
 }
 
-struct UserProgressSeries: Decodable, Hashable, Sendable {
+struct ProgressSummary: Codable, Hashable, Sendable {
+    let currentStreakDays: Int
+    let hasReviewedToday: Bool
+    let lastReviewedOn: String?
+    let activeReviewDays: Int
+}
+
+struct UserProgressSummary: Codable, Hashable, Sendable {
+    let timeZone: String?
+    let summary: ProgressSummary
+    let generatedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case timeZone
+        case summary
+        case generatedAt
+        case currentStreakDays
+        case hasReviewedToday
+        case lastReviewedOn
+        case activeReviewDays
+    }
+
+    init(
+        timeZone: String?,
+        summary: ProgressSummary,
+        generatedAt: String?
+    ) {
+        self.timeZone = timeZone
+        self.summary = summary
+        self.generatedAt = generatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if container.contains(.summary) {
+            self.init(
+                timeZone: try container.decodeIfPresent(String.self, forKey: .timeZone),
+                summary: try container.decode(ProgressSummary.self, forKey: .summary),
+                generatedAt: try container.decodeIfPresent(String.self, forKey: .generatedAt)
+            )
+            return
+        }
+
+        self.init(
+            timeZone: try container.decodeIfPresent(String.self, forKey: .timeZone),
+            summary: ProgressSummary(
+                currentStreakDays: try container.decode(Int.self, forKey: .currentStreakDays),
+                hasReviewedToday: try container.decode(Bool.self, forKey: .hasReviewedToday),
+                lastReviewedOn: try container.decodeIfPresent(String.self, forKey: .lastReviewedOn),
+                activeReviewDays: try container.decode(Int.self, forKey: .activeReviewDays)
+            ),
+            generatedAt: try container.decodeIfPresent(String.self, forKey: .generatedAt)
+        )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(self.timeZone, forKey: .timeZone)
+        try container.encode(self.summary, forKey: .summary)
+        try container.encodeIfPresent(self.generatedAt, forKey: .generatedAt)
+    }
+}
+
+struct UserProgressSeries: Codable, Hashable, Sendable {
     let timeZone: String
     let from: String
     let to: String
     let dailyReviews: [ProgressDay]
+    let summary: ProgressSummary?
+    let generatedAt: String?
 
-    var totalReviews: Int {
-        self.dailyReviews.reduce(0) { partialResult, day in
-            partialResult + day.reviewCount
-        }
+    init(
+        timeZone: String,
+        from: String,
+        to: String,
+        dailyReviews: [ProgressDay],
+        summary: ProgressSummary?,
+        generatedAt: String?
+    ) {
+        self.timeZone = timeZone
+        self.from = from
+        self.to = to
+        self.dailyReviews = dailyReviews
+        self.summary = summary
+        self.generatedAt = generatedAt
     }
+}
 
-    var activeDayCount: Int {
-        self.dailyReviews.filter { day in
-            day.reviewCount > 0
-        }.count
+enum ProgressSourceState: String, Codable, Hashable, Sendable {
+    case localOnly = "local_only"
+    case serverBase = "server_base"
+    case serverBaseWithPendingLocalOverlay = "server_base_with_pending_local_overlay"
+}
+
+struct ProgressScopeKey: Codable, Hashable, Sendable {
+    let cloudState: CloudAccountState?
+    let linkedUserId: String?
+    /// Tracks the canonical cached workspace membership that contributes to aggregated progress.
+    /// Switching the active workspace keeps this stable, but create/delete/merge membership changes rotate the scope.
+    let workspaceMembershipKey: String
+    let timeZone: String
+    let from: String
+    let to: String
+
+    var storageKey: String {
+        let cloudStateKey = self.cloudState?.rawValue ?? "none"
+        let linkedUserIdKey = self.linkedUserId ?? "none"
+        return [
+            cloudStateKey,
+            linkedUserIdKey,
+            self.workspaceMembershipKey,
+            self.timeZone,
+            self.from,
+            self.to,
+        ].joined(separator: "|")
     }
+}
 
-    var averageReviewsPerDay: Double {
-        guard self.dailyReviews.isEmpty == false else {
-            return 0
-        }
+struct ProgressSummaryScopeKey: Codable, Hashable, Sendable {
+    let cloudState: CloudAccountState?
+    let linkedUserId: String?
+    let workspaceMembershipKey: String
+    let timeZone: String
 
-        return Double(self.totalReviews) / Double(self.dailyReviews.count)
-    }
-
-    var bestDay: ProgressDay? {
-        let candidate = self.dailyReviews.max { left, right in
-            if left.reviewCount == right.reviewCount {
-                return left.date < right.date
-            }
-
-            return left.reviewCount < right.reviewCount
-        }
-
-        guard let candidate, candidate.reviewCount > 0 else {
-            return nil
-        }
-
-        return candidate
+    var storageKey: String {
+        let cloudStateKey = self.cloudState?.rawValue ?? "none"
+        let linkedUserIdKey = self.linkedUserId ?? "none"
+        return [
+            cloudStateKey,
+            linkedUserIdKey,
+            self.workspaceMembershipKey,
+            self.timeZone,
+        ].joined(separator: "|")
     }
 }
 
@@ -91,11 +184,21 @@ struct ProgressChartDay: Hashable, Identifiable, Sendable {
     }
 }
 
-struct ProgressPresentation: Hashable, Sendable {
-    let streakWeeks: [ProgressCalendarWeek]
+struct ProgressChartData: Hashable, Sendable {
     let chartDays: [ProgressChartDay]
     let chartUpperBound: Int
     let hasReviewActivity: Bool
+}
+
+struct ProgressSnapshot: Hashable, Sendable {
+    let scopeKey: ProgressScopeKey
+    let summary: ProgressSummary
+    let streakWeeks: [ProgressCalendarWeek]
+    let chartData: ProgressChartData
+    let summarySourceState: ProgressSourceState
+    let seriesSourceState: ProgressSourceState
+    let isApproximate: Bool
+    let generatedAt: String?
 }
 
 enum ProgressPresentationError: LocalizedError {
@@ -103,6 +206,8 @@ enum ProgressPresentationError: LocalizedError {
     case invalidLocalDate(String)
     case invalidRange(String, String)
     case negativeReviewCount(String, Int)
+    case summaryMetadataMismatch(expectedTimeZone: String, actualTimeZone: String)
+    case seriesMetadataMismatch(expected: ProgressScopeKey, actualTimeZone: String, actualFrom: String, actualTo: String)
 
     var errorDescription: String? {
         switch self {
@@ -114,14 +219,23 @@ enum ProgressPresentationError: LocalizedError {
             return "Progress contained an invalid date range from \(from) to \(to)."
         case .negativeReviewCount(let localDate, let reviewCount):
             return "Progress contained a negative review count for \(localDate): \(reviewCount)."
+        case .summaryMetadataMismatch(let expectedTimeZone, let actualTimeZone):
+            return "Progress summary metadata mismatched the current scope. Expected \(expectedTimeZone), received \(actualTimeZone)."
+        case .seriesMetadataMismatch(let expected, let actualTimeZone, let actualFrom, let actualTo):
+            return "Progress series metadata mismatched the current scope. Expected \(expected.timeZone) \(expected.from)...\(expected.to), received \(actualTimeZone) \(actualFrom)...\(actualTo)."
         }
     }
 }
 
-func makeProgressPresentation(
+func makeProgressSnapshot(
+    summary: ProgressSummary,
     series: UserProgressSeries,
+    scopeKey: ProgressScopeKey,
+    summarySourceState: ProgressSourceState,
+    seriesSourceState: ProgressSourceState,
     calendar: Calendar
-) throws -> ProgressPresentation {
+) throws -> ProgressSnapshot {
+    try validateProgressSeriesMetadata(series: series, scopeKey: scopeKey)
     let timeline = try makeProgressTimeline(series: series, calendar: calendar)
     let todayLocalDate = series.to
     let today = try progressDate(localDate: todayLocalDate, calendar: calendar)
@@ -142,12 +256,21 @@ func makeProgressPresentation(
         calendar: calendar
     )
     let maximumReviewCount = chartDays.map(\.reviewCount).max() ?? 0
-
-    return ProgressPresentation(
-        streakWeeks: streakWeeks,
+    let chartData = ProgressChartData(
         chartDays: chartDays,
         chartUpperBound: progressChartUpperBound(maximumReviewCount: maximumReviewCount),
         hasReviewActivity: maximumReviewCount > 0
+    )
+
+    return ProgressSnapshot(
+        scopeKey: scopeKey,
+        summary: summary,
+        streakWeeks: streakWeeks,
+        chartData: chartData,
+        summarySourceState: summarySourceState,
+        seriesSourceState: seriesSourceState,
+        isApproximate: summarySourceState == .localOnly || seriesSourceState == .localOnly,
+        generatedAt: series.generatedAt
     )
 }
 
@@ -198,6 +321,130 @@ private func makeProgressTimeline(
     }
 
     return timeline
+}
+
+func makeProgressSummary(
+    reviewDates: Set<String>,
+    timeZone: String,
+    generatedAt: Date
+) throws -> ProgressSummary {
+    let sortedReviewDates = reviewDates.sorted()
+    let today = try progressTimeZoneLocalDateString(
+        date: generatedAt,
+        timeZoneIdentifier: timeZone
+    )
+    let lastReviewedOn = sortedReviewDates.last
+    return ProgressSummary(
+        currentStreakDays: calculateProgressCurrentStreakDays(
+            reviewDates: reviewDates,
+            todayLocalDate: today
+        ),
+        hasReviewedToday: reviewDates.contains(today),
+        lastReviewedOn: lastReviewedOn,
+        activeReviewDays: sortedReviewDates.count
+    )
+}
+
+func makeProgressSeries(
+    timeZone: String,
+    from: String,
+    to: String,
+    dailyReviews: [ProgressDay],
+    summary: ProgressSummary?,
+    generatedAt: String?
+) -> UserProgressSeries {
+    UserProgressSeries(
+        timeZone: timeZone,
+        from: from,
+        to: to,
+        dailyReviews: dailyReviews,
+        summary: summary,
+        generatedAt: generatedAt
+    )
+}
+
+func validateProgressSummaryMetadata(
+    summary: UserProgressSummary,
+    scopeKey: ProgressSummaryScopeKey
+) throws {
+    guard let actualTimeZone = summary.timeZone else {
+        return
+    }
+
+    guard actualTimeZone == scopeKey.timeZone else {
+        throw ProgressPresentationError.summaryMetadataMismatch(
+            expectedTimeZone: scopeKey.timeZone,
+            actualTimeZone: actualTimeZone
+        )
+    }
+}
+
+private func validateProgressSeriesMetadata(
+    series: UserProgressSeries,
+    scopeKey: ProgressScopeKey
+) throws {
+    guard
+        series.timeZone == scopeKey.timeZone,
+        series.from == scopeKey.from,
+        series.to == scopeKey.to
+    else {
+        throw ProgressPresentationError.seriesMetadataMismatch(
+            expected: scopeKey,
+            actualTimeZone: series.timeZone,
+            actualFrom: series.from,
+            actualTo: series.to
+        )
+    }
+}
+
+private func calculateProgressCurrentStreakDays(
+    reviewDates: Set<String>,
+    todayLocalDate: String
+) -> Int {
+    var currentDate = reviewDates.contains(todayLocalDate)
+        ? todayLocalDate
+        : progressShiftLocalDate(value: todayLocalDate, offsetDays: -1)
+    var streakDayCount = 0
+
+    while reviewDates.contains(currentDate) {
+        streakDayCount += 1
+        currentDate = progressShiftLocalDate(value: currentDate, offsetDays: -1)
+    }
+
+    return streakDayCount
+}
+
+private func progressShiftLocalDate(value: String, offsetDays: Int) -> String {
+    var components = DateComponents()
+    components.year = Int(value.prefix(4))
+    components.month = Int(value.dropFirst(5).prefix(2))
+    components.day = Int(value.dropFirst(8).prefix(2))
+    let calendar = Calendar(identifier: .gregorian)
+    let baseDate = calendar.date(from: components) ?? Date(timeIntervalSince1970: 0)
+    let nextDate = calendar.date(byAdding: .day, value: offsetDays, to: baseDate) ?? baseDate
+    let nextComponents = calendar.dateComponents([.year, .month, .day], from: nextDate)
+    return String(
+        format: "%04d-%02d-%02d",
+        nextComponents.year ?? 0,
+        nextComponents.month ?? 0,
+        nextComponents.day ?? 0
+    )
+}
+
+private func progressTimeZoneLocalDateString(
+    date: Date,
+    timeZoneIdentifier: String
+) throws -> String {
+    guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
+        throw ProgressPresentationError.invalidLocalDate(timeZoneIdentifier)
+    }
+
+    let formatter = DateFormatter()
+    formatter.calendar = Calendar(identifier: .gregorian)
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = timeZone
+    formatter.dateFormat = "yyyy-MM-dd"
+    return formatter.string(from: date)
 }
 
 private func makeProgressStreakWeeks(

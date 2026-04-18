@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.progress
 
+import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
 import java.time.LocalDate
 
 data class ProgressHistoryDayUiState(
@@ -32,6 +33,22 @@ data class ProgressReviewsSectionUiState(
     val maxReviewCount: Int
 )
 
+sealed interface ProgressSummaryUiState {
+    data object Loading : ProgressSummaryUiState
+
+    data class Loaded(
+        val summary: CloudProgressSummary,
+        val source: ProgressSourceUiState,
+        val isApproximate: Boolean
+    ) : ProgressSummaryUiState
+}
+
+enum class ProgressSourceUiState {
+    LOCAL_ONLY,
+    SERVER_BASE,
+    SERVER_BASE_WITH_LOCAL_OVERLAY
+}
+
 sealed interface ProgressUiState {
     data object Loading : ProgressUiState
 
@@ -44,7 +61,10 @@ sealed interface ProgressUiState {
     ) : ProgressUiState
 
     data class Loaded(
+        val summary: ProgressSummaryUiState,
         val streakSection: ProgressStreakSectionUiState,
-        val reviewsSection: ProgressReviewsSectionUiState
+        val reviewsSection: ProgressReviewsSectionUiState,
+        val source: ProgressSourceUiState,
+        val isApproximate: Boolean
     ) : ProgressUiState
 }

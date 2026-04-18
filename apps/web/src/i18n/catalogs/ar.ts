@@ -43,6 +43,7 @@ const arCatalog: TranslationCatalog = {
     ok: "موافق",
     open: "فتح",
     perAction: "لكل إجراء",
+    refresh: "تحديث",
     retry: "إعادة المحاولة",
     revoked: "ملغى",
     save: "حفظ",

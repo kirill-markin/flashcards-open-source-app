@@ -43,6 +43,7 @@ export const zhHansCatalog = {
     ok: "确定",
     open: "打开",
     perAction: "每次操作",
+    refresh: "刷新",
     retry: "重试",
     revoked: "已撤销",
     save: "保存",

@@ -37,10 +37,14 @@ import com.flashcardsopensourceapp.data.local.repository.LocalAiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalCloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalDecksRepository
+import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
+import com.flashcardsopensourceapp.data.local.repository.LocalProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalSyncRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalWorkspaceRepository
+import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
+import com.flashcardsopensourceapp.data.local.repository.SystemProgressTimeProvider
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.CancellationException
@@ -82,6 +86,10 @@ class AppGraph(
     val reviewPreferencesStore: ReviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
     val reviewNotificationsStore: ReviewNotificationsStore = SharedPreferencesReviewNotificationsStore(context = context)
     private val aiCoroutineDispatchers = AiCoroutineDispatchers(io = Dispatchers.IO)
+    private val localProgressCacheStore = LocalProgressCacheStore(
+        database = database,
+        timeProvider = SystemProgressTimeProvider
+    )
     private val aiChatLiveRemoteService = AiChatLiveRemoteService(dispatchers = aiCoroutineDispatchers)
     private val aiChatRemoteService = AiChatRemoteService(
         dispatchers = aiCoroutineDispatchers,
@@ -89,7 +97,8 @@ class AppGraph(
     )
     private val syncLocalStore = SyncLocalStore(
         database = database,
-        preferencesStore = cloudPreferencesStore
+        preferencesStore = cloudPreferencesStore,
+        localProgressCacheStore = localProgressCacheStore
     )
     private val cloudOperationCoordinator = CloudOperationCoordinator()
     private val cloudIdentityResetCoordinator = CloudIdentityResetCoordinator(
@@ -157,7 +166,17 @@ class AppGraph(
     val reviewRepository: ReviewRepository = LocalReviewRepository(
         database = database,
         preferencesStore = cloudPreferencesStore,
-        syncLocalStore = syncLocalStore
+        syncLocalStore = syncLocalStore,
+        localProgressCacheStore = localProgressCacheStore
+    )
+    val progressRepository: ProgressRepository = LocalProgressRepository(
+        appScope = appScope,
+        database = database,
+        preferencesStore = cloudPreferencesStore,
+        cloudAccountRepository = cloudAccountRepository,
+        syncRepository = syncRepository,
+        localProgressCacheStore = localProgressCacheStore,
+        timeProvider = SystemProgressTimeProvider
     )
     val aiChatRepository: AiChatRepository = LocalAiChatRepository(
         database = database,

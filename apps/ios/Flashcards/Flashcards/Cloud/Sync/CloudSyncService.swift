@@ -80,7 +80,21 @@ final class CloudSyncService: @unchecked Sendable {
         return snapshot
     }
 
-    func loadProgress(
+    func loadProgressSummary(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String
+    ) async throws -> UserProgressSummary {
+        try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: try self.transport.progressSummaryPath(timeZone: timeZone),
+            method: "GET",
+            body: Optional<String>.none
+        )
+    }
+
+    func loadProgressSeries(
         apiBaseUrl: String,
         authorizationHeader: String,
         timeZone: String,
@@ -90,7 +104,7 @@ final class CloudSyncService: @unchecked Sendable {
         try await self.transport.request(
             apiBaseUrl: apiBaseUrl,
             authorizationHeader: authorizationHeader,
-            path: try self.transport.progressPath(timeZone: timeZone, from: from, to: to),
+            path: try self.transport.progressSeriesPath(timeZone: timeZone, from: from, to: to),
             method: "GET",
             body: Optional<String>.none
         )

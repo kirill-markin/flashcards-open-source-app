@@ -1,19 +1,18 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useEffect, useRef, type ReactElement } from "react";
 import { useAppData } from "../appData";
-import { loadProgressSeries } from "../api";
+import { useProgressInvalidationState } from "../appData/progressInvalidation";
+import { parseLocalDate } from "../appData/progressSource";
+import { useProgressSource } from "../appData/progressSource";
 import { useI18n } from "../i18n";
-import { loadPendingProgressDailyReviews } from "../localDb/reviews";
-import type { ProgressSeries, ProgressSeriesInput } from "../types";
+import type { ProgressSeriesSnapshot } from "../types";
 
-const progressRangeDayCount = 140;
-const progressRangeStartOffsetDays = 1 - progressRangeDayCount;
 const streakDayCount = 35;
 const streakWeekLength = 7;
 const chartGuideLineCount = 3;
 
 type DateFormatter = ReturnType<typeof useI18n>["formatDate"];
 type NumberFormatter = ReturnType<typeof useI18n>["formatNumber"];
-type DailyReview = ProgressSeries["dailyReviews"][number];
+type DailyReview = ProgressSeriesSnapshot["dailyReviews"][number];
 type StreakDay = Readonly<{
   date: string;
   reviewCount: number;
@@ -32,75 +31,6 @@ type ChartDay = Readonly<{
   barHeightPercentage: number;
   title: string;
 }>;
-
-function getRequiredDatePart(
-  parts: ReadonlyArray<Intl.DateTimeFormatPart>,
-  partType: "year" | "month" | "day",
-): string {
-  const partValue = parts.find((part) => part.type === partType)?.value;
-
-  if (partValue === undefined || partValue === "") {
-    throw new Error(`Browser timezone date is missing ${partType}`);
-  }
-
-  return partValue;
-}
-
-function getBrowserTimeZone(): string {
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  if (typeof timeZone !== "string" || timeZone.trim() === "") {
-    throw new Error("Browser timezone is unavailable");
-  }
-
-  return timeZone;
-}
-
-function formatDateAsLocalDate(date: Date, timeZone: string): string {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const parts = formatter.formatToParts(date);
-  const year = getRequiredDatePart(parts, "year");
-  const month = getRequiredDatePart(parts, "month");
-  const day = getRequiredDatePart(parts, "day");
-
-  return `${year}-${month}-${day}`;
-}
-
-function parseLocalDate(value: string): Date {
-  const [rawYear, rawMonth, rawDay] = value.split("-");
-  const year = Number.parseInt(rawYear ?? "", 10);
-  const month = Number.parseInt(rawMonth ?? "", 10);
-  const day = Number.parseInt(rawDay ?? "", 10);
-
-  if (Number.isInteger(year) === false || Number.isInteger(month) === false || Number.isInteger(day) === false) {
-    throw new Error(`Invalid local date: ${value}`);
-  }
-
-  return new Date(Date.UTC(year, month - 1, day));
-}
-
-function shiftLocalDate(value: string, offsetDays: number): string {
-  const nextDate = parseLocalDate(value);
-  nextDate.setUTCDate(nextDate.getUTCDate() + offsetDays);
-  return nextDate.toISOString().slice(0, 10);
-}
-
-function buildProgressSeriesInput(now: Date): ProgressSeriesInput {
-  const timeZone = getBrowserTimeZone();
-  const to = formatDateAsLocalDate(now, timeZone);
-  const from = shiftLocalDate(to, progressRangeStartOffsetDays);
-
-  return {
-    timeZone,
-    from,
-    to,
-  };
-}
 
 function formatLocalDateForDisplay(value: string, formatDate: DateFormatter): string {
   return formatDate(parseLocalDate(value), {
@@ -137,62 +67,8 @@ function isFirstDayOfMonth(value: string): boolean {
   return parts[2] === "01";
 }
 
-function sortDailyReviews(dailyReviews: ProgressSeries["dailyReviews"]): ReadonlyArray<DailyReview> {
+function sortDailyReviews(dailyReviews: ProgressSeriesSnapshot["dailyReviews"]): ReadonlyArray<DailyReview> {
   return [...dailyReviews].sort((leftDay, rightDay) => leftDay.date.localeCompare(rightDay.date));
-}
-
-function collectAccessibleWorkspaceIds(
-  activeWorkspaceId: string | null,
-  availableWorkspaceIds: ReadonlyArray<string>,
-): ReadonlyArray<string> {
-  const workspaceIds = new Set<string>(availableWorkspaceIds);
-
-  if (activeWorkspaceId !== null) {
-    workspaceIds.add(activeWorkspaceId);
-  }
-
-  return [...workspaceIds];
-}
-
-function buildDailyReviewCountMap(dailyReviews: ProgressSeries["dailyReviews"]): Map<string, number> {
-  const counts = new Map<string, number>();
-
-  for (const day of dailyReviews) {
-    counts.set(day.date, day.reviewCount);
-  }
-
-  return counts;
-}
-
-function mergeProgressWithPendingLocalReviews(
-  progress: ProgressSeries,
-  pendingLocalDailyReviews: ProgressSeries["dailyReviews"],
-): ProgressSeries {
-  const pendingReviewCounts = buildDailyReviewCountMap(pendingLocalDailyReviews);
-  let hasPendingOverlay = false;
-  const dailyReviews: ProgressSeries["dailyReviews"] = progress.dailyReviews.map((day) => {
-    const pendingReviewCount = pendingReviewCounts.get(day.date) ?? 0;
-
-    if (pendingReviewCount === 0) {
-      return day;
-    }
-
-    hasPendingOverlay = true;
-
-    return {
-      date: day.date,
-      reviewCount: day.reviewCount + pendingReviewCount,
-    };
-  });
-
-  if (hasPendingOverlay === false) {
-    return progress;
-  }
-
-  return {
-    ...progress,
-    dailyReviews,
-  };
 }
 
 function buildStreakWeeks(
@@ -268,60 +144,28 @@ function buildChartGuideLabels(maxReviewCount: number, formatNumber: NumberForma
 }
 
 export function ProgressScreen(): ReactElement {
-  const { activeWorkspace, availableWorkspaces, localReadVersion } = useAppData();
+  const {
+    activeWorkspace,
+    availableWorkspaces,
+    cloudSettings,
+    sessionVerificationState,
+  } = useAppData();
+  const { progressLocalVersion, progressServerInvalidationVersion } = useProgressInvalidationState();
+  const { progressSourceState, refreshProgress } = useProgressSource({
+    activeWorkspace,
+    availableWorkspaces,
+    cloudSettings,
+    sessionVerificationState,
+    progressLocalVersion,
+    progressServerInvalidationVersion,
+  });
   const { t, formatDate, formatNumber } = useI18n();
-  const [progress, setProgress] = useState<ProgressSeries | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [errorMessage, setErrorMessage] = useState<string>("");
-  const [reloadSequence, setReloadSequence] = useState<number>(0);
   const todayChartColumnRef = useRef<HTMLDivElement | null>(null);
-  const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
-  const accessibleWorkspaceIds = collectAccessibleWorkspaceIds(
-    activeWorkspaceId,
-    availableWorkspaces.map((workspace) => workspace.workspaceId),
-  );
-  const accessibleWorkspaceIdsKey = accessibleWorkspaceIds.join(",");
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    async function loadScreenData(): Promise<void> {
-      setIsLoading(true);
-      setErrorMessage("");
-
-      try {
-        const input = buildProgressSeriesInput(new Date());
-        const [serverProgress, pendingLocalDailyReviews] = await Promise.all([
-          loadProgressSeries(input),
-          loadPendingProgressDailyReviews(accessibleWorkspaceIds, input),
-        ]);
-        const nextProgress = mergeProgressWithPendingLocalReviews(serverProgress, pendingLocalDailyReviews);
-
-        if (isCancelled) {
-          return;
-        }
-
-        setProgress(nextProgress);
-      } catch (error) {
-        if (isCancelled) {
-          return;
-        }
-
-        setProgress(null);
-        setErrorMessage(error instanceof Error ? error.message : String(error));
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadScreenData();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [accessibleWorkspaceIdsKey, localReadVersion, reloadSequence]);
+  const progress = progressSourceState.series.renderedSnapshot;
+  const isLoading = progressSourceState.summary.isLoading || progressSourceState.series.isLoading;
+  const errorMessage = progressSourceState.summary.errorMessage !== ""
+    ? progressSourceState.summary.errorMessage
+    : progressSourceState.series.errorMessage;
 
   useEffect(() => {
     const chartColumn = todayChartColumnRef.current;
@@ -351,24 +195,21 @@ export function ProgressScreen(): ReactElement {
             <h1 className="title">{t("progressScreen.title")}</h1>
             <p className="subtitle">{t("progressScreen.subtitle")}</p>
           </div>
+
+          <button className="ghost-btn" type="button" onClick={() => void refreshProgress()}>
+            {t("common.refresh")}
+          </button>
         </div>
 
-        {isLoading ? <p className="subtitle">{t("loading.progress")}</p> : null}
+        {isLoading && progress === null ? <p className="subtitle">{t("loading.progress")}</p> : null}
 
-        {!isLoading && errorMessage !== "" ? (
+        {errorMessage !== "" ? (
           <>
             <p className="error-banner">{errorMessage}</p>
-            <button
-              className="primary-btn"
-              type="button"
-              onClick={() => setReloadSequence((currentSequence) => currentSequence + 1)}
-            >
-              {t("common.retry")}
-            </button>
           </>
         ) : null}
 
-        {!isLoading && errorMessage === "" && progress !== null ? (
+        {progress !== null ? (
           <div className="progress-layout">
             <section className="content-card progress-section">
               <div className="progress-section-head">

@@ -412,7 +412,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   const me = restApi.root.addResource("me");
   me.addMethod("GET", integration);
-  me.addResource("progress").addMethod("GET", integration);
+  const meProgress = me.addResource("progress");
+  meProgress.addResource("summary").addMethod("GET", integration);
+  meProgress.addResource("series").addMethod("GET", integration);
   me.addResource("delete").addMethod("POST", integration);
 
   const admin = restApi.root.addResource("admin");

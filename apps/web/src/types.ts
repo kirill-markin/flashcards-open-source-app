@@ -86,16 +86,77 @@ export type ProgressSeriesInput = Readonly<{
   to: string;
 }>;
 
+export type ProgressSummaryInput = Readonly<{
+  timeZone: string;
+  today: string;
+}>;
+
+export type ProgressScopeKey = string;
+
 export type DailyReviewPoint = Readonly<{
   date: string;
   reviewCount: number;
+}>;
+
+export type ProgressSummary = Readonly<{
+  currentStreakDays: number;
+  hasReviewedToday: boolean;
+  lastReviewedOn: string | null;
+  activeReviewDays: number;
+}>;
+
+export type ProgressChartData = Readonly<{
+  dailyReviews: ReadonlyArray<DailyReviewPoint>;
+}>;
+
+export type ProgressSummaryPayload = Readonly<{
+  timeZone: string;
+  generatedAt: string | null;
+  summary: ProgressSummary;
 }>;
 
 export type ProgressSeries = Readonly<{
   timeZone: string;
   from: string;
   to: string;
+  generatedAt: string | null;
   dailyReviews: ReadonlyArray<DailyReviewPoint>;
+}>;
+
+export type ProgressSummarySnapshot = ProgressSummaryPayload & Readonly<{
+  source: "server" | "local_only";
+  isApproximate: boolean;
+}>;
+
+export type ProgressSeriesSnapshot = ProgressSeries & Readonly<{
+  chartData: ProgressChartData;
+  source: "server" | "local_only";
+  isApproximate: boolean;
+}>;
+
+export type ProgressSummarySourceState = Readonly<{
+  scopeKey: ProgressScopeKey | null;
+  localFallback: ProgressSummarySnapshot | null;
+  serverBase: ProgressSummarySnapshot | null;
+  hasPendingLocalReviews: boolean;
+  renderedSnapshot: ProgressSummarySnapshot | null;
+  isLoading: boolean;
+  errorMessage: string;
+}>;
+
+export type ProgressSeriesSourceState = Readonly<{
+  scopeKey: ProgressScopeKey | null;
+  localFallback: ProgressSeriesSnapshot | null;
+  serverBase: ProgressSeriesSnapshot | null;
+  pendingLocalOverlay: ProgressChartData | null;
+  renderedSnapshot: ProgressSeriesSnapshot | null;
+  isLoading: boolean;
+  errorMessage: string;
+}>;
+
+export type ProgressSourceState = Readonly<{
+  summary: ProgressSummarySourceState;
+  series: ProgressSeriesSourceState;
 }>;
 
 export type AgentApiKeyConnection = Readonly<{

@@ -8,6 +8,7 @@ import {
   parseDeleteWorkspaceResponse,
   parseQueryCardsPageResponse,
   parseNewChatSessionResponse,
+  parseProgressSummaryResponse,
   parseProgressSeriesResponse,
   parseSessionInfoResponse,
   parseResetWorkspaceProgressResponse,
@@ -42,7 +43,9 @@ import type {
   QueryCardsPage,
   NewChatSessionRequestBody,
   NewChatSessionResponse,
+  ProgressSummaryPayload,
   ProgressSeries,
+  ProgressSummaryInput,
   ProgressSeriesInput,
   ReviewEvent,
   SessionInfo,
@@ -620,6 +623,19 @@ export async function deleteMyAccount(confirmationText: string): Promise<Readonl
   }, allowAuthRecovery), "POST /me/delete");
 }
 
+export async function loadProgressSummary(input: ProgressSummaryInput): Promise<ProgressSummaryPayload> {
+  const searchParams = new URLSearchParams({
+    timeZone: input.timeZone,
+  });
+
+  return parseProgressSummaryResponse(
+    await requestJson(`/me/progress/summary?${searchParams.toString()}`, {
+      method: "GET",
+    }, allowAuthRecovery),
+    "GET /me/progress/summary",
+  );
+}
+
 export async function loadProgressSeries(input: ProgressSeriesInput): Promise<ProgressSeries> {
   const searchParams = new URLSearchParams({
     timeZone: input.timeZone,
@@ -628,10 +644,10 @@ export async function loadProgressSeries(input: ProgressSeriesInput): Promise<Pr
   });
 
   return parseProgressSeriesResponse(
-    await requestJson(`/me/progress?${searchParams.toString()}`, {
+    await requestJson(`/me/progress/series?${searchParams.toString()}`, {
       method: "GET",
     }, allowAuthRecovery),
-    "GET /me/progress",
+    "GET /me/progress/series",
   );
 }
 

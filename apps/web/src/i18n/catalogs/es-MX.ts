@@ -43,6 +43,7 @@ const esMxCatalog: TranslationCatalog = {
     ok: "OK",
     open: "Abrir",
     perAction: "Por acción",
+    refresh: "Actualizar",
     retry: "Reintentar",
     revoked: "Revocada",
     save: "Guardar",

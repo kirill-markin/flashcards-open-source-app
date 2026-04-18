@@ -1,14 +1,11 @@
 import type {
   Card,
-  DailyReviewPoint,
   Deck,
-  ProgressSeriesInput,
   ReviewCounts,
   ReviewEvent,
   ReviewFilter,
   ReviewQueueSnapshot,
   ReviewTimelinePage,
-  SyncPushOperation,
 } from "../types";
 import {
   ALL_CARDS_REVIEW_FILTER,
@@ -22,10 +19,20 @@ import {
   closeDatabaseAfter,
   closeDatabaseAfterWrite,
   getAllFromStore,
+  getFromStore,
+  runReadonly,
   runReadwrite,
+  type ProgressDailyCountRecord,
 } from "./core";
 import { loadDeckRecord } from "./decks";
-import { listOutboxRecordsForWorkspaces } from "./outbox";
+import {
+  loadLocalProgressDailyReviews,
+  loadLocalProgressSummary,
+  loadProgressCacheState,
+  loadPendingProgressDailyReviews,
+  mapReviewedAtClientToLocalDate,
+  markProgressCacheDirtyInTransaction,
+} from "./progress";
 import { decodeCursor, encodeCursor } from "./queryShared";
 
 type ReviewCandidateAccumulator = Readonly<{
@@ -38,48 +45,6 @@ type ReviewFilterResolution = Readonly<{
   deck: Deck | null;
   allowedTagCardIds: ReadonlySet<string> | null;
 }>;
-
-function getRequiredDatePart(
-  parts: ReadonlyArray<Intl.DateTimeFormatPart>,
-  partType: "year" | "month" | "day",
-): string {
-  const partValue = parts.find((part) => part.type === partType)?.value;
-
-  if (partValue === undefined || partValue === "") {
-    throw new Error(`Browser timezone date is missing ${partType}`);
-  }
-
-  return partValue;
-}
-
-function formatDateAsLocalDate(date: Date, timeZone: string): string {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const parts = formatter.formatToParts(date);
-  const year = getRequiredDatePart(parts, "year");
-  const month = getRequiredDatePart(parts, "month");
-  const day = getRequiredDatePart(parts, "day");
-
-  return `${year}-${month}-${day}`;
-}
-
-function mapReviewedAtClientToLocalDate(reviewedAtClient: string, timeZone: string): string {
-  const reviewedAt = new Date(reviewedAtClient);
-
-  if (Number.isNaN(reviewedAt.getTime())) {
-    throw new Error(`Invalid reviewedAtClient timestamp: ${reviewedAtClient}`);
-  }
-
-  return formatDateAsLocalDate(reviewedAt, timeZone);
-}
-
-function isDateWithinRange(date: string, input: ProgressSeriesInput): boolean {
-  return date >= input.from && date <= input.to;
-}
 
 async function resolveReviewFilterFromIndexedDb(
   database: IDBDatabase,
@@ -434,43 +399,7 @@ export async function loadReviewEventsForSql(workspaceId: string): Promise<Reado
   });
 }
 
-function isPendingReviewEventOperation(
-  operation: SyncPushOperation,
-): operation is Extract<SyncPushOperation, Readonly<{ entityType: "review_event" }>> {
-  return operation.entityType === "review_event" && operation.action === "append";
-}
-
-export async function loadPendingProgressDailyReviews(
-  workspaceIds: ReadonlyArray<string>,
-  input: ProgressSeriesInput,
-): Promise<ReadonlyArray<DailyReviewPoint>> {
-  if (workspaceIds.length === 0) {
-    return [];
-  }
-
-  const outboxRecords = await listOutboxRecordsForWorkspaces(workspaceIds);
-  const counts = new Map<string, number>();
-
-  for (const outboxRecord of outboxRecords) {
-    if (isPendingReviewEventOperation(outboxRecord.operation) === false) {
-      continue;
-    }
-
-    const localDate = mapReviewedAtClientToLocalDate(outboxRecord.operation.payload.reviewedAtClient, input.timeZone);
-    if (isDateWithinRange(localDate, input) === false) {
-      continue;
-    }
-
-    counts.set(localDate, (counts.get(localDate) ?? 0) + 1);
-  }
-
-  return [...counts.entries()]
-    .map(([date, reviewCount]) => ({
-      date,
-      reviewCount,
-    }))
-    .sort((leftDay, rightDay) => leftDay.date.localeCompare(rightDay.date));
-}
+export { loadLocalProgressDailyReviews, loadLocalProgressSummary, loadPendingProgressDailyReviews };
 
 export async function loadReviewQueueSnapshot(
   workspaceId: string,
@@ -580,6 +509,8 @@ export async function loadReviewTimelinePage(
 
 export async function replaceReviewEvents(workspaceId: string, reviewEvents: ReadonlyArray<ReviewEvent>): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
+    const progressCacheState = await loadProgressCacheState(database);
+
     await runReadwrite(database, ["reviewEvents"], (transaction) => (
       deleteWorkspaceReviewEvents(transaction.objectStore("reviewEvents"), workspaceId)
     ));
@@ -591,6 +522,13 @@ export async function replaceReviewEvents(workspaceId: string, reviewEvents: Rea
       }
       return null;
     });
+
+    if (progressCacheState !== null) {
+      await runReadwrite(database, ["meta"], (transaction) => {
+        markProgressCacheDirtyInTransaction(transaction, progressCacheState.timeZone);
+        return null;
+      });
+    }
   });
 }
 
@@ -600,8 +538,44 @@ export function putReviewEventInTransaction(transaction: IDBTransaction, reviewE
 
 export async function putReviewEvent(reviewEvent: ReviewEvent): Promise<void> {
   await closeDatabaseAfterWrite(async (database) => {
-    await runReadwrite(database, ["reviewEvents"], (transaction) => {
+    const progressCacheState = await loadProgressCacheState(database);
+    const existingReviewEvent = await getFromStore<ReviewEvent>(
+      database,
+      "reviewEvents",
+      [reviewEvent.workspaceId, reviewEvent.reviewEventId],
+    );
+
+    if (progressCacheState === null) {
+      await runReadwrite(database, ["reviewEvents"], (transaction) => {
+        putReviewEventInTransaction(transaction, reviewEvent);
+        return null;
+      });
+      return;
+    }
+
+    if (progressCacheState.needsRebuild || existingReviewEvent !== undefined) {
+      await runReadwrite(database, ["reviewEvents", "meta"], (transaction) => {
+        putReviewEventInTransaction(transaction, reviewEvent);
+        markProgressCacheDirtyInTransaction(transaction, progressCacheState.timeZone);
+        return null;
+      });
+      return;
+    }
+
+    const localDate = mapReviewedAtClientToLocalDate(reviewEvent.reviewedAtClient, progressCacheState.timeZone);
+    const existingProgressDailyCount = await getFromStore<ProgressDailyCountRecord>(
+      database,
+      "progressDailyCounts",
+      [reviewEvent.workspaceId, localDate],
+    );
+
+    await runReadwrite(database, ["reviewEvents", "progressDailyCounts"], (transaction) => {
       putReviewEventInTransaction(transaction, reviewEvent);
+      transaction.objectStore("progressDailyCounts").put({
+        workspaceId: reviewEvent.workspaceId,
+        localDate,
+        reviewCount: (existingProgressDailyCount?.reviewCount ?? 0) + 1,
+      });
       return null;
     });
   });

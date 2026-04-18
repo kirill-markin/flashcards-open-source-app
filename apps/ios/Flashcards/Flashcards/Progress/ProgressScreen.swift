@@ -11,47 +11,15 @@ struct ProgressScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
-    @State private var progressPresentation: ProgressPresentation?
-    @State private var screenErrorMessage: String = ""
-    @State private var isLoading: Bool = false
-    @State private var nextReloadRequestSequence: Int = 0
-
-    private var reloadTaskID: String {
-        let cloudState = self.store.cloudSettings?.cloudState.rawValue ?? "none"
-        let linkedUserId = self.store.cloudSettings?.linkedUserId ?? ""
-        let activeWorkspaceId = self.store.cloudSettings?.activeWorkspaceId ?? ""
-        return "\(cloudState)|\(linkedUserId)|\(activeWorkspaceId)"
-    }
-
     var body: some View {
         List {
-            if self.screenErrorMessage.isEmpty == false {
+            if self.store.progressErrorMessage.isEmpty == false {
                 Section {
-                    CopyableErrorMessageView(message: self.screenErrorMessage)
+                    CopyableErrorMessageView(message: self.store.progressErrorMessage)
                 }
             }
 
-            if progressIsUnavailable(cloudState: self.store.cloudSettings?.cloudState) {
-                Section {
-                    ContentUnavailableView(
-                        String(
-                            localized: "progress.screen.sign_in_required.title",
-                            defaultValue: "Cloud progress is unavailable",
-                            table: progressStringsTableName,
-                            comment: "Progress sign-in-required title"
-                        ),
-                        systemImage: "person.crop.circle.badge.exclamationmark",
-                        description: Text(
-                            String(
-                                localized: "progress.screen.sign_in_required.description",
-                                defaultValue: "Start a guest or linked cloud session to load progress.",
-                                table: progressStringsTableName,
-                                comment: "Progress sign-in-required description"
-                            )
-                        )
-                    )
-                }
-            } else if self.isLoading {
+            if self.store.isProgressRefreshing && self.store.progressSnapshot == nil {
                 Section {
                     ProgressView(
                         String(
@@ -64,8 +32,24 @@ struct ProgressScreen: View {
                 }
             }
 
-            if progressIsUnavailable(cloudState: self.store.cloudSettings?.cloudState) == false,
-               let progressPresentation = self.progressPresentation {
+            if let progressSnapshot = self.store.progressSnapshot {
+                if self.store.isProgressRefreshing {
+                    Section {
+                        ProgressView(
+                            String(
+                                localized: "progress.screen.loading",
+                                defaultValue: "Loading progress...",
+                                table: progressStringsTableName,
+                                comment: "Progress loading state"
+                            )
+                        )
+                    }
+                }
+
+                Section {
+                    ProgressSourceStateView(snapshot: progressSnapshot)
+                }
+
                 Section(
                     String(
                         localized: "progress.screen.streak.section_title",
@@ -74,7 +58,7 @@ struct ProgressScreen: View {
                         comment: "Progress streak section title"
                     )
                 ) {
-                    ProgressStreakSection(weeks: progressPresentation.streakWeeks)
+                    ProgressStreakSection(weeks: progressSnapshot.streakWeeks)
                 }
 
                 Section(
@@ -86,9 +70,29 @@ struct ProgressScreen: View {
                     )
                 ) {
                     ProgressReviewsSection(
-                        chartDays: progressPresentation.chartDays,
-                        chartUpperBound: progressPresentation.chartUpperBound,
-                        hasReviewActivity: progressPresentation.hasReviewActivity
+                        chartDays: progressSnapshot.chartData.chartDays,
+                        chartUpperBound: progressSnapshot.chartData.chartUpperBound,
+                        hasReviewActivity: progressSnapshot.chartData.hasReviewActivity
+                    )
+                }
+            } else if self.store.isProgressRefreshing == false {
+                Section {
+                    ContentUnavailableView(
+                        String(
+                            localized: "progress.screen.unavailable.title",
+                            defaultValue: "Progress is unavailable",
+                            table: progressStringsTableName,
+                            comment: "Progress unavailable title"
+                        ),
+                        systemImage: "chart.bar.xaxis",
+                        description: Text(
+                            String(
+                                localized: "progress.screen.unavailable.description",
+                                defaultValue: "Open review or reconnect cloud data, then refresh progress.",
+                                table: progressStringsTableName,
+                                comment: "Progress unavailable description"
+                            )
+                        )
                     )
                 }
             }
@@ -103,8 +107,8 @@ struct ProgressScreen: View {
                 comment: "Progress screen title"
             )
         )
-        .task(id: self.reloadTaskID) {
-            await self.reloadProgressIfNeeded()
+        .task {
+            await self.store.refreshProgressIfNeeded()
         }
         .onChange(of: self.navigation.selectedTab) { _, nextTab in
             guard nextTab == .progress else {
@@ -112,71 +116,155 @@ struct ProgressScreen: View {
             }
 
             Task { @MainActor in
-                await self.reloadProgressIfNeeded()
+                await self.store.refreshProgressIfNeeded()
             }
         }
         .refreshable {
-            await self.reloadProgressIfNeeded()
+            await self.store.refreshProgressManually()
+        }
+    }
+}
+
+private struct ProgressSourceStateView: View {
+    let snapshot: ProgressSnapshot
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: self.symbolName)
+                .foregroundStyle(.secondary)
+                .font(.body.weight(.semibold))
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(self.title)
+                    .font(.subheadline.weight(.semibold))
+                Text(self.description)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var symbolName: String {
+        switch (self.snapshot.summarySourceState, self.snapshot.seriesSourceState) {
+        case (.localOnly, .localOnly):
+            return "iphone"
+        case (.serverBase, .serverBase):
+            return "icloud"
+        case (.serverBaseWithPendingLocalOverlay, .serverBaseWithPendingLocalOverlay):
+            return "arrow.triangle.2.circlepath.icloud"
+        case (.serverBaseWithPendingLocalOverlay, _), (_, .serverBaseWithPendingLocalOverlay):
+            return "arrow.triangle.2.circlepath"
+        default:
+            return "square.2.layers.3d.top.filled"
         }
     }
 
-    @MainActor
-    private func reloadProgressIfNeeded() async {
-        let requestSequence = self.beginReloadRequestSequence()
-
-        guard progressIsUnavailable(cloudState: self.store.cloudSettings?.cloudState) == false else {
-            guard self.isCurrentReloadRequest(sequence: requestSequence) else {
-                return
-            }
-
-            self.progressPresentation = nil
-            self.screenErrorMessage = ""
-            self.isLoading = false
-            return
-        }
-
-        self.isLoading = true
-
-        do {
-            let progressSeries = try await self.store.loadRecentProgress()
-            let progressCalendar = makeProgressCalendar(timeZone: .current)
-            let progressPresentation = try makeProgressPresentation(
-                series: progressSeries,
-                calendar: progressCalendar
+    private var title: String {
+        switch (self.snapshot.summarySourceState, self.snapshot.seriesSourceState) {
+        case (.localOnly, .localOnly):
+            return String(
+                localized: "progress.screen.source.local_only.title",
+                defaultValue: "Local progress only",
+                table: progressStringsTableName,
+                comment: "Progress local-only source title"
             )
-
-            guard self.isCurrentReloadRequest(sequence: requestSequence) else {
-                return
-            }
-
-            self.progressPresentation = progressPresentation
-            self.screenErrorMessage = ""
-        } catch is CancellationError {
-            return
-        } catch {
-            guard self.isCurrentReloadRequest(sequence: requestSequence) else {
-                return
-            }
-
-            self.screenErrorMessage = Flashcards.errorMessage(error: error)
+        case (.serverBase, .serverBase):
+            return String(
+                localized: "progress.screen.source.server_base.title",
+                defaultValue: "Cloud progress",
+                table: progressStringsTableName,
+                comment: "Progress server-base source title"
+            )
+        case (.serverBaseWithPendingLocalOverlay, .serverBaseWithPendingLocalOverlay):
+            return String(
+                localized: "progress.screen.source.server_overlay.title",
+                defaultValue: "Cloud progress with local updates",
+                table: progressStringsTableName,
+                comment: "Progress server-plus-overlay source title"
+            )
+        case (.serverBase, .localOnly), (.serverBaseWithPendingLocalOverlay, .localOnly):
+            return String(
+                localized: "progress.screen.source.mixed.summary_cloud.title",
+                defaultValue: "Cloud summary, local chart",
+                table: progressStringsTableName,
+                comment: "Progress mixed source title when summary is remote and chart is local"
+            )
+        case (.localOnly, .serverBase), (.localOnly, .serverBaseWithPendingLocalOverlay):
+            return String(
+                localized: "progress.screen.source.mixed.chart_cloud.title",
+                defaultValue: "Local summary, cloud chart",
+                table: progressStringsTableName,
+                comment: "Progress mixed source title when summary is local and chart is remote"
+            )
+        default:
+            return String(
+                localized: "progress.screen.source.mixed.title",
+                defaultValue: "Mixed progress sources",
+                table: progressStringsTableName,
+                comment: "Progress mixed source title"
+            )
         }
-
-        guard self.isCurrentReloadRequest(sequence: requestSequence) else {
-            return
-        }
-
-        self.isLoading = false
     }
 
-    @MainActor
-    private func beginReloadRequestSequence() -> Int {
-        self.nextReloadRequestSequence += 1
-        return self.nextReloadRequestSequence
+    private var description: String {
+        switch (self.snapshot.summarySourceState, self.snapshot.seriesSourceState) {
+        case (.localOnly, .localOnly):
+            return String(
+                localized: "progress.screen.source.local_only.description",
+                defaultValue: "Showing progress from this device until cloud data is available.",
+                table: progressStringsTableName,
+                comment: "Progress local-only source description"
+            )
+        case (.serverBase, .serverBase):
+            return String(
+                localized: "progress.screen.source.server_base.description",
+                defaultValue: "Showing the latest cached cloud progress for this account.",
+                table: progressStringsTableName,
+                comment: "Progress server-base source description"
+            )
+        case (.serverBaseWithPendingLocalOverlay, .serverBaseWithPendingLocalOverlay):
+            return String(
+                localized: "progress.screen.source.server_overlay.description",
+                defaultValue: "Showing cached cloud progress plus pending local reviews that have not synced yet.",
+                table: progressStringsTableName,
+                comment: "Progress server-plus-overlay source description"
+            )
+        default:
+            return String(
+                localized: "progress.screen.source.mixed.description",
+                defaultValue: "Summary: \(self.sourceStateDescription(self.snapshot.summarySourceState)). Chart: \(self.sourceStateDescription(self.snapshot.seriesSourceState)).",
+                table: progressStringsTableName,
+                comment: "Progress mixed source description"
+            )
+        }
     }
 
-    @MainActor
-    private func isCurrentReloadRequest(sequence: Int) -> Bool {
-        self.nextReloadRequestSequence == sequence
+    private func sourceStateDescription(_ state: ProgressSourceState) -> String {
+        switch state {
+        case .localOnly:
+            return String(
+                localized: "progress.screen.source.mixed.local",
+                defaultValue: "local device data",
+                table: progressStringsTableName,
+                comment: "Progress mixed source local segment"
+            )
+        case .serverBase:
+            return String(
+                localized: "progress.screen.source.mixed.server",
+                defaultValue: "cached cloud data",
+                table: progressStringsTableName,
+                comment: "Progress mixed source cloud segment"
+            )
+        case .serverBaseWithPendingLocalOverlay:
+            return String(
+                localized: "progress.screen.source.mixed.server_overlay",
+                defaultValue: "cached cloud data with pending local reviews",
+                table: progressStringsTableName,
+                comment: "Progress mixed source cloud overlay segment"
+            )
+        }
     }
 }
 
@@ -409,22 +497,6 @@ private struct ProgressReviewsSection: View {
 
         return firstDate ... lastDate
     }
-}
-
-private func progressIsUnavailable(cloudState: CloudAccountState?) -> Bool {
-    switch cloudState {
-    case .linked, .guest:
-        return false
-    case .disconnected, .linkingReady, nil:
-        return true
-    }
-}
-
-private func makeProgressCalendar(timeZone: TimeZone) -> Calendar {
-    var calendar = Calendar(identifier: .gregorian)
-    calendar.locale = .autoupdatingCurrent
-    calendar.timeZone = timeZone
-    return calendar
 }
 
 private func progressChartWidth(containerWidth: CGFloat, dayCount: Int) -> CGFloat {

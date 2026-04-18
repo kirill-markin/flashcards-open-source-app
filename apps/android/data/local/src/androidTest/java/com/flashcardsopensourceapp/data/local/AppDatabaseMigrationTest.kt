@@ -7,6 +7,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.migration5To6
+import com.flashcardsopensourceapp.data.local.database.migration9To10
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -50,6 +52,27 @@ class AppDatabaseMigrationTest {
         assertEquals("fsrs-6", schedulerSettings?.algorithm)
         assertEquals("[1,10]", schedulerSettings?.learningStepsMinutesJson)
         assertNull(appLocalSettings)
+
+        database.close()
+    }
+
+    @Test
+    fun migrationFromVersion9SplitsProgressSnapshotCacheIntoSummaryAndSeriesTables() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        createVersion9Database(context = context)
+
+        val database = Room.databaseBuilder(
+            context = context,
+            klass = AppDatabase::class.java,
+            name = databaseName
+        ).addMigrations(migration9To10).build()
+
+        val summaryCaches = database.progressRemoteCacheDao().observeProgressSummaryCaches()
+        val seriesCaches = database.progressRemoteCacheDao().observeProgressSeriesCaches()
+
+        assertEquals(0, summaryCaches.first().size)
+        assertEquals(1, seriesCaches.first().size)
+        assertEquals("scope-1", seriesCaches.first().single().scopeKey)
 
         database.close()
     }
@@ -265,6 +288,74 @@ class AppDatabaseMigrationTest {
         )
 
         sqliteDatabase.version = 5
+        sqliteDatabase.close()
+    }
+
+    private fun createVersion9Database(context: Context) {
+        val databaseFile = context.getDatabasePath(databaseName)
+        if (databaseFile.exists()) {
+            databaseFile.delete()
+        }
+        databaseFile.parentFile?.mkdirs()
+
+        val sqliteDatabase = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
+        sqliteDatabase.execSQL(
+            "CREATE TABLE workspaces (workspaceId TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, createdAtMillis INTEGER NOT NULL)"
+        )
+        sqliteDatabase.execSQL(
+            """
+            CREATE TABLE progress_snapshot_cache (
+                scopeKey TEXT NOT NULL PRIMARY KEY,
+                scopeId TEXT NOT NULL,
+                timeZone TEXT NOT NULL,
+                fromLocalDate TEXT NOT NULL,
+                toLocalDate TEXT NOT NULL,
+                generatedAt TEXT,
+                summaryCurrentStreakDays INTEGER,
+                summaryHasReviewedToday INTEGER,
+                summaryLastReviewedOn TEXT,
+                summaryActiveReviewDays INTEGER,
+                dailyReviewsJson TEXT NOT NULL,
+                updatedAtMillis INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        sqliteDatabase.execSQL(
+            "INSERT INTO workspaces (workspaceId, name, createdAtMillis) VALUES ('workspace-local', 'Personal', 100)"
+        )
+        sqliteDatabase.execSQL(
+            """
+            INSERT INTO progress_snapshot_cache (
+                scopeKey,
+                scopeId,
+                timeZone,
+                fromLocalDate,
+                toLocalDate,
+                generatedAt,
+                summaryCurrentStreakDays,
+                summaryHasReviewedToday,
+                summaryLastReviewedOn,
+                summaryActiveReviewDays,
+                dailyReviewsJson,
+                updatedAtMillis
+            ) VALUES (
+                'scope-1',
+                'local:installation-1',
+                'Europe/Madrid',
+                '2026-04-17',
+                '2026-04-18',
+                '2026-04-18T12:00:00Z',
+                4,
+                1,
+                '2026-04-18',
+                12,
+                '[{\"date\":\"2026-04-17\",\"reviewCount\":3},{\"date\":\"2026-04-18\",\"reviewCount\":1}]',
+                123
+            )
+            """.trimIndent()
+        )
+
+        sqliteDatabase.version = 9
         sqliteDatabase.close()
     }
 }

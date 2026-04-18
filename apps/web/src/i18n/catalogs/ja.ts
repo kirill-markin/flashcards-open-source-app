@@ -43,6 +43,7 @@ export const jaCatalog = {
     ok: "OK",
     open: "開く",
     perAction: "操作ごと",
+    refresh: "更新",
     retry: "再試行",
     revoked: "取り消し済み",
     save: "保存",

@@ -115,11 +115,20 @@ data class CloudDailyReviewPoint(
     val reviewCount: Int
 )
 
+data class CloudProgressSummary(
+    val currentStreakDays: Int,
+    val hasReviewedToday: Boolean,
+    val lastReviewedOn: String?,
+    val activeReviewDays: Int
+)
+
 data class CloudProgressSeries(
     val timeZone: String,
     val from: String,
     val to: String,
-    val dailyReviews: List<CloudDailyReviewPoint>
+    val dailyReviews: List<CloudDailyReviewPoint>,
+    val generatedAt: String?,
+    val summary: CloudProgressSummary?
 )
 
 data class AgentApiKeyConnection(

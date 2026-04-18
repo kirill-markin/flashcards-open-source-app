@@ -216,6 +216,90 @@ data class SyncStateEntity(
     val lastSyncError: String?
 )
 
+@Entity(tableName = "progress_summary_cache")
+data class ProgressSummaryCacheEntity(
+    @PrimaryKey val scopeKey: String,
+    val scopeId: String,
+    val timeZone: String,
+    val generatedAt: String?,
+    val currentStreakDays: Int,
+    val hasReviewedToday: Boolean,
+    val lastReviewedOn: String?,
+    val activeReviewDays: Int,
+    val updatedAtMillis: Long
+)
+
+@Entity(tableName = "progress_series_cache")
+data class ProgressSeriesCacheEntity(
+    @PrimaryKey val scopeKey: String,
+    val scopeId: String,
+    val timeZone: String,
+    val fromLocalDate: String,
+    val toLocalDate: String,
+    val generatedAt: String?,
+    val dailyReviewsJson: String,
+    val updatedAtMillis: Long
+)
+
+@Entity(
+    tableName = "progress_local_day_counts",
+    primaryKeys = ["timeZone", "workspaceId", "localDate"],
+    foreignKeys = [
+        ForeignKey(
+            entity = WorkspaceEntity::class,
+            parentColumns = ["workspaceId"],
+            childColumns = ["workspaceId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("workspaceId"), Index("timeZone")]
+)
+data class ProgressLocalDayCountEntity(
+    val timeZone: String,
+    val workspaceId: String,
+    val localDate: String,
+    val reviewCount: Int
+)
+
+@Entity(
+    tableName = "progress_review_history_state",
+    foreignKeys = [
+        ForeignKey(
+            entity = WorkspaceEntity::class,
+            parentColumns = ["workspaceId"],
+            childColumns = ["workspaceId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("workspaceId")]
+)
+data class ProgressReviewHistoryStateEntity(
+    @PrimaryKey val workspaceId: String,
+    val historyVersion: Long,
+    val reviewLogCount: Int,
+    val maxReviewedAtMillis: Long
+)
+
+@Entity(
+    tableName = "progress_local_cache_state",
+    primaryKeys = ["timeZone", "workspaceId"],
+    foreignKeys = [
+        ForeignKey(
+            entity = WorkspaceEntity::class,
+            parentColumns = ["workspaceId"],
+            childColumns = ["workspaceId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("workspaceId"), Index("timeZone")]
+)
+data class ProgressLocalCacheStateEntity(
+    val timeZone: String,
+    val workspaceId: String,
+    val historyVersion: Long,
+    val updatedAtMillis: Long
+)
+
 data class CardWithRelations(
     @Embedded val card: CardEntity,
     @Relation(

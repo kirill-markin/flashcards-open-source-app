@@ -89,6 +89,7 @@ extension FlashcardsStore {
         self.globalErrorMessage = ""
         self.reloadReviewNotificationsSettings()
         self.localReadVersion += 1
+        self.handleProgressContextDidChange(now: now)
         self.cachedAIChatStore?.refreshAccessContextIfNeeded()
         self.refreshReviewState(now: now)
         self.reconcileReviewNotifications(trigger: .workspaceChanged, now: now)
@@ -140,6 +141,7 @@ extension FlashcardsStore {
             self.resetReviewHardReminderSession()
         }
         self.reconcileReviewNotifications(trigger: .workspaceChanged, now: now)
+        self.handleProgressContextDidChange(now: now)
 
         return BootstrapSnapshotRefreshOutcome(
             didChange: didChange,

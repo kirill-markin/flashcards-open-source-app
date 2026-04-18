@@ -18,6 +18,7 @@ import {
   type WorkspaceSyncStateRecord,
 } from "./core";
 import { loadDecksListSnapshot, putDeckInTransaction } from "./decks";
+import { loadProgressCacheState, markProgressCacheDirtyInTransaction } from "./progress";
 import { putReviewEventInTransaction } from "./reviews";
 
 type HotSyncStateUpdate = Readonly<{
@@ -118,7 +119,7 @@ function createHotSyncStoreNames(syncStateUpdate: HotSyncStateUpdate | null): Re
 }
 
 function createReviewSyncStoreNames(): ReadonlyArray<DatabaseStores> {
-  return ["reviewEvents", "workspaceSyncState"];
+  return ["reviewEvents", "workspaceSyncState", "meta"];
 }
 
 export async function loadWorkspaceSettings(workspaceId: string): Promise<WorkspaceSchedulerSettings | null> {
@@ -232,6 +233,7 @@ export async function applyReviewHistorySyncPage(
 ): Promise<void> {
   await closeDatabaseAfter(async (database) => {
     const currentRecord = await getFromStore<WorkspaceSyncStateRecord>(database, "workspaceSyncState", workspaceId);
+    const progressCacheState = await loadProgressCacheState(database);
 
     await runReadwrite(database, createReviewSyncStoreNames(), (transaction) => {
       for (const reviewEvent of reviewEvents) {
@@ -242,6 +244,7 @@ export async function applyReviewHistorySyncPage(
         putReviewEventInTransaction(transaction, reviewEvent);
       }
 
+      markProgressCacheDirtyInTransaction(transaction, progressCacheState?.timeZone ?? null);
       putWorkspaceSyncStateInTransaction(
         transaction,
         buildReviewHistorySyncStateRecord(workspaceId, currentRecord, syncStateUpdate),
