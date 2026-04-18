@@ -230,7 +230,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithText(stopLabel).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(stopLabel).assertIsDisplayed()
         composeRule.onNodeWithTag(aiComposerSendButtonTag).assertIsEnabled()
     }
 
@@ -266,7 +266,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithText(sendLabel).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(sendLabel).assertIsDisplayed()
         composeRule.onNodeWithTag(aiComposerSendButtonTag).assertIsNotEnabled()
     }
 
@@ -305,7 +305,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             }
         }
 
-        composeRule.onNodeWithText(sendLabel).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(sendLabel).assertIsDisplayed()
         composeRule.onNodeWithTag(aiComposerSendButtonTag).assertIsEnabled()
     }
 

@@ -494,7 +494,7 @@ internal class MarketingScreenshotRobot(
 
     private fun aiComposerSendButtonStateOrNull(expectedLabel: String): String? {
         val mergedNode = composeRule.onAllNodes(
-            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText(expectedLabel))
+            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasContentDescription(expectedLabel))
         ).fetchSemanticsNodes().singleOrNull()
         if (mergedNode != null) {
             return if (mergedNode.config.contains(SemanticsProperties.Disabled)) {
@@ -505,7 +505,7 @@ internal class MarketingScreenshotRobot(
         }
 
         val unmergedNode = composeRule.onAllNodes(
-            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText(expectedLabel)),
+            matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasContentDescription(expectedLabel)),
             useUnmergedTree = true
         ).fetchSemanticsNodes().singleOrNull() ?: return null
         return if (unmergedNode.config.contains(SemanticsProperties.Disabled)) {

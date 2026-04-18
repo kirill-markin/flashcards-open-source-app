@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.app
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -784,7 +785,7 @@ private fun LiveSmokeContext.aiComposerFieldIsEditable(): Boolean {
 
 private fun LiveSmokeContext.aiComposerSendButtonIsEnabled(expectedLabel: String): Boolean {
     val node = composeRule.onAllNodes(
-        matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText(expectedLabel))
+        matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasContentDescription(expectedLabel))
     ).fetchSemanticsNodes().singleOrNull() ?: return false
     return node.config.contains(SemanticsProperties.Disabled).not()
 }
@@ -803,7 +804,7 @@ private fun LiveSmokeContext.aiComposerSendButtonMatchesState(
 
 private fun LiveSmokeContext.aiComposerSendButtonStateOrNull(expectedLabel: String): String? {
     val node = composeRule.onAllNodes(
-        matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasText(expectedLabel))
+        matcher = hasTestTag(aiComposerSendButtonTag).and(other = hasContentDescription(expectedLabel))
     ).fetchSemanticsNodes().singleOrNull() ?: return null
     return if (node.config.contains(SemanticsProperties.Disabled)) {
         "disabled"
