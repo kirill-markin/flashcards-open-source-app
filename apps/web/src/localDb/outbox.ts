@@ -2,6 +2,7 @@ import type { SyncPushOperation } from "../types";
 import {
   closeDatabaseAfter,
   closeDatabaseAfterWrite,
+  getAllFromStore,
   runReadonly,
   runReadwrite,
 } from "./core";
@@ -36,5 +37,20 @@ export async function listOutboxRecords(workspaceId: string): Promise<ReadonlyAr
     ) as ReadonlyArray<PersistedOutboxRecord>;
 
     return rows.filter((row) => row.workspaceId === workspaceId);
+  });
+}
+
+export async function listOutboxRecordsForWorkspaces(
+  workspaceIds: ReadonlyArray<string>,
+): Promise<ReadonlyArray<PersistedOutboxRecord>> {
+  if (workspaceIds.length === 0) {
+    return [];
+  }
+
+  return closeDatabaseAfter(async (database) => {
+    const rows = await getAllFromStore<PersistedOutboxRecord>(database, "outbox");
+    const allowedWorkspaceIds = new Set<string>(workspaceIds);
+
+    return rows.filter((row) => allowedWorkspaceIds.has(row.workspaceId));
   });
 }
