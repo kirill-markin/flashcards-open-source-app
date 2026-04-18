@@ -70,6 +70,9 @@ fun AppNavHost(
             appGraph = appGraph,
             navController = navController
         )
+        registerProgressNavGraph(
+            appGraph = appGraph
+        )
         registerSettingsNavGraph(
             appGraph = appGraph,
             navController = navController,
@@ -88,6 +91,7 @@ fun currentTopLevelDestination(navController: NavHostController): TopLevelDestin
         route == null -> ReviewDestination
         route.startsWith(CardsDestination.route) -> CardsDestination
         route.startsWith(AiDestination.route) -> AiDestination
+        route.startsWith(ProgressDestination.route) -> ProgressDestination
         route.startsWith(SettingsDestination.route) -> SettingsDestination
         else -> ReviewDestination
     }
@@ -101,6 +105,7 @@ fun currentVisibleAppScreen(navController: NavHostController): VisibleAppScreen 
     return when {
         route == null -> VisibleAppScreen.OTHER
         route == ReviewDestination.route || route == ReviewPreviewDestination.route -> VisibleAppScreen.REVIEW
+        route == ProgressDestination.route -> VisibleAppScreen.PROGRESS
         route == CardsDestination.route -> VisibleAppScreen.CARDS
         route == SettingsDestination.route -> VisibleAppScreen.SETTINGS_ROOT
         route == SettingsCurrentWorkspaceDestination.route -> VisibleAppScreen.SETTINGS_CURRENT_WORKSPACE

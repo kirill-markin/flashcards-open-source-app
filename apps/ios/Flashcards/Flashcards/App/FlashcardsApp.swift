@@ -9,18 +9,21 @@ private var hasConsumedFlashcardsUITestAppNotificationTapEnvironment: Bool = fal
 
 private enum FlashcardsUITestSelectedTab: String {
     case review
-    case cards
     case ai
+    case progress
+    case cards
     case settings
 
     var appTab: AppTab {
         switch self {
         case .review:
             return .review
-        case .cards:
-            return .cards
         case .ai:
             return .ai
+        case .progress:
+            return .progress
+        case .cards:
+            return .cards
         case .settings:
             return .settings
         }

@@ -11,12 +11,14 @@ enum LiveSmokeIdentifier {
     static let cloudSignInPostAuthFailureMessage: String = "cloudSignIn.postAuthFailure.message"
     static let cloudSignInExistingWorkspacePrefix: String = "cloudSignIn.existingWorkspace."
     static let rootTabReviewItem: String = "rootTab.review.item"
-    static let rootTabCardsItem: String = "rootTab.cards.item"
     static let rootTabAIItem: String = "rootTab.ai.item"
+    static let rootTabProgressItem: String = "rootTab.progress.item"
+    static let rootTabCardsItem: String = "rootTab.cards.item"
     static let rootTabSettingsItem: String = "rootTab.settings.item"
     static let reviewScreen: String = "review.screen"
-    static let cardsScreen: String = "cards.screen"
     static let aiScreen: String = "ai.screen"
+    static let progressScreen: String = "progress.screen"
+    static let cardsScreen: String = "cards.screen"
     static let settingsScreen: String = "settings.screen"
     static let settingsCurrentWorkspaceRow: String = "settings.currentWorkspaceRow"
     static let settingsWorkspaceSettingsRow: String = "settings.workspaceSettingsRow"
@@ -102,18 +104,21 @@ struct LiveSmokeTabBarItemLookup {
 
 enum LiveSmokeSelectedTab: String {
     case review
-    case cards
     case ai
+    case progress
+    case cards
     case settings
 
     var itemIdentifier: String {
         switch self {
         case .review:
             return LiveSmokeIdentifier.rootTabReviewItem
-        case .cards:
-            return LiveSmokeIdentifier.rootTabCardsItem
         case .ai:
             return LiveSmokeIdentifier.rootTabAIItem
+        case .progress:
+            return LiveSmokeIdentifier.rootTabProgressItem
+        case .cards:
+            return LiveSmokeIdentifier.rootTabCardsItem
         case .settings:
             return LiveSmokeIdentifier.rootTabSettingsItem
         }
@@ -123,10 +128,12 @@ enum LiveSmokeSelectedTab: String {
         switch self {
         case .review:
             return .review
-        case .cards:
-            return .cards
         case .ai:
             return .ai
+        case .progress:
+            return .progress
+        case .cards:
+            return .cards
         case .settings:
             return .settings
         }
@@ -144,12 +151,14 @@ enum LiveSmokeSelectedTab: String {
         switch self {
         case .review:
             return 0
-        case .cards:
-            return 1
         case .ai:
+            return 1
+        case .progress:
             return 2
-        case .settings:
+        case .cards:
             return 3
+        case .settings:
+            return 4
         }
     }
 
@@ -173,24 +182,6 @@ enum LiveSmokeSelectedTab: String {
             return "Repasar"
         case (.review, .spanishSpain):
             return "Repasar"
-        case (.cards, .english):
-            return "Cards"
-        case (.cards, .arabic):
-            return "البطاقات"
-        case (.cards, .chineseSimplified):
-            return "卡片"
-        case (.cards, .german):
-            return "Karten"
-        case (.cards, .hindi):
-            return "कार्ड"
-        case (.cards, .japanese):
-            return "カード"
-        case (.cards, .russian):
-            return "Карточки"
-        case (.cards, .spanishMexico):
-            return "Tarjetas"
-        case (.cards, .spanishSpain):
-            return "Tarjetas"
         case (.ai, .english):
             return "AI"
         case (.ai, .arabic):
@@ -209,6 +200,42 @@ enum LiveSmokeSelectedTab: String {
             return "IA"
         case (.ai, .spanishSpain):
             return "IA"
+        case (.progress, .english):
+            return "Progress"
+        case (.progress, .arabic):
+            return "التقدم"
+        case (.progress, .chineseSimplified):
+            return "进度"
+        case (.progress, .german):
+            return "Fortschritt"
+        case (.progress, .hindi):
+            return "प्रगति"
+        case (.progress, .japanese):
+            return "進捗"
+        case (.progress, .russian):
+            return "Прогресс"
+        case (.progress, .spanishMexico):
+            return "Progreso"
+        case (.progress, .spanishSpain):
+            return "Progreso"
+        case (.cards, .english):
+            return "Cards"
+        case (.cards, .arabic):
+            return "البطاقات"
+        case (.cards, .chineseSimplified):
+            return "卡片"
+        case (.cards, .german):
+            return "Karten"
+        case (.cards, .hindi):
+            return "कार्ड"
+        case (.cards, .japanese):
+            return "カード"
+        case (.cards, .russian):
+            return "Карточки"
+        case (.cards, .spanishMexico):
+            return "Tarjetas"
+        case (.cards, .spanishSpain):
+            return "Tarjetas"
         case (.settings, .english):
             return "Settings"
         case (.settings, .arabic):
@@ -238,8 +265,9 @@ enum LiveSmokeAppNotificationTapType: String {
 
 enum LiveSmokeScreen: CaseIterable {
     case review
-    case cards
     case ai
+    case progress
+    case cards
     case settings
     case cloudSignIn
     case cloudWorkspaceChooser
@@ -257,10 +285,12 @@ enum LiveSmokeScreen: CaseIterable {
         switch self {
         case .review:
             return LiveSmokeIdentifier.reviewScreen
-        case .cards:
-            return LiveSmokeIdentifier.cardsScreen
         case .ai:
             return LiveSmokeIdentifier.aiScreen
+        case .progress:
+            return LiveSmokeIdentifier.progressScreen
+        case .cards:
+            return LiveSmokeIdentifier.cardsScreen
         case .settings:
             return LiveSmokeIdentifier.settingsScreen
         case .cloudSignIn:
@@ -292,10 +322,12 @@ enum LiveSmokeScreen: CaseIterable {
         switch self {
         case .review:
             return "Review"
-        case .cards:
-            return "Cards"
         case .ai:
             return "AI"
+        case .progress:
+            return "Progress"
+        case .cards:
+            return "Cards"
         case .settings:
             return "Settings"
         case .cloudSignIn:

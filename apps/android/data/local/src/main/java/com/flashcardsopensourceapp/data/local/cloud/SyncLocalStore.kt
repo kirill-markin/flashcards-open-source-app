@@ -151,6 +151,17 @@ class SyncLocalStore(
         }
     }
 
+    suspend fun loadPendingReviewEventPayloads(workspaceId: String): List<ReviewEventSyncPayload> {
+        return database.outboxDao().loadPendingReviewEventOutboxEntries(workspaceId = workspaceId).map { entry ->
+            val operation = decodeOutboxOperation(entry)
+            val payload = operation.payload
+            require(payload is SyncOperationPayload.ReviewEvent) {
+                "Pending review-event outbox entry '${entry.outboxEntryId}' has unexpected payload '${payload::class.java.simpleName}'."
+            }
+            payload.payload
+        }
+    }
+
     suspend fun deleteOutboxEntries(operationIds: List<String>) {
         if (operationIds.isEmpty()) {
             return

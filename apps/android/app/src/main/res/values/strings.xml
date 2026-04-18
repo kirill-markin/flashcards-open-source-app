@@ -1,8 +1,9 @@
 <resources>
     <string name="app_name">Flashcards Open Source App</string>
     <string name="top_level_review">Review</string>
-    <string name="top_level_cards">Cards</string>
     <string name="top_level_ai">AI</string>
+    <string name="top_level_progress">Progress</string>
+    <string name="top_level_cards">Cards</string>
     <string name="top_level_settings">Settings</string>
     <string name="startup_error_title">Startup failed</string>
     <string name="startup_error_retry">Retry startup</string>

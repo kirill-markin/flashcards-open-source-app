@@ -70,8 +70,9 @@ const hiCatalog: TranslationCatalog = {
   },
   navigation: {
     review: "रिव्यू",
-    cards: "कार्ड",
     aiChat: "AI चैट",
+    progress: "प्रगति",
+    cards: "कार्ड",
     settings: "सेटिंग्स",
   },
   shell: {
@@ -114,6 +115,26 @@ const hiCatalog: TranslationCatalog = {
     agentConnections: "एजेंट कनेक्शन लोड हो रहे हैं...",
     dangerZone: "खतरे का क्षेत्र लोड हो रहा है...",
     aiChat: "AI चैट लोड हो रही है...",
+    progress: "प्रगति लोड हो रही है...",
+  },
+  progressScreen: {
+    title: "प्रगति",
+    subtitle: "अपनी हाल की स्ट्रीक और दैनिक रिव्यू इतिहास को ट्रैक करें।",
+    streakTitle: "स्ट्रीक",
+    reviewsTitle: "रिव्यू",
+    lastThirtyDays: "पिछले 30 दिन",
+    empty: "इन 30 दिनों की अवधि में कोई रिव्यू दर्ज नहीं किया गया।",
+    rangeValue: "{{from}} - {{to}}",
+    labels: {
+      totalReviews: "कुल रिव्यू",
+      activeDays: "सक्रिय दिन",
+      timeZone: "समय क्षेत्र",
+      range: "अवधि",
+    },
+    table: {
+      date: "तारीख",
+      reviews: "रिव्यू",
+    },
   },
   app: {
     title: "Flashcards",

@@ -33,6 +33,7 @@ import {
   buildSettingsDeckEditRoute,
   cardsRoute,
   chatRoute,
+  progressRoute,
   reviewRoute,
   settingsAccessRoute,
   settingsAccessDetailRoutePattern,
@@ -51,6 +52,7 @@ import {
 import { isWorkspaceManagementLocked } from "./workspaceManagement";
 import { CardFormScreen } from "./screens/CardFormScreen";
 import { CardsScreen } from "./screens/CardsScreen";
+import { ProgressScreen } from "./screens/ProgressScreen";
 import { ReviewScreen } from "./screens/ReviewScreen";
 
 const ChatPanel = lazy(async () => import("./chat/ChatPanel").then((module) => ({ default: module.ChatPanel })));
@@ -416,11 +418,14 @@ export function AppShell(): ReactElement {
               <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={reviewRoute}>
                 {t("navigation.review")}
               </NavLink>
-              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={cardsRoute}>
-                {t("navigation.cards")}
-              </NavLink>
               <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={chatRoute}>
                 {t("navigation.aiChat")}
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={progressRoute}>
+                {t("navigation.progress")}
+              </NavLink>
+              <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={cardsRoute}>
+                {t("navigation.cards")}
               </NavLink>
               <NavLink className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={settingsHubRoute}>
                 {t("navigation.settings")}
@@ -507,6 +512,7 @@ export function RoutedShell(): ReactElement {
           <Route path="/decks/:deckId" element={<LegacyDeckDetailRedirect />} />
           <Route path="/tags" element={<Navigate replace to={settingsTagsRoute} />} />
           <Route path={reviewRoute} element={<ReviewScreen />} />
+          <Route path={progressRoute} element={<ProgressScreen />} />
           <Route path={settingsHubRoute} element={renderDeferredRoute(<SettingsScreen />, "loading.settings")} />
           <Route
             path={settingsCurrentWorkspaceRoute}

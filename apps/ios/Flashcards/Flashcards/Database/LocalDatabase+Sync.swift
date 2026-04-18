@@ -116,6 +116,41 @@ extension LocalDatabase {
         try self.cardStore.loadReviewEvents(workspaceId: workspaceId)
     }
 
+    func loadPendingReviewEventPayloads(
+        workspaceId: String,
+        installationId: String
+    ) throws -> [ReviewEventSyncPayload] {
+        let outboxEntries = try self.outboxStore.loadOutboxEntries(
+            workspaceId: workspaceId,
+            limit: Int.max
+        )
+
+        var pendingReviewEvents: [ReviewEventSyncPayload] = []
+        for outboxEntry in outboxEntries {
+            guard outboxEntry.operation.entityType == .reviewEvent else {
+                continue
+            }
+
+            guard outboxEntry.operation.action == .append else {
+                throw LocalStoreError.database(
+                    "Pending review event outbox action is invalid: \(outboxEntry.operation.action.rawValue)"
+                )
+            }
+
+            guard case .reviewEvent(let payload) = outboxEntry.operation.payload else {
+                throw LocalStoreError.database("Pending review event outbox payload is invalid")
+            }
+
+            guard payload.installationId == installationId else {
+                continue
+            }
+
+            pendingReviewEvents.append(payload)
+        }
+
+        return pendingReviewEvents
+    }
+
     func loadJournalMode() throws -> String {
         try self.core.scalarText(sql: "PRAGMA journal_mode;", values: [])
     }

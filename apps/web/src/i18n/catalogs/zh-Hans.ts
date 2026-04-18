@@ -70,8 +70,9 @@ export const zhHansCatalog = {
   },
   navigation: {
     review: "复习",
-    cards: "卡片",
     aiChat: "AI 聊天",
+    progress: "进度",
+    cards: "卡片",
     settings: "设置",
   },
   shell: {
@@ -114,6 +115,26 @@ export const zhHansCatalog = {
     agentConnections: "正在加载代理连接...",
     dangerZone: "正在加载危险区域...",
     aiChat: "正在加载 AI 聊天...",
+    progress: "正在加载进度...",
+  },
+  progressScreen: {
+    title: "进度",
+    subtitle: "查看你最近的连续学习天数和每日复习记录。",
+    streakTitle: "连续天数",
+    reviewsTitle: "复习次数",
+    lastThirtyDays: "最近 30 天",
+    empty: "在这 30 天范围内没有记录到任何复习。",
+    rangeValue: "{{from}} - {{to}}",
+    labels: {
+      totalReviews: "总复习次数",
+      activeDays: "活跃天数",
+      timeZone: "时区",
+      range: "范围",
+    },
+    table: {
+      date: "日期",
+      reviews: "复习次数",
+    },
   },
   app: {
     title: "Flashcards",

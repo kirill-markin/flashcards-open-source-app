@@ -4,8 +4,9 @@
  * - apps/android/app/src/main/java/com/flashcardsopensourceapp/app/navigation/AppDestination.kt
  */
 export const reviewRoute: string = "/review";
-export const cardsRoute: string = "/cards";
 export const chatRoute: string = "/chat";
+export const progressRoute: string = "/progress";
+export const cardsRoute: string = "/cards";
 export const settingsHubRoute: string = "/settings";
 export const settingsCurrentWorkspaceRoute: string = "/settings/current-workspace";
 export const workspaceSettingsRoute: string = "/settings/workspace";

@@ -194,6 +194,7 @@ dependencies {
     implementation(project(":feature:review"))
     implementation(project(":feature:cards"))
     implementation(project(":feature:ai"))
+    implementation(project(":feature:progress"))
     implementation(project(":feature:settings"))
 
     implementation(libs.androidx.core.ktx)

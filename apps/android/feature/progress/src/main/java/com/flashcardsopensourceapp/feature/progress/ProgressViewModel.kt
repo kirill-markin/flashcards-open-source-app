@@ -105,6 +105,10 @@ class ProgressViewModel(
         uiStateMutable.value = ProgressUiState.Loading
 
         try {
+            // Progress is intentionally sourced from the server-backed account view
+            // after syncing the current workspace only. Pending review events from
+            // inactive local workspaces remain eventual-consistency data and are
+            // reflected here after that workspace becomes active and syncs.
             syncRepository.syncNow()
             val progressSeries = cloudAccountRepository.loadProgressSeries(
                 timeZone = progressRequest.timeZone,

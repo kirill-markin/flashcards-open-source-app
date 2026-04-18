@@ -3,9 +3,11 @@ package com.flashcardsopensourceapp.data.local.cloud
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
+import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.CloudSendCodeResult
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceDeletePreview
@@ -150,6 +152,13 @@ interface CloudRemoteGateway {
         workspaceId: String,
         confirmationText: String
     ): CloudWorkspaceResetProgressResult
+    suspend fun loadProgressSeries(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String,
+        from: String,
+        to: String
+    ): CloudProgressSeries
 
     suspend fun deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String)
     suspend fun listAgentConnections(apiBaseUrl: String, bearerToken: String): AgentApiKeyConnectionsResult
@@ -538,6 +547,46 @@ class CloudRemoteService : CloudRemoteGateway {
     }
 
     override
+    suspend fun loadProgressSeries(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String,
+        from: String,
+        to: String
+    ): CloudProgressSeries {
+        val response = getJson(
+            baseUrl = apiBaseUrl,
+            path = buildProgressPath(
+                timeZone = timeZone,
+                from = from,
+                to = to
+            ),
+            authorizationHeader = authorizationHeader
+        )
+        val dailyReviews = response.requireCloudArray("dailyReviews", "progress.dailyReviews")
+
+        return CloudProgressSeries(
+            timeZone = response.requireCloudString("timeZone", "progress.timeZone"),
+            from = response.requireCloudString("from", "progress.from"),
+            to = response.requireCloudString("to", "progress.to"),
+            dailyReviews = buildList {
+                for (index in 0 until dailyReviews.length()) {
+                    val point = dailyReviews.requireCloudObject(index, "progress.dailyReviews[$index]")
+                    add(
+                        CloudDailyReviewPoint(
+                            date = point.requireCloudString("date", "progress.dailyReviews[$index].date"),
+                            reviewCount = point.requireCloudInt(
+                                "reviewCount",
+                                "progress.dailyReviews[$index].reviewCount"
+                            )
+                        )
+                    )
+                }
+            }
+        )
+    }
+
+    override
     suspend fun deleteAccount(
         apiBaseUrl: String,
         bearerToken: String,
@@ -916,6 +965,21 @@ class CloudRemoteService : CloudRemoteGateway {
             "limit=100&cursor=${URLEncoder.encode(cursor, StandardCharsets.UTF_8)}"
         }
         return "$basePath?$query"
+    }
+
+    private fun buildProgressPath(
+        timeZone: String,
+        from: String,
+        to: String
+    ): String {
+        return buildString {
+            append("/me/progress?timeZone=")
+            append(URLEncoder.encode(timeZone, StandardCharsets.UTF_8))
+            append("&from=")
+            append(URLEncoder.encode(from, StandardCharsets.UTF_8))
+            append("&to=")
+            append(URLEncoder.encode(to, StandardCharsets.UTF_8))
+        }
     }
 
     private suspend fun getJson(

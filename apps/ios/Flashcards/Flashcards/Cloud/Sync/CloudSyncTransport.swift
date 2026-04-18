@@ -49,6 +49,24 @@ struct CloudSyncTransport {
         return workspaces
     }
 
+    func progressPath(timeZone: String, from: String, to: String) throws -> String {
+        guard var components = URLComponents(string: "/me/progress") else {
+            throw LocalStoreError.validation("Progress path could not be constructed")
+        }
+
+        components.queryItems = [
+            URLQueryItem(name: "timeZone", value: timeZone),
+            URLQueryItem(name: "from", value: from),
+            URLQueryItem(name: "to", value: to),
+        ]
+
+        guard let path = components.string else {
+            throw LocalStoreError.validation("Progress query could not be constructed")
+        }
+
+        return path
+    }
+
     func request<Response: Decodable, Body: Encodable>(
         apiBaseUrl: String,
         authorizationHeader: String,

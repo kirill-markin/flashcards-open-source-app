@@ -17,6 +17,10 @@ extension FlashcardsStore {
 
         switch cloudSettings.cloudState {
         case .linked, .guest:
+            // Progress intentionally stays aligned with the server-backed
+            // account-wide series after syncing the current workspace only.
+            // Pending review events from inactive local workspaces are eventual
+            // consistency data and appear here after that workspace syncs.
             try await self.syncCloudNow(trigger: self.manualCloudSyncTrigger(now: Date()))
         case .disconnected, .linkingReady:
             throw LocalStoreError.validation("Progress is available only for guest or linked cloud accounts")

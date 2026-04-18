@@ -1,0 +1,15 @@
+<resources>
+    <string name="progress_title">Progress</string>
+    <string name="progress_retry">Retry</string>
+    <string name="progress_loading">Loading progress history</string>
+    <string name="progress_error_title">Progress couldn\'t be loaded</string>
+    <string name="progress_sign_in_required_title">Sign in to view progress</string>
+    <string name="progress_sign_in_required_message">Progress history is available only after you sign in or start a guest AI session.</string>
+    <string name="progress_unavailable_title">Finish cloud setup to view progress</string>
+    <string name="progress_unavailable_message">Choose a workspace to finish sign-in before loading progress history.</string>
+    <string name="progress_streak_title">Streak</string>
+    <string name="progress_streak_subtitle">Last 5 weeks</string>
+    <string name="progress_reviews_title">Reviews</string>
+    <string name="progress_reviews_subtitle">Last 20 weeks</string>
+    <string name="progress_today">Today</string>
+</resources>
