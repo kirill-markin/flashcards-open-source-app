@@ -2,7 +2,7 @@ package com.flashcardsopensourceapp.feature.ai.ui
 
 import androidx.compose.foundation.lazy.LazyListLayoutInfo
 
-internal const val aiConversationAutoScrollBottomThresholdPx: Int = 24
+internal const val aiConversationAutoScrollBottomThresholdPx: Int = 12
 
 data class AiConversationScrollState(
     val isNearBottom: Boolean
