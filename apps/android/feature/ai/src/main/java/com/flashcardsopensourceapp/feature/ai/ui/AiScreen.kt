@@ -15,9 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddComment
-import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -329,20 +327,6 @@ internal fun AiRouteContent(
                     Text(stringResource(id = R.string.ai_title))
                 },
                 actions = {
-                    AssistChip(
-                        onClick = {},
-                        enabled = false,
-                        label = {
-                            Text(uiState.chatConfig.model.badgeLabel)
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Outlined.AutoAwesome,
-                                contentDescription = null
-                            )
-                        }
-                    )
-
                     IconButton(
                         onClick = onNewChat,
                         enabled = uiState.canStartNewChat,

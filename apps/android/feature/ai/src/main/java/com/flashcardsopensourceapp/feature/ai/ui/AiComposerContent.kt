@@ -1,17 +1,18 @@
 package com.flashcardsopensourceapp.feature.ai.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.AttachFile
-import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Description
@@ -20,12 +21,12 @@ import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -40,6 +41,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.R
@@ -54,6 +58,11 @@ import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
+
+private val aiComposerActionSize = 40.dp
+private val aiComposerPrimaryActionSize = 36.dp
+private val aiComposerProgressSize = 16.dp
+private const val aiComposerMaximumLineCount = 5
 
 @Composable
 internal fun AiComposer(
@@ -77,6 +86,22 @@ internal fun AiComposer(
     val isDictationBusy = uiState.dictationState == AiChatDictationState.REQUESTING_PERMISSION
         || uiState.dictationState == AiChatDictationState.TRANSCRIBING
     val focusRequester = remember { FocusRequester() }
+    val providerAndModelLabel = "${uiState.chatConfig.provider.label} · ${uiState.chatConfig.model.badgeLabel}"
+    val primaryActionLabel = stringResource(
+        id = if (uiState.canStopStreaming) {
+            R.string.ai_stop
+        } else {
+            R.string.ai_send
+        }
+    )
+    val dictationActionLabel = stringResource(
+        id = if (uiState.dictationState == AiChatDictationState.RECORDING) {
+            R.string.ai_stop
+        } else {
+            R.string.ai_dictate
+        }
+    )
+    val attachActionLabel = stringResource(id = R.string.ai_attach)
 
     LaunchedEffect(uiState.focusComposerRequestVersion) {
         if (uiState.focusComposerRequestVersion > 0L) {
@@ -88,50 +113,20 @@ internal fun AiComposer(
         modifier = modifier
             .fillMaxWidth()
             .imePadding(),
-        tonalElevation = 4.dp
+        tonalElevation = 2.dp
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                AssistChip(
-                    onClick = {},
-                    enabled = false,
-                    label = {
-                        Text(uiState.chatConfig.model.badgeLabel)
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Outlined.AutoAwesome,
-                            contentDescription = null
-                        )
-                    }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = uiState.chatConfig.provider.label,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                if (uiState.isStreaming) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.width(20.dp)
-                    )
-                }
-            }
-
             if (uiState.pendingAttachments.isNotEmpty()) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(state = rememberScrollState())
                 ) {
                     uiState.pendingAttachments.forEach { attachment ->
                         FilterChip(
@@ -140,13 +135,15 @@ internal fun AiComposer(
                             modifier = Modifier.testTag(tag = aiComposerPendingAttachmentTag),
                             label = {
                                 Text(
-                                    when (attachment) {
+                                    text = when (attachment) {
                                         is AiChatAttachment.Binary -> attachment.fileName
                                         is AiChatAttachment.Card -> aiCardAttachmentLabel(
                                             frontText = attachment.frontText
                                         )
                                         is AiChatAttachment.Unknown -> attachment.summaryText
-                                    }
+                                    },
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             },
                             leadingIcon = {
@@ -171,7 +168,8 @@ internal fun AiComposer(
                                     onClick = {
                                         onRemovePendingAttachment(attachment.id)
                                     },
-                                    enabled = canManageAttachments
+                                    enabled = canManageAttachments,
+                                    modifier = Modifier.size(aiComposerActionSize)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Outlined.Close,
@@ -189,6 +187,7 @@ internal fun AiComposer(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .horizontalScroll(state = rememberScrollState())
                         .testTag(tag = aiComposerSuggestionRowTag)
                 ) {
                     uiState.composerSuggestions.forEachIndexed { index, suggestion ->
@@ -197,7 +196,11 @@ internal fun AiComposer(
                                 onApplyComposerSuggestion(suggestion)
                             },
                             label = {
-                                Text(suggestion.text)
+                                Text(
+                                    text = suggestion.text,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             },
                             modifier = Modifier.testTag(tag = "$aiComposerSuggestionPrefixTag$index")
                         )
@@ -212,55 +215,126 @@ internal fun AiComposer(
                 )
             }
 
-            if (uiState.dictationState != AiChatDictationState.IDLE) {
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = dictationStatusLabel(
-                            dictationState = uiState.dictationState,
-                            textProvider = textProvider
-                        ),
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-
             OutlinedTextField(
                 value = uiState.draftMessage,
                 onValueChange = onDraftMessageChange,
                 label = {
                     Text(stringResource(id = R.string.ai_message_label))
                 },
-                minLines = 3,
+                minLines = 1,
+                maxLines = aiComposerMaximumLineCount,
                 enabled = canEditDraft,
+                trailingIcon = {
+                    FilledIconButton(
+                        onClick = if (uiState.canStopStreaming) {
+                            onCancelStreaming
+                        } else {
+                            onSendMessage
+                        },
+                        enabled = uiState.canStopStreaming || uiState.canSend,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = if (uiState.canStopStreaming) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                            contentColor = if (uiState.canStopStreaming) {
+                                MaterialTheme.colorScheme.onError
+                            } else {
+                                MaterialTheme.colorScheme.onPrimary
+                            }
+                        ),
+                        modifier = Modifier
+                            .size(aiComposerPrimaryActionSize)
+                            .semantics {
+                                contentDescription = primaryActionLabel
+                            }
+                            .testTag(tag = aiComposerSendButtonTag)
+                    ) {
+                        Icon(
+                            imageVector = if (uiState.canStopStreaming) {
+                                Icons.Outlined.Stop
+                            } else {
+                                Icons.AutoMirrored.Outlined.Send
+                            },
+                            contentDescription = null
+                        )
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester)
                     .testTag(tag = aiComposerMessageFieldTag)
             )
 
+            if (uiState.dictationState != AiChatDictationState.IDLE) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (uiState.dictationState == AiChatDictationState.RECORDING) {
+                        Icon(
+                            imageVector = Icons.Outlined.Mic,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    } else {
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(aiComposerProgressSize)
+                        )
+                    }
+
+                    Text(
+                        text = dictationStatusLabel(
+                            dictationState = uiState.dictationState,
+                            textProvider = textProvider
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Button(
+                Text(
+                    text = providerAndModelLabel,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+
+                if (uiState.isStreaming) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(aiComposerProgressSize)
+                    )
+                }
+
+                IconButton(
                     onClick = onOpenAttachmentMenu,
                     enabled = canManageAttachments && uiState.chatConfig.features.attachmentsEnabled,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.size(aiComposerActionSize)
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.AttachFile,
-                        contentDescription = null
+                        contentDescription = attachActionLabel
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(id = R.string.ai_attach))
                 }
 
-                Button(
+                IconButton(
                     onClick = onToggleDictation,
                     enabled = uiState.isComposerBusy.not() && isDictationBusy.not() && uiState.chatConfig.features.dictationEnabled,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.size(aiComposerActionSize)
                 ) {
                     Icon(
                         imageVector = if (uiState.dictationState == AiChatDictationState.RECORDING) {
@@ -268,46 +342,14 @@ internal fun AiComposer(
                         } else {
                             Icons.Outlined.Mic
                         },
-                        contentDescription = null
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        if (uiState.dictationState == AiChatDictationState.RECORDING) {
-                            stringResource(id = R.string.ai_stop)
+                        contentDescription = dictationActionLabel,
+                        tint = if (uiState.dictationState == AiChatDictationState.RECORDING) {
+                            MaterialTheme.colorScheme.error
                         } else {
-                            stringResource(id = R.string.ai_dictate)
+                            MaterialTheme.colorScheme.primary
                         }
                     )
                 }
-            }
-
-            Button(
-                onClick = if (uiState.canStopStreaming) {
-                    onCancelStreaming
-                } else {
-                    onSendMessage
-                },
-                enabled = uiState.canStopStreaming || uiState.canSend,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(tag = aiComposerSendButtonTag)
-            ) {
-                Icon(
-                    imageVector = if (uiState.canStopStreaming) {
-                        Icons.Outlined.Stop
-                    } else {
-                        Icons.AutoMirrored.Outlined.Send
-                    },
-                    contentDescription = null
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    if (uiState.canStopStreaming) {
-                        stringResource(id = R.string.ai_stop)
-                    } else {
-                        stringResource(id = R.string.ai_send)
-                    }
-                )
             }
         }
     }
