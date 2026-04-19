@@ -436,6 +436,12 @@ export const ruCatalog = {
     errors: {
       schedulerUnavailable: "Настройки планировщика рабочего пространства не загружены",
     },
+    progressBadge: {
+      ariaLabel: "Серия повторений: {{streak}} дн. {{todayStatus}}.",
+      notReviewedToday: "Сегодня ещё не повторяли",
+      reviewedToday: "Сегодня уже повторяли",
+      title: "Серия",
+    },
     interval: {
       inCount: "через {{count}}",
       lessThanMinute: "меньше чем через минуту",

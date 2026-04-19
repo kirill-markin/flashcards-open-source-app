@@ -22,6 +22,7 @@ import com.flashcardsopensourceapp.feature.review.PreparedReviewPreviewCardPrese
 import com.flashcardsopensourceapp.feature.review.R as ReviewR
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewListItem
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
+import com.flashcardsopensourceapp.feature.review.ReviewProgressBadgeState
 import com.flashcardsopensourceapp.feature.review.ReviewUiState
 import com.flashcardsopensourceapp.feature.settings.CloudSignInCodeRoute
 import com.flashcardsopensourceapp.feature.settings.CloudSignInUiState
@@ -102,6 +103,12 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
                     availableDeckFilters = emptyList(),
                     availableEffortFilters = emptyList(),
                     availableTagFilters = emptyList(),
+                    reviewProgressBadge = ReviewProgressBadgeState(
+                        streakDays = 0,
+                        hasReviewedToday = false,
+                        isApproximate = false,
+                        isInteractive = true
+                    ),
                     isPreviewLoading = false,
                     previewItems = listOf(
                         ReviewPreviewListItem.SectionHeader(

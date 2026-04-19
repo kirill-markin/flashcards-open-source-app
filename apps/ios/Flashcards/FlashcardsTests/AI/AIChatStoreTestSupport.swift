@@ -497,7 +497,9 @@ enum AIChatStoreTestSupport {
                 appliedPullChangeCount: 0,
                 changedEntityTypes: [],
                 acknowledgedOperationCount: 0,
-                cleanedUpOperationCount: 0
+                acknowledgedReviewEventOperationCount: 0,
+                cleanedUpOperationCount: 0,
+                cleanedUpReviewEventOperationCount: 0
             )
         }
     }

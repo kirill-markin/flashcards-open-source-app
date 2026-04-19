@@ -11,6 +11,7 @@ import type {
   Card,
   Deck,
   DecksListSnapshot,
+  ReviewProgressBadgeState,
   ReviewQueueSnapshot,
   ReviewTimelinePage,
   WorkspaceTagsSummary,
@@ -23,6 +24,7 @@ const {
   loadReviewTimelinePageMock,
   loadWorkspaceTagsSummaryMock,
   useAppDataMock,
+  useReviewProgressBadgeMock,
 } = vi.hoisted(() => ({
   loadDecksListSnapshotMock: vi.fn(),
   loadReviewQueueChunkMock: vi.fn(),
@@ -30,10 +32,12 @@ const {
   loadReviewTimelinePageMock: vi.fn(),
   loadWorkspaceTagsSummaryMock: vi.fn(),
   useAppDataMock: vi.fn(),
+  useReviewProgressBadgeMock: vi.fn(),
 }));
 
 vi.mock("../appData", () => ({
   useAppData: useAppDataMock,
+  useReviewProgressBadge: useReviewProgressBadgeMock,
 }));
 
 vi.mock("../localDb/decks", () => ({
@@ -62,6 +66,7 @@ export type ReviewScreenTestState = {
   appData: ReviewScreenAppData;
   cards: Array<Card>;
   decks: Array<Deck>;
+  reviewProgressBadge: ReviewProgressBadgeState;
   reviewQueue: Array<Card>;
   reviewTimeline: Array<Card>;
 };
@@ -152,6 +157,11 @@ function createDefaultReviewScreenTestState(): ReviewScreenTestState {
     appData: null as unknown as ReviewScreenAppData,
     cards: [],
     decks: [],
+    reviewProgressBadge: {
+      streakDays: 0,
+      hasReviewedToday: false,
+      isInteractive: true,
+    },
     reviewQueue: [],
     reviewTimeline: [],
   };
@@ -354,8 +364,10 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
     loadReviewQueueSnapshotMock.mockReset();
     loadReviewTimelinePageMock.mockReset();
     loadWorkspaceTagsSummaryMock.mockReset();
+    useReviewProgressBadgeMock.mockReset();
 
     useAppDataMock.mockImplementation(() => state.appData);
+    useReviewProgressBadgeMock.mockImplementation(() => state.reviewProgressBadge);
     loadDecksListSnapshotMock.mockImplementation(async (): Promise<DecksListSnapshot> => createDecksSnapshot(state));
     loadReviewQueueChunkMock.mockResolvedValue({
       cards: [],
@@ -449,4 +461,5 @@ export {
   loadReviewTimelinePageMock,
   loadWorkspaceTagsSummaryMock,
   useAppDataMock,
+  useReviewProgressBadgeMock,
 };

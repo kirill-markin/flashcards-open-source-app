@@ -46,6 +46,10 @@ type HarnessProps = Readonly<{
   sessionVerificationState: SessionVerificationState;
   cloudSettings: CloudSettings | null;
   progressServerInvalidationVersion: number;
+  sections: Readonly<{
+    includeSummary: boolean;
+    includeSeries: boolean;
+  }>;
 }>;
 
 type DeferredPromise<T> = Readonly<{
@@ -65,6 +69,7 @@ const workspace: WorkspaceSummary = {
   createdAt: "2026-04-10T00:00:00.000Z",
   isSelected: true,
 };
+const availableWorkspaces: ReadonlyArray<WorkspaceSummary> = [workspace];
 
 const linkedCloudSettings: CloudSettings = {
   installationId: "installation-1",
@@ -86,6 +91,16 @@ const linkingReadyCloudSettings: CloudSettings = {
   updatedAt: "2026-04-18T09:15:00.000Z",
 };
 
+const summaryAndSeriesSections = {
+  includeSummary: true,
+  includeSeries: true,
+} as const;
+
+const summaryOnlySections = {
+  includeSummary: true,
+  includeSeries: false,
+} as const;
+
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
 
@@ -98,11 +113,12 @@ function renderHarness(props: HarnessProps): Readonly<{
   function Harness(currentProps: HarnessProps): null {
     latestApi = useProgressSource({
       activeWorkspace: workspace,
-      availableWorkspaces: [workspace],
+      availableWorkspaces,
       cloudSettings: currentProps.cloudSettings,
       sessionVerificationState: currentProps.sessionVerificationState,
       progressLocalVersion: 0,
       progressServerInvalidationVersion: currentProps.progressServerInvalidationVersion,
+      sections: currentProps.sections,
     });
     return null;
   }
@@ -242,6 +258,7 @@ describe("useProgressSource", () => {
       sessionVerificationState: "verified",
       cloudSettings: linkedCloudSettings,
       progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
     });
 
     await flushEffects();
@@ -262,6 +279,7 @@ describe("useProgressSource", () => {
       sessionVerificationState: "verified",
       cloudSettings: linkingReadyCloudSettings,
       progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
     });
 
     await flushEffects();
@@ -283,6 +301,7 @@ describe("useProgressSource", () => {
       sessionVerificationState: "verified",
       cloudSettings: linkedCloudSettings,
       progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
     });
 
     await flushEffects();
@@ -314,6 +333,7 @@ describe("useProgressSource", () => {
       sessionVerificationState: "verified",
       cloudSettings: linkedCloudSettings,
       progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
     });
 
     await flushEffects();
@@ -321,5 +341,33 @@ describe("useProgressSource", () => {
     expect(harness.getApi().progressSourceState.summary.serverBase?.source).toBe("server");
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.source).toBe("local_only");
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(8);
+  });
+
+  it("supports summary-only ownership without loading the progress series pipeline", async () => {
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(loadProgressSummaryMock).toHaveBeenCalledTimes(1);
+    expect(loadLocalProgressSummaryMock).toHaveBeenCalledTimes(1);
+    expect(hasPendingProgressReviewEventsMock).toHaveBeenCalledTimes(1);
+    expect(loadProgressSeriesMock).not.toHaveBeenCalled();
+    expect(loadLocalProgressDailyReviewsMock).not.toHaveBeenCalled();
+    expect(loadPendingProgressDailyReviewsMock).not.toHaveBeenCalled();
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(1);
+    expect(harness.getApi().progressSourceState.series).toEqual({
+      scopeKey: null,
+      localFallback: null,
+      serverBase: null,
+      pendingLocalOverlay: null,
+      renderedSnapshot: null,
+      isLoading: false,
+      errorMessage: "",
+    });
   });
 });

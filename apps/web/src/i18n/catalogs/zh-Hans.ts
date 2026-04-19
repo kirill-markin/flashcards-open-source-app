@@ -436,6 +436,12 @@ export const zhHansCatalog = {
     errors: {
       schedulerUnavailable: "工作区调度器设置尚未加载",
     },
+    progressBadge: {
+      ariaLabel: "复习连续 {{streak}} 天。{{todayStatus}}。",
+      notReviewedToday: "今天还没复习",
+      reviewedToday: "今天已复习",
+      title: "连续",
+    },
     interval: {
       inCount: "{{count}}后",
       lessThanMinute: "不到 1 分钟后",

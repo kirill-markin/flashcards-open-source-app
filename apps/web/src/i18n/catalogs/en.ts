@@ -434,6 +434,12 @@ const enCatalog = {
     errors: {
       schedulerUnavailable: "Workspace scheduler settings are not loaded",
     },
+    progressBadge: {
+      ariaLabel: "Review streak {{streak}} days. {{todayStatus}}.",
+      notReviewedToday: "Not reviewed today",
+      reviewedToday: "Reviewed today",
+      title: "Streak",
+    },
     interval: {
       inCount: "in {{count}}",
       lessThanMinute: "in less than a minute",
