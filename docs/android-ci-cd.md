@@ -104,7 +104,7 @@ Android app-internal translations are Play-first:
 
 Cross-client live smoke references:
 
-- Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
+- Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/LiveSmokeTest.kt`
 - Android notification tap gate: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/NotificationTapSmokeTest.kt`
 - iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmoke*Tests.swift`
 - Web: `apps/web/e2e/live-smoke.spec.ts`
@@ -364,7 +364,7 @@ Run one app instrumentation class on a local emulator for ad hoc debugging (requ
 
 ```bash
 adb devices
-cd apps/android && ./gradlew clean :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.flashcardsopensourceapp.app.LiveSmokeTest
+cd apps/android && ./gradlew clean :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.flashcardsopensourceapp.app.livesmoke.LiveSmokeTest
 ```
 
 Note: `connectedDebugAndroidTest` does not support the `--tests` flag. Use `-Pandroid.testInstrumentationRunnerArguments.class=` to filter by test class.

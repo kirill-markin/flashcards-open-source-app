@@ -17,7 +17,7 @@ If you need to inspect Xcode Cloud directly instead of relying only on the web U
 Cross-client live smoke references:
 
 - iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmoke*Tests.swift`
-- Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
+- Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/LiveSmokeTest.kt`
 - Android notification tap gate: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/NotificationTapSmokeTest.kt`
 - Web: `apps/web/e2e/live-smoke.spec.ts`
 

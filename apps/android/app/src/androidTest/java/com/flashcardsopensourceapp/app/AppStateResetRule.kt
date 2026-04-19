@@ -8,6 +8,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
+import com.flashcardsopensourceapp.app.livesmoke.currentBlockingSystemDialogSummaryOrNull
+import com.flashcardsopensourceapp.app.livesmoke.dismissBlockingSystemDialogIfPresent
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import java.util.concurrent.CountDownLatch

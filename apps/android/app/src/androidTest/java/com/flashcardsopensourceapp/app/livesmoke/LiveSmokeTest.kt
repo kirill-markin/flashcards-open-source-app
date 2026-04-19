@@ -1,9 +1,12 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.livesmoke
 
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
+import com.flashcardsopensourceapp.app.AppStateResetRule
+import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
+import com.flashcardsopensourceapp.app.MainActivity
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain

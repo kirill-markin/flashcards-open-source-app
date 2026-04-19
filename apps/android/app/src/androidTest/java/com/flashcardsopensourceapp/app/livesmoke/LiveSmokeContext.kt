@@ -1,8 +1,9 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.livesmoke
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.uiautomator.UiDevice
+import com.flashcardsopensourceapp.app.MainActivity
 import org.junit.rules.TestName
 
 internal const val externalUiTimeoutMillis: Long = 30_000L

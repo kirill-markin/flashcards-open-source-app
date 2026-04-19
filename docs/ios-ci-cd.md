@@ -17,7 +17,7 @@ Guest AI availability is part of the iOS release contract. The guest AI smoke mu
 The grouped smoke suite still maps to the same top-level live-smoke contract as the other clients:
 
 - iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmoke*Tests.swift`
-- Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
+- Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/LiveSmokeTest.kt`
 - Web: `apps/web/e2e/live-smoke.spec.ts`
 
 The shared scheme for cloud builds is:
