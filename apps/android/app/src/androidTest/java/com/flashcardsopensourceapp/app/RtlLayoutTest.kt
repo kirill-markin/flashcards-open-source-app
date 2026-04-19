@@ -106,7 +106,6 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
                     reviewProgressBadge = ReviewProgressBadgeState(
                         streakDays = 0,
                         hasReviewedToday = false,
-                        isApproximate = false,
                         isInteractive = true
                     ),
                     isPreviewLoading = false,

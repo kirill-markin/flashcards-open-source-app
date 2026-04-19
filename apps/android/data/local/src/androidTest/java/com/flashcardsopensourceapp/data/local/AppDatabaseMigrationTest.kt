@@ -6,8 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.migration5To6
-import com.flashcardsopensourceapp.data.local.database.migration9To10
+import com.flashcardsopensourceapp.data.local.database.createAppDatabaseMigrations
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -36,7 +35,7 @@ class AppDatabaseMigrationTest {
             context = context,
             klass = AppDatabase::class.java,
             name = databaseName
-        ).addMigrations(migration5To6).build()
+        ).addMigrations(*createAppDatabaseMigrations()).build()
 
         val migratedCard = database.cardDao().loadCard(cardId = "card-1")
         val schedulerSettings = database.workspaceSchedulerSettingsDao().loadWorkspaceSchedulerSettings(
@@ -65,7 +64,7 @@ class AppDatabaseMigrationTest {
             context = context,
             klass = AppDatabase::class.java,
             name = databaseName
-        ).addMigrations(migration9To10).build()
+        ).addMigrations(*createAppDatabaseMigrations()).build()
 
         val summaryCaches = database.progressRemoteCacheDao().observeProgressSummaryCaches()
         val seriesCaches = database.progressRemoteCacheDao().observeProgressSeriesCaches()

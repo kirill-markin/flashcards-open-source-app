@@ -71,7 +71,6 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         reviewProgressBadge = ReviewProgressBadgeState(
                             streakDays = 120,
                             hasReviewedToday = false,
-                            isApproximate = false,
                             isInteractive = true
                         ),
                         previewErrorMessage = "",

@@ -56,7 +56,11 @@ fun buildAppDatabase(context: Context): AppDatabase {
         context = context,
         klass = AppDatabase::class.java,
         name = appDatabaseName
-    ).addMigrations(
+    ).addMigrations(*createAppDatabaseMigrations()).build()
+}
+
+fun createAppDatabaseMigrations(): Array<Migration> {
+    return arrayOf(
         migration2To3,
         migration3To4,
         migration4To5,
@@ -66,7 +70,7 @@ fun buildAppDatabase(context: Context): AppDatabase {
         migration8To9,
         migration9To10,
         migration10To11
-    ).build()
+    )
 }
 
 val migration2To3: Migration = object : Migration(2, 3) {
