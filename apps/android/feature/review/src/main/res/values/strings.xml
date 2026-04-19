@@ -24,6 +24,8 @@
     <string name="review_create_with_ai">Create with AI</string>
     <string name="review_switch_to_all_cards">Switch to all cards</string>
     <string name="review_progress_fraction">%1$d / %2$d</string>
+    <string name="review_progress_badge_reviewed_today">Reviewed today</string>
+    <string name="review_progress_badge_not_reviewed_today">Not reviewed today</string>
     <string name="review_filter_title_with_count">%1$s (%2$d)</string>
     <string name="review_edit_card_content_description">Edit card</string>
     <string name="review_front_label">Front</string>
@@ -73,5 +75,9 @@
     <plurals name="review_interval_days">
         <item quantity="one">in %d day</item>
         <item quantity="other">in %d days</item>
+    </plurals>
+    <plurals name="review_progress_badge_content_description">
+        <item quantity="one">Review streak %d day.</item>
+        <item quantity="other">Review streak %d days.</item>
     </plurals>
 </resources>

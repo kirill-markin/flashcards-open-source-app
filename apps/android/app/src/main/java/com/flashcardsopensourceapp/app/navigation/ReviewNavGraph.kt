@@ -38,6 +38,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
         val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
             factory = createReviewViewModelFactory(
                 reviewRepository = appGraph.reviewRepository,
+                progressRepository = appGraph.progressRepository,
                 autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 messageController = appGraph.appMessageBus,
                 reviewNotificationsStore = appGraph.reviewNotificationsStore,
@@ -123,7 +124,14 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 if (activity != null) {
                     notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
-            }
+            },
+            onOpenProgress = {
+                navigateToTopLevelDestination(
+                    navController = navController,
+                    destination = ProgressDestination
+                )
+            },
+            onScreenVisible = reviewViewModel::onScreenVisible
         )
     }
 
@@ -137,6 +145,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             viewModelStoreOwner = reviewBackStackEntry,
             factory = createReviewViewModelFactory(
                 reviewRepository = appGraph.reviewRepository,
+                progressRepository = appGraph.progressRepository,
                 autoSyncEventRepository = appGraph.autoSyncEventRepository,
                 messageController = appGraph.appMessageBus,
                 reviewNotificationsStore = appGraph.reviewNotificationsStore,

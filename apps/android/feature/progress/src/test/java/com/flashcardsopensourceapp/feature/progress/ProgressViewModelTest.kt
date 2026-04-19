@@ -71,10 +71,6 @@ class ProgressViewModelTest {
             assertTrue(loadedState.summary is ProgressSummaryUiState.Loaded)
             val summaryState = loadedState.summary as ProgressSummaryUiState.Loaded
             assertEquals(12, summaryState.summary.currentStreakDays)
-            assertEquals(ProgressSourceUiState.SERVER_BASE, summaryState.source)
-            assertEquals(false, summaryState.isApproximate)
-            assertEquals(ProgressSourceUiState.LOCAL_ONLY, loadedState.source)
-            assertEquals(true, loadedState.isApproximate)
             assertEquals(3, loadedState.reviewsSection.maxReviewCount)
         } finally {
             Dispatchers.resetMain()

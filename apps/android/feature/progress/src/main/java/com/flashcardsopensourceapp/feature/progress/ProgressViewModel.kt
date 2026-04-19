@@ -8,7 +8,6 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.flashcardsopensourceapp.data.local.model.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
-import com.flashcardsopensourceapp.data.local.model.ProgressSnapshotSource
 import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.progressHistoryDayCount
@@ -77,8 +76,6 @@ private fun createProgressUiState(
     return seriesSnapshot.renderedSeries.toUiState(
         locale = Locale.getDefault(),
         today = today,
-        source = seriesSnapshot.source,
-        isApproximate = seriesSnapshot.isApproximate,
         summary = summarySnapshot?.toUiState() ?: ProgressSummaryUiState.Loading
     )
 }
@@ -86,8 +83,6 @@ private fun createProgressUiState(
 private fun CloudProgressSeries.toUiState(
     locale: Locale,
     today: LocalDate,
-    source: ProgressSnapshotSource,
-    isApproximate: Boolean,
     summary: ProgressSummaryUiState
 ): ProgressUiState {
     val parsedPoints = dailyReviews
@@ -114,17 +109,13 @@ private fun CloudProgressSeries.toUiState(
     return ProgressUiState.Loaded(
         summary = summary,
         streakSection = streakSection,
-        reviewsSection = reviewsSection,
-        source = source.toUiState(),
-        isApproximate = isApproximate
+        reviewsSection = reviewsSection
     )
 }
 
 private fun ProgressSummarySnapshot.toUiState(): ProgressSummaryUiState {
     return ProgressSummaryUiState.Loaded(
-        summary = renderedSummary,
-        source = source.toUiState(),
-        isApproximate = isApproximate
+        summary = renderedSummary
     )
 }
 
@@ -241,16 +232,6 @@ private fun startOfWeek(
     val daysFromStartOfWeek = (date.dayOfWeek.value - firstDayOfWeek.value + daysPerWeek) % daysPerWeek
 
     return date.minusDays(daysFromStartOfWeek.toLong())
-}
-
-private fun ProgressSnapshotSource.toUiState(): ProgressSourceUiState {
-    return when (this) {
-        ProgressSnapshotSource.LOCAL_ONLY -> ProgressSourceUiState.LOCAL_ONLY
-        ProgressSnapshotSource.SERVER_BASE -> ProgressSourceUiState.SERVER_BASE
-        ProgressSnapshotSource.SERVER_BASE_WITH_LOCAL_OVERLAY -> {
-            ProgressSourceUiState.SERVER_BASE_WITH_LOCAL_OVERLAY
-        }
-    }
 }
 
 fun createProgressViewModelFactory(
