@@ -42,6 +42,9 @@ struct LocalDatabaseMigrator {
             case 10:
                 try self.migrateSchemaVersion10To11()
                 schemaVersion = 11
+            case 11:
+                try self.migrateSchemaVersion11To12()
+                schemaVersion = 12
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -399,6 +402,13 @@ struct LocalDatabaseMigrator {
         )
         try self.core.execute(sql: "DROP TABLE app_local_settings", values: [])
         try self.core.execute(sql: "ALTER TABLE app_local_settings_v11 RENAME TO app_local_settings", values: [])
+    }
+
+    private func migrateSchemaVersion11To12() throws {
+        try self.core.execute(
+            sql: "CREATE INDEX IF NOT EXISTS idx_review_events_reviewed_at_client ON review_events(reviewed_at_client)",
+            values: []
+        )
     }
 
     /**

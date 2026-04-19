@@ -21,6 +21,9 @@ const val defaultInactivityReminderWindowEndMinute: Int = 0
 private const val reviewNotificationsPreferencesName: String = "flashcards-review-notifications"
 private const val reviewNotificationsSettingsKeyPrefix: String = "review-notifications-settings::"
 private const val reviewNotificationsScheduledPayloadsKeyPrefix: String = "review-notifications-scheduled-payloads::"
+private const val strictRemindersSettingsKey: String = "strict-reminders-settings"
+private const val strictRemindersScheduledPayloadsKey: String = "strict-reminders-scheduled-payloads"
+private const val strictRemindersLastCompletedReviewAtKey: String = "strict-reminders-last-completed-review-at"
 private const val reviewNotificationsPromptStateKey: String = "review-notifications-prompt-state"
 private const val reviewNotificationsSuccessfulReviewCountKey: String = "review-notifications-successful-review-count"
 private const val reviewNotificationsLastActiveAtKey: String = "review-notifications-last-active-at"
@@ -90,7 +93,7 @@ data class CurrentReviewNotificationCard(
 
 fun defaultReviewNotificationsSettings(): ReviewNotificationsSettings {
     return ReviewNotificationsSettings(
-        isEnabled = false,
+        isEnabled = true,
         selectedMode = ReviewNotificationMode.DAILY,
         daily = DailyReviewNotificationsSettings(
             hour = defaultDailyReminderHour,
@@ -128,9 +131,20 @@ interface ReviewNotificationsStore {
     fun saveScheduledPayloads(workspaceId: String, payloads: List<ScheduledReviewNotificationPayload>)
 }
 
+interface StrictRemindersStore {
+    fun loadStrictRemindersSettings(): StrictRemindersSettings
+    fun saveStrictRemindersSettings(settings: StrictRemindersSettings)
+    fun loadLastCompletedReviewAtMillis(): Long?
+    fun saveLastCompletedReviewAtMillis(timestampMillis: Long)
+    fun clearLastCompletedReviewAtMillis()
+    fun loadScheduledStrictReminderPayloads(): List<ScheduledStrictReminderPayload>
+    fun saveScheduledStrictReminderPayloads(payloads: List<ScheduledStrictReminderPayload>)
+    fun clearStrictRemindersIdentityState()
+}
+
 class SharedPreferencesReviewNotificationsStore(
     context: Context
-) : ReviewNotificationsStore {
+) : ReviewNotificationsStore, StrictRemindersStore {
     private val preferences = context.getSharedPreferences(
         reviewNotificationsPreferencesName,
         Context.MODE_PRIVATE
@@ -156,6 +170,49 @@ class SharedPreferencesReviewNotificationsStore(
                 makeSettingsKey(workspaceId = workspaceId),
                 encodeSettings(settings = settings)
             )
+        }
+    }
+
+    override fun loadStrictRemindersSettings(): StrictRemindersSettings {
+        val rawValue = preferences.getString(strictRemindersSettingsKey, null)
+            ?: return defaultStrictRemindersSettings()
+
+        return try {
+            decodeStrictRemindersSettings(rawValue = rawValue)
+        } catch (_: Exception) {
+            preferences.edit(commit = true) {
+                remove(strictRemindersSettingsKey)
+            }
+            defaultStrictRemindersSettings()
+        }
+    }
+
+    override fun saveStrictRemindersSettings(settings: StrictRemindersSettings) {
+        preferences.edit(commit = true) {
+            putString(
+                strictRemindersSettingsKey,
+                encodeStrictRemindersSettings(settings = settings)
+            )
+        }
+    }
+
+    override fun loadLastCompletedReviewAtMillis(): Long? {
+        if (preferences.contains(strictRemindersLastCompletedReviewAtKey).not()) {
+            return null
+        }
+
+        return preferences.getLong(strictRemindersLastCompletedReviewAtKey, 0L)
+    }
+
+    override fun saveLastCompletedReviewAtMillis(timestampMillis: Long) {
+        preferences.edit(commit = true) {
+            putLong(strictRemindersLastCompletedReviewAtKey, timestampMillis)
+        }
+    }
+
+    override fun clearLastCompletedReviewAtMillis() {
+        preferences.edit(commit = true) {
+            remove(strictRemindersLastCompletedReviewAtKey)
         }
     }
 
@@ -230,6 +287,36 @@ class SharedPreferencesReviewNotificationsStore(
                 encodeScheduledPayloads(payloads = payloads)
             )
         }
+    }
+
+    override fun loadScheduledStrictReminderPayloads(): List<ScheduledStrictReminderPayload> {
+        val rawValue = preferences.getString(strictRemindersScheduledPayloadsKey, null)
+            ?: return emptyList()
+
+        return try {
+            decodeScheduledStrictReminderPayloads(rawValue = rawValue)
+        } catch (_: Exception) {
+            preferences.edit(commit = true) {
+                remove(strictRemindersScheduledPayloadsKey)
+            }
+            emptyList()
+        }
+    }
+
+    override fun saveScheduledStrictReminderPayloads(payloads: List<ScheduledStrictReminderPayload>) {
+        preferences.edit(commit = true) {
+            putString(
+                strictRemindersScheduledPayloadsKey,
+                encodeScheduledStrictReminderPayloads(payloads = payloads)
+            )
+        }
+    }
+
+    override fun clearStrictRemindersIdentityState() {
+        preferences.edit(commit = true) {
+            remove(strictRemindersScheduledPayloadsKey)
+        }
+        clearLastCompletedReviewAtMillis()
     }
 }
 
@@ -618,6 +705,12 @@ private fun encodeSettings(settings: ReviewNotificationsSettings): String {
     }.toString()
 }
 
+private fun encodeStrictRemindersSettings(settings: StrictRemindersSettings): String {
+    return JSONObject().apply {
+        put("isEnabled", settings.isEnabled)
+    }.toString()
+}
+
 private fun decodeSettings(rawValue: String): ReviewNotificationsSettings {
     val payload = JSONObject(rawValue)
     val dailyPayload = payload.getJSONObject("daily")
@@ -641,6 +734,13 @@ private fun decodeSettings(rawValue: String): ReviewNotificationsSettings {
             windowEndMinute = inactivityPayload.getInt("windowEndMinute"),
             idleMinutes = inactivityPayload.getInt("idleMinutes")
         )
+    )
+}
+
+private fun decodeStrictRemindersSettings(rawValue: String): StrictRemindersSettings {
+    val payload = JSONObject(rawValue)
+    return StrictRemindersSettings(
+        isEnabled = payload.getBoolean("isEnabled")
     )
 }
 
@@ -680,6 +780,22 @@ private fun encodeScheduledPayloads(payloads: List<ScheduledReviewNotificationPa
     }.toString()
 }
 
+private fun encodeScheduledStrictReminderPayloads(
+    payloads: List<ScheduledStrictReminderPayload>
+): String {
+    return JSONArray().apply {
+        payloads.forEach { payload ->
+            put(
+                JSONObject().apply {
+                    put("scheduledAtMillis", payload.scheduledAtMillis)
+                    put("timeOffset", payload.timeOffset.rawValue)
+                    put("requestId", payload.requestId)
+                }
+            )
+        }
+    }.toString()
+}
+
 private fun decodeScheduledPayloads(rawValue: String): List<ScheduledReviewNotificationPayload> {
     val payloads = JSONArray(rawValue)
     return (0 until payloads.length()).map { index ->
@@ -694,6 +810,20 @@ private fun decodeScheduledPayloads(rawValue: String): List<ScheduledReviewNotif
             },
             frontText = payload.getString("frontText"),
             scheduledAtMillis = payload.getLong("scheduledAtMillis"),
+            requestId = payload.getString("requestId")
+        )
+    }
+}
+
+private fun decodeScheduledStrictReminderPayloads(rawValue: String): List<ScheduledStrictReminderPayload> {
+    val payloads = JSONArray(rawValue)
+    return (0 until payloads.length()).map { index ->
+        val payload = payloads.getJSONObject(index)
+        ScheduledStrictReminderPayload(
+            scheduledAtMillis = payload.getLong("scheduledAtMillis"),
+            timeOffset = StrictReminderTimeOffset.fromRawValue(
+                rawValue = payload.getString("timeOffset")
+            ),
             requestId = payload.getString("requestId")
         )
     }

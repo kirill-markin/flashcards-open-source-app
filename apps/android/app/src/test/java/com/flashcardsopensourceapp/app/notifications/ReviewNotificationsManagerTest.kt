@@ -14,6 +14,14 @@ class ReviewNotificationsManagerTest {
     }
 
     @Test
+    fun strictReminderNotificationTagUsesDedicatedPrefix() {
+        assertEquals(
+            "strict-reminder::request-456",
+            strictReminderNotificationTag(requestId = "request-456")
+        )
+    }
+
+    @Test
     fun consumeAppNotificationTapRequestReturnsRequestOnlyOncePerIntent() {
         val extras = mutableMapOf(
             "$appNotificationTapExtraPrefix::$appNotificationTapTypeDataKey" to AppNotificationTapType.REVIEW_REMINDER.rawValue
@@ -42,5 +50,17 @@ class ReviewNotificationsManagerTest {
         )
 
         assertNull(request)
+    }
+
+    @Test
+    fun parseAppNotificationTapRequestParsesStrictReminderType() {
+        val request = parseAppNotificationTapRequest(
+            getStringExtra = mapOf(
+                "$appNotificationTapExtraPrefix::$appNotificationTapTypeDataKey" to AppNotificationTapType.STRICT_REMINDER.rawValue
+            )::get
+        )
+
+        requireNotNull(request)
+        assertEquals(AppNotificationTapType.STRICT_REMINDER, request.type)
     }
 }

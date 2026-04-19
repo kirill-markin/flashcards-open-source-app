@@ -395,9 +395,15 @@
 "settings.workspace.scheduler.applyAlertMessage" = "除非有特殊原因，否则不建议更改编程器设置。它仅影响将来的刷新，不会重写卡的当前状态。";
 
 "settings.notifications.title" = "通知";
-"settings.notifications.description" = "通知设置仍与此工作区关联，但仅适用于当前设备。学习提醒仅包含卡片，不含营销信息。";
+"settings.notifications.description" = "复习提醒仍绑定到当前工作区。严格提醒是仅适用于此设备的应用级连续记录提醒。学习通知只包含卡片，不会包含营销消息。";
 "settings.notifications.section.permission" = "权限";
-"settings.notifications.section.reviewReminders" = "审核提醒";
+"settings.notifications.section.reviewReminders" = "工作区复习提醒";
+"settings.notifications.reviewReminders.description" = "这些提醒只使用当前工作区，并且仅保留在此设备上。";
+"settings.notifications.enableWorkspaceReminders" = "启用工作区提醒";
+"settings.notifications.section.strictReminders" = "严格提醒";
+"settings.notifications.enableStrictReminders" = "启用严格提醒";
+"settings.notifications.strictReminders.description" = "如果你在某个本地日没有在应用中的任何地方复习，Flashcards 会在当天结束前 4、3、2 小时提醒你。";
+"settings.notifications.strictReminders.deviceNote" = "严格提醒是应用级提醒，仅适用于此设备。";
 "settings.notifications.section.dailyReminder" = "每日提醒";
 "settings.notifications.section.inactivityReminder" = "不活动提醒";
 "settings.notifications.permission.allowed" = "允许";

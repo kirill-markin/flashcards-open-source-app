@@ -5,17 +5,29 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
+import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
+import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.FsrsCardState
+import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.SyncOperationPayload
 import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.SystemProgressTimeProvider
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import java.time.Instant
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.fail
 import org.junit.Before
@@ -199,6 +211,123 @@ class SyncLocalStoreContractTest {
         assertNull(payload.deletedAt)
     }
 
+    @Test
+    fun migrateLocalShellEmitsReviewHistoryChangedEventWhenReviewLogsAreDeleted() = runBlocking {
+        insertWorkspaceShell()
+        insertCard()
+        database.reviewLogDao().insertReviewLog(
+            ReviewLogEntity(
+                reviewLogId = "review-log-1",
+                workspaceId = workspaceId,
+                cardId = "card-1",
+                replicaId = "replica-1",
+                clientEventId = "client-event-1",
+                rating = ReviewRating.GOOD,
+                reviewedAtMillis = 1_000L,
+                reviewedAtServerIso = "2026-03-27T19:05:00Z"
+            )
+        )
+
+        val eventDeferred = async(start = CoroutineStart.UNDISPATCHED) {
+            withTimeout(5_000L) {
+                syncLocalStore.observeReviewHistoryChangedEvents().first()
+            }
+        }
+
+        syncLocalStore.migrateLocalShellToLinkedWorkspace(
+            workspace = CloudWorkspaceSummary(
+                workspaceId = "workspace-2",
+                name = "Replacement",
+                createdAtMillis = 2_000L,
+                isSelected = true
+            ),
+            remoteWorkspaceIsEmpty = false
+        )
+
+        val event = eventDeferred.await()
+
+        assertEquals(setOf(workspaceId), event.workspaceIds)
+        assertNull(event.latestReviewedAtMillis)
+        assertEquals(0, database.reviewLogDao().countReviewLogs())
+    }
+
+    @Test
+    fun reviewHistoryBatchFlushEmitsSingleMergedEventOnlyAfterFlush() = runBlocking {
+        insertWorkspaceShell()
+        insertCard()
+        syncLocalStore.beginReviewHistoryChangeBatch()
+
+        val eventDeferred = async(start = CoroutineStart.UNDISPATCHED) {
+            withTimeout(5_000L) {
+                syncLocalStore.observeReviewHistoryChangedEvents().first()
+            }
+        }
+
+        syncLocalStore.applyReviewHistory(
+            events = listOf(
+                makeRemoteReviewHistoryEvent(
+                    reviewEventId = "review-log-1",
+                    reviewedAtClient = "2026-03-27T08:00:00Z"
+                )
+            )
+        )
+        syncLocalStore.applyReviewHistory(
+            events = listOf(
+                makeRemoteReviewHistoryEvent(
+                    reviewEventId = "review-log-2",
+                    reviewedAtClient = "2026-03-27T22:00:00Z"
+                )
+            )
+        )
+
+        assertFalse(eventDeferred.isCompleted)
+
+        syncLocalStore.flushReviewHistoryChangeBatch()
+
+        val event = eventDeferred.await()
+
+        assertEquals(setOf(workspaceId), event.workspaceIds)
+        assertEquals(
+            Instant.parse("2026-03-27T22:00:00Z").toEpochMilli(),
+            event.latestReviewedAtMillis
+        )
+    }
+
+    @Test
+    fun reviewHistoryBatchFlushReplaysMergedEventToLateSubscribers() = runBlocking {
+        insertWorkspaceShell()
+        insertCard()
+        syncLocalStore.beginReviewHistoryChangeBatch()
+
+        syncLocalStore.applyReviewHistory(
+            events = listOf(
+                makeRemoteReviewHistoryEvent(
+                    reviewEventId = "review-log-1",
+                    reviewedAtClient = "2026-03-27T08:00:00Z"
+                )
+            )
+        )
+        syncLocalStore.applyReviewHistory(
+            events = listOf(
+                makeRemoteReviewHistoryEvent(
+                    reviewEventId = "review-log-2",
+                    reviewedAtClient = "2026-03-27T22:00:00Z"
+                )
+            )
+        )
+        syncLocalStore.flushReviewHistoryChangeBatch()
+
+        val event = withTimeout(5_000L) {
+            syncLocalStore.observeReviewHistoryChangedEvents().first()
+        }
+
+        assertEquals(setOf(workspaceId), event.workspaceIds)
+        assertEquals(
+            Instant.parse("2026-03-27T22:00:00Z").toEpochMilli(),
+            event.latestReviewedAtMillis
+        )
+    }
+
     private suspend fun insertWorkspaceShell() {
         database.workspaceDao().insertWorkspace(
             WorkspaceEntity(
@@ -208,9 +337,49 @@ class SyncLocalStoreContractTest {
             )
         )
     }
+
+    private suspend fun insertCard() {
+        database.cardDao().insertCard(
+            CardEntity(
+                cardId = "card-1",
+                workspaceId = workspaceId,
+                frontText = "Front",
+                backText = "Back",
+                effortLevel = EffortLevel.MEDIUM,
+                dueAtMillis = null,
+                createdAtMillis = 1L,
+                updatedAtMillis = 1L,
+                reps = 0,
+                lapses = 0,
+                fsrsCardState = FsrsCardState.NEW,
+                fsrsStepIndex = null,
+                fsrsStability = null,
+                fsrsDifficulty = null,
+                fsrsLastReviewedAtMillis = null,
+                fsrsScheduledDays = null,
+                deletedAtMillis = null
+            )
+        )
+    }
 }
 
 private const val workspaceId: String = "workspace-1"
+
+private fun makeRemoteReviewHistoryEvent(
+    reviewEventId: String,
+    reviewedAtClient: String
+): RemoteReviewHistoryEvent {
+    return RemoteReviewHistoryEvent(
+        reviewEventId = reviewEventId,
+        workspaceId = workspaceId,
+        cardId = "card-1",
+        replicaId = "replica-1",
+        clientEventId = "client-event-$reviewEventId",
+        rating = ReviewRating.GOOD.ordinal,
+        reviewedAtClient = reviewedAtClient,
+        reviewedAtServer = reviewedAtClient
+    )
+}
 
 private inline fun <reified T : Throwable> expectThrows(block: () -> Unit): T {
     try {

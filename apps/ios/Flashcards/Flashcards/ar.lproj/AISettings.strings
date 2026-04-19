@@ -395,9 +395,15 @@
 "settings.workspace.scheduler.applyAlertMessage" = "لا ينصح بتغيير إعدادات المبرمج إلا إذا كان لديك سبب محدد. فهو يؤثر فقط على عمليات التحديث المستقبلية ولا يعيد كتابة الحالة الحالية للبطاقات.";
 
 "settings.notifications.title" = "الإخطارات";
-"settings.notifications.description" = "لا تزال إعدادات الإشعارات مرتبطة بمساحة العمل هذه، ولكنها تنطبق فقط على الجهاز الحالي. تحتوي تذكيرات الدراسة على بطاقات فقط ولا تحتوي على رسائل تسويقية أبدًا.";
+"settings.notifications.description" = "تظل تذكيرات المراجعة مرتبطة بمساحة العمل الحالية. أما التذكيرات الصارمة فهي تذكيرات متسلسلة على مستوى التطبيق لهذا الجهاز فقط. تحتوي إشعارات الدراسة على بطاقات فقط ولا تتضمن رسائل تسويقية مطلقًا.";
 "settings.notifications.section.permission" = "إذن";
-"settings.notifications.section.reviewReminders" = "مراجعة التذكيرات";
+"settings.notifications.section.reviewReminders" = "تذكيرات مراجعة مساحة العمل";
+"settings.notifications.reviewReminders.description" = "تستخدم هذه التذكيرات مساحة العمل الحالية فقط وتبقى على هذا الجهاز.";
+"settings.notifications.enableWorkspaceReminders" = "تفعيل تذكيرات مساحة العمل";
+"settings.notifications.section.strictReminders" = "تذكيرات صارمة";
+"settings.notifications.enableStrictReminders" = "تفعيل التذكيرات الصارمة";
+"settings.notifications.strictReminders.description" = "إذا لم تراجع في أي مكان داخل التطبيق خلال يوم محلي، فسيذكرك Flashcards قبل نهاية ذلك اليوم بـ 4 و3 و2 ساعة.";
+"settings.notifications.strictReminders.deviceNote" = "التذكيرات الصارمة على مستوى التطبيق وتطبق على هذا الجهاز فقط.";
 "settings.notifications.section.dailyReminder" = "تذكير يومي";
 "settings.notifications.section.inactivityReminder" = "تذكير بعدم النشاط";
 "settings.notifications.permission.allowed" = "مسموح";

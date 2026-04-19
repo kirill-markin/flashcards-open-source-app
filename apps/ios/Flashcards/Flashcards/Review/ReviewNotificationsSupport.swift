@@ -224,6 +224,7 @@ struct CurrentReviewNotificationCard: Hashable, Sendable {
 
 enum AppNotificationTapType: String, Codable, Hashable, Sendable {
     case reviewReminder
+    case strictReminder
 }
 
 enum AppNotificationTapSource: String, Codable, Hashable, Sendable {
@@ -240,6 +241,7 @@ struct AppNotificationTapFallback: Codable, Hashable, Sendable {
 
 enum AppNotificationTapRequest: Codable, Hashable, Sendable {
     case openReviewReminder
+    case openStrictReminder
     case fallback(AppNotificationTapFallback)
 }
 
@@ -306,8 +308,10 @@ enum ReviewNotificationPermissionStatus: Hashable, Sendable {
 }
 
 func makeDefaultReviewNotificationsSettings() -> ReviewNotificationsSettings {
+    // Internal reminder categories default to enabled. Delivery is still gated by
+    // the current system notification permission state.
     ReviewNotificationsSettings(
-        isEnabled: false,
+        isEnabled: true,
         selectedMode: .daily,
         daily: DailyReviewNotificationsSettings(
             hour: defaultDailyReminderHour,
@@ -744,7 +748,7 @@ private func buildRepeatedInactivityReviewNotificationDatesForDay(
     return scheduledDates
 }
 
-func buildReviewNotificationUserInfo(notificationType: AppNotificationTapType) -> [AnyHashable: Any] {
+func buildAppNotificationUserInfo(notificationType: AppNotificationTapType) -> [AnyHashable: Any] {
     return [
         appNotificationTapTypeUserInfoKey: notificationType.rawValue
     ]
@@ -754,6 +758,8 @@ func appNotificationTapType(request: AppNotificationTapRequest) -> String {
     switch request {
     case .openReviewReminder:
         return AppNotificationTapType.reviewReminder.rawValue
+    case .openStrictReminder:
+        return AppNotificationTapType.strictReminder.rawValue
     case .fallback(let fallback):
         return fallback.notificationType ?? "fallback"
     }
@@ -865,6 +871,8 @@ func parseAppNotificationTapRequest(userInfo: [AnyHashable: Any]) -> AppNotifica
     switch notificationType {
     case .reviewReminder:
         return .openReviewReminder
+    case .strictReminder:
+        return .openStrictReminder
     }
 }
 

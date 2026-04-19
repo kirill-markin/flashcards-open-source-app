@@ -23,12 +23,30 @@ final class ReviewNotificationsAppDelegate: NSObject, UIApplicationDelegate, UNU
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        guard let request = parseAppNotificationTapRequest(userInfo: response.notification.request.content.userInfo) else {
+        let userInfo = response.notification.request.content.userInfo
+        guard let request = parseAppNotificationTapRequest(userInfo: userInfo) else {
             completionHandler()
             return
         }
 
         let appState = Self.currentApplicationStateString()
+        if request == .openStrictReminder
+            && isCurrentStrictReminderNotification(userInfo: userInfo, userDefaults: .standard) == false {
+            let droppedMetadata = makeAppNotificationTapLogMetadata(
+                request: request,
+                source: .notificationResponse,
+                appState: appState,
+                scenePhase: nil,
+                receivedAtMillis: nil,
+                stage: "receive",
+                reason: "stale_strict_reminder_scope",
+                details: nil
+            )
+            logAppNotificationTapEvent(action: "notification_tap_dropped", metadata: droppedMetadata)
+            completionHandler()
+            return
+        }
+
         let receivedMetadata = makeAppNotificationTapLogMetadata(
             request: request,
             source: .notificationResponse,

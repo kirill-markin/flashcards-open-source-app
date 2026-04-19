@@ -1,7 +1,9 @@
 package com.flashcardsopensourceapp.feature.settings
 
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsSettings
+import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersSettings
 import com.flashcardsopensourceapp.data.local.notifications.defaultReviewNotificationsSettings
+import com.flashcardsopensourceapp.data.local.notifications.defaultStrictRemindersSettings
 
 enum class ReviewNotificationPermissionUiStatus {
     ALLOWED,
@@ -13,6 +15,7 @@ data class ReviewNotificationsUiState(
     val workspaceId: String?,
     val workspaceName: String,
     val settings: ReviewNotificationsSettings,
+    val strictRemindersSettings: StrictRemindersSettings,
     val hasRequestedSystemPermission: Boolean
 )
 
@@ -21,6 +24,7 @@ fun initialReviewNotificationsUiState(): ReviewNotificationsUiState {
         workspaceId = null,
         workspaceName = "",
         settings = defaultReviewNotificationsSettings(),
+        strictRemindersSettings = defaultStrictRemindersSettings(),
         hasRequestedSystemPermission = false
     )
 }

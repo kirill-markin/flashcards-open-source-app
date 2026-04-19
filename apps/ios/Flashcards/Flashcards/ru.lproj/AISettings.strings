@@ -395,9 +395,15 @@
 "settings.workspace.scheduler.applyAlertMessage" = "Не рекомендуется менять настройки программатора, если у вас нет особой причины. Это влияет только на будущие обновления и не перезаписывает текущее состояние карт.";
 
 "settings.notifications.title" = "Уведомления";
-"settings.notifications.description" = "Настройки уведомлений по-прежнему связаны с этой рабочей областью, но применяются только к текущему устройству. Напоминания об исследованиях содержат только карточки и не содержат маркетинговых сообщений.";
+"settings.notifications.description" = "Напоминания о повторении остаются привязанными к текущему рабочему пространству. Строгие напоминания — это напоминания о серии на уровне приложения только для этого устройства. Учебные уведомления содержат только карточки и никогда не содержат маркетинговых сообщений.";
 "settings.notifications.section.permission" = "Разрешение";
-"settings.notifications.section.reviewReminders" = "Напоминания об отзывах";
+"settings.notifications.section.reviewReminders" = "Напоминания о повторении для рабочего пространства";
+"settings.notifications.reviewReminders.description" = "Эти напоминания используют только текущее рабочее пространство и остаются на этом устройстве.";
+"settings.notifications.enableWorkspaceReminders" = "Включить напоминания рабочего пространства";
+"settings.notifications.section.strictReminders" = "Строгие напоминания";
+"settings.notifications.enableStrictReminders" = "Включить строгие напоминания";
+"settings.notifications.strictReminders.description" = "Если в течение локального дня вы нигде в приложении не повторяли, Flashcards напомнит за 4, 3 и 2 часа до конца этого дня.";
+"settings.notifications.strictReminders.deviceNote" = "Строгие напоминания действуют на уровне приложения и только на этом устройстве.";
 "settings.notifications.section.dailyReminder" = "Ежедневное напоминание";
 "settings.notifications.section.inactivityReminder" = "Напоминание о неактивности";
 "settings.notifications.permission.allowed" = "Разрешено";

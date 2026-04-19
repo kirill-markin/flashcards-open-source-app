@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
+import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewRoute
 import com.flashcardsopensourceapp.feature.review.createReviewViewModelFactory
@@ -25,6 +26,17 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
     appGraph: AppGraph,
     navController: NavHostController
 ) {
+    fun handleNotificationPermissionGranted() {
+        appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
+            trigger = ReviewNotificationsReconcileTrigger.PERMISSION_CHANGED,
+            nowMillis = System.currentTimeMillis()
+        )
+        appGraph.strictRemindersManager.reconcileStrictReminders(
+            trigger = StrictRemindersReconcileTrigger.PERMISSION_CHANGED,
+            nowMillis = System.currentTimeMillis()
+        )
+    }
+
     composable(route = ReviewDestination.route) {
         val context = LocalContext.current
         val activity = context as? ComponentActivity
@@ -32,7 +44,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             contract = ActivityResultContracts.RequestPermission()
         ) { isGranted ->
             if (isGranted) {
-                appGraph.reviewNotificationsManager.enableDefaultDailyForCurrentWorkspace()
+                handleNotificationPermissionGranted()
             }
         }
         val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
@@ -51,9 +63,13 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                         nowMillis = System.currentTimeMillis()
                     )
                 },
-                onNotificationPermissionGranted = {
-                    appGraph.reviewNotificationsManager.enableDefaultDailyForCurrentWorkspace()
+                onSuccessfulReviewRecorded = { reviewedAtMillis ->
+                    appGraph.strictRemindersManager.recordSuccessfulReview(
+                        reviewedAtMillis = reviewedAtMillis,
+                        nowMillis = System.currentTimeMillis()
+                    )
                 },
+                onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
                 reviewPreferencesStore = appGraph.reviewPreferencesStore,
                 visibleAppScreenRepository = appGraph.visibleAppScreenController,
                 workspaceRepository = appGraph.workspaceRepository
@@ -158,9 +174,13 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                         nowMillis = System.currentTimeMillis()
                     )
                 },
-                onNotificationPermissionGranted = {
-                    appGraph.reviewNotificationsManager.enableDefaultDailyForCurrentWorkspace()
+                onSuccessfulReviewRecorded = { reviewedAtMillis ->
+                    appGraph.strictRemindersManager.recordSuccessfulReview(
+                        reviewedAtMillis = reviewedAtMillis,
+                        nowMillis = System.currentTimeMillis()
+                    )
                 },
+                onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
                 reviewPreferencesStore = appGraph.reviewPreferencesStore,
                 visibleAppScreenRepository = appGraph.visibleAppScreenController,
                 workspaceRepository = appGraph.workspaceRepository

@@ -395,9 +395,15 @@
 "settings.workspace.scheduler.applyAlertMessage" = "जब तक आपके पास कोई विशिष्ट कारण न हो, प्रोग्रामर सेटिंग्स को बदलने की अनुशंसा नहीं की जाती है। यह केवल भविष्य के रिफ्रेश को प्रभावित करता है और कार्ड की वर्तमान स्थिति को फिर से नहीं लिखता है।";
 
 "settings.notifications.title" = "सूचनाएं";
-"settings.notifications.description" = "अधिसूचना सेटिंग्स अभी भी इस कार्यक्षेत्र से जुड़ी हुई हैं, लेकिन केवल वर्तमान डिवाइस पर लागू होती हैं। अध्ययन अनुस्मारक में केवल कार्ड होते हैं और विपणन संदेश नहीं होते।";
+"settings.notifications.description" = "रिव्यू रिमाइंडर मौजूदा वर्कस्पेस से जुड़े रहते हैं। स्ट्रिक्ट रिमाइंडर सिर्फ इस डिवाइस के लिए ऐप-स्तर के स्ट्रीक रिमाइंडर हैं। अध्ययन सूचनाओं में केवल कार्ड होते हैं और कभी भी मार्केटिंग संदेश नहीं होते।";
 "settings.notifications.section.permission" = "अनुमति";
-"settings.notifications.section.reviewReminders" = "समीक्षा अनुस्मारक";
+"settings.notifications.section.reviewReminders" = "वर्कस्पेस रिव्यू रिमाइंडर";
+"settings.notifications.reviewReminders.description" = "ये रिमाइंडर केवल मौजूदा वर्कस्पेस का उपयोग करते हैं और इसी डिवाइस पर रहते हैं।";
+"settings.notifications.enableWorkspaceReminders" = "वर्कस्पेस रिमाइंडर चालू करें";
+"settings.notifications.section.strictReminders" = "स्ट्रिक्ट रिमाइंडर";
+"settings.notifications.enableStrictReminders" = "स्ट्रिक्ट रिमाइंडर चालू करें";
+"settings.notifications.strictReminders.description" = "अगर आपने किसी स्थानीय दिन ऐप में कहीं भी रिव्यू नहीं किया है, तो Flashcards उस दिन के खत्म होने से 4, 3 और 2 घंटे पहले याद दिलाता है।";
+"settings.notifications.strictReminders.deviceNote" = "स्ट्रिक्ट रिमाइंडर ऐप-स्तर के हैं और केवल इस डिवाइस पर लागू होते हैं।";
 "settings.notifications.section.dailyReminder" = "दैनिक अनुस्मारक";
 "settings.notifications.section.inactivityReminder" = "निष्क्रियता अनुस्मारक";
 "settings.notifications.permission.allowed" = "अनुमति है";

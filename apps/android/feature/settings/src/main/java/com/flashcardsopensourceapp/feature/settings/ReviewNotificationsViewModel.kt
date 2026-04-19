@@ -9,6 +9,8 @@ import com.flashcardsopensourceapp.data.local.notifications.NotificationPermissi
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationMode
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsSettings
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
+import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersSettings
+import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersStore
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,7 +22,9 @@ import kotlinx.coroutines.flow.update
 class ReviewNotificationsViewModel(
     private val workspaceRepository: WorkspaceRepository,
     private val reviewNotificationsStore: ReviewNotificationsStore,
-    private val onSettingsChanged: () -> Unit
+    private val strictRemindersStore: StrictRemindersStore,
+    private val onReviewSettingsChanged: () -> Unit,
+    private val onStrictRemindersSettingsChanged: () -> Unit
 ) : ViewModel() {
     private val refreshVersion = MutableStateFlow(value = 0)
 
@@ -37,6 +41,7 @@ class ReviewNotificationsViewModel(
             workspaceId = workspace.workspaceId,
             workspaceName = workspace.name,
             settings = reviewNotificationsStore.loadSettings(workspaceId = workspace.workspaceId),
+            strictRemindersSettings = strictRemindersStore.loadStrictRemindersSettings(),
             hasRequestedSystemPermission = promptState.hasRequestedSystemPermission
         )
     }.stateIn(
@@ -98,6 +103,13 @@ class ReviewNotificationsViewModel(
         }
     }
 
+    fun updateStrictRemindersEnabled(isEnabled: Boolean) {
+        val nextSettings = StrictRemindersSettings(isEnabled = isEnabled)
+        strictRemindersStore.saveStrictRemindersSettings(settings = nextSettings)
+        refreshVersion.update { version -> version + 1 }
+        onStrictRemindersSettingsChanged()
+    }
+
     fun markSystemPermissionRequested() {
         val promptState = reviewNotificationsStore.loadPromptState()
         reviewNotificationsStore.savePromptState(
@@ -115,21 +127,25 @@ class ReviewNotificationsViewModel(
         val nextSettings = transform(uiState.value.settings)
         reviewNotificationsStore.saveSettings(workspaceId = workspaceId, settings = nextSettings)
         refreshVersion.update { version -> version + 1 }
-        onSettingsChanged()
+        onReviewSettingsChanged()
     }
 }
 
 fun createReviewNotificationsViewModelFactory(
     workspaceRepository: WorkspaceRepository,
     reviewNotificationsStore: ReviewNotificationsStore,
-    onSettingsChanged: () -> Unit
+    strictRemindersStore: StrictRemindersStore,
+    onReviewSettingsChanged: () -> Unit,
+    onStrictRemindersSettingsChanged: () -> Unit
 ): ViewModelProvider.Factory {
     return viewModelFactory {
         initializer {
             ReviewNotificationsViewModel(
                 workspaceRepository = workspaceRepository,
                 reviewNotificationsStore = reviewNotificationsStore,
-                onSettingsChanged = onSettingsChanged
+                strictRemindersStore = strictRemindersStore,
+                onReviewSettingsChanged = onReviewSettingsChanged,
+                onStrictRemindersSettingsChanged = onStrictRemindersSettingsChanged
             )
         }
     }

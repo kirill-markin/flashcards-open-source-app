@@ -12,7 +12,8 @@ val appNotificationTapIntentExtraKeys: List<String> = listOf(
 enum class AppNotificationTapType(
     val rawValue: String
 ) {
-    REVIEW_REMINDER(rawValue = "reviewReminder");
+    REVIEW_REMINDER(rawValue = "reviewReminder"),
+    STRICT_REMINDER(rawValue = "strictReminder");
 
     companion object {
         fun fromRawValue(rawValue: String): AppNotificationTapType? {

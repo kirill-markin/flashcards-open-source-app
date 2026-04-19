@@ -88,11 +88,13 @@ extension FlashcardsStore {
         }
         self.globalErrorMessage = ""
         self.reloadReviewNotificationsSettings()
+        self.reloadStrictRemindersSettings()
         self.localReadVersion += 1
         self.handleProgressContextDidChange(now: now)
         self.cachedAIChatStore?.refreshAccessContextIfNeeded()
         self.refreshReviewState(now: now)
         self.reconcileReviewNotifications(trigger: .workspaceChanged, now: now)
+        self.reconcileStrictReminders(trigger: .workspaceChanged, now: now)
     }
 
     @discardableResult
@@ -137,10 +139,12 @@ extension FlashcardsStore {
         self.homeSnapshot = resolvedHomeSnapshot
         self.globalErrorMessage = ""
         self.reloadReviewNotificationsSettings()
+        self.reloadStrictRemindersSettings()
         if workspaceChanged {
             self.resetReviewHardReminderSession()
         }
         self.reconcileReviewNotifications(trigger: .workspaceChanged, now: now)
+        self.reconcileStrictReminders(trigger: .workspaceChanged, now: now)
         self.handleProgressContextDidChange(now: now)
 
         return BootstrapSnapshotRefreshOutcome(

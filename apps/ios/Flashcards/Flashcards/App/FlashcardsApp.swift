@@ -178,6 +178,7 @@ struct FlashcardsApp: App {
                         )
                     )
                     store.reconcileReviewNotifications(trigger: .appActive, now: now)
+                    store.reconcileStrictReminders(trigger: .appActive, now: now)
                 }
                 .onChange(of: scenePhase) { _, nextPhase in
                     if nextPhase == .active {
@@ -193,8 +194,10 @@ struct FlashcardsApp: App {
                             )
                         )
                         store.reconcileReviewNotifications(trigger: .appActive, now: now)
+                        store.reconcileStrictReminders(trigger: .appActive, now: now)
                     } else if nextPhase == .background || nextPhase == .inactive {
                         store.reconcileReviewNotifications(trigger: .appBackground, now: Date())
+                        store.reconcileStrictReminders(trigger: .appBackground, now: Date())
                     }
                 }
                 .task(id: self.isAppNotificationTapConsumptionReady) {

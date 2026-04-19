@@ -86,6 +86,7 @@ final class FlashcardsStore {
     var currentTransientBanner: TransientBanner?
     var queuedTransientBanners: [TransientBanner]
     var reviewNotificationsSettings: ReviewNotificationsSettings
+    var strictRemindersSettings: StrictRemindersSettings
     var notificationPermissionPromptState: NotificationPermissionPromptState
     var isReviewNotificationPrePromptPresented: Bool
     var accountDeletionState: AccountDeletionState
@@ -106,6 +107,8 @@ final class FlashcardsStore {
     @ObservationIgnored var lastImmediateCloudSyncTriggerAt: Date?
     @ObservationIgnored var activeReviewNotificationsRescheduleTask: Task<Void, Never>?
     @ObservationIgnored var reviewNotificationsRescheduleGeneration: Int
+    @ObservationIgnored var activeStrictRemindersRescheduleTask: Task<Void, Never>?
+    @ObservationIgnored var pendingStrictRemindersReconcileRequest: StrictRemindersReconcileRequest?
     @ObservationIgnored var reviewHardReminderLastShownAt: Date?
     @ObservationIgnored var progressSummaryServerBaseCache: PersistedProgressSummaryServerBase?
     @ObservationIgnored var progressSeriesServerBaseCache: PersistedProgressSeriesServerBase?
@@ -317,6 +320,10 @@ final class FlashcardsStore {
         self.currentTransientBanner = nil
         self.queuedTransientBanners = []
         self.reviewNotificationsSettings = makeDefaultReviewNotificationsSettings()
+        self.strictRemindersSettings = loadStrictRemindersSettings(
+            userDefaults: userDefaults,
+            decoder: decoder
+        )
         self.notificationPermissionPromptState = loadNotificationPermissionPromptState(
             userDefaults: userDefaults,
             decoder: decoder
@@ -346,6 +353,8 @@ final class FlashcardsStore {
         self.lastImmediateCloudSyncTriggerAt = nil
         self.activeReviewNotificationsRescheduleTask = nil
         self.reviewNotificationsRescheduleGeneration = 0
+        self.activeStrictRemindersRescheduleTask = nil
+        self.pendingStrictRemindersReconcileRequest = nil
         self.reviewHardReminderLastShownAt = loadReviewHardReminderLastShownAt(userDefaults: userDefaults)
         self.progressSummaryServerBaseCache = nil
         self.progressSeriesServerBaseCache = nil

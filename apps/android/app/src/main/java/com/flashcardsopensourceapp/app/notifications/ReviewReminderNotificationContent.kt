@@ -129,7 +129,7 @@ internal fun reviewReminderNotificationTag(requestId: String): String {
     return "$reviewReminderNotificationTagPrefix$requestId"
 }
 
-private fun ensureReviewNotificationChannel(context: Context) {
+internal fun ensureReviewNotificationChannel(context: Context) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
         return
     }

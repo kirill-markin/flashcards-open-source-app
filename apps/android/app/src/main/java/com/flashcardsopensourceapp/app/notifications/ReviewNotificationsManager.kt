@@ -21,10 +21,8 @@ import com.flashcardsopensourceapp.data.local.model.decodeDeckFilterDefinitionJs
 import com.flashcardsopensourceapp.data.local.model.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.model.normalizeTags
 import com.flashcardsopensourceapp.data.local.notifications.CurrentReviewNotificationCard
-import com.flashcardsopensourceapp.data.local.notifications.DailyReviewNotificationsSettings
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationMode
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
-import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsSettings
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.ScheduledReviewNotificationPayload
 import com.flashcardsopensourceapp.data.local.notifications.buildFallbackDailyReminderPayloads
@@ -89,32 +87,6 @@ class ReviewNotificationsManager(
         }
     }
 
-    fun enableDefaultDailyForCurrentWorkspace() {
-        scope.launch {
-            val workspace = loadCurrentWorkspaceOrNull(
-                database = database,
-                preferencesStore = preferencesStore
-            ) ?: return@launch
-            val currentSettings = reviewNotificationsStore.loadSettings(workspaceId = workspace.workspaceId)
-            reviewNotificationsStore.saveSettings(
-                workspaceId = workspace.workspaceId,
-                settings = ReviewNotificationsSettings(
-                    isEnabled = true,
-                    selectedMode = ReviewNotificationMode.DAILY,
-                    daily = DailyReviewNotificationsSettings(
-                        hour = com.flashcardsopensourceapp.data.local.notifications.defaultDailyReminderHour,
-                        minute = com.flashcardsopensourceapp.data.local.notifications.defaultDailyReminderMinute
-                    ),
-                    inactivity = currentSettings.inactivity
-                )
-            )
-            reconcileCurrentWorkspaceReviewNotifications(
-                trigger = ReviewNotificationsReconcileTrigger.PERMISSION_CHANGED,
-                nowMillis = System.currentTimeMillis()
-            )
-        }
-    }
-
     suspend fun close() {
         activeReconcileJob?.cancelAndJoin()
         scopeJob.cancelAndJoin()
@@ -152,6 +124,7 @@ class ReviewNotificationsManager(
             return
         }
         if (hasNotificationPermission(context = context).not()) {
+            // Keep the internal setting enabled; Android permission alone gates delivery.
             reviewNotificationsStore.saveScheduledPayloads(
                 workspaceId = workspace.workspaceId,
                 payloads = emptyList()

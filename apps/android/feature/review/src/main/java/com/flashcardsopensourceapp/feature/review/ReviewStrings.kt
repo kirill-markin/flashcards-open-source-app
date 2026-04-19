@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewIntervalDescription
+import com.flashcardsopensourceapp.data.local.notifications.StrictReminderTimeOffset
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -32,6 +33,22 @@ class ReviewTextProvider(
 
     val notificationFallbackFrontText: String
         get() = resources.getString(R.string.review_notification_fallback_front_text)
+
+    fun strictReminderBody(timeOffset: StrictReminderTimeOffset): String {
+        return when (timeOffset) {
+            StrictReminderTimeOffset.FOUR_HOURS -> {
+                resources.getString(R.string.review_strict_reminder_body_4h)
+            }
+
+            StrictReminderTimeOffset.THREE_HOURS -> {
+                resources.getString(R.string.review_strict_reminder_body_3h)
+            }
+
+            StrictReminderTimeOffset.TWO_HOURS -> {
+                resources.getString(R.string.review_strict_reminder_body_2h)
+            }
+        }
+    }
 
     fun allCardsTitle(): String = resources.getString(R.string.review_all_cards)
 

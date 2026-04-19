@@ -8,6 +8,8 @@ import com.flashcardsopensourceapp.core.ui.AppMessageBus
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
 import com.flashcardsopensourceapp.app.notifications.ReviewNotificationsManager
+import com.flashcardsopensourceapp.app.notifications.AndroidStrictRemindersScheduler
+import com.flashcardsopensourceapp.app.notifications.StrictRemindersManager
 import com.flashcardsopensourceapp.data.local.bootstrap.ensureLocalWorkspaceShell
 import com.flashcardsopensourceapp.data.local.ai.AiChatLiveRemoteService
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
@@ -23,6 +25,8 @@ import com.flashcardsopensourceapp.data.local.database.buildAppDatabase
 import com.flashcardsopensourceapp.data.local.database.closeAppDatabase
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.SharedPreferencesReviewNotificationsStore
+import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
+import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersStore
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
@@ -56,8 +60,10 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.ZoneId
 
 sealed interface AppStartupState {
     data object Loading : AppStartupState
@@ -72,6 +78,7 @@ class AppGraph(
     private val appScope = CoroutineScope(appJob + Dispatchers.IO)
     private val startupStateMutable = MutableStateFlow<AppStartupState>(AppStartupState.Loading)
     private var startupJob: Job? = null
+    private var reviewHistoryAppliedObserverJob: Job? = null
 
     internal val appPackageInfo: AppPackageInfo = loadPackageInfo(context = context)
     val appMessageBus = AppMessageBus()
@@ -84,7 +91,9 @@ class AppGraph(
     private val aiChatHistoryStore = AiChatHistoryStore(context = context)
     private val guestAiSessionStore = GuestAiSessionStore(context = context)
     val reviewPreferencesStore: ReviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
-    val reviewNotificationsStore: ReviewNotificationsStore = SharedPreferencesReviewNotificationsStore(context = context)
+    private val notificationsStore = SharedPreferencesReviewNotificationsStore(context = context)
+    val reviewNotificationsStore: ReviewNotificationsStore = notificationsStore
+    val strictRemindersStore: StrictRemindersStore = notificationsStore
     private val aiCoroutineDispatchers = AiCoroutineDispatchers(io = Dispatchers.IO)
     private val localProgressCacheStore = LocalProgressCacheStore(
         database = database,
@@ -100,13 +109,30 @@ class AppGraph(
         preferencesStore = cloudPreferencesStore,
         localProgressCacheStore = localProgressCacheStore
     )
+    private val strictRemindersScheduler = AndroidStrictRemindersScheduler(context = context)
     private val cloudOperationCoordinator = CloudOperationCoordinator()
+    val reviewNotificationsManager = ReviewNotificationsManager(
+        context = context,
+        database = database,
+        preferencesStore = cloudPreferencesStore,
+        reviewPreferencesStore = reviewPreferencesStore,
+        reviewNotificationsStore = reviewNotificationsStore
+    )
+    val strictRemindersManager = StrictRemindersManager(
+        strictRemindersStore = strictRemindersStore,
+        reviewLogDao = database.reviewLogDao(),
+        scheduler = strictRemindersScheduler,
+        zoneIdProvider = ZoneId::systemDefault
+    )
     private val cloudIdentityResetCoordinator = CloudIdentityResetCoordinator(
         database = database,
         cloudPreferencesStore = cloudPreferencesStore,
         aiChatPreferencesStore = aiChatPreferencesStore,
         aiChatHistoryStore = aiChatHistoryStore,
-        guestAiSessionStore = guestAiSessionStore
+        guestAiSessionStore = guestAiSessionStore,
+        onCloudIdentityReset = {
+            strictRemindersManager.clearForCloudIdentityReset()
+        }
     )
     private val cloudGuestSessionCoordinator = CloudGuestSessionCoordinator(
         database = database,
@@ -188,17 +214,32 @@ class AppGraph(
         historyStore = aiChatHistoryStore,
         aiChatPreferencesStore = aiChatPreferencesStore
     )
-    val reviewNotificationsManager = ReviewNotificationsManager(
-        context = context,
-        database = database,
-        preferencesStore = cloudPreferencesStore,
-        reviewPreferencesStore = reviewPreferencesStore,
-        reviewNotificationsStore = reviewNotificationsStore
-    )
     val startupState: StateFlow<AppStartupState> = startupStateMutable.asStateFlow()
 
     init {
+        startReviewHistoryAppliedObserver()
         startStartup()
+    }
+
+    private fun startReviewHistoryAppliedObserver() {
+        reviewHistoryAppliedObserverJob?.cancel()
+        reviewHistoryAppliedObserverJob = appScope.launch {
+            syncLocalStore.observeReviewHistoryChangedEvents().collect { event ->
+                val nowMillis = System.currentTimeMillis()
+                val latestReviewedAtMillis = event.latestReviewedAtMillis
+                if (latestReviewedAtMillis != null) {
+                    strictRemindersManager.recordImportedReviewHistory(
+                        importedReviewAtMillis = latestReviewedAtMillis,
+                        nowMillis = nowMillis
+                    )
+                } else {
+                    strictRemindersManager.reconcileStrictReminders(
+                        trigger = StrictRemindersReconcileTrigger.REVIEW_HISTORY_IMPORTED,
+                        nowMillis = nowMillis
+                    )
+                }
+            }
+        }
     }
 
     private fun startStartup() {
@@ -250,7 +291,9 @@ class AppGraph(
 
     suspend fun close() {
         startupJob?.cancelAndJoin()
+        reviewHistoryAppliedObserverJob?.cancelAndJoin()
         reviewNotificationsManager.close()
+        strictRemindersManager.close()
         appJob.cancelAndJoin()
         closeAppDatabase(database = database)
     }

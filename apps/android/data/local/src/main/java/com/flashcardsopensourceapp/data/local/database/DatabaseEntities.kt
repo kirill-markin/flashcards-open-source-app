@@ -142,7 +142,7 @@ data class CardTagEntity(
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("workspaceId"), Index("cardId")]
+    indices = [Index("workspaceId"), Index("cardId"), Index("reviewedAtMillis")]
 )
 data class ReviewLogEntity(
     @PrimaryKey val reviewLogId: String,

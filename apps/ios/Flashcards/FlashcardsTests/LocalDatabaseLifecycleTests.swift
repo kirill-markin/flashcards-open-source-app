@@ -23,6 +23,13 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
         let database = try self.makeDatabase()
 
         XCTAssertEqual(LocalDatabaseSchema.currentVersion, try self.loadSchemaVersion(database: database))
+        XCTAssertTrue(
+            try self.hasIndex(
+                database: database,
+                tableName: "review_events",
+                indexName: "idx_review_events_reviewed_at_client"
+            )
+        )
         XCTAssertEqual(1, try self.countRows(database: database, tableName: "app_local_settings"))
         XCTAssertEqual(1, try self.countRows(database: database, tableName: "workspaces"))
         XCTAssertEqual(1, try self.countRows(database: database, tableName: "user_settings"))
@@ -42,6 +49,37 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
                 values: [.text(workspace.workspaceId)]
             )
         )
+    }
+
+    func testAppWideReviewEventUsesDayExistenceSemantics() throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let card = try database.saveCard(
+            workspaceId: workspace.workspaceId,
+            input: CardEditorInput(
+                frontText: "Question",
+                backText: "Answer",
+                tags: [],
+                effortLevel: .medium
+            ),
+            cardId: nil
+        )
+        let reviewTime = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-19T12:00:00.000Z"))
+        let dayStart = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-19T00:00:00.000Z"))
+        let nextDayStart = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-20T00:00:00.000Z"))
+        let followingDayStart = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-21T00:00:00.000Z"))
+
+        _ = try database.submitReview(
+            workspaceId: workspace.workspaceId,
+            reviewSubmission: ReviewSubmission(
+                cardId: card.cardId,
+                rating: .good,
+                reviewedAtClient: formatIsoTimestamp(date: reviewTime)
+            )
+        )
+
+        XCTAssertTrue(try database.hasAppWideReviewEvent(start: dayStart, end: nextDayStart))
+        XCTAssertFalse(try database.hasAppWideReviewEvent(start: nextDayStart, end: followingDayStart))
     }
 
     func testResetForAccountDeletionRecreatesDisconnectedDefaultState() throws {
@@ -96,6 +134,26 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
         }
     }
 
+    func testSchemaVersion11MigrationAddsReviewEventClientTimeIndex() throws {
+        let database = try self.makeDatabase()
+        try database.close()
+        self.database = nil
+
+        try self.prepareSchemaVersion11Database(databaseURL: try XCTUnwrap(self.databaseURL))
+
+        let migratedDatabase = try LocalDatabase(databaseURL: try XCTUnwrap(self.databaseURL))
+        self.database = migratedDatabase
+
+        XCTAssertEqual(LocalDatabaseSchema.currentVersion, try self.loadSchemaVersion(database: migratedDatabase))
+        XCTAssertTrue(
+            try self.hasIndex(
+                database: migratedDatabase,
+                tableName: "review_events",
+                indexName: "idx_review_events_reviewed_at_client"
+            )
+        )
+    }
+
     private func makeDatabase() throws -> LocalDatabase {
         let databaseURL = try self.makeDatabaseURL()
         let database = try LocalDatabase(databaseURL: databaseURL)
@@ -131,6 +189,48 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
             sql: "SELECT COUNT(*) FROM \(tableName)",
             values: []
         )
+    }
+
+    private func hasIndex(database: LocalDatabase, tableName: String, indexName: String) throws -> Bool {
+        let indexNames = try database.core.query(
+            sql: "PRAGMA index_list(\(self.singleQuotedSQLIdentifier(identifier: tableName)))",
+            values: []
+        ) { statement in
+            DatabaseCore.columnText(statement: statement, index: 1)
+        }
+
+        return indexNames.contains(indexName)
+    }
+
+    private func prepareSchemaVersion11Database(databaseURL: URL) throws {
+        var connection: OpaquePointer?
+        let openResult = sqlite3_open_v2(
+            databaseURL.path,
+            &connection,
+            SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX,
+            nil
+        )
+        guard openResult == SQLITE_OK, let connection else {
+            throw LocalStoreError.database("Failed to open schema v11 test database")
+        }
+        defer {
+            sqlite3_close_v2(connection)
+        }
+
+        let downgradeSQL = """
+        DROP INDEX IF EXISTS idx_review_events_reviewed_at_client;
+        PRAGMA user_version = 11;
+        """
+
+        let execResult = sqlite3_exec(connection, downgradeSQL, nil, nil, nil)
+        guard execResult == SQLITE_OK else {
+            let message = String(cString: sqlite3_errmsg(connection))
+            throw LocalStoreError.database("Failed to prepare schema v11 fixture: \(message)")
+        }
+    }
+
+    private func singleQuotedSQLIdentifier(identifier: String) -> String {
+        "'\(identifier.replacingOccurrences(of: "'", with: "''"))'"
     }
 
     private func createPreFullFsrsSchema(databaseURL: URL) throws {

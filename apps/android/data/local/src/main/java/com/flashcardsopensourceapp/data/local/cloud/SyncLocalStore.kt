@@ -38,6 +38,10 @@ import com.flashcardsopensourceapp.data.local.model.parseIsoTimestamp
 import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.loadCurrentWorkspaceOrNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -51,11 +55,60 @@ import java.util.UUID
 private const val outboxBatchLimit: Int = 200
 private const val cloudMigrationLogTag: String = "FlashcardsCloudMigration"
 
+data class ReviewHistoryChangedEvent(
+    val workspaceIds: Set<String>,
+    val latestReviewedAtMillis: Long?
+)
+
+private data class PendingReviewHistoryChangedEvent(
+    val eventId: Long,
+    val event: ReviewHistoryChangedEvent
+)
+
 class SyncLocalStore(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
     private val localProgressCacheStore: LocalProgressCacheStore
 ) {
+    private val reviewHistoryChangedEvents = MutableStateFlow<PendingReviewHistoryChangedEvent?>(value = null)
+    private var isReviewHistoryChangeBatchActive: Boolean = false
+    private var pendingReviewHistoryChangedEvent: ReviewHistoryChangedEvent? = null
+    private var nextReviewHistoryChangedEventId: Long = 0L
+
+    fun observeReviewHistoryChangedEvents(): Flow<ReviewHistoryChangedEvent> {
+        return reviewHistoryChangedEvents
+            .filterNotNull()
+            .map { pendingEvent -> pendingEvent.event }
+    }
+
+    fun beginReviewHistoryChangeBatch() {
+        check(isReviewHistoryChangeBatchActive.not()) {
+            "Review history change batch is already active."
+        }
+        isReviewHistoryChangeBatchActive = true
+        pendingReviewHistoryChangedEvent = null
+    }
+
+    fun flushReviewHistoryChangeBatch() {
+        check(isReviewHistoryChangeBatchActive) {
+            "Review history change batch is not active."
+        }
+        isReviewHistoryChangeBatchActive = false
+        val event = pendingReviewHistoryChangedEvent
+        pendingReviewHistoryChangedEvent = null
+        if (event != null) {
+            publishReviewHistoryChangedEvent(event = event)
+        }
+    }
+
+    fun discardReviewHistoryChangeBatch() {
+        check(isReviewHistoryChangeBatchActive) {
+            "Review history change batch is not active."
+        }
+        isReviewHistoryChangeBatchActive = false
+        pendingReviewHistoryChangedEvent = null
+    }
+
     suspend fun enqueueCardUpsert(card: CardEntity, tags: List<String>) {
         val payloadJson = JSONObject()
             .put("cardId", card.cardId)
@@ -251,6 +304,7 @@ class SyncLocalStore(
         remoteWorkspaceIsEmpty: Boolean
     ): WorkspaceEntity {
         val currentWorkspaceId = currentWorkspaceIdOrNull()
+        val didDeleteReviewHistory = remoteWorkspaceIsEmpty.not() && database.reviewLogDao().countReviewLogs() > 0
         val migrationKind = if (remoteWorkspaceIsEmpty) {
             "preserve_local_data"
         } else {
@@ -269,6 +323,14 @@ class SyncLocalStore(
             } else {
                 replaceLocalShellForNonEmptyRemoteWorkspaceInTransaction(workspace)
             }
+        }
+        if (didDeleteReviewHistory && currentWorkspaceId != null) {
+            publishReviewHistoryChangedEvent(
+                ReviewHistoryChangedEvent(
+                    workspaceIds = setOf(currentWorkspaceId),
+                    latestReviewedAtMillis = null
+                )
+            )
         }
 
         val localWorkspaces = database.workspaceDao().loadWorkspaces()
@@ -433,10 +495,18 @@ class SyncLocalStore(
                 reviewedAtServerIso = event.reviewedAtServer
             )
         }
+        var newReviewLogs: List<ReviewLogEntity> = emptyList()
         database.withTransaction {
             val existingReviewLogs = database.reviewLogDao().loadReviewLogs(
                 reviewLogIds = reviewLogs.map(ReviewLogEntity::reviewLogId)
             )
+            val existingReviewLogIds = existingReviewLogs.mapTo(
+                destination = mutableSetOf(),
+                transform = ReviewLogEntity::reviewLogId
+            )
+            newReviewLogs = reviewLogs.filter { reviewLog ->
+                reviewLog.reviewLogId !in existingReviewLogIds
+            }
             database.reviewLogDao().insertReviewLogs(reviewLogs)
             localProgressCacheStore.applyReviewHistoryInTransaction(
                 reviewLogs = reviewLogs,
@@ -444,6 +514,51 @@ class SyncLocalStore(
                 updatedAtMillis = System.currentTimeMillis()
             )
         }
+        if (newReviewLogs.isNotEmpty()) {
+            recordReviewHistoryChangedEvent(
+                event = ReviewHistoryChangedEvent(
+                    workspaceIds = newReviewLogs.map(ReviewLogEntity::workspaceId).toSet(),
+                    latestReviewedAtMillis = newReviewLogs.maxOf(ReviewLogEntity::reviewedAtMillis)
+                )
+            )
+        }
+    }
+
+    private fun recordReviewHistoryChangedEvent(event: ReviewHistoryChangedEvent) {
+        if (isReviewHistoryChangeBatchActive.not()) {
+            publishReviewHistoryChangedEvent(event = event)
+            return
+        }
+
+        pendingReviewHistoryChangedEvent = mergeReviewHistoryChangedEvents(
+            existingEvent = pendingReviewHistoryChangedEvent,
+            newEvent = event
+        )
+    }
+
+    private fun publishReviewHistoryChangedEvent(event: ReviewHistoryChangedEvent) {
+        nextReviewHistoryChangedEventId += 1L
+        reviewHistoryChangedEvents.value = PendingReviewHistoryChangedEvent(
+            eventId = nextReviewHistoryChangedEventId,
+            event = event
+        )
+    }
+
+    private fun mergeReviewHistoryChangedEvents(
+        existingEvent: ReviewHistoryChangedEvent?,
+        newEvent: ReviewHistoryChangedEvent
+    ): ReviewHistoryChangedEvent {
+        if (existingEvent == null) {
+            return newEvent
+        }
+
+        return ReviewHistoryChangedEvent(
+            workspaceIds = existingEvent.workspaceIds + newEvent.workspaceIds,
+            latestReviewedAtMillis = listOfNotNull(
+                existingEvent.latestReviewedAtMillis,
+                newEvent.latestReviewedAtMillis
+            ).maxOrNull()
+        )
     }
 
     private suspend fun insertOutboxEntry(
