@@ -201,6 +201,20 @@ struct ProgressSnapshot: Hashable, Sendable {
     let generatedAt: String?
 }
 
+struct ReviewProgressBadgeState: Hashable, Sendable {
+    let streakDays: Int
+    let hasReviewedToday: Bool
+    let isInteractive: Bool
+}
+
+func makeEmptyReviewProgressBadgeState() -> ReviewProgressBadgeState {
+    ReviewProgressBadgeState(
+        streakDays: 0,
+        hasReviewedToday: false,
+        isInteractive: true
+    )
+}
+
 enum ProgressPresentationError: LocalizedError {
     case duplicateDay(String)
     case invalidLocalDate(String)
@@ -225,6 +239,26 @@ enum ProgressPresentationError: LocalizedError {
             return "Progress series metadata mismatched the current scope. Expected \(expected.timeZone) \(expected.from)...\(expected.to), received \(actualTimeZone) \(actualFrom)...\(actualTo)."
         }
     }
+}
+
+func makeReviewProgressBadgeState(progressSnapshot: ProgressSnapshot?) -> ReviewProgressBadgeState {
+    guard let progressSnapshot else {
+        return makeEmptyReviewProgressBadgeState()
+    }
+
+    return ReviewProgressBadgeState(
+        streakDays: progressSnapshot.summary.currentStreakDays,
+        hasReviewedToday: progressSnapshot.summary.hasReviewedToday,
+        isInteractive: true
+    )
+}
+
+func makeReviewProgressBadgeState(summary: ProgressSummary) -> ReviewProgressBadgeState {
+    ReviewProgressBadgeState(
+        streakDays: summary.currentStreakDays,
+        hasReviewedToday: summary.hasReviewedToday,
+        isInteractive: true
+    )
 }
 
 func makeProgressSnapshot(

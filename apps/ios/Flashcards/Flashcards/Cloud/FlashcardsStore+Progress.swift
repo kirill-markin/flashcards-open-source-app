@@ -27,12 +27,40 @@ private let progressSeriesServerBaseCacheUserDefaultsKeyPrefix: String = "progre
 /// then refresh summary and series independently and re-render whenever the latest response still matches the latest token.
 @MainActor
 extension FlashcardsStore {
+    func refreshReviewProgressBadgeIfNeeded() async {
+        await self.refreshReviewProgressBadgeIfNeeded(now: Date())
+    }
+
     func refreshProgressIfNeeded() async {
         await self.refreshProgressIfNeeded(now: Date())
     }
 
     func refreshProgressManually() async {
         await self.refreshProgressManually(now: Date())
+    }
+
+    func refreshReviewProgressBadgeIfNeeded(now: Date) async {
+        do {
+            let scopeKey = try self.prepareProgressScope(now: now)
+            try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
+            let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
+            guard self.shouldRefreshProgressSummary(scopeKey: summaryScopeKey) else {
+                return
+            }
+
+            guard let activeSession = self.activeProgressCloudSession(scopeKey: scopeKey) else {
+                return
+            }
+
+            await self.refreshProgressSummaryServerBase(
+                scopeKey: summaryScopeKey,
+                linkedSession: activeSession
+            )
+        } catch is CancellationError {
+            return
+        } catch {
+            self.progressErrorMessage = Flashcards.errorMessage(error: error)
+        }
     }
 
     func refreshProgressIfNeeded(now: Date) async {
@@ -106,13 +134,18 @@ extension FlashcardsStore {
 
     func handleProgressContextDidChange(now: Date) {
         do {
-            _ = try self.prepareProgressSnapshot(now: now)
-            guard self.currentVisibleTab == .progress else {
+            if self.currentVisibleTab == .review {
+                let scopeKey = try self.prepareProgressScope(now: now)
+                try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
+            } else {
+                _ = try self.prepareProgressSnapshot(now: now)
+            }
+            guard isProgressConsumerTab(tab: self.currentVisibleTab) else {
                 return
             }
 
             Task { @MainActor in
-                await self.refreshProgressIfNeeded(now: now)
+                await self.refreshVisibleProgressIfNeeded(now: now)
             }
         } catch {
             self.progressErrorMessage = Flashcards.errorMessage(error: error)
@@ -130,6 +163,7 @@ extension FlashcardsStore {
                 scopeKey: scopeKey,
                 summaryScopeKey: progressSummaryScopeKey(seriesScopeKey: scopeKey)
             )
+            try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
 
             guard let progressSnapshot = self.progressSnapshot else {
                 self.progressErrorMessage = ""
@@ -148,17 +182,32 @@ extension FlashcardsStore {
         }
     }
 
-    func handleProgressSyncCompletion(now: Date) async {
+    func handleProgressSyncCompletion(
+        now: Date,
+        syncResult: CloudSyncResult
+    ) async {
         do {
-            let scopeKey = try self.prepareProgressSnapshot(now: now)
+            let isReviewVisible = self.currentVisibleTab == .review
+            let scopeKey: ProgressScopeKey
+            if isReviewVisible {
+                scopeKey = try self.prepareProgressScope(now: now)
+            } else {
+                scopeKey = try self.prepareProgressSnapshot(now: now)
+            }
             let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
 
+            guard syncResult.progressDataChanged else {
+                return
+            }
+
             self.invalidateProgress(scopeKey: scopeKey, summaryScopeKey: summaryScopeKey)
-            if self.progressSummaryServerBaseCache == nil || self.progressSeriesServerBaseCache == nil {
+            if isReviewVisible {
+                try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
+            } else if self.progressSummaryServerBaseCache == nil || self.progressSeriesServerBaseCache == nil {
                 try self.publishProgressSnapshot(scopeKey: scopeKey)
             }
 
-            guard self.currentVisibleTab == .progress else {
+            guard isProgressConsumerTab(tab: self.currentVisibleTab) else {
                 return
             }
 
@@ -166,11 +215,22 @@ extension FlashcardsStore {
                 return
             }
 
-            await self.refreshProgressIfNeeded(now: now)
+            await self.refreshVisibleProgressIfNeeded(now: now)
         } catch is CancellationError {
             return
         } catch {
             self.progressErrorMessage = Flashcards.errorMessage(error: error)
+        }
+    }
+
+    private func refreshVisibleProgressIfNeeded(now: Date) async {
+        switch self.currentVisibleTab {
+        case .review:
+            await self.refreshReviewProgressBadgeIfNeeded(now: now)
+        case .progress:
+            await self.refreshProgressIfNeeded(now: now)
+        case .cards, .ai, .settings:
+            return
         }
     }
 
@@ -221,6 +281,11 @@ extension FlashcardsStore {
 
             guard let observedScopeKey = self.progressObservedScopeKey,
                   progressSummaryScopeKey(seriesScopeKey: observedScopeKey) == scopeKey else {
+                return
+            }
+
+            try self.publishReviewProgressBadgeState(scopeKey: observedScopeKey)
+            guard self.progressSeriesInvalidatedScopeKeys.contains(observedScopeKey) == false else {
                 return
             }
 
@@ -388,9 +453,47 @@ extension FlashcardsStore {
         self.applyProgressSnapshot(snapshot: snapshot)
     }
 
+    private func publishReviewProgressBadgeState(scopeKey: ProgressScopeKey) throws {
+        let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
+        let canonicalReviewedAtClients = try self.loadCanonicalProgressReviewedAtClients()
+        let pendingReviewedAtClients = try self.loadPendingProgressReviewedAtClients()
+        let localFallbackSummary = try makeProgressSummaryFromReviewedAtClients(
+            reviewedAtClients: canonicalReviewedAtClients,
+            timeZone: summaryScopeKey.timeZone,
+            referenceLocalDate: scopeKey.to
+        )
+        let hasPendingLocalOverlay = pendingReviewedAtClients.isEmpty == false
+
+        let renderedSummary: ProgressSummary
+        if let serverBase = self.progressSummaryServerBaseCache?.serverBase,
+           self.progressSummaryServerBaseCache?.scopeKey == summaryScopeKey {
+            if hasPendingLocalOverlay {
+                renderedSummary = localFallbackSummary
+            } else {
+                renderedSummary = serverBase.summary
+            }
+        } else {
+            renderedSummary = localFallbackSummary
+        }
+
+        self.applyReviewProgressBadgeState(
+            badgeState: makeReviewProgressBadgeState(summary: renderedSummary)
+        )
+    }
+
     private func applyProgressSnapshot(snapshot: ProgressSnapshot?) {
         if self.progressSnapshot != snapshot {
             self.progressSnapshot = snapshot
+        }
+
+        self.applyReviewProgressBadgeState(
+            badgeState: makeReviewProgressBadgeState(progressSnapshot: snapshot)
+        )
+    }
+
+    private func applyReviewProgressBadgeState(badgeState: ReviewProgressBadgeState) {
+        if self.reviewProgressBadgeState != badgeState {
+            self.reviewProgressBadgeState = badgeState
         }
     }
 
