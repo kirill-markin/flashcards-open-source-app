@@ -2,8 +2,11 @@
     <string name="review_title">Review</string>
     <string name="review_all_cards">All cards</string>
     <string name="review_notification_prompt_title">Stay on top of your cards</string>
-    <string name="review_notification_prompt_body">Flashcards Open Source App can send study reminders with a card from your review queue. These notifications contain study cards only and never marketing messages.</string>
+    <string name="review_notification_prompt_body">Flashcards Open Source App can send workspace review reminders and strict streak reminders on this device. Allow Android notifications to deliver them. These notifications never include marketing messages.</string>
     <string name="review_notification_fallback_front_text">Continue your study session in Flashcards.</string>
+    <string name="review_strict_reminder_body_4h">Keep your streak today. Review before midnight. 4 hours left.</string>
+    <string name="review_strict_reminder_body_3h">Keep your streak today. Review before midnight. 3 hours left.</string>
+    <string name="review_strict_reminder_body_2h">Keep your streak today. Review before midnight. 2 hours left.</string>
     <string name="review_continue">Continue</string>
     <string name="review_not_now">Not now</string>
     <string name="review_preview_back_content_description">Back</string>

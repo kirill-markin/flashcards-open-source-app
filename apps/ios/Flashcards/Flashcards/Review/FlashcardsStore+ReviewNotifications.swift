@@ -96,20 +96,17 @@ extension FlashcardsStore {
             )
         )
         Task { @MainActor in
-            _ = await self.requestReviewNotificationPermissionFromSettings(now: Date(), autoEnableDefaultIfAllowed: true)
+            _ = await self.requestReviewNotificationPermissionFromSettings(now: Date())
         }
     }
 
-    func requestReviewNotificationPermissionFromSettings(
-        now: Date,
-        autoEnableDefaultIfAllowed: Bool
-    ) async -> ReviewNotificationPermissionStatus {
+    /// Requests the top-level system notification permission and then reconciles
+    /// reminder delivery. Internal reminder toggles keep their stored values.
+    func requestReviewNotificationPermissionFromSettings(now: Date) async -> ReviewNotificationPermissionStatus {
         let currentPermissionStatus = await resolveReviewNotificationPermissionStatus()
         if currentPermissionStatus == .allowed {
-            if autoEnableDefaultIfAllowed {
-                self.enableDefaultDailyReviewNotificationsIfNeeded()
-                self.reconcileReviewNotifications(trigger: .permissionChanged, now: now)
-            }
+            self.reconcileReviewNotifications(trigger: .permissionChanged, now: now)
+            self.reconcileStrictReminders(trigger: .permissionChanged, now: now)
             return .allowed
         }
         if currentPermissionStatus == .blocked {
@@ -126,10 +123,8 @@ extension FlashcardsStore {
         )
 
         if isAllowed {
-            if autoEnableDefaultIfAllowed {
-                self.enableDefaultDailyReviewNotificationsIfNeeded()
-            }
             self.reconcileReviewNotifications(trigger: .permissionChanged, now: now)
+            self.reconcileStrictReminders(trigger: .permissionChanged, now: now)
             return .allowed
         }
 
@@ -161,16 +156,17 @@ extension FlashcardsStore {
         switch request {
         case .fallback(let fallback):
             logAppNotificationTapFallback(fallback: fallback)
-        case .openReviewReminder:
+        case .openReviewReminder, .openStrictReminder:
             navigation.selectTab(.review)
         }
     }
 
-    func handleSuccessfulReviewNotificationTrigger() {
+    func handleSuccessfulReviewNotificationTrigger(reviewedAt: Date, now: Date) {
         let nextCount = self.userDefaults.integer(forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey) + 1
         self.userDefaults.set(nextCount, forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey)
-        self.userDefaults.set(Date().timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
-        self.reconcileReviewNotifications(trigger: .reviewRecorded, now: Date())
+        self.userDefaults.set(now.timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
+        self.reconcileReviewNotifications(trigger: .reviewRecorded, now: now)
+        self.recordSuccessfulStrictReminderReview(reviewedAt: reviewedAt, now: now)
         Task { @MainActor in
             let permissionStatus = await resolveReviewNotificationPermissionStatus()
             guard permissionStatus == .notRequested else {
@@ -222,20 +218,6 @@ extension FlashcardsStore {
         } catch {
             self.userDefaults.removeObject(forKey: reviewNotificationPromptStateUserDefaultsKey)
         }
-    }
-
-    private func enableDefaultDailyReviewNotificationsIfNeeded() {
-        let nextSettings = ReviewNotificationsSettings(
-            isEnabled: true,
-            selectedMode: .daily,
-            daily: DailyReviewNotificationsSettings(
-                hour: defaultDailyReminderHour,
-                minute: defaultDailyReminderMinute
-            ),
-            inactivity: self.reviewNotificationsSettings.inactivity
-        )
-        self.reviewNotificationsSettings = nextSettings
-        self.persistReviewNotificationsSettings()
     }
 
     private func rescheduleReviewNotifications(
@@ -325,7 +307,7 @@ extension FlashcardsStore {
             content.title = appDisplayName()
             content.body = payload.notificationBodyText
             content.sound = .default
-            content.userInfo = buildReviewNotificationUserInfo(notificationType: .reviewReminder)
+            content.userInfo = buildAppNotificationUserInfo(notificationType: .reviewReminder)
 
             let interval = max(1, TimeInterval(payload.scheduledAtMillis) / 1000 - now.timeIntervalSince1970)
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)

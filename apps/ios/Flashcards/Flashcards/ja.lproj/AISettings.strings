@@ -395,9 +395,15 @@
 "settings.workspace.scheduler.applyAlertMessage" = "特別な理由がない限り、プログラマ設定を変更することはお勧めできません。これは今後の更新にのみ影響し、カードの現在の状態は書き換えられません。";
 
 "settings.notifications.title" = "通知";
-"settings.notifications.description" = "通知設定は引き続きこのワークスペースに関連付けられていますが、現在のデバイスにのみ適用されます。学習リマインダーにはカードのみが含まれ、マーケティング メッセージは含まれません。";
+"settings.notifications.description" = "復習リマインダーは現在のワークスペースに紐づきます。ストリクトリマインダーはこのデバイスだけに適用されるアプリ全体の連続記録リマインダーです。学習通知にはカードだけが含まれ、マーケティングメッセージは含まれません。";
 "settings.notifications.section.permission" = "許可";
-"settings.notifications.section.reviewReminders" = "リマインダーを確認する";
+"settings.notifications.section.reviewReminders" = "ワークスペースの復習リマインダー";
+"settings.notifications.reviewReminders.description" = "これらのリマインダーは現在のワークスペースだけを使い、このデバイスに保存されます。";
+"settings.notifications.enableWorkspaceReminders" = "ワークスペースのリマインダーを有効にする";
+"settings.notifications.section.strictReminders" = "ストリクトリマインダー";
+"settings.notifications.enableStrictReminders" = "ストリクトリマインダーを有効にする";
+"settings.notifications.strictReminders.description" = "ローカル日のあいだにアプリ内のどこでも復習していない場合、Flashcards はその日が終わる 4 時間前、3 時間前、2 時間前に通知します。";
+"settings.notifications.strictReminders.deviceNote" = "ストリクトリマインダーはアプリ全体の設定で、このデバイスにのみ適用されます。";
 "settings.notifications.section.dailyReminder" = "毎日のリマインダー";
 "settings.notifications.section.inactivityReminder" = "非アクティブ リマインダー";
 "settings.notifications.permission.allowed" = "許可";

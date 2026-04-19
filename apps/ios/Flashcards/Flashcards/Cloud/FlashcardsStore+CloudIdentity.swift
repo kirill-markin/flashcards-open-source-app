@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 
 @MainActor
 extension FlashcardsStore {
@@ -14,12 +15,22 @@ extension FlashcardsStore {
      */
     func resetLocalStateForCloudIdentityChange() throws {
         let database = try requireLocalDatabase(database: self.database)
+        let previousStrictReminderNotificationScope = storedStrictReminderNotificationScope(userDefaults: self.userDefaults)
 
         self.reviewRuntime.cancelForAccountDeletion()
         self.cloudRuntime.cancelForAccountDeletion()
+        self.activeStrictRemindersRescheduleTask?.cancel()
+        self.activeStrictRemindersRescheduleTask = nil
+        self.pendingStrictRemindersReconcileRequest = nil
         try self.cloudRuntime.clearCredentials()
         try self.dependencies.guestCredentialStore.clearGuestSession()
+        rotateStrictReminderNotificationScope(userDefaults: self.userDefaults)
+        clearPendingAppNotificationTap(userDefaults: self.userDefaults)
+        self.removeStrictReminderNotificationsForCloudIdentityReset(
+            previousNotificationScope: previousStrictReminderNotificationScope
+        )
         clearStoredReviewFilters(userDefaults: self.userDefaults)
+        clearStoredStrictReminders(userDefaults: self.userDefaults)
         self.userDefaults.removeObject(forKey: reviewNotificationPromptStateUserDefaultsKey)
         self.userDefaults.removeObject(forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey)
         self.userDefaults.removeObject(forKey: reviewNotificationLastActiveAtUserDefaultsKey)
@@ -49,6 +60,17 @@ extension FlashcardsStore {
         self.globalErrorMessage = ""
         try database.resetForAccountDeletion()
         try self.reload()
+    }
+
+    private func removeStrictReminderNotificationsForCloudIdentityReset(
+        previousNotificationScope: String?
+    ) {
+        Task {
+            await removePendingAndDeliveredStrictReminders(
+                center: UNUserNotificationCenter.current(),
+                removalScope: previousNotificationScope
+            )
+        }
     }
 
     func resetLocalStateIfLinkedUserDiffers(nextUserId: String) throws {

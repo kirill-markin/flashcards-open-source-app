@@ -110,23 +110,15 @@ internal suspend fun runCloudSyncCore(
                 lastReviewSequenceId = importResponse.nextReviewSequenceId ?: lastReviewSequenceId
             }
         } else {
-            var hasMore = true
-            while (hasMore) {
-                val reviewHistoryPage = remoteService.pullReviewHistory(
-                    apiBaseUrl = syncSession.apiBaseUrl,
-                    authorizationHeader = syncSession.authorizationHeader,
-                    workspaceId = workspaceId,
-                    body = JSONObject()
-                        .put("installationId", cloudSettings.installationId)
-                        .put("platform", androidClientPlatform)
-                        .put("appVersion", appVersion)
-                        .put("afterReviewSequenceId", lastReviewSequenceId)
-                        .put("limit", syncPullPageLimit)
-                )
-                syncLocalStore.applyReviewHistory(reviewHistoryPage.reviewEvents)
-                lastReviewSequenceId = reviewHistoryPage.nextReviewSequenceId
-                hasMore = reviewHistoryPage.hasMore
-            }
+            lastReviewSequenceId = pullAndApplyReviewHistoryBatch(
+                cloudSettings = cloudSettings,
+                workspaceId = workspaceId,
+                syncSession = syncSession,
+                appVersion = appVersion,
+                remoteService = remoteService,
+                syncLocalStore = syncLocalStore,
+                startingReviewSequenceId = lastReviewSequenceId
+            )
         }
 
         hasHydratedReviewHistory = true
@@ -177,23 +169,15 @@ internal suspend fun runCloudSyncCore(
         hasMoreHotChanges = pullResponse.hasMore
     }
 
-    var hasMoreReviewHistory = true
-    while (hasMoreReviewHistory) {
-        val reviewHistoryPage = remoteService.pullReviewHistory(
-            apiBaseUrl = syncSession.apiBaseUrl,
-            authorizationHeader = syncSession.authorizationHeader,
-            workspaceId = workspaceId,
-            body = JSONObject()
-                .put("installationId", cloudSettings.installationId)
-                .put("platform", androidClientPlatform)
-                .put("appVersion", appVersion)
-                .put("afterReviewSequenceId", lastReviewSequenceId)
-                .put("limit", syncPullPageLimit)
-        )
-        syncLocalStore.applyReviewHistory(reviewHistoryPage.reviewEvents)
-        lastReviewSequenceId = reviewHistoryPage.nextReviewSequenceId
-        hasMoreReviewHistory = reviewHistoryPage.hasMore
-    }
+    lastReviewSequenceId = pullAndApplyReviewHistoryBatch(
+        cloudSettings = cloudSettings,
+        workspaceId = workspaceId,
+        syncSession = syncSession,
+        appVersion = appVersion,
+        remoteService = remoteService,
+        syncLocalStore = syncLocalStore,
+        startingReviewSequenceId = lastReviewSequenceId
+    )
 
     syncLocalStore.markSyncSuccess(
         workspaceId = workspaceId,
@@ -208,6 +192,43 @@ internal data class CloudSyncSession(
     val apiBaseUrl: String,
     val authorizationHeader: String
 )
+
+private suspend fun pullAndApplyReviewHistoryBatch(
+    cloudSettings: CloudSettings,
+    workspaceId: String,
+    syncSession: CloudSyncSession,
+    appVersion: String,
+    remoteService: CloudRemoteGateway,
+    syncLocalStore: SyncLocalStore,
+    startingReviewSequenceId: Long
+): Long {
+    var lastReviewSequenceId = startingReviewSequenceId
+    syncLocalStore.beginReviewHistoryChangeBatch()
+    try {
+        var hasMoreReviewHistory = true
+        while (hasMoreReviewHistory) {
+            val reviewHistoryPage = remoteService.pullReviewHistory(
+                apiBaseUrl = syncSession.apiBaseUrl,
+                authorizationHeader = syncSession.authorizationHeader,
+                workspaceId = workspaceId,
+                body = JSONObject()
+                    .put("installationId", cloudSettings.installationId)
+                    .put("platform", androidClientPlatform)
+                    .put("appVersion", appVersion)
+                    .put("afterReviewSequenceId", lastReviewSequenceId)
+                    .put("limit", syncPullPageLimit)
+            )
+            syncLocalStore.applyReviewHistory(reviewHistoryPage.reviewEvents)
+            lastReviewSequenceId = reviewHistoryPage.nextReviewSequenceId
+            hasMoreReviewHistory = reviewHistoryPage.hasMore
+        }
+        syncLocalStore.flushReviewHistoryChangeBatch()
+        return lastReviewSequenceId
+    } catch (error: Exception) {
+        syncLocalStore.discardReviewHistoryChangeBatch()
+        throw error
+    }
+}
 
 private fun buildPushRequest(
     installationId: String,

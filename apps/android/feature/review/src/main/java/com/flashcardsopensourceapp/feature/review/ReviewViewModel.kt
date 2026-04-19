@@ -78,6 +78,7 @@ class ReviewViewModel(
     private val reviewNotificationsStore: ReviewNotificationsStore,
     private val shouldShowNotificationPermissionPrePrompt: () -> Boolean,
     private val onReviewNotificationsChanged: (ReviewNotificationsReconcileTrigger) -> Unit,
+    private val onSuccessfulReviewRecorded: (Long) -> Unit,
     private val onNotificationPermissionGranted: () -> Unit,
     private val reviewPreferencesStore: ReviewPreferencesStore,
     visibleAppScreenRepository: VisibleAppScreenRepository,
@@ -442,6 +443,7 @@ class ReviewViewModel(
                     reviewedAtMillis = reviewedAtMillis
                 )
                 handleSuccessfulReviewRecorded(
+                    reviewedAtMillis = reviewedAtMillis,
                     shouldShowNotificationPermissionPrePrompt = didShowHardAnswerReminder.not()
                 )
             } catch (error: Throwable) {
@@ -501,6 +503,7 @@ class ReviewViewModel(
      * Records successful review bookkeeping and optionally shows the notification pre-prompt.
      */
     private fun handleSuccessfulReviewRecorded(
+        reviewedAtMillis: Long,
         shouldShowNotificationPermissionPrePrompt: Boolean
     ) {
         val nowMillis = System.currentTimeMillis()
@@ -508,6 +511,7 @@ class ReviewViewModel(
         val nextReviewCount = reviewNotificationsStore.loadSuccessfulReviewCount() + 1
         reviewNotificationsStore.saveSuccessfulReviewCount(count = nextReviewCount)
         onReviewNotificationsChanged(ReviewNotificationsReconcileTrigger.REVIEW_RECORDED)
+        onSuccessfulReviewRecorded(reviewedAtMillis)
 
         if (shouldShowNotificationPermissionPrePrompt.not()) {
             return
@@ -820,6 +824,7 @@ fun createReviewViewModelFactory(
     reviewNotificationsStore: ReviewNotificationsStore,
     shouldShowNotificationPermissionPrePrompt: () -> Boolean,
     onReviewNotificationsChanged: (ReviewNotificationsReconcileTrigger) -> Unit,
+    onSuccessfulReviewRecorded: (Long) -> Unit,
     onNotificationPermissionGranted: () -> Unit,
     reviewPreferencesStore: ReviewPreferencesStore,
     visibleAppScreenRepository: VisibleAppScreenRepository,
@@ -836,6 +841,7 @@ fun createReviewViewModelFactory(
                 reviewNotificationsStore = reviewNotificationsStore,
                 shouldShowNotificationPermissionPrePrompt = shouldShowNotificationPermissionPrePrompt,
                 onReviewNotificationsChanged = onReviewNotificationsChanged,
+                onSuccessfulReviewRecorded = onSuccessfulReviewRecorded,
                 onNotificationPermissionGranted = onNotificationPermissionGranted,
                 reviewPreferencesStore = reviewPreferencesStore,
                 visibleAppScreenRepository = visibleAppScreenRepository,

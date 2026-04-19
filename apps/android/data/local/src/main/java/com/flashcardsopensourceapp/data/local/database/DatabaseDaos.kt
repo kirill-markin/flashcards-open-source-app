@@ -316,6 +316,19 @@ interface ReviewLogDao {
     @Query("SELECT COUNT(*) FROM review_logs")
     suspend fun countReviewLogs(): Int
 
+    @Query(
+        """
+        SELECT EXISTS(
+            SELECT 1
+            FROM review_logs
+            WHERE reviewedAtMillis >= :startMillis
+                AND reviewedAtMillis < :endMillis
+            LIMIT 1
+        )
+        """
+    )
+    suspend fun hasReviewLogsBetween(startMillis: Long, endMillis: Long): Boolean
+
     @Query("SELECT * FROM review_logs ORDER BY reviewedAtMillis DESC")
     suspend fun loadReviewLogs(): List<ReviewLogEntity>
 

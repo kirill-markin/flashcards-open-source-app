@@ -1,7 +1,7 @@
 import Foundation
 
 enum LocalDatabaseSchema {
-    static let currentVersion: Int = 11
+    static let currentVersion: Int = 12
 
     static var baseMigrationSQL: String {
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
@@ -155,6 +155,9 @@ enum LocalDatabaseSchema {
 
         CREATE INDEX IF NOT EXISTS idx_review_events_workspace_card_time
             ON review_events(workspace_id, card_id, reviewed_at_server DESC);
+
+        CREATE INDEX IF NOT EXISTS idx_review_events_reviewed_at_client
+            ON review_events(reviewed_at_client);
 
         CREATE INDEX IF NOT EXISTS idx_outbox_workspace_created_at
             ON outbox(workspace_id, created_at ASC);

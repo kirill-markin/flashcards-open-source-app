@@ -41,6 +41,7 @@ fun ReviewNotificationsRoute(
     onUpdateInactivityWindowStart: (Int, Int) -> Unit,
     onUpdateInactivityWindowEnd: (Int, Int) -> Unit,
     onUpdateIdleMinutes: (Int) -> Unit,
+    onUpdateStrictRemindersEnabled: (Boolean) -> Unit,
     onMarkSystemPermissionRequested: () -> Unit,
     onPermissionGranted: () -> Unit,
     onBack: () -> Unit
@@ -92,11 +93,7 @@ fun ReviewNotificationsRoute(
                         },
                         supportingContent = {
                             Text(
-                                when (permissionStatus) {
-                                    ReviewNotificationPermissionUiStatus.ALLOWED -> stringResource(R.string.settings_access_status_allowed)
-                                    ReviewNotificationPermissionUiStatus.NOT_REQUESTED -> stringResource(R.string.settings_access_status_not_requested)
-                                    ReviewNotificationPermissionUiStatus.BLOCKED -> stringResource(R.string.settings_access_status_blocked)
-                                }
+                                buildNotificationPermissionBody(permissionStatus = permissionStatus)
                             )
                         },
                         trailingContent = {
@@ -120,6 +117,29 @@ fun ReviewNotificationsRoute(
                                     }
                                 )
                             }
+                        }
+                    )
+                }
+            }
+
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text(stringResource(R.string.settings_notifications_strict_reminders_title))
+                        },
+                        supportingContent = {
+                            Text(
+                                stringResource(R.string.settings_notifications_strict_reminders_body) +
+                                    "\n\n" +
+                                    stringResource(R.string.settings_notifications_strict_reminders_device_note)
+                            )
+                        },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.strictRemindersSettings.isEnabled,
+                                onCheckedChange = onUpdateStrictRemindersEnabled
+                            )
                         }
                     )
                 }
@@ -297,6 +317,40 @@ fun ReviewNotificationsRoute(
             }
         }
     }
+}
+
+@Composable
+private fun buildNotificationPermissionBody(
+    permissionStatus: ReviewNotificationPermissionUiStatus
+): String {
+    val statusLabel = when (permissionStatus) {
+        ReviewNotificationPermissionUiStatus.ALLOWED -> {
+            stringResource(R.string.settings_access_status_allowed)
+        }
+
+        ReviewNotificationPermissionUiStatus.NOT_REQUESTED -> {
+            stringResource(R.string.settings_access_status_not_requested)
+        }
+
+        ReviewNotificationPermissionUiStatus.BLOCKED -> {
+            stringResource(R.string.settings_access_status_blocked)
+        }
+    }
+    val guidance = when (permissionStatus) {
+        ReviewNotificationPermissionUiStatus.ALLOWED -> {
+            stringResource(R.string.settings_notifications_permission_guidance_allowed)
+        }
+
+        ReviewNotificationPermissionUiStatus.NOT_REQUESTED -> {
+            stringResource(R.string.settings_notifications_permission_guidance_request)
+        }
+
+        ReviewNotificationPermissionUiStatus.BLOCKED -> {
+            stringResource(R.string.settings_notifications_permission_guidance_blocked)
+        }
+    }
+
+    return "$statusLabel\n\n$guidance"
 }
 
 @Composable

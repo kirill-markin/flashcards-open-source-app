@@ -148,7 +148,7 @@
 
     <string name="settings_access_title">Access</string>
     <string name="settings_access_notifications_title">Notifications</string>
-    <string name="settings_access_notifications_summary">Study reminder settings for this device</string>
+    <string name="settings_access_notifications_summary">Review and strict reminder settings for this device</string>
     <string name="settings_access_status_label">Status</string>
     <string name="settings_access_usage_label">Usage</string>
     <string name="settings_access_status_allowed">Allowed</string>
@@ -182,11 +182,17 @@
 
     <string name="settings_notifications_title">Notifications</string>
     <string name="settings_notifications_this_device_title">This device only</string>
-    <string name="settings_notifications_this_device_body">Notification settings stay attached to this workspace, but they apply only to the current device. Study reminders contain cards only and never marketing messages.</string>
+    <string name="settings_notifications_this_device_body">Workspace review reminders stay attached to the current workspace. Strict reminders are app-wide. Both apply only to this device, and study reminders never include marketing messages.</string>
     <string name="settings_notifications_permission_title">Permission</string>
     <string name="settings_notifications_allow_button">Allow notifications</string>
-    <string name="settings_notifications_reminders_title">Review reminders</string>
-    <string name="settings_notifications_reminders_body">Send study cards from the current review filter on this device.</string>
+    <string name="settings_notifications_permission_guidance_allowed">Android can deliver enabled workspace review reminders and strict reminders on this device.</string>
+    <string name="settings_notifications_permission_guidance_request">Workspace review reminders and strict reminders stay enabled inside the app. Allow Android notifications to deliver them on this device.</string>
+    <string name="settings_notifications_permission_guidance_blocked">Workspace review reminders and strict reminders stay enabled inside the app, but Android is currently blocking delivery on this device. Open app settings to allow notifications again.</string>
+    <string name="settings_notifications_strict_reminders_title">Strict reminders</string>
+    <string name="settings_notifications_strict_reminders_body">If you have not reviewed anything anywhere in the app today, send streak reminders 4, 3, and 2 hours before local midnight.</string>
+    <string name="settings_notifications_strict_reminders_device_note">Applies to this device only.</string>
+    <string name="settings_notifications_reminders_title">Workspace review reminders</string>
+    <string name="settings_notifications_reminders_body">Send study cards from the current workspace review filter on this device.</string>
     <string name="settings_notifications_mode_daily">Daily</string>
     <string name="settings_notifications_mode_inactivity">Inactivity</string>
     <string name="settings_notifications_daily_title">Daily reminder</string>

@@ -17,7 +17,8 @@ class CloudIdentityResetCoordinator(
     private val cloudPreferencesStore: CloudPreferencesStore,
     private val aiChatPreferencesStore: AiChatPreferencesStore,
     private val aiChatHistoryStore: AiChatHistoryStore,
-    private val guestAiSessionStore: GuestAiSessionStore
+    private val guestAiSessionStore: GuestAiSessionStore,
+    private val onCloudIdentityReset: suspend () -> Unit = {}
 ) {
     private val resetMutex = Mutex()
 
@@ -37,6 +38,7 @@ class CloudIdentityResetCoordinator(
                 aiChatPreferencesStore.clearConsent()
                 aiChatHistoryStore.clearAllState()
                 guestAiSessionStore.clearAllSessions()
+                onCloudIdentityReset()
                 database.clearAllTables()
                 val activeWorkspaceId = ensureLocalWorkspaceShell(
                     database = database,

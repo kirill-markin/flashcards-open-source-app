@@ -99,6 +99,7 @@ extension FlashcardsStore {
             )
         )
         self.refreshLocalReadModels(now: now)
+        self.recordSuccessfulStrictReminderReview(reviewedAt: now, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
 

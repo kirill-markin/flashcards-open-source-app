@@ -62,6 +62,7 @@ import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
+import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncSource
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import kotlinx.coroutines.delay
@@ -200,6 +201,10 @@ fun FlashcardsApp(appGraph: AppGraph) {
                             trigger = ReviewNotificationsReconcileTrigger.APP_ACTIVE,
                             nowMillis = System.currentTimeMillis()
                         )
+                        appGraph.strictRemindersManager.reconcileStrictReminders(
+                            trigger = StrictRemindersReconcileTrigger.APP_ACTIVE,
+                            nowMillis = System.currentTimeMillis()
+                        )
                         if (currentCanRunImmediateAutoSync) {
                             appGraph.autoSyncController.triggerImmediateAutoSync(
                                 source = AutoSyncSource.APP_FOREGROUND,
@@ -214,6 +219,10 @@ fun FlashcardsApp(appGraph: AppGraph) {
                         isAppResumed = false
                         appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
                             trigger = ReviewNotificationsReconcileTrigger.APP_BACKGROUND,
+                            nowMillis = System.currentTimeMillis()
+                        )
+                        appGraph.strictRemindersManager.reconcileStrictReminders(
+                            trigger = StrictRemindersReconcileTrigger.APP_BACKGROUND,
                             nowMillis = System.currentTimeMillis()
                         )
                     }

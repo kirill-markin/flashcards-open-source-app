@@ -3,12 +3,26 @@ package com.flashcardsopensourceapp.data.local.notifications
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ReviewNotificationsStoreTest {
     private val fallbackFrontText: String = "Continue your study session in Flashcards."
+
+    @Test
+    fun reviewRemindersDefaultToEnabled() {
+        assertEquals(true, defaultReviewNotificationsSettings().isEnabled)
+    }
+
+    @Test
+    fun strictRemindersDefaultToEnabled() {
+        assertEquals(true, defaultStrictRemindersSettings().isEnabled)
+    }
 
     @Test
     fun dailyReminderFallbackPayloadsUseGenericBodyTextAndNullCardId() {
@@ -225,6 +239,136 @@ class ReviewNotificationsStoreTest {
         )
         assertEquals("effort", persistedFilter.kind)
         assertEquals(EffortLevel.MEDIUM.name, persistedFilter.effortLevel)
+    }
+
+    @Test
+    fun strictReminderPayloadsSkipCompletedDaysAndPastCandidates() = runBlocking {
+        val zoneId = ZoneId.of("UTC")
+        val payloads = buildStrictReminderPayloads(
+            nowMillis = parseTimestampMillis(value = "2026-04-03T21:30:00Z"),
+            zoneId = zoneId,
+            isLocalDateCompleted = { localDate ->
+                localDate == LocalDate.parse("2026-04-04")
+            }
+        )
+
+        assertEquals(
+            listOf(
+                "strict-reminder::2026-04-03::2h",
+                "strict-reminder::2026-04-05::4h",
+                "strict-reminder::2026-04-05::3h",
+                "strict-reminder::2026-04-05::2h"
+            ),
+            payloads.take(4).map { payload -> payload.requestId }
+        )
+        assertEquals(
+            listOf(
+                "2026-04-03T22:00:00Z",
+                "2026-04-05T20:00:00Z",
+                "2026-04-05T21:00:00Z",
+                "2026-04-05T22:00:00Z"
+            ),
+            payloads.take(4).map { payload ->
+                formatTimestampMillis(
+                    value = payload.scheduledAtMillis,
+                    zoneId = zoneId
+                )
+            }
+        )
+    }
+
+    @Test
+    fun strictReminderPayloadsUseStartOfNextDayForDstShift() = runBlocking {
+        val zoneId = ZoneId.of("Europe/Madrid")
+        val payloads = buildStrictReminderPayloads(
+            nowMillis = parseTimestampMillis(value = "2026-03-29T00:00:00Z"),
+            zoneId = zoneId,
+            isLocalDateCompleted = { _ -> false }
+        )
+
+        assertEquals(
+            listOf(
+                StrictReminderTimeOffset.FOUR_HOURS,
+                StrictReminderTimeOffset.THREE_HOURS,
+                StrictReminderTimeOffset.TWO_HOURS
+            ),
+            payloads.take(3).map { payload -> payload.timeOffset }
+        )
+        assertEquals(
+            listOf(
+                "20:00",
+                "21:00",
+                "22:00"
+            ),
+            payloads.take(3).map { payload ->
+                Instant.ofEpochMilli(payload.scheduledAtMillis).atZone(zoneId).toLocalTime().toString()
+            }
+        )
+    }
+
+    @Test
+    fun strictReminderCompletionUsesCurrentLocalDateFromPersistedReviewTimestamp() {
+        val zoneId = ZoneId.of("Europe/Madrid")
+        val completedReviewAtMillis = parseTimestampMillis(value = "2026-04-03T22:30:00Z")
+
+        assertTrue(
+            isStrictReminderLocalDateCompleted(
+                localDate = LocalDate.parse("2026-04-04"),
+                zoneId = zoneId,
+                completedReviewAtMillis = completedReviewAtMillis
+            )
+        )
+        assertFalse(
+            isStrictReminderLocalDateCompleted(
+                localDate = LocalDate.parse("2026-04-03"),
+                zoneId = zoneId,
+                completedReviewAtMillis = completedReviewAtMillis
+            )
+        )
+    }
+
+    @Test
+    fun strictReminderCompletionMergePrefersLatestTimestamp() {
+        val existingCompletedReviewAtMillis = parseTimestampMillis(value = "2026-04-03T09:00:00Z")
+        val importedCompletedReviewAtMillis = parseTimestampMillis(value = "2026-04-03T13:00:00Z")
+
+        assertEquals(
+            importedCompletedReviewAtMillis,
+            mergeStrictReminderCompletedReviewAtMillis(
+                existingCompletedReviewAtMillis = existingCompletedReviewAtMillis,
+                candidateCompletedReviewAtMillis = importedCompletedReviewAtMillis
+            )
+        )
+        assertEquals(
+            importedCompletedReviewAtMillis,
+            mergeStrictReminderCompletedReviewAtMillis(
+                existingCompletedReviewAtMillis = null,
+                candidateCompletedReviewAtMillis = importedCompletedReviewAtMillis
+            )
+        )
+        assertEquals(
+            existingCompletedReviewAtMillis,
+            mergeStrictReminderCompletedReviewAtMillis(
+                existingCompletedReviewAtMillis = existingCompletedReviewAtMillis,
+                candidateCompletedReviewAtMillis = null
+            )
+        )
+    }
+
+    @Test
+    fun strictReminderCompletionBackfillsCurrentLocalDayFromExistingReviewLogs() {
+        val zoneId = ZoneId.of("Europe/Madrid")
+        val resolvedCompletedReviewAtMillis = resolveStrictReminderCompletedReviewAtMillis(
+            currentLocalDate = LocalDate.parse("2026-04-04"),
+            zoneId = zoneId,
+            existingCompletedReviewAtMillis = parseTimestampMillis(value = "2026-04-02T09:00:00Z"),
+            hasReviewLogsInCurrentLocalDate = true
+        )
+
+        assertEquals(
+            parseTimestampMillis(value = "2026-04-03T22:00:00Z"),
+            resolvedCompletedReviewAtMillis
+        )
     }
 }
 

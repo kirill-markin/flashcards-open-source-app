@@ -302,7 +302,11 @@ extension FlashcardsStore {
             if bootstrapRefreshOutcome.didChange || didReconcileReviewState {
                 self.localReadVersion += 1
             }
-            self.handleSuccessfulReviewNotificationTrigger()
+            let reviewedAt = parseIsoTimestamp(value: request.reviewedAtClient) ?? now
+            self.handleSuccessfulReviewNotificationTrigger(
+                reviewedAt: reviewedAt,
+                now: now
+            )
             self.handleSuccessfulReviewHardReminder(
                 rating: request.rating,
                 now: now

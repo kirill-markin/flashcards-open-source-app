@@ -40,6 +40,13 @@ fun AppNavHost(
                     destination = ReviewDestination
                 )
             }
+
+            AppNotificationTapType.STRICT_REMINDER -> {
+                navigateToTopLevelDestination(
+                    navController = navController,
+                    destination = ReviewDestination
+                )
+            }
         }
         appGraph.appHandoffCoordinator.consumeAppNotificationTap(requestId = request.requestId)
     }

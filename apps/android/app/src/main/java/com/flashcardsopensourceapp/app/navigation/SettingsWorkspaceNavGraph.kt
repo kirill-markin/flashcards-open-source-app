@@ -32,6 +32,7 @@ import com.flashcardsopensourceapp.feature.settings.createWorkspaceOverviewViewM
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceSettingsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createWorkspaceTagsViewModelFactory
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
+import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -95,9 +96,16 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 factory = createReviewNotificationsViewModelFactory(
                     workspaceRepository = appGraph.workspaceRepository,
                     reviewNotificationsStore = appGraph.reviewNotificationsStore,
-                    onSettingsChanged = {
+                    strictRemindersStore = appGraph.strictRemindersStore,
+                    onReviewSettingsChanged = {
                         appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
                             trigger = ReviewNotificationsReconcileTrigger.SETTINGS_CHANGED,
+                            nowMillis = System.currentTimeMillis()
+                        )
+                    },
+                    onStrictRemindersSettingsChanged = {
+                        appGraph.strictRemindersManager.reconcileStrictReminders(
+                            trigger = StrictRemindersReconcileTrigger.SETTINGS_CHANGED,
                             nowMillis = System.currentTimeMillis()
                         )
                     }
@@ -113,9 +121,17 @@ internal fun NavGraphBuilder.registerSettingsWorkspaceNavGraph(
                 onUpdateInactivityWindowStart = reviewNotificationsViewModel::updateInactivityWindowStart,
                 onUpdateInactivityWindowEnd = reviewNotificationsViewModel::updateInactivityWindowEnd,
                 onUpdateIdleMinutes = reviewNotificationsViewModel::updateIdleMinutes,
+                onUpdateStrictRemindersEnabled = reviewNotificationsViewModel::updateStrictRemindersEnabled,
                 onMarkSystemPermissionRequested = reviewNotificationsViewModel::markSystemPermissionRequested,
                 onPermissionGranted = {
-                    appGraph.reviewNotificationsManager.enableDefaultDailyForCurrentWorkspace()
+                    appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
+                        trigger = ReviewNotificationsReconcileTrigger.PERMISSION_CHANGED,
+                        nowMillis = System.currentTimeMillis()
+                    )
+                    appGraph.strictRemindersManager.reconcileStrictReminders(
+                        trigger = StrictRemindersReconcileTrigger.PERMISSION_CHANGED,
+                        nowMillis = System.currentTimeMillis()
+                    )
                 },
                 onBack = {
                     navController.popBackStack()

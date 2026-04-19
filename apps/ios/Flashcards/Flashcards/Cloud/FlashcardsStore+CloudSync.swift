@@ -231,6 +231,7 @@ extension FlashcardsStore {
                 now: now,
                 mode: reviewRefreshMode
             )
+            self.reconcileStrictReminders(trigger: .reviewHistoryImported, now: now)
         } else {
             didRefreshReviewState = false
         }

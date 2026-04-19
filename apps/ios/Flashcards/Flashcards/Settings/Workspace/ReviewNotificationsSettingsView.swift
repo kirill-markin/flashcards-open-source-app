@@ -18,7 +18,7 @@ struct ReviewNotificationsSettingsView: View {
                 Text(
                     aiSettingsLocalized(
                         "settings.notifications.description",
-                        "Notification settings stay attached to this workspace, but they apply only to the current device. Study reminders contain cards only and never marketing messages."
+                        "Workspace review reminders and strict reminders stay enabled inside Flashcards by default. Delivery still depends on the system notification permission. Study notifications contain cards only and never marketing messages."
                     )
                 )
                     .foregroundStyle(.secondary)
@@ -34,9 +34,17 @@ struct ReviewNotificationsSettingsView: View {
                 }
             }
 
-            Section(aiSettingsLocalized("settings.notifications.section.reviewReminders", "Review Reminders")) {
+            Section(aiSettingsLocalized("settings.notifications.section.reviewReminders", "Workspace Review Reminders")) {
+                Text(
+                    aiSettingsLocalized(
+                        "settings.notifications.reviewReminders.description",
+                        "These reminders use the current workspace only, stay on this device, and remain internally enabled even if system notification permission is off."
+                    )
+                )
+                    .foregroundStyle(.secondary)
+
                 Toggle(
-                    aiSettingsLocalized("settings.notifications.enableReminders", "Enable reminders"),
+                    aiSettingsLocalized("settings.notifications.enableWorkspaceReminders", "Enable workspace reminders"),
                     isOn: Binding(
                         get: {
                             store.reviewNotificationsSettings.isEnabled
@@ -63,6 +71,36 @@ struct ReviewNotificationsSettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+            }
+
+            Section(aiSettingsLocalized("settings.notifications.section.strictReminders", "Strict reminders")) {
+                Toggle(
+                    aiSettingsLocalized("settings.notifications.enableStrictReminders", "Enable strict reminders"),
+                    isOn: Binding(
+                        get: {
+                            store.strictRemindersSettings.isEnabled
+                        },
+                        set: { isEnabled in
+                            store.updateStrictRemindersEnabled(isEnabled: isEnabled)
+                        }
+                    )
+                )
+
+                Text(
+                    aiSettingsLocalized(
+                        "settings.notifications.strictReminders.description",
+                        "If you have not reviewed anywhere in the app on a local day, Flashcards reminds you 4, 3, and 2 hours before that day ends."
+                    )
+                )
+                    .foregroundStyle(.secondary)
+
+                Text(
+                    aiSettingsLocalized(
+                        "settings.notifications.strictReminders.deviceNote",
+                        "Strict reminders are app-level, apply only to this device, and remain internally enabled even if system notification permission is off."
+                    )
+                )
+                    .foregroundStyle(.secondary)
             }
 
             if store.reviewNotificationsSettings.selectedMode == .daily {
@@ -188,8 +226,7 @@ struct ReviewNotificationsSettingsView: View {
         case .notRequested:
             Task { @MainActor in
                 self.permissionStatus = await store.requestReviewNotificationPermissionFromSettings(
-                    now: Date(),
-                    autoEnableDefaultIfAllowed: false
+                    now: Date()
                 )
                 self.permissionErrorMessage = ""
             }

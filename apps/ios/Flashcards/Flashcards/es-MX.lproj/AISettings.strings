@@ -395,9 +395,15 @@
 "settings.workspace.scheduler.applyAlertMessage" = "No se recomienda cambiar los ajustes del programador salvo que tengas una razon concreta. Solo afecta a futuros repasos y no reescribe el estado actual de las tarjetas.";
 
 "settings.notifications.title" = "Notificaciones";
-"settings.notifications.description" = "La configuracion de notificaciones sigue asociada a este espacio de trabajo, pero solo se aplica al dispositivo actual. Los recordatorios de estudio contienen solo tarjetas y nunca mensajes de marketing.";
+"settings.notifications.description" = "Los recordatorios de repaso siguen vinculados al espacio de trabajo actual. Los recordatorios estrictos son recordatorios de racha a nivel de app solo para este dispositivo. Las notificaciones de estudio contienen solo tarjetas y nunca mensajes de marketing.";
 "settings.notifications.section.permission" = "Permiso";
-"settings.notifications.section.reviewReminders" = "Recordatorios de repaso";
+"settings.notifications.section.reviewReminders" = "Recordatorios de repaso del espacio de trabajo";
+"settings.notifications.reviewReminders.description" = "Estos recordatorios usan solo el espacio de trabajo actual y se quedan en este dispositivo.";
+"settings.notifications.enableWorkspaceReminders" = "Activar recordatorios del espacio de trabajo";
+"settings.notifications.section.strictReminders" = "Recordatorios estrictos";
+"settings.notifications.enableStrictReminders" = "Activar recordatorios estrictos";
+"settings.notifications.strictReminders.description" = "Si no has repasado en ninguna parte de la app durante un dia local, Flashcards te recuerda 4, 3 y 2 horas antes de que termine ese dia.";
+"settings.notifications.strictReminders.deviceNote" = "Los recordatorios estrictos son de toda la app y solo se aplican a este dispositivo.";
 "settings.notifications.section.dailyReminder" = "Recordatorio diario";
 "settings.notifications.section.inactivityReminder" = "Recordatorio por inactividad";
 "settings.notifications.permission.allowed" = "Permitido";
