@@ -18,7 +18,7 @@ type AiSendPhase = "idle" | "preparingSend" | "startingRun";
 type AiDraftState = "empty" | "filled";
 type AiCanSend = "true" | "false";
 
-type AiComposerContract = Readonly<{
+export type AiComposerContract = Readonly<{
   composerState: AiComposerState;
   composerAction: AiComposerAction;
   chatRunState: AiChatRunState;
@@ -357,7 +357,7 @@ export async function readComposerSuggestionTexts(
       .filter((text) => text.length > 0));
 }
 
-async function readAiComposerContract(page: Page): Promise<AiComposerContract> {
+export async function readAiComposerContract(page: Page): Promise<AiComposerContract> {
   return page.getByTestId("chat-composer-state").evaluate((element) => {
     function readRequiredAttribute(attributeName: string): string {
       const attributeValue = element.getAttribute(attributeName);
@@ -439,7 +439,7 @@ async function readAiComposerContract(page: Page): Promise<AiComposerContract> {
   });
 }
 
-function isAiRunRunning(contract: AiComposerContract): boolean {
+export function isAiRunRunning(contract: AiComposerContract): boolean {
   return contract.composerState === "running"
     || contract.composerState === "stopping"
     || contract.composerAction === "stop"
@@ -453,7 +453,7 @@ function isAiRunQueued(contract: AiComposerContract): boolean {
     || contract.sendPhase === "startingRun";
 }
 
-function isAiComposerTerminalIdle(contract: AiComposerContract): boolean {
+export function isAiComposerTerminalIdle(contract: AiComposerContract): boolean {
   return contract.composerState === "idle"
     && contract.composerAction === "send"
     && contract.chatRunState !== "running"

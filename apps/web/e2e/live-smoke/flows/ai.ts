@@ -1,4 +1,4 @@
-import { expect, type Locator } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 import {
   trackedClick,
@@ -10,7 +10,10 @@ import {
 import { aiCompletionTimeoutMs, externalUiTimeoutMs, localUiTimeoutMs } from "../config";
 import {
   createAiTransportObserver,
+  isAiComposerTerminalIdle,
+  isAiRunRunning,
   readCompletedSqlToolCalls,
+  readAiComposerContract,
   waitForAiChatSendReadiness,
   waitForAiRunAccepted,
   waitForAiRunCompletion,
@@ -23,29 +26,7 @@ import type {
   LiveSmokeSession,
 } from "../types";
 
-type AiCreateComposerLifecycleState = "idle_empty" | "transitional_running" | "unknown";
-
-type AiCreateComposerContractSource = "explicit" | "legacy";
-
-type AiCreateComposerSnapshot = Readonly<{
-  source: AiCreateComposerContractSource;
-  state: string | null;
-  action: string | null;
-  actionButtonState: string | null;
-  canSend: string | null;
-  draftState: string | null;
-  sendPhase: string | null;
-  sendButtonState: string | null;
-  runState: string | null;
-  inputText: string;
-  isSendEnabled: boolean;
-  isStopVisible: boolean;
-}>;
-
-type AiCreatePostInsertComposerObservation = Readonly<{
-  source: AiCreateComposerContractSource;
-  state: AiCreateComposerLifecycleState;
-}>;
+type AiCreatePostInsertComposerState = "idle_empty" | "transitional_running";
 
 export async function runAiCardCreationFlow(session: LiveSmokeSession): Promise<void> {
   await runLiveSmokeStep(session, "create one AI card with explicit confirmation and confirm the insert completed", async () => {
@@ -151,17 +132,14 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
         );
 
         if (attemptResolution.completionState === "inserted") {
-          const postInsertComposerObservation = await waitForAiCreatePostInsertComposerState(
+          const postInsertComposerState = await waitForAiCreatePostInsertComposerState(
+            page,
             diagnostics,
             `confirm AI create prompt attempt ${String(attempt)} reaches a valid post-insert composer state`,
-            fullscreenChat,
-            messageField,
-            sendButton,
-            stopButton,
             localUiTimeoutMs,
           );
 
-          if (postInsertComposerObservation.state === "transitional_running") {
+          if (postInsertComposerState === "transitional_running") {
             requiresLiveAttachRequest = true;
             await diagnostics.runAction(
               `wait for AI create prompt attempt ${String(attempt)} live attach request after confirmed insert`,
@@ -176,12 +154,9 @@ async function runAiCardCreationWithConfirmation(session: LiveSmokeSession): Pro
         }
 
         await waitForAiCreateIdleComposerState(
+          page,
           diagnostics,
           `confirm AI create prompt attempt ${String(attempt)} returns to empty draft with disabled send action`,
-          fullscreenChat,
-          messageField,
-          sendButton,
-          stopButton,
           externalUiTimeoutMs,
         );
 
@@ -274,203 +249,50 @@ async function assertNewChatResetsConversation(session: LiveSmokeSession): Promi
 }
 
 async function waitForAiCreatePostInsertComposerState(
+  page: Page,
   diagnostics: LiveSmokeSession["diagnostics"],
   actionLabel: string,
-  chatPanel: Locator,
-  messageField: Locator,
-  sendButton: Locator,
-  stopButton: Locator,
   timeoutMs: number,
-): Promise<AiCreatePostInsertComposerObservation> {
+): Promise<AiCreatePostInsertComposerState> {
   return diagnostics.runAction(actionLabel, async () => {
-    let lastSnapshot = await readAiCreateComposerSnapshot(chatPanel, messageField, sendButton, stopButton);
+    let postInsertComposerState: AiCreatePostInsertComposerState | "unknown" = "unknown";
 
     await expect.poll(
       async () => {
-        lastSnapshot = await readAiCreateComposerSnapshot(chatPanel, messageField, sendButton, stopButton);
-        return classifyAiCreateComposerLifecycleState(lastSnapshot);
+        const composerContract = await readAiComposerContract(page);
+        if (isAiRunRunning(composerContract)) {
+          postInsertComposerState = "transitional_running";
+          return postInsertComposerState;
+        }
+
+        if (isAiComposerTerminalIdle(composerContract)) {
+          postInsertComposerState = "idle_empty";
+          return postInsertComposerState;
+        }
+
+        return "unknown";
       },
       { timeout: timeoutMs },
     ).not.toBe("unknown");
 
-    return {
-      source: lastSnapshot.source,
-      state: classifyAiCreateComposerLifecycleState(lastSnapshot),
-    };
+    if (postInsertComposerState === "unknown") {
+      throw new Error("AI create prompt did not reach a recognized post-insert composer state.");
+    }
+
+    return postInsertComposerState;
   });
 }
 
 async function waitForAiCreateIdleComposerState(
+  page: Page,
   diagnostics: LiveSmokeSession["diagnostics"],
   actionLabel: string,
-  chatPanel: Locator,
-  messageField: Locator,
-  sendButton: Locator,
-  stopButton: Locator,
   timeoutMs: number,
 ): Promise<void> {
   await diagnostics.runAction(actionLabel, async () => {
     await expect.poll(
-      async () => classifyAiCreateComposerLifecycleState(
-        await readAiCreateComposerSnapshot(chatPanel, messageField, sendButton, stopButton),
-      ),
+      async () => isAiComposerTerminalIdle(await readAiComposerContract(page)),
       { timeout: timeoutMs },
-    ).toBe("idle_empty");
+    ).toBe(true);
   });
-}
-
-async function readAiCreateComposerSnapshot(
-  chatPanel: Locator,
-  messageField: Locator,
-  sendButton: Locator,
-  stopButton: Locator,
-): Promise<AiCreateComposerSnapshot> {
-  const contractSnapshot = await chatPanel.evaluate((chatPanelElement) => {
-    function readAttribute(
-      element: Element | null,
-      attributeNames: ReadonlyArray<string>,
-    ): string | null {
-      if (element === null) {
-        return null;
-      }
-
-      for (const attributeName of attributeNames) {
-        const attributeValue = element.getAttribute(attributeName);
-        if (attributeValue !== null && attributeValue.trim() !== "") {
-          return attributeValue.trim();
-        }
-      }
-
-      return null;
-    }
-
-    const contractElement = chatPanelElement.querySelector('[data-testid="chat-composer-state"]');
-    const attributeSource = contractElement ?? chatPanelElement;
-    const state = readAttribute(attributeSource, [
-      "data-composer-state",
-      "data-state",
-    ]);
-    const action = readAttribute(attributeSource, [
-      "data-composer-action",
-      "data-action",
-    ]);
-    const actionButtonState = readAttribute(attributeSource, [
-      "data-action-button-state",
-      "data-composer-action-state",
-    ]);
-    const draftState = readAttribute(attributeSource, [
-      "data-draft-state",
-      "data-draft",
-    ]);
-    const canSend = readAttribute(attributeSource, [
-      "data-can-send",
-    ]);
-    const sendPhase = readAttribute(attributeSource, [
-      "data-send-phase",
-      "data-send-state",
-    ]);
-    const sendButtonState = readAttribute(attributeSource, [
-      "data-send-button-state",
-      "data-composer-send-button-state",
-    ]);
-    const runState = readAttribute(attributeSource, [
-      "data-chat-run-state",
-      "data-run-state",
-      "data-run",
-    ]);
-
-    return {
-      state,
-      action,
-      actionButtonState,
-      canSend,
-      draftState,
-      sendPhase,
-      sendButtonState,
-      runState,
-      hasExplicitContract: state !== null
-        || action !== null
-        || actionButtonState !== null
-        || canSend !== null
-        || draftState !== null
-        || sendPhase !== null
-        || sendButtonState !== null
-        || runState !== null,
-    };
-  });
-
-  return {
-    source: contractSnapshot.hasExplicitContract ? "explicit" : "legacy",
-    state: contractSnapshot.state,
-    action: contractSnapshot.action,
-    actionButtonState: contractSnapshot.actionButtonState,
-    canSend: contractSnapshot.canSend,
-    draftState: contractSnapshot.draftState,
-    sendPhase: contractSnapshot.sendPhase,
-    sendButtonState: contractSnapshot.sendButtonState,
-    runState: contractSnapshot.runState,
-    inputText: await messageField.inputValue(),
-    isSendEnabled: await sendButton.isEnabled().catch(() => false),
-    isStopVisible: await stopButton.isVisible().catch(() => false),
-  };
-}
-
-function classifyAiCreateComposerLifecycleState(
-  snapshot: AiCreateComposerSnapshot,
-): AiCreateComposerLifecycleState {
-  const isEmptyDraft = matchesComposerContractValue(snapshot.draftState, "empty", "empty-draft")
-    || snapshot.inputText.trim() === "";
-  const isIdleByContract = matchesComposerContractValue(snapshot.state, "idle", "idle_empty", "idle-empty")
-    || (
-      matchesComposerContractValue(snapshot.action, "send")
-      && (snapshot.sendPhase === null || matchesComposerContractValue(snapshot.sendPhase, "idle"))
-      && (snapshot.sendButtonState === null || matchesComposerContractValue(snapshot.sendButtonState, "idle"))
-      && (snapshot.runState === null || matchesComposerContractValue(snapshot.runState, "idle", "interrupted"))
-      && isEmptyDraft
-      && (snapshot.canSend === null || matchesComposerContractValue(snapshot.canSend, "false"))
-      && snapshot.isSendEnabled === false
-    );
-  const isRunningByContract = matchesComposerContractValue(
-    snapshot.state,
-    "running",
-    "stopping",
-    "transitional_running",
-    "transitional-running",
-  )
-    || (
-      matchesComposerContractValue(snapshot.action, "stop")
-      || matchesComposerContractValue(snapshot.actionButtonState, "stop", "stop-disabled")
-      || matchesComposerContractValue(snapshot.runState, "running")
-    )
-    && isEmptyDraft
-    && snapshot.isSendEnabled === false;
-
-  if (isIdleByContract) {
-    return "idle_empty";
-  }
-
-  if (isRunningByContract) {
-    return "transitional_running";
-  }
-
-  if (isEmptyDraft && snapshot.isStopVisible) {
-    return "transitional_running";
-  }
-
-  if (isEmptyDraft && snapshot.isSendEnabled === false && snapshot.isStopVisible === false) {
-    return "idle_empty";
-  }
-
-  return "unknown";
-}
-
-function matchesComposerContractValue(
-  value: string | null,
-  ...expectedValues: ReadonlyArray<string>
-): boolean {
-  if (value === null) {
-    return false;
-  }
-
-  return expectedValues.includes(value);
 }
