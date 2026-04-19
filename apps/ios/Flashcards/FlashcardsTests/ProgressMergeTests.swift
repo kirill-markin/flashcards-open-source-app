@@ -241,6 +241,57 @@ final class ProgressMergeTests: XCTestCase {
     }
 
     @MainActor
+    func testRefreshReviewProgressBadgeIfNeededLoadsBadgeSummaryWithoutBuildingSnapshot() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: TimeZone.current,
+            dayCount: 140
+        )
+        let serverSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [
+                "2026-04-01": 2
+            ],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: [requestRange.to],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .guest
+        )
+        defer { context.tearDown() }
+
+        await context.store.refreshReviewProgressBadgeIfNeeded(now: now)
+
+        XCTAssertNil(context.store.progressSnapshot)
+        XCTAssertEqual(
+            ReviewProgressBadgeState(
+                streakDays: 1,
+                hasReviewedToday: true,
+                isInteractive: true
+            ),
+            context.store.reviewProgressBadgeState
+        )
+        XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
+        XCTAssertEqual(0, context.cloudSyncService.loadProgressSeriesCallCount)
+    }
+
+    @MainActor
     func testHandleProgressSyncCompletionInvalidatesAndReloadsServerBase() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
@@ -283,6 +334,8 @@ final class ProgressMergeTests: XCTestCase {
 
         await context.store.refreshProgressIfNeeded(now: now)
         context.store.updateCurrentVisibleTab(tab: .progress)
+        let initialSummaryCallCount = context.cloudSyncService.loadProgressSummaryCallCount
+        let initialSeriesCallCount = context.cloudSyncService.loadProgressSeriesCallCount
 
         let outboxEntries = try database.loadOutboxEntries(workspaceId: workspace.workspaceId, limit: Int.max)
         try database.deleteOutboxEntries(operationIds: outboxEntries.map(\.operationId))
@@ -300,15 +353,175 @@ final class ProgressMergeTests: XCTestCase {
             generatedAt: "2026-04-18T12:01:00.000Z"
         )
 
-        await context.store.handleProgressSyncCompletion(now: now)
+        await context.store.handleProgressSyncCompletion(
+            now: now,
+            syncResult: CloudSyncResult(
+                appliedPullChangeCount: 1,
+                changedEntityTypes: [.reviewEvent],
+                acknowledgedOperationCount: 0,
+                cleanedUpOperationCount: 0
+            )
+        )
 
-        XCTAssertEqual(2, context.cloudSyncService.loadProgressSummaryCallCount)
-        XCTAssertEqual(2, context.cloudSyncService.loadProgressSeriesCallCount)
+        XCTAssertEqual(
+            initialSummaryCallCount + 1,
+            context.cloudSyncService.loadProgressSummaryCallCount
+        )
+        XCTAssertEqual(
+            initialSeriesCallCount + 1,
+            context.cloudSyncService.loadProgressSeriesCallCount
+        )
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
         XCTAssertEqual(.serverBase, progressSnapshot.summarySourceState)
         XCTAssertEqual(.serverBase, progressSnapshot.seriesSourceState)
         XCTAssertFalse(progressSnapshot.isApproximate)
         XCTAssertEqual(2, progressSnapshot.summary.activeReviewDays)
+        XCTAssertEqual("2026-04-02", progressSnapshot.summary.lastReviewedOn)
+    }
+
+    @MainActor
+    func testHandleProgressSyncCompletionRefreshesBadgeWithoutUpdatingSharedSnapshotWhenReviewIsVisible() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: "2026-04-02T15:50:57.000Z"
+        )
+
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: TimeZone.current,
+            dayCount: 140
+        )
+        let initialServerSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [
+                "2026-04-01": 2
+            ],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let initialServerSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: ["2026-04-01"],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: initialServerSummary,
+            serverSeries: initialServerSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .guest
+        )
+        defer { context.tearDown() }
+
+        await context.store.refreshProgressIfNeeded(now: now)
+        context.store.updateCurrentVisibleTab(tab: .review)
+        let initialSnapshot = try XCTUnwrap(context.store.progressSnapshot)
+        let initialSummaryCallCount = context.cloudSyncService.loadProgressSummaryCallCount
+        let initialSeriesCallCount = context.cloudSyncService.loadProgressSeriesCallCount
+
+        let outboxEntries = try database.loadOutboxEntries(workspaceId: workspace.workspaceId, limit: Int.max)
+        try database.deleteOutboxEntries(operationIds: outboxEntries.map(\.operationId))
+        context.cloudSyncService.serverSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [
+                requestRange.to: 1
+            ],
+            generatedAt: "2026-04-18T12:01:00.000Z"
+        )
+        context.cloudSyncService.serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: [requestRange.to],
+            generatedAt: "2026-04-18T12:01:00.000Z"
+        )
+
+        await context.store.handleProgressSyncCompletion(
+            now: now,
+            syncResult: CloudSyncResult(
+                appliedPullChangeCount: 1,
+                changedEntityTypes: [.reviewEvent],
+                acknowledgedOperationCount: 0,
+                cleanedUpOperationCount: 0
+            )
+        )
+        await self.waitForProgressRefreshCallCounts(
+            cloudSyncService: context.cloudSyncService,
+            summaryCount: initialSummaryCallCount + 1,
+            seriesCount: initialSeriesCallCount
+        )
+
+        XCTAssertEqual(initialSnapshot, context.store.progressSnapshot)
+        XCTAssertEqual(1, context.store.reviewProgressBadgeState.streakDays)
+        XCTAssertTrue(context.store.reviewProgressBadgeState.hasReviewedToday)
+        XCTAssertTrue(context.store.reviewProgressBadgeState.isInteractive)
+    }
+
+    @MainActor
+    func testHandleProgressSyncCompletionSkipsReviewSummaryRefreshAfterNoOpSync() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: "2026-04-02T15:50:57.000Z"
+        )
+
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: TimeZone.current,
+            dayCount: 140
+        )
+        let initialServerSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [
+                "2026-04-01": 2
+            ],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let initialServerSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: ["2026-04-01"],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: initialServerSummary,
+            serverSeries: initialServerSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .guest
+        )
+        defer { context.tearDown() }
+
+        await context.store.refreshProgressIfNeeded(now: now)
+        context.store.updateCurrentVisibleTab(tab: .review)
+        let initialSummaryCallCount = context.cloudSyncService.loadProgressSummaryCallCount
+        let initialSeriesCallCount = context.cloudSyncService.loadProgressSeriesCallCount
+        context.cloudSyncService.serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: ["2026-04-01", "2026-04-02"],
+            generatedAt: "2026-04-18T12:01:00.000Z"
+        )
+
+        await context.store.handleProgressSyncCompletion(
+            now: now,
+            syncResult: .noChanges
+        )
+
+        XCTAssertEqual(initialSummaryCallCount, context.cloudSyncService.loadProgressSummaryCallCount)
+        XCTAssertEqual(initialSeriesCallCount, context.cloudSyncService.loadProgressSeriesCallCount)
+        let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
+        XCTAssertEqual(1, progressSnapshot.summary.activeReviewDays)
         XCTAssertEqual("2026-04-02", progressSnapshot.summary.lastReviewedOn)
     }
 
@@ -567,6 +780,80 @@ final class ProgressMergeTests: XCTestCase {
             summaryCount: 2,
             seriesCount: 2
         )
+    }
+
+    @MainActor
+    func testHandleProgressContextDidChangeRefreshesBadgeWithoutUpdatingSharedSnapshotWhenReviewIsVisible() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: "2026-04-02T15:50:57.000Z"
+        )
+
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: TimeZone.current,
+            dayCount: 140
+        )
+        let serverSeries = try makeTestProgressSeries(
+            requestRange: requestRange,
+            reviewCountsByDate: [
+                "2026-04-01": 2
+            ],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: ["2026-04-01"],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .guest
+        )
+        defer { context.tearDown() }
+
+        await context.store.refreshProgressIfNeeded(now: now)
+        context.store.updateCurrentVisibleTab(tab: .review)
+        let initialSnapshot = try XCTUnwrap(context.store.progressSnapshot)
+
+        let secondWorkspace = try self.insertWorkspace(
+            database: database,
+            name: "Workspace 2",
+            createdAt: "2026-04-03T00:00:00Z"
+        )
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: secondWorkspace.workspaceId,
+            reviewedAtClient: "\(requestRange.to)T09:00:00.000Z"
+        )
+        context.cloudSyncService.serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: [requestRange.to],
+            generatedAt: "2026-04-18T12:01:00.000Z"
+        )
+
+        context.store.handleProgressContextDidChange(now: now)
+        await self.waitForProgressRefreshCallCounts(
+            cloudSyncService: context.cloudSyncService,
+            summaryCount: 2,
+            seriesCount: 1
+        )
+
+        XCTAssertEqual(initialSnapshot, context.store.progressSnapshot)
+        XCTAssertEqual(1, context.store.reviewProgressBadgeState.streakDays)
+        XCTAssertTrue(context.store.reviewProgressBadgeState.hasReviewedToday)
+        XCTAssertTrue(context.store.reviewProgressBadgeState.isInteractive)
     }
 
     @MainActor

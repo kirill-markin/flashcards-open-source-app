@@ -8,6 +8,9 @@ private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
+private let reviewProgressBadgeSize: CGFloat = 34
+private let reviewProgressBadgeHorizontalPadding: CGFloat = 8
+private let reviewProgressBadgeOverflowThreshold: Int = 99
 let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
 private let reviewQueuePreviewPageSize: Int = 50
 
@@ -146,6 +149,13 @@ struct ReviewView: View {
         .task(id: store.localReadVersion) {
             await self.reloadReviewMetadata()
         }
+        .task(id: self.navigation.selectedTab) {
+            guard self.navigation.selectedTab == .review else {
+                return
+            }
+
+            await self.store.refreshReviewProgressBadgeIfNeeded()
+        }
         .safeAreaBar(edge: .bottom, spacing: 0) {
             reviewBottomAccessory
         }
@@ -154,30 +164,9 @@ struct ReviewView: View {
                 reviewFilterMenu
             }
 
-            ToolbarItem(placement: .topBarTrailing) {
-                if store.isReviewCountsLoading {
-                    ProgressView()
-                        .controlSize(.small)
-                        .accessibilityLabel(String(localized: "Loading review queue", table: reviewCardsStringsTableName))
-                } else {
-                    Button {
-                        self.isQueuePreviewPresented = true
-                    } label: {
-                        Text("\(store.displayedReviewDueCount) / \(store.reviewTotalCount)")
-                            .font(.subheadline.monospacedDigit())
-                            .padding(.horizontal, 6)
-                            .foregroundStyle(.secondary)
-                    }
-                    .disabled(store.reviewTotalCount == 0)
-                    .accessibilityLabel(
-                        String(
-                            format: String(localized: "Review queue status: %@ active of %@ total", table: reviewCardsStringsTableName),
-                            locale: Locale.current,
-                            store.displayedReviewDueCount.formatted(),
-                            store.reviewTotalCount.formatted()
-                        )
-                    )
-                }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                reviewQueueToolbarButton
+                reviewProgressBadgeButton
             }
         }
         .fullScreenCover(isPresented: self.$isQueuePreviewPresented) {
@@ -502,6 +491,120 @@ struct ReviewView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var reviewQueueToolbarButton: some View {
+        if store.isReviewCountsLoading {
+            ProgressView()
+                .controlSize(.small)
+                .accessibilityLabel(String(localized: "Loading review queue", table: reviewCardsStringsTableName))
+        } else {
+            Button {
+                self.isQueuePreviewPresented = true
+            } label: {
+                Text("\(store.displayedReviewDueCount) / \(store.reviewTotalCount)")
+                    .font(.subheadline.monospacedDigit())
+                    .padding(.horizontal, 6)
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(store.reviewTotalCount == 0)
+            .accessibilityLabel(
+                String(
+                    format: String(localized: "Review queue status: %@ active of %@ total", table: reviewCardsStringsTableName),
+                    locale: Locale.current,
+                    store.displayedReviewDueCount.formatted(),
+                    store.reviewTotalCount.formatted()
+                )
+            )
+        }
+    }
+
+    private var reviewProgressBadgeButton: some View {
+        let badgeState = self.store.reviewProgressBadgeState
+
+        return Button {
+            self.navigation.selectTab(.progress)
+        } label: {
+            reviewProgressBadgeLabel(badgeState: badgeState)
+        }
+        .buttonStyle(.plain)
+        .disabled(badgeState.isInteractive == false)
+        .accessibilityIdentifier(UITestIdentifier.reviewProgressBadge)
+        .accessibilityLabel(self.reviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
+    }
+
+    private func reviewProgressBadgeLabel(badgeState: ReviewProgressBadgeState) -> some View {
+        ZStack {
+            Capsule()
+                .fill(self.reviewProgressBadgeBackgroundColor())
+
+            Capsule()
+                .strokeBorder(self.reviewProgressBadgeBorderColor(badgeState: badgeState), lineWidth: 1)
+
+            HStack(spacing: 3) {
+                Image(systemName: badgeState.hasReviewedToday ? "flame.fill" : "flame")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(self.reviewProgressBadgeIconColor(badgeState: badgeState))
+
+                Text(self.reviewProgressBadgeValue(badgeState: badgeState))
+                    .font(.caption2.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(self.reviewProgressBadgeTextColor(badgeState: badgeState))
+                    .minimumScaleFactor(0.65)
+            }
+            .padding(.horizontal, reviewProgressBadgeHorizontalPadding)
+        }
+        .frame(minWidth: reviewProgressBadgeSize, minHeight: reviewProgressBadgeSize)
+    }
+
+    private func reviewProgressBadgeBackgroundColor() -> Color {
+        return Color(uiColor: .secondarySystemBackground)
+    }
+
+    private func reviewProgressBadgeBorderColor(badgeState: ReviewProgressBadgeState) -> Color {
+        badgeState.hasReviewedToday ? .orange.opacity(0.55) : .gray.opacity(0.35)
+    }
+
+    private func reviewProgressBadgeIconColor(badgeState: ReviewProgressBadgeState) -> Color {
+        badgeState.hasReviewedToday ? .orange : .gray
+    }
+
+    private func reviewProgressBadgeTextColor(badgeState: ReviewProgressBadgeState) -> Color {
+        badgeState.hasReviewedToday ? .primary : .secondary
+    }
+
+    private func reviewProgressBadgeValue(badgeState: ReviewProgressBadgeState) -> String {
+        if badgeState.streakDays > reviewProgressBadgeOverflowThreshold {
+            return "\(reviewProgressBadgeOverflowThreshold)+"
+        }
+
+        return badgeState.streakDays.formatted()
+    }
+
+    private func reviewProgressBadgeAccessibilityLabel(badgeState: ReviewProgressBadgeState) -> String {
+        let localizedFormat: String
+        if badgeState.hasReviewedToday {
+            localizedFormat = String(
+                localized: "review.progress_badge.accessibility.reviewed_today",
+                defaultValue: "Review streak %@ days. Reviewed today.",
+                table: reviewCardsStringsTableName,
+                comment: "Accessibility label for the review progress badge when the user has reviewed today"
+            )
+        } else {
+            localizedFormat = String(
+                localized: "review.progress_badge.accessibility.not_reviewed_today",
+                defaultValue: "Review streak %@ days. Not reviewed today.",
+                table: reviewCardsStringsTableName,
+                comment: "Accessibility label for the review progress badge when the user has not reviewed today"
+            )
+        }
+
+        return String(
+            format: localizedFormat,
+            locale: Locale.current,
+            badgeState.streakDays.formatted()
+        )
     }
 
     private func reviewBottomBarContainer<Content: View>(
