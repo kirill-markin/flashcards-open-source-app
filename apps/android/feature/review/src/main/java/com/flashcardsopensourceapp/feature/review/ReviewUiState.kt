@@ -5,6 +5,12 @@ import com.flashcardsopensourceapp.data.local.model.ReviewEffortFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewTagFilterOption
 
+data class ReviewProgressBadgeState(
+    val streakDays: Int,
+    val hasReviewedToday: Boolean,
+    val isInteractive: Boolean
+)
+
 enum class ReviewEmptyState {
     NO_CARDS_YET,
     FILTER_EMPTY,
@@ -25,6 +31,7 @@ data class ReviewUiState(
     val availableDeckFilters: List<ReviewDeckFilterOption>,
     val availableEffortFilters: List<ReviewEffortFilterOption>,
     val availableTagFilters: List<ReviewTagFilterOption>,
+    val reviewProgressBadge: ReviewProgressBadgeState,
     val isPreviewLoading: Boolean,
     val previewItems: List<ReviewPreviewListItem>,
     val hasMorePreviewCards: Boolean,

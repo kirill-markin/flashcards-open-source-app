@@ -26,6 +26,7 @@ import com.flashcardsopensourceapp.data.local.repository.AutoSyncEvent
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncOutcome
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncRequest
+import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -71,6 +72,7 @@ private data class VisibleAutoSyncChangeSignature(
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReviewViewModel(
     private val reviewRepository: ReviewRepository,
+    private val progressRepository: ProgressRepository,
     private val autoSyncEventRepository: AutoSyncEventRepository,
     private val messageController: TransientMessageController,
     private val reviewNotificationsStore: ReviewNotificationsStore,
@@ -158,8 +160,9 @@ class ReviewViewModel(
     val uiState: StateFlow<ReviewUiState> = combine(
         reviewSessionState,
         draftState,
-        appMetadataState
-    ) { reviewSessionState, state, appMetadata ->
+        appMetadataState,
+        progressRepository.observeSummarySnapshot()
+    ) { reviewSessionState, state, appMetadata, progressSummarySnapshot ->
         val sessionSnapshot = reviewSessionState.sessionSnapshot
         val displayedCurrentCard = resolveDisplayedCurrentCard(
             sessionCards = sessionSnapshot.cards,
@@ -215,6 +218,8 @@ class ReviewViewModel(
             availableDeckFilters = sessionSnapshot.availableDeckFilters,
             availableEffortFilters = sessionSnapshot.availableEffortFilters,
             availableTagFilters = sessionSnapshot.availableTagFilters,
+            reviewProgressBadge = progressSummarySnapshot?.toReviewProgressBadgeState()
+                ?: createEmptyReviewProgressBadgeState(),
             isPreviewLoading = state.isPreviewLoading,
             previewItems = buildReviewPreviewItems(
                 cards = state.previewCards,
@@ -245,6 +250,7 @@ class ReviewViewModel(
             availableDeckFilters = emptyList(),
             availableEffortFilters = emptyList(),
             availableTagFilters = emptyList(),
+            reviewProgressBadge = createEmptyReviewProgressBadgeState(),
             isPreviewLoading = false,
             previewItems = emptyList(),
             hasMorePreviewCards = true,
@@ -330,6 +336,12 @@ class ReviewViewModel(
     fun dismissHardAnswerReminder() {
         draftState.update { state ->
             state.copy(isHardAnswerReminderVisible = false)
+        }
+    }
+
+    fun onScreenVisible() {
+        viewModelScope.launch {
+            progressRepository.refreshSummaryIfInvalidated()
         }
     }
 
@@ -802,6 +814,7 @@ private object NoOpReviewNotificationsStore : ReviewNotificationsStore {
 
 fun createReviewViewModelFactory(
     reviewRepository: ReviewRepository,
+    progressRepository: ProgressRepository,
     autoSyncEventRepository: AutoSyncEventRepository,
     messageController: TransientMessageController,
     reviewNotificationsStore: ReviewNotificationsStore,
@@ -817,6 +830,7 @@ fun createReviewViewModelFactory(
             val application = requireApplication()
             ReviewViewModel(
                 reviewRepository = reviewRepository,
+                progressRepository = progressRepository,
                 autoSyncEventRepository = autoSyncEventRepository,
                 messageController = messageController,
                 reviewNotificationsStore = reviewNotificationsStore,

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.CheckCircleOutline
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.HourglassBottom
+import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.WarningAmber
@@ -57,6 +58,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -83,6 +87,7 @@ const val reviewEmptyStateContentTag: String = "review_empty_state_content"
 const val reviewEmptyStateTitleTag: String = "review_empty_state_title"
 const val reviewCurrentCardTag: String = "review_current_card"
 const val reviewCurrentCardFrontContentTag: String = "review_current_card_front_content"
+const val reviewProgressBadgeTag: String = "review_progress_badge"
 
 internal val reviewBottomOverlayBottomPadding = 12.dp
 private val reviewBottomOverlayHorizontalPadding = 16.dp
@@ -101,13 +106,29 @@ private val reviewSpeechIconSize = 18.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ReviewTopBar(
+    reviewProgressBadge: ReviewProgressBadgeState,
     selectedFilterTitle: String,
     isLoading: Boolean,
     remainingCount: Int,
     totalCount: Int,
     onOpenFilter: () -> Unit,
-    onOpenPreview: () -> Unit
+    onOpenPreview: () -> Unit,
+    onOpenProgress: () -> Unit
 ) {
+    val resources = LocalContext.current.resources
+    val progressBadgeContentDescription = resources.getQuantityString(
+        R.plurals.review_progress_badge_content_description,
+        reviewProgressBadge.streakDays,
+        reviewProgressBadge.streakDays
+    )
+    val progressBadgeStateDescription = stringResource(
+        id = if (reviewProgressBadge.hasReviewedToday) {
+            R.string.review_progress_badge_reviewed_today
+        } else {
+            R.string.review_progress_badge_not_reviewed_today
+        }
+    )
+
     TopAppBar(
         title = {
             Text(stringResource(id = R.string.review_title))
@@ -131,6 +152,28 @@ internal fun ReviewTopBar(
                         )
                     )
                 }
+            }
+
+            TextButton(
+                onClick = onOpenProgress,
+                enabled = reviewProgressBadge.isInteractive,
+                modifier = Modifier
+                    .testTag(reviewProgressBadgeTag)
+                    .semantics {
+                        contentDescription = progressBadgeContentDescription
+                        stateDescription = progressBadgeStateDescription
+                    }
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = if (reviewProgressBadge.hasReviewedToday) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+                Text(text = formatReviewProgressBadgeValue(streakDays = reviewProgressBadge.streakDays))
             }
 
             FilterChip(

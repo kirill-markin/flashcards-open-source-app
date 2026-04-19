@@ -11,6 +11,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,6 +22,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import java.util.Locale
 
@@ -50,15 +53,19 @@ fun ReviewRoute(
     onDismissHardAnswerReminder: () -> Unit,
     onDismissErrorMessage: () -> Unit,
     onDismissNotificationPermissionPrompt: () -> Unit,
-    onContinueNotificationPermissionPrompt: () -> Unit
+    onContinueNotificationPermissionPrompt: () -> Unit,
+    onOpenProgress: () -> Unit,
+    onScreenVisible: () -> Unit
 ) {
     var isFilterSheetVisible by remember { mutableStateOf(value = false) }
     var speechErrorMessage by remember { mutableStateOf(value = "") }
     val snackbarHostState = remember { SnackbarHostState() }
     val configuration = LocalConfiguration.current
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val reviewSpeechFallbackLanguageTag =
         (configuration.locales[0] ?: Locale.getDefault()).toLanguageTag()
+    val currentScreenVisibleAction = rememberUpdatedState(newValue = onScreenVisible)
     val reviewSpeechController = remember(context) {
         ReviewSpeechController(
             context = context,
@@ -100,9 +107,27 @@ fun ReviewRoute(
         }
     }
 
+    DisposableEffect(lifecycleOwner) {
+        if (shouldTriggerInitialReviewProgressLoad(lifecycleState = lifecycleOwner.lifecycle.currentState)) {
+            currentScreenVisibleAction.value()
+        }
+
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                currentScreenVisibleAction.value()
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     Scaffold(
         topBar = {
             ReviewTopBar(
+                reviewProgressBadge = uiState.reviewProgressBadge,
                 selectedFilterTitle = uiState.selectedFilterTitle,
                 isLoading = uiState.isLoading,
                 remainingCount = uiState.remainingCount,
@@ -110,7 +135,8 @@ fun ReviewRoute(
                 onOpenFilter = {
                     isFilterSheetVisible = true
                 },
-                onOpenPreview = onOpenPreview
+                onOpenPreview = onOpenPreview,
+                onOpenProgress = onOpenProgress
             )
         },
         snackbarHost = {

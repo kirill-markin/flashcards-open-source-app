@@ -37,16 +37,8 @@ sealed interface ProgressSummaryUiState {
     data object Loading : ProgressSummaryUiState
 
     data class Loaded(
-        val summary: CloudProgressSummary,
-        val source: ProgressSourceUiState,
-        val isApproximate: Boolean
+        val summary: CloudProgressSummary
     ) : ProgressSummaryUiState
-}
-
-enum class ProgressSourceUiState {
-    LOCAL_ONLY,
-    SERVER_BASE,
-    SERVER_BASE_WITH_LOCAL_OVERLAY
 }
 
 sealed interface ProgressUiState {
@@ -63,8 +55,6 @@ sealed interface ProgressUiState {
     data class Loaded(
         val summary: ProgressSummaryUiState,
         val streakSection: ProgressStreakSectionUiState,
-        val reviewsSection: ProgressReviewsSectionUiState,
-        val source: ProgressSourceUiState,
-        val isApproximate: Boolean
+        val reviewsSection: ProgressReviewsSectionUiState
     ) : ProgressUiState
 }
