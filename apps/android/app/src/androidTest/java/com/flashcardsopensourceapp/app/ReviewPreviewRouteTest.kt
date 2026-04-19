@@ -51,7 +51,6 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         reviewProgressBadge = ReviewProgressBadgeState(
                             streakDays = 0,
                             hasReviewedToday = false,
-                            isApproximate = false,
                             isInteractive = true
                         ),
                         isPreviewLoading = true,
@@ -114,7 +113,6 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         reviewProgressBadge = ReviewProgressBadgeState(
                             streakDays = 0,
                             hasReviewedToday = false,
-                            isApproximate = false,
                             isInteractive = true
                         ),
                         isPreviewLoading = false,
@@ -163,7 +161,6 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         reviewProgressBadge = ReviewProgressBadgeState(
                             streakDays = 0,
                             hasReviewedToday = false,
-                            isApproximate = false,
                             isInteractive = true
                         ),
                         isPreviewLoading = false,
