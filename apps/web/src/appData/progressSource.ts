@@ -60,11 +60,17 @@ type UseProgressSourceParams = Readonly<{
   sessionVerificationState: SessionVerificationState;
   progressLocalVersion: number;
   progressServerInvalidationVersion: number;
+  sections: ProgressSourceSections;
 }>;
 
 type UseProgressSourceResult = Readonly<{
   progressSourceState: ProgressSourceState;
   refreshProgress: () => Promise<void>;
+}>;
+
+type ProgressSourceSections = Readonly<{
+  includeSummary: boolean;
+  includeSeries: boolean;
 }>;
 
 type ProgressTimeContext = Readonly<{
@@ -740,7 +746,9 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     sessionVerificationState,
     progressLocalVersion,
     progressServerInvalidationVersion,
+    sections,
   } = params;
+  const { includeSummary, includeSeries } = sections;
   const [progressSourceState, setProgressSourceState] = useState<ProgressSourceState>(createEmptyProgressSourceState);
   const [timeContext, setTimeContext] = useState<ProgressTimeContext>(() => buildProgressTimeContext(new Date()));
   const [manualRefreshVersion, setManualRefreshVersion] = useState<number>(0);
@@ -768,10 +776,10 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     from: shiftLocalDate(timeContext.today, progressRangeStartOffsetDays),
     to: timeContext.today,
   }), [timeContext]);
-  const summaryScopeKey = accessibleWorkspaceIds.length === 0
+  const summaryScopeKey = includeSummary === false || accessibleWorkspaceIds.length === 0
     ? null
     : buildProgressSummaryScopeKey(accessibleWorkspaceIds, summaryInput);
-  const seriesScopeKey = accessibleWorkspaceIds.length === 0
+  const seriesScopeKey = includeSeries === false || accessibleWorkspaceIds.length === 0
     ? null
     : buildProgressScopeKey(accessibleWorkspaceIds, seriesInput);
   const canLoadServerBase = sessionVerificationState === "verified" && cloudSettings?.cloudState === "linked";
@@ -920,6 +928,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
   }, [
     accessibleWorkspaceIds,
     commitProgressSourceState,
+    includeSummary,
     manualRefreshVersion,
     progressLocalVersion,
     summaryInput,
@@ -970,6 +979,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
   }, [
     accessibleWorkspaceIds,
     commitProgressSourceState,
+    includeSeries,
     manualRefreshVersion,
     progressLocalVersion,
     seriesInput,

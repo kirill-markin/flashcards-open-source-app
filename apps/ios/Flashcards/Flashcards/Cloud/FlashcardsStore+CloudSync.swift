@@ -242,7 +242,10 @@ extension FlashcardsStore {
         if bootstrapRefreshOutcome.didChange || didRefreshReviewState {
             self.localReadVersion += 1
         }
-        await self.handleProgressSyncCompletion(now: now)
+        await self.handleProgressSyncCompletion(
+            now: now,
+            syncResult: syncResult
+        )
         self.lastSuccessfulCloudSyncAt = nowIsoTimestamp()
         self.syncStatus = .idle
         self.globalErrorMessage = ""

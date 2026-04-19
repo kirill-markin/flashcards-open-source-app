@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
-import { useAppData } from "../appData";
+import { useAppData, useReviewProgressBadge } from "../appData";
 import { ALL_CARDS_REVIEW_FILTER, currentReviewCard, isCardDue } from "../appData/domain";
 import { useI18n } from "../i18n";
 import type { Card, WorkspaceSchedulerSettings } from "../types";
 import { computeReviewSchedule, type ReviewRating } from "../../../backend/src/schedule";
 import { classifyReviewContentPresentation } from "./reviewContentPresentation";
-import { cardsRoute, chatRoute } from "../routes";
+import { cardsRoute, chatRoute, progressRoute } from "../routes";
 import { ReviewEditorModal } from "./ReviewEditorModal";
 import { ReviewHardReminderDialog } from "./ReviewHardReminderDialog";
 import { ReviewFilterMenu } from "./ReviewFilterMenu";
@@ -35,6 +35,7 @@ type ReviewButtonOption = Readonly<{
 }>;
 
 const REVIEW_BUTTONS_PER_COLUMN = 2;
+const REVIEW_PROGRESS_BADGE_OVERFLOW_THRESHOLD = 99;
 const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
 const REVIEW_MARKDOWN_SYMBOL_ONLY_LIST_ITEM_PATTERN = /^(\s{0,3}[-*+]\s+)([+*\-#>])(\s*)$/;
 
@@ -288,6 +289,14 @@ function formatReviewSubmitRating(lastSubmittedReview: LastSubmittedReview | nul
   return `${lastSubmittedReview.rating}`;
 }
 
+function formatReviewProgressBadgeValue(streakDays: number): string {
+  if (streakDays > REVIEW_PROGRESS_BADGE_OVERFLOW_THRESHOLD) {
+    return `${REVIEW_PROGRESS_BADGE_OVERFLOW_THRESHOLD}+`;
+  }
+
+  return streakDays.toString();
+}
+
 function ReviewCardMarkdown({ text }: Readonly<{ text: string }>): ReactElement {
   const normalizedText = normalizeReviewMarkdownForWeb(text);
 
@@ -413,6 +422,7 @@ export function ReviewScreen(): ReactElement {
     deleteCardItem,
     setErrorMessage,
   } = useAppData();
+  const reviewProgressBadge = useReviewProgressBadge();
   const { locale, t, formatCount, formatDateTime, formatNumber } = useI18n();
   const [isAnswerVisible, setIsAnswerVisible] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -591,6 +601,13 @@ export function ReviewScreen(): ReactElement {
   const rightReviewButtonOptions = reviewButtonOptions.slice(REVIEW_BUTTONS_PER_COLUMN, REVIEW_BUTTONS_PER_COLUMN * 2);
   const reviewPaneState = resolveReviewPaneState(isInitialReviewLoad, selectedCard);
   const reviewPaneEmptyReason = resolveReviewPaneEmptyReason(isInitialReviewLoad, selectedCard, hasCards);
+  const reviewProgressBadgeTodayStatus = reviewProgressBadge.hasReviewedToday
+    ? t("reviewScreen.progressBadge.reviewedToday")
+    : t("reviewScreen.progressBadge.notReviewedToday");
+  const reviewProgressBadgeAriaLabel = t("reviewScreen.progressBadge.ariaLabel", {
+    streak: formatNumber(reviewProgressBadge.streakDays),
+    todayStatus: reviewProgressBadgeTodayStatus,
+  });
 
   return (
     <main className="container" data-testid="review-screen">
@@ -608,9 +625,25 @@ export function ReviewScreen(): ReactElement {
             ) : null}
           </div>
           <div className="screen-actions review-screen-actions">
-            <div className="review-filter-summary-wrap">
-              <span className="review-filter-label">{t("reviewScreen.queue.title")}</span>
-              <span className="badge review-filter-summary">{formatQueueBadge(visibleReviewCounts.dueCount, visibleReviewCounts.totalCount, formatNumber, t)}</span>
+            <div className="review-screen-summary-actions">
+              <div className="review-filter-summary-wrap">
+                <span className="review-filter-label">{t("reviewScreen.queue.title")}</span>
+                <span className="badge review-filter-summary">{formatQueueBadge(visibleReviewCounts.dueCount, visibleReviewCounts.totalCount, formatNumber, t)}</span>
+              </div>
+              <div className="review-filter-summary-wrap">
+                <span className="review-filter-label">{t("reviewScreen.progressBadge.title")}</span>
+                <Link
+                  className={`badge review-progress-badge${reviewProgressBadge.hasReviewedToday ? " review-progress-badge-active" : ""}`}
+                  to={progressRoute}
+                  aria-label={reviewProgressBadgeAriaLabel}
+                  title={reviewProgressBadgeAriaLabel}
+                  data-testid="review-progress-badge"
+                  aria-disabled={reviewProgressBadge.isInteractive ? undefined : "true"}
+                >
+                  <span className="review-progress-badge-icon" aria-hidden="true">🔥</span>
+                  <span className="review-progress-badge-value">{formatReviewProgressBadgeValue(reviewProgressBadge.streakDays)}</span>
+                </Link>
+              </div>
             </div>
             <ReviewFilterMenu
               handleCloseMenu={handleCloseMenu}

@@ -105,6 +105,12 @@ export type ProgressSummary = Readonly<{
   activeReviewDays: number;
 }>;
 
+export type ReviewProgressBadgeState = Readonly<{
+  streakDays: number;
+  hasReviewedToday: boolean;
+  isInteractive: boolean;
+}>;
+
 export type ProgressChartData = Readonly<{
   dailyReviews: ReadonlyArray<DailyReviewPoint>;
 }>;

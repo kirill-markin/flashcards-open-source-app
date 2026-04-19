@@ -436,6 +436,12 @@ const hiCatalog: TranslationCatalog = {
     errors: {
       schedulerUnavailable: "वर्कस्पेस शेड्यूलर सेटिंग्स लोड नहीं हुई हैं",
     },
+    progressBadge: {
+      ariaLabel: "रिव्यू स्ट्रीक {{streak}} दिन। {{todayStatus}}।",
+      notReviewedToday: "आज रिव्यू नहीं किया",
+      reviewedToday: "आज रिव्यू किया",
+      title: "स्ट्रीक",
+    },
     interval: {
       inCount: "{{count}} में",
       lessThanMinute: "एक मिनट से कम में",

@@ -436,6 +436,12 @@ const esEsCatalog: TranslationCatalog = {
     errors: {
       schedulerUnavailable: "Los ajustes del programador del espacio de trabajo no están cargados",
     },
+    progressBadge: {
+      ariaLabel: "Racha de repaso de {{streak}} días. {{todayStatus}}.",
+      notReviewedToday: "Sin repaso hoy",
+      reviewedToday: "Repasado hoy",
+      title: "Racha",
+    },
     interval: {
       inCount: "en {{count}}",
       lessThanMinute: "en menos de un minuto",

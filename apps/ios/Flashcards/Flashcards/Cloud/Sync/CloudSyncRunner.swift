@@ -26,7 +26,9 @@ struct CloudSyncRunner {
                     appliedPullChangeCount: 0,
                     changedEntityTypes: [],
                     acknowledgedOperationCount: 0,
-                    cleanedUpOperationCount: removedReviewEventCount
+                    acknowledgedReviewEventOperationCount: 0,
+                    cleanedUpOperationCount: removedReviewEventCount,
+                    cleanedUpReviewEventOperationCount: removedReviewEventCount
                 )
             )
             logCloudFlowPhase(
@@ -144,7 +146,9 @@ struct CloudSyncRunner {
                     appliedPullChangeCount: appliedPullChangeCount,
                     changedEntityTypes: changedEntityTypes,
                     acknowledgedOperationCount: 0,
-                    cleanedUpOperationCount: 0
+                    acknowledgedReviewEventOperationCount: 0,
+                    cleanedUpOperationCount: 0,
+                    cleanedUpReviewEventOperationCount: 0
                 )
             }
 
@@ -177,7 +181,11 @@ struct CloudSyncRunner {
     ) async throws -> CloudSyncResult {
         let bootstrapEntries = try self.database.loadHotBootstrapEntries(workspaceId: workspaceId)
         let reviewEvents = try self.database.loadReviewEvents(workspaceId: workspaceId)
-        let pendingOutboxCount = try self.database.loadOutboxEntries(workspaceId: workspaceId, limit: Int.max).count
+        let pendingOutboxEntries = try self.database.loadOutboxEntries(workspaceId: workspaceId, limit: Int.max)
+        let pendingOutboxCount = pendingOutboxEntries.count
+        let pendingReviewEventOutboxCount = pendingOutboxEntries.filter { entry in
+            entry.operation.entityType == .reviewEvent
+        }.count
 
         var bootstrapHotChangeId: Int64 = 0
         if bootstrapEntries.isEmpty == false {
@@ -261,7 +269,9 @@ struct CloudSyncRunner {
             appliedPullChangeCount: 0,
             changedEntityTypes: changedEntityTypes,
             acknowledgedOperationCount: 0,
-            cleanedUpOperationCount: pendingOutboxCount
+            acknowledgedReviewEventOperationCount: 0,
+            cleanedUpOperationCount: pendingOutboxCount,
+            cleanedUpReviewEventOperationCount: pendingReviewEventOutboxCount
         )
     }
 
@@ -272,6 +282,7 @@ struct CloudSyncRunner {
         syncBasePath: String
     ) async throws -> CloudSyncResult {
         var acknowledgedOperationCount = 0
+        var acknowledgedReviewEventOperationCount = 0
 
         while true {
             let outboxEntries = try self.database.loadOutboxEntries(workspaceId: workspaceId, limit: 100)
@@ -280,7 +291,9 @@ struct CloudSyncRunner {
                     appliedPullChangeCount: 0,
                     changedEntityTypes: [],
                     acknowledgedOperationCount: acknowledgedOperationCount,
-                    cleanedUpOperationCount: 0
+                    acknowledgedReviewEventOperationCount: acknowledgedReviewEventOperationCount,
+                    cleanedUpOperationCount: 0,
+                    cleanedUpReviewEventOperationCount: 0
                 )
             }
 
@@ -315,8 +328,14 @@ struct CloudSyncRunner {
                 }
 
                 if acknowledgedOperationIds.isEmpty == false {
+                    let acknowledgedOperationIdSet = Set(acknowledgedOperationIds)
+                    let acknowledgedReviewEventCount = outboxEntries.filter { entry in
+                        acknowledgedOperationIdSet.contains(entry.operationId)
+                            && entry.operation.entityType == .reviewEvent
+                    }.count
                     try self.database.deleteOutboxEntries(operationIds: acknowledgedOperationIds)
                     acknowledgedOperationCount += acknowledgedOperationIds.count
+                    acknowledgedReviewEventOperationCount += acknowledgedReviewEventCount
                 }
 
                 if rejectedResults.isEmpty == false {
@@ -385,7 +404,9 @@ struct CloudSyncRunner {
                     appliedPullChangeCount: appliedPullChangeCount,
                     changedEntityTypes: changedEntityTypes,
                     acknowledgedOperationCount: 0,
-                    cleanedUpOperationCount: 0
+                    acknowledgedReviewEventOperationCount: 0,
+                    cleanedUpOperationCount: 0,
+                    cleanedUpReviewEventOperationCount: 0
                 )
             }
         }
@@ -441,7 +462,9 @@ struct CloudSyncRunner {
                     appliedPullChangeCount: appliedReviewEventCount,
                     changedEntityTypes: appliedReviewEventCount == 0 ? [] : [.reviewEvent],
                     acknowledgedOperationCount: 0,
-                    cleanedUpOperationCount: 0
+                    acknowledgedReviewEventOperationCount: 0,
+                    cleanedUpOperationCount: 0,
+                    cleanedUpReviewEventOperationCount: 0
                 )
             }
         }

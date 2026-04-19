@@ -436,6 +436,12 @@ const deCatalog: TranslationCatalog = {
     errors: {
       schedulerUnavailable: "Die Planer-Einstellungen des Arbeitsbereichs sind nicht geladen",
     },
+    progressBadge: {
+      ariaLabel: "Lernserie {{streak}} Tage. {{todayStatus}}.",
+      notReviewedToday: "Heute noch nicht wiederholt",
+      reviewedToday: "Heute wiederholt",
+      title: "Serie",
+    },
     interval: {
       inCount: "in {{count}}",
       lessThanMinute: "in weniger als einer Minute",

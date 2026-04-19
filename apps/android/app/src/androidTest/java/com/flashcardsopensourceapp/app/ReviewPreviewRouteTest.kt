@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.feature.review.R as ReviewStringResources
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
+import com.flashcardsopensourceapp.feature.review.ReviewProgressBadgeState
 import com.flashcardsopensourceapp.feature.review.ReviewUiState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -47,6 +48,12 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         availableDeckFilters = emptyList(),
                         availableEffortFilters = emptyList(),
                         availableTagFilters = emptyList(),
+                        reviewProgressBadge = ReviewProgressBadgeState(
+                            streakDays = 0,
+                            hasReviewedToday = false,
+                            isApproximate = false,
+                            isInteractive = true
+                        ),
                         isPreviewLoading = true,
                         previewItems = emptyList(),
                         hasMorePreviewCards = false,
@@ -104,6 +111,12 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         availableDeckFilters = emptyList(),
                         availableEffortFilters = emptyList(),
                         availableTagFilters = emptyList(),
+                        reviewProgressBadge = ReviewProgressBadgeState(
+                            streakDays = 0,
+                            hasReviewedToday = false,
+                            isApproximate = false,
+                            isInteractive = true
+                        ),
                         isPreviewLoading = false,
                         previewItems = emptyList(),
                         hasMorePreviewCards = false,
@@ -147,6 +160,12 @@ class ReviewPreviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         availableDeckFilters = emptyList(),
                         availableEffortFilters = emptyList(),
                         availableTagFilters = emptyList(),
+                        reviewProgressBadge = ReviewProgressBadgeState(
+                            streakDays = 0,
+                            hasReviewedToday = false,
+                            isApproximate = false,
+                            isInteractive = true
+                        ),
                         isPreviewLoading = false,
                         previewItems = emptyList(),
                         hasMorePreviewCards = false,

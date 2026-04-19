@@ -12,6 +12,10 @@ func usesFastCloudSyncPolling(tab: AppTab) -> Bool {
     tab == .review || tab == .cards
 }
 
+func isProgressConsumerTab(tab: AppTab) -> Bool {
+    tab == .review || tab == .progress
+}
+
 func isCloudSyncFastPollingActive(selectedTab: AppTab, fastPollingUntil: Date?, now: Date) -> Bool {
     if usesFastCloudSyncPolling(tab: selectedTab) {
         return true
@@ -67,6 +71,7 @@ final class FlashcardsStore {
     var isReviewQueueChunkLoading: Bool
     var homeSnapshot: HomeSnapshot
     var progressSnapshot: ProgressSnapshot?
+    var reviewProgressBadgeState: ReviewProgressBadgeState
     var progressErrorMessage: String
     var isProgressRefreshing: Bool
     var globalErrorMessage: String
@@ -298,6 +303,7 @@ final class FlashcardsStore {
             reviewedCount: 0
         )
         self.progressSnapshot = nil
+        self.reviewProgressBadgeState = makeEmptyReviewProgressBadgeState()
         self.progressErrorMessage = ""
         self.isProgressRefreshing = false
         self.globalErrorMessage = initialGlobalErrorMessage

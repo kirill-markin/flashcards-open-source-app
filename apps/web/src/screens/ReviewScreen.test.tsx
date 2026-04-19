@@ -20,6 +20,34 @@ const {
 } = setupReviewScreenTest();
 
 describe("ReviewScreen", () => {
+  it("renders the review progress badge without approximate styling", async () => {
+    const state = getState();
+    const card = createCard({
+      cardId: "card-progress-badge",
+      frontText: "Question",
+      backText: "Answer",
+    });
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+    state.reviewProgressBadge = {
+      streakDays: 12,
+      hasReviewedToday: true,
+      isInteractive: true,
+    };
+
+    await renderReviewScreen();
+
+    const progressBadge = getContainer().querySelector("[data-testid='review-progress-badge']");
+    if (!(progressBadge instanceof HTMLAnchorElement)) {
+      throw new Error("Review progress badge was not found");
+    }
+
+    expect(progressBadge.className).toContain("review-progress-badge");
+    expect(progressBadge.className).toContain("review-progress-badge-active");
+    expect(progressBadge.className).not.toContain("review-progress-badge-approximate");
+  });
+
   it("reveals the answer with Space and submits the selected rating shortcut", async () => {
     const state = getState();
     const card = createCard({

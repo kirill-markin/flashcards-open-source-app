@@ -1,8 +1,7 @@
 import { useEffect, useRef, type ReactElement } from "react";
 import { useAppData } from "../appData";
 import { useProgressInvalidationState } from "../appData/progressInvalidation";
-import { parseLocalDate } from "../appData/progressSource";
-import { useProgressSource } from "../appData/progressSource";
+import { parseLocalDate, useProgressSource } from "../appData/progressSource";
 import { useI18n } from "../i18n";
 import type { ProgressSeriesSnapshot } from "../types";
 
@@ -158,6 +157,10 @@ export function ProgressScreen(): ReactElement {
     sessionVerificationState,
     progressLocalVersion,
     progressServerInvalidationVersion,
+    sections: {
+      includeSummary: true,
+      includeSeries: true,
+    },
   });
   const { t, formatDate, formatNumber } = useI18n();
   const todayChartColumnRef = useRef<HTMLDivElement | null>(null);

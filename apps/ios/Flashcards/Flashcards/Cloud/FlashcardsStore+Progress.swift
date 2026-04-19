@@ -196,7 +196,7 @@ extension FlashcardsStore {
             }
             let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
 
-            guard syncResult.progressDataChanged else {
+            guard syncResult.reviewProgressDataChanged else {
                 return
             }
 

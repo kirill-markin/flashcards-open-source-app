@@ -436,6 +436,12 @@ export const jaCatalog = {
     errors: {
       schedulerUnavailable: "ワークスペースのスケジューラー設定が読み込まれていません",
     },
+    progressBadge: {
+      ariaLabel: "復習連続 {{streak}} 日。{{todayStatus}}。",
+      notReviewedToday: "今日はまだ復習していません",
+      reviewedToday: "今日は復習済み",
+      title: "連続",
+    },
     interval: {
       inCount: "{{count}}後",
       lessThanMinute: "1 分未満後",

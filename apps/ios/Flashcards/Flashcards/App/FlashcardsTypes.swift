@@ -666,13 +666,17 @@ struct CloudSyncResult: Hashable, Sendable {
     let appliedPullChangeCount: Int
     let changedEntityTypes: Set<SyncEntityType>
     let acknowledgedOperationCount: Int
+    let acknowledgedReviewEventOperationCount: Int
     let cleanedUpOperationCount: Int
+    let cleanedUpReviewEventOperationCount: Int
 
     static let noChanges = CloudSyncResult(
         appliedPullChangeCount: 0,
         changedEntityTypes: [],
         acknowledgedOperationCount: 0,
-        cleanedUpOperationCount: 0
+        acknowledgedReviewEventOperationCount: 0,
+        cleanedUpOperationCount: 0,
+        cleanedUpReviewEventOperationCount: 0
     )
 
     var appliedPullChanges: Bool {
@@ -686,6 +690,12 @@ struct CloudSyncResult: Hashable, Sendable {
             || self.changedEntityTypes.contains(.reviewEvent)
     }
 
+    var reviewProgressDataChanged: Bool {
+        self.changedEntityTypes.contains(.reviewEvent)
+            || self.acknowledgedReviewEventOperationCount > 0
+            || self.cleanedUpReviewEventOperationCount > 0
+    }
+
     var technicalChangesOnly: Bool {
         self.reviewDataChanged == false
             && (self.acknowledgedOperationCount > 0 || self.cleanedUpOperationCount > 0)
@@ -696,7 +706,9 @@ struct CloudSyncResult: Hashable, Sendable {
             appliedPullChangeCount: self.appliedPullChangeCount + other.appliedPullChangeCount,
             changedEntityTypes: self.changedEntityTypes.union(other.changedEntityTypes),
             acknowledgedOperationCount: self.acknowledgedOperationCount + other.acknowledgedOperationCount,
-            cleanedUpOperationCount: self.cleanedUpOperationCount + other.cleanedUpOperationCount
+            acknowledgedReviewEventOperationCount: self.acknowledgedReviewEventOperationCount + other.acknowledgedReviewEventOperationCount,
+            cleanedUpOperationCount: self.cleanedUpOperationCount + other.cleanedUpOperationCount,
+            cleanedUpReviewEventOperationCount: self.cleanedUpReviewEventOperationCount + other.cleanedUpReviewEventOperationCount
         )
     }
 }

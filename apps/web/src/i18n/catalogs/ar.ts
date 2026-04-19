@@ -436,6 +436,12 @@ const arCatalog: TranslationCatalog = {
     errors: {
       schedulerUnavailable: "لم يتم تحميل إعدادات جدولة مساحة العمل",
     },
+    progressBadge: {
+      ariaLabel: "سلسلة المراجعة {{streak}} يومًا. {{todayStatus}}.",
+      notReviewedToday: "لم تُراجع اليوم",
+      reviewedToday: "راجعت اليوم",
+      title: "السلسلة",
+    },
     interval: {
       inCount: "خلال {{count}}",
       lessThanMinute: "خلال أقل من دقيقة",
