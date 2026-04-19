@@ -171,7 +171,7 @@ Cross-client live smoke references:
 
 - Web: `apps/web/e2e/live-smoke.spec.ts`
 - iOS: `apps/ios/Flashcards/FlashcardsUITests/LiveSmoke*Tests.swift`
-- Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
+- Android: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/LiveSmokeTest.kt`
 
 After pushing to `main`, watch `AWS/Web Release` until the release either finishes green or fails clearly after deploy. This pipeline is intentionally fix-forward only: a failed post-deploy smoke leaves the deployed AWS/Web release in place, marks that run failed, and the next push must still be allowed to deploy.
 

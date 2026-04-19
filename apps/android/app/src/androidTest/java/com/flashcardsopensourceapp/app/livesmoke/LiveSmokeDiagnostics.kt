@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.livesmoke
 
 import android.os.ParcelFileDescriptor
 import androidx.compose.ui.semantics.SemanticsNode
@@ -20,6 +20,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import com.flashcardsopensourceapp.app.FlashcardsApplication
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.time.Instant

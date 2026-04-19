@@ -30,7 +30,7 @@ Prefer the Playwright live smoke when a change affects a real user flow. It is t
 The live smoke scenario intentionally mirrors the mobile clients:
 
 - iOS equivalent: `apps/ios/Flashcards/FlashcardsUITests/LiveSmokeUITests.swift`
-- Android equivalent: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
+- Android equivalent: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/LiveSmokeTest.kt`
 
 For local web work, `npm run test:e2e:local` in `apps/web` runs the same Playwright smoke against the local browser stack:
 

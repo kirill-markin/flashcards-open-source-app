@@ -119,7 +119,7 @@ Guest AI availability is part of the iOS release contract. The guest AI smoke mu
 
 The grouped smoke suite still maps to the same top-level live-smoke contract as the other clients:
 
-- Android equivalent: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/LiveSmokeTest.kt`
+- Android equivalent: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/livesmoke/LiveSmokeTest.kt`
 - Web equivalent: `apps/web/e2e/live-smoke.spec.ts`
 
 ## Marketing Screenshots

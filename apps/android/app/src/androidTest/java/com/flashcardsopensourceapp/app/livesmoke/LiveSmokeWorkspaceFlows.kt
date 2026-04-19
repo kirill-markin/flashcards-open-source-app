@@ -1,6 +1,6 @@
 @file:OptIn(androidx.compose.ui.test.ExperimentalTestApi::class)
 
-package com.flashcardsopensourceapp.app
+package com.flashcardsopensourceapp.app.livesmoke
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import com.flashcardsopensourceapp.app.FlashcardsApplication
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.feature.settings.cloudPostAuthWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.cloudPostAuthExistingButtonTag
