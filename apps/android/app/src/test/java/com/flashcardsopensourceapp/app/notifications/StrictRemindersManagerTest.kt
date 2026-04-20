@@ -88,6 +88,7 @@ class StrictRemindersManagerTest {
 
             awaitUntil {
                 store.lastCompletedReviewAtMillis == parseTimestampMillis(value = "2026-04-03T21:00:00Z") &&
+                    scheduler.clearScheduledInvocationCount >= 3 &&
                     scheduler.scheduledPayloads.none { payload ->
                         payload.requestId.startsWith("strict-reminder::2026-04-03::")
                     }
