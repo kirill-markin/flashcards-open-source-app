@@ -12,7 +12,6 @@ private let progressReviewCardsStringsTableName: String = "ReviewCards"
 
 struct ProgressScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
-    @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
     var body: some View {
         List {
@@ -111,15 +110,6 @@ struct ProgressScreen: View {
         )
         .task {
             await self.store.refreshProgressIfNeeded()
-        }
-        .onChange(of: self.navigation.selectedTab) { _, nextTab in
-            guard nextTab == .progress else {
-                return
-            }
-
-            Task { @MainActor in
-                await self.store.refreshProgressIfNeeded()
-            }
         }
         .refreshable {
             await self.store.refreshProgressManually()

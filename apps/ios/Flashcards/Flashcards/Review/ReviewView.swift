@@ -148,13 +148,6 @@ struct ReviewView: View {
         .task(id: store.localReadVersion) {
             await self.reloadReviewMetadata()
         }
-        .task(id: self.navigation.selectedTab) {
-            guard self.navigation.selectedTab == .review else {
-                return
-            }
-
-            await self.store.refreshReviewProgressBadgeIfNeeded()
-        }
         .safeAreaBar(edge: .bottom, spacing: 0) {
             reviewBottomAccessory
         }

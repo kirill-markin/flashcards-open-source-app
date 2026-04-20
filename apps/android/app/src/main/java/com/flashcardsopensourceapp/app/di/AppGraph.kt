@@ -4,6 +4,7 @@ import android.content.Context
 import com.flashcardsopensourceapp.app.AutoSyncController
 import com.flashcardsopensourceapp.app.navigation.AppPackageInfo
 import com.flashcardsopensourceapp.app.navigation.loadPackageInfo
+import com.flashcardsopensourceapp.app.ProgressContextRefreshController
 import com.flashcardsopensourceapp.core.ui.AppMessageBus
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
@@ -203,6 +204,10 @@ class AppGraph(
         syncRepository = syncRepository,
         localProgressCacheStore = localProgressCacheStore,
         timeProvider = SystemProgressTimeProvider
+    )
+    val progressContextRefreshController = ProgressContextRefreshController(
+        appScope = appScope,
+        progressRepository = progressRepository
     )
     val aiChatRepository: AiChatRepository = LocalAiChatRepository(
         database = database,

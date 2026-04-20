@@ -9,7 +9,13 @@ import type {
   ProgressSummaryPayload,
   WorkspaceSummary,
 } from "../types";
+import {
+  resetProgressInvalidationStateForTests,
+  useProgressInvalidationRefresh,
+  useProgressInvalidationState,
+} from "./progressInvalidation";
 import { useProgressSource } from "./progressSource";
+import { resetProgressTimeContextStateForTests } from "./progressTimeContext";
 import type { SessionVerificationState } from "./warmStart";
 
 const {
@@ -100,6 +106,10 @@ const summaryOnlySections = {
   includeSummary: true,
   includeSeries: false,
 } as const;
+const summaryAndSeriesWithInvalidationSections = {
+  includeSummary: true,
+  includeSeries: true,
+} as const;
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
@@ -142,6 +152,44 @@ function renderHarness(props: HarnessProps): Readonly<{
       act(() => {
         root?.render(<Harness {...nextProps} />);
       });
+    },
+  };
+}
+
+function renderInvalidationHarness(props: HarnessProps): Readonly<{
+  getApi: () => ProgressSourceApi;
+}> {
+  let latestApi: ProgressSourceApi | null = null;
+
+  function Harness(currentProps: HarnessProps): null {
+    useProgressInvalidationRefresh();
+    const { progressLocalVersion, progressServerInvalidationVersion } = useProgressInvalidationState();
+    latestApi = useProgressSource({
+      activeWorkspace: workspace,
+      availableWorkspaces,
+      cloudSettings: currentProps.cloudSettings,
+      sessionVerificationState: currentProps.sessionVerificationState,
+      progressLocalVersion,
+      progressServerInvalidationVersion,
+      sections: currentProps.sections,
+    });
+    return null;
+  }
+
+  container = document.createElement("div");
+  document.body.appendChild(container);
+  root = createRoot(container);
+  act(() => {
+    root?.render(<Harness {...props} />);
+  });
+
+  return {
+    getApi(): ProgressSourceApi {
+      if (latestApi === null) {
+        throw new Error("Expected invalidation progress source api to be available.");
+      }
+
+      return latestApi;
     },
   };
 }
@@ -223,6 +271,8 @@ function clearWindowLocalStorage(): void {
 beforeEach(() => {
   (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   clearWindowLocalStorage();
+  resetProgressInvalidationStateForTests();
+  resetProgressTimeContextStateForTests(new Date("2026-04-20T12:00:00.000Z"));
   loadProgressSummaryMock.mockReset();
   loadProgressSeriesMock.mockReset();
   hasPendingProgressReviewEventsMock.mockReset();
@@ -246,10 +296,13 @@ afterEach(() => {
   act(() => {
     root?.unmount();
   });
+  vi.useRealTimers();
   container?.remove();
   clearWindowLocalStorage();
   root = null;
   container = null;
+  resetProgressInvalidationStateForTests();
+  resetProgressTimeContextStateForTests(new Date("2026-04-20T12:00:00.000Z"));
 });
 
 describe("useProgressSource", () => {
@@ -369,5 +422,31 @@ describe("useProgressSource", () => {
       isLoading: false,
       errorMessage: "",
     });
+  });
+
+  it("refreshes only once per endpoint when the local day rolls over", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-20T12:00:00.000Z"));
+
+    renderInvalidationHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesWithInvalidationSections,
+    });
+
+    await flushEffects();
+
+    loadProgressSummaryMock.mockClear();
+    loadProgressSeriesMock.mockClear();
+
+    act(() => {
+      vi.setSystemTime(new Date("2026-04-21T12:00:00.000Z"));
+      vi.advanceTimersByTime(60_000);
+    });
+    await flushEffects();
+
+    expect(loadProgressSummaryMock).toHaveBeenCalledTimes(1);
+    expect(loadProgressSeriesMock).toHaveBeenCalledTimes(1);
   });
 });

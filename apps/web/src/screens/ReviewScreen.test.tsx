@@ -20,7 +20,7 @@ const {
 } = setupReviewScreenTest();
 
 describe("ReviewScreen", () => {
-  it("renders the review progress badge without approximate styling", async () => {
+  it("renders the review progress badge with a styleable active icon and without approximate styling", async () => {
     const state = getState();
     const card = createCard({
       cardId: "card-progress-badge",
@@ -46,6 +46,13 @@ describe("ReviewScreen", () => {
     expect(progressBadge.className).toContain("review-progress-badge");
     expect(progressBadge.className).toContain("review-progress-badge-active");
     expect(progressBadge.className).not.toContain("review-progress-badge-approximate");
+    expect(progressBadge.textContent).not.toContain("🔥");
+    const progressBadgeIcon = progressBadge.querySelector("svg.review-progress-badge-icon");
+    if (!(progressBadgeIcon instanceof SVGSVGElement)) {
+      throw new Error("Review progress badge icon was not found");
+    }
+
+    expect(progressBadgeIcon.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("reveals the answer with Space and submits the selected rating shortcut", async () => {

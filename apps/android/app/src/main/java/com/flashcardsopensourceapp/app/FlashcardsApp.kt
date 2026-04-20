@@ -1,5 +1,9 @@
 package com.flashcardsopensourceapp.app
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
@@ -36,6 +40,7 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldValue
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
@@ -95,6 +100,7 @@ fun FlashcardsApp(appGraph: AppGraph) {
         }
 
         val navController = rememberNavController()
+        val applicationContext = LocalContext.current.applicationContext
         val lifecycleOwner = LocalLifecycleOwner.current
         val currentDestination = currentTopLevelDestination(navController = navController)
         val currentVisibleAppScreen = currentVisibleAppScreen(navController = navController)
@@ -197,6 +203,7 @@ fun FlashcardsApp(appGraph: AppGraph) {
                 when (event) {
                     Lifecycle.Event.ON_RESUME -> {
                         isAppResumed = true
+                        appGraph.progressContextRefreshController.refreshIfInvalidated()
                         appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
                             trigger = ReviewNotificationsReconcileTrigger.APP_ACTIVE,
                             nowMillis = System.currentTimeMillis()
@@ -234,6 +241,39 @@ fun FlashcardsApp(appGraph: AppGraph) {
             lifecycleOwner.lifecycle.addObserver(observer)
             onDispose {
                 lifecycleOwner.lifecycle.removeObserver(observer)
+            }
+        }
+
+        DisposableEffect(
+            applicationContext,
+            isAppResumed,
+            appGraph.progressContextRefreshController
+        ) {
+            if (isAppResumed.not()) {
+                onDispose {}
+            } else {
+                val receiver = object : BroadcastReceiver() {
+                    override fun onReceive(context: Context?, intent: Intent?) {
+                        if (isProgressContextRefreshBroadcastAction(action = intent?.action)) {
+                            appGraph.progressContextRefreshController.refreshIfInvalidated()
+                        }
+                    }
+                }
+                val intentFilter = IntentFilter().apply {
+                    addAction(Intent.ACTION_DATE_CHANGED)
+                    addAction(Intent.ACTION_TIME_CHANGED)
+                    addAction(Intent.ACTION_TIMEZONE_CHANGED)
+                }
+
+                applicationContext.registerReceiver(
+                    receiver,
+                    intentFilter,
+                    Context.RECEIVER_NOT_EXPORTED
+                )
+
+                onDispose {
+                    applicationContext.unregisterReceiver(receiver)
+                }
             }
         }
 
@@ -344,6 +384,16 @@ private fun shouldHideNavigationSuite(
     return destination == AiDestination &&
         navigationSuiteType == NavigationSuiteType.NavigationBar &&
         isImeVisible
+}
+
+private fun isProgressContextRefreshBroadcastAction(action: String?): Boolean {
+    return when (action) {
+        Intent.ACTION_DATE_CHANGED,
+        Intent.ACTION_TIME_CHANGED,
+        Intent.ACTION_TIMEZONE_CHANGED -> true
+
+        else -> false
+    }
 }
 
 @Composable
