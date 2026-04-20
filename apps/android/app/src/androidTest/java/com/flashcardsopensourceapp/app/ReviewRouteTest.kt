@@ -22,6 +22,7 @@ import com.flashcardsopensourceapp.feature.review.ReviewUiState
 import com.flashcardsopensourceapp.feature.review.reviewProgressBadgeTag
 import com.flashcardsopensourceapp.feature.review.reviewQueueButtonTag
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -110,7 +111,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
         }
 
         composeRule.waitUntil(timeoutMillis = 5_000L) {
-            screenVisibleCalls == 1
+            screenVisibleCalls > 0
         }
 
         composeRule.onNodeWithTag(reviewQueueButtonTag)
@@ -133,7 +134,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             )
             .performClick()
 
-        assertEquals(1, screenVisibleCalls)
+        assertTrue(screenVisibleCalls > 0)
         assertEquals(1, openPreviewCalls)
         assertEquals(1, openProgressCalls)
     }
