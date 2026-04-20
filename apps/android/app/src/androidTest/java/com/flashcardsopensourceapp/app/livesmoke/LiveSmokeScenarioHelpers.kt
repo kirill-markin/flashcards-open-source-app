@@ -20,6 +20,7 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.makeAiChatHistoryScopedWorkspaceId
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
+import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
@@ -220,21 +221,22 @@ private fun LiveSmokeContext.waitForAiUserMessageVisible(
     context: String
 ) {
     try {
+        waitForAiPersistedState(
+            timeoutMillis = externalAiRunTimeoutMillis,
+            context = "while waiting for the AI persisted history to record the user message $context"
+        ) { state ->
+            state.containsUserText(expectedUserText = expectedUserText)
+        }
         waitForTagToExist(
             tag = aiUserMessageBubbleTag,
             timeoutMillis = externalAiRunTimeoutMillis,
             context = "while waiting for a user AI message $context"
         )
-        waitUntilWithMitigation(
-            timeoutMillis = externalAiRunTimeoutMillis,
-            context = "while waiting for the AI user message text $context"
-        ) {
-            hasVisibleText(text = expectedUserText, substring = false)
-        }
     } catch (error: Throwable) {
         throw AssertionError(
             "AI user message did not appear $context. " +
                 "ExpectedUser='$expectedUserText' " +
+                "PersistedState=${currentAiPersistedStateSummary()} " +
                 "ActualDraft='${aiComposerDraftTextOrNull()}' " +
                 "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = aiSendLabel())} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
@@ -728,6 +730,14 @@ private fun completedAiInsertToolCallCheck(state: AiChatPersistedState): LiveSmo
         matchingInsertFound = matchingInsertFound,
         completedSqlSummaries = completedSqlSummaries
     )
+}
+
+private fun AiChatPersistedState.containsUserText(expectedUserText: String): Boolean {
+    return messages.any { message ->
+        message.role == AiChatRole.USER && message.content.any { contentPart ->
+            contentPart is AiChatContentPart.Text && contentPart.text == expectedUserText
+        }
+    }
 }
 
 private fun LiveSmokeContext.waitForAiConversation(
