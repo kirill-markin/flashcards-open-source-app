@@ -27,19 +27,34 @@ extension FlashcardsStore {
     }
 
     func reload() throws {
+        try self.reload(now: Date(), refreshVisibleProgress: true)
+    }
+
+    func reload(
+        now: Date,
+        refreshVisibleProgress: Bool
+    ) throws {
         guard let database else {
             throw LocalStoreError.uninitialized("Local database is unavailable")
         }
 
         let bootstrapSnapshot = try database.loadBootstrapSnapshot()
-        self.applyLoadedBootstrapSnapshot(snapshot: bootstrapSnapshot, now: Date())
+        self.applyLoadedBootstrapSnapshot(
+            snapshot: bootstrapSnapshot,
+            now: now,
+            refreshVisibleProgress: refreshVisibleProgress
+        )
     }
 
     var localDatabaseURL: URL? {
         self.database?.databaseURL
     }
 
-    func applyLoadedBootstrapSnapshot(snapshot: AppBootstrapSnapshot, now: Date) {
+    func applyLoadedBootstrapSnapshot(
+        snapshot: AppBootstrapSnapshot,
+        now: Date,
+        refreshVisibleProgress: Bool
+    ) {
         let didSwitchWorkspace = self.workspace?.workspaceId != snapshot.workspace.workspaceId
         if didSwitchWorkspace {
             self.resetReviewRuntimeForWorkspace(nextWorkspaceId: snapshot.workspace.workspaceId)
@@ -90,7 +105,7 @@ extension FlashcardsStore {
         self.reloadReviewNotificationsSettings()
         self.reloadStrictRemindersSettings()
         self.localReadVersion += 1
-        self.handleProgressContextDidChange(now: now)
+        self.applyProgressContextChange(now: now, refreshVisibleProgress: refreshVisibleProgress)
         self.cachedAIChatStore?.refreshAccessContextIfNeeded()
         self.refreshReviewState(now: now)
         self.reconcileReviewNotifications(trigger: .workspaceChanged, now: now)
@@ -183,7 +198,7 @@ extension FlashcardsStore {
 
     func refreshLocalReadModels(now: Date) {
         do {
-            try self.reload()
+            try self.reload(now: now, refreshVisibleProgress: true)
         } catch {
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
         }

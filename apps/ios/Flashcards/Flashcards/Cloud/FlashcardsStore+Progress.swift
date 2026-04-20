@@ -99,6 +99,10 @@ extension FlashcardsStore {
                     linkedSession: activeSession
                 )
             }
+
+            if self.progressObservedScopeKey == scopeKey {
+                try self.publishProgressSnapshot(scopeKey: scopeKey)
+            }
         } catch is CancellationError {
             return
         } catch {
@@ -133,6 +137,13 @@ extension FlashcardsStore {
     }
 
     func handleProgressContextDidChange(now: Date) {
+        self.applyProgressContextChange(now: now, refreshVisibleProgress: true)
+    }
+
+    func applyProgressContextChange(
+        now: Date,
+        refreshVisibleProgress: Bool
+    ) {
         do {
             if self.currentVisibleTab == .review {
                 let scopeKey = try self.prepareProgressScope(now: now)
@@ -141,6 +152,9 @@ extension FlashcardsStore {
                 _ = try self.prepareProgressSnapshot(now: now)
             }
             guard isProgressConsumerTab(tab: self.currentVisibleTab) else {
+                return
+            }
+            guard refreshVisibleProgress else {
                 return
             }
 

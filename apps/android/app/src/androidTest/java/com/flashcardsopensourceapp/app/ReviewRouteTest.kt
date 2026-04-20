@@ -20,6 +20,7 @@ import com.flashcardsopensourceapp.feature.review.ReviewProgressBadgeState
 import com.flashcardsopensourceapp.feature.review.ReviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewUiState
 import com.flashcardsopensourceapp.feature.review.reviewProgressBadgeTag
+import com.flashcardsopensourceapp.feature.review.reviewQueueButtonTag
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -37,6 +38,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
     @Test
     fun reviewRouteShowsProgressBadgeSemanticsAndNavigatesToProgress() {
         var openProgressCalls = 0
+        var openPreviewCalls = 0
         var screenVisibleCalls = 0
         val streakContentDescription = composeRule.activity.resources.getQuantityString(
             ReviewStringResources.plurals.review_progress_badge_content_description,
@@ -79,7 +81,9 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         isHardAnswerReminderVisible = false
                     ),
                     onSelectFilter = {},
-                    onOpenPreview = {},
+                    onOpenPreview = {
+                        openPreviewCalls += 1
+                    },
                     onOpenCurrentCard = {},
                     onOpenCurrentCardWithAi = { _, _, _, _, _ -> },
                     onOpenDeckManagement = {},
@@ -109,6 +113,9 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             screenVisibleCalls == 1
         }
 
+        composeRule.onNodeWithTag(reviewQueueButtonTag)
+            .assertIsDisplayed()
+            .performClick()
         composeRule.onNodeWithText("99+").assertIsDisplayed()
         composeRule.onNodeWithTag(reviewProgressBadgeTag)
             .assertIsDisplayed()
@@ -127,6 +134,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             .performClick()
 
         assertEquals(1, screenVisibleCalls)
+        assertEquals(1, openPreviewCalls)
         assertEquals(1, openProgressCalls)
     }
 }

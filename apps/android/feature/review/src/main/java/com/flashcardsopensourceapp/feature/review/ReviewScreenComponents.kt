@@ -90,6 +90,7 @@ const val reviewEmptyStateTitleTag: String = "review_empty_state_title"
 const val reviewCurrentCardTag: String = "review_current_card"
 const val reviewCurrentCardFrontContentTag: String = "review_current_card_front_content"
 const val reviewProgressBadgeTag: String = "review_progress_badge"
+const val reviewQueueButtonTag: String = "review_queue_button"
 
 internal val reviewBottomOverlayBottomPadding = 12.dp
 private val reviewBottomOverlayHorizontalPadding = 16.dp
@@ -110,11 +111,7 @@ private val reviewSpeechIconSize = 18.dp
 internal fun ReviewTopBar(
     reviewProgressBadge: ReviewProgressBadgeState,
     selectedFilterTitle: String,
-    isLoading: Boolean,
-    remainingCount: Int,
-    totalCount: Int,
     onOpenFilter: () -> Unit,
-    onOpenPreview: () -> Unit,
     onOpenProgress: () -> Unit
 ) {
     val resources = LocalContext.current.resources
@@ -136,26 +133,6 @@ internal fun ReviewTopBar(
             Text(stringResource(id = R.string.review_title))
         },
         actions = {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(24.dp)
-                )
-            } else {
-                TextButton(
-                    onClick = onOpenPreview,
-                    enabled = totalCount > 0
-                ) {
-                    Text(
-                        text = stringResource(
-                            id = R.string.review_progress_fraction,
-                            remainingCount,
-                            totalCount
-                        )
-                    )
-                }
-            }
-
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -208,6 +185,47 @@ internal fun ReviewTopBar(
             )
         }
     )
+}
+
+@Composable
+internal fun ReviewQueueButtonRow(
+    isLoading: Boolean,
+    remainingCount: Int,
+    totalCount: Int,
+    onOpenPreview: () -> Unit
+) {
+    Row(
+        horizontalArrangement = Arrangement.End,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(24.dp)
+            )
+        } else {
+            OutlinedButton(
+                onClick = onOpenPreview,
+                enabled = totalCount > 0,
+                modifier = Modifier.testTag(reviewQueueButtonTag)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.HourglassBottom,
+                    contentDescription = null
+                )
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(
+                    text = stringResource(
+                        id = R.string.review_progress_fraction,
+                        remainingCount,
+                        totalCount
+                    )
+                )
+            }
+        }
+    }
 }
 
 internal fun reviewContentBottomPadding(hasCurrentCard: Boolean, isAnswerVisible: Boolean): androidx.compose.ui.unit.Dp {

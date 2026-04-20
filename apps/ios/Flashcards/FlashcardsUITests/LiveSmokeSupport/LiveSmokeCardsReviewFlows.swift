@@ -94,6 +94,10 @@ extension LiveSmokeTestCase {
     @MainActor
     func reviewCurrentCard(expectedFrontText: String) throws {
         try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.reviewQueueButton,
+            timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
+        )
         try self.assertTextExists(
             expectedFrontText,
             timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds
