@@ -4,6 +4,18 @@ struct RootTabView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
+    @MainActor
+    private func refreshSelectedTabIfNeeded(nextTab: AppTab) async {
+        switch nextTab {
+        case .review:
+            await self.store.refreshReviewProgressBadgeIfNeeded()
+        case .progress:
+            await self.store.refreshProgressIfNeeded()
+        case .ai, .cards, .settings:
+            return
+        }
+    }
+
     var body: some View {
         @Bindable var navigation = self.navigation
 
@@ -149,6 +161,9 @@ struct RootTabView: View {
         }
         .onChange(of: navigation.selectedTab) { _, nextTab in
             store.updateCurrentVisibleTab(tab: nextTab)
+            Task { @MainActor in
+                await self.refreshSelectedTabIfNeeded(nextTab: nextTab)
+            }
 
             guard usesFastCloudSyncPolling(tab: nextTab) else {
                 return

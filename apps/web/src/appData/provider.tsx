@@ -17,6 +17,7 @@ import type {
 } from "../types";
 import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "./domain";
 import type { AppDataContextValue, Props, SessionLoadState } from "./types";
+import { useProgressInvalidationRefresh } from "./progressInvalidation";
 import { useSyncEngine } from "./useSyncEngine";
 import { useWorkspaceSession } from "./useWorkspaceSession";
 import type { SessionVerificationState } from "./warmStart";
@@ -93,6 +94,7 @@ function loadSelectedReviewFilter(): ReviewFilter {
 export function AppDataProvider(props: Props): ReactElement {
   const { children } = props;
   const { t } = useI18n();
+  useProgressInvalidationRefresh();
   const [warmStartSnapshot] = useState(loadWarmStartSnapshot);
   const [sessionLoadState, setSessionLoadState] = useState<SessionLoadState>(
     warmStartSnapshot === null ? "loading" : "ready",

@@ -1,4 +1,8 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import {
+  progressTimeContextPollIntervalMs,
+  updateProgressTimeContext,
+} from "./progressTimeContext";
 
 type ProgressInvalidationSnapshot = Readonly<{
   progressLocalVersion: number;
@@ -39,6 +43,14 @@ function getProgressInvalidationSnapshot(): ProgressInvalidationSnapshot {
   return progressInvalidationSnapshot;
 }
 
+export function resetProgressInvalidationStateForTests(): void {
+  progressInvalidationSnapshot = {
+    progressLocalVersion: 0,
+    progressServerInvalidationVersion: 0,
+  };
+  notifyProgressInvalidationListeners();
+}
+
 export function invalidateLocalProgress(): void {
   updateProgressInvalidationSnapshot((currentSnapshot) => ({
     ...currentSnapshot,
@@ -66,4 +78,44 @@ export function useProgressInvalidationState(): ProgressInvalidationSnapshot {
     getProgressInvalidationSnapshot,
     getProgressInvalidationSnapshot,
   );
+}
+
+export function useProgressInvalidationRefresh(): void {
+  const isForegroundRefreshQueuedRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    updateProgressTimeContext(new Date());
+
+    function refreshForTimeContextChange(): void {
+      if (updateProgressTimeContext(new Date())) {
+        invalidateProgress();
+      }
+    }
+
+    function queueForegroundRefresh(): void {
+      if (document.visibilityState !== "visible" || isForegroundRefreshQueuedRef.current) {
+        return;
+      }
+
+      isForegroundRefreshQueuedRef.current = true;
+      Promise.resolve().then(() => {
+        isForegroundRefreshQueuedRef.current = false;
+        if (document.visibilityState !== "visible") {
+          return;
+        }
+
+        refreshForTimeContextChange();
+      });
+    }
+
+    const intervalId = window.setInterval(refreshForTimeContextChange, progressTimeContextPollIntervalMs);
+    window.addEventListener("focus", queueForegroundRefresh);
+    document.addEventListener("visibilitychange", queueForegroundRefresh);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", queueForegroundRefresh);
+      document.removeEventListener("visibilitychange", queueForegroundRefresh);
+    };
+  }, []);
 }

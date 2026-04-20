@@ -30,6 +30,10 @@ import type {
   WorkspaceSummary,
 } from "../types";
 import type { SessionVerificationState } from "./warmStart";
+import {
+  buildProgressTimeContext,
+  useProgressTimeContext,
+} from "./progressTimeContext";
 
 const progressRangeDayCount = 140;
 const progressRangeStartOffsetDays = 1 - progressRangeDayCount;
@@ -37,7 +41,6 @@ const progressSummaryStorageKeyPrefix = "flashcards-progress-server-summary";
 const progressSeriesStorageKeyPrefix = "flashcards-progress-server-series";
 const progressServerSummaryVersion = 1;
 const progressServerSeriesVersion = 1;
-const progressTimeContextPollIntervalMs = 60_000;
 
 type PersistedProgressSummary = Readonly<{
   version: 1;
@@ -73,11 +76,6 @@ type ProgressSourceSections = Readonly<{
   includeSeries: boolean;
 }>;
 
-type ProgressTimeContext = Readonly<{
-  timeZone: string;
-  today: string;
-}>;
-
 type LocalStorageLike = Storage & Record<string, string | undefined> & Readonly<{
   getItem?: (key: string) => string | null;
   setItem?: (key: string, value: string) => void;
@@ -87,44 +85,6 @@ const fallbackLocalStorageState = new Map<string, string>();
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && Array.isArray(value) === false;
-}
-
-function getRequiredDatePart(
-  parts: ReadonlyArray<Intl.DateTimeFormatPart>,
-  partType: "year" | "month" | "day",
-): string {
-  const partValue = parts.find((part) => part.type === partType)?.value;
-
-  if (partValue === undefined || partValue === "") {
-    throw new Error(`Browser timezone date is missing ${partType}`);
-  }
-
-  return partValue;
-}
-
-function getBrowserTimeZone(): string {
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  if (typeof timeZone !== "string" || timeZone.trim() === "") {
-    throw new Error("Browser timezone is unavailable");
-  }
-
-  return timeZone;
-}
-
-function formatDateAsLocalDate(date: Date, timeZone: string): string {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const parts = formatter.formatToParts(date);
-  const year = getRequiredDatePart(parts, "year");
-  const month = getRequiredDatePart(parts, "month");
-  const day = getRequiredDatePart(parts, "day");
-
-  return `${year}-${month}-${day}`;
 }
 
 export function parseLocalDate(value: string): Date {
@@ -144,15 +104,6 @@ export function shiftLocalDate(value: string, offsetDays: number): string {
   const nextDate = parseLocalDate(value);
   nextDate.setUTCDate(nextDate.getUTCDate() + offsetDays);
   return nextDate.toISOString().slice(0, 10);
-}
-
-function buildProgressTimeContext(now: Date): ProgressTimeContext {
-  const timeZone = getBrowserTimeZone();
-
-  return {
-    timeZone,
-    today: formatDateAsLocalDate(now, timeZone),
-  };
 }
 
 export function buildProgressSeriesInput(now: Date): ProgressSeriesInput {
@@ -750,7 +701,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
   } = params;
   const { includeSummary, includeSeries } = sections;
   const [progressSourceState, setProgressSourceState] = useState<ProgressSourceState>(createEmptyProgressSourceState);
-  const [timeContext, setTimeContext] = useState<ProgressTimeContext>(() => buildProgressTimeContext(new Date()));
+  const timeContext = useProgressTimeContext();
   const [manualRefreshVersion, setManualRefreshVersion] = useState<number>(0);
   const currentSummaryScopeKeyRef = useRef<ProgressScopeKey | null>(null);
   const currentSeriesScopeKeyRef = useRef<ProgressScopeKey | null>(null);
@@ -799,29 +750,6 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
       const nextState = buildNextState(currentState);
       return areProgressSourceStatesEqual(currentState, nextState) ? currentState : nextState;
     });
-  }, []);
-
-  useEffect(() => {
-    function refreshTimeContext(): void {
-      const nextTimeContext = buildProgressTimeContext(new Date());
-
-      setTimeContext((currentTimeContext) => (
-        currentTimeContext.timeZone === nextTimeContext.timeZone
-        && currentTimeContext.today === nextTimeContext.today
-      )
-        ? currentTimeContext
-        : nextTimeContext);
-    }
-
-    const intervalId = window.setInterval(refreshTimeContext, progressTimeContextPollIntervalMs);
-    window.addEventListener("focus", refreshTimeContext);
-    document.addEventListener("visibilitychange", refreshTimeContext);
-
-    return () => {
-      window.clearInterval(intervalId);
-      window.removeEventListener("focus", refreshTimeContext);
-      document.removeEventListener("visibilitychange", refreshTimeContext);
-    };
   }, []);
 
   useEffect(() => {

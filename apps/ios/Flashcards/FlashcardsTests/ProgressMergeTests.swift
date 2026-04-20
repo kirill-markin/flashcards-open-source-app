@@ -1091,6 +1091,75 @@ final class ProgressMergeTests: XCTestCase {
     }
 
     @MainActor
+    func testHandleProgressContextDidChangeClearsReviewedTodayBadgeAfterLocalDayRollover() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: "2026-04-18T15:50:57.000Z"
+        )
+
+        let initialNow = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T18:00:00.000Z"))
+        let rolloverNow = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-19T08:00:00.000Z"))
+        let initialRequestRange = try makeTestProgressRequestRange(
+            now: initialNow,
+            timeZone: TimeZone.current,
+            dayCount: 140
+        )
+        let rolloverRequestRange = try makeTestProgressRequestRange(
+            now: rolloverNow,
+            timeZone: TimeZone.current,
+            dayCount: 140
+        )
+        let serverSeries = try makeTestProgressSeries(
+            requestRange: initialRequestRange,
+            reviewCountsByDate: [
+                initialRequestRange.to: 1
+            ],
+            generatedAt: "2026-04-18T17:59:00.000Z"
+        )
+        let serverSummary = try makeTestProgressSummary(
+            timeZone: initialRequestRange.timeZone,
+            reviewDates: [initialRequestRange.to],
+            generatedAt: "2026-04-18T17:59:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: serverSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .guest
+        )
+        defer { context.tearDown() }
+
+        context.store.updateCurrentVisibleTab(tab: .review)
+        await context.store.refreshReviewProgressBadgeIfNeeded(now: initialNow)
+
+        XCTAssertTrue(context.store.reviewProgressBadgeState.hasReviewedToday)
+        XCTAssertEqual(1, context.store.reviewProgressBadgeState.streakDays)
+        XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
+        XCTAssertEqual(0, context.cloudSyncService.loadProgressSeriesCallCount)
+
+        context.cloudSyncService.serverSummary = try makeTestProgressSummary(
+            timeZone: rolloverRequestRange.timeZone,
+            reviewDates: [initialRequestRange.to],
+            generatedAt: "2026-04-19T07:59:00.000Z"
+        )
+
+        context.store.handleProgressContextDidChange(now: rolloverNow)
+
+        XCTAssertFalse(context.store.reviewProgressBadgeState.hasReviewedToday)
+        XCTAssertEqual(1, context.store.reviewProgressBadgeState.streakDays)
+        XCTAssertTrue(context.store.reviewProgressBadgeState.isInteractive)
+        XCTAssertEqual(rolloverRequestRange.to, context.store.progressObservedScopeKey?.to)
+    }
+
+    @MainActor
     func testRefreshProgressIfNeededKeepsServerScopeStableAcrossWorkspaceSwitch() async throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()

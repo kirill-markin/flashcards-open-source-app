@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 private let flashcardsUITestResetStateEnvironmentKey: String = "FLASHCARDS_UI_TEST_RESET_STATE"
 private let flashcardsUITestSelectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
@@ -39,6 +40,21 @@ private struct CloudSyncPollingTaskID: Hashable {
     let selectedTab: AppTab
     let fastPollingUntil: Date?
     let isSyncBlocked: Bool
+}
+
+private struct ProgressContextWatcherTaskID: Hashable {
+    let isSceneActive: Bool
+    let refreshToken: Int
+}
+
+private func nextProgressContextRolloverDate(now: Date) -> Date {
+    let calendar = Calendar.autoupdatingCurrent
+    let startOfCurrentDay = calendar.startOfDay(for: now)
+    guard let nextDay = calendar.date(byAdding: .day, value: 1, to: startOfCurrentDay) else {
+        preconditionFailure("Expected to compute the next local day boundary.")
+    }
+
+    return nextDay
 }
 
 @MainActor
@@ -83,6 +99,7 @@ struct FlashcardsApp: App {
     @UIApplicationDelegateAdaptor(ReviewNotificationsAppDelegate.self) private var reviewNotificationsAppDelegate
     @State private var store: FlashcardsStore
     @State private var navigation: AppNavigationModel
+    @State private var progressContextWatcherRefreshToken: Int
 
     @MainActor
     init() {
@@ -157,6 +174,7 @@ struct FlashcardsApp: App {
                 aiChatPresentationRequest: aiChatPresentationRequest
             )
         )
+        _progressContextWatcherRefreshToken = State(initialValue: 0)
     }
 
     var body: some Scene {
@@ -168,6 +186,7 @@ struct FlashcardsApp: App {
                     store.updateCurrentVisibleTab(tab: navigation.selectedTab)
                     await store.resumePendingAccountDeletionIfNeeded()
                     let now = Date()
+                    self.refreshProgressContext(now: now, restartWatcher: false)
                     store.triggerCloudSyncIfLinked(
                         trigger: CloudSyncTrigger(
                             source: .appLaunch,
@@ -183,7 +202,7 @@ struct FlashcardsApp: App {
                 .onChange(of: scenePhase) { _, nextPhase in
                     if nextPhase == .active {
                         let now = Date()
-                        store.updateCurrentVisibleTab(tab: navigation.selectedTab)
+                        self.refreshProgressContext(now: now, restartWatcher: true)
                         store.triggerCloudSyncIfLinked(
                             trigger: CloudSyncTrigger(
                                 source: .appForeground,
@@ -200,8 +219,20 @@ struct FlashcardsApp: App {
                         store.reconcileStrictReminders(trigger: .appBackground, now: Date())
                     }
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+                    self.handleProgressContextSystemChange()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+                    self.handleProgressContextSystemChange()
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
+                    self.handleProgressContextSystemChange()
+                }
                 .task(id: self.isAppNotificationTapConsumptionReady) {
                     await self.consumePendingAppNotificationTapIfNeeded()
+                }
+                .task(id: self.progressContextWatcherTaskID) {
+                    await self.runProgressContextWatcherLoop()
                 }
                 .task(id: self.cloudSyncPollingTaskID) {
                     await self.runCloudSyncPollingLoop()
@@ -220,6 +251,31 @@ struct FlashcardsApp: App {
 
     private var isAppNotificationTapConsumptionReady: Bool {
         self.scenePhase == .active
+    }
+
+    private var progressContextWatcherTaskID: ProgressContextWatcherTaskID {
+        ProgressContextWatcherTaskID(
+            isSceneActive: self.scenePhase == .active,
+            refreshToken: self.progressContextWatcherRefreshToken
+        )
+    }
+
+    @MainActor
+    private func refreshProgressContext(now: Date, restartWatcher: Bool) {
+        self.store.updateCurrentVisibleTab(tab: self.navigation.selectedTab)
+        self.store.handleProgressContextDidChange(now: now)
+        if restartWatcher {
+            self.progressContextWatcherRefreshToken = self.progressContextWatcherRefreshToken &+ 1
+        }
+    }
+
+    @MainActor
+    private func handleProgressContextSystemChange() {
+        guard self.scenePhase == .active else {
+            return
+        }
+
+        self.refreshProgressContext(now: Date(), restartWatcher: true)
     }
 
     @MainActor
@@ -315,6 +371,40 @@ struct FlashcardsApp: App {
                     surfacesGlobalErrorMessage: false
                 )
             )
+        }
+    }
+
+    @MainActor
+    private func runProgressContextWatcherLoop() async {
+        guard self.scenePhase == .active else {
+            return
+        }
+
+        while Task.isCancelled == false && self.scenePhase == .active {
+            let now = Date()
+            let nextRollover = nextProgressContextRolloverDate(now: now)
+            let intervalSeconds = nextRollover.timeIntervalSince(now)
+            if intervalSeconds <= 0 {
+                self.refreshProgressContext(now: now, restartWatcher: false)
+                await Task.yield()
+                continue
+            }
+
+            let intervalNanoseconds = UInt64(intervalSeconds * 1_000_000_000)
+
+            do {
+                try await Task.sleep(nanoseconds: intervalNanoseconds)
+            } catch is CancellationError {
+                return
+            } catch {
+                return
+            }
+
+            guard Task.isCancelled == false, self.scenePhase == .active else {
+                return
+            }
+
+            self.refreshProgressContext(now: Date(), restartWatcher: false)
         }
     }
 }
