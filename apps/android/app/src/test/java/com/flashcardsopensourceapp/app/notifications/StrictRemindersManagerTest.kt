@@ -188,6 +188,40 @@ class StrictRemindersManagerTest {
             manager.close()
         }
     }
+
+    @Test
+    fun lifecycleCommandsAfterCloseAreIgnored() = runBlocking {
+        val store = FakeStrictRemindersStore()
+        val scheduler = FakeStrictRemindersScheduler(hasNotificationPermission = true)
+        val manager = StrictRemindersManager(
+            strictRemindersStore = store,
+            reviewLogDao = FakeReviewLogDao(hasReviewLogsBetween = false),
+            scheduler = scheduler,
+            zoneIdProvider = { zoneId }
+        )
+
+        manager.close()
+
+        manager.reconcileStrictReminders(
+            trigger = StrictRemindersReconcileTrigger.APP_BACKGROUND,
+            nowMillis = parseTimestampMillis(value = "2026-04-03T12:00:00Z")
+        )
+        manager.recordSuccessfulReview(
+            reviewedAtMillis = parseTimestampMillis(value = "2026-04-03T09:00:00Z"),
+            nowMillis = parseTimestampMillis(value = "2026-04-03T12:00:00Z")
+        )
+        manager.recordImportedReviewHistory(
+            importedReviewAtMillis = parseTimestampMillis(value = "2026-04-03T10:00:00Z"),
+            nowMillis = parseTimestampMillis(value = "2026-04-03T12:00:00Z")
+        )
+
+        delay(timeMillis = 50L)
+
+        assertEquals(null, store.lastCompletedReviewAtMillis)
+        assertTrue(scheduler.scheduledPayloads.isEmpty())
+        assertEquals(0, scheduler.clearScheduledInvocationCount)
+        assertEquals(0, scheduler.clearDeliveredInvocationCount)
+    }
 }
 
 private class FakeStrictRemindersStore : StrictRemindersStore {
