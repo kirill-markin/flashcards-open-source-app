@@ -48,7 +48,6 @@ class AppHandoffCoordinator {
     private val aiEntryPrefillState = MutableStateFlow<AiEntryPrefillRequest?>(value = null)
     private val aiCardHandoffState = MutableStateFlow<AiCardHandoffRequest?>(value = null)
     private val cardEditorState = MutableStateFlow<CardEditorRequest?>(value = null)
-    private val appNotificationTapState = MutableStateFlow<AppNotificationTapHandoffRequest?>(value = null)
     private val settingsNavigationState = MutableStateFlow<SettingsNavigationRequest?>(value = null)
 
     fun observeAiEntryPrefill(): StateFlow<AiEntryPrefillRequest?> {
@@ -61,10 +60,6 @@ class AppHandoffCoordinator {
 
     fun observeCardEditor(): StateFlow<CardEditorRequest?> {
         return cardEditorState.asStateFlow()
-    }
-
-    fun observeAppNotificationTap(): StateFlow<AppNotificationTapHandoffRequest?> {
-        return appNotificationTapState.asStateFlow()
     }
 
     fun observeSettingsNavigation(): StateFlow<SettingsNavigationRequest?> {
@@ -124,21 +119,6 @@ class AppHandoffCoordinator {
         }
 
         cardEditorState.value = null
-    }
-
-    fun requestAppNotificationTap(request: AppNotificationTapRequest) {
-        appNotificationTapState.value = AppNotificationTapHandoffRequest(
-            requestId = nextRequestId.incrementAndGet(),
-            request = request
-        )
-    }
-
-    fun consumeAppNotificationTap(requestId: Long) {
-        if (appNotificationTapState.value?.requestId != requestId) {
-            return
-        }
-
-        appNotificationTapState.value = null
     }
 
     fun requestSettingsNavigation(target: SettingsNavigationTarget) {

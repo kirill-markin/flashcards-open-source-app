@@ -14,11 +14,12 @@ import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 @Composable
 fun AppNavHost(
     appGraph: AppGraph,
-    navController: NavHostController
+    navController: NavHostController,
+    appNotificationTapRequest: AppNotificationTapHandoffRequest?,
+    consumeAppNotificationTap: (Long) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
     val cardEditorRequest by appGraph.appHandoffCoordinator.observeCardEditor().collectAsStateWithLifecycle()
-    val appNotificationTapRequest by appGraph.appHandoffCoordinator.observeAppNotificationTap().collectAsStateWithLifecycle()
     val settingsNavigationRequest by appGraph.appHandoffCoordinator.observeSettingsNavigation().collectAsStateWithLifecycle()
     val packageInfo = appGraph.appPackageInfo
 
@@ -48,7 +49,7 @@ fun AppNavHost(
                 )
             }
         }
-        appGraph.appHandoffCoordinator.consumeAppNotificationTap(requestId = request.requestId)
+        consumeAppNotificationTap(request.requestId)
     }
 
     LaunchedEffect(settingsNavigationRequest?.requestId) {

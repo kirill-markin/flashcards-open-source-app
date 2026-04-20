@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -53,6 +54,7 @@ import androidx.navigation.compose.rememberNavController
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.di.AppStartupState
 import com.flashcardsopensourceapp.app.navigation.AppNavHost
+import com.flashcardsopensourceapp.app.navigation.AppNotificationTapHandoffRequest
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
@@ -77,8 +79,13 @@ private const val startupLoadingTag: String = "app.startupLoading"
 private const val startupErrorTag: String = "app.startupError"
 
 @Composable
-fun FlashcardsApp(appGraph: AppGraph) {
-    FlashcardsTheme {
+fun FlashcardsApp(
+    appGraph: AppGraph,
+    appNotificationTapRequest: AppNotificationTapHandoffRequest?,
+    consumeAppNotificationTap: (Long) -> Unit
+) {
+    key(appGraph) {
+        FlashcardsTheme {
         val startupState by appGraph.startupState.collectAsStateWithLifecycle(
             initialValue = AppStartupState.Loading
         )
@@ -362,7 +369,9 @@ fun FlashcardsApp(appGraph: AppGraph) {
             Box(modifier = Modifier.fillMaxSize()) {
                 AppNavHost(
                     appGraph = appGraph,
-                    navController = navController
+                    navController = navController,
+                    appNotificationTapRequest = appNotificationTapRequest,
+                    consumeAppNotificationTap = consumeAppNotificationTap
                 )
                 SnackbarHost(
                     hostState = snackbarHostState,
@@ -378,6 +387,14 @@ fun FlashcardsApp(appGraph: AppGraph) {
                 )
             }
         }
+    }
+}
+}
+
+@Composable
+internal fun FlashcardsAppLoadingScreen() {
+    FlashcardsTheme {
+        StartupLoadingScreen()
     }
 }
 
