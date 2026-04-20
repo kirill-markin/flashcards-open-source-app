@@ -633,10 +633,16 @@ export function ReviewScreen(): ReactElement {
             ) : null}
           </div>
           <div className="screen-actions review-screen-head-actions">
+            <div className="review-filter-summary-wrap review-screen-queue-summary-wrap">
+              <span className="review-filter-label">{t("reviewScreen.queue.title")}</span>
+              <span className="review-screen-queue-summary-value" data-testid="review-queue-badge">
+                {formatQueueBadge(visibleReviewCounts.dueCount, visibleReviewCounts.totalCount, formatNumber, t)}
+              </span>
+            </div>
             <div className="review-filter-summary-wrap">
               <span className="review-filter-label">{t("reviewScreen.progressBadge.title")}</span>
               <Link
-                className={`badge review-progress-badge${reviewProgressBadge.hasReviewedToday ? " review-progress-badge-active" : ""}`}
+                className={`badge review-progress-badge review-screen-head-badge${reviewProgressBadge.hasReviewedToday ? " review-progress-badge-active" : ""}`}
                 to={progressRoute}
                 aria-label={reviewProgressBadgeAriaLabel}
                 title={reviewProgressBadgeAriaLabel}
@@ -651,12 +657,6 @@ export function ReviewScreen(): ReactElement {
         </div>
 
         <div className="review-screen-toolbar" data-testid="review-screen-toolbar">
-          <div className="review-filter-summary-wrap review-screen-queue-summary">
-            <span className="review-filter-label">{t("reviewScreen.queue.title")}</span>
-            <span className="badge review-filter-summary" data-testid="review-queue-badge">
-              {formatQueueBadge(visibleReviewCounts.dueCount, visibleReviewCounts.totalCount, formatNumber, t)}
-            </span>
-          </div>
           <ReviewFilterMenu
             handleCloseMenu={handleCloseMenu}
             handleReviewFilterMenuToggle={handleReviewFilterMenuToggle}

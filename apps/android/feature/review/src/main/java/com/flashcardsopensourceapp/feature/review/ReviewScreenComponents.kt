@@ -32,6 +32,7 @@ import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -109,9 +110,13 @@ private val reviewSpeechIconSize = 18.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ReviewTopBar(
+    isLoading: Boolean,
+    remainingCount: Int,
+    totalCount: Int,
     reviewProgressBadge: ReviewProgressBadgeState,
     selectedFilterTitle: String,
     onOpenFilter: () -> Unit,
+    onOpenPreview: () -> Unit,
     onOpenProgress: () -> Unit
 ) {
     val resources = LocalContext.current.resources
@@ -133,35 +138,6 @@ internal fun ReviewTopBar(
             Text(stringResource(id = R.string.review_title))
         },
         actions = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier
-                    .testTag(reviewProgressBadgeTag)
-                    .semantics {
-                        contentDescription = progressBadgeContentDescription
-                        stateDescription = progressBadgeStateDescription
-                    }
-                    .clip(CircleShape)
-                    .clickable(
-                        enabled = reviewProgressBadge.isInteractive,
-                        onClick = onOpenProgress
-                    )
-                    .heightIn(min = 48.dp)
-                    .padding(horizontal = 8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.LocalFireDepartment,
-                    contentDescription = null,
-                    tint = if (reviewProgressBadge.hasReviewedToday) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-                Text(text = formatReviewProgressBadgeValue(streakDays = reviewProgressBadge.streakDays))
-            }
-
             FilterChip(
                 selected = false,
                 onClick = onOpenFilter,
@@ -180,51 +156,86 @@ internal fun ReviewTopBar(
                 },
                 modifier = Modifier
                     .widthIn(max = reviewTopBarFilterMaxWidth)
-                    .padding(end = 16.dp)
                     .testTag(reviewFilterButtonTag)
             )
+
+            ReviewQueueAction(
+                isLoading = isLoading,
+                remainingCount = remainingCount,
+                totalCount = totalCount,
+                onOpenPreview = onOpenPreview
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .testTag(reviewProgressBadgeTag)
+                    .semantics {
+                        contentDescription = progressBadgeContentDescription
+                        stateDescription = progressBadgeStateDescription
+                    }
+                    .clip(CircleShape)
+                    .clickable(
+                        enabled = reviewProgressBadge.isInteractive,
+                        onClick = onOpenProgress
+                    )
+                    .heightIn(min = 48.dp)
+                    .padding(start = 8.dp, end = 16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = if (reviewProgressBadge.hasReviewedToday) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+                Text(text = formatReviewProgressBadgeValue(streakDays = reviewProgressBadge.streakDays))
+            }
         }
     )
 }
 
 @Composable
-internal fun ReviewQueueButtonRow(
+internal fun ReviewQueueAction(
     isLoading: Boolean,
     remainingCount: Int,
     totalCount: Int,
     onOpenPreview: () -> Unit
 ) {
-    Row(
-        horizontalArrangement = Arrangement.End,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+    if (isLoading) {
+        CircularProgressIndicator(
+            strokeWidth = 2.dp,
+            modifier = Modifier
+                .padding(end = 4.dp)
+                .size(20.dp)
+        )
+        return
+    }
+
+    TextButton(
+        onClick = onOpenPreview,
+        enabled = totalCount > 0,
+        colors = ButtonDefaults.textButtonColors(
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+        modifier = Modifier.testTag(reviewQueueButtonTag)
     ) {
-        if (isLoading) {
-            CircularProgressIndicator(
-                strokeWidth = 2.dp,
-                modifier = Modifier.size(24.dp)
+        Icon(
+            imageVector = Icons.Outlined.HourglassBottom,
+            contentDescription = null
+        )
+        Spacer(modifier = Modifier.size(6.dp))
+        Text(
+            text = stringResource(
+                id = R.string.review_progress_fraction,
+                remainingCount,
+                totalCount
             )
-        } else {
-            OutlinedButton(
-                onClick = onOpenPreview,
-                enabled = totalCount > 0,
-                modifier = Modifier.testTag(reviewQueueButtonTag)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.HourglassBottom,
-                    contentDescription = null
-                )
-                Spacer(modifier = Modifier.size(8.dp))
-                Text(
-                    text = stringResource(
-                        id = R.string.review_progress_fraction,
-                        remainingCount,
-                        totalCount
-                    )
-                )
-            }
-        }
+        )
     }
 }
 
