@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 const val strictReminderRequestIdDataKey: String = "strictReminderRequestId"
 const val strictReminderTimeOffsetDataKey: String = "strictReminderTimeOffset"
@@ -137,6 +138,7 @@ class StrictRemindersManager(
     private val scopeJob = SupervisorJob()
     private val scope = CoroutineScope(scopeJob + Dispatchers.Default)
     private val commandChannel = Channel<StrictRemindersCommand>(capacity = Channel.UNLIMITED)
+    private val isClosed = AtomicBoolean(false)
     private val processorJob = scope.launch {
         for (command in commandChannel) {
             processCommand(command = command)
@@ -147,7 +149,7 @@ class StrictRemindersManager(
         trigger: StrictRemindersReconcileTrigger,
         nowMillis: Long
     ) {
-        enqueueCommand(
+        enqueueCommandIfOpen(
             command = StrictRemindersCommand.Reconcile(
                 trigger = trigger,
                 nowMillis = nowMillis
@@ -159,7 +161,7 @@ class StrictRemindersManager(
         reviewedAtMillis: Long,
         nowMillis: Long
     ) {
-        enqueueCommand(
+        enqueueCommandIfOpen(
             command = StrictRemindersCommand.RecordSuccessfulReview(
                 reviewedAtMillis = reviewedAtMillis,
                 nowMillis = nowMillis
@@ -171,7 +173,7 @@ class StrictRemindersManager(
         importedReviewAtMillis: Long,
         nowMillis: Long
     ) {
-        enqueueCommand(
+        enqueueCommandIfOpen(
             command = StrictRemindersCommand.RecordImportedReviewHistory(
                 importedReviewAtMillis = importedReviewAtMillis,
                 nowMillis = nowMillis
@@ -181,7 +183,7 @@ class StrictRemindersManager(
 
     suspend fun clearForCloudIdentityReset() {
         val completion = CompletableDeferred<Unit>()
-        enqueueCommand(
+        enqueueRequiredCommand(
             command = StrictRemindersCommand.ClearIdentityState(
                 completion = completion
             )
@@ -190,6 +192,9 @@ class StrictRemindersManager(
     }
 
     suspend fun close() {
+        if (isClosed.compareAndSet(false, true).not()) {
+            return
+        }
         commandChannel.close()
         processorJob.cancelAndJoin()
         scopeJob.cancelAndJoin()
@@ -243,15 +248,45 @@ class StrictRemindersManager(
         }
     }
 
-    private fun enqueueCommand(command: StrictRemindersCommand) {
+    private fun enqueueCommandIfOpen(command: StrictRemindersCommand) {
+        if (tryEnqueueCommand(command = command)) {
+            return
+        }
+    }
+
+    private fun enqueueRequiredCommand(command: StrictRemindersCommand) {
+        if (tryEnqueueCommand(command = command)) {
+            return
+        }
+
+        throw closedManagerException(cause = null)
+    }
+
+    private fun tryEnqueueCommand(command: StrictRemindersCommand): Boolean {
+        if (isClosed.get()) {
+            return false
+        }
+
         val result = commandChannel.trySend(command)
         if (result.isSuccess) {
-            return
+            return true
+        }
+
+        val sendException = result.exceptionOrNull()
+        if (isClosed.get() || sendException is ClosedSendChannelException) {
+            return false
         }
 
         throw IllegalStateException(
             "Strict reminders command could not be enqueued.",
-            result.exceptionOrNull() ?: ClosedSendChannelException("Strict reminders manager is closed.")
+            sendException
+        )
+    }
+
+    private fun closedManagerException(cause: Throwable?): IllegalStateException {
+        return IllegalStateException(
+            "Strict reminders manager is closed.",
+            cause ?: ClosedSendChannelException("Strict reminders manager is closed.")
         )
     }
 
