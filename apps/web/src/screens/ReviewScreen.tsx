@@ -620,7 +620,7 @@ export function ReviewScreen(): ReactElement {
   return (
     <main className="container" data-testid="review-screen">
       <section className="panel review-screen-panel">
-        <div className="screen-head">
+        <div className="screen-head review-screen-head">
           <div>
             <h1 className="title">{t("reviewScreen.title")}</h1>
             <p className="subtitle">{t("reviewScreen.subtitle")}</p>
@@ -632,46 +632,49 @@ export function ReviewScreen(): ReactElement {
               </button>
             ) : null}
           </div>
-          <div className="screen-actions review-screen-actions">
-            <div className="review-screen-summary-actions">
-              <div className="review-filter-summary-wrap">
-                <span className="review-filter-label">{t("reviewScreen.queue.title")}</span>
-                <span className="badge review-filter-summary">{formatQueueBadge(visibleReviewCounts.dueCount, visibleReviewCounts.totalCount, formatNumber, t)}</span>
-              </div>
-              <div className="review-filter-summary-wrap">
-                <span className="review-filter-label">{t("reviewScreen.progressBadge.title")}</span>
-                <Link
-                  className={`badge review-progress-badge${reviewProgressBadge.hasReviewedToday ? " review-progress-badge-active" : ""}`}
-                  to={progressRoute}
-                  aria-label={reviewProgressBadgeAriaLabel}
-                  title={reviewProgressBadgeAriaLabel}
-                  data-testid="review-progress-badge"
-                  aria-disabled={reviewProgressBadge.isInteractive ? undefined : "true"}
-                >
-                  <ReviewProgressBadgeIcon />
-                  <span className="review-progress-badge-value">{formatReviewProgressBadgeValue(reviewProgressBadge.streakDays)}</span>
-                </Link>
-              </div>
+          <div className="screen-actions review-screen-head-actions">
+            <div className="review-filter-summary-wrap">
+              <span className="review-filter-label">{t("reviewScreen.progressBadge.title")}</span>
+              <Link
+                className={`badge review-progress-badge${reviewProgressBadge.hasReviewedToday ? " review-progress-badge-active" : ""}`}
+                to={progressRoute}
+                aria-label={reviewProgressBadgeAriaLabel}
+                title={reviewProgressBadgeAriaLabel}
+                data-testid="review-progress-badge"
+                aria-disabled={reviewProgressBadge.isInteractive ? undefined : "true"}
+              >
+                <ReviewProgressBadgeIcon />
+                <span className="review-progress-badge-value">{formatReviewProgressBadgeValue(reviewProgressBadge.streakDays)}</span>
+              </Link>
             </div>
-            <ReviewFilterMenu
-              handleCloseMenu={handleCloseMenu}
-              handleReviewFilterMenuToggle={handleReviewFilterMenuToggle}
-              handleReviewFilterSelect={handleReviewFilterSelect}
-              hasVisibleReviewFilterChoices={hasVisibleReviewFilterChoices}
-              isReviewFilterMenuOpen={isReviewFilterMenuOpen}
-              reviewDeckSearchInputRef={reviewDeckSearchInputRef}
-              reviewDeckSearchText={reviewDeckSearchText}
-              reviewFilterMenuItems={reviewFilterMenuItems}
-              reviewFilterMenuWrapRef={reviewFilterMenuWrapRef}
-              reviewFilterTriggerRef={reviewFilterTriggerRef}
-              selectedReviewFilterTitle={visibleSelectedReviewFilterTitle}
-              setReviewDeckSearchText={setReviewDeckSearchText}
-              shouldShowReviewDeckSearch={shouldShowReviewDeckSearch}
-              visibleReviewDeckFilterMenuItems={visibleReviewDeckFilterMenuItems}
-              visibleReviewEffortFilterMenuItems={visibleReviewEffortFilterMenuItems}
-              visibleReviewTagFilterMenuItems={visibleReviewTagFilterMenuItems}
-            />
           </div>
+        </div>
+
+        <div className="review-screen-toolbar" data-testid="review-screen-toolbar">
+          <div className="review-filter-summary-wrap review-screen-queue-summary">
+            <span className="review-filter-label">{t("reviewScreen.queue.title")}</span>
+            <span className="badge review-filter-summary" data-testid="review-queue-badge">
+              {formatQueueBadge(visibleReviewCounts.dueCount, visibleReviewCounts.totalCount, formatNumber, t)}
+            </span>
+          </div>
+          <ReviewFilterMenu
+            handleCloseMenu={handleCloseMenu}
+            handleReviewFilterMenuToggle={handleReviewFilterMenuToggle}
+            handleReviewFilterSelect={handleReviewFilterSelect}
+            hasVisibleReviewFilterChoices={hasVisibleReviewFilterChoices}
+            isReviewFilterMenuOpen={isReviewFilterMenuOpen}
+            reviewDeckSearchInputRef={reviewDeckSearchInputRef}
+            reviewDeckSearchText={reviewDeckSearchText}
+            reviewFilterMenuItems={reviewFilterMenuItems}
+            reviewFilterMenuWrapRef={reviewFilterMenuWrapRef}
+            reviewFilterTriggerRef={reviewFilterTriggerRef}
+            selectedReviewFilterTitle={visibleSelectedReviewFilterTitle}
+            setReviewDeckSearchText={setReviewDeckSearchText}
+            shouldShowReviewDeckSearch={shouldShowReviewDeckSearch}
+            visibleReviewDeckFilterMenuItems={visibleReviewDeckFilterMenuItems}
+            visibleReviewEffortFilterMenuItems={visibleReviewEffortFilterMenuItems}
+            visibleReviewTagFilterMenuItems={visibleReviewTagFilterMenuItems}
+          />
         </div>
 
         <div className="review-layout">

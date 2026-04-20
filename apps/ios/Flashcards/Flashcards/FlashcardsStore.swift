@@ -372,7 +372,7 @@ final class FlashcardsStore {
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {
-                try self.reload()
+                try self.reload(now: Date(), refreshVisibleProgress: false)
             } catch {
                 self.globalErrorMessage = Flashcards.errorMessage(error: error)
             }

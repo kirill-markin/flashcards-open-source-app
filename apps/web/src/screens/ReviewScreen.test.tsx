@@ -42,11 +42,21 @@ describe("ReviewScreen", () => {
     if (!(progressBadge instanceof HTMLAnchorElement)) {
       throw new Error("Review progress badge was not found");
     }
+    const queueBadge = getContainer().querySelector("[data-testid='review-queue-badge']");
+    if (!(queueBadge instanceof HTMLSpanElement)) {
+      throw new Error("Review queue badge was not found");
+    }
+    const reviewToolbar = getContainer().querySelector("[data-testid='review-screen-toolbar']");
+    if (!(reviewToolbar instanceof HTMLDivElement)) {
+      throw new Error("Review screen toolbar was not found");
+    }
 
     expect(progressBadge.className).toContain("review-progress-badge");
     expect(progressBadge.className).toContain("review-progress-badge-active");
     expect(progressBadge.className).not.toContain("review-progress-badge-approximate");
     expect(progressBadge.textContent).not.toContain("🔥");
+    expect(reviewToolbar.contains(queueBadge)).toBe(true);
+    expect(reviewToolbar.contains(progressBadge)).toBe(false);
     const progressBadgeIcon = progressBadge.querySelector("svg.review-progress-badge-icon");
     if (!(progressBadgeIcon instanceof SVGSVGElement)) {
       throw new Error("Review progress badge icon was not found");

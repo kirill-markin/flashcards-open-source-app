@@ -156,8 +156,7 @@ struct ReviewView: View {
                 reviewFilterMenu
             }
 
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                reviewQueueToolbarButton
+            ToolbarItem(placement: .topBarTrailing) {
                 reviewProgressBadgeButton
             }
         }
@@ -393,6 +392,8 @@ struct ReviewView: View {
 
     private func activeCardContentView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
         return VStack(alignment: .leading, spacing: 20) {
+            reviewQueueButtonRow
+
             if screenErrorMessage.isEmpty == false {
                 Text(screenErrorMessage)
                     .foregroundStyle(.red)
@@ -486,21 +487,34 @@ struct ReviewView: View {
     }
 
     @ViewBuilder
-    private var reviewQueueToolbarButton: some View {
+    private var reviewQueueButtonRow: some View {
+        HStack {
+            reviewQueueButton
+            Spacer(minLength: 0)
+        }
+    }
+
+    @ViewBuilder
+    private var reviewQueueButton: some View {
         if store.isReviewCountsLoading {
             ProgressView()
                 .controlSize(.small)
+                .accessibilityIdentifier(UITestIdentifier.reviewQueueButton)
                 .accessibilityLabel(String(localized: "Loading review queue", table: reviewCardsStringsTableName))
         } else {
             Button {
                 self.isQueuePreviewPresented = true
             } label: {
-                Text("\(store.displayedReviewDueCount) / \(store.reviewTotalCount)")
-                    .font(.subheadline.monospacedDigit())
-                    .padding(.horizontal, 6)
-                    .foregroundStyle(.secondary)
+                Label {
+                    Text("\(store.displayedReviewDueCount) / \(store.reviewTotalCount)")
+                        .font(.subheadline.monospacedDigit())
+                } icon: {
+                    Image(systemName: "list.bullet")
+                }
             }
+            .buttonStyle(.bordered)
             .disabled(store.reviewTotalCount == 0)
+            .accessibilityIdentifier(UITestIdentifier.reviewQueueButton)
             .accessibilityLabel(
                 String(
                     format: String(localized: "Review queue status: %@ active of %@ total", table: reviewCardsStringsTableName),
@@ -673,6 +687,11 @@ struct ReviewView: View {
             }
         } actions: {
             VStack(spacing: 8) {
+                if store.isReviewCountsLoading || store.reviewTotalCount > 0 {
+                    reviewQueueButton
+                        .padding(.bottom, 4)
+                }
+
                 Button {
                     navigation.openCardCreation()
                 } label: {

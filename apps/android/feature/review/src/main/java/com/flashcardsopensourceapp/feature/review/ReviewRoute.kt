@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.review
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -126,18 +127,22 @@ fun ReviewRoute(
 
     Scaffold(
         topBar = {
-            ReviewTopBar(
-                reviewProgressBadge = uiState.reviewProgressBadge,
-                selectedFilterTitle = uiState.selectedFilterTitle,
-                isLoading = uiState.isLoading,
-                remainingCount = uiState.remainingCount,
-                totalCount = uiState.totalCount,
-                onOpenFilter = {
-                    isFilterSheetVisible = true
-                },
-                onOpenPreview = onOpenPreview,
-                onOpenProgress = onOpenProgress
-            )
+            Column {
+                ReviewTopBar(
+                    reviewProgressBadge = uiState.reviewProgressBadge,
+                    selectedFilterTitle = uiState.selectedFilterTitle,
+                    onOpenFilter = {
+                        isFilterSheetVisible = true
+                    },
+                    onOpenProgress = onOpenProgress
+                )
+                ReviewQueueButtonRow(
+                    isLoading = uiState.isLoading,
+                    remainingCount = uiState.remainingCount,
+                    totalCount = uiState.totalCount,
+                    onOpenPreview = onOpenPreview
+                )
+            }
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
