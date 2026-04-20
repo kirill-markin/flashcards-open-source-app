@@ -2,23 +2,18 @@ package com.flashcardsopensourceapp.data.local
 
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
-import androidx.room.Room
 import androidx.sqlite.db.SimpleSQLiteQuery
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.migration10To11
 import com.flashcardsopensourceapp.data.local.database.migration5To6
 import com.flashcardsopensourceapp.data.local.database.migration9To10
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,53 +32,192 @@ class AppDatabaseMigrationTest {
 
     // These are intentionally single-migration regression tests; keep their scope narrow.
     @Test
-    fun migrationFromVersion5AddsAppLocalSettingsWithoutDestroyingCards() = runBlocking {
+    fun migrationFromVersion5AddsAppLocalSettingsWithoutDestroyingCards() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         createVersion5Database(context = context)
 
-        val database = Room.databaseBuilder(
+        val openHelper = openDatabaseAtVersion(
             context = context,
-            klass = AppDatabase::class.java,
-            name = targetedMigrationDatabaseName
-        ).addMigrations(migration5To6).build()
-
-        val migratedCard = database.cardDao().loadCard(cardId = "card-1")
-        val schedulerSettings = database.workspaceSchedulerSettingsDao().loadWorkspaceSchedulerSettings(
-            workspaceId = "workspace-local"
+            name = targetedMigrationDatabaseName,
+            version = 5
         )
-        val appLocalSettings = database.appLocalSettingsDao().loadSettings()
+        val database = openHelper.writableDatabase
 
-        assertNotNull(migratedCard)
-        assertEquals(0, migratedCard?.reps)
-        assertEquals(0, migratedCard?.lapses)
-        assertEquals("NEW", migratedCard?.fsrsCardState?.name)
-        assertNotNull(schedulerSettings)
-        assertEquals("fsrs-6", schedulerSettings?.algorithm)
-        assertEquals("[1,10]", schedulerSettings?.learningStepsMinutesJson)
-        assertNull(appLocalSettings)
+        try {
+            migration5To6.migrate(database)
 
-        database.close()
+            assertTrue(tableExists(database = database, tableName = "app_local_settings"))
+            assertEquals(
+                0L,
+                readSingleLong(
+                    database = database,
+                    sql = "SELECT COUNT(*) FROM app_local_settings"
+                )
+            )
+            assertEquals(
+                1L,
+                readSingleLong(
+                    database = database,
+                    sql = "SELECT COUNT(*) FROM cards WHERE cardId = 'card-1'"
+                )
+            )
+            assertEquals(
+                0L,
+                readSingleLong(
+                    database = database,
+                    sql = "SELECT reps FROM cards WHERE cardId = 'card-1'"
+                )
+            )
+            assertEquals(
+                0L,
+                readSingleLong(
+                    database = database,
+                    sql = "SELECT lapses FROM cards WHERE cardId = 'card-1'"
+                )
+            )
+            assertEquals(
+                "NEW",
+                readSingleString(
+                    database = database,
+                    sql = "SELECT fsrsCardState FROM cards WHERE cardId = 'card-1'"
+                )
+            )
+            assertEquals(
+                "fsrs-6",
+                readSingleString(
+                    database = database,
+                    sql = """
+                        SELECT algorithm
+                        FROM workspace_scheduler_settings
+                        WHERE workspaceId = 'workspace-local'
+                    """.trimIndent()
+                )
+            )
+            assertEquals(
+                "[1,10]",
+                readSingleString(
+                    database = database,
+                    sql = """
+                        SELECT learningStepsMinutesJson
+                        FROM workspace_scheduler_settings
+                        WHERE workspaceId = 'workspace-local'
+                    """.trimIndent()
+                )
+            )
+        } finally {
+            database.close()
+            openHelper.close()
+        }
     }
 
     @Test
-    fun migrationFromVersion9SplitsProgressSnapshotCacheIntoSummaryAndSeriesTables() = runBlocking {
+    fun migrationFromVersion9SplitsProgressSnapshotCacheIntoSummaryAndSeriesTables() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         createVersion9Database(context = context)
 
-        val database = Room.databaseBuilder(
+        val openHelper = openDatabaseAtVersion(
             context = context,
-            klass = AppDatabase::class.java,
-            name = targetedMigrationDatabaseName
-        ).addMigrations(migration9To10).build()
+            name = targetedMigrationDatabaseName,
+            version = 9
+        )
+        val database = openHelper.writableDatabase
 
-        val summaryCaches = database.progressRemoteCacheDao().observeProgressSummaryCaches()
-        val seriesCaches = database.progressRemoteCacheDao().observeProgressSeriesCaches()
+        try {
+            migration9To10.migrate(database)
 
-        assertEquals(0, summaryCaches.first().size)
-        assertEquals(1, seriesCaches.first().size)
-        assertEquals("scope-1", seriesCaches.first().single().scopeKey)
-
-        database.close()
+            assertTrue(tableExists(database = database, tableName = "progress_summary_cache"))
+            assertTrue(tableExists(database = database, tableName = "progress_series_cache"))
+            assertFalse(tableExists(database = database, tableName = "progress_snapshot_cache"))
+            assertEquals(
+                0L,
+                readSingleLong(
+                    database = database,
+                    sql = "SELECT COUNT(*) FROM progress_summary_cache"
+                )
+            )
+            assertEquals(
+                1L,
+                readSingleLong(
+                    database = database,
+                    sql = "SELECT COUNT(*) FROM progress_series_cache"
+                )
+            )
+            assertEquals(
+                "scope-1",
+                readSingleStringByScopeKey(
+                    database = database,
+                    tableName = "progress_series_cache",
+                    columnName = "scopeKey",
+                    scopeKey = "scope-1"
+                )
+            )
+            assertEquals(
+                "local:installation-1",
+                readSingleStringByScopeKey(
+                    database = database,
+                    tableName = "progress_series_cache",
+                    columnName = "scopeId",
+                    scopeKey = "scope-1"
+                )
+            )
+            assertEquals(
+                "Europe/Madrid",
+                readSingleStringByScopeKey(
+                    database = database,
+                    tableName = "progress_series_cache",
+                    columnName = "timeZone",
+                    scopeKey = "scope-1"
+                )
+            )
+            assertEquals(
+                "2026-04-17",
+                readSingleStringByScopeKey(
+                    database = database,
+                    tableName = "progress_series_cache",
+                    columnName = "fromLocalDate",
+                    scopeKey = "scope-1"
+                )
+            )
+            assertEquals(
+                "2026-04-18",
+                readSingleStringByScopeKey(
+                    database = database,
+                    tableName = "progress_series_cache",
+                    columnName = "toLocalDate",
+                    scopeKey = "scope-1"
+                )
+            )
+            assertEquals(
+                "2026-04-18T12:00:00Z",
+                readSingleStringByScopeKey(
+                    database = database,
+                    tableName = "progress_series_cache",
+                    columnName = "generatedAt",
+                    scopeKey = "scope-1"
+                )
+            )
+            assertEquals(
+                "[{\"date\":\"2026-04-17\",\"reviewCount\":3},{\"date\":\"2026-04-18\",\"reviewCount\":1}]",
+                readSingleStringByScopeKey(
+                    database = database,
+                    tableName = "progress_series_cache",
+                    columnName = "dailyReviewsJson",
+                    scopeKey = "scope-1"
+                )
+            )
+            assertEquals(
+                123L,
+                readSingleLongByScopeKey(
+                    database = database,
+                    tableName = "progress_series_cache",
+                    columnName = "updatedAtMillis",
+                    scopeKey = "scope-1"
+                )
+            )
+        } finally {
+            database.close()
+            openHelper.close()
+        }
     }
 
     @Test
@@ -91,7 +225,7 @@ class AppDatabaseMigrationTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         createVersion10Database(context = context)
 
-        val openHelper = createFrameworkOpenHelper(
+        val openHelper = openDatabaseAtVersion(
             context = context,
             name = migration10DatabaseName,
             version = 10
@@ -415,7 +549,7 @@ class AppDatabaseMigrationTest {
         sqliteDatabase.close()
     }
 
-    private fun createFrameworkOpenHelper(
+    private fun openDatabaseAtVersion(
         context: Context,
         name: String,
         version: Int
@@ -435,6 +569,79 @@ class AppDatabaseMigrationTest {
             .build()
 
         return FrameworkSQLiteOpenHelperFactory().create(configuration)
+    }
+
+    private fun tableExists(
+        database: SupportSQLiteDatabase,
+        tableName: String
+    ): Boolean {
+        return database.query(
+            SimpleSQLiteQuery(
+                """
+                SELECT COUNT(*)
+                FROM sqlite_master
+                WHERE type = 'table' AND name = ?
+                """.trimIndent(),
+                arrayOf(tableName)
+            )
+        ).use { cursor ->
+            cursor.moveToFirst()
+            cursor.getLong(0) > 0
+        }
+    }
+
+    private fun readSingleString(
+        database: SupportSQLiteDatabase,
+        sql: String
+    ): String {
+        return database.query(SimpleSQLiteQuery(sql)).use { cursor ->
+            cursor.moveToFirst()
+            cursor.getString(0)
+        }
+    }
+
+    private fun readSingleLong(
+        database: SupportSQLiteDatabase,
+        sql: String
+    ): Long {
+        return database.query(SimpleSQLiteQuery(sql)).use { cursor ->
+            cursor.moveToFirst()
+            cursor.getLong(0)
+        }
+    }
+
+    private fun readSingleStringByScopeKey(
+        database: SupportSQLiteDatabase,
+        tableName: String,
+        columnName: String,
+        scopeKey: String
+    ): String {
+        return database.query(
+            SimpleSQLiteQuery(
+                "SELECT $columnName FROM $tableName WHERE scopeKey = ?",
+                arrayOf(scopeKey)
+            )
+        ).use { cursor ->
+            cursor.moveToFirst()
+            cursor.getString(0)
+        }
+    }
+
+    private fun readSingleLongByScopeKey(
+        database: SupportSQLiteDatabase,
+        tableName: String,
+        columnName: String,
+        scopeKey: String
+    ): Long {
+        return database.query(
+            SimpleSQLiteQuery(
+                "SELECT $columnName FROM $tableName WHERE scopeKey = ?",
+                arrayOf(scopeKey)
+            )
+        ).use { cursor ->
+            cursor.moveToFirst()
+            cursor.getLong(0)
+        }
     }
 
     private fun assertReviewLogsReviewedAtIndexExists(database: SupportSQLiteDatabase) {
