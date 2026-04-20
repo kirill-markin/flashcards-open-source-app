@@ -46,6 +46,7 @@ import com.flashcardsopensourceapp.feature.settings.workspaceTagsSearchFieldTag
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
 import com.flashcardsopensourceapp.app.R as AppR
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -78,6 +79,20 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_root_current_workspace_title)).fetchSemanticsNode()
 
         openReviewTabAndAssertEmptyState()
+    }
+
+    @Test
+    fun appGraphCanBeRecreatedWhileActivityRemainsOpen() {
+        waitForCardsEmptyState()
+        val application = composeRule.activity.application as FlashcardsApplication
+
+        runBlocking {
+            application.recreateAppGraphAndAwaitStartup()
+        }
+        composeRule.waitForIdle()
+
+        waitForCardsEmptyState()
+        composeRule.onNodeWithText("Search cards").fetchSemanticsNode()
     }
 
     @Test
