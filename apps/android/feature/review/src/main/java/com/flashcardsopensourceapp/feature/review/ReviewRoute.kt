@@ -127,22 +127,18 @@ fun ReviewRoute(
 
     Scaffold(
         topBar = {
-            Column {
-                ReviewTopBar(
-                    reviewProgressBadge = uiState.reviewProgressBadge,
-                    selectedFilterTitle = uiState.selectedFilterTitle,
-                    onOpenFilter = {
-                        isFilterSheetVisible = true
-                    },
-                    onOpenProgress = onOpenProgress
-                )
-                ReviewQueueButtonRow(
-                    isLoading = uiState.isLoading,
-                    remainingCount = uiState.remainingCount,
-                    totalCount = uiState.totalCount,
-                    onOpenPreview = onOpenPreview
-                )
-            }
+            ReviewTopBar(
+                isLoading = uiState.isLoading,
+                remainingCount = uiState.remainingCount,
+                totalCount = uiState.totalCount,
+                reviewProgressBadge = uiState.reviewProgressBadge,
+                selectedFilterTitle = uiState.selectedFilterTitle,
+                onOpenFilter = {
+                    isFilterSheetVisible = true
+                },
+                onOpenPreview = onOpenPreview,
+                onOpenProgress = onOpenProgress
+            )
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)

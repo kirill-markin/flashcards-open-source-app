@@ -156,7 +156,8 @@ struct ReviewView: View {
                 reviewFilterMenu
             }
 
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                reviewQueueButton
                 reviewProgressBadgeButton
             }
         }
@@ -392,8 +393,6 @@ struct ReviewView: View {
 
     private func activeCardContentView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
         return VStack(alignment: .leading, spacing: 20) {
-            reviewQueueButtonRow
-
             if screenErrorMessage.isEmpty == false {
                 Text(screenErrorMessage)
                     .foregroundStyle(.red)
@@ -487,32 +486,20 @@ struct ReviewView: View {
     }
 
     @ViewBuilder
-    private var reviewQueueButtonRow: some View {
-        HStack {
-            reviewQueueButton
-            Spacer(minLength: 0)
-        }
-    }
-
-    @ViewBuilder
     private var reviewQueueButton: some View {
         if store.isReviewCountsLoading {
             ProgressView()
                 .controlSize(.small)
+                .frame(minWidth: reviewProgressBadgeSize, minHeight: reviewProgressBadgeSize)
                 .accessibilityIdentifier(UITestIdentifier.reviewQueueButton)
                 .accessibilityLabel(String(localized: "Loading review queue", table: reviewCardsStringsTableName))
         } else {
             Button {
                 self.isQueuePreviewPresented = true
             } label: {
-                Label {
-                    Text("\(store.displayedReviewDueCount) / \(store.reviewTotalCount)")
-                        .font(.subheadline.monospacedDigit())
-                } icon: {
-                    Image(systemName: "list.bullet")
-                }
+                reviewQueueButtonLabel
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.plain)
             .disabled(store.reviewTotalCount == 0)
             .accessibilityIdentifier(UITestIdentifier.reviewQueueButton)
             .accessibilityLabel(
@@ -524,6 +511,31 @@ struct ReviewView: View {
                 )
             )
         }
+    }
+
+    private var reviewQueueButtonLabel: some View {
+        ZStack {
+            Capsule()
+                .fill(self.reviewProgressBadgeBackgroundColor())
+
+            Capsule()
+                .strokeBorder(Color(uiColor: .separator), lineWidth: 1)
+
+            HStack(spacing: 4) {
+                Image(systemName: "list.bullet")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Text("\(store.displayedReviewDueCount) / \(store.reviewTotalCount)")
+                    .font(.caption2.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+                    .minimumScaleFactor(0.65)
+            }
+            .padding(.horizontal, reviewProgressBadgeHorizontalPadding)
+        }
+        .frame(minHeight: reviewProgressBadgeSize)
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     private var reviewProgressBadgeButton: some View {
@@ -687,11 +699,6 @@ struct ReviewView: View {
             }
         } actions: {
             VStack(spacing: 8) {
-                if store.isReviewCountsLoading || store.reviewTotalCount > 0 {
-                    reviewQueueButton
-                        .padding(.bottom, 4)
-                }
-
                 Button {
                     navigation.openCardCreation()
                 } label: {
