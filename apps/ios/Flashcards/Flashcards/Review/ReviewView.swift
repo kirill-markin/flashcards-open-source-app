@@ -536,7 +536,7 @@ struct ReviewView: View {
     private func reviewProgressBadgeLabel(badgeState: ReviewProgressBadgeState) -> some View {
         let presentation = makeReviewProgressBadgePresentation(badgeState: badgeState)
 
-        ZStack {
+        return ZStack {
             Capsule()
                 .fill(self.reviewProgressBadgeBackgroundColor())
 
