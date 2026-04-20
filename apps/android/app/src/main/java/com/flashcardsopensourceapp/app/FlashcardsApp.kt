@@ -155,6 +155,7 @@ fun FlashcardsApp(appGraph: AppGraph) {
             syncStatus = syncStatusSnapshot.status
         )
         val currentCanRunImmediateAutoSync by rememberUpdatedState(newValue = canRunImmediateAutoSync)
+        val currentVisibleAppScreenState by rememberUpdatedState(newValue = currentVisibleAppScreen)
 
         LaunchedEffect(appGraph.appMessageBus, snackbarHostState) {
             appGraph.appMessageBus.messages.collect { message ->
@@ -203,7 +204,9 @@ fun FlashcardsApp(appGraph: AppGraph) {
                 when (event) {
                     Lifecycle.Event.ON_RESUME -> {
                         isAppResumed = true
-                        appGraph.progressContextRefreshController.refreshIfInvalidated()
+                        appGraph.progressContextRefreshController.refreshIfInvalidated(
+                            visibleScreen = currentVisibleAppScreenState
+                        )
                         appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
                             trigger = ReviewNotificationsReconcileTrigger.APP_ACTIVE,
                             nowMillis = System.currentTimeMillis()
@@ -255,7 +258,9 @@ fun FlashcardsApp(appGraph: AppGraph) {
                 val receiver = object : BroadcastReceiver() {
                     override fun onReceive(context: Context?, intent: Intent?) {
                         if (isProgressContextRefreshBroadcastAction(action = intent?.action)) {
-                            appGraph.progressContextRefreshController.refreshIfInvalidated()
+                            appGraph.progressContextRefreshController.refreshIfInvalidated(
+                                visibleScreen = currentVisibleAppScreenState
+                            )
                         }
                     }
                 }
