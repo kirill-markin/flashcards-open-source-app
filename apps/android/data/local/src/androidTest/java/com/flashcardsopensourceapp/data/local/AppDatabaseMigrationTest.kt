@@ -513,7 +513,7 @@ class AppDatabaseMigrationTest {
                 1,
                 '2026-04-18',
                 12,
-                '[{\"date\":\"2026-04-17\",\"reviewCount\":3},{\"date\":\"2026-04-18\",\"reviewCount\":1}]',
+                '[{"date":"2026-04-17","reviewCount":3},{"date":"2026-04-18","reviewCount":1}]',
                 123
             )
             """.trimIndent()
