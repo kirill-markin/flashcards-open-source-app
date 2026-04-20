@@ -12,6 +12,45 @@
   font-weight: 600;
 }
 
+.review-progress-badge {
+  min-width: 0;
+  width: fit-content;
+  justify-self: start;
+  gap: 6px;
+  padding-inline: 10px 12px;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.review-progress-badge:hover {
+  border-color: var(--panel-border-strong);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.review-progress-badge-active {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  color: #fff5f2;
+}
+
+.review-progress-badge-active:hover {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+  color: #fff5f2;
+}
+
+.review-progress-badge-icon,
+.review-progress-badge-value {
+  line-height: 1;
+}
+
+.review-progress-badge-value {
+  font-variant-numeric: tabular-nums;
+}
+
 .panel {
   display: grid;
   gap: 24px;

@@ -9,7 +9,13 @@
     <string name="progress_unavailable_message">Choose a workspace to finish sign-in before loading progress history.</string>
     <string name="progress_streak_title">Streak</string>
     <string name="progress_streak_subtitle">Last 5 weeks</string>
+    <string name="progress_streak_summary_reviewed_today">Reviewed today</string>
+    <string name="progress_streak_summary_not_reviewed_today">Not reviewed today</string>
     <string name="progress_reviews_title">Reviews</string>
     <string name="progress_reviews_subtitle">Last 20 weeks</string>
     <string name="progress_today">Today</string>
+    <plurals name="progress_streak_summary_content_description">
+        <item quantity="one">Review streak %d day.</item>
+        <item quantity="other">Review streak %d days.</item>
+    </plurals>
 </resources>

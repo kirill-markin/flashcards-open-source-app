@@ -30,6 +30,33 @@
   letter-spacing: -0.03em;
 }
 
+.progress-streak-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.progress-streak-summary-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.progress-streak-summary-label {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.progress-streak-summary-status {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
 .progress-streak-weeks {
   display: grid;
   gap: 10px;
@@ -53,8 +80,9 @@
 }
 
 .progress-streak-day-complete {
-  background: linear-gradient(180deg, rgba(196, 75, 45, 0.16), rgba(196, 75, 45, 0.08));
-  border-color: rgba(196, 75, 45, 0.26);
+  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+  border-color: var(--accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 .progress-streak-day-today {
@@ -70,6 +98,10 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
+}
+
+.progress-streak-day-complete .progress-streak-weekday {
+  color: rgba(255, 245, 242, 0.78);
 }
 
 .progress-streak-day-today .progress-streak-weekday {
@@ -91,9 +123,10 @@
 }
 
 .progress-streak-day-complete .progress-streak-marker {
-  background: var(--accent);
+  background: rgba(255, 255, 255, 0.16);
   color: #fff5f2;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  font-size: 16px;
 }
 
 .progress-streak-day-today .progress-streak-marker {
@@ -198,7 +231,7 @@
 
 .progress-chart-bar-active {
   min-height: 8px;
-  background: linear-gradient(180deg, rgba(212, 96, 58, 0.98), rgba(196, 75, 45, 0.72));
+  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 

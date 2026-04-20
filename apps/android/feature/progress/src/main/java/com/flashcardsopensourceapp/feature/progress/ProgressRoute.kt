@@ -22,7 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -44,7 +44,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -63,6 +67,7 @@ private val reviewChartHeight = 208.dp
 private val reviewChartBarAreaHeight = reviewChartHeight - reviewChartVerticalPadding * 2
 private val reviewChartAxisWidth = 28.dp
 private val reviewChartLabelHeight = 20.dp
+private const val progressStreakOverflowThreshold: Int = 99
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,6 +152,7 @@ fun ProgressRoute(
                 is ProgressUiState.Loaded -> {
                     item {
                         StreakSectionCard(
+                            summary = uiState.summary,
                             uiState = uiState.streakSection
                         )
                     }
@@ -262,6 +268,7 @@ private fun ErrorCard(
 
 @Composable
 private fun StreakSectionCard(
+    summary: ProgressSummaryUiState,
     uiState: ProgressStreakSectionUiState
 ) {
     Card(
@@ -288,6 +295,8 @@ private fun StreakSectionCard(
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+
+            ProgressStreakSummary(summary = summary)
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -324,6 +333,63 @@ private fun StreakSectionCard(
 }
 
 @Composable
+private fun ProgressStreakSummary(
+    summary: ProgressSummaryUiState
+) {
+    when (summary) {
+        ProgressSummaryUiState.Loading -> Unit
+
+        is ProgressSummaryUiState.Loaded -> {
+            val streakDays = summary.summary.currentStreakDays
+            val contentColor = if (summary.summary.hasReviewedToday) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            }
+            val contentDescription = pluralStringResource(
+                id = R.plurals.progress_streak_summary_content_description,
+                count = streakDays,
+                streakDays
+            )
+            val stateDescription = stringResource(
+                id = if (summary.summary.hasReviewedToday) {
+                    R.string.progress_streak_summary_reviewed_today
+                } else {
+                    R.string.progress_streak_summary_not_reviewed_today
+                }
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .semantics(mergeDescendants = true) {
+                        this.contentDescription = contentDescription
+                        this.stateDescription = stateDescription
+                    }
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.LocalFireDepartment,
+                    contentDescription = null,
+                    tint = contentColor
+                )
+                Text(
+                    text = formatProgressStreakValue(
+                        streakDays = streakDays
+                    ),
+                    color = contentColor,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun StreakDayCell(
     day: ProgressStreakDayUiState,
     modifier: Modifier
@@ -337,19 +403,12 @@ private fun StreakDayCell(
 
     val hasReviews = day.reviewCount > 0
     val highlightColor = when {
+        hasReviews -> Color.Transparent
         day.isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-        hasReviews -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f)
         else -> Color.Transparent
     }
-    val markerColor = when {
-        day.isToday -> MaterialTheme.colorScheme.primary
-        hasReviews -> MaterialTheme.colorScheme.surfaceContainerHighest
-        else -> Color.Transparent
-    }
-    val markerContentColor = when {
-        day.isToday -> MaterialTheme.colorScheme.onPrimary
-        else -> MaterialTheme.colorScheme.primary
-    }
+    val markerColor = MaterialTheme.colorScheme.primary
+    val markerContentColor = MaterialTheme.colorScheme.onPrimary
     val dateTextColor = when {
         day.isToday -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.onSurface
@@ -371,7 +430,7 @@ private fun StreakDayCell(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.Check,
+                    imageVector = Icons.Outlined.LocalFireDepartment,
                     contentDescription = null,
                     tint = markerContentColor
                 )
@@ -559,14 +618,14 @@ private fun ReviewBarColumn(
     maxReviewCount: Int,
     modifier: Modifier
 ) {
-    val backgroundColor = if (day.isToday) {
+    val backgroundColor = if (day.isToday && day.reviewCount == 0) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     } else {
         Color.Transparent
     }
     val barColor = when {
-        day.isToday -> MaterialTheme.colorScheme.primary
         day.reviewCount > 0 -> MaterialTheme.colorScheme.tertiary
+        day.isToday -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.48f)
     }
     val barHeight = calculateBarHeight(
@@ -597,9 +656,10 @@ private fun ReviewChartLabel(
     modifier: Modifier
 ) {
     val labelText = when {
-        day.isToday -> stringResource(id = R.string.progress_today)
+        day.isToday && day.reviewCount == 0 -> stringResource(id = R.string.progress_today)
         else -> day.chartLabel
     }
+    val isInactiveToday = day.isToday && day.reviewCount == 0
 
     Box(
         modifier = modifier,
@@ -608,12 +668,12 @@ private fun ReviewChartLabel(
         if (labelText != null) {
             Text(
                 text = labelText,
-                color = if (day.isToday) {
+                color = if (isInactiveToday) {
                     MaterialTheme.colorScheme.primary
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
-                fontWeight = if (day.isToday) FontWeight.SemiBold else FontWeight.Normal,
+                fontWeight = if (isInactiveToday) FontWeight.SemiBold else FontWeight.Normal,
                 style = MaterialTheme.typography.labelSmall,
                 textAlign = TextAlign.Center
             )
@@ -642,4 +702,14 @@ private fun calculateBarHeight(
     }
 
     return (maxBarHeight * (reviewCount.toFloat() / maxReviewCount.toFloat())).coerceAtLeast(8.dp)
+}
+
+private fun formatProgressStreakValue(
+    streakDays: Int
+): String {
+    if (streakDays > progressStreakOverflowThreshold) {
+        return "${progressStreakOverflowThreshold}+"
+    }
+
+    return streakDays.toString()
 }
