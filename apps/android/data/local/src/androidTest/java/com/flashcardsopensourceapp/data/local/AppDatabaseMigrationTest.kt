@@ -3,29 +3,39 @@ package com.flashcardsopensourceapp.data.local
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
+import androidx.sqlite.db.SimpleSQLiteQuery
+import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.db.SupportSQLiteOpenHelper
+import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
-import com.flashcardsopensourceapp.data.local.database.createAppDatabaseMigrations
+import com.flashcardsopensourceapp.data.local.database.migration10To11
+import com.flashcardsopensourceapp.data.local.database.migration5To6
+import com.flashcardsopensourceapp.data.local.database.migration9To10
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class AppDatabaseMigrationTest {
-    private val databaseName: String = "migration-test.db"
+    private val targetedMigrationDatabaseName: String = "migration-test.db"
+    private val migration10DatabaseName: String = "migration-10-test.db"
 
     @After
     fun tearDown() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        context.deleteDatabase(databaseName)
+        context.deleteDatabase(targetedMigrationDatabaseName)
+        context.deleteDatabase(migration10DatabaseName)
     }
 
+    // These are intentionally single-migration regression tests; keep their scope narrow.
     @Test
     fun migrationFromVersion5AddsAppLocalSettingsWithoutDestroyingCards() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -34,8 +44,8 @@ class AppDatabaseMigrationTest {
         val database = Room.databaseBuilder(
             context = context,
             klass = AppDatabase::class.java,
-            name = databaseName
-        ).addMigrations(*createAppDatabaseMigrations()).build()
+            name = targetedMigrationDatabaseName
+        ).addMigrations(migration5To6).build()
 
         val migratedCard = database.cardDao().loadCard(cardId = "card-1")
         val schedulerSettings = database.workspaceSchedulerSettingsDao().loadWorkspaceSchedulerSettings(
@@ -63,8 +73,8 @@ class AppDatabaseMigrationTest {
         val database = Room.databaseBuilder(
             context = context,
             klass = AppDatabase::class.java,
-            name = databaseName
-        ).addMigrations(*createAppDatabaseMigrations()).build()
+            name = targetedMigrationDatabaseName
+        ).addMigrations(migration9To10).build()
 
         val summaryCaches = database.progressRemoteCacheDao().observeProgressSummaryCaches()
         val seriesCaches = database.progressRemoteCacheDao().observeProgressSeriesCaches()
@@ -76,8 +86,29 @@ class AppDatabaseMigrationTest {
         database.close()
     }
 
+    @Test
+    fun migration10To11AddsReviewedAtIndexToReviewLogs() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        createVersion10Database(context = context)
+
+        val openHelper = createFrameworkOpenHelper(
+            context = context,
+            name = migration10DatabaseName,
+            version = 10
+        )
+        val database = openHelper.writableDatabase
+
+        try {
+            migration10To11.migrate(database)
+            assertReviewLogsReviewedAtIndexExists(database = database)
+        } finally {
+            database.close()
+            openHelper.close()
+        }
+    }
+
     private fun createVersion5Database(context: Context) {
-        val databaseFile = context.getDatabasePath(databaseName)
+        val databaseFile = context.getDatabasePath(targetedMigrationDatabaseName)
         if (databaseFile.exists()) {
             databaseFile.delete()
         }
@@ -291,7 +322,7 @@ class AppDatabaseMigrationTest {
     }
 
     private fun createVersion9Database(context: Context) {
-        val databaseFile = context.getDatabasePath(databaseName)
+        val databaseFile = context.getDatabasePath(targetedMigrationDatabaseName)
         if (databaseFile.exists()) {
             databaseFile.delete()
         }
@@ -356,5 +387,70 @@ class AppDatabaseMigrationTest {
 
         sqliteDatabase.version = 9
         sqliteDatabase.close()
+    }
+
+    private fun createVersion10Database(context: Context) {
+        val databaseFile = context.getDatabasePath(migration10DatabaseName)
+        if (databaseFile.exists()) {
+            databaseFile.delete()
+        }
+        databaseFile.parentFile?.mkdirs()
+
+        val sqliteDatabase = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
+        sqliteDatabase.execSQL(
+            """
+            CREATE TABLE review_logs (
+                reviewLogId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                cardId TEXT NOT NULL,
+                replicaId TEXT NOT NULL,
+                clientEventId TEXT NOT NULL,
+                rating TEXT NOT NULL,
+                reviewedAtMillis INTEGER NOT NULL,
+                reviewedAtServerIso TEXT NOT NULL
+            )
+            """.trimIndent()
+        )
+        sqliteDatabase.version = 10
+        sqliteDatabase.close()
+    }
+
+    private fun createFrameworkOpenHelper(
+        context: Context,
+        name: String,
+        version: Int
+    ): SupportSQLiteOpenHelper {
+        val callback = object : SupportSQLiteOpenHelper.Callback(version) {
+            override fun onCreate(db: SupportSQLiteDatabase) = Unit
+
+            override fun onUpgrade(
+                db: SupportSQLiteDatabase,
+                oldVersion: Int,
+                newVersion: Int
+            ) = Unit
+        }
+        val configuration = SupportSQLiteOpenHelper.Configuration.builder(context)
+            .name(name)
+            .callback(callback)
+            .build()
+
+        return FrameworkSQLiteOpenHelperFactory().create(configuration)
+    }
+
+    private fun assertReviewLogsReviewedAtIndexExists(database: SupportSQLiteDatabase) {
+        val query = SimpleSQLiteQuery("PRAGMA index_list('review_logs')")
+        val hasReviewedAtIndex = database.query(query).use { cursor ->
+            val nameColumnIndex = cursor.getColumnIndexOrThrow("name")
+
+            while (cursor.moveToNext()) {
+                if (cursor.getString(nameColumnIndex) == "index_review_logs_reviewedAtMillis") {
+                    return@use true
+                }
+            }
+
+            false
+        }
+
+        assertTrue(hasReviewedAtIndex)
     }
 }
