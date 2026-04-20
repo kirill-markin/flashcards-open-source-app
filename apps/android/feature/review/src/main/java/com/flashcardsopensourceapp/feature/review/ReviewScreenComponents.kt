@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
@@ -52,6 +53,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -154,15 +156,22 @@ internal fun ReviewTopBar(
                 }
             }
 
-            TextButton(
-                onClick = onOpenProgress,
-                enabled = reviewProgressBadge.isInteractive,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier
                     .testTag(reviewProgressBadgeTag)
                     .semantics {
                         contentDescription = progressBadgeContentDescription
                         stateDescription = progressBadgeStateDescription
                     }
+                    .clip(CircleShape)
+                    .clickable(
+                        enabled = reviewProgressBadge.isInteractive,
+                        onClick = onOpenProgress
+                    )
+                    .heightIn(min = 48.dp)
+                    .padding(horizontal = 8.dp)
             ) {
                 Icon(
                     imageVector = Icons.Outlined.LocalFireDepartment,

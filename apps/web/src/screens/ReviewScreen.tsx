@@ -13,6 +13,7 @@ import { ReviewHardReminderDialog } from "./ReviewHardReminderDialog";
 import { ReviewFilterMenu } from "./ReviewFilterMenu";
 import { useAiCardHandoff } from "../chat/useAiCardHandoff";
 import { useTransientMessage } from "../useTransientMessage";
+import { formatReviewProgressBadgeValue } from "../appData/reviewProgressBadge";
 import { formatQueueBadge, useReviewFilterMenu } from "./useReviewFilterMenu";
 import {
   appendRecentReviewRatings,
@@ -35,7 +36,6 @@ type ReviewButtonOption = Readonly<{
 }>;
 
 const REVIEW_BUTTONS_PER_COLUMN = 2;
-const REVIEW_PROGRESS_BADGE_OVERFLOW_THRESHOLD = 99;
 const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
 const REVIEW_MARKDOWN_SYMBOL_ONLY_LIST_ITEM_PATTERN = /^(\s{0,3}[-*+]\s+)([+*\-#>])(\s*)$/;
 
@@ -287,14 +287,6 @@ function formatReviewSubmitRating(lastSubmittedReview: LastSubmittedReview | nul
   }
 
   return `${lastSubmittedReview.rating}`;
-}
-
-function formatReviewProgressBadgeValue(streakDays: number): string {
-  if (streakDays > REVIEW_PROGRESS_BADGE_OVERFLOW_THRESHOLD) {
-    return `${REVIEW_PROGRESS_BADGE_OVERFLOW_THRESHOLD}+`;
-  }
-
-  return streakDays.toString();
 }
 
 function ReviewCardMarkdown({ text }: Readonly<{ text: string }>): ReactElement {

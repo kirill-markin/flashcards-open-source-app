@@ -8,9 +8,8 @@ private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
 private let reviewAnswerButtonMinHeight: CGFloat = 40
 private let showAnswerButtonMinHeight: CGFloat = 56
-private let reviewToolbarMetricBadgeSize: CGFloat = 34
-private let reviewToolbarMetricBadgeHorizontalPadding: CGFloat = 8
-private let reviewProgressBadgeOverflowThreshold: Int = 99
+private let reviewProgressBadgeSize: CGFloat = 34
+private let reviewProgressBadgeHorizontalPadding: CGFloat = 8
 let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
 private let reviewQueuePreviewPageSize: Int = 50
 
@@ -503,9 +502,11 @@ struct ReviewView: View {
             Button {
                 self.isQueuePreviewPresented = true
             } label: {
-                reviewQueueToolbarLabel()
+                Text("\(store.displayedReviewDueCount) / \(store.reviewTotalCount)")
+                    .font(.subheadline.monospacedDigit())
+                    .padding(.horizontal, 6)
+                    .foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
             .disabled(store.reviewTotalCount == 0)
             .accessibilityLabel(
                 String(
@@ -532,78 +533,35 @@ struct ReviewView: View {
         .accessibilityLabel(self.reviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
     }
 
-    private func reviewQueueToolbarLabel() -> some View {
-        ZStack {
-            Capsule()
-                .fill(self.reviewToolbarMetricBadgeBackgroundColor())
-
-            Capsule()
-                .strokeBorder(self.reviewQueueToolbarBorderColor(), lineWidth: 1)
-
-            Text("\(store.displayedReviewDueCount) / \(store.reviewTotalCount)")
-                .font(.caption.weight(.semibold))
-                .monospacedDigit()
-                .foregroundStyle(self.reviewQueueToolbarTextColor())
-                .minimumScaleFactor(0.7)
-                .padding(.horizontal, reviewToolbarMetricBadgeHorizontalPadding)
-        }
-        .frame(minHeight: reviewToolbarMetricBadgeSize)
-    }
-
     private func reviewProgressBadgeLabel(badgeState: ReviewProgressBadgeState) -> some View {
+        let presentation = makeReviewProgressBadgePresentation(badgeState: badgeState)
+
         ZStack {
             Capsule()
-                .fill(self.reviewToolbarMetricBadgeBackgroundColor())
+                .fill(self.reviewProgressBadgeBackgroundColor())
 
             Capsule()
-                .strokeBorder(self.reviewProgressBadgeBorderColor(badgeState: badgeState), lineWidth: 1)
+                .strokeBorder(presentation.borderColor, lineWidth: 1)
 
             HStack(spacing: 3) {
-                Image(systemName: badgeState.hasReviewedToday ? "flame.fill" : "flame")
+                Image(systemName: presentation.iconSystemName)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(self.reviewProgressBadgeIconColor(badgeState: badgeState))
+                    .foregroundStyle(presentation.iconColor)
 
-                Text(self.reviewProgressBadgeValue(badgeState: badgeState))
+                Text(formatReviewProgressBadgeValue(badgeState: badgeState))
                     .font(.caption2.weight(.semibold))
                     .monospacedDigit()
-                    .foregroundStyle(self.reviewProgressBadgeTextColor(badgeState: badgeState))
+                    .foregroundStyle(presentation.textColor)
                     .minimumScaleFactor(0.65)
             }
-            .padding(.horizontal, reviewToolbarMetricBadgeHorizontalPadding)
+            .padding(.horizontal, reviewProgressBadgeHorizontalPadding)
         }
-        .frame(minWidth: reviewToolbarMetricBadgeSize, minHeight: reviewToolbarMetricBadgeSize)
+        .frame(minHeight: reviewProgressBadgeSize)
+        .fixedSize(horizontal: true, vertical: false)
     }
 
-    private func reviewToolbarMetricBadgeBackgroundColor() -> Color {
+    private func reviewProgressBadgeBackgroundColor() -> Color {
         return Color(uiColor: .secondarySystemBackground)
-    }
-
-    private func reviewQueueToolbarBorderColor() -> Color {
-        .gray.opacity(0.35)
-    }
-
-    private func reviewQueueToolbarTextColor() -> Color {
-        .secondary
-    }
-
-    private func reviewProgressBadgeBorderColor(badgeState: ReviewProgressBadgeState) -> Color {
-        badgeState.hasReviewedToday ? .orange.opacity(0.55) : .gray.opacity(0.35)
-    }
-
-    private func reviewProgressBadgeIconColor(badgeState: ReviewProgressBadgeState) -> Color {
-        badgeState.hasReviewedToday ? .orange : .gray
-    }
-
-    private func reviewProgressBadgeTextColor(badgeState: ReviewProgressBadgeState) -> Color {
-        badgeState.hasReviewedToday ? .primary : .secondary
-    }
-
-    private func reviewProgressBadgeValue(badgeState: ReviewProgressBadgeState) -> String {
-        if badgeState.streakDays > reviewProgressBadgeOverflowThreshold {
-            return "\(reviewProgressBadgeOverflowThreshold)+"
-        }
-
-        return badgeState.streakDays.formatted()
     }
 
     private func reviewProgressBadgeAccessibilityLabel(badgeState: ReviewProgressBadgeState) -> String {

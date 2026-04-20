@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ProgressSummarySourceState, ReviewProgressBadgeState } from "../types";
+import type { ProgressSummarySnapshot, ProgressSummarySourceState, ReviewProgressBadgeState } from "../types";
 import { useProgressInvalidationState } from "./progressInvalidation";
 import { useProgressSource } from "./progressSource";
 import { useAppData } from "./provider";
@@ -15,9 +15,9 @@ const REVIEW_PROGRESS_BADGE_SECTIONS = {
   includeSeries: false,
 } as const;
 
-function buildReviewProgressBadgeState(progressSummarySourceState: ProgressSummarySourceState): ReviewProgressBadgeState {
-  const summarySnapshot = progressSummarySourceState.renderedSnapshot;
-
+export function buildReviewProgressBadgeStateFromSummarySnapshot(
+  summarySnapshot: ProgressSummarySnapshot | null,
+): ReviewProgressBadgeState {
   if (summarySnapshot === null) {
     return EMPTY_REVIEW_PROGRESS_BADGE_STATE;
   }
@@ -27,6 +27,22 @@ function buildReviewProgressBadgeState(progressSummarySourceState: ProgressSumma
     hasReviewedToday: summarySnapshot.summary.hasReviewedToday,
     isInteractive: true,
   };
+}
+
+export function buildReviewProgressBadgeState(
+  progressSummarySourceState: ProgressSummarySourceState,
+): ReviewProgressBadgeState {
+  return buildReviewProgressBadgeStateFromSummarySnapshot(progressSummarySourceState.renderedSnapshot);
+}
+
+const REVIEW_PROGRESS_BADGE_OVERFLOW_THRESHOLD = 99;
+
+export function formatReviewProgressBadgeValue(streakDays: number): string {
+  if (streakDays > REVIEW_PROGRESS_BADGE_OVERFLOW_THRESHOLD) {
+    return `${REVIEW_PROGRESS_BADGE_OVERFLOW_THRESHOLD}+`;
+  }
+
+  return streakDays.toString();
 }
 
 export function useReviewProgressBadge(): ReviewProgressBadgeState {

@@ -6,6 +6,9 @@ private let progressCalendarColumnCount: Int = 7
 private let progressChartDayWidth: CGFloat = 20
 private let progressChartHeight: CGFloat = 220
 private let progressReviewsChartScrollTargetID: String = "progress-reviews-chart"
+private let progressStreakBadgeSize: CGFloat = 34
+private let progressStreakBadgeHorizontalPadding: CGFloat = 8
+private let progressReviewCardsStringsTableName: String = "ReviewCards"
 
 struct ProgressScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
@@ -54,7 +57,10 @@ struct ProgressScreen: View {
                         comment: "Progress streak section title"
                     )
                 ) {
-                    ProgressStreakSection(weeks: progressSnapshot.streakWeeks)
+                    ProgressStreakSection(
+                        weeks: progressSnapshot.streakWeeks,
+                        badgeState: makeReviewProgressBadgeState(summary: progressSnapshot.summary)
+                    )
                 }
 
                 Section(
@@ -123,6 +129,7 @@ struct ProgressScreen: View {
 
 private struct ProgressStreakSection: View {
     let weeks: [ProgressCalendarWeek]
+    let badgeState: ReviewProgressBadgeState
 
     private var columns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .center), count: progressCalendarColumnCount)
@@ -137,21 +144,88 @@ private struct ProgressStreakSection: View {
     }
 
     var body: some View {
-        LazyVGrid(columns: self.columns, spacing: 12) {
-            ForEach(self.headerDays) { day in
-                Text(day.date, format: .dateTime.weekday(.narrow))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityHidden(true)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                ProgressStreakSummaryBadge(badgeState: self.badgeState)
+                Spacer(minLength: 0)
             }
 
-            ForEach(self.streakDays) { day in
-                ProgressStreakDayCell(day: day)
-                    .frame(maxWidth: .infinity)
+            LazyVGrid(columns: self.columns, spacing: 12) {
+                ForEach(self.headerDays) { day in
+                    Text(day.date, format: .dateTime.weekday(.narrow))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .accessibilityHidden(true)
+                }
+
+                ForEach(self.streakDays) { day in
+                    ProgressStreakDayCell(day: day)
+                        .frame(maxWidth: .infinity)
+                }
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+private struct ProgressStreakSummaryBadge: View {
+    let badgeState: ReviewProgressBadgeState
+
+    private var presentation: ReviewProgressBadgePresentation {
+        makeReviewProgressBadgePresentation(badgeState: self.badgeState)
+    }
+
+    var body: some View {
+        ZStack {
+            Capsule()
+                .fill(Color(uiColor: .secondarySystemBackground))
+
+            Capsule()
+                .strokeBorder(self.presentation.borderColor, lineWidth: 1)
+
+            HStack(spacing: 3) {
+                Image(systemName: self.presentation.iconSystemName)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(self.presentation.iconColor)
+
+                Text(formatReviewProgressBadgeValue(badgeState: self.badgeState))
+                    .font(.caption2.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(self.presentation.textColor)
+                    .minimumScaleFactor(0.65)
+            }
+            .padding(.horizontal, progressStreakBadgeHorizontalPadding)
+        }
+        .frame(minHeight: progressStreakBadgeSize)
+        .fixedSize(horizontal: true, vertical: false)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(self.accessibilityLabel)
+    }
+
+    private var accessibilityLabel: String {
+        let localizedFormat: String
+        if self.badgeState.hasReviewedToday {
+            localizedFormat = String(
+                localized: "review.progress_badge.accessibility.reviewed_today",
+                defaultValue: "Review streak %@ days. Reviewed today.",
+                table: progressReviewCardsStringsTableName,
+                comment: "Accessibility label for the review progress badge when the user has reviewed today"
+            )
+        } else {
+            localizedFormat = String(
+                localized: "review.progress_badge.accessibility.not_reviewed_today",
+                defaultValue: "Review streak %@ days. Not reviewed today.",
+                table: progressReviewCardsStringsTableName,
+                comment: "Accessibility label for the review progress badge when the user has not reviewed today"
+            )
+        }
+
+        return String(
+            format: localizedFormat,
+            locale: Locale.current,
+            self.badgeState.streakDays.formatted()
+        )
     }
 }
 
@@ -164,15 +238,15 @@ private struct ProgressStreakDayCell: View {
                 .fill(self.backgroundColor)
 
             Circle()
-                .stroke(self.borderColor, lineWidth: self.day.isToday ? 2 : 1)
+                .stroke(self.borderColor, lineWidth: self.borderLineWidth)
 
             if self.day.isFuturePlaceholder {
                 Circle()
                     .fill(Color(uiColor: .tertiarySystemGroupedBackground))
                     .frame(width: 8, height: 8)
-            } else if self.day.reviewCount > 0 {
-                Image(systemName: "checkmark")
-                    .font(.caption.weight(.bold))
+            } else if self.isActiveFlameDay {
+                Image(systemName: "flame.fill")
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(self.foregroundColor)
             } else {
                 Text(self.day.dayNumber.formatted())
@@ -192,8 +266,8 @@ private struct ProgressStreakDayCell: View {
             return Color.clear
         }
 
-        if self.day.reviewCount > 0 {
-            return self.day.isToday ? .accentColor : Color.accentColor.opacity(0.22)
+        if self.isActiveFlameDay {
+            return .orange
         }
 
         return self.day.isToday ? .accentColor : Color(uiColor: .secondarySystemGroupedBackground)
@@ -204,12 +278,12 @@ private struct ProgressStreakDayCell: View {
             return Color(uiColor: .separator).opacity(0.18)
         }
 
-        if self.day.isToday {
-            return Color.white.opacity(0.92)
+        if self.isActiveFlameDay {
+            return .orange
         }
 
-        if self.day.reviewCount > 0 {
-            return Color.accentColor.opacity(0.35)
+        if self.day.isToday {
+            return Color.white.opacity(0.92)
         }
 
         return Color(uiColor: .separator).opacity(0.35)
@@ -220,11 +294,23 @@ private struct ProgressStreakDayCell: View {
             return .secondary
         }
 
+        if self.isActiveFlameDay {
+            return .white
+        }
+
         if self.day.isToday {
             return .white
         }
 
-        return self.day.reviewCount > 0 ? .accentColor : .primary
+        return .primary
+    }
+
+    private var isActiveFlameDay: Bool {
+        self.day.reviewCount > 0
+    }
+
+    private var borderLineWidth: CGFloat {
+        self.day.isToday && self.isActiveFlameDay == false ? 2 : 1
     }
 
     private var accessibilityLabel: String {
@@ -357,11 +443,11 @@ private func progressChartWidth(containerWidth: CGFloat, dayCount: Int) -> CGFlo
 }
 
 private func progressChartBarStyle(day: ProgressChartDay) -> AnyShapeStyle {
-    if day.isToday {
+    if day.reviewCount > 0 {
         return AnyShapeStyle(Color.accentColor.gradient)
     }
 
-    return AnyShapeStyle(Color.accentColor.opacity(0.35))
+    return AnyShapeStyle(Color.accentColor.opacity(0.16))
 }
 
 private func scrollProgressChartToToday(proxy: ScrollViewProxy) {

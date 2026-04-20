@@ -1,5 +1,9 @@
 import { useEffect, useRef, type ReactElement } from "react";
 import { useAppData } from "../appData";
+import {
+  buildReviewProgressBadgeStateFromSummarySnapshot,
+  formatReviewProgressBadgeValue,
+} from "../appData/reviewProgressBadge";
 import { useProgressInvalidationState } from "../appData/progressInvalidation";
 import { parseLocalDate, useProgressSource } from "../appData/progressSource";
 import { useI18n } from "../i18n";
@@ -164,11 +168,13 @@ export function ProgressScreen(): ReactElement {
   });
   const { t, formatDate, formatNumber } = useI18n();
   const todayChartColumnRef = useRef<HTMLDivElement | null>(null);
+  const progressSummary = progressSourceState.summary.renderedSnapshot;
   const progress = progressSourceState.series.renderedSnapshot;
   const isLoading = progressSourceState.summary.isLoading || progressSourceState.series.isLoading;
   const errorMessage = progressSourceState.summary.errorMessage !== ""
     ? progressSourceState.summary.errorMessage
     : progressSourceState.series.errorMessage;
+  const reviewProgressBadge = buildReviewProgressBadgeStateFromSummarySnapshot(progressSummary);
 
   useEffect(() => {
     const chartColumn = todayChartColumnRef.current;
@@ -189,6 +195,13 @@ export function ProgressScreen(): ReactElement {
   const maxReviewCount = progress === null ? 0 : calculateMaxReviewCount(dailyReviews);
   const chartDays = progress === null ? [] : buildChartDays(dailyReviews, today, maxReviewCount, formatDate);
   const chartGuideLabels = buildChartGuideLabels(maxReviewCount, formatNumber);
+  const reviewProgressBadgeTodayStatus = reviewProgressBadge.hasReviewedToday
+    ? t("reviewScreen.progressBadge.reviewedToday")
+    : t("reviewScreen.progressBadge.notReviewedToday");
+  const reviewProgressBadgeAriaLabel = t("reviewScreen.progressBadge.ariaLabel", {
+    streak: formatNumber(reviewProgressBadge.streakDays),
+    todayStatus: reviewProgressBadgeTodayStatus,
+  });
 
   return (
     <main className="container">
@@ -219,6 +232,25 @@ export function ProgressScreen(): ReactElement {
                 <h2 className="progress-section-title">{t("progressScreen.streakTitle")}</h2>
               </div>
 
+              {progressSummary !== null ? (
+                <div className="progress-streak-summary">
+                  <div className="progress-streak-summary-copy">
+                    <span className="progress-streak-summary-label">{t("reviewScreen.progressBadge.title")}</span>
+                    <p className="progress-streak-summary-status">{reviewProgressBadgeTodayStatus}</p>
+                  </div>
+                  <span
+                    className={`badge review-progress-badge${reviewProgressBadge.hasReviewedToday ? " review-progress-badge-active" : ""}`}
+                    aria-label={reviewProgressBadgeAriaLabel}
+                    title={reviewProgressBadgeAriaLabel}
+                  >
+                    <span className="review-progress-badge-icon" aria-hidden="true">🔥</span>
+                    <span className="review-progress-badge-value">
+                      {formatReviewProgressBadgeValue(reviewProgressBadge.streakDays)}
+                    </span>
+                  </span>
+                </div>
+              ) : null}
+
               <div className="progress-streak-weeks">
                 {streakWeeks.map((week, weekIndex) => (
                   <div key={`streak-week-${weekIndex}`} className="progress-streak-week">
@@ -226,7 +258,7 @@ export function ProgressScreen(): ReactElement {
                       const dayClassName = [
                         "progress-streak-day",
                         day.reviewCount > 0 ? "progress-streak-day-complete" : "",
-                        day.isToday ? "progress-streak-day-today" : "",
+                        day.isToday && day.reviewCount === 0 ? "progress-streak-day-today" : "",
                       ]
                         .filter((className) => className !== "")
                         .join(" ");
@@ -235,7 +267,7 @@ export function ProgressScreen(): ReactElement {
                         <div key={day.date} className={dayClassName} title={day.title}>
                           <span className="progress-streak-weekday">{day.weekdayLabel}</span>
                           <span className="progress-streak-marker" aria-hidden="true">
-                            {day.reviewCount > 0 ? "✓" : day.dayLabel}
+                            {day.reviewCount > 0 ? "🔥" : day.dayLabel}
                           </span>
                         </div>
                       );
@@ -271,7 +303,7 @@ export function ProgressScreen(): ReactElement {
                       {chartDays.map((day) => {
                         const columnClassName = [
                           "progress-chart-column",
-                          day.isToday ? "progress-chart-column-today" : "",
+                          day.isToday && day.reviewCount === 0 ? "progress-chart-column-today" : "",
                         ]
                           .filter((className) => className !== "")
                           .join(" ");

@@ -1,7 +1,9 @@
 import Foundation
+import SwiftUI
 
 private let progressDaysPerWeek: Int = 7
 private let progressStreakWeekCount: Int = 5
+let reviewProgressBadgeOverflowThreshold: Int = 99
 
 struct ProgressDay: Codable, Hashable, Identifiable, Sendable {
     let date: String
@@ -207,12 +209,36 @@ struct ReviewProgressBadgeState: Hashable, Sendable {
     let isInteractive: Bool
 }
 
+struct ReviewProgressBadgePresentation {
+    let iconSystemName: String
+    let borderColor: Color
+    let iconColor: Color
+    let textColor: Color
+}
+
 func makeEmptyReviewProgressBadgeState() -> ReviewProgressBadgeState {
     ReviewProgressBadgeState(
         streakDays: 0,
         hasReviewedToday: false,
         isInteractive: true
     )
+}
+
+func makeReviewProgressBadgePresentation(badgeState: ReviewProgressBadgeState) -> ReviewProgressBadgePresentation {
+    ReviewProgressBadgePresentation(
+        iconSystemName: badgeState.hasReviewedToday ? "flame.fill" : "flame",
+        borderColor: badgeState.hasReviewedToday ? .orange.opacity(0.55) : .gray.opacity(0.35),
+        iconColor: badgeState.hasReviewedToday ? .orange : .gray,
+        textColor: badgeState.hasReviewedToday ? .primary : .secondary
+    )
+}
+
+func formatReviewProgressBadgeValue(badgeState: ReviewProgressBadgeState) -> String {
+    if badgeState.streakDays > reviewProgressBadgeOverflowThreshold {
+        return "\(reviewProgressBadgeOverflowThreshold)+"
+    }
+
+    return badgeState.streakDays.formatted()
 }
 
 enum ProgressPresentationError: LocalizedError {
