@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app
 
 import android.util.Log
+import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
@@ -29,11 +30,11 @@ class ProgressContextRefreshController(
     private val appScope: CoroutineScope,
     private val progressRepository: ProgressRepository
 ) {
-    private val refreshRequests = Channel<Unit>(capacity = Channel.CONFLATED)
+    private val refreshRequests = Channel<VisibleAppScreen>(capacity = Channel.CONFLATED)
 
     init {
         appScope.launch {
-            for (refreshRequest in refreshRequests) {
+            for (visibleScreen in refreshRequests) {
                 try {
                     progressRepository.refreshSummaryIfInvalidated()
                 } catch (error: CancellationException) {
@@ -43,6 +44,10 @@ class ProgressContextRefreshController(
                         message = "Failed to refresh invalidated progress summary.",
                         error = error
                     )
+                }
+
+                if (visibleScreen != VisibleAppScreen.PROGRESS) {
+                    continue
                 }
 
                 try {
@@ -59,7 +64,7 @@ class ProgressContextRefreshController(
         }
     }
 
-    fun refreshIfInvalidated() {
-        refreshRequests.trySend(element = Unit)
+    fun refreshIfInvalidated(visibleScreen: VisibleAppScreen) {
+        refreshRequests.trySend(element = visibleScreen)
     }
 }

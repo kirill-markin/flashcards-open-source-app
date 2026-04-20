@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.app
 
+import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
@@ -17,7 +18,7 @@ import org.junit.Test
 
 class ProgressContextRefreshControllerTest {
     @Test
-    fun refreshIfInvalidatedRefreshesSummaryAndSeries() = runBlocking {
+    fun refreshIfInvalidatedRefreshesSummaryOnlyOutsideProgressScreen() = runBlocking {
         val repository = FakeProgressRepository()
         val appScope = CoroutineScope(context = Dispatchers.Default)
         val controller = ProgressContextRefreshController(
@@ -26,7 +27,28 @@ class ProgressContextRefreshControllerTest {
         )
 
         try {
-            controller.refreshIfInvalidated()
+            controller.refreshIfInvalidated(visibleScreen = VisibleAppScreen.REVIEW)
+
+            awaitUntil { repository.summaryRefreshCallCount == 1 }
+        } finally {
+            appScope.cancel()
+        }
+
+        assertEquals(1, repository.summaryRefreshCallCount)
+        assertEquals(0, repository.seriesRefreshCallCount)
+    }
+
+    @Test
+    fun refreshIfInvalidatedRefreshesSummaryAndSeriesOnProgressScreen() = runBlocking {
+        val repository = FakeProgressRepository()
+        val appScope = CoroutineScope(context = Dispatchers.Default)
+        val controller = ProgressContextRefreshController(
+            appScope = appScope,
+            progressRepository = repository
+        )
+
+        try {
+            controller.refreshIfInvalidated(visibleScreen = VisibleAppScreen.PROGRESS)
 
             awaitUntil {
                 repository.summaryRefreshCallCount == 1 &&
@@ -50,11 +72,11 @@ class ProgressContextRefreshControllerTest {
         )
 
         try {
-            controller.refreshIfInvalidated()
+            controller.refreshIfInvalidated(visibleScreen = VisibleAppScreen.REVIEW)
             awaitUntil { repository.summaryRefreshCallCount == 1 }
 
-            controller.refreshIfInvalidated()
-            controller.refreshIfInvalidated()
+            controller.refreshIfInvalidated(visibleScreen = VisibleAppScreen.REVIEW)
+            controller.refreshIfInvalidated(visibleScreen = VisibleAppScreen.REVIEW)
             delay(timeMillis = 50L)
 
             assertEquals(1, repository.summaryRefreshCallCount)
@@ -64,14 +86,14 @@ class ProgressContextRefreshControllerTest {
 
             awaitUntil {
                 repository.summaryRefreshCallCount == 2 &&
-                    repository.seriesRefreshCallCount == 2
+                    repository.seriesRefreshCallCount == 0
             }
         } finally {
             appScope.cancel()
         }
 
         assertEquals(2, repository.summaryRefreshCallCount)
-        assertEquals(2, repository.seriesRefreshCallCount)
+        assertEquals(0, repository.seriesRefreshCallCount)
     }
 
     @Test
@@ -84,13 +106,13 @@ class ProgressContextRefreshControllerTest {
         )
 
         try {
-            controller.refreshIfInvalidated()
+            controller.refreshIfInvalidated(visibleScreen = VisibleAppScreen.PROGRESS)
             awaitUntil {
                 repository.summaryRefreshCallCount == 1 &&
                     repository.seriesRefreshCallCount == 1
             }
 
-            controller.refreshIfInvalidated()
+            controller.refreshIfInvalidated(visibleScreen = VisibleAppScreen.PROGRESS)
             awaitUntil {
                 repository.summaryRefreshCallCount == 2 &&
                     repository.seriesRefreshCallCount == 2
