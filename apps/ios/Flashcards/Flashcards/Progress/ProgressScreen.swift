@@ -3,7 +3,6 @@ import SwiftUI
 
 private let progressStringsTableName: String = "Foundation"
 private let progressCalendarColumnCount: Int = 7
-private let progressChartDayWidth: CGFloat = 20
 private let progressChartHeight: CGFloat = 220
 private let progressStreakBadgeSize: CGFloat = 34
 private let progressStreakBadgeHorizontalPadding: CGFloat = 8
@@ -69,21 +68,15 @@ struct ProgressScreen: View {
                     }
                     .modifier(ProgressCardModifier())
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(
-                            String(
-                                localized: "progress.screen.reviews.section_title",
-                                defaultValue: "Reviews",
-                                table: progressStringsTableName,
-                                comment: "Progress reviews section title"
-                            )
-                        )
-                        .font(.headline)
-
+                    VStack(alignment: .leading, spacing: 0) {
                         ProgressReviewsSection(
                             chartDays: progressSnapshot.chartData.chartDays,
                             chartUpperBound: progressSnapshot.chartData.chartUpperBound,
-                            hasReviewActivity: progressSnapshot.chartData.hasReviewActivity
+                            hasReviewActivity: progressSnapshot.chartData.hasReviewActivity,
+                            chartCalendar: makeProgressReviewChartCalendar(
+                                timeZoneIdentifier: progressSnapshot.scopeKey.timeZone
+                            ),
+                            selectionResetKey: progressSnapshot.scopeKey.storageKey
                         )
                     }
                     .modifier(ProgressCardModifier())
@@ -365,34 +358,145 @@ private struct ProgressReviewsSection: View {
     let chartDays: [ProgressChartDay]
     let chartUpperBound: Int
     let hasReviewActivity: Bool
+    let chartCalendar: Calendar
+    let selectionResetKey: String
+    @State private var selectedPageStartLocalDate: String? = nil
+
+    private var pageSelectionResetToken: ProgressReviewChartSelectionResetToken {
+        ProgressReviewChartSelectionResetToken(
+            selectionResetKey: self.selectionResetKey,
+            chartDays: self.chartDays
+        )
+    }
+
+    private var chartPages: [ProgressReviewChartPage] {
+        makeProgressReviewChartPages(
+            chartDays: self.chartDays,
+            calendar: self.chartCalendar
+        )
+    }
+
+    private var selectedPageIndex: Int {
+        guard self.chartPages.isEmpty == false else {
+            return 0
+        }
+
+        guard
+            let selectedPageStartLocalDate = self.selectedPageStartLocalDate,
+            let selectedPageIndex = self.chartPages.firstIndex(where: { page in
+                page.startLocalDate == selectedPageStartLocalDate
+            })
+        else {
+            return self.chartPages.count - 1
+        }
+
+        return selectedPageIndex
+    }
+
+    private var visiblePage: ProgressReviewChartPage? {
+        guard self.chartPages.isEmpty == false else {
+            return nil
+        }
+
+        return self.chartPages[self.selectedPageIndex]
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(
+                        String(
+                            localized: "progress.screen.reviews.section_title",
+                            defaultValue: "Reviews",
+                            table: progressStringsTableName,
+                            comment: "Progress reviews section title"
+                        )
+                    )
+                    .font(.headline)
+
+                    if let visiblePage = self.visiblePage {
+                        Text(
+                            progressReviewChartPageDateRange(
+                                page: visiblePage,
+                                calendar: self.chartCalendar
+                            )
+                        )
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                if self.chartPages.count > 1 && self.hasReviewActivity {
+                    HStack(spacing: 6) {
+                        Button(action: self.showPreviousPage) {
+                            Image(systemName: "chevron.backward")
+                                .font(.body.weight(.semibold))
+                                .frame(minWidth: 28, minHeight: 28)
+                        }
+                        .disabled(self.selectedPageIndex == 0)
+                        .accessibilityLabel(
+                            String(
+                                localized: "progress.screen.reviews.previous_week",
+                                defaultValue: "Previous week",
+                                table: progressStringsTableName,
+                                comment: "Accessibility label for the previous reviews week button"
+                            )
+                        )
+
+                        Button(action: self.showNextPage) {
+                            Image(systemName: "chevron.forward")
+                                .font(.body.weight(.semibold))
+                                .frame(minWidth: 28, minHeight: 28)
+                        }
+                        .disabled(self.selectedPageIndex >= self.chartPages.count - 1)
+                        .accessibilityLabel(
+                            String(
+                                localized: "progress.screen.reviews.next_week",
+                                defaultValue: "Next week",
+                                table: progressStringsTableName,
+                                comment: "Accessibility label for the next reviews week button"
+                            )
+                        )
+                    }
+                }
+            }
+
+            if let visiblePage = self.visiblePage {
                 Chart {
-                    ForEach(self.chartDays) { day in
+                    ForEach(visiblePage.days) { day in
                         BarMark(
-                            x: .value("Date", day.date, unit: .day),
+                            x: .value("Day", day.localDate),
                             y: .value("Reviews", day.reviewCount)
                         )
                         .foregroundStyle(progressChartBarStyle(day: day))
-
-                        if day.isToday {
-                            RuleMark(x: .value("Today", day.date, unit: .day))
-                                .foregroundStyle(Color.accentColor.opacity(0.35))
-                                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                        }
                     }
                 }
-                .chartXScale(domain: self.chartDomain)
                 .chartYScale(domain: 0 ... self.chartUpperBound)
                 .chartXAxis {
-                    AxisMarks(values: .stride(by: .day, count: 7)) { value in
-                        AxisGridLine()
-                            .foregroundStyle(Color(uiColor: .separator).opacity(0.18))
+                    AxisMarks(values: visiblePage.xAxisValues) { value in
                         AxisTick()
                             .foregroundStyle(Color(uiColor: .separator).opacity(0.35))
-                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                        AxisValueLabel {
+                            if let localDate = value.as(String.self), let day = visiblePage.day(localDate: localDate) {
+                                VStack(spacing: 2) {
+                                    Text(
+                                        progressReviewChartWeekdayLabel(
+                                            date: day.date,
+                                            calendar: self.chartCalendar
+                                        )
+                                    )
+                                    Text(
+                                        progressReviewChartDayLabel(
+                                            date: day.date,
+                                            calendar: self.chartCalendar
+                                        )
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 .chartYAxis {
@@ -409,17 +513,8 @@ private struct ProgressReviewsSection: View {
                         .background(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.45))
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-                .frame(
-                    width: progressChartWidth(dayCount: self.chartDays.count),
-                    height: progressChartHeight
-                )
+                .frame(height: progressChartHeight)
             }
-            .defaultScrollAnchor(.trailing, for: .initialOffset)
-            .defaultScrollAnchor(.trailing, for: .alignment)
-            // Avoid `GeometryReader` inside the `List` row because that measurement
-            // loop was still invalidating the collection-backed layout on iPhone.
-            .scrollClipDisabled()
-            .frame(height: progressChartHeight)
 
             if self.hasReviewActivity == false {
                 Text(
@@ -435,28 +530,160 @@ private struct ProgressReviewsSection: View {
             }
         }
         .padding(.vertical, 4)
+        .onChange(of: self.pageSelectionResetToken) { _, _ in
+            self.selectedPageStartLocalDate = nil
+        }
     }
 
-    private var chartDomain: ClosedRange<Date> {
-        guard let firstDate = self.chartDays.first?.date, let lastDate = self.chartDays.last?.date else {
-            let now = Date()
-            return now ... now
+    private func showPreviousPage() {
+        guard self.selectedPageIndex > 0 else {
+            return
         }
 
-        return firstDate ... lastDate
+        self.selectedPageStartLocalDate = self.chartPages[self.selectedPageIndex - 1].startLocalDate
+    }
+
+    private func showNextPage() {
+        guard self.selectedPageIndex < self.chartPages.count - 1 else {
+            return
+        }
+
+        self.selectedPageStartLocalDate = self.chartPages[self.selectedPageIndex + 1].startLocalDate
     }
 }
 
-private func progressChartWidth(dayCount: Int) -> CGFloat {
-    max(320, CGFloat(dayCount) * progressChartDayWidth)
+private struct ProgressReviewChartPage: Identifiable {
+    let days: [ProgressChartDay]
+    let startLocalDate: String
+    let startDate: Date
+    let endDate: Date
+
+    init(days: [ProgressChartDay]) {
+        guard let firstDay = days.first, let lastDay = days.last else {
+            preconditionFailure("Progress review chart page must contain at least one day")
+        }
+
+        self.days = days
+        self.startLocalDate = firstDay.localDate
+        self.startDate = firstDay.date
+        self.endDate = lastDay.date
+    }
+
+    var id: String {
+        self.startLocalDate
+    }
+
+    var xAxisValues: [String] {
+        self.days.map(\.localDate)
+    }
+
+    func day(localDate: String) -> ProgressChartDay? {
+        self.days.first(where: { day in
+            day.localDate == localDate
+        })
+    }
+}
+
+private struct ProgressReviewChartSelectionResetToken: Equatable {
+    let selectionResetKey: String
+    let chartDays: [ProgressChartDay]
+}
+
+private func makeProgressReviewChartPages(
+    chartDays: [ProgressChartDay],
+    calendar: Calendar
+) -> [ProgressReviewChartPage] {
+    guard chartDays.isEmpty == false else {
+        return []
+    }
+
+    var pages: [ProgressReviewChartPage] = []
+    var currentPageDays: [ProgressChartDay] = []
+    var currentWeekStart: Date? = nil
+
+    for day in chartDays {
+        guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: day.date) else {
+            preconditionFailure("Expected a week interval for progress review chart day")
+        }
+
+        let weekStart = calendar.startOfDay(for: weekInterval.start)
+        if let activeWeekStart = currentWeekStart, activeWeekStart != weekStart {
+            pages.append(ProgressReviewChartPage(days: currentPageDays))
+            currentPageDays = [day]
+            currentWeekStart = weekStart
+            continue
+        }
+
+        currentPageDays.append(day)
+        currentWeekStart = weekStart
+    }
+
+    if currentPageDays.isEmpty == false {
+        pages.append(ProgressReviewChartPage(days: currentPageDays))
+    }
+
+    return pages
+}
+
+private func progressReviewChartPageDateRange(
+    page: ProgressReviewChartPage,
+    calendar: Calendar
+) -> String {
+    let formatter = DateIntervalFormatter()
+    formatter.calendar = calendar
+    formatter.locale = Locale.autoupdatingCurrent
+    formatter.timeZone = calendar.timeZone
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .none
+    return formatter.string(from: page.startDate, to: page.endDate)
+}
+
+private func makeProgressReviewChartCalendar(timeZoneIdentifier: String) -> Calendar {
+    guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
+        preconditionFailure("Progress chart timezone identifier is invalid: \(timeZoneIdentifier)")
+    }
+
+    let userCalendar = Calendar.autoupdatingCurrent
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.locale = Locale.autoupdatingCurrent
+    calendar.timeZone = timeZone
+    calendar.firstWeekday = userCalendar.firstWeekday
+    calendar.minimumDaysInFirstWeek = userCalendar.minimumDaysInFirstWeek
+    return calendar
+}
+
+private func progressReviewChartWeekdayLabel(date: Date, calendar: Calendar) -> String {
+    let formatter = DateFormatter()
+    formatter.calendar = calendar
+    formatter.locale = Locale.autoupdatingCurrent
+    formatter.timeZone = calendar.timeZone
+    formatter.setLocalizedDateFormatFromTemplate("EEEEE")
+    return formatter.string(from: date)
+}
+
+private func progressReviewChartDayLabel(date: Date, calendar: Calendar) -> String {
+    let formatter = DateFormatter()
+    formatter.calendar = calendar
+    formatter.locale = Locale.autoupdatingCurrent
+    formatter.timeZone = calendar.timeZone
+    formatter.dateFormat = "d"
+    return formatter.string(from: date)
 }
 
 private func progressChartBarStyle(day: ProgressChartDay) -> AnyShapeStyle {
-    if day.reviewCount > 0 {
+    if day.reviewCount > 0 && day.isToday {
         return AnyShapeStyle(Color.accentColor.gradient)
     }
 
-    return AnyShapeStyle(Color.accentColor.opacity(0.16))
+    if day.reviewCount > 0 {
+        return AnyShapeStyle(Color.orange.gradient)
+    }
+
+    if day.isToday {
+        return AnyShapeStyle(Color.accentColor.gradient)
+    }
+
+    return AnyShapeStyle(Color(uiColor: .tertiarySystemFill))
 }
 
 #Preview {
