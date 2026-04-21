@@ -13,14 +13,14 @@
   },
   "dependencies": {
     "@aws-crypto/client-node": "^4.2.2",
-    "aws-cdk-lib": "^2.248.0",
+    "aws-cdk-lib": "^2.250.0",
     "constructs": "^10.6.0"
   },
   "devDependencies": {
     "@types/node": "^24.12.2",
-    "aws-cdk": "^2.1118.0",
+    "aws-cdk": "^2.1118.4",
     "esbuild": "^0.28.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.3"
   },
   "engines": {
     "node": "24.x"
