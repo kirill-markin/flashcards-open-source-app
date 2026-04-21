@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.repository
 
+import android.util.Log
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
@@ -39,6 +40,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeParseException
 
 const val progressHistoryDayCount: Long = 140L
+private const val progressRepositoryLogTag: String = "ProgressRepository"
+private const val progressRepositoryLogMaxValueLength: Int = 240
 
 private enum class ProgressRefreshReason {
     MISSING_SERVER_BASE,
@@ -101,6 +104,54 @@ object SystemProgressTimeProvider : ProgressTimeProvider {
 
     override fun currentTimeMillis(): Long {
         return System.currentTimeMillis()
+    }
+}
+
+private fun logProgressRepositoryWarning(
+    event: String,
+    fields: List<Pair<String, String?>>,
+    error: Throwable
+) {
+    val message = buildProgressRepositoryLogMessage(
+        event = event,
+        fields = fields
+    )
+    val didLog = runCatching {
+        Log.w(progressRepositoryLogTag, message, error)
+    }.isSuccess
+    if (didLog.not()) {
+        println("$progressRepositoryLogTag W $message")
+        println(error.stackTraceToString())
+    }
+}
+
+private fun buildProgressRepositoryLogMessage(
+    event: String,
+    fields: List<Pair<String, String?>>
+): String {
+    val renderedFields = fields.map { (key, value) ->
+        "$key=${sanitizeProgressRepositoryLogValue(value = value)}"
+    }
+
+    return if (renderedFields.isEmpty()) {
+        "event=$event"
+    } else {
+        "event=$event ${renderedFields.joinToString(separator = " ")}"
+    }
+}
+
+private fun sanitizeProgressRepositoryLogValue(
+    value: String?
+): String {
+    if (value == null) {
+        return "null"
+    }
+
+    val normalized = value.replace(oldValue = "\n", newValue = "\\n")
+    return if (normalized.length <= progressRepositoryLogMaxValueLength) {
+        normalized
+    } else {
+        normalized.take(progressRepositoryLogMaxValueLength) + "..."
     }
 }
 
@@ -713,7 +764,7 @@ private fun createProgressSummaryStoreState(
     )
     val serverBase = inputs.summaryCaches.firstOrNull { entry ->
         entry.scopeKey == serializeProgressSummaryScopeKey(scopeKey = scopeKey)
-    }?.toCloudProgressSummary()
+    }?.toCloudProgressSummaryOrNull()
     val localFallback = if (isLocalCacheReady) {
         createLocalFallbackSummary(
             scopeKey = scopeKey,
@@ -770,7 +821,7 @@ private fun createProgressSeriesStoreState(
     )
     val serverBase = inputs.seriesCaches.firstOrNull { entry ->
         entry.scopeKey == serializeProgressSeriesScopeKey(scopeKey = scopeKey)
-    }?.toCloudProgressSeries()
+    }?.toCloudProgressSeriesOrNull()
     val localFallback = if (isLocalCacheReady) {
         createLocalFallbackSeries(
             scopeKey = scopeKey,
@@ -948,6 +999,7 @@ internal fun createPendingLocalOverlaySeries(
     workspaceIds: List<String>
 ): CloudProgressSeries {
     val workspaceIdSet = workspaceIds.toSet()
+    val zoneId = ZoneId.of(scopeKey.timeZone)
     val reviewCountsByDate = createInclusiveLocalDateRange(
         from = scopeKey.from,
         to = scopeKey.to
@@ -958,9 +1010,20 @@ internal fun createPendingLocalOverlaySeries(
             return@forEach
         }
 
-        val localDate = entry.toPendingReviewLocalDate(
-            zoneId = ZoneId.of(scopeKey.timeZone)
-        )
+        val localDate = try {
+            entry.toPendingReviewLocalDate(zoneId = zoneId)
+        } catch (error: IllegalArgumentException) {
+            logProgressRepositoryWarning(
+                event = "progress_pending_overlay_entry_skipped",
+                fields = listOf(
+                    "outboxEntryId" to entry.outboxEntryId,
+                    "workspaceId" to entry.workspaceId,
+                    "timeZone" to scopeKey.timeZone
+                ),
+                error = error
+            )
+            return@forEach
+        }
         if (reviewCountsByDate.containsKey(localDate).not()) {
             return@forEach
         }
@@ -1346,33 +1409,73 @@ private fun CloudProgressSeries.toCacheEntity(
     )
 }
 
-private fun ProgressSummaryCacheEntity.toCloudProgressSummary(): CloudProgressSummary {
-    return CloudProgressSummary(
-        currentStreakDays = currentStreakDays,
-        hasReviewedToday = hasReviewedToday,
-        lastReviewedOn = lastReviewedOn,
-        activeReviewDays = activeReviewDays
-    )
+internal fun ProgressSummaryCacheEntity.toCloudProgressSummaryOrNull(): CloudProgressSummary? {
+    return runCatching {
+        lastReviewedOn?.let { cachedLastReviewedOn ->
+            parseLocalDate(rawDate = cachedLastReviewedOn)
+        }
+        CloudProgressSummary(
+            currentStreakDays = currentStreakDays,
+            hasReviewedToday = hasReviewedToday,
+            lastReviewedOn = lastReviewedOn,
+            activeReviewDays = activeReviewDays
+        )
+    }.getOrElse { error ->
+        logProgressRepositoryWarning(
+            event = "progress_summary_cache_skipped",
+            fields = listOf(
+                "scopeKey" to scopeKey,
+                "timeZone" to timeZone,
+                "lastReviewedOn" to lastReviewedOn
+            ),
+            error = error
+        )
+        null
+    }
 }
 
-private fun ProgressSeriesCacheEntity.toCloudProgressSeries(): CloudProgressSeries {
-    val dailyReviewsArray = JSONArray(dailyReviewsJson)
-    return CloudProgressSeries(
-        timeZone = timeZone,
-        from = fromLocalDate,
-        to = toLocalDate,
-        dailyReviews = buildList {
-            for (index in 0 until dailyReviewsArray.length()) {
-                val point = dailyReviewsArray.getJSONObject(index)
-                add(
-                    CloudDailyReviewPoint(
-                        date = point.getString("date"),
-                        reviewCount = point.getInt("reviewCount")
+internal fun ProgressSeriesCacheEntity.toCloudProgressSeriesOrNull(): CloudProgressSeries? {
+    return runCatching {
+        val parsedFrom = parseLocalDate(rawDate = fromLocalDate)
+        val parsedTo = parseLocalDate(rawDate = toLocalDate)
+        if (parsedFrom.isAfter(parsedTo)) {
+            throw IllegalArgumentException(
+                "Invalid progress series cache range '$fromLocalDate' > '$toLocalDate'."
+            )
+        }
+
+        val dailyReviewsArray = JSONArray(dailyReviewsJson)
+        CloudProgressSeries(
+            timeZone = timeZone,
+            from = fromLocalDate,
+            to = toLocalDate,
+            dailyReviews = buildList {
+                for (index in 0 until dailyReviewsArray.length()) {
+                    val point = dailyReviewsArray.getJSONObject(index)
+                    val date = point.getString("date")
+                    parseLocalDate(rawDate = date)
+                    add(
+                        CloudDailyReviewPoint(
+                            date = date,
+                            reviewCount = point.getInt("reviewCount")
+                        )
                     )
-                )
-            }
-        },
-        generatedAt = generatedAt,
-        summary = null
-    )
+                }
+            },
+            generatedAt = generatedAt,
+            summary = null
+        )
+    }.getOrElse { error ->
+        logProgressRepositoryWarning(
+            event = "progress_series_cache_skipped",
+            fields = listOf(
+                "scopeKey" to scopeKey,
+                "timeZone" to timeZone,
+                "fromLocalDate" to fromLocalDate,
+                "toLocalDate" to toLocalDate
+            ),
+            error = error
+        )
+        null
+    }
 }

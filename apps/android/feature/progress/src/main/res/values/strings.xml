@@ -3,6 +3,7 @@
     <string name="progress_retry">Retry</string>
     <string name="progress_loading">Loading progress history</string>
     <string name="progress_error_title">Progress couldn\'t be loaded</string>
+    <string name="progress_error_message">Progress data is temporarily unavailable. Retry to reload progress history.</string>
     <string name="progress_sign_in_required_title">Sign in to view progress</string>
     <string name="progress_sign_in_required_message">Progress history is available only after you sign in or start a guest AI session.</string>
     <string name="progress_unavailable_title">Finish cloud setup to view progress</string>
