@@ -40,7 +40,6 @@ import com.flashcardsopensourceapp.feature.review.reviewCurrentCardFrontContentT
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTitleTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -165,8 +164,7 @@ internal fun LiveSmokeContext.createAiCardWithConfirmation() {
     val sendLabel = aiSendLabel()
     openAiTab()
     dismissAiConsentIfNeeded()
-    waitForGuestCloudWorkspaceReady(context = "before filling the AI create prompt")
-    waitForAiInteractiveReady(
+    waitForGuestAiEntryReady(
         expectedLabel = sendLabel,
         context = "before filling the AI create prompt"
     )
@@ -308,8 +306,7 @@ internal fun LiveSmokeContext.createGuestAiConversationForReset() {
     val sendLabel = aiSendLabel()
     openAiTab()
     dismissAiConsentIfNeeded()
-    waitForGuestCloudWorkspaceReady(context = "before creating the AI reset conversation")
-    waitForAiInteractiveReady(
+    waitForGuestAiEntryReady(
         expectedLabel = sendLabel,
         context = "before filling the AI reset prompt"
     )
@@ -506,32 +503,82 @@ private fun LiveSmokeContext.waitForAiComposerReadyQuickly(
     }
 }
 
-private fun LiveSmokeContext.waitForGuestCloudWorkspaceReady(context: String) {
+private data class GuestAiEntryReadinessSnapshot(
+    val cloudState: CloudAccountState,
+    val activeWorkspaceId: String?,
+    val workspaceId: String?,
+    val workspaceName: String?,
+    val conversationLoadingVisible: Boolean,
+    val conversationSurfaceVisible: Boolean,
+    val composerEditable: Boolean,
+    val sendButtonIdle: Boolean,
+    val sendButtonState: String?
+)
+
+private fun LiveSmokeContext.waitForGuestAiEntryReady(
+    expectedLabel: String,
+    context: String
+) {
     try {
-        val appGraph = appGraph()
-        waitForFlowValue(
-            timeoutMillis = externalUiTimeoutMillis,
-            context = "while waiting for guest cloud workspace readiness $context",
-            flow = combine(
-                appGraph.cloudAccountRepository.observeCloudSettings(),
-                appGraph.workspaceRepository.observeWorkspace()
-            ) { cloudSettings, workspace ->
-                cloudSettings to workspace
-            }
-        ) { (cloudSettings, workspace) ->
-            cloudSettings.cloudState == CloudAccountState.GUEST &&
-                cloudSettings.activeWorkspaceId != null &&
-                workspace?.workspaceId == cloudSettings.activeWorkspaceId
+        waitUntilWithMitigation(
+            timeoutMillis = externalAiRunTimeoutMillis,
+            context = "while waiting for guest AI entry readiness $context"
+        ) {
+            val snapshot = currentGuestAiEntryReadinessSnapshot(expectedLabel = expectedLabel)
+            snapshot.cloudState == CloudAccountState.GUEST &&
+                snapshot.activeWorkspaceId != null &&
+                snapshot.workspaceId == snapshot.activeWorkspaceId &&
+                snapshot.conversationLoadingVisible.not() &&
+                snapshot.conversationSurfaceVisible &&
+                snapshot.composerEditable &&
+                snapshot.sendButtonIdle
         }
     } catch (error: Throwable) {
+        val snapshot = currentGuestAiEntryReadinessSnapshot(expectedLabel = expectedLabel)
         throw AssertionError(
-            "Guest cloud workspace was not ready $context. " +
-                "CloudSettings=${currentCloudSettingsSummary()} " +
-                "Workspace=${currentWorkspaceSummaryOrNull()} " +
+            "Guest AI entry did not become ready $context. " +
+                "CloudState=${snapshot.cloudState} " +
+                "ActiveWorkspaceId=${snapshot.activeWorkspaceId} " +
+                "WorkspaceId=${snapshot.workspaceId} " +
+                "WorkspaceName=${snapshot.workspaceName} " +
+                "LoadingVisible=${snapshot.conversationLoadingVisible} " +
+                "ConversationSurfaceVisible=${snapshot.conversationSurfaceVisible} " +
+                "ComposerEditable=${snapshot.composerEditable} " +
+                "SendState=${snapshot.sendButtonState} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )
     }
+}
+
+private fun LiveSmokeContext.currentGuestAiEntryReadinessSnapshot(
+    expectedLabel: String
+): GuestAiEntryReadinessSnapshot {
+    val appGraph = appGraph()
+    val cloudSettings = runBlocking {
+        appGraph.cloudAccountRepository.observeCloudSettings().first()
+    }
+    val workspace = runBlocking {
+        appGraph.workspaceRepository.observeWorkspace().first()
+    }
+    return GuestAiEntryReadinessSnapshot(
+        cloudState = cloudSettings.cloudState,
+        activeWorkspaceId = cloudSettings.activeWorkspaceId,
+        workspaceId = workspace?.workspaceId,
+        workspaceName = workspace?.name,
+        conversationLoadingVisible = countNodesWithTagInAnySemanticsTree(
+            tag = aiConversationLoadingTag
+        ) > 0,
+        conversationSurfaceVisible = countNodesWithTagInAnySemanticsTree(
+            tag = aiConversationSurfaceTag
+        ) > 0,
+        composerEditable = aiComposerFieldIsEditable(),
+        sendButtonIdle = aiComposerSendButtonMatchesState(
+            expectedLabel = expectedLabel,
+            expectedEnabled = false
+        ),
+        sendButtonState = aiComposerSendButtonStateOrNull(expectedLabel = expectedLabel)
+    )
 }
 
 private fun LiveSmokeContext.waitForAiComposerReady(
@@ -584,36 +631,6 @@ private fun LiveSmokeContext.waitForAiComposerButtonState(
                 "ExpectedEnabled=$expectedEnabled " +
                 "ActualState=${aiComposerSendButtonStateOrNull(expectedLabel = expectedLabel)} " +
                 "ActualDraft='${aiComposerDraftTextOrNull()}' " +
-                "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
-            error
-        )
-    }
-}
-
-private fun LiveSmokeContext.waitForAiInteractiveReady(
-    expectedLabel: String,
-    context: String
-) {
-    try {
-        waitUntilWithMitigation(
-            timeoutMillis = externalUiTimeoutMillis,
-            context = "while waiting for AI interactive readiness $context"
-        ) {
-            countNodesWithTagInAnySemanticsTree(tag = aiConversationLoadingTag) == 0 &&
-                countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0 &&
-                aiComposerFieldIsEditable() &&
-                aiComposerSendButtonMatchesState(
-                    expectedLabel = expectedLabel,
-                    expectedEnabled = false
-                )
-        }
-    } catch (error: Throwable) {
-        throw AssertionError(
-            "AI interactive readiness did not arrive $context. " +
-                "LoadingVisible=${countNodesWithTagInAnySemanticsTree(tag = aiConversationLoadingTag) > 0} " +
-                "ConversationSurfaceVisible=${countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0} " +
-                "ActualDraft='${aiComposerDraftTextOrNull()}' " +
-                "SendState=${aiComposerSendButtonStateOrNull(expectedLabel = expectedLabel)} " +
                 "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}",
             error
         )
