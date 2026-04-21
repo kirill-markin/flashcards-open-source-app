@@ -701,6 +701,7 @@ private fun createProgressSummaryStoreState(
         .toLocalDate()
     val scopeKey = createProgressSummaryScopeKey(
         cloudSettings = inputs.cloudSettings,
+        today = today,
         zoneId = zoneId
     )
     val workspaceIds = inputs.workspaces.map(WorkspaceEntity::workspaceId)
@@ -815,11 +816,13 @@ private fun createProgressSeriesStoreState(
 
 internal fun createProgressSummaryScopeKey(
     cloudSettings: CloudSettings,
+    today: LocalDate,
     zoneId: ZoneId
 ): ProgressSummaryScopeKey {
     return ProgressSummaryScopeKey(
         scopeId = createProgressScopeId(cloudSettings = cloudSettings),
-        timeZone = zoneId.id
+        timeZone = zoneId.id,
+        referenceLocalDate = today.toString()
     )
 }
 
@@ -1139,7 +1142,7 @@ internal fun didSyncCompleteWithReviewHistoryChange(
 internal fun serializeProgressSummaryScopeKey(
     scopeKey: ProgressSummaryScopeKey
 ): String {
-    return "${scopeKey.scopeId}::${scopeKey.timeZone}"
+    return "${scopeKey.scopeId}::${scopeKey.timeZone}::${scopeKey.referenceLocalDate}"
 }
 
 internal fun serializeProgressSeriesScopeKey(

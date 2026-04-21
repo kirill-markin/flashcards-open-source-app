@@ -2,7 +2,8 @@ package com.flashcardsopensourceapp.data.local.model
 
 data class ProgressSummaryScopeKey(
     val scopeId: String,
-    val timeZone: String
+    val timeZone: String,
+    val referenceLocalDate: String
 )
 
 data class ProgressSeriesScopeKey(
