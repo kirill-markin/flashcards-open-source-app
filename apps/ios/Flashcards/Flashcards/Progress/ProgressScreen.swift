@@ -117,9 +117,6 @@ struct ProgressScreen: View {
                 comment: "Progress screen title"
             )
         )
-        .task {
-            await self.store.refreshProgressIfNeeded()
-        }
         .refreshable {
             await self.store.refreshProgressManually()
         }

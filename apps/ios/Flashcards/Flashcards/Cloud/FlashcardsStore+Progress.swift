@@ -56,9 +56,11 @@ extension FlashcardsStore {
                 scopeKey: summaryScopeKey,
                 linkedSession: activeSession
             )
-        } catch is CancellationError {
-            return
         } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+
             self.progressErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
@@ -103,9 +105,11 @@ extension FlashcardsStore {
             if self.progressObservedScopeKey == scopeKey {
                 try self.publishProgressSnapshot(scopeKey: scopeKey)
             }
-        } catch is CancellationError {
-            return
         } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+
             self.progressErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
@@ -129,9 +133,11 @@ extension FlashcardsStore {
                 linkedSession: activeSession
             )
             _ = await (refreshSummary, refreshSeries)
-        } catch is CancellationError {
-            return
         } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+
             self.progressErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
@@ -230,9 +236,11 @@ extension FlashcardsStore {
             }
 
             await self.refreshVisibleProgressIfNeeded(now: now)
-        } catch is CancellationError {
-            return
         } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+
             self.progressErrorMessage = Flashcards.errorMessage(error: error)
         }
     }
@@ -305,9 +313,11 @@ extension FlashcardsStore {
 
             try self.publishProgressSnapshot(scopeKey: observedScopeKey)
             self.progressErrorMessage = ""
-        } catch is CancellationError {
-            return
         } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+
             guard self.isCurrentProgressSummaryRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
                 return
             }
@@ -362,9 +372,11 @@ extension FlashcardsStore {
             self.progressSeriesInvalidatedScopeKeys.remove(scopeKey)
             try self.publishProgressSnapshot(scopeKey: scopeKey)
             self.progressErrorMessage = ""
-        } catch is CancellationError {
-            return
         } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+
             guard self.isCurrentProgressSeriesRefresh(scopeKey: scopeKey, refreshToken: refreshToken) else {
                 return
             }
