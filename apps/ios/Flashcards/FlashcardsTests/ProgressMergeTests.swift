@@ -867,7 +867,8 @@ final class ProgressMergeTests: XCTestCase {
                     cloudState: scopeKey.cloudState,
                     linkedUserId: scopeKey.linkedUserId,
                     workspaceMembershipKey: scopeKey.workspaceMembershipKey,
-                    timeZone: scopeKey.timeZone
+                    timeZone: scopeKey.timeZone,
+                    referenceLocalDate: scopeKey.to
                 )
             )
         )
@@ -1157,6 +1158,59 @@ final class ProgressMergeTests: XCTestCase {
         XCTAssertEqual(1, context.store.reviewProgressBadgeState.streakDays)
         XCTAssertTrue(context.store.reviewProgressBadgeState.isInteractive)
         XCTAssertEqual(rolloverRequestRange.to, context.store.progressObservedScopeKey?.to)
+    }
+
+    @MainActor
+    func testProgressSummaryScopeKeyChangesAcrossLocalDayRollover() async throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        let initialNow = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T18:00:00.000Z"))
+        let rolloverNow = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-19T08:00:00.000Z"))
+        let initialRequestRange = try makeTestProgressRequestRange(
+            now: initialNow,
+            timeZone: TimeZone.current,
+            dayCount: 140
+        )
+        let rolloverRequestRange = try makeTestProgressRequestRange(
+            now: rolloverNow,
+            timeZone: TimeZone.current,
+            dayCount: 140
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: try makeTestProgressSummary(
+                timeZone: initialRequestRange.timeZone,
+                reviewDates: [initialRequestRange.to],
+                generatedAt: "2026-04-18T17:59:00.000Z"
+            ),
+            serverSeries: try makeTestProgressSeries(
+                requestRange: initialRequestRange,
+                reviewCountsByDate: [initialRequestRange.to: 1],
+                generatedAt: "2026-04-18T17:59:00.000Z"
+            ),
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .guest
+        )
+        defer { context.tearDown() }
+
+        context.store.updateCurrentVisibleTab(tab: .review)
+        await context.store.refreshReviewProgressBadgeIfNeeded(now: initialNow)
+        let initialScopeKey = try XCTUnwrap(context.store.progressObservedScopeKey)
+
+        context.store.handleProgressContextDidChange(now: rolloverNow)
+        let rolloverScopeKey = try XCTUnwrap(context.store.progressObservedScopeKey)
+
+        XCTAssertNotEqual(initialScopeKey.to, rolloverScopeKey.to)
+        XCTAssertNotEqual(
+            progressSummaryScopeKey(seriesScopeKey: initialScopeKey),
+            progressSummaryScopeKey(seriesScopeKey: rolloverScopeKey)
+        )
+        XCTAssertEqual(initialRequestRange.to, progressSummaryScopeKey(seriesScopeKey: initialScopeKey).referenceLocalDate)
+        XCTAssertEqual(rolloverRequestRange.to, progressSummaryScopeKey(seriesScopeKey: rolloverScopeKey).referenceLocalDate)
     }
 
     @MainActor

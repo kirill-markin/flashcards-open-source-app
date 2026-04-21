@@ -741,7 +741,8 @@ private func progressSummaryScopeKey(seriesScopeKey: ProgressScopeKey) -> Progre
         cloudState: seriesScopeKey.cloudState,
         linkedUserId: seriesScopeKey.linkedUserId,
         workspaceMembershipKey: seriesScopeKey.workspaceMembershipKey,
-        timeZone: seriesScopeKey.timeZone
+        timeZone: seriesScopeKey.timeZone,
+        referenceLocalDate: seriesScopeKey.to
     )
 }
 
