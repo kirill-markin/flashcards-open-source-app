@@ -736,7 +736,7 @@ private func progressSeriesServerBaseUserDefaultsKey(scopeKey: ProgressScopeKey)
     "\(progressSeriesServerBaseCacheUserDefaultsKeyPrefix)|\(scopeKey.storageKey)"
 }
 
-private func progressSummaryScopeKey(seriesScopeKey: ProgressScopeKey) -> ProgressSummaryScopeKey {
+func progressSummaryScopeKey(seriesScopeKey: ProgressScopeKey) -> ProgressSummaryScopeKey {
     ProgressSummaryScopeKey(
         cloudState: seriesScopeKey.cloudState,
         linkedUserId: seriesScopeKey.linkedUserId,
