@@ -35,6 +35,13 @@ struct ProgressScreen: View {
                 }
 
                 if let progressSnapshot = self.store.progressSnapshot {
+                    let presentationCalendar = requiredProgressPresentationCalendar(
+                        timeZoneIdentifier: progressSnapshot.scopeKey.timeZone
+                    )
+                    let streakWeeks = requiredProgressStreakWeeks(
+                        progressSnapshot: progressSnapshot,
+                        calendar: presentationCalendar
+                    )
                     if self.store.isProgressRefreshing {
                         VStack(alignment: .leading, spacing: 0) {
                             ProgressView(
@@ -62,8 +69,9 @@ struct ProgressScreen: View {
                         .font(.headline)
 
                         ProgressStreakSection(
-                            weeks: progressSnapshot.streakWeeks,
-                            badgeState: makeReviewProgressBadgeState(summary: progressSnapshot.summary)
+                            weeks: streakWeeks,
+                            badgeState: makeReviewProgressBadgeState(summary: progressSnapshot.summary),
+                            calendar: presentationCalendar
                         )
                     }
                     .modifier(ProgressCardModifier())
@@ -73,9 +81,7 @@ struct ProgressScreen: View {
                             chartDays: progressSnapshot.chartData.chartDays,
                             chartUpperBound: progressSnapshot.chartData.chartUpperBound,
                             hasReviewActivity: progressSnapshot.chartData.hasReviewActivity,
-                            chartCalendar: makeProgressReviewChartCalendar(
-                                timeZoneIdentifier: progressSnapshot.scopeKey.timeZone
-                            ),
+                            chartCalendar: presentationCalendar,
                             selectionResetKey: progressSnapshot.scopeKey.storageKey
                         )
                     }
@@ -138,6 +144,7 @@ private struct ProgressCardModifier: ViewModifier {
 private struct ProgressStreakSection: View {
     let weeks: [ProgressCalendarWeek]
     let badgeState: ReviewProgressBadgeState
+    let calendar: Calendar
 
     private var columns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: 10, alignment: .center), count: progressCalendarColumnCount)
@@ -160,7 +167,7 @@ private struct ProgressStreakSection: View {
 
             LazyVGrid(columns: self.columns, spacing: 12) {
                 ForEach(self.headerDays) { day in
-                    Text(day.date, format: .dateTime.weekday(.narrow))
+                    Text(progressWeekdayLabel(date: day.date, calendar: self.calendar))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)
@@ -168,7 +175,7 @@ private struct ProgressStreakSection: View {
                 }
 
                 ForEach(self.streakDays) { day in
-                    ProgressStreakDayCell(day: day)
+                    ProgressStreakDayCell(day: day, calendar: self.calendar)
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -239,6 +246,7 @@ private struct ProgressStreakSummaryBadge: View {
 
 private struct ProgressStreakDayCell: View {
     let day: ProgressCalendarDay
+    let calendar: Calendar
 
     var body: some View {
         ZStack {
@@ -326,7 +334,7 @@ private struct ProgressStreakDayCell: View {
             return ""
         }
 
-        let dateTitle = self.day.date.formatted(date: .complete, time: .omitted)
+        let dateTitle = progressCompleteDateLabel(date: self.day.date, calendar: self.calendar)
         let todayTitle = String(
             localized: "progress.screen.today",
             defaultValue: "Today",
@@ -480,7 +488,7 @@ private struct ProgressReviewsSection: View {
                             if let localDate = value.as(String.self), let day = visiblePage.day(localDate: localDate) {
                                 VStack(spacing: 2) {
                                     Text(
-                                        progressReviewChartWeekdayLabel(
+                                        progressWeekdayLabel(
                                             date: day.date,
                                             calendar: self.chartCalendar
                                         )
@@ -635,26 +643,51 @@ private func progressReviewChartPageDateRange(
     return formatter.string(from: page.startDate, to: page.endDate)
 }
 
-private func makeProgressReviewChartCalendar(timeZoneIdentifier: String) -> Calendar {
-    guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
-        preconditionFailure("Progress chart timezone identifier is invalid: \(timeZoneIdentifier)")
+private func requiredProgressPresentationCalendar(
+    timeZoneIdentifier: String
+) -> Calendar {
+    do {
+        return try makeProgressPresentationCalendar(
+            timeZoneIdentifier: timeZoneIdentifier,
+            userCalendar: Calendar.autoupdatingCurrent
+        )
+    } catch {
+        preconditionFailure("Progress presentation calendar is invalid: \(error.localizedDescription)")
     }
-
-    let userCalendar = Calendar.autoupdatingCurrent
-    var calendar = Calendar(identifier: .gregorian)
-    calendar.locale = Locale.autoupdatingCurrent
-    calendar.timeZone = timeZone
-    calendar.firstWeekday = userCalendar.firstWeekday
-    calendar.minimumDaysInFirstWeek = userCalendar.minimumDaysInFirstWeek
-    return calendar
 }
 
-private func progressReviewChartWeekdayLabel(date: Date, calendar: Calendar) -> String {
+private func requiredProgressStreakWeeks(
+    progressSnapshot: ProgressSnapshot,
+    calendar: Calendar
+) -> [ProgressCalendarWeek] {
+    do {
+        return try makeProgressStreakWeeks(
+            chartDays: progressSnapshot.chartData.chartDays,
+            rangeStartLocalDate: progressSnapshot.scopeKey.from,
+            todayLocalDate: progressSnapshot.scopeKey.to,
+            calendar: calendar
+        )
+    } catch {
+        preconditionFailure("Progress streak weeks are invalid: \(error.localizedDescription)")
+    }
+}
+
+private func progressWeekdayLabel(date: Date, calendar: Calendar) -> String {
     let formatter = DateFormatter()
     formatter.calendar = calendar
     formatter.locale = Locale.autoupdatingCurrent
     formatter.timeZone = calendar.timeZone
     formatter.setLocalizedDateFormatFromTemplate("EEEEE")
+    return formatter.string(from: date)
+}
+
+private func progressCompleteDateLabel(date: Date, calendar: Calendar) -> String {
+    let formatter = DateFormatter()
+    formatter.calendar = calendar
+    formatter.locale = Locale.autoupdatingCurrent
+    formatter.timeZone = calendar.timeZone
+    formatter.dateStyle = .full
+    formatter.timeStyle = .none
     return formatter.string(from: date)
 }
 

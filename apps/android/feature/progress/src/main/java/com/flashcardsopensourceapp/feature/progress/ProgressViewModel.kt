@@ -67,6 +67,11 @@ private data class ParsedProgressPoint(
     val reviewCount: Int
 )
 
+private data class ProgressWeekContext(
+    val locale: Locale,
+    val firstDayOfWeek: DayOfWeek
+)
+
 private fun createProgressUiState(
     summarySnapshot: ProgressSummarySnapshot?,
     seriesSnapshot: ProgressSeriesSnapshot?
@@ -114,15 +119,18 @@ private fun CloudProgressSeries.toUiState(
         .sortedBy { point -> point.date }
         .takeLast(progressHistoryDayCount.toInt())
     val progressPointsByDate = parsedPoints.associateBy { point -> point.date }
-    val firstDayOfWeek = WeekFields.of(locale).firstDayOfWeek
+    val weekContext = createProgressWeekContext(locale = locale)
     val reviewsSection = ProgressReviewsSectionUiState(
-        days = parsedPoints.toReviewDays(today = today),
+        days = parsedPoints.toReviewDays(
+            today = today,
+            weekContext = weekContext
+        ),
         maxReviewCount = parsedPoints.maxOfOrNull { point -> point.reviewCount } ?: 0
     )
     val streakSection = ProgressStreakSectionUiState(
-        weekdayLabels = createWeekdayLabels(locale = locale),
+        weekdayLabels = weekContext.createWeekdayLabels(),
         weeks = createStreakWeeks(
-            firstDayOfWeek = firstDayOfWeek,
+            weekContext = weekContext,
             today = today,
             progressPointsByDate = progressPointsByDate
         )
@@ -162,19 +170,17 @@ private fun parseProgressDate(
 }
 
 private fun List<ParsedProgressPoint>.toReviewDays(
-    today: LocalDate
+    today: LocalDate,
+    weekContext: ProgressWeekContext
 ): List<ProgressHistoryDayUiState> {
-    val totalCount = size
-
-    return mapIndexed { index, point ->
-        val daysFromToday = totalCount - index - 1
+    return map { point ->
         ProgressHistoryDayUiState(
             date = point.date,
             dayOfMonthLabel = point.date.dayOfMonth.toString(),
             chartLabel = createChartLabel(
                 date = point.date,
-                daysFromToday = daysFromToday,
-                today = today
+                today = today,
+                weekContext = weekContext
             ),
             reviewCount = point.reviewCount,
             isToday = point.date == today
@@ -184,21 +190,17 @@ private fun List<ParsedProgressPoint>.toReviewDays(
 
 private fun createChartLabel(
     date: LocalDate,
-    daysFromToday: Int,
-    today: LocalDate
+    today: LocalDate,
+    weekContext: ProgressWeekContext
 ): String? {
     return when {
         date == today -> null
-        daysFromToday % daysPerWeek == 0 -> date.dayOfMonth.toString()
+        weekContext.isStartOfWeek(date = date) -> date.dayOfMonth.toString()
         else -> null
     }
 }
 
-private fun createWeekdayLabels(
-    locale: Locale
-): List<String> {
-    val firstDayOfWeek = WeekFields.of(locale).firstDayOfWeek
-
+private fun ProgressWeekContext.createWeekdayLabels(): List<String> {
     return (0 until daysPerWeek).map { dayIndex ->
         firstDayOfWeek
             .plus(dayIndex.toLong())
@@ -206,15 +208,22 @@ private fun createWeekdayLabels(
     }
 }
 
+private fun createProgressWeekContext(
+    locale: Locale
+): ProgressWeekContext {
+    return ProgressWeekContext(
+        locale = locale,
+        firstDayOfWeek = WeekFields.of(locale).firstDayOfWeek
+    )
+}
+
 private fun createStreakWeeks(
-    firstDayOfWeek: DayOfWeek,
+    weekContext: ProgressWeekContext,
     today: LocalDate,
     progressPointsByDate: Map<LocalDate, ParsedProgressPoint>
 ): List<ProgressStreakWeekUiState> {
-    val streakWindowStart = startOfWeek(
-        date = today,
-        firstDayOfWeek = firstDayOfWeek
-    ).minusDays(((streakWeekCount - 1) * daysPerWeek).toLong())
+    val streakWindowStart = weekContext.startOfWeek(date = today)
+        .minusDays(((streakWeekCount - 1) * daysPerWeek).toLong())
 
     return (0 until streakWeekCount).map { weekIndex ->
         val weekStart = streakWindowStart.plusDays((weekIndex * daysPerWeek).toLong())
@@ -247,13 +256,18 @@ private fun createStreakWeeks(
     }
 }
 
-private fun startOfWeek(
+private fun ProgressWeekContext.startOfWeek(
     date: LocalDate,
-    firstDayOfWeek: DayOfWeek
 ): LocalDate {
     val daysFromStartOfWeek = (date.dayOfWeek.value - firstDayOfWeek.value + daysPerWeek) % daysPerWeek
 
     return date.minusDays(daysFromStartOfWeek.toLong())
+}
+
+private fun ProgressWeekContext.isStartOfWeek(
+    date: LocalDate
+): Boolean {
+    return startOfWeek(date = date) == date
 }
 
 private fun logProgressUiStateMappingFailure(
