@@ -15,6 +15,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -22,6 +23,8 @@ import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
+import java.util.Locale
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProgressViewModelTest {
@@ -147,6 +150,68 @@ class ProgressViewModelTest {
             Dispatchers.resetMain()
         }
     }
+
+    @Test
+    fun loadedUiStateUsesMondayWeekStartForGermanLocaleAcrossStreakAndChart() = runTest(dispatcher) {
+        assertLoadedUiStateUsesLocaleWeekStart(
+            locale = Locale.GERMANY,
+            expectedWeekStart = LocalDate.parse("2026-04-13"),
+            unexpectedChartLabelDate = LocalDate.parse("2026-04-11")
+        )
+    }
+
+    @Test
+    fun loadedUiStateUsesSundayWeekStartForUsLocaleAcrossStreakAndChart() = runTest(dispatcher) {
+        assertLoadedUiStateUsesLocaleWeekStart(
+            locale = Locale.US,
+            expectedWeekStart = LocalDate.parse("2026-04-12"),
+            unexpectedChartLabelDate = LocalDate.parse("2026-04-13")
+        )
+    }
+
+    private suspend fun TestScope.assertLoadedUiStateUsesLocaleWeekStart(
+        locale: Locale,
+        expectedWeekStart: LocalDate,
+        unexpectedChartLabelDate: LocalDate
+    ) {
+        Dispatchers.setMain(dispatcher)
+        val previousLocale = Locale.getDefault()
+
+        try {
+            Locale.setDefault(locale)
+
+            val repository = FakeProgressRepository()
+            val viewModel = ProgressViewModel(
+                progressRepository = repository
+            )
+
+            repository.emitSummarySnapshot(
+                snapshot = createProgressSummarySnapshot()
+            )
+            repository.emitSeriesSnapshot(
+                snapshot = createProgressSeriesSnapshot(
+                    from = "2026-04-11",
+                    to = "2026-04-18",
+                    dailyReviews = createDailyReviewPoints(
+                        from = LocalDate.parse("2026-04-11"),
+                        to = LocalDate.parse("2026-04-18")
+                    )
+                )
+            )
+            advanceUntilIdle()
+
+            val uiState = viewModel.uiState.value as ProgressUiState.Loaded
+            val reviewDaysByDate = uiState.reviewsSection.days.associateBy { day -> day.date }
+            val latestWeek = uiState.streakSection.weeks.last()
+
+            assertEquals(expectedWeekStart, latestWeek.days.first().date)
+            assertEquals(expectedWeekStart.dayOfMonth.toString(), reviewDaysByDate[expectedWeekStart]?.chartLabel)
+            assertEquals(null, reviewDaysByDate[unexpectedChartLabelDate]?.chartLabel)
+        } finally {
+            Locale.setDefault(previousLocale)
+            Dispatchers.resetMain()
+        }
+    }
 }
 
 private class FakeProgressRepository : ProgressRepository {
@@ -229,22 +294,34 @@ private fun createProgressSummarySnapshot(): ProgressSummarySnapshot {
 }
 
 private fun createProgressSeriesSnapshot(): ProgressSeriesSnapshot {
+    return createProgressSeriesSnapshot(
+        from = "2026-04-18",
+        to = "2026-04-18",
+        dailyReviews = listOf(
+            CloudDailyReviewPoint(
+                date = "2026-04-18",
+                reviewCount = 3
+            )
+        )
+    )
+}
+
+private fun createProgressSeriesSnapshot(
+    from: String,
+    to: String,
+    dailyReviews: List<CloudDailyReviewPoint>
+): ProgressSeriesSnapshot {
     val scopeKey = ProgressSeriesScopeKey(
         scopeId = "local:installation-1",
         timeZone = "Europe/Madrid",
-        from = "2026-04-18",
-        to = "2026-04-18"
+        from = from,
+        to = to
     )
     val renderedSeries = CloudProgressSeries(
         timeZone = scopeKey.timeZone,
         from = scopeKey.from,
         to = scopeKey.to,
-        dailyReviews = listOf(
-            CloudDailyReviewPoint(
-                date = scopeKey.to,
-                reviewCount = 3
-            )
-        ),
+        dailyReviews = dailyReviews,
         generatedAt = null,
         summary = null
     )
@@ -257,16 +334,32 @@ private fun createProgressSeriesSnapshot(): ProgressSeriesSnapshot {
             timeZone = scopeKey.timeZone,
             from = scopeKey.from,
             to = scopeKey.to,
-            dailyReviews = listOf(
-                CloudDailyReviewPoint(
-                    date = scopeKey.to,
-                    reviewCount = 0
-                )
-            ),
+            dailyReviews = dailyReviews.map { point ->
+                point.copy(reviewCount = 0)
+            },
             generatedAt = null,
             summary = null
         ),
         source = ProgressSnapshotSource.LOCAL_ONLY,
         isApproximate = true
     )
+}
+
+private fun createDailyReviewPoints(
+    from: LocalDate,
+    to: LocalDate
+): List<CloudDailyReviewPoint> {
+    return generateSequence(from) { date ->
+        val nextDate = date.plusDays(1)
+        if (nextDate.isAfter(to)) {
+            null
+        } else {
+            nextDate
+        }
+    }.map { date ->
+        CloudDailyReviewPoint(
+            date = date.toString(),
+            reviewCount = 1
+        )
+    }.toList()
 }

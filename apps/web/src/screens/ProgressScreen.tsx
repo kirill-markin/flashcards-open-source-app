@@ -1,24 +1,26 @@
-import { useEffect, useRef, type ReactElement } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactElement } from "react";
 import { useAppData } from "../appData";
 import {
   buildReviewProgressBadgeStateFromSummarySnapshot,
   formatReviewProgressBadgeValue,
 } from "../appData/reviewProgressBadge";
 import { useProgressInvalidationState } from "../appData/progressInvalidation";
-import { parseLocalDate, useProgressSource } from "../appData/progressSource";
-import { useI18n } from "../i18n";
-import type { ProgressSeriesSnapshot } from "../types";
+import { parseLocalDate, shiftLocalDate, useProgressSource } from "../appData/progressSource";
+import { resolveLocaleWeekContext, useI18n } from "../i18n";
+import type { DailyReviewPoint, ProgressSeriesSnapshot } from "../types";
 
-const streakDayCount = 35;
+const streakWeekCount = 5;
 const streakWeekLength = 7;
 const chartGuideLineCount = 3;
 
 type DateFormatter = ReturnType<typeof useI18n>["formatDate"];
 type NumberFormatter = ReturnType<typeof useI18n>["formatNumber"];
+type WeekContext = ReturnType<typeof resolveLocaleWeekContext>;
 type DailyReview = ProgressSeriesSnapshot["dailyReviews"][number];
 type StreakDay = Readonly<{
   date: string;
   reviewCount: number;
+  isFuture: boolean;
   isToday: boolean;
   weekdayLabel: string;
   dayLabel: string;
@@ -30,10 +32,23 @@ type ChartDay = Readonly<{
   isToday: boolean;
   dayLabel: string;
   monthLabel: string;
+  showDayLabel: boolean;
   showMonthLabel: boolean;
   barHeightPercentage: number;
   title: string;
 }>;
+
+const futureStreakDayStyle: Readonly<CSSProperties> = {
+  borderStyle: "dashed",
+  background: "transparent",
+  opacity: 0.64,
+};
+
+const futureStreakMarkerStyle: Readonly<CSSProperties> = {
+  background: "transparent",
+  boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.12)",
+  color: "var(--text-tertiary)",
+};
 
 function formatLocalDateForDisplay(value: string, formatDate: DateFormatter): string {
   return formatDate(parseLocalDate(value), {
@@ -65,32 +80,64 @@ function formatMonthLabel(value: string, formatDate: DateFormatter): string {
   });
 }
 
-function isFirstDayOfMonth(value: string): boolean {
-  const parts = value.split("-");
-  return parts[2] === "01";
-}
-
 function sortDailyReviews(dailyReviews: ProgressSeriesSnapshot["dailyReviews"]): ReadonlyArray<DailyReview> {
   return [...dailyReviews].sort((leftDay, rightDay) => leftDay.date.localeCompare(rightDay.date));
 }
 
-function buildStreakWeeks(
+function createDailyReviewCountMap(dailyReviews: ReadonlyArray<DailyReviewPoint>): ReadonlyMap<string, number> {
+  const reviewCounts = new Map<string, number>();
+
+  for (const day of dailyReviews) {
+    reviewCounts.set(day.date, day.reviewCount);
+  }
+
+  return reviewCounts;
+}
+
+function getDayOfWeek(value: string): number {
+  return parseLocalDate(value).getUTCDay();
+}
+
+function getStartOfWeek(value: string, weekContext: WeekContext): string {
+  const dayOfWeek = getDayOfWeek(value);
+  const offsetFromWeekStart = (dayOfWeek - weekContext.firstDayOfWeek + streakWeekLength) % streakWeekLength;
+
+  return shiftLocalDate(value, -offsetFromWeekStart);
+}
+
+function isStartOfWeek(value: string, weekContext: WeekContext): boolean {
+  return getDayOfWeek(value) === weekContext.firstDayOfWeek;
+}
+
+export function buildStreakWeeks(
   dailyReviews: ReadonlyArray<DailyReview>,
   today: string,
   formatDate: DateFormatter,
+  weekContext: WeekContext,
 ): ReadonlyArray<ReadonlyArray<StreakDay>> {
-  const streakDays = dailyReviews.slice(-streakDayCount).map((day): StreakDay => ({
-    date: day.date,
-    reviewCount: day.reviewCount,
-    isToday: day.date === today,
-    weekdayLabel: formatWeekdayLabel(day.date, formatDate),
-    dayLabel: formatDayLabel(day.date, formatDate),
-    title: formatLocalDateForDisplay(day.date, formatDate),
-  }));
+  const currentWeekStart = getStartOfWeek(today, weekContext);
+  const streakWindowStart = shiftLocalDate(currentWeekStart, -((streakWeekCount - 1) * streakWeekLength));
+  const reviewCounts = createDailyReviewCountMap(dailyReviews);
   const streakWeeks: Array<ReadonlyArray<StreakDay>> = [];
 
-  for (let index = 0; index < streakDays.length; index += streakWeekLength) {
-    streakWeeks.push(streakDays.slice(index, index + streakWeekLength));
+  for (let weekIndex = 0; weekIndex < streakWeekCount; weekIndex += 1) {
+    const weekStart = shiftLocalDate(streakWindowStart, weekIndex * streakWeekLength);
+    const weekDays: Array<StreakDay> = [];
+
+    for (let dayOffset = 0; dayOffset < streakWeekLength; dayOffset += 1) {
+      const date = shiftLocalDate(weekStart, dayOffset);
+      weekDays.push({
+        date,
+        reviewCount: reviewCounts.get(date) ?? 0,
+        isFuture: date > today,
+        isToday: date === today,
+        weekdayLabel: formatWeekdayLabel(date, formatDate),
+        dayLabel: formatDayLabel(date, formatDate),
+        title: formatLocalDateForDisplay(date, formatDate),
+      });
+    }
+
+    streakWeeks.push(weekDays);
   }
 
   return streakWeeks;
@@ -113,17 +160,31 @@ function buildChartDays(
   today: string,
   maxReviewCount: number,
   formatDate: DateFormatter,
+  weekContext: WeekContext,
 ): ReadonlyArray<ChartDay> {
-  return dailyReviews.map((day): ChartDay => ({
-    date: day.date,
-    reviewCount: day.reviewCount,
-    isToday: day.date === today,
-    dayLabel: formatDayLabel(day.date, formatDate),
-    monthLabel: formatMonthLabel(day.date, formatDate),
-    showMonthLabel: isFirstDayOfMonth(day.date) || day.date === today,
-    barHeightPercentage: calculateBarHeightPercentage(day.reviewCount, maxReviewCount),
-    title: formatLocalDateForDisplay(day.date, formatDate),
-  }));
+  let lastLabeledMonth: string | null = null;
+
+  return dailyReviews.map((day): ChartDay => {
+    const showDayLabel = isStartOfWeek(day.date, weekContext) || day.date === today;
+    const currentMonth = day.date.slice(0, 7);
+    const showMonthLabel = showDayLabel && (lastLabeledMonth === null || currentMonth !== lastLabeledMonth || day.date === today);
+
+    if (showDayLabel) {
+      lastLabeledMonth = currentMonth;
+    }
+
+    return {
+      date: day.date,
+      reviewCount: day.reviewCount,
+      isToday: day.date === today,
+      dayLabel: formatDayLabel(day.date, formatDate),
+      monthLabel: formatMonthLabel(day.date, formatDate),
+      showDayLabel,
+      showMonthLabel,
+      barHeightPercentage: calculateBarHeightPercentage(day.reviewCount, maxReviewCount),
+      title: formatLocalDateForDisplay(day.date, formatDate),
+    };
+  });
 }
 
 function buildChartGuideLabels(maxReviewCount: number, formatNumber: NumberFormatter): ReadonlyArray<string> {
@@ -166,7 +227,7 @@ export function ProgressScreen(): ReactElement {
       includeSeries: true,
     },
   });
-  const { t, formatDate, formatNumber } = useI18n();
+  const { locale, matchedBrowserLanguageTag, t, formatDate, formatNumber } = useI18n();
   const todayChartColumnRef = useRef<HTMLDivElement | null>(null);
   const progressSummary = progressSourceState.summary.renderedSnapshot;
   const progress = progressSourceState.series.renderedSnapshot;
@@ -191,9 +252,10 @@ export function ProgressScreen(): ReactElement {
 
   const dailyReviews = progress === null ? [] : sortDailyReviews(progress.dailyReviews);
   const today = progress === null ? "" : progress.to;
-  const streakWeeks = progress === null ? [] : buildStreakWeeks(dailyReviews, today, formatDate);
+  const weekContext = resolveLocaleWeekContext(matchedBrowserLanguageTag ?? locale, locale);
+  const streakWeeks = progress === null ? [] : buildStreakWeeks(dailyReviews, today, formatDate, weekContext);
   const maxReviewCount = progress === null ? 0 : calculateMaxReviewCount(dailyReviews);
-  const chartDays = progress === null ? [] : buildChartDays(dailyReviews, today, maxReviewCount, formatDate);
+  const chartDays = progress === null ? [] : buildChartDays(dailyReviews, today, maxReviewCount, formatDate, weekContext);
   const chartGuideLabels = buildChartGuideLabels(maxReviewCount, formatNumber);
   const reviewProgressBadgeTodayStatus = reviewProgressBadge.hasReviewedToday
     ? t("reviewScreen.progressBadge.reviewedToday")
@@ -264,10 +326,20 @@ export function ProgressScreen(): ReactElement {
                         .join(" ");
 
                       return (
-                        <div key={day.date} className={dayClassName} title={day.title}>
+                        <div
+                          key={day.date}
+                          className={dayClassName}
+                          title={day.title}
+                          data-streak-state={day.isFuture ? "future" : "active"}
+                          style={day.isFuture ? futureStreakDayStyle : undefined}
+                        >
                           <span className="progress-streak-weekday">{day.weekdayLabel}</span>
-                          <span className="progress-streak-marker" aria-hidden="true">
-                            {day.reviewCount > 0 ? "🔥" : day.dayLabel}
+                          <span
+                            className="progress-streak-marker"
+                            aria-hidden="true"
+                            style={day.isFuture ? futureStreakMarkerStyle : undefined}
+                          >
+                            {day.reviewCount > 0 ? "🔥" : day.isFuture ? "" : day.dayLabel}
                           </span>
                         </div>
                       );
@@ -334,7 +406,7 @@ export function ProgressScreen(): ReactElement {
                               <span className="progress-chart-month">
                                 {day.showMonthLabel ? day.monthLabel : ""}
                               </span>
-                              <span className="progress-chart-day">{day.dayLabel}</span>
+                              <span className="progress-chart-day">{day.showDayLabel ? day.dayLabel : ""}</span>
                             </div>
                           </div>
                         );

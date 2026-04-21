@@ -17,6 +17,7 @@ export {
   type BrowserLocaleResolution,
   type ResolvedLocaleState,
 } from "./runtime";
+export { resolveLocaleWeekContext, type LocaleWeekContext } from "./weekContext";
 export {
   autoLocalePreference,
   defaultLocale,

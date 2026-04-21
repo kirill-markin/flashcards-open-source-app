@@ -199,7 +199,6 @@ struct ProgressChartData: Hashable, Sendable {
 struct ProgressSnapshot: Hashable, Sendable {
     let scopeKey: ProgressScopeKey
     let summary: ProgressSummary
-    let streakWeeks: [ProgressCalendarWeek]
     let chartData: ProgressChartData
     let summarySourceState: ProgressSourceState
     let seriesSourceState: ProgressSourceState
@@ -248,6 +247,7 @@ func formatReviewProgressBadgeValue(badgeState: ReviewProgressBadgeState) -> Str
 enum ProgressPresentationError: LocalizedError {
     case duplicateDay(String)
     case invalidLocalDate(String)
+    case invalidTimeZone(String)
     case invalidRange(String, String)
     case negativeReviewCount(String, Int)
     case summaryMetadataMismatch(expectedTimeZone: String, actualTimeZone: String)
@@ -259,6 +259,8 @@ enum ProgressPresentationError: LocalizedError {
             return "Progress contained duplicate daily entries for \(localDate)."
         case .invalidLocalDate(let localDate):
             return "Progress contained an invalid local date: \(localDate)."
+        case .invalidTimeZone(let timeZoneIdentifier):
+            return "Progress contained an invalid timezone identifier: \(timeZoneIdentifier)."
         case .invalidRange(let from, let to):
             return "Progress contained an invalid date range from \(from) to \(to)."
         case .negativeReviewCount(let localDate, let reviewCount):
@@ -302,7 +304,6 @@ func makeProgressSnapshot(
     try validateProgressSeriesMetadata(series: series, scopeKey: scopeKey)
     let timeline = try makeProgressTimeline(series: series, calendar: calendar)
     let todayLocalDate = series.to
-    let today = try progressDate(localDate: todayLocalDate, calendar: calendar)
 
     let chartDays = timeline.map { timelineDay in
         ProgressChartDay(
@@ -312,13 +313,6 @@ func makeProgressSnapshot(
             isToday: timelineDay.localDate == todayLocalDate
         )
     }
-    let streakWeeks = try makeProgressStreakWeeks(
-        timeline: timeline,
-        today: today,
-        todayLocalDate: todayLocalDate,
-        series: series,
-        calendar: calendar
-    )
     let maximumReviewCount = chartDays.map(\.reviewCount).max() ?? 0
     let chartData = ProgressChartData(
         chartDays: chartDays,
@@ -329,7 +323,6 @@ func makeProgressSnapshot(
     return ProgressSnapshot(
         scopeKey: scopeKey,
         summary: summary,
-        streakWeeks: streakWeeks,
         chartData: chartData,
         summarySourceState: summarySourceState,
         seriesSourceState: seriesSourceState,
@@ -443,6 +436,22 @@ func validateProgressSummaryMetadata(
     }
 }
 
+func makeProgressPresentationCalendar(
+    timeZoneIdentifier: String,
+    userCalendar: Calendar
+) throws -> Calendar {
+    guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
+        throw ProgressPresentationError.invalidTimeZone(timeZoneIdentifier)
+    }
+
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.locale = Locale.autoupdatingCurrent
+    calendar.timeZone = timeZone
+    calendar.firstWeekday = userCalendar.firstWeekday
+    calendar.minimumDaysInFirstWeek = userCalendar.minimumDaysInFirstWeek
+    return calendar
+}
+
 private func validateProgressSeriesMetadata(
     series: UserProgressSeries,
     scopeKey: ProgressScopeKey
@@ -511,28 +520,29 @@ private func progressTimeZoneLocalDateString(
     return formatter.string(from: date)
 }
 
-private func makeProgressStreakWeeks(
-    timeline: [ProgressTimelineDay],
-    today: Date,
+func makeProgressStreakWeeks(
+    chartDays: [ProgressChartDay],
+    rangeStartLocalDate: String,
     todayLocalDate: String,
-    series: UserProgressSeries,
     calendar: Calendar
 ) throws -> [ProgressCalendarWeek] {
+    let today = try progressDate(localDate: todayLocalDate, calendar: calendar)
+
     guard let currentWeekInterval = calendar.dateInterval(of: .weekOfYear, for: today) else {
-        throw ProgressPresentationError.invalidRange(series.from, series.to)
+        throw ProgressPresentationError.invalidRange(rangeStartLocalDate, todayLocalDate)
     }
 
     let currentWeekStart = calendar.startOfDay(for: currentWeekInterval.start)
     let streakDayCount = progressDaysPerWeek * progressStreakWeekCount
 
     guard let streakStart = calendar.date(byAdding: .day, value: -(streakDayCount - progressDaysPerWeek), to: currentWeekStart) else {
-        throw ProgressPresentationError.invalidRange(series.from, series.to)
+        throw ProgressPresentationError.invalidRange(rangeStartLocalDate, todayLocalDate)
     }
 
-    let timelineByLocalDate = Dictionary(uniqueKeysWithValues: timeline.map { ($0.localDate, $0) })
+    let chartDaysByLocalDate = Dictionary(uniqueKeysWithValues: chartDays.map { ($0.localDate, $0) })
     let streakDays = try (0 ..< streakDayCount).map { offset in
         guard let rawDate = calendar.date(byAdding: .day, value: offset, to: streakStart) else {
-            throw ProgressPresentationError.invalidRange(series.from, series.to)
+            throw ProgressPresentationError.invalidRange(rangeStartLocalDate, todayLocalDate)
         }
 
         let date = calendar.startOfDay(for: rawDate)
@@ -541,11 +551,11 @@ private func makeProgressStreakWeeks(
         let reviewCount: Int
 
         if isFuturePlaceholder == false {
-            guard let timelineDay = timelineByLocalDate[localDate] else {
-                throw ProgressPresentationError.invalidRange(series.from, series.to)
+            guard let chartDay = chartDaysByLocalDate[localDate] else {
+                throw ProgressPresentationError.invalidRange(rangeStartLocalDate, todayLocalDate)
             }
 
-            reviewCount = timelineDay.reviewCount
+            reviewCount = chartDay.reviewCount
         } else {
             reviewCount = 0
         }
