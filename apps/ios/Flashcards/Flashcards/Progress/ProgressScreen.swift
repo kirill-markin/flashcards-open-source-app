@@ -283,7 +283,7 @@ private struct ProgressStreakDayCell: View {
         }
 
         if self.isActiveFlameDay {
-            return .orange
+            return .accentColor
         }
 
         return self.day.isToday ? .accentColor : Color(uiColor: .secondarySystemGroupedBackground)
@@ -295,7 +295,7 @@ private struct ProgressStreakDayCell: View {
         }
 
         if self.isActiveFlameDay {
-            return .orange
+            return .accentColor
         }
 
         if self.day.isToday {
@@ -702,15 +702,15 @@ private func progressReviewChartDayLabel(date: Date, calendar: Calendar) -> Stri
 
 private func progressChartBarStyle(day: ProgressChartDay) -> AnyShapeStyle {
     if day.reviewCount > 0 && day.isToday {
-        return AnyShapeStyle(Color.accentColor.gradient)
+        return AnyShapeStyle(Color.accentColor)
     }
 
     if day.reviewCount > 0 {
-        return AnyShapeStyle(Color.orange.gradient)
+        return AnyShapeStyle(Color.accentColor)
     }
 
     if day.isToday {
-        return AnyShapeStyle(Color.accentColor.gradient)
+        return AnyShapeStyle(Color.accentColor)
     }
 
     return AnyShapeStyle(Color(uiColor: .tertiarySystemFill))

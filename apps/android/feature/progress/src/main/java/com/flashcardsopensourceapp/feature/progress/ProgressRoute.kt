@@ -630,7 +630,7 @@ private fun ReviewBarColumn(
         Color.Transparent
     }
     val barColor = when {
-        day.reviewCount > 0 -> MaterialTheme.colorScheme.tertiary
+        day.reviewCount > 0 -> MaterialTheme.colorScheme.primary
         day.isToday -> MaterialTheme.colorScheme.primary
         else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.48f)
     }

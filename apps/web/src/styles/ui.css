@@ -31,14 +31,14 @@
 
 .review-progress-badge-active {
   border-color: var(--accent);
-  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+  background: var(--accent);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
   color: #fff5f2;
 }
 
 .review-progress-badge-active:hover {
   border-color: var(--accent);
-  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+  background: var(--accent);
   color: #fff5f2;
 }
 

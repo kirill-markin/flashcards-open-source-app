@@ -8,6 +8,7 @@ import { useProgressInvalidationState } from "../appData/progressInvalidation";
 import { parseLocalDate, shiftLocalDate, useProgressSource } from "../appData/progressSource";
 import { resolveLocaleWeekContext, useI18n } from "../i18n";
 import type { DailyReviewPoint, ProgressSeriesSnapshot } from "../types";
+import { ReviewProgressBadgeIcon } from "./ReviewProgressBadgeIcon";
 
 const streakWeekCount = 5;
 const streakWeekLength = 7;
@@ -305,7 +306,7 @@ export function ProgressScreen(): ReactElement {
                     aria-label={reviewProgressBadgeAriaLabel}
                     title={reviewProgressBadgeAriaLabel}
                   >
-                    <span className="review-progress-badge-icon" aria-hidden="true">🔥</span>
+                    <ReviewProgressBadgeIcon />
                     <span className="review-progress-badge-value">
                       {formatReviewProgressBadgeValue(reviewProgressBadge.streakDays)}
                     </span>
@@ -339,7 +340,7 @@ export function ProgressScreen(): ReactElement {
                             aria-hidden="true"
                             style={day.isFuture ? futureStreakMarkerStyle : undefined}
                           >
-                            {day.reviewCount > 0 ? "🔥" : day.isFuture ? "" : day.dayLabel}
+                            {day.reviewCount > 0 ? <ReviewProgressBadgeIcon /> : day.isFuture ? "" : day.dayLabel}
                           </span>
                         </div>
                       );

@@ -230,8 +230,8 @@ func makeEmptyReviewProgressBadgeState() -> ReviewProgressBadgeState {
 func makeReviewProgressBadgePresentation(badgeState: ReviewProgressBadgeState) -> ReviewProgressBadgePresentation {
     ReviewProgressBadgePresentation(
         iconSystemName: badgeState.hasReviewedToday ? "flame.fill" : "flame",
-        borderColor: badgeState.hasReviewedToday ? .orange.opacity(0.55) : .gray.opacity(0.35),
-        iconColor: badgeState.hasReviewedToday ? .orange : .gray,
+        borderColor: badgeState.hasReviewedToday ? .accentColor.opacity(0.55) : .gray.opacity(0.35),
+        iconColor: badgeState.hasReviewedToday ? .accentColor : .gray,
         textColor: badgeState.hasReviewedToday ? .primary : .secondary
     )
 }
