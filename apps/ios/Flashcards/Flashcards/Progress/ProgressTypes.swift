@@ -137,6 +137,9 @@ struct ProgressSummaryScopeKey: Codable, Hashable, Sendable {
     let linkedUserId: String?
     let workspaceMembershipKey: String
     let timeZone: String
+    /// Summary fields such as hasReviewedToday and currentStreakDays are relative to a local "today".
+    /// Keep the cache keyed by that local date so yesterday's summary is never reused after midnight.
+    let referenceLocalDate: String
 
     var storageKey: String {
         let cloudStateKey = self.cloudState?.rawValue ?? "none"
@@ -146,6 +149,7 @@ struct ProgressSummaryScopeKey: Codable, Hashable, Sendable {
             linkedUserIdKey,
             self.workspaceMembershipKey,
             self.timeZone,
+            self.referenceLocalDate,
         ].joined(separator: "|")
     }
 }
