@@ -74,7 +74,8 @@ class ProgressViewModelTest {
             assertTrue(loadedState.summary is ProgressSummaryUiState.Loaded)
             val summaryState = loadedState.summary as ProgressSummaryUiState.Loaded
             assertEquals(12, summaryState.summary.currentStreakDays)
-            assertEquals(3, loadedState.reviewsSection.maxReviewCount)
+            assertEquals(1, loadedState.reviewsSection.pages.size)
+            assertEquals(4, loadedState.reviewsSection.pages.single().upperBound)
         } finally {
             Dispatchers.resetMain()
         }
@@ -155,8 +156,7 @@ class ProgressViewModelTest {
     fun loadedUiStateUsesMondayWeekStartForGermanLocaleAcrossStreakAndChart() = runTest(dispatcher) {
         assertLoadedUiStateUsesLocaleWeekStart(
             locale = Locale.GERMANY,
-            expectedWeekStart = LocalDate.parse("2026-04-13"),
-            unexpectedChartLabelDate = LocalDate.parse("2026-04-11")
+            expectedWeekStart = LocalDate.parse("2026-04-13")
         )
     }
 
@@ -164,15 +164,53 @@ class ProgressViewModelTest {
     fun loadedUiStateUsesSundayWeekStartForUsLocaleAcrossStreakAndChart() = runTest(dispatcher) {
         assertLoadedUiStateUsesLocaleWeekStart(
             locale = Locale.US,
-            expectedWeekStart = LocalDate.parse("2026-04-12"),
-            unexpectedChartLabelDate = LocalDate.parse("2026-04-13")
+            expectedWeekStart = LocalDate.parse("2026-04-12")
         )
+    }
+
+    @Test
+    fun loadedUiStateUsesLocalUpperBoundPerReviewWeekPage() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        try {
+            val repository = FakeProgressRepository()
+            val viewModel = ProgressViewModel(
+                progressRepository = repository
+            )
+
+            repository.emitSummarySnapshot(
+                snapshot = createProgressSummarySnapshot()
+            )
+            repository.emitSeriesSnapshot(
+                snapshot = createProgressSeriesSnapshot(
+                    from = "2026-04-13",
+                    to = "2026-04-21",
+                    dailyReviews = listOf(
+                        CloudDailyReviewPoint(date = "2026-04-13", reviewCount = 0),
+                        CloudDailyReviewPoint(date = "2026-04-14", reviewCount = 40),
+                        CloudDailyReviewPoint(date = "2026-04-15", reviewCount = 0),
+                        CloudDailyReviewPoint(date = "2026-04-16", reviewCount = 0),
+                        CloudDailyReviewPoint(date = "2026-04-17", reviewCount = 0),
+                        CloudDailyReviewPoint(date = "2026-04-18", reviewCount = 0),
+                        CloudDailyReviewPoint(date = "2026-04-19", reviewCount = 0),
+                        CloudDailyReviewPoint(date = "2026-04-20", reviewCount = 0),
+                        CloudDailyReviewPoint(date = "2026-04-21", reviewCount = 9)
+                    )
+                )
+            )
+            advanceUntilIdle()
+
+            val uiState = viewModel.uiState.value as ProgressUiState.Loaded
+            assertEquals(2, uiState.reviewsSection.pages.size)
+            assertEquals(44, uiState.reviewsSection.pages[0].upperBound)
+            assertEquals(10, uiState.reviewsSection.pages[1].upperBound)
+        } finally {
+            Dispatchers.resetMain()
+        }
     }
 
     private suspend fun TestScope.assertLoadedUiStateUsesLocaleWeekStart(
         locale: Locale,
-        expectedWeekStart: LocalDate,
-        unexpectedChartLabelDate: LocalDate
+        expectedWeekStart: LocalDate
     ) {
         Dispatchers.setMain(dispatcher)
         val previousLocale = Locale.getDefault()
@@ -201,12 +239,11 @@ class ProgressViewModelTest {
             advanceUntilIdle()
 
             val uiState = viewModel.uiState.value as ProgressUiState.Loaded
-            val reviewDaysByDate = uiState.reviewsSection.days.associateBy { day -> day.date }
             val latestWeek = uiState.streakSection.weeks.last()
+            val latestReviewPage = uiState.reviewsSection.pages.last()
 
             assertEquals(expectedWeekStart, latestWeek.days.first().date)
-            assertEquals(expectedWeekStart.dayOfMonth.toString(), reviewDaysByDate[expectedWeekStart]?.chartLabel)
-            assertEquals(null, reviewDaysByDate[unexpectedChartLabelDate]?.chartLabel)
+            assertEquals(expectedWeekStart, latestReviewPage.startDate)
         } finally {
             Locale.setDefault(previousLocale)
             Dispatchers.resetMain()

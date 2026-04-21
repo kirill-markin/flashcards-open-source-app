@@ -37,6 +37,42 @@ vi.mock("../appData/progressSource", async () => {
 
 import { ProgressScreen } from "./ProgressScreen";
 
+const localePreferenceStorageKey = "flashcards-web-locale-preference";
+
+function createNativeWeekRangeLabel(locale: string, startDate: string, endDate: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).formatRange(new Date(`${startDate}T00:00:00.000Z`), new Date(`${endDate}T00:00:00.000Z`));
+}
+
+function createStorageMock(): Storage {
+  const state = new Map<string, string>();
+
+  return {
+    get length(): number {
+      return state.size;
+    },
+    clear(): void {
+      state.clear();
+    },
+    getItem(key: string): string | null {
+      return state.get(key) ?? null;
+    },
+    key(index: number): string | null {
+      return [...state.keys()][index] ?? null;
+    },
+    removeItem(key: string): void {
+      state.delete(key);
+    },
+    setItem(key: string, value: string): void {
+      state.set(key, value);
+    },
+  };
+}
+
 function createAppData(): AppDataContextValue {
   return {
     sessionLoadState: "ready",
@@ -127,13 +163,20 @@ function createProgressSummarySnapshot(): ProgressSummarySnapshot {
 
 function createProgressSeriesSnapshot(): ProgressSeriesSnapshot {
   const dailyReviews = [
-    { date: "2026-04-20", reviewCount: 3 },
-    { date: "2026-04-21", reviewCount: 5 },
+    { date: "2026-04-13", reviewCount: 0 },
+    { date: "2026-04-14", reviewCount: 40 },
+    { date: "2026-04-15", reviewCount: 0 },
+    { date: "2026-04-16", reviewCount: 0 },
+    { date: "2026-04-17", reviewCount: 0 },
+    { date: "2026-04-18", reviewCount: 0 },
+    { date: "2026-04-19", reviewCount: 0 },
+    { date: "2026-04-20", reviewCount: 0 },
+    { date: "2026-04-21", reviewCount: 9 },
   ] as const;
 
   return {
     timeZone: "UTC",
-    from: "2026-04-20",
+    from: "2026-04-13",
     to: "2026-04-21",
     generatedAt: "2026-04-21T10:00:00.000Z",
     dailyReviews,
@@ -150,9 +193,16 @@ describe("ProgressScreen", () => {
   let root: ReactDOM.Root;
 
   beforeEach(() => {
+    (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: createStorageMock(),
+    });
+
     container = document.createElement("div");
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
+    window.localStorage.clear();
 
     HTMLElement.prototype.scrollIntoView = vi.fn();
 
@@ -173,7 +223,7 @@ describe("ProgressScreen", () => {
           errorMessage: "",
         },
         series: {
-          scopeKey: "progress::series::UTC::2026-04-20::2026-04-21",
+          scopeKey: "progress::series::UTC::2026-04-13::2026-04-21",
           localFallback: null,
           serverBase: createProgressSeriesSnapshot(),
           pendingLocalOverlay: null,
@@ -213,5 +263,196 @@ describe("ProgressScreen", () => {
     const streakMarkerIcons = [...container.querySelectorAll(".progress-streak-marker .review-progress-badge-icon")];
     expect(streakMarkerIcons.length).toBeGreaterThan(0);
     expect(streakMarkerIcons.every((icon) => icon instanceof SVGSVGElement)).toBe(true);
+  });
+
+  it("uses the active week local maximum for y-axis labels and bar heights", async () => {
+    await act(async () => {
+      root.render(
+        <I18nProvider>
+          <ProgressScreen />
+        </I18nProvider>,
+      );
+    });
+
+    const activeWeekMaxLabel = container.querySelector("[data-testid='progress-chart-y-label-max']");
+    if (!(activeWeekMaxLabel instanceof HTMLSpanElement)) {
+      throw new Error("Progress chart max y-axis label was not found");
+    }
+    expect(activeWeekMaxLabel.textContent).toBe("10");
+
+    const latestWeekBar = container.querySelector("[data-testid='progress-chart-bar-2026-04-21']");
+    if (!(latestWeekBar instanceof HTMLSpanElement)) {
+      throw new Error("Latest week bar was not found");
+    }
+    expect(latestWeekBar.style.height).toBe("90%");
+
+    const previousWeekButton = container.querySelector("[data-testid='progress-chart-previous-week']");
+    if (!(previousWeekButton instanceof HTMLButtonElement)) {
+      throw new Error("Previous week button was not found");
+    }
+
+    await act(async () => {
+      previousWeekButton.click();
+    });
+
+    const previousWeekMaxLabel = container.querySelector("[data-testid='progress-chart-y-label-max']");
+    if (!(previousWeekMaxLabel instanceof HTMLSpanElement)) {
+      throw new Error("Updated progress chart max y-axis label was not found");
+    }
+    expect(previousWeekMaxLabel.textContent).toBe("44");
+
+    const previousWeekBar = container.querySelector("[data-testid='progress-chart-bar-2026-04-14']");
+    if (!(previousWeekBar instanceof HTMLSpanElement)) {
+      throw new Error("Previous week bar was not found");
+    }
+    expect(previousWeekBar.style.height).toContain("90.909");
+  });
+
+  it("renders the week header with native locale interval formatting", async () => {
+    await act(async () => {
+      root.render(
+        <I18nProvider>
+          <ProgressScreen />
+        </I18nProvider>,
+      );
+    });
+
+    const chartRange = container.querySelector("[data-testid='progress-chart-range']");
+    if (!(chartRange instanceof HTMLParagraphElement)) {
+      throw new Error("Progress chart range was not found");
+    }
+
+    expect(chartRange.textContent).toBe(createNativeWeekRangeLabel("en", "2026-04-19", "2026-04-21"));
+  });
+
+  it("mirrors week navigation arrows for rtl locales", async () => {
+    window.localStorage.setItem(localePreferenceStorageKey, "ar");
+
+    await act(async () => {
+      root.render(
+        <I18nProvider>
+          <ProgressScreen />
+        </I18nProvider>,
+      );
+    });
+
+    const previousWeekButton = container.querySelector("[data-testid='progress-chart-previous-week']");
+    if (!(previousWeekButton instanceof HTMLButtonElement)) {
+      throw new Error("Previous week button was not found");
+    }
+
+    const nextWeekButton = container.querySelector("[data-testid='progress-chart-next-week']");
+    if (!(nextWeekButton instanceof HTMLButtonElement)) {
+      throw new Error("Next week button was not found");
+    }
+
+    expect(document.documentElement.dir).toBe("rtl");
+    expect(previousWeekButton.textContent).toBe(">");
+    expect(nextWeekButton.textContent).toBe("<");
+  });
+
+  it("shows an empty state instead of a fake y-axis for inactive weeks", async () => {
+    useProgressSourceMock.mockReturnValue({
+      progressSourceState: {
+        summary: {
+          scopeKey: "progress::summary::UTC::2026-04-21",
+          localFallback: null,
+          serverBase: createProgressSummarySnapshot(),
+          hasPendingLocalReviews: false,
+          renderedSnapshot: createProgressSummarySnapshot(),
+          isLoading: false,
+          errorMessage: "",
+        },
+        series: {
+          scopeKey: "progress::series::UTC::2026-04-06::2026-04-21",
+          localFallback: null,
+          serverBase: {
+            ...createProgressSeriesSnapshot(),
+            from: "2026-04-06",
+            dailyReviews: [
+              { date: "2026-04-06", reviewCount: 0 },
+              { date: "2026-04-07", reviewCount: 0 },
+              { date: "2026-04-08", reviewCount: 0 },
+              { date: "2026-04-09", reviewCount: 0 },
+              { date: "2026-04-10", reviewCount: 0 },
+              { date: "2026-04-11", reviewCount: 0 },
+              { date: "2026-04-12", reviewCount: 0 },
+              ...createProgressSeriesSnapshot().dailyReviews,
+            ],
+            chartData: {
+              dailyReviews: [
+                { date: "2026-04-06", reviewCount: 0 },
+                { date: "2026-04-07", reviewCount: 0 },
+                { date: "2026-04-08", reviewCount: 0 },
+                { date: "2026-04-09", reviewCount: 0 },
+                { date: "2026-04-10", reviewCount: 0 },
+                { date: "2026-04-11", reviewCount: 0 },
+                { date: "2026-04-12", reviewCount: 0 },
+                ...createProgressSeriesSnapshot().dailyReviews,
+              ],
+            },
+          },
+          pendingLocalOverlay: null,
+          renderedSnapshot: {
+            ...createProgressSeriesSnapshot(),
+            from: "2026-04-06",
+            dailyReviews: [
+              { date: "2026-04-06", reviewCount: 0 },
+              { date: "2026-04-07", reviewCount: 0 },
+              { date: "2026-04-08", reviewCount: 0 },
+              { date: "2026-04-09", reviewCount: 0 },
+              { date: "2026-04-10", reviewCount: 0 },
+              { date: "2026-04-11", reviewCount: 0 },
+              { date: "2026-04-12", reviewCount: 0 },
+              ...createProgressSeriesSnapshot().dailyReviews,
+            ],
+            chartData: {
+              dailyReviews: [
+                { date: "2026-04-06", reviewCount: 0 },
+                { date: "2026-04-07", reviewCount: 0 },
+                { date: "2026-04-08", reviewCount: 0 },
+                { date: "2026-04-09", reviewCount: 0 },
+                { date: "2026-04-10", reviewCount: 0 },
+                { date: "2026-04-11", reviewCount: 0 },
+                { date: "2026-04-12", reviewCount: 0 },
+                ...createProgressSeriesSnapshot().dailyReviews,
+              ],
+            },
+          },
+          isLoading: false,
+          errorMessage: "",
+        },
+      },
+      refreshProgress: refreshProgressMock,
+    });
+
+    await act(async () => {
+      root.render(
+        <I18nProvider>
+          <ProgressScreen />
+        </I18nProvider>,
+      );
+    });
+
+    let previousWeekButton = container.querySelector("[data-testid='progress-chart-previous-week']");
+    if (!(previousWeekButton instanceof HTMLButtonElement)) {
+      throw new Error("Previous week button was not found");
+    }
+
+    await act(async () => {
+      previousWeekButton.click();
+    });
+
+    previousWeekButton = container.querySelector("[data-testid='progress-chart-previous-week']");
+    if (!(previousWeekButton instanceof HTMLButtonElement)) {
+      throw new Error("Updated previous week button was not found");
+    }
+
+    await act(async () => {
+      previousWeekButton.click();
+    });
+
+    expect(container.textContent).toContain("No reviews yet in this week.");
+    expect(container.querySelector("[data-testid='progress-chart-y-label-max']")).toBeNull();
   });
 });

@@ -79,8 +79,6 @@ struct ProgressScreen: View {
                     VStack(alignment: .leading, spacing: 0) {
                         ProgressReviewsSection(
                             chartDays: progressSnapshot.chartData.chartDays,
-                            chartUpperBound: progressSnapshot.chartData.chartUpperBound,
-                            hasReviewActivity: progressSnapshot.chartData.hasReviewActivity,
                             chartCalendar: presentationCalendar,
                             selectionResetKey: progressSnapshot.scopeKey.storageKey
                         )
@@ -361,8 +359,6 @@ private struct ProgressStreakDayCell: View {
 
 private struct ProgressReviewsSection: View {
     let chartDays: [ProgressChartDay]
-    let chartUpperBound: Int
-    let hasReviewActivity: Bool
     let chartCalendar: Calendar
     let selectionResetKey: String
     @State private var selectedPageStartLocalDate: String? = nil
@@ -406,6 +402,15 @@ private struct ProgressReviewsSection: View {
         return self.chartPages[self.selectedPageIndex]
     }
 
+    private var visiblePageUpperBound: Int {
+        guard let visiblePage else {
+            return 1
+        }
+
+        let maximumReviewCount = visiblePage.days.map(\.reviewCount).max() ?? 0
+        return progressChartUpperBound(maximumReviewCount: maximumReviewCount)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
@@ -434,7 +439,7 @@ private struct ProgressReviewsSection: View {
 
                 Spacer(minLength: 0)
 
-                if self.chartPages.count > 1 && self.hasReviewActivity {
+                if self.chartPages.count > 1 {
                     HStack(spacing: 6) {
                         Button(action: self.showPreviousPage) {
                             Image(systemName: "chevron.backward")
@@ -470,68 +475,68 @@ private struct ProgressReviewsSection: View {
             }
 
             if let visiblePage = self.visiblePage {
-                Chart {
-                    ForEach(visiblePage.days) { day in
-                        BarMark(
-                            x: .value("Day", day.localDate),
-                            y: .value("Reviews", day.reviewCount)
-                        )
-                        .foregroundStyle(progressChartBarStyle(day: day))
+                if visiblePage.hasReviewActivity {
+                    Chart {
+                        ForEach(visiblePage.days) { day in
+                            BarMark(
+                                x: .value("Day", day.localDate),
+                                y: .value("Reviews", day.reviewCount)
+                            )
+                            .foregroundStyle(progressChartBarStyle(day: day))
+                        }
                     }
-                }
-                .chartYScale(domain: 0 ... self.chartUpperBound)
-                .chartXAxis {
-                    AxisMarks(values: visiblePage.xAxisValues) { value in
-                        AxisTick()
-                            .foregroundStyle(Color(uiColor: .separator).opacity(0.35))
-                        AxisValueLabel {
-                            if let localDate = value.as(String.self), let day = visiblePage.day(localDate: localDate) {
-                                VStack(spacing: 2) {
-                                    Text(
-                                        progressWeekdayLabel(
-                                            date: day.date,
-                                            calendar: self.chartCalendar
+                    .chartYScale(domain: 0 ... self.visiblePageUpperBound)
+                    .chartXAxis {
+                        AxisMarks(values: visiblePage.xAxisValues) { value in
+                            AxisTick()
+                                .foregroundStyle(Color(uiColor: .separator).opacity(0.35))
+                            AxisValueLabel {
+                                if let localDate = value.as(String.self), let day = visiblePage.day(localDate: localDate) {
+                                    VStack(spacing: 2) {
+                                        Text(
+                                            progressWeekdayLabel(
+                                                date: day.date,
+                                                calendar: self.chartCalendar
+                                            )
                                         )
-                                    )
-                                    Text(
-                                        progressReviewChartDayLabel(
-                                            date: day.date,
-                                            calendar: self.chartCalendar
+                                        Text(
+                                            progressReviewChartDayLabel(
+                                                date: day.date,
+                                                calendar: self.chartCalendar
+                                            )
                                         )
-                                    )
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                .chartYAxis {
-                    AxisMarks(position: .leading) { value in
-                        AxisGridLine()
-                            .foregroundStyle(Color(uiColor: .separator).opacity(0.18))
-                        AxisTick()
-                            .foregroundStyle(Color(uiColor: .separator).opacity(0.35))
-                        AxisValueLabel()
+                    .chartYAxis {
+                        AxisMarks(position: .leading) { value in
+                            AxisGridLine()
+                                .foregroundStyle(Color(uiColor: .separator).opacity(0.18))
+                            AxisTick()
+                                .foregroundStyle(Color(uiColor: .separator).opacity(0.35))
+                            AxisValueLabel()
+                        }
                     }
-                }
-                .chartPlotStyle { plotArea in
-                    plotArea
-                        .background(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.45))
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
-                .frame(height: progressChartHeight)
-            }
-
-            if self.hasReviewActivity == false {
-                Text(
-                    String(
-                        localized: "progress.screen.reviews.empty",
-                        defaultValue: "No reviews yet in this period.",
-                        table: progressStringsTableName,
-                        comment: "Progress reviews section empty caption"
+                    .chartPlotStyle { plotArea in
+                        plotArea
+                            .background(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.45))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .frame(height: progressChartHeight)
+                } else {
+                    Text(
+                        String(
+                            localized: "progress.screen.reviews.empty",
+                            defaultValue: "No reviews yet in this week.",
+                            table: progressStringsTableName,
+                            comment: "Progress reviews section empty caption"
+                        )
                     )
-                )
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
             }
         }
         .padding(.vertical, 4)
@@ -576,6 +581,12 @@ private struct ProgressReviewChartPage: Identifiable {
 
     var id: String {
         self.startLocalDate
+    }
+
+    var hasReviewActivity: Bool {
+        self.days.contains(where: { day in
+            day.reviewCount > 0
+        })
     }
 
     var xAxisValues: [String] {

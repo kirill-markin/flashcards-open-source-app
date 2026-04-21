@@ -126,6 +126,10 @@ export const ruCatalog = {
     lastThirtyDays: "Последние 30 дней",
     empty: "За этот 30-дневный период повторения не были записаны.",
     rangeValue: "{{from}} - {{to}}",
+    weekRangeValue: "{{from}} - {{to}}",
+    previousWeek: "Предыдущая неделя",
+    nextWeek: "Следующая неделя",
+    emptyWeek: "На этой неделе пока нет повторений.",
     labels: {
       totalReviews: "Всего повторений",
       activeDays: "Активные дни",

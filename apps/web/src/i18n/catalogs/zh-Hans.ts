@@ -126,6 +126,10 @@ export const zhHansCatalog = {
     lastThirtyDays: "最近 30 天",
     empty: "在这 30 天范围内没有记录到任何复习。",
     rangeValue: "{{from}} - {{to}}",
+    weekRangeValue: "{{from}} - {{to}}",
+    previousWeek: "上一周",
+    nextWeek: "下一周",
+    emptyWeek: "本周还没有复习。",
     labels: {
       totalReviews: "总复习次数",
       activeDays: "活跃天数",

@@ -126,6 +126,10 @@ const arCatalog: TranslationCatalog = {
     lastThirtyDays: "آخر 30 يومًا",
     empty: "لم تُسجَّل أي مراجعات خلال نطاق الثلاثين يومًا هذا.",
     rangeValue: "{{from}} - {{to}}",
+    weekRangeValue: "{{from}} - {{to}}",
+    previousWeek: "الأسبوع السابق",
+    nextWeek: "الأسبوع التالي",
+    emptyWeek: "لا توجد مراجعات بعد في هذا الأسبوع.",
     labels: {
       totalReviews: "إجمالي المراجعات",
       activeDays: "الأيام النشطة",

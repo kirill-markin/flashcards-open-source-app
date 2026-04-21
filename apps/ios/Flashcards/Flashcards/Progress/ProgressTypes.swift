@@ -192,8 +192,6 @@ struct ProgressChartDay: Hashable, Identifiable, Sendable {
 
 struct ProgressChartData: Hashable, Sendable {
     let chartDays: [ProgressChartDay]
-    let chartUpperBound: Int
-    let hasReviewActivity: Bool
 }
 
 struct ProgressSnapshot: Hashable, Sendable {
@@ -313,11 +311,8 @@ func makeProgressSnapshot(
             isToday: timelineDay.localDate == todayLocalDate
         )
     }
-    let maximumReviewCount = chartDays.map(\.reviewCount).max() ?? 0
     let chartData = ProgressChartData(
-        chartDays: chartDays,
-        chartUpperBound: progressChartUpperBound(maximumReviewCount: maximumReviewCount),
-        hasReviewActivity: maximumReviewCount > 0
+        chartDays: chartDays
     )
 
     return ProgressSnapshot(
@@ -575,12 +570,12 @@ func makeProgressStreakWeeks(
     }
 }
 
-private func progressChartUpperBound(maximumReviewCount: Int) -> Int {
+func progressChartUpperBound(maximumReviewCount: Int) -> Int {
     guard maximumReviewCount > 0 else {
         return 1
     }
 
-    return Int(ceil(Double(maximumReviewCount) * 1.15))
+    return max(1, Int(ceil(Double(maximumReviewCount) * 1.1)))
 }
 
 private func progressDate(localDate: String, calendar: Calendar) throws -> Date {

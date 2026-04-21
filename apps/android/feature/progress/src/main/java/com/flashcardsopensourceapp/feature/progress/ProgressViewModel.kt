@@ -22,6 +22,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
+import kotlin.math.ceil
 import java.util.Locale
 
 private const val streakWeekCount: Int = 5
@@ -121,11 +122,10 @@ private fun CloudProgressSeries.toUiState(
     val progressPointsByDate = parsedPoints.associateBy { point -> point.date }
     val weekContext = createProgressWeekContext(locale = locale)
     val reviewsSection = ProgressReviewsSectionUiState(
-        days = parsedPoints.toReviewDays(
+        pages = parsedPoints.toReviewPages(
             today = today,
             weekContext = weekContext
         ),
-        maxReviewCount = parsedPoints.maxOfOrNull { point -> point.reviewCount } ?: 0
     )
     val streakSection = ProgressStreakSectionUiState(
         weekdayLabels = weekContext.createWeekdayLabels(),
@@ -170,34 +170,84 @@ private fun parseProgressDate(
 }
 
 private fun List<ParsedProgressPoint>.toReviewDays(
-    today: LocalDate,
-    weekContext: ProgressWeekContext
+    today: LocalDate
 ): List<ProgressHistoryDayUiState> {
     return map { point ->
         ProgressHistoryDayUiState(
             date = point.date,
             dayOfMonthLabel = point.date.dayOfMonth.toString(),
-            chartLabel = createChartLabel(
-                date = point.date,
-                today = today,
-                weekContext = weekContext
-            ),
             reviewCount = point.reviewCount,
             isToday = point.date == today
         )
     }
 }
 
-private fun createChartLabel(
-    date: LocalDate,
+private fun List<ParsedProgressPoint>.toReviewPages(
     today: LocalDate,
     weekContext: ProgressWeekContext
-): String? {
-    return when {
-        date == today -> null
-        weekContext.isStartOfWeek(date = date) -> date.dayOfMonth.toString()
-        else -> null
+): List<ProgressReviewPageUiState> {
+    val reviewDays = toReviewDays(today = today)
+    if (reviewDays.isEmpty()) {
+        return emptyList()
     }
+
+    val pages = mutableListOf<ProgressReviewPageUiState>()
+    var currentPageDays = mutableListOf<ProgressHistoryDayUiState>()
+    var currentWeekStart: LocalDate? = null
+
+    for (day in reviewDays) {
+        val weekStart = weekContext.startOfWeek(date = day.date)
+        if (currentWeekStart != null && currentWeekStart != weekStart) {
+            pages.add(
+                createReviewPage(
+                    days = currentPageDays
+                )
+            )
+            currentPageDays = mutableListOf(day)
+            currentWeekStart = weekStart
+            continue
+        }
+
+        currentPageDays.add(day)
+        currentWeekStart = weekStart
+    }
+
+    if (currentPageDays.isNotEmpty()) {
+        pages.add(
+            createReviewPage(
+                days = currentPageDays
+            )
+        )
+    }
+
+    return pages
+}
+
+private fun createReviewPage(
+    days: List<ProgressHistoryDayUiState>
+): ProgressReviewPageUiState {
+    val startDate = days.first().date
+    val endDate = days.last().date
+    val maximumReviewCount = days.maxOfOrNull { day -> day.reviewCount } ?: 0
+
+    return ProgressReviewPageUiState(
+        startDate = startDate,
+        endDate = endDate,
+        startDateKey = startDate.toString(),
+        days = days,
+        hasReviewActivity = days.any { day -> day.reviewCount > 0 },
+        upperBound = calculateReviewChartUpperBound(maximumReviewCount = maximumReviewCount)
+    )
+}
+
+private fun calculateReviewChartUpperBound(
+    maximumReviewCount: Int
+): Int {
+    if (maximumReviewCount <= 0) {
+        return 1
+    }
+
+    return maxOf(1, ceil(maximumReviewCount * 1.1).toInt())
 }
 
 private fun ProgressWeekContext.createWeekdayLabels(): List<String> {

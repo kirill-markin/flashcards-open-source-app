@@ -1,9 +1,10 @@
 package com.flashcardsopensourceapp.feature.progress
 
+import android.icu.text.DateIntervalFormat
+import android.icu.util.DateInterval
+import android.icu.util.TimeZone
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -36,14 +39,18 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -56,10 +63,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.util.Locale
 
 private val progressSectionShape = RoundedCornerShape(28.dp)
 private const val reviewChartVisibleGridLines: Int = 4
-private val reviewChartColumnWidth = 24.dp
 private val reviewChartColumnSpacing = 6.dp
 private val reviewChartHorizontalPadding = 8.dp
 private val reviewChartVerticalPadding = 12.dp
@@ -473,19 +482,45 @@ private fun StreakDayCell(
 private fun ReviewsSectionCard(
     uiState: ProgressReviewsSectionUiState
 ) {
-    val scrollState = rememberScrollState()
-    val chartContentWidth = remember(uiState.days.size) {
-        calculateChartContentWidth(dayCount = uiState.days.size)
+    val configuration = LocalConfiguration.current
+    val locale = if (configuration.locales.isEmpty) {
+        Locale.getDefault()
+    } else {
+        configuration.locales[0]
     }
-    val chartContainerWidth = chartContentWidth + reviewChartHorizontalPadding * 2
+    var selectedPageStartDateKey by rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
+    val pageStartDateKeys = remember(uiState.pages) {
+        uiState.pages.map { page -> page.startDateKey }
+    }
     val chartGridLineColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+    val previousWeekLabel = stringResource(id = R.string.progress_reviews_previous_week)
+    val nextWeekLabel = stringResource(id = R.string.progress_reviews_next_week)
+    val emptyWeekLabel = stringResource(id = R.string.progress_reviews_empty_week)
 
-    LaunchedEffect(uiState.days.size) {
-        withFrameNanos {
-            // Wait for the first measured frame before jumping to the newest edge.
+    LaunchedEffect(pageStartDateKeys) {
+        if (selectedPageStartDateKey == null) {
+            return@LaunchedEffect
         }
-        scrollState.scrollTo(scrollState.maxValue)
+
+        if (selectedPageStartDateKey !in pageStartDateKeys) {
+            selectedPageStartDateKey = pageStartDateKeys.lastOrNull()
+        }
     }
+
+    val selectedPageIndex = remember(selectedPageStartDateKey, uiState.pages) {
+        if (uiState.pages.isEmpty()) {
+            0
+        } else {
+            uiState.pages.indexOfFirst { page ->
+                page.startDateKey == selectedPageStartDateKey
+            }.takeIf { index ->
+                index >= 0
+            } ?: (uiState.pages.size - 1)
+        }
+    }
+    val visiblePage = uiState.pages.getOrNull(selectedPageIndex)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -500,95 +535,155 @@ private fun ReviewsSectionCard(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = stringResource(id = R.string.progress_reviews_title),
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Text(
-                    text = stringResource(id = R.string.progress_reviews_subtitle),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-
             Row(
                 verticalAlignment = Alignment.Top,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                ReviewsYAxis(
-                    maxReviewCount = uiState.maxReviewCount,
-                    modifier = Modifier
-                        .padding(top = 6.dp)
-                        .width(reviewChartAxisWidth)
-                )
-
-                Spacer(modifier = Modifier.width(12.dp))
-
                 Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .horizontalScroll(scrollState)
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .width(chartContainerWidth)
-                            .height(reviewChartHeight)
-                            .clip(RoundedCornerShape(22.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                            .drawBehind {
-                                val lineStep = size.height / reviewChartVisibleGridLines.toFloat()
+                    Text(
+                        text = stringResource(id = R.string.progress_reviews_title),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    visiblePage?.let { page ->
+                        val pageRangeLabel = remember(page.startDate, page.endDate, locale) {
+                            formatProgressReviewPageRange(
+                                startDate = page.startDate,
+                                endDate = page.endDate,
+                                locale = locale
+                            )
+                        }
+                        Text(
+                            text = pageRangeLabel,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
 
-                                repeat(reviewChartVisibleGridLines) { index ->
-                                    val y = lineStep * index
-                                    drawLine(
-                                        color = chartGridLineColor,
-                                        start = androidx.compose.ui.geometry.Offset(0f, y),
-                                        end = androidx.compose.ui.geometry.Offset(size.width, y),
-                                        strokeWidth = 1.dp.toPx()
+                if (uiState.pages.size > 1) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton(
+                            modifier = Modifier.semantics {
+                                contentDescription = previousWeekLabel
+                            },
+                            enabled = selectedPageIndex > 0,
+                            onClick = {
+                                if (selectedPageIndex > 0) {
+                                    selectedPageStartDateKey = uiState.pages[selectedPageIndex - 1].startDateKey
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                                contentDescription = null
+                            )
+                        }
+                        TextButton(
+                            modifier = Modifier.semantics {
+                                contentDescription = nextWeekLabel
+                            },
+                            enabled = selectedPageIndex < uiState.pages.lastIndex,
+                            onClick = {
+                                if (selectedPageIndex < uiState.pages.lastIndex) {
+                                    selectedPageStartDateKey = uiState.pages[selectedPageIndex + 1].startDateKey
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                }
+            }
+
+            visiblePage?.let { page ->
+                if (page.hasReviewActivity) {
+                    Row(
+                        verticalAlignment = Alignment.Top,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        ReviewsYAxis(
+                            upperBound = page.upperBound,
+                            modifier = Modifier
+                                .padding(top = 6.dp)
+                                .width(reviewChartAxisWidth)
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(reviewChartHeight)
+                                    .clip(RoundedCornerShape(22.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                    .drawBehind {
+                                        val lineStep = size.height / reviewChartVisibleGridLines.toFloat()
+
+                                        repeat(reviewChartVisibleGridLines) { index ->
+                                            val y = lineStep * index
+                                            drawLine(
+                                                color = chartGridLineColor,
+                                                start = androidx.compose.ui.geometry.Offset(0f, y),
+                                                end = androidx.compose.ui.geometry.Offset(size.width, y),
+                                                strokeWidth = 1.dp.toPx()
+                                            )
+                                        }
+                                    }
+                                    .padding(
+                                        horizontal = reviewChartHorizontalPadding,
+                                        vertical = reviewChartVerticalPadding
+                                    )
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(reviewChartColumnSpacing),
+                                    verticalAlignment = Alignment.Bottom,
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    page.days.forEach { day ->
+                                        ReviewBarColumn(
+                                            day = day,
+                                            upperBound = page.upperBound,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .fillMaxHeight()
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(reviewChartColumnSpacing),
+                                verticalAlignment = Alignment.Top,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                page.days.forEach { day ->
+                                    ReviewChartLabel(
+                                        day = day,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(reviewChartLabelHeight)
                                     )
                                 }
                             }
-                            .padding(
-                                horizontal = reviewChartHorizontalPadding,
-                                vertical = reviewChartVerticalPadding
-                            )
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(reviewChartColumnSpacing),
-                            verticalAlignment = Alignment.Bottom,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            uiState.days.forEach { day ->
-                                ReviewBarColumn(
-                                    day = day,
-                                    maxReviewCount = uiState.maxReviewCount,
-                                    modifier = Modifier
-                                        .width(reviewChartColumnWidth)
-                                        .fillMaxHeight()
-                                )
-                            }
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(reviewChartColumnSpacing),
-                        verticalAlignment = Alignment.Top,
-                        modifier = Modifier
-                            .padding(horizontal = reviewChartHorizontalPadding)
-                            .width(chartContentWidth)
-                    ) {
-                        uiState.days.forEach { day ->
-                            ReviewChartLabel(
-                                day = day,
-                                modifier = Modifier
-                                    .width(reviewChartColumnWidth)
-                                    .height(reviewChartLabelHeight)
-                            )
-                        }
-                    }
+                } else {
+                    Text(
+                        text = emptyWeekLabel,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
         }
@@ -597,7 +692,7 @@ private fun ReviewsSectionCard(
 
 @Composable
 private fun ReviewsYAxis(
-    maxReviewCount: Int,
+    upperBound: Int,
     modifier: Modifier
 ) {
     Column(
@@ -606,7 +701,7 @@ private fun ReviewsYAxis(
         modifier = modifier.height(reviewChartHeight + reviewChartLabelHeight + 8.dp)
     ) {
         Text(
-            text = maxReviewCount.toString(),
+            text = upperBound.toString(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.labelSmall
         )
@@ -621,7 +716,7 @@ private fun ReviewsYAxis(
 @Composable
 private fun ReviewBarColumn(
     day: ProgressHistoryDayUiState,
-    maxReviewCount: Int,
+    upperBound: Int,
     modifier: Modifier
 ) {
     val backgroundColor = if (day.isToday && day.reviewCount == 0) {
@@ -636,7 +731,7 @@ private fun ReviewBarColumn(
     }
     val barHeight = calculateBarHeight(
         reviewCount = day.reviewCount,
-        maxReviewCount = maxReviewCount,
+        upperBound = upperBound,
         maxBarHeight = reviewChartBarAreaHeight
     )
 
@@ -661,53 +756,34 @@ private fun ReviewChartLabel(
     day: ProgressHistoryDayUiState,
     modifier: Modifier
 ) {
-    val labelText = when {
-        day.isToday && day.reviewCount == 0 -> stringResource(id = R.string.progress_today)
-        else -> day.chartLabel
-    }
-    val isInactiveToday = day.isToday && day.reviewCount == 0
-
     Box(
         modifier = modifier,
         contentAlignment = Alignment.TopCenter
     ) {
-        if (labelText != null) {
-            Text(
-                text = labelText,
-                color = if (isInactiveToday) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                fontWeight = if (isInactiveToday) FontWeight.SemiBold else FontWeight.Normal,
-                style = MaterialTheme.typography.labelSmall,
-                textAlign = TextAlign.Center
-            )
-        }
+        Text(
+            text = day.dayOfMonthLabel,
+            color = if (day.isToday) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            fontWeight = if (day.isToday) FontWeight.SemiBold else FontWeight.Normal,
+            style = MaterialTheme.typography.labelSmall,
+            textAlign = TextAlign.Center
+        )
     }
-}
-
-private fun calculateChartContentWidth(
-    dayCount: Int
-): Dp {
-    if (dayCount == 0) {
-        return 0.dp
-    }
-
-    return reviewChartColumnWidth * dayCount +
-        reviewChartColumnSpacing * (dayCount - 1)
 }
 
 private fun calculateBarHeight(
     reviewCount: Int,
-    maxReviewCount: Int,
+    upperBound: Int,
     maxBarHeight: Dp
 ): Dp {
-    if (reviewCount == 0 || maxReviewCount == 0) {
+    if (reviewCount == 0 || upperBound == 0) {
         return 4.dp
     }
 
-    return (maxBarHeight * (reviewCount.toFloat() / maxReviewCount.toFloat())).coerceAtLeast(8.dp)
+    return (maxBarHeight * (reviewCount.toFloat() / upperBound.toFloat())).coerceAtLeast(8.dp)
 }
 
 private fun formatProgressStreakValue(
@@ -718,4 +794,27 @@ private fun formatProgressStreakValue(
     }
 
     return streakDays.toString()
+}
+
+private fun formatProgressReviewPageRange(
+    startDate: LocalDate,
+    endDate: LocalDate,
+    locale: Locale
+): String {
+    val formatter = DateIntervalFormat.getInstance("yMMMd", locale).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
+
+    return formatter.format(
+        DateInterval(
+            startDate.toUtcEpochMillis(),
+            endDate.toUtcEpochMillis()
+        )
+    )
+}
+
+private fun LocalDate.toUtcEpochMillis(): Long {
+    return atStartOfDay()
+        .toInstant(ZoneOffset.UTC)
+        .toEpochMilli()
 }

@@ -6,9 +6,17 @@ import java.time.LocalDate
 data class ProgressHistoryDayUiState(
     val date: LocalDate,
     val dayOfMonthLabel: String,
-    val chartLabel: String?,
     val reviewCount: Int,
     val isToday: Boolean
+)
+
+data class ProgressReviewPageUiState(
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val startDateKey: String,
+    val days: List<ProgressHistoryDayUiState>,
+    val hasReviewActivity: Boolean,
+    val upperBound: Int
 )
 
 data class ProgressStreakDayUiState(
@@ -29,8 +37,7 @@ data class ProgressStreakSectionUiState(
 )
 
 data class ProgressReviewsSectionUiState(
-    val days: List<ProgressHistoryDayUiState>,
-    val maxReviewCount: Int
+    val pages: List<ProgressReviewPageUiState>
 )
 
 sealed interface ProgressSummaryUiState {

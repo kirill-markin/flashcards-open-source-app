@@ -126,6 +126,10 @@ export const jaCatalog = {
     lastThirtyDays: "過去30日間",
     empty: "この30日間では復習が記録されていません。",
     rangeValue: "{{from}} - {{to}}",
+    weekRangeValue: "{{from}} - {{to}}",
+    previousWeek: "前の週",
+    nextWeek: "次の週",
+    emptyWeek: "この週にはまだ復習がありません。",
     labels: {
       totalReviews: "総復習回数",
       activeDays: "学習した日数",

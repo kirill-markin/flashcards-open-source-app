@@ -126,6 +126,10 @@ const deCatalog: TranslationCatalog = {
     lastThirtyDays: "Letzte 30 Tage",
     empty: "Für diesen 30-Tage-Zeitraum wurden keine Wiederholungen erfasst.",
     rangeValue: "{{from}} - {{to}}",
+    weekRangeValue: "{{from}} - {{to}}",
+    previousWeek: "Vorherige Woche",
+    nextWeek: "Nächste Woche",
+    emptyWeek: "In dieser Woche gibt es noch keine Wiederholungen.",
     labels: {
       totalReviews: "Wiederholungen gesamt",
       activeDays: "Aktive Tage",

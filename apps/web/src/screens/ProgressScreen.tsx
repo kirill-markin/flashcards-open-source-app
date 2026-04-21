@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties, type ReactElement } from "react";
+import { useEffect, useState, type CSSProperties, type ReactElement } from "react";
 import { useAppData } from "../appData";
 import {
   buildReviewProgressBadgeStateFromSummarySnapshot,
@@ -6,7 +6,7 @@ import {
 } from "../appData/reviewProgressBadge";
 import { useProgressInvalidationState } from "../appData/progressInvalidation";
 import { parseLocalDate, shiftLocalDate, useProgressSource } from "../appData/progressSource";
-import { resolveLocaleWeekContext, useI18n } from "../i18n";
+import { resolveLocaleWeekContext, useI18n, type LocaleDirection } from "../i18n";
 import type { DailyReviewPoint, ProgressSeriesSnapshot } from "../types";
 import { ReviewProgressBadgeIcon } from "./ReviewProgressBadgeIcon";
 
@@ -14,10 +14,12 @@ const streakWeekCount = 5;
 const streakWeekLength = 7;
 const chartGuideLineCount = 3;
 
+type LocaleValue = ReturnType<typeof useI18n>["locale"];
 type DateFormatter = ReturnType<typeof useI18n>["formatDate"];
 type NumberFormatter = ReturnType<typeof useI18n>["formatNumber"];
 type WeekContext = ReturnType<typeof resolveLocaleWeekContext>;
 type DailyReview = ProgressSeriesSnapshot["dailyReviews"][number];
+type ChartNavigationDirection = "previous" | "next";
 type StreakDay = Readonly<{
   date: string;
   reviewCount: number;
@@ -31,12 +33,20 @@ type ChartDay = Readonly<{
   date: string;
   reviewCount: number;
   isToday: boolean;
+  weekdayLabel: string;
   dayLabel: string;
   monthLabel: string;
-  showDayLabel: boolean;
   showMonthLabel: boolean;
   barHeightPercentage: number;
   title: string;
+}>;
+type ChartPage = Readonly<{
+  days: ReadonlyArray<ChartDay>;
+  startDate: string;
+  endDate: string;
+  startLocalDate: string;
+  upperBound: number;
+  hasReviewActivity: boolean;
 }>;
 
 const futureStreakDayStyle: Readonly<CSSProperties> = {
@@ -106,10 +116,6 @@ function getStartOfWeek(value: string, weekContext: WeekContext): string {
   return shiftLocalDate(value, -offsetFromWeekStart);
 }
 
-function isStartOfWeek(value: string, weekContext: WeekContext): boolean {
-  return getDayOfWeek(value) === weekContext.firstDayOfWeek;
-}
-
 export function buildStreakWeeks(
   dailyReviews: ReadonlyArray<DailyReview>,
   today: string,
@@ -148,52 +154,90 @@ function calculateMaxReviewCount(dailyReviews: ReadonlyArray<DailyReview>): numb
   return dailyReviews.reduce((maxReviewCount, day) => Math.max(maxReviewCount, day.reviewCount), 0);
 }
 
-function calculateBarHeightPercentage(reviewCount: number, maxReviewCount: number): number {
-  if (reviewCount === 0 || maxReviewCount === 0) {
+function calculateChartUpperBound(maxReviewCount: number): number {
+  if (maxReviewCount <= 0) {
+    return 1;
+  }
+
+  return Math.max(1, Math.ceil(maxReviewCount * 1.1));
+}
+
+function calculateBarHeightPercentage(reviewCount: number, upperBound: number): number {
+  if (reviewCount === 0 || upperBound === 0) {
     return 0;
   }
 
-  return (reviewCount / maxReviewCount) * 100;
+  return (reviewCount / upperBound) * 100;
 }
 
-function buildChartDays(
+function buildChartPage(
   dailyReviews: ReadonlyArray<DailyReview>,
   today: string,
-  maxReviewCount: number,
   formatDate: DateFormatter,
-  weekContext: WeekContext,
-): ReadonlyArray<ChartDay> {
-  let lastLabeledMonth: string | null = null;
+): ChartPage {
+  const upperBound = calculateChartUpperBound(calculateMaxReviewCount(dailyReviews));
 
-  return dailyReviews.map((day): ChartDay => {
-    const showDayLabel = isStartOfWeek(day.date, weekContext) || day.date === today;
-    const currentMonth = day.date.slice(0, 7);
-    const showMonthLabel = showDayLabel && (lastLabeledMonth === null || currentMonth !== lastLabeledMonth || day.date === today);
-
-    if (showDayLabel) {
-      lastLabeledMonth = currentMonth;
-    }
-
-    return {
+  return {
+    days: dailyReviews.map((day, dayIndex): ChartDay => ({
       date: day.date,
       reviewCount: day.reviewCount,
       isToday: day.date === today,
+      weekdayLabel: formatWeekdayLabel(day.date, formatDate),
       dayLabel: formatDayLabel(day.date, formatDate),
       monthLabel: formatMonthLabel(day.date, formatDate),
-      showDayLabel,
-      showMonthLabel,
-      barHeightPercentage: calculateBarHeightPercentage(day.reviewCount, maxReviewCount),
+      showMonthLabel: dayIndex === 0 || dailyReviews[dayIndex - 1]?.date.slice(0, 7) !== day.date.slice(0, 7),
+      barHeightPercentage: calculateBarHeightPercentage(day.reviewCount, upperBound),
       title: formatLocalDateForDisplay(day.date, formatDate),
-    };
-  });
+    })),
+    startDate: dailyReviews[0]?.date ?? "",
+    endDate: dailyReviews[dailyReviews.length - 1]?.date ?? "",
+    startLocalDate: dailyReviews[0]?.date ?? "",
+    upperBound,
+    hasReviewActivity: dailyReviews.some((day) => day.reviewCount > 0),
+  };
 }
 
-function buildChartGuideLabels(maxReviewCount: number, formatNumber: NumberFormatter): ReadonlyArray<string> {
+function buildChartPages(
+  dailyReviews: ReadonlyArray<DailyReview>,
+  today: string,
+  formatDate: DateFormatter,
+  weekContext: WeekContext,
+): ReadonlyArray<ChartPage> {
+  if (dailyReviews.length === 0) {
+    return [];
+  }
+
+  const chartPages: Array<ChartPage> = [];
+  let currentPageDays: Array<DailyReview> = [];
+  let currentWeekStart: string | null = null;
+
+  for (const day of dailyReviews) {
+    const weekStart = getStartOfWeek(day.date, weekContext);
+
+    if (currentWeekStart !== null && currentWeekStart !== weekStart) {
+      chartPages.push(buildChartPage(currentPageDays, today, formatDate));
+      currentPageDays = [day];
+      currentWeekStart = weekStart;
+      continue;
+    }
+
+    currentPageDays.push(day);
+    currentWeekStart = weekStart;
+  }
+
+  if (currentPageDays.length > 0) {
+    chartPages.push(buildChartPage(currentPageDays, today, formatDate));
+  }
+
+  return chartPages;
+}
+
+function buildChartGuideLabels(upperBound: number, formatNumber: NumberFormatter): ReadonlyArray<string> {
   const labels: string[] = [];
 
   for (let index = 0; index < chartGuideLineCount; index += 1) {
     if (index === 0) {
-      labels.push(formatNumber(maxReviewCount));
+      labels.push(formatNumber(upperBound));
       continue;
     }
 
@@ -206,6 +250,26 @@ function buildChartGuideLabels(maxReviewCount: number, formatNumber: NumberForma
   }
 
   return labels;
+}
+
+function formatChartRangeLabel(startDate: string, endDate: string, locale: LocaleValue): string {
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).formatRange(parseLocalDate(startDate), parseLocalDate(endDate));
+}
+
+function resolveChartNavigationArrow(
+  localeDirection: LocaleDirection,
+  navigationDirection: ChartNavigationDirection,
+): string {
+  if (navigationDirection === "previous") {
+    return localeDirection === "rtl" ? ">" : "<";
+  }
+
+  return localeDirection === "rtl" ? "<" : ">";
 }
 
 export function ProgressScreen(): ReactElement {
@@ -228,8 +292,8 @@ export function ProgressScreen(): ReactElement {
       includeSeries: true,
     },
   });
-  const { locale, matchedBrowserLanguageTag, t, formatDate, formatNumber } = useI18n();
-  const todayChartColumnRef = useRef<HTMLDivElement | null>(null);
+  const { locale, matchedBrowserLanguageTag, direction, t, formatDate, formatNumber } = useI18n();
+  const [selectedPageStartLocalDate, setSelectedPageStartLocalDate] = useState<string | null>(null);
   const progressSummary = progressSourceState.summary.renderedSnapshot;
   const progress = progressSourceState.series.renderedSnapshot;
   const isLoading = progressSourceState.summary.isLoading || progressSourceState.series.isLoading;
@@ -239,25 +303,27 @@ export function ProgressScreen(): ReactElement {
   const reviewProgressBadge = buildReviewProgressBadgeStateFromSummarySnapshot(progressSummary);
 
   useEffect(() => {
-    const chartColumn = todayChartColumnRef.current;
-
-    if (chartColumn === null) {
-      return;
-    }
-
-    chartColumn.scrollIntoView({
-      block: "nearest",
-      inline: "end",
-    });
-  }, [progress]);
+    setSelectedPageStartLocalDate(null);
+  }, [progressSourceState.series.renderedSnapshot]);
 
   const dailyReviews = progress === null ? [] : sortDailyReviews(progress.dailyReviews);
   const today = progress === null ? "" : progress.to;
   const weekContext = resolveLocaleWeekContext(matchedBrowserLanguageTag ?? locale, locale);
   const streakWeeks = progress === null ? [] : buildStreakWeeks(dailyReviews, today, formatDate, weekContext);
-  const maxReviewCount = progress === null ? 0 : calculateMaxReviewCount(dailyReviews);
-  const chartDays = progress === null ? [] : buildChartDays(dailyReviews, today, maxReviewCount, formatDate, weekContext);
-  const chartGuideLabels = buildChartGuideLabels(maxReviewCount, formatNumber);
+  const chartPages = progress === null ? [] : buildChartPages(dailyReviews, today, formatDate, weekContext);
+  const selectedPageIndex = chartPages.findIndex((page) => page.startLocalDate === selectedPageStartLocalDate);
+  const visiblePage = chartPages.length === 0
+    ? null
+    : selectedPageStartLocalDate === null || selectedPageIndex === -1
+      ? chartPages[chartPages.length - 1]
+      : chartPages[selectedPageIndex];
+  const resolvedSelectedPageIndex = visiblePage === null
+    ? 0
+    : chartPages.findIndex((page) => page.startLocalDate === visiblePage.startLocalDate);
+  const chartGuideLabels = buildChartGuideLabels(visiblePage?.upperBound ?? 1, formatNumber);
+  const pageRangeLabel = visiblePage === null
+    ? ""
+    : formatChartRangeLabel(visiblePage.startDate, visiblePage.endDate, locale);
   const reviewProgressBadgeTodayStatus = reviewProgressBadge.hasReviewedToday
     ? t("reviewScreen.progressBadge.reviewedToday")
     : t("reviewScreen.progressBadge.notReviewedToday");
@@ -265,6 +331,8 @@ export function ProgressScreen(): ReactElement {
     streak: formatNumber(reviewProgressBadge.streakDays),
     todayStatus: reviewProgressBadgeTodayStatus,
   });
+  const previousWeekArrow = resolveChartNavigationArrow(direction, "previous");
+  const nextWeekArrow = resolveChartNavigationArrow(direction, "next");
 
   return (
     <main className="container">
@@ -352,19 +420,61 @@ export function ProgressScreen(): ReactElement {
 
             <section className="content-card progress-section">
               <div className="progress-section-head">
-                <h2 className="progress-section-title">{t("progressScreen.reviewsTitle")}</h2>
-              </div>
-
-              <div className="progress-chart-shell">
-                <div className="progress-chart-y-axis" aria-hidden="true">
-                  {chartGuideLabels.map((label, index) => (
-                    <span key={`progress-guide-label-${index}`} className="progress-chart-y-label">
-                      {label}
-                    </span>
-                  ))}
+                <div className="progress-chart-heading">
+                  <h2 className="progress-section-title">{t("progressScreen.reviewsTitle")}</h2>
+                  {visiblePage !== null ? (
+                    <p className="progress-chart-range" data-testid="progress-chart-range">
+                      {pageRangeLabel}
+                    </p>
+                  ) : null}
                 </div>
 
-                <div className="progress-chart-scroll">
+                {chartPages.length > 1 ? (
+                  <div className="progress-chart-nav">
+                    <button
+                      type="button"
+                      className="ghost-btn progress-chart-nav-btn"
+                      onClick={() => setSelectedPageStartLocalDate(chartPages[resolvedSelectedPageIndex - 1]?.startLocalDate ?? null)}
+                      disabled={resolvedSelectedPageIndex <= 0}
+                      aria-label={t("progressScreen.previousWeek")}
+                      data-testid="progress-chart-previous-week"
+                    >
+                      <span className="progress-chart-nav-icon" aria-hidden="true">
+                        {previousWeekArrow}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-btn progress-chart-nav-btn"
+                      onClick={() => setSelectedPageStartLocalDate(chartPages[resolvedSelectedPageIndex + 1]?.startLocalDate ?? null)}
+                      disabled={resolvedSelectedPageIndex >= chartPages.length - 1}
+                      aria-label={t("progressScreen.nextWeek")}
+                      data-testid="progress-chart-next-week"
+                    >
+                      <span className="progress-chart-nav-icon" aria-hidden="true">
+                        {nextWeekArrow}
+                      </span>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              {visiblePage !== null && visiblePage.hasReviewActivity === false ? (
+                <p className="progress-chart-empty">{t("progressScreen.emptyWeek")}</p>
+              ) : (
+                <div className="progress-chart-shell">
+                  <div className="progress-chart-y-axis" aria-hidden="true">
+                    {chartGuideLabels.map((label, index) => (
+                      <span
+                        key={`progress-guide-label-${index}`}
+                        className="progress-chart-y-label"
+                        data-testid={index === 0 ? "progress-chart-y-label-max" : undefined}
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+
                   <div className="progress-chart-plot">
                     <div className="progress-chart-guides" aria-hidden="true">
                       {chartGuideLabels.map((_, index) => (
@@ -372,8 +482,11 @@ export function ProgressScreen(): ReactElement {
                       ))}
                     </div>
 
-                    <div className="progress-chart-columns">
-                      {chartDays.map((day) => {
+                    <div
+                      className="progress-chart-columns"
+                      style={visiblePage === null ? undefined : { gridTemplateColumns: `repeat(${visiblePage.days.length}, minmax(0, 1fr))` }}
+                    >
+                      {(visiblePage?.days ?? []).map((day) => {
                         const columnClassName = [
                           "progress-chart-column",
                           day.isToday && day.reviewCount === 0 ? "progress-chart-column-today" : "",
@@ -390,7 +503,6 @@ export function ProgressScreen(): ReactElement {
                         return (
                           <div
                             key={day.date}
-                            ref={day.isToday ? todayChartColumnRef : undefined}
                             className={columnClassName}
                             title={day.title}
                           >
@@ -401,13 +513,15 @@ export function ProgressScreen(): ReactElement {
                                   height: `${day.barHeightPercentage}%`,
                                 }}
                                 aria-hidden="true"
+                                data-testid={`progress-chart-bar-${day.date}`}
                               />
                             </div>
                             <div className="progress-chart-labels" aria-hidden="true">
                               <span className="progress-chart-month">
                                 {day.showMonthLabel ? day.monthLabel : ""}
                               </span>
-                              <span className="progress-chart-day">{day.showDayLabel ? day.dayLabel : ""}</span>
+                              <span className="progress-chart-day">{day.dayLabel}</span>
+                              <span className="progress-chart-weekday">{day.weekdayLabel}</span>
                             </div>
                           </div>
                         );
@@ -415,7 +529,7 @@ export function ProgressScreen(): ReactElement {
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </section>
           </div>
         ) : null}
