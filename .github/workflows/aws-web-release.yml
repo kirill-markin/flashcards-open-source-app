@@ -212,6 +212,39 @@ jobs:
         if: ${{ needs.changes.outputs.infra_changed == 'true' }}
         run: npm run build --prefix infra/aws
 
+      - name: Synthesize infra
+        working-directory: infra/aws
+        env:
+          AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          CDK_CONTEXT_ALERT_EMAIL: ${{ vars.CDK_ALERT_EMAIL }}
+          CDK_CONTEXT_ANALYTICS_SSH_ALLOWED_CIDRS: ${{ vars.CDK_ANALYTICS_SSH_ALLOWED_CIDRS }}
+          CDK_CONTEXT_ANALYTICS_SSH_PUBLIC_KEYS: ${{ vars.CDK_ANALYTICS_SSH_PUBLIC_KEYS }}
+          CDK_CONTEXT_ANALYTICS_SSH_USERNAME: ${{ vars.CDK_ANALYTICS_SSH_USERNAME }}
+          CDK_CONTEXT_ANTHROPIC_API_KEY_SECRET_ARN: ${{ vars.CDK_ANTHROPIC_API_KEY_SECRET_ARN }}
+          CDK_CONTEXT_API_CERTIFICATE_ARN: ${{ vars.CDK_API_CERTIFICATE_ARN }}
+          CDK_CONTEXT_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1 }}
+          CDK_CONTEXT_AUTH_CERTIFICATE_ARN: ${{ vars.CDK_AUTH_CERTIFICATE_ARN }}
+          CDK_CONTEXT_ADMIN_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_ADMIN_CERTIFICATE_ARN_US_EAST_1 }}
+          CDK_CONTEXT_ADMIN_EMAILS: ${{ vars.CDK_ADMIN_EMAILS }}
+          CDK_CONTEXT_DEMO_EMAIL_DOSTIP: ${{ vars.CDK_DEMO_EMAIL_DOSTIP }}
+          CDK_CONTEXT_DEMO_PASSWORD_SECRET_ARN: ${{ vars.CDK_DEMO_PASSWORD_SECRET_ARN }}
+          CDK_CONTEXT_DOMAIN_NAME: ${{ vars.CDK_DOMAIN_NAME }}
+          CDK_CONTEXT_GITHUB_REPO: ${{ vars.CDK_GITHUB_REPO }}
+          CDK_CONTEXT_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP: ${{ vars.CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP }}
+          CDK_CONTEXT_LANGFUSE_BASE_URL: ${{ vars.CDK_LANGFUSE_BASE_URL }}
+          CDK_CONTEXT_LANGFUSE_PUBLIC_KEY_SECRET_ARN: ${{ vars.CDK_LANGFUSE_PUBLIC_KEY_SECRET_ARN }}
+          CDK_CONTEXT_LANGFUSE_SECRET_KEY_SECRET_ARN: ${{ vars.CDK_LANGFUSE_SECRET_KEY_SECRET_ARN }}
+          CDK_CONTEXT_OPENAI_API_KEY_SECRET_ARN: ${{ vars.CDK_OPENAI_API_KEY_SECRET_ARN }}
+          CDK_CONTEXT_REGION: ${{ vars.AWS_REGION }}
+          CDK_CONTEXT_RESEND_API_KEY_SECRET_ARN: ${{ vars.CDK_RESEND_API_KEY_SECRET_ARN }}
+          CDK_CONTEXT_RESEND_SENDER_EMAIL: ${{ vars.CDK_RESEND_SENDER_EMAIL }}
+          CDK_CONTEXT_WEB_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_WEB_CERTIFICATE_ARN_US_EAST_1 }}
+        run: |
+          python3 ../../scripts/write-ci-cdk-context.py \
+            --output cdk.context.local.json \
+            --aws-deploy-role-arn "${AWS_DEPLOY_ROLE_ARN}"
+          npm run synth
+
   aws_deploy:
     name: Deploy AWS release
     needs:
@@ -257,6 +290,7 @@ jobs:
       - name: CDK deploy
         working-directory: infra/aws
         env:
+          AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           CDK_CONTEXT_ALERT_EMAIL: ${{ vars.CDK_ALERT_EMAIL }}
           CDK_CONTEXT_ANALYTICS_SSH_ALLOWED_CIDRS: ${{ vars.CDK_ANALYTICS_SSH_ALLOWED_CIDRS }}
           CDK_CONTEXT_ANALYTICS_SSH_PUBLIC_KEYS: ${{ vars.CDK_ANALYTICS_SSH_PUBLIC_KEYS }}
@@ -281,45 +315,9 @@ jobs:
           CDK_CONTEXT_RESEND_SENDER_EMAIL: ${{ vars.CDK_RESEND_SENDER_EMAIL }}
           CDK_CONTEXT_WEB_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_WEB_CERTIFICATE_ARN_US_EAST_1 }}
         run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          export ACCOUNT_ID
-          python3 - <<'PY'
-          import json
-          import os
-          import pathlib
-
-          values = {
-              "alertEmail": os.environ.get("CDK_CONTEXT_ALERT_EMAIL", ""),
-              "analyticsSshAllowedCidrs": os.environ.get("CDK_CONTEXT_ANALYTICS_SSH_ALLOWED_CIDRS", ""),
-              "analyticsSshPublicKeys": os.environ.get("CDK_CONTEXT_ANALYTICS_SSH_PUBLIC_KEYS", ""),
-              "analyticsSshUsername": os.environ.get("CDK_CONTEXT_ANALYTICS_SSH_USERNAME", ""),
-              "anthropicApiKeySecretArn": os.environ.get("CDK_CONTEXT_ANTHROPIC_API_KEY_SECRET_ARN", ""),
-              "apiCertificateArn": os.environ.get("CDK_CONTEXT_API_CERTIFICATE_ARN", ""),
-              "apexRedirectCertificateArnUsEast1": os.environ.get("CDK_CONTEXT_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1", ""),
-              "authCertificateArn": os.environ.get("CDK_CONTEXT_AUTH_CERTIFICATE_ARN", ""),
-              "adminCertificateArnUsEast1": os.environ.get("CDK_CONTEXT_ADMIN_CERTIFICATE_ARN_US_EAST_1", ""),
-              "adminEmails": os.environ.get("CDK_CONTEXT_ADMIN_EMAILS", ""),
-              "demoEmailDostip": os.environ.get("CDK_CONTEXT_DEMO_EMAIL_DOSTIP", ""),
-              "demoPasswordSecretArn": os.environ.get("CDK_CONTEXT_DEMO_PASSWORD_SECRET_ARN", ""),
-              "domainName": os.environ.get("CDK_CONTEXT_DOMAIN_NAME", ""),
-              "githubOidcProviderArn": f"arn:aws:iam::{os.environ['ACCOUNT_ID']}:oidc-provider/token.actions.githubusercontent.com",
-              "githubRepo": os.environ.get("CDK_CONTEXT_GITHUB_REPO", ""),
-              "guestAiWeightedMonthlyTokenCap": os.environ.get("CDK_CONTEXT_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP", ""),
-              "langfuseBaseUrl": os.environ.get("CDK_CONTEXT_LANGFUSE_BASE_URL", ""),
-              "langfusePublicKeySecretArn": os.environ.get("CDK_CONTEXT_LANGFUSE_PUBLIC_KEY_SECRET_ARN", ""),
-              "langfuseSecretKeySecretArn": os.environ.get("CDK_CONTEXT_LANGFUSE_SECRET_KEY_SECRET_ARN", ""),
-              "openAiApiKeySecretArn": os.environ.get("CDK_CONTEXT_OPENAI_API_KEY_SECRET_ARN", ""),
-              "region": os.environ.get("CDK_CONTEXT_REGION", ""),
-              "resendApiKeySecretArn": os.environ.get("CDK_CONTEXT_RESEND_API_KEY_SECRET_ARN", ""),
-              "resendSenderEmail": os.environ.get("CDK_CONTEXT_RESEND_SENDER_EMAIL", ""),
-              "webCertificateArnUsEast1": os.environ.get("CDK_CONTEXT_WEB_CERTIFICATE_ARN_US_EAST_1", ""),
-          }
-          data = {key: value for key, value in values.items() if value}
-          pathlib.Path("cdk.context.local.json").write_text(
-              json.dumps(data, indent=2) + "\n",
-              encoding="utf-8",
-          )
-          PY
+          python3 ../../scripts/write-ci-cdk-context.py \
+            --output cdk.context.local.json \
+            --aws-deploy-role-arn "${AWS_DEPLOY_ROLE_ARN}"
           npx cdk deploy --all --require-approval never
 
       - name: Check demo Cognito users
