@@ -126,6 +126,10 @@ const esMxCatalog: TranslationCatalog = {
     lastThirtyDays: "Últimos 30 días",
     empty: "No se registraron repasos en este rango de 30 días.",
     rangeValue: "{{from}} - {{to}}",
+    weekRangeValue: "{{from}} - {{to}}",
+    previousWeek: "Semana anterior",
+    nextWeek: "Semana siguiente",
+    emptyWeek: "Todavía no hay repasos en esta semana.",
     labels: {
       totalReviews: "Repasos totales",
       activeDays: "Días activos",

@@ -3665,55 +3665,55 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "لا توجد مراجعات بعد في هذه الفترة."
+            "value" : "لا توجد مراجعات بعد في هذا الأسبوع."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "In diesem Zeitraum gibt es noch keine Wiederholungen."
+            "value" : "In dieser Woche gibt es noch keine Wiederholungen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No reviews yet in this period."
+            "value" : "No reviews yet in this week."
           }
         },
         "es-ES" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Todavía no hay revisiones en este período."
+            "value" : "Todavía no hay repasos en esta semana."
           }
         },
         "es-MX" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aún no hay revisiones en este periodo."
+            "value" : "Todavía no hay repasos en esta semana."
           }
         },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "इस अवधि में अभी तक कोई समीक्षा नहीं है।"
+            "value" : "इस सप्ताह अभी तक कोई रिव्यू नहीं है।"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "この期間の復習はまだありません。"
+            "value" : "この週にはまだ復習がありません。"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "За этот период пока нет повторений."
+            "value" : "На этой неделе пока нет повторений."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此时间段内还没有复习记录。"
+            "value" : "本周还没有复习。"
           }
         }
       }

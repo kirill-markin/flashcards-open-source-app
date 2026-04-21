@@ -126,6 +126,10 @@ const hiCatalog: TranslationCatalog = {
     lastThirtyDays: "पिछले 30 दिन",
     empty: "इन 30 दिनों की अवधि में कोई रिव्यू दर्ज नहीं किया गया।",
     rangeValue: "{{from}} - {{to}}",
+    weekRangeValue: "{{from}} - {{to}}",
+    previousWeek: "पिछला सप्ताह",
+    nextWeek: "अगला सप्ताह",
+    emptyWeek: "इस सप्ताह अभी तक कोई रिव्यू नहीं है।",
     labels: {
       totalReviews: "कुल रिव्यू",
       activeDays: "सक्रिय दिन",

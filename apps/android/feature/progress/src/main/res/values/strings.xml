@@ -14,6 +14,9 @@
     <string name="progress_streak_summary_not_reviewed_today">Not reviewed today</string>
     <string name="progress_reviews_title">Reviews</string>
     <string name="progress_reviews_subtitle">Last 20 weeks</string>
+    <string name="progress_reviews_previous_week">Previous week</string>
+    <string name="progress_reviews_next_week">Next week</string>
+    <string name="progress_reviews_empty_week">No reviews yet in this week.</string>
     <string name="progress_today">Today</string>
     <plurals name="progress_streak_summary_content_description">
         <item quantity="one">Review streak %d day.</item>

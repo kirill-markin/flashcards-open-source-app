@@ -124,6 +124,10 @@ const enCatalog = {
     lastThirtyDays: "Last 30 days",
     empty: "No reviews were recorded for this 30-day range.",
     rangeValue: "{{from}} - {{to}}",
+    weekRangeValue: "{{from}} - {{to}}",
+    previousWeek: "Previous week",
+    nextWeek: "Next week",
+    emptyWeek: "No reviews yet in this week.",
     labels: {
       totalReviews: "Total reviews",
       activeDays: "Active days",
