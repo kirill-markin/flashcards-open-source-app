@@ -5,7 +5,6 @@ private let progressStringsTableName: String = "Foundation"
 private let progressCalendarColumnCount: Int = 7
 private let progressChartDayWidth: CGFloat = 20
 private let progressChartHeight: CGFloat = 220
-private let progressReviewsChartScrollTargetID: String = "progress-reviews-chart"
 private let progressStreakBadgeSize: CGFloat = 34
 private let progressStreakBadgeHorizontalPadding: CGFloat = 8
 private let progressReviewCardsStringsTableName: String = "ReviewCards"
@@ -14,29 +13,15 @@ struct ProgressScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     var body: some View {
-        List {
-            if self.store.progressErrorMessage.isEmpty == false {
-                Section {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 20) {
+                if self.store.progressErrorMessage.isEmpty == false {
                     CopyableErrorMessageView(message: self.store.progressErrorMessage)
+                        .modifier(ProgressCardModifier())
                 }
-            }
 
-            if self.store.isProgressRefreshing && self.store.progressSnapshot == nil {
-                Section {
-                    ProgressView(
-                        String(
-                            localized: "progress.screen.loading",
-                            defaultValue: "Loading progress...",
-                            table: progressStringsTableName,
-                            comment: "Progress loading state"
-                        )
-                    )
-                }
-            }
-
-            if let progressSnapshot = self.store.progressSnapshot {
-                if self.store.isProgressRefreshing {
-                    Section {
+                if self.store.isProgressRefreshing && self.store.progressSnapshot == nil {
+                    VStack(alignment: .leading, spacing: 0) {
                         ProgressView(
                             String(
                                 localized: "progress.screen.loading",
@@ -46,59 +31,90 @@ struct ProgressScreen: View {
                             )
                         )
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .modifier(ProgressCardModifier())
                 }
 
-                Section(
-                    String(
-                        localized: "progress.screen.streak.section_title",
-                        defaultValue: "Streak",
-                        table: progressStringsTableName,
-                        comment: "Progress streak section title"
-                    )
-                ) {
-                    ProgressStreakSection(
-                        weeks: progressSnapshot.streakWeeks,
-                        badgeState: makeReviewProgressBadgeState(summary: progressSnapshot.summary)
-                    )
-                }
+                if let progressSnapshot = self.store.progressSnapshot {
+                    if self.store.isProgressRefreshing {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ProgressView(
+                                String(
+                                    localized: "progress.screen.loading",
+                                    defaultValue: "Loading progress...",
+                                    table: progressStringsTableName,
+                                    comment: "Progress loading state"
+                                )
+                            )
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .modifier(ProgressCardModifier())
+                    }
 
-                Section(
-                    String(
-                        localized: "progress.screen.reviews.section_title",
-                        defaultValue: "Reviews",
-                        table: progressStringsTableName,
-                        comment: "Progress reviews section title"
-                    )
-                ) {
-                    ProgressReviewsSection(
-                        chartDays: progressSnapshot.chartData.chartDays,
-                        chartUpperBound: progressSnapshot.chartData.chartUpperBound,
-                        hasReviewActivity: progressSnapshot.chartData.hasReviewActivity
-                    )
-                }
-            } else if self.store.isProgressRefreshing == false {
-                Section {
-                    ContentUnavailableView(
-                        String(
-                            localized: "progress.screen.unavailable.title",
-                            defaultValue: "Progress is unavailable",
-                            table: progressStringsTableName,
-                            comment: "Progress unavailable title"
-                        ),
-                        systemImage: "chart.bar.xaxis",
-                        description: Text(
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(
                             String(
-                                localized: "progress.screen.unavailable.description",
-                                defaultValue: "Open review or reconnect cloud data, then refresh progress.",
+                                localized: "progress.screen.streak.section_title",
+                                defaultValue: "Streak",
                                 table: progressStringsTableName,
-                                comment: "Progress unavailable description"
+                                comment: "Progress streak section title"
                             )
                         )
-                    )
+                        .font(.headline)
+
+                        ProgressStreakSection(
+                            weeks: progressSnapshot.streakWeeks,
+                            badgeState: makeReviewProgressBadgeState(summary: progressSnapshot.summary)
+                        )
+                    }
+                    .modifier(ProgressCardModifier())
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(
+                            String(
+                                localized: "progress.screen.reviews.section_title",
+                                defaultValue: "Reviews",
+                                table: progressStringsTableName,
+                                comment: "Progress reviews section title"
+                            )
+                        )
+                        .font(.headline)
+
+                        ProgressReviewsSection(
+                            chartDays: progressSnapshot.chartData.chartDays,
+                            chartUpperBound: progressSnapshot.chartData.chartUpperBound,
+                            hasReviewActivity: progressSnapshot.chartData.hasReviewActivity
+                        )
+                    }
+                    .modifier(ProgressCardModifier())
+                } else if self.store.isProgressRefreshing == false {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ContentUnavailableView(
+                            String(
+                                localized: "progress.screen.unavailable.title",
+                                defaultValue: "Progress is unavailable",
+                                table: progressStringsTableName,
+                                comment: "Progress unavailable title"
+                            ),
+                            systemImage: "chart.bar.xaxis",
+                            description: Text(
+                                String(
+                                    localized: "progress.screen.unavailable.description",
+                                    defaultValue: "Open review or reconnect cloud data, then refresh progress.",
+                                    table: progressStringsTableName,
+                                    comment: "Progress unavailable description"
+                                )
+                            )
+                        )
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .modifier(ProgressCardModifier())
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 20)
         }
-        .listStyle(.insetGrouped)
+        .background(Color(uiColor: .systemGroupedBackground))
         .accessibilityIdentifier(UITestIdentifier.progressScreen)
         .navigationTitle(
             String(
@@ -114,6 +130,18 @@ struct ProgressScreen: View {
         .refreshable {
             await self.store.refreshProgressManually()
         }
+    }
+}
+
+private struct ProgressCardModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+            )
     }
 }
 
@@ -340,66 +368,57 @@ private struct ProgressReviewsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            GeometryReader { geometry in
-                ScrollViewReader { proxy in
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        Chart {
-                            ForEach(self.chartDays) { day in
-                                BarMark(
-                                    x: .value("Date", day.date, unit: .day),
-                                    y: .value("Reviews", day.reviewCount)
-                                )
-                                .foregroundStyle(progressChartBarStyle(day: day))
-
-                                if day.isToday {
-                                    RuleMark(x: .value("Today", day.date, unit: .day))
-                                        .foregroundStyle(Color.accentColor.opacity(0.35))
-                                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                                }
-                            }
-                        }
-                        .chartXScale(domain: self.chartDomain)
-                        .chartYScale(domain: 0 ... self.chartUpperBound)
-                        .chartXAxis {
-                            AxisMarks(values: .stride(by: .day, count: 7)) { value in
-                                AxisGridLine()
-                                    .foregroundStyle(Color(uiColor: .separator).opacity(0.18))
-                                AxisTick()
-                                    .foregroundStyle(Color(uiColor: .separator).opacity(0.35))
-                                AxisValueLabel(format: .dateTime.month(.abbreviated).day())
-                            }
-                        }
-                        .chartYAxis {
-                            AxisMarks(position: .leading) { value in
-                                AxisGridLine()
-                                    .foregroundStyle(Color(uiColor: .separator).opacity(0.18))
-                                AxisTick()
-                                    .foregroundStyle(Color(uiColor: .separator).opacity(0.35))
-                                AxisValueLabel()
-                            }
-                        }
-                        .chartPlotStyle { plotArea in
-                            plotArea
-                                .background(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.45))
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        }
-                        .frame(
-                            width: progressChartWidth(
-                                containerWidth: geometry.size.width,
-                                dayCount: self.chartDays.count
-                            ),
-                            height: progressChartHeight
+            ScrollView(.horizontal, showsIndicators: false) {
+                Chart {
+                    ForEach(self.chartDays) { day in
+                        BarMark(
+                            x: .value("Date", day.date, unit: .day),
+                            y: .value("Reviews", day.reviewCount)
                         )
-                        .id(progressReviewsChartScrollTargetID)
-                    }
-                    .onAppear {
-                        scrollProgressChartToToday(proxy: proxy)
-                    }
-                    .onChange(of: self.chartDays.last?.id) { _, _ in
-                        scrollProgressChartToToday(proxy: proxy)
+                        .foregroundStyle(progressChartBarStyle(day: day))
+
+                        if day.isToday {
+                            RuleMark(x: .value("Today", day.date, unit: .day))
+                                .foregroundStyle(Color.accentColor.opacity(0.35))
+                                .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                        }
                     }
                 }
+                .chartXScale(domain: self.chartDomain)
+                .chartYScale(domain: 0 ... self.chartUpperBound)
+                .chartXAxis {
+                    AxisMarks(values: .stride(by: .day, count: 7)) { value in
+                        AxisGridLine()
+                            .foregroundStyle(Color(uiColor: .separator).opacity(0.18))
+                        AxisTick()
+                            .foregroundStyle(Color(uiColor: .separator).opacity(0.35))
+                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks(position: .leading) { value in
+                        AxisGridLine()
+                            .foregroundStyle(Color(uiColor: .separator).opacity(0.18))
+                        AxisTick()
+                            .foregroundStyle(Color(uiColor: .separator).opacity(0.35))
+                        AxisValueLabel()
+                    }
+                }
+                .chartPlotStyle { plotArea in
+                    plotArea
+                        .background(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.45))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .frame(
+                    width: progressChartWidth(dayCount: self.chartDays.count),
+                    height: progressChartHeight
+                )
             }
+            .defaultScrollAnchor(.trailing, for: .initialOffset)
+            .defaultScrollAnchor(.trailing, for: .alignment)
+            // Avoid `GeometryReader` inside the `List` row because that measurement
+            // loop was still invalidating the collection-backed layout on iPhone.
+            .scrollClipDisabled()
             .frame(height: progressChartHeight)
 
             if self.hasReviewActivity == false {
@@ -428,8 +447,8 @@ private struct ProgressReviewsSection: View {
     }
 }
 
-private func progressChartWidth(containerWidth: CGFloat, dayCount: Int) -> CGFloat {
-    max(containerWidth, CGFloat(dayCount) * progressChartDayWidth)
+private func progressChartWidth(dayCount: Int) -> CGFloat {
+    max(320, CGFloat(dayCount) * progressChartDayWidth)
 }
 
 private func progressChartBarStyle(day: ProgressChartDay) -> AnyShapeStyle {
@@ -438,10 +457,6 @@ private func progressChartBarStyle(day: ProgressChartDay) -> AnyShapeStyle {
     }
 
     return AnyShapeStyle(Color.accentColor.opacity(0.16))
-}
-
-private func scrollProgressChartToToday(proxy: ScrollViewProxy) {
-    proxy.scrollTo(progressReviewsChartScrollTargetID, anchor: .trailing)
 }
 
 #Preview {
