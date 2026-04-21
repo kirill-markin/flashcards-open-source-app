@@ -4,7 +4,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as rds from "aws-cdk-lib/aws-rds";
 import { Construct } from "constructs";
-import * as path from "path";
+import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
 
 export interface MigrationRunnerProps {
   vpc: ec2.Vpc;
@@ -18,8 +18,8 @@ export interface MigrationRunnerProps {
 }
 
 const dbAssetPaths = {
-  migrations: path.join(__dirname, "../../../db/migrations"),
-  views: path.join(__dirname, "../../../db/views"),
+  migrations: resolveFromRepoRoot("db", "migrations"),
+  views: resolveFromRepoRoot("db", "views"),
 };
 
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
@@ -44,7 +44,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
  */
 export function migrationRunner(scope: Construct, props: MigrationRunnerProps): lambdaNodejs.NodejsFunction {
   const migrationFn = new lambdaNodejs.NodejsFunction(scope, "DbMigrationHandler", {
-    entry: path.join(__dirname, "../../../apps/backend/src/migrate-lambda.ts"),
+    entry: resolveFromRepoRoot("apps", "backend", "src", "migrate-lambda.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(5),
@@ -52,6 +52,7 @@ export function migrationRunner(scope: Construct, props: MigrationRunnerProps): 
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
+    ...backendNodejsProjectPaths,
     bundling: lambdaBundling,
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",

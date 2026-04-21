@@ -96,7 +96,7 @@ export function webApp(scope: Construct, props: WebAppProps): WebAppResult {
     comment: "flashcards-open-source-app web app",
     defaultRootObject: "index.html",
     defaultBehavior: {
-      origin: new origins.S3Origin(bucket),
+      origin: origins.S3BucketOrigin.withOriginAccessControl(bucket),
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
       compress: true,
@@ -150,7 +150,7 @@ export function webApp(scope: Construct, props: WebAppProps): WebAppResult {
   const apexRedirectDistribution = new cloudfront.Distribution(scope, "ApexRedirectDistribution", {
     comment: "flashcards-open-source-app apex redirect",
     defaultBehavior: {
-      origin: new origins.S3Origin(redirectBucket),
+      origin: origins.S3BucketOrigin.withOriginAccessControl(redirectBucket),
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
       compress: true,

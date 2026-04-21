@@ -36,7 +36,7 @@ export function adminApp(scope: Construct, props: AdminAppProps): AdminAppResult
     comment: "flashcards-open-source-app admin app",
     defaultRootObject: "index.html",
     defaultBehavior: {
-      origin: new origins.S3Origin(bucket),
+      origin: origins.S3BucketOrigin.withOriginAccessControl(bucket),
       viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
       compress: true,

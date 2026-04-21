@@ -6,8 +6,8 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
-import * as path from "path";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
+import { authNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
 
 export interface AuthGatewayProps {
   vpc: ec2.Vpc;
@@ -25,16 +25,6 @@ export interface AuthGatewayProps {
 export interface AuthGatewayResult {
   restApi: apigw.RestApi;
   authFn: lambdaNodejs.NodejsFunction;
-}
-
-function getOptionalEnvironmentValue(name: string): string | undefined {
-  const value = process.env[name];
-  if (value === undefined) {
-    return undefined;
-  }
-
-  const trimmedValue = value.trim();
-  return trimmedValue === "" ? undefined : trimmedValue;
 }
 
 function addLambdaSecretArnEnvironment(
@@ -79,7 +69,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
   });
 
   const authFn = new lambdaNodejs.NodejsFunction(scope, "AuthHandler", {
-    entry: path.join(__dirname, "../../../apps/auth/src/lambda.ts"),
+    entry: resolveFromRepoRoot("apps", "auth", "src", "lambda.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.seconds(30),
@@ -87,6 +77,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
+    ...authNodejsProjectPaths,
     bundling: lambdaBundling,
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",

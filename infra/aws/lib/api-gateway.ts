@@ -6,7 +6,7 @@ import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
-import * as path from "path";
+import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
 
 export interface ApiGatewayProps {
@@ -77,7 +77,7 @@ const lambdaBundling: lambdaNodejs.BundlingOptions = {
     afterBundling: (_inputDir: string, outputDir: string) => [
       `curl -sfo ${outputDir}/rds-global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem`,
       `mkdir -p ${outputDir}/api/dist`,
-      `cp ${path.resolve(__dirname, "../../../api/dist/openapi.json")} ${outputDir}/api/dist/openapi.json`,
+      `cp ${resolveFromRepoRoot("api", "dist", "openapi.json")} ${outputDir}/api/dist/openapi.json`,
     ],
   },
 };
@@ -142,6 +142,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
+    ...backendNodejsProjectPaths,
     bundling: lambdaBundling,
     environment: {
       NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
@@ -239,7 +240,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   const backendFn = createBackendFunction(scope, {
     constructId: "BackendHandler",
-    entry: path.join(__dirname, "../../../apps/backend/src/lambda.ts"),
+    entry: resolveFromRepoRoot("apps", "backend", "src", "lambda.ts"),
     baseDomain: props.baseDomain,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
@@ -261,7 +262,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   });
   const chatWorkerFn = createBackendFunction(scope, {
     constructId: "ChatRunWorkerHandler",
-    entry: path.join(__dirname, "../../../apps/backend/src/lambda-chat-worker.ts"),
+    entry: resolveFromRepoRoot("apps", "backend", "src", "lambda-chat-worker.ts"),
     baseDomain: props.baseDomain,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
@@ -283,7 +284,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   });
   const chatLiveFn = createBackendFunction(scope, {
     constructId: "ChatLiveHandler",
-    entry: path.join(__dirname, "../../../apps/backend/src/lambda-chat-live.ts"),
+    entry: resolveFromRepoRoot("apps", "backend", "src", "lambda-chat-live.ts"),
     baseDomain: props.baseDomain,
     vpc: props.vpc,
     lambdaSg: props.lambdaSg,
