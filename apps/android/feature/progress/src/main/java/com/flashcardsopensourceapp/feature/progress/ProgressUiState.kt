@@ -49,7 +49,7 @@ sealed interface ProgressUiState {
     data object Unavailable : ProgressUiState
 
     data class Error(
-        val message: String
+        val message: String?
     ) : ProgressUiState
 
     data class Loaded(

@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.progress
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -25,6 +26,8 @@ import java.util.Locale
 
 private const val streakWeekCount: Int = 5
 private const val daysPerWeek: Int = 7
+private const val progressViewModelLogTag: String = "ProgressViewModel"
+private const val progressViewModelLogMaxValueLength: Int = 240
 
 class ProgressViewModel(
     private val progressRepository: ProgressRepository
@@ -72,6 +75,25 @@ private fun createProgressUiState(
         return ProgressUiState.Loading
     }
 
+    return runCatching {
+        createLoadedProgressUiState(
+            summarySnapshot = summarySnapshot,
+            seriesSnapshot = seriesSnapshot
+        )
+    }.getOrElse { error ->
+        logProgressUiStateMappingFailure(
+            summarySnapshot = summarySnapshot,
+            seriesSnapshot = seriesSnapshot,
+            error = error
+        )
+        ProgressUiState.Error(message = null)
+    }
+}
+
+private fun createLoadedProgressUiState(
+    summarySnapshot: ProgressSummarySnapshot?,
+    seriesSnapshot: ProgressSeriesSnapshot
+): ProgressUiState {
     val today = LocalDate.parse(seriesSnapshot.renderedSeries.to)
     return seriesSnapshot.renderedSeries.toUiState(
         locale = Locale.getDefault(),
@@ -232,6 +254,62 @@ private fun startOfWeek(
     val daysFromStartOfWeek = (date.dayOfWeek.value - firstDayOfWeek.value + daysPerWeek) % daysPerWeek
 
     return date.minusDays(daysFromStartOfWeek.toLong())
+}
+
+private fun logProgressUiStateMappingFailure(
+    summarySnapshot: ProgressSummarySnapshot?,
+    seriesSnapshot: ProgressSeriesSnapshot,
+    error: Throwable
+) {
+    val message = buildProgressViewModelLogMessage(
+        event = "progress_ui_state_mapping_failed",
+        fields = listOf(
+            "summaryScopeId" to summarySnapshot?.scopeKey?.scopeId,
+            "seriesScopeId" to seriesSnapshot.scopeKey.scopeId,
+            "timeZone" to seriesSnapshot.scopeKey.timeZone,
+            "from" to seriesSnapshot.scopeKey.from,
+            "to" to seriesSnapshot.scopeKey.to,
+            "source" to seriesSnapshot.source.name,
+            "dailyReviewCount" to seriesSnapshot.renderedSeries.dailyReviews.size.toString()
+        )
+    )
+    val didLog = runCatching {
+        Log.e(progressViewModelLogTag, message, error)
+    }.isSuccess
+    if (didLog.not()) {
+        println("$progressViewModelLogTag E $message")
+        println(error.stackTraceToString())
+    }
+}
+
+private fun buildProgressViewModelLogMessage(
+    event: String,
+    fields: List<Pair<String, String?>>
+): String {
+    val renderedFields = fields.map { (key, value) ->
+        "$key=${sanitizeProgressViewModelLogValue(value = value)}"
+    }
+
+    return if (renderedFields.isEmpty()) {
+        "event=$event"
+    } else {
+        "event=$event ${renderedFields.joinToString(separator = " ")}"
+    }
+}
+
+private fun sanitizeProgressViewModelLogValue(
+    value: String?
+): String {
+    if (value == null) {
+        return "null"
+    }
+
+    val normalized = value.replace(oldValue = "\n", newValue = "\\n")
+    return if (normalized.length <= progressViewModelLogMaxValueLength) {
+        normalized
+    } else {
+        normalized.take(progressViewModelLogMaxValueLength) + "..."
+    }
 }
 
 fun createProgressViewModelFactory(

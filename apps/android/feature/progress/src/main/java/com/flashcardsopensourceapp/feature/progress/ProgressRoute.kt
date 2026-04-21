@@ -231,9 +231,13 @@ private fun GuidanceCard(
 
 @Composable
 private fun ErrorCard(
-    message: String,
+    message: String?,
     onRetry: () -> Unit
 ) {
+    val resolvedMessage = message?.takeIf { errorMessage ->
+        errorMessage.isNotBlank()
+    } ?: stringResource(id = R.string.progress_error_message)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -252,7 +256,7 @@ private fun ErrorCard(
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = message,
+                text = resolvedMessage,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -452,12 +456,14 @@ private fun StreakDayCell(
                     .then(todayOutlineModifier),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = requireNotNull(day.dayOfMonthLabel),
-                    color = dateTextColor,
-                    fontWeight = if (day.isToday) FontWeight.SemiBold else FontWeight.Normal,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                day.dayOfMonthLabel?.let { dayOfMonthLabel ->
+                    Text(
+                        text = dayOfMonthLabel,
+                        color = dateTextColor,
+                        fontWeight = if (day.isToday) FontWeight.SemiBold else FontWeight.Normal,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         }
     }

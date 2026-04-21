@@ -120,6 +120,33 @@ class ProgressViewModelTest {
             Dispatchers.resetMain()
         }
     }
+
+    @Test
+    fun invalidSeriesSnapshotMapsToErrorUiStateInsteadOfThrowing() = runTest(dispatcher) {
+        Dispatchers.setMain(dispatcher)
+        try {
+            val repository = FakeProgressRepository()
+            val viewModel = ProgressViewModel(
+                progressRepository = repository
+            )
+
+            val baseSeriesSnapshot = createProgressSeriesSnapshot()
+            repository.emitSeriesSnapshot(
+                snapshot = baseSeriesSnapshot.copy(
+                    renderedSeries = baseSeriesSnapshot.renderedSeries.copy(
+                        to = "invalid-date"
+                    )
+                )
+            )
+            advanceUntilIdle()
+
+            val uiState = viewModel.uiState.value
+            assertTrue(uiState is ProgressUiState.Error)
+            assertEquals(null, (uiState as ProgressUiState.Error).message)
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
 }
 
 private class FakeProgressRepository : ProgressRepository {

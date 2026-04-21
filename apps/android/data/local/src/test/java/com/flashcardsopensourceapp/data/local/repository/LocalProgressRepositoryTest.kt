@@ -4,6 +4,8 @@ import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.database.ProgressLocalCacheStateEntity
 import com.flashcardsopensourceapp.data.local.database.ProgressLocalDayCountEntity
 import com.flashcardsopensourceapp.data.local.database.ProgressReviewHistoryStateEntity
+import com.flashcardsopensourceapp.data.local.database.ProgressSeriesCacheEntity
+import com.flashcardsopensourceapp.data.local.database.ProgressSummaryCacheEntity
 import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudDailyReviewPoint
@@ -389,6 +391,70 @@ class LocalProgressRepositoryTest {
         assertFalse(manualRefreshStarted)
         assertEquals(true, queuedRequiresSyncBeforeRemoteLoad)
         assertEquals(null, finalQueuedRefresh)
+    }
+
+    @Test
+    fun invalidSummaryCacheLastReviewedOnIsIgnored() {
+        val cacheEntity = ProgressSummaryCacheEntity(
+            scopeKey = "scope-1",
+            scopeId = "local:installation-1",
+            timeZone = "Europe/Madrid",
+            generatedAt = "2026-04-18T10:00:00Z",
+            currentStreakDays = 2,
+            hasReviewedToday = true,
+            lastReviewedOn = "not-a-date",
+            activeReviewDays = 4,
+            updatedAtMillis = 1L
+        )
+
+        assertEquals(null, cacheEntity.toCloudProgressSummaryOrNull())
+    }
+
+    @Test
+    fun invalidSeriesCacheJsonIsIgnored() {
+        val cacheEntity = ProgressSeriesCacheEntity(
+            scopeKey = "scope-1",
+            scopeId = "local:installation-1",
+            timeZone = "Europe/Madrid",
+            fromLocalDate = "2026-04-01",
+            toLocalDate = "2026-04-18",
+            generatedAt = "2026-04-18T10:00:00Z",
+            dailyReviewsJson = "{not-json}",
+            updatedAtMillis = 1L
+        )
+
+        assertEquals(null, cacheEntity.toCloudProgressSeriesOrNull())
+    }
+
+    @Test
+    fun invalidPendingReviewOutboxEntryIsSkippedFromOverlay() {
+        val scopeKey = createProgressSeriesScopeKey(
+            cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
+            today = LocalDate.parse("2026-04-18"),
+            zoneId = ZoneId.of("Europe/Madrid")
+        )
+
+        val overlay = createPendingLocalOverlaySeries(
+            scopeKey = scopeKey,
+            pendingReviewOutboxEntries = listOf(
+                createPendingReviewOutboxEntry(
+                    workspaceId = "workspace-1",
+                    outboxEntryId = "outbox-valid",
+                    reviewedAtClient = "2026-04-18T10:00:00Z"
+                ),
+                createPendingReviewOutboxEntry(
+                    workspaceId = "workspace-1",
+                    outboxEntryId = "outbox-invalid",
+                    reviewedAtClient = "not-an-instant"
+                )
+            ),
+            workspaceIds = listOf("workspace-1")
+        )
+
+        assertEquals(
+            1,
+            overlay.dailyReviews.last { point -> point.date == scopeKey.to }.reviewCount
+        )
     }
 }
 
