@@ -175,7 +175,8 @@ private fun createProgressSummarySnapshot(): ProgressSummarySnapshot {
     return ProgressSummarySnapshot(
         scopeKey = ProgressSummaryScopeKey(
             scopeId = "local:installation-1",
-            timeZone = "Europe/Madrid"
+            timeZone = "Europe/Madrid",
+            referenceLocalDate = "2026-04-18"
         ),
         renderedSummary = CloudProgressSummary(
             currentStreakDays = 12,

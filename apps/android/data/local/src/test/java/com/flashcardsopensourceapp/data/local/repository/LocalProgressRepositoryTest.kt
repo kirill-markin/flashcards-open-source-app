@@ -25,6 +25,7 @@ class LocalProgressRepositoryTest {
     fun missingSummaryServerBaseRendersLocalFallbackAsApproximateLocalOnly() {
         val scopeKey = createProgressSummaryScopeKey(
             cloudSettings = createCloudSettings(cloudState = CloudAccountState.DISCONNECTED),
+            today = LocalDate.parse("2026-04-18"),
             zoneId = ZoneId.of("Europe/Madrid")
         )
         val localFallback = createLocalFallbackSummary(
@@ -64,6 +65,7 @@ class LocalProgressRepositoryTest {
     fun localFallbackSummaryReturnsZeroStreakWhenLastReviewIsOlderThanYesterday() {
         val scopeKey = createProgressSummaryScopeKey(
             cloudSettings = createCloudSettings(cloudState = CloudAccountState.DISCONNECTED),
+            today = LocalDate.parse("2026-04-18"),
             zoneId = ZoneId.of("Europe/Madrid")
         )
 
@@ -94,6 +96,7 @@ class LocalProgressRepositoryTest {
     fun summaryServerBaseUsesMergedOverlayWhenLocalHistoryIsAhead() {
         val scopeKey = createProgressSummaryScopeKey(
             cloudSettings = createCloudSettings(cloudState = CloudAccountState.LINKED),
+            today = LocalDate.parse("2026-04-18"),
             zoneId = ZoneId.of("Europe/Madrid")
         )
         val localFallback = CloudProgressSummary(
