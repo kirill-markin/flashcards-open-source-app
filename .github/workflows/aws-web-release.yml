@@ -181,7 +181,6 @@ jobs:
         run: npm run lint --prefix api
 
       - name: Bundle OpenAPI spec
-        if: ${{ needs.changes.outputs.api_changed == 'true' }}
         run: npm run bundle --prefix api
 
       - name: Build auth app
