@@ -165,6 +165,8 @@ struct FlashcardsApp: App {
             }
         }
 
+        store.prepareVisibleTabForPresentation(tab: selectedTab, now: Date())
+
         _store = State(initialValue: store)
         _navigation = State(
             initialValue: AppNavigationModel(
