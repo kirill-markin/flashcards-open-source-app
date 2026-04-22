@@ -164,6 +164,7 @@ struct FlashcardsStoreDependencies {
     let reviewHeadLoader: ReviewHeadLoader
     let reviewCountsLoader: ReviewCountsLoader
     let reviewQueueChunkLoader: ReviewQueueChunkLoader
+    let reviewQueueWindowLoader: ReviewQueueWindowLoader
     let reviewTimelinePageLoader: ReviewTimelinePageLoader
 }
 

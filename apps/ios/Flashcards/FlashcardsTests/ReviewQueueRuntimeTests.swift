@@ -61,15 +61,65 @@ final class ReviewQueueRuntimeTests: XCTestCase {
 
         let nextState = runtime.applyBackgroundReviewRefresh(
             publishedState: currentState,
-            reviewHeadState: reviewHeadState,
+            selectedReviewFilter: reviewHeadState.resolvedReviewFilter,
             reviewCounts: ReviewCounts(dueCount: 3, totalCount: 3),
-            shouldReplaceSeedQueue: true
+            reviewQueue: reviewHeadState.seedReviewQueue,
+            hasMoreCards: reviewHeadState.hasMoreCards
         )
 
         XCTAssertEqual(nextState.presentedCardId, displayedCurrent.cardId)
         XCTAssertEqual(
             runtime.effectiveReviewQueue(publishedState: nextState).map(\.cardId),
             [displayedCurrent.cardId, newlyDueHead.cardId, previousHead.cardId]
+        )
+    }
+
+    func testBackgroundRefreshUsesEntirePublishedQueueForChunkExclusion() throws {
+        var runtime = makeRuntime()
+        let seedHead = makeCard(
+            cardId: "seed-head",
+            dueAt: "2026-03-09T07:30:00.000Z",
+            updatedAt: "2026-03-09T07:00:00.000Z"
+        )
+        let secondSeedCard = makeCard(
+            cardId: "second-seed-card",
+            dueAt: "2026-03-09T08:00:00.000Z",
+            updatedAt: "2026-03-09T08:00:00.000Z"
+        )
+        let preservedTailCard = makeCard(
+            cardId: "preserved-tail-card",
+            dueAt: nil,
+            updatedAt: "2026-03-09T09:00:00.000Z"
+        )
+        let currentState = makePublishedState(
+            reviewQueue: [seedHead, secondSeedCard, preservedTailCard],
+            presentedCardId: seedHead.cardId,
+            pendingReviewCardIds: []
+        )
+        let reviewHeadState = ReviewHeadLoadState(
+            resolvedReviewFilter: .allCards,
+            seedReviewQueue: [seedHead, secondSeedCard],
+            hasMoreCards: true
+        )
+
+        let nextState = runtime.applyBackgroundReviewRefresh(
+            publishedState: currentState,
+            selectedReviewFilter: reviewHeadState.resolvedReviewFilter,
+            reviewCounts: ReviewCounts(dueCount: 3, totalCount: 3),
+            reviewQueue: currentState.reviewQueue,
+            hasMoreCards: reviewHeadState.hasMoreCards
+        )
+        let request = runtime.makeReviewQueueChunkLoadRequestIfNeeded(
+            publishedState: nextState,
+            databaseURL: URL(fileURLWithPath: "/tmp/review.sqlite"),
+            workspaceId: "workspace-1",
+            reviewQueryDefinition: .allCards,
+            now: Date(timeIntervalSince1970: 1_773_408_000)
+        )
+
+        XCTAssertEqual(
+            request?.excludedCardIds,
+            Set([seedHead.cardId, secondSeedCard.cardId, preservedTailCard.cardId])
         )
     }
 

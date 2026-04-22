@@ -167,6 +167,20 @@ extension LocalDatabase {
         )
     }
 
+    func loadReviewQueueWindow(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date,
+        limit: Int
+    ) throws -> ReviewQueueWindowLoadState {
+        try self.cardStore.loadReviewQueueWindow(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            now: now,
+            limit: limit
+        )
+    }
+
     func hasAppWideReviewEvent(start: Date, end: Date) throws -> Bool {
         try self.cardStore.hasAppWideReviewEvent(start: start, end: end)
     }

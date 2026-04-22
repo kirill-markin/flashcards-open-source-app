@@ -202,6 +202,7 @@ final class FlashcardsStore {
             reviewHeadLoader: defaultReviewHeadLoader,
             reviewCountsLoader: defaultReviewCountsLoader,
             reviewQueueChunkLoader: defaultReviewQueueChunkLoader,
+            reviewQueueWindowLoader: defaultReviewQueueWindowLoader,
             reviewTimelinePageLoader: defaultReviewTimelinePageLoader,
             initialGlobalErrorMessage: initialGlobalErrorMessage
         )
@@ -220,6 +221,7 @@ final class FlashcardsStore {
         reviewHeadLoader: @escaping ReviewHeadLoader,
         reviewCountsLoader: @escaping ReviewCountsLoader,
         reviewQueueChunkLoader: @escaping ReviewQueueChunkLoader,
+        reviewQueueWindowLoader: @escaping ReviewQueueWindowLoader,
         reviewTimelinePageLoader: @escaping ReviewTimelinePageLoader,
         initialGlobalErrorMessage: String
     ) {
@@ -241,6 +243,7 @@ final class FlashcardsStore {
             reviewHeadLoader: reviewHeadLoader,
             reviewCountsLoader: reviewCountsLoader,
             reviewQueueChunkLoader: reviewQueueChunkLoader,
+            reviewQueueWindowLoader: reviewQueueWindowLoader,
             reviewTimelinePageLoader: reviewTimelinePageLoader,
             initialGlobalErrorMessage: initialGlobalErrorMessage
         )
@@ -260,6 +263,7 @@ final class FlashcardsStore {
         reviewHeadLoader: @escaping ReviewHeadLoader,
         reviewCountsLoader: @escaping ReviewCountsLoader,
         reviewQueueChunkLoader: @escaping ReviewQueueChunkLoader,
+        reviewQueueWindowLoader: @escaping ReviewQueueWindowLoader,
         reviewTimelinePageLoader: @escaping ReviewTimelinePageLoader,
         initialGlobalErrorMessage: String
     ) {
@@ -281,6 +285,7 @@ final class FlashcardsStore {
             reviewHeadLoader: reviewHeadLoader,
             reviewCountsLoader: reviewCountsLoader,
             reviewQueueChunkLoader: reviewQueueChunkLoader,
+            reviewQueueWindowLoader: reviewQueueWindowLoader,
             reviewTimelinePageLoader: reviewTimelinePageLoader
         )
 

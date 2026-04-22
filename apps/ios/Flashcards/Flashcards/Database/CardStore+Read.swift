@@ -258,6 +258,33 @@ extension CardStore {
         )
     }
 
+    /**
+     Loads the first ordered review queue window directly from SQLite so
+     background reconcile can replace the in-memory queue with a canonical
+     prefix from the latest local state.
+     */
+    func loadReviewQueueWindow(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date,
+        limit: Int
+    ) throws -> ReviewQueueWindowLoadState {
+        precondition(limit > 0, "Review queue window limit must be greater than zero")
+
+        let pageRows = try self.loadReviewQueueRows(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            now: now,
+            limit: limit,
+            excludedCardIds: []
+        )
+
+        return ReviewQueueWindowLoadState(
+            reviewQueue: Array(pageRows.prefix(limit)),
+            hasMoreCards: pageRows.count > limit
+        )
+    }
+
     func loadReviewTimelinePage(
         workspaceId: String,
         reviewQueryDefinition: ReviewQueryDefinition,

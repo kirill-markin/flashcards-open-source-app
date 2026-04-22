@@ -27,6 +27,11 @@ struct ReviewQueueChunkLoadState: Hashable, Sendable {
     let hasMoreCards: Bool
 }
 
+struct ReviewQueueWindowLoadState: Hashable, Sendable {
+    let reviewQueue: [Card]
+    let hasMoreCards: Bool
+}
+
 private func reviewOrderDueAtRank(card: Card) -> Int {
     guard let dueAt = card.dueAt else {
         return 1
