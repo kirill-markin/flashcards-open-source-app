@@ -79,14 +79,6 @@ actor AIChatSessionRuntime {
                     "error": error.localizedDescription
                 ]
             )
-            if isGuestAiLimitError(error: error) {
-                await eventHandler(.appendAssistantAccountUpgradePrompt(
-                    message: aiChatGuestQuotaReachedMessage,
-                    buttonTitle: aiChatGuestQuotaButtonTitle
-                ))
-                await eventHandler(.finish)
-                return
-            }
             throw error
         }
     }
@@ -210,7 +202,7 @@ actor AIChatSessionRuntime {
     }
 }
 
-private func isGuestAiLimitError(error: Error) -> Bool {
+func isGuestAiLimitError(error: Error) -> Bool {
     guard let serviceError = error as? AIChatServiceError else {
         return false
     }

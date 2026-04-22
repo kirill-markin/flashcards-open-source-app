@@ -20,6 +20,10 @@ import {
   createUnverifiedWorkspaceAppDataMock,
   createVerifiedWorkspaceAppDataMock,
 } from "./ChatPanelTestFixtures";
+import {
+  loadChatDraftWorkspaceState,
+  readChatDraftForSession,
+} from "./chatDraftStorage";
 import { storeChatSessionWarmStartSnapshot } from "./sessionController/warmStart";
 
 const {
@@ -29,7 +33,12 @@ const {
   setMobileViewport,
   sendMessage,
   clickMicrophone,
+  unmountChatPanel,
 } = setupChatPanelTest();
+
+function readStoredDraftInputText(sessionId: string): string | null {
+  return readChatDraftForSession(loadChatDraftWorkspaceState("workspace-1"), sessionId)?.inputText ?? null;
+}
 
 describe("ChatPanel send lifecycle", () => {
   it("shows loading UI instead of empty suggestions while the initial chat history is unresolved", async () => {
@@ -218,6 +227,10 @@ describe("ChatPanel send lifecycle", () => {
   it("returns focus to the composer after a successful send", async () => {
     await renderChatPanel();
     await flushAsync();
+    await flushAsync();
+
+    const sessionId = createNewChatSessionMock.mock.calls[0]?.[0];
+    expect(typeof sessionId).toBe("string");
 
     const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
     expect(textarea).not.toBeNull();
@@ -228,6 +241,7 @@ describe("ChatPanel send lifecycle", () => {
 
     expect(textarea?.value).toBe("");
     expect(document.activeElement).toBe(textarea);
+    expect(readStoredDraftInputText(sessionId as string)).toBeNull();
   });
 
   it("includes an explicit sessionId in the first send request body", async () => {
@@ -576,6 +590,38 @@ describe("ChatPanel send lifecycle", () => {
     await flushAsync();
   });
 
+  it("keeps the stored draft through a runSync preflight failure", async () => {
+    let rejectRunSync: ((error: Error) => void) | null = null;
+    useAppDataMock.mockReturnValue(createVerifiedWorkspaceAppDataMock({
+      refreshLocalData: vi.fn(async (): Promise<void> => undefined),
+      runSync: vi.fn(() => new Promise((_, reject) => {
+        rejectRunSync = (error) => reject(error);
+      })),
+      setErrorMessage: vi.fn(),
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    const sessionId = createNewChatSessionMock.mock.calls[0]?.[0];
+    expect(typeof sessionId).toBe("string");
+
+    await sendMessage("keep this draft");
+
+    const textareaBeforeFailure = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(textareaBeforeFailure?.value).toBe("");
+    expect(readStoredDraftInputText(sessionId as string)).toBe("keep this draft");
+
+    rejectRunSync?.(new Error("sync failed"));
+    await flushAsync();
+    await flushAsync();
+
+    const textareaAfterFailure = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(textareaAfterFailure?.value).toBe("keep this draft");
+    expect(readStoredDraftInputText(sessionId as string)).toBe("keep this draft");
+  });
+
   it("keeps the draft when startRun fails before the server accepts the turn", async () => {
     let rejectStartRun: ((error: Error) => void) | null = null;
     startChatRunMock.mockImplementation(() => new Promise((_, reject) => {
@@ -584,9 +630,15 @@ describe("ChatPanel send lifecycle", () => {
 
     await renderChatPanel();
     await flushAsync();
+    await flushAsync();
+
+    const sessionId = createNewChatSessionMock.mock.calls[0]?.[0];
+    expect(typeof sessionId).toBe("string");
+
     await sendMessage("keep this draft");
 
     expect((getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null)?.value).toBe("");
+    expect(readStoredDraftInputText(sessionId as string)).toBe("keep this draft");
 
     rejectStartRun?.(new Error("Request failed with status 500"));
     await flushAsync();
@@ -594,9 +646,36 @@ describe("ChatPanel send lifecycle", () => {
 
     const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
     expect(textarea?.value).toBe("keep this draft");
+    expect(readStoredDraftInputText(sessionId as string)).toBe("keep this draft");
     expect(getContainer().querySelector(".chat-msg")).toBeNull();
     expect(getContainer().querySelector('[role="dialog"]')).not.toBeNull();
     expect(getContainer().textContent).toContain("Chat request failed.");
+  });
+
+  it("restores the stored draft after a refresh while turn acceptance is still pending", async () => {
+    startChatRunMock.mockImplementation(() => new Promise(() => undefined));
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    const sessionId = createNewChatSessionMock.mock.calls[0]?.[0];
+    expect(typeof sessionId).toBe("string");
+
+    await sendMessage("keep this draft");
+
+    const textareaBeforeRefresh = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(textareaBeforeRefresh?.value).toBe("");
+    expect(readStoredDraftInputText(sessionId as string)).toBe("keep this draft");
+
+    await unmountChatPanel();
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    const textareaAfterRefresh = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(textareaAfterRefresh?.value).toBe("keep this draft");
+    expect(readStoredDraftInputText(sessionId as string)).toBe("keep this draft");
   });
 
   it("treats active-run conflicts as a non-destructive composer notice", async () => {

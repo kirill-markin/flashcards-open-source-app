@@ -41,7 +41,7 @@ extension AIChatStore {
         )
     }
 
-    private func prepareExplicitRemoteSessionProvisioning(sessionId: String) {
+    func prepareExplicitRemoteSessionProvisioning(sessionId: String) {
         self.invalidatePendingRemoteSessionProvisionRequest()
         self.chatSessionId = sessionId
         self.conversationScopeId = sessionId

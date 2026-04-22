@@ -4,6 +4,7 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
+import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatSessionProvisioningResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
@@ -70,6 +71,26 @@ internal class AiChatSessionCoordinator(
     }
 
     suspend fun ensureSessionIdIfNeeded(): AiChatSessionProvisioningResult {
+        return ensureSessionIdIfNeeded(
+            persistEnsuredSessionState = {
+                context.persistCurrentState()
+            }
+        )
+    }
+
+    suspend fun ensureSessionIdIfNeededPreservingDraft(
+        draftState: AiChatDraftState
+    ): AiChatSessionProvisioningResult {
+        return ensureSessionIdIfNeeded(
+            persistEnsuredSessionState = {
+                context.persistCurrentStatePreservingDraft(draftState = draftState)
+            }
+        )
+    }
+
+    private suspend fun ensureSessionIdIfNeeded(
+        persistEnsuredSessionState: () -> Unit
+    ): AiChatSessionProvisioningResult {
         val currentState = context.runtimeStateMutable.value
         val currentSessionId = currentState.persistedState.chatSessionId
         if (currentSessionId.isNotBlank()) {
@@ -99,7 +120,7 @@ internal class AiChatSessionCoordinator(
                     nextSuggestions = ensuredSnapshot.composerSuggestions
                 )
             }
-            context.persistCurrentState()
+            persistEnsuredSessionState()
         }
         return ensuredSession
     }

@@ -712,12 +712,16 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
     let chatSessionId: String
     let lastKnownChatConfig: AIChatServerConfig?
     let pendingToolRunPostSync: Bool
+    let requiresRemoteSessionProvisioning: Bool
+    let suppressDraftRestore: Bool
 
     private enum CodingKeys: String, CodingKey {
         case messages
         case chatSessionId
         case lastKnownChatConfig
         case pendingToolRunPostSync
+        case requiresRemoteSessionProvisioning
+        case suppressDraftRestore
     }
 
     init(
@@ -726,10 +730,47 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
         lastKnownChatConfig: AIChatServerConfig?,
         pendingToolRunPostSync: Bool
     ) {
+        self.init(
+            messages: messages,
+            chatSessionId: chatSessionId,
+            lastKnownChatConfig: lastKnownChatConfig,
+            pendingToolRunPostSync: pendingToolRunPostSync,
+            requiresRemoteSessionProvisioning: false,
+            suppressDraftRestore: false
+        )
+    }
+
+    init(
+        messages: [AIChatMessage],
+        chatSessionId: String,
+        lastKnownChatConfig: AIChatServerConfig?,
+        pendingToolRunPostSync: Bool,
+        requiresRemoteSessionProvisioning: Bool,
+        suppressDraftRestore: Bool
+    ) {
         self.messages = messages
         self.chatSessionId = chatSessionId
         self.lastKnownChatConfig = lastKnownChatConfig
         self.pendingToolRunPostSync = pendingToolRunPostSync
+        self.requiresRemoteSessionProvisioning = requiresRemoteSessionProvisioning
+        self.suppressDraftRestore = suppressDraftRestore
+    }
+
+    init(
+        messages: [AIChatMessage],
+        chatSessionId: String,
+        lastKnownChatConfig: AIChatServerConfig?,
+        pendingToolRunPostSync: Bool,
+        suppressDraftRestore: Bool
+    ) {
+        self.init(
+            messages: messages,
+            chatSessionId: chatSessionId,
+            lastKnownChatConfig: lastKnownChatConfig,
+            pendingToolRunPostSync: pendingToolRunPostSync,
+            requiresRemoteSessionProvisioning: false,
+            suppressDraftRestore: suppressDraftRestore
+        )
     }
 
     init(messages: [AIChatMessage]) {
@@ -753,6 +794,14 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
             Bool.self,
             forKey: .pendingToolRunPostSync
         ) ?? false
+        self.requiresRemoteSessionProvisioning = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .requiresRemoteSessionProvisioning
+        ) ?? false
+        self.suppressDraftRestore = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .suppressDraftRestore
+        ) ?? false
     }
 
     func encode(to encoder: Encoder) throws {
@@ -761,6 +810,11 @@ struct AIChatPersistedState: Codable, Hashable, Sendable {
         try container.encode(self.chatSessionId, forKey: .chatSessionId)
         try container.encodeIfPresent(self.lastKnownChatConfig, forKey: .lastKnownChatConfig)
         try container.encode(self.pendingToolRunPostSync, forKey: .pendingToolRunPostSync)
+        try container.encode(
+            self.requiresRemoteSessionProvisioning,
+            forKey: .requiresRemoteSessionProvisioning
+        )
+        try container.encode(self.suppressDraftRestore, forKey: .suppressDraftRestore)
     }
 }
 

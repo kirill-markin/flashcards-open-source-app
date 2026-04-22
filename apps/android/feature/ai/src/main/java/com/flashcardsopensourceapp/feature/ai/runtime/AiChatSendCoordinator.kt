@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.ai.AiChatRemoteException
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatComposerSuggestion
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.isSendableAiChatAttachment
@@ -56,6 +57,10 @@ internal class AiChatSendCoordinator(
 
         val draftMessageBackup = currentState.draftMessage
         val pendingAttachmentsBackup = currentState.pendingAttachments
+        val durableDraftState = AiChatDraftState(
+            draftMessage = draftMessageBackup,
+            pendingAttachments = pendingAttachmentsBackup
+        )
         context.runtimeStateMutable.update { state ->
             state.copy(
                 draftMessage = "",
@@ -67,9 +72,8 @@ internal class AiChatSendCoordinator(
                 errorMessage = ""
             )
         }
-        context.persistCurrentDraft()
 
-        val previousPersistedState = context.runtimeStateMutable.value.persistedState
+        val initialPersistedState = context.runtimeStateMutable.value.persistedState
 
         context.activeSendJob?.cancel()
         var sendJob: Job? = null
@@ -77,14 +81,18 @@ internal class AiChatSendCoordinator(
             var didAcceptRun = false
             var didAppendOptimisticMessages = false
             var requestSessionId = currentState.persistedState.chatSessionId
+            var rollbackPersistedState = initialPersistedState
             try {
                 // AI send is blocked on a direct sync so the backend run never starts
                 // from stale local writes that are still sitting in the outbox.
                 context.aiChatRepository.ensureReadyForSend(workspaceId = context.runtimeStateMutable.value.workspaceId)
-                val ensuredSession = sessionCoordinator.ensureSessionIdIfNeeded()
+                val ensuredSession = sessionCoordinator.ensureSessionIdIfNeededPreservingDraft(
+                    draftState = durableDraftState
+                )
                 requestSessionId = ensuredSession.sessionId
-                val nextPersistedState = context.runtimeStateMutable.value.persistedState.copy(
-                    messages = context.runtimeStateMutable.value.persistedState.messages + listOf(
+                rollbackPersistedState = context.runtimeStateMutable.value.persistedState
+                val nextPersistedState = rollbackPersistedState.copy(
+                    messages = rollbackPersistedState.messages + listOf(
                         makeUserMessage(
                             content = outgoingContent,
                             timestampMillis = System.currentTimeMillis()
@@ -104,7 +112,7 @@ internal class AiChatSendCoordinator(
                         runHadToolCalls = false
                     )
                 }
-                context.persistCurrentState()
+                context.persistCurrentStatePreservingDraft(draftState = durableDraftState)
                 didAppendOptimisticMessages = true
 
                 val response = context.aiChatRepository.startRun(
@@ -126,7 +134,7 @@ internal class AiChatSendCoordinator(
                     targetSessionId = requestSessionId,
                     didAcceptRun = didAcceptRun,
                     didAppendOptimisticMessages = didAppendOptimisticMessages,
-                    previousPersistedState = previousPersistedState,
+                    rollbackPersistedState = rollbackPersistedState,
                     draftMessage = draftMessageBackup,
                     pendingAttachments = pendingAttachmentsBackup
                 )
@@ -136,7 +144,7 @@ internal class AiChatSendCoordinator(
                     targetSessionId = requestSessionId,
                     didAcceptRun = didAcceptRun,
                     didAppendOptimisticMessages = didAppendOptimisticMessages,
-                    previousPersistedState = previousPersistedState,
+                    rollbackPersistedState = rollbackPersistedState,
                     draftMessage = draftMessageBackup,
                     pendingAttachments = pendingAttachmentsBackup
                 )
@@ -293,7 +301,7 @@ internal class AiChatSendCoordinator(
         targetSessionId: String,
         didAcceptRun: Boolean,
         didAppendOptimisticMessages: Boolean,
-        previousPersistedState: com.flashcardsopensourceapp.data.local.model.AiChatPersistedState,
+        rollbackPersistedState: com.flashcardsopensourceapp.data.local.model.AiChatPersistedState,
         draftMessage: String,
         pendingAttachments: List<AiChatAttachment>
     ) {
@@ -301,6 +309,14 @@ internal class AiChatSendCoordinator(
             return
         }
         val remoteError = error as? AiChatRemoteException
+        if (didAcceptRun.not()) {
+            restorePreAcceptFailureState(
+                didAppendOptimisticMessages = didAppendOptimisticMessages,
+                rollbackPersistedState = rollbackPersistedState,
+                draftMessage = draftMessage,
+                pendingAttachments = pendingAttachments
+            )
+        }
         if (remoteError?.code == "GUEST_AI_LIMIT_REACHED") {
             AiChatDiagnosticsLogger.warn(
                 event = "send_failure_guest_quota_reached",
@@ -329,20 +345,6 @@ internal class AiChatSendCoordinator(
                 )
             }
             return
-        }
-
-        if (didAcceptRun.not() && didAppendOptimisticMessages) {
-            context.runtimeStateMutable.update { state ->
-                state.copy(
-                    persistedState = previousPersistedState,
-                    draftMessage = draftMessage,
-                    pendingAttachments = pendingAttachments,
-                    activeRun = null,
-                    isLiveAttached = false,
-                    composerPhase = AiComposerPhase.IDLE,
-                    repairStatus = null
-                )
-            }
         }
 
         if (didAcceptRun.not() && remoteError?.code == "CHAT_ACTIVE_RUN_IN_PROGRESS") {
@@ -384,6 +386,31 @@ internal class AiChatSendCoordinator(
                 isLiveAttached = false,
                 composerPhase = AiComposerPhase.IDLE,
                 activeAlert = context.textProvider.generalError(message = message),
+                errorMessage = ""
+            )
+        }
+    }
+
+    private fun restorePreAcceptFailureState(
+        didAppendOptimisticMessages: Boolean,
+        rollbackPersistedState: com.flashcardsopensourceapp.data.local.model.AiChatPersistedState,
+        draftMessage: String,
+        pendingAttachments: List<AiChatAttachment>
+    ) {
+        context.runtimeStateMutable.update { state ->
+            state.copy(
+                persistedState = if (didAppendOptimisticMessages) {
+                    rollbackPersistedState
+                } else {
+                    state.persistedState
+                },
+                draftMessage = draftMessage,
+                pendingAttachments = pendingAttachments,
+                activeRun = null,
+                isLiveAttached = false,
+                composerPhase = AiComposerPhase.IDLE,
+                repairStatus = null,
+                activeAlert = null,
                 errorMessage = ""
             )
         }

@@ -63,6 +63,9 @@ extension AIChatStore {
 
         self.activeAlert = nil
         self.repairStatus = nil
+        if self.chatSessionId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            self.prepareExplicitRemoteSessionProvisioning(sessionId: makeAIChatSessionId())
+        }
         let preSendSnapshot = AIChatPreSendSnapshot(
             persistedState: self.currentPersistedState(),
             requiresRemoteSessionProvisioning: self.requiresRemoteSessionProvisioning,
@@ -77,6 +80,7 @@ extension AIChatStore {
         let draftText = self.inputText
         let draftAttachments = self.pendingAttachments
         self.transitionToPreparingSend()
+        self.persistStateSynchronously(state: self.currentPersistedState())
         self.applyComposerDraft(inputText: "", pendingAttachments: [])
         let conversationId = UUID().uuidString.lowercased()
         self.appendOptimisticOutgoingTurn(content: content)
@@ -291,6 +295,7 @@ extension AIChatStore {
         draftText: String,
         draftAttachments: [AIChatAttachment]
     ) {
+        let shouldShowGuestQuotaUpgradePrompt = didAcceptRun == false && isGuestAiLimitError(error: error)
         self.repairStatus = nil
         self.transitionToIdle()
         self.activeStreamingMessageId = nil
@@ -298,11 +303,32 @@ extension AIChatStore {
 
         if didAcceptRun == false && didAppendOptimisticMessages {
             self.restorePreSendState(preSendSnapshot)
-            self.applyComposerDraft(
-                inputText: draftText,
-                pendingAttachments: draftAttachments
+            self.suppressDraftRestore = false
+            self.persistDraftRestoreSuppressionSynchronously(
+                workspaceId: self.historyWorkspaceId(),
+                sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
+                isSuppressed: false
             )
+            self.inputText = draftText
+            self.pendingAttachments = draftAttachments
+            self.persistDraftStateImmediately(
+                workspaceId: self.historyWorkspaceId(),
+                sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
+                draft: AIChatComposerDraft(
+                    inputText: draftText,
+                    pendingAttachments: draftAttachments
+                )
+            )
+            if shouldShowGuestQuotaUpgradePrompt {
+                self.appendAssistantAccountUpgradePrompt(
+                    message: aiChatGuestQuotaReachedMessage,
+                    buttonTitle: aiChatGuestQuotaButtonTitle
+                )
+            }
             self.schedulePersistCurrentState()
+            if shouldShowGuestQuotaUpgradePrompt {
+                return
+            }
         }
 
         if didAcceptRun == false && isAIChatOfflineSendError(error: error) {
@@ -408,6 +434,12 @@ extension AIChatStore {
 
         switch event {
         case .accepted(let response):
+            self.suppressDraftRestore = false
+            self.persistDraftRestoreSuppressionSynchronously(
+                workspaceId: self.historyWorkspaceId(),
+                sessionId: response.envelope.sessionId.isEmpty ? nil : response.envelope.sessionId,
+                isSuppressed: false
+            )
             let reconciliation = self.acceptedEnvelopeReconciliation(
                 for: response.envelope,
                 conversationId: conversationId
@@ -430,6 +462,7 @@ extension AIChatStore {
             }
             self.applyComposerDraft(inputText: "", pendingAttachments: [])
             self.schedulePersistCurrentDraftState()
+            self.persistStateSynchronously(state: self.currentPersistedState())
             self.repairStatus = nil
             if response.activeRun != nil {
                 self.attachActiveLiveStreamIfPossible()
