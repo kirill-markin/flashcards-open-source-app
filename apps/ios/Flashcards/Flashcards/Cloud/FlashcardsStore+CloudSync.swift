@@ -219,8 +219,9 @@ extension FlashcardsStore {
         trigger: CloudSyncTrigger
     ) async throws {
         let bootstrapRefreshOutcome = try self.refreshBootstrapSnapshotWithoutReset(now: now)
+        let shouldRefreshReviewState = syncResult.reviewDataChanged || bootstrapRefreshOutcome.cardsChanged
         let didRefreshReviewState: Bool
-        if syncResult.reviewDataChanged {
+        if shouldRefreshReviewState {
             let reviewRefreshMode: ReviewRefreshMode
             if trigger.allowsVisibleChangeBanner {
                 reviewRefreshMode = .backgroundReconcileWithVisibleChangeBanner
