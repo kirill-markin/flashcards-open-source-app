@@ -74,10 +74,11 @@ extension AIChatStore {
         )
         self.chatSessionId = resolvedSessionId
         self.conversationScopeId = resolvedSessionId
-        self.transitionToPreparingSend()
-        let conversationId = UUID().uuidString.lowercased()
         let draftText = self.inputText
         let draftAttachments = self.pendingAttachments
+        self.transitionToPreparingSend()
+        self.applyComposerDraft(inputText: "", pendingAttachments: [])
+        let conversationId = UUID().uuidString.lowercased()
         self.appendOptimisticOutgoingTurn(content: content)
         self.storePreSendSnapshot(preSendSnapshot, conversationId: conversationId)
 

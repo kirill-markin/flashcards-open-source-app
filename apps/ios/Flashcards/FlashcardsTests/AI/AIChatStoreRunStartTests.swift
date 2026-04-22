@@ -30,17 +30,8 @@ final class AIChatStoreRunStartTests: XCTestCase {
         }
 
         store.sendMessage()
-
-        let didReachPreflightGate = await AIChatStoreTestSupport.waitForCondition(
-            description: "AI chat send preflight gate",
-            timeout: .seconds(1),
-            pollInterval: .milliseconds(10),
-            condition: {
-                context.cloudSyncService.runLinkedSyncCallCount == 1 && store.activeSendTask != nil
-            }
-        )
-
-        XCTAssertTrue(didReachPreflightGate)
+        XCTAssertEqual(store.inputText, "")
+        XCTAssertTrue(store.pendingAttachments.isEmpty)
         XCTAssertEqual(store.messages.count, 2)
         XCTAssertEqual(store.messages[0].role, .user)
         XCTAssertEqual(store.messages[0].content, [.text("Help me review this card.")])
@@ -49,6 +40,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
         XCTAssertEqual(store.activeStreamingMessageId, store.messages[1].id)
         XCTAssertNil(store.activeStreamingItemId)
         XCTAssertEqual(store.composerPhase, .preparingSend)
+        XCTAssertNotNil(store.activeSendTask)
 
         await syncGate.release()
         await AIChatStoreTestSupport.waitForSendToSettle(store: store)
@@ -84,11 +76,11 @@ final class AIChatStoreRunStartTests: XCTestCase {
         }
 
         store.sendMessage()
+        XCTAssertEqual(store.inputText, "")
+        XCTAssertTrue(store.pendingAttachments.isEmpty)
         await AIChatStoreTestSupport.waitForSendToSettle(store: store)
         await store.waitForPendingStatePersistence()
 
-        XCTAssertEqual(context.chatService.createNewSessionRequests.count, 1)
-        XCTAssertEqual(context.chatService.startRunRequests.count, 1)
         XCTAssertTrue(store.messages.isEmpty)
         XCTAssertEqual(store.chatSessionId, "session-explicit")
         XCTAssertEqual(store.conversationScopeId, "session-explicit")

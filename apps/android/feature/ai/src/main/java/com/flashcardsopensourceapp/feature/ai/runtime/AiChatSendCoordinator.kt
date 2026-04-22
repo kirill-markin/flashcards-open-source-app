@@ -54,8 +54,12 @@ internal class AiChatSendCoordinator(
             )
         )
 
+        val draftMessageBackup = currentState.draftMessage
+        val pendingAttachmentsBackup = currentState.pendingAttachments
         context.runtimeStateMutable.update { state ->
             state.copy(
+                draftMessage = "",
+                pendingAttachments = emptyList(),
                 composerPhase = AiComposerPhase.PREPARING_SEND,
                 dictationState = AiChatDictationState.IDLE,
                 repairStatus = null,
@@ -63,10 +67,9 @@ internal class AiChatSendCoordinator(
                 errorMessage = ""
             )
         }
+        context.persistCurrentDraft()
 
         val previousPersistedState = context.runtimeStateMutable.value.persistedState
-        val draftMessageBackup = context.runtimeStateMutable.value.draftMessage
-        val pendingAttachmentsBackup = context.runtimeStateMutable.value.pendingAttachments
 
         context.activeSendJob?.cancel()
         var sendJob: Job? = null

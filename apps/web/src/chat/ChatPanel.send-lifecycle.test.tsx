@@ -508,6 +508,29 @@ describe("ChatPanel send lifecycle", () => {
     await flushAsync();
   });
 
+  it("clears the composer immediately while turn acceptance is still in flight", async () => {
+    let resolveStartRun: (() => void) | null = null;
+    startChatRunMock.mockImplementation(() => new Promise((resolve) => {
+      resolveStartRun = () => resolve({
+        ...createChatSnapshot({ activeRun: createChatActiveRun() }),
+        accepted: true,
+      });
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("hello");
+    await flushAsync();
+
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    expect(startChatRunMock).toHaveBeenCalledTimes(1);
+    expect(textarea?.value).toBe("");
+
+    resolveStartRun?.();
+    await flushAsync();
+    await flushAsync();
+  });
+
   it("shows stop while the assistant run is active and returns to send afterward", async () => {
     getChatSnapshotMock
       .mockResolvedValueOnce(createChatSnapshot())
@@ -554,11 +577,18 @@ describe("ChatPanel send lifecycle", () => {
   });
 
   it("keeps the draft when startRun fails before the server accepts the turn", async () => {
-    startChatRunMock.mockRejectedValue(new Error("Request failed with status 500"));
+    let rejectStartRun: ((error: Error) => void) | null = null;
+    startChatRunMock.mockImplementation(() => new Promise((_, reject) => {
+      rejectStartRun = (error) => reject(error);
+    }));
 
     await renderChatPanel();
     await flushAsync();
     await sendMessage("keep this draft");
+
+    expect((getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null)?.value).toBe("");
+
+    rejectStartRun?.(new Error("Request failed with status 500"));
     await flushAsync();
     await flushAsync();
 

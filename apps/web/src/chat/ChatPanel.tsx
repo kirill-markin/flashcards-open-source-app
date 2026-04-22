@@ -27,6 +27,7 @@ import {
   type PendingAttachment,
 } from "./FileAttachment";
 import { formatCardAttachmentLabel } from "./chatCardParts";
+import { createChatDraftContent } from "./chatDraftStorage";
 import {
   ATTACHMENT_PAYLOAD_LIMIT_BYTES,
   IMAGE_MEDIA_TYPE_PREFIX,
@@ -174,6 +175,7 @@ export function ChatPanel(props: Props): ReactElement {
     replaceInputText,
     updateInputText,
     replacePendingAttachments,
+    replaceDraftForSession,
     clearDraftForSession,
   } = useChatDraft();
   const { setIsOpen, chatWidth, setChatWidth } = useChatLayout();
@@ -661,6 +663,10 @@ export function ChatPanel(props: Props): ReactElement {
     }
 
     const requestSequence = sendLifecycleRequestSequenceRef.current;
+    replaceDraftForSession(sourceSessionId, createChatDraftContent("", []));
+    pendingAttachmentsRef.current = [];
+    draftSelectionRef.current = null;
+    pendingTextareaSelectionRef.current = null;
     setSendPhase("preparingSend");
 
     try {
@@ -675,6 +681,8 @@ export function ChatPanel(props: Props): ReactElement {
       }
 
       if (outboxRecords.length > 0) {
+        replaceDraftForSession(sourceSessionId, createChatDraftContent(nextText, nextAttachments));
+        pendingAttachmentsRef.current = nextAttachments;
         appData.setErrorMessage(t("chatPanel.transientErrors.pendingSync"));
         setSendPhase("idle");
         return;
@@ -684,6 +692,8 @@ export function ChatPanel(props: Props): ReactElement {
         return;
       }
 
+      replaceDraftForSession(sourceSessionId, createChatDraftContent(nextText, nextAttachments));
+      pendingAttachmentsRef.current = nextAttachments;
       appData.setErrorMessage(error instanceof Error ? error.message : String(error));
       setSendPhase("idle");
       return;
@@ -714,6 +724,9 @@ export function ChatPanel(props: Props): ReactElement {
         draftSelectionRef.current = null;
         pendingTextareaSelectionRef.current = null;
         requestComposerFocusRestore();
+      } else {
+        replaceDraftForSession(sourceSessionId, createChatDraftContent(nextText, nextAttachments));
+        pendingAttachmentsRef.current = nextAttachments;
       }
     } finally {
       if (isSendLifecycleRequestCurrent(requestSequence)) {

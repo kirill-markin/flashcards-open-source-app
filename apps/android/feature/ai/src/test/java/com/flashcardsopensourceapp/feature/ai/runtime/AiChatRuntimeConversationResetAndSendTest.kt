@@ -55,6 +55,9 @@ class AiChatRuntimeConversationResetAndSendTest {
 
         runtime.updateDraftMessage(draftMessage = "Hello")
         runtime.sendMessage()
+        assertEquals("", runtime.state.value.draftMessage)
+        assertTrue(runtime.state.value.pendingAttachments.isEmpty())
+        assertEquals(AiComposerPhase.PREPARING_SEND, runtime.state.value.composerPhase)
         advanceUntilIdle()
 
         assertEquals(listOf("send-session-1"), repository.createNewSessionRequests)
@@ -249,6 +252,8 @@ class AiChatRuntimeConversationResetAndSendTest {
 
         runtime.updateDraftMessage(draftMessage = "retry me")
         runtime.sendMessage()
+        assertEquals("", runtime.state.value.draftMessage)
+        assertTrue(runtime.state.value.pendingAttachments.isEmpty())
         advanceUntilIdle()
 
         assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
