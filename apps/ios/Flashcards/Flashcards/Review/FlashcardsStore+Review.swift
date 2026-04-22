@@ -376,26 +376,26 @@ extension FlashcardsStore {
             seedQueueSize: reviewSeedQueueSize
         )
         let databaseURL = database.databaseURL
-        let reviewHeadLoader = self.dependencies.reviewHeadLoader
         let reviewCountsLoader = self.dependencies.reviewCountsLoader
+        let reviewQueueWindowLoader = self.dependencies.reviewQueueWindowLoader
+        let reviewQueueWindowLimit = max(currentReviewState.reviewQueue.count, reviewSeedQueueSize)
 
-        async let reviewHeadTask = reviewHeadLoader(
-            databaseURL,
-            workspaceId,
-            resolvedReviewQuery.reviewFilter,
-            resolvedReviewQuery.queryDefinition,
-            now,
-            reviewSeedQueueSize
-        )
         async let reviewCountsTask = reviewCountsLoader(
             databaseURL,
             workspaceId,
             resolvedReviewQuery.queryDefinition,
             now
         )
+        async let reviewQueueWindowTask = reviewQueueWindowLoader(
+            databaseURL,
+            workspaceId,
+            resolvedReviewQuery.queryDefinition,
+            now,
+            reviewQueueWindowLimit
+        )
 
-        let reviewHeadState = try await reviewHeadTask
         let reviewCounts = try await reviewCountsTask
+        let reviewQueueWindowState = try await reviewQueueWindowTask
 
         guard workspaceId == self.workspace?.workspaceId else {
             return false
@@ -405,23 +405,25 @@ extension FlashcardsStore {
         }
 
         let nextSignature = makeReviewSessionSignature(
-            selectedReviewFilter: reviewHeadState.resolvedReviewFilter,
-            reviewQueue: reviewHeadState.seedReviewQueue,
+            selectedReviewFilter: resolvedReviewQuery.reviewFilter,
+            reviewQueue: reviewQueueWindowState.reviewQueue,
             schedulerSettings: self.schedulerSettings,
             seedQueueSize: reviewSeedQueueSize
         )
-        let shouldReplaceSeedQueue = currentSignature != nextSignature
+        let didChangeReviewSession = currentSignature != nextSignature
         let didChangeReviewCounts = currentReviewState.reviewCounts != reviewCounts
+        let didChangeLoadedReviewQueue = currentReviewState.reviewQueue != reviewQueueWindowState.reviewQueue
 
-        guard shouldReplaceSeedQueue || didChangeReviewCounts else {
+        guard didChangeReviewSession || didChangeReviewCounts || didChangeLoadedReviewQueue else {
             return false
         }
 
         let nextReviewState = self.reviewRuntime.applyBackgroundReviewRefresh(
             publishedState: currentReviewState,
-            reviewHeadState: reviewHeadState,
+            selectedReviewFilter: resolvedReviewQuery.reviewFilter,
             reviewCounts: reviewCounts,
-            shouldReplaceSeedQueue: shouldReplaceSeedQueue
+            reviewQueue: reviewQueueWindowState.reviewQueue,
+            hasMoreCards: reviewQueueWindowState.hasMoreCards
         )
         self.applyReviewPublishedState(reviewState: nextReviewState)
         self.persistSelectedReviewFilter(reviewFilter: nextReviewState.selectedReviewFilter)

@@ -23,7 +23,6 @@ struct ReviewQueueRuntimeState {
     var pendingReviewRequests: [ReviewSubmissionRequest]
     var isReviewProcessorRunning: Bool
     var reviewSourceVersion: Int
-    var loadedReviewCardIds: Set<String>
     var hasMoreReviewQueueCards: Bool
 }
 
@@ -87,7 +86,6 @@ struct ReviewQueueRuntime {
             pendingReviewRequests: [],
             isReviewProcessorRunning: false,
             reviewSourceVersion: 0,
-            loadedReviewCardIds: [],
             hasMoreReviewQueueCards: false
         )
         _ = initialSelectedReviewFilter
@@ -187,7 +185,6 @@ struct ReviewQueueRuntime {
             reviewSubmissionFailure: nil
         )
         self.state.activeReviewLoadRequestId = requestId
-        self.state.loadedReviewCardIds = []
         self.state.hasMoreReviewQueueCards = false
 
         let headRequest = ReviewHeadLoadRequest(
@@ -232,7 +229,6 @@ struct ReviewQueueRuntime {
             return nil
         }
 
-        self.state.loadedReviewCardIds = Set(reviewHeadState.seedReviewQueue.map(\.cardId))
         self.state.hasMoreReviewQueueCards = reviewHeadState.hasMoreCards
         self.clearActiveReviewLoad(requestId: requestId)
 
@@ -349,18 +345,18 @@ struct ReviewQueueRuntime {
 
     mutating func applyBackgroundReviewRefresh(
         publishedState: ReviewQueuePublishedState,
-        reviewHeadState: ReviewHeadLoadState,
+        selectedReviewFilter: ReviewFilter,
         reviewCounts: ReviewCounts,
-        shouldReplaceSeedQueue: Bool
+        reviewQueue: [Card],
+        hasMoreCards: Bool
     ) -> ReviewQueuePublishedState {
-        self.state.loadedReviewCardIds = Set(reviewHeadState.seedReviewQueue.map(\.cardId))
-        self.state.hasMoreReviewQueueCards = reviewHeadState.hasMoreCards
+        self.state.hasMoreReviewQueueCards = hasMoreCards
 
         return ReviewQueuePublishedState(
-            selectedReviewFilter: reviewHeadState.resolvedReviewFilter,
-            reviewQueue: shouldReplaceSeedQueue ? reviewHeadState.seedReviewQueue : publishedState.reviewQueue,
+            selectedReviewFilter: selectedReviewFilter,
+            reviewQueue: reviewQueue,
             presentedCardId: self.resolvePresentedCardId(
-                reviewQueue: shouldReplaceSeedQueue ? reviewHeadState.seedReviewQueue : publishedState.reviewQueue,
+                reviewQueue: reviewQueue,
                 pendingReviewCardIds: publishedState.pendingReviewCardIds,
                 preferredPresentedCardId: publishedState.presentedCardId
             ),
@@ -403,7 +399,7 @@ struct ReviewQueueRuntime {
             databaseURL: databaseURL,
             workspaceId: workspaceId,
             reviewQueryDefinition: reviewQueryDefinition,
-            excludedCardIds: self.state.loadedReviewCardIds,
+            excludedCardIds: self.makeExcludedReviewCardIds(publishedState: publishedState),
             now: now,
             chunkSize: self.reviewSeedQueueSize
         )
@@ -446,7 +442,6 @@ struct ReviewQueueRuntime {
             return nil
         }
 
-        self.state.loadedReviewCardIds.formUnion(queueChunkLoadState.reviewQueueChunk.map(\.cardId))
         self.state.hasMoreReviewQueueCards = queueChunkLoadState.hasMoreCards
         self.clearActiveReviewQueueChunkLoad(requestId: requestId)
 
@@ -620,7 +615,6 @@ struct ReviewQueueRuntime {
         self.state.activeReviewProcessorTask = nil
         self.state.pendingReviewRequests = []
         self.state.isReviewProcessorRunning = false
-        self.state.loadedReviewCardIds = []
         self.state.hasMoreReviewQueueCards = false
     }
 
@@ -712,6 +706,10 @@ struct ReviewQueueRuntime {
         publishedState.reviewQueue.filter { card in
             publishedState.pendingReviewCardIds.contains(card.cardId) == false
         }
+    }
+
+    private func makeExcludedReviewCardIds(publishedState: ReviewQueuePublishedState) -> Set<String> {
+        Set(publishedState.reviewQueue.map(\.cardId))
     }
 
     private func resolvePresentedCardId(

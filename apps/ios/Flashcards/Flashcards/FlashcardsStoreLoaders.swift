@@ -25,6 +25,14 @@ typealias ReviewQueueChunkLoader = @Sendable (
     _ chunkSize: Int
 ) async throws -> ReviewQueueChunkLoadState
 
+typealias ReviewQueueWindowLoader = @Sendable (
+    _ databaseURL: URL,
+    _ workspaceId: String,
+    _ reviewQueryDefinition: ReviewQueryDefinition,
+    _ now: Date,
+    _ limit: Int
+) async throws -> ReviewQueueWindowLoadState
+
 typealias ReviewTimelinePageLoader = @Sendable (
     _ databaseURL: URL,
     _ workspaceId: String,
@@ -92,6 +100,25 @@ func defaultReviewQueueChunkLoader(
             now: now,
             limit: chunkSize,
             excludedCardIds: excludedCardIds
+        )
+    }.value
+}
+
+func defaultReviewQueueWindowLoader(
+    databaseURL: URL,
+    workspaceId: String,
+    reviewQueryDefinition: ReviewQueryDefinition,
+    now: Date,
+    limit: Int
+) async throws -> ReviewQueueWindowLoadState {
+    return try await Task.detached(priority: .utility) {
+        try Task.checkCancellation()
+        let database = try LocalDatabase(databaseURL: databaseURL)
+        return try database.loadReviewQueueWindow(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            now: now,
+            limit: limit
         )
     }.value
 }

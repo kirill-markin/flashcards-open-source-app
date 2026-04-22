@@ -52,6 +52,7 @@ enum AIChatStoreTestSupport {
                 reviewHeadLoader: defaultReviewHeadLoader,
                 reviewCountsLoader: defaultReviewCountsLoader,
                 reviewQueueChunkLoader: defaultReviewQueueChunkLoader,
+                reviewQueueWindowLoader: defaultReviewQueueWindowLoader,
                 reviewTimelinePageLoader: defaultReviewTimelinePageLoader,
                 initialGlobalErrorMessage: ""
             )
