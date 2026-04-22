@@ -260,7 +260,7 @@ describe("ProgressScreen", () => {
       throw new Error("Progress summary badge SVG icon was not found");
     }
 
-    const streakMarkerIcons = [...container.querySelectorAll(".progress-streak-marker .review-progress-badge-icon")];
+    const streakMarkerIcons = [...container.querySelectorAll(".progress-streak-marker-flame .review-progress-badge-icon")];
     expect(streakMarkerIcons.length).toBeGreaterThan(0);
     expect(streakMarkerIcons.every((icon) => icon instanceof SVGSVGElement)).toBe(true);
   });
