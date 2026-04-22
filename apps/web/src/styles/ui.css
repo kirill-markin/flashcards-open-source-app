@@ -17,6 +17,7 @@
   width: fit-content;
   justify-self: start;
   gap: 6px;
+  flex-shrink: 0;
   padding-inline: 10px 12px;
   color: var(--text-secondary);
   text-decoration: none;
@@ -48,12 +49,15 @@
 }
 
 .review-progress-badge-icon {
+  display: block;
   width: 16px;
   height: 16px;
   flex: 0 0 auto;
 }
 
 .review-progress-badge-value {
+  display: inline-flex;
+  align-items: center;
   font-variant-numeric: tabular-nums;
 }
 

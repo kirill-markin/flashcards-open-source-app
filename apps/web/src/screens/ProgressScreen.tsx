@@ -370,7 +370,7 @@ export function ProgressScreen(): ReactElement {
                     <p className="progress-streak-summary-status">{reviewProgressBadgeTodayStatus}</p>
                   </div>
                   <span
-                    className={`badge review-progress-badge${reviewProgressBadge.hasReviewedToday ? " review-progress-badge-active" : ""}`}
+                    className={`badge review-progress-badge progress-streak-summary-badge${reviewProgressBadge.hasReviewedToday ? " review-progress-badge-active" : ""}`}
                     aria-label={reviewProgressBadgeAriaLabel}
                     title={reviewProgressBadgeAriaLabel}
                   >
@@ -408,7 +408,13 @@ export function ProgressScreen(): ReactElement {
                             aria-hidden="true"
                             style={day.isFuture ? futureStreakMarkerStyle : undefined}
                           >
-                            {day.reviewCount > 0 ? <ReviewProgressBadgeIcon /> : day.isFuture ? "" : day.dayLabel}
+                            {day.reviewCount > 0 ? (
+                              <span className="progress-streak-marker-flame">
+                                <ReviewProgressBadgeIcon />
+                              </span>
+                            ) : day.isFuture ? null : (
+                              <span className="progress-streak-marker-day-value">{day.dayLabel}</span>
+                            )}
                           </span>
                         </div>
                       );
