@@ -1,13 +1,60 @@
 import Foundation
 import Observation
 
-fileprivate struct AIChatDraftPersistKey: Hashable, Sendable {
-    let workspaceId: String?
-    let sessionId: String?
-}
-
 fileprivate struct AIChatStatePersistKey: Hashable, Sendable {
     let workspaceId: String?
+}
+
+fileprivate struct AIChatQueuedPersistedState: Sendable {
+    let version: Int
+    let state: AIChatPersistedState
+}
+
+fileprivate final class AIChatStatePersistCoordinator: @unchecked Sendable {
+    private let lock: NSLock
+    private var latestVersions: [AIChatStatePersistKey: Int]
+
+    init() {
+        self.lock = NSLock()
+        self.latestVersions = [:]
+    }
+
+    func reserveNextVersion(for key: AIChatStatePersistKey) -> Int {
+        self.lock.lock()
+        defer {
+            self.lock.unlock()
+        }
+
+        let nextVersion = (self.latestVersions[key] ?? 0) + 1
+        self.latestVersions[key] = nextVersion
+        return nextVersion
+    }
+
+    func saveImmediately(for key: AIChatStatePersistKey, operation: () -> Void) {
+        self.lock.lock()
+        let nextVersion = (self.latestVersions[key] ?? 0) + 1
+        self.latestVersions[key] = nextVersion
+        operation()
+        self.lock.unlock()
+    }
+
+    func saveIfCurrent(
+        for key: AIChatStatePersistKey,
+        version: Int,
+        operation: () -> Void
+    ) -> Bool {
+        self.lock.lock()
+        defer {
+            self.lock.unlock()
+        }
+
+        guard self.latestVersions[key] == version else {
+            return false
+        }
+
+        operation()
+        return true
+    }
 }
 
 struct AIChatToolRunPostSyncOrigin: Equatable, Sendable {
@@ -124,10 +171,10 @@ final class AIChatStore {
     @ObservationIgnored var activeNewSessionTask: Task<Void, Never>?
     @ObservationIgnored var activeRemoteSessionProvisionRequest: AIChatRemoteSessionProvisionRequest?
     @ObservationIgnored var activePersistTask: Task<Void, Never>?
+    @ObservationIgnored fileprivate let statePersistCoordinator: AIChatStatePersistCoordinator
     @ObservationIgnored fileprivate var activeStatePersistKey: AIChatStatePersistKey?
-    @ObservationIgnored fileprivate var pendingPersistStates: [AIChatStatePersistKey: AIChatPersistedState]
+    @ObservationIgnored fileprivate var pendingPersistStates: [AIChatStatePersistKey: AIChatQueuedPersistedState]
     @ObservationIgnored var activeDraftPersistTask: Task<Void, Never>?
-    @ObservationIgnored fileprivate var pendingDraftPersistStates: [AIChatDraftPersistKey: AIChatComposerDraft]
     @ObservationIgnored var activeConversationId: String?
     @ObservationIgnored var storedPreSendSnapshotConversationId: String?
     @ObservationIgnored var storedPreSendSnapshot: AIChatPreSendSnapshot?
@@ -141,6 +188,7 @@ final class AIChatStore {
     @ObservationIgnored var activeResumeErrorAttemptSequence: Int?
     @ObservationIgnored var activeLiveResumeAttemptSequence: Int?
     @ObservationIgnored var requiresRemoteSessionProvisioning: Bool
+    @ObservationIgnored var suppressDraftRestore: Bool
     @ObservationIgnored var optimisticOutgoingTurnState: AIChatOptimisticOutgoingTurnState?
 
     var hasOlderMessages: Bool {
@@ -323,7 +371,9 @@ final class AIChatStore {
             messages: persistedState.messages,
             chatSessionId: persistedState.chatSessionId,
             lastKnownChatConfig: persistedState.lastKnownChatConfig,
-            pendingToolRunPostSync: false
+            pendingToolRunPostSync: false,
+            requiresRemoteSessionProvisioning: persistedState.requiresRemoteSessionProvisioning,
+            suppressDraftRestore: persistedState.suppressDraftRestore
         )
         await self.historyStore.saveState(workspaceId: origin.workspaceId, state: clearedState)
     }
@@ -390,7 +440,7 @@ final class AIChatStore {
         self.activePersistTask = Task { [weak self] in
             while let self {
                 await Task.yield()
-                let nextPersistState = await MainActor.run { () -> (AIChatStatePersistKey, AIChatPersistedState)? in
+                let nextPersistState = await MainActor.run { () -> (AIChatStatePersistKey, AIChatQueuedPersistedState)? in
                     guard let nextKey = self.pendingPersistStates.keys.first,
                           let nextState = self.pendingPersistStates.removeValue(forKey: nextKey)
                     else {
@@ -404,8 +454,17 @@ final class AIChatStore {
                     break
                 }
 
-                let (nextKey, nextState) = nextPersistState
-                await self.historyStore.saveState(workspaceId: nextKey.workspaceId, state: nextState)
+                let (nextKey, nextQueuedState) = nextPersistState
+                _ = self.statePersistCoordinator.saveIfCurrent(
+                    for: nextKey,
+                    version: nextQueuedState.version,
+                    operation: {
+                        self.historyStore.saveStateSynchronously(
+                            workspaceId: nextKey.workspaceId,
+                            state: nextQueuedState.state
+                        )
+                    }
+                )
                 await MainActor.run { [weak self] in
                     if self?.activeStatePersistKey == nextKey {
                         self?.activeStatePersistKey = nil
@@ -436,12 +495,28 @@ final class AIChatStore {
         state: AIChatPersistedState
     ) {
         let key = AIChatStatePersistKey(workspaceId: workspaceId)
-        self.pendingPersistStates[key] = state
+        let version = self.statePersistCoordinator.reserveNextVersion(for: key)
+        self.pendingPersistStates[key] = AIChatQueuedPersistedState(version: version, state: state)
         self.startPersistTaskIfNeeded()
     }
 
     func schedulePersistState(state: AIChatPersistedState) {
         self.schedulePersistState(workspaceId: self.historyWorkspaceId(), state: state)
+    }
+
+    func persistStateSynchronously(state: AIChatPersistedState) {
+        let workspaceId = self.historyWorkspaceId()
+        let key = AIChatStatePersistKey(workspaceId: workspaceId)
+        self.pendingPersistStates.removeValue(forKey: key)
+        self.statePersistCoordinator.saveImmediately(
+            for: key,
+            operation: {
+                self.historyStore.saveStateSynchronously(
+                    workspaceId: workspaceId,
+                    state: state
+                )
+            }
+        )
     }
 
     func schedulePersistCurrentState() {
@@ -459,7 +534,53 @@ final class AIChatStore {
     func cancelPendingDraftPersistence() {
         self.activeDraftPersistTask?.cancel()
         self.activeDraftPersistTask = nil
-        self.pendingDraftPersistStates.removeAll()
+    }
+
+    func persistDraftStateSynchronously(
+        workspaceId: String?,
+        sessionId: String?,
+        draft: AIChatComposerDraft
+    ) {
+        self.historyStore.saveDraftSynchronously(
+            workspaceId: workspaceId,
+            sessionId: sessionId,
+            draft: draft
+        )
+    }
+
+    func isDraftRestoreSuppressed(
+        workspaceId: String?,
+        sessionId: String?,
+        persistedState: AIChatPersistedState
+    ) -> Bool {
+        self.historyStore.loadDraftRestoreSuppression(
+            workspaceId: workspaceId,
+            sessionId: sessionId
+        ) || persistedState.suppressDraftRestore
+    }
+
+    func persistDraftRestoreSuppressionSynchronously(
+        workspaceId: String?,
+        sessionId: String?,
+        isSuppressed: Bool
+    ) {
+        self.historyStore.saveDraftRestoreSuppressionSynchronously(
+            workspaceId: workspaceId,
+            sessionId: sessionId,
+            isSuppressed: isSuppressed
+        )
+    }
+
+    func persistDraftStateImmediately(
+        workspaceId: String?,
+        sessionId: String?,
+        draft: AIChatComposerDraft
+    ) {
+        self.persistDraftStateSynchronously(
+            workspaceId: workspaceId,
+            sessionId: sessionId,
+            draft: draft
+        )
     }
 
     func schedulePersistDraftState(
@@ -467,46 +588,11 @@ final class AIChatStore {
         sessionId: String?,
         draft: AIChatComposerDraft
     ) {
-        let key = AIChatDraftPersistKey(workspaceId: workspaceId, sessionId: sessionId)
-        self.pendingDraftPersistStates[key] = draft
-        guard self.activeDraftPersistTask == nil else {
-            return
-        }
-
-        self.activeDraftPersistTask = Task { [weak self] in
-            while let self {
-                await Task.yield()
-                guard Task.isCancelled == false else {
-                    break
-                }
-                let nextDraftState = await MainActor.run { () -> (AIChatDraftPersistKey, AIChatComposerDraft)? in
-                    guard let nextKey = self.pendingDraftPersistStates.keys.first,
-                          let nextDraft = self.pendingDraftPersistStates.removeValue(forKey: nextKey)
-                    else {
-                        return nil
-                    }
-
-                    return (nextKey, nextDraft)
-                }
-                guard let nextDraftState else {
-                    break
-                }
-
-                let (nextKey, nextDraft) = nextDraftState
-                guard Task.isCancelled == false else {
-                    break
-                }
-                await self.historyStore.saveDraft(
-                    workspaceId: nextKey.workspaceId,
-                    sessionId: nextKey.sessionId,
-                    draft: nextDraft
-                )
-            }
-
-            await MainActor.run { [weak self] in
-                self?.activeDraftPersistTask = nil
-            }
-        }
+        self.persistDraftStateSynchronously(
+            workspaceId: workspaceId,
+            sessionId: sessionId,
+            draft: draft
+        )
     }
 
     func currentPersistedState() -> AIChatPersistedState {
@@ -514,7 +600,9 @@ final class AIChatStore {
             messages: self.messages,
             chatSessionId: self.chatSessionId,
             lastKnownChatConfig: self.serverChatConfig,
-            pendingToolRunPostSync: self.pendingToolRunPostSync
+            pendingToolRunPostSync: self.pendingToolRunPostSync,
+            requiresRemoteSessionProvisioning: self.requiresRemoteSessionProvisioning,
+            suppressDraftRestore: self.suppressDraftRestore
         )
     }
 
@@ -611,10 +699,29 @@ final class AIChatStore {
             sessionId: persistedState.chatSessionId
         )
         self.conversationScopeId = self.chatSessionId
-        let initialDraft = historyStore.loadDraft(
+        let persistedDraft = historyStore.loadDraft(
             workspaceId: initialHistoryWorkspaceId,
             sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId
         )
+        let shouldSuppressInitialDraftRestore = historyStore.loadDraftRestoreSuppression(
+            workspaceId: initialHistoryWorkspaceId,
+            sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId
+        ) || persistedState.suppressDraftRestore
+        let initialDraft = shouldSuppressInitialDraftRestore
+            ? AIChatComposerDraft(inputText: "", pendingAttachments: [])
+            : persistedDraft
+        if shouldSuppressInitialDraftRestore {
+            historyStore.saveDraftSynchronously(
+                workspaceId: initialHistoryWorkspaceId,
+                sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
+                draft: initialDraft
+            )
+            historyStore.saveDraftRestoreSuppressionSynchronously(
+                workspaceId: initialHistoryWorkspaceId,
+                sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
+                isSuppressed: false
+            )
+        }
         self.composerState = AIChatComposerState(
             inputText: initialDraft.inputText,
             pendingAttachments: initialDraft.pendingAttachments,
@@ -630,21 +737,22 @@ final class AIChatStore {
         self.activeNewSessionTask = nil
         self.activeRemoteSessionProvisionRequest = nil
         self.activePersistTask = nil
+        self.statePersistCoordinator = AIChatStatePersistCoordinator()
         self.activeStatePersistKey = nil
         self.pendingPersistStates = [:]
         self.activeDraftPersistTask = nil
-        self.pendingDraftPersistStates = [:]
         self.activeConversationId = nil
         self.activeStreamingMessageId = nil
         self.activeStreamingItemId = nil
         self.runHadToolCalls = persistedState.pendingToolRunPostSync
         self.pendingToolRunPostSync = persistedState.pendingToolRunPostSync
+        self.suppressDraftRestore = shouldSuppressInitialDraftRestore
         self.activeToolRunPostSyncTask = nil
         self.nextResumeAttemptSequence = 0
         self.nextNewSessionRequestSequence = 0
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
-        self.requiresRemoteSessionProvisioning = false
+        self.requiresRemoteSessionProvisioning = persistedState.requiresRemoteSessionProvisioning
         self.optimisticOutgoingTurnState = restoredAIChatOptimisticOutgoingTurnState(
             messages: persistedState.messages
         )

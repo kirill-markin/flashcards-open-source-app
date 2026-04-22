@@ -127,10 +127,18 @@ protocol AIChatHistoryStoring: Sendable {
     func activateWorkspace(workspaceId: String?)
     func loadState() -> AIChatPersistedState
     func loadState(workspaceId: String?) -> AIChatPersistedState
+    func saveStateSynchronously(workspaceId: String?, state: AIChatPersistedState)
     func saveState(state: AIChatPersistedState) async
     func saveState(workspaceId: String?, state: AIChatPersistedState) async
     func clearState() async
     func loadDraft(workspaceId: String?, sessionId: String?) -> AIChatComposerDraft
+    func loadDraftRestoreSuppression(workspaceId: String?, sessionId: String?) -> Bool
+    func saveDraftSynchronously(workspaceId: String?, sessionId: String?, draft: AIChatComposerDraft)
+    func saveDraftRestoreSuppressionSynchronously(
+        workspaceId: String?,
+        sessionId: String?,
+        isSuppressed: Bool
+    )
     func saveDraft(workspaceId: String?, sessionId: String?, draft: AIChatComposerDraft) async
 }
 

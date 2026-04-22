@@ -441,46 +441,32 @@ internal fun appendAssistantAccountUpgradePrompt(
         message = message,
         buttonTitle = buttonTitle
     )
+    val promptMessage = AiChatMessage(
+        messageId = UUID.randomUUID().toString().lowercase(),
+        role = AiChatRole.ASSISTANT,
+        content = listOf(prompt),
+        timestampMillis = timestampMillis,
+        isError = false,
+        isStopped = false,
+        cursor = null,
+        itemId = null
+    )
 
     if (state.messages.isEmpty()) {
-        return state.copy(
-            messages = listOf(
-                AiChatMessage(
-                    messageId = UUID.randomUUID().toString().lowercase(),
-                    role = AiChatRole.ASSISTANT,
-                    content = listOf(prompt),
-                    timestampMillis = timestampMillis,
-                    isError = false,
-                    isStopped = false,
-                    cursor = null,
-                    itemId = null
-                )
-            )
-        )
+        return state.copy(messages = listOf(promptMessage))
     }
 
     val lastMessage = state.messages.last()
-    if (lastMessage.role != AiChatRole.ASSISTANT) {
+    if (lastMessage.role == AiChatRole.ASSISTANT && isOptimisticAssistantStatus(content = lastMessage.content)) {
         return state.copy(
-            messages = state.messages + AiChatMessage(
-                messageId = UUID.randomUUID().toString().lowercase(),
-                role = AiChatRole.ASSISTANT,
+            messages = state.messages.dropLast(1) + lastMessage.copy(
                 content = listOf(prompt),
-                timestampMillis = timestampMillis,
-                isError = false,
-                isStopped = false,
-                cursor = null,
-                itemId = null
+                isError = false
             )
         )
     }
 
-    return state.copy(
-        messages = state.messages.dropLast(1) + lastMessage.copy(
-            content = listOf(prompt),
-            isError = false
-        )
-    )
+    return state.copy(messages = state.messages + promptMessage)
 }
 
 internal fun latestAssistantErrorMessage(messages: List<AiChatMessage>): String? {

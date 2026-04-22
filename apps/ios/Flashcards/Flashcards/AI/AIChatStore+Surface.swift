@@ -241,11 +241,41 @@ extension AIChatStore {
             workspaceId: self.historyWorkspaceId(),
             sessionId: resolvedSessionId.isEmpty ? nil : resolvedSessionId
         )
-        self.applyComposerDraft(
-            inputText: persistedDraft.inputText,
-            pendingAttachments: persistedDraft.pendingAttachments
+        let shouldSuppressDraftRestore = self.isDraftRestoreSuppressed(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: resolvedSessionId.isEmpty ? nil : resolvedSessionId,
+            persistedState: persistedState
         )
-        self.schedulePersistCurrentDraftState()
+        let restoredDraft = shouldSuppressDraftRestore
+            ? AIChatComposerDraft(inputText: "", pendingAttachments: [])
+            : persistedDraft
+        self.applyComposerDraft(
+            inputText: restoredDraft.inputText,
+            pendingAttachments: restoredDraft.pendingAttachments
+        )
+        self.suppressDraftRestore = false
+        if shouldSuppressDraftRestore {
+            self.persistStateSynchronously(
+                state: AIChatPersistedState(
+                    messages: persistedState.messages,
+                    chatSessionId: resolvedSessionId,
+                    lastKnownChatConfig: persistedState.lastKnownChatConfig,
+                    pendingToolRunPostSync: persistedState.pendingToolRunPostSync,
+                    requiresRemoteSessionProvisioning: persistedState.requiresRemoteSessionProvisioning,
+                    suppressDraftRestore: false
+                )
+            )
+        }
+        self.persistDraftRestoreSuppressionSynchronously(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: resolvedSessionId.isEmpty ? nil : resolvedSessionId,
+            isSuppressed: false
+        )
+        self.persistDraftStateImmediately(
+            workspaceId: self.historyWorkspaceId(),
+            sessionId: resolvedSessionId.isEmpty ? nil : resolvedSessionId,
+            draft: restoredDraft
+        )
         self.transitionToIdle()
         self.dictationState = .idle
         self.activeAlert = nil
@@ -263,7 +293,7 @@ extension AIChatStore {
         self.pendingToolRunPostSync = persistedState.pendingToolRunPostSync
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
-        self.requiresRemoteSessionProvisioning = false
+        self.requiresRemoteSessionProvisioning = persistedState.requiresRemoteSessionProvisioning
     }
 
     func canAutoStartFreshLocalSession() -> Bool {
@@ -379,14 +409,7 @@ extension AIChatStore {
         self.activeResumeErrorAttemptSequence = nil
         self.activeLiveResumeAttemptSequence = nil
         self.requiresRemoteSessionProvisioning = true
-        self.schedulePersistState(
-            state: AIChatPersistedState(
-                messages: [],
-                chatSessionId: sessionId,
-                lastKnownChatConfig: self.serverChatConfig,
-                pendingToolRunPostSync: false
-            )
-        )
+        self.schedulePersistCurrentState()
     }
 
     func isConversationDirtyForPresentation() -> Bool {

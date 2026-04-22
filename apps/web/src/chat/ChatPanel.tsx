@@ -182,9 +182,12 @@ export function ChatPanel(props: Props): ReactElement {
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const [dictationState, setDictationState] = useState<ChatDictationState>("idle");
   const [sendPhase, setSendPhase] = useState<ChatSendPhase>("idle");
+  const [isDraftOptimisticallyClearedForSend, setIsDraftOptimisticallyClearedForSend] = useState<boolean>(false);
   const [isMobileChatLayout, setIsMobileChatLayout] = useState<boolean>(matchesMobileChatBreakpoint);
-  const inputText = draft.inputText;
-  const pendingAttachments = draft.pendingAttachments;
+  const draftInputText = draft.inputText;
+  const draftPendingAttachments = draft.pendingAttachments;
+  const inputText = isDraftOptimisticallyClearedForSend ? "" : draftInputText;
+  const pendingAttachments = isDraftOptimisticallyClearedForSend ? [] : draftPendingAttachments;
 
   const activeWorkspaceId = appData.activeWorkspace?.workspaceId ?? null;
   const {
@@ -245,7 +248,7 @@ export function ChatPanel(props: Props): ReactElement {
     content: ReturnType<typeof buildContentParts>;
     timezone: string;
   }> | null {
-    const draftContentParts = buildContentParts(inputText, attachments);
+    const draftContentParts = buildContentParts(draftInputText, attachments);
     if (draftContentParts.length === 0) {
       return null;
     }
@@ -351,6 +354,35 @@ export function ChatPanel(props: Props): ReactElement {
 
   function requestComposerFocusRestore(): void {
     pendingComposerFocusRestoreRef.current = true;
+  }
+
+  function clearComposerForPendingSend(): void {
+    setIsDraftOptimisticallyClearedForSend(true);
+    pendingAttachmentsRef.current = [];
+    draftSelectionRef.current = null;
+    pendingTextareaSelectionRef.current = null;
+  }
+
+  function restoreComposerAfterPendingSend(
+    nextAttachments: ReadonlyArray<PendingAttachment>,
+  ): void {
+    setIsDraftOptimisticallyClearedForSend(false);
+    pendingAttachmentsRef.current = nextAttachments;
+  }
+
+  function finalizeAcceptedSend(
+    sourceSessionId: string | null,
+    resultSessionId: string | null,
+  ): void {
+    clearDraftForSession(sourceSessionId);
+    if (resultSessionId !== null && resultSessionId !== sourceSessionId) {
+      clearDraftForSession(resultSessionId);
+    }
+    pendingAttachmentsRef.current = [];
+    draftSelectionRef.current = null;
+    pendingTextareaSelectionRef.current = null;
+    setIsDraftOptimisticallyClearedForSend(false);
+    requestComposerFocusRestore();
   }
 
   function invalidateSendLifecycleRequests(): number {
@@ -640,7 +672,7 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
 
-    const nextText = inputText;
+    const nextText = draftInputText;
     const nextAttachments = pendingAttachmentsRef.current;
     const sourceSessionId = currentSessionId;
     const contentParts = buildContentParts(nextText, nextAttachments);
@@ -661,6 +693,7 @@ export function ChatPanel(props: Props): ReactElement {
     }
 
     const requestSequence = sendLifecycleRequestSequenceRef.current;
+    clearComposerForPendingSend();
     setSendPhase("preparingSend");
 
     try {
@@ -675,6 +708,7 @@ export function ChatPanel(props: Props): ReactElement {
       }
 
       if (outboxRecords.length > 0) {
+        restoreComposerAfterPendingSend(nextAttachments);
         appData.setErrorMessage(t("chatPanel.transientErrors.pendingSync"));
         setSendPhase("idle");
         return;
@@ -684,6 +718,7 @@ export function ChatPanel(props: Props): ReactElement {
         return;
       }
 
+      restoreComposerAfterPendingSend(nextAttachments);
       appData.setErrorMessage(error instanceof Error ? error.message : String(error));
       setSendPhase("idle");
       return;
@@ -706,14 +741,9 @@ export function ChatPanel(props: Props): ReactElement {
       }
 
       if (result.accepted) {
-        clearDraftForSession(sourceSessionId);
-        if (result.sessionId !== null && result.sessionId !== sourceSessionId) {
-          clearDraftForSession(result.sessionId);
-        }
-        pendingAttachmentsRef.current = [];
-        draftSelectionRef.current = null;
-        pendingTextareaSelectionRef.current = null;
-        requestComposerFocusRestore();
+        finalizeAcceptedSend(sourceSessionId, result.sessionId);
+      } else {
+        restoreComposerAfterPendingSend(nextAttachments);
       }
     } finally {
       if (isSendLifecycleRequestCurrent(requestSequence)) {
@@ -825,6 +855,7 @@ export function ChatPanel(props: Props): ReactElement {
             className="chat-close-btn"
             onClick={() => {
               invalidateSendLifecycleRequests();
+              setIsDraftOptimisticallyClearedForSend(false);
               setSendPhase("idle");
               discardDictation();
               if (currentSessionId === null) {

@@ -3,6 +3,7 @@ import Foundation
 let aiChatHistoryStorageKey: String = "ai-chat-history"
 let aiChatHistoryStorageKeyPrefix: String = "ai-chat-history::"
 let aiChatDraftStorageKeyPrefix: String = "ai-chat-draft::"
+let aiChatDraftRestoreSuppressionKeyPrefix: String = "ai-chat-draft-restore-suppression::"
 private let aiChatMaxMessages: Int = 200
 private let aiChatHistoryMigrationCleanupVersionKey: String = "ai-chat-history-cleanup-version"
 private let aiChatHistoryMigrationCleanupVersion: Int = 2
@@ -44,6 +45,10 @@ func clearStoredAIChatHistories(userDefaults: UserDefaults) {
     for key in userDefaults.dictionaryRepresentation().keys where key.hasPrefix(aiChatDraftStorageKeyPrefix) {
         userDefaults.removeObject(forKey: key)
     }
+
+    for key in userDefaults.dictionaryRepresentation().keys where key.hasPrefix(aiChatDraftRestoreSuppressionKeyPrefix) {
+        userDefaults.removeObject(forKey: key)
+    }
 }
 
 func storeAIChatHistoryStateSynchronously(
@@ -57,7 +62,9 @@ func storeAIChatHistoryStateSynchronously(
         messages: Array(state.messages.suffix(aiChatMaxMessages)),
         chatSessionId: state.chatSessionId,
         lastKnownChatConfig: state.lastKnownChatConfig,
-        pendingToolRunPostSync: state.pendingToolRunPostSync
+        pendingToolRunPostSync: state.pendingToolRunPostSync,
+        requiresRemoteSessionProvisioning: state.requiresRemoteSessionProvisioning,
+        suppressDraftRestore: state.suppressDraftRestore
     )
     let data = try encoder.encode(trimmedState)
     userDefaults.set(data, forKey: aiChatHistoryStorageKeyForWorkspace(workspaceId: workspaceId))
@@ -82,6 +89,28 @@ func storeAIChatDraftSynchronously(
 
     let data = try encoder.encode(draft)
     userDefaults.set(data, forKey: key)
+}
+
+func storeAIChatDraftRestoreSuppressionSynchronously(
+    userDefaults: UserDefaults,
+    workspaceId: String?,
+    sessionId: String?,
+    isSuppressed: Bool
+) {
+    runAIChatHistoryMigrationCleanupIfNeeded(userDefaults: userDefaults)
+    guard let normalizedSessionId = normalizedAIChatDraftSessionId(sessionId: sessionId) else {
+        return
+    }
+    let key = aiChatDraftRestoreSuppressionKeyForWorkspace(
+        workspaceId: workspaceId,
+        sessionId: normalizedSessionId
+    )
+    if isSuppressed {
+        userDefaults.set(true, forKey: key)
+        return
+    }
+
+    userDefaults.removeObject(forKey: key)
 }
 
 final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
@@ -144,7 +173,9 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
                 messages: trimmedMessages,
                 chatSessionId: state.chatSessionId,
                 lastKnownChatConfig: state.lastKnownChatConfig,
-                pendingToolRunPostSync: state.pendingToolRunPostSync
+                pendingToolRunPostSync: state.pendingToolRunPostSync,
+                requiresRemoteSessionProvisioning: state.requiresRemoteSessionProvisioning,
+                suppressDraftRestore: state.suppressDraftRestore
             )
         } catch {
             self.userDefaults.removeObject(forKey: storageKey)
@@ -162,6 +193,10 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
     }
 
     func saveState(workspaceId: String?, state: AIChatPersistedState) async {
+        self.saveStateSynchronously(workspaceId: workspaceId, state: state)
+    }
+
+    func saveStateSynchronously(workspaceId: String?, state: AIChatPersistedState) {
         do {
             try storeAIChatHistoryStateSynchronously(
                 userDefaults: self.userDefaults,
@@ -204,7 +239,28 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
         return AIChatComposerDraft(inputText: "", pendingAttachments: [])
     }
 
+    func loadDraftRestoreSuppression(workspaceId: String?, sessionId: String?) -> Bool {
+        runAIChatHistoryMigrationCleanupIfNeeded(userDefaults: self.userDefaults)
+        guard let normalizedSessionId = normalizedAIChatDraftSessionId(sessionId: sessionId) else {
+            return false
+        }
+        return self.userDefaults.bool(
+            forKey: aiChatDraftRestoreSuppressionKeyForWorkspace(
+                workspaceId: workspaceId,
+                sessionId: normalizedSessionId
+            )
+        )
+    }
+
     func saveDraft(workspaceId: String?, sessionId: String?, draft: AIChatComposerDraft) async {
+        self.saveDraftSynchronously(
+            workspaceId: workspaceId,
+            sessionId: sessionId,
+            draft: draft
+        )
+    }
+
+    func saveDraftSynchronously(workspaceId: String?, sessionId: String?, draft: AIChatComposerDraft) {
         do {
             try storeAIChatDraftSynchronously(
                 userDefaults: self.userDefaults,
@@ -224,6 +280,19 @@ final class AIChatHistoryStore: AIChatHistoryStoring, @unchecked Sendable {
                 )
             )
         }
+    }
+
+    func saveDraftRestoreSuppressionSynchronously(
+        workspaceId: String?,
+        sessionId: String?,
+        isSuppressed: Bool
+    ) {
+        storeAIChatDraftRestoreSuppressionSynchronously(
+            userDefaults: self.userDefaults,
+            workspaceId: workspaceId,
+            sessionId: sessionId,
+            isSuppressed: isSuppressed
+        )
     }
 
     private func storageKey() -> String {
@@ -250,6 +319,17 @@ private func aiChatDraftStorageKeyForWorkspace(
     return "\(aiChatDraftStorageKeyPrefix)\(workspaceId)::\(sessionId)"
 }
 
+private func aiChatDraftRestoreSuppressionKeyForWorkspace(
+    workspaceId: String?,
+    sessionId: String
+) -> String {
+    guard let workspaceId, workspaceId.isEmpty == false else {
+        return "\(aiChatDraftRestoreSuppressionKeyPrefix)\(sessionId)"
+    }
+
+    return "\(aiChatDraftRestoreSuppressionKeyPrefix)\(workspaceId)::\(sessionId)"
+}
+
 private func normalizedAIChatDraftSessionId(sessionId: String?) -> String? {
     let normalizedSessionId = sessionId?.trimmingCharacters(in: .whitespacesAndNewlines)
     return normalizedSessionId?.isEmpty == false ? normalizedSessionId! : nil
@@ -261,6 +341,11 @@ private func removeStoredAIChatDrafts(
 ) {
     for key in userDefaults.dictionaryRepresentation().keys
         where aiChatDraftStorageKeyMatchesWorkspace(key: key, workspaceId: workspaceId) {
+        userDefaults.removeObject(forKey: key)
+    }
+
+    for key in userDefaults.dictionaryRepresentation().keys
+        where aiChatDraftRestoreSuppressionKeyMatchesWorkspace(key: key, workspaceId: workspaceId) {
         userDefaults.removeObject(forKey: key)
     }
 }
@@ -278,6 +363,22 @@ private func aiChatDraftStorageKeyMatchesWorkspace(
     }
 
     let suffix = key.dropFirst(aiChatDraftStorageKeyPrefix.count)
+    return suffix.contains("::") == false
+}
+
+private func aiChatDraftRestoreSuppressionKeyMatchesWorkspace(
+    key: String,
+    workspaceId: String?
+) -> Bool {
+    if let workspaceId, workspaceId.isEmpty == false {
+        return key.hasPrefix("\(aiChatDraftRestoreSuppressionKeyPrefix)\(workspaceId)::")
+    }
+
+    guard key.hasPrefix(aiChatDraftRestoreSuppressionKeyPrefix) else {
+        return false
+    }
+
+    let suffix = key.dropFirst(aiChatDraftRestoreSuppressionKeyPrefix.count)
     return suffix.contains("::") == false
 }
 

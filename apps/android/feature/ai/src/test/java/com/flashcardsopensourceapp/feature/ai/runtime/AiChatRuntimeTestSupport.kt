@@ -221,6 +221,7 @@ internal class FakeAiChatRepository : AiChatRepository {
     val savePersistedStateGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val persistedStates: MutableMap<String?, AiChatPersistedState> = mutableMapOf()
     val draftStates: MutableMap<Pair<String?, String?>, AiChatDraftState> = mutableMapOf()
+    val startRunGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()
     val ensureSessionRequests: MutableList<String> = mutableListOf()
     val transcribeAudioWorkspaceIds: MutableList<String?> = mutableListOf()
     val transcribeAudioSessionIds: MutableList<String> = mutableListOf()
@@ -230,6 +231,7 @@ internal class FakeAiChatRepository : AiChatRepository {
         sessionId = nextEnsureSessionId
     )
     var transcribeAudioError: Exception? = null
+    var ensureReadyForSendError: Exception? = null
     var startRunError: Exception? = null
     var loadBootstrapCalls: Int = 0
     var startRunCalls: Int = 0
@@ -272,7 +274,10 @@ internal class FakeAiChatRepository : AiChatRepository {
     }
 
     override suspend fun ensureReadyForSend(workspaceId: String?) {
-        Unit
+        val error: Exception? = ensureReadyForSendError
+        if (error != null) {
+            throw error
+        }
     }
 
     override suspend fun loadPersistedState(workspaceId: String?): AiChatPersistedState {
@@ -416,6 +421,9 @@ internal class FakeAiChatRepository : AiChatRepository {
         startRunCalls += 1
         lastStartRunState = state
         lastStartRunUiLocale = uiLocale
+        if (startRunGates.isNotEmpty()) {
+            startRunGates.removeFirst().await()
+        }
         val error: Exception? = startRunError
         if (error != null) {
             throw error
