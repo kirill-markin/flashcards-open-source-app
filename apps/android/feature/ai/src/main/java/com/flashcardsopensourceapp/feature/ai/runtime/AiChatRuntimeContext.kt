@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.feature.ai.runtime
 
+import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
@@ -75,18 +76,48 @@ internal class AiChatRuntimeContext(
         persistState(snapshot = runtimeStateMutable.value)
     }
 
+    fun persistCurrentStatePreservingDraft(draftState: AiChatDraftState) {
+        persistStatePreservingDraft(
+            snapshot = runtimeStateMutable.value,
+            draftState = draftState
+        )
+    }
+
     fun persistCurrentDraft() {
         persistDraft(snapshot = runtimeStateMutable.value)
     }
 
     fun persistState(snapshot: AiChatRuntimeState) {
+        persistStateWithDraft(
+            snapshot = snapshot,
+            draftState = snapshot.toDraftState()
+        )
+    }
+
+    fun persistStatePreservingDraft(
+        snapshot: AiChatRuntimeState,
+        draftState: AiChatDraftState
+    ) {
+        persistStateWithDraft(
+            snapshot = snapshot,
+            draftState = draftState
+        )
+    }
+
+    private fun persistStateWithDraft(
+        snapshot: AiChatRuntimeState,
+        draftState: AiChatDraftState
+    ) {
         val requestVersion = persistedStateWriteRequestVersion.incrementAndGet()
         scope.launch {
             persistedStateWriteMutex.withLock {
                 if (requestVersion != persistedStateWriteRequestVersion.get()) {
                     return@withLock
                 }
-                persistStateSnapshot(snapshot = snapshot)
+                persistStateSnapshot(
+                    snapshot = snapshot,
+                    draftState = draftState
+                )
             }
         }
     }
@@ -110,11 +141,17 @@ internal class AiChatRuntimeContext(
             if (requestVersion != persistedStateWriteRequestVersion.get()) {
                 return@withLock
             }
-            persistStateSnapshot(snapshot = snapshot)
+            persistStateSnapshot(
+                snapshot = snapshot,
+                draftState = snapshot.toDraftState()
+            )
         }
     }
 
-    private suspend fun persistStateSnapshot(snapshot: AiChatRuntimeState) {
+    private suspend fun persistStateSnapshot(
+        snapshot: AiChatRuntimeState,
+        draftState: AiChatDraftState
+    ) {
         aiChatRepository.savePersistedState(
             workspaceId = snapshot.workspaceId,
             state = snapshot.persistedState
@@ -124,7 +161,7 @@ internal class AiChatRuntimeContext(
             aiChatRepository.saveDraftState(
                 workspaceId = snapshot.workspaceId,
                 sessionId = chatSessionId,
-                state = snapshot.toDraftState()
+                state = draftState
             )
         }
     }
@@ -257,8 +294,8 @@ internal class AiChatRuntimeContext(
     }
 }
 
-private fun AiChatRuntimeState.toDraftState(): com.flashcardsopensourceapp.data.local.model.AiChatDraftState {
-    return com.flashcardsopensourceapp.data.local.model.AiChatDraftState(
+private fun AiChatRuntimeState.toDraftState(): AiChatDraftState {
+    return AiChatDraftState(
         draftMessage = draftMessage,
         pendingAttachments = pendingAttachments
     )

@@ -46,20 +46,23 @@ extension AIChatStore {
     }
 
     func appendAssistantAccountUpgradePrompt(message: String, buttonTitle: String) {
-        if let lastIndex = self.messages.indices.last, self.messages[lastIndex].role == .assistant {
+        if let lastIndex = self.messages.indices.last {
             let lastMessage = self.messages[lastIndex]
-            _ = self.consumeOptimisticAssistantPlaceholder(messageId: lastMessage.id)
-            self.messages[lastIndex] = AIChatMessage(
-                id: lastMessage.id,
-                role: lastMessage.role,
-                content: [.accountUpgradePrompt(message: message, buttonTitle: buttonTitle)],
-                timestamp: lastMessage.timestamp,
-                isError: false,
-                isStopped: lastMessage.isStopped,
-                cursor: lastMessage.cursor,
-                itemId: lastMessage.itemId
-            )
-            return
+            if lastMessage.role == .assistant,
+               self.consumeOptimisticAssistantPlaceholder(messageId: lastMessage.id)
+            {
+                self.messages[lastIndex] = AIChatMessage(
+                    id: lastMessage.id,
+                    role: lastMessage.role,
+                    content: [.accountUpgradePrompt(message: message, buttonTitle: buttonTitle)],
+                    timestamp: lastMessage.timestamp,
+                    isError: false,
+                    isStopped: lastMessage.isStopped,
+                    cursor: lastMessage.cursor,
+                    itemId: lastMessage.itemId
+                )
+                return
+            }
         }
 
         self.messages.append(
