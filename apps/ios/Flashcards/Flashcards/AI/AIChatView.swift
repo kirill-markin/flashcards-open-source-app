@@ -17,9 +17,7 @@ struct AIChatView: View {
     @State var scrollPosition: ScrollPosition
     @State var autoScrollTask: Task<Void, Never>?
     @State var deferredBottomSyncTask: Task<Void, Never>?
-    @State var shouldRestoreComposerFocusAfterDictation: Bool
     @State var composerSelection: TextSelection?
-    @State var composerDictationInsertionSelection: AIChatDictationInsertionSelection?
     @State var deferredPresentationRequest: AIChatPresentationRequest?
     @FocusState var isComposerFocused: Bool
 
@@ -34,9 +32,7 @@ struct AIChatView: View {
         self.scrollPosition = ScrollPosition(idType: String.self)
         self.autoScrollTask = nil
         self.deferredBottomSyncTask = nil
-        self.shouldRestoreComposerFocusAfterDictation = false
         self.composerSelection = nil
-        self.composerDictationInsertionSelection = nil
         self.deferredPresentationRequest = nil
     }
 
@@ -595,7 +591,6 @@ struct AIChatView: View {
 
     func handleScenePhaseChange(nextPhase: ScenePhase) {
         guard nextPhase == .active else {
-            self.shouldRestoreComposerFocusAfterDictation = false
             self.syncChatSurface(refreshConsent: false)
             return
         }
@@ -610,7 +605,6 @@ struct AIChatView: View {
     func handleSelectedTabChange(nextTab: AppTab) {
         guard nextTab == .ai else {
             self.cancelDeferredBottomSync()
-            self.shouldRestoreComposerFocusAfterDictation = false
             self.syncChatSurface(refreshConsent: false)
             return
         }
@@ -620,7 +614,6 @@ struct AIChatView: View {
     }
 
     func handleDictationStateViewChange(nextState: AIChatDictationState) {
-        self.handleDictationStateChange(nextState)
         guard nextState == .idle else {
             return
         }

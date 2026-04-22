@@ -257,6 +257,6 @@ extension AIChatView {
     }
 
     var composerTextFieldDisabled: Bool {
-        self.chatStore.isChatInteractive == false || self.chatStore.dictationState != .idle
+        self.chatStore.isChatInteractive == false
     }
 }
