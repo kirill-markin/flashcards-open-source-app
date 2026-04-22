@@ -19,21 +19,6 @@ struct ProgressScreen: View {
                         .modifier(ProgressCardModifier())
                 }
 
-                if self.store.isProgressRefreshing && self.store.progressSnapshot == nil {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ProgressView(
-                            String(
-                                localized: "progress.screen.loading",
-                                defaultValue: "Loading progress...",
-                                table: progressStringsTableName,
-                                comment: "Progress loading state"
-                            )
-                        )
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .modifier(ProgressCardModifier())
-                }
-
                 if let progressSnapshot = self.store.progressSnapshot {
                     let presentationCalendar = requiredProgressPresentationCalendar(
                         timeZoneIdentifier: progressSnapshot.scopeKey.timeZone
@@ -42,21 +27,6 @@ struct ProgressScreen: View {
                         progressSnapshot: progressSnapshot,
                         calendar: presentationCalendar
                     )
-                    if self.store.isProgressRefreshing {
-                        VStack(alignment: .leading, spacing: 0) {
-                            ProgressView(
-                                String(
-                                    localized: "progress.screen.loading",
-                                    defaultValue: "Loading progress...",
-                                    table: progressStringsTableName,
-                                    comment: "Progress loading state"
-                                )
-                            )
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .modifier(ProgressCardModifier())
-                    }
-
                     VStack(alignment: .leading, spacing: 12) {
                         Text(
                             String(
