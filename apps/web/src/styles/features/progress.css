@@ -38,6 +38,10 @@
   flex-wrap: wrap;
 }
 
+.progress-streak-summary-badge {
+  min-height: 34px;
+}
+
 .progress-streak-summary-copy {
   display: grid;
   gap: 4px;
@@ -114,30 +118,48 @@
   justify-content: center;
   width: 34px;
   height: 34px;
+  border: 1px solid transparent;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.08);
   color: var(--text);
   font-size: 14px;
   line-height: 1;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
 }
 
 .progress-streak-day-complete .progress-streak-marker {
-  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
   color: #fff5f2;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  font-size: 16px;
 }
 
 .progress-streak-day-today .progress-streak-marker {
+  border-color: rgba(196, 75, 45, 0.2);
+  background: rgba(196, 75, 45, 0.08);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 0 0 3px var(--accent-soft);
 }
 
-.progress-streak-marker .review-progress-badge-icon {
-  width: 18px;
-  height: 18px;
+.progress-streak-marker-flame,
+.progress-streak-marker-day-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.progress-streak-marker-flame .review-progress-badge-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.progress-streak-marker-day-value {
+  min-width: 1ch;
 }
 
 .progress-chart-shell {
