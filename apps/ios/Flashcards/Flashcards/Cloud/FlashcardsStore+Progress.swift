@@ -27,6 +27,19 @@ private let progressSeriesServerBaseCacheUserDefaultsKeyPrefix: String = "progre
 /// then refresh summary and series independently and re-render whenever the latest response still matches the latest token.
 @MainActor
 extension FlashcardsStore {
+    func prepareVisibleTabForPresentation(
+        tab: AppTab,
+        now: Date
+    ) {
+        self.updateCurrentVisibleTab(tab: tab)
+
+        guard isProgressConsumerTab(tab: tab) else {
+            return
+        }
+
+        self.applyProgressContextChange(now: now, refreshVisibleProgress: false)
+    }
+
     func refreshReviewProgressBadgeIfNeeded() async {
         await self.refreshReviewProgressBadgeIfNeeded(now: Date())
     }

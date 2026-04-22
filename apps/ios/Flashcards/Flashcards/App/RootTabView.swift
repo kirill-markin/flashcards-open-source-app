@@ -5,6 +5,15 @@ struct RootTabView: View {
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
 
     @MainActor
+    private func prepareTabForPresentationIfNeeded(nextTab: AppTab) {
+        guard self.store.currentVisibleTab != nextTab else {
+            return
+        }
+
+        self.store.prepareVisibleTabForPresentation(tab: nextTab, now: Date())
+    }
+
+    @MainActor
     private func refreshSelectedTabIfNeeded(nextTab: AppTab) async {
         switch nextTab {
         case .review:
@@ -18,8 +27,17 @@ struct RootTabView: View {
 
     var body: some View {
         @Bindable var navigation = self.navigation
+        let selectedTabBinding = Binding(
+            get: {
+                navigation.selectedTab
+            },
+            set: { nextTab in
+                self.store.prepareVisibleTabForPresentation(tab: nextTab, now: Date())
+                navigation.selectedTab = nextTab
+            }
+        )
 
-        return TabView(selection: $navigation.selectedTab) {
+        return TabView(selection: selectedTabBinding) {
             NavigationStack {
                 ReviewView()
             }
@@ -147,7 +165,7 @@ struct RootTabView: View {
         }
         .tabBarMinimizeBehavior(.never)
         .task {
-            store.updateCurrentVisibleTab(tab: navigation.selectedTab)
+            store.prepareVisibleTabForPresentation(tab: navigation.selectedTab, now: Date())
         }
         .overlay {
             ZStack {
@@ -160,7 +178,7 @@ struct RootTabView: View {
             }
         }
         .onChange(of: navigation.selectedTab) { _, nextTab in
-            store.updateCurrentVisibleTab(tab: nextTab)
+            self.prepareTabForPresentationIfNeeded(nextTab: nextTab)
             Task { @MainActor in
                 await self.refreshSelectedTabIfNeeded(nextTab: nextTab)
             }

@@ -542,6 +542,7 @@ struct ReviewView: View {
         let badgeState = self.store.reviewProgressBadgeState
 
         return Button {
+            self.store.prepareVisibleTabForPresentation(tab: .progress, now: Date())
             self.navigation.selectTab(.progress)
         } label: {
             reviewProgressBadgeLabel(badgeState: badgeState)
