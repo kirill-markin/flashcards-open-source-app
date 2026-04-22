@@ -68,7 +68,7 @@ export function getChatConfig(): ChatConfig {
       dictationEnabled: true,
       attachmentsEnabled: true,
     },
-    // First-party clients at 1.2.0 no longer read chatConfig.liveUrl at
+    // First-party clients at 1.2.1 no longer read chatConfig.liveUrl at
     // runtime. Keep returning it temporarily for backward compatibility with
     // older released clients, and remove it in a future legacy chat cleanup.
     liveUrl: process.env.CHAT_LIVE_URL || null,
