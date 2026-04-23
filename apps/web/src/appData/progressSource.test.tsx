@@ -4,7 +4,9 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   CloudSettings,
+  ProgressScopeKey,
   ProgressSeries,
+  ProgressSeriesInput,
   ProgressSummary,
   ProgressSummaryPayload,
   WorkspaceSummary,
@@ -14,7 +16,16 @@ import {
   useProgressInvalidationRefresh,
   useProgressInvalidationState,
 } from "./progressInvalidation";
-import { useProgressSource } from "./progressSource";
+import {
+  buildProgressScopeKey,
+  useProgressSource,
+} from "./progressSource";
+import {
+  buildProgressDateContext,
+  buildProgressSeriesInputForDateContext,
+  buildProgressSummaryInputForDateContext,
+} from "../progress/progressDates";
+import { buildProgressSummaryScopeKey } from "./progress/progressScope";
 import { resetProgressTimeContextStateForTests } from "./progressTimeContext";
 import type { SessionVerificationState } from "./warmStart";
 
@@ -69,6 +80,31 @@ type LocalStorageWithOptionalClear = Storage & Record<string, unknown> & Readonl
   removeItem?: (key: string) => void;
 }>;
 
+function createStorageMock(): Storage {
+  const state = new Map<string, string>();
+
+  return {
+    get length(): number {
+      return state.size;
+    },
+    clear(): void {
+      state.clear();
+    },
+    getItem(key: string): string | null {
+      return state.get(key) ?? null;
+    },
+    key(index: number): string | null {
+      return [...state.keys()][index] ?? null;
+    },
+    removeItem(key: string): void {
+      state.delete(key);
+    },
+    setItem(key: string, value: string): void {
+      state.set(key, value);
+    },
+  };
+}
+
 const workspace: WorkspaceSummary = {
   workspaceId: "workspace-1",
   name: "Workspace",
@@ -106,9 +142,17 @@ const summaryOnlySections = {
   includeSummary: true,
   includeSeries: false,
 } as const;
+const seriesOnlySections = {
+  includeSummary: false,
+  includeSeries: true,
+} as const;
 const summaryAndSeriesWithInvalidationSections = {
   includeSummary: true,
   includeSeries: true,
+} as const;
+const noProgressSections = {
+  includeSummary: false,
+  includeSeries: false,
 } as const;
 
 let root: Root | null = null;
@@ -227,18 +271,66 @@ function buildServerSummary(activeReviewDays: number, generatedAt: string): Prog
 }
 
 function buildServerSeries(reviewCount: number, generatedAt: string): ProgressSeries {
+  const input: ProgressSeriesInput = buildCurrentSeriesInput();
+
   return {
-    timeZone: "Europe/Madrid",
-    from: "2026-04-01",
-    to: "2026-04-03",
+    timeZone: input.timeZone,
+    from: input.from,
+    to: input.to,
     generatedAt,
     dailyReviews: [
       {
-        date: "2026-04-03",
+        date: input.to,
         reviewCount,
       },
     ],
   };
+}
+
+function buildCurrentProgressDateContext(): ReturnType<typeof buildProgressDateContext> {
+  return buildProgressDateContext(new Date("2026-04-20T12:00:00.000Z"));
+}
+
+function buildCurrentSeriesInput(): ProgressSeriesInput {
+  return buildProgressSeriesInputForDateContext(buildCurrentProgressDateContext());
+}
+
+function buildCurrentSummaryScopeKey(): ProgressScopeKey {
+  return buildProgressSummaryScopeKey(
+    [workspace.workspaceId],
+    buildProgressSummaryInputForDateContext(buildCurrentProgressDateContext()),
+  );
+}
+
+function buildCurrentSeriesScopeKey(): ProgressScopeKey {
+  return buildProgressScopeKey(
+    [workspace.workspaceId],
+    buildCurrentSeriesInput(),
+  );
+}
+
+function storePersistedProgressSummaryForTest(
+  scopeKey: ProgressScopeKey,
+  serverBase: ProgressSummaryPayload,
+): void {
+  window.localStorage.setItem(`flashcards-progress-server-summary:${scopeKey}`, JSON.stringify({
+    version: 1,
+    scopeKey,
+    savedAt: "2026-04-18T09:00:00.000Z",
+    serverBase,
+  }));
+}
+
+function storePersistedProgressSeriesForTest(
+  scopeKey: ProgressScopeKey,
+  serverBase: ProgressSeries,
+): void {
+  window.localStorage.setItem(`flashcards-progress-server-series:${scopeKey}`, JSON.stringify({
+    version: 1,
+    scopeKey,
+    savedAt: "2026-04-18T09:00:00.000Z",
+    serverBase,
+  }));
 }
 
 async function flushEffects(): Promise<void> {
@@ -270,6 +362,10 @@ function clearWindowLocalStorage(): void {
 
 beforeEach(() => {
   (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: createStorageMock(),
+  });
   clearWindowLocalStorage();
   resetProgressInvalidationStateForTests();
   resetProgressTimeContextStateForTests(new Date("2026-04-20T12:00:00.000Z"));
@@ -322,9 +418,134 @@ describe("useProgressSource", () => {
     expect(harness.getApi().progressSourceState.series.serverBase?.source).toBe("server");
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(1);
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
-      date: "2026-04-03",
+      date: buildCurrentSeriesInput().to,
       reviewCount: 1,
     });
+  });
+
+  it("hydrates matching server cache before remote refresh completes", async () => {
+    const cachedSummary = buildServerSummary(6, "2026-04-18T09:10:00.000Z");
+    const cachedSeries = buildServerSeries(6, "2026-04-18T09:10:00.000Z");
+    const deferredSummary = createDeferredPromise<ProgressSummaryPayload>();
+    const deferredSeries = createDeferredPromise<ProgressSeries>();
+    storePersistedProgressSummaryForTest(buildCurrentSummaryScopeKey(), cachedSummary);
+    storePersistedProgressSeriesForTest(buildCurrentSeriesScopeKey(), cachedSeries);
+    loadProgressSummaryMock.mockImplementation(() => deferredSummary.promise);
+    loadProgressSeriesMock.mockImplementation(() => deferredSeries.promise);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.serverBase?.generatedAt).toBe("2026-04-18T09:10:00.000Z");
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(6);
+    expect(harness.getApi().progressSourceState.series.serverBase?.generatedAt).toBe("2026-04-18T09:10:00.000Z");
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+      date: buildCurrentSeriesInput().to,
+      reviewCount: 6,
+    });
+
+    deferredSummary.resolve(buildServerSummary(7, "2026-04-18T09:11:00.000Z"));
+    deferredSeries.resolve(buildServerSeries(7, "2026-04-18T09:11:00.000Z"));
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(7);
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+      date: buildCurrentSeriesInput().to,
+      reviewCount: 7,
+    });
+  });
+
+  it("treats corrupt and mismatched cache entries as misses", async () => {
+    const warningSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const deferredSummary = createDeferredPromise<ProgressSummaryPayload>();
+    const deferredSeries = createDeferredPromise<ProgressSeries>();
+    const summaryScopeKey = buildCurrentSummaryScopeKey();
+    const seriesScopeKey = buildCurrentSeriesScopeKey();
+    storePersistedProgressSummaryForTest("other-scope", buildServerSummary(6, "2026-04-18T09:10:00.000Z"));
+    window.localStorage.setItem(`flashcards-progress-server-summary:${summaryScopeKey}`, window.localStorage.getItem("flashcards-progress-server-summary:other-scope") ?? "");
+    window.localStorage.setItem(`flashcards-progress-server-series:${seriesScopeKey}`, "{not-json");
+    loadProgressSummaryMock.mockImplementation(() => deferredSummary.promise);
+    loadProgressSeriesMock.mockImplementation(() => deferredSeries.promise);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.serverBase).toBeNull();
+    expect(harness.getApi().progressSourceState.series.serverBase).toBeNull();
+    expect(warningSpy).toHaveBeenCalledWith("progress_cache_miss", expect.objectContaining({
+      reason: "scope_mismatch",
+      section: "summary",
+    }));
+    expect(warningSpy).toHaveBeenCalledWith("progress_cache_miss", expect.objectContaining({
+      reason: "invalid_json",
+      section: "series",
+    }));
+
+    warningSpy.mockRestore();
+  });
+
+  it("treats malformed cached series dates as invalid-shape misses before loading remote series", async () => {
+    const warningSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const currentSeriesInput = buildCurrentSeriesInput();
+    const seriesScopeKey = buildCurrentSeriesScopeKey();
+    const malformedCachedSeries = {
+      version: 1,
+      scopeKey: seriesScopeKey,
+      savedAt: "2026-04-18T09:00:00.000Z",
+      serverBase: {
+        timeZone: currentSeriesInput.timeZone,
+        from: "not-a-local-date",
+        to: currentSeriesInput.to,
+        generatedAt: "2026-04-18T09:10:00.000Z",
+        dailyReviews: [
+          {
+            date: currentSeriesInput.to,
+            reviewCount: 12,
+          },
+        ],
+      },
+    } as const;
+    loadProgressSeriesMock.mockResolvedValueOnce(buildServerSeries(8, "2026-04-18T09:23:00.000Z"));
+    window.localStorage.setItem(
+      `flashcards-progress-server-series:${seriesScopeKey}`,
+      JSON.stringify(malformedCachedSeries),
+    );
+
+    try {
+      const harness = renderHarness({
+        sessionVerificationState: "verified",
+        cloudSettings: linkedCloudSettings,
+        progressServerInvalidationVersion: 0,
+        sections: seriesOnlySections,
+      });
+
+      await flushEffects();
+
+      expect(warningSpy).toHaveBeenCalledWith("progress_cache_miss", expect.objectContaining({
+        reason: "invalid_shape",
+        section: "series",
+      }));
+      expect(loadProgressSeriesMock).toHaveBeenCalledWith(currentSeriesInput);
+      expect(harness.getApi().progressSourceState.series.serverBase?.generatedAt).toBe("2026-04-18T09:23:00.000Z");
+      expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+        date: currentSeriesInput.to,
+        reviewCount: 8,
+      });
+    } finally {
+      warningSpy.mockRestore();
+    }
   });
 
   it("keeps linking-ready sessions local-only and skips both remote progress endpoints", async () => {
@@ -345,6 +566,52 @@ describe("useProgressSource", () => {
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.source).toBe("local_only");
   });
 
+  it("ignores server responses after sections disable their scopes", async () => {
+    const deferredSummary = createDeferredPromise<ProgressSummaryPayload>();
+    const deferredSeries = createDeferredPromise<ProgressSeries>();
+    loadProgressSummaryMock.mockImplementation(() => deferredSummary.promise);
+    loadProgressSeriesMock.mockImplementation(() => deferredSeries.promise);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+
+    await flushEffects();
+
+    harness.rerender({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: noProgressSections,
+    });
+
+    deferredSummary.resolve(buildServerSummary(9, "2026-04-18T09:19:00.000Z"));
+    deferredSeries.resolve(buildServerSeries(9, "2026-04-18T09:19:00.000Z"));
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary).toEqual({
+      scopeKey: null,
+      localFallback: null,
+      serverBase: null,
+      hasPendingLocalReviews: false,
+      renderedSnapshot: null,
+      isLoading: false,
+      errorMessage: "",
+    });
+    expect(harness.getApi().progressSourceState.series).toEqual({
+      scopeKey: null,
+      localFallback: null,
+      serverBase: null,
+      pendingLocalOverlay: null,
+      renderedSnapshot: null,
+      isLoading: false,
+      errorMessage: "",
+    });
+  });
+
   it("updates summary and series independently when remote responses arrive in different orders", async () => {
     const deferredSummary = createDeferredPromise<ProgressSummaryPayload>();
     loadProgressSummaryMock.mockImplementation(() => deferredSummary.promise);
@@ -362,7 +629,7 @@ describe("useProgressSource", () => {
     expect(harness.getApi().progressSourceState.series.serverBase?.generatedAt).toBe("2026-04-18T09:16:00.000Z");
     expect(harness.getApi().progressSourceState.summary.serverBase?.generatedAt).not.toBe("2026-04-18T09:17:00.000Z");
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
-      date: "2026-04-03",
+      date: buildCurrentSeriesInput().to,
       reviewCount: 3,
     });
 
@@ -396,6 +663,37 @@ describe("useProgressSource", () => {
     expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(8);
   });
 
+  it("renders server series with pending local review overlay as approximate", async () => {
+    const currentSeriesInput = buildCurrentSeriesInput();
+    loadProgressSeriesMock.mockResolvedValue(buildServerSeries(4, "2026-04-18T09:18:00.000Z"));
+    loadPendingProgressDailyReviewsMock.mockResolvedValue([
+      {
+        date: currentSeriesInput.to,
+        reviewCount: 3,
+      },
+    ]);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: seriesOnlySections,
+    });
+
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.series.serverBase?.dailyReviews).toContainEqual({
+      date: currentSeriesInput.to,
+      reviewCount: 4,
+    });
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.source).toBe("server");
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.isApproximate).toBe(true);
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+      date: currentSeriesInput.to,
+      reviewCount: 7,
+    });
+  });
+
   it("supports summary-only ownership without loading the progress series pipeline", async () => {
     const harness = renderHarness({
       sessionVerificationState: "verified",
@@ -421,6 +719,130 @@ describe("useProgressSource", () => {
       renderedSnapshot: null,
       isLoading: false,
       errorMessage: "",
+    });
+  });
+
+  it("coalesces rapid manual refreshes without rendering or caching stale responses", async () => {
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+
+    await flushEffects();
+
+    const firstSummaryRefresh = createDeferredPromise<ProgressSummaryPayload>();
+    const secondSummaryRefresh = createDeferredPromise<ProgressSummaryPayload>();
+    const firstSeriesRefresh = createDeferredPromise<ProgressSeries>();
+    const secondSeriesRefresh = createDeferredPromise<ProgressSeries>();
+    const refreshPromises: Array<Promise<void>> = [];
+    const currentSeriesInput = buildCurrentSeriesInput();
+    const summaryCacheKey = `flashcards-progress-server-summary:${buildCurrentSummaryScopeKey()}`;
+    const seriesCacheKey = `flashcards-progress-server-series:${buildCurrentSeriesScopeKey()}`;
+    loadProgressSummaryMock.mockClear();
+    loadProgressSeriesMock.mockClear();
+    loadProgressSummaryMock
+      .mockImplementationOnce(() => firstSummaryRefresh.promise)
+      .mockImplementationOnce(() => secondSummaryRefresh.promise);
+    loadProgressSeriesMock
+      .mockImplementationOnce(() => firstSeriesRefresh.promise)
+      .mockImplementationOnce(() => secondSeriesRefresh.promise);
+
+    act(() => {
+      refreshPromises.push(harness.getApi().refreshProgress());
+      refreshPromises.push(harness.getApi().refreshProgress());
+    });
+    await flushEffects();
+
+    expect(loadProgressSummaryMock).toHaveBeenCalledTimes(1);
+    expect(loadProgressSeriesMock).toHaveBeenCalledTimes(1);
+
+    firstSummaryRefresh.resolve(buildServerSummary(2, "2026-04-18T09:20:00.000Z"));
+    firstSeriesRefresh.resolve(buildServerSeries(2, "2026-04-18T09:20:00.000Z"));
+    await flushEffects();
+
+    expect(loadProgressSummaryMock).toHaveBeenCalledTimes(2);
+    expect(loadProgressSeriesMock).toHaveBeenCalledTimes(2);
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(1);
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+      date: currentSeriesInput.to,
+      reviewCount: 1,
+    });
+    expect(window.localStorage.getItem(summaryCacheKey)).not.toContain("2026-04-18T09:20:00.000Z");
+    expect(window.localStorage.getItem(seriesCacheKey)).not.toContain("2026-04-18T09:20:00.000Z");
+
+    secondSummaryRefresh.resolve(buildServerSummary(9, "2026-04-18T09:21:00.000Z"));
+    secondSeriesRefresh.resolve(buildServerSeries(9, "2026-04-18T09:21:00.000Z"));
+    await act(async () => {
+      await Promise.all(refreshPromises);
+    });
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(9);
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+      date: currentSeriesInput.to,
+      reviewCount: 9,
+    });
+    expect(window.localStorage.getItem(summaryCacheKey)).toContain("2026-04-18T09:21:00.000Z");
+    expect(window.localStorage.getItem(summaryCacheKey)).not.toContain("2026-04-18T09:20:00.000Z");
+    expect(window.localStorage.getItem(seriesCacheKey)).toContain("2026-04-18T09:21:00.000Z");
+    expect(window.localStorage.getItem(seriesCacheKey)).not.toContain("2026-04-18T09:20:00.000Z");
+  });
+
+  it("ignores stale manual refresh errors while continuing to latest progress responses", async () => {
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+
+    await flushEffects();
+
+    const firstSummaryRefresh = createDeferredPromise<ProgressSummaryPayload>();
+    const secondSummaryRefresh = createDeferredPromise<ProgressSummaryPayload>();
+    const firstSeriesRefresh = createDeferredPromise<ProgressSeries>();
+    const secondSeriesRefresh = createDeferredPromise<ProgressSeries>();
+    const refreshPromises: Array<Promise<void>> = [];
+    loadProgressSummaryMock.mockClear();
+    loadProgressSeriesMock.mockClear();
+    loadProgressSummaryMock
+      .mockImplementationOnce(() => firstSummaryRefresh.promise)
+      .mockImplementationOnce(() => secondSummaryRefresh.promise);
+    loadProgressSeriesMock
+      .mockImplementationOnce(() => firstSeriesRefresh.promise)
+      .mockImplementationOnce(() => secondSeriesRefresh.promise);
+
+    act(() => {
+      refreshPromises.push(harness.getApi().refreshProgress());
+      refreshPromises.push(harness.getApi().refreshProgress());
+    });
+    await flushEffects();
+
+    firstSummaryRefresh.reject(new Error("Stale summary failure"));
+    firstSeriesRefresh.reject(new Error("Stale series failure"));
+    await flushEffects();
+
+    expect(loadProgressSummaryMock).toHaveBeenCalledTimes(2);
+    expect(loadProgressSeriesMock).toHaveBeenCalledTimes(2);
+    expect(harness.getApi().progressSourceState.summary.errorMessage).toBe("");
+    expect(harness.getApi().progressSourceState.series.errorMessage).toBe("");
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(1);
+
+    secondSummaryRefresh.resolve(buildServerSummary(5, "2026-04-18T09:22:00.000Z"));
+    secondSeriesRefresh.resolve(buildServerSeries(5, "2026-04-18T09:22:00.000Z"));
+    await act(async () => {
+      await Promise.all(refreshPromises);
+    });
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.errorMessage).toBe("");
+    expect(harness.getApi().progressSourceState.series.errorMessage).toBe("");
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(5);
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+      date: buildCurrentSeriesInput().to,
+      reviewCount: 5,
     });
   });
 

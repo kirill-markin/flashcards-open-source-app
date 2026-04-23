@@ -5,8 +5,9 @@ import {
   formatReviewProgressBadgeValue,
 } from "../appData/reviewProgressBadge";
 import { useProgressInvalidationState } from "../appData/progressInvalidation";
-import { parseLocalDate, shiftLocalDate, useProgressSource } from "../appData/progressSource";
+import { useProgressSource } from "../appData/progressSource";
 import { resolveLocaleWeekContext, useI18n, type LocaleDirection } from "../i18n";
+import { parseLocalDate, shiftLocalDate } from "../progress/progressDates";
 import type { DailyReviewPoint, ProgressSeriesSnapshot } from "../types";
 import { ReviewProgressBadgeIcon } from "./ReviewProgressBadgeIcon";
 
