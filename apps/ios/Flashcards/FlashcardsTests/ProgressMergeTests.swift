@@ -63,6 +63,252 @@ final class ProgressMergeTests: XCTestCase {
         XCTAssertEqual(1, try database.loadReviewEvents(workspaceId: workspace.workspaceId).count)
     }
 
+    func testProgressDateForStoreRejectsNormalizedLocalDates() throws {
+        let calendar = Calendar(identifier: .gregorian)
+
+        XCTAssertThrowsError(try progressDateForStore(localDate: "2026-02-31", calendar: calendar)) { error in
+            guard case LocalStoreError.validation(let message) = error else {
+                XCTFail("Expected LocalStoreError.validation, received \(error)")
+                return
+            }
+
+            XCTAssertTrue(message.contains("2026-02-31"))
+        }
+
+        XCTAssertThrowsError(try progressDateForStore(localDate: "2026-13-01", calendar: calendar)) { error in
+            guard case LocalStoreError.validation(let message) = error else {
+                XCTFail("Expected LocalStoreError.validation, received \(error)")
+                return
+            }
+
+            XCTAssertTrue(message.contains("2026-13-01"))
+        }
+
+        XCTAssertThrowsError(try progressDateForStore(localDate: "2025-02-29", calendar: calendar)) { error in
+            guard case LocalStoreError.validation(let message) = error else {
+                XCTFail("Expected LocalStoreError.validation, received \(error)")
+                return
+            }
+
+            XCTAssertTrue(message.contains("2025-02-29"))
+        }
+    }
+
+    func testProgressDateForStoreRejectsMalformedLocalDates() throws {
+        let calendar = Calendar(identifier: .gregorian)
+        let invalidLocalDates: [String] = [
+            "2026-2-03",
+            "2026-02-3",
+            "2026-+2-03",
+            "2026--03",
+            "2026-02-03T00:00:00Z",
+            "2026-0a-03",
+        ]
+
+        for localDate in invalidLocalDates {
+            XCTAssertThrowsError(try progressDateForStore(localDate: localDate, calendar: calendar)) { error in
+                guard case LocalStoreError.validation(let message) = error else {
+                    XCTFail("Expected LocalStoreError.validation, received \(error)")
+                    return
+                }
+
+                XCTAssertTrue(message.contains(localDate))
+            }
+        }
+    }
+
+    func testProgressDateForStoreAcceptsCanonicalLocalDates() throws {
+        let calendar = Calendar(identifier: .gregorian)
+
+        XCTAssertNoThrow(try progressDateForStore(localDate: "2026-02-03", calendar: calendar))
+        XCTAssertNoThrow(try progressDateForStore(localDate: "2024-02-29", calendar: calendar))
+    }
+
+    func testProgressPresentationRejectsNormalizedLocalDates() throws {
+        let calendar = Calendar(identifier: .gregorian)
+
+        XCTAssertThrowsError(
+            try makeProgressStreakWeeks(
+                chartDays: [],
+                rangeStartLocalDate: "2026-02-31",
+                todayLocalDate: "2026-02-31",
+                calendar: calendar
+            )
+        ) { error in
+            guard case ProgressPresentationError.invalidLocalDate(let localDate) = error else {
+                XCTFail("Expected ProgressPresentationError.invalidLocalDate, received \(error)")
+                return
+            }
+
+            XCTAssertEqual("2026-02-31", localDate)
+        }
+    }
+
+    func testProgressPresentationRejectsMalformedLocalDates() throws {
+        let calendar = Calendar(identifier: .gregorian)
+        let invalidLocalDates: [String] = [
+            "2026-2-03",
+            "2026-02-3",
+            "2026-+2-03",
+            "2026--03",
+            "2026-02-03T00:00:00Z",
+            "2026-0a-03",
+        ]
+
+        for localDate in invalidLocalDates {
+            XCTAssertThrowsError(
+                try makeProgressStreakWeeks(
+                    chartDays: [],
+                    rangeStartLocalDate: localDate,
+                    todayLocalDate: localDate,
+                    calendar: calendar
+                )
+            ) { error in
+                guard case ProgressPresentationError.invalidLocalDate(let invalidLocalDate) = error else {
+                    XCTFail("Expected ProgressPresentationError.invalidLocalDate, received \(error)")
+                    return
+                }
+
+                XCTAssertEqual(localDate, invalidLocalDate)
+            }
+        }
+    }
+
+    func testProgressSnapshotRejectsInvalidDailyReviewDates() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let scopeKey = makeProgressScopeKeyForTests(
+            timeZone: "UTC",
+            from: "2026-02-01",
+            to: "2026-03-05"
+        )
+        let invalidLocalDates: [String] = [
+            "2026-2-03",
+            "2026-02-3",
+            "2026-+2-03",
+            "2026--03",
+            "2026-02-03T00:00:00Z",
+            "2026-0a-03",
+            "2026-02-31",
+            "2026-13-01",
+            " 2026-02-03",
+            "2026-02-03 ",
+            "2026-02-",
+        ]
+
+        for localDate in invalidLocalDates {
+            let series = makeProgressSeries(
+                timeZone: scopeKey.timeZone,
+                from: scopeKey.from,
+                to: scopeKey.to,
+                dailyReviews: [
+                    ProgressDay(
+                        date: localDate,
+                        reviewCount: 1
+                    )
+                ],
+                summary: nil,
+                generatedAt: nil
+            )
+
+            XCTAssertThrowsError(
+                try makeProgressSnapshot(
+                    summary: makeEmptyProgressSummaryForTests(),
+                    series: series,
+                    scopeKey: scopeKey,
+                    summarySourceState: .serverBase,
+                    seriesSourceState: .serverBase,
+                    calendar: calendar
+                )
+            ) { error in
+                guard case ProgressPresentationError.invalidLocalDate(let invalidLocalDate) = error else {
+                    XCTFail("Expected ProgressPresentationError.invalidLocalDate, received \(error)")
+                    return
+                }
+
+                XCTAssertEqual(localDate, invalidLocalDate)
+            }
+        }
+    }
+
+    func testProgressSnapshotStillRejectsValidDuplicateDailyReviewDates() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let scopeKey = makeProgressScopeKeyForTests(
+            timeZone: "UTC",
+            from: "2026-02-01",
+            to: "2026-02-03"
+        )
+        let series = makeProgressSeries(
+            timeZone: scopeKey.timeZone,
+            from: scopeKey.from,
+            to: scopeKey.to,
+            dailyReviews: [
+                ProgressDay(date: "2026-02-03", reviewCount: 1),
+                ProgressDay(date: "2026-02-03", reviewCount: 2),
+            ],
+            summary: nil,
+            generatedAt: nil
+        )
+
+        XCTAssertThrowsError(
+            try makeProgressSnapshot(
+                summary: makeEmptyProgressSummaryForTests(),
+                series: series,
+                scopeKey: scopeKey,
+                summarySourceState: .serverBase,
+                seriesSourceState: .serverBase,
+                calendar: calendar
+            )
+        ) { error in
+            guard case ProgressPresentationError.duplicateDay(let localDate) = error else {
+                XCTFail("Expected ProgressPresentationError.duplicateDay, received \(error)")
+                return
+            }
+
+            XCTAssertEqual("2026-02-03", localDate)
+        }
+    }
+
+    func testProgressSnapshotStillRejectsNegativeDailyReviewCounts() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let scopeKey = makeProgressScopeKeyForTests(
+            timeZone: "UTC",
+            from: "2026-02-01",
+            to: "2026-02-03"
+        )
+        let series = makeProgressSeries(
+            timeZone: scopeKey.timeZone,
+            from: scopeKey.from,
+            to: scopeKey.to,
+            dailyReviews: [
+                ProgressDay(date: "2026-02-03", reviewCount: -1)
+            ],
+            summary: nil,
+            generatedAt: nil
+        )
+
+        XCTAssertThrowsError(
+            try makeProgressSnapshot(
+                summary: makeEmptyProgressSummaryForTests(),
+                series: series,
+                scopeKey: scopeKey,
+                summarySourceState: .serverBase,
+                seriesSourceState: .serverBase,
+                calendar: calendar
+            )
+        ) { error in
+            guard case ProgressPresentationError.negativeReviewCount(let localDate, let reviewCount) = error else {
+                XCTFail("Expected ProgressPresentationError.negativeReviewCount, received \(error)")
+                return
+            }
+
+            XCTAssertEqual("2026-02-03", localDate)
+            XCTAssertEqual(-1, reviewCount)
+        }
+    }
+
     @MainActor
     func testRefreshProgressIfNeededMergesServerBaseWithPendingLocalOverlayWithoutSync() async throws {
         let database = try self.makeDatabase()
@@ -174,6 +420,133 @@ final class ProgressMergeTests: XCTestCase {
         XCTAssertEqual(5, progressSnapshot.summary.activeReviewDays)
         XCTAssertEqual("2026-04-05", progressSnapshot.summary.lastReviewedOn)
         XCTAssertFalse(context.store.progressErrorMessage.isEmpty)
+        XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
+        XCTAssertEqual(1, context.cloudSyncService.loadProgressSeriesCallCount)
+    }
+
+    @MainActor
+    func testRefreshProgressIfNeededRejectsMismatchedServerSeriesWithoutPersistingCache() async throws {
+        let database = try self.makeDatabase()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: "2026-04-02T15:50:57.000Z"
+        )
+        let outboxEntries = try database.loadOutboxEntries(workspaceId: workspace.workspaceId, limit: Int.max)
+        try database.deleteOutboxEntries(operationIds: outboxEntries.map(\.operationId))
+
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: TimeZone.current,
+            dayCount: 140
+        )
+        let mismatchedServerSeries = makeProgressSeries(
+            timeZone: requestRange.timeZone,
+            from: "2026-04-01",
+            to: requestRange.to,
+            dailyReviews: [],
+            summary: nil,
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: ["2026-04-01"],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: mismatchedServerSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .guest
+        )
+        defer { context.tearDown() }
+
+        await context.store.refreshProgressIfNeeded(now: now)
+
+        let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
+        XCTAssertEqual(.serverBase, progressSnapshot.summarySourceState)
+        XCTAssertEqual(.localOnly, progressSnapshot.seriesSourceState)
+        XCTAssertTrue(progressSnapshot.isApproximate)
+        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-02"))
+        XCTAssertNil(context.store.progressSeriesServerBaseCache)
+        let persistedSeriesCacheKeys = context.userDefaults.dictionaryRepresentation().keys.filter { key in
+            key.hasPrefix("progress-series-server-base|")
+        }
+        XCTAssertTrue(persistedSeriesCacheKeys.isEmpty)
+        XCTAssertTrue(context.store.progressErrorMessage.contains("Progress series metadata mismatched"))
+        XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
+        XCTAssertEqual(1, context.cloudSyncService.loadProgressSeriesCallCount)
+    }
+
+    @MainActor
+    func testRefreshProgressIfNeededRejectsInvalidServerSeriesDailyReviewDateWithoutPersistingCache() async throws {
+        let database = try self.makeDatabase()
+        let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: "2026-04-02T15:50:57.000Z"
+        )
+        let outboxEntries = try database.loadOutboxEntries(workspaceId: workspace.workspaceId, limit: Int.max)
+        try database.deleteOutboxEntries(operationIds: outboxEntries.map(\.operationId))
+
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let requestRange = try makeTestProgressRequestRange(
+            now: now,
+            timeZone: TimeZone.current,
+            dayCount: 140
+        )
+        let invalidServerSeries = makeProgressSeries(
+            timeZone: requestRange.timeZone,
+            from: requestRange.from,
+            to: requestRange.to,
+            dailyReviews: [
+                ProgressDay(
+                    date: "2026-02-31",
+                    reviewCount: 1
+                )
+            ],
+            summary: nil,
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let serverSummary = try makeTestProgressSummary(
+            timeZone: requestRange.timeZone,
+            reviewDates: ["2026-04-01"],
+            generatedAt: "2026-04-18T11:59:00.000Z"
+        )
+        let context = try self.makeProgressStoreContext(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            installationId: cloudSettings.installationId,
+            serverSummary: serverSummary,
+            serverSeries: invalidServerSeries,
+            loadProgressSummaryError: nil,
+            loadProgressSeriesError: nil,
+            cloudState: .guest
+        )
+        defer { context.tearDown() }
+
+        await context.store.refreshProgressIfNeeded(now: now)
+
+        let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
+        XCTAssertEqual(.serverBase, progressSnapshot.summarySourceState)
+        XCTAssertEqual(.localOnly, progressSnapshot.seriesSourceState)
+        XCTAssertTrue(progressSnapshot.isApproximate)
+        XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-02"))
+        XCTAssertNil(context.store.progressSeriesServerBaseCache)
+        let persistedSeriesCacheKeys = context.userDefaults.dictionaryRepresentation().keys.filter { key in
+            key.hasPrefix("progress-series-server-base|")
+        }
+        XCTAssertTrue(persistedSeriesCacheKeys.isEmpty)
+        XCTAssertTrue(context.store.progressErrorMessage.contains("2026-02-31"))
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSeriesCallCount)
     }
@@ -1938,6 +2311,30 @@ private func makeTestProgressSummary(
             generatedAt: generatedAtDate
         ),
         generatedAt: generatedAt
+    )
+}
+
+private func makeProgressScopeKeyForTests(
+    timeZone: String,
+    from: String,
+    to: String
+) -> ProgressScopeKey {
+    ProgressScopeKey(
+        cloudState: nil,
+        linkedUserId: nil,
+        workspaceMembershipKey: "test-workspace",
+        timeZone: timeZone,
+        from: from,
+        to: to
+    )
+}
+
+private func makeEmptyProgressSummaryForTests() -> ProgressSummary {
+    ProgressSummary(
+        currentStreakDays: 0,
+        hasReviewedToday: false,
+        lastReviewedOn: nil,
+        activeReviewDays: 0
     )
 }
 
