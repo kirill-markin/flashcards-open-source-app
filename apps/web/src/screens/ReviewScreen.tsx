@@ -15,7 +15,7 @@ import { ReviewProgressBadgeIcon } from "./ReviewProgressBadgeIcon";
 import { useAiCardHandoff } from "../chat/useAiCardHandoff";
 import { useTransientMessage } from "../useTransientMessage";
 import { formatReviewProgressBadgeValue } from "../appData/reviewProgressBadge";
-import { formatQueueBadge, useReviewFilterMenu } from "./useReviewFilterMenu";
+import { useReviewFilterMenu } from "./useReviewFilterMenu";
 import {
   appendRecentReviewRatings,
   loadReviewHardReminderLastShownAt,
@@ -327,6 +327,27 @@ function ReviewCardMarkdown({ text }: Readonly<{ text: string }>): ReactElement 
   );
 }
 
+function ReviewEditIcon(): ReactElement {
+  return (
+    <svg className="review-pane-edit-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 20H8.5L19 9.5L14.5 5L4 15.5V20Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M13 6.5L17.5 11"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
   const {
     aiButtonAriaLabel,
@@ -433,7 +454,6 @@ export function ReviewScreen(): ReactElement {
     isInitialReviewLoad,
     queueCards,
     resolvedReviewFilter,
-    reviewCounts,
     reviewLoadErrorMessage,
     reviewLoadingSnapshot,
     reviewTagSummaries,
@@ -505,9 +525,6 @@ export function ReviewScreen(): ReactElement {
   const hasCards = localCardCount > 0;
   const shouldShowSwitchToAllCardsAction = resolvedReviewFilter.kind !== "allCards";
   const loadingReviewCurrentCard = reviewLoadingSnapshot?.currentCard ?? reviewLoadingSnapshot?.queuePreview[0] ?? null;
-  const visibleReviewCounts = isInitialReviewLoad && reviewLoadingSnapshot !== null
-    ? reviewLoadingSnapshot.reviewCounts
-    : reviewCounts;
   const visibleSelectedReviewFilterTitle = isInitialReviewLoad && reviewLoadingSnapshot !== null
     ? reviewLoadingSnapshot.resolvedReviewFilterTitle
     : selectedReviewFilterTitle;
@@ -618,12 +635,24 @@ export function ReviewScreen(): ReactElement {
             ) : null}
           </div>
           <div className="screen-actions review-screen-head-actions">
-            <div className="review-filter-summary-wrap review-screen-queue-summary-wrap">
-              <span className="review-filter-label">{t("reviewScreen.queue.title")}</span>
-              <span className="review-screen-queue-summary-value" data-testid="review-queue-badge">
-                {formatQueueBadge(visibleReviewCounts.dueCount, visibleReviewCounts.totalCount, formatNumber, t)}
-              </span>
-            </div>
+            <ReviewFilterMenu
+              handleCloseMenu={handleCloseMenu}
+              handleReviewFilterMenuToggle={handleReviewFilterMenuToggle}
+              handleReviewFilterSelect={handleReviewFilterSelect}
+              hasVisibleReviewFilterChoices={hasVisibleReviewFilterChoices}
+              isReviewFilterMenuOpen={isReviewFilterMenuOpen}
+              reviewDeckSearchInputRef={reviewDeckSearchInputRef}
+              reviewDeckSearchText={reviewDeckSearchText}
+              reviewFilterMenuItems={reviewFilterMenuItems}
+              reviewFilterMenuWrapRef={reviewFilterMenuWrapRef}
+              reviewFilterTriggerRef={reviewFilterTriggerRef}
+              selectedReviewFilterTitle={visibleSelectedReviewFilterTitle}
+              setReviewDeckSearchText={setReviewDeckSearchText}
+              shouldShowReviewDeckSearch={shouldShowReviewDeckSearch}
+              visibleReviewDeckFilterMenuItems={visibleReviewDeckFilterMenuItems}
+              visibleReviewEffortFilterMenuItems={visibleReviewEffortFilterMenuItems}
+              visibleReviewTagFilterMenuItems={visibleReviewTagFilterMenuItems}
+            />
             <div className="review-filter-summary-wrap">
               <span className="review-filter-label">{t("reviewScreen.progressBadge.title")}</span>
               <Link
@@ -639,27 +668,6 @@ export function ReviewScreen(): ReactElement {
               </Link>
             </div>
           </div>
-        </div>
-
-        <div className="review-screen-toolbar" data-testid="review-screen-toolbar">
-          <ReviewFilterMenu
-            handleCloseMenu={handleCloseMenu}
-            handleReviewFilterMenuToggle={handleReviewFilterMenuToggle}
-            handleReviewFilterSelect={handleReviewFilterSelect}
-            hasVisibleReviewFilterChoices={hasVisibleReviewFilterChoices}
-            isReviewFilterMenuOpen={isReviewFilterMenuOpen}
-            reviewDeckSearchInputRef={reviewDeckSearchInputRef}
-            reviewDeckSearchText={reviewDeckSearchText}
-            reviewFilterMenuItems={reviewFilterMenuItems}
-            reviewFilterMenuWrapRef={reviewFilterMenuWrapRef}
-            reviewFilterTriggerRef={reviewFilterTriggerRef}
-            selectedReviewFilterTitle={visibleSelectedReviewFilterTitle}
-            setReviewDeckSearchText={setReviewDeckSearchText}
-            shouldShowReviewDeckSearch={shouldShowReviewDeckSearch}
-            visibleReviewDeckFilterMenuItems={visibleReviewDeckFilterMenuItems}
-            visibleReviewEffortFilterMenuItems={visibleReviewEffortFilterMenuItems}
-            visibleReviewTagFilterMenuItems={visibleReviewTagFilterMenuItems}
-          />
         </div>
 
         <div className="review-layout">
@@ -693,9 +701,11 @@ export function ReviewScreen(): ReactElement {
                     <button
                       type="button"
                       className="ghost-btn review-pane-edit-btn"
+                      aria-label={t("reviewScreen.actions.edit")}
+                      title={t("reviewScreen.actions.edit")}
                       disabled
                     >
-                      {t("reviewScreen.actions.edit")}
+                      <ReviewEditIcon />
                     </button>
                   </div>
                 </div>
@@ -795,9 +805,11 @@ export function ReviewScreen(): ReactElement {
                     <button
                       type="button"
                       className="ghost-btn review-pane-edit-btn"
+                      aria-label={t("reviewScreen.actions.edit")}
+                      title={t("reviewScreen.actions.edit")}
                       onClick={() => handleOpenEditor(selectedCard)}
                     >
-                      {t("reviewScreen.actions.edit")}
+                      <ReviewEditIcon />
                     </button>
                   </div>
                 </div>
