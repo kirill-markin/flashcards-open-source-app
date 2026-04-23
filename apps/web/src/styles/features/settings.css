@@ -5,11 +5,13 @@
 
 .settings-panel {
   max-width: 980px;
+  align-content: start;
 }
 
 .settings-switcher {
   display: flex;
   gap: 8px;
+  align-items: center;
   max-width: 100%;
   margin-bottom: 20px;
   padding: 6px;
