@@ -16,7 +16,7 @@ Usage:
 
 What it does:
   1. Optionally regenerates the raw localized iOS App Store screenshots.
-  2. Builds one horizontal marketing PNG per locale from screenshots 1, 2, 3, and 4.
+  2. Builds one horizontal marketing PNG per locale from screenshots 1, 2, 3, 4, and 5.
   3. Optimizes the generated PNG files.
 
 Locale selection:
@@ -211,8 +211,9 @@ resolve_screenshot_paths() {
     local -a screenshot_paths=(
         "$raw_screenshot_root/$family/${locale}-1_review-card-front-app-store-opportunity-cost.png"
         "$raw_screenshot_root/$family/${locale}-2_review-card-result-app-store-opportunity-cost.png"
-        "$raw_screenshot_root/$family/${locale}-3_cards-list-app-store-vocabulary.png"
+        "$raw_screenshot_root/$family/${locale}-3_progress-app-store-study-history.png"
         "$raw_screenshot_root/$family/${locale}-4_review-card-ai-draft-app-store-opportunity-cost.png"
+        "$raw_screenshot_root/$family/${locale}-5_cards-list-app-store-vocabulary.png"
     )
 
     local screenshot_path=""
@@ -231,6 +232,9 @@ capture_raw_screenshots_for_locale() {
 
     echo "Capturing raw review screenshots for locale $locale"
     "$repo_root/scripts/capture-ios-review-screenshots.sh" --locale "$locale"
+
+    echo "Capturing raw progress screenshot for locale $locale"
+    "$repo_root/scripts/capture-ios-progress-screenshot.sh" --locale "$locale"
 
     echo "Capturing raw cards screenshot for locale $locale"
     "$repo_root/scripts/capture-ios-cards-screenshot.sh" --locale "$locale"
@@ -423,7 +427,7 @@ for locale in "${resolved_locales[@]}"; do
     fi
 
     mapfile -t screenshot_paths < <(resolve_screenshot_paths "$resolved_family" "$locale")
-    output_path="$output_directory/${locale}-1-2-3-4-horizontal-dark-gray.png"
+    output_path="$output_directory/${locale}-1-2-3-4-5-horizontal-dark-gray.png"
 
     echo "Building marketing material for locale $locale"
     compose_marketing_material "$output_path" "${screenshot_paths[@]}"

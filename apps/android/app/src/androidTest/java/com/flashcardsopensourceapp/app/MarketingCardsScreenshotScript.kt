@@ -32,7 +32,7 @@ class MarketingCardsScreenshotScript {
         )
         val cardsScreenshotFileName = marketingScreenshotFileName(
             localeConfig = localeConfig,
-            screenshotIndex = 3,
+            screenshotIndex = 5,
             screenshotSlug = cardsScreenshotSlug
         )
 

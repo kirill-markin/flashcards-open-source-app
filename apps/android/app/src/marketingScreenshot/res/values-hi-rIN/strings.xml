@@ -1,8 +1,14 @@
 <resources>
     <string name="top_level_review">पुनरावलोकन</string>
+    <string name="top_level_progress">प्रगति</string>
     <string name="top_level_cards">कार्ड</string>
     <string name="top_level_ai">AI</string>
     <string name="top_level_settings">सेटिंग्स</string>
+
+    <string name="progress_title">प्रगति</string>
+    <string name="progress_streak_title">सिलसिला</string>
+    <string name="progress_streak_subtitle">पिछले 5 सप्ताह</string>
+    <string name="progress_reviews_title">पुनरावलोकन</string>
 
     <string name="cards_title">कार्ड</string>
     <string name="cards_add_card_content_description">कार्ड जोड़ें</string>

@@ -2,7 +2,7 @@
 
 This document explains how to run the manual Android marketing screenshot flows reliably on a local machine.
 
-Use this runbook when you want to regenerate one or more committed Play Store screenshots from the Android app.
+Use this runbook when you want to regenerate one or more Play Store screenshots from the Android app and then review them before committing the resulting PNGs.
 
 ## Goal
 
@@ -18,6 +18,7 @@ Run these commands from the repository root:
 
 ```bash
 bash scripts/capture-android-review-screenshot.sh
+bash scripts/capture-android-progress-screenshot.sh
 bash scripts/capture-android-cards-screenshot.sh
 ```
 
@@ -45,12 +46,15 @@ The currently configured screenshot locale prefixes are:
 
 Today the default remains `en`.
 
-The current output files are:
+After the wrapper scripts run, the expected generated output files are:
 
 - `apps/android/docs/media/play-store-screenshots/en-1_review-card-front-google-play-opportunity-cost.png`
 - `apps/android/docs/media/play-store-screenshots/en-2_review-card-result-google-play-opportunity-cost.png`
-- `apps/android/docs/media/play-store-screenshots/en-3_cards-list-google-play-vocabulary.png`
+- `apps/android/docs/media/play-store-screenshots/en-3_progress-google-play-study-history.png`
 - `apps/android/docs/media/play-store-screenshots/en-4_review-card-ai-draft-google-play-opportunity-cost.png`
+- `apps/android/docs/media/play-store-screenshots/en-5_cards-list-google-play-vocabulary.png`
+
+Existing repository media can still contain the previous four-shot assets until these generators are run and the new output PNGs are reviewed.
 
 ## Reliable local process
 
@@ -133,7 +137,9 @@ The screenshot capture step now explicitly collapses the Android status bar befo
 That prevents an already-open notification shade from being captured on top of an otherwise-correct app screen.
 
 The review wrapper runs one combined review-chain entrypoint and pulls screenshots 1, 2, and 4 from the same instrumentation run.
-The cards wrapper remains separate because screenshot 3 uses a different app setup flow.
+The progress wrapper runs a separate Progress entrypoint and pulls screenshot 3.
+The cards wrapper remains separate because screenshot 5 uses a different app setup flow.
+Run these wrappers sequentially; do not start the next wrapper until the previous one has exited and pulled its PNG files.
 
 The locale-specific card texts, AI draft texts, file-name prefixes, and UI labels used by these screenshot flows are defined in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotCatalog.kt`.
 

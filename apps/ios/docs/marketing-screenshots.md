@@ -6,31 +6,34 @@ The generator is a small manual pipeline built from:
 
 - manual-only XCUITest entrypoints in `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/`
 - one shared wrapper script, `scripts/capture-ios-marketing-screenshot.sh`
-- one combined review wrapper and one cards wrapper in `scripts/`
+- one combined review wrapper, one progress wrapper, and one cards wrapper in `scripts/`
 - one marketing-material wrapper in `scripts/`
 - deterministic localized fixture data used by both the UI tests and app-side UI-test seeding
 
-It is meant for committed App Store marketing PNG assets and derived marketing compositions, not for CI or release-gate validation.
+It writes into the directories used for committed App Store marketing PNG assets and derived marketing compositions, but it is not part of CI or release-gate validation.
+The generator configuration now targets five-shot outputs. Existing repository media can still contain the previous four-shot assets until the screenshot flows and derived-material builder are run and the generated PNGs are reviewed.
 
 ## What is included
 
-The current inventory is four screenshot outputs per locale:
+The expected generated inventory is five screenshot outputs per locale:
 
 1. Review front state
 2. Review revealed-answer state
-3. Cards list state
+3. Progress tab state
 4. Review AI draft state
+5. Cards list state
 
-One combined review scenario seeds the opportunity-cost card once, then captures screenshot 1, screenshot 2, and screenshot 4 sequentially. The cards screenshot remains a separate localized concept-card list scenario.
+One combined review scenario seeds the opportunity-cost card once, then captures screenshot 1, screenshot 2, and screenshot 4 sequentially. The Progress screenshot uses a separate deterministic study-history scenario, and the cards screenshot remains a separate localized concept-card list scenario.
 
-The derived marketing-material flow then takes those four localized screenshots and builds one horizontal PNG per locale in the same order:
+The derived marketing-material flow then takes those five localized screenshots and builds one horizontal PNG per locale in the same order:
 
 1. screenshot 1
 2. screenshot 2
 3. screenshot 3
 4. screenshot 4
+5. screenshot 5
 
-All four screenshots sit on one dark-gray background with equal spacing between screenshots and all four outer edges.
+All five screenshots sit on one dark-gray background with equal spacing between screenshots and all four outer edges.
 
 ## Files involved
 
@@ -38,12 +41,14 @@ Main scripts:
 
 - `scripts/capture-ios-marketing-screenshot.sh`
 - `scripts/capture-ios-review-screenshots.sh`
+- `scripts/capture-ios-progress-screenshot.sh`
 - `scripts/capture-ios-cards-screenshot.sh`
 - `scripts/build-ios-marketing-materials.sh`
 
 Manual XCUITest entrypoints:
 
 - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingReviewScreenshotsTests.swift`
+- `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingProgressScreenshotTests.swift`
 - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingCardsScreenshotTests.swift`
 
 Shared screenshot support:
@@ -56,7 +61,8 @@ What each layer does:
 
 - `capture-ios-marketing-screenshot.sh` resolves the locale, selects the already booted simulator, derives the device family, runs one `-only-testing` XCUITest target, and verifies that each expected PNG was written.
 - `capture-ios-review-screenshots.sh` runs the combined review scenario and verifies screenshots 1, 2, and 4 in one pass.
-- `capture-ios-cards-screenshot.sh` runs the separate cards-list scenario and verifies screenshot 3.
+- `capture-ios-progress-screenshot.sh` runs the separate Progress scenario and verifies screenshot 3.
+- `capture-ios-cards-screenshot.sh` runs the separate cards-list scenario and verifies screenshot 5.
 - `build-ios-marketing-materials.sh` can regenerate raw localized screenshots, compose the horizontal derived PNGs, and optimize the final files.
 - `MarketingManualScreenshotTestCase.swift` gates these tests behind the wrapper-provided runtime configuration, falls back to the launch environment only if that file is absent, and writes the PNG file.
 - `MarketingScreenshotFixtures.swift` defines the canonical locale list, locale aliases, localized fixture text, and the expected output filenames.
@@ -136,26 +142,30 @@ There are no locale subdirectories. Locale is encoded in the file name:
 
 - `<locale>-<index>_<slug>.png`
 
-Current filenames:
+Expected generated raw screenshot filenames:
 
 - `<locale>-1_review-card-front-app-store-opportunity-cost.png`
 - `<locale>-2_review-card-result-app-store-opportunity-cost.png`
-- `<locale>-3_cards-list-app-store-vocabulary.png`
+- `<locale>-3_progress-app-store-study-history.png`
 - `<locale>-4_review-card-ai-draft-app-store-opportunity-cost.png`
+- `<locale>-5_cards-list-app-store-vocabulary.png`
 
-Examples:
+Expected generated raw screenshot path examples:
 
 - `apps/ios/docs/media/app-store-screenshots/iphone/en-US-1_review-card-front-app-store-opportunity-cost.png`
 - `apps/ios/docs/media/app-store-screenshots/ipad/ar-4_review-card-ai-draft-app-store-opportunity-cost.png`
+- `apps/ios/docs/media/app-store-screenshots/iphone/en-US-5_cards-list-app-store-vocabulary.png`
 
-Derived marketing-material filenames:
+Expected generated derived marketing-material filenames:
 
-- `<locale>-1-2-3-4-horizontal-dark-gray.png`
+- `<locale>-1-2-3-4-5-horizontal-dark-gray.png`
 
-Examples:
+Expected generated derived marketing-material path examples:
 
-- `apps/ios/docs/media/marketing-materials/iphone/en-US-1-2-3-4-horizontal-dark-gray.png`
-- `apps/ios/docs/media/marketing-materials/ipad/es-ES-1-2-3-4-horizontal-dark-gray.png`
+- `apps/ios/docs/media/marketing-materials/iphone/en-US-1-2-3-4-5-horizontal-dark-gray.png`
+- `apps/ios/docs/media/marketing-materials/ipad/es-ES-1-2-3-4-5-horizontal-dark-gray.png`
+
+Do not reference a five-shot derived PNG from a README or other always-rendered document until that exact generated file exists in the repository.
 
 ## Prerequisites
 
@@ -193,6 +203,12 @@ That one review run writes:
 - screenshot 2: review result
 - screenshot 4: review AI draft
 
+Progress remains a separate one-PNG run:
+
+```bash
+bash scripts/capture-ios-progress-screenshot.sh
+```
+
 Cards list remains a separate one-PNG run:
 
 ```bash
@@ -208,19 +224,20 @@ bash scripts/capture-ios-review-screenshots.sh --locale es-ES
 Or use the environment variable instead:
 
 ```bash
-FLASHCARDS_MARKETING_SCREENSHOT_LOCALE=zh-Hans bash scripts/capture-ios-cards-screenshot.sh
+FLASHCARDS_MARKETING_SCREENSHOT_LOCALE=zh-Hans bash scripts/capture-ios-progress-screenshot.sh
 ```
 
-## Generate all four screenshots for one locale
+## Generate all five screenshots for one locale
 
-Use one locale explicitly and run the two supported wrappers in order:
+Use one locale explicitly and run the three supported wrappers in order:
 
 ```bash
 bash scripts/capture-ios-review-screenshots.sh --locale es-ES
+bash scripts/capture-ios-progress-screenshot.sh --locale es-ES
 bash scripts/capture-ios-cards-screenshot.sh --locale es-ES
 ```
 
-Do not run these two wrappers at the same time. Run the second command only after the first one exits.
+Do not run these wrappers at the same time. Run the next command only after the previous one exits.
 
 Or set the locale once in the environment:
 
@@ -228,12 +245,13 @@ Or set the locale once in the environment:
 export FLASHCARDS_MARKETING_SCREENSHOT_LOCALE=es-ES
 
 bash scripts/capture-ios-review-screenshots.sh
+bash scripts/capture-ios-progress-screenshot.sh
 bash scripts/capture-ios-cards-screenshot.sh
 ```
 
 ## Build derived marketing materials
 
-The derived-material builder is the wrapper that turns the four localized screenshots into one horizontal PNG on a dark-gray background.
+The derived-material builder is the wrapper that turns the five localized screenshots into one horizontal PNG on a dark-gray background.
 
 Default behavior:
 
@@ -281,6 +299,7 @@ For a clean multi-locale run, keep one simulator family booted and loop through 
 ```bash
 for locale in en-US ar zh-Hans de hi ja ru es-MX es-ES; do
   bash scripts/capture-ios-review-screenshots.sh --locale "$locale"
+  bash scripts/capture-ios-progress-screenshot.sh --locale "$locale"
   bash scripts/capture-ios-cards-screenshot.sh --locale "$locale"
 done
 ```
@@ -307,7 +326,7 @@ bash scripts/build-ios-marketing-materials.sh --all-locales
 - The scripts expect every declared screenshot file to exist after the XCUITest finishes and fail if any expected PNG was not written.
 - Manual screenshot tests run only through the wrapper scripts because the wrapper writes the required runtime configuration file and also provides environment fallback values.
 - Locale-specific content is deterministic and comes from the fixture files listed above. Update those files if the screenshot copy or seeded cards need to change.
-- The derived marketing-material builder depends on the raw screenshot filenames staying aligned with screenshots 1, 2, 3, and 4.
+- The derived marketing-material builder depends on the raw screenshot filenames staying aligned with screenshots 1, 2, 3, 4, and 5.
 - The `visually-lossless` optimization mode is not mathematically lossless. It is a high-quality palette reduction step intended to reduce PNG size aggressively while keeping UI screenshots visually unchanged in normal review.
 - The `lossless` optimization mode keeps pixels unchanged but usually saves less space than `visually-lossless`.
 

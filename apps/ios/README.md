@@ -18,7 +18,7 @@ On iOS, the UI and interaction design should stay maximally native to iOS.
 - Current deployment target: iOS 26.0
 - Default visual direction: dark appearance with the existing orange accent color
 - Primary local storage: SQLite on device
-- Product scope should stay aligned with the supported top-level flows: Review, Cards, AI, Settings
+- Product scope should stay aligned with the supported top-level flows: Review, Progress, AI, Cards, Settings
 
 We intentionally optimize for the latest supported iOS release instead of spending time on older system behavior.
 
@@ -126,7 +126,7 @@ The grouped smoke suite still maps to the same top-level live-smoke contract as 
 
 The iOS App Store screenshot generator and the derived iOS marketing-material builder are documented in [`docs/marketing-screenshots.md`](docs/marketing-screenshots.md).
 
-Use that document when you need to regenerate localized App Store screenshots or build the derived horizontal marketing materials from screenshots 1, 2, 3, and 4. It explains the manual XCUITest entrypoints, wrapper scripts, locale selection, the requirement to use `iPhone 14 Plus` for the committed iPhone screenshot set, simulator-family-to-output-folder behavior, and the expected output paths under `apps/ios/docs/media/app-store-screenshots/` and `apps/ios/docs/media/marketing-materials/`.
+Use that document when you need to regenerate localized App Store screenshots or build the derived horizontal marketing materials from screenshots 1, 2, 3, 4, and 5. It explains the manual XCUITest entrypoints, sequential wrapper scripts for Review, Progress, and Cards, locale selection, the requirement to use `iPhone 14 Plus` for the committed iPhone screenshot set, simulator-family-to-output-folder behavior, and the expected generated output paths under `apps/ios/docs/media/app-store-screenshots/` and `apps/ios/docs/media/marketing-materials/`.
 
 ## CI/CD
 

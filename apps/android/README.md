@@ -70,8 +70,9 @@ If Google already provides a supported solution, use it unless there is a concre
 The Android app should mirror the current top-level product structure:
 
 - Review
-- Cards
+- Progress
 - AI
+- Cards
 - Settings
 
 The goal is a working Android app that can run in an emulator and on-device while staying aligned with the shared product contract.
@@ -90,10 +91,10 @@ Run commands from `apps/android/`.
 
 - Add a new app language safely: [`docs/add-language-checklist.md`](docs/add-language-checklist.md)
 - Run Android marketing screenshot captures reliably: [`docs/marketing-screenshot-runbook.md`](docs/marketing-screenshot-runbook.md)
-- Track current Android marketing screenshot inventory: [`docs/marketing-screenshots.md`](docs/marketing-screenshots.md)
+- Track Android marketing screenshot generator inventory: [`docs/marketing-screenshots.md`](docs/marketing-screenshots.md)
 
 The marketing screenshot docs cover locale-prefixed runs as well.
-The current wrapper layout is one combined review-chain flow for screenshots 1, 2, and 4, plus a separate cards flow for screenshot 3.
+The current wrapper layout is one combined review-chain flow for screenshots 1, 2, and 4, plus separate Progress and Cards flows for screenshots 3 and 5.
 Use them when adding or validating multi-language Play screenshot content.
 
 ## Localization Rule

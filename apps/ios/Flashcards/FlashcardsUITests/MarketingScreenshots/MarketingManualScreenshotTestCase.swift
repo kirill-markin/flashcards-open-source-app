@@ -35,6 +35,12 @@ enum MarketingScreenshotEnvironment {
     static let aiHandoffCardKey: String = "FLASHCARDS_UI_TEST_AI_HANDOFF_CARD"
 }
 
+private let marketingProgressExpectedSummaryValue: String = [
+    "currentStreakDays=3",
+    "hasReviewedToday=true",
+    "activeReviewDays=5"
+].joined(separator: ";")
+
 private enum MarketingScreenshotRuntimeConfigurationStorage {
     static let filePath: String = "/tmp/flashcards-open-source-app-ios-marketing-screenshot-config.json"
 }
@@ -147,6 +153,51 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             selectedTab: .ai,
             aiHandoffCard: "first_card"
         )
+    }
+
+    @MainActor
+    func launchMarketingProgress() throws -> MarketingScreenshotLocaleFixture {
+        let localeFixture: MarketingScreenshotLocaleFixture = try self.marketingLocaleFixture()
+
+        try self.launchMarketingApplication(
+            resetState: .marketingProgress,
+            selectedTab: .progress,
+            aiHandoffCard: nil
+        )
+        try self.waitForLoadedProgressScreen()
+
+        return localeFixture
+    }
+
+    @MainActor
+    func waitForLoadedProgressScreen() throws {
+        try self.assertScreenVisible(screen: .progress, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.progressStreakSection,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.progressReviewsSection,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        let progressStreakSection = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.progressStreakSection)
+            .firstMatch
+        if try self.waitForElementValueContaining(
+            progressStreakSection,
+            identifier: LiveSmokeIdentifier.progressStreakSection,
+            expectedValue: marketingProgressExpectedSummaryValue,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        ) == false {
+            throw LiveSmokeFailure.unexpectedElementValue(
+                identifier: LiveSmokeIdentifier.progressStreakSection,
+                expectedValue: marketingProgressExpectedSummaryValue,
+                actualValue: self.elementValue(element: progressStreakSection),
+                timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
     }
 
     @MainActor

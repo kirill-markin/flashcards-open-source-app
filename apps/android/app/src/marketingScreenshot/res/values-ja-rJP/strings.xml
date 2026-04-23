@@ -1,8 +1,14 @@
 <resources>
     <string name="top_level_review">復習</string>
+    <string name="top_level_progress">進捗</string>
     <string name="top_level_cards">カード</string>
     <string name="top_level_ai">AI</string>
     <string name="top_level_settings">設定</string>
+
+    <string name="progress_title">進捗</string>
+    <string name="progress_streak_title">継続記録</string>
+    <string name="progress_streak_subtitle">過去5週間</string>
+    <string name="progress_reviews_title">復習</string>
 
     <string name="cards_title">カード</string>
     <string name="cards_add_card_content_description">カードを追加</string>
