@@ -63,8 +63,8 @@
 
 .panel {
   display: grid;
-  gap: 24px;
-  padding: 20px;
+  gap: 16px;
+  padding: 16px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
   background: var(--panel);
@@ -77,7 +77,7 @@
 }
 
 .content-card {
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
   background: var(--surface-elevated);
@@ -88,16 +88,16 @@
 }
 
 .content-card-section {
-  padding: 13px 14px;
+  padding: 12px;
 }
 
 .title {
   margin: 0;
   color: var(--text);
-  font-size: clamp(2.5rem, 4vw, 4.6rem);
-  line-height: 0.96;
-  font-weight: 750;
-  letter-spacing: -0.06em;
+  font-size: var(--page-title-font-size);
+  line-height: var(--page-title-line-height);
+  font-weight: var(--page-title-font-weight);
+  letter-spacing: var(--page-title-letter-spacing);
 }
 
 .panel-subtitle {
@@ -113,19 +113,19 @@
   margin: 0;
   color: var(--text-secondary);
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .screen-head {
   display: flex;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
   align-items: flex-end;
 }
 
 .screen-head > div:first-child {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -354,17 +354,13 @@
 
 @media (max-width: 768px) {
   .panel {
-    padding: 16px;
+    padding: 14px;
     border-radius: var(--radius-md);
   }
 
   .content-card,
   .content-card-section {
     padding: 12px;
-  }
-
-  .title {
-    font-size: clamp(2.4rem, 11vw, 3.5rem);
   }
 
   .primary-btn,

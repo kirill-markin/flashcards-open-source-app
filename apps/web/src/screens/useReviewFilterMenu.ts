@@ -143,26 +143,6 @@ function normalizeReviewFilterSearchText(searchText: string): string {
   return searchText.trim().toLowerCase();
 }
 
-export function formatQueueBadge(
-  dueCount: number,
-  totalCount: number,
-  formatNumber: (value: number, options?: Readonly<Intl.NumberFormatOptions>) => string,
-  t: (key: "reviewFilterMenu.queueBadgeDue" | "reviewFilterMenu.queueBadgeDueUpcoming", values?: Readonly<Record<string, string | number>>) => string,
-): string {
-  const upcomingCount = totalCount - dueCount;
-  const dueLabel = formatNumber(dueCount);
-  if (upcomingCount <= 0) {
-    return t("reviewFilterMenu.queueBadgeDue", {
-      due: dueLabel,
-    });
-  }
-
-  return t("reviewFilterMenu.queueBadgeDueUpcoming", {
-    due: dueLabel,
-    upcoming: formatNumber(upcomingCount),
-  });
-}
-
 export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseReviewFilterMenuResult {
   const {
     deckSummaries,
