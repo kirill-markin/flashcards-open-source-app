@@ -91,6 +91,24 @@ internal data class AiDraftState(
 
 internal typealias AiChatRuntimeState = AiDraftState
 
+internal fun canEditAiDraft(state: AiChatRuntimeState): Boolean {
+    if (state.conversationBootstrapState != AiConversationBootstrapState.READY) {
+        return false
+    }
+    if (state.dictationState != AiChatDictationState.IDLE) {
+        return false
+    }
+    return canPrepareAiDraftInComposerPhase(composerPhase = state.composerPhase)
+}
+
+internal fun canManageAiDraftAttachments(state: AiChatRuntimeState): Boolean {
+    return canEditAiDraft(state = state)
+}
+
+internal fun canPrepareAiDraftInComposerPhase(composerPhase: AiComposerPhase): Boolean {
+    return composerPhase == AiComposerPhase.IDLE || composerPhase == AiComposerPhase.RUNNING
+}
+
 internal fun makeDefaultAiDraftState(): AiDraftState {
     return AiDraftState(
         workspaceId = null,

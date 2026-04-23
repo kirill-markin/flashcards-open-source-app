@@ -9,6 +9,43 @@ extension AIChatStore {
             && (self.trimmedInputText().isEmpty == false || self.pendingAttachments.isEmpty == false)
     }
 
+    var canEditDraft: Bool {
+        self.isChatInteractive
+            && self.dictationState == .idle
+            && aiChatComposerPhaseAllowsDraftPreparation(self.composerPhase)
+    }
+
+    var canModifyDraftAttachments: Bool {
+        self.canEditDraft
+    }
+
+    var canAttachToDraft: Bool {
+        self.canModifyDraftAttachments
+            && self.serverChatConfig.features.attachmentsEnabled
+    }
+
+    var canAttachCardToDraft: Bool {
+        self.canModifyDraftAttachments
+    }
+
+    var canStartDictation: Bool {
+        self.isChatInteractive
+            && self.serverChatConfig.features.dictationEnabled
+            && self.dictationState == .idle
+            && aiChatComposerPhaseAllowsDraftPreparation(self.composerPhase)
+    }
+
+    var canUseDictation: Bool {
+        switch self.dictationState {
+        case .idle:
+            return self.canStartDictation
+        case .recording:
+            return self.isChatInteractive
+        case .requestingPermission, .transcribing:
+            return false
+        }
+    }
+
     var canStopResponse: Bool {
         self.isChatInteractive
             && (self.composerPhase == .startingRun || self.composerPhase == .running)
@@ -58,10 +95,7 @@ extension AIChatStore {
     }
 
     func appendAttachment(_ attachment: AIChatAttachment) {
-        guard self.isChatInteractive else {
-            return
-        }
-        guard self.serverChatConfig.features.attachmentsEnabled else {
+        guard self.canAttachToDraft else {
             return
         }
         guard self.hasExternalProviderConsent else {
@@ -77,6 +111,10 @@ extension AIChatStore {
     }
 
     func applyComposerSuggestion(_ suggestion: AIChatComposerSuggestion) {
+        guard self.canEditDraft else {
+            return
+        }
+
         let trimmedInputText = self.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedInputText.isEmpty {
             self.inputText = suggestion.text
@@ -88,7 +126,7 @@ extension AIChatStore {
     }
 
     func removeAttachment(id: String) {
-        guard self.isChatInteractive else {
+        guard self.canModifyDraftAttachments else {
             return
         }
         self.pendingAttachments.removeAll { attachment in
@@ -147,6 +185,9 @@ extension AIChatStore {
     func applyPresentationRequest(request: AIChatPresentationRequest) -> Bool {
         switch request {
         case .createCard:
+            guard self.canEditDraft else {
+                return false
+            }
             self.inputText = aiChatCreateCardDraftPrompt
             return true
         case .attachCard(let card):
@@ -156,6 +197,15 @@ extension AIChatStore {
 
     func trimmedInputText() -> String {
         self.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+func aiChatComposerPhaseAllowsDraftPreparation(_ phase: AIChatComposerPhase) -> Bool {
+    switch phase {
+    case .idle, .running:
+        return true
+    case .preparingSend, .startingRun, .stopping:
+        return false
     }
 }
 

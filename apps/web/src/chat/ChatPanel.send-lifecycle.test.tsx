@@ -1,21 +1,26 @@
 // @vitest-environment jsdom
+import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { persistLocalePreference } from "../i18n/runtime";
 import {
   ApiErrorMock,
   consumeChatLiveStreamMock,
   createChatActiveRun,
+  createDropEvent,
   createChatSnapshot,
   createNewChatSessionMock,
   getChatSnapshotMock,
+  prepareAttachmentMock,
   pressTextareaKey,
   setTextareaSelection,
   setTextareaValue,
   setupChatPanelTest,
   startChatRunMock,
+  stopChatRunMock,
   transcribeChatAudioMock,
   useAppDataMock,
 } from "./ChatPanelTestSupport";
+import { getChatComposerCapabilities } from "./ChatPanel";
 import {
   createUnverifiedWorkspaceAppDataMock,
   createVerifiedWorkspaceAppDataMock,
@@ -32,12 +37,52 @@ const {
   renderChatPanel,
   setMobileViewport,
   sendMessage,
+  clickStop,
   clickMicrophone,
   unmountChatPanel,
 } = setupChatPanelTest();
 
 function readStoredDraftInputText(sessionId: string): string | null {
   return readChatDraftForSession(loadChatDraftWorkspaceState("workspace-1"), sessionId)?.inputText ?? null;
+}
+
+function readStoredDraftPendingAttachmentCount(sessionId: string): number {
+  return readChatDraftForSession(loadChatDraftWorkspaceState("workspace-1"), sessionId)?.pendingAttachments.length ?? 0;
+}
+
+function createChatConfigWithAttachmentsEnabled(
+  attachmentsEnabled: boolean,
+): ReturnType<typeof createChatSnapshot>["chatConfig"] {
+  const chatConfig = createChatSnapshot().chatConfig;
+  return {
+    ...chatConfig,
+    features: {
+      ...chatConfig.features,
+      attachmentsEnabled,
+    },
+  };
+}
+
+function createChatPanelDragEnterEvent(file: File): DragEvent {
+  const dragEvent = new Event("dragenter", { bubbles: true, cancelable: true }) as DragEvent;
+  const dataTransfer: { files: ReadonlyArray<File>; dropEffect: DataTransfer["dropEffect"] } = {
+    files: [file],
+    dropEffect: "none",
+  };
+  Object.defineProperty(dragEvent, "dataTransfer", {
+    value: dataTransfer,
+  });
+  return dragEvent;
+}
+
+async function dispatchChatPanelDragEvent(dragEvent: DragEvent): Promise<void> {
+  const chatPanel = getContainer().querySelector('[data-testid="chat-panel"]') as HTMLDivElement | null;
+  expect(chatPanel).not.toBeNull();
+
+  await act(async () => {
+    chatPanel?.dispatchEvent(dragEvent);
+    await Promise.resolve();
+  });
 }
 
 describe("ChatPanel send lifecycle", () => {
@@ -564,6 +609,224 @@ describe("ChatPanel send lifecycle", () => {
     expect(stopButton).not.toBeNull();
     expect(stopButton?.disabled).toBe(false);
     expect(sendButton).toBeNull();
+  });
+
+  it("keeps draft preparation controls enabled while an assistant run is active", async () => {
+    getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
+      activeRun: createChatActiveRun(),
+    }));
+    prepareAttachmentMock.mockResolvedValue({
+      type: "binary",
+      fileName: "next-draft.txt",
+      mediaType: "text/plain",
+      base64Data: "bmV4dA==",
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    const composerState = getContainer().querySelector('[data-testid="chat-composer-state"]') as HTMLDivElement | null;
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    const attachButton = getContainer().querySelector('.chat-attach-btn[aria-label="Add attachment"]') as HTMLButtonElement | null;
+    const microphoneButton = getContainer().querySelector(".chat-mic-btn") as HTMLButtonElement | null;
+    const stopButton = getContainer().querySelector('.chat-stop-btn[aria-label="Stop response"]') as HTMLButtonElement | null;
+    const sendButton = getContainer().querySelector('.chat-send-btn[aria-label="Send message"]') as HTMLButtonElement | null;
+
+    expect(composerState?.getAttribute("data-composer-action")).toBe("stop");
+    expect(textarea).not.toBeNull();
+    expect(textarea?.disabled).toBe(false);
+    expect(attachButton).not.toBeNull();
+    expect(attachButton?.disabled).toBe(false);
+    expect(microphoneButton).not.toBeNull();
+    expect(microphoneButton?.disabled).toBe(false);
+    expect(stopButton).not.toBeNull();
+    expect(sendButton).toBeNull();
+
+    await setTextareaValue(textarea as HTMLTextAreaElement, "next draft");
+    await flushAsync();
+    await dispatchChatPanelDragEvent(createDropEvent(new File(["next"], "next-draft.txt", { type: "text/plain" })));
+    await flushAsync();
+
+    expect(prepareAttachmentMock).toHaveBeenCalledTimes(1);
+    expect(textarea?.value).toBe("next draft");
+    expect(getContainer().textContent).toContain("next-draft.txt");
+  });
+
+  it("locks draft preparation controls while an active assistant run is stopping", async () => {
+    let resolveStopRun: (() => void) | null = null;
+    stopChatRunMock.mockImplementation(() => new Promise((resolve) => {
+      resolveStopRun = () => resolve({
+        sessionId: "session-1",
+        stopped: true,
+        stillRunning: false,
+      });
+    }));
+    getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
+      activeRun: createChatActiveRun(),
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    await clickStop();
+    await flushAsync();
+
+    const composerState = getContainer().querySelector('[data-testid="chat-composer-state"]') as HTMLDivElement | null;
+    const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
+    const attachButton = getContainer().querySelector('.chat-attach-btn[aria-label="Add attachment"]') as HTMLButtonElement | null;
+    const microphoneButton = getContainer().querySelector(".chat-mic-btn") as HTMLButtonElement | null;
+    const stopButton = getContainer().querySelector('.chat-stop-btn[aria-label="Stop response"]') as HTMLButtonElement | null;
+    const getUserMediaMock = navigator.mediaDevices?.getUserMedia as ReturnType<typeof vi.fn>;
+
+    expect(composerState?.getAttribute("data-composer-state")).toBe("stopping");
+    expect(composerState?.getAttribute("data-stopping")).toBe("true");
+    expect(textarea).not.toBeNull();
+    expect(textarea?.disabled).toBe(true);
+    expect(attachButton).not.toBeNull();
+    expect(attachButton?.disabled).toBe(true);
+    expect(microphoneButton).not.toBeNull();
+    expect(microphoneButton?.disabled).toBe(true);
+    expect(stopButton).not.toBeNull();
+    expect(stopButton?.disabled).toBe(true);
+
+    await clickMicrophone();
+    await flushAsync();
+
+    expect(getUserMediaMock).not.toHaveBeenCalled();
+
+    const file = new File(["stopping"], "stopping.txt", { type: "text/plain" });
+    await dispatchChatPanelDragEvent(createChatPanelDragEnterEvent(file));
+
+    expect(getContainer().querySelector(".chat-drop-overlay")).toBeNull();
+
+    await dispatchChatPanelDragEvent(createDropEvent(file));
+    await flushAsync();
+
+    expect(prepareAttachmentMock).not.toHaveBeenCalled();
+
+    resolveStopRun?.();
+    await flushAsync();
+  });
+
+  it("keeps active recording stoppable when dictation becomes disabled", () => {
+    const capabilities = getChatComposerCapabilities({
+      areAttachmentsEnabled: true,
+      dictationState: "recording",
+      isChatActionLocked: false,
+      isChatConversationReadyForAttachments: true,
+      isDictationEnabled: false,
+      isStopping: false,
+      sendPhase: "idle",
+    });
+
+    expect(capabilities.canStartDictation).toBe(false);
+    expect(capabilities.isDictationButtonDisabled).toBe(false);
+  });
+
+  it("ignores dropped files when attachments are disabled by chat config", async () => {
+    const chatConfig = createChatConfigWithAttachmentsEnabled(false);
+    createNewChatSessionMock.mockImplementation(async (sessionId: string) => ({
+      ok: true,
+      sessionId,
+      composerSuggestions: [],
+      chatConfig,
+    }));
+    getChatSnapshotMock.mockImplementation(async (sessionId: string) => createChatSnapshot({
+      sessionId,
+      conversationScopeId: sessionId,
+      chatConfig,
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    const attachButton = getContainer().querySelector('.chat-attach-btn[aria-label="Add attachment"]') as HTMLButtonElement | null;
+    const file = new File(["disabled"], "disabled.txt", { type: "text/plain" });
+    expect(attachButton).not.toBeNull();
+    expect(attachButton?.disabled).toBe(true);
+
+    await dispatchChatPanelDragEvent(createChatPanelDragEnterEvent(file));
+
+    expect(getContainer().querySelector(".chat-drop-overlay")).toBeNull();
+
+    await dispatchChatPanelDragEvent(createDropEvent(file));
+    await flushAsync();
+
+    expect(prepareAttachmentMock).not.toHaveBeenCalled();
+    expect(getContainer().textContent).not.toContain("disabled.txt");
+  });
+
+  it("ignores dropped files while a send is being prepared", async () => {
+    const runSyncMock = vi.fn(() => new Promise<void>(() => undefined));
+    useAppDataMock.mockReturnValue(createVerifiedWorkspaceAppDataMock({
+      refreshLocalData: vi.fn(async (): Promise<void> => undefined),
+      runSync: runSyncMock,
+      setErrorMessage: vi.fn(),
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    await sendMessage("hello");
+    await flushAsync();
+
+    const composerState = getContainer().querySelector('[data-testid="chat-composer-state"]') as HTMLDivElement | null;
+    const attachButton = getContainer().querySelector('.chat-attach-btn[aria-label="Add attachment"]') as HTMLButtonElement | null;
+    expect(composerState?.getAttribute("data-send-phase")).toBe("preparingSend");
+    expect(attachButton).not.toBeNull();
+    expect(attachButton?.disabled).toBe(true);
+
+    await dispatchChatPanelDragEvent(createDropEvent(new File(["pending"], "pending.txt", { type: "text/plain" })));
+    await flushAsync();
+
+    expect(prepareAttachmentMock).not.toHaveBeenCalled();
+  });
+
+  it("ignores delayed attachment processing after the composer becomes locked", async () => {
+    let resolveDelayedAttachment: (() => void) | null = null;
+    const runSyncMock = vi.fn(() => new Promise<void>(() => undefined));
+    useAppDataMock.mockReturnValue(createVerifiedWorkspaceAppDataMock({
+      refreshLocalData: vi.fn(async (): Promise<void> => undefined),
+      runSync: runSyncMock,
+      setErrorMessage: vi.fn(),
+    }));
+    prepareAttachmentMock.mockImplementation(() => new Promise((resolve) => {
+      resolveDelayedAttachment = () => resolve({
+        type: "binary",
+        fileName: "delayed.txt",
+        mediaType: "text/plain",
+        base64Data: "ZGVsYXllZA==",
+      });
+    }));
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    await dispatchChatPanelDragEvent(createDropEvent(new File(["delayed"], "delayed.txt", { type: "text/plain" })));
+    await flushAsync();
+
+    expect(prepareAttachmentMock).toHaveBeenCalledTimes(1);
+
+    await sendMessage("hello");
+    await flushAsync();
+
+    const composerState = getContainer().querySelector('[data-testid="chat-composer-state"]') as HTMLDivElement | null;
+    expect(composerState?.getAttribute("data-send-phase")).toBe("preparingSend");
+    expect(resolveDelayedAttachment).not.toBeNull();
+
+    await act(async () => {
+      resolveDelayedAttachment?.();
+      await Promise.resolve();
+    });
+    await flushAsync();
+
+    expect(getContainer().textContent).not.toContain("delayed.txt");
+    expect(readStoredDraftPendingAttachmentCount("session-1")).toBe(0);
   });
 
   it("keeps starting a new chat enabled while turn acceptance is still in flight", async () => {
