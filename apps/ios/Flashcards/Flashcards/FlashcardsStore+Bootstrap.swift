@@ -105,7 +105,11 @@ extension FlashcardsStore {
         self.reloadReviewNotificationsSettings()
         self.reloadStrictRemindersSettings()
         self.localReadVersion += 1
-        self.applyProgressContextChange(now: now, refreshVisibleProgress: refreshVisibleProgress)
+        if refreshVisibleProgress {
+            self.prepareProgressForCurrentVisibleTabAndRefreshIfNeeded(now: now)
+        } else {
+            self.prepareProgressForCurrentVisibleTab(now: now)
+        }
         self.cachedAIChatStore?.refreshAccessContextIfNeeded()
         self.refreshReviewState(now: now)
         self.reconcileReviewNotifications(trigger: .workspaceChanged, now: now)

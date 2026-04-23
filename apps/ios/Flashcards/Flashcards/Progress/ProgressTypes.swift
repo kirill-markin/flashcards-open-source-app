@@ -299,8 +299,11 @@ func makeProgressSnapshot(
     seriesSourceState: ProgressSourceState,
     calendar: Calendar
 ) throws -> ProgressSnapshot {
-    try validateProgressSeriesMetadata(series: series, scopeKey: scopeKey)
-    let timeline = try makeProgressTimeline(series: series, calendar: calendar)
+    let timeline = try makeValidatedProgressTimeline(
+        series: series,
+        scopeKey: scopeKey,
+        calendar: calendar
+    )
     let todayLocalDate = series.to
 
     let chartDays = timeline.map { timelineDay in
@@ -345,6 +348,8 @@ private func makeProgressTimeline(
 
     var reviewCountsByLocalDate: [String: Int] = [:]
     for day in series.dailyReviews {
+        _ = try progressDate(localDate: day.date, calendar: calendar)
+
         guard day.reviewCount >= 0 else {
             throw ProgressPresentationError.negativeReviewCount(day.date, day.reviewCount)
         }
@@ -375,6 +380,18 @@ private func makeProgressTimeline(
     return timeline
 }
 
+func validateProgressSeries(
+    series: UserProgressSeries,
+    scopeKey: ProgressScopeKey,
+    calendar: Calendar
+) throws {
+    _ = try makeValidatedProgressTimeline(
+        series: series,
+        scopeKey: scopeKey,
+        calendar: calendar
+    )
+}
+
 func makeProgressSummary(
     reviewDates: Set<String>,
     timeZone: String,
@@ -387,7 +404,7 @@ func makeProgressSummary(
     )
     let lastReviewedOn = sortedReviewDates.last
     return ProgressSummary(
-        currentStreakDays: calculateProgressCurrentStreakDays(
+        currentStreakDays: try calculateProgressCurrentStreakDays(
             reviewDates: reviewDates,
             todayLocalDate: today
         ),
@@ -447,7 +464,7 @@ func makeProgressPresentationCalendar(
     return calendar
 }
 
-private func validateProgressSeriesMetadata(
+func validateProgressSeriesMetadata(
     series: UserProgressSeries,
     scopeKey: ProgressScopeKey
 ) throws {
@@ -465,37 +482,53 @@ private func validateProgressSeriesMetadata(
     }
 }
 
+private func makeValidatedProgressTimeline(
+    series: UserProgressSeries,
+    scopeKey: ProgressScopeKey,
+    calendar: Calendar
+) throws -> [ProgressTimelineDay] {
+    try validateProgressSeriesMetadata(series: series, scopeKey: scopeKey)
+    return try makeProgressTimeline(series: series, calendar: calendar)
+}
+
 private func calculateProgressCurrentStreakDays(
     reviewDates: Set<String>,
     todayLocalDate: String
-) -> Int {
+) throws -> Int {
     var currentDate = reviewDates.contains(todayLocalDate)
         ? todayLocalDate
-        : progressShiftLocalDate(value: todayLocalDate, offsetDays: -1)
+        : try progressShiftLocalDate(value: todayLocalDate, offsetDays: -1)
     var streakDayCount = 0
 
     while reviewDates.contains(currentDate) {
         streakDayCount += 1
-        currentDate = progressShiftLocalDate(value: currentDate, offsetDays: -1)
+        currentDate = try progressShiftLocalDate(value: currentDate, offsetDays: -1)
     }
 
     return streakDayCount
 }
 
-private func progressShiftLocalDate(value: String, offsetDays: Int) -> String {
-    var components = DateComponents()
-    components.year = Int(value.prefix(4))
-    components.month = Int(value.dropFirst(5).prefix(2))
-    components.day = Int(value.dropFirst(8).prefix(2))
+private func progressShiftLocalDate(value: String, offsetDays: Int) throws -> String {
     let calendar = Calendar(identifier: .gregorian)
-    let baseDate = calendar.date(from: components) ?? Date(timeIntervalSince1970: 0)
-    let nextDate = calendar.date(byAdding: .day, value: offsetDays, to: baseDate) ?? baseDate
+    let baseDate = try progressDate(localDate: value, calendar: calendar)
+    guard let nextDate = calendar.date(byAdding: .day, value: offsetDays, to: baseDate) else {
+        throw ProgressPresentationError.invalidLocalDate(value)
+    }
+
     let nextComponents = calendar.dateComponents([.year, .month, .day], from: nextDate)
+    guard
+        let year = nextComponents.year,
+        let month = nextComponents.month,
+        let day = nextComponents.day
+    else {
+        throw ProgressPresentationError.invalidLocalDate(value)
+    }
+
     return String(
         format: "%04d-%02d-%02d",
-        nextComponents.year ?? 0,
-        nextComponents.month ?? 0,
-        nextComponents.day ?? 0
+        year,
+        month,
+        day
     )
 }
 
@@ -579,19 +612,11 @@ func progressChartUpperBound(maximumReviewCount: Int) -> Int {
 }
 
 private func progressDate(localDate: String, calendar: Calendar) throws -> Date {
-    let components = localDate.split(separator: "-", omittingEmptySubsequences: false)
-
-    guard
-        components.count == 3,
-        let year = Int(components[0]),
-        let month = Int(components[1]),
-        let day = Int(components[2]),
-        let date = calendar.date(from: DateComponents(year: year, month: month, day: day))
-    else {
+    guard let date = progressStrictDate(localDate: localDate, calendar: calendar) else {
         throw ProgressPresentationError.invalidLocalDate(localDate)
     }
 
-    return calendar.startOfDay(for: date)
+    return date
 }
 
 private func progressLocalDateString(date: Date, calendar: Calendar) -> String {
