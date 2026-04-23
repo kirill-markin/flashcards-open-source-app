@@ -13,10 +13,7 @@ extension AIChatStore {
     }
 
     func prepareCardHandoff(card: AIChatCardReference) -> Bool {
-        guard self.isChatInteractive else {
-            return false
-        }
-        guard self.dictationState == .idle else {
+        guard self.canAttachCardToDraft else {
             return false
         }
 
@@ -24,6 +21,13 @@ extension AIChatStore {
             id: UUID().uuidString.lowercased(),
             payload: .card(card)
         )
+        if self.composerPhase == .running {
+            self.pendingAttachments.append(attachment)
+            self.activeAlert = nil
+            self.repairStatus = nil
+            return true
+        }
+
         let draft = AIChatComposerDraft(
             inputText: self.inputText,
             pendingAttachments: self.pendingAttachments
