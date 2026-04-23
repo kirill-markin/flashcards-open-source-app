@@ -20,7 +20,7 @@ const {
 } = setupReviewScreenTest();
 
 describe("ReviewScreen", () => {
-  it("renders the review progress badge with a styleable active icon and without approximate styling", async () => {
+  it("renders compact review header controls with scope before streak", async () => {
     const state = getState();
     const card = createCard({
       cardId: "card-progress-badge",
@@ -42,27 +42,24 @@ describe("ReviewScreen", () => {
     if (!(progressBadge instanceof HTMLAnchorElement)) {
       throw new Error("Review progress badge was not found");
     }
-    const queueBadge = getContainer().querySelector("[data-testid='review-queue-badge']");
-    if (!(queueBadge instanceof HTMLSpanElement)) {
-      throw new Error("Review queue badge was not found");
-    }
     const headerActions = getContainer().querySelector(".review-screen-head-actions");
     if (!(headerActions instanceof HTMLDivElement)) {
       throw new Error("Review screen header actions were not found");
     }
-    const reviewToolbar = getContainer().querySelector("[data-testid='review-screen-toolbar']");
-    if (!(reviewToolbar instanceof HTMLDivElement)) {
-      throw new Error("Review screen toolbar was not found");
+    const scopeTrigger = getContainer().querySelector("[data-testid='review-filter-trigger']");
+    if (!(scopeTrigger instanceof HTMLButtonElement)) {
+      throw new Error("Review scope trigger was not found");
     }
 
     expect(progressBadge.className).toContain("review-progress-badge");
     expect(progressBadge.className).toContain("review-progress-badge-active");
     expect(progressBadge.className).not.toContain("review-progress-badge-approximate");
     expect(progressBadge.textContent).not.toContain("🔥");
-    expect(headerActions.contains(queueBadge)).toBe(true);
+    expect(getContainer().querySelector("[data-testid='review-queue-badge']")).toBeNull();
+    expect(getContainer().querySelector("[data-testid='review-screen-toolbar']")).toBeNull();
+    expect(headerActions.contains(scopeTrigger)).toBe(true);
     expect(headerActions.contains(progressBadge)).toBe(true);
-    expect(reviewToolbar.contains(queueBadge)).toBe(false);
-    expect(queueBadge.compareDocumentPosition(progressBadge) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(scopeTrigger.compareDocumentPosition(progressBadge) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     const progressBadgeIcon = progressBadge.querySelector("svg.review-progress-badge-icon");
     if (!(progressBadgeIcon instanceof SVGSVGElement)) {
       throw new Error("Review progress badge icon was not found");

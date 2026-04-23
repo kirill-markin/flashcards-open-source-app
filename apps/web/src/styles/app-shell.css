@@ -284,7 +284,7 @@
   width: 100%;
   min-width: 0;
   min-height: calc(100dvh - 104px);
-  padding: var(--chat-shell-pane-top, 20px) 0 var(--chat-shell-pane-bottom, 20px);
+  padding: var(--chat-shell-pane-top, 12px) 0 var(--chat-shell-pane-bottom, 12px);
 }
 
 .chat-layout-shell-sidebar-open .chat-main-content > .container {
