@@ -4,18 +4,19 @@ import OSLog
 enum LiveSmokeConfiguration {
     static let shortUiTimeoutSeconds: TimeInterval = 10
     static let longUiTimeoutSeconds: TimeInterval = 30
+    static let launchPreparationTimeoutSeconds: TimeInterval = 60
     static let optionalProbeTimeoutSeconds: TimeInterval = 3
     static let reviewInitialProbeTimeoutSeconds: TimeInterval = 15
     static let reviewInteractionTimeoutSeconds: TimeInterval = 10
     static let reviewEmailEnvironmentKey: String = "FLASHCARDS_LIVE_REVIEW_EMAIL"
-    static let resetStateEnvironmentKey: String = "FLASHCARDS_UI_TEST_RESET_STATE"
+    static let launchScenarioEnvironmentKey: String = "FLASHCARDS_UI_TEST_LAUNCH_SCENARIO"
     static let selectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
     static let appNotificationTapTypeEnvironmentKey: String = "FLASHCARDS_UI_TEST_APP_NOTIFICATION_TAP_TYPE"
     static let maximumStoredBreadcrumbCount: Int = 30
 }
 
 struct LiveSmokeLaunchRequest {
-    let resetState: LiveSmokeLaunchResetState?
+    let launchScenario: LiveSmokeLaunchScenario?
     let selectedTab: LiveSmokeSelectedTab
     let launchLocalization: LiveSmokeLaunchLocalization
     let appNotificationTapType: LiveSmokeAppNotificationTapType?

@@ -8,7 +8,7 @@ final class MarketingCardsScreenshotTests: MarketingManualScreenshotTestCase {
 
         try self.step("launch marketing cards list state") {
             try self.launchMarketingApplication(
-                resetState: .marketingConceptCards,
+                launchScenario: .marketingConceptCards,
                 selectedTab: .cards,
                 aiHandoffCard: nil
             )

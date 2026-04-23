@@ -44,7 +44,7 @@ Local smoke prerequisites:
 
 - root `.env` must keep `AUTH_MODE=cognito`
 - local auth/backend must have real Cognito config (`COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_REGION`, `SESSION_ENCRYPTION_KEY`)
-- review/demo sign-in should be enabled locally with `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP`
+- review account sign-in should be enabled locally with `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP`
 - start the local data/auth stack first with `make db-up`, `make auth-dev`, and `make backend-dev`
 
 The local smoke preflight fails fast if local auth or backend is unavailable, or if the Playwright target is misconfigured to mix localhost with deployed origins.

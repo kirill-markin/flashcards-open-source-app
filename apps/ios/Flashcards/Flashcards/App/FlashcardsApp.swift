@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-private let flashcardsUITestResetStateEnvironmentKey: String = "FLASHCARDS_UI_TEST_RESET_STATE"
+private let flashcardsUITestLaunchScenarioEnvironmentKey: String = "FLASHCARDS_UI_TEST_LAUNCH_SCENARIO"
 private let flashcardsUITestSelectedTabEnvironmentKey: String = "FLASHCARDS_UI_TEST_SELECTED_TAB"
 private let flashcardsUITestAppNotificationTapTypeEnvironmentKey: String = "FLASHCARDS_UI_TEST_APP_NOTIFICATION_TAP_TYPE"
 private let flashcardsUITestAIHandoffCardEnvironmentKey: String = "FLASHCARDS_UI_TEST_AI_HANDOFF_CARD"
@@ -35,7 +35,19 @@ private enum FlashcardsUITestAIHandoffCard: String {
     case firstCard = "first_card"
 }
 
+private enum FlashcardsUITestLaunchError: LocalizedError {
+    case missingAIHandoffCard(FlashcardsUITestAIHandoffCard)
+
+    var errorDescription: String? {
+        switch self {
+        case .missingAIHandoffCard(.firstCard):
+            return "UI test AI handoff requested the first prepared card, but no UI test card is available."
+        }
+    }
+}
+
 private struct CloudSyncPollingTaskID: Hashable {
+    let isStartupReady: Bool
     let isSceneActive: Bool
     let selectedTab: AppTab
     let fastPollingUntil: Date?
@@ -43,6 +55,7 @@ private struct CloudSyncPollingTaskID: Hashable {
 }
 
 private struct ProgressContextWatcherTaskID: Hashable {
+    let isStartupReady: Bool
     let isSceneActive: Bool
     let refreshToken: Int
 }
@@ -74,19 +87,25 @@ private func consumeFlashcardsUITestAppNotificationTapRequest(processInfo: Proce
 }
 
 @MainActor
-private func makeFlashcardsUITestAIChatPresentationRequest(
-    processInfo: ProcessInfo,
-    store: FlashcardsStore
-) -> AIChatPresentationRequest? {
-    guard let rawValue = processInfo.environment[flashcardsUITestAIHandoffCardEnvironmentKey],
-          let handoffCard = FlashcardsUITestAIHandoffCard(rawValue: rawValue) else {
+private func makeFlashcardsUITestAIHandoffCard(
+    processInfo: ProcessInfo
+) -> FlashcardsUITestAIHandoffCard? {
+    guard let rawValue = processInfo.environment[flashcardsUITestAIHandoffCardEnvironmentKey] else {
         return nil
     }
 
+    return FlashcardsUITestAIHandoffCard(rawValue: rawValue)
+}
+
+@MainActor
+private func makeFlashcardsUITestAIChatPresentationRequest(
+    handoffCard: FlashcardsUITestAIHandoffCard,
+    store: FlashcardsStore
+) throws -> AIChatPresentationRequest {
     switch handoffCard {
     case .firstCard:
         guard let card = store.cards.first else {
-            return nil
+            throw FlashcardsUITestLaunchError.missingAIHandoffCard(.firstCard)
         }
 
         return .attachCard(makeAIChatCardReference(card: card))
@@ -100,6 +119,10 @@ struct FlashcardsApp: App {
     @State private var store: FlashcardsStore
     @State private var navigation: AppNavigationModel
     @State private var progressContextWatcherRefreshToken: Int
+    @State private var uiTestLaunchScenario: FlashcardsUITestLaunchScenario?
+    @State private var uiTestAIHandoffCard: FlashcardsUITestAIHandoffCard?
+    @State private var hasRunInitialStartup: Bool
+    @State private var isStartupReadyForBackgroundWork: Bool
 
     @MainActor
     init() {
@@ -108,18 +131,12 @@ struct FlashcardsApp: App {
         let selectedTab = processInfo.environment[flashcardsUITestSelectedTabEnvironmentKey]
             .flatMap(FlashcardsUITestSelectedTab.init(rawValue:))
             .map(\.appTab) ?? .review
-        if let resetStateRawValue = processInfo.environment[flashcardsUITestResetStateEnvironmentKey],
-           let resetState = FlashcardsUITestResetState(rawValue: resetStateRawValue) {
-            do {
-                try store.applyUITestResetState(resetState: resetState)
-            } catch {
-                store.globalErrorMessage = Flashcards.errorMessage(error: error)
-            }
+        let launchScenario = processInfo.environment[flashcardsUITestLaunchScenarioEnvironmentKey]
+            .flatMap(FlashcardsUITestLaunchScenario.init(rawValue:))
+        let aiHandoffCard = makeFlashcardsUITestAIHandoffCard(processInfo: processInfo)
+        if let launchScenario {
+            store.uiTestLaunchPreparationStatus = .running(launchScenario: launchScenario)
         }
-        let aiChatPresentationRequest = makeFlashcardsUITestAIChatPresentationRequest(
-            processInfo: processInfo,
-            store: store
-        )
         if let request = consumeFlashcardsUITestAppNotificationTapRequest(processInfo: processInfo) {
             let receivedMetadata = makeAppNotificationTapLogMetadata(
                 request: request,
@@ -173,10 +190,14 @@ struct FlashcardsApp: App {
                 selectedTab: selectedTab,
                 settingsPath: [],
                 cardsPresentationRequest: nil,
-                aiChatPresentationRequest: aiChatPresentationRequest
+                aiChatPresentationRequest: nil
             )
         )
         _progressContextWatcherRefreshToken = State(initialValue: 0)
+        _uiTestLaunchScenario = State(initialValue: launchScenario)
+        _uiTestAIHandoffCard = State(initialValue: aiHandoffCard)
+        _hasRunInitialStartup = State(initialValue: false)
+        _isStartupReadyForBackgroundWork = State(initialValue: false)
     }
 
     var body: some Scene {
@@ -185,23 +206,13 @@ struct FlashcardsApp: App {
                 .environment(store)
                 .environment(navigation)
                 .task {
-                    store.updateCurrentVisibleTab(tab: navigation.selectedTab)
-                    await store.resumePendingAccountDeletionIfNeeded()
-                    let now = Date()
-                    self.refreshProgressContext(now: now, restartWatcher: false)
-                    store.triggerCloudSyncIfLinked(
-                        trigger: CloudSyncTrigger(
-                            source: .appLaunch,
-                            now: now,
-                            extendsFastPolling: usesFastCloudSyncPolling(tab: navigation.selectedTab),
-                            allowsVisibleChangeBanner: true,
-                            surfacesGlobalErrorMessage: false
-                        )
-                    )
-                    store.reconcileReviewNotifications(trigger: .appActive, now: now)
-                    store.reconcileStrictReminders(trigger: .appActive, now: now)
+                    await self.runInitialAppStartupIfNeeded()
                 }
                 .onChange(of: scenePhase) { _, nextPhase in
+                    guard self.isStartupReadyForBackgroundWork else {
+                        return
+                    }
+
                     if nextPhase == .active {
                         let now = Date()
                         self.refreshProgressContext(now: now, restartWatcher: true)
@@ -244,6 +255,7 @@ struct FlashcardsApp: App {
 
     private var cloudSyncPollingTaskID: CloudSyncPollingTaskID {
         CloudSyncPollingTaskID(
+            isStartupReady: self.isStartupReadyForBackgroundWork,
             isSceneActive: self.scenePhase == .active,
             selectedTab: self.navigation.selectedTab,
             fastPollingUntil: self.store.cloudSyncFastPollingUntil,
@@ -252,13 +264,84 @@ struct FlashcardsApp: App {
     }
 
     private var isAppNotificationTapConsumptionReady: Bool {
-        self.scenePhase == .active
+        self.isStartupReadyForBackgroundWork && self.scenePhase == .active
     }
 
     private var progressContextWatcherTaskID: ProgressContextWatcherTaskID {
         ProgressContextWatcherTaskID(
+            isStartupReady: self.isStartupReadyForBackgroundWork,
             isSceneActive: self.scenePhase == .active,
             refreshToken: self.progressContextWatcherRefreshToken
+        )
+    }
+
+    @MainActor
+    private func runInitialAppStartupIfNeeded() async {
+        guard self.hasRunInitialStartup == false else {
+            return
+        }
+
+        self.hasRunInitialStartup = true
+
+        do {
+            try await self.runUITestLaunchScenarioIfNeeded()
+            try self.applyUITestAIHandoffIfNeeded()
+
+            self.store.updateCurrentVisibleTab(tab: self.navigation.selectedTab)
+            await self.store.resumePendingAccountDeletionIfNeeded()
+
+            let now = Date()
+            self.refreshProgressContext(now: now, restartWatcher: false)
+            if self.uiTestLaunchScenario == nil {
+                self.store.triggerCloudSyncIfLinked(
+                    trigger: CloudSyncTrigger(
+                        source: .appLaunch,
+                        now: now,
+                        extendsFastPolling: usesFastCloudSyncPolling(tab: self.navigation.selectedTab),
+                        allowsVisibleChangeBanner: true,
+                        surfacesGlobalErrorMessage: false
+                    )
+                )
+            }
+            self.store.reconcileReviewNotifications(trigger: .appActive, now: now)
+            self.store.reconcileStrictReminders(trigger: .appActive, now: now)
+
+            if let launchScenario = self.uiTestLaunchScenario {
+                self.store.uiTestLaunchPreparationStatus = .ready(launchScenario: launchScenario)
+            }
+            self.isStartupReadyForBackgroundWork = true
+        } catch {
+            self.store.globalErrorMessage = Flashcards.errorMessage(error: error)
+            if let launchScenario = self.uiTestLaunchScenario {
+                self.store.uiTestLaunchPreparationStatus = .failed(
+                    launchScenario: launchScenario,
+                    message: Flashcards.errorMessage(error: error)
+                )
+            }
+        }
+    }
+
+    @MainActor
+    private func runUITestLaunchScenarioIfNeeded() async throws {
+        guard let launchScenario = self.uiTestLaunchScenario else {
+            return
+        }
+
+        try await self.store.executeUITestLaunchScenario(
+            launchScenario: launchScenario,
+            processInfo: ProcessInfo.processInfo
+        )
+    }
+
+    @MainActor
+    private func applyUITestAIHandoffIfNeeded() throws {
+        guard let handoffCard = self.uiTestAIHandoffCard else {
+            return
+        }
+
+        self.navigation.aiChatPresentationRequest = try makeFlashcardsUITestAIChatPresentationRequest(
+            handoffCard: handoffCard,
+            store: self.store
         )
     }
 
@@ -273,7 +356,7 @@ struct FlashcardsApp: App {
 
     @MainActor
     private func handleProgressContextSystemChange() {
-        guard self.scenePhase == .active else {
+        guard self.isStartupReadyForBackgroundWork, self.scenePhase == .active else {
             return
         }
 
@@ -282,12 +365,12 @@ struct FlashcardsApp: App {
 
     @MainActor
     private func consumePendingAppNotificationTapIfNeeded() async {
-        guard self.scenePhase == .active else {
+        guard self.isStartupReadyForBackgroundWork, self.scenePhase == .active else {
             return
         }
 
         await Task.yield()
-        guard self.scenePhase == .active else {
+        guard self.isStartupReadyForBackgroundWork, self.scenePhase == .active else {
             return
         }
 
@@ -335,14 +418,16 @@ struct FlashcardsApp: App {
 
     @MainActor
     private func runCloudSyncPollingLoop() async {
-        guard self.scenePhase == .active else {
+        guard self.isStartupReadyForBackgroundWork, self.scenePhase == .active else {
             return
         }
         guard self.store.isCloudSyncBlocked == false else {
             return
         }
 
-        while Task.isCancelled == false && self.scenePhase == .active {
+        while Task.isCancelled == false
+            && self.isStartupReadyForBackgroundWork
+            && self.scenePhase == .active {
             let intervalSeconds = self.store.currentCloudSyncPollingInterval(
                 selectedTab: self.navigation.selectedTab,
                 now: Date()
@@ -357,7 +442,9 @@ struct FlashcardsApp: App {
                 return
             }
 
-            guard Task.isCancelled == false, self.scenePhase == .active else {
+            guard Task.isCancelled == false,
+                  self.isStartupReadyForBackgroundWork,
+                  self.scenePhase == .active else {
                 return
             }
             guard self.store.isCloudSyncBlocked == false else {
@@ -378,11 +465,13 @@ struct FlashcardsApp: App {
 
     @MainActor
     private func runProgressContextWatcherLoop() async {
-        guard self.scenePhase == .active else {
+        guard self.isStartupReadyForBackgroundWork, self.scenePhase == .active else {
             return
         }
 
-        while Task.isCancelled == false && self.scenePhase == .active {
+        while Task.isCancelled == false
+            && self.isStartupReadyForBackgroundWork
+            && self.scenePhase == .active {
             let now = Date()
             let nextRollover = nextProgressContextRolloverDate(now: now)
             let intervalSeconds = nextRollover.timeIntervalSince(now)
@@ -402,7 +491,9 @@ struct FlashcardsApp: App {
                 return
             }
 
-            guard Task.isCancelled == false, self.scenePhase == .active else {
+            guard Task.isCancelled == false,
+                  self.isStartupReadyForBackgroundWork,
+                  self.scenePhase == .active else {
                 return
             }
 

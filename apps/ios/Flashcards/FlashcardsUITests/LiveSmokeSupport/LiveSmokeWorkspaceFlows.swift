@@ -20,7 +20,7 @@ extension LiveSmokeTestCase {
         scenario: () throws -> Void
     ) throws {
         try self.launchApplication(
-            resetState: .localGuest,
+            launchScenario: .guestEmptyWorkspace,
             selectedTab: .settings
         )
 

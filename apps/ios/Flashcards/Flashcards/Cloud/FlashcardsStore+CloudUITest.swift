@@ -2,16 +2,63 @@ import Foundation
 
 private let marketingScreenshotLocalizationEnvironmentKey: String = "FLASHCARDS_MARKETING_SCREENSHOT_LOCALIZATION"
 
-enum FlashcardsUITestResetState: String {
-    case localGuest = "local_guest"
-    case localGuestSeededManualReviewCard = "local_guest_seeded_manual_review_card"
-    case localGuestSeededAIReviewCard = "local_guest_seeded_ai_review_card"
+enum FlashcardsUITestLaunchScenario: String {
+    case guestEmptyWorkspace = "guest_empty_workspace"
+    case guestManualReviewCard = "guest_manual_review_card"
+    case guestAIReviewCard = "guest_ai_review_card"
     case marketingOpportunityCostReviewCard = "marketing_opportunity_cost_review_card"
     case marketingConceptCards = "marketing_concept_cards"
     case marketingProgress = "marketing_progress"
+    case marketingGuestSessionCleanup = "marketing_guest_session_cleanup"
+
+    var requiresGuestCloudBootstrap: Bool {
+        switch self {
+        case .guestEmptyWorkspace, .guestManualReviewCard, .guestAIReviewCard:
+            return false
+        case .marketingOpportunityCostReviewCard, .marketingConceptCards, .marketingProgress:
+            return true
+        case .marketingGuestSessionCleanup:
+            return false
+        }
+    }
+
+    var requiresStoredGuestRemoteCleanup: Bool {
+        switch self {
+        case .marketingOpportunityCostReviewCard,
+                .marketingConceptCards,
+                .marketingProgress,
+                .marketingGuestSessionCleanup:
+            return true
+        case .guestEmptyWorkspace, .guestManualReviewCard, .guestAIReviewCard:
+            return false
+        }
+    }
 }
 
-private struct FlashcardsUITestSeedCard {
+enum FlashcardsUITestLaunchPreparationStatus: Equatable {
+    case hidden
+    case running(launchScenario: FlashcardsUITestLaunchScenario)
+    case ready(launchScenario: FlashcardsUITestLaunchScenario)
+    case failed(launchScenario: FlashcardsUITestLaunchScenario, message: String)
+
+    var accessibilityValue: String? {
+        switch self {
+        case .hidden:
+            return nil
+        case .running(let launchScenario):
+            return "state=running;launchScenario=\(launchScenario.rawValue)"
+        case .ready(let launchScenario):
+            return "state=ready;launchScenario=\(launchScenario.rawValue)"
+        case .failed(let launchScenario, let message):
+            let sanitizedMessage = message
+                .replacingOccurrences(of: "\n", with: " ")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return "state=failed;launchScenario=\(launchScenario.rawValue);message=\(sanitizedMessage)"
+        }
+    }
+}
+
+private struct FlashcardsUITestFixtureCard {
     let frontText: String
     let backText: String
     let tags: [String]
@@ -19,26 +66,26 @@ private struct FlashcardsUITestSeedCard {
 
 private struct FlashcardsUITestMarketingLocaleFixture {
     let localizationCode: String
-    let reviewCard: FlashcardsUITestSeedCard
-    let conceptCards: [FlashcardsUITestSeedCard]
+    let reviewCard: FlashcardsUITestFixtureCard
+    let conceptCards: [FlashcardsUITestFixtureCard]
 }
 
 private struct FlashcardsUITestMarketingProgressReviewSeed {
-    let card: FlashcardsUITestSeedCard
+    let card: FlashcardsUITestFixtureCard
     let reviewedAtDayOffset: Int
     let rating: ReviewRating
 }
 
-private enum FlashcardsUITestSeedData {
-    static let manualReviewCard: FlashcardsUITestSeedCard = FlashcardsUITestSeedCard(
-        frontText: "Smoke seeded manual review question",
-        backText: "Smoke seeded manual review answer",
+private enum FlashcardsUITestLaunchScenarioData {
+    static let manualReviewCard: FlashcardsUITestFixtureCard = FlashcardsUITestFixtureCard(
+        frontText: "Smoke guest manual review question",
+        backText: "Smoke guest manual review answer",
         tags: []
     )
-    static let aiReviewCard: FlashcardsUITestSeedCard = FlashcardsUITestSeedCard(
-        frontText: "Smoke seeded AI review question",
-        backText: "Smoke seeded AI review answer",
-        tags: ["smoke-seeded-ai-review"]
+    static let aiReviewCard: FlashcardsUITestFixtureCard = FlashcardsUITestFixtureCard(
+        frontText: "Smoke guest AI review question",
+        backText: "Smoke guest AI review answer",
+        tags: ["smoke-guest-ai-review"]
     )
 }
 
@@ -49,6 +96,17 @@ private enum FlashcardsUITestMarketingProgressSeedError: LocalizedError {
         switch self {
         case .reviewedAtDateCreationFailed(let dayOffset):
             return "Failed to create marketing progress review timestamp for day offset \(dayOffset)."
+        }
+    }
+}
+
+private enum FlashcardsUITestLaunchScenarioError: LocalizedError {
+    case createdCardCountMismatch(expected: Int, actual: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .createdCardCountMismatch(let expected, let actual):
+            return "Expected \(expected) UI test cards but created \(actual)."
         }
     }
 }
@@ -109,7 +167,7 @@ private enum FlashcardsUITestMarketingFixtures {
     static let fixtures: [FlashcardsUITestMarketingLocaleFixture] = [
         FlashcardsUITestMarketingLocaleFixture(
             localizationCode: "en-US",
-            reviewCard: FlashcardsUITestSeedCard(
+            reviewCard: FlashcardsUITestFixtureCard(
                 frontText: "In economics, what is opportunity cost?",
                 backText: """
                 Opportunity cost is the value of the next best alternative you give up when you choose one option over another.
@@ -119,37 +177,37 @@ private enum FlashcardsUITestMarketingFixtures {
                 tags: ["economics"]
             ),
             conceptCards: [
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "In economics, what is opportunity cost?",
                     backText: "The value of the next best alternative you give up when you choose one option over another.",
                     tags: ["economics"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "In biology, what is osmosis?",
                     backText: "The movement of water through a membrane from lower solute concentration to higher solute concentration.",
                     tags: ["biology"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "In statistics, what is standard deviation?",
                     backText: "A measure of how spread out values are around the average.",
                     tags: ["statistics"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "In chemistry, what is a catalyst?",
                     backText: "A substance that speeds up a chemical reaction without being consumed by it.",
                     tags: ["chemistry"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "In psychology, what is cognitive bias?",
                     backText: "A systematic pattern of thinking that can distort judgment and decision-making.",
                     tags: ["psychology"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "In physics, what is velocity?",
                     backText: "The speed of an object together with the direction of its motion.",
                     tags: ["physics"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "In computer science, what is recursion?",
                     backText: "A method where a function solves a problem by calling itself on smaller versions of that problem.",
                     tags: ["computer science"]
@@ -158,7 +216,7 @@ private enum FlashcardsUITestMarketingFixtures {
         ),
         FlashcardsUITestMarketingLocaleFixture(
             localizationCode: "ar",
-            reviewCard: FlashcardsUITestSeedCard(
+            reviewCard: FlashcardsUITestFixtureCard(
                 frontText: "في الاقتصاد، ما هي تكلفة الفرصة البديلة؟",
                 backText: """
                 تكلفة الفرصة البديلة هي قيمة أفضل بديل تتخلى عنه عندما تختار خيارًا بدلًا من آخر.
@@ -168,37 +226,37 @@ private enum FlashcardsUITestMarketingFixtures {
                 tags: ["اقتصاد"]
             ),
             conceptCards: [
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "في الاقتصاد، ما هي تكلفة الفرصة البديلة؟",
                     backText: "هي قيمة أفضل بديل تتخلى عنه عندما تختار خيارًا بدلًا من آخر.",
                     tags: ["اقتصاد"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "في علم الأحياء، ما هو التناضح؟",
                     backText: "هو انتقال الماء عبر غشاء من تركيز أقل للمذاب إلى تركيز أعلى للمذاب.",
                     tags: ["أحياء"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "في الإحصاء، ما هو الانحراف المعياري؟",
                     backText: "هو مقياس يوضح مدى تشتت القيم حول المتوسط.",
                     tags: ["إحصاء"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "في الكيمياء، ما هو العامل الحفاز؟",
                     backText: "هو مادة تسرّع التفاعل الكيميائي من دون أن تُستهلك أثناء التفاعل.",
                     tags: ["كيمياء"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "في علم النفس، ما هو التحيز المعرفي؟",
                     backText: "هو نمط منهجي في التفكير يمكن أن يشوّه الحكم واتخاذ القرار.",
                     tags: ["علم النفس"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "في الفيزياء، ما هي السرعة المتجهة؟",
                     backText: "هي مقدار حركة الجسم مع تحديد اتجاه هذه الحركة.",
                     tags: ["فيزياء"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "في علوم الحاسوب، ما هو الاستدعاء الذاتي؟",
                     backText: "هو أسلوب تحل فيه الدالة المشكلة عبر استدعاء نفسها على نسخ أصغر من المشكلة.",
                     tags: ["علوم الحاسوب"]
@@ -207,7 +265,7 @@ private enum FlashcardsUITestMarketingFixtures {
         ),
         FlashcardsUITestMarketingLocaleFixture(
             localizationCode: "zh-Hans",
-            reviewCard: FlashcardsUITestSeedCard(
+            reviewCard: FlashcardsUITestFixtureCard(
                 frontText: "在经济学中，什么是机会成本？",
                 backText: """
                 机会成本是当你在多个选项中做出选择时，所放弃的最佳替代方案的价值。
@@ -217,37 +275,37 @@ private enum FlashcardsUITestMarketingFixtures {
                 tags: ["经济学"]
             ),
             conceptCards: [
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "在经济学中，什么是机会成本？",
                     backText: "是在做出选择时所放弃的最佳替代方案的价值。",
                     tags: ["经济学"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "在生物学中，什么是渗透作用？",
                     backText: "是水分通过膜从低溶质浓度一侧向高溶质浓度一侧移动的过程。",
                     tags: ["生物学"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "在统计学中，什么是标准差？",
                     backText: "是衡量数据围绕平均值分散程度的指标。",
                     tags: ["统计学"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "在化学中，什么是催化剂？",
                     backText: "是在不被消耗的情况下加快化学反应速度的物质。",
                     tags: ["化学"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "在心理学中，什么是认知偏差？",
                     backText: "是一种可能扭曲判断与决策的系统性思维模式。",
                     tags: ["心理学"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "在物理学中，什么是速度？",
                     backText: "是物体运动快慢及其方向的综合量。",
                     tags: ["物理学"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "在计算机科学中，什么是递归？",
                     backText: "是一种通过让函数调用自身来解决更小规模同类问题的方法。",
                     tags: ["计算机科学"]
@@ -256,7 +314,7 @@ private enum FlashcardsUITestMarketingFixtures {
         ),
         FlashcardsUITestMarketingLocaleFixture(
             localizationCode: "de",
-            reviewCard: FlashcardsUITestSeedCard(
+            reviewCard: FlashcardsUITestFixtureCard(
                 frontText: "Was sind in der Volkswirtschaftslehre Opportunitätskosten?",
                 backText: """
                 Opportunitätskosten sind der Wert der besten Alternative, auf die man verzichtet, wenn man sich für eine andere Option entscheidet.
@@ -266,37 +324,37 @@ private enum FlashcardsUITestMarketingFixtures {
                 tags: ["Volkswirtschaft"]
             ),
             conceptCards: [
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "Was sind in der Volkswirtschaftslehre Opportunitätskosten?",
                     backText: "Der Wert der besten Alternative, auf die man bei einer Entscheidung verzichtet.",
                     tags: ["Volkswirtschaft"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "Was ist in der Biologie Osmose?",
                     backText: "Die Bewegung von Wasser durch eine Membran von niedrigerer zu höherer Konzentration gelöster Stoffe.",
                     tags: ["Biologie"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "Was bezeichnet in der Statistik die Standardabweichung?",
                     backText: "Ein Maß dafür, wie stark Werte um den Durchschnitt streuen.",
                     tags: ["Statistik"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "Was ist in der Chemie ein Katalysator?",
                     backText: "Ein Stoff, der eine chemische Reaktion beschleunigt, ohne selbst verbraucht zu werden.",
                     tags: ["Chemie"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "Was ist in der Psychologie eine kognitive Verzerrung?",
                     backText: "Ein systematisches Denkmuster, das Urteile und Entscheidungen verfälschen kann.",
                     tags: ["Psychologie"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "Was ist in der Physik Geschwindigkeit?",
                     backText: "Die Schnelligkeit einer Bewegung zusammen mit ihrer Richtung.",
                     tags: ["Physik"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "Was bedeutet in der Informatik Rekursion?",
                     backText: "Eine Methode, bei der eine Funktion ein Problem löst, indem sie sich mit kleineren Teilproblemen selbst aufruft.",
                     tags: ["Informatik"]
@@ -305,7 +363,7 @@ private enum FlashcardsUITestMarketingFixtures {
         ),
         FlashcardsUITestMarketingLocaleFixture(
             localizationCode: "hi",
-            reviewCard: FlashcardsUITestSeedCard(
+            reviewCard: FlashcardsUITestFixtureCard(
                 frontText: "अर्थशास्त्र में अवसर लागत क्या होती है?",
                 backText: """
                 अवसर लागत उस सबसे अच्छे विकल्प का मूल्य है, जिसे आप किसी दूसरी पसंद को चुनते समय छोड़ देते हैं।
@@ -315,37 +373,37 @@ private enum FlashcardsUITestMarketingFixtures {
                 tags: ["अर्थशास्त्र"]
             ),
             conceptCards: [
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "अर्थशास्त्र में अवसर लागत क्या होती है?",
                     backText: "किसी विकल्प को चुनते समय छोड़े गए सबसे अच्छे वैकल्पिक विकल्प का मूल्य।",
                     tags: ["अर्थशास्त्र"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "जीवविज्ञान में परासरण क्या है?",
                     backText: "वह प्रक्रिया जिसमें पानी झिल्ली के आर-पार कम विलेय सांद्रता से अधिक विलेय सांद्रता की ओर बढ़ता है।",
                     tags: ["जीवविज्ञान"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "सांख्यिकी में मानक विचलन क्या है?",
                     backText: "यह बताने वाला माप कि मान औसत के आसपास कितने फैले हुए हैं।",
                     tags: ["सांख्यिकी"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "रसायन विज्ञान में उत्प्रेरक क्या होता है?",
                     backText: "ऐसा पदार्थ जो स्वयं खर्च हुए बिना रासायनिक अभिक्रिया की गति बढ़ाता है।",
                     tags: ["रसायन"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "मनोविज्ञान में संज्ञानात्मक पक्षपात क्या है?",
                     backText: "सोचने का ऐसा व्यवस्थित पैटर्न जो निर्णय और आकलन को विकृत कर सकता है।",
                     tags: ["मनोविज्ञान"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "भौतिकी में वेग क्या है?",
                     backText: "किसी वस्तु की चाल और उसकी दिशा का संयुक्त माप।",
                     tags: ["भौतिकी"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "कंप्यूटर विज्ञान में रिकर्शन क्या है?",
                     backText: "ऐसी विधि जिसमें कोई फ़ंक्शन समस्या के छोटे रूपों को हल करने के लिए स्वयं को ही पुकारता है।",
                     tags: ["कंप्यूटर विज्ञान"]
@@ -354,7 +412,7 @@ private enum FlashcardsUITestMarketingFixtures {
         ),
         FlashcardsUITestMarketingLocaleFixture(
             localizationCode: "ja",
-            reviewCard: FlashcardsUITestSeedCard(
+            reviewCard: FlashcardsUITestFixtureCard(
                 frontText: "経済学でいう機会費用とは何ですか？",
                 backText: """
                 機会費用とは、ある選択をしたときに諦める最良の代替案の価値のことです。
@@ -364,37 +422,37 @@ private enum FlashcardsUITestMarketingFixtures {
                 tags: ["経済学"]
             ),
             conceptCards: [
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "経済学でいう機会費用とは何ですか？",
                     backText: "ある選択をしたときに諦める最良の代替案の価値です。",
                     tags: ["経済学"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "生物学でいう浸透とは何ですか？",
                     backText: "溶質濃度の低い側から高い側へ、水が膜を通って移動する現象です。",
                     tags: ["生物学"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "統計学でいう標準偏差とは何ですか？",
                     backText: "値が平均の周りにどの程度ばらついているかを表す指標です。",
                     tags: ["統計学"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "化学でいう触媒とは何ですか？",
                     backText: "自らは消費されずに化学反応を速める物質です。",
                     tags: ["化学"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "心理学でいう認知バイアスとは何ですか？",
                     backText: "判断や意思決定をゆがめるおそれのある、系統的な思考の偏りです。",
                     tags: ["心理学"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "物理学でいう速度とは何ですか？",
                     backText: "物体の動く速さとその向きをあわせて表す量です。",
                     tags: ["物理学"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "情報科学でいう再帰とは何ですか？",
                     backText: "関数が自分自身を呼び出しながら、より小さな同種の問題を解く方法です。",
                     tags: ["情報科学"]
@@ -403,7 +461,7 @@ private enum FlashcardsUITestMarketingFixtures {
         ),
         FlashcardsUITestMarketingLocaleFixture(
             localizationCode: "ru",
-            reviewCard: FlashcardsUITestSeedCard(
+            reviewCard: FlashcardsUITestFixtureCard(
                 frontText: "Что такое альтернативная стоимость в экономике?",
                 backText: """
                 Альтернативная стоимость — это ценность лучшего варианта, от которого вы отказываетесь, выбирая другой вариант.
@@ -413,37 +471,37 @@ private enum FlashcardsUITestMarketingFixtures {
                 tags: ["экономика"]
             ),
             conceptCards: [
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "Что такое альтернативная стоимость в экономике?",
                     backText: "Это ценность лучшего варианта, от которого вы отказываетесь, делая выбор.",
                     tags: ["экономика"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "Что такое осмос в биологии?",
                     backText: "Это движение воды через мембрану из области с меньшей концентрацией растворённых веществ в область с большей концентрацией.",
                     tags: ["биология"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "Что такое стандартное отклонение в статистике?",
                     backText: "Это мера того, насколько сильно значения разбросаны вокруг среднего.",
                     tags: ["статистика"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "Что такое катализатор в химии?",
                     backText: "Это вещество, которое ускоряет химическую реакцию и при этом не расходуется.",
                     tags: ["химия"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "Что такое когнитивное искажение в психологии?",
                     backText: "Это систематический шаблон мышления, который может искажать суждения и решения.",
                     tags: ["психология"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "Что такое векторная скорость в физике?",
                     backText: "Это величина, которая описывает быстроту движения объекта и его направление.",
                     tags: ["физика"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "Что такое рекурсия в информатике?",
                     backText: "Это способ решения задачи, при котором функция вызывает саму себя для более маленьких версий той же задачи.",
                     tags: ["информатика"]
@@ -452,7 +510,7 @@ private enum FlashcardsUITestMarketingFixtures {
         ),
         FlashcardsUITestMarketingLocaleFixture(
             localizationCode: "es-MX",
-            reviewCard: FlashcardsUITestSeedCard(
+            reviewCard: FlashcardsUITestFixtureCard(
                 frontText: "En economía, ¿qué es el costo de oportunidad?",
                 backText: """
                 El costo de oportunidad es el valor de la mejor alternativa a la que renuncias cuando eliges una opción en lugar de otra.
@@ -462,37 +520,37 @@ private enum FlashcardsUITestMarketingFixtures {
                 tags: ["economía"]
             ),
             conceptCards: [
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "En economía, ¿qué es el costo de oportunidad?",
                     backText: "El valor de la mejor alternativa a la que renuncias cuando eliges otra opción.",
                     tags: ["economía"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "En biología, ¿qué es la ósmosis?",
                     backText: "El movimiento del agua a través de una membrana desde una concentración menor de solutos hacia una mayor.",
                     tags: ["biología"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "En estadística, ¿qué es la desviación estándar?",
                     backText: "Una medida de qué tan dispersos están los valores alrededor del promedio.",
                     tags: ["estadística"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "En química, ¿qué es un catalizador?",
                     backText: "Una sustancia que acelera una reacción química sin consumirse en el proceso.",
                     tags: ["química"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "En psicología, ¿qué es un sesgo cognitivo?",
                     backText: "Un patrón sistemático de pensamiento que puede distorsionar el juicio y la toma de decisiones.",
                     tags: ["psicología"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "En física, ¿qué es la velocidad?",
                     backText: "La rapidez de un objeto junto con la dirección de su movimiento.",
                     tags: ["física"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "En ciencias de la computación, ¿qué es la recursión?",
                     backText: "Un método en el que una función resuelve un problema llamándose a sí misma sobre versiones más pequeñas del mismo problema.",
                     tags: ["computación"]
@@ -501,7 +559,7 @@ private enum FlashcardsUITestMarketingFixtures {
         ),
         FlashcardsUITestMarketingLocaleFixture(
             localizationCode: "es-ES",
-            reviewCard: FlashcardsUITestSeedCard(
+            reviewCard: FlashcardsUITestFixtureCard(
                 frontText: "En economía, ¿qué es el coste de oportunidad?",
                 backText: """
                 El coste de oportunidad es el valor de la mejor alternativa a la que renuncias cuando eliges una opción en lugar de otra.
@@ -511,37 +569,37 @@ private enum FlashcardsUITestMarketingFixtures {
                 tags: ["economía"]
             ),
             conceptCards: [
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "En economía, ¿qué es el coste de oportunidad?",
                     backText: "El valor de la mejor alternativa a la que renuncias cuando eliges otra opción.",
                     tags: ["economía"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "En biología, ¿qué es la ósmosis?",
                     backText: "El movimiento del agua a través de una membrana desde una concentración menor de solutos hacia una mayor.",
                     tags: ["biología"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "En estadística, ¿qué es la desviación típica?",
                     backText: "Una medida de lo dispersos que están los valores alrededor de la media.",
                     tags: ["estadística"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "En química, ¿qué es un catalizador?",
                     backText: "Una sustancia que acelera una reacción química sin consumirse en el proceso.",
                     tags: ["química"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "En psicología, ¿qué es un sesgo cognitivo?",
                     backText: "Un patrón sistemático de pensamiento que puede distorsionar el juicio y la toma de decisiones.",
                     tags: ["psicología"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "En física, ¿qué es la velocidad?",
                     backText: "La rapidez de un objeto junto con la dirección de su movimiento.",
                     tags: ["física"]
                 ),
-                FlashcardsUITestSeedCard(
+                FlashcardsUITestFixtureCard(
                     frontText: "En informática, ¿qué es la recursión?",
                     backText: "Un método en el que una función resuelve un problema llamándose a sí misma sobre versiones más pequeñas del mismo problema.",
                     tags: ["informática"]
@@ -574,53 +632,77 @@ private enum FlashcardsUITestMarketingFixtures {
 
 @MainActor
 extension FlashcardsStore {
-    func applyUITestResetState(resetState: FlashcardsUITestResetState) throws {
-        try self.resetLocalStateForCloudIdentityChange()
-
-        switch resetState {
-        case .localGuest:
+    func applyUITestLaunchScenarioContent(
+        launchScenario: FlashcardsUITestLaunchScenario,
+        processInfo: ProcessInfo
+    ) throws {
+        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        switch launchScenario {
+        case .guestEmptyWorkspace:
             return
-        case .localGuestSeededManualReviewCard:
-            try self.seedUITestCard(card: FlashcardsUITestSeedData.manualReviewCard)
-        case .localGuestSeededAIReviewCard:
-            try self.seedUITestCard(card: FlashcardsUITestSeedData.aiReviewCard)
+        case .guestManualReviewCard:
+            try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.manualReviewCard, context: context)
+        case .guestAIReviewCard:
+            try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.aiReviewCard, context: context)
         case .marketingOpportunityCostReviewCard:
-            let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: ProcessInfo.processInfo)
-            try self.seedUITestCard(card: localeFixture.reviewCard)
+            let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: processInfo)
+            try self.createUITestCard(card: localeFixture.reviewCard, context: context)
         case .marketingConceptCards:
-            let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: ProcessInfo.processInfo)
-            try self.seedUITestCards(cards: localeFixture.conceptCards)
+            let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: processInfo)
+            try self.createUITestCards(cards: localeFixture.conceptCards, context: context)
         case .marketingProgress:
-            let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: ProcessInfo.processInfo)
-            try self.seedUITestProgress(cards: localeFixture.conceptCards)
+            let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: processInfo)
+            try self.createUITestProgressData(cards: localeFixture.conceptCards, context: context)
+        case .marketingGuestSessionCleanup:
+            return
         }
     }
 
-    private func seedUITestCards(cards: [FlashcardsUITestSeedCard]) throws {
-        for card in cards {
-            try self.seedUITestCard(card: card)
+    private func createUITestCards(
+        cards: [FlashcardsUITestFixtureCard],
+        context: LocalMutationContext
+    ) throws {
+        let inputs = cards.map { card in
+            self.cardEditorInput(card: card)
         }
+        _ = try context.database.createCards(workspaceId: context.workspaceId, inputs: inputs)
     }
 
-    private func seedUITestCard(card: FlashcardsUITestSeedCard) throws {
-        try self.saveCard(
+    private func createUITestCard(
+        card: FlashcardsUITestFixtureCard,
+        context: LocalMutationContext
+    ) throws {
+        _ = try context.database.saveCard(
+            workspaceId: context.workspaceId,
             input: self.cardEditorInput(card: card),
-            editingCardId: nil
+            cardId: nil
         )
     }
 
-    private func seedUITestProgress(cards: [FlashcardsUITestSeedCard]) throws {
-        let context: LocalMutationContext = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+    private func createUITestProgressData(
+        cards: [FlashcardsUITestFixtureCard],
+        context: LocalMutationContext
+    ) throws {
         let reviewSeeds: [FlashcardsUITestMarketingProgressReviewSeed] = try self.marketingProgressReviewSeeds(cards: cards)
         let now: Date = Date()
         let calendar: Calendar = Calendar.current
+        let createdCards = try context.database.createCards(
+            workspaceId: context.workspaceId,
+            inputs: reviewSeeds.map { reviewSeed in
+                self.cardEditorInput(card: reviewSeed.card)
+            }
+        )
 
-        for reviewSeed in reviewSeeds {
-            let card: Card = try context.database.saveCard(
-                workspaceId: context.workspaceId,
-                input: self.cardEditorInput(card: reviewSeed.card),
-                cardId: nil
+        guard createdCards.count == reviewSeeds.count else {
+            throw FlashcardsUITestLaunchScenarioError.createdCardCountMismatch(
+                expected: reviewSeeds.count,
+                actual: createdCards.count
             )
+        }
+
+        for index in reviewSeeds.indices {
+            let reviewSeed = reviewSeeds[index]
+            let card = createdCards[index]
             let reviewedAtClient: String = try self.marketingProgressReviewedAtClient(
                 dayOffset: reviewSeed.reviewedAtDayOffset,
                 now: now,
@@ -635,12 +717,10 @@ extension FlashcardsStore {
                 )
             )
         }
-
-        try self.reload(now: now, refreshVisibleProgress: false)
     }
 
     private func marketingProgressReviewSeeds(
-        cards: [FlashcardsUITestSeedCard]
+        cards: [FlashcardsUITestFixtureCard]
     ) throws -> [FlashcardsUITestMarketingProgressReviewSeed] {
         guard cards.count >= 7 else {
             throw LocalStoreError.validation("Marketing progress screenshots require at least 7 fixture cards.")
@@ -662,14 +742,11 @@ extension FlashcardsStore {
         now: Date,
         calendar: Calendar
     ) throws -> String {
+        let startOfToday = calendar.startOfDay(for: now)
         guard let todayNoon: Date = calendar.date(
-            bySettingHour: 12,
-            minute: 0,
-            second: 0,
-            of: now,
-            matchingPolicy: .nextTime,
-            repeatedTimePolicy: .first,
-            direction: .forward
+            byAdding: .hour,
+            value: 12,
+            to: startOfToday
         ),
             let reviewedAt: Date = calendar.date(
                 byAdding: .day,
@@ -683,7 +760,7 @@ extension FlashcardsStore {
         return formatIsoTimestamp(date: reviewedAt)
     }
 
-    private func cardEditorInput(card: FlashcardsUITestSeedCard) -> CardEditorInput {
+    private func cardEditorInput(card: FlashcardsUITestFixtureCard) -> CardEditorInput {
         CardEditorInput(
             frontText: card.frontText,
             backText: card.backText,

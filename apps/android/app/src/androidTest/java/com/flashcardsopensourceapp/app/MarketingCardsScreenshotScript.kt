@@ -1,8 +1,7 @@
 package com.flashcardsopensourceapp.app
 
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -15,7 +14,7 @@ private const val cardsScreenshotSlug: String = "cards-list-google-play-vocabula
 @ManualOnlyAndroidTest
 @RunWith(AndroidJUnit4::class)
 class MarketingCardsScreenshotScript {
-    private val appStateResetRule = AppStateResetRule()
+    private val appStateResetRule = MarketingScreenshotAppStateResetRule()
     private val composeRule = createMarketingScreenshotComposeRule()
 
     @get:Rule
@@ -26,6 +25,11 @@ class MarketingCardsScreenshotScript {
     @Test
     fun generateConceptCardsListScreenshot() {
         val localeConfig = activeMarketingScreenshotLocaleConfig()
+        runBlocking {
+            createRepositorySeedExecutor().seedCardsAndReviewsInGuestCloudWorkspace(
+                seedScenario = marketingCardsRepositorySeedScenario(localeConfig = localeConfig)
+            )
+        }
         val robot = MarketingScreenshotRobot(
             composeRule = composeRule,
             localeConfig = localeConfig
@@ -36,21 +40,7 @@ class MarketingCardsScreenshotScript {
             screenshotSlug = cardsScreenshotSlug
         )
 
-        robot.waitForCardsEmptyState()
-        localeConfig.cards.forEach { card ->
-            robot.createCard(
-                frontText = card.frontText,
-                backText = card.backText,
-                tags = listOf(card.subjectTag),
-                effortLevel = EffortLevel.MEDIUM
-            )
-        }
-
-        composeRule.waitUntil(timeoutMillis = 10_000L) {
-            localeConfig.cards.all { card ->
-                composeRule.onAllNodesWithText(card.frontText).fetchSemanticsNodes().isNotEmpty()
-            }
-        }
+        robot.waitForRepositorySeededCards(frontTexts = localeConfig.cards.map { card -> card.frontText })
 
         val screenshotPath = robot.saveScreenshot(fileName = cardsScreenshotFileName)
         val screenshotListing = robot.runShellCommand(command = "ls $screenshotPath")

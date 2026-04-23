@@ -187,7 +187,7 @@ const enCatalog = {
     },
     accountSettings: {
       title: "Account Settings",
-      description: "Review account status, support, connections, and danger-zone actions.",
+      description: "Account status, support, connections, and danger-zone actions.",
       value: "Account",
     },
     device: {

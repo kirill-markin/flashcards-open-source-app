@@ -105,7 +105,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
     const requestId = getRequestId(c);
     const demoPassword = await dependencies.getDemoEmailPassword(email);
     if (demoPassword !== null) {
-      // This intentionally disables OTP protection for configured review/demo
+      // This intentionally disables OTP protection for configured review account
       // emails. The allowlist is restricted to synthetic @example.com accounts.
       // Anyone who knows one of these emails and the shared insecure demo
       // password can sign in to that account without OTP.

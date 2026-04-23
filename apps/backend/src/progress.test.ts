@@ -337,7 +337,7 @@ test("loadUserProgressSummaryInExecutor merges all-time review dates across work
   });
 });
 
-test("loadUserProgressSeriesInExecutor queries review events with requested timezone day bucketing", async () => {
+test("loadUserProgressSeriesInExecutor buckets review counts by reviewed_at_client in the requested timezone", async () => {
   const { executor, recordedQueries } = createProgressExecutor({
     workspaceIdsByUser: {
       "user-1": ["workspace-1"],
@@ -364,6 +364,7 @@ test("loadUserProgressSeriesInExecutor queries review events with requested time
   assert.match(reviewQuery.text, /timezone\(\$2, review_events\.reviewed_at_client\)::date/);
   assert.match(reviewQuery.text, /review_events\.reviewed_at_client >= \(\(\$3::date\)::timestamp AT TIME ZONE \$2\)/);
   assert.match(reviewQuery.text, /review_events\.reviewed_at_client < \(\(\(\(\$4::date\) \+ 1\)::timestamp\) AT TIME ZONE \$2\)/);
+  assert.doesNotMatch(reviewQuery.text, /reviewed_at_server/);
   assert.deepEqual(reviewQuery.params, [
     "workspace-1",
     "America/Los_Angeles",
@@ -372,7 +373,7 @@ test("loadUserProgressSeriesInExecutor queries review events with requested time
   ]);
 });
 
-test("loadUserProgressSummaryInExecutor queries all-time distinct review dates with the requested timezone", async () => {
+test("loadUserProgressSummaryInExecutor derives active review dates from reviewed_at_client in the requested timezone", async () => {
   const { executor, recordedQueries } = createProgressExecutor({
     workspaceIdsByUser: {
       "user-1": ["workspace-1"],
@@ -397,6 +398,7 @@ test("loadUserProgressSummaryInExecutor queries all-time distinct review dates w
     assert.fail("Expected an all-time review date query to be recorded");
   }
   assert.match(summaryQuery.text, /ORDER BY review_local_dates\.review_local_date DESC/);
+  assert.doesNotMatch(summaryQuery.text, /reviewed_at_server/);
   assert.deepEqual(summaryQuery.params, [
     "workspace-1",
     "America/Los_Angeles",

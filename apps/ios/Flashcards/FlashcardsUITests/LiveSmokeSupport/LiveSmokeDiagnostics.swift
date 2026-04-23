@@ -104,9 +104,9 @@ extension LiveSmokeTestCase {
             return "<app not initialized>"
         }
 
-        let resetState = self.app.launchEnvironment[LiveSmokeConfiguration.resetStateEnvironmentKey] ?? "-"
+        let launchScenario = self.app.launchEnvironment[LiveSmokeConfiguration.launchScenarioEnvironmentKey] ?? "-"
         let selectedTab = self.app.launchEnvironment[LiveSmokeConfiguration.selectedTabEnvironmentKey] ?? "-"
-        return "resetState=\(resetState) selectedTab=\(selectedTab)"
+        return "launchScenario=\(launchScenario) selectedTab=\(selectedTab)"
     }
 
     @MainActor
