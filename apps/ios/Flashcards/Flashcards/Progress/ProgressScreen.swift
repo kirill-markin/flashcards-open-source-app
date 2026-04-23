@@ -44,6 +44,8 @@ struct ProgressScreen: View {
                             calendar: presentationCalendar
                         )
                     }
+                    .accessibilityIdentifier(UITestIdentifier.progressStreakSection)
+                    .accessibilityValue(progressSummaryUITestValue(summary: progressSnapshot.summary))
                     .modifier(ProgressCardModifier())
 
                     VStack(alignment: .leading, spacing: 0) {
@@ -53,6 +55,7 @@ struct ProgressScreen: View {
                             selectionResetKey: progressSnapshot.scopeKey.storageKey
                         )
                     }
+                    .accessibilityIdentifier(UITestIdentifier.progressReviewsSection)
                     .modifier(ProgressCardModifier())
                 } else if self.store.isProgressRefreshing == false {
                     VStack(alignment: .leading, spacing: 0) {
@@ -95,6 +98,15 @@ struct ProgressScreen: View {
             await self.store.refreshProgressManually()
         }
     }
+}
+
+private func progressSummaryUITestValue(summary: ProgressSummary) -> String {
+    let components: [String] = [
+        "currentStreakDays=\(summary.currentStreakDays)",
+        "hasReviewedToday=\(summary.hasReviewedToday ? "true" : "false")",
+        "activeReviewDays=\(summary.activeReviewDays)"
+    ]
+    return components.joined(separator: ";")
 }
 
 private struct ProgressCardModifier: ViewModifier {

@@ -49,8 +49,15 @@ struct MarketingScreenshotLocaleFixture {
 
     var cardsFileName: String {
         self.screenshotFileName(
-            screenshotIndex: 3,
+            screenshotIndex: 5,
             screenshotSlug: MarketingScreenshotFixture.cardsScreenshotSlug
+        )
+    }
+
+    var progressFileName: String {
+        self.screenshotFileName(
+            screenshotIndex: 3,
+            screenshotSlug: MarketingScreenshotFixture.progressScreenshotSlug
         )
     }
 
@@ -580,6 +587,7 @@ enum MarketingScreenshotFixture {
     static let defaultLocalizationCode: String = "en-US"
     static let reviewFrontScreenshotSlug: String = "review-card-front-app-store-opportunity-cost"
     static let reviewResultScreenshotSlug: String = "review-card-result-app-store-opportunity-cost"
+    static let progressScreenshotSlug: String = "progress-app-store-study-history"
     static let cardsScreenshotSlug: String = "cards-list-app-store-vocabulary"
     static let reviewAiDraftScreenshotSlug: String = "review-card-ai-draft-app-store-opportunity-cost"
     static let supportedLocalizationCodes: [String] = MarketingScreenshotLocaleCatalog.supportedLocalizationCodes

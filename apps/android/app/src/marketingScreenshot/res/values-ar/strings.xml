@@ -1,8 +1,14 @@
 <resources>
     <string name="top_level_review">المراجعة</string>
+    <string name="top_level_progress">التقدم</string>
     <string name="top_level_cards">البطاقات</string>
     <string name="top_level_ai">AI</string>
     <string name="top_level_settings">الإعدادات</string>
+
+    <string name="progress_title">التقدم</string>
+    <string name="progress_streak_title">السلسلة</string>
+    <string name="progress_streak_subtitle">آخر 5 أسابيع</string>
+    <string name="progress_reviews_title">المراجعات</string>
 
     <string name="cards_title">البطاقات</string>
     <string name="cards_add_card_content_description">إضافة بطاقة</string>

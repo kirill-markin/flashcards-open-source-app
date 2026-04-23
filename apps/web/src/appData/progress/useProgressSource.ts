@@ -210,6 +210,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     });
   }, [
     accessibleWorkspaceIds,
+    canLoadServerBase,
     manualRefreshVersion,
     progressLocalVersion,
     summaryInput,
@@ -253,6 +254,7 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     });
   }, [
     accessibleWorkspaceIds,
+    canLoadServerBase,
     manualRefreshVersion,
     progressLocalVersion,
     seriesInput,

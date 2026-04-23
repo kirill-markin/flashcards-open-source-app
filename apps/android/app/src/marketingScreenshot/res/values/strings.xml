@@ -1,8 +1,14 @@
 <resources>
     <string name="top_level_review">Review</string>
+    <string name="top_level_progress">Progress</string>
     <string name="top_level_cards">Cards</string>
     <string name="top_level_ai">AI</string>
     <string name="top_level_settings">Settings</string>
+
+    <string name="progress_title">Progress</string>
+    <string name="progress_streak_title">Streak</string>
+    <string name="progress_streak_subtitle">Last 5 weeks</string>
+    <string name="progress_reviews_title">Reviews</string>
 
     <string name="cards_title">Cards</string>
     <string name="cards_add_card_content_description">Add card</string>

@@ -1,8 +1,14 @@
 <resources>
     <string name="top_level_review">Repasar</string>
+    <string name="top_level_progress">Progreso</string>
     <string name="top_level_cards">Tarjetas</string>
     <string name="top_level_ai">AI</string>
     <string name="top_level_settings">Ajustes</string>
+
+    <string name="progress_title">Progreso</string>
+    <string name="progress_streak_title">Racha</string>
+    <string name="progress_streak_subtitle">Últimas 5 semanas</string>
+    <string name="progress_reviews_title">Repasos</string>
 
     <string name="cards_title">Tarjetas</string>
     <string name="cards_add_card_content_description">Agregar tarjeta</string>
