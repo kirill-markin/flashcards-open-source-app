@@ -1,8 +1,14 @@
 <resources>
     <string name="top_level_review">Wiederholen</string>
+    <string name="top_level_progress">Fortschritt</string>
     <string name="top_level_cards">Karten</string>
     <string name="top_level_ai">AI</string>
     <string name="top_level_settings">Einstellungen</string>
+
+    <string name="progress_title">Fortschritt</string>
+    <string name="progress_streak_title">Serie</string>
+    <string name="progress_streak_subtitle">Letzte 5 Wochen</string>
+    <string name="progress_reviews_title">Wiederholungen</string>
 
     <string name="cards_title">Karten</string>
     <string name="cards_add_card_content_description">Karte hinzufügen</string>

@@ -5,9 +5,9 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 android_dir="$repo_root/apps/android"
 locale_prefix="${FLASHCARDS_MARKETING_LOCALE_PREFIX:-en}"
-file_name="${locale_prefix}-5_cards-list-google-play-vocabulary.png"
+file_name="${locale_prefix}-3_progress-google-play-study-history.png"
 output_path="$repo_root/apps/android/docs/media/play-store-screenshots/$file_name"
-script_class="com.flashcardsopensourceapp.app.MarketingCardsScreenshotScript"
+script_class="com.flashcardsopensourceapp.app.MarketingProgressScreenshotScript"
 remote_screenshot_path="/sdcard/Download/flashcards-marketing-screenshots/$file_name"
 
 if [[ "$(adb get-state 2>/dev/null)" != "device" ]]; then
@@ -25,7 +25,7 @@ fi
 "$repo_root/scripts/android-dismiss-system-dialogs.sh"
 
 cd "$android_dir"
-echo "Running manual Android marketing screenshot script for the Cards screen."
+echo "Running manual Android marketing screenshot script for the Progress screen."
 ./gradlew :app:connectedMarketingScreenshotAndroidTest \
   "-Pandroid.testInstrumentationRunnerArguments.includeManualOnly=true" \
   "-Pandroid.testInstrumentationRunnerArguments.marketingLocalePrefix=$locale_prefix" \

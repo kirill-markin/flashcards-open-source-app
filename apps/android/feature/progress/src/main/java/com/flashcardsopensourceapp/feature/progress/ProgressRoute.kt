@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -77,6 +78,9 @@ private val reviewChartBarAreaHeight = reviewChartHeight - reviewChartVerticalPa
 private val reviewChartAxisWidth = 28.dp
 private val reviewChartLabelHeight = 20.dp
 private const val progressStreakOverflowThreshold: Int = 99
+const val progressStreakSectionTag: String = "progress_streak_section"
+const val progressReviewsSectionTag: String = "progress_reviews_section"
+const val progressReviewsActivityChartTag: String = "progress_reviews_activity_chart"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -285,7 +289,9 @@ private fun StreakSectionCard(
     uiState: ProgressStreakSectionUiState
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(progressStreakSectionTag),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
@@ -523,7 +529,9 @@ private fun ReviewsSectionCard(
     val visiblePage = uiState.pages.getOrNull(selectedPageIndex)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(progressReviewsSectionTag),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
@@ -623,6 +631,7 @@ private fun ReviewsSectionCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(reviewChartHeight)
+                                    .testTag(progressReviewsActivityChartTag)
                                     .clip(RoundedCornerShape(22.dp))
                                     .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                                     .drawBehind {

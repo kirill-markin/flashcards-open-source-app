@@ -18,6 +18,8 @@ enum LiveSmokeIdentifier {
     static let reviewScreen: String = "review.screen"
     static let aiScreen: String = "ai.screen"
     static let progressScreen: String = "progress.screen"
+    static let progressStreakSection: String = "progress.streakSection"
+    static let progressReviewsSection: String = "progress.reviewsSection"
     static let cardsScreen: String = "cards.screen"
     static let settingsScreen: String = "settings.screen"
     static let settingsCurrentWorkspaceRow: String = "settings.currentWorkspaceRow"
@@ -95,6 +97,7 @@ enum LiveSmokeLaunchResetState: String {
     case localGuestSeededAIReviewCard = "local_guest_seeded_ai_review_card"
     case marketingOpportunityCostReviewCard = "marketing_opportunity_cost_review_card"
     case marketingConceptCards = "marketing_concept_cards"
+    case marketingProgress = "marketing_progress"
 }
 
 struct LiveSmokeTabBarItemLookup {
