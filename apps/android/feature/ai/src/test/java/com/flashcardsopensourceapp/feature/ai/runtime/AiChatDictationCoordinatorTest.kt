@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.data.local.model.AiChatTranscriptionResult
+import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -14,6 +15,71 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AiChatDictationCoordinatorTest {
+    @Test
+    fun dictationCanStartDuringAcceptedRunningPhase() = runTest {
+        val context = makeRuntimeContext(
+            scope = this,
+            repository = FakeAiChatRepository(),
+            autoSyncEventRepository = FakeAutoSyncEventRepository()
+        )
+        val dictationCoordinator = makeDictationCoordinator(context = context)
+        context.runtimeStateMutable.value = makeAiDraftState(
+            workspaceId = defaultTestWorkspaceId,
+            persistedState = makeDefaultAiChatPersistedState()
+        ).copy(
+            activeRun = makeActiveRun(runId = "run-1", cursor = "0"),
+            composerPhase = AiComposerPhase.RUNNING
+        )
+
+        dictationCoordinator.startDictationRecording()
+
+        assertEquals(AiChatDictationState.RECORDING, context.state.value.dictationState)
+    }
+
+    @Test
+    fun dictationStartRemainsBlockedDuringLockedPhasesAndWhenDisabled() = runTest {
+        val context = makeRuntimeContext(
+            scope = this,
+            repository = FakeAiChatRepository(),
+            autoSyncEventRepository = FakeAutoSyncEventRepository()
+        )
+        val dictationCoordinator = makeDictationCoordinator(context = context)
+        val disabledConfig = defaultAiChatServerConfig.copy(
+            features = defaultAiChatServerConfig.features.copy(dictationEnabled = false)
+        )
+        val lockedStates: List<AiChatRuntimeState> = listOf(
+            makeAiDraftState(
+                workspaceId = defaultTestWorkspaceId,
+                persistedState = makeDefaultAiChatPersistedState()
+            ).copy(composerPhase = AiComposerPhase.PREPARING_SEND),
+            makeAiDraftState(
+                workspaceId = defaultTestWorkspaceId,
+                persistedState = makeDefaultAiChatPersistedState()
+            ).copy(composerPhase = AiComposerPhase.STARTING_RUN),
+            makeAiDraftState(
+                workspaceId = defaultTestWorkspaceId,
+                persistedState = makeDefaultAiChatPersistedState()
+            ).copy(
+                activeRun = makeActiveRun(runId = "run-1", cursor = "0"),
+                composerPhase = AiComposerPhase.STOPPING
+            ),
+            makeAiDraftState(
+                workspaceId = defaultTestWorkspaceId,
+                persistedState = makeDefaultAiChatPersistedState().copy(
+                    lastKnownChatConfig = disabledConfig
+                )
+            )
+        )
+
+        lockedStates.forEach { runtimeState ->
+            context.runtimeStateMutable.value = runtimeState
+
+            dictationCoordinator.startDictationRecording()
+
+            assertEquals(AiChatDictationState.IDLE, context.state.value.dictationState)
+        }
+    }
+
     @Test
     fun freshConversationResetCancelsInFlightTranscriptionAndIgnoresLateResult() = runTest {
         val repository = FakeAiChatRepository()
@@ -29,17 +95,11 @@ class AiChatDictationCoordinatorTest {
             autoSyncEventRepository = FakeAutoSyncEventRepository()
         )
 
-        lateinit var dictationCoordinator: AiChatDictationCoordinator
+        val dictationCoordinator = makeDictationCoordinator(context = context)
         val sessionCoordinator = AiChatSessionCoordinator(
             context = context,
             detachLiveStream = { _ -> Unit },
-            cancelActiveDictation = { reason ->
-                dictationCoordinator.cancelActiveTranscription(reason = reason)
-            }
-        )
-        dictationCoordinator = AiChatDictationCoordinator(
-            context = context,
-            sessionCoordinator = sessionCoordinator
+            cancelActiveDictation = dictationCoordinator::cancelActiveTranscription
         )
         context.runtimeStateMutable.value = makeAiDraftState(
             workspaceId = defaultTestWorkspaceId,
@@ -74,5 +134,21 @@ class AiChatDictationCoordinatorTest {
         assertEquals(freshSessionId, context.state.value.persistedState.chatSessionId)
         assertEquals("", context.state.value.draftMessage)
         assertEquals(listOf("session-1"), repository.transcribeAudioSessionIds)
+    }
+
+    private fun makeDictationCoordinator(context: AiChatRuntimeContext): AiChatDictationCoordinator {
+        lateinit var dictationCoordinator: AiChatDictationCoordinator
+        val sessionCoordinator = AiChatSessionCoordinator(
+            context = context,
+            detachLiveStream = { _ -> Unit },
+            cancelActiveDictation = { reason ->
+                dictationCoordinator.cancelActiveTranscription(reason = reason)
+            }
+        )
+        dictationCoordinator = AiChatDictationCoordinator(
+            context = context,
+            sessionCoordinator = sessionCoordinator
+        )
+        return dictationCoordinator
     }
 }

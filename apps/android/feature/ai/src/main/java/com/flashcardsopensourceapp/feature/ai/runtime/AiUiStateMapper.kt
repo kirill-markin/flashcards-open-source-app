@@ -3,6 +3,8 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
 import com.flashcardsopensourceapp.data.local.model.AppMetadataStorage
 import com.flashcardsopensourceapp.data.local.model.AppMetadataSyncStatus
+import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.defaultAiChatServerConfig
@@ -49,10 +51,12 @@ internal fun mapToAiUiState(
     val isConversationReady = runtimeState.conversationBootstrapState == AiConversationBootstrapState.READY
     val isConversationLoading = runtimeState.conversationBootstrapState == AiConversationBootstrapState.LOADING
         || runtimeState.conversationBootstrapState == AiConversationBootstrapState.RESETTING
+    val chatConfig = effectiveAiChatServerConfig(runtimeState.persistedState.lastKnownChatConfig)
     val isCardHandoffReady = hasConsent &&
         runtimeState.workspaceId != null &&
         isConversationReady &&
-        runtimeState.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE &&
+        runtimeState.dictationState == AiChatDictationState.IDLE &&
+        canPrepareAiDraftInComposerPhase(composerPhase = runtimeState.composerPhase) &&
         shouldPrepareGuestAccess(
             accessContext = AiAccessContext(
                 workspaceId = runtimeState.workspaceId,
@@ -67,12 +71,14 @@ internal fun mapToAiUiState(
     val isComposerBusy = runtimeState.composerPhase != AiComposerPhase.IDLE || isConversationLoading || hasActiveRun
     val canEditConversation = isComposerBusy.not()
         && isConversationReady
-        && runtimeState.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
+        && runtimeState.dictationState == AiChatDictationState.IDLE
+    val canEditDraft = canEditAiDraft(state = runtimeState)
+    val canManageDraftAttachments = canManageAiDraftAttachments(state = runtimeState)
     val composerSuggestions = if (
         isConversationReady
         && runtimeState.composerPhase == AiComposerPhase.IDLE
         && hasActiveRun.not()
-        && runtimeState.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
+        && runtimeState.dictationState == AiChatDictationState.IDLE
         && runtimeState.pendingAttachments.isEmpty()
         && runtimeState.draftMessage.trim().isEmpty()
     ) {
@@ -88,7 +94,7 @@ internal fun mapToAiUiState(
         draftMessage = runtimeState.draftMessage,
         focusComposerRequestVersion = runtimeState.focusComposerRequestVersion,
         composerSuggestions = composerSuggestions,
-        chatConfig = effectiveAiChatServerConfig(runtimeState.persistedState.lastKnownChatConfig),
+        chatConfig = chatConfig,
         isConsentRequired = hasConsent.not(),
         isLinked = isLinked,
         isConversationReady = isConversationReady,
@@ -100,12 +106,19 @@ internal fun mapToAiUiState(
         isComposerBusy = isComposerBusy,
         isStreaming = isStreaming,
         canStopStreaming = hasActiveRun && runtimeState.composerPhase != AiComposerPhase.STOPPING,
+        canEditDraft = canEditDraft,
+        canManageDraftAttachments = canManageDraftAttachments,
+        canAddDraftAttachment = canManageDraftAttachments && chatConfig.features.attachmentsEnabled,
+        canToggleDictation = canToggleDictation(
+            runtimeState = runtimeState,
+            chatConfig = chatConfig
+        ),
         dictationState = runtimeState.dictationState,
         canSend = hasConsent
             && isConversationReady
             && runtimeState.composerPhase == AiComposerPhase.IDLE
             && hasActiveRun.not()
-            && runtimeState.dictationState == com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE
+            && runtimeState.dictationState == AiChatDictationState.IDLE
             && (hasDraftText || hasSendableAttachments),
         canStartNewChat = canEditConversation
             && (hasMessages || hasDraftText || runtimeState.pendingAttachments.isNotEmpty()),
@@ -135,11 +148,30 @@ internal fun makeInitialAiUiState(hasConsent: Boolean, textProvider: AiTextProvi
         isComposerBusy = false,
         isStreaming = false,
         canStopStreaming = false,
-        dictationState = com.flashcardsopensourceapp.data.local.model.AiChatDictationState.IDLE,
+        canEditDraft = false,
+        canManageDraftAttachments = false,
+        canAddDraftAttachment = false,
+        canToggleDictation = false,
+        dictationState = AiChatDictationState.IDLE,
         canSend = false,
         canStartNewChat = false,
         repairStatus = null,
         activeAlert = null,
         errorMessage = ""
     )
+}
+
+private fun canToggleDictation(
+    runtimeState: AiChatRuntimeState,
+    chatConfig: AiChatServerConfig
+): Boolean {
+    if (runtimeState.dictationState == AiChatDictationState.RECORDING) {
+        return true
+    }
+    if (runtimeState.dictationState != AiChatDictationState.IDLE) {
+        return false
+    }
+    return chatConfig.features.dictationEnabled && canPrepareAiDraftInComposerPhase(
+        composerPhase = runtimeState.composerPhase
+    ) && runtimeState.conversationBootstrapState == AiConversationBootstrapState.READY
 }

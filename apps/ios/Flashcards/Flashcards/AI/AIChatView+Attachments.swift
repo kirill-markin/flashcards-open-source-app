@@ -4,6 +4,10 @@ import SwiftUI
 extension AIChatView {
     func handleSelectedPhotoItem(_ item: PhotosPickerItem) async {
         do {
+            guard self.chatStore.canAttachToDraft else {
+                self.selectedPhotoItem = nil
+                return
+            }
             guard self.ensureExternalAIConsent() else {
                 self.selectedPhotoItem = nil
                 return
@@ -31,6 +35,9 @@ extension AIChatView {
 
     func handleCapturedPhotoData(_ data: Data) {
         do {
+            guard self.chatStore.canAttachToDraft else {
+                return
+            }
             guard self.ensureExternalAIConsent() else {
                 return
             }
@@ -47,6 +54,9 @@ extension AIChatView {
 
     func handleImportedFiles(_ urls: [URL]) async {
         do {
+            guard self.chatStore.canAttachToDraft else {
+                return
+            }
             guard self.ensureExternalAIConsent() else {
                 return
             }
@@ -60,6 +70,9 @@ extension AIChatView {
     }
 
     func handleAttachmentMenuAction(_ action: AIChatAttachmentMenuAction) {
+        guard self.chatStore.canAttachToDraft else {
+            return
+        }
         guard self.ensureExternalAIConsent() else {
             return
         }

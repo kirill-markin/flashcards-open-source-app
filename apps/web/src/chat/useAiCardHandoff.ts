@@ -18,11 +18,39 @@ export function useAiCardHandoff(): (card: Card) => Promise<boolean> {
     }
 
     const sourceSessionId = session.currentSessionId;
+    if (draftContext.composerSendPhase !== "idle") {
+      return false;
+    }
+
+    if (session.isStopping) {
+      return false;
+    }
+
+    if (session.isAssistantRunActive) {
+      if (sourceSessionId === null) {
+        return false;
+      }
+
+      draftContext.replaceDraftForSession(
+        sourceSessionId,
+        {
+          inputText: draftContext.draft.inputText,
+          pendingAttachments: [
+            ...draftContext.draft.pendingAttachments,
+            makeCardPendingAttachment(card),
+          ],
+        },
+      );
+      if (chatLayout.isOpen === false) {
+        chatLayout.setIsOpen(true);
+      }
+      draftContext.requestComposerFocus();
+      return true;
+    }
+
     const isDirtyConversation = session.messages.length > 0
       || draftContext.draft.inputText.trim() !== ""
-      || draftContext.draft.pendingAttachments.length > 0
-      || session.isAssistantRunActive
-      || session.isStopping;
+      || draftContext.draft.pendingAttachments.length > 0;
     let targetSessionId = sourceSessionId;
 
     try {

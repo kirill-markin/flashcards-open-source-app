@@ -78,13 +78,6 @@ internal fun AiComposer(
 ) {
     val context = LocalContext.current
     val textProvider = remember(context) { aiTextProvider(context = context) }
-    val canEditDraft = uiState.isStreaming.not() && uiState.dictationState == AiChatDictationState.IDLE
-    val canManageAttachments =
-        uiState.isConversationLoading.not()
-            && uiState.isComposerBusy.not()
-            && uiState.dictationState == AiChatDictationState.IDLE
-    val isDictationBusy = uiState.dictationState == AiChatDictationState.REQUESTING_PERMISSION
-        || uiState.dictationState == AiChatDictationState.TRANSCRIBING
     val focusRequester = remember { FocusRequester() }
     val providerAndModelLabel = "${uiState.chatConfig.provider.label} · ${uiState.chatConfig.model.badgeLabel}"
     val primaryActionLabel = stringResource(
@@ -168,7 +161,7 @@ internal fun AiComposer(
                                     onClick = {
                                         onRemovePendingAttachment(attachment.id)
                                     },
-                                    enabled = canManageAttachments,
+                                    enabled = uiState.canManageDraftAttachments,
                                     modifier = Modifier.size(aiComposerActionSize)
                                 ) {
                                     Icon(
@@ -223,7 +216,7 @@ internal fun AiComposer(
                 },
                 minLines = 1,
                 maxLines = aiComposerMaximumLineCount,
-                enabled = canEditDraft,
+                enabled = uiState.canEditDraft,
                 trailingIcon = {
                     FilledIconButton(
                         onClick = if (uiState.canStopStreaming) {
@@ -322,7 +315,7 @@ internal fun AiComposer(
 
                 IconButton(
                     onClick = onOpenAttachmentMenu,
-                    enabled = canManageAttachments && uiState.chatConfig.features.attachmentsEnabled,
+                    enabled = uiState.canAddDraftAttachment,
                     modifier = Modifier.size(aiComposerActionSize)
                 ) {
                     Icon(
@@ -333,7 +326,7 @@ internal fun AiComposer(
 
                 IconButton(
                     onClick = onToggleDictation,
-                    enabled = uiState.isComposerBusy.not() && isDictationBusy.not() && uiState.chatConfig.features.dictationEnabled,
+                    enabled = uiState.canToggleDictation,
                     modifier = Modifier.size(aiComposerActionSize)
                 ) {
                     Icon(
