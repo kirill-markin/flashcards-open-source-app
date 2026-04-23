@@ -30,13 +30,14 @@ import androidx.test.uiautomator.UiDevice
 import com.flashcardsopensourceapp.app.livesmoke.dismissBlockingSystemDialogIfPresent
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
+import com.flashcardsopensourceapp.app.navigation.ProgressDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerPendingAttachmentTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorEffortLevelTag
@@ -49,6 +50,10 @@ import com.flashcardsopensourceapp.feature.cards.cardTagsInputFieldTag
 import com.flashcardsopensourceapp.feature.cards.cardsAddCardButtonTag
 import com.flashcardsopensourceapp.feature.cards.cardsEmptyStateTag
 import com.flashcardsopensourceapp.feature.cards.cardsSearchFieldTag
+import com.flashcardsopensourceapp.feature.progress.progressReviewsActivityChartTag
+import com.flashcardsopensourceapp.feature.progress.progressReviewsSectionTag
+import com.flashcardsopensourceapp.feature.progress.progressStreakSectionTag
+import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
 import com.flashcardsopensourceapp.feature.review.reviewRateAgainButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateEasyButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
@@ -65,6 +70,7 @@ import org.junit.runners.model.Statement
 private const val screenshotUiTimeoutMillis: Long = 10_000L
 private const val aiScreenshotUiTimeoutMillis: Long = 30_000L
 private const val aiAttachmentUiTimeoutMillis: Long = 60_000L
+private const val progressScreenshotUiTimeoutMillis: Long = 30_000L
 private const val marketingScreenshotDirectoryPath: String = "/sdcard/Download/flashcards-marketing-screenshots"
 
 internal typealias MainActivityComposeRule =
@@ -225,6 +231,14 @@ internal class MarketingScreenshotRobot(
         composeRule.onNodeWithTag(reviewRateGoodButtonTag).fetchSemanticsNode()
     }
 
+    fun prepareStudyHistoryProgressScreen() {
+        prepareOpportunityCostReviewCardForReview()
+        revealAnswerAndWaitForRatings()
+        rateGoodAndWaitForReviewCompletion()
+        openProgressTab()
+        waitForLoadedProgressWithReviewActivity()
+    }
+
     fun openAiFromRevealedOpportunityCostCardAndPrepareDraft(draftText: String) {
         ensureLocaleApplied()
         val consentTitle = composeRule.activity.getString(AiFeatureR.string.ai_consent_title)
@@ -280,6 +294,10 @@ internal class MarketingScreenshotRobot(
 
     private fun openAiTab() {
         clickTag(tag = AiDestination.testTag)
+    }
+
+    private fun openProgressTab() {
+        clickTag(tag = ProgressDestination.testTag)
     }
 
     private fun ensureLocaleApplied() {
@@ -350,6 +368,21 @@ internal class MarketingScreenshotRobot(
         waitUntilWithSystemDialogMitigation {
             composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun rateGoodAndWaitForReviewCompletion() {
+        clickTag(tag = reviewRateGoodButtonTag)
+        waitUntilWithSystemDialogMitigation {
+            composeRule.onAllNodesWithTag(reviewEmptyStateTag).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun waitForLoadedProgressWithReviewActivity() {
+        waitUntilWithSystemDialogMitigation(timeoutMillis = progressScreenshotUiTimeoutMillis) {
+            composeRule.onAllNodesWithTag(progressStreakSectionTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(progressReviewsSectionTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(progressReviewsActivityChartTag).fetchSemanticsNodes().isNotEmpty()
         }
     }
 

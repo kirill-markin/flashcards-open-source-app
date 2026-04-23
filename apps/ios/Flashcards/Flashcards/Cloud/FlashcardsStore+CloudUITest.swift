@@ -8,6 +8,7 @@ enum FlashcardsUITestResetState: String {
     case localGuestSeededAIReviewCard = "local_guest_seeded_ai_review_card"
     case marketingOpportunityCostReviewCard = "marketing_opportunity_cost_review_card"
     case marketingConceptCards = "marketing_concept_cards"
+    case marketingProgress = "marketing_progress"
 }
 
 private struct FlashcardsUITestSeedCard {
@@ -22,6 +23,12 @@ private struct FlashcardsUITestMarketingLocaleFixture {
     let conceptCards: [FlashcardsUITestSeedCard]
 }
 
+private struct FlashcardsUITestMarketingProgressReviewSeed {
+    let card: FlashcardsUITestSeedCard
+    let reviewedAtDayOffset: Int
+    let rating: ReviewRating
+}
+
 private enum FlashcardsUITestSeedData {
     static let manualReviewCard: FlashcardsUITestSeedCard = FlashcardsUITestSeedCard(
         frontText: "Smoke seeded manual review question",
@@ -33,6 +40,17 @@ private enum FlashcardsUITestSeedData {
         backText: "Smoke seeded AI review answer",
         tags: ["smoke-seeded-ai-review"]
     )
+}
+
+private enum FlashcardsUITestMarketingProgressSeedError: LocalizedError {
+    case reviewedAtDateCreationFailed(dayOffset: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .reviewedAtDateCreationFailed(let dayOffset):
+            return "Failed to create marketing progress review timestamp for day offset \(dayOffset)."
+        }
+    }
 }
 
 private enum FlashcardsUITestMarketingFixtureError: LocalizedError {
@@ -572,6 +590,9 @@ extension FlashcardsStore {
         case .marketingConceptCards:
             let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: ProcessInfo.processInfo)
             try self.seedUITestCards(cards: localeFixture.conceptCards)
+        case .marketingProgress:
+            let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: ProcessInfo.processInfo)
+            try self.seedUITestProgress(cards: localeFixture.conceptCards)
         }
     }
 
@@ -583,13 +604,91 @@ extension FlashcardsStore {
 
     private func seedUITestCard(card: FlashcardsUITestSeedCard) throws {
         try self.saveCard(
-            input: CardEditorInput(
-                frontText: card.frontText,
-                backText: card.backText,
-                tags: card.tags,
-                effortLevel: .medium
-            ),
+            input: self.cardEditorInput(card: card),
             editingCardId: nil
+        )
+    }
+
+    private func seedUITestProgress(cards: [FlashcardsUITestSeedCard]) throws {
+        let context: LocalMutationContext = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let reviewSeeds: [FlashcardsUITestMarketingProgressReviewSeed] = try self.marketingProgressReviewSeeds(cards: cards)
+        let now: Date = Date()
+        let calendar: Calendar = Calendar.current
+
+        for reviewSeed in reviewSeeds {
+            let card: Card = try context.database.saveCard(
+                workspaceId: context.workspaceId,
+                input: self.cardEditorInput(card: reviewSeed.card),
+                cardId: nil
+            )
+            let reviewedAtClient: String = try self.marketingProgressReviewedAtClient(
+                dayOffset: reviewSeed.reviewedAtDayOffset,
+                now: now,
+                calendar: calendar
+            )
+            _ = try context.database.submitReview(
+                workspaceId: context.workspaceId,
+                reviewSubmission: ReviewSubmission(
+                    cardId: card.cardId,
+                    rating: reviewSeed.rating,
+                    reviewedAtClient: reviewedAtClient
+                )
+            )
+        }
+
+        try self.reload(now: now, refreshVisibleProgress: false)
+    }
+
+    private func marketingProgressReviewSeeds(
+        cards: [FlashcardsUITestSeedCard]
+    ) throws -> [FlashcardsUITestMarketingProgressReviewSeed] {
+        guard cards.count >= 7 else {
+            throw LocalStoreError.validation("Marketing progress screenshots require at least 7 fixture cards.")
+        }
+
+        return [
+            FlashcardsUITestMarketingProgressReviewSeed(card: cards[0], reviewedAtDayOffset: 0, rating: .easy),
+            FlashcardsUITestMarketingProgressReviewSeed(card: cards[1], reviewedAtDayOffset: 0, rating: .good),
+            FlashcardsUITestMarketingProgressReviewSeed(card: cards[2], reviewedAtDayOffset: -1, rating: .good),
+            FlashcardsUITestMarketingProgressReviewSeed(card: cards[3], reviewedAtDayOffset: -2, rating: .hard),
+            FlashcardsUITestMarketingProgressReviewSeed(card: cards[4], reviewedAtDayOffset: -2, rating: .good),
+            FlashcardsUITestMarketingProgressReviewSeed(card: cards[5], reviewedAtDayOffset: -4, rating: .easy),
+            FlashcardsUITestMarketingProgressReviewSeed(card: cards[6], reviewedAtDayOffset: -6, rating: .good)
+        ]
+    }
+
+    private func marketingProgressReviewedAtClient(
+        dayOffset: Int,
+        now: Date,
+        calendar: Calendar
+    ) throws -> String {
+        guard let todayNoon: Date = calendar.date(
+            bySettingHour: 12,
+            minute: 0,
+            second: 0,
+            of: now,
+            matchingPolicy: .nextTime,
+            repeatedTimePolicy: .first,
+            direction: .forward
+        ),
+            let reviewedAt: Date = calendar.date(
+                byAdding: .day,
+                value: dayOffset,
+                to: todayNoon,
+                wrappingComponents: false
+            ) else {
+            throw FlashcardsUITestMarketingProgressSeedError.reviewedAtDateCreationFailed(dayOffset: dayOffset)
+        }
+
+        return formatIsoTimestamp(date: reviewedAt)
+    }
+
+    private func cardEditorInput(card: FlashcardsUITestSeedCard) -> CardEditorInput {
+        CardEditorInput(
+            frontText: card.frontText,
+            backText: card.backText,
+            tags: card.tags,
+            effortLevel: .medium
         )
     }
 }

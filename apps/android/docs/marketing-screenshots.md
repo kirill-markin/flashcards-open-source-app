@@ -9,7 +9,8 @@ Screenshot-only translated app resources belong in `apps/android/app/src/marketi
 
 ## Current inventory
 
-There are currently two Android manual capture flows and four tracked output PNG targets.
+There are currently three Android manual capture flows and five expected generated output PNG targets.
+Existing repository media can still contain the previous four-shot assets until the flows are run and the generated PNGs are reviewed.
 
 The screenshot catalog currently defines these locale prefixes:
 
@@ -34,17 +35,24 @@ The review screenshot chain captures an exam-prep concept card about opportunity
 - Manual screenshot entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingReviewScreenshotScript.kt`
 - Shared screenshot helpers: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotTestSupport.kt`
 - Manual wrapper script: `scripts/capture-android-review-screenshot.sh`
-- Output PNG targets:
+- Expected generated output PNG targets:
   - `apps/android/docs/media/play-store-screenshots/en-1_review-card-front-google-play-opportunity-cost.png`
   - `apps/android/docs/media/play-store-screenshots/en-2_review-card-result-google-play-opportunity-cost.png`
   - `apps/android/docs/media/play-store-screenshots/en-4_review-card-ai-draft-google-play-opportunity-cost.png`
+
+The progress screenshot flow captures the `Progress` tab with deterministic study-history data.
+
+- Manual screenshot entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingProgressScreenshotScript.kt`
+- Shared screenshot helpers: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotTestSupport.kt`
+- Manual wrapper script: `scripts/capture-android-progress-screenshot.sh`
+- Expected generated output PNG target: `apps/android/docs/media/play-store-screenshots/en-3_progress-google-play-study-history.png`
 
 The cards screenshot flow captures the `Cards` tab filled with exam-prep concept cards across multiple subjects.
 
 - Manual screenshot entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingCardsScreenshotScript.kt`
 - Shared screenshot helpers: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotTestSupport.kt`
 - Manual wrapper script: `scripts/capture-android-cards-screenshot.sh`
-- Output PNG target: `apps/android/docs/media/play-store-screenshots/en-3_cards-list-google-play-vocabulary.png`
+- Expected generated output PNG target: `apps/android/docs/media/play-store-screenshots/en-5_cards-list-google-play-vocabulary.png`
 
 ## Run the flows
 
@@ -57,6 +65,7 @@ Command:
 
 ```bash
 bash scripts/capture-android-review-screenshot.sh
+bash scripts/capture-android-progress-screenshot.sh
 bash scripts/capture-android-cards-screenshot.sh
 ```
 
@@ -72,7 +81,11 @@ They run `:app:connectedMarketingScreenshotAndroidTest`, not the normal debug in
 
 The review wrapper script runs the combined manual-only review-chain entrypoint, saves screenshots 1, 2, and 4 into `/sdcard/Download/flashcards-marketing-screenshots/`, and then pulls those files into the committed marketing media directory.
 
-The cards wrapper script runs the manual-only cards screenshot entrypoint, saves screenshot 3 into the same device directory, and then pulls that file into the committed marketing media directory.
+The progress wrapper script runs the manual-only Progress screenshot entrypoint, saves screenshot 3 into the same device directory, and then pulls that file into the committed marketing media directory.
+
+The cards wrapper script runs the manual-only cards screenshot entrypoint, saves screenshot 5 into the same device directory, and then pulls that file into the committed marketing media directory.
+
+Run the wrappers sequentially. Do not start the Progress or Cards wrapper until the previous wrapper has exited.
 
 ## Pattern for future flows
 

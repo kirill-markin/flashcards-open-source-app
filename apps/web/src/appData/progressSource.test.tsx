@@ -566,6 +566,76 @@ describe("useProgressSource", () => {
     expect(harness.getApi().progressSourceState.series.renderedSnapshot?.source).toBe("local_only");
   });
 
+  it("keeps local progress visible when server eligibility turns off during an in-flight refresh", async () => {
+    const deferredSummary = createDeferredPromise<ProgressSummaryPayload>();
+    const deferredSeries = createDeferredPromise<ProgressSeries>();
+    const currentSeriesInput = buildCurrentSeriesInput();
+    loadProgressSummaryMock.mockImplementation(() => deferredSummary.promise);
+    loadProgressSeriesMock.mockImplementation(() => deferredSeries.promise);
+    loadLocalProgressSummaryMock.mockResolvedValue({
+      currentStreakDays: 3,
+      hasReviewedToday: true,
+      lastReviewedOn: currentSeriesInput.to,
+      activeReviewDays: 4,
+    });
+    loadLocalProgressDailyReviewsMock.mockResolvedValue([
+      {
+        date: currentSeriesInput.to,
+        reviewCount: 2,
+      },
+    ]);
+
+    const harness = renderHarness({
+      sessionVerificationState: "verified",
+      cloudSettings: linkedCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+
+    await flushEffects();
+
+    expect(loadProgressSummaryMock).toHaveBeenCalledTimes(1);
+    expect(loadProgressSeriesMock).toHaveBeenCalledTimes(1);
+    expect(harness.getApi().progressSourceState.summary.isLoading).toBe(false);
+    expect(harness.getApi().progressSourceState.series.isLoading).toBe(false);
+
+    harness.rerender({
+      sessionVerificationState: "verified",
+      cloudSettings: linkingReadyCloudSettings,
+      progressServerInvalidationVersion: 0,
+      sections: summaryAndSeriesSections,
+    });
+    await flushEffects();
+
+    expect(loadProgressSummaryMock).toHaveBeenCalledTimes(1);
+    expect(loadProgressSeriesMock).toHaveBeenCalledTimes(1);
+    expect(loadLocalProgressSummaryMock).toHaveBeenCalledTimes(2);
+    expect(loadLocalProgressDailyReviewsMock).toHaveBeenCalledTimes(2);
+    expect(harness.getApi().progressSourceState.summary.isLoading).toBe(false);
+    expect(harness.getApi().progressSourceState.series.isLoading).toBe(false);
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.source).toBe("local_only");
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(4);
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.source).toBe("local_only");
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+      date: currentSeriesInput.to,
+      reviewCount: 2,
+    });
+
+    deferredSummary.resolve(buildServerSummary(9, "2026-04-18T09:19:00.000Z"));
+    deferredSeries.resolve(buildServerSeries(9, "2026-04-18T09:19:00.000Z"));
+    await flushEffects();
+
+    expect(harness.getApi().progressSourceState.summary.serverBase).toBeNull();
+    expect(harness.getApi().progressSourceState.series.serverBase).toBeNull();
+    expect(harness.getApi().progressSourceState.summary.isLoading).toBe(false);
+    expect(harness.getApi().progressSourceState.series.isLoading).toBe(false);
+    expect(harness.getApi().progressSourceState.summary.renderedSnapshot?.summary.activeReviewDays).toBe(4);
+    expect(harness.getApi().progressSourceState.series.renderedSnapshot?.dailyReviews).toContainEqual({
+      date: currentSeriesInput.to,
+      reviewCount: 2,
+    });
+  });
+
   it("ignores server responses after sections disable their scopes", async () => {
     const deferredSummary = createDeferredPromise<ProgressSummaryPayload>();
     const deferredSeries = createDeferredPromise<ProgressSeries>();
