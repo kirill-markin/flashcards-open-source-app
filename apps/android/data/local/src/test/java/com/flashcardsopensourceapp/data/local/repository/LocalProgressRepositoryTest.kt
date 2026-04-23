@@ -157,7 +157,7 @@ class LocalProgressRepositoryTest {
             serverBase = null,
             pendingLocalOverlay = createPendingLocalOverlaySeries(
                 scopeKey = scopeKey,
-                pendingReviewOutboxEntries = emptyList(),
+                pendingReviewLocalDates = emptyList(),
                 workspaceIds = listOf("workspace-1")
             ),
             cloudState = CloudAccountState.DISCONNECTED
@@ -212,12 +212,16 @@ class LocalProgressRepositoryTest {
 
         val overlay = createPendingLocalOverlaySeries(
             scopeKey = scopeKey,
-            pendingReviewOutboxEntries = listOf(
-                createPendingReviewOutboxEntry(
-                    workspaceId = "workspace-1",
-                    outboxEntryId = "outbox-1",
-                    reviewedAtClient = "2026-04-18T10:00:00Z"
-                )
+            pendingReviewLocalDates = createProgressPendingReviewLocalDates(
+                pendingReviewOutboxEntries = listOf(
+                    createPendingReviewOutboxEntry(
+                        workspaceId = "workspace-1",
+                        outboxEntryId = "outbox-1",
+                        reviewedAtClient = "2026-04-18T10:00:00Z"
+                    )
+                ),
+                workspaceIds = listOf("workspace-1"),
+                timeZone = scopeKey.timeZone
             ),
             workspaceIds = listOf("workspace-1")
         )
@@ -267,8 +271,11 @@ class LocalProgressRepositoryTest {
                     historyVersion = 3L
                 )
             ),
-            pendingReviewOutboxEntries = listOf(
-                createPendingReviewOutboxEntry(workspaceId = "workspace-1", outboxEntryId = "outbox-1")
+            pendingReviewEntries = listOf(
+                ProgressPendingReviewFingerprintEntry(
+                    workspaceId = "workspace-1",
+                    outboxEntryId = "outbox-1"
+                )
             ),
             syncStates = listOf(
                 SyncStateEntity(
@@ -340,29 +347,29 @@ class LocalProgressRepositoryTest {
 
         val initialRefreshStarted = coordinator.beginRefresh(
             scopeKey = "scope-1",
-            requiresSyncBeforeRemoteLoad = false
+            syncMode = ProgressRemoteRefreshSyncMode.SKIP_SYNC
         )
         val overlappingRefreshStarted = coordinator.beginRefresh(
             scopeKey = "scope-1",
-            requiresSyncBeforeRemoteLoad = false
+            syncMode = ProgressRemoteRefreshSyncMode.SKIP_SYNC
         )
-        val queuedRequiresSyncBeforeRemoteLoad = coordinator.completeRefreshIteration(scopeKey = "scope-1")
+        val queuedSyncMode = coordinator.completeRefreshIteration(scopeKey = "scope-1")
         val thirdRefreshStarted = coordinator.beginRefresh(
             scopeKey = "scope-1",
-            requiresSyncBeforeRemoteLoad = false
+            syncMode = ProgressRemoteRefreshSyncMode.SKIP_SYNC
         )
         val queuedRetryFromThirdRequest = coordinator.completeRefreshIteration(scopeKey = "scope-1")
         val noFurtherRetryQueued = coordinator.completeRefreshIteration(scopeKey = "scope-1")
         val nextIndependentRefreshStarted = coordinator.beginRefresh(
             scopeKey = "scope-1",
-            requiresSyncBeforeRemoteLoad = false
+            syncMode = ProgressRemoteRefreshSyncMode.SKIP_SYNC
         )
 
         assertTrue(initialRefreshStarted)
         assertFalse(overlappingRefreshStarted)
-        assertEquals(false, queuedRequiresSyncBeforeRemoteLoad)
+        assertEquals(ProgressRemoteRefreshSyncMode.SKIP_SYNC, queuedSyncMode)
         assertFalse(thirdRefreshStarted)
-        assertEquals(false, queuedRetryFromThirdRequest)
+        assertEquals(ProgressRemoteRefreshSyncMode.SKIP_SYNC, queuedRetryFromThirdRequest)
         assertEquals(null, noFurtherRetryQueued)
         assertTrue(nextIndependentRefreshStarted)
     }
@@ -373,23 +380,23 @@ class LocalProgressRepositoryTest {
 
         val initialRefreshStarted = coordinator.beginRefresh(
             scopeKey = "scope-1",
-            requiresSyncBeforeRemoteLoad = false
+            syncMode = ProgressRemoteRefreshSyncMode.SKIP_SYNC
         )
         val syncCompletedRefreshStarted = coordinator.beginRefresh(
             scopeKey = "scope-1",
-            requiresSyncBeforeRemoteLoad = false
+            syncMode = ProgressRemoteRefreshSyncMode.SKIP_SYNC
         )
         val manualRefreshStarted = coordinator.beginRefresh(
             scopeKey = "scope-1",
-            requiresSyncBeforeRemoteLoad = true
+            syncMode = ProgressRemoteRefreshSyncMode.SYNC_BEFORE_REMOTE_LOAD
         )
-        val queuedRequiresSyncBeforeRemoteLoad = coordinator.completeRefreshIteration(scopeKey = "scope-1")
+        val queuedSyncMode = coordinator.completeRefreshIteration(scopeKey = "scope-1")
         val finalQueuedRefresh = coordinator.completeRefreshIteration(scopeKey = "scope-1")
 
         assertTrue(initialRefreshStarted)
         assertFalse(syncCompletedRefreshStarted)
         assertFalse(manualRefreshStarted)
-        assertEquals(true, queuedRequiresSyncBeforeRemoteLoad)
+        assertEquals(ProgressRemoteRefreshSyncMode.SYNC_BEFORE_REMOTE_LOAD, queuedSyncMode)
         assertEquals(null, finalQueuedRefresh)
     }
 
@@ -436,17 +443,21 @@ class LocalProgressRepositoryTest {
 
         val overlay = createPendingLocalOverlaySeries(
             scopeKey = scopeKey,
-            pendingReviewOutboxEntries = listOf(
-                createPendingReviewOutboxEntry(
-                    workspaceId = "workspace-1",
-                    outboxEntryId = "outbox-valid",
-                    reviewedAtClient = "2026-04-18T10:00:00Z"
+            pendingReviewLocalDates = createProgressPendingReviewLocalDates(
+                pendingReviewOutboxEntries = listOf(
+                    createPendingReviewOutboxEntry(
+                        workspaceId = "workspace-1",
+                        outboxEntryId = "outbox-valid",
+                        reviewedAtClient = "2026-04-18T10:00:00Z"
+                    ),
+                    createPendingReviewOutboxEntry(
+                        workspaceId = "workspace-1",
+                        outboxEntryId = "outbox-invalid",
+                        reviewedAtClient = "not-an-instant"
+                    )
                 ),
-                createPendingReviewOutboxEntry(
-                    workspaceId = "workspace-1",
-                    outboxEntryId = "outbox-invalid",
-                    reviewedAtClient = "not-an-instant"
-                )
+                workspaceIds = listOf("workspace-1"),
+                timeZone = scopeKey.timeZone
             ),
             workspaceIds = listOf("workspace-1")
         )
