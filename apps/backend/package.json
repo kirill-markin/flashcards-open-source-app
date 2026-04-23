@@ -10,9 +10,9 @@
     "test": "npm run bundle --prefix ../../api && node --test --import tsx src/*.test.ts src/**/*.test.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-cognito-identity-provider": "^3.1034.0",
-    "@aws-sdk/client-lambda": "^3.1034.0",
-    "@aws-sdk/client-secrets-manager": "^3.1034.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1035.0",
+    "@aws-sdk/client-lambda": "^3.1035.0",
+    "@aws-sdk/client-secrets-manager": "^3.1035.0",
     "@hono/node-server": "^1.19.14",
     "@langfuse/openai": "^5.2.0",
     "@langfuse/otel": "^5.2.0",
