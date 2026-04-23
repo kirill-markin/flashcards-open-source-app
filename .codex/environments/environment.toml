@@ -17,6 +17,14 @@ fi
 ln -sfn "$SOURCE_ENV" "$WORKTREE_ENV"
 
 cd "$CODEX_WORKTREE_PATH"
+
+UPSTREAM="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
+
+if [ -n "$UPSTREAM" ]; then
+  git fetch
+  git merge --ff-only "$UPSTREAM"
+fi
+
 sh apps/ios/Flashcards/ci_scripts/ci_post_clone.sh
 
 '''
