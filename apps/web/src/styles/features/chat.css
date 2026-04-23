@@ -5,8 +5,8 @@
 }
 
 .chat-layout-shell {
-  --chat-shell-pane-top: 20px;
-  --chat-shell-pane-bottom: 20px;
+  --chat-shell-pane-top: 12px;
+  --chat-shell-pane-bottom: 12px;
   --chat-shell-content-height: calc(100dvh - 104px);
   --chat-shell-pane-offset: calc(var(--chat-shell-pane-top) + var(--chat-shell-pane-bottom));
   --chat-shell-pane-height: calc(var(--chat-shell-content-height) - var(--chat-shell-pane-offset));
@@ -105,10 +105,10 @@
 }
 
 .chat-header-title {
-  font-size: 28px;
-  line-height: 1;
-  font-weight: 720;
-  letter-spacing: -0.04em;
+  font-size: var(--page-title-font-size);
+  line-height: var(--page-title-line-height);
+  font-weight: var(--page-title-font-weight);
+  letter-spacing: var(--page-title-letter-spacing);
   color: var(--text);
 }
 
@@ -910,10 +910,6 @@
 
   .chat-header {
     padding-inline: 16px;
-  }
-
-  .chat-header-title {
-    font-size: 22px;
   }
 
   .chat-messages,
