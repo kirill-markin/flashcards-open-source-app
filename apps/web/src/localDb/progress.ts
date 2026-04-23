@@ -15,56 +15,13 @@ import {
   runReadwrite,
 } from "./core";
 import { listOutboxRecordsForWorkspaces } from "./outbox";
+import {
+  formatDateAsLocalDate,
+  shiftLocalDate,
+} from "../progress/progressDates";
 
 const progressCacheStateKey = "progress_cache_state";
 const progressRecordKeyHighValue = "\uffff";
-
-function getRequiredDatePart(
-  parts: ReadonlyArray<Intl.DateTimeFormatPart>,
-  partType: "year" | "month" | "day",
-): string {
-  const partValue = parts.find((part) => part.type === partType)?.value;
-
-  if (partValue === undefined || partValue === "") {
-    throw new Error(`Browser timezone date is missing ${partType}`);
-  }
-
-  return partValue;
-}
-
-function formatDateAsLocalDate(date: Date, timeZone: string): string {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const parts = formatter.formatToParts(date);
-  const year = getRequiredDatePart(parts, "year");
-  const month = getRequiredDatePart(parts, "month");
-  const day = getRequiredDatePart(parts, "day");
-
-  return `${year}-${month}-${day}`;
-}
-
-function parseLocalDate(value: string): Date {
-  const [rawYear, rawMonth, rawDay] = value.split("-");
-  const year = Number.parseInt(rawYear ?? "", 10);
-  const month = Number.parseInt(rawMonth ?? "", 10);
-  const day = Number.parseInt(rawDay ?? "", 10);
-
-  if (Number.isInteger(year) === false || Number.isInteger(month) === false || Number.isInteger(day) === false) {
-    throw new Error(`Invalid local date: ${value}`);
-  }
-
-  return new Date(Date.UTC(year, month - 1, day));
-}
-
-function shiftLocalDate(value: string, offsetDays: number): string {
-  const nextDate = parseLocalDate(value);
-  nextDate.setUTCDate(nextDate.getUTCDate() + offsetDays);
-  return nextDate.toISOString().slice(0, 10);
-}
 
 export function mapReviewedAtClientToLocalDate(reviewedAtClient: string, timeZone: string): string {
   const reviewedAt = new Date(reviewedAtClient);
