@@ -15,7 +15,7 @@ import {
   explainBrowserMediaPermissionError,
   queryBrowserPermissionState,
 } from "../access/browserAccess";
-import { useChatDraft } from "./ChatDraftContext";
+import { useChatDraft, type ChatComposerSendPhase } from "./ChatDraftContext";
 import { useChatLayout } from "./ChatLayoutContext";
 import {
   checkFileSize,
@@ -51,15 +51,20 @@ type Props = Readonly<{
   mode: "sidebar" | "fullscreen";
 }>;
 
-type ChatSendPhase = "idle" | "preparingSend" | "startingRun";
 type ChatComposerState = "idle" | "preparingSend" | "startingRun" | "running" | "stopping";
+type ChatComposerCapabilities = Readonly<{
+  canAttachDraftFiles: boolean;
+  canStartDictation: boolean;
+  isDictationButtonDisabled: boolean;
+  isDraftInputBlocked: boolean;
+}>;
 const MOBILE_CHAT_BREAKPOINT_QUERY = "(max-width: 768px)";
 
 function getChatComposerState(params: Readonly<{
   composerAction: ChatComposerAction;
   isAssistantRunActive: boolean;
   isStopping: boolean;
-  sendPhase: ChatSendPhase;
+  sendPhase: ChatComposerSendPhase;
 }>): ChatComposerState {
   const {
     composerAction,
@@ -85,6 +90,42 @@ function getChatComposerState(params: Readonly<{
   }
 
   return "idle";
+}
+
+export function getChatComposerCapabilities(params: Readonly<{
+  areAttachmentsEnabled: boolean;
+  dictationState: ChatDictationState;
+  isChatActionLocked: boolean;
+  isChatConversationReadyForAttachments: boolean;
+  isDictationEnabled: boolean;
+  isStopping: boolean;
+  sendPhase: ChatComposerSendPhase;
+}>): ChatComposerCapabilities {
+  const {
+    areAttachmentsEnabled,
+    dictationState,
+    isChatActionLocked,
+    isChatConversationReadyForAttachments,
+    isDictationEnabled,
+    isStopping,
+    sendPhase,
+  } = params;
+  const canPrepareDraft = sendPhase === "idle" && !isStopping;
+  const canStartDictation = isDictationEnabled
+    && dictationState === "idle"
+    && canPrepareDraft
+    && !isChatActionLocked;
+
+  return {
+    canAttachDraftFiles: areAttachmentsEnabled
+      && dictationState === "idle"
+      && canPrepareDraft
+      && !isChatActionLocked
+      && isChatConversationReadyForAttachments,
+    canStartDictation,
+    isDictationButtonDisabled: dictationState === "recording" ? false : !canStartDictation,
+    isDraftInputBlocked: dictationState !== "idle" || !canPrepareDraft,
+  };
 }
 
 function matchesMobileChatBreakpoint(): boolean {
@@ -175,13 +216,14 @@ export function ChatPanel(props: Props): ReactElement {
     updateInputText,
     replacePendingAttachments,
     clearDraftForSession,
+    composerSendPhase: sendPhase,
+    replaceComposerSendPhase: setSendPhase,
   } = useChatDraft();
   const { setIsOpen, chatWidth, setChatWidth } = useChatLayout();
   const [localWidth, setLocalWidth] = useState<number>(chatWidth);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const [dictationState, setDictationState] = useState<ChatDictationState>("idle");
-  const [sendPhase, setSendPhase] = useState<ChatSendPhase>("idle");
   const [isDraftOptimisticallyClearedForSend, setIsDraftOptimisticallyClearedForSend] = useState<boolean>(false);
   const [isMobileChatLayout, setIsMobileChatLayout] = useState<boolean>(matchesMobileChatBreakpoint);
   const draftInputText = draft.inputText;
@@ -225,6 +267,7 @@ export function ChatPanel(props: Props): ReactElement {
   const shouldRestoreTextareaFocusAfterDictationRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
   const sendLifecycleRequestSequenceRef = useRef<number>(0);
+  const canAttachDraftFilesRef = useRef<boolean>(false);
 
   const { handleMessagesScroll } = useChatAutoScroll({
     isHydrated: isHistoryLoaded,
@@ -437,6 +480,10 @@ export function ChatPanel(props: Props): ReactElement {
   }, [isDragging, setChatWidth]);
 
   async function handleAttach(attachment: PendingAttachment): Promise<void> {
+    if (!canAttachDraftFilesRef.current) {
+      return;
+    }
+
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     let finalAttachment = attachment;
     let candidateAttachments = [...pendingAttachmentsRef.current, finalAttachment];
@@ -462,6 +509,10 @@ export function ChatPanel(props: Props): ReactElement {
       candidateAttachments = [...pendingAttachmentsRef.current, finalAttachment];
       projectedRequestBody = buildDraftRequestBodyForAttachments(candidateAttachments, timezone);
       projectedSizeBytes = projectedRequestBody === null ? 0 : toRequestBodySizeBytes(projectedRequestBody);
+    }
+
+    if (!canAttachDraftFilesRef.current) {
+      return;
     }
 
     if (projectedSizeBytes > ATTACHMENT_PAYLOAD_LIMIT_BYTES) {
@@ -627,7 +678,7 @@ export function ChatPanel(props: Props): ReactElement {
       return;
     }
 
-    if (dictationState !== "idle") {
+    if (!canStartDictation) {
       return;
     }
 
@@ -638,6 +689,10 @@ export function ChatPanel(props: Props): ReactElement {
     event.preventDefault();
     dragCounterRef.current = 0;
     setIsDragOver(false);
+
+    if (!canAttachDraftFiles) {
+      return;
+    }
 
     const files = event.dataTransfer.files;
     for (let index = 0; index < files.length; index += 1) {
@@ -773,11 +828,26 @@ export function ChatPanel(props: Props): ReactElement {
 
   const rootClassName = mode === "sidebar" ? "chat-sidebar" : "chat-sidebar-fullscreen";
   const isDictationVisible = dictationState !== "idle";
-  const isDraftInputBlocked = dictationState !== "idle" || sendPhase !== "idle";
   const isComposerTransientBusy = sendPhase !== "idle";
   const isChatActionLocked = appData.isSessionVerified === false;
   const areAttachmentsEnabled = chatConfig.features.attachmentsEnabled;
   const isDictationEnabled = chatConfig.features.dictationEnabled;
+  const isChatConversationReadyForAttachments = isHistoryLoaded && currentSessionId !== null;
+  const {
+    canAttachDraftFiles,
+    canStartDictation,
+    isDictationButtonDisabled,
+    isDraftInputBlocked,
+  } = getChatComposerCapabilities({
+    areAttachmentsEnabled,
+    dictationState,
+    isChatActionLocked,
+    isChatConversationReadyForAttachments,
+    isDictationEnabled,
+    isStopping,
+    sendPhase,
+  });
+  canAttachDraftFilesRef.current = canAttachDraftFiles;
   const hasDraftContent = inputText.trim().length > 0 || pendingAttachments.length > 0;
   const composerState = getChatComposerState({
     composerAction,
@@ -817,6 +887,13 @@ export function ChatPanel(props: Props): ReactElement {
       style={mode === "sidebar" ? { width: localWidth } : undefined}
       onDragEnter={(event) => {
         event.preventDefault();
+        event.dataTransfer.dropEffect = canAttachDraftFiles ? "copy" : "none";
+        if (!canAttachDraftFiles) {
+          dragCounterRef.current = 0;
+          setIsDragOver(false);
+          return;
+        }
+
         dragCounterRef.current += 1;
         if (dragCounterRef.current === 1) {
           setIsDragOver(true);
@@ -824,15 +901,24 @@ export function ChatPanel(props: Props): ReactElement {
       }}
       onDragLeave={(event) => {
         event.preventDefault();
-        dragCounterRef.current -= 1;
+        if (!canAttachDraftFiles) {
+          dragCounterRef.current = 0;
+          setIsDragOver(false);
+          return;
+        }
+
+        dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
         if (dragCounterRef.current === 0) {
           setIsDragOver(false);
         }
       }}
-      onDragOver={(event) => event.preventDefault()}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = canAttachDraftFiles ? "copy" : "none";
+      }}
       onDrop={(event) => void handleDrop(event)}
     >
-      {isDragOver ? <div className="chat-drop-overlay">{t("chatPanel.dropFiles")}</div> : null}
+      {isDragOver && canAttachDraftFiles ? <div className="chat-drop-overlay">{t("chatPanel.dropFiles")}</div> : null}
       {mode === "sidebar" ? (
         <div
           className={`chat-resize-handle${isDragging ? " dragging" : ""}`}
@@ -1032,13 +1118,13 @@ export function ChatPanel(props: Props): ReactElement {
 
         <div className="chat-controls">
           <div className="chat-controls-right">
-            <FileAttachment onAttach={handleAttach} disabled={isDraftInputBlocked || !areAttachmentsEnabled} />
+            <FileAttachment onAttach={handleAttach} disabled={!canAttachDraftFiles} />
             <button
               type="button"
               className={`chat-mic-btn${dictationState === "recording" ? " chat-mic-btn-recording" : ""}`}
               aria-label={microphoneAriaLabel}
               onClick={() => void handleMicrophoneClick()}
-              disabled={isChatActionLocked || sendPhase !== "idle" || dictationState === "requesting_permission" || dictationState === "transcribing" || !isDictationEnabled}
+              disabled={isDictationButtonDisabled}
             >
               {dictationState === "recording" ? (
                 <span className="chat-stop-btn-icon" aria-hidden="true" />
