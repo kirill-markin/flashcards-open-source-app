@@ -1,5 +1,8 @@
 import { unsafeTransaction } from "./dbUnsafe";
 import {
+  deleteGuestSessionInExecutor,
+} from "./guestAuth/delete";
+import {
   authenticateGuestSession,
   createGuestSessionInExecutor,
 } from "./guestAuth/session";
@@ -21,7 +24,12 @@ export type {
   GuestUpgradeSelection,
 } from "./guestAuth/types";
 
-export { authenticateGuestSession, completeGuestUpgradeInExecutor, prepareGuestUpgradeInExecutor };
+export {
+  authenticateGuestSession,
+  completeGuestUpgradeInExecutor,
+  deleteGuestSessionInExecutor,
+  prepareGuestUpgradeInExecutor,
+};
 
 export async function createGuestSession(): Promise<GuestSessionSnapshot> {
   return unsafeTransaction(async (executor) => createGuestSessionInExecutor(executor));
@@ -45,4 +53,8 @@ export async function completeGuestUpgrade(
   return unsafeTransaction(
     async (executor) => completeGuestUpgradeInExecutor(executor, guestToken, cognitoSubject, selection),
   );
+}
+
+export async function deleteGuestSession(guestToken: string): Promise<void> {
+  return unsafeTransaction(async (executor) => deleteGuestSessionInExecutor(executor, guestToken));
 }

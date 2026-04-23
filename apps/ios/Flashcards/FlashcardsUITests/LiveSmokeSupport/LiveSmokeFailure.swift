@@ -28,6 +28,7 @@ enum LiveSmokeFailure: LocalizedError {
     case aiRunReportedError(message: String, screen: String, step: String)
     case unexpectedAiConversationState(message: String, screen: String, step: String)
     case appDidNotReachForeground(timeoutSeconds: TimeInterval, appState: String, step: String)
+    case uiTestLaunchPreparationFailed(launchScenario: String, message: String, screen: String, step: String)
 
     var errorDescription: String? {
         switch self {
@@ -74,6 +75,8 @@ enum LiveSmokeFailure: LocalizedError {
             return "AI conversation reached an unexpected state during step '\(step)'. Current screen: \(screen). \(message)"
         case .appDidNotReachForeground(let timeoutSeconds, let appState, let step):
             return "Application did not reach runningForeground within \(formatDuration(seconds: timeoutSeconds)) during step '\(step)'. App state: \(appState)"
+        case .uiTestLaunchPreparationFailed(let launchScenario, let message, let screen, let step):
+            return "UI test launch scenario '\(launchScenario)' failed during step '\(step)'. Current screen: \(screen). \(message)"
         }
     }
 }

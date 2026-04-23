@@ -6,7 +6,7 @@ final class LiveSmokeRTLTests: LiveSmokeTestCase {
     func testLiveSmokeArabicRTLTopLevelNavigation() throws {
         try self.step("launch Arabic RTL review surface") {
             try self.launchArabicRTLApplication(
-                resetState: .localGuestSeededManualReviewCard,
+                launchScenario: .guestManualReviewCard,
                 selectedTab: .review
             )
             try self.assertElementExists(
@@ -48,7 +48,7 @@ final class LiveSmokeRTLTests: LiveSmokeTestCase {
 
     @MainActor
     private func launchArabicRTLApplication(
-        resetState: LiveSmokeLaunchResetState?,
+        launchScenario: LiveSmokeLaunchScenario?,
         selectedTab: LiveSmokeSelectedTab
     ) throws {
         if self.isApplicationRunning {
@@ -56,7 +56,7 @@ final class LiveSmokeRTLTests: LiveSmokeTestCase {
         }
 
         try self.launchApplication(
-            resetState: resetState,
+            launchScenario: launchScenario,
             selectedTab: selectedTab,
             launchLocalization: .arabic
         )

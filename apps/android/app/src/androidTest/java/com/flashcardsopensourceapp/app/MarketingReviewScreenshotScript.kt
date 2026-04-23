@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -16,7 +17,7 @@ private const val reviewAiDraftScreenshotSlug: String =
 @ManualOnlyAndroidTest
 @RunWith(AndroidJUnit4::class)
 class MarketingReviewScreenshotScript {
-    private val appStateResetRule = AppStateResetRule()
+    private val appStateResetRule = MarketingScreenshotAppStateResetRule()
     private val composeRule = createMarketingScreenshotComposeRule()
 
     @get:Rule
@@ -27,6 +28,11 @@ class MarketingReviewScreenshotScript {
     @Test
     fun generateOpportunityCostReviewScreenshotFlow() {
         val localeConfig = activeMarketingScreenshotLocaleConfig()
+        runBlocking {
+            createRepositorySeedExecutor().seedCardsAndReviewsInGuestCloudWorkspace(
+                seedScenario = marketingReviewRepositorySeedScenario(localeConfig = localeConfig)
+            )
+        }
         val robot = MarketingScreenshotRobot(
             composeRule = composeRule,
             localeConfig = localeConfig

@@ -46,7 +46,6 @@ import type {
   CreateCardInput,
   CreateDeckInput,
   Deck,
-  ReviewEvent,
   SessionInfo,
   SyncBootstrapEntry,
   UpdateCardInput,
@@ -81,6 +80,7 @@ import {
   toReviewableCardState,
 } from "./domain";
 import { invalidateLocalProgress, invalidateProgress } from "./progressInvalidation";
+import type { TestSeedCardInput, TestSeedRequest, TestSeedResult } from "./testSeedBridge";
 import type { SessionLoadState } from "./types";
 import type { SessionVerificationState } from "./warmStart";
 
@@ -113,6 +113,7 @@ type SyncEngine = Readonly<{
   deleteCardItem: (cardId: string) => Promise<Card>;
   deleteDeckItem: (deckId: string) => Promise<Deck>;
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
+  seedLinkedWorkspace: (request: TestSeedRequest) => Promise<TestSeedResult>;
 }>;
 
 async function requireCard(workspaceId: string, cardId: string): Promise<Card> {
@@ -163,6 +164,51 @@ function isProgressReviewEventOperation(
   record: PersistedOutboxRecord,
 ): boolean {
   return record.operation.entityType === "review_event" && record.operation.action === "append";
+}
+
+function requireSeedTimestamp(label: string, value: string): number {
+  const timestamp = Date.parse(value);
+  if (Number.isNaN(timestamp)) {
+    throw new Error(`${label} must be a valid ISO timestamp: ${value}`);
+  }
+
+  return timestamp;
+}
+
+function validateSeedCardInput(card: TestSeedCardInput, cardIndex: number): void {
+  const createdAtTimestamp = requireSeedTimestamp(`Seed card ${cardIndex} createdAt`, card.createdAt);
+  let previousTimestamp = createdAtTimestamp;
+
+  for (const [reviewIndex, review] of card.reviews.entries()) {
+    const currentTimestamp = requireSeedTimestamp(
+      `Seed card ${cardIndex} review ${reviewIndex} reviewedAtClient`,
+      review.reviewedAtClient,
+    );
+
+    if (currentTimestamp <= previousTimestamp) {
+      throw new Error(
+        `Seed card ${cardIndex} review ${reviewIndex} reviewedAtClient must be later than the previous mutation timestamp`,
+      );
+    }
+
+    previousTimestamp = currentTimestamp;
+  }
+}
+
+function validateSeedRequest(request: TestSeedRequest): void {
+  for (const [cardIndex, card] of request.cards.entries()) {
+    validateSeedCardInput(card, cardIndex);
+  }
+}
+
+type WorkspaceSeedReadiness = Readonly<{
+  workspaceSettingsLoaded: boolean;
+  hotStateHydrated: boolean;
+  reviewHistoryHydrated: boolean;
+}>;
+
+function isWorkspaceSeedReady(readiness: WorkspaceSeedReadiness): boolean {
+  return readiness.workspaceSettingsLoaded && readiness.hotStateHydrated && readiness.reviewHistoryHydrated;
 }
 
 export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
@@ -236,6 +282,22 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
       await activeSync;
     }
+  }, []);
+
+  const loadWorkspaceSeedReadiness = useCallback(async function loadWorkspaceSeedReadiness(
+    workspaceId: string,
+  ): Promise<WorkspaceSeedReadiness> {
+    const [workspaceSettings, hotStateHydrated, reviewHistoryHydrated] = await Promise.all([
+      loadWorkspaceSettings(workspaceId),
+      hasHydratedHotState(workspaceId),
+      hasHydratedReviewHistory(workspaceId),
+    ]);
+
+    return {
+      workspaceSettingsLoaded: workspaceSettings !== null,
+      hotStateHydrated,
+      reviewHistoryHydrated,
+    };
   }, []);
 
   const runSyncForWorkspaceInternal = useCallback(async function runSyncForWorkspaceInternal(
@@ -456,6 +518,42 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     await runSyncForWorkspaceInternal(activeWorkspace, ignoreSyncError);
   }, [activeWorkspace, ignoreSyncError, runSyncForWorkspaceInternal]);
 
+  const ensureWorkspaceSeedReady = useCallback(async function ensureWorkspaceSeedReady(
+    workspace: WorkspaceSummary,
+  ): Promise<void> {
+    const workspaceId = workspace.workspaceId;
+
+    await waitForWorkspaceSyncToSettle(workspaceId);
+
+    let readiness = await loadWorkspaceSeedReadiness(workspaceId);
+    if (isWorkspaceSeedReady(readiness)) {
+      await refreshWorkspaceView(workspaceId);
+      return;
+    }
+
+    await runSyncForWorkspace(workspace);
+    await waitForWorkspaceSyncToSettle(workspaceId);
+    await refreshWorkspaceView(workspaceId);
+
+    readiness = await loadWorkspaceSeedReadiness(workspaceId);
+    if (isWorkspaceSeedReady(readiness)) {
+      return;
+    }
+
+    throw new Error(
+      `Workspace bootstrap is not ready for deterministic seed data: `
+      + `workspaceId=${workspaceId} `
+      + `workspaceSettingsLoaded=${String(readiness.workspaceSettingsLoaded)} `
+      + `hotStateHydrated=${String(readiness.hotStateHydrated)} `
+      + `reviewHistoryHydrated=${String(readiness.reviewHistoryHydrated)}`,
+    );
+  }, [
+    loadWorkspaceSeedReadiness,
+    refreshWorkspaceView,
+    runSyncForWorkspace,
+    waitForWorkspaceSyncToSettle,
+  ]);
+
   useEffect(() => {
     if (sessionLoadState !== "ready" || sessionVerificationState !== "verified" || session === null || activeWorkspace === null) {
       return;
@@ -493,13 +591,15 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
 
-  const createCardItem = useCallback(async function createCardItem(input: CreateCardInput): Promise<Card> {
-    if (activeWorkspaceId === null || activeWorkspace === null) {
+  const createCardItemLocally = useCallback(async function createCardItemLocally(
+    input: CreateCardInput,
+    clientUpdatedAt: string,
+  ): Promise<Card> {
+    if (activeWorkspaceId === null) {
       throw new Error("Workspace is unavailable");
     }
 
     const normalizedInput = normalizeCreateCardInput(input);
-    const clientUpdatedAt = nowIso();
     const operationId = crypto.randomUUID().toLowerCase();
     const installationId = requireCloudInstallationId(await loadCloudSettings());
     const nextCard = buildInitialCard(normalizedInput, clientUpdatedAt, installationId, operationId);
@@ -514,10 +614,91 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     await putCard(activeWorkspaceId, nextCard);
     await putOutboxRecord(nextOutboxRecord);
+    return nextCard;
+  }, [activeWorkspaceId]);
+
+  const submitReviewItemLocally = useCallback(async function submitReviewItemLocally(
+    cardId: string,
+    rating: 0 | 1 | 2 | 3,
+    reviewedAtClient: string,
+  ): Promise<Card> {
+    if (activeWorkspaceId === null) {
+      throw new Error("Workspace is unavailable");
+    }
+
+    const [existingCard, schedulerSettings, cloudSettings] = await Promise.all([
+      requireCard(activeWorkspaceId, cardId),
+      loadWorkspaceSettings(activeWorkspaceId),
+      loadCloudSettings(),
+    ]);
+    if (schedulerSettings === null) {
+      throw new Error("Workspace scheduler settings are not loaded");
+    }
+
+    const reviewEventId = crypto.randomUUID().toLowerCase();
+    const clientEventId = crypto.randomUUID().toLowerCase();
+    const cardOperationId = crypto.randomUUID().toLowerCase();
+    const installationId = requireCloudInstallationId(cloudSettings);
+    const schedule = computeReviewSchedule(
+      toReviewableCardState(existingCard),
+      {
+        algorithm: schedulerSettings.algorithm,
+        desiredRetention: schedulerSettings.desiredRetention,
+        learningStepsMinutes: schedulerSettings.learningStepsMinutes,
+        relearningStepsMinutes: schedulerSettings.relearningStepsMinutes,
+        maximumIntervalDays: schedulerSettings.maximumIntervalDays,
+        enableFuzz: schedulerSettings.enableFuzz,
+      },
+      rating as ReviewRating,
+      new Date(reviewedAtClient),
+    );
+
+    const nextCard = buildReviewedCard(existingCard, schedule, reviewedAtClient, installationId, cardOperationId);
+    const nextReviewEvent = buildReviewEvent(
+      activeWorkspaceId,
+      cardId,
+      installationId,
+      rating,
+      reviewedAtClient,
+      reviewEventId,
+      clientEventId,
+    );
+
+    const reviewEventOutboxRecord: PersistedOutboxRecord = {
+      operationId: reviewEventId,
+      workspaceId: activeWorkspaceId,
+      createdAt: reviewedAtClient,
+      attemptCount: 0,
+      lastError: "",
+      operation: buildReviewEventAppendOperation(nextReviewEvent),
+    };
+
+    const cardOutboxRecord: PersistedOutboxRecord = {
+      operationId: cardOperationId,
+      workspaceId: activeWorkspaceId,
+      createdAt: reviewedAtClient,
+      attemptCount: 0,
+      lastError: "",
+      operation: buildCardUpsertOperation(nextCard),
+    };
+
+    await putReviewEvent(nextReviewEvent);
+    await putCard(activeWorkspaceId, nextCard);
+    await putOutboxRecord(reviewEventOutboxRecord);
+    await putOutboxRecord(cardOutboxRecord);
+    return nextCard;
+  }, [activeWorkspaceId]);
+
+  const createCardItem = useCallback(async function createCardItem(input: CreateCardInput): Promise<Card> {
+    if (activeWorkspaceId === null || activeWorkspace === null) {
+      throw new Error("Workspace is unavailable");
+    }
+
+    const nextCard = await createCardItemLocally(input, nowIso());
     bumpLocalReadVersion();
     void runSyncForWorkspace(activeWorkspace);
     return nextCard;
-  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, createCardItemLocally, runSyncForWorkspace]);
 
   const createDeckItem = useCallback(async function createDeckItem(input: CreateDeckInput): Promise<Deck> {
     if (activeWorkspaceId === null || activeWorkspace === null) {
@@ -662,71 +843,73 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       throw new Error("Workspace is unavailable");
     }
 
-    const [existingCard, schedulerSettings] = await Promise.all([
-      requireCard(activeWorkspaceId, cardId),
-      loadWorkspaceSettings(activeWorkspaceId),
-    ]);
-    if (schedulerSettings === null) {
-      throw new Error("Workspace scheduler settings are not loaded");
-    }
-
-    const reviewedAtClient = nowIso();
-    const reviewEventId = crypto.randomUUID().toLowerCase();
-    const clientEventId = crypto.randomUUID().toLowerCase();
-    const cardOperationId = crypto.randomUUID().toLowerCase();
-    const installationId = requireCloudInstallationId(await loadCloudSettings());
-    const schedule = computeReviewSchedule(
-      toReviewableCardState(existingCard),
-      {
-        algorithm: schedulerSettings.algorithm,
-        desiredRetention: schedulerSettings.desiredRetention,
-        learningStepsMinutes: schedulerSettings.learningStepsMinutes,
-        relearningStepsMinutes: schedulerSettings.relearningStepsMinutes,
-        maximumIntervalDays: schedulerSettings.maximumIntervalDays,
-        enableFuzz: schedulerSettings.enableFuzz,
-      },
-      rating as ReviewRating,
-      new Date(reviewedAtClient),
-    );
-
-    const nextCard = buildReviewedCard(existingCard, schedule, reviewedAtClient, installationId, cardOperationId);
-    const nextReviewEvent = buildReviewEvent(
-      activeWorkspaceId,
-      cardId,
-      installationId,
-      rating,
-      reviewedAtClient,
-      reviewEventId,
-      clientEventId,
-    );
-
-    const reviewEventOutboxRecord: PersistedOutboxRecord = {
-      operationId: reviewEventId,
-      workspaceId: activeWorkspaceId,
-      createdAt: reviewedAtClient,
-      attemptCount: 0,
-      lastError: "",
-      operation: buildReviewEventAppendOperation(nextReviewEvent),
-    };
-
-    const cardOutboxRecord: PersistedOutboxRecord = {
-      operationId: cardOperationId,
-      workspaceId: activeWorkspaceId,
-      createdAt: reviewedAtClient,
-      attemptCount: 0,
-      lastError: "",
-      operation: buildCardUpsertOperation(nextCard),
-    };
-
-    await putReviewEvent(nextReviewEvent);
-    await putCard(activeWorkspaceId, nextCard);
-    await putOutboxRecord(reviewEventOutboxRecord);
-    await putOutboxRecord(cardOutboxRecord);
+    const nextCard = await submitReviewItemLocally(cardId, rating, nowIso());
     bumpLocalReadVersion();
     invalidateLocalProgress();
     void runSyncForWorkspace(activeWorkspace);
     return nextCard;
-  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, runSyncForWorkspace, submitReviewItemLocally]);
+
+  const seedLinkedWorkspace = useCallback(async function seedLinkedWorkspace(
+    request: TestSeedRequest,
+  ): Promise<TestSeedResult> {
+    if (
+      activeWorkspace === null
+      || activeWorkspaceId === null
+      || sessionLoadState !== "ready"
+      || sessionVerificationState !== "verified"
+      || session === null
+    ) {
+      throw new Error("Linked workspace is not ready for deterministic seed data");
+    }
+
+    validateSeedRequest(request);
+    await ensureWorkspaceSeedReady(activeWorkspace);
+
+    const seededCards: Array<TestSeedResult["cards"][number]> = [];
+    let didChangeProgressHistory = false;
+
+    for (const seedCard of request.cards) {
+      let nextCard = await createCardItemLocally(seedCard, seedCard.createdAt);
+
+      for (const review of seedCard.reviews) {
+        nextCard = await submitReviewItemLocally(nextCard.cardId, review.rating, review.reviewedAtClient);
+        didChangeProgressHistory = true;
+      }
+
+      seededCards.push({
+        cardId: nextCard.cardId,
+        frontText: nextCard.frontText,
+        createdAt: seedCard.createdAt,
+        dueAt: nextCard.dueAt,
+        reviewsApplied: seedCard.reviews.length,
+      });
+    }
+
+    bumpLocalReadVersion();
+    if (didChangeProgressHistory) {
+      invalidateLocalProgress();
+    }
+
+    await runSyncForWorkspace(activeWorkspace);
+    await waitForWorkspaceSyncToSettle(activeWorkspaceId);
+
+    return {
+      workspaceId: activeWorkspaceId,
+      cards: seededCards,
+    };
+  }, [
+    activeWorkspace,
+    activeWorkspaceId,
+    bumpLocalReadVersion,
+    createCardItemLocally,
+    runSyncForWorkspace,
+    session,
+    sessionLoadState,
+    sessionVerificationState,
+    ensureWorkspaceSeedReady,
+    submitReviewItemLocally,
+  ]);
 
   return {
     runSync,
@@ -743,5 +926,6 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     deleteCardItem,
     deleteDeckItem,
     submitReviewItem,
+    seedLinkedWorkspace,
   };
 }

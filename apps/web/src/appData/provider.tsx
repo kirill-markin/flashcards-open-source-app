@@ -18,6 +18,7 @@ import type {
 import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "./domain";
 import type { AppDataContextValue, Props, SessionLoadState } from "./types";
 import { useProgressInvalidationRefresh } from "./progressInvalidation";
+import { isTestSeedBridgeEnabled, type AppDataTestSeedBridge } from "./testSeedBridge";
 import { useSyncEngine } from "./useSyncEngine";
 import { useWorkspaceSession } from "./useWorkspaceSession";
 import type { SessionVerificationState } from "./warmStart";
@@ -176,6 +177,37 @@ export function AppDataProvider(props: Props): ReactElement {
       isCancelled = true;
     };
   }, [activeWorkspace, localReadVersion]);
+
+  useEffect(() => {
+    if (
+      isTestSeedBridgeEnabled(window) === false
+      || sessionLoadState !== "ready"
+      || sessionVerificationState !== "verified"
+      || activeWorkspace === null
+    ) {
+      delete window.__FLASHCARDS_TEST_SEED_BRIDGE__;
+      return;
+    }
+
+    const bridge: AppDataTestSeedBridge = {
+      workspaceId: activeWorkspace.workspaceId,
+      workspaceName: activeWorkspace.name,
+      seedLinkedWorkspace: syncEngine.seedLinkedWorkspace,
+    };
+
+    window.__FLASHCARDS_TEST_SEED_BRIDGE__ = bridge;
+
+    return () => {
+      if (window.__FLASHCARDS_TEST_SEED_BRIDGE__ === bridge) {
+        delete window.__FLASHCARDS_TEST_SEED_BRIDGE__;
+      }
+    };
+  }, [
+    activeWorkspace,
+    sessionLoadState,
+    sessionVerificationState,
+    syncEngine.seedLinkedWorkspace,
+  ]);
 
   const selectReviewFilter = useCallback(function selectReviewFilter(reviewFilter: ReviewFilter): void {
     if (isReviewFilterEqual(selectedReviewFilterState, reviewFilter)) {

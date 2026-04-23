@@ -72,6 +72,10 @@ sealed interface AppStartupState {
     data class Failed(val message: String) : AppStartupState
 }
 
+data class AppGuestCloudSession(
+    val workspaceId: String
+)
+
 class AppGraph(
     context: Context
 ) {
@@ -273,6 +277,17 @@ class AppGraph(
             currentTimeMillis = currentTimeMillis
         )
         cloudPreferencesStore.hydrateCloudSettingsFromDatabase()
+    }
+
+    suspend fun ensureGuestCloudSession(workspaceId: String): AppGuestCloudSession {
+        val guestSession = cloudGuestSessionCoordinator.ensureGuestCloudSession(workspaceId = workspaceId)
+        return AppGuestCloudSession(
+            workspaceId = guestSession.workspaceId
+        )
+    }
+
+    suspend fun deleteStoredGuestCloudSessionIfPresent() {
+        cloudGuestSessionCoordinator.deleteStoredGuestCloudSessionIfPresent()
     }
 
     suspend fun awaitStartup() {
