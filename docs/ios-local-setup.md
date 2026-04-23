@@ -64,7 +64,7 @@ Xcode Cloud builds now fail in `ci_post_clone.sh` before `xcodebuild` starts if 
 
 The iOS release-gate and monitoring expectations are documented in [`docs/ios-ci-cd.md`](ios-ci-cd.md).
 
-If Xcode Cloud should pin the live smoke flow to the standard review/demo account explicitly, also set:
+If Xcode Cloud should pin the live smoke flow to the standard review account explicitly, also set:
 
 - `FLASHCARDS_LIVE_REVIEW_EMAIL=apple-review@example.com`
 

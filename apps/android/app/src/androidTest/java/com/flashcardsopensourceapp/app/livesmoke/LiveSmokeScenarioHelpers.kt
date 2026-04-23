@@ -15,14 +15,15 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
-import com.flashcardsopensourceapp.app.FlashcardsApplication
+import com.flashcardsopensourceapp.app.RepositorySeedCard
+import com.flashcardsopensourceapp.app.RepositorySeedScenario
+import com.flashcardsopensourceapp.app.createRepositorySeedExecutor
 import com.flashcardsopensourceapp.data.local.ai.AiChatHistoryStore
 import com.flashcardsopensourceapp.data.local.ai.makeAiChatHistoryScopedWorkspaceId
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatPersistedState
 import com.flashcardsopensourceapp.data.local.model.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
-import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.feature.ai.aiAssistantMessageBubbleTag
@@ -134,21 +135,23 @@ internal fun LiveSmokeContext.rateVisibleReviewCardGood() {
     }
 }
 
-internal fun LiveSmokeContext.seedLocalCard(
+internal fun LiveSmokeContext.seedCardViaRepository(
     frontText: String,
     backText: String,
     markerTag: String
 ) {
-    val application = composeRule.activity.application as FlashcardsApplication
-    val appGraph = application.appGraph
     runBlocking {
-        appGraph.ensureLocalWorkspaceShell(currentTimeMillis = System.currentTimeMillis())
-        appGraph.cardsRepository.createCard(
-            cardDraft = CardDraft(
-                frontText = frontText,
-                backText = backText,
-                tags = listOf(markerTag),
-                effortLevel = EffortLevel.MEDIUM
+        createRepositorySeedExecutor().seedCardsAndReviewsInCurrentWorkspace(
+            seedScenario = RepositorySeedScenario(
+                cards = listOf(
+                    RepositorySeedCard(
+                        frontText = frontText,
+                        backText = backText,
+                        tags = listOf(markerTag),
+                        effortLevel = EffortLevel.MEDIUM,
+                        reviews = emptyList()
+                    )
+                )
             )
         )
     }

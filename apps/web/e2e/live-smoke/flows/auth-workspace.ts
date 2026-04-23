@@ -9,8 +9,12 @@ import {
   trackedWaitForUrl,
 } from "../../live-smoke.actions";
 import { authBaseUrl, externalUiTimeoutMs, localUiTimeoutMs } from "../config";
+import { seedLinkedWorkspaceForTest } from "../seedBridge";
 import { runLiveSmokeStep } from "../steps";
 import type { LiveSmokeSession } from "../types";
+
+const seededCardCreatedAt = "2024-02-01T09:00:00.000Z";
+const seededCardReviewedAt = "2024-02-01T09:10:00.000Z";
 
 export async function runLinkedWorkspaceSetupFlow(session: LiveSmokeSession): Promise<void> {
   await runLiveSmokeStep(session, "sign in with the configured review account", async () => {
@@ -22,8 +26,12 @@ export async function runLinkedWorkspaceSetupFlow(session: LiveSmokeSession): Pr
     session.cleanupRequested = true;
   });
 
-  await runLiveSmokeStep(session, "verify linked account status and workspace state", async () => {
+  await runLiveSmokeStep(session, "verify linked account status in the new workspace", async () => {
     await assertLinkedAccountStatus(session);
+  });
+
+  await runLiveSmokeStep(session, "seed deterministic linked-workspace review data", async () => {
+    await seedDeterministicWorkspaceData(session);
   });
 }
 
@@ -158,6 +166,41 @@ async function assertLinkedAccountStatus(session: LiveSmokeSession): Promise<voi
     page.locator(".settings-detail-grid .settings-summary-card").nth(1),
     externalUiTimeoutMs,
   );
+}
+
+async function seedDeterministicWorkspaceData(session: LiveSmokeSession): Promise<void> {
+  const { page, diagnostics, scenario } = session;
+  const seedResult = await seedLinkedWorkspaceForTest(
+    page,
+    diagnostics,
+    {
+      cards: [
+        {
+          frontText: scenario.seededFrontText,
+          backText: scenario.seededBackText,
+          tags: [],
+          effortLevel: "medium",
+          createdAt: seededCardCreatedAt,
+          reviews: [
+            {
+              rating: 0,
+              reviewedAtClient: seededCardReviewedAt,
+            },
+          ],
+        },
+      ],
+    },
+    scenario.workspaceName,
+  );
+
+  if (seedResult.cards.length !== 1) {
+    throw new Error(`Expected exactly one seeded card, received ${seedResult.cards.length}`);
+  }
+
+  const seededCard = seedResult.cards[0];
+  if (seededCard.frontText !== scenario.seededFrontText) {
+    throw new Error(`Seeded card front text mismatch: expected ${scenario.seededFrontText}, received ${seededCard.frontText}`);
+  }
 }
 
 function buildLoginUrl(appBaseUrl: string): string {

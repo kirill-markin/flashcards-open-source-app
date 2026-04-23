@@ -1,6 +1,7 @@
 import Foundation
 
 enum LiveSmokeIdentifier {
+    static let uiTestLaunchPreparationStatus: String = "uiTest.launchPreparationStatus"
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
     static let cloudSignInScreen: String = "cloudSignIn.screen"
     static let cloudSignInInlineAuthError: String = "cloudSignIn.inlineAuthError"
@@ -91,13 +92,14 @@ enum LiveSmokeIdentifier {
     static let aiAssistantVisibleText: String = "ai.assistantVisibleText"
 }
 
-enum LiveSmokeLaunchResetState: String {
-    case localGuest = "local_guest"
-    case localGuestSeededManualReviewCard = "local_guest_seeded_manual_review_card"
-    case localGuestSeededAIReviewCard = "local_guest_seeded_ai_review_card"
+enum LiveSmokeLaunchScenario: String {
+    case guestEmptyWorkspace = "guest_empty_workspace"
+    case guestManualReviewCard = "guest_manual_review_card"
+    case guestAIReviewCard = "guest_ai_review_card"
     case marketingOpportunityCostReviewCard = "marketing_opportunity_cost_review_card"
     case marketingConceptCards = "marketing_concept_cards"
     case marketingProgress = "marketing_progress"
+    case marketingGuestSessionCleanup = "marketing_guest_session_cleanup"
 }
 
 struct LiveSmokeTabBarItemLookup {
@@ -375,9 +377,9 @@ struct LiveSmokeAIToolCallCheck {
     let completedSqlSummaries: [String]
 }
 
-enum LiveSmokeSeededData {
-    static let manualReviewFrontText: String = "Smoke seeded manual review question"
-    static let aiReviewFrontText: String = "Smoke seeded AI review question"
+enum LiveSmokeLaunchFixtureData {
+    static let manualReviewFrontText: String = "Smoke guest manual review question"
+    static let aiReviewFrontText: String = "Smoke guest AI review question"
 }
 
 let aiComposerPlaceholderText: String = "Ask about cards, review history, or propose a change..."

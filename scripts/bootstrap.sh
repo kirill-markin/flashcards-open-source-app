@@ -44,7 +44,7 @@ echo "=== Configure optional AI secrets ==="
 bash "${ROOT_DIR}/scripts/setup-ai-secrets.sh" --region "$REGION"
 
 if [[ -n "${DEMO_PASSWORD_DOSTIP:-}" ]]; then
-  echo "=== Configure optional demo auth secret ==="
+  echo "=== Configure optional review account auth secret ==="
   bash "${ROOT_DIR}/scripts/setup-auth-secrets.sh" --region "$REGION"
 fi
 

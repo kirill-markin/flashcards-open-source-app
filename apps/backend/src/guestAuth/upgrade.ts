@@ -4,12 +4,11 @@ import {
   AUTO_CREATED_WORKSPACE_NAME,
   createWorkspaceInExecutor,
 } from "../workspaces";
+import { cleanupGuestSessionSourceInExecutor } from "./delete";
 import { mergeGuestWorkspaceIntoTargetInExecutor } from "./merge";
 import {
   assertTargetWorkspaceAccessInExecutor,
   bindIdentityMappingInExecutor,
-  deleteUserSettingsInExecutor,
-  deleteWorkspaceInExecutor,
   loadGuestSessionInExecutor,
   loadGuestSessionRecordInExecutor,
   loadGuestUpgradeReplayInExecutor,
@@ -18,7 +17,6 @@ import {
   loadWorkspaceNameInExecutor,
   loadWorkspaceSummaryInExecutor,
   recordGuestUpgradeHistoryInExecutor,
-  revokeGuestSessionInExecutor,
   selectWorkspaceForUserInExecutor,
   updateUserEmailInExecutor,
 } from "./store";
@@ -119,19 +117,6 @@ async function persistGuestUpgradeTargetSelectionInExecutor(
   // Keep the target account pointed at the post-merge workspace before guest
   // cleanup starts so replay/idempotency stays anchored to the same selection.
   await selectWorkspaceForUserInExecutor(executor, targetUserId, targetWorkspaceId);
-}
-
-async function cleanupGuestUpgradeSourceInExecutor(
-  executor: DatabaseExecutor,
-  guestUserId: string,
-  guestSessionId: string,
-  guestWorkspaceId: string,
-): Promise<void> {
-  // Cleanup stays in one source-scoped phase so destructive guest-side work is
-  // not interleaved with target writes.
-  await revokeGuestSessionInExecutor(executor, guestUserId, guestSessionId);
-  await deleteWorkspaceInExecutor(executor, guestUserId, guestWorkspaceId);
-  await deleteUserSettingsInExecutor(executor, guestUserId);
 }
 
 /**
@@ -240,7 +225,7 @@ export async function completeGuestUpgradeInExecutor(
   );
 
   // Phase 9: revoke and delete guest source rows.
-  await cleanupGuestUpgradeSourceInExecutor(
+  await cleanupGuestSessionSourceInExecutor(
     executor,
     guestSession.userId,
     guestSession.sessionId,

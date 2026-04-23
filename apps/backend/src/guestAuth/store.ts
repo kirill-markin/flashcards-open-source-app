@@ -401,6 +401,23 @@ export async function loadIdentityMappingInExecutor(
   return result.rows[0]?.user_id ?? null;
 }
 
+export async function hasCognitoIdentityMappingForUserInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+): Promise<boolean> {
+  const result = await executor.query<IdentityMappingRow>(
+    [
+      "SELECT user_id",
+      "FROM auth.user_identities",
+      "WHERE provider_type = 'cognito' AND user_id = $1",
+      "LIMIT 1",
+    ].join(" "),
+    [userId],
+  );
+
+  return result.rows[0] !== undefined;
+}
+
 export async function bindIdentityMappingInExecutor(
   executor: DatabaseExecutor,
   providerSubject: string,

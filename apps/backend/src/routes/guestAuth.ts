@@ -4,6 +4,7 @@ import { HttpError } from "../errors";
 import {
   completeGuestUpgrade,
   createGuestSession,
+  deleteGuestSession,
   prepareGuestUpgrade,
   type GuestUpgradeSelection,
 } from "../guestAuth";
@@ -35,6 +36,11 @@ type GuestUpgradeCompleteEnvelope = Readonly<{
   }>;
 }>;
 
+type GuestAuthRoutesOptions = Readonly<{
+  authenticateRequestFn?: typeof authenticateRequest;
+  deleteGuestSessionFn?: typeof deleteGuestSession;
+}>;
+
 function parseGuestUpgradeSelection(value: unknown): GuestUpgradeSelection {
   const body = expectRecord(value);
   const type = expectNonEmptyString(body.type, "selection.type");
@@ -52,8 +58,23 @@ function parseGuestUpgradeSelection(value: unknown): GuestUpgradeSelection {
   throw new HttpError(400, "selection.type is invalid", "GUEST_UPGRADE_SELECTION_INVALID");
 }
 
-export function createGuestAuthRoutes(): Hono<AppEnv> {
+function expectGuestAuthorizationToken(authorizationHeader: string | undefined): string {
+  if (authorizationHeader === undefined || !authorizationHeader.startsWith("Guest ")) {
+    throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
+  }
+
+  const guestToken = authorizationHeader.slice(6).trim();
+  if (guestToken === "") {
+    throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
+  }
+
+  return guestToken;
+}
+
+export function createGuestAuthRoutes(options: GuestAuthRoutesOptions = {}): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
+  const authenticateRequestFn = options.authenticateRequestFn ?? authenticateRequest;
+  const deleteGuestSessionFn = options.deleteGuestSessionFn ?? deleteGuestSession;
 
   app.post("/guest-auth/session", async (context) => {
     const session = await createGuestSession();
@@ -64,8 +85,24 @@ export function createGuestAuthRoutes(): Hono<AppEnv> {
     } satisfies GuestSessionEnvelope);
   });
 
+  app.post("/guest-auth/session/delete", async (context) => {
+    const requestAuthInputs = extractRequestAuthInputs(context.req.raw);
+    const auth = await authenticateRequestFn(toAuthRequest(requestAuthInputs));
+    if (auth.transport !== "guest") {
+      throw new HttpError(
+        403,
+        "Delete guest session requires Guest authentication.",
+        "GUEST_SESSION_DELETE_GUEST_AUTH_REQUIRED",
+      );
+    }
+
+    const guestToken = expectGuestAuthorizationToken(requestAuthInputs.authorizationHeader);
+    await deleteGuestSessionFn(guestToken);
+    return context.json({ ok: true } as const);
+  });
+
   app.post("/guest-auth/upgrade/prepare", async (context) => {
-    const auth = await authenticateRequest(toAuthRequest(extractRequestAuthInputs(context.req.raw)));
+    const auth = await authenticateRequestFn(toAuthRequest(extractRequestAuthInputs(context.req.raw)));
     if (auth.transport !== "bearer" && auth.transport !== "session") {
       throw new HttpError(403, "Sign in before upgrading this guest session.", "GUEST_UPGRADE_HUMAN_AUTH_REQUIRED");
     }
@@ -79,7 +116,7 @@ export function createGuestAuthRoutes(): Hono<AppEnv> {
   });
 
   app.post("/guest-auth/upgrade/complete", async (context) => {
-    const auth = await authenticateRequest(toAuthRequest(extractRequestAuthInputs(context.req.raw)));
+    const auth = await authenticateRequestFn(toAuthRequest(extractRequestAuthInputs(context.req.raw)));
     if (auth.transport !== "bearer" && auth.transport !== "session") {
       throw new HttpError(403, "Sign in before upgrading this guest session.", "GUEST_UPGRADE_HUMAN_AUTH_REQUIRED");
     }

@@ -98,6 +98,10 @@ protocol GuestCloudAuthServing {
         apiBaseUrl: String,
         configurationMode: CloudServiceConfigurationMode
     ) async throws -> StoredGuestCloudSession
+    func deleteGuestSession(
+        apiBaseUrl: String,
+        guestToken: String
+    ) async throws
     func prepareGuestUpgrade(
         apiBaseUrl: String,
         bearerToken: String,
