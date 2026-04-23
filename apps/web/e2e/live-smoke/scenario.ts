@@ -7,7 +7,7 @@ export function runIdFromClock(): string {
 export function buildScenario(runId: string): LiveSmokeScenario {
   return {
     workspaceName: `E2E web ${runId}`,
-    manualFrontText: `Manual e2e web ${runId}`,
-    manualBackText: `Manual answer e2e web ${runId}`,
+    seededFrontText: `Seeded e2e web ${runId}`,
+    seededBackText: `Seeded answer e2e web ${runId}`,
   };
 }

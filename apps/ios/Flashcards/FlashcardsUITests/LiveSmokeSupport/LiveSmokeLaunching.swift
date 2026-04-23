@@ -3,11 +3,11 @@ import XCTest
 extension LiveSmokeTestCase {
     @MainActor
     func launchApplication(
-        resetState: LiveSmokeLaunchResetState?,
+        launchScenario: LiveSmokeLaunchScenario?,
         selectedTab: LiveSmokeSelectedTab
     ) throws {
         try self.launchApplication(
-            resetState: resetState,
+            launchScenario: launchScenario,
             selectedTab: selectedTab,
             launchLocalization: .english
         )
@@ -15,13 +15,13 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func launchApplication(
-        resetState: LiveSmokeLaunchResetState?,
+        launchScenario: LiveSmokeLaunchScenario?,
         selectedTab: LiveSmokeSelectedTab,
         launchLocalization: LiveSmokeLaunchLocalization
     ) throws {
         try self.launchApplication(
             request: LiveSmokeLaunchRequest(
-                resetState: resetState,
+                launchScenario: launchScenario,
                 selectedTab: selectedTab,
                 launchLocalization: launchLocalization,
                 appNotificationTapType: nil
@@ -31,12 +31,12 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func launchApplicationWithAppNotificationTap(
-        resetState: LiveSmokeLaunchResetState?,
+        launchScenario: LiveSmokeLaunchScenario?,
         selectedTab: LiveSmokeSelectedTab,
         appNotificationTapType: LiveSmokeAppNotificationTapType
     ) throws {
         try self.launchApplicationWithAppNotificationTap(
-            resetState: resetState,
+            launchScenario: launchScenario,
             selectedTab: selectedTab,
             launchLocalization: .english,
             appNotificationTapType: appNotificationTapType
@@ -45,14 +45,14 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func launchApplicationWithAppNotificationTap(
-        resetState: LiveSmokeLaunchResetState?,
+        launchScenario: LiveSmokeLaunchScenario?,
         selectedTab: LiveSmokeSelectedTab,
         launchLocalization: LiveSmokeLaunchLocalization,
         appNotificationTapType: LiveSmokeAppNotificationTapType
     ) throws {
         try self.launchApplication(
             request: LiveSmokeLaunchRequest(
-                resetState: resetState,
+                launchScenario: launchScenario,
                 selectedTab: selectedTab,
                 launchLocalization: launchLocalization,
                 appNotificationTapType: appNotificationTapType
@@ -113,6 +113,91 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
+    func waitForUITestLaunchPreparation(
+        launchScenario: LiveSmokeLaunchScenario,
+        timeout: TimeInterval
+    ) throws {
+        try self.runWithInlineRawScreenStateOnFailure(action: "wait_for_ui_test_launch_preparation.\(launchScenario.rawValue)") {
+            let element = self.app.descendants(matching: .any)
+                .matching(identifier: LiveSmokeIdentifier.uiTestLaunchPreparationStatus)
+                .firstMatch
+            let readyValue = "state=ready;launchScenario=\(launchScenario.rawValue)"
+            let failedValuePrefix = "state=failed;launchScenario=\(launchScenario.rawValue)"
+
+            self.logSmokeBreadcrumb(
+                event: "wait_start",
+                action: "wait_for_ui_test_launch_preparation",
+                identifier: LiveSmokeIdentifier.uiTestLaunchPreparationStatus,
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: "-",
+                result: "start",
+                note: readyValue
+            )
+
+            let startedAt = Date()
+            let deadline = startedAt.addingTimeInterval(timeout)
+            while Date() < deadline {
+                if element.exists {
+                    let currentValue = self.elementValue(element: element)
+                    if currentValue.contains(readyValue) {
+                        let durationSeconds = Date().timeIntervalSince(startedAt)
+                        self.logSmokeBreadcrumb(
+                            event: "wait_end",
+                            action: "wait_for_ui_test_launch_preparation",
+                            identifier: LiveSmokeIdentifier.uiTestLaunchPreparationStatus,
+                            timeoutSeconds: formatDuration(seconds: timeout),
+                            durationSeconds: formatDuration(seconds: durationSeconds),
+                            result: "success",
+                            note: currentValue
+                        )
+                        return
+                    }
+
+                    if currentValue.contains(failedValuePrefix) {
+                        throw LiveSmokeFailure.uiTestLaunchPreparationFailed(
+                            launchScenario: launchScenario.rawValue,
+                            message: currentValue,
+                            screen: self.currentScreenSummary(),
+                            step: self.currentStepTitle
+                        )
+                    }
+                }
+
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+            }
+
+            let durationSeconds = Date().timeIntervalSince(startedAt)
+            self.logSmokeBreadcrumb(
+                event: "wait_end",
+                action: "wait_for_ui_test_launch_preparation",
+                identifier: LiveSmokeIdentifier.uiTestLaunchPreparationStatus,
+                timeoutSeconds: formatDuration(seconds: timeout),
+                durationSeconds: formatDuration(seconds: durationSeconds),
+                result: "failure",
+                note: element.exists ? self.elementValue(element: element) : "missing_marker"
+            )
+
+            if element.exists == false {
+                throw LiveSmokeFailure.missingElement(
+                    identifier: LiveSmokeIdentifier.uiTestLaunchPreparationStatus,
+                    timeoutSeconds: timeout,
+                    screen: self.currentScreenSummary(),
+                    step: self.currentStepTitle
+                )
+            }
+
+            throw LiveSmokeFailure.unexpectedElementValue(
+                identifier: LiveSmokeIdentifier.uiTestLaunchPreparationStatus,
+                expectedValue: readyValue,
+                actualValue: self.elementValue(element: element),
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    @MainActor
     var isApplicationRunning: Bool {
         guard self.app != nil else {
             return false
@@ -162,6 +247,12 @@ extension LiveSmokeTestCase {
         self.logActionStart(action: action, identifier: "application")
         self.app.launch()
         try self.waitForApplicationToReachForeground(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        if let launchScenario = request.launchScenario {
+            try self.waitForUITestLaunchPreparation(
+                launchScenario: launchScenario,
+                timeout: LiveSmokeConfiguration.launchPreparationTimeoutSeconds
+            )
+        }
         if request.appNotificationTapType == nil {
             try self.waitForSelectedTabScreen(
                 selectedTab: request.selectedTab,
@@ -174,15 +265,15 @@ extension LiveSmokeTestCase {
     @MainActor
     private func configureLaunchEnvironment(request: LiveSmokeLaunchRequest) {
         self.currentLaunchLocalization = request.launchLocalization
-        self.app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.resetStateEnvironmentKey)
+        self.app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.launchScenarioEnvironmentKey)
         self.app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.appNotificationTapTypeEnvironmentKey)
         self.app.launchEnvironment[LiveSmokeConfiguration.selectedTabEnvironmentKey] = request.selectedTab.rawValue
         self.app.launchArguments = self.strippingAppleLocalizationLaunchArguments(
             arguments: self.app.launchArguments
         )
         self.app.launchArguments += request.launchLocalization.launchArguments
-        if let resetState = request.resetState {
-            self.app.launchEnvironment[LiveSmokeConfiguration.resetStateEnvironmentKey] = resetState.rawValue
+        if let launchScenario = request.launchScenario {
+            self.app.launchEnvironment[LiveSmokeConfiguration.launchScenarioEnvironmentKey] = launchScenario.rawValue
         }
         if let appNotificationTapType = request.appNotificationTapType {
             self.app.launchEnvironment[LiveSmokeConfiguration.appNotificationTapTypeEnvironmentKey] = appNotificationTapType.rawValue

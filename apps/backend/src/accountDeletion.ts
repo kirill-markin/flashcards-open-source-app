@@ -122,8 +122,8 @@ async function deleteAccountDataInExecutor(
  * Fully deletes one real account, including the stale-token tombstone that
  * blocks the removed Cognito identity from reprovisioning.
  *
- * This path is not used for the insecure review/demo accounts configured via
- * `DEMO_EMAIL_DOSTIP`. Those `@example.com` demo accounts keep their Cognito
+ * This path is not used for the insecure review accounts configured via
+ * `DEMO_EMAIL_DOSTIP`. Those `@example.com` review accounts keep their Cognito
  * identity so they can be reused after their app data is cleared.
  */
 async function deleteRealAccountDataInExecutor(
@@ -136,7 +136,7 @@ async function deleteRealAccountDataInExecutor(
 }
 
 /**
- * Clears app data for one configured insecure review/demo account while
+ * Clears app data for one configured insecure review account while
  * preserving the Cognito identity for reuse.
  *
  * This path exists only for the explicit `DEMO_EMAIL_DOSTIP` allowlist inside

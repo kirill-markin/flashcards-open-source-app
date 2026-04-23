@@ -637,7 +637,7 @@ export const renderLoginPage = (redirectUri: string, websiteHomeUrl: string, loc
                 typeof data.idToken === "string" && data.idToken !== ""
                 && typeof data.refreshToken === "string" && data.refreshToken !== ""
               ) {
-                // Review/demo emails can complete sign-in immediately.
+                // Configured review account emails can complete sign-in immediately.
                 window.location.href = redirectUri;
                 return;
               }

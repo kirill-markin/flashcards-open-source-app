@@ -13,7 +13,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -24,7 +23,6 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.test.core.app.ActivityScenario
-import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
 import com.flashcardsopensourceapp.app.livesmoke.dismissBlockingSystemDialogIfPresent
@@ -32,28 +30,15 @@ import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.CardsDestination
 import com.flashcardsopensourceapp.app.navigation.ProgressDestination
 import com.flashcardsopensourceapp.app.navigation.ReviewDestination
-import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerPendingAttachmentTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
-import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
-import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
-import com.flashcardsopensourceapp.feature.cards.cardEditorEffortLevelTag
-import com.flashcardsopensourceapp.feature.cards.cardEditorFrontSummaryCardTag
-import com.flashcardsopensourceapp.feature.cards.cardEditorFrontTextFieldTag
-import com.flashcardsopensourceapp.feature.cards.cardEditorSaveButtonTag
-import com.flashcardsopensourceapp.feature.cards.cardEditorTagsSummaryCardTag
-import com.flashcardsopensourceapp.feature.cards.cardTagsAddButtonTag
-import com.flashcardsopensourceapp.feature.cards.cardTagsInputFieldTag
-import com.flashcardsopensourceapp.feature.cards.cardsAddCardButtonTag
-import com.flashcardsopensourceapp.feature.cards.cardsEmptyStateTag
 import com.flashcardsopensourceapp.feature.cards.cardsSearchFieldTag
 import com.flashcardsopensourceapp.feature.progress.progressReviewsActivityChartTag
 import com.flashcardsopensourceapp.feature.progress.progressReviewsSectionTag
 import com.flashcardsopensourceapp.feature.progress.progressStreakSectionTag
-import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
 import com.flashcardsopensourceapp.feature.review.reviewRateAgainButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateEasyButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
@@ -129,49 +114,14 @@ internal class MarketingScreenshotRobot(
     private val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     private var hasAppliedLocale: Boolean = false
 
-    fun waitForCardsEmptyState() {
+    fun waitForRepositorySeededCards(frontTexts: List<String>) {
         ensureLocaleApplied()
         openCardsTab()
         waitUntilWithSystemDialogMitigation {
             composeRule.onAllNodesWithTag(cardsSearchFieldTag).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithTag(cardsEmptyStateTag).fetchSemanticsNodes().isNotEmpty()
-        }
-    }
-
-    fun createCard(frontText: String, backText: String, tags: List<String>, effortLevel: EffortLevel) {
-        ensureLocaleApplied()
-        openCardsTab()
-        clickTag(tag = cardsAddCardButtonTag)
-        updateCardText(
-            summaryCardTag = cardEditorFrontSummaryCardTag,
-            textFieldTag = cardEditorFrontTextFieldTag,
-            value = frontText
-        )
-        updateCardText(
-            summaryCardTag = cardEditorBackSummaryCardTag,
-            textFieldTag = cardEditorBackTextFieldTag,
-            value = backText
-        )
-        scrollToNode(matcher = hasTestTag(cardEditorEffortLevelTag(effortLevel = effortLevel)))
-        clickTag(tag = cardEditorEffortLevelTag(effortLevel = effortLevel))
-
-        if (tags.isNotEmpty()) {
-            clickTag(tag = cardEditorTagsSummaryCardTag)
-            tags.forEach { tag ->
-                dismissExternalSystemDialogIfPresent()
-                composeRule.onNodeWithTag(cardTagsInputFieldTag).performTextInput(tag)
-                composeRule.waitForIdle()
-                dismissExternalSystemDialogIfPresent()
-                clickTag(tag = cardTagsAddButtonTag)
-            }
-            tapBackIcon()
-        }
-
-        scrollToNode(matcher = hasTestTag(cardEditorSaveButtonTag))
-        clickTag(tag = cardEditorSaveButtonTag)
-        waitUntilWithSystemDialogMitigation {
-            composeRule.onAllNodesWithTag(cardsSearchFieldTag).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty()
+                frontTexts.all { frontText ->
+                    composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty()
+                }
         }
     }
 
@@ -205,13 +155,6 @@ internal class MarketingScreenshotRobot(
     }
 
     fun prepareOpportunityCostReviewCardForReview() {
-        waitForCardsEmptyState()
-        createCard(
-            frontText = localeConfig.reviewCard.frontText,
-            backText = localeConfig.reviewCard.backText,
-            tags = localeConfig.reviewCard.tags,
-            effortLevel = EffortLevel.MEDIUM
-        )
         openReviewTab()
         waitForReviewPrompt(frontText = localeConfig.reviewCard.frontText)
     }
@@ -232,9 +175,6 @@ internal class MarketingScreenshotRobot(
     }
 
     fun prepareStudyHistoryProgressScreen() {
-        prepareOpportunityCostReviewCardForReview()
-        revealAnswerAndWaitForRatings()
-        rateGoodAndWaitForReviewCompletion()
         openProgressTab()
         waitForLoadedProgressWithReviewActivity()
     }
@@ -326,31 +266,6 @@ internal class MarketingScreenshotRobot(
         hasAppliedLocale = true
     }
 
-    private fun updateCardText(summaryCardTag: String, textFieldTag: String, value: String) {
-        clickTag(tag = summaryCardTag)
-        dismissExternalSystemDialogIfPresent()
-        composeRule.onNodeWithTag(textFieldTag).performTextReplacement(value)
-        composeRule.waitForIdle()
-        dismissExternalSystemDialogIfPresent()
-        tapBackIcon()
-    }
-
-    private fun tapBackIcon() {
-        dismissExternalSystemDialogIfPresent()
-        if (composeRule.onAllNodes(matcher = hasContentDescription("Back")).fetchSemanticsNodes().isNotEmpty()) {
-            composeRule.onNodeWithContentDescription("Back").performClick()
-            composeRule.waitForIdle()
-            dismissExternalSystemDialogIfPresent()
-            return
-        }
-
-        composeRule.activity.runOnUiThread {
-            composeRule.activity.onBackPressedDispatcher.onBackPressed()
-        }
-        composeRule.waitForIdle()
-        dismissExternalSystemDialogIfPresent()
-    }
-
     private fun waitForNode(matcher: SemanticsMatcher) {
         waitUntilWithSystemDialogMitigation {
             composeRule.onAllNodes(matcher = matcher).fetchSemanticsNodes().isNotEmpty()
@@ -368,13 +283,6 @@ internal class MarketingScreenshotRobot(
         waitUntilWithSystemDialogMitigation {
             composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
-        }
-    }
-
-    private fun rateGoodAndWaitForReviewCompletion() {
-        clickTag(tag = reviewRateGoodButtonTag)
-        waitUntilWithSystemDialogMitigation {
-            composeRule.onAllNodesWithTag(reviewEmptyStateTag).fetchSemanticsNodes().isNotEmpty()
         }
     }
 

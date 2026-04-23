@@ -47,7 +47,7 @@ Use it only against the local stack:
 
 1. keep root `.env` in `AUTH_MODE=cognito`
 2. set `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_REGION`, and `SESSION_ENCRYPTION_KEY`
-3. set `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` for the local review/demo account
+3. set `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` for the local review account
 4. start `make db-up`
 5. start `make auth-dev`
 6. start `make backend-dev`
@@ -94,7 +94,7 @@ bash scripts/first-deploy.sh \
 The first deploy flow:
 
 - stores required runtime secrets in AWS Secrets Manager
-- stores optional AI and demo auth secrets in AWS Secrets Manager when configured
+- stores optional AI and review account auth secrets in AWS Secrets Manager when configured
 - requests ACM certificates for API, auth, web, and apex redirect when needed
 - requests the ACM certificate for `admin.<domain>` when needed
 - assembles `infra/aws/cdk.context.local.json` as the local CDK input
@@ -128,11 +128,11 @@ bash scripts/setup-github.sh
 Run only the secret setup scripts you actually need. `setup-github.sh` rediscovers the current AWS ARNs and fills in any missing matching GitHub variables afterward, leaving existing values untouched.
 This bootstrap-only rule also applies to `CDK_ADMIN_EMAILS`: after the first setup, change that GitHub variable manually when you need to change the deployed bootstrap admin list.
 
-## Optional review/demo auth
+## Optional review account auth
 
-`DEMO_EMAIL_DOSTIP` enables insecure instant sign-in only for listed review/demo emails in the `example.com` domain. `DEMO_PASSWORD_DOSTIP` stores the shared review/demo password. Keep both values as explicit deploy config and store the shared password in AWS Secrets Manager for deployed environments.
+`DEMO_EMAIL_DOSTIP` enables insecure instant sign-in only for listed review account emails in the `example.com` domain. `DEMO_PASSWORD_DOSTIP` stores the shared review account password. Keep both values as explicit deploy config and store the shared password in AWS Secrets Manager for deployed environments.
 
-If review/demo access is enabled, create the matching `@example.com` Cognito users manually and keep their emails and shared password aligned with the deployed allowlist and demo password secret. The intended setup flow is:
+If review account access is enabled, create the matching `@example.com` Cognito users manually and keep their emails and shared password aligned with the deployed allowlist and review account password secret. The intended setup flow is:
 
 1. keep `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` in the local root `.env`
 2. run `bash scripts/setup-auth-secrets.sh --region <aws-region>`

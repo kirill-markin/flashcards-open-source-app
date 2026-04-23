@@ -4,8 +4,8 @@ import type { LiveSmokeDiagnostics } from "../live-smoke.diagnostics";
 
 export type LiveSmokeScenario = Readonly<{
   workspaceName: string;
-  manualFrontText: string;
-  manualBackText: string;
+  seededFrontText: string;
+  seededBackText: string;
 }>;
 
 export type CompletedSqlToolCall = Readonly<{
