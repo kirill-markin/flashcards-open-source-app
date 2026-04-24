@@ -8,7 +8,13 @@ import {
   deleteGuestSessionInExecutor,
   prepareGuestUpgradeInExecutor,
 } from "./guestAuth";
+import { cleanupGuestSessionSourceInExecutor } from "./guestAuth/delete";
 import { HttpError } from "./errors";
+import {
+  forkCardIdForWorkspace,
+  forkDeckIdForWorkspace,
+  forkReviewEventIdForWorkspace,
+} from "./sync/fork";
 
 type GuestSessionState = Readonly<{
   session_id: string;
@@ -414,6 +420,39 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
           workspace_id: workspace.workspace_id,
           name: workspace.name,
           created_at: workspace.created_at,
+        } as unknown as Row];
+        return createQueryResult<Row>(rows);
+      }
+
+      if (
+        text.includes("FROM org.workspace_memberships memberships")
+        && text.includes("memberships.role")
+        && text.includes("AS member_count")
+      ) {
+        const userId = params[0];
+        const workspaceId = params[1];
+        if (typeof userId !== "string" || typeof workspaceId !== "string") {
+          return createQueryResult<Row>([]);
+        }
+
+        if (state.currentUserId !== userId) {
+          return createQueryResult<Row>([]);
+        }
+
+        if (!state.workspaceMemberships.has(membershipKey(userId, workspaceId))) {
+          return createQueryResult<Row>([]);
+        }
+
+        const workspace = state.workspaces.get(workspaceId);
+        const memberCount = [...state.workspaceMemberships]
+          .filter((membership) => membership.endsWith(`:${workspaceId}`))
+          .length;
+        const rows = workspace === undefined ? [] : [{
+          workspace_id: workspace.workspace_id,
+          name: workspace.name,
+          created_at: workspace.created_at,
+          role: "owner",
+          member_count: memberCount,
         } as unknown as Row];
         return createQueryResult<Row>(rows);
       }
@@ -945,6 +984,167 @@ test("completeGuestUpgradeInExecutor reassigns guest installation ownership duri
   assert.equal(targetReplica?.user_id, targetUserId);
 });
 
+test("completeGuestUpgradeInExecutor rejects selecting the guest workspace as the merge target", async () => {
+  const guestToken = "guest-token-same-workspace";
+  const guestUserId = "guest-user";
+  const guestWorkspaceId = "guest-workspace";
+  const targetUserId = "linked-user";
+  const installationId = "installation-same-workspace";
+  const targetSubject = "cognito-subject-same-workspace";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-same-workspace",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId: "target-workspace",
+    guestReplicaId: "guest-replica-same-workspace",
+    installationId,
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  state.workspaceMemberships.add(membershipKey(targetUserId, guestWorkspaceId));
+
+  const executor = createGuestUpgradeExecutor(state);
+
+  await assert.rejects(
+    completeGuestUpgradeInExecutor(
+      executor,
+      guestToken,
+      targetSubject,
+      {
+        type: "existing",
+        workspaceId: guestWorkspaceId,
+      },
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 409);
+      assert.equal(error.code, "GUEST_UPGRADE_TARGET_SAME_AS_SOURCE");
+      return true;
+    },
+  );
+
+  assert.equal(state.guestSession.revoked_at, null);
+  assert.equal(state.guestUpgradeHistory.length, 0);
+  assert.equal(state.installations.get(installationId)?.user_id, guestUserId);
+  assert.equal(state.workspaces.has(guestWorkspaceId), true);
+});
+
+test("completeGuestUpgradeInExecutor deterministically forks copied ids into a different workspace", async () => {
+  const guestToken = "guest-token-forked-copy";
+  const guestUserId = "guest-user";
+  const guestWorkspaceId = "guest-workspace";
+  const targetUserId = "linked-user";
+  const targetWorkspaceId = "target-workspace";
+  const guestReplicaId = "guest-replica";
+  const installationId = "installation-forked-copy";
+  const targetSubject = "cognito-subject-forked-copy";
+  const sourceCardId = "11111111-1111-4111-8111-111111111111";
+  const sourceDeckId = "22222222-2222-4222-8222-222222222222";
+  const sourceReviewEventId = "33333333-3333-4333-8333-333333333333";
+
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-forked-copy",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject,
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId,
+    installationId,
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  state.cards.push({
+    card_id: sourceCardId,
+    workspace_id: guestWorkspaceId,
+    front_text: "Front",
+    back_text: "Back",
+    tags: ["tag"],
+    effort_level: "fast",
+    due_at: null,
+    created_at: "2026-04-02T14:00:02.000Z",
+    reps: 0,
+    lapses: 0,
+    fsrs_card_state: "new",
+    fsrs_step_index: null,
+    fsrs_stability: null,
+    fsrs_difficulty: null,
+    fsrs_last_reviewed_at: null,
+    fsrs_scheduled_days: null,
+    client_updated_at: "2026-04-02T14:00:03.000Z",
+    last_modified_by_replica_id: guestReplicaId,
+    last_operation_id: "guest-card-op",
+    updated_at: "2026-04-02T14:00:03.000Z",
+    deleted_at: null,
+  });
+  state.decks.push({
+    deck_id: sourceDeckId,
+    workspace_id: guestWorkspaceId,
+    name: "Deck",
+    filter_definition: {
+      version: 2,
+      effortLevels: ["fast"],
+      tags: ["tag"],
+    },
+    created_at: "2026-04-02T14:00:04.000Z",
+    client_updated_at: "2026-04-02T14:00:05.000Z",
+    last_modified_by_replica_id: guestReplicaId,
+    last_operation_id: "guest-deck-op",
+    updated_at: "2026-04-02T14:00:05.000Z",
+    deleted_at: null,
+  });
+  state.reviewEvents.push({
+    review_event_id: sourceReviewEventId,
+    workspace_id: guestWorkspaceId,
+    card_id: sourceCardId,
+    replica_id: guestReplicaId,
+    client_event_id: "client-event-1",
+    rating: 3,
+    reviewed_at_client: "2026-04-02T14:00:06.000Z",
+    reviewed_at_server: "2026-04-02T14:00:06.000Z",
+  });
+
+  const executor = createGuestUpgradeExecutor(state);
+  await completeGuestUpgradeInExecutor(
+    executor,
+    guestToken,
+    targetSubject,
+    {
+      type: "existing",
+      workspaceId: targetWorkspaceId,
+    },
+  );
+
+  const expectedCardId = forkCardIdForWorkspace(guestWorkspaceId, targetWorkspaceId, sourceCardId);
+  const expectedDeckId = forkDeckIdForWorkspace(guestWorkspaceId, targetWorkspaceId, sourceDeckId);
+  const expectedReviewEventId = forkReviewEventIdForWorkspace(
+    guestWorkspaceId,
+    targetWorkspaceId,
+    sourceReviewEventId,
+  );
+
+  const targetCard = state.cards.find((card) => card.workspace_id === targetWorkspaceId);
+  const targetDeck = state.decks.find((deck) => deck.workspace_id === targetWorkspaceId);
+  const targetReviewEvent = state.reviewEvents.find((reviewEvent) => reviewEvent.workspace_id === targetWorkspaceId);
+
+  assert.ok(targetCard);
+  assert.equal(targetCard?.card_id, expectedCardId);
+  assert.notEqual(targetCard?.card_id, sourceCardId);
+
+  assert.ok(targetDeck);
+  assert.equal(targetDeck?.deck_id, expectedDeckId);
+  assert.notEqual(targetDeck?.deck_id, sourceDeckId);
+
+  assert.ok(targetReviewEvent);
+  assert.equal(targetReviewEvent?.review_event_id, expectedReviewEventId);
+  assert.equal(targetReviewEvent?.card_id, expectedCardId);
+  assert.notEqual(targetReviewEvent?.review_event_id, sourceReviewEventId);
+});
+
 test("deleteGuestSessionInExecutor revokes and removes guest server state", async () => {
   const guestToken = "guest-token-delete";
   const guestUserId = "guest-user";
@@ -972,6 +1172,80 @@ test("deleteGuestSessionInExecutor revokes and removes guest server state", asyn
   assert.equal(
     state.workspaceReplicas.some((replica) => replica.workspace_id === guestWorkspaceId),
     false,
+  );
+});
+
+test("cleanupGuestSessionSourceInExecutor re-scopes to the guest user before checking cleanup invariants", async () => {
+  const guestUserId = "guest-user";
+  const guestWorkspaceId = "guest-workspace";
+  const targetUserId = "linked-user";
+  const targetWorkspaceId = "target-workspace";
+  const state = createMergeState({
+    guestToken: "guest-token-cleanup-rescope",
+    guestSessionId: "guest-session-cleanup-rescope",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject: "cognito-subject-cleanup-rescope",
+    targetUserId,
+    targetWorkspaceId,
+    guestReplicaId: "guest-replica-cleanup-rescope",
+    installationId: "installation-cleanup-rescope",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  state.currentUserId = targetUserId;
+  state.currentWorkspaceId = targetWorkspaceId;
+
+  const executor = createGuestUpgradeExecutor(state);
+  await cleanupGuestSessionSourceInExecutor(
+    executor,
+    guestUserId,
+    "guest-session-cleanup-rescope",
+    guestWorkspaceId,
+  );
+
+  assert.equal(state.guestSession.revoked_at, "2026-04-02T14:01:16.000Z");
+  assert.equal(state.userSettings.has(guestUserId), false);
+  assert.equal(state.workspaces.has(guestWorkspaceId), false);
+});
+
+test("deleteGuestSessionInExecutor rejects guest cleanup for a shared workspace", async () => {
+  const guestToken = "guest-token-delete-shared";
+  const guestUserId = "guest-user";
+  const guestWorkspaceId = "guest-workspace";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-delete-shared",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject: "cognito-subject-delete-shared",
+    targetUserId: "linked-user",
+    targetWorkspaceId: "target-workspace",
+    guestReplicaId: "guest-replica-delete-shared",
+    installationId: "installation-delete-shared",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  state.workspaceMemberships.add(membershipKey("shared-user", guestWorkspaceId));
+
+  const executor = createGuestUpgradeExecutor(state);
+
+  await assert.rejects(
+    deleteGuestSessionInExecutor(executor, guestToken),
+    (error: unknown) => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 409);
+      assert.equal(error.code, "WORKSPACE_DELETE_SHARED");
+      return true;
+    },
+  );
+
+  assert.equal(state.guestSession.revoked_at, null);
+  assert.equal(state.userSettings.has(guestUserId), true);
+  assert.equal(state.workspaces.has(guestWorkspaceId), true);
+  assert.equal(
+    state.workspaceReplicas.some((replica) => replica.workspace_id === guestWorkspaceId),
+    true,
   );
 });
 

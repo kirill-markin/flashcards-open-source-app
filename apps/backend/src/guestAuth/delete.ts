@@ -1,13 +1,36 @@
-import type { DatabaseExecutor } from "../db";
+import {
+  applyUserDatabaseScopeInExecutor,
+  type DatabaseExecutor,
+} from "../db";
 import { HttpError } from "../errors";
+import { loadWorkspaceManagementRowInExecutor } from "../workspaces/queries";
+import {
+  assertWorkspaceIsSoleMember,
+  assertWorkspaceOwner,
+} from "../workspaces/shared";
 import {
   deleteUserSettingsInExecutor,
   hasCognitoIdentityMappingForUserInExecutor,
-  deleteWorkspaceInExecutor,
+  deleteWorkspaceInExecutor as deleteGuestWorkspaceInExecutor,
   loadGuestSessionInExecutor,
   loadGuestWorkspaceIdInExecutor,
   revokeGuestSessionInExecutor,
 } from "./store";
+
+async function assertGuestWorkspaceCleanupAllowedInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+  guestWorkspaceId: string,
+): Promise<void> {
+  await applyUserDatabaseScopeInExecutor(executor, { userId: guestUserId });
+  const managedWorkspace = await loadWorkspaceManagementRowInExecutor(
+    executor,
+    guestUserId,
+    guestWorkspaceId,
+  );
+  assertWorkspaceOwner(managedWorkspace.role);
+  assertWorkspaceIsSoleMember(managedWorkspace.member_count);
+}
 
 export async function cleanupGuestSessionSourceInExecutor(
   executor: DatabaseExecutor,
@@ -15,8 +38,9 @@ export async function cleanupGuestSessionSourceInExecutor(
   guestSessionId: string,
   guestWorkspaceId: string,
 ): Promise<void> {
+  await assertGuestWorkspaceCleanupAllowedInExecutor(executor, guestUserId, guestWorkspaceId);
   await revokeGuestSessionInExecutor(executor, guestUserId, guestSessionId);
-  await deleteWorkspaceInExecutor(executor, guestUserId, guestWorkspaceId);
+  await deleteGuestWorkspaceInExecutor(executor, guestUserId, guestWorkspaceId);
   await deleteUserSettingsInExecutor(executor, guestUserId);
 }
 

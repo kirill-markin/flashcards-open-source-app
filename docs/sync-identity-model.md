@@ -54,3 +54,15 @@ The new model fixes that by keeping:
 - replicas immutable and workspace-scoped
 
 This lets one physical installation switch users, switch workspaces, return later, upgrade guest sessions, and delete workspaces without rewriting historical actor ownership.
+
+## Workspace Identity Forking
+
+Copying cards, decks, or review history into a different workspace must deterministically fork every globally keyed entity id. Reusing the original ids across workspaces is invalid because these tables are keyed globally, not by `(workspace_id, entity_id)`.
+
+- Fork card ids with UUID v5 namespace `5b0c7f2e-6f2a-4b7e-9e1b-2b5f0a4a91b1`
+- Fork deck ids with UUID v5 namespace `98e66f2c-d3c7-4e3f-a7df-55d8e19ad2b4`
+- Fork review event ids with UUID v5 namespace `3a214a3e-9c89-426d-a21f-11a5f5c1d6e8`
+
+When review events are copied into another workspace, their `cardId` references must be rewritten to the forked card ids from the same copy operation.
+
+Destructive guest-upgrade merges use the same deterministic fork rule when they copy guest cloud state into the selected destination workspace. Native clients must apply the same source-workspace-to-target-workspace mapping to any still-local unsynced guest state before the next linked sync.
