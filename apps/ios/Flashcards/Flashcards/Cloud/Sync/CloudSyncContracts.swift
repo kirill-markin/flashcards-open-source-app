@@ -125,6 +125,18 @@ struct BootstrapPushRequest: Encodable {
     let entries: [SyncBootstrapEntryEnvelope]
 }
 
+private func encodeNullableBootstrapValue<Key: CodingKey, Value: Encodable>(
+    _ value: Value?,
+    forKey key: Key,
+    in container: inout KeyedEncodingContainer<Key>
+) throws {
+    if let value {
+        try container.encode(value, forKey: key)
+    } else {
+        try container.encodeNil(forKey: key)
+    }
+}
+
 /// Wire contract for `POST /sync/review-history/pull`.
 ///
 /// Keep this request aligned with `apps/backend/src/sync.ts`
@@ -204,12 +216,149 @@ struct SyncBootstrapEntryEnvelope: Encodable {
 
         switch self.entry.payload {
         case .card(let payload):
-            try container.encode(payload, forKey: .payload)
+            try container.encode(BootstrapCardPayload(card: payload), forKey: .payload)
         case .deck(let payload):
-            try container.encode(payload, forKey: .payload)
+            try container.encode(BootstrapDeckPayload(deck: payload), forKey: .payload)
         case .workspaceSchedulerSettings(let payload):
-            try container.encode(payload, forKey: .payload)
+            try container.encode(BootstrapWorkspaceSchedulerSettingsPayload(settings: payload), forKey: .payload)
         }
+    }
+}
+
+/// Keep this encoder aligned with `apps/backend/src/sync/input.ts`
+/// `cardBootstrapPushPayloadSchema`.
+private struct BootstrapCardPayload: Encodable {
+    let snapshot: CardSyncPayload
+    let clientUpdatedAt: String
+    let lastOperationId: String
+    let updatedAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case cardId
+        case frontText
+        case backText
+        case tags
+        case effortLevel
+        case dueAt
+        case createdAt
+        case reps
+        case lapses
+        case fsrsCardState
+        case fsrsStepIndex
+        case fsrsStability
+        case fsrsDifficulty
+        case fsrsLastReviewedAt
+        case fsrsScheduledDays
+        case clientUpdatedAt
+        case lastOperationId
+        case updatedAt
+        case deletedAt
+    }
+
+    init(card: Card) {
+        self.snapshot = CardSyncPayload(card: card)
+        self.clientUpdatedAt = card.clientUpdatedAt
+        self.lastOperationId = card.lastOperationId
+        self.updatedAt = card.updatedAt
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.snapshot.cardId, forKey: .cardId)
+        try container.encode(self.snapshot.frontText, forKey: .frontText)
+        try container.encode(self.snapshot.backText, forKey: .backText)
+        try container.encode(self.snapshot.tags, forKey: .tags)
+        try container.encode(self.snapshot.effortLevel, forKey: .effortLevel)
+        try encodeNullableBootstrapValue(self.snapshot.dueAt, forKey: .dueAt, in: &container)
+        try container.encode(self.snapshot.createdAt, forKey: .createdAt)
+        try container.encode(self.snapshot.reps, forKey: .reps)
+        try container.encode(self.snapshot.lapses, forKey: .lapses)
+        try container.encode(self.snapshot.fsrsCardState, forKey: .fsrsCardState)
+        try encodeNullableBootstrapValue(self.snapshot.fsrsStepIndex, forKey: .fsrsStepIndex, in: &container)
+        try encodeNullableBootstrapValue(self.snapshot.fsrsStability, forKey: .fsrsStability, in: &container)
+        try encodeNullableBootstrapValue(self.snapshot.fsrsDifficulty, forKey: .fsrsDifficulty, in: &container)
+        try encodeNullableBootstrapValue(
+            self.snapshot.fsrsLastReviewedAt,
+            forKey: .fsrsLastReviewedAt,
+            in: &container
+        )
+        try encodeNullableBootstrapValue(
+            self.snapshot.fsrsScheduledDays,
+            forKey: .fsrsScheduledDays,
+            in: &container
+        )
+        try container.encode(self.clientUpdatedAt, forKey: .clientUpdatedAt)
+        try container.encode(self.lastOperationId, forKey: .lastOperationId)
+        try container.encode(self.updatedAt, forKey: .updatedAt)
+        try encodeNullableBootstrapValue(self.snapshot.deletedAt, forKey: .deletedAt, in: &container)
+    }
+}
+
+/// Keep this encoder aligned with `apps/backend/src/sync/input.ts`
+/// `deckBootstrapPushPayloadSchema`.
+private struct BootstrapDeckPayload: Encodable {
+    let snapshot: DeckSyncPayload
+    let workspaceId: String
+    let clientUpdatedAt: String
+    let lastOperationId: String
+    let updatedAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case deckId
+        case workspaceId
+        case name
+        case filterDefinition
+        case createdAt
+        case clientUpdatedAt
+        case lastOperationId
+        case updatedAt
+        case deletedAt
+    }
+
+    init(deck: Deck) {
+        self.snapshot = DeckSyncPayload(deck: deck)
+        self.workspaceId = deck.workspaceId
+        self.clientUpdatedAt = deck.clientUpdatedAt
+        self.lastOperationId = deck.lastOperationId
+        self.updatedAt = deck.updatedAt
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.snapshot.deckId, forKey: .deckId)
+        try container.encode(self.workspaceId, forKey: .workspaceId)
+        try container.encode(self.snapshot.name, forKey: .name)
+        try container.encode(self.snapshot.filterDefinition, forKey: .filterDefinition)
+        try container.encode(self.snapshot.createdAt, forKey: .createdAt)
+        try container.encode(self.clientUpdatedAt, forKey: .clientUpdatedAt)
+        try container.encode(self.lastOperationId, forKey: .lastOperationId)
+        try container.encode(self.updatedAt, forKey: .updatedAt)
+        try encodeNullableBootstrapValue(self.snapshot.deletedAt, forKey: .deletedAt, in: &container)
+    }
+}
+
+private struct BootstrapWorkspaceSchedulerSettingsPayload: Encodable {
+    let algorithm: String
+    let desiredRetention: Double
+    let learningStepsMinutes: [Int]
+    let relearningStepsMinutes: [Int]
+    let maximumIntervalDays: Int
+    let enableFuzz: Bool
+    let clientUpdatedAt: String
+    let lastOperationId: String
+    let updatedAt: String
+
+    init(settings: WorkspaceSchedulerSettings) {
+        let snapshot = WorkspaceSchedulerSettingsSyncPayload(settings: settings)
+        self.algorithm = snapshot.algorithm
+        self.desiredRetention = snapshot.desiredRetention
+        self.learningStepsMinutes = snapshot.learningStepsMinutes
+        self.relearningStepsMinutes = snapshot.relearningStepsMinutes
+        self.maximumIntervalDays = snapshot.maximumIntervalDays
+        self.enableFuzz = snapshot.enableFuzz
+        self.clientUpdatedAt = settings.clientUpdatedAt
+        self.lastOperationId = settings.lastOperationId
+        self.updatedAt = settings.updatedAt
     }
 }
 

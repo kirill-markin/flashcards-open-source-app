@@ -94,9 +94,8 @@ Run commands from `apps/android/`.
 - Track Android marketing screenshot generator inventory: [`docs/marketing-screenshots.md`](docs/marketing-screenshots.md)
 
 The marketing screenshot docs cover locale-prefixed runs as well.
-The current supported wrapper layout is one combined Review + Cards flow for screenshots 1, 2, 4, and 5, plus a separate Progress flow for screenshot 3.
-The old review/cards wrapper names remain as compatibility aliases to the combined run.
-Use them when adding or validating multi-language Play screenshot content.
+The current supported wrapper layout is one unified five-shot Android marketing flow that captures screenshots 1, 2, 3, 4, and 5 from one seeded guest workspace and one instrumentation run.
+Use that one wrapper when adding or validating multi-language Play screenshot content.
 
 ## Localization Rule
 
@@ -163,6 +162,7 @@ Test only on the final supported Android target.
 - Do not spend time on test matrices for older API levels
 - Do not add compatibility code for older Android versions unless explicitly requested
 - Prefer background local emulator runs without a visible emulator window by default
+- When starting a local headless emulator manually, prefer `-gpu auto` and avoid the deprecated `-gpu swiftshader_indirect` override
 - Preserve the usual test artifacts, logs, screenshots, and reports when running Android tests in the background
 - Open a visible Android emulator only when the user explicitly asks for it at that time
 - Before a local instrumentation run, stop all other Android emulators, verify `adb devices` shows only the one target emulator, and prefer a clean rebuild plus one clean test run so stale emulator state does not contaminate the result

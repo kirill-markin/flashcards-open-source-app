@@ -11,13 +11,14 @@ import org.junit.runner.RunWith
 
 private const val reviewResultScreenshotSlug: String = "review-card-result-google-play-opportunity-cost"
 private const val reviewFrontScreenshotSlug: String = "review-card-front-google-play-opportunity-cost"
+private const val progressScreenshotSlug: String = "progress-google-play-study-history"
 private const val reviewAiDraftScreenshotSlug: String =
     "review-card-ai-draft-google-play-opportunity-cost"
 private const val cardsScreenshotSlug: String = "cards-list-google-play-vocabulary"
 
 @ManualOnlyAndroidTest
 @RunWith(AndroidJUnit4::class)
-class MarketingReviewAndCardsScreenshotScript {
+class MarketingAllScreenshotsScript {
     private val appStateResetRule = MarketingScreenshotAppStateResetRule()
     private val composeRule = createMarketingScreenshotComposeRule()
 
@@ -27,11 +28,15 @@ class MarketingReviewAndCardsScreenshotScript {
         .around(composeRule)
 
     @Test
-    fun generateOpportunityCostReviewAndCardsScreenshotFlow() {
+    fun generateUnifiedOpportunityCostMarketingScreenshotFlow() {
         val localeConfig = activeMarketingScreenshotLocaleConfig()
+        val nowMillis = System.currentTimeMillis()
         runBlocking {
             createRepositorySeedExecutor().seedCardsAndReviewsInGuestCloudWorkspace(
-                seedScenario = marketingReviewAndCardsRepositorySeedScenario(localeConfig = localeConfig)
+                seedScenario = marketingUnifiedRepositorySeedScenario(
+                    localeConfig = localeConfig,
+                    nowMillis = nowMillis
+                )
             )
         }
         val robot = MarketingScreenshotRobot(
@@ -48,6 +53,11 @@ class MarketingReviewAndCardsScreenshotScript {
             screenshotIndex = 2,
             screenshotSlug = reviewResultScreenshotSlug
         )
+        val progressScreenshotFileName = marketingScreenshotFileName(
+            localeConfig = localeConfig,
+            screenshotIndex = 3,
+            screenshotSlug = progressScreenshotSlug
+        )
         val reviewAiDraftScreenshotFileName = marketingScreenshotFileName(
             localeConfig = localeConfig,
             screenshotIndex = 4,
@@ -59,8 +69,10 @@ class MarketingReviewAndCardsScreenshotScript {
             screenshotSlug = cardsScreenshotSlug
         )
 
-        robot.prepareOpportunityCostReviewCardForReview()
-
+        robot.prepareOpportunityCostReviewCardForReview(
+            expectedReviewStreakDays = marketingScreenshotExpectedStreakDays,
+            expectedReviewedToday = true
+        )
         assertScreenshotSaved(
             robot = robot,
             fileName = reviewFrontScreenshotFileName
@@ -72,6 +84,16 @@ class MarketingReviewAndCardsScreenshotScript {
             fileName = reviewResultScreenshotFileName
         )
 
+        robot.prepareStudyHistoryProgressScreen(
+            expectedProgressStreakDays = marketingScreenshotExpectedStreakDays,
+            expectedReviewedToday = true
+        )
+        assertScreenshotSaved(
+            robot = robot,
+            fileName = progressScreenshotFileName
+        )
+
+        robot.prepareOpportunityCostReviewCardForAiHandoff()
         robot.openAiFromRevealedOpportunityCostCardAndPrepareDraft(
             draftText = localeConfig.reviewAiDraftMessage
         )
@@ -80,10 +102,7 @@ class MarketingReviewAndCardsScreenshotScript {
             fileName = reviewAiDraftScreenshotFileName
         )
 
-        robot.prepareCardsListForScreenshot(
-            frontTexts = localeConfig.cards.map { card -> card.frontText },
-            expectedTopFrontText = localeConfig.reviewCard.frontText
-        )
+        robot.prepareCardsListForScreenshot()
         assertScreenshotSaved(
             robot = robot,
             fileName = cardsScreenshotFileName

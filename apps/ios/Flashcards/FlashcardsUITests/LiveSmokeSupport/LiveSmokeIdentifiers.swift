@@ -71,6 +71,7 @@ enum LiveSmokeIdentifier {
     static let cardEditorSaveButton: String = "cardEditor.saveButton"
     static let cardEditorFrontTextEditor: String = "cardEditor.frontTextEditor"
     static let cardEditorBackTextEditor: String = "cardEditor.backTextEditor"
+    static let reviewProgressBadge: String = "review.progressBadge"
     static let reviewQueueButton: String = "review.queueButton"
     static let reviewShowAnswerButton: String = "review.showAnswerButton"
     static let reviewAiButton: String = "review.aiButton"
@@ -96,8 +97,7 @@ enum LiveSmokeLaunchScenario: String {
     case guestEmptyWorkspace = "guest_empty_workspace"
     case guestManualReviewCard = "guest_manual_review_card"
     case guestAIReviewCard = "guest_ai_review_card"
-    case marketingReviewAndCards = "marketing_review_and_cards"
-    case marketingProgress = "marketing_progress"
+    case marketingScreenshots = "marketing_screenshots"
     case marketingGuestSessionCleanup = "marketing_guest_session_cleanup"
 }
 

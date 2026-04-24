@@ -57,7 +57,7 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 - Runs `:app:lintDebug`
 - Delegates the GitHub-hosted Android Gradle entrypoints to repo-root shell scripts in `scripts/`
 - Uploads the debug APK, Android test APK, unit test reports, and lint report as workflow artifacts
-- Boots a headless Android 16 / API 36 emulator in GitHub Actions
+- Boots a headless Android 16 / API 36 emulator in GitHub Actions with `-gpu auto`
 - Runs `:data:local:connectedDebugAndroidTest` on that emulator
 - Uploads `data:local` instrumentation reports from the emulator run when the Gradle task produced them
 - Reuses one shared `ANDROID_VERSION_CODE` across Android CI/build artifacts and the signed Play bundle in the same release run instead of resolving separate version codes per stage
@@ -332,6 +332,8 @@ For local instrumentation runs, prefer one clean emulator only:
 
 - stop all running Android emulators before the run
 - verify `adb devices` shows only one target emulator before starting Gradle
+- when launching a local headless emulator manually, prefer `emulator @Medium_Phone_API_36.1 -no-window -no-audio -gpu auto`
+- for temporary local startup diagnosis only, keep the same command and add `-verbose -debug init,metrics -logcat '*:s ActivityManager:i AndroidTestOrchestrator:i TestRunner:i'`
 - prefer a clean rebuild and one clean test run when validating a local fix
 - do not reuse a second emulator or a half-failed prior emulator session for the same verification pass
 
