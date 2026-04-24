@@ -104,6 +104,7 @@ LANGFUSE_BASE_URL="${LANGFUSE_BASE_URL:-}"
 ANALYTICS_SSH_PUBLIC_KEYS="${ANALYTICS_SSH_PUBLIC_KEYS:-}"
 ANALYTICS_SSH_ALLOWED_CIDRS="${ANALYTICS_SSH_ALLOWED_CIDRS:-}"
 ANALYTICS_SSH_USERNAME="${ANALYTICS_SSH_USERNAME:-}"
+GLOBAL_METRICS_VISIBLE="${GLOBAL_METRICS_VISIBLE:-}"
 if [[ -n "${ANALYTICS_SSH_PUBLIC_KEYS}" || -n "${ANALYTICS_SSH_ALLOWED_CIDRS}" || -n "${ANALYTICS_SSH_USERNAME}" ]]; then
   require_non_empty_value "${ANALYTICS_SSH_PUBLIC_KEYS}" "Set ANALYTICS_SSH_PUBLIC_KEYS in root .env before running setup-github.sh when enabling analytical SSH access." >/dev/null
   require_non_empty_value "${ANALYTICS_SSH_ALLOWED_CIDRS}" "Set ANALYTICS_SSH_ALLOWED_CIDRS in root .env before running setup-github.sh when enabling analytical SSH access." >/dev/null
@@ -141,6 +142,7 @@ set_variable_if_missing CDK_LANGFUSE_BASE_URL "$LANGFUSE_BASE_URL"
 set_variable_if_missing CDK_DEMO_EMAIL_DOSTIP "$DEMO_EMAIL_DOSTIP"
 set_variable_if_missing CDK_DEMO_PASSWORD_SECRET_ARN "$DEMO_PASSWORD_SECRET_ARN"
 set_variable_if_missing CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP "$GUEST_AI_QUOTA_CAP"
+set_variable_if_missing CDK_GLOBAL_METRICS_VISIBLE "$GLOBAL_METRICS_VISIBLE"
 # CDK_ADMIN_EMAILS stays write-once here on purpose. After bootstrap,
 # GitHub is the deploy-time source of truth for this non-secret CI input,
 # so later admin-list changes must be edited manually in GitHub or via `gh`.
@@ -151,4 +153,7 @@ set_variable_if_missing CDK_ANALYTICS_SSH_USERNAME "$ANALYTICS_SSH_USERNAME"
 
 set_secret_if_missing AWS_DEPLOY_ROLE_ARN "$DEPLOY_ROLE_ARN"
 
+echo "Global metrics visibility input: root .env GLOBAL_METRICS_VISIBLE -> GitHub variable CDK_GLOBAL_METRICS_VISIBLE."
+echo "Only the exact raw string 'true' exposes GET /v1/global/snapshot; any other value or an unset variable keeps it hidden."
+echo "setup-github.sh does not overwrite an existing CDK_GLOBAL_METRICS_VISIBLE. If deployed visibility must change, update or delete that GitHub variable manually before redeploying."
 echo "Missing GitHub Actions variables and secrets configured for ${REPO}."

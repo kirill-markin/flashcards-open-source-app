@@ -14,6 +14,7 @@ import { adminApp } from "./admin";
 import { migrationRunner } from "./migration-runner";
 import { authGateway } from "./auth-gateway";
 import { analyticsAccess, type AnalyticsAccessResult } from "./analytics-access";
+import { globalMetrics } from "./global-metrics";
 
 function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefined {
   const value = stack.node.tryGetContext(key);
@@ -23,6 +24,15 @@ function getOptionalContextValue(stack: cdk.Stack, key: string): string | undefi
 
   const trimmedValue = value.trim();
   return trimmedValue === "" ? undefined : trimmedValue;
+}
+
+function getOptionalRawContextValue(stack: cdk.Stack, key: string): string | undefined {
+  const value = stack.node.tryGetContext(key);
+  if (typeof value !== "string" || value === "") {
+    return undefined;
+  }
+
+  return value;
 }
 
 function parseCommaSeparatedValue(value: string): ReadonlyArray<string> {
@@ -65,6 +75,10 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const analyticsSshPublicKeysValue = getOptionalContextValue(this, "analyticsSshPublicKeys");
     const analyticsSshAllowedCidrsValue = getOptionalContextValue(this, "analyticsSshAllowedCidrs");
     const analyticsSshUsernameValue = getOptionalContextValue(this, "analyticsSshUsername");
+    // When enabled, global stats are visible externally through the public snapshot endpoint.
+    // When disabled, no client can fetch global stats from that endpoint.
+    const rawGlobalMetricsVisible = getOptionalRawContextValue(this, "globalMetricsVisible");
+    const globalMetricsVisible = rawGlobalMetricsVisible === "true";
     const analyticsAccessRequested =
       analyticsSshPublicKeysValue !== undefined ||
       analyticsSshAllowedCidrsValue !== undefined ||
@@ -72,6 +86,12 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
 
     const net = networking(this);
     const dbResult = database(this, { vpc: net.vpc, dbSg: net.dbSg });
+    const globalMetricsResult = globalMetrics(this, {
+      vpc: net.vpc,
+      lambdaSg: net.lambdaSg,
+      db: dbResult.db,
+      reportingDbSecret: dbResult.reportingDbSecret,
+    });
     let analyticsAccessResult: AnalyticsAccessResult | undefined;
     if (analyticsAccessRequested) {
       if (analyticsSshPublicKeysValue === undefined) {
@@ -144,6 +164,9 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       langfuseBaseUrl,
       demoEmailDostip,
       guestAiWeightedMonthlyTokenCap,
+      globalMetricsVisible,
+      globalMetricsSnapshotBucket: globalMetricsResult.snapshotBucket,
+      globalMetricsSnapshotObjectKey: globalMetricsResult.snapshotObjectKey,
       userPoolId: authResult.userPool.userPoolId,
       userPoolArn: authResult.userPool.userPoolArn,
       userPoolClientId: authResult.userPoolClient.userPoolClientId,
@@ -165,6 +188,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       backendFn: api.backendFn,
       chatWorkerFn: api.chatWorkerFn,
       chatLiveFn: api.chatLiveFn,
+      globalMetricsSnapshotFn: globalMetricsResult.snapshotFunction,
     });
 
     ciCd(this, {
@@ -173,6 +197,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       githubOidcProviderArn,
       authFn: authApi.authFn,
       demoPasswordSecretArn,
+      globalMetricsSnapshotFn: globalMetricsResult.snapshotFunction,
+      globalMetricsSnapshotFreshnessCheckerFn: globalMetricsResult.snapshotFreshnessCheckerFunction,
       migrationFn,
       userPoolArn: authResult.userPool.userPoolArn,
       webBucket: web.bucket,
@@ -197,6 +223,9 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       chatLiveFn: api.chatLiveFn,
       authFn: authApi.authFn,
       migrationFn,
+      globalMetricsSnapshotFunction: globalMetricsResult.snapshotFunction,
+      globalMetricsSnapshotFreshnessCheckerFunction: globalMetricsResult.snapshotFreshnessCheckerFunction,
+      globalMetricsVisible,
       userPoolId: authResult.userPool.userPoolId,
       userPoolClientId: authResult.userPoolClient.userPoolClientId,
       webBucket: web.bucket,

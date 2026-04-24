@@ -17,6 +17,11 @@ const repoRootPath = path.resolve(infraAwsRootPath, "../..");
 const authProjectRootPath = path.join(repoRootPath, "apps", "auth");
 const backendProjectRootPath = path.join(repoRootPath, "apps", "backend");
 
+export const infraAwsNodejsProjectPaths: NodejsProjectPaths = {
+  projectRoot: infraAwsRootPath,
+  depsLockFilePath: path.join(infraAwsRootPath, "package-lock.json"),
+};
+
 export const authNodejsProjectPaths: NodejsProjectPaths = {
   projectRoot: authProjectRootPath,
   depsLockFilePath: path.join(authProjectRootPath, "package-lock.json"),

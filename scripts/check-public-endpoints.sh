@@ -177,6 +177,7 @@ check_api_json_endpoint() {
   local http_status
   local content_type
   local allow_origin
+  local allow_credentials
   local request_id
 
   response_file=$(mktemp)
@@ -190,6 +191,7 @@ check_api_json_endpoint() {
 
   content_type=$(get_header_value "$headers_file" "content-type")
   allow_origin=$(get_header_value "$headers_file" "access-control-allow-origin")
+  allow_credentials=$(get_header_value "$headers_file" "access-control-allow-credentials")
   request_id=$(get_header_value "$headers_file" "x-request-id")
 
   if [[ "$http_status" != "200" && "$http_status" != "401" ]]; then
@@ -277,6 +279,370 @@ check_api_preflight() {
   echo "Public API preflight check passed: ${description} (${url}) returned ${http_status}"
 }
 
+check_public_global_metrics_snapshot_preflight() {
+  local url="$1"
+  local origin="$2"
+  local description="$3"
+  local response_file
+  local headers_file
+  local http_status
+  local allow_origin
+  local allow_credentials
+  local allow_methods
+
+  response_file=$(mktemp)
+  headers_file=$(mktemp)
+  trap 'rm -f "$response_file" "$headers_file"' RETURN
+
+  http_status=$(curl -sS -D "$headers_file" -o "$response_file" \
+    -X OPTIONS \
+    -H "Origin: ${origin}" \
+    -H "Access-Control-Request-Method: GET" \
+    "$url" \
+    -w "%{http_code}")
+
+  allow_origin=$(get_header_value "$headers_file" "access-control-allow-origin")
+  allow_credentials=$(get_header_value "$headers_file" "access-control-allow-credentials")
+  allow_methods=$(get_header_value "$headers_file" "access-control-allow-methods")
+
+  if [[ "$http_status" != "200" && "$http_status" != "204" ]]; then
+    echo "ERROR: ${description} preflight returned unexpected status ${http_status}: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ "$allow_origin" != "$origin" && "$allow_origin" != "*" ]]; then
+    echo "ERROR: ${description} preflight did not return a public-safe CORS origin: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ -n "$allow_credentials" && "$allow_credentials" != "false" ]]; then
+    echo "ERROR: ${description} preflight unexpectedly allows credentials: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ "$allow_methods" != *GET* ]]; then
+    echo "ERROR: ${description} preflight does not advertise GET: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if grep -qi 'MissingAuthenticationToken' "$response_file"; then
+    echo "ERROR: ${description} preflight still points at an API Gateway tombstone route: ${url}" >&2
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  echo "Public global metrics snapshot preflight check passed: ${description} (${url}) returned ${http_status}"
+}
+
+validate_global_metrics_snapshot_payload() {
+  local response_file="$1"
+
+  python3 - "$response_file" <<'PY'
+import datetime
+import json
+import pathlib
+import sys
+
+response_path = pathlib.Path(sys.argv[1])
+payload = json.loads(response_path.read_text())
+
+required_top_level_keys = ["schemaVersion", "generatedAtUtc", "asOfUtc", "from", "to", "totals", "days"]
+required_total_keys = ["uniqueReviewingUsers", "reviewEvents"]
+required_review_event_keys = ["total", "byPlatform"]
+expected_platform_keys = ["web", "android", "ios"]
+expected_day_count = 90
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise SystemExit(f"ERROR: {message}")
+
+
+def require_non_negative_int(value: object, label: str) -> int:
+    require(isinstance(value, int), f"{label} must be an integer, received {value!r}")
+    require(value >= 0, f"{label} must be non-negative, received {value!r}")
+    return value
+
+
+def validate_platform_totals(node: object, label: str) -> dict[str, int]:
+    require(isinstance(node, dict), f"{label} must be an object")
+    require(all(platform in node for platform in expected_platform_keys), f"{label} must include {expected_platform_keys!r}")
+    return {
+        platform: require_non_negative_int(node[platform], f"{label}.{platform}")
+        for platform in expected_platform_keys
+    }
+
+
+def validate_review_events(node: object, label: str) -> None:
+    require(isinstance(node, dict), f"{label} must be an object")
+    require(all(key in node for key in required_review_event_keys), f"{label} is missing one of {required_review_event_keys!r}")
+    total = require_non_negative_int(node["total"], f"{label}.total")
+    by_platform = validate_platform_totals(node["byPlatform"], f"{label}.byPlatform")
+    require(total == sum(by_platform.values()), f"{label}.total must equal the sum of platform totals")
+
+
+require(isinstance(payload, dict), "global metrics snapshot response must be a JSON object")
+require(all(key in payload for key in required_top_level_keys), f"snapshot payload is missing one of {required_top_level_keys!r}")
+require(payload["schemaVersion"] == 1, f"schemaVersion must be 1, received {payload['schemaVersion']!r}")
+require(isinstance(payload["generatedAtUtc"], str), "generatedAtUtc must be a string")
+generated_at = datetime.datetime.fromisoformat(payload["generatedAtUtc"].replace("Z", "+00:00"))
+require(isinstance(payload["asOfUtc"], str), "asOfUtc must be a string")
+as_of = datetime.datetime.fromisoformat(payload["asOfUtc"].replace("Z", "+00:00"))
+require(as_of.hour == 0 and as_of.minute == 0 and as_of.second == 0 and as_of.microsecond == 0, "asOfUtc must be a UTC midnight boundary")
+require(generated_at >= as_of, "generatedAtUtc must be greater than or equal to asOfUtc")
+require(isinstance(payload["from"], str), "from must be a string")
+from_date = datetime.date.fromisoformat(payload["from"])
+require(isinstance(payload["to"], str), "to must be a string")
+to_date = datetime.date.fromisoformat(payload["to"])
+require(from_date <= to_date, "from must be less than or equal to to")
+require(to_date == (as_of.date() - datetime.timedelta(days=1)), "to must be the UTC day immediately before asOfUtc")
+require(from_date == (as_of.date() - datetime.timedelta(days=expected_day_count)), "from must be the UTC day window start")
+
+totals = payload["totals"]
+require(isinstance(totals, dict), "totals must be an object")
+require(all(key in totals for key in required_total_keys), f"totals is missing one of {required_total_keys!r}")
+require_non_negative_int(totals["uniqueReviewingUsers"], "totals.uniqueReviewingUsers")
+validate_review_events(totals["reviewEvents"], "totals.reviewEvents")
+
+days = payload["days"]
+require(isinstance(days, list), "days must be an array")
+require(len(days) == expected_day_count, f"days must contain exactly {expected_day_count} entries")
+
+seen_dates: set[str] = set()
+previous_date: datetime.date | None = None
+for index, entry in enumerate(days):
+    label = f"days[{index}]"
+    require(isinstance(entry, dict), f"{label} must be an object")
+    require("date" in entry and "uniqueReviewingUsers" in entry and "reviewEvents" in entry, f"{label} must contain date, uniqueReviewingUsers, and reviewEvents")
+    require(isinstance(entry["date"], str), f"{label}.date must be a string")
+    current_date = datetime.date.fromisoformat(entry["date"])
+    require(entry["date"] not in seen_dates, f"{label}.date must be unique")
+    if previous_date is not None:
+        require(previous_date <= current_date, "days must be ordered by ascending date")
+    expected_date = from_date + datetime.timedelta(days=index)
+    require(current_date == expected_date, f"{label}.date must equal {expected_date.isoformat()}")
+    seen_dates.add(entry["date"])
+    previous_date = current_date
+    require_non_negative_int(entry["uniqueReviewingUsers"], f"{label}.uniqueReviewingUsers")
+    validate_review_events(entry["reviewEvents"], f"{label}.reviewEvents")
+PY
+}
+
+validate_hidden_global_metrics_snapshot_payload() {
+  local response_file="$1"
+
+  python3 - "$response_file" <<'PY'
+import json
+import pathlib
+import sys
+
+response_path = pathlib.Path(sys.argv[1])
+payload = json.loads(response_path.read_text())
+
+if (
+    not isinstance(payload, dict)
+    or payload.get("error") != "Global metrics snapshot is not visible."
+    or payload.get("code") != "GLOBAL_METRICS_NOT_VISIBLE"
+    or not isinstance(payload.get("requestId"), str)
+    or payload["requestId"] == ""
+):
+    raise SystemExit(f"ERROR: Unexpected hidden global metrics payload: {payload!r}")
+PY
+}
+
+check_public_global_metrics_snapshot() {
+  local url="$1"
+  local origin="$2"
+  local description="$3"
+  local response_file
+  local headers_file
+  local http_status
+  local content_type
+  local allow_origin
+  local allow_credentials
+  local request_id
+
+  response_file=$(mktemp)
+  headers_file=$(mktemp)
+  trap 'rm -f "$response_file" "$headers_file"' RETURN
+
+  http_status=$(curl -sS -D "$headers_file" -o "$response_file" \
+    -H "Origin: ${origin}" \
+    "$url" \
+    -w "%{http_code}")
+
+  content_type=$(get_header_value "$headers_file" "content-type")
+  allow_origin=$(get_header_value "$headers_file" "access-control-allow-origin")
+  allow_credentials=$(get_header_value "$headers_file" "access-control-allow-credentials")
+  request_id=$(get_header_value "$headers_file" "x-request-id")
+
+  if [[ "$http_status" != "200" ]]; then
+    echo "ERROR: ${description} returned unexpected status ${http_status}: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ "$content_type" != application/json* ]]; then
+    echo "ERROR: ${description} did not return JSON content: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ "$allow_origin" != "$origin" && "$allow_origin" != "*" ]]; then
+    echo "ERROR: ${description} did not return the expected CORS origin header: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ -n "$allow_credentials" && "$allow_credentials" != "false" ]]; then
+    echo "ERROR: ${description} unexpectedly allows credentials: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ -z "$request_id" ]]; then
+    echo "ERROR: ${description} did not return X-Request-Id: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if grep -qi 'MissingAuthenticationToken' "$response_file"; then
+    echo "ERROR: ${description} still points at an API Gateway tombstone route: ${url}" >&2
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  validate_global_metrics_snapshot_payload "$response_file"
+  echo "Public global metrics snapshot check passed: ${description} (${url})"
+}
+
+check_hidden_global_metrics_snapshot() {
+  local url="$1"
+  local origin="$2"
+  local description="$3"
+  local response_file
+  local headers_file
+  local http_status
+  local content_type
+  local allow_origin
+  local allow_credentials
+  local request_id
+
+  response_file=$(mktemp)
+  headers_file=$(mktemp)
+  trap 'rm -f "$response_file" "$headers_file"' RETURN
+
+  http_status=$(curl -sS -D "$headers_file" -o "$response_file" \
+    -H "Origin: ${origin}" \
+    "$url" \
+    -w "%{http_code}")
+
+  content_type=$(get_header_value "$headers_file" "content-type")
+  allow_origin=$(get_header_value "$headers_file" "access-control-allow-origin")
+  allow_credentials=$(get_header_value "$headers_file" "access-control-allow-credentials")
+  request_id=$(get_header_value "$headers_file" "x-request-id")
+
+  if [[ "$http_status" != "404" ]]; then
+    echo "ERROR: ${description} returned unexpected status ${http_status}: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ "$content_type" != application/json* ]]; then
+    echo "ERROR: ${description} did not return JSON content: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ "$allow_origin" != "$origin" && "$allow_origin" != "*" ]]; then
+    echo "ERROR: ${description} did not return the expected CORS origin header: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ -n "$allow_credentials" && "$allow_credentials" != "false" ]]; then
+    echo "ERROR: ${description} unexpectedly allows credentials: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ -z "$request_id" ]]; then
+    echo "ERROR: ${description} did not return X-Request-Id: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if grep -qi 'MissingAuthenticationToken' "$response_file"; then
+    echo "ERROR: ${description} unexpectedly behaves like a missing API Gateway route: ${url}" >&2
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  validate_hidden_global_metrics_snapshot_payload "$response_file"
+  echo "Hidden global metrics snapshot check passed: ${description} (${url})"
+}
+
+check_api_route_absent() {
+  local url="$1"
+  local origin="$2"
+  local description="$3"
+  local response_file
+  local headers_file
+  local http_status
+  local request_id
+
+  response_file=$(mktemp)
+  headers_file=$(mktemp)
+  trap 'rm -f "$response_file" "$headers_file"' RETURN
+
+  http_status=$(curl -sS -D "$headers_file" -o "$response_file" \
+    -H "Origin: ${origin}" \
+    "$url" \
+    -w "%{http_code}")
+
+  request_id=$(get_header_value "$headers_file" "x-request-id")
+
+  if [[ "$http_status" == "200" ]]; then
+    echo "ERROR: ${description} unexpectedly returned 200: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if [[ -n "$request_id" ]]; then
+    echo "ERROR: ${description} unexpectedly reached the backend route handler: ${url}" >&2
+    cat "$headers_file" >&2 || true
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  if grep -q 'GLOBAL_METRICS_NOT_VISIBLE' "$response_file"; then
+    echo "ERROR: ${description} unexpectedly behaved like the live hidden endpoint: ${url}" >&2
+    cat "$response_file" >&2 || true
+    return 1
+  fi
+
+  echo "Public API route absence check passed: ${description} (${url}) returned ${http_status}"
+}
+
 check_redirect_url() {
   local url="$1"
   local expected_status="$2"
@@ -316,6 +682,7 @@ API_PUBLIC_BASE=$(get_stack_output "ApiPublicBase")
 AUTH_PUBLIC_BASE=$(get_stack_output "AuthPublicBase")
 WEB_PUBLIC_BASE=$(get_stack_output "WebPublicBase")
 APEX_REDIRECT_TARGET=$(get_stack_output "ApexRedirectCustomDomainTarget")
+GLOBAL_METRICS_VISIBLE=$(get_stack_output "GlobalMetricsVisible")
 BASE_DOMAIN=$(get_stack_parameter "domainName")
 
 if [[ -z "$API_PUBLIC_BASE" || "$API_PUBLIC_BASE" == "None" ]]; then
@@ -335,6 +702,8 @@ fi
 
 WORKSPACES_URL="${API_PUBLIC_BASE%/}/workspaces"
 ME_URL="${API_PUBLIC_BASE%/}/me"
+GLOBAL_SNAPSHOT_URL="${API_PUBLIC_BASE%/}/global/snapshot"
+LEGACY_GLOBAL_SNAPSHOT_URL="${API_PUBLIC_BASE%/}/public/global/snapshot"
 
 check_url "${API_PUBLIC_BASE}/health" "200" "public API health"
 check_url "${AUTH_PUBLIC_BASE}/health" "200" "public auth health"
@@ -342,6 +711,21 @@ check_url "${API_PUBLIC_BASE}/auth/health" "404" "legacy public auth tombstone"
 check_api_json_endpoint "$ME_URL" "$WEB_PUBLIC_BASE" "public API session endpoint"
 check_api_json_endpoint "$WORKSPACES_URL" "$WEB_PUBLIC_BASE" "public API workspaces endpoint"
 check_api_preflight "$WORKSPACES_URL" "$WEB_PUBLIC_BASE" "GET" "content-type" "public API workspaces endpoint"
+check_public_global_metrics_snapshot_preflight "$GLOBAL_SNAPSHOT_URL" "$WEB_PUBLIC_BASE" "public global metrics snapshot endpoint"
+
+if [[ "$GLOBAL_METRICS_VISIBLE" == "true" ]]; then
+  check_public_global_metrics_snapshot \
+    "$GLOBAL_SNAPSHOT_URL" \
+    "$WEB_PUBLIC_BASE" \
+    "public global metrics snapshot endpoint"
+else
+  check_hidden_global_metrics_snapshot \
+    "$GLOBAL_SNAPSHOT_URL" \
+    "$WEB_PUBLIC_BASE" \
+    "hidden global metrics snapshot endpoint"
+fi
+
+check_api_route_absent "$LEGACY_GLOBAL_SNAPSHOT_URL" "$WEB_PUBLIC_BASE" "legacy public global metrics snapshot endpoint"
 
 if [[ "$SKIP_STATIC_SITES" != "true" ]]; then
   check_url "${WEB_PUBLIC_BASE}" "200" "public web root"
@@ -353,6 +737,7 @@ if [[ "$SKIP_STATIC_SITES" != "true" ]]; then
   else
     check_api_json_endpoint "$ME_URL" "$ADMIN_PUBLIC_BASE" "public API session endpoint from admin origin"
     check_api_preflight "$WORKSPACES_URL" "$ADMIN_PUBLIC_BASE" "GET" "content-type" "public API workspaces endpoint from admin origin"
+    check_public_global_metrics_snapshot_preflight "$GLOBAL_SNAPSHOT_URL" "$ADMIN_PUBLIC_BASE" "public global metrics snapshot endpoint from admin origin"
     check_url "${ADMIN_PUBLIC_BASE}" "200" "public admin root"
   fi
 fi

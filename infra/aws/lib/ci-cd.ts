@@ -11,6 +11,8 @@ export interface CiCdProps {
   githubOidcProviderArn: string | undefined;
   authFn: lambda.IFunction;
   demoPasswordSecretArn: string | undefined;
+  globalMetricsSnapshotFn: lambda.IFunction;
+  globalMetricsSnapshotFreshnessCheckerFn: lambda.IFunction;
   migrationFn: lambda.IFunction;
   userPoolArn: string;
   webBucket: s3.IBucket;
@@ -113,6 +115,18 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
       resources: [props.demoPasswordSecretArn],
     }));
   }
+
+  cdkDeployStatements.push(new iam.PolicyStatement({
+    sid: "InvokeGlobalMetricsSnapshotLambda",
+    actions: ["lambda:InvokeFunction"],
+    resources: [props.globalMetricsSnapshotFn.functionArn],
+  }));
+
+  cdkDeployStatements.push(new iam.PolicyStatement({
+    sid: "InvokeGlobalMetricsSnapshotFreshnessCheckerLambda",
+    actions: ["lambda:InvokeFunction"],
+    resources: [props.globalMetricsSnapshotFreshnessCheckerFn.functionArn],
+  }));
 
   const deployRole = new iam.Role(scope, "GithubActionsRole", {
     roleName: "flashcards-open-source-app-github-deploy",

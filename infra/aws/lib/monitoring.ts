@@ -7,6 +7,13 @@ import * as cloudwatchActions from "aws-cdk-lib/aws-cloudwatch-actions";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as snsSubscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import { Construct } from "constructs";
+import {
+  globalMetricsSnapshotFreshnessCheckIntervalHours,
+  globalMetricsSnapshotFreshnessMaxAgeHours,
+  globalMetricsSnapshotFreshnessMetricName,
+  globalMetricsSnapshotFreshnessMetricNamespace,
+  globalMetricsSnapshotFreshnessMetricStackDimensionName,
+} from "./global-metrics";
 
 export interface MonitoringProps {
   alertEmail: string;
@@ -15,6 +22,7 @@ export interface MonitoringProps {
   backendFn: lambda.IFunction;
   chatWorkerFn: lambda.IFunction;
   chatLiveFn: lambda.IFunction;
+  globalMetricsSnapshotFn: lambda.IFunction;
 }
 
 export interface MonitoringResult {
@@ -95,6 +103,37 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     evaluationPeriods: 1,
     alarmDescription: "Chat live SSE Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  new cloudwatch.Alarm(scope, "GlobalMetricsSnapshotLambdaErrorAlarm", {
+    metric: props.globalMetricsSnapshotFn.metricErrors({
+      period: cdk.Duration.minutes(15),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Global metrics snapshot Lambda had errors",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  new cloudwatch.Alarm(scope, "GlobalMetricsSnapshotFreshnessAlarm", {
+    metric: new cloudwatch.Metric({
+      namespace: globalMetricsSnapshotFreshnessMetricNamespace,
+      metricName: globalMetricsSnapshotFreshnessMetricName,
+      dimensionsMap: {
+        [globalMetricsSnapshotFreshnessMetricStackDimensionName]: cdk.Stack.of(scope).stackName,
+      },
+      period: cdk.Duration.hours(globalMetricsSnapshotFreshnessCheckIntervalHours),
+      statistic: "Maximum",
+    }),
+    threshold: globalMetricsSnapshotFreshnessMaxAgeHours,
+    comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+    evaluationPeriods: 2,
+    datapointsToAlarm: 2,
+    alarmDescription:
+      `Global metrics snapshot S3 object is older than ${globalMetricsSnapshotFreshnessMaxAgeHours} hours ` +
+      "for two consecutive hourly checks or the freshness checker is not reporting",
+    treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 
   return { alertTopic };
