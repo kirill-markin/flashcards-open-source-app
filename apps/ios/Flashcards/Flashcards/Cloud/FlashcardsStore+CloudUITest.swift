@@ -6,15 +6,14 @@ enum FlashcardsUITestLaunchScenario: String {
     case guestEmptyWorkspace = "guest_empty_workspace"
     case guestManualReviewCard = "guest_manual_review_card"
     case guestAIReviewCard = "guest_ai_review_card"
-    case marketingReviewAndCards = "marketing_review_and_cards"
-    case marketingProgress = "marketing_progress"
+    case marketingScreenshots = "marketing_screenshots"
     case marketingGuestSessionCleanup = "marketing_guest_session_cleanup"
 
     var requiresGuestCloudBootstrap: Bool {
         switch self {
         case .guestEmptyWorkspace, .guestManualReviewCard, .guestAIReviewCard:
             return false
-        case .marketingReviewAndCards, .marketingProgress:
+        case .marketingScreenshots:
             return true
         case .marketingGuestSessionCleanup:
             return false
@@ -23,9 +22,7 @@ enum FlashcardsUITestLaunchScenario: String {
 
     var requiresStoredGuestRemoteCleanup: Bool {
         switch self {
-        case .marketingReviewAndCards,
-                .marketingProgress,
-                .marketingGuestSessionCleanup:
+        case .marketingScreenshots, .marketingGuestSessionCleanup:
             return true
         case .guestEmptyWorkspace, .guestManualReviewCard, .guestAIReviewCard:
             return false
@@ -68,8 +65,8 @@ private struct FlashcardsUITestMarketingLocaleFixture {
     let conceptCards: [FlashcardsUITestFixtureCard]
 }
 
-private struct FlashcardsUITestMarketingProgressReviewSeed {
-    let card: FlashcardsUITestFixtureCard
+private struct FlashcardsUITestMarketingReviewHistorySeed {
+    let supportCardIndex: Int
     let reviewedAtDayOffset: Int
     let rating: ReviewRating
 }
@@ -87,13 +84,13 @@ private enum FlashcardsUITestLaunchScenarioData {
     )
 }
 
-private enum FlashcardsUITestMarketingProgressSeedError: LocalizedError {
+private enum FlashcardsUITestMarketingReviewHistorySeedError: LocalizedError {
     case reviewedAtDateCreationFailed(dayOffset: Int)
 
     var errorDescription: String? {
         switch self {
         case .reviewedAtDateCreationFailed(let dayOffset):
-            return "Failed to create marketing progress review timestamp for day offset \(dayOffset)."
+            return "Failed to create marketing screenshot review timestamp for day offset \(dayOffset)."
         }
     }
 }
@@ -101,6 +98,7 @@ private enum FlashcardsUITestMarketingProgressSeedError: LocalizedError {
 private enum FlashcardsUITestLaunchScenarioError: LocalizedError {
     case createdCardCountMismatch(expected: Int, actual: Int)
     case missingMarketingCardsFixture(localizationCode: String)
+    case insufficientMarketingReviewHistoryCards(localizationCode: String, required: Int, actual: Int)
     case marketingReviewCardPromptMismatch(localizationCode: String, reviewPrompt: String, cardsPrompt: String)
 
     var errorDescription: String? {
@@ -108,9 +106,11 @@ private enum FlashcardsUITestLaunchScenarioError: LocalizedError {
         case .createdCardCountMismatch(let expected, let actual):
             return "Expected \(expected) UI test cards but created \(actual)."
         case .missingMarketingCardsFixture(let localizationCode):
-            return "Marketing review-and-cards screenshots require at least one cards fixture for localization '\(localizationCode)'."
+            return "Marketing screenshots require at least one cards fixture for localization '\(localizationCode)'."
+        case .insufficientMarketingReviewHistoryCards(let localizationCode, let required, let actual):
+            return "Marketing screenshots require at least \(required) support cards for localization '\(localizationCode)', but found \(actual)."
         case .marketingReviewCardPromptMismatch(let localizationCode, let reviewPrompt, let cardsPrompt):
-            return "Marketing review-and-cards screenshots require the review prompt and first cards-list prompt to match for localization '\(localizationCode)'. reviewPrompt='\(reviewPrompt)' cardsPrompt='\(cardsPrompt)'."
+            return "Marketing screenshots require the review prompt and first cards-list prompt to match for localization '\(localizationCode)'. reviewPrompt='\(reviewPrompt)' cardsPrompt='\(cardsPrompt)'."
         }
     }
 }
@@ -648,18 +648,15 @@ extension FlashcardsStore {
             try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.manualReviewCard, context: context)
         case .guestAIReviewCard:
             try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.aiReviewCard, context: context)
-        case .marketingReviewAndCards:
+        case .marketingScreenshots:
             let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: processInfo)
-            try self.createUITestMarketingReviewAndCardsData(localeFixture: localeFixture, context: context)
-        case .marketingProgress:
-            let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: processInfo)
-            try self.createUITestProgressData(cards: localeFixture.conceptCards, context: context)
+            try self.createUITestMarketingScreenshotsData(localeFixture: localeFixture, context: context)
         case .marketingGuestSessionCleanup:
             return
         }
     }
 
-    private func createUITestMarketingReviewAndCardsData(
+    private func createUITestMarketingScreenshotsData(
         localeFixture: FlashcardsUITestMarketingLocaleFixture,
         context: LocalMutationContext
     ) throws {
@@ -678,22 +675,34 @@ extension FlashcardsStore {
         }
 
         let remainingConceptCards = Array(localeFixture.conceptCards.dropFirst())
-        if remainingConceptCards.isEmpty == false {
-            try self.createUITestCards(cards: remainingConceptCards, context: context)
+        let requiredSupportCardCount = 6
+        guard remainingConceptCards.count >= requiredSupportCardCount else {
+            throw FlashcardsUITestLaunchScenarioError.insufficientMarketingReviewHistoryCards(
+                localizationCode: localeFixture.localizationCode,
+                required: requiredSupportCardCount,
+                actual: remainingConceptCards.count
+            )
         }
+        let createdSupportCards = try self.createUITestCards(cards: remainingConceptCards, context: context)
+        try self.applyUITestMarketingReviewHistory(
+            supportCards: createdSupportCards,
+            localizationCode: localeFixture.localizationCode,
+            context: context
+        )
 
-        // Save the review card last so it remains first in review and at the top of the cards list.
+        // Save the review card last so it remains first in review and at the top of the cards list
+        // after the support-card history updates rewrite their timestamps.
         try self.createUITestCard(card: localeFixture.reviewCard, context: context)
     }
 
     private func createUITestCards(
         cards: [FlashcardsUITestFixtureCard],
         context: LocalMutationContext
-    ) throws {
+    ) throws -> [Card] {
         let inputs = cards.map { card in
             self.cardEditorInput(card: card)
         }
-        _ = try context.database.createCards(workspaceId: context.workspaceId, inputs: inputs)
+        return try context.database.createCards(workspaceId: context.workspaceId, inputs: inputs)
     }
 
     private func createUITestCard(
@@ -707,31 +716,21 @@ extension FlashcardsStore {
         )
     }
 
-    private func createUITestProgressData(
-        cards: [FlashcardsUITestFixtureCard],
+    private func applyUITestMarketingReviewHistory(
+        supportCards: [Card],
+        localizationCode: String,
         context: LocalMutationContext
     ) throws {
-        let reviewSeeds: [FlashcardsUITestMarketingProgressReviewSeed] = try self.marketingProgressReviewSeeds(cards: cards)
+        let reviewSeeds = try self.marketingReviewHistorySeeds(
+            localizationCode: localizationCode,
+            supportCardCount: supportCards.count
+        )
         let now: Date = Date()
         let calendar: Calendar = Calendar.current
-        let createdCards = try context.database.createCards(
-            workspaceId: context.workspaceId,
-            inputs: reviewSeeds.map { reviewSeed in
-                self.cardEditorInput(card: reviewSeed.card)
-            }
-        )
 
-        guard createdCards.count == reviewSeeds.count else {
-            throw FlashcardsUITestLaunchScenarioError.createdCardCountMismatch(
-                expected: reviewSeeds.count,
-                actual: createdCards.count
-            )
-        }
-
-        for index in reviewSeeds.indices {
-            let reviewSeed = reviewSeeds[index]
-            let card = createdCards[index]
-            let reviewedAtClient: String = try self.marketingProgressReviewedAtClient(
+        for reviewSeed in reviewSeeds {
+            let card = supportCards[reviewSeed.supportCardIndex]
+            let reviewedAtClient: String = try self.marketingReviewHistoryReviewedAtClient(
                 dayOffset: reviewSeed.reviewedAtDayOffset,
                 now: now,
                 calendar: calendar
@@ -747,25 +746,46 @@ extension FlashcardsStore {
         }
     }
 
-    private func marketingProgressReviewSeeds(
-        cards: [FlashcardsUITestFixtureCard]
-    ) throws -> [FlashcardsUITestMarketingProgressReviewSeed] {
-        guard cards.count >= 7 else {
-            throw LocalStoreError.validation("Marketing progress screenshots require at least 7 fixture cards.")
+    private func marketingReviewHistorySeeds(
+        localizationCode: String,
+        supportCardCount: Int
+    ) throws -> [FlashcardsUITestMarketingReviewHistorySeed] {
+        let requiredSupportCardCount = 6
+        guard supportCardCount >= requiredSupportCardCount else {
+            throw FlashcardsUITestLaunchScenarioError.insufficientMarketingReviewHistoryCards(
+                localizationCode: localizationCode,
+                required: requiredSupportCardCount,
+                actual: supportCardCount
+            )
         }
 
         return [
-            FlashcardsUITestMarketingProgressReviewSeed(card: cards[0], reviewedAtDayOffset: 0, rating: .easy),
-            FlashcardsUITestMarketingProgressReviewSeed(card: cards[1], reviewedAtDayOffset: 0, rating: .good),
-            FlashcardsUITestMarketingProgressReviewSeed(card: cards[2], reviewedAtDayOffset: -1, rating: .good),
-            FlashcardsUITestMarketingProgressReviewSeed(card: cards[3], reviewedAtDayOffset: -2, rating: .hard),
-            FlashcardsUITestMarketingProgressReviewSeed(card: cards[4], reviewedAtDayOffset: -2, rating: .good),
-            FlashcardsUITestMarketingProgressReviewSeed(card: cards[5], reviewedAtDayOffset: -4, rating: .easy),
-            FlashcardsUITestMarketingProgressReviewSeed(card: cards[6], reviewedAtDayOffset: -6, rating: .good)
+            // Canonical 30-day-ish pattern with gaps, 16 active days, and a final 8-day streak ending today.
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 0, reviewedAtDayOffset: -29, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 1, reviewedAtDayOffset: -26, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 2, reviewedAtDayOffset: -22, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 3, reviewedAtDayOffset: -19, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 0, reviewedAtDayOffset: -16, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 1, reviewedAtDayOffset: -13, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 2, reviewedAtDayOffset: -11, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 3, reviewedAtDayOffset: -9, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 0, reviewedAtDayOffset: -7, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 1, reviewedAtDayOffset: -6, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 2, reviewedAtDayOffset: -5, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 3, reviewedAtDayOffset: -4, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 4, reviewedAtDayOffset: -3, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 5, reviewedAtDayOffset: -2, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 5, reviewedAtDayOffset: -1, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 0, reviewedAtDayOffset: 0, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 1, reviewedAtDayOffset: 0, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 2, reviewedAtDayOffset: 0, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 3, reviewedAtDayOffset: 0, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 4, reviewedAtDayOffset: 0, rating: .easy),
+            FlashcardsUITestMarketingReviewHistorySeed(supportCardIndex: 5, reviewedAtDayOffset: 0, rating: .easy)
         ]
     }
 
-    private func marketingProgressReviewedAtClient(
+    private func marketingReviewHistoryReviewedAtClient(
         dayOffset: Int,
         now: Date,
         calendar: Calendar
@@ -782,7 +802,7 @@ extension FlashcardsStore {
                 to: todayNoon,
                 wrappingComponents: false
             ) else {
-            throw FlashcardsUITestMarketingProgressSeedError.reviewedAtDateCreationFailed(dayOffset: dayOffset)
+            throw FlashcardsUITestMarketingReviewHistorySeedError.reviewedAtDateCreationFailed(dayOffset: dayOffset)
         }
 
         return formatIsoTimestamp(date: reviewedAt)

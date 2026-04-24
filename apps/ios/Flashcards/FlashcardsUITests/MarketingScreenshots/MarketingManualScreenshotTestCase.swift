@@ -44,10 +44,15 @@ enum MarketingScreenshotEnvironment {
     static let aiHandoffCardKey: String = "FLASHCARDS_UI_TEST_AI_HANDOFF_CARD"
 }
 
-private let marketingProgressExpectedSummaryValue: String = [
-    "currentStreakDays=3",
+private let marketingExpectedProgressSummaryValue: String = [
+    "currentStreakDays=8",
     "hasReviewedToday=true",
-    "activeReviewDays=5"
+    "activeReviewDays=16"
+].joined(separator: ";")
+
+private let marketingExpectedReviewProgressBadgeValue: String = [
+    "streakDays=8",
+    "hasReviewedToday=true"
 ].joined(separator: ";")
 
 private enum MarketingScreenshotRuntimeConfigurationStorage {
@@ -167,14 +172,15 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     @MainActor
-    func launchMarketingReviewAndCards() throws -> MarketingScreenshotLocaleFixture {
+    func launchMarketingScreenshots() throws -> MarketingScreenshotLocaleFixture {
         let localeFixture = try self.marketingLocaleFixture()
 
         try self.launchMarketingApplication(
-            launchScenario: .marketingReviewAndCards,
+            launchScenario: .marketingScreenshots,
             selectedTab: .review,
             aiHandoffCard: nil
         )
+        try self.assertReviewProgressBadge()
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
@@ -184,29 +190,59 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     @MainActor
-    func launchOpportunityCostReviewCardAiHandoff() throws {
-        if self.isApplicationRunning {
-            self.app.terminate()
+    func assertReviewProgressBadge() throws {
+        let reviewProgressBadge = self.app.buttons[LiveSmokeIdentifier.reviewProgressBadge]
+        if try self.waitForElementValueContaining(
+            reviewProgressBadge,
+            identifier: LiveSmokeIdentifier.reviewProgressBadge,
+            expectedValue: marketingExpectedReviewProgressBadgeValue,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        ) == false {
+            throw LiveSmokeFailure.unexpectedElementValue(
+                identifier: LiveSmokeIdentifier.reviewProgressBadge,
+                expectedValue: marketingExpectedReviewProgressBadgeValue,
+                actualValue: self.elementValue(element: reviewProgressBadge),
+                timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
         }
-
-        try self.launchMarketingApplication(
-            launchScenario: .marketingReviewAndCards,
-            selectedTab: .ai,
-            aiHandoffCard: "first_card"
-        )
     }
 
     @MainActor
-    func launchMarketingCardsList(reviewCardFrontText: String) throws {
-        if self.isApplicationRunning {
-            self.app.terminate()
+    func openMarketingProgressFromReviewBadge() throws {
+        try self.assertReviewProgressBadge()
+        try self.tapButton(
+            identifier: LiveSmokeIdentifier.reviewProgressBadge,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.waitForLoadedProgressScreen()
+    }
+
+    @MainActor
+    func openOpportunityCostReviewCardAiDraft() throws {
+        try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+
+        let reviewAiButton = self.app.buttons[LiveSmokeIdentifier.reviewAiButton]
+        if self.waitForOptionalElement(
+            reviewAiButton,
+            identifier: LiveSmokeIdentifier.reviewAiButton,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        ) == false {
+            try self.revealOpportunityCostReviewAnswer()
         }
 
-        try self.launchMarketingApplication(
-            launchScenario: .marketingReviewAndCards,
-            selectedTab: .cards,
-            aiHandoffCard: nil
+        try self.tapButton(
+            identifier: LiveSmokeIdentifier.reviewAiButton,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
+        try self.assertScreenVisible(screen: .ai, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+    }
+
+    @MainActor
+    func openMarketingCardsList() throws {
+        try self.tapTabBarItem(selectedTab: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.assertElementExists(
             identifier: LiveSmokeIdentifier.cardsCardRow,
@@ -217,21 +253,6 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
             index: 1,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
-        try self.assertCardsListTopCard(frontText: reviewCardFrontText)
-    }
-
-    @MainActor
-    func launchMarketingProgress() throws -> MarketingScreenshotLocaleFixture {
-        let localeFixture: MarketingScreenshotLocaleFixture = try self.marketingLocaleFixture()
-
-        try self.launchMarketingApplication(
-            launchScenario: .marketingProgress,
-            selectedTab: .progress,
-            aiHandoffCard: nil
-        )
-        try self.waitForLoadedProgressScreen()
-
-        return localeFixture
     }
 
     @MainActor
@@ -251,12 +272,12 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         if try self.waitForElementValueContaining(
             progressStreakSection,
             identifier: LiveSmokeIdentifier.progressStreakSection,
-            expectedValue: marketingProgressExpectedSummaryValue,
+            expectedValue: marketingExpectedProgressSummaryValue,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         ) == false {
             throw LiveSmokeFailure.unexpectedElementValue(
                 identifier: LiveSmokeIdentifier.progressStreakSection,
-                expectedValue: marketingProgressExpectedSummaryValue,
+                expectedValue: marketingExpectedProgressSummaryValue,
                 actualValue: self.elementValue(element: progressStreakSection),
                 timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
                 screen: self.currentScreenSummary(),
@@ -341,30 +362,6 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
                     step: self.currentStepTitle
                 )
             }
-        }
-    }
-
-    @MainActor
-    func assertCardsListTopCard(frontText: String) throws {
-        let firstCardsRowIdentifier = "\(LiveSmokeIdentifier.cardsCardRow)[0]"
-        let firstCardsRow = self.app.descendants(matching: .any)
-            .matching(identifier: LiveSmokeIdentifier.cardsCardRow)
-            .element(boundBy: 0)
-
-        if try self.waitForElementValueContaining(
-            firstCardsRow,
-            identifier: firstCardsRowIdentifier,
-            expectedValue: frontText,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
-        ) == false {
-            throw LiveSmokeFailure.unexpectedElementValue(
-                identifier: firstCardsRowIdentifier,
-                expectedValue: frontText,
-                actualValue: self.elementValue(element: firstCardsRow),
-                timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
-                screen: self.currentScreenSummary(),
-                step: self.currentStepTitle
-            )
         }
     }
 

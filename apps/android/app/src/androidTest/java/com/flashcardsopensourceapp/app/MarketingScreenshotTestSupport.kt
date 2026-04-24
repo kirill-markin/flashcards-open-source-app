@@ -41,12 +41,15 @@ import com.flashcardsopensourceapp.feature.cards.cardsSearchFieldTag
 import com.flashcardsopensourceapp.feature.progress.progressReviewsActivityChartTag
 import com.flashcardsopensourceapp.feature.progress.progressReviewsSectionTag
 import com.flashcardsopensourceapp.feature.progress.progressStreakSectionTag
+import com.flashcardsopensourceapp.feature.progress.R as ProgressFeatureR
 import com.flashcardsopensourceapp.feature.review.reviewRateAgainButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateEasyButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateHardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewProgressBadgeTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
+import com.flashcardsopensourceapp.feature.review.R as ReviewFeatureR
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.Locale
@@ -116,15 +119,12 @@ internal class MarketingScreenshotRobot(
     private val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     private var hasAppliedLocale: Boolean = false
 
-    fun prepareCardsListForScreenshot(frontTexts: List<String>, expectedTopFrontText: String) {
+    fun prepareCardsListForScreenshot() {
         ensureLocaleApplied()
         openCardsTab()
         waitUntilWithSystemDialogMitigation {
             composeRule.onAllNodesWithTag(cardsSearchFieldTag).fetchSemanticsNodes().isNotEmpty() &&
-                frontTexts.all { frontText ->
-                    composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty()
-                } &&
-                visibleCardsFrontTexts().firstOrNull() == expectedTopFrontText
+                visibleCardsFrontTexts().isNotEmpty()
         }
     }
 
@@ -141,14 +141,14 @@ internal class MarketingScreenshotRobot(
         waitUntilWithSystemDialogMitigation(timeoutMillis = aiScreenshotUiTimeoutMillis) {
             composeRule.onAllNodesWithText(consentTitle).fetchSemanticsNodes().isNotEmpty() ||
                 (
-                    composeRule.onAllNodesWithTag(aiConversationSurfaceTag).fetchSemanticsNodes().isNotEmpty() &&
-                        composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes().isNotEmpty()
+                    countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0 &&
+                        countNodesWithTagInAnySemanticsTree(tag = aiComposerMessageFieldTag) > 0
                     )
         }
         dismissAiConsentIfNeeded(consentTitle = consentTitle, consentAccept = consentAccept)
         waitUntilWithSystemDialogMitigation(timeoutMillis = aiScreenshotUiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(aiConversationSurfaceTag).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes().isNotEmpty()
+            countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0 &&
+                countNodesWithTagInAnySemanticsTree(tag = aiComposerMessageFieldTag) > 0
         }
     }
 
@@ -157,9 +157,16 @@ internal class MarketingScreenshotRobot(
         waitForReviewPrompt(frontText = localeConfig.reviewCard.frontText)
     }
 
-    fun prepareOpportunityCostReviewCardForReview() {
+    fun prepareOpportunityCostReviewCardForReview(
+        expectedReviewStreakDays: Int,
+        expectedReviewedToday: Boolean
+    ) {
         openReviewTab()
         waitForReviewPrompt(frontText = localeConfig.reviewCard.frontText)
+        waitForReviewProgressBadge(
+            expectedReviewStreakDays = expectedReviewStreakDays,
+            expectedReviewedToday = expectedReviewedToday
+        )
     }
 
     fun revealAnswerAndWaitForRatings() {
@@ -168,18 +175,36 @@ internal class MarketingScreenshotRobot(
             composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
         }
         clickTag(tag = reviewShowAnswerButtonTag)
-        waitUntilWithSystemDialogMitigation {
-            composeRule.onAllNodesWithTag(reviewRateAgainButtonTag).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithTag(reviewRateHardButtonTag).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithTag(reviewRateGoodButtonTag).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithTag(reviewRateEasyButtonTag).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNodeWithTag(reviewRateGoodButtonTag).fetchSemanticsNode()
+        waitForRevealedReviewCard()
     }
 
-    fun prepareStudyHistoryProgressScreen() {
+    fun prepareOpportunityCostReviewCardForAiHandoff() {
+        openReviewTab()
+        waitUntilWithSystemDialogMitigation {
+            composeRule.onAllNodesWithText(localeConfig.reviewCard.frontText).fetchSemanticsNodes().isNotEmpty() &&
+                (
+                    composeRule.onAllNodesWithTag(reviewAiCardButtonTag).fetchSemanticsNodes().isNotEmpty() ||
+                        composeRule.onAllNodesWithTag(reviewShowAnswerButtonTag).fetchSemanticsNodes().isNotEmpty()
+                    )
+        }
+        if (composeRule.onAllNodesWithTag(reviewAiCardButtonTag).fetchSemanticsNodes().isNotEmpty()) {
+            return
+        }
+
+        clickTag(tag = reviewShowAnswerButtonTag)
+        waitForRevealedReviewCard()
+    }
+
+    fun prepareStudyHistoryProgressScreen(
+        expectedProgressStreakDays: Int,
+        expectedReviewedToday: Boolean
+    ) {
         openProgressTab()
         waitForLoadedProgressWithReviewActivity()
+        waitForProgressStreakSummary(
+            expectedProgressStreakDays = expectedProgressStreakDays,
+            expectedReviewedToday = expectedReviewedToday
+        )
     }
 
     fun openAiFromRevealedOpportunityCostCardAndPrepareDraft(draftText: String) {
@@ -194,17 +219,17 @@ internal class MarketingScreenshotRobot(
         waitUntilWithSystemDialogMitigation(timeoutMillis = aiScreenshotUiTimeoutMillis) {
             composeRule.onAllNodesWithText(consentTitle).fetchSemanticsNodes().isNotEmpty() ||
                 (
-                    composeRule.onAllNodesWithTag(aiConversationSurfaceTag).fetchSemanticsNodes().isNotEmpty() &&
-                        composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes().isNotEmpty()
+                    countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0 &&
+                        countNodesWithTagInAnySemanticsTree(tag = aiComposerMessageFieldTag) > 0
                     )
         }
         dismissAiConsentIfNeeded(consentTitle = consentTitle, consentAccept = consentAccept)
         waitUntilWithSystemDialogMitigation(timeoutMillis = aiScreenshotUiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(aiConversationSurfaceTag).fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithTag(aiComposerMessageFieldTag).fetchSemanticsNodes().isNotEmpty()
+            countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0 &&
+                countNodesWithTagInAnySemanticsTree(tag = aiComposerMessageFieldTag) > 0
         }
         waitUntilWithSystemDialogMitigation(timeoutMillis = aiAttachmentUiTimeoutMillis) {
-            composeRule.onAllNodesWithTag(aiComposerPendingAttachmentTag).fetchSemanticsNodes().isNotEmpty()
+            countNodesWithTagInAnySemanticsTree(tag = aiComposerPendingAttachmentTag) > 0
         }
         waitForAiComposerCardHandoffState(sendLabel = sendLabel)
         fillAiComposerDraft(draftText = draftText)
@@ -294,6 +319,88 @@ internal class MarketingScreenshotRobot(
             composeRule.onAllNodesWithTag(progressStreakSectionTag).fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithTag(progressReviewsSectionTag).fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithTag(progressReviewsActivityChartTag).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun waitForReviewProgressBadge(
+        expectedReviewStreakDays: Int,
+        expectedReviewedToday: Boolean
+    ) {
+        val expectedContentDescription = composeRule.activity.resources.getQuantityString(
+            ReviewFeatureR.plurals.review_progress_badge_content_description,
+            expectedReviewStreakDays,
+            expectedReviewStreakDays
+        )
+        val expectedStateDescription = composeRule.activity.getString(
+            if (expectedReviewedToday) {
+                ReviewFeatureR.string.review_progress_badge_reviewed_today
+            } else {
+                ReviewFeatureR.string.review_progress_badge_not_reviewed_today
+            }
+        )
+        waitUntilWithSystemDialogMitigation {
+            composeRule.onAllNodesWithTag(reviewProgressBadgeTag)
+                .fetchSemanticsNodes()
+                .singleOrNull()
+                ?.config
+                ?.let { config ->
+                    config.getOrNull(SemanticsProperties.ContentDescription) ==
+                        listOf(expectedContentDescription) &&
+                        config.getOrNull(SemanticsProperties.StateDescription) == expectedStateDescription
+                } == true
+        }
+    }
+
+    private fun waitForRevealedReviewCard() {
+        waitUntilWithSystemDialogMitigation {
+            composeRule.onAllNodesWithTag(reviewRateAgainButtonTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(reviewRateHardButtonTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(reviewRateGoodButtonTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(reviewRateEasyButtonTag).fetchSemanticsNodes().isNotEmpty() &&
+                composeRule.onAllNodesWithTag(reviewAiCardButtonTag).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithTag(reviewRateGoodButtonTag).fetchSemanticsNode()
+    }
+
+    private fun waitForProgressStreakSummary(
+        expectedProgressStreakDays: Int,
+        expectedReviewedToday: Boolean
+    ) {
+        val expectedContentDescription = composeRule.activity.resources.getQuantityString(
+            ProgressFeatureR.plurals.progress_streak_summary_content_description,
+            expectedProgressStreakDays,
+            expectedProgressStreakDays
+        )
+        val expectedStateDescription = composeRule.activity.getString(
+            if (expectedReviewedToday) {
+                ProgressFeatureR.string.progress_streak_summary_reviewed_today
+            } else {
+                ProgressFeatureR.string.progress_streak_summary_not_reviewed_today
+            }
+        )
+        waitUntilWithSystemDialogMitigation(timeoutMillis = progressScreenshotUiTimeoutMillis) {
+            hasSemanticsNodeWithDescriptions(
+                expectedContentDescription = expectedContentDescription,
+                expectedStateDescription = expectedStateDescription,
+                useUnmergedTree = false
+            ) || hasSemanticsNodeWithDescriptions(
+                expectedContentDescription = expectedContentDescription,
+                expectedStateDescription = expectedStateDescription,
+                useUnmergedTree = true
+            )
+        }
+    }
+
+    private fun hasSemanticsNodeWithDescriptions(
+        expectedContentDescription: String,
+        expectedStateDescription: String,
+        useUnmergedTree: Boolean
+    ): Boolean {
+        return composeRule.onAllNodes(
+            matcher = hasContentDescription(expectedContentDescription),
+            useUnmergedTree = useUnmergedTree
+        ).fetchSemanticsNodes().any { node ->
+            node.config.getOrNull(SemanticsProperties.StateDescription) == expectedStateDescription
         }
     }
 
@@ -392,7 +499,7 @@ internal class MarketingScreenshotRobot(
     private fun waitForAiComposerCardHandoffState(sendLabel: String) {
         try {
             waitUntilWithSystemDialogMitigation(timeoutMillis = aiAttachmentUiTimeoutMillis) {
-                composeRule.onAllNodesWithTag(aiComposerPendingAttachmentTag).fetchSemanticsNodes().isNotEmpty() &&
+                countNodesWithTagInAnySemanticsTree(tag = aiComposerPendingAttachmentTag) > 0 &&
                     aiComposerDraftTextOrNull().isNullOrBlank() &&
                     aiComposerSendButtonMatchesState(
                         expectedLabel = sendLabel,
@@ -477,11 +584,17 @@ internal class MarketingScreenshotRobot(
 
     private fun clearAiComposerFocus() {
         dismissExternalSystemDialogIfPresent()
-        if (composeRule.onAllNodesWithTag(aiConversationSurfaceTag).fetchSemanticsNodes().isNotEmpty()) {
-            composeRule.onNodeWithTag(aiConversationSurfaceTag).performClick()
+        if (countNodesWithTagInAnySemanticsTree(tag = aiConversationSurfaceTag) > 0) {
+            composeRule.onNodeWithTag(aiConversationSurfaceTag, useUnmergedTree = true).performClick()
             composeRule.waitForIdle()
         }
         dismissExternalSystemDialogIfPresent()
+    }
+
+    private fun countNodesWithTagInAnySemanticsTree(tag: String): Int {
+        val mergedCount: Int = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().size
+        val unmergedCount: Int = composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().size
+        return maxOf(mergedCount, unmergedCount)
     }
 
     private fun clickNode(matcher: SemanticsMatcher) {

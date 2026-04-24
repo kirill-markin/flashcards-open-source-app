@@ -9,9 +9,8 @@ Screenshot-only translated app resources belong in `apps/android/app/src/marketi
 
 ## Current inventory
 
-There are currently two supported Android manual capture flows and five expected generated output PNG targets.
-The legacy review/cards wrapper names remain available as compatibility aliases to the combined flow.
-Existing repository media can still contain the previous four-shot assets or older cards-list numbering until the flows are run and the generated PNGs are reviewed.
+There is currently one supported Android manual capture flow and five expected generated output PNG targets.
+Existing repository media can still contain the previous split-run assets or older cards-list numbering until the unified generator is run and the regenerated PNGs are reviewed.
 
 The screenshot catalog currently defines these locale prefixes:
 
@@ -27,48 +26,42 @@ The screenshot catalog currently defines these locale prefixes:
 - `es-ES`
 - `es-US`
 
-The combined Review + Cards screenshot flow captures an exam-prep concept card about opportunity cost in four store states:
+The unified screenshot flow captures an exam-prep concept card about opportunity cost and the seeded study history in five store states:
 
 - front-only before answer reveal
 - revealed answer with the rating buttons visible
+- progress screen with one deterministic 30-day-ish review history, `streakDays = 8`, `hasReviewedToday = true`, and `activeReviewDays = 16`
 - AI handoff screen with the handed-off card attached plus an unsent draft request
 - cards list with the shared opportunity-cost prompt pinned to the top
 
-- Manual screenshot entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingReviewAndCardsScreenshotScript.kt`
+- Manual screenshot entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingAllScreenshotsScript.kt`
 - Shared screenshot helpers: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotTestSupport.kt`
-- Supported manual wrapper script: `scripts/capture-android-review-and-cards-screenshot.sh`
-- Compatibility alias scripts: `scripts/capture-android-review-screenshot.sh`, `scripts/capture-android-cards-screenshot.sh`
+- Supported manual wrapper script: `scripts/capture-android-marketing-screenshots.sh`
 - Expected generated output PNG targets:
   - `apps/android/docs/media/play-store-screenshots/en-1_review-card-front-google-play-opportunity-cost.png`
   - `apps/android/docs/media/play-store-screenshots/en-2_review-card-result-google-play-opportunity-cost.png`
+  - `apps/android/docs/media/play-store-screenshots/en-3_progress-google-play-study-history.png`
   - `apps/android/docs/media/play-store-screenshots/en-4_review-card-ai-draft-google-play-opportunity-cost.png`
-- Expected generated output PNG target: `apps/android/docs/media/play-store-screenshots/en-5_cards-list-google-play-vocabulary.png`
+  - `apps/android/docs/media/play-store-screenshots/en-5_cards-list-google-play-vocabulary.png`
 
-The progress screenshot flow captures the `Progress` tab with deterministic study-history data.
-
-- Manual screenshot entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingProgressScreenshotScript.kt`
-- Shared screenshot helpers: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotTestSupport.kt`
-- Supported manual wrapper script: `scripts/capture-android-progress-screenshot.sh`
-- Expected generated output PNG target: `apps/android/docs/media/play-store-screenshots/en-3_progress-google-play-study-history.png`
-
-## Run the flows
+## Run the flow
 
 Prerequisites:
 
 - Start a local Android emulator or device on API 36.
+- For a local headless emulator, prefer `emulator @Medium_Phone_API_36.1 -no-window -no-audio -gpu auto`.
 - Run from the repository root.
 
 Command:
 
 ```bash
-bash scripts/capture-android-review-and-cards-screenshot.sh
-bash scripts/capture-android-progress-screenshot.sh
+bash scripts/capture-android-marketing-screenshots.sh
 ```
 
 To target a configured locale other than the default `en`, set `FLASHCARDS_MARKETING_LOCALE_PREFIX` for the wrapper run:
 
 ```bash
-FLASHCARDS_MARKETING_LOCALE_PREFIX=de-DE bash scripts/capture-android-review-and-cards-screenshot.sh
+FLASHCARDS_MARKETING_LOCALE_PREFIX=de-DE bash scripts/capture-android-marketing-screenshots.sh
 ```
 
 These scripts are not part of Android CI, release gates, or default `androidTest` runs.
@@ -76,13 +69,7 @@ They exist only to generate marketing screenshots on demand.
 They run `:app:connectedMarketingScreenshotAndroidTest`, not the normal debug instrumentation task, so screenshot-only translations do not affect the Play-first `debug` and `release` builds.
 The screenshot reset flow deletes the guest cloud session remotely before it clears local screenshot state so the seeded guest workspace does not remain on the backend after the run.
 
-The combined Review + Cards wrapper script runs the shared manual-only entrypoint, saves screenshots 1, 2, 4, and 5 into `/sdcard/Download/flashcards-marketing-screenshots/`, and then pulls those files into the committed marketing media directory.
-
-The progress wrapper script runs the manual-only Progress screenshot entrypoint, saves screenshot 3 into the same device directory, and then pulls that file into the committed marketing media directory.
-
-The compatibility alias wrappers `scripts/capture-android-review-screenshot.sh` and `scripts/capture-android-cards-screenshot.sh` both delegate to the same combined Review + Cards wrapper.
-
-Run the supported wrappers sequentially. Do not start the Progress wrapper until the combined Review + Cards wrapper has exited.
+The unified wrapper script runs one manual-only entrypoint, seeds one guest workspace, saves screenshots 1, 2, 3, 4, and 5 into `/sdcard/Download/flashcards-marketing-screenshots/`, and then pulls those files into the committed marketing media directory.
 
 ## Pattern for future flows
 

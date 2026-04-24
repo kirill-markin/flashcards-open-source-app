@@ -5,42 +5,43 @@ import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import java.time.Instant
 import java.time.ZoneId
 
+internal const val marketingScreenshotExpectedStreakDays: Int = 8
+internal const val marketingScreenshotExpectedActiveReviewDays: Int = 16
+
 private data class MarketingReviewTimestamp(
     val daysAgo: Long,
     val hour: Int,
     val minute: Int
 )
 
-internal fun marketingReviewAndCardsRepositorySeedScenario(
-    localeConfig: MarketingScreenshotLocaleConfig
+private data class MarketingSupportCardReviewPlan(
+    val supportCardIndex: Int,
+    val reviewDayOffsets: List<Long>
+)
+
+internal fun marketingUnifiedRepositorySeedScenario(
+    localeConfig: MarketingScreenshotLocaleConfig,
+    nowMillis: Long
 ): RepositorySeedScenario {
-    validateMarketingReviewAndCardsFixtures(localeConfig = localeConfig)
+    val supportCardReviewPlans: List<MarketingSupportCardReviewPlan> =
+        marketingSupportCardReviewPlans()
+    validateMarketingUnifiedScreenshotFixtures(
+        localeConfig = localeConfig,
+        supportCardReviewPlans = supportCardReviewPlans
+    )
     return RepositorySeedScenario(
-        cards = marketingSecondaryCardsSeedCards(localeConfig = localeConfig) +
+        cards = marketingSupportCardsSeedCards(
+            localeConfig = localeConfig,
+            supportCardReviewPlans = supportCardReviewPlans,
+            nowMillis = nowMillis
+        ) +
             marketingSharedReviewSeedCard(localeConfig = localeConfig)
     )
 }
 
-internal fun marketingReviewRepositorySeedScenario(
-    localeConfig: MarketingScreenshotLocaleConfig
-): RepositorySeedScenario {
-    validateMarketingReviewAndCardsFixtures(localeConfig = localeConfig)
-    return RepositorySeedScenario(
-        cards = listOf(marketingSharedReviewSeedCard(localeConfig = localeConfig))
-    )
-}
-
-internal fun marketingCardsRepositorySeedScenario(
-    localeConfig: MarketingScreenshotLocaleConfig
-): RepositorySeedScenario {
-    validateMarketingReviewAndCardsFixtures(localeConfig = localeConfig)
-    return RepositorySeedScenario(
-        cards = marketingSecondaryCardsSeedCards(localeConfig = localeConfig)
-    )
-}
-
-private fun validateMarketingReviewAndCardsFixtures(
-    localeConfig: MarketingScreenshotLocaleConfig
+private fun validateMarketingUnifiedScreenshotFixtures(
+    localeConfig: MarketingScreenshotLocaleConfig,
+    supportCardReviewPlans: List<MarketingSupportCardReviewPlan>
 ) {
     require(localeConfig.cards.isNotEmpty()) {
         "Marketing review/cards screenshot requires at least one cards fixture."
@@ -57,18 +58,89 @@ private fun validateMarketingReviewAndCardsFixtures(
         "Marketing review/cards screenshot requires matching review/cards tags. " +
             "ReviewTags=${localeConfig.reviewCard.tags} CardsTag=$cardsListTag"
     }
+
+    val supportCards = localeConfig.cards.drop(1)
+    require(supportCards.size >= supportCardReviewPlans.size) {
+        "Unified Android marketing screenshot seed requires at least ${supportCardReviewPlans.size} support cards. " +
+            "Provided=${supportCards.size}"
+    }
+
+    val activeReviewDayOffsets: Set<Long> = supportCardReviewPlans
+        .flatMap(MarketingSupportCardReviewPlan::reviewDayOffsets)
+        .toSet()
+    require(activeReviewDayOffsets.size == marketingScreenshotExpectedActiveReviewDays) {
+        "Unified Android marketing screenshot seed must use exactly $marketingScreenshotExpectedActiveReviewDays active review days. " +
+            "Resolved=${activeReviewDayOffsets.size} Offsets=${activeReviewDayOffsets.sorted()}"
+    }
+
+    val expectedStreakDayOffsets: Set<Long> =
+        (0 until marketingScreenshotExpectedStreakDays).map(Int::toLong).toSet()
+    require(activeReviewDayOffsets.containsAll(expectedStreakDayOffsets)) {
+        "Unified Android marketing screenshot seed must include a final streak of $marketingScreenshotExpectedStreakDays days. " +
+            "ResolvedOffsets=${activeReviewDayOffsets.sorted()}"
+    }
+    require(activeReviewDayOffsets.contains(marketingScreenshotExpectedStreakDays.toLong()).not()) {
+        "Unified Android marketing screenshot seed must stop the current streak at exactly $marketingScreenshotExpectedStreakDays days. " +
+            "ResolvedOffsets=${activeReviewDayOffsets.sorted()}"
+    }
 }
 
-private fun marketingSecondaryCardsSeedCards(
-    localeConfig: MarketingScreenshotLocaleConfig
+private fun marketingSupportCardReviewPlans(): List<MarketingSupportCardReviewPlan> {
+    return listOf(
+        MarketingSupportCardReviewPlan(
+            supportCardIndex = 0,
+            reviewDayOffsets = listOf(29L, 18L, 7L, 0L)
+        ),
+        MarketingSupportCardReviewPlan(
+            supportCardIndex = 1,
+            reviewDayOffsets = listOf(27L, 16L, 6L, 0L)
+        ),
+        MarketingSupportCardReviewPlan(
+            supportCardIndex = 2,
+            reviewDayOffsets = listOf(24L, 14L, 5L, 0L)
+        ),
+        MarketingSupportCardReviewPlan(
+            supportCardIndex = 3,
+            reviewDayOffsets = listOf(22L, 4L, 1L, 0L)
+        ),
+        MarketingSupportCardReviewPlan(
+            supportCardIndex = 4,
+            reviewDayOffsets = listOf(20L, 3L, 0L)
+        ),
+        MarketingSupportCardReviewPlan(
+            supportCardIndex = 5,
+            reviewDayOffsets = listOf(2L, 0L)
+        )
+    )
+}
+
+private fun marketingSupportCardsSeedCards(
+    localeConfig: MarketingScreenshotLocaleConfig,
+    supportCardReviewPlans: List<MarketingSupportCardReviewPlan>,
+    nowMillis: Long
 ): List<RepositorySeedCard> {
-    return localeConfig.cards.drop(1).map { card ->
+    val zoneId: ZoneId = ZoneId.systemDefault()
+    val supportCards: List<MarketingConceptCard> = localeConfig.cards.drop(1)
+    return supportCardReviewPlans.map { reviewPlan ->
+        val card: MarketingConceptCard = supportCards[reviewPlan.supportCardIndex]
         RepositorySeedCard(
             frontText = card.frontText,
             backText = card.backText,
             tags = listOf(card.subjectTag),
             effortLevel = EffortLevel.MEDIUM,
-            reviews = emptyList()
+            reviews = reviewPlan.reviewDayOffsets.sortedDescending().map { daysAgo ->
+                RepositorySeedReview(
+                    rating = marketingReviewRatingForDayOffset(daysAgo = daysAgo),
+                    reviewedAtMillis = resolveMarketingReviewTimestampMillis(
+                        nowMillis = nowMillis,
+                        zoneId = zoneId,
+                        reviewTimestamp = resolveMarketingReviewTimestamp(
+                            supportCardIndex = reviewPlan.supportCardIndex,
+                            daysAgo = daysAgo
+                        )
+                    )
+                )
+            }
         )
     }
 }
@@ -85,42 +157,25 @@ private fun marketingSharedReviewSeedCard(
     )
 }
 
-internal fun marketingProgressRepositorySeedScenario(
-    localeConfig: MarketingScreenshotLocaleConfig,
-    nowMillis: Long
-): RepositorySeedScenario {
-    require(localeConfig.cards.size >= 5) {
-        "Marketing progress screenshot requires at least 5 seeded cards."
-    }
-    val zoneId: ZoneId = ZoneId.systemDefault()
-    val reviewTimestamps: List<MarketingReviewTimestamp> = listOf(
-        MarketingReviewTimestamp(daysAgo = 6L, hour = 10, minute = 0),
-        MarketingReviewTimestamp(daysAgo = 4L, hour = 10, minute = 0),
-        MarketingReviewTimestamp(daysAgo = 2L, hour = 10, minute = 0),
-        MarketingReviewTimestamp(daysAgo = 1L, hour = 10, minute = 0),
-        MarketingReviewTimestamp(daysAgo = 0L, hour = 9, minute = 30)
+private fun resolveMarketingReviewTimestamp(
+    supportCardIndex: Int,
+    daysAgo: Long
+): MarketingReviewTimestamp {
+    return MarketingReviewTimestamp(
+        daysAgo = daysAgo,
+        hour = 6 + supportCardIndex,
+        minute = 10 + supportCardIndex * 7
     )
+}
 
-    return RepositorySeedScenario(
-        cards = localeConfig.cards.take(reviewTimestamps.size).zip(reviewTimestamps).map { (card, reviewTimestamp) ->
-            RepositorySeedCard(
-                frontText = card.frontText,
-                backText = card.backText,
-                tags = listOf(card.subjectTag),
-                effortLevel = EffortLevel.MEDIUM,
-                reviews = listOf(
-                    RepositorySeedReview(
-                        rating = ReviewRating.GOOD,
-                        reviewedAtMillis = resolveMarketingReviewTimestampMillis(
-                            nowMillis = nowMillis,
-                            zoneId = zoneId,
-                            reviewTimestamp = reviewTimestamp
-                        )
-                    )
-                )
-            )
-        }
-    )
+private fun marketingReviewRatingForDayOffset(
+    daysAgo: Long
+): ReviewRating {
+    return if (daysAgo == 0L) {
+        ReviewRating.EASY
+    } else {
+        ReviewRating.GOOD
+    }
 }
 
 private fun resolveMarketingReviewTimestampMillis(
