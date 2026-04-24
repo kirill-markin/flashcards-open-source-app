@@ -885,7 +885,7 @@ private fun LiveSmokeContext.reviewEmptyStateTitleOrNull(): String? {
 
 private fun LiveSmokeContext.localCardSnapshotOrNull(expectedFrontText: String): String? {
     return runBlocking {
-        val database = (composeRule.activity.application as FlashcardsApplication).appGraph.database
+        val database = appGraph().database
         val matchingCard = database.cardDao()
             .observeCardsWithRelations()
             .first()
