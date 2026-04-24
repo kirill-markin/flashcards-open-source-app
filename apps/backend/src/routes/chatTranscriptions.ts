@@ -19,7 +19,8 @@ import {
 } from "../guestAiQuota";
 import {
   loadRequestContextFromRequest,
-  requireAccessibleSelectedWorkspaceIdForAiDictation,
+  resolveAccessibleAiDictationWorkspaceId,
+  type WorkspaceRequestContext,
 } from "../server/requestContext";
 import type { AppEnv } from "../app";
 
@@ -27,7 +28,7 @@ type ChatTranscriptionsRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
   getRecoveredChatSessionSnapshotFn?: typeof getRecoveredChatSessionSnapshot;
-  requireAccessibleSelectedWorkspaceIdForAiDictationFn?: typeof requireAccessibleSelectedWorkspaceIdForAiDictation;
+  resolveAccessibleAiDictationWorkspaceIdFn?: typeof resolveAccessibleAiDictationWorkspaceId;
   transcribeAudioFn?: (
     upload: ChatTranscriptionUpload,
     requestContext: ChatTranscriptionRequestContext,
@@ -78,12 +79,18 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
   const app = new Hono<AppEnv>();
   const loadRequestContextFromRequestFn = options.loadRequestContextFromRequestFn ?? loadRequestContextFromRequest;
   const getRecoveredChatSessionSnapshotFn = options.getRecoveredChatSessionSnapshotFn ?? getRecoveredChatSessionSnapshot;
-  const requireAccessibleSelectedWorkspaceIdForAiDictationFn = options.requireAccessibleSelectedWorkspaceIdForAiDictationFn
+  const resolveAccessibleAiDictationWorkspaceIdFn = options.resolveAccessibleAiDictationWorkspaceIdFn
     ?? (options.loadRequestContextFromRequestFn === undefined
-      ? requireAccessibleSelectedWorkspaceIdForAiDictation
-      : async (requestContext): Promise<string> => {
+      ? resolveAccessibleAiDictationWorkspaceId
+      : async (requestContext: WorkspaceRequestContext, explicitWorkspaceId): Promise<string> => {
+        if (explicitWorkspaceId !== undefined) {
+          return explicitWorkspaceId;
+        }
+
         // Route tests often stub request context directly and do not exercise
         // the real workspace access path, so keep a minimal local fallback.
+        // Legacy fallback for released AI clients that still omit workspaceId.
+        // TODO: Remove this fallback once every supported AI client sends workspaceId.
         if (requestContext.selectedWorkspaceId === null) {
           throw new HttpError(403, "A workspace must be selected before using AI dictation.", "AI_WORKSPACE_REQUIRED");
         }
@@ -96,7 +103,7 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
   app.post("/chat/transcriptions", async (context) => {
     const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     const upload = await parseChatTranscriptionUpload(context.req.raw);
-    const workspaceId = await requireAccessibleSelectedWorkspaceIdForAiDictationFn(requestContext);
+    const workspaceId = await resolveAccessibleAiDictationWorkspaceIdFn(requestContext, upload.workspaceId);
     const sessionId = await resolveChatTranscriptionSessionId(
       requestContext.userId,
       workspaceId,

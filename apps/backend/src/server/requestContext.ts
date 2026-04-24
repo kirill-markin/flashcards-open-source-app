@@ -30,11 +30,29 @@ export type WorkspaceAccessRequestContext = Readonly<{
   userId: string;
 }>;
 
+type WorkspaceSelectionErrorConfig = Readonly<{
+  statusCode: 403 | 409;
+  message: string;
+  code: "AI_WORKSPACE_REQUIRED" | "WORKSPACE_SELECTION_REQUIRED";
+}>;
+
 type LoadRequestContextDependencies = Readonly<{
   authenticateRequestFn: typeof authenticateRequest;
   isDeletedSubjectFn: typeof isDeletedSubject;
   ensureUserProfileFn: typeof ensureUserProfile;
 }>;
+
+const chatWorkspaceSelectionRequiredError: WorkspaceSelectionErrorConfig = {
+  statusCode: 409,
+  message: "Select a workspace before using this endpoint",
+  code: "WORKSPACE_SELECTION_REQUIRED",
+};
+
+const aiDictationWorkspaceRequiredError: WorkspaceSelectionErrorConfig = {
+  statusCode: 403,
+  message: "A workspace must be selected before using AI dictation.",
+  code: "AI_WORKSPACE_REQUIRED",
+};
 
 export function getAllowedOrigins(): Array<string> {
   const raw = process.env.BACKEND_ALLOWED_ORIGINS ?? "http://localhost:3000,http://localhost:3001";
@@ -118,6 +136,14 @@ export function parseWorkspaceIdParam(value: string | undefined): string {
   return trimmedValue;
 }
 
+export function parseOptionalWorkspaceIdParam(value: string | undefined): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return parseWorkspaceIdParam(value);
+}
+
 export function requireSelectedWorkspaceId(requestContext: RequestContext): string {
   if (requestContext.selectedWorkspaceId === null) {
     throw new HttpError(
@@ -138,6 +164,51 @@ export async function requireAccessibleWorkspaceId(
   return workspaceId;
 }
 
+function throwWorkspaceSelectionError(errorConfig: WorkspaceSelectionErrorConfig): never {
+  throw new HttpError(errorConfig.statusCode, errorConfig.message, errorConfig.code);
+}
+
+export async function resolveAccessibleWorkspaceIdWithLegacySelectedWorkspaceFallback(
+  requestContext: WorkspaceRequestContext,
+  explicitWorkspaceId: string | undefined,
+  missingWorkspaceError: WorkspaceSelectionErrorConfig,
+): Promise<string> {
+  if (explicitWorkspaceId !== undefined) {
+    return requireAccessibleWorkspaceId(requestContext, explicitWorkspaceId);
+  }
+
+  // Legacy fallback for released AI clients that still rely on server-side
+  // selected-workspace routing instead of sending an explicit workspaceId.
+  // TODO: Remove this fallback once every supported AI client sends workspaceId.
+  if (requestContext.selectedWorkspaceId === null) {
+    throwWorkspaceSelectionError(missingWorkspaceError);
+  }
+
+  return requireAccessibleWorkspaceId(requestContext, requestContext.selectedWorkspaceId);
+}
+
+export async function resolveAccessibleChatWorkspaceId(
+  requestContext: WorkspaceRequestContext,
+  explicitWorkspaceId: string | undefined,
+): Promise<string> {
+  return resolveAccessibleWorkspaceIdWithLegacySelectedWorkspaceFallback(
+    requestContext,
+    explicitWorkspaceId,
+    chatWorkspaceSelectionRequiredError,
+  );
+}
+
+export async function resolveAccessibleAiDictationWorkspaceId(
+  requestContext: WorkspaceRequestContext,
+  explicitWorkspaceId: string | undefined,
+): Promise<string> {
+  return resolveAccessibleWorkspaceIdWithLegacySelectedWorkspaceFallback(
+    requestContext,
+    explicitWorkspaceId,
+    aiDictationWorkspaceRequiredError,
+  );
+}
+
 /**
  * Resolves the currently selected workspace and revalidates access before a
  * workspace-bound route continues with business logic.
@@ -145,15 +216,7 @@ export async function requireAccessibleWorkspaceId(
 export async function requireAccessibleSelectedWorkspaceId(
   requestContext: WorkspaceRequestContext,
 ): Promise<string> {
-  if (requestContext.selectedWorkspaceId === null) {
-    throw new HttpError(
-      409,
-      "Select a workspace before using this endpoint",
-      "WORKSPACE_SELECTION_REQUIRED",
-    );
-  }
-
-  return requireAccessibleWorkspaceId(requestContext, requestContext.selectedWorkspaceId);
+  return resolveAccessibleChatWorkspaceId(requestContext, undefined);
 }
 
 /**
@@ -163,11 +226,7 @@ export async function requireAccessibleSelectedWorkspaceId(
 export async function requireAccessibleSelectedWorkspaceIdForAiDictation(
   requestContext: WorkspaceRequestContext,
 ): Promise<string> {
-  if (requestContext.selectedWorkspaceId === null) {
-    throw new HttpError(403, "A workspace must be selected before using AI dictation.", "AI_WORKSPACE_REQUIRED");
-  }
-
-  return requireAccessibleWorkspaceId(requestContext, requestContext.selectedWorkspaceId);
+  return resolveAccessibleAiDictationWorkspaceId(requestContext, undefined);
 }
 
 export function requireAgentConnectionId(requestContext: RequestContext): string {

@@ -46,8 +46,10 @@ import {
 } from "../chat/liveAuth";
 import {
   loadRequestContextFromRequest,
-  requireAccessibleSelectedWorkspaceId,
+  parseOptionalWorkspaceIdParam,
+  resolveAccessibleChatWorkspaceId,
   type RequestContext,
+  type WorkspaceRequestContext,
 } from "../server/requestContext";
 import {
   expectNonEmptyString,
@@ -111,6 +113,10 @@ export type ChatRequestBody = Readonly<{
   clientRequestId: string;
   content: ReadonlyArray<ChatContentPart>;
   timezone: string;
+  // Optional explicit routing during the workspaceId client migration. Older
+  // released clients still rely on the server-side selected-workspace
+  // fallback until every supported build sends workspaceId.
+  workspaceId?: string;
   // Optional for backward compatibility with released clients that still send
   // the pre-uiLocale request shape. Remove once the minimum supported client
   // versions all send uiLocale.
@@ -123,6 +129,10 @@ type NewChatRequestBody = Readonly<{
   // with older released clients, and remove the session-less path in a future
   // legacy chat cleanup.
   sessionId?: string;
+  // Optional explicit routing during the workspaceId client migration. Older
+  // released clients still rely on the server-side selected-workspace
+  // fallback until every supported build sends workspaceId.
+  workspaceId?: string;
   // Optional for backward compatibility with released clients that still send
   // the pre-uiLocale request shape. Remove once the minimum supported client
   // versions all send uiLocale.
@@ -131,6 +141,10 @@ type NewChatRequestBody = Readonly<{
 
 type StopChatRequestBody = Readonly<{
   sessionId: string;
+  // Optional explicit routing during the workspaceId client migration. Older
+  // released clients still rely on the server-side selected-workspace
+  // fallback until every supported build sends workspaceId.
+  workspaceId?: string;
 }>;
 
 type ChatRoutesOptions = Readonly<{
@@ -148,7 +162,7 @@ type ChatRoutesOptions = Readonly<{
   createChatLiveStreamEnvelopeFn?: typeof createChatLiveStreamEnvelope;
   resolveLiveCursorFn?: typeof resolveLiveCursor;
   listChatMessagesLatestFn?: typeof listChatMessagesLatest;
-  requireAccessibleSelectedWorkspaceIdFn?: typeof requireAccessibleSelectedWorkspaceId;
+  resolveAccessibleChatWorkspaceIdFn?: typeof resolveAccessibleChatWorkspaceId;
 }>;
 
 const chatResumeContractViolationCode = "CHAT_LIVE_RESUME_CONTRACT_VIOLATION";
@@ -303,6 +317,14 @@ function parseChatContentParts(value: unknown, context: string): ReadonlyArray<C
   return value.map((part, index) => parseChatContentPart(part, `${context}[${index}]`));
 }
 
+function parseOptionalWorkspaceIdField(value: unknown): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return expectUuidString(value, "workspaceId");
+}
+
 /**
  * Rejects request fields that are not part of the backend-owned chat contract.
  */
@@ -330,6 +352,7 @@ export function parseChatRequestBody(value: unknown): ChatRequestBody {
     clientRequestId: expectNonEmptyString(body.clientRequestId, "clientRequestId"),
     content: parseChatContentParts(body.content, "content"),
     timezone: expectNonEmptyString(body.timezone, "timezone"),
+    workspaceId: parseOptionalWorkspaceIdField(body.workspaceId),
     uiLocale: parseOptionalUiLocale(body.uiLocale, "uiLocale"),
   };
 }
@@ -344,6 +367,7 @@ export function parseNewChatRequestBody(value: unknown): NewChatRequestBody {
     sessionId: body.sessionId === undefined
       ? undefined
       : expectUuidString(body.sessionId, "sessionId"),
+    workspaceId: parseOptionalWorkspaceIdField(body.workspaceId),
     uiLocale: parseOptionalUiLocale(body.uiLocale, "uiLocale"),
   };
 }
@@ -356,6 +380,7 @@ export function parseStopChatRequestBody(value: unknown): StopChatRequestBody {
 
   return {
     sessionId: expectUuidString(body.sessionId, "sessionId"),
+    workspaceId: parseOptionalWorkspaceIdField(body.workspaceId),
   };
 }
 
@@ -712,12 +737,18 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
   const createChatLiveStreamEnvelopeFn = options.createChatLiveStreamEnvelopeFn ?? createChatLiveStreamEnvelope;
   const resolveLiveCursorFn = options.resolveLiveCursorFn ?? resolveLiveCursor;
   const listChatMessagesLatestFn = options.listChatMessagesLatestFn ?? listChatMessagesLatest;
-  const requireAccessibleSelectedWorkspaceIdFn = options.requireAccessibleSelectedWorkspaceIdFn
+  const resolveAccessibleChatWorkspaceIdFn = options.resolveAccessibleChatWorkspaceIdFn
     ?? (options.loadRequestContextFromRequestFn === undefined
-      ? requireAccessibleSelectedWorkspaceId
-      : async (requestContext: RequestContext): Promise<string> => {
+      ? resolveAccessibleChatWorkspaceId
+      : async (requestContext: WorkspaceRequestContext, explicitWorkspaceId: string | undefined): Promise<string> => {
+        if (explicitWorkspaceId !== undefined) {
+          return explicitWorkspaceId;
+        }
+
         // Route tests often stub request context directly and do not exercise
         // the real workspace access path, so keep a minimal local fallback.
+        // Legacy fallback for released AI clients that still omit workspaceId.
+        // TODO: Remove this fallback once every supported AI client sends workspaceId.
         if (requestContext.selectedWorkspaceId === null) {
           throw new HttpError(
             409,
@@ -735,7 +766,8 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       options.allowedOrigins,
       loadRequestContextFromRequestFn,
     );
-    const workspaceId = await requireAccessibleSelectedWorkspaceIdFn(requestContext);
+    const explicitWorkspaceId = parseOptionalWorkspaceIdParam(context.req.query("workspaceId") ?? undefined);
+    const workspaceId = await resolveAccessibleChatWorkspaceIdFn(requestContext, explicitWorkspaceId);
     const sessionId = parseOptionalSessionIdQuery(context.req.query("sessionId") ?? undefined);
     const limitParam = context.req.query("limit") ?? undefined;
     const resumeDiagnostics = readChatResumeDiagnosticsHeaders(context.req.raw);
@@ -808,8 +840,8 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       options.allowedOrigins,
       loadRequestContextFromRequestFn,
     );
-    const workspaceId = await requireAccessibleSelectedWorkspaceIdFn(requestContext);
     const body = parseChatRequestBody(await parseJsonBody(context.req.raw));
+    const workspaceId = await resolveAccessibleChatWorkspaceIdFn(requestContext, body.workspaceId);
     const resumeDiagnostics = readChatResumeDiagnosticsHeaders(context.req.raw);
     context.header("X-Chat-Request-Id", body.clientRequestId);
 
@@ -868,8 +900,8 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       options.allowedOrigins,
       loadRequestContextFromRequestFn,
     );
-    const workspaceId = await requireAccessibleSelectedWorkspaceIdFn(requestContext);
     const body = parseNewChatRequestBody(await parseJsonBody(context.req.raw));
+    const workspaceId = await resolveAccessibleChatWorkspaceIdFn(requestContext, body.workspaceId);
 
     // Preferred modern flow: clients send an explicit client-generated
     // sessionId. First-party clients at 1.2.1 already follow that flow.
@@ -996,8 +1028,8 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       options.allowedOrigins,
       loadRequestContextFromRequestFn,
     );
-    const workspaceId = await requireAccessibleSelectedWorkspaceIdFn(requestContext);
     const body = parseStopChatRequestBody(await parseJsonBody(context.req.raw));
+    const workspaceId = await resolveAccessibleChatWorkspaceIdFn(requestContext, body.workspaceId);
 
     let sessionId: string | null;
     try {

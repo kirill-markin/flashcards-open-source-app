@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import java.net.HttpURLConnection
+import java.net.URLEncoder
 import java.net.URL
 import java.nio.charset.StandardCharsets
 
@@ -25,10 +26,12 @@ class AiChatLiveRemoteService(
         sessionId: String,
         runId: String,
         liveStream: AiChatLiveStreamEnvelope,
+        workspaceId: String?,
         afterCursor: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?,
     ): Flow<AiChatLiveEvent> = flow {
-        val authorization = if (liveStream.authorization.startsWith(prefix = "Live ")) {
+        val usesSignedLiveAuthorization = liveStream.authorization.startsWith(prefix = "Live ")
+        val authorization = if (usesSignedLiveAuthorization) {
             liveStream.authorization
         } else {
             authorizationHeader
@@ -38,6 +41,11 @@ class AiChatLiveRemoteService(
             authorization = authorization,
             sessionId = sessionId,
             runId = runId,
+            workspaceId = if (usesSignedLiveAuthorization) {
+                null
+            } else {
+                requireFallbackWorkspaceId(workspaceId = workspaceId)
+            },
             afterCursor = afterCursor,
             resumeDiagnostics = resumeDiagnostics,
             emitEvent = { event ->
@@ -87,18 +95,18 @@ class AiChatLiveRemoteService(
         authorization: String,
         sessionId: String,
         runId: String,
+        workspaceId: String?,
         afterCursor: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?,
         emitEvent: suspend (AiChatLiveEvent) -> Boolean
     ) {
-        val urlString = buildString {
-            append(liveUrl.removeSuffix("/"))
-            append("?sessionId=$sessionId")
-            append("&runId=$runId")
-            if (afterCursor != null) {
-                append("&afterCursor=$afterCursor")
-            }
-        }
+        val urlString = buildLiveUrl(
+            liveUrl = liveUrl,
+            sessionId = sessionId,
+            runId = runId,
+            workspaceId = workspaceId,
+            afterCursor = afterCursor
+        )
         val connection = (URL(urlString).openConnection() as HttpURLConnection)
         connection.requestMethod = "GET"
         connection.connectTimeout = 15_000
@@ -168,5 +176,40 @@ class AiChatLiveRemoteService(
         } finally {
             connection.disconnect()
         }
+    }
+
+    private fun requireFallbackWorkspaceId(workspaceId: String?): String {
+        return requireNotNull(workspaceId?.trim()?.ifEmpty { null }) {
+            "AI live attach requires an active workspace when signed Live authorization is unavailable."
+        }
+    }
+
+    private fun buildLiveUrl(
+        liveUrl: String,
+        sessionId: String,
+        runId: String,
+        workspaceId: String?,
+        afterCursor: String?
+    ): String {
+        val queryParameters = mutableListOf(
+            "sessionId=${encodeQueryValue(value = sessionId)}",
+            "runId=${encodeQueryValue(value = runId)}"
+        )
+        workspaceId?.let { resolvedWorkspaceId ->
+            queryParameters.add("workspaceId=${encodeQueryValue(value = resolvedWorkspaceId)}")
+        }
+        afterCursor?.let { resolvedAfterCursor ->
+            queryParameters.add("afterCursor=${encodeQueryValue(value = resolvedAfterCursor)}")
+        }
+
+        return buildString {
+            append(liveUrl.removeSuffix("/"))
+            append("?")
+            append(queryParameters.joinToString(separator = "&"))
+        }
+    }
+
+    private fun encodeQueryValue(value: String): String {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8)
     }
 }

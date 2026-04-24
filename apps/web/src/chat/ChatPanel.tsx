@@ -626,11 +626,16 @@ export function ChatPanel(props: Props): ReactElement {
         return;
       }
 
+      if (activeWorkspaceId === null) {
+        throw new Error(t("chatPanel.transientErrors.workspaceRequired"));
+      }
+
       const sessionId = await ensureRemoteSession();
       const transcription = await transcribeChatAudio(
         audioBlob,
         "web",
         sessionId,
+        activeWorkspaceId,
       );
       if (transcription.sessionId !== sessionId) {
         throw new Error(t("chatPanel.errors.transcriptionUnexpectedSessionId"));
