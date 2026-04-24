@@ -116,7 +116,7 @@ class LocalCloudAccountRepository(
     }
 
     /**
-     * Review/demo accounts can skip OTP and return verified credentials
+     * Review accounts can skip OTP and return verified credentials
      * directly from `sendCode()`. The UI still needs the normal post-auth link
      * context so the live smoke can keep one continuous cross-screen story.
      *

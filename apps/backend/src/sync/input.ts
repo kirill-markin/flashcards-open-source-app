@@ -4,6 +4,7 @@ import type {
   HttpErrorDetails,
   ValidationIssueSummary,
 } from "../errors";
+import { normalizeIsoTimestamp } from "../lww";
 
 type Platform = "ios" | "android" | "web";
 
@@ -138,19 +139,46 @@ const reviewEventOperationSchema = baseOperationSchema.extend({
   payload: reviewEventPushPayloadSchema,
 });
 
-const syncPushInputSchema = z.object({
+const syncPushOperationSchema = z.discriminatedUnion("entityType", [
+  cardOperationSchema,
+  deckOperationSchema,
+  workspaceSchedulerSettingsOperationSchema,
+  reviewEventOperationSchema,
+]);
+
+const syncPushInputBaseSchema = z.object({
   installationId: z.string().min(1),
   platform: platformSchema,
   appVersion: z.string().min(1).nullable().optional(),
-  operations: z.array(
-    z.discriminatedUnion("entityType", [
-      cardOperationSchema,
-      deckOperationSchema,
-      workspaceSchedulerSettingsOperationSchema,
-      reviewEventOperationSchema,
-    ]),
-  ),
+  operations: z.array(syncPushOperationSchema),
 });
+
+type SyncPushInputBase = z.infer<typeof syncPushInputBaseSchema>;
+
+function validateSyncPushReviewEventTimestamps(
+  input: SyncPushInputBase,
+  refinementContext: z.core.$RefinementCtx,
+): void {
+  for (const [operationIndex, operation] of input.operations.entries()) {
+    if (operation.entityType !== "review_event") {
+      continue;
+    }
+
+    const normalizedClientUpdatedAt = normalizeIsoTimestamp(operation.clientUpdatedAt, "clientUpdatedAt");
+    const normalizedReviewedAtClient = normalizeIsoTimestamp(operation.payload.reviewedAtClient, "reviewedAtClient");
+    if (normalizedClientUpdatedAt === normalizedReviewedAtClient) {
+      continue;
+    }
+
+    refinementContext.addIssue({
+      code: "custom",
+      path: ["operations", operationIndex, "clientUpdatedAt"],
+      message: "review_event clientUpdatedAt must match payload.reviewedAtClient",
+    });
+  }
+}
+
+const syncPushInputSchema = syncPushInputBaseSchema.superRefine(validateSyncPushReviewEventTimestamps);
 
 const syncPullInputSchema = z.object({
   installationId: z.string().min(1),

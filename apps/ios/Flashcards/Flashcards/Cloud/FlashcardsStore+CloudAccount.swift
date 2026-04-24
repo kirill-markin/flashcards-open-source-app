@@ -115,6 +115,61 @@ extension FlashcardsStore {
         return restoredGuestSession.session
     }
 
+    func prepareGuestCloudSessionForUITestLaunch() async throws -> CloudLinkedSession {
+        try await self.loadOrCreateGuestCloudSession()
+    }
+
+    /**
+     Marketing screenshot launches use short-lived guest cloud workspaces.
+     Delete any stored guest session remotely before the existing local reset
+     boundary so each manual run starts from a clean cloud state.
+
+     If the backend already deleted the guest session, treat the stale local
+     token as an already-cleaned state, clear local guest credentials, and
+     continue with the reset. Any other delete failure still blocks the run.
+     */
+    func deleteStoredGuestCloudSessionForUITestCleanupIfNeeded() async throws -> Bool {
+        guard let storedGuestSession = try self.loadGuestSessionForCurrentConfiguration() else {
+            return false
+        }
+
+        do {
+            try await self.dependencies.guestCloudAuthService.deleteGuestSession(
+                apiBaseUrl: storedGuestSession.apiBaseUrl,
+                guestToken: storedGuestSession.guestToken
+            )
+        } catch {
+            guard self.isGuestSessionInvalidError(error) else {
+                throw error
+            }
+
+            logFlashcardsError(
+                domain: "cloud",
+                action: "guest_session_delete_stale_local_credentials",
+                metadata: [
+                    "apiBaseUrl": storedGuestSession.apiBaseUrl,
+                    "message": Flashcards.errorMessage(error: error),
+                ]
+            )
+        }
+
+        try self.dependencies.guestCredentialStore.clearGuestSession()
+        return true
+    }
+
+    private func isGuestSessionInvalidError(_ error: Error) -> Bool {
+        guard let guestCloudAuthError = error as? GuestCloudAuthError else {
+            return false
+        }
+
+        switch guestCloudAuthError {
+        case .invalidResponse(let details, let statusCode):
+            return statusCode == 401 && details.code == "GUEST_AUTH_INVALID"
+        case .invalidBaseUrl, .invalidResponseBody:
+            return false
+        }
+    }
+
     func restoreGuestCloudSessionIfNeeded(
         trigger: CloudSyncTrigger
     ) async throws -> (session: CloudLinkedSession, didRunSync: Bool) {

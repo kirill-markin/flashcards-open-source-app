@@ -592,6 +592,9 @@ internal class FakeCloudRemoteGateway private constructor(
         )
     }
 
+    override suspend fun deleteGuestSession(apiBaseUrl: String, guestToken: String) {
+    }
+
     override suspend fun fetchCloudAccount(
         apiBaseUrl: String,
         bearerToken: String

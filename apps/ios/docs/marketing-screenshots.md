@@ -66,7 +66,17 @@ What each layer does:
 - `build-ios-marketing-materials.sh` can regenerate raw localized screenshots, compose the horizontal derived PNGs, and optimize the final files.
 - `MarketingManualScreenshotTestCase.swift` gates these tests behind the wrapper-provided runtime configuration, falls back to the launch environment only if that file is absent, and writes the PNG file.
 - `MarketingScreenshotFixtures.swift` defines the canonical locale list, locale aliases, localized fixture text, and the expected output filenames.
-- `FlashcardsStore+CloudUITest.swift` seeds the localized UI-test content used by the screenshot flows.
+- `FlashcardsStore+CloudUITest.swift` seeds the localized UI-test content used by the screenshot flows and defines the dedicated guest-session cleanup launch scenario used at the end of each manual test.
+
+## Guest cloud cleanup lifecycle
+
+The manual screenshot flows now treat guest cloud sessions as short-lived per-run fixtures:
+
+- before each marketing screenshot bootstrap, the app deletes any stored guest session remotely through `POST /guest-auth/session/delete` and then performs the existing local identity reset
+- after each manual screenshot test, XCTest relaunches the app in a dedicated cleanup scenario and waits for the UI-test readiness marker before finishing teardown
+- the cleanup relaunch clears the final guest session remotely and then runs the same local reset path, so both cloud and local screenshot state are removed predictably
+
+This is why the screenshot wrappers must still run sequentially. The cleanup relaunch is part of the supported lifecycle, not an optional background best effort.
 
 ## Supported locales
 

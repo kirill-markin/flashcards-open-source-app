@@ -30,6 +30,10 @@ internal data class GuestCloudSessionRestoreResult(
     val shouldSync: Boolean
 )
 
+data class EnsuredGuestCloudSession(
+    val workspaceId: String
+)
+
 class CloudGuestSessionCoordinator(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
@@ -43,6 +47,22 @@ class CloudGuestSessionCoordinator(
 ) {
     suspend fun reconcilePersistedCloudStateForStartup() {
         reconcilePersistedCloudState()
+    }
+
+    suspend fun ensureGuestCloudSession(workspaceId: String): EnsuredGuestCloudSession {
+        val restoredSession = restoreGuestCloudSessionIfNeeded(
+            workspaceId = workspaceId,
+            createSessionIfMissing = true
+        )
+        return EnsuredGuestCloudSession(
+            workspaceId = restoredSession.session.workspaceId
+        )
+    }
+
+    suspend fun deleteStoredGuestCloudSessionIfPresent() {
+        operationCoordinator.runExclusive {
+            deleteStoredGuestCloudSessionIfPresentLocked()
+        }
     }
 
     internal suspend fun reconcilePersistedCloudState(): CloudIdentityReconciliationResult {
@@ -197,6 +217,25 @@ class CloudGuestSessionCoordinator(
         )
     }
 
+    private suspend fun deleteStoredGuestCloudSessionIfPresentLocked() {
+        val configuration = preferencesStore.currentServerConfiguration()
+        val storedGuestSession = guestSessionStore.loadAnySession(configuration = configuration)
+            ?: return
+
+        try {
+            remoteService.deleteGuestSession(
+                apiBaseUrl = storedGuestSession.apiBaseUrl,
+                guestToken = storedGuestSession.guestToken
+            )
+        } catch (error: Exception) {
+            if (isGuestSessionInvalidError(error = error).not()) {
+                throw error
+            }
+        }
+
+        clearStoredGuestCloudSessionLocalState(session = storedGuestSession)
+    }
+
     private suspend fun finishGuestCloudLinkNonCancellableLocked(
         session: StoredGuestAiSession,
         workspaceId: String?
@@ -273,6 +312,28 @@ class CloudGuestSessionCoordinator(
     private fun isCloudAuthorizationError(error: Exception): Boolean {
         return error is CloudRemoteException &&
             (error.statusCode == 401 || error.statusCode == 403)
+    }
+
+    private fun isGuestSessionInvalidError(error: Exception): Boolean {
+        return error is CloudRemoteException &&
+            error.statusCode == 401 &&
+            error.errorCode == "GUEST_AUTH_INVALID"
+    }
+
+    private suspend fun clearStoredGuestCloudSessionLocalState(session: StoredGuestAiSession) {
+        guestSessionStore.clearSession(localWorkspaceId = null)
+        guestSessionStore.clearSession(localWorkspaceId = session.workspaceId)
+
+        val currentCloudSettings = preferencesStore.currentCloudSettings()
+        val shouldDisconnectDeletedGuestState = currentCloudSettings.cloudState == CloudAccountState.GUEST &&
+            (
+                currentCloudSettings.linkedUserId == session.userId ||
+                    currentCloudSettings.linkedWorkspaceId == session.workspaceId ||
+                    currentCloudSettings.activeWorkspaceId == session.workspaceId
+                )
+        if (shouldDisconnectDeletedGuestState) {
+            resetCoordinator.disconnectCloudIdentityPreservingLocalState()
+        }
     }
 
     private suspend fun loadCurrentWorkspaceForRestoreOrNull(workspaceId: String?): WorkspaceEntity? {

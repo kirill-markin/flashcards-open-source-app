@@ -5,6 +5,7 @@ import type pg from "pg";
 import type { DatabaseExecutor } from "./db";
 import {
   completeGuestUpgradeInExecutor,
+  deleteGuestSessionInExecutor,
   prepareGuestUpgradeInExecutor,
 } from "./guestAuth";
 import { HttpError } from "./errors";
@@ -327,12 +328,21 @@ function createGuestUpgradeExecutor(state: MutableState): DatabaseExecutor {
         return createQueryResult<Row>(rows);
       }
 
-      if (text.includes("FROM auth.user_identities")) {
+      if (text.includes("FROM auth.user_identities") && text.includes("provider_subject = $1")) {
         const providerSubject = params[0];
         const mappedUserId = typeof providerSubject === "string"
           ? state.identityMappings.get(providerSubject) ?? null
           : null;
         const rows = mappedUserId === null ? [] : [{ user_id: mappedUserId } as unknown as Row];
+        return createQueryResult<Row>(rows);
+      }
+
+      if (text.includes("FROM auth.user_identities") && text.includes("user_id = $1")) {
+        const userId = params[0];
+        const hasMapping = typeof userId === "string"
+          ? [...state.identityMappings.values()].some((mappedUserId) => mappedUserId === userId)
+          : false;
+        const rows = hasMapping ? [{ user_id: String(userId) } as unknown as Row] : [];
         return createQueryResult<Row>(rows);
       }
 
@@ -933,6 +943,112 @@ test("completeGuestUpgradeInExecutor reassigns guest installation ownership duri
   ));
   assert.ok(targetReplica);
   assert.equal(targetReplica?.user_id, targetUserId);
+});
+
+test("deleteGuestSessionInExecutor revokes and removes guest server state", async () => {
+  const guestToken = "guest-token-delete";
+  const guestUserId = "guest-user";
+  const guestWorkspaceId = "guest-workspace";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-delete",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject: "cognito-subject-delete",
+    targetUserId: "linked-user",
+    targetWorkspaceId: "target-workspace",
+    guestReplicaId: "guest-replica-delete",
+    installationId: "installation-delete",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+
+  const executor = createGuestUpgradeExecutor(state);
+  await deleteGuestSessionInExecutor(executor, guestToken);
+
+  assert.equal(state.guestSession.revoked_at, "2026-04-02T14:01:16.000Z");
+  assert.equal(state.userSettings.has(guestUserId), false);
+  assert.equal(state.workspaces.has(guestWorkspaceId), false);
+  assert.equal(
+    state.workspaceReplicas.some((replica) => replica.workspace_id === guestWorkspaceId),
+    false,
+  );
+});
+
+test("deleteGuestSessionInExecutor rejects an already-revoked guest session", async () => {
+  const guestToken = "guest-token-delete-replay";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-delete-replay",
+    guestUserId: "guest-user",
+    guestWorkspaceId: "guest-workspace",
+    targetSubject: "cognito-subject-delete-replay",
+    targetUserId: "linked-user",
+    targetWorkspaceId: "target-workspace",
+    guestReplicaId: "guest-replica-delete-replay",
+    installationId: "installation-delete-replay",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+
+  const executor = createGuestUpgradeExecutor(state);
+  await deleteGuestSessionInExecutor(executor, guestToken);
+
+  await assert.rejects(
+    async () => deleteGuestSessionInExecutor(executor, guestToken),
+    (error: unknown) => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 401);
+      assert.equal(error.code, "GUEST_AUTH_INVALID");
+      return true;
+    },
+  );
+});
+
+test("deleteGuestSessionInExecutor rejects cleanup after a bound guest upgrade", async () => {
+  const guestToken = "guest-token-delete-bound";
+  const guestUserId = "guest-user";
+  const guestWorkspaceId = "guest-workspace";
+  const cognitoSubject = "cognito-subject-delete-bound";
+  const state = createMergeState({
+    guestToken,
+    guestSessionId: "guest-session-delete-bound",
+    guestUserId,
+    guestWorkspaceId,
+    targetSubject: "different-target-subject",
+    targetUserId: "linked-user",
+    targetWorkspaceId: "target-workspace",
+    guestReplicaId: "guest-replica-delete-bound",
+    installationId: "installation-delete-bound",
+    guestSchedulerUpdatedAt: "2026-04-02T14:00:00.000Z",
+    targetSchedulerUpdatedAt: "2026-04-02T14:05:00.000Z",
+  });
+  state.identityMappings.clear();
+
+  const executor = createGuestUpgradeExecutor(state);
+  const preparation = await prepareGuestUpgradeInExecutor(
+    executor,
+    guestToken,
+    cognitoSubject,
+    "bound@example.com",
+  );
+
+  assert.equal(preparation.mode, "bound");
+
+  await assert.rejects(
+    async () => deleteGuestSessionInExecutor(executor, guestToken),
+    (error: unknown) => {
+      assert.ok(error instanceof HttpError);
+      assert.equal(error.statusCode, 409);
+      assert.equal(error.code, "GUEST_SESSION_DELETE_LINKED_ACCOUNT");
+      return true;
+    },
+  );
+
+  assert.equal(state.guestSession.revoked_at, null);
+  assert.equal(state.userSettings.has(guestUserId), true);
+  assert.equal(state.workspaces.has(guestWorkspaceId), true);
+  assert.equal(state.identityMappings.get(cognitoSubject), guestUserId);
 });
 
 test("completeGuestUpgradeInExecutor with create_new creates and selects a new target workspace", async () => {

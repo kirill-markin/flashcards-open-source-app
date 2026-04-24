@@ -91,6 +91,7 @@ final class FlashcardsStore {
     var isReviewNotificationPrePromptPresented: Bool
     var accountDeletionState: AccountDeletionState
     var accountDeletionSuccessMessage: String?
+    var uiTestLaunchPreparationStatus: FlashcardsUITestLaunchPreparationStatus
     var localReadVersion: Int
 
     @ObservationIgnored let database: LocalDatabase?
@@ -336,6 +337,7 @@ final class FlashcardsStore {
         self.isReviewNotificationPrePromptPresented = false
         self.accountDeletionState = .hidden
         self.accountDeletionSuccessMessage = nil
+        self.uiTestLaunchPreparationStatus = .hidden
         self.localReadVersion = 0
         self.database = database
         self.dependencies = dependencies

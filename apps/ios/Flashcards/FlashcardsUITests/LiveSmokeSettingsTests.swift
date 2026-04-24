@@ -3,9 +3,9 @@ import XCTest
 
 final class LiveSmokeSettingsTests: LiveSmokeTestCase {
     @MainActor
-    func testLiveSmokeLocalNavigationFlow() throws {
-        try self.step("verify local navigation surfaces without login") {
-            try self.launchApplication(resetState: .localGuest, selectedTab: .cards)
+    func testLiveSmokeGuestNavigationFlow() throws {
+        try self.step("verify guest navigation surfaces without login") {
+            try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .cards)
             try self.assertElementExists(
                 identifier: LiveSmokeIdentifier.cardsAddButton,
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -99,7 +99,7 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
     func testLiveSmokeNotificationTapColdStartOpensReviewOnce() throws {
         try self.step("verify notification tap cold start opens review once") {
             try self.launchApplicationWithAppNotificationTap(
-                resetState: .localGuestSeededManualReviewCard,
+                launchScenario: .guestManualReviewCard,
                 selectedTab: .cards,
                 appNotificationTapType: .reviewReminder
             )
@@ -119,7 +119,7 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
     func testLiveSmokeUnsupportedNotificationTapDoesNotNavigate() throws {
         try self.step("verify unsupported notification tap stays on selected tab") {
             try self.launchApplicationWithAppNotificationTap(
-                resetState: .localGuest,
+                launchScenario: .guestEmptyWorkspace,
                 selectedTab: .cards,
                 appNotificationTapType: .unsupported
             )

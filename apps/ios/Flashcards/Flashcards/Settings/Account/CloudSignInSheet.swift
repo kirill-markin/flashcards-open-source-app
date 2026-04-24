@@ -360,7 +360,7 @@ struct CloudSignInSheet: View {
                     self.otpSheetState = nextOtpSheetState.withChallenge(nextChallenge)
                 case .verifiedCredentials(let credentials):
                     // This intentionally insecure path exists only for
-                    // configured review/demo emails on the auth service.
+                    // configured review account emails on the auth service.
                     self.otpSheetState = nil
                     self.handleVerifiedAuthContext(
                         CloudVerifiedAuthContext(

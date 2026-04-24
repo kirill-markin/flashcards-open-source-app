@@ -1,6 +1,7 @@
 import Foundation
 
 enum UITestIdentifier {
+    static let uiTestLaunchPreparationStatus: String = "uiTest.launchPreparationStatus"
     static let cloudWorkspaceChooserScreen: String = "cloudSignIn.workspaceChooserScreen"
     static let cloudSignInScreen: String = "cloudSignIn.screen"
     static let cloudSignInInlineAuthError: String = "cloudSignIn.inlineAuthError"

@@ -582,7 +582,7 @@ struct AIChatView: View {
     }
 
     func handleComposerPhaseChange(nextPhase: AIChatComposerPhase) {
-        guard nextPhase == .idle else {
+        guard aiChatComposerPhaseAllowsDraftPreparation(nextPhase) else {
             return
         }
 

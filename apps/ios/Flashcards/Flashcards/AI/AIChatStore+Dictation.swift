@@ -11,12 +11,18 @@ extension AIChatStore {
 
         switch self.dictationState {
         case .idle:
+            guard self.canStartDictation else {
+                return
+            }
             guard self.hasExternalProviderConsent else {
                 self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
                 return
             }
             self.startDictation()
         case .recording:
+            guard self.canUseDictation else {
+                return
+            }
             guard self.hasExternalProviderConsent else {
                 self.cancelDictation()
                 self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
@@ -37,7 +43,11 @@ extension AIChatStore {
     }
 
     func startDictation() {
-        if self.dictationState != .idle {
+        guard self.canStartDictation else {
+            return
+        }
+        guard self.hasExternalProviderConsent else {
+            self.showGeneralError(message: aiChatExternalProviderConsentRequiredMessage)
             return
         }
 

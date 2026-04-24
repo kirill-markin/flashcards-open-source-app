@@ -1,4 +1,6 @@
 .review-screen-panel {
+  container-type: inline-size;
+  container-name: review-screen;
   grid-template-rows: auto minmax(0, 1fr);
   height: min(880px, calc(100dvh - 76px));
   min-height: min(760px, calc(100dvh - 76px));
@@ -833,6 +835,16 @@
 
 .review-editor-ai-btn {
   color: var(--accent-strong);
+}
+
+@container review-screen (max-width: 980px) {
+  .review-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .review-queue-panel {
+    display: none;
+  }
 }
 
 @media (max-width: 768px) {

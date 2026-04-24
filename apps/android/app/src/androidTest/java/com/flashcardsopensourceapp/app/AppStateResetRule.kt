@@ -23,7 +23,7 @@ private val testOnlyPreferenceNames: List<String> = listOf(
     "flashcards-ai-chat-guest-session"
 )
 
-class AppStateResetRule : ExternalResource() {
+open class AppStateResetRule : ExternalResource() {
     private val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
 
     companion object {
