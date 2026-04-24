@@ -90,6 +90,13 @@ async function resolveGuestUpgradeTargetInExecutor(
   selection: GuestUpgradeSelection,
 ): Promise<GuestUpgradeResolution> {
   const guestWorkspaceId = await loadGuestWorkspaceIdInExecutor(executor, guestUserId);
+  if (selection.type === "existing" && selection.workspaceId === guestWorkspaceId) {
+    throw new HttpError(
+      409,
+      "Choose a different destination workspace. The guest workspace cannot be merged into itself.",
+      "GUEST_UPGRADE_TARGET_SAME_AS_SOURCE",
+    );
+  }
   const targetWorkspaceId = selection.type === "existing"
     ? selection.workspaceId
     : await (async (): Promise<string> => {
@@ -152,9 +159,9 @@ export async function prepareGuestUpgradeInExecutor(
 /**
  * Completes one guest upgrade attempt using the already-open executor.
  *
- * For `merge_required`, V1 records durable guest/user/device aliases before the
- * live guest rows are deleted. Server-side guest chat rows still disappear via
- * cascade and are intentionally not copied in this version.
+ * For `merge_required`, the backend deterministically forks globally keyed
+ * entities into the destination workspace before the live guest rows are
+ * deleted. Durable history still keeps replica aliases for idempotent replay.
  */
 export async function completeGuestUpgradeInExecutor(
   executor: DatabaseExecutor,

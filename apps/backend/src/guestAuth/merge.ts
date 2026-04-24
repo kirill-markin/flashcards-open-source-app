@@ -3,6 +3,11 @@ import type { DatabaseExecutor } from "../db";
 import { compareLwwMetadata } from "../lww";
 import { insertSyncChange } from "../syncChanges";
 import {
+  forkCardIdForWorkspace,
+  forkDeckIdForWorkspace,
+  forkReviewEventIdForWorkspace,
+} from "../sync/fork";
+import {
   ensureSystemWorkspaceReplicaInExecutor,
   ensureWorkspaceReplicaInExecutor,
 } from "../syncIdentity";
@@ -26,6 +31,12 @@ import type {
 } from "./types";
 import { toIsoString } from "./shared";
 
+type GuestEntityIdMaps = Readonly<{
+  cardIdMap: ReadonlyMap<string, string>;
+  deckIdMap: ReadonlyMap<string, string>;
+  reviewEventIdMap: ReadonlyMap<string, string>;
+}>;
+
 function schedulerWinnerIsGuest(
   guestScheduler: import("./store").GuestWorkspaceSchedulerRecord,
   targetScheduler: import("./store").GuestWorkspaceSchedulerRecord,
@@ -39,6 +50,42 @@ function schedulerWinnerIsGuest(
     lastModifiedByReplicaId: targetScheduler.lastModifiedByReplicaId,
     lastOperationId: targetScheduler.lastOperationId,
   }) > 0;
+}
+
+function requireMappedEntityId(
+  entityIdMap: ReadonlyMap<string, string>,
+  sourceEntityId: string,
+  entityType: string,
+): string {
+  const targetEntityId = entityIdMap.get(sourceEntityId);
+  if (targetEntityId === undefined) {
+    throw new Error(`Missing merged ${entityType} id mapping for ${sourceEntityId}`);
+  }
+
+  return targetEntityId;
+}
+
+function createGuestEntityIdMaps(
+  sourceWorkspaceId: string,
+  targetWorkspaceId: string,
+  cards: ReadonlyArray<import("./store").GuestCardRecord>,
+  decks: ReadonlyArray<import("./store").GuestDeckRecord>,
+  reviewEvents: ReadonlyArray<import("./store").GuestReviewEventRecord>,
+): GuestEntityIdMaps {
+  return {
+    cardIdMap: new Map(cards.map((card) => ([
+      card.cardId,
+      forkCardIdForWorkspace(sourceWorkspaceId, targetWorkspaceId, card.cardId),
+    ]))),
+    deckIdMap: new Map(decks.map((deck) => ([
+      deck.deckId,
+      forkDeckIdForWorkspace(sourceWorkspaceId, targetWorkspaceId, deck.deckId),
+    ]))),
+    reviewEventIdMap: new Map(reviewEvents.map((reviewEvent) => ([
+      reviewEvent.reviewEventId,
+      forkReviewEventIdForWorkspace(sourceWorkspaceId, targetWorkspaceId, reviewEvent.reviewEventId),
+    ]))),
+  };
 }
 
 async function recreateGuestReplicasInExecutor(
@@ -86,29 +133,36 @@ async function recreateGuestReplicasInExecutor(
 
 async function insertMergedCardsInExecutor(
   executor: DatabaseExecutor,
+  sourceWorkspaceId: string,
   targetUserId: string,
   targetWorkspaceId: string,
   cards: ReadonlyArray<import("./store").GuestCardRecord>,
+  cardIdMap: ReadonlyMap<string, string>,
   replicaIdMap: ReadonlyMap<string, string>,
   mergeId: string,
 ): Promise<void> {
   for (const card of cards) {
     const targetReplicaId = requireMappedReplicaId(replicaIdMap, card.lastModifiedByReplicaId);
+    const targetCardId = requireMappedEntityId(cardIdMap, card.cardId, "card");
+    const copiedCard: import("./store").GuestCardRecord = {
+      ...card,
+      cardId: targetCardId,
+    };
     await insertGuestCardCopyInExecutor(
       executor,
       targetUserId,
       targetWorkspaceId,
-      card,
+      copiedCard,
       targetReplicaId,
     );
     await insertSyncChange(
       executor,
       targetWorkspaceId,
       "card",
-      card.cardId,
+      targetCardId,
       "upsert",
       targetReplicaId,
-      `guest-merge-${mergeId}-card-${card.cardId}`,
+      `guest-merge-${mergeId}-card-${sourceWorkspaceId}-${targetCardId}`,
       toIsoString(card.clientUpdatedAt),
     );
   }
@@ -116,29 +170,36 @@ async function insertMergedCardsInExecutor(
 
 async function insertMergedDecksInExecutor(
   executor: DatabaseExecutor,
+  sourceWorkspaceId: string,
   targetUserId: string,
   targetWorkspaceId: string,
   decks: ReadonlyArray<import("./store").GuestDeckRecord>,
+  deckIdMap: ReadonlyMap<string, string>,
   replicaIdMap: ReadonlyMap<string, string>,
   mergeId: string,
 ): Promise<void> {
   for (const deck of decks) {
     const targetReplicaId = requireMappedReplicaId(replicaIdMap, deck.lastModifiedByReplicaId);
+    const targetDeckId = requireMappedEntityId(deckIdMap, deck.deckId, "deck");
+    const copiedDeck: import("./store").GuestDeckRecord = {
+      ...deck,
+      deckId: targetDeckId,
+    };
     await insertGuestDeckCopyInExecutor(
       executor,
       targetUserId,
       targetWorkspaceId,
-      deck,
+      copiedDeck,
       targetReplicaId,
     );
     await insertSyncChange(
       executor,
       targetWorkspaceId,
       "deck",
-      deck.deckId,
+      targetDeckId,
       "upsert",
       targetReplicaId,
-      `guest-merge-${mergeId}-deck-${deck.deckId}`,
+      `guest-merge-${mergeId}-deck-${sourceWorkspaceId}-${targetDeckId}`,
       toIsoString(deck.clientUpdatedAt),
     );
   }
@@ -149,15 +210,28 @@ async function insertMergedReviewEventsInExecutor(
   targetUserId: string,
   targetWorkspaceId: string,
   reviewEvents: ReadonlyArray<import("./store").GuestReviewEventRecord>,
+  cardIdMap: ReadonlyMap<string, string>,
+  reviewEventIdMap: ReadonlyMap<string, string>,
   replicaIdMap: ReadonlyMap<string, string>,
 ): Promise<void> {
   for (const reviewEvent of reviewEvents) {
     const targetReplicaId = requireMappedReplicaId(replicaIdMap, reviewEvent.replicaId);
+    const targetCardId = requireMappedEntityId(cardIdMap, reviewEvent.cardId, "card");
+    const targetReviewEventId = requireMappedEntityId(
+      reviewEventIdMap,
+      reviewEvent.reviewEventId,
+      "review_event",
+    );
+    const copiedReviewEvent: import("./store").GuestReviewEventRecord = {
+      ...reviewEvent,
+      reviewEventId: targetReviewEventId,
+      cardId: targetCardId,
+    };
     await insertGuestReviewEventCopyInExecutor(
       executor,
       targetUserId,
       targetWorkspaceId,
-      reviewEvent,
+      copiedReviewEvent,
       targetReplicaId,
     );
   }
@@ -198,12 +272,11 @@ async function maybeApplyGuestSchedulerInExecutor(
 
 /**
  * Merges portable guest workspace state into the selected destination workspace
- * and returns the durable alias metadata that must be recorded before the live
- * guest rows are deleted.
+ * and returns the durable replica alias metadata that must be recorded before
+ * the live guest rows are deleted.
  *
- * V1 intentionally preserves only correlation metadata for future debugging.
- * Guest-only chat rows and other cascade-deleted live records still disappear
- * during cleanup and are not copied here.
+ * Cards, decks, and review events are deterministically forked into the target
+ * workspace so globally keyed entity ids never collide across workspaces.
  */
 export async function mergeGuestWorkspaceIntoTargetInExecutor(
   executor: DatabaseExecutor,
@@ -224,6 +297,13 @@ export async function mergeGuestWorkspaceIntoTargetInExecutor(
   const guestReviewEvents = await loadGuestReviewEventsInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const guestScheduler = await loadWorkspaceSchedulerInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const targetScheduler = await loadWorkspaceSchedulerInExecutor(executor, params.targetUserId, params.targetWorkspaceId);
+  const guestEntityIdMaps = createGuestEntityIdMaps(
+    params.guestWorkspaceId,
+    params.targetWorkspaceId,
+    guestCards,
+    guestDecks,
+    guestReviewEvents,
+  );
 
   await deleteGuestWorkspaceContentInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
 
@@ -236,17 +316,21 @@ export async function mergeGuestWorkspaceIntoTargetInExecutor(
 
   await insertMergedCardsInExecutor(
     executor,
+    params.guestWorkspaceId,
     params.targetUserId,
     params.targetWorkspaceId,
     guestCards,
+    guestEntityIdMaps.cardIdMap,
     replicaIdMap,
     upgradeId,
   );
   await insertMergedDecksInExecutor(
     executor,
+    params.guestWorkspaceId,
     params.targetUserId,
     params.targetWorkspaceId,
     guestDecks,
+    guestEntityIdMaps.deckIdMap,
     replicaIdMap,
     upgradeId,
   );
@@ -255,6 +339,8 @@ export async function mergeGuestWorkspaceIntoTargetInExecutor(
     params.targetUserId,
     params.targetWorkspaceId,
     guestReviewEvents,
+    guestEntityIdMaps.cardIdMap,
+    guestEntityIdMaps.reviewEventIdMap,
     replicaIdMap,
   );
   await maybeApplyGuestSchedulerInExecutor(
