@@ -17,7 +17,9 @@ on:
       - 'scripts/check-public-endpoints.sh'
       - 'scripts/deploy-admin.sh'
       - 'scripts/deploy-web.sh'
+      - 'scripts/generate-global-metrics-snapshot.sh'
       - 'scripts/migrate-aws.sh'
+      - 'scripts/write-ci-cdk-context.py'
       - '.github/workflows/aws-web-release.yml'
   workflow_dispatch:
 
@@ -61,12 +63,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          aws_release_script_pattern='^scripts/(check-agent-api-smoke\.sh|check-api-health\.sh|check-demo-cognito-users\.sh|check-public-endpoints\.sh|deploy-admin\.sh|deploy-web\.sh|migrate-aws\.sh)$'
+          aws_release_script_pattern='^scripts/(check-agent-api-smoke\.sh|check-api-health\.sh|check-demo-cognito-users\.sh|check-public-endpoints\.sh|deploy-admin\.sh|deploy-web\.sh|generate-global-metrics-snapshot\.sh|migrate-aws\.sh|write-ci-cdk-context\.py)$'
 
           changed_files_path="${RUNNER_TEMP}/changed-files.txt"
           before_sha="${PUSH_BEFORE_SHA:-}"
 
-          if [[ "${GITHUB_EVENT_NAME}" == "push" ]] && [[ -n "${before_sha}" ]] && [[ "${before_sha}" != "0000000000000000000000000000000000000000" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            printf '%s\n' 'workflow_dispatch (forced AWS deploy)' > "${changed_files_path}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "push" ]] && [[ -n "${before_sha}" ]] && [[ "${before_sha}" != "0000000000000000000000000000000000000000" ]]; then
             git diff --name-only "${before_sha}" "${GITHUB_SHA}" > "${changed_files_path}"
           elif git rev-parse HEAD^ >/dev/null 2>&1; then
             git diff --name-only HEAD^ HEAD > "${changed_files_path}"
@@ -75,38 +79,50 @@ jobs:
           fi
 
           aws_changed=false
-          if grep -Eq "^(api/|apps/auth/|apps/backend/|apps/web/|apps/admin/|db/|infra/|\\.github/workflows/aws-web-release\\.yml$)" "${changed_files_path}" || grep -Eq "${aws_release_script_pattern}" "${changed_files_path}"; then
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            aws_changed=true
+          elif grep -Eq "^(api/|apps/auth/|apps/backend/|apps/web/|apps/admin/|db/|infra/|\\.github/workflows/aws-web-release\\.yml$)" "${changed_files_path}" || grep -Eq "${aws_release_script_pattern}" "${changed_files_path}"; then
             aws_changed=true
           fi
 
           api_changed=false
-          if grep -Eq '^(api/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
-            api_changed=true
-          fi
-
           auth_changed=false
-          if grep -Eq '^(apps/auth/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
-            auth_changed=true
-          fi
-
           backend_changed=false
-          if grep -Eq '^(apps/backend/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
-            backend_changed=true
-          fi
-
           web_changed=false
-          if grep -Eq '^(apps/web/|apps/backend/src/schedule\.ts$|apps/backend/src/workspaceSchedulerConfig\.ts$|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
-            web_changed=true
-          fi
-
           admin_changed=false
-          if grep -Eq '^(apps/admin/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
-            admin_changed=true
-          fi
-
           infra_changed=false
-          if grep -Eq '^(infra/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            api_changed=true
+            auth_changed=true
+            backend_changed=true
+            web_changed=true
+            admin_changed=true
             infra_changed=true
+          else
+            if grep -Eq '^(api/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+              api_changed=true
+            fi
+
+            if grep -Eq '^(apps/auth/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+              auth_changed=true
+            fi
+
+            if grep -Eq '^(apps/backend/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+              backend_changed=true
+            fi
+
+            if grep -Eq '^(apps/web/|apps/backend/src/schedule\.ts$|apps/backend/src/workspaceSchedulerConfig\.ts$|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+              web_changed=true
+            fi
+
+            if grep -Eq '^(apps/admin/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+              admin_changed=true
+            fi
+
+            if grep -Eq '^(infra/|\.github/workflows/aws-web-release\.yml$)' "${changed_files_path}"; then
+              infra_changed=true
+            fi
           fi
 
           {
@@ -229,6 +245,7 @@ jobs:
           CDK_CONTEXT_DEMO_PASSWORD_SECRET_ARN: ${{ vars.CDK_DEMO_PASSWORD_SECRET_ARN }}
           CDK_CONTEXT_DOMAIN_NAME: ${{ vars.CDK_DOMAIN_NAME }}
           CDK_CONTEXT_GITHUB_REPO: ${{ vars.CDK_GITHUB_REPO }}
+          CDK_CONTEXT_GLOBAL_METRICS_VISIBLE: ${{ vars.CDK_GLOBAL_METRICS_VISIBLE }}
           CDK_CONTEXT_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP: ${{ vars.CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP }}
           CDK_CONTEXT_LANGFUSE_BASE_URL: ${{ vars.CDK_LANGFUSE_BASE_URL }}
           CDK_CONTEXT_LANGFUSE_PUBLIC_KEY_SECRET_ARN: ${{ vars.CDK_LANGFUSE_PUBLIC_KEY_SECRET_ARN }}
@@ -304,6 +321,7 @@ jobs:
           CDK_CONTEXT_DEMO_PASSWORD_SECRET_ARN: ${{ vars.CDK_DEMO_PASSWORD_SECRET_ARN }}
           CDK_CONTEXT_DOMAIN_NAME: ${{ vars.CDK_DOMAIN_NAME }}
           CDK_CONTEXT_GITHUB_REPO: ${{ vars.CDK_GITHUB_REPO }}
+          CDK_CONTEXT_GLOBAL_METRICS_VISIBLE: ${{ vars.CDK_GLOBAL_METRICS_VISIBLE }}
           CDK_CONTEXT_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP: ${{ vars.CDK_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP }}
           CDK_CONTEXT_LANGFUSE_BASE_URL: ${{ vars.CDK_LANGFUSE_BASE_URL }}
           CDK_CONTEXT_LANGFUSE_PUBLIC_KEY_SECRET_ARN: ${{ vars.CDK_LANGFUSE_PUBLIC_KEY_SECRET_ARN }}
@@ -324,6 +342,9 @@ jobs:
 
       - name: Run database migrations
         run: bash scripts/migrate-aws.sh --stack-name ${{ env.STACK_NAME }}
+
+      - name: Seed global metrics snapshot
+        run: bash scripts/generate-global-metrics-snapshot.sh --stack-name ${{ env.STACK_NAME }}
 
       - name: Build web app
         run: npm run build --prefix apps/web

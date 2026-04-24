@@ -5,6 +5,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as logs from "aws-cdk-lib/aws-logs";
+import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 import { backendNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
 import { createSafeApiGatewayAccessLogFormat } from "./api-gateway-access-log";
@@ -23,6 +24,9 @@ export interface ApiGatewayProps {
   langfuseBaseUrl: string | undefined;
   demoEmailDostip: string | undefined;
   guestAiWeightedMonthlyTokenCap: string | undefined;
+  globalMetricsVisible: boolean;
+  globalMetricsSnapshotBucket: s3.IBucket;
+  globalMetricsSnapshotObjectKey: string;
   userPoolId: string;
   userPoolArn: string;
   userPoolClientId: string;
@@ -57,6 +61,13 @@ interface BackendFunctionProps {
   langfuseBaseUrl: string | undefined;
   demoEmailDostip: string | undefined;
   guestAiWeightedMonthlyTokenCap: string | undefined;
+  globalMetricsConfig: GlobalMetricsConfig | undefined;
+}
+
+interface GlobalMetricsConfig {
+  visible: boolean;
+  snapshotBucket: s3.IBucket;
+  snapshotObjectKey: string;
 }
 
 const chatResumeCorsHeaders = [
@@ -67,6 +78,20 @@ const chatResumeCorsHeaders = [
   "x-client-platform",
   "x-client-version",
 ] as const;
+
+const globalMetricsCorsPreflightOptions: apigw.CorsOptions = {
+  allowOrigins: ["*"],
+  allowMethods: ["GET", "OPTIONS"],
+};
+
+function createBrowserCorsPreflightOptions(allowedOrigins: string[]): apigw.CorsOptions {
+  return {
+    allowOrigins: allowedOrigins,
+    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowHeaders: [...chatResumeCorsHeaders],
+    allowCredentials: true,
+  };
+}
 
 const lambdaBundling: lambdaNodejs.BundlingOptions = {
   minify: true,
@@ -125,6 +150,19 @@ function addLambdaSecretEnvironment(
   const secret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(scope, constructId, secretArn);
   secret.grantRead(fn);
   fn.addEnvironment(environmentVariableName, secret.secretValue.unsafeUnwrap());
+}
+
+function addGlobalMetricsEnvironment(
+  fn: lambdaNodejs.NodejsFunction,
+  config: GlobalMetricsConfig,
+): void {
+  fn.addEnvironment("GLOBAL_METRICS_VISIBLE", config.visible ? "true" : "false");
+  fn.addEnvironment("GLOBAL_METRICS_S3_BUCKET_NAME", config.snapshotBucket.bucketName);
+  fn.addEnvironment("GLOBAL_METRICS_S3_OBJECT_KEY", config.snapshotObjectKey);
+  fn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+    actions: ["s3:GetObject"],
+    resources: [config.snapshotBucket.arnForObjects(config.snapshotObjectKey)],
+  }));
 }
 
 /**
@@ -201,6 +239,10 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     fn.addEnvironment("DEMO_EMAIL_DOSTIP", props.demoEmailDostip);
   }
 
+  if (props.globalMetricsConfig !== undefined) {
+    addGlobalMetricsEnvironment(fn, props.globalMetricsConfig);
+  }
+
   return fn;
 }
 
@@ -259,6 +301,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     langfuseBaseUrl: props.langfuseBaseUrl,
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
+    globalMetricsConfig: {
+      visible: props.globalMetricsVisible,
+      snapshotBucket: props.globalMetricsSnapshotBucket,
+      snapshotObjectKey: props.globalMetricsSnapshotObjectKey,
+    },
   });
   const chatWorkerFn = createBackendFunction(scope, {
     constructId: "ChatRunWorkerHandler",
@@ -281,6 +328,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     langfuseBaseUrl: props.langfuseBaseUrl,
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
+    globalMetricsConfig: undefined,
   });
   const chatLiveFn = createBackendFunction(scope, {
     constructId: "ChatLiveHandler",
@@ -303,6 +351,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     langfuseBaseUrl: props.langfuseBaseUrl,
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
+    globalMetricsConfig: undefined,
   });
   const chatLiveFunctionUrl = chatLiveFn.addFunctionUrl({
     authType: lambda.FunctionUrlAuthType.NONE,
@@ -336,12 +385,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       accessLogDestination: new apigw.LogGroupLogDestination(accessLogGroup),
       accessLogFormat: createSafeApiGatewayAccessLogFormat(),
     },
-    defaultCorsPreflightOptions: {
-      allowOrigins: allowedOrigins,
-      allowMethods: ["GET", "POST", "OPTIONS"],
-      allowHeaders: [...chatResumeCorsHeaders],
-      allowCredentials: true,
-    },
+    defaultCorsPreflightOptions: createBrowserCorsPreflightOptions(allowedOrigins),
   });
   const gatewayErrorResponseHeaders = {
     "Access-Control-Allow-Origin": "method.request.header.Origin",
@@ -410,6 +454,12 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
 
   const health = restApi.root.addResource("health");
   health.addMethod("GET", integration);
+
+  const global = restApi.root.addResource("global");
+  const globalSnapshot = global.addResource("snapshot", {
+    defaultCorsPreflightOptions: globalMetricsCorsPreflightOptions,
+  });
+  globalSnapshot.addMethod("GET", integration);
 
   const me = restApi.root.addResource("me");
   me.addMethod("GET", integration);

@@ -63,6 +63,9 @@ npx cdk deploy --all --require-approval never
 echo "=== Run database migrations ==="
 bash "${ROOT_DIR}/scripts/migrate-aws.sh" --stack-name "$STACK_NAME"
 
+echo "=== Seed global metrics snapshot ==="
+bash "${ROOT_DIR}/scripts/generate-global-metrics-snapshot.sh" --stack-name "$STACK_NAME"
+
 echo "=== Check API health ==="
 bash "${ROOT_DIR}/scripts/check-api-health.sh" --stack-name "$STACK_NAME"
 
