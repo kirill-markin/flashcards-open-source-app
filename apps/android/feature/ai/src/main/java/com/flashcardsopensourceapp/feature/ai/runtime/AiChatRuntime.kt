@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
+import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.makeAiChatCardAttachment
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.AutoSyncEventRepository
@@ -118,6 +119,9 @@ internal class AiChatRuntime(
     }
 
     fun updateDraftMessage(draftMessage: String) {
+        if (canEditAiDraft(state = runtimeStateMutable.value).not()) {
+            return
+        }
         runtimeStateMutable.update { state ->
             state.copy(
                 draftMessage = draftMessage,
@@ -129,6 +133,9 @@ internal class AiChatRuntime(
     }
 
     fun applyComposerSuggestion(suggestion: AiChatComposerSuggestion) {
+        if (canEditAiDraft(state = runtimeStateMutable.value).not()) {
+            return
+        }
         runtimeStateMutable.update { state ->
             val separator = if (state.draftMessage.isBlank() || state.draftMessage.endsWith(" ")) {
                 ""
@@ -145,7 +152,12 @@ internal class AiChatRuntime(
     }
 
     fun addPendingAttachment(attachment: AiChatAttachment) {
-        if (runtimeStateMutable.value.conversationBootstrapState != AiConversationBootstrapState.READY) {
+        val currentState = runtimeStateMutable.value
+        val chatConfig = effectiveAiChatServerConfig(currentState.persistedState.lastKnownChatConfig)
+        if (
+            canManageAiDraftAttachments(state = currentState).not()
+            || chatConfig.features.attachmentsEnabled.not()
+        ) {
             return
         }
         runtimeStateMutable.update { state ->
@@ -159,7 +171,7 @@ internal class AiChatRuntime(
     }
 
     fun removePendingAttachment(attachmentId: String) {
-        if (runtimeStateMutable.value.conversationBootstrapState != AiConversationBootstrapState.READY) {
+        if (canManageAiDraftAttachments(state = runtimeStateMutable.value).not()) {
             return
         }
         runtimeStateMutable.update { state ->
@@ -227,14 +239,16 @@ internal class AiChatRuntime(
         sendCoordinator.stopStreaming()
     }
 
-    fun applyEntryPrefill(prefill: AiEntryPrefill) {
+    fun applyEntryPrefill(prefill: AiEntryPrefill): Boolean {
         val currentState = runtimeStateMutable.value
         if (
-            currentState.conversationBootstrapState != AiConversationBootstrapState.READY
-            || currentState.composerPhase != AiComposerPhase.IDLE
+            currentState.workspaceId == null
+            || context.hasConsent().not()
+            || currentState.conversationBootstrapState != AiConversationBootstrapState.READY
+            || canPrepareAiDraftInComposerPhase(composerPhase = currentState.composerPhase).not()
             || currentState.dictationState != AiChatDictationState.IDLE
         ) {
-            return
+            return false
         }
 
         runtimeStateMutable.update { state ->
@@ -249,6 +263,7 @@ internal class AiChatRuntime(
             )
         }
         persistCurrentDraft()
+        return true
     }
 
     fun handoffCardToChat(
@@ -289,6 +304,17 @@ internal class AiChatRuntime(
             )
             return false
         }
+        if (canPrepareAiDraftInComposerPhase(composerPhase = currentState.composerPhase).not()) {
+            AiChatDiagnosticsLogger.warn(
+                event = "ai_runtime_handoff_rejected_locked_phase",
+                fields = listOf(
+                    "workspaceId" to currentState.workspaceId,
+                    "cardId" to cardId,
+                    "composerPhase" to currentState.composerPhase.name
+                )
+            )
+            return false
+        }
         if (
             shouldPrepareGuestAccess(
                 accessContext = context.activeAccessContext,
@@ -313,6 +339,28 @@ internal class AiChatRuntime(
             tags = tags,
             effortLevel = effortLevel
         )
+
+        if (currentState.composerPhase == AiComposerPhase.RUNNING) {
+            runtimeStateMutable.update { state ->
+                state.copy(
+                    pendingAttachments = state.pendingAttachments + pendingCardAttachment,
+                    focusComposerRequestVersion = state.focusComposerRequestVersion + 1L,
+                    activeAlert = null,
+                    errorMessage = ""
+                )
+            }
+            persistCurrentDraft()
+            AiChatDiagnosticsLogger.info(
+                event = "ai_runtime_handoff_applied_to_running_draft",
+                fields = listOf(
+                    "workspaceId" to currentState.workspaceId,
+                    "cardId" to cardId,
+                    "chatSessionId" to currentState.persistedState.chatSessionId,
+                    "pendingAttachmentCount" to (currentState.pendingAttachments.size + 1).toString()
+                )
+            )
+            return true
+        }
 
         if (
             requiresManualFreshSessionForCardHandoff(

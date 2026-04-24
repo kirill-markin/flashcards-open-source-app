@@ -83,6 +83,34 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         self.runtimeConfiguration = runtimeConfiguration
     }
 
+    override func tearDownWithError() throws {
+        var cleanupError: Error?
+
+        if self.runtimeConfiguration?.includeManualScreenshotTests == true {
+            do {
+                try MainActor.assumeIsolated {
+                    try self.runMarketingGuestSessionCleanup()
+                }
+            } catch {
+                cleanupError = error
+            }
+        }
+
+        self.runtimeConfiguration = nil
+
+        do {
+            try super.tearDownWithError()
+        } catch {
+            if cleanupError == nil {
+                cleanupError = error
+            }
+        }
+
+        if let cleanupError {
+            throw cleanupError
+        }
+    }
+
     @MainActor
     func marketingLocaleFixture() throws -> MarketingScreenshotLocaleFixture {
         let rawValue = try self.manualRuntimeConfiguration().localizationCode
@@ -95,7 +123,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
 
     @MainActor
     func launchMarketingApplication(
-        resetState: LiveSmokeLaunchResetState,
+        launchScenario: LiveSmokeLaunchScenario,
         selectedTab: LiveSmokeSelectedTab,
         aiHandoffCard: String?
     ) throws {
@@ -104,7 +132,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         self.currentLaunchLocalization = localeFixture.tabBarFallbackLocalization
         self.configureMarketingLaunchEnvironment(
             app: self.app,
-            resetState: resetState,
+            launchScenario: launchScenario,
             selectedTab: selectedTab,
             localeFixture: localeFixture,
             aiHandoffCard: aiHandoffCard
@@ -113,6 +141,10 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         self.logActionStart(action: "launch_app", identifier: "application")
         self.app.launch()
         try self.waitForApplicationToReachForeground(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.waitForUITestLaunchPreparation(
+            launchScenario: launchScenario,
+            timeout: LiveSmokeConfiguration.launchPreparationTimeoutSeconds
+        )
         try self.waitForSelectedTabScreen(
             selectedTab: selectedTab,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -130,7 +162,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         let localeFixture = try self.marketingLocaleFixture()
 
         try self.launchMarketingApplication(
-            resetState: .marketingOpportunityCostReviewCard,
+            launchScenario: .marketingOpportunityCostReviewCard,
             selectedTab: .review,
             aiHandoffCard: nil
         )
@@ -149,7 +181,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         }
 
         try self.launchMarketingApplication(
-            resetState: .marketingOpportunityCostReviewCard,
+            launchScenario: .marketingOpportunityCostReviewCard,
             selectedTab: .ai,
             aiHandoffCard: "first_card"
         )
@@ -160,7 +192,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         let localeFixture: MarketingScreenshotLocaleFixture = try self.marketingLocaleFixture()
 
         try self.launchMarketingApplication(
-            resetState: .marketingProgress,
+            launchScenario: .marketingProgress,
             selectedTab: .progress,
             aiHandoffCard: nil
         )
@@ -253,6 +285,39 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     @MainActor
+    private func runMarketingGuestSessionCleanup() throws {
+        let localeFixture = try self.marketingLocaleFixture()
+
+        if self.isApplicationRunning {
+            self.app.terminate()
+        }
+
+        self.app = XCUIApplication()
+        self.currentLaunchLocalization = localeFixture.tabBarFallbackLocalization
+        self.configureMarketingLaunchEnvironment(
+            app: self.app,
+            launchScenario: .marketingGuestSessionCleanup,
+            selectedTab: .settings,
+            localeFixture: localeFixture,
+            aiHandoffCard: nil
+        )
+
+        self.logActionStart(action: "launch_app_cleanup", identifier: "application")
+        self.app.launch()
+        try self.waitForApplicationToReachForeground(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.waitForUITestLaunchPreparation(
+            launchScenario: .marketingGuestSessionCleanup,
+            timeout: LiveSmokeConfiguration.launchPreparationTimeoutSeconds
+        )
+        self.logActionEnd(
+            action: "launch_app_cleanup",
+            identifier: "application",
+            result: "success",
+            note: "marketing guest cleanup finished"
+        )
+    }
+
+    @MainActor
     func assertElementExists(
         identifier: String,
         index: Int,
@@ -282,16 +347,16 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     @MainActor
     private func configureMarketingLaunchEnvironment(
         app: XCUIApplication,
-        resetState: LiveSmokeLaunchResetState,
+        launchScenario: LiveSmokeLaunchScenario,
         selectedTab: LiveSmokeSelectedTab,
         localeFixture: MarketingScreenshotLocaleFixture,
         aiHandoffCard: String?
     ) {
-        app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.resetStateEnvironmentKey)
+        app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.launchScenarioEnvironmentKey)
         app.launchEnvironment.removeValue(forKey: LiveSmokeConfiguration.appNotificationTapTypeEnvironmentKey)
         app.launchEnvironment.removeValue(forKey: MarketingScreenshotEnvironment.aiHandoffCardKey)
         app.launchEnvironment[LiveSmokeConfiguration.selectedTabEnvironmentKey] = selectedTab.rawValue
-        app.launchEnvironment[LiveSmokeConfiguration.resetStateEnvironmentKey] = resetState.rawValue
+        app.launchEnvironment[LiveSmokeConfiguration.launchScenarioEnvironmentKey] = launchScenario.rawValue
         app.launchEnvironment[MarketingScreenshotEnvironment.localizationKey] = localeFixture.localizationCode
         if let aiHandoffCard {
             app.launchEnvironment[MarketingScreenshotEnvironment.aiHandoffCardKey] = aiHandoffCard

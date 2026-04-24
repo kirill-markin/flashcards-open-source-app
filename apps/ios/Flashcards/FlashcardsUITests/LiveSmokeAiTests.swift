@@ -3,7 +3,7 @@ import XCTest
 final class LiveSmokeAiTests: LiveSmokeTestCase {
     @MainActor
     func testLiveSmokeGuestAiCardCreationFlow() throws {
-        try self.launchApplication(resetState: .localGuest, selectedTab: .ai)
+        try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .ai)
 
         try self.step("create one guest AI card and confirm the insert completed") {
             try self.createAiCardWithConfirmation()
@@ -12,7 +12,7 @@ final class LiveSmokeAiTests: LiveSmokeTestCase {
 
     @MainActor
     func testLiveSmokeGuestAiChatResetFlow() throws {
-        try self.launchApplication(resetState: .localGuest, selectedTab: .ai)
+        try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .ai)
 
         try self.step("create one guest AI conversation before reset") {
             try self.createGuestAiConversationForReset()

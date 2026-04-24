@@ -481,7 +481,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   chat.addResource("transcriptions").addMethod("POST", integration);
 
   const guestAuth = restApi.root.addResource("guest-auth");
-  guestAuth.addResource("session").addMethod("POST", integration);
+  const guestSession = guestAuth.addResource("session");
+  guestSession.addMethod("POST", integration);
+  guestSession.addResource("delete").addMethod("POST", integration);
   const guestUpgrade = guestAuth.addResource("upgrade");
   guestUpgrade.addResource("prepare").addMethod("POST", integration);
   guestUpgrade.addResource("complete").addMethod("POST", integration);

@@ -122,6 +122,7 @@ interface CloudRemoteGateway {
     suspend fun sendCode(email: String, authBaseUrl: String): CloudSendCodeResult
     suspend fun verifyCode(challenge: CloudOtpChallenge, code: String, authBaseUrl: String): StoredCloudCredentials
     suspend fun refreshIdToken(refreshToken: String, authBaseUrl: String): StoredCloudCredentials
+    suspend fun deleteGuestSession(apiBaseUrl: String, guestToken: String)
     suspend fun fetchCloudAccount(apiBaseUrl: String, bearerToken: String): CloudAccountSnapshot
     suspend fun listLinkedWorkspaces(apiBaseUrl: String, bearerToken: String): List<CloudWorkspaceSummary>
     suspend fun prepareGuestUpgrade(apiBaseUrl: String, bearerToken: String, guestToken: String): CloudGuestUpgradeMode
@@ -335,6 +336,19 @@ class CloudRemoteService : CloudRemoteGateway {
                 expiresInSeconds = expiresIn
             )
         )
+    }
+
+    override
+    suspend fun deleteGuestSession(apiBaseUrl: String, guestToken: String) {
+        val response = postJson(
+            baseUrl = apiBaseUrl,
+            path = "/guest-auth/session/delete",
+            authorizationHeader = "Guest $guestToken",
+            body = null
+        )
+        require(response.requireCloudBoolean("ok", "deleteGuestSession.ok")) {
+            "Cloud delete-guest-session did not return ok=true."
+        }
     }
 
     override

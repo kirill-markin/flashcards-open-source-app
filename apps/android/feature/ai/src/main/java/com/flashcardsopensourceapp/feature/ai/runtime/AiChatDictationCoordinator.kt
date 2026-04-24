@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 
 import com.flashcardsopensourceapp.data.local.ai.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
+import com.flashcardsopensourceapp.data.local.model.effectiveAiChatServerConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
@@ -188,10 +189,15 @@ internal class AiChatDictationCoordinator(
         if (currentState.conversationBootstrapState != AiConversationBootstrapState.READY) {
             return false
         }
-        if (currentState.composerPhase != AiComposerPhase.IDLE) {
+        if (canPrepareAiDraftInComposerPhase(composerPhase = currentState.composerPhase).not()) {
             return false
         }
-        return true
+        val chatConfig = effectiveAiChatServerConfig(currentState.persistedState.lastKnownChatConfig)
+        if (chatConfig.features.dictationEnabled.not()) {
+            return false
+        }
+        return currentState.dictationState == AiChatDictationState.IDLE ||
+            currentState.dictationState == AiChatDictationState.REQUESTING_PERMISSION
     }
 
     private fun canApplyDictationResult(

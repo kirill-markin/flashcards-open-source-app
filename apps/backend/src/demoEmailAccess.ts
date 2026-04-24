@@ -11,7 +11,7 @@ function normalizeDemoEmailValue(value: string): string {
 }
 
 /**
- * Returns true only for the insecure review/demo accounts that must stay
+ * Returns true only for the insecure review accounts that must stay
  * inside the fixed `@example.com` guardian domain.
  */
 function isGuardianDemoEmail(email: string): boolean {
@@ -21,7 +21,7 @@ function isGuardianDemoEmail(email: string): boolean {
 /**
  * Parses the backend demo allowlist from `DEMO_EMAIL_DOSTIP`.
  *
- * This config exists only for the insecure review/demo accounts in the
+ * This config exists only for the insecure review accounts in the
  * `@example.com` domain. Real user emails must never be treated as demo
  * accounts by this helper.
  */
@@ -34,7 +34,7 @@ function parseDemoEmailAllowlist(rawValue: string): ReadonlySet<string> {
   const invalidEmail = normalizedValues.find((value) => isGuardianDemoEmail(value) === false);
   if (invalidEmail !== undefined) {
     throw new Error(
-      `DEMO_EMAIL_DOSTIP only supports insecure review/demo emails in @${demoEmailGuardianDomain}, got "${invalidEmail}"`,
+      `DEMO_EMAIL_DOSTIP only supports insecure review account emails in @${demoEmailGuardianDomain}, got "${invalidEmail}"`,
     );
   }
 
@@ -53,11 +53,11 @@ function getDemoEmailAccessConfig(): DemoEmailAccessConfig {
 }
 
 /**
- * Returns true only for configured insecure review/demo accounts from
+ * Returns true only for configured insecure review accounts from
  * `DEMO_EMAIL_DOSTIP`.
  *
  * This check is intentionally limited to the explicit allowlist of
- * `@example.com` demo emails. All real accounts must follow the normal
+ * `@example.com` review account emails. All real accounts must follow the normal
  * deletion flow that removes both data and the Cognito identity.
  */
 export function isConfiguredDemoEmail(email: string | null): boolean {

@@ -83,6 +83,7 @@ extension AIChatView {
                                             .foregroundStyle(.secondary)
                                     }
                                     .buttonStyle(.plain)
+                                    .disabled(self.chatStore.canModifyDraftAttachments == false)
                                 }
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 8)
@@ -196,7 +197,7 @@ extension AIChatView {
                             }
                             .buttonStyle(.glass)
                             .tint(.accentColor)
-                            .disabled(self.chatStore.dictationState != .idle || self.chatStore.isComposerBusy)
+                            .disabled(self.chatStore.canAttachToDraft == false)
                             .accessibilityLabel(aiSettingsLocalized("ai.composer.addAttachment", "Add attachment"))
                             .accessibilityHint(
                                 aiSettingsLocalized(
@@ -207,7 +208,7 @@ extension AIChatView {
                             .menuOrder(.fixed)
                         }
 
-                        if self.chatStore.serverChatConfig.features.dictationEnabled {
+                        if self.chatStore.serverChatConfig.features.dictationEnabled || self.chatStore.dictationState != .idle {
                             Button {
                                 self.handleDictationButtonTap()
                             } label: {
@@ -217,7 +218,7 @@ extension AIChatView {
                             }
                             .buttonStyle(.glass)
                             .tint(self.chatStore.dictationState == .recording ? .red : .accentColor)
-                            .disabled(self.chatStore.dictationState == .requestingPermission || self.chatStore.dictationState == .transcribing || self.chatStore.isComposerBusy)
+                            .disabled(self.chatStore.canUseDictation == false)
                             .accessibilityLabel(
                                 self.chatStore.dictationState == .recording
                                     ? aiSettingsLocalized("ai.composer.dictation.stop", "Stop dictation")
@@ -257,6 +258,6 @@ extension AIChatView {
     }
 
     var composerTextFieldDisabled: Bool {
-        self.chatStore.isChatInteractive == false
+        self.chatStore.canEditDraft == false
     }
 }

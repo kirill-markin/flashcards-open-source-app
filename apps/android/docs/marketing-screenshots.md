@@ -78,6 +78,7 @@ FLASHCARDS_MARKETING_LOCALE_PREFIX=de-DE bash scripts/capture-android-review-scr
 These scripts are not part of Android CI, release gates, or default `androidTest` runs.
 They exist only to generate marketing screenshots on demand.
 They run `:app:connectedMarketingScreenshotAndroidTest`, not the normal debug instrumentation task, so screenshot-only translations do not affect the Play-first `debug` and `release` builds.
+The screenshot reset flow deletes the guest cloud session remotely before it clears local screenshot state so the seeded guest workspace does not remain on the backend after the run.
 
 The review wrapper script runs the combined manual-only review-chain entrypoint, saves screenshots 1, 2, and 4 into `/sdcard/Download/flashcards-marketing-screenshots/`, and then pulls those files into the committed marketing media directory.
 

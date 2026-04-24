@@ -77,21 +77,21 @@ class LiveSmokeTest : FirebaseAppInstrumentationTimeoutTest() {
     }
 
     @Test
-    fun manualCardCanBeReviewedInDefaultWorkspace() {
+    fun repositorySeededCardCanBeReviewedInDefaultWorkspace() {
         val runId: String = System.currentTimeMillis().toString()
-        val manualFrontText: String = "Manual review e2e android $runId"
-        val manualBackText: String = "Manual review answer e2e android $runId"
+        val seededFrontText: String = "Repository review e2e android $runId"
+        val seededBackText: String = "Repository review answer e2e android $runId"
 
-        liveSmokeContext.step("seed one manual card directly in the default local workspace") {
-            liveSmokeContext.seedLocalCard(
-                frontText = manualFrontText,
-                backText = manualBackText,
-                markerTag = "manual-review-$runId"
+        liveSmokeContext.step("repository-seed one card in the default workspace") {
+            liveSmokeContext.seedCardViaRepository(
+                frontText = seededFrontText,
+                backText = seededBackText,
+                markerTag = "repository-review-$runId"
             )
         }
-        liveSmokeContext.step("verify the seeded manual card in review") {
+        liveSmokeContext.step("verify the repository-seeded card in review") {
             liveSmokeContext.assertCardReachableInReview(
-                expectedFrontText = manualFrontText,
+                expectedFrontText = seededFrontText,
                 timeoutMillis = internalUiTimeoutMillis
             )
             liveSmokeContext.rateVisibleReviewCardGood()

@@ -175,6 +175,17 @@ struct RootTabView: View {
                     AccountDeletionProgressView()
                         .environment(store)
                 }
+
+                if let uiTestLaunchPreparationValue = store.uiTestLaunchPreparationStatus.accessibilityValue {
+                    Text("ui-test-launch-preparation-status")
+                        .font(.system(size: 1))
+                        .foregroundStyle(.clear)
+                        .allowsHitTesting(false)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityIdentifier(UITestIdentifier.uiTestLaunchPreparationStatus)
+                        .accessibilityLabel("UI test launch preparation status")
+                        .accessibilityValue(uiTestLaunchPreparationValue)
+                }
             }
         }
         .onChange(of: navigation.selectedTab) { _, nextTab in

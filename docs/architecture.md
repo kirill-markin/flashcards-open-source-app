@@ -211,10 +211,12 @@ Implemented sync behavior:
   - `lastModifiedByDeviceId`
   - `lastOperationId`
 - Review events are append-only and deduplicated by `(workspace_id, device_id, client_event_id)`.
+- Review events use the normal `POST /v1/workspaces/:workspaceId/sync/push` contract for both live and historical submissions. For `review_event` operations, `clientUpdatedAt` must equal `payload.reviewedAtClient`.
 - Mutable state and review history are synchronized through separate lanes:
   - hot mutable roots use `sync.hot_changes` plus direct materialization from canonical tables
   - review history uses `content.review_events.review_sequence`
 - Local sync state keeps separate cursors for hot state and review history instead of one global checkpoint.
+- Progress, streaks, and chart day buckets are derived from `content.review_events.reviewed_at_client` in the requested timezone, not from server ingest time.
 
 ## Scheduling architecture
 

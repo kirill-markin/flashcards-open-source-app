@@ -7,6 +7,7 @@ import {
 } from "../live-smoke.diagnostics";
 import { liveSmokeEnvironment, reviewEmail } from "./config";
 import { buildScenario, runIdFromClock } from "./scenario";
+import { enableTestSeedBridge } from "./seedBridge";
 import type { LiveSmokeSession } from "./types";
 
 type LiveSmokeWorkerFixtures = {
@@ -25,6 +26,7 @@ export const test = base.extend<LiveSmokeTestFixtures, LiveSmokeWorkerFixtures>(
       ignoreHTTPSErrors: true,
       locale: liveSmokeBrowserLocale,
     });
+    await enableTestSeedBridge(context);
     const page = await context.newPage();
     const diagnostics = createLiveSmokeDiagnostics(page);
     const liveSmokeSession: LiveSmokeSession = {

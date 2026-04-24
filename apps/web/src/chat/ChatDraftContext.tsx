@@ -19,13 +19,17 @@ export type ChatDraft = Readonly<{
   pendingAttachments: ReadonlyArray<PendingAttachment>;
 }>;
 
+export type ChatComposerSendPhase = "idle" | "preparingSend" | "startingRun";
+
 type ChatDraftContextValue = Readonly<{
   draft: ChatDraft;
+  composerSendPhase: ChatComposerSendPhase;
   focusComposerRequestVersion: number;
   replaceInputText: (nextInputText: string) => void;
   updateInputText: (updateDraftText: (currentInputText: string) => string) => void;
   replacePendingAttachments: (nextPendingAttachments: ReadonlyArray<PendingAttachment>) => void;
   replaceDraftForSession: (sessionId: string | null, nextDraft: ChatDraftContent) => void;
+  replaceComposerSendPhase: (nextSendPhase: ChatComposerSendPhase) => void;
   requestComposerFocus: () => void;
   clearDraft: () => void;
   clearDraftForSession: (sessionId: string | null) => void;
@@ -60,11 +64,13 @@ export function ChatDraftProvider(props: Props): ReactElement {
   const [draftsBySessionId, setDraftsBySessionId] = useState<Record<string, StoredChatDraft>>(() =>
     loadChatDraftWorkspaceState(activeWorkspaceId));
   const [transientDraft, setTransientDraft] = useState<TransientChatDraft | null>(null);
+  const [composerSendPhase, setComposerSendPhase] = useState<ChatComposerSendPhase>("idle");
   const [focusComposerRequestVersion, setFocusComposerRequestVersion] = useState<number>(0);
 
   useEffect(() => {
     setDraftsBySessionId(loadChatDraftWorkspaceState(activeWorkspaceId));
     setTransientDraft(null);
+    setComposerSendPhase("idle");
   }, [activeWorkspaceId]);
 
   useEffect(() => {
@@ -126,6 +132,10 @@ export function ChatDraftProvider(props: Props): ReactElement {
     clearDraftForSession(activeSessionId);
   }
 
+  function replaceComposerSendPhase(nextSendPhase: ChatComposerSendPhase): void {
+    setComposerSendPhase(nextSendPhase);
+  }
+
   function requestComposerFocus(): void {
     setFocusComposerRequestVersion((currentVersion) => currentVersion + 1);
   }
@@ -134,11 +144,13 @@ export function ChatDraftProvider(props: Props): ReactElement {
     <ChatDraftContext.Provider
       value={{
         draft,
+        composerSendPhase,
         focusComposerRequestVersion,
         replaceInputText,
         updateInputText,
         replacePendingAttachments,
         replaceDraftForSession,
+        replaceComposerSendPhase,
         requestComposerFocus,
         clearDraft,
         clearDraftForSession,

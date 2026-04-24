@@ -13,10 +13,10 @@ let cachedDemoPasswordLoaders = new Map<string, Promise<string>>();
 let plaintextSecretLoader: (secretArn: string) => Promise<string> = getPlaintextSecret;
 
 /**
- * Normalizes one configured review/demo email before validation and lookup.
+ * Normalizes one configured review account email before validation and lookup.
  *
- * Demo email access is intentionally insecure and exists only for review/demo
- * accounts. Every allowlisted demo email must use the synthetic
+ * `DEMO_EMAIL_DOSTIP` access is intentionally insecure and exists only for
+ * review accounts. Every allowlisted email must use the synthetic
  * `@example.com` guardian domain.
  */
 function normalizeDemoEmailAccessValue(value: string): string {
@@ -25,14 +25,14 @@ function normalizeDemoEmailAccessValue(value: string): string {
 
 /**
  * Returns true only for emails inside the fixed guardian domain used by the
- * insecure review/demo bypass.
+ * insecure review account bypass.
  */
 function isGuardianDemoEmail(email: string): boolean {
   return email.endsWith(`@${demoEmailGuardianDomain}`);
 }
 
 /**
- * Parses and validates the configured review/demo allowlist.
+ * Parses and validates the configured review account allowlist.
  *
  * The bypass is intentionally insecure, so every configured email must be an
  * explicit allowlist entry and must also belong to `@example.com`.
@@ -46,7 +46,7 @@ function parseDemoEmailAllowlist(rawValue: string): ReadonlySet<string> {
   const invalidEmail = normalizedValues.find((value) => isGuardianDemoEmail(value) === false);
   if (invalidEmail !== undefined) {
     throw new Error(
-      `DEMO_EMAIL_DOSTIP only supports insecure review/demo emails in @${demoEmailGuardianDomain}, got "${invalidEmail}"`,
+      `DEMO_EMAIL_DOSTIP only supports insecure review account emails in @${demoEmailGuardianDomain}, got "${invalidEmail}"`,
     );
   }
 
@@ -54,7 +54,7 @@ function parseDemoEmailAllowlist(rawValue: string): ReadonlySet<string> {
 }
 
 /**
- * Loads the insecure review/demo bypass configuration from environment
+ * Loads the insecure review account bypass configuration from environment
  * variables and validates that the shared password is present when the
  * allowlist is enabled.
  */
@@ -70,13 +70,13 @@ export function getDemoEmailAccessConfig(): DemoEmailAccessConfig {
 
   if (sharedPassword !== "" && passwordSecretArn !== "") {
     throw new Error(
-      "Configure only one of DEMO_PASSWORD_DOSTIP or DEMO_PASSWORD_SECRET_ARN for insecure review/demo access",
+      "Configure only one of DEMO_PASSWORD_DOSTIP or DEMO_PASSWORD_SECRET_ARN for insecure review account access",
     );
   }
 
   if (emailAllowlist.size > 0 && sharedPassword === "" && passwordSecretArn === "") {
     throw new Error(
-      "DEMO_PASSWORD_DOSTIP or DEMO_PASSWORD_SECRET_ARN is required when DEMO_EMAIL_DOSTIP is configured for insecure review/demo access",
+      "DEMO_PASSWORD_DOSTIP or DEMO_PASSWORD_SECRET_ARN is required when DEMO_EMAIL_DOSTIP is configured for insecure review account access",
     );
   }
 
@@ -100,7 +100,8 @@ function getCachedDemoPassword(secretArn: string): Promise<string> {
 }
 
 /**
- * Returns the shared insecure demo password only for emails that are both
+ * Returns the shared insecure review account password only for emails that are
+ * both
  * allowlisted and protected by the `@example.com` guardian restriction.
  */
 export async function getDemoEmailPassword(email: string): Promise<string | null> {
@@ -116,7 +117,7 @@ export async function getDemoEmailPassword(email: string): Promise<string | null
   }
 
   if (config.passwordSecretArn === null) {
-    throw new Error("DEMO_PASSWORD_DOSTIP and DEMO_PASSWORD_SECRET_ARN are unavailable for configured demo email access");
+    throw new Error("DEMO_PASSWORD_DOSTIP and DEMO_PASSWORD_SECRET_ARN are unavailable for configured review account access");
   }
 
   return getCachedDemoPassword(config.passwordSecretArn);
@@ -130,7 +131,7 @@ export function setPlaintextSecretLoaderForTests(
 }
 
 /**
- * Clears the cached review/demo bypass config for test isolation.
+ * Clears the cached review account bypass config for test isolation.
  */
 export function resetDemoEmailAccessConfigForTests(): void {
   resolvedDemoEmailAccessConfig = undefined;

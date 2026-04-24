@@ -203,8 +203,8 @@ class AiViewModel(
         chatRuntime.stopStreaming()
     }
 
-    fun applyEntryPrefill(prefill: AiEntryPrefill) {
-        chatRuntime.applyEntryPrefill(prefill = prefill)
+    fun applyEntryPrefill(prefill: AiEntryPrefill): Boolean {
+        return chatRuntime.applyEntryPrefill(prefill = prefill)
     }
 
     fun handoffCardToChat(

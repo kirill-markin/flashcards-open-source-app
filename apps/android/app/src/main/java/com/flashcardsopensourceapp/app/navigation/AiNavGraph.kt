@@ -31,10 +31,24 @@ internal fun NavGraphBuilder.registerAiNavGraph(
         val entryPrefillRequest by appGraph.appHandoffCoordinator.observeAiEntryPrefill().collectAsStateWithLifecycle()
         val cardHandoffRequest by appGraph.appHandoffCoordinator.observeAiCardHandoff().collectAsStateWithLifecycle()
 
-        LaunchedEffect(entryPrefillRequest?.requestId) {
+        LaunchedEffect(
+            entryPrefillRequest?.requestId,
+            uiState.canEditDraft,
+            uiState.isConsentRequired,
+            uiState.isConversationReady
+        ) {
             val request = entryPrefillRequest ?: return@LaunchedEffect
-            aiViewModel.applyEntryPrefill(prefill = request.prefill)
-            appGraph.appHandoffCoordinator.consumeAiEntryPrefill(requestId = request.requestId)
+            if (
+                uiState.canEditDraft.not()
+                || uiState.isConsentRequired
+                || uiState.isConversationReady.not()
+            ) {
+                return@LaunchedEffect
+            }
+            val didApplyRequest = aiViewModel.applyEntryPrefill(prefill = request.prefill)
+            if (didApplyRequest) {
+                appGraph.appHandoffCoordinator.consumeAiEntryPrefill(requestId = request.requestId)
+            }
         }
 
         LaunchedEffect(

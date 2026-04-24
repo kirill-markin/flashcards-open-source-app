@@ -15,33 +15,33 @@ import type { LiveSmokeSession } from "../types";
 const resetPreviewTimeoutMs = externalUiTimeoutMs + localUiTimeoutMs;
 
 export async function runResetProgressFlow(session: LiveSmokeSession): Promise<void> {
-  await runLiveSmokeStep(session, "confirm the reviewed manual card still exists in cards", async () => {
-    await confirmReviewedManualCardStillExists(session);
+  await runLiveSmokeStep(session, "confirm the reviewed seeded card still exists in cards", async () => {
+    await confirmReviewedSeededCardStillExists(session);
   });
 
-  await runLiveSmokeStep(session, "reset the reviewed manual card through the danger zone flow", async () => {
+  await runLiveSmokeStep(session, "reset the reviewed seeded card through the danger zone flow", async () => {
     await completeResetProgressFlow(session);
   });
 
   await runLiveSmokeStep(session, "confirm the card becomes due again after reset", async () => {
-    await confirmReviewedManualCardBecomesDueAgain(session);
+    await confirmReviewedSeededCardBecomesDueAgain(session);
   });
 }
 
-async function confirmReviewedManualCardStillExists(session: LiveSmokeSession): Promise<void> {
+async function confirmReviewedSeededCardStillExists(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
 
   await trackedClick(diagnostics, "open cards navigation before reset", page.locator('nav.nav a[href="/cards"]').first());
   await trackedFill(
     diagnostics,
-    `search cards for ${scenario.manualFrontText}`,
+    `search cards for ${scenario.seededFrontText}`,
     page.getByTestId("cards-search-input"),
-    scenario.manualFrontText,
+    scenario.seededFrontText,
   );
   await trackedExpectVisible(
     diagnostics,
-    `confirm cards list still shows ${scenario.manualFrontText}`,
-    page.locator(`[data-testid="cards-row"][data-card-front-text=${JSON.stringify(scenario.manualFrontText)}]`).first(),
+    `confirm cards list still shows ${scenario.seededFrontText}`,
+    page.locator(`[data-testid="cards-row"][data-card-front-text=${JSON.stringify(scenario.seededFrontText)}]`).first(),
     externalUiTimeoutMs,
   );
 }
@@ -128,16 +128,16 @@ async function completeResetProgressFlow(session: LiveSmokeSession): Promise<voi
   );
 }
 
-async function confirmReviewedManualCardBecomesDueAgain(session: LiveSmokeSession): Promise<void> {
+async function confirmReviewedSeededCardBecomesDueAgain(session: LiveSmokeSession): Promise<void> {
   const { page, diagnostics, scenario } = session;
 
   await trackedClick(diagnostics, "open review navigation after reset", page.locator('nav.nav a[href="/review"]').first());
   await trackedExpectAttribute(
     diagnostics,
-    `confirm the reviewed card becomes due again: ${scenario.manualFrontText}`,
+    `confirm the reviewed card becomes due again: ${scenario.seededFrontText}`,
     page.getByTestId("review-current-front-card"),
     "data-card-front-text",
-    scenario.manualFrontText,
+    scenario.seededFrontText,
     externalUiTimeoutMs,
   );
 }

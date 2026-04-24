@@ -3,9 +3,11 @@ package com.flashcardsopensourceapp.feature.ai.runtime
 import com.flashcardsopensourceapp.data.local.model.AiChatAttachment
 import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.AiChatDraftState
+import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.makeDefaultAiChatPersistedState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -95,6 +97,77 @@ class AiChatRuntimeCardHandoffTest {
         assertEquals("session-1", runtime.state.value.persistedState.chatSessionId)
         assertEquals(1, runtime.state.value.pendingAttachments.size)
         assertEquals("card-1", (runtime.state.value.pendingAttachments.single() as AiChatAttachment.Card).cardId)
+    }
+
+    @Test
+    fun runningCardHandoffAppendsCardToNextDraftWithoutResettingActiveRun() = runTest {
+        val repository = FakeAiChatRepository()
+        val liveEvents = MutableSharedFlow<AiChatLiveEvent>()
+        repository.persistedStates[defaultTestWorkspaceId] = makeDefaultAiChatPersistedState().copy(
+            chatSessionId = "session-1"
+        )
+        repository.bootstrapResponses += makeBootstrapResponse(
+            sessionId = "session-1",
+            activeRun = null
+        )
+        repository.startRunResponse = makeAcceptedStartRunResponse(
+            sessionId = "session-1",
+            activeRun = makeActiveRun(runId = "run-1", cursor = "0"),
+            messages = listOf(
+                makeUserMessage(
+                    content = listOf(AiChatContentPart.Text(text = "First prompt")),
+                    timestampMillis = 1L
+                ),
+                makeAssistantStatusMessage(timestampMillis = 2L)
+            ),
+            composerSuggestions = emptyList()
+        )
+        repository.liveFlows["run-1"] = liveEvents
+        val runtime = makeRuntime(scope = this, repository = repository)
+        val existingAttachment = AiChatAttachment.Binary(
+            id = "attachment-1",
+            fileName = "notes.txt",
+            mediaType = "text/plain",
+            base64Data = "bm90ZXM="
+        )
+
+        runtime.onScreenVisible()
+        runtime.updateAccessContext(makeAccessContext(workspaceId = defaultTestWorkspaceId))
+        advanceUntilIdle()
+        runtime.updateDraftMessage(draftMessage = "First prompt")
+        runtime.sendMessage()
+        advanceUntilIdle()
+        runtime.updateDraftMessage(draftMessage = "Next draft")
+        runtime.addPendingAttachment(attachment = existingAttachment)
+
+        val didHandoff = runtime.handoffCardToChat(
+            cardId = "card-1",
+            frontText = "Front",
+            backText = "Back",
+            tags = listOf("tag"),
+            effortLevel = EffortLevel.LONG
+        )
+        advanceUntilIdle()
+
+        assertTrue(didHandoff)
+        assertTrue(repository.createNewSessionRequests.isEmpty())
+        assertEquals("run-1", runtime.state.value.activeRun?.runId)
+        assertEquals(AiComposerPhase.RUNNING, runtime.state.value.composerPhase)
+        assertEquals("Next draft", runtime.state.value.draftMessage)
+        assertEquals(2, runtime.state.value.pendingAttachments.size)
+        assertEquals(existingAttachment, runtime.state.value.pendingAttachments[0])
+        assertEquals("card-1", (runtime.state.value.pendingAttachments[1] as AiChatAttachment.Card).cardId)
+        assertEquals(
+            "Next draft",
+            repository.draftStates[defaultTestWorkspaceId to "session-1"]?.draftMessage
+        )
+        assertEquals(
+            2,
+            repository.draftStates[defaultTestWorkspaceId to "session-1"]?.pendingAttachments?.size
+        )
+
+        runtime.onScreenHidden()
+        advanceUntilIdle()
     }
 
     @Test

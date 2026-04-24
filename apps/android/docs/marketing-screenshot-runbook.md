@@ -11,6 +11,7 @@ These screenshot flows are manual-only Android instrumentation entrypoints.
 They are not part of Android CI, release gates, or default `androidTest` runs.
 Each flow prepares a specific in-app state, captures a PNG on the emulator, and pulls that file into `apps/android/docs/media/play-store-screenshots/`.
 The wrappers run the dedicated `marketingScreenshot` app variant, which can include screenshot-only resource overlays from `apps/android/app/src/marketingScreenshot/res` without changing normal `debug` or `release` builds.
+The screenshot reset rule now deletes any stored guest cloud screenshot session through `POST /guest-auth/session/delete` before the local reset clears the guest token, both before and after a manual screenshot run.
 
 ## Current wrapper scripts
 
