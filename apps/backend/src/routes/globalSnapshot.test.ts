@@ -16,7 +16,10 @@ import { createGlobalSnapshotRoutes, globalSnapshotPath } from "./globalSnapshot
 
 function createSnapshotFixture(): GlobalMetricsSnapshot {
   return buildGlobalMetricsSnapshot({
-    window: createGlobalMetricsSnapshotWindow(new Date("2026-04-23T09:30:00.000Z")),
+    window: createGlobalMetricsSnapshotWindow({
+      now: new Date("2026-04-23T09:30:00.000Z"),
+      historicalStartDate: "2026-03-07",
+    }),
     totalsRow: {
       unique_reviewing_users: 3,
       total_review_events: 5,
@@ -26,7 +29,7 @@ function createSnapshotFixture(): GlobalMetricsSnapshot {
     },
     dayRows: [
       {
-        review_date: "2026-01-23",
+        review_date: "2026-03-07",
         unique_reviewing_users: 2,
         total_review_events: 3,
         web_review_events: 1,

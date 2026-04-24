@@ -358,7 +358,6 @@ required_top_level_keys = ["schemaVersion", "generatedAtUtc", "asOfUtc", "from",
 required_total_keys = ["uniqueReviewingUsers", "reviewEvents"]
 required_review_event_keys = ["total", "byPlatform"]
 expected_platform_keys = ["web", "android", "ios"]
-expected_day_count = 90
 
 
 def require(condition: bool, message: str) -> None:
@@ -404,7 +403,7 @@ require(isinstance(payload["to"], str), "to must be a string")
 to_date = datetime.date.fromisoformat(payload["to"])
 require(from_date <= to_date, "from must be less than or equal to to")
 require(to_date == (as_of.date() - datetime.timedelta(days=1)), "to must be the UTC day immediately before asOfUtc")
-require(from_date == (as_of.date() - datetime.timedelta(days=expected_day_count)), "from must be the UTC day window start")
+expected_day_count = (to_date - from_date).days + 1
 
 totals = payload["totals"]
 require(isinstance(totals, dict), "totals must be an object")
@@ -418,6 +417,10 @@ require(len(days) == expected_day_count, f"days must contain exactly {expected_d
 
 seen_dates: set[str] = set()
 previous_date: datetime.date | None = None
+day_review_total = 0
+day_review_web_total = 0
+day_review_android_total = 0
+day_review_ios_total = 0
 for index, entry in enumerate(days):
     label = f"days[{index}]"
     require(isinstance(entry, dict), f"{label} must be an object")
@@ -433,6 +436,15 @@ for index, entry in enumerate(days):
     previous_date = current_date
     require_non_negative_int(entry["uniqueReviewingUsers"], f"{label}.uniqueReviewingUsers")
     validate_review_events(entry["reviewEvents"], f"{label}.reviewEvents")
+    day_review_total += entry["reviewEvents"]["total"]
+    day_review_web_total += entry["reviewEvents"]["byPlatform"]["web"]
+    day_review_android_total += entry["reviewEvents"]["byPlatform"]["android"]
+    day_review_ios_total += entry["reviewEvents"]["byPlatform"]["ios"]
+
+require(day_review_total == totals["reviewEvents"]["total"], "totals.reviewEvents.total must equal the sum of day review events")
+require(day_review_web_total == totals["reviewEvents"]["byPlatform"]["web"], "totals.reviewEvents.byPlatform.web must equal the sum of day web review events")
+require(day_review_android_total == totals["reviewEvents"]["byPlatform"]["android"], "totals.reviewEvents.byPlatform.android must equal the sum of day android review events")
+require(day_review_ios_total == totals["reviewEvents"]["byPlatform"]["ios"], "totals.reviewEvents.byPlatform.ios must equal the sum of day ios review events")
 PY
 }
 
