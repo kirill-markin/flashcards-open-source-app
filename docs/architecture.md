@@ -66,7 +66,7 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
   - a detached worker Lambda for backend-owned chat runs
 - The backend Lambda runs in the VPC, reads the backend DB secret, verifies Cognito ID tokens, and can optionally read model-provider secrets.
 - The detached chat worker Lambda uses the same backend runtime environment, but it is invoked asynchronously by the main backend Lambda and is not published through API Gateway.
-- API Gateway predeclares the public route tree, including agent, workspace, sync, cards, chat, and system routes.
+- API Gateway predeclares the public route tree, including the system/root documents, `agent`, `workspaces`, `agent-api-keys`, `admin`, `cards`, `guest-auth`, `chat`, `sync`, and the single global metrics route `GET /v1/global/snapshot`.
 
 ### Database and operations
 
@@ -89,14 +89,18 @@ The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 
 ## Backend runtime structure
 
-`apps/backend/src/app.ts` mounts six route groups:
+`apps/backend/src/app.ts` mounts ten route modules:
 
 - `system`: discovery, health, OpenAPI, session/account inspection, account deletion
 - `agent`: machine-facing discovery, workspace bootstrap, SQL endpoint, and agent OpenAPI documents
-- `workspaces`: list/create/select workspaces and manage agent API key connections from human sessions
-- `cards`: card query and tag summary endpoints
-- `chat`: shared transcription and backend-owned chat control-plane endpoints
-- `sync`: offline-first push and pull endpoints
+- `workspaces`: list/create/select workspaces, workspace lifecycle actions, and human-session agent API key management
+- `admin`: admin session and report query endpoints
+- `cards`: workspace card query and tag summary endpoints
+- `globalSnapshot`: one public route, `GET /v1/global/snapshot`
+- `guestAuth`: guest session and upgrade endpoints
+- `chatTranscriptions`: transcription upload endpoint
+- `chat`: backend-owned chat control-plane endpoints
+- `sync`: offline-first push, pull, bootstrap, and review-history endpoints
 
 The backend is Hono-based in local dev and in Lambda. In local dev it serves on `http://localhost:8080/v1`.
 
