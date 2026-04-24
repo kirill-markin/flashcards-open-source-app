@@ -18,18 +18,18 @@ The screenshot reset rule now deletes any stored guest cloud screenshot session 
 Run these commands from the repository root:
 
 ```bash
-bash scripts/capture-android-review-screenshot.sh
+bash scripts/capture-android-review-and-cards-screenshot.sh
 bash scripts/capture-android-progress-screenshot.sh
-bash scripts/capture-android-cards-screenshot.sh
 ```
 
 To target a configured locale prefix other than the default `en`, set `FLASHCARDS_MARKETING_LOCALE_PREFIX` for the wrapper run:
 
 ```bash
-FLASHCARDS_MARKETING_LOCALE_PREFIX=en bash scripts/capture-android-review-screenshot.sh
+FLASHCARDS_MARKETING_LOCALE_PREFIX=en bash scripts/capture-android-review-and-cards-screenshot.sh
 ```
 
 The wrapper passes that prefix into the manual AndroidTest entrypoint, which resolves the matching screenshot locale configuration before preparing the app state and file names.
+The legacy wrappers `scripts/capture-android-review-screenshot.sh` and `scripts/capture-android-cards-screenshot.sh` now both delegate to the combined wrapper for compatibility.
 
 The currently configured screenshot locale prefixes are:
 
@@ -56,6 +56,7 @@ After the wrapper scripts run, the expected generated output files are:
 - `apps/android/docs/media/play-store-screenshots/en-5_cards-list-google-play-vocabulary.png`
 
 Existing repository media can still contain the previous four-shot assets until these generators are run and the new output PNGs are reviewed.
+Existing repository media can also still contain older cards-list numbering such as `*-3_cards-list-...` until the combined wrapper is run and the regenerated PNGs are reviewed.
 
 ## Reliable local process
 
@@ -124,7 +125,7 @@ If the rerun starts as `Starting 1 tests` instead of the broken `0/0` path, the 
 Example:
 
 ```bash
-bash scripts/capture-android-review-screenshot.sh
+bash scripts/capture-android-review-and-cards-screenshot.sh
 ```
 
 Each wrapper script does the following:
@@ -137,10 +138,9 @@ Each wrapper script does the following:
 The screenshot capture step now explicitly collapses the Android status bar before running `screencap`.
 That prevents an already-open notification shade from being captured on top of an otherwise-correct app screen.
 
-The review wrapper runs one combined review-chain entrypoint and pulls screenshots 1, 2, and 4 from the same instrumentation run.
+The combined Review + Cards wrapper runs one shared entrypoint, seeds the shared opportunity-cost card once, and pulls screenshots 1, 2, 4, and 5 from the same instrumentation run.
 The progress wrapper runs a separate Progress entrypoint and pulls screenshot 3.
-The cards wrapper remains separate because screenshot 5 uses a different app setup flow.
-Run these wrappers sequentially; do not start the next wrapper until the previous one has exited and pulled its PNG files.
+Run these supported wrappers sequentially; do not start the next wrapper until the previous one has exited and pulled its PNG files.
 
 The locale-specific card texts, AI draft texts, file-name prefixes, and UI labels used by these screenshot flows are defined in `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotCatalog.kt`.
 

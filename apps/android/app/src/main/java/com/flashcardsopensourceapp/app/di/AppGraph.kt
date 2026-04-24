@@ -109,7 +109,7 @@ class AppGraph(
         dispatchers = aiCoroutineDispatchers,
         liveRemoteService = aiChatLiveRemoteService
     )
-    private val syncLocalStore = SyncLocalStore(
+    internal val syncLocalStore = SyncLocalStore(
         database = database,
         preferencesStore = cloudPreferencesStore,
         localProgressCacheStore = localProgressCacheStore

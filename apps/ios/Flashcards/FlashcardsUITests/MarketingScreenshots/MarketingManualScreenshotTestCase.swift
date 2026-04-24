@@ -6,6 +6,9 @@ private enum MarketingManualScreenshotError: LocalizedError {
     case runtimeConfigurationNotLoaded(String)
     case missingRuntimeConfigurationValue(String)
     case unsupportedLocalization(String)
+    case cleanupApplicationDidNotReachForeground(timeout: TimeInterval, currentState: String)
+    case cleanupLaunchPreparationFailed(String)
+    case cleanupLaunchPreparationTimedOut(expectedValue: String, actualValue: String)
     case outputDirectoryCreationFailed(String, underlying: Error)
     case screenshotWriteFailed(String, underlying: Error)
 
@@ -20,6 +23,12 @@ private enum MarketingManualScreenshotError: LocalizedError {
         case .unsupportedLocalization(let value):
             let supportedValues = MarketingScreenshotFixture.supportedLocalizationCodes.joined(separator: ", ")
             return "Unsupported iOS marketing screenshot localization '\(value)'. Supported values: \(supportedValues)."
+        case .cleanupApplicationDidNotReachForeground(let timeout, let currentState):
+            return "Marketing screenshot cleanup app did not reach the foreground within \(timeout) seconds. currentState='\(currentState)'."
+        case .cleanupLaunchPreparationFailed(let message):
+            return "Marketing screenshot cleanup launch preparation failed: \(message)"
+        case .cleanupLaunchPreparationTimedOut(let expectedValue, let actualValue):
+            return "Marketing screenshot cleanup launch preparation did not reach '\(expectedValue)'. actualValue='\(actualValue)'."
         case .outputDirectoryCreationFailed(let path, let underlying):
             return "Failed to create iOS marketing screenshot output directory at '\(path)': \(underlying.localizedDescription)"
         case .screenshotWriteFailed(let path, let underlying):
@@ -86,10 +95,15 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     override func tearDownWithError() throws {
         var cleanupError: Error?
 
-        if self.runtimeConfiguration?.includeManualScreenshotTests == true {
+        if let runtimeConfiguration = self.runtimeConfiguration,
+            runtimeConfiguration.includeManualScreenshotTests == true {
+            let existingApplication = self.app
             do {
                 try MainActor.assumeIsolated {
-                    try self.runMarketingGuestSessionCleanup()
+                    try Self.runMarketingGuestSessionCleanup(
+                        runtimeConfiguration: runtimeConfiguration,
+                        existingApplication: existingApplication
+                    )
                 }
             } catch {
                 cleanupError = error
@@ -113,12 +127,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
 
     @MainActor
     func marketingLocaleFixture() throws -> MarketingScreenshotLocaleFixture {
-        let rawValue = try self.manualRuntimeConfiguration().localizationCode
-        guard let localeFixture = MarketingScreenshotFixture.localeFixture(localizationCode: rawValue) else {
-            throw MarketingManualScreenshotError.unsupportedLocalization(rawValue)
-        }
-
-        return localeFixture
+        try Self.localeFixture(localizationCode: self.manualRuntimeConfiguration().localizationCode)
     }
 
     @MainActor
@@ -130,7 +139,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         let localeFixture = try self.marketingLocaleFixture()
         self.app = XCUIApplication()
         self.currentLaunchLocalization = localeFixture.tabBarFallbackLocalization
-        self.configureMarketingLaunchEnvironment(
+        Self.configureMarketingLaunchEnvironment(
             app: self.app,
             launchScenario: launchScenario,
             selectedTab: selectedTab,
@@ -158,11 +167,11 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     @MainActor
-    func launchOpportunityCostReviewCard() throws -> MarketingScreenshotLocaleFixture {
+    func launchMarketingReviewAndCards() throws -> MarketingScreenshotLocaleFixture {
         let localeFixture = try self.marketingLocaleFixture()
 
         try self.launchMarketingApplication(
-            launchScenario: .marketingOpportunityCostReviewCard,
+            launchScenario: .marketingReviewAndCards,
             selectedTab: .review,
             aiHandoffCard: nil
         )
@@ -181,10 +190,34 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         }
 
         try self.launchMarketingApplication(
-            launchScenario: .marketingOpportunityCostReviewCard,
+            launchScenario: .marketingReviewAndCards,
             selectedTab: .ai,
             aiHandoffCard: "first_card"
         )
+    }
+
+    @MainActor
+    func launchMarketingCardsList(reviewCardFrontText: String) throws {
+        if self.isApplicationRunning {
+            self.app.terminate()
+        }
+
+        try self.launchMarketingApplication(
+            launchScenario: .marketingReviewAndCards,
+            selectedTab: .cards,
+            aiHandoffCard: nil
+        )
+        try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.cardsCardRow,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertElementExists(
+            identifier: LiveSmokeIdentifier.cardsCardRow,
+            index: 1,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.assertCardsListTopCard(frontText: reviewCardFrontText)
     }
 
     @MainActor
@@ -285,39 +318,6 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     @MainActor
-    private func runMarketingGuestSessionCleanup() throws {
-        let localeFixture = try self.marketingLocaleFixture()
-
-        if self.isApplicationRunning {
-            self.app.terminate()
-        }
-
-        self.app = XCUIApplication()
-        self.currentLaunchLocalization = localeFixture.tabBarFallbackLocalization
-        self.configureMarketingLaunchEnvironment(
-            app: self.app,
-            launchScenario: .marketingGuestSessionCleanup,
-            selectedTab: .settings,
-            localeFixture: localeFixture,
-            aiHandoffCard: nil
-        )
-
-        self.logActionStart(action: "launch_app_cleanup", identifier: "application")
-        self.app.launch()
-        try self.waitForApplicationToReachForeground(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.waitForUITestLaunchPreparation(
-            launchScenario: .marketingGuestSessionCleanup,
-            timeout: LiveSmokeConfiguration.launchPreparationTimeoutSeconds
-        )
-        self.logActionEnd(
-            action: "launch_app_cleanup",
-            identifier: "application",
-            result: "success",
-            note: "marketing guest cleanup finished"
-        )
-    }
-
-    @MainActor
     func assertElementExists(
         identifier: String,
         index: Int,
@@ -345,7 +345,39 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     @MainActor
-    private func configureMarketingLaunchEnvironment(
+    func assertCardsListTopCard(frontText: String) throws {
+        let firstCardsRowIdentifier = "\(LiveSmokeIdentifier.cardsCardRow)[0]"
+        let firstCardsRow = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.cardsCardRow)
+            .element(boundBy: 0)
+
+        if try self.waitForElementValueContaining(
+            firstCardsRow,
+            identifier: firstCardsRowIdentifier,
+            expectedValue: frontText,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        ) == false {
+            throw LiveSmokeFailure.unexpectedElementValue(
+                identifier: firstCardsRowIdentifier,
+                expectedValue: frontText,
+                actualValue: self.elementValue(element: firstCardsRow),
+                timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+
+    private static func localeFixture(localizationCode: String) throws -> MarketingScreenshotLocaleFixture {
+        guard let localeFixture = MarketingScreenshotFixture.localeFixture(localizationCode: localizationCode) else {
+            throw MarketingManualScreenshotError.unsupportedLocalization(localizationCode)
+        }
+
+        return localeFixture
+    }
+
+    @MainActor
+    private static func configureMarketingLaunchEnvironment(
         app: XCUIApplication,
         launchScenario: LiveSmokeLaunchScenario,
         selectedTab: LiveSmokeSelectedTab,
@@ -361,7 +393,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         if let aiHandoffCard {
             app.launchEnvironment[MarketingScreenshotEnvironment.aiHandoffCardKey] = aiHandoffCard
         }
-        app.launchArguments = self.strippingMarketingAppleLocalizationLaunchArguments(arguments: app.launchArguments)
+        app.launchArguments = Self.strippingMarketingAppleLocalizationLaunchArguments(arguments: app.launchArguments)
         app.launchArguments += localeFixture.launchArguments
     }
 
@@ -440,7 +472,7 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         }
     }
 
-    private func strippingMarketingAppleLocalizationLaunchArguments(arguments: [String]) -> [String] {
+    private static func strippingMarketingAppleLocalizationLaunchArguments(arguments: [String]) -> [String] {
         var sanitizedArguments: [String] = []
         var index = 0
 
@@ -456,5 +488,135 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
         }
 
         return sanitizedArguments
+    }
+
+    @MainActor
+    private static func runMarketingGuestSessionCleanup(
+        runtimeConfiguration: MarketingScreenshotRuntimeConfiguration,
+        existingApplication: XCUIApplication?
+    ) throws {
+        let localeFixture = try Self.localeFixture(localizationCode: runtimeConfiguration.localizationCode)
+
+        if let existingApplication, Self.applicationIsRunning(app: existingApplication) {
+            existingApplication.terminate()
+        }
+
+        let cleanupApplication = XCUIApplication()
+        Self.configureMarketingLaunchEnvironment(
+            app: cleanupApplication,
+            launchScenario: .marketingGuestSessionCleanup,
+            selectedTab: .settings,
+            localeFixture: localeFixture,
+            aiHandoffCard: nil
+        )
+
+        cleanupApplication.launch()
+        defer {
+            if Self.applicationIsRunning(app: cleanupApplication) {
+                cleanupApplication.terminate()
+            }
+        }
+
+        try Self.waitForCleanupApplicationToReachForeground(
+            app: cleanupApplication,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+        try Self.waitForCleanupLaunchPreparation(
+            app: cleanupApplication,
+            launchScenario: .marketingGuestSessionCleanup,
+            timeout: LiveSmokeConfiguration.launchPreparationTimeoutSeconds
+        )
+    }
+
+    @MainActor
+    private static func waitForCleanupApplicationToReachForeground(
+        app: XCUIApplication,
+        timeout: TimeInterval
+    ) throws {
+        let reachedForeground = app.wait(for: .runningForeground, timeout: timeout)
+        if reachedForeground == false {
+            throw MarketingManualScreenshotError.cleanupApplicationDidNotReachForeground(
+                timeout: timeout,
+                currentState: Self.applicationStateDescription(app: app)
+            )
+        }
+    }
+
+    @MainActor
+    private static func waitForCleanupLaunchPreparation(
+        app: XCUIApplication,
+        launchScenario: LiveSmokeLaunchScenario,
+        timeout: TimeInterval
+    ) throws {
+        let statusElement = app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.uiTestLaunchPreparationStatus)
+            .firstMatch
+        let readyValue = "state=ready;launchScenario=\(launchScenario.rawValue)"
+        let failedValuePrefix = "state=failed;launchScenario=\(launchScenario.rawValue)"
+        let deadline = Date().addingTimeInterval(timeout)
+
+        while Date() < deadline {
+            if statusElement.exists {
+                let currentValue = Self.elementValue(element: statusElement)
+                if currentValue.contains(readyValue) {
+                    return
+                }
+
+                if currentValue.contains(failedValuePrefix) {
+                    throw MarketingManualScreenshotError.cleanupLaunchPreparationFailed(currentValue)
+                }
+            }
+
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
+        }
+
+        let actualValue = statusElement.exists ? Self.elementValue(element: statusElement) : "missing_marker"
+        throw MarketingManualScreenshotError.cleanupLaunchPreparationTimedOut(
+            expectedValue: readyValue,
+            actualValue: actualValue
+        )
+    }
+
+    @MainActor
+    private static func applicationIsRunning(app: XCUIApplication) -> Bool {
+        switch app.state {
+        case .runningForeground, .runningBackground, .runningBackgroundSuspended:
+            return true
+        case .unknown, .notRunning:
+            return false
+        @unknown default:
+            return false
+        }
+    }
+
+    @MainActor
+    private static func applicationStateDescription(app: XCUIApplication) -> String {
+        switch app.state {
+        case .unknown:
+            return "unknown"
+        case .notRunning:
+            return "notRunning"
+        case .runningBackgroundSuspended:
+            return "runningBackgroundSuspended"
+        case .runningBackground:
+            return "runningBackground"
+        case .runningForeground:
+            return "runningForeground"
+        @unknown default:
+            return "unknownFutureState"
+        }
+    }
+
+    @MainActor
+    private static func elementValue(element: XCUIElement) -> String {
+        if let value = element.value as? String {
+            return value.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        if let value = element.value {
+            return String(describing: value).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return element.label.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

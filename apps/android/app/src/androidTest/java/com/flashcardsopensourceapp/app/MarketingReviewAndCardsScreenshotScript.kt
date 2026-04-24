@@ -13,10 +13,11 @@ private const val reviewResultScreenshotSlug: String = "review-card-result-googl
 private const val reviewFrontScreenshotSlug: String = "review-card-front-google-play-opportunity-cost"
 private const val reviewAiDraftScreenshotSlug: String =
     "review-card-ai-draft-google-play-opportunity-cost"
+private const val cardsScreenshotSlug: String = "cards-list-google-play-vocabulary"
 
 @ManualOnlyAndroidTest
 @RunWith(AndroidJUnit4::class)
-class MarketingReviewScreenshotScript {
+class MarketingReviewAndCardsScreenshotScript {
     private val appStateResetRule = MarketingScreenshotAppStateResetRule()
     private val composeRule = createMarketingScreenshotComposeRule()
 
@@ -26,11 +27,11 @@ class MarketingReviewScreenshotScript {
         .around(composeRule)
 
     @Test
-    fun generateOpportunityCostReviewScreenshotFlow() {
+    fun generateOpportunityCostReviewAndCardsScreenshotFlow() {
         val localeConfig = activeMarketingScreenshotLocaleConfig()
         runBlocking {
             createRepositorySeedExecutor().seedCardsAndReviewsInGuestCloudWorkspace(
-                seedScenario = marketingReviewRepositorySeedScenario(localeConfig = localeConfig)
+                seedScenario = marketingReviewAndCardsRepositorySeedScenario(localeConfig = localeConfig)
             )
         }
         val robot = MarketingScreenshotRobot(
@@ -52,6 +53,11 @@ class MarketingReviewScreenshotScript {
             screenshotIndex = 4,
             screenshotSlug = reviewAiDraftScreenshotSlug
         )
+        val cardsScreenshotFileName = marketingScreenshotFileName(
+            localeConfig = localeConfig,
+            screenshotIndex = 5,
+            screenshotSlug = cardsScreenshotSlug
+        )
 
         robot.prepareOpportunityCostReviewCardForReview()
 
@@ -72,6 +78,15 @@ class MarketingReviewScreenshotScript {
         assertScreenshotSaved(
             robot = robot,
             fileName = reviewAiDraftScreenshotFileName
+        )
+
+        robot.prepareCardsListForScreenshot(
+            frontTexts = localeConfig.cards.map { card -> card.frontText },
+            expectedTopFrontText = localeConfig.reviewCard.frontText
+        )
+        assertScreenshotSaved(
+            robot = robot,
+            fileName = cardsScreenshotFileName
         )
     }
 

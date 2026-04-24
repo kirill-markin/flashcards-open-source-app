@@ -230,14 +230,11 @@ resolve_screenshot_paths() {
 capture_raw_screenshots_for_locale() {
     local locale="$1"
 
-    echo "Capturing raw review screenshots for locale $locale"
-    "$repo_root/scripts/capture-ios-review-screenshots.sh" --locale "$locale"
+    echo "Capturing raw review and cards screenshots for locale $locale"
+    "$repo_root/scripts/capture-ios-review-and-cards-screenshots.sh" --locale "$locale"
 
     echo "Capturing raw progress screenshot for locale $locale"
     "$repo_root/scripts/capture-ios-progress-screenshot.sh" --locale "$locale"
-
-    echo "Capturing raw cards screenshot for locale $locale"
-    "$repo_root/scripts/capture-ios-cards-screenshot.sh" --locale "$locale"
 }
 
 compose_marketing_material() {
