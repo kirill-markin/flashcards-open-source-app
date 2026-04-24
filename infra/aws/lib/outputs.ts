@@ -23,6 +23,9 @@ export interface OutputsProps {
   chatLiveFn: lambda.IFunction;
   authFn: lambda.IFunction;
   migrationFn: lambda.IFunction;
+  globalMetricsSnapshotFunction: lambda.IFunction;
+  globalMetricsSnapshotFreshnessCheckerFunction: lambda.IFunction;
+  globalMetricsVisible: boolean;
   userPoolId: string;
   userPoolClientId: string;
   webBucket: s3.IBucket;
@@ -111,6 +114,21 @@ export function outputs(scope: Construct, props: OutputsProps): void {
   new cdk.CfnOutput(scope, "DbMigrationFunctionName", {
     value: props.migrationFn.functionName,
     description: "Lambda function name for database migrations",
+  });
+
+  new cdk.CfnOutput(scope, "GlobalMetricsSnapshotFunctionName", {
+    value: props.globalMetricsSnapshotFunction.functionName,
+    description: "Lambda function name for global metrics snapshot generation",
+  });
+
+  new cdk.CfnOutput(scope, "GlobalMetricsSnapshotFreshnessCheckerFunctionName", {
+    value: props.globalMetricsSnapshotFreshnessCheckerFunction.functionName,
+    description: "Lambda function name for global metrics snapshot freshness checks",
+  });
+
+  new cdk.CfnOutput(scope, "GlobalMetricsVisible", {
+    value: props.globalMetricsVisible ? "true" : "false",
+    description: "Whether clients can access global metrics through the /v1/global/snapshot endpoint",
   });
 
   if (props.dbAccessInstance !== undefined) {

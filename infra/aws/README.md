@@ -41,6 +41,7 @@ Keep these values in root `.env` before running setup or deploy scripts:
 - `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and optionally `LANGFUSE_BASE_URL` when Langfuse tracing is enabled
 - `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` when review/demo bypass is enabled
 - `GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP` when you want deployed guest AI enabled
+- `GLOBAL_METRICS_VISIBLE` when you want `GET /v1/global/snapshot` exposed externally; use the exact raw string `true`, and leave it unset or use any other value to keep the endpoint hidden
 - `ADMIN_EMAILS` for initial bootstrap admin-grant setup
 - optional `ANALYTICS_SSH_PUBLIC_KEYS`, `ANALYTICS_SSH_ALLOWED_CIDRS`, and `ANALYTICS_SSH_USERNAME` when you want the analytical SSH bastion enabled
 
@@ -102,6 +103,7 @@ The deploy workflow assembles its own `cdk.context.local.json` from those GitHub
 
 `bash scripts/setup-github.sh` is intentionally bootstrap-oriented: it sets missing GitHub Actions variables and secrets, but it does not remove values that already exist in GitHub. If you need to disable an optional feature that was previously enabled through a GitHub variable, delete that GitHub variable explicitly and then redeploy.
 This also applies to `CDK_ADMIN_EMAILS`: root `.env` is not the deployed CI source of truth after bootstrap, so later changes to the deployed bootstrap admin list must be made manually in GitHub and then redeployed.
+This same write-once bootstrap behavior applies to `GLOBAL_METRICS_VISIBLE` -> `CDK_GLOBAL_METRICS_VISIBLE`: only the exact raw string `true` exposes `GET /v1/global/snapshot`, and changing deployed visibility later requires manually updating or deleting `CDK_GLOBAL_METRICS_VISIBLE` in GitHub before redeploying.
 
 ## Analytical DB access
 

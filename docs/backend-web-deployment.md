@@ -140,6 +140,36 @@ If review account access is enabled, create the matching `@example.com` Cognito 
 
 We intentionally keep Cognito user creation manual instead of adding an automated provisioning script for these insecure review-only accounts.
 
+## Global metrics snapshot
+
+The daily global metrics snapshot pipeline always exists for this feature. The optional part is consumer visibility.
+
+- There is one consumer endpoint: `GET /v1/global/snapshot`.
+- The operator-facing root `.env` variable is `GLOBAL_METRICS_VISIBLE`.
+- The deploy-time GitHub Actions variable is `CDK_GLOBAL_METRICS_VISIBLE`.
+- Only the exact raw string `true` enables visibility. Any other value keeps the endpoint hidden.
+- The daily snapshot job still runs and CI still seeds the snapshot once after deploy even when the endpoint is hidden.
+- When visibility is off, clients do not see global stats through the endpoint.
+
+For self-hosted deploys:
+
+1. set `GLOBAL_METRICS_VISIBLE=true` in root `.env` if you want `GET /v1/global/snapshot` exposed
+2. run `bash scripts/setup-github.sh`
+3. deploy through the normal AWS/Web release flow
+
+Bootstrap behavior is sharp here:
+
+- `bash scripts/setup-github.sh` uses `set_variable_if_missing`, so it creates `CDK_GLOBAL_METRICS_VISIBLE` only if that GitHub variable is missing.
+- If `CDK_GLOBAL_METRICS_VISIBLE` already exists, rerunning `bash scripts/setup-github.sh` preserves the existing GitHub value and does not update it from local `.env`.
+- After bootstrap, `CDK_GLOBAL_METRICS_VISIBLE` in GitHub is the deploy-time source of truth.
+- To enable or disable visibility later, edit `CDK_GLOBAL_METRICS_VISIBLE` in GitHub and redeploy, or delete it first and then rerun `bash scripts/setup-github.sh`.
+
+When visibility is enabled, websites and future mobile-app endpoint consumers can fetch the snapshot. `apps/web`, `apps/ios`, and `apps/android` do not render those metrics yet.
+
+Feature contract, series semantics, and counting caveats:
+
+- [docs/global-metrics.md](./global-metrics.md)
+
 ## CI/CD
 
 GitHub Actions uses one dedicated `AWS/Web Release` workflow on push to `main`. The repository stores:
@@ -150,6 +180,7 @@ GitHub Actions uses one dedicated `AWS/Web Release` workflow on push to `main`. 
 
 The release workflow assembles its own `cdk.context.local.json` inside the job from GitHub deploy config.
 Root `.env` is not the live CI source of truth after bootstrap. If `CDK_ADMIN_EMAILS` must change for deployed environments, edit it manually in GitHub before the next release.
+The same rule applies to `CDK_GLOBAL_METRICS_VISIBLE`: after bootstrap, change the GitHub variable directly when you want to flip endpoint visibility in deployed environments.
 
 For AWS-backed changes, the main-branch order is:
 

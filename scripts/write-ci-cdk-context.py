@@ -11,6 +11,10 @@ def get_trimmed_env(name: str) -> str:
     return os.environ.get(name, "").strip()
 
 
+def get_raw_env(name: str) -> str:
+    return os.environ.get(name, "")
+
+
 def build_github_oidc_provider_arn(aws_deploy_role_arn: str) -> str:
     if aws_deploy_role_arn == "":
         return ""
@@ -46,6 +50,7 @@ def build_context_values(aws_deploy_role_arn: str) -> dict[str, str]:
         "domainName": get_trimmed_env("CDK_CONTEXT_DOMAIN_NAME"),
         "githubOidcProviderArn": build_github_oidc_provider_arn(aws_deploy_role_arn),
         "githubRepo": get_trimmed_env("CDK_CONTEXT_GITHUB_REPO"),
+        "globalMetricsVisible": get_raw_env("CDK_CONTEXT_GLOBAL_METRICS_VISIBLE"),
         "guestAiWeightedMonthlyTokenCap": get_trimmed_env("CDK_CONTEXT_GUEST_AI_WEIGHTED_MONTHLY_TOKEN_CAP"),
         "langfuseBaseUrl": get_trimmed_env("CDK_CONTEXT_LANGFUSE_BASE_URL"),
         "langfusePublicKeySecretArn": get_trimmed_env("CDK_CONTEXT_LANGFUSE_PUBLIC_KEY_SECRET_ARN"),

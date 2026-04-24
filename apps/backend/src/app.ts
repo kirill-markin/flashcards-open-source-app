@@ -8,6 +8,7 @@ import { createChatRoutes } from "./routes/chat";
 import { createChatTranscriptionsRoutes } from "./routes/chatTranscriptions";
 import { createAgentRoutes } from "./routes/agent";
 import { createCardsRoutes } from "./routes/cards";
+import { createGlobalSnapshotRoutes, globalSnapshotPath } from "./routes/globalSnapshot";
 import { createSyncRoutes } from "./routes/sync";
 import { createSystemRoutes } from "./routes/system";
 import { createAdminRoutes } from "./routes/admin";
@@ -100,31 +101,32 @@ function createAgentConnectionManagementInstructions(code: string | null, status
 
 function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono<AppEnv> {
   const app = new Hono<AppEnv>({ strict: false }).basePath(basePath);
-  app.use(
-    "*",
-    async (context, next) => {
-      const requestId = crypto.randomUUID();
-      context.set("requestId", requestId);
-      context.header("X-Request-Id", requestId);
-      await next();
-    },
-    cors({
-      origin: allowedOrigins,
-      allowMethods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"],
-      allowHeaders: ["content-type", "authorization", "x-csrf-token"],
-      exposeHeaders: [
-        "cache-control",
-        "content-encoding",
-        "content-length",
-        "content-type",
-        "x-request-id",
-        "x-amz-apigw-id",
-        "x-amzn-requestid",
-        "x-chat-request-id",
-      ],
-      credentials: true,
-    }),
-  );
+  app.use("*", async (context, next) => {
+    const requestId = crypto.randomUUID();
+    context.set("requestId", requestId);
+    context.header("X-Request-Id", requestId);
+    await next();
+  });
+  app.use(globalSnapshotPath, cors({
+    origin: "*",
+    allowMethods: ["GET", "OPTIONS"],
+  }));
+  app.use("*", cors({
+    origin: allowedOrigins,
+    allowMethods: ["GET", "POST", "PATCH", "PUT", "OPTIONS"],
+    allowHeaders: ["content-type", "authorization", "x-csrf-token"],
+    exposeHeaders: [
+      "cache-control",
+      "content-encoding",
+      "content-length",
+      "content-type",
+      "x-request-id",
+      "x-amz-apigw-id",
+      "x-amzn-requestid",
+      "x-chat-request-id",
+    ],
+    credentials: true,
+  }));
 
   app.onError((error, context) => {
     const requestId = context.get("requestId");
@@ -227,6 +229,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   app.route("/", createWorkspaceRoutes({ allowedOrigins }));
   app.route("/", createAdminRoutes({ allowedOrigins }));
   app.route("/", createCardsRoutes({ allowedOrigins }));
+  app.route("/", createGlobalSnapshotRoutes({}));
   app.route("/", createGuestAuthRoutes());
   app.route("/", createChatTranscriptionsRoutes({ allowedOrigins }));
   app.route("/", createChatRoutes({ allowedOrigins }));

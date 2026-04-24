@@ -46,6 +46,7 @@ ANALYTICS_SSH_PUBLIC_KEYS="${ANALYTICS_SSH_PUBLIC_KEYS:-}"
 ANALYTICS_SSH_ALLOWED_CIDRS="${ANALYTICS_SSH_ALLOWED_CIDRS:-}"
 ANALYTICS_SSH_USERNAME="${ANALYTICS_SSH_USERNAME:-}"
 ADMIN_EMAILS="${ADMIN_EMAILS:-}"
+GLOBAL_METRICS_VISIBLE="${GLOBAL_METRICS_VISIBLE:-}"
 if [[ -n "${ANALYTICS_SSH_PUBLIC_KEYS}" || -n "${ANALYTICS_SSH_ALLOWED_CIDRS}" || -n "${ANALYTICS_SSH_USERNAME}" ]]; then
   require_non_empty_value "${ANALYTICS_SSH_PUBLIC_KEYS}" "Set ANALYTICS_SSH_PUBLIC_KEYS in root .env when enabling analytical SSH access." >/dev/null
   require_non_empty_value "${ANALYTICS_SSH_ALLOWED_CIDRS}" "Set ANALYTICS_SSH_ALLOWED_CIDRS in root .env when enabling analytical SSH access." >/dev/null
@@ -78,6 +79,7 @@ export ANALYTICS_SSH_PUBLIC_KEYS
 export ANALYTICS_SSH_ALLOWED_CIDRS
 export ANALYTICS_SSH_USERNAME
 export ADMIN_EMAILS
+export GLOBAL_METRICS_VISIBLE
 
 python3 - "${OUTPUT_FILE}" <<'PY'
 import json
@@ -110,6 +112,7 @@ values = {
     "analyticsSshPublicKeys": os.environ.get("ANALYTICS_SSH_PUBLIC_KEYS", ""),
     "analyticsSshAllowedCidrs": os.environ.get("ANALYTICS_SSH_ALLOWED_CIDRS", ""),
     "analyticsSshUsername": os.environ.get("ANALYTICS_SSH_USERNAME", ""),
+    "globalMetricsVisible": os.environ.get("GLOBAL_METRICS_VISIBLE", ""),
 }
 data = {key: value for key, value in values.items() if value}
 path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
