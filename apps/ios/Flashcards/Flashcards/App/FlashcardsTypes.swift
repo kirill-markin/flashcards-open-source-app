@@ -813,6 +813,27 @@ struct CardSyncPayload: Codable, Hashable {
     }
 }
 
+extension CardSyncPayload {
+    init(card: Card) {
+        self.cardId = card.cardId
+        self.frontText = card.frontText
+        self.backText = card.backText
+        self.tags = card.tags
+        self.effortLevel = card.effortLevel.rawValue
+        self.dueAt = card.dueAt
+        self.createdAt = card.createdAt
+        self.reps = card.reps
+        self.lapses = card.lapses
+        self.fsrsCardState = card.fsrsCardState.rawValue
+        self.fsrsStepIndex = card.fsrsStepIndex
+        self.fsrsStability = card.fsrsStability
+        self.fsrsDifficulty = card.fsrsDifficulty
+        self.fsrsLastReviewedAt = card.fsrsLastReviewedAt
+        self.fsrsScheduledDays = card.fsrsScheduledDays
+        self.deletedAt = card.deletedAt
+    }
+}
+
 struct DeckSyncPayload: Codable, Hashable {
     let deckId: String
     let name: String
@@ -843,6 +864,16 @@ struct DeckSyncPayload: Codable, Hashable {
     }
 }
 
+extension DeckSyncPayload {
+    init(deck: Deck) {
+        self.deckId = deck.deckId
+        self.name = deck.name
+        self.filterDefinition = deck.filterDefinition
+        self.createdAt = deck.createdAt
+        self.deletedAt = deck.deletedAt
+    }
+}
+
 struct WorkspaceSchedulerSettingsSyncPayload: Codable, Hashable {
     let algorithm: String
     let desiredRetention: Double
@@ -850,6 +881,17 @@ struct WorkspaceSchedulerSettingsSyncPayload: Codable, Hashable {
     let relearningStepsMinutes: [Int]
     let maximumIntervalDays: Int
     let enableFuzz: Bool
+}
+
+extension WorkspaceSchedulerSettingsSyncPayload {
+    init(settings: WorkspaceSchedulerSettings) {
+        self.algorithm = settings.algorithm
+        self.desiredRetention = settings.desiredRetention
+        self.learningStepsMinutes = settings.learningStepsMinutes
+        self.relearningStepsMinutes = settings.relearningStepsMinutes
+        self.maximumIntervalDays = settings.maximumIntervalDays
+        self.enableFuzz = settings.enableFuzz
+    }
 }
 
 struct ReviewEventSyncPayload: Codable, Hashable {

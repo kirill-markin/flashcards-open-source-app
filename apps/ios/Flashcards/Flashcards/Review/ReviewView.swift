@@ -551,6 +551,7 @@ struct ReviewView: View {
         .disabled(badgeState.isInteractive == false)
         .accessibilityIdentifier(UITestIdentifier.reviewProgressBadge)
         .accessibilityLabel(self.reviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
+        .accessibilityValue(self.reviewProgressBadgeAccessibilityValue(badgeState: badgeState))
     }
 
     private func reviewProgressBadgeLabel(badgeState: ReviewProgressBadgeState) -> some View {
@@ -607,6 +608,13 @@ struct ReviewView: View {
             locale: Locale.current,
             badgeState.streakDays.formatted()
         )
+    }
+
+    private func reviewProgressBadgeAccessibilityValue(badgeState: ReviewProgressBadgeState) -> String {
+        [
+            "streakDays=\(badgeState.streakDays)",
+            "hasReviewedToday=\(badgeState.hasReviewedToday ? "true" : "false")"
+        ].joined(separator: ";")
     }
 
     private func reviewBottomBarContainer<Content: View>(

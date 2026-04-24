@@ -738,7 +738,7 @@ class CloudRemoteService : CloudRemoteGateway {
                 for (index in 0 until operations.length()) {
                     val entry = operations.requireCloudObject(index, "push.operations[$index]")
                     val status = entry.requireCloudString("status", "push.operations[$index].status")
-                    if (status != "applied" && status != "duplicate") {
+                    if (status != "applied" && status != "ignored" && status != "duplicate") {
                         throw CloudRemoteException(
                             message = "Cloud push failed for operation ${entry.requireCloudString("operationId", "push.operations[$index].operationId")}: ${entry.optCloudStringOrNull("error", "push.operations[$index].error").orEmpty()}",
                             statusCode = 200,

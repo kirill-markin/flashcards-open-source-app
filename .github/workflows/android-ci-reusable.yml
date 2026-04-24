@@ -112,7 +112,7 @@ jobs:
           target: google_apis
           arch: x86_64
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          emulator-options: -no-window -gpu auto -no-snapshot -noaudio -no-boot-anim
           script: cd apps/android && ANDROID_VERSION_CODE="${{ inputs.android_version_code }}" ./gradlew --no-daemon :data:local:connectedDebugAndroidTest
 
       - name: Detect data:local instrumentation reports
