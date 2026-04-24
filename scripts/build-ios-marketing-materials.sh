@@ -38,7 +38,7 @@ EOF
 }
 
 print_supported_locales() {
-    "$repo_root/scripts/capture-ios-marketing-screenshot.sh" --list-locales
+    bash "$repo_root/scripts/capture-ios-marketing-screenshot.sh" --list-locales
 }
 
 canonicalize_locale() {
@@ -230,11 +230,8 @@ resolve_screenshot_paths() {
 capture_raw_screenshots_for_locale() {
     local locale="$1"
 
-    echo "Capturing raw review and cards screenshots for locale $locale"
-    "$repo_root/scripts/capture-ios-review-and-cards-screenshots.sh" --locale "$locale"
-
-    echo "Capturing raw progress screenshot for locale $locale"
-    "$repo_root/scripts/capture-ios-progress-screenshot.sh" --locale "$locale"
+    echo "Capturing raw marketing screenshots for locale $locale"
+    bash "$repo_root/scripts/capture-ios-marketing-screenshots.sh" --locale "$locale"
 }
 
 compose_marketing_material() {

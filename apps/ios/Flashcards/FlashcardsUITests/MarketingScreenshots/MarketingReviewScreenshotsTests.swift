@@ -1,10 +1,10 @@
 import Foundation
 import XCTest
 
-final class MarketingReviewAndCardsScreenshotsTests: MarketingManualScreenshotTestCase {
+final class MarketingScreenshotsTests: MarketingManualScreenshotTestCase {
     @MainActor
-    func testGenerateOpportunityCostReviewAndCardsScreenshots() throws {
-        let localeFixture = try self.launchMarketingReviewAndCards()
+    func testGenerateMarketingScreenshots() throws {
+        let localeFixture = try self.launchMarketingScreenshots()
 
         try self.step("capture review front screenshot") {
             try self.captureMarketingScreenshotAndAssertWritten(
@@ -22,8 +22,18 @@ final class MarketingReviewAndCardsScreenshotsTests: MarketingManualScreenshotTe
             )
         }
 
+        try self.step("open progress state") {
+            try self.openMarketingProgressFromReviewBadge()
+        }
+
+        try self.step("capture progress screenshot") {
+            try self.captureMarketingScreenshotAndAssertWritten(
+                fileName: localeFixture.progressFileName
+            )
+        }
+
         try self.step("open review AI draft state") {
-            try self.launchOpportunityCostReviewCardAiHandoff()
+            try self.openOpportunityCostReviewCardAiDraft()
             try self.prepareAiDraftWithCurrentAttachment(draftText: localeFixture.reviewAiDraftMessage)
             try self.waitForAiComposerValue(
                 localeFixture.reviewAiDraftMessage,
@@ -38,7 +48,7 @@ final class MarketingReviewAndCardsScreenshotsTests: MarketingManualScreenshotTe
         }
 
         try self.step("open cards list state") {
-            try self.launchMarketingCardsList(reviewCardFrontText: localeFixture.reviewCard.frontText)
+            try self.openMarketingCardsList()
         }
 
         try self.step("capture cards list screenshot") {
