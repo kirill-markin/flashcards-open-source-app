@@ -103,18 +103,25 @@ data class RemotePushResponse(
     val operations: List<RemotePushOperationResult>
 )
 
+data class CloudSyncConflictDetails(
+    val conflictingWorkspaceId: String?,
+    val remoteIsEmpty: Boolean?
+)
+
 class CloudRemoteException(
     message: String,
     val statusCode: Int?,
     val responseBody: String?,
     val errorCode: String?,
-    val requestId: String?
+    val requestId: String?,
+    val syncConflict: CloudSyncConflictDetails?
 ) : Exception(message)
 
-private data class ParsedCloudErrorPayload(
+internal data class ParsedCloudErrorPayload(
     val message: String?,
     val code: String?,
-    val requestId: String?
+    val requestId: String?,
+    val syncConflict: CloudSyncConflictDetails?
 )
 
 interface CloudRemoteGateway {
@@ -744,7 +751,8 @@ class CloudRemoteService : CloudRemoteGateway {
                             statusCode = 200,
                             responseBody = response.toString(),
                             errorCode = null,
-                            requestId = null
+                            requestId = null,
+                            syncConflict = null
                         )
                     }
                     add(
@@ -1123,7 +1131,8 @@ class CloudRemoteService : CloudRemoteGateway {
                     statusCode = statusCode,
                     responseBody = responseBody,
                     errorCode = parsedError?.code,
-                    requestId = parsedError?.requestId
+                    requestId = parsedError?.requestId,
+                    syncConflict = parsedError?.syncConflict
                 )
             }
 
@@ -1175,26 +1184,55 @@ private fun formatCloudRemoteErrorMessage(
     }
 }
 
-private fun parseCloudErrorPayload(responseBody: String): ParsedCloudErrorPayload? {
+internal fun parseCloudErrorPayload(responseBody: String): ParsedCloudErrorPayload? {
     if (responseBody.isBlank()) {
         return null
     }
 
     return try {
         val payload = JSONObject(responseBody)
-        val topLevelMessage = payload.optCloudStringOrNull("error", "error.message")
-        val topLevelCode = payload.optCloudStringOrNull("code", "error.code")
         val nestedErrorValue = payload.opt("error")
-        val nestedMessage = (nestedErrorValue as? JSONObject)?.optCloudStringOrNull("message", "error.error.message")
-        val nestedCode = (nestedErrorValue as? JSONObject)?.optCloudStringOrNull("code", "error.error.code")
+        val nestedErrorObject = nestedErrorValue as? JSONObject
+        val topLevelMessage = (nestedErrorValue as? String)
+            ?: payload.optCloudStringOrNull("message", "error.message")
+        val topLevelCode = payload.optCloudStringOrNull("code", "error.code")
+        val nestedMessage = nestedErrorObject?.optCloudStringOrNull("message", "error.error.message")
+        val nestedCode = nestedErrorObject?.optCloudStringOrNull("code", "error.error.code")
         val requestId = payload.optCloudStringOrNull("requestId", "error.requestId")
+        val topLevelDetails = payload.optCloudObjectOrNull("details", "error.details")
+        val nestedDetails = nestedErrorObject?.optCloudObjectOrNull("details", "error.error.details")
         ParsedCloudErrorPayload(
             message = topLevelMessage ?: nestedMessage,
             code = topLevelCode ?: nestedCode,
-            requestId = requestId
+            requestId = requestId,
+            syncConflict = parseSyncConflictDetails(
+                details = topLevelDetails ?: nestedDetails
+            )
         )
     } catch (_: JSONException) {
         null
+    } catch (_: CloudContractMismatchException) {
+        null
+    }
+}
+
+private fun parseSyncConflictDetails(details: JSONObject?): CloudSyncConflictDetails? {
+    if (details == null) {
+        return null
+    }
+
+    return try {
+        val syncConflict = details.optCloudObjectOrNull("syncConflict", "error.details.syncConflict") ?: return null
+        CloudSyncConflictDetails(
+            conflictingWorkspaceId = syncConflict.optCloudStringOrNull(
+                key = "conflictingWorkspaceId",
+                fieldPath = "error.details.syncConflict.conflictingWorkspaceId"
+            ),
+            remoteIsEmpty = syncConflict.optCloudBooleanOrNull(
+                key = "remoteIsEmpty",
+                fieldPath = "error.details.syncConflict.remoteIsEmpty"
+            )
+        )
     } catch (_: CloudContractMismatchException) {
         null
     }

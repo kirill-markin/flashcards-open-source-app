@@ -29,7 +29,7 @@ private const val androidInstallationId: String = "android-installation"
         ProgressReviewHistoryStateEntity::class,
         ProgressLocalCacheStateEntity::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = false
 )
 @TypeConverters(DatabaseTypeConverters::class)
@@ -69,7 +69,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration7To8,
         migration8To9,
         migration9To10,
-        migration10To11
+        migration10To11,
+        migration11To12
     )
 }
 
@@ -659,5 +660,11 @@ val migration10To11: Migration = object : Migration(10, 11) {
         db.execSQL(
             "CREATE INDEX IF NOT EXISTS index_review_logs_reviewedAtMillis ON review_logs(reviewedAtMillis)"
         )
+    }
+}
+
+val migration11To12: Migration = object : Migration(11, 12) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE sync_state ADD COLUMN blockedInstallationId TEXT")
     }
 }

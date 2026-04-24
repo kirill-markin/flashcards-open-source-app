@@ -1,9 +1,17 @@
 package com.flashcardsopensourceapp.data.local
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.bootstrap.localWorkspaceName
+import com.flashcardsopensourceapp.data.local.cloud.CloudSyncConflictDetails
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
+import com.flashcardsopensourceapp.data.local.cloud.forkedCardId
+import com.flashcardsopensourceapp.data.local.cloud.forkedReviewEventId
+import com.flashcardsopensourceapp.data.local.cloud.RemotePushResponse
+import com.flashcardsopensourceapp.data.local.cloud.syncWorkspaceForkRequiredErrorCode
 import com.flashcardsopensourceapp.data.local.database.CardEntity
+import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
+import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
@@ -13,6 +21,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -50,7 +59,8 @@ class LocalSyncRepositoryCloudIdentityTest {
                     .put("requestId", "request-1")
                     .toString(),
                 errorCode = "ACCOUNT_DELETED",
-                requestId = "request-1"
+                requestId = "request-1",
+                syncConflict = null
             )
         )
         val repository = environment.createSyncRepository(remoteGateway = remoteGateway)
@@ -281,7 +291,8 @@ class LocalSyncRepositoryCloudIdentityTest {
                     .put("requestId", "request-platform-mismatch")
                     .toString(),
                 errorCode = "SYNC_INSTALLATION_PLATFORM_MISMATCH",
-                requestId = "request-platform-mismatch"
+                requestId = "request-platform-mismatch",
+                syncConflict = null
             )
         )
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
@@ -320,7 +331,8 @@ class LocalSyncRepositoryCloudIdentityTest {
                     .put("requestId", "request-replica-conflict")
                     .toString(),
                 errorCode = "SYNC_REPLICA_CONFLICT",
-                requestId = "request-replica-conflict"
+                requestId = "request-replica-conflict",
+                syncConflict = null
             )
         )
         val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
@@ -344,6 +356,333 @@ class LocalSyncRepositoryCloudIdentityTest {
             "Cloud request failed with status 409 for /sync/bootstrap-pull",
             (syncStatus as SyncStatus.Blocked).message
         )
+    }
+
+    @Test
+    fun syncBlocksWorkspaceForkRequiredPushConflictWithoutResettingIdentity() = runBlocking {
+        val workspaceId = environment.requireLocalWorkspaceId()
+        val initialInstallationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
+        val baseGateway = FakeCloudRemoteGateway.standard()
+        val remoteGateway = object : CloudRemoteGateway by baseGateway {
+            override suspend fun push(
+                apiBaseUrl: String,
+                authorizationHeader: String,
+                workspaceId: String,
+                body: JSONObject
+            ): RemotePushResponse {
+                throw createWorkspaceForkRequiredError(
+                    path = "/sync/push",
+                    requestId = "request-push-fork",
+                    conflictingWorkspaceId = "workspace-conflict-source",
+                    remoteIsEmpty = false
+                )
+            }
+        }
+        val schedulerSettings = requireNotNull(
+            environment.database.workspaceSchedulerSettingsDao().loadWorkspaceSchedulerSettings(workspaceId)
+        ) {
+            "Expected workspace scheduler settings for workspace '$workspaceId'."
+        }
+        environment.database.syncStateDao().insertSyncState(
+            SyncStateEntity(
+                workspaceId = workspaceId,
+                lastSyncCursor = "0",
+                lastReviewSequenceId = 0L,
+                hasHydratedHotState = true,
+                hasHydratedReviewHistory = true,
+                lastSyncAttemptAtMillis = null,
+                lastSuccessfulSyncAtMillis = null,
+                lastSyncError = null,
+                blockedInstallationId = null
+            )
+        )
+        environment.database.outboxDao().insertOutboxEntry(
+            OutboxEntryEntity(
+                outboxEntryId = "outbox-1",
+                workspaceId = workspaceId,
+                installationId = initialInstallationId,
+                entityType = "workspace_scheduler_settings",
+                entityId = workspaceId,
+                operationType = "upsert",
+                payloadJson = JSONObject()
+                    .put("algorithm", schedulerSettings.algorithm)
+                    .put("desiredRetention", schedulerSettings.desiredRetention)
+                    .put("learningStepsMinutes", JSONArray(schedulerSettings.learningStepsMinutesJson))
+                    .put("relearningStepsMinutes", JSONArray(schedulerSettings.relearningStepsMinutesJson))
+                    .put("maximumIntervalDays", schedulerSettings.maximumIntervalDays)
+                    .put("enableFuzz", schedulerSettings.enableFuzz)
+                    .toString(),
+                clientUpdatedAtIso = "2026-04-02T15:50:57.000Z",
+                createdAtMillis = 300L,
+                attemptCount = 0,
+                lastError = null
+            )
+        )
+        val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
+
+        environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+
+        try {
+            syncRepository.syncNow()
+        } catch (_: CloudRemoteException) {
+        }
+
+        val cloudSettings = environment.cloudPreferencesStore.currentCloudSettings()
+        val syncStatus = syncRepository.observeSyncStatus().first().status
+        assertEquals(CloudAccountState.LINKED, cloudSettings.cloudState)
+        assertEquals(initialInstallationId, cloudSettings.installationId)
+        assertEquals(workspaceId, cloudSettings.activeWorkspaceId)
+        assertEquals(workspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)
+        assertNotNull(environment.cloudPreferencesStore.loadCredentials())
+        assertTrue(syncStatus is SyncStatus.Blocked)
+        assertEquals(
+            "Cloud request failed with status 409 for /sync/push",
+            (syncStatus as SyncStatus.Blocked).message
+        )
+    }
+
+    @Test
+    fun syncRecoversFromWorkspaceForkConflictDuringBootstrapPush() = runBlocking {
+        val workspaceId = environment.requireLocalWorkspaceId()
+        val conflictingWorkspaceId = "workspace-conflict-source"
+        val seededCardId = environment.seedWorkspaceData(workspaceId = workspaceId)
+        val remoteGateway = FakeCloudRemoteGateway.forBootstrapPushScenario(
+            bootstrapRemoteIsEmptyResponses = listOf(true, true, true),
+            bootstrapPushErrors = listOf(
+                createWorkspaceForkRequiredError(
+                    path = "/sync/bootstrap",
+                    requestId = "request-fork-bootstrap-1",
+                    conflictingWorkspaceId = conflictingWorkspaceId,
+                    remoteIsEmpty = true
+                )
+            )
+        )
+        val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
+
+        environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+
+        syncRepository.syncNow()
+
+        val expectedForkedCardId = forkedCardId(
+            sourceWorkspaceId = conflictingWorkspaceId,
+            destinationWorkspaceId = workspaceId,
+            sourceCardId = seededCardId
+        )
+        val expectedForkedReviewEventId = forkedReviewEventId(
+            sourceWorkspaceId = conflictingWorkspaceId,
+            destinationWorkspaceId = workspaceId,
+            sourceReviewEventId = "review-$workspaceId"
+        )
+        val firstBootstrapEntries = remoteGateway.bootstrapPushBodies.first().getJSONArray("entries")
+        val secondBootstrapEntries = remoteGateway.bootstrapPushBodies.last().getJSONArray("entries")
+        val importedReviewEvent = remoteGateway.importReviewHistoryBodies.single()
+            .getJSONArray("reviewEvents")
+            .getJSONObject(0)
+
+        assertEquals(SyncStatus.Idle, syncRepository.observeSyncStatus().first().status)
+        assertNull(environment.database.cardDao().loadCard(seededCardId))
+        assertNotNull(environment.database.cardDao().loadCard(expectedForkedCardId))
+        assertEquals(
+            seededCardId,
+            findBootstrapEntryEntityId(entries = firstBootstrapEntries, entityType = "card")
+        )
+        assertEquals(
+            expectedForkedCardId,
+            findBootstrapEntryEntityId(entries = secondBootstrapEntries, entityType = "card")
+        )
+        assertEquals(expectedForkedCardId, importedReviewEvent.getString("cardId"))
+        assertEquals(expectedForkedReviewEventId, importedReviewEvent.getString("reviewEventId"))
+        assertEquals(2, remoteGateway.bootstrapPushBodies.size)
+    }
+
+    @Test
+    fun syncBlocksWorkspaceForkConflictAfterSingleAutomaticRetry() = runBlocking {
+        val workspaceId = environment.requireLocalWorkspaceId()
+        val conflictingWorkspaceId = "workspace-conflict-source"
+        val seededCardId = environment.seedWorkspaceData(workspaceId = workspaceId)
+        val remoteGateway = FakeCloudRemoteGateway.forBootstrapPushScenario(
+            bootstrapRemoteIsEmptyResponses = listOf(true, true, true),
+            bootstrapPushErrors = listOf(
+                createWorkspaceForkRequiredError(
+                    path = "/sync/bootstrap",
+                    requestId = "request-fork-bootstrap-1",
+                    conflictingWorkspaceId = conflictingWorkspaceId,
+                    remoteIsEmpty = true
+                ),
+                createWorkspaceForkRequiredError(
+                    path = "/sync/bootstrap",
+                    requestId = "request-fork-bootstrap-2",
+                    conflictingWorkspaceId = conflictingWorkspaceId,
+                    remoteIsEmpty = true
+                )
+            )
+        )
+        val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
+
+        environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+
+        try {
+            syncRepository.syncNow()
+        } catch (_: Exception) {
+        }
+
+        val expectedForkedCardId = forkedCardId(
+            sourceWorkspaceId = conflictingWorkspaceId,
+            destinationWorkspaceId = workspaceId,
+            sourceCardId = seededCardId
+        )
+        val syncStatus = syncRepository.observeSyncStatus().first().status
+
+        assertTrue(syncStatus is SyncStatus.Blocked)
+        assertEquals(
+            "Cloud sync bootstrap push is blocked for workspace '$workspaceId': automatic workspace identity fork already ran once in this sync attempt and the backend still requires another fork. Reference: request-fork-bootstrap-2",
+            (syncStatus as SyncStatus.Blocked).message
+        )
+        assertNull(environment.database.cardDao().loadCard(seededCardId))
+        assertNotNull(environment.database.cardDao().loadCard(expectedForkedCardId))
+        assertEquals(2, remoteGateway.bootstrapPushBodies.size)
+    }
+
+    @Test
+    fun syncPersistsWorkspaceForkBlockAcrossRepositoryRecreation() = runBlocking {
+        val workspaceId = environment.requireLocalWorkspaceId()
+        val installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId
+        val conflictingWorkspaceId = "workspace-conflict-source"
+        val seededCardId = environment.seedWorkspaceData(workspaceId = workspaceId)
+        val blockingGateway = FakeCloudRemoteGateway.forBootstrapPushScenario(
+            bootstrapRemoteIsEmptyResponses = listOf(true, true, true),
+            bootstrapPushErrors = listOf(
+                createWorkspaceForkRequiredError(
+                    path = "/sync/bootstrap",
+                    requestId = "request-fork-bootstrap-1",
+                    conflictingWorkspaceId = conflictingWorkspaceId,
+                    remoteIsEmpty = true
+                ),
+                createWorkspaceForkRequiredError(
+                    path = "/sync/bootstrap",
+                    requestId = "request-fork-bootstrap-2",
+                    conflictingWorkspaceId = conflictingWorkspaceId,
+                    remoteIsEmpty = true
+                )
+            )
+        )
+        val initialRepository = environment.createSyncRepository(remoteGateway = blockingGateway)
+        val expectedMessage =
+            "Cloud sync bootstrap push is blocked for workspace '$workspaceId': automatic workspace identity fork already ran once in this sync attempt and the backend still requires another fork. Reference: request-fork-bootstrap-2"
+
+        environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+
+        try {
+            initialRepository.syncNow()
+        } catch (_: Exception) {
+        }
+
+        val persistedSyncState = requireNotNull(environment.database.syncStateDao().loadSyncState(workspaceId)) {
+            "Expected persisted sync state for workspace '$workspaceId'."
+        }
+        val recreatedGateway = FakeCloudRemoteGateway.standard()
+        val recreatedRepository = environment.createSyncRepository(remoteGateway = recreatedGateway)
+        val recreatedStatus = recreatedRepository.observeSyncStatus().first().status
+
+        assertEquals(expectedMessage, persistedSyncState.lastSyncError)
+        assertEquals(installationId, persistedSyncState.blockedInstallationId)
+        assertTrue(recreatedStatus is SyncStatus.Blocked)
+        assertEquals(expectedMessage, (recreatedStatus as SyncStatus.Blocked).message)
+        assertNull(environment.database.cardDao().loadCard(seededCardId))
+        assertEquals(2, blockingGateway.bootstrapPushBodies.size)
+
+        try {
+            recreatedRepository.syncNow()
+        } catch (error: IllegalStateException) {
+            assertEquals(expectedMessage, error.message)
+        }
+
+        assertTrue(recreatedGateway.bootstrapPullWorkspaceIds.isEmpty())
+        assertTrue(recreatedGateway.bootstrapPushBodies.isEmpty())
+        assertTrue(recreatedGateway.importReviewHistoryBodies.isEmpty())
+    }
+
+    @Test
+    fun disconnectClearsBlockedSyncStateAndSuppressesBlockedStatusAfterRecreation() = runBlocking {
+        val workspaceId = environment.requireLocalWorkspaceId()
+        val conflictingWorkspaceId = "workspace-conflict-source"
+        val blockingGateway = FakeCloudRemoteGateway.forBootstrapPushScenario(
+            bootstrapRemoteIsEmptyResponses = listOf(true, true, true),
+            bootstrapPushErrors = listOf(
+                createWorkspaceForkRequiredError(
+                    path = "/sync/bootstrap",
+                    requestId = "request-fork-bootstrap-1",
+                    conflictingWorkspaceId = conflictingWorkspaceId,
+                    remoteIsEmpty = true
+                ),
+                createWorkspaceForkRequiredError(
+                    path = "/sync/bootstrap",
+                    requestId = "request-fork-bootstrap-2",
+                    conflictingWorkspaceId = conflictingWorkspaceId,
+                    remoteIsEmpty = true
+                )
+            )
+        )
+        val syncRepository = environment.createSyncRepository(remoteGateway = blockingGateway)
+
+        environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+
+        try {
+            syncRepository.syncNow()
+        } catch (_: Exception) {
+        }
+
+        assertTrue(syncRepository.observeSyncStatus().first().status is SyncStatus.Blocked)
+
+        environment.resetCoordinator.disconnectCloudIdentityPreservingLocalState()
+
+        val clearedSyncState = requireNotNull(environment.database.syncStateDao().loadSyncState(workspaceId)) {
+            "Expected sync state for workspace '$workspaceId' after disconnect."
+        }
+        val recreatedRepository = environment.createSyncRepository(remoteGateway = FakeCloudRemoteGateway.standard())
+
+        assertEquals(CloudAccountState.DISCONNECTED, environment.cloudPreferencesStore.currentCloudSettings().cloudState)
+        assertNull(clearedSyncState.blockedInstallationId)
+        assertNull(clearedSyncState.lastSyncError)
+        assertEquals(SyncStatus.Idle, syncRepository.observeSyncStatus().first().status)
+        assertEquals(SyncStatus.Idle, recreatedRepository.observeSyncStatus().first().status)
+    }
+
+    @Test
+    fun syncBlocksReviewHistoryForkConflictWhenRemoteWorkspaceIsNoLongerEmpty() = runBlocking {
+        val workspaceId = environment.requireLocalWorkspaceId()
+        val conflictingWorkspaceId = "workspace-conflict-source"
+        val seededCardId = environment.seedWorkspaceData(workspaceId = workspaceId)
+        val remoteGateway = FakeCloudRemoteGateway.forReviewHistoryImportScenario(
+            bootstrapRemoteIsEmptyResponses = listOf(true, false),
+            importReviewHistoryErrors = listOf(
+                createWorkspaceForkRequiredError(
+                    path = "/sync/review-history/import",
+                    requestId = "request-review-history-1",
+                    conflictingWorkspaceId = conflictingWorkspaceId,
+                    remoteIsEmpty = true
+                )
+            )
+        )
+        val syncRepository = environment.createSyncRepository(remoteGateway = remoteGateway)
+
+        environment.prepareLinkedCloudIdentity(localWorkspaceId = workspaceId)
+
+        try {
+            syncRepository.syncNow()
+        } catch (_: Exception) {
+        }
+
+        val syncStatus = syncRepository.observeSyncStatus().first().status
+
+        assertTrue(syncStatus is SyncStatus.Blocked)
+        assertEquals(
+            "Cloud sync review history import is blocked for workspace '$workspaceId': backend requested a workspace identity fork, but the remote workspace is not empty. Reference: request-review-history-1",
+            (syncStatus as SyncStatus.Blocked).message
+        )
+        assertNotNull(environment.database.cardDao().loadCard(seededCardId))
+        assertEquals(1, remoteGateway.bootstrapPushBodies.size)
+        assertEquals(1, remoteGateway.importReviewHistoryBodies.size)
     }
 
     @Test
@@ -386,4 +725,45 @@ class LocalSyncRepositoryCloudIdentityTest {
 
         assertEquals(listOf("workspace-after-lock"), remoteGateway.bootstrapPullWorkspaceIds)
     }
+}
+
+private fun createWorkspaceForkRequiredError(
+    path: String,
+    requestId: String,
+    conflictingWorkspaceId: String,
+    remoteIsEmpty: Boolean
+): CloudRemoteException {
+    return CloudRemoteException(
+        message = "Cloud request failed with status 409 for $path",
+        statusCode = 409,
+        responseBody = JSONObject()
+            .put("code", syncWorkspaceForkRequiredErrorCode)
+            .put("requestId", requestId)
+            .put(
+                "details",
+                JSONObject().put(
+                    "syncConflict",
+                    JSONObject()
+                        .put("conflictingWorkspaceId", conflictingWorkspaceId)
+                        .put("remoteIsEmpty", remoteIsEmpty)
+                )
+            )
+            .toString(),
+        errorCode = syncWorkspaceForkRequiredErrorCode,
+        requestId = requestId,
+        syncConflict = CloudSyncConflictDetails(
+            conflictingWorkspaceId = conflictingWorkspaceId,
+            remoteIsEmpty = remoteIsEmpty
+        )
+    )
+}
+
+private fun findBootstrapEntryEntityId(entries: org.json.JSONArray, entityType: String): String {
+    for (index in 0 until entries.length()) {
+        val entry = entries.getJSONObject(index)
+        if (entry.getString("entityType") == entityType) {
+            return entry.getString("entityId")
+        }
+    }
+    throw AssertionError("Missing bootstrap entry for entity type '$entityType'.")
 }

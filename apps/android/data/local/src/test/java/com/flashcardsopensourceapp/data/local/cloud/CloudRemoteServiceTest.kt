@@ -53,4 +53,32 @@ class CloudRemoteServiceTest {
             fieldPath = "progressSummary"
         )
     }
+
+    @Test
+    fun parseCloudErrorPayloadReadsSyncConflictDetails() {
+        val parsedError = requireNotNull(
+            parseCloudErrorPayload(
+                responseBody = JSONObject()
+                    .put("code", syncWorkspaceForkRequiredErrorCode)
+                    .put("requestId", "request-1")
+                    .put(
+                        "details",
+                        JSONObject().put(
+                            "syncConflict",
+                            JSONObject()
+                                .put("conflictingWorkspaceId", "workspace-source")
+                                .put("remoteIsEmpty", true)
+                        )
+                    )
+                    .toString()
+            )
+        ) {
+            "Expected parsed cloud error payload."
+        }
+
+        assertEquals(syncWorkspaceForkRequiredErrorCode, parsedError.code)
+        assertEquals("request-1", parsedError.requestId)
+        assertEquals("workspace-source", parsedError.syncConflict?.conflictingWorkspaceId)
+        assertEquals(true, parsedError.syncConflict?.remoteIsEmpty)
+    }
 }

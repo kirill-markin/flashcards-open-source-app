@@ -286,7 +286,8 @@ class LocalProgressRepositoryTest {
                     hasHydratedReviewHistory = true,
                     lastSyncAttemptAtMillis = null,
                     lastSuccessfulSyncAtMillis = null,
-                    lastSyncError = null
+                    lastSyncError = null,
+                    blockedInstallationId = null
                 )
             ),
             workspaceIds = listOf("workspace-1")

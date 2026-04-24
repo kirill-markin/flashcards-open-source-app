@@ -91,7 +91,8 @@ private suspend fun ensureLocalWorkspaceDependencies(
                 hasHydratedReviewHistory = false,
                 lastSyncAttemptAtMillis = null,
                 lastSuccessfulSyncAtMillis = null,
-                lastSyncError = null
+                lastSyncError = null,
+                blockedInstallationId = null
             )
         )
     }

@@ -65,6 +65,22 @@ private data class PendingReviewHistoryChangedEvent(
     val event: ReviewHistoryChangedEvent
 )
 
+private data class WorkspaceForkSnapshot(
+    val cards: List<CardEntity>,
+    val decks: List<DeckEntity>,
+    val tags: List<TagEntity>,
+    val cardTags: List<CardTagEntity>,
+    val reviewLogs: List<ReviewLogEntity>,
+    val outboxEntries: List<OutboxEntryEntity>,
+    val schedulerSettings: WorkspaceSchedulerSettingsEntity?
+)
+
+private data class WorkspaceForkIdMappings(
+    val cardIdsBySourceId: Map<String, String>,
+    val deckIdsBySourceId: Map<String, String>,
+    val reviewEventIdsBySourceId: Map<String, String>
+)
+
 class SyncLocalStore(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
@@ -245,10 +261,20 @@ class SyncLocalStore(
             hasHydratedReviewHistory = false,
             lastSyncAttemptAtMillis = null,
             lastSuccessfulSyncAtMillis = null,
-            lastSyncError = null
+            lastSyncError = null,
+            blockedInstallationId = null
         )
         database.syncStateDao().insertSyncState(syncState)
         return syncState
+    }
+
+    suspend fun loadBlockedSyncMessage(workspaceId: String, installationId: String): String? {
+        val syncState = database.syncStateDao().loadSyncState(workspaceId = workspaceId) ?: return null
+        if (syncState.blockedInstallationId != installationId) {
+            return null
+        }
+
+        return syncState.lastSyncError ?: "Cloud sync is blocked for this installation."
     }
 
     suspend fun recordSyncAttempt(workspaceId: String) {
@@ -266,7 +292,23 @@ class SyncLocalStore(
         database.syncStateDao().insertSyncState(
             syncState.copy(
                 lastSyncAttemptAtMillis = System.currentTimeMillis(),
-                lastSyncError = errorMessage
+                lastSyncError = errorMessage,
+                blockedInstallationId = null
+            )
+        )
+    }
+
+    suspend fun markSyncBlocked(
+        workspaceId: String,
+        installationId: String,
+        errorMessage: String
+    ) {
+        val syncState = ensureSyncState(workspaceId = workspaceId)
+        database.syncStateDao().insertSyncState(
+            syncState.copy(
+                lastSyncAttemptAtMillis = System.currentTimeMillis(),
+                lastSyncError = errorMessage,
+                blockedInstallationId = installationId
             )
         )
     }
@@ -288,9 +330,51 @@ class SyncLocalStore(
                 hasHydratedReviewHistory = hasHydratedReviewHistory,
                 lastSyncAttemptAtMillis = nowMillis,
                 lastSuccessfulSyncAtMillis = nowMillis,
-                lastSyncError = null
+                lastSyncError = null,
+                blockedInstallationId = null
             )
         )
+    }
+
+    suspend fun forkWorkspaceIdentity(
+        currentLocalWorkspaceId: String,
+        sourceWorkspaceId: String,
+        destinationWorkspaceId: String
+    ): WorkspaceEntity {
+        val destinationWorkspace = requireNotNull(
+            database.workspaceDao().loadWorkspaceById(destinationWorkspaceId)
+        ) {
+            "Cannot fork workspace identity because local workspace '$destinationWorkspaceId' does not exist."
+        }
+        return forkWorkspaceIdentity(
+            currentLocalWorkspaceId = currentLocalWorkspaceId,
+            sourceWorkspaceId = sourceWorkspaceId,
+            destinationWorkspace = CloudWorkspaceSummary(
+                workspaceId = destinationWorkspace.workspaceId,
+                name = destinationWorkspace.name,
+                createdAtMillis = destinationWorkspace.createdAtMillis,
+                isSelected = true
+            )
+        )
+    }
+
+    suspend fun forkWorkspaceIdentity(
+        currentLocalWorkspaceId: String,
+        sourceWorkspaceId: String,
+        destinationWorkspace: CloudWorkspaceSummary
+    ): WorkspaceEntity {
+        database.withTransaction {
+            forkWorkspaceIdentityInTransaction(
+                currentLocalWorkspaceId = currentLocalWorkspaceId,
+                sourceWorkspaceId = sourceWorkspaceId,
+                destinationWorkspace = destinationWorkspace
+            )
+        }
+        return requireNotNull(
+            database.workspaceDao().loadWorkspaceById(destinationWorkspace.workspaceId)
+        ) {
+            "Workspace identity fork did not leave local workspace '${destinationWorkspace.workspaceId}'."
+        }
     }
 
     /**
@@ -304,9 +388,14 @@ class SyncLocalStore(
         remoteWorkspaceIsEmpty: Boolean
     ): WorkspaceEntity {
         val currentWorkspaceId = currentWorkspaceIdOrNull()
-        val didDeleteReviewHistory = remoteWorkspaceIsEmpty.not() && database.reviewLogDao().countReviewLogs() > 0
-        val migrationKind = if (remoteWorkspaceIsEmpty) {
-            "preserve_local_data"
+        val reusesCurrentWorkspace = currentWorkspaceId == workspace.workspaceId
+        val didDeleteReviewHistory = reusesCurrentWorkspace.not() &&
+            remoteWorkspaceIsEmpty.not() &&
+            database.reviewLogDao().countReviewLogs() > 0
+        val migrationKind = if (reusesCurrentWorkspace) {
+            "reuse_local_shell"
+        } else if (remoteWorkspaceIsEmpty) {
+            "fork_local_data"
         } else {
             "replace_local_shell"
         }
@@ -318,8 +407,17 @@ class SyncLocalStore(
             migrationKind = migrationKind
         )
         database.withTransaction {
-            if (remoteWorkspaceIsEmpty) {
-                preserveLocalDataForEmptyRemoteWorkspaceInTransaction(workspace)
+            if (reusesCurrentWorkspace) {
+                refreshCurrentWorkspaceShellInTransaction(workspace)
+            } else if (remoteWorkspaceIsEmpty) {
+                val sourceWorkspaceId = requireNotNull(currentWorkspaceId) {
+                    "Workspace is required before linking to cloud."
+                }
+                forkWorkspaceIdentityInTransaction(
+                    currentLocalWorkspaceId = sourceWorkspaceId,
+                    sourceWorkspaceId = sourceWorkspaceId,
+                    destinationWorkspace = workspace
+                )
             } else {
                 replaceLocalShellForNonEmptyRemoteWorkspaceInTransaction(workspace)
             }
@@ -639,55 +737,232 @@ class SyncLocalStore(
                 hasHydratedReviewHistory = false,
                 lastSyncAttemptAtMillis = null,
                 lastSuccessfulSyncAtMillis = null,
-                lastSyncError = null
+                lastSyncError = null,
+                blockedInstallationId = null
             )
         )
     }
 
-    private suspend fun preserveLocalDataForEmptyRemoteWorkspaceInTransaction(workspace: CloudWorkspaceSummary) {
-        val currentWorkspace = requireNotNull(database.workspaceDao().loadAnyWorkspace()) {
-            "Workspace is required before linking to cloud."
+    private suspend fun refreshCurrentWorkspaceShellInTransaction(workspace: CloudWorkspaceSummary) {
+        val currentWorkspace = requireNotNull(database.workspaceDao().loadWorkspaceById(workspace.workspaceId)) {
+            "Workspace '${workspace.workspaceId}' is missing locally."
         }
-        if (currentWorkspace.workspaceId == workspace.workspaceId) {
-            database.workspaceDao().updateWorkspace(
-                currentWorkspace.copy(name = workspace.name)
-            )
-            return
-        }
-
-        database.syncStateDao().deleteSyncState(workspaceId = workspace.workspaceId)
-        database.workspaceDao().loadWorkspaceById(workspace.workspaceId)?.let {
-            database.workspaceDao().deleteWorkspace(workspace.workspaceId)
-        }
-        database.workspaceDao().insertWorkspace(
-            WorkspaceEntity(
-                workspaceId = workspace.workspaceId,
+        database.workspaceDao().updateWorkspace(
+            currentWorkspace.copy(
                 name = workspace.name,
                 createdAtMillis = workspace.createdAtMillis
             )
         )
-        database.cardDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
-        database.deckDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
-        database.tagDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
-        database.reviewLogDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
-        localProgressCacheStore.reassignWorkspaceInTransaction(
-            oldWorkspaceId = currentWorkspace.workspaceId,
-            newWorkspaceId = workspace.workspaceId
+    }
+
+    private suspend fun forkWorkspaceIdentityInTransaction(
+        currentLocalWorkspaceId: String,
+        sourceWorkspaceId: String,
+        destinationWorkspace: CloudWorkspaceSummary
+    ) {
+        val currentLocalWorkspace = requireNotNull(
+            database.workspaceDao().loadWorkspaceById(currentLocalWorkspaceId)
+        ) {
+            "Cannot fork workspace identity because current local workspace '$currentLocalWorkspaceId' does not exist."
+        }
+        val snapshot = loadWorkspaceForkSnapshot(workspaceId = currentLocalWorkspaceId)
+        val forkMappings = buildWorkspaceForkIdMappings(
+            sourceWorkspaceId = sourceWorkspaceId,
+            destinationWorkspaceId = destinationWorkspace.workspaceId,
+            cards = snapshot.cards,
+            decks = snapshot.decks,
+            reviewLogs = snapshot.reviewLogs
         )
-        database.workspaceSchedulerSettingsDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
-        database.outboxDao().reassignWorkspace(currentWorkspace.workspaceId, workspace.workspaceId)
-        database.workspaceDao().deleteWorkspace(currentWorkspace.workspaceId)
-        database.syncStateDao().deleteSyncState(workspaceId = currentWorkspace.workspaceId)
+        val destinationMatchesCurrentWorkspace = currentLocalWorkspaceId == destinationWorkspace.workspaceId
+
+        if (destinationMatchesCurrentWorkspace) {
+            database.workspaceDao().updateWorkspace(
+                currentLocalWorkspace.copy(
+                    name = destinationWorkspace.name,
+                    createdAtMillis = destinationWorkspace.createdAtMillis
+                )
+            )
+        } else {
+            database.syncStateDao().deleteSyncState(workspaceId = destinationWorkspace.workspaceId)
+            database.workspaceDao().loadWorkspaceById(destinationWorkspace.workspaceId)?.let {
+                database.workspaceDao().deleteWorkspace(destinationWorkspace.workspaceId)
+            }
+            database.workspaceDao().insertWorkspace(
+                WorkspaceEntity(
+                    workspaceId = destinationWorkspace.workspaceId,
+                    name = destinationWorkspace.name,
+                    createdAtMillis = destinationWorkspace.createdAtMillis
+                )
+            )
+            snapshot.schedulerSettings?.let {
+                database.workspaceSchedulerSettingsDao().reassignWorkspace(
+                    oldWorkspaceId = currentLocalWorkspaceId,
+                    newWorkspaceId = destinationWorkspace.workspaceId
+                )
+            }
+            if (snapshot.tags.isNotEmpty()) {
+                database.tagDao().reassignWorkspace(
+                    oldWorkspaceId = currentLocalWorkspaceId,
+                    newWorkspaceId = destinationWorkspace.workspaceId
+                )
+            }
+            localProgressCacheStore.reassignWorkspaceInTransaction(
+                oldWorkspaceId = currentLocalWorkspaceId,
+                newWorkspaceId = destinationWorkspace.workspaceId
+            )
+        }
+
+        if (snapshot.cards.isNotEmpty()) {
+            val cardsToInsert = snapshot.cards.mapNotNull { card ->
+                val rewrittenCardId = forkMappings.cardIdsBySourceId.requireMappedId(
+                    entityType = "card",
+                    sourceId = card.cardId
+                )
+                if (destinationMatchesCurrentWorkspace && rewrittenCardId == card.cardId) {
+                    return@mapNotNull null
+                }
+                card.copy(
+                    cardId = rewrittenCardId,
+                    workspaceId = destinationWorkspace.workspaceId
+                )
+            }
+            if (cardsToInsert.isNotEmpty()) {
+                database.cardDao().insertCards(cardsToInsert)
+            }
+        }
+        if (snapshot.decks.isNotEmpty()) {
+            val decksToInsert = snapshot.decks.mapNotNull { deck ->
+                val rewrittenDeckId = forkMappings.deckIdsBySourceId.requireMappedId(
+                    entityType = "deck",
+                    sourceId = deck.deckId
+                )
+                if (destinationMatchesCurrentWorkspace && rewrittenDeckId == deck.deckId) {
+                    return@mapNotNull null
+                }
+                deck.copy(
+                    deckId = rewrittenDeckId,
+                    workspaceId = destinationWorkspace.workspaceId
+                )
+            }
+            if (decksToInsert.isNotEmpty()) {
+                database.deckDao().insertDecks(decksToInsert)
+            }
+        }
+        if (snapshot.cardTags.isNotEmpty()) {
+            val cardTagsToInsert = snapshot.cardTags.mapNotNull { cardTag ->
+                val rewrittenCardId = forkMappings.cardIdsBySourceId.requireMappedId(
+                    entityType = "card",
+                    sourceId = cardTag.cardId
+                )
+                if (destinationMatchesCurrentWorkspace && rewrittenCardId == cardTag.cardId) {
+                    return@mapNotNull null
+                }
+                CardTagEntity(cardId = rewrittenCardId, tagId = cardTag.tagId)
+            }
+            if (cardTagsToInsert.isNotEmpty()) {
+                database.tagDao().insertCardTags(cardTagsToInsert)
+            }
+        }
+        if (snapshot.reviewLogs.isNotEmpty()) {
+            val reviewLogsToInsert = snapshot.reviewLogs.mapNotNull { reviewLog ->
+                val rewrittenReviewEventId = forkMappings.reviewEventIdsBySourceId.requireMappedId(
+                    entityType = "review_event",
+                    sourceId = reviewLog.reviewLogId
+                )
+                if (destinationMatchesCurrentWorkspace && rewrittenReviewEventId == reviewLog.reviewLogId) {
+                    return@mapNotNull null
+                }
+                reviewLog.copy(
+                    reviewLogId = rewrittenReviewEventId,
+                    workspaceId = destinationWorkspace.workspaceId,
+                    cardId = forkMappings.cardIdsBySourceId.requireMappedId(
+                        entityType = "card",
+                        sourceId = reviewLog.cardId
+                    )
+                )
+            }
+            if (reviewLogsToInsert.isNotEmpty()) {
+                database.reviewLogDao().insertReviewLogs(reviewLogsToInsert)
+            }
+        }
+        if (snapshot.outboxEntries.isNotEmpty()) {
+            val outboxEntriesToInsert = snapshot.outboxEntries.mapNotNull { entry ->
+                val rewrittenEntry = rewriteOutboxEntryForFork(
+                    entry = entry,
+                    destinationWorkspaceId = destinationWorkspace.workspaceId,
+                    forkMappings = forkMappings
+                )
+                if (
+                    destinationMatchesCurrentWorkspace &&
+                    rewrittenEntry.workspaceId == entry.workspaceId &&
+                    rewrittenEntry.entityId == entry.entityId &&
+                    rewrittenEntry.payloadJson == entry.payloadJson
+                ) {
+                    return@mapNotNull null
+                }
+                rewrittenEntry
+            }
+            if (outboxEntriesToInsert.isNotEmpty()) {
+                database.outboxDao().insertOutboxEntries(outboxEntriesToInsert)
+            }
+        }
+
+        if (destinationMatchesCurrentWorkspace) {
+            snapshot.decks
+                .filter { deck ->
+                    forkMappings.deckIdsBySourceId.requireMappedId(
+                        entityType = "deck",
+                        sourceId = deck.deckId
+                    ) != deck.deckId
+                }
+                .forEach { deck -> database.deckDao().deleteDeck(deck.deckId) }
+            snapshot.cards
+                .filter { card ->
+                    forkMappings.cardIdsBySourceId.requireMappedId(
+                        entityType = "card",
+                        sourceId = card.cardId
+                    ) != card.cardId
+                }
+                .forEach { card -> database.cardDao().deleteCard(card.cardId) }
+        } else {
+            database.workspaceDao().deleteWorkspace(currentLocalWorkspaceId)
+            database.syncStateDao().deleteSyncState(workspaceId = currentLocalWorkspaceId)
+        }
+
+        replaceSyncStateWithEmptyProgress(workspaceId = destinationWorkspace.workspaceId)
+    }
+
+    private suspend fun loadWorkspaceForkSnapshot(workspaceId: String): WorkspaceForkSnapshot {
+        val cards = database.cardDao().loadCards(workspaceId = workspaceId)
+        val cardTags = if (cards.isEmpty()) {
+            emptyList()
+        } else {
+            database.tagDao().loadCardTags(cardIds = cards.map(CardEntity::cardId))
+        }
+        return WorkspaceForkSnapshot(
+            cards = cards,
+            decks = database.deckDao().loadDecks(workspaceId = workspaceId),
+            tags = database.tagDao().loadTags(workspaceId = workspaceId),
+            cardTags = cardTags,
+            reviewLogs = database.reviewLogDao().loadReviewLogs(workspaceId = workspaceId),
+            outboxEntries = database.outboxDao().loadAllOutboxEntries(workspaceId = workspaceId),
+            schedulerSettings = database.workspaceSchedulerSettingsDao()
+                .loadWorkspaceSchedulerSettings(workspaceId = workspaceId)
+        )
+    }
+
+    private suspend fun replaceSyncStateWithEmptyProgress(workspaceId: String) {
         database.syncStateDao().insertSyncState(
             SyncStateEntity(
-                workspaceId = workspace.workspaceId,
+                workspaceId = workspaceId,
                 lastSyncCursor = null,
                 lastReviewSequenceId = 0L,
                 hasHydratedHotState = false,
                 hasHydratedReviewHistory = false,
                 lastSyncAttemptAtMillis = null,
                 lastSuccessfulSyncAtMillis = null,
-                lastSyncError = null
+                lastSyncError = null,
+                blockedInstallationId = null
             )
         )
     }
@@ -896,6 +1171,119 @@ class SyncLocalStore(
                 )
             }
         )
+    }
+}
+
+private fun buildWorkspaceForkIdMappings(
+    sourceWorkspaceId: String,
+    destinationWorkspaceId: String,
+    cards: List<CardEntity>,
+    decks: List<DeckEntity>,
+    reviewLogs: List<ReviewLogEntity>
+): WorkspaceForkIdMappings {
+    return WorkspaceForkIdMappings(
+        cardIdsBySourceId = cards.associate { card ->
+            card.cardId to forkedCardId(
+                sourceWorkspaceId = sourceWorkspaceId,
+                destinationWorkspaceId = destinationWorkspaceId,
+                sourceCardId = card.cardId
+            )
+        },
+        deckIdsBySourceId = decks.associate { deck ->
+            deck.deckId to forkedDeckId(
+                sourceWorkspaceId = sourceWorkspaceId,
+                destinationWorkspaceId = destinationWorkspaceId,
+                sourceDeckId = deck.deckId
+            )
+        },
+        reviewEventIdsBySourceId = reviewLogs.associate { reviewLog ->
+            reviewLog.reviewLogId to forkedReviewEventId(
+                sourceWorkspaceId = sourceWorkspaceId,
+                destinationWorkspaceId = destinationWorkspaceId,
+                sourceReviewEventId = reviewLog.reviewLogId
+            )
+        }
+    )
+}
+
+private fun rewriteOutboxEntryForFork(
+    entry: OutboxEntryEntity,
+    destinationWorkspaceId: String,
+    forkMappings: WorkspaceForkIdMappings
+): OutboxEntryEntity {
+    val payloadJson = JSONObject(entry.payloadJson)
+    val entityType = parseSyncEntityType(entry.entityType)
+    val rewrittenEntityId = when (entityType) {
+        SyncEntityType.CARD -> forkMappings.cardIdsBySourceId.requireMappedId(
+            entityType = "card",
+            sourceId = entry.entityId
+        )
+
+        SyncEntityType.DECK -> forkMappings.deckIdsBySourceId.requireMappedId(
+            entityType = "deck",
+            sourceId = entry.entityId
+        )
+
+        SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> destinationWorkspaceId
+
+        SyncEntityType.REVIEW_EVENT -> forkMappings.reviewEventIdsBySourceId.requireMappedId(
+            entityType = "review_event",
+            sourceId = entry.entityId
+        )
+    }
+    when (entityType) {
+        SyncEntityType.CARD -> {
+            payloadJson.put(
+                "cardId",
+                forkMappings.cardIdsBySourceId.requireMappedId(
+                    entityType = "card",
+                    sourceId = payloadJson.requireCloudString("cardId", "fork.outbox.card.cardId")
+                )
+            )
+        }
+
+        SyncEntityType.DECK -> {
+            payloadJson.put(
+                "deckId",
+                forkMappings.deckIdsBySourceId.requireMappedId(
+                    entityType = "deck",
+                    sourceId = payloadJson.requireCloudString("deckId", "fork.outbox.deck.deckId")
+                )
+            )
+        }
+
+        SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> Unit
+
+        SyncEntityType.REVIEW_EVENT -> {
+            payloadJson.put(
+                "reviewEventId",
+                forkMappings.reviewEventIdsBySourceId.requireMappedId(
+                    entityType = "review_event",
+                    sourceId = payloadJson.requireCloudString(
+                        "reviewEventId",
+                        "fork.outbox.reviewEvent.reviewEventId"
+                    )
+                )
+            )
+            payloadJson.put(
+                "cardId",
+                forkMappings.cardIdsBySourceId.requireMappedId(
+                    entityType = "card",
+                    sourceId = payloadJson.requireCloudString("cardId", "fork.outbox.reviewEvent.cardId")
+                )
+            )
+        }
+    }
+    return entry.copy(
+        workspaceId = destinationWorkspaceId,
+        entityId = rewrittenEntityId,
+        payloadJson = payloadJson.toString()
+    )
+}
+
+private fun Map<String, String>.requireMappedId(entityType: String, sourceId: String): String {
+    return requireNotNull(this[sourceId]) {
+        "Workspace identity fork is missing mapped $entityType id for source id '$sourceId'."
     }
 }
 

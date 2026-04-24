@@ -1,15 +1,18 @@
 package com.flashcardsopensourceapp.data.local.repository
 
+import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.putNullableDouble
 import com.flashcardsopensourceapp.data.local.cloud.putNullableInt
 import com.flashcardsopensourceapp.data.local.cloud.putNullableString
 import com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
+import com.flashcardsopensourceapp.data.local.cloud.syncWorkspaceForkRequiredErrorCode
 import com.flashcardsopensourceapp.data.local.model.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.PersistedOutboxEntry
 import com.flashcardsopensourceapp.data.local.model.SyncOperationPayload
 import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinitionJsonObject
+import kotlinx.coroutines.CancellationException
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -25,173 +28,284 @@ internal suspend fun runCloudSyncCore(
     remoteService: CloudRemoteGateway,
     syncLocalStore: SyncLocalStore
 ) {
+    val blockedMessage = syncLocalStore.loadBlockedSyncMessage(
+        workspaceId = workspaceId,
+        installationId = cloudSettings.installationId
+    )
+    if (blockedMessage != null) {
+        throw CloudSyncBlockedException(message = blockedMessage, cause = null)
+    }
     syncLocalStore.recordSyncAttempt(workspaceId)
-    val syncState = syncLocalStore.ensureSyncState(workspaceId)
-    var lastHotCursor = syncState.lastSyncCursor?.toLongOrNull() ?: 0L
-    var lastReviewSequenceId = syncState.lastReviewSequenceId
-    var hasHydratedHotState = syncState.hasHydratedHotState
-    var hasHydratedReviewHistory = syncState.hasHydratedReviewHistory
-    var bootstrapResponse: RemoteBootstrapPullResponse? = null
-
-    if (hasHydratedHotState.not()) {
-        bootstrapResponse = remoteService.bootstrapPull(
-            apiBaseUrl = syncSession.apiBaseUrl,
-            authorizationHeader = syncSession.authorizationHeader,
+    try {
+        val bootstrapState = runBootstrapHydrationWithForkRecovery(
+            cloudSettings = cloudSettings,
             workspaceId = workspaceId,
-            body = JSONObject()
-                .put("mode", "pull")
-                .put("installationId", cloudSettings.installationId)
-                .put("platform", androidClientPlatform)
-                .put("appVersion", appVersion)
-                .put("cursor", JSONObject.NULL)
-                .put("limit", bootstrapPageLimit)
+            syncSession = syncSession,
+            appVersion = appVersion,
+            remoteService = remoteService,
+            syncLocalStore = syncLocalStore
         )
+        var lastHotCursor = bootstrapState.lastHotCursor
+        var lastReviewSequenceId = bootstrapState.lastReviewSequenceId
+        val hasHydratedHotState = bootstrapState.hasHydratedHotState
+        val hasHydratedReviewHistory = bootstrapState.hasHydratedReviewHistory
 
-        if (bootstrapResponse.remoteIsEmpty) {
-            val bootstrapEntries = syncLocalStore.buildBootstrapEntries(workspaceId)
-            if (bootstrapEntries.length() > 0) {
-                val bootstrapPushResponse = remoteService.bootstrapPush(
+        val outboxEntries = syncLocalStore.loadOutboxEntries(workspaceId)
+        if (outboxEntries.isNotEmpty()) {
+            try {
+                val pushResponse = remoteService.push(
                     apiBaseUrl = syncSession.apiBaseUrl,
                     authorizationHeader = syncSession.authorizationHeader,
                     workspaceId = workspaceId,
-                    body = JSONObject()
-                        .put("mode", "push")
-                        .put("installationId", cloudSettings.installationId)
-                        .put("platform", androidClientPlatform)
-                        .put("appVersion", appVersion)
-                        .put("entries", bootstrapEntries)
+                    body = buildPushRequest(
+                        installationId = cloudSettings.installationId,
+                        outboxEntries = outboxEntries,
+                        appVersion = appVersion
+                    )
                 )
-                lastHotCursor = bootstrapPushResponse.bootstrapHotChangeId ?: lastHotCursor
-            }
-        } else {
-            syncLocalStore.applyBootstrapEntries(workspaceId, bootstrapResponse.entries)
-            lastHotCursor = bootstrapResponse.bootstrapHotChangeId
-            var nextCursor = bootstrapResponse.nextCursor
-
-            while (bootstrapResponse.hasMore && nextCursor != null) {
-                val nextPage = remoteService.bootstrapPull(
-                    apiBaseUrl = syncSession.apiBaseUrl,
-                    authorizationHeader = syncSession.authorizationHeader,
-                    workspaceId = workspaceId,
-                    body = JSONObject()
-                        .put("mode", "pull")
-                        .put("installationId", cloudSettings.installationId)
-                        .put("platform", androidClientPlatform)
-                        .put("appVersion", appVersion)
-                        .put("cursor", nextCursor)
-                        .put("limit", bootstrapPageLimit)
-                )
-                syncLocalStore.applyBootstrapEntries(workspaceId, nextPage.entries)
-                nextCursor = nextPage.nextCursor
-                lastHotCursor = nextPage.bootstrapHotChangeId
-                if (nextPage.hasMore.not()) {
-                    break
+                syncLocalStore.deleteOutboxEntries(pushResponse.operations.map { result -> result.operationId })
+                val pushCursor = pushResponse.operations.mapNotNull { result -> result.resultingHotChangeId }.maxOrNull()
+                if (pushCursor != null && pushCursor > lastHotCursor) {
+                    lastHotCursor = pushCursor
                 }
-            }
-        }
-
-        hasHydratedHotState = true
-    }
-
-    if (hasHydratedReviewHistory.not()) {
-        if (bootstrapResponse?.remoteIsEmpty == true) {
-            val reviewEvents = syncLocalStore.buildReviewHistoryImportEvents(workspaceId)
-            if (reviewEvents.length() > 0) {
-                val importResponse = remoteService.importReviewHistory(
-                    apiBaseUrl = syncSession.apiBaseUrl,
-                    authorizationHeader = syncSession.authorizationHeader,
-                    workspaceId = workspaceId,
-                    body = JSONObject()
-                        .put("installationId", cloudSettings.installationId)
-                        .put("platform", androidClientPlatform)
-                        .put("appVersion", appVersion)
-                        .put("reviewEvents", reviewEvents)
+            } catch (error: Exception) {
+                syncLocalStore.markOutboxEntriesFailed(
+                    outboxEntries.map(PersistedOutboxEntry::operationId),
+                    error.message ?: "Cloud push failed."
                 )
-                lastReviewSequenceId = importResponse.nextReviewSequenceId ?: lastReviewSequenceId
+                throw error
             }
-        } else {
-            lastReviewSequenceId = pullAndApplyReviewHistoryBatch(
-                cloudSettings = cloudSettings,
-                workspaceId = workspaceId,
-                syncSession = syncSession,
-                appVersion = appVersion,
-                remoteService = remoteService,
-                syncLocalStore = syncLocalStore,
-                startingReviewSequenceId = lastReviewSequenceId
-            )
         }
 
-        hasHydratedReviewHistory = true
-    }
-
-    val outboxEntries = syncLocalStore.loadOutboxEntries(workspaceId)
-    if (outboxEntries.isNotEmpty()) {
-        try {
-            val pushResponse = remoteService.push(
+        var hasMoreHotChanges = true
+        while (hasMoreHotChanges) {
+            val pullResponse = remoteService.pull(
                 apiBaseUrl = syncSession.apiBaseUrl,
                 authorizationHeader = syncSession.authorizationHeader,
                 workspaceId = workspaceId,
-                body = buildPushRequest(
-                    installationId = cloudSettings.installationId,
-                    outboxEntries = outboxEntries,
-                    appVersion = appVersion
-                )
-            )
-            syncLocalStore.deleteOutboxEntries(pushResponse.operations.map { result -> result.operationId })
-            val pushCursor = pushResponse.operations.mapNotNull { result -> result.resultingHotChangeId }.maxOrNull()
-            if (pushCursor != null && pushCursor > lastHotCursor) {
-                lastHotCursor = pushCursor
-            }
-        } catch (error: Exception) {
-            syncLocalStore.markOutboxEntriesFailed(
-                outboxEntries.map(PersistedOutboxEntry::operationId),
-                error.message ?: "Cloud push failed."
-            )
-            throw error
-        }
-    }
-
-    var hasMoreHotChanges = true
-    while (hasMoreHotChanges) {
-        val pullResponse = remoteService.pull(
-            apiBaseUrl = syncSession.apiBaseUrl,
-            authorizationHeader = syncSession.authorizationHeader,
-            workspaceId = workspaceId,
                 body = JSONObject()
                     .put("installationId", cloudSettings.installationId)
                     .put("platform", androidClientPlatform)
                     .put("appVersion", appVersion)
                     .put("afterHotChangeId", lastHotCursor)
-                .put("limit", syncPullPageLimit)
+                    .put("limit", syncPullPageLimit)
+            )
+            syncLocalStore.applyPullChanges(workspaceId, pullResponse.changes)
+            lastHotCursor = pullResponse.nextHotChangeId
+            hasMoreHotChanges = pullResponse.hasMore
+        }
+
+        lastReviewSequenceId = pullAndApplyReviewHistoryBatch(
+            cloudSettings = cloudSettings,
+            workspaceId = workspaceId,
+            syncSession = syncSession,
+            appVersion = appVersion,
+            remoteService = remoteService,
+            syncLocalStore = syncLocalStore,
+            startingReviewSequenceId = lastReviewSequenceId
         )
-        syncLocalStore.applyPullChanges(workspaceId, pullResponse.changes)
-        lastHotCursor = pullResponse.nextHotChangeId
-        hasMoreHotChanges = pullResponse.hasMore
+
+        syncLocalStore.markSyncSuccess(
+            workspaceId = workspaceId,
+            lastSyncCursor = lastHotCursor.toString(),
+            lastReviewSequenceId = lastReviewSequenceId,
+            hasHydratedHotState = hasHydratedHotState,
+            hasHydratedReviewHistory = hasHydratedReviewHistory
+        )
+    } catch (error: CancellationException) {
+        throw error
+    } catch (error: Exception) {
+        if (error is CloudSyncBlockedException || isCloudIdentityConflictError(error = error)) {
+            syncLocalStore.markSyncBlocked(
+                workspaceId = workspaceId,
+                installationId = cloudSettings.installationId,
+                errorMessage = error.message ?: "Cloud sync is blocked for this installation."
+            )
+        }
+        throw error
     }
-
-    lastReviewSequenceId = pullAndApplyReviewHistoryBatch(
-        cloudSettings = cloudSettings,
-        workspaceId = workspaceId,
-        syncSession = syncSession,
-        appVersion = appVersion,
-        remoteService = remoteService,
-        syncLocalStore = syncLocalStore,
-        startingReviewSequenceId = lastReviewSequenceId
-    )
-
-    syncLocalStore.markSyncSuccess(
-        workspaceId = workspaceId,
-        lastSyncCursor = lastHotCursor.toString(),
-        lastReviewSequenceId = lastReviewSequenceId,
-        hasHydratedHotState = hasHydratedHotState,
-        hasHydratedReviewHistory = hasHydratedReviewHistory
-    )
 }
 
 internal data class CloudSyncSession(
     val apiBaseUrl: String,
     val authorizationHeader: String
 )
+
+private data class BootstrapHydrationState(
+    val lastHotCursor: Long,
+    val lastReviewSequenceId: Long,
+    val hasHydratedHotState: Boolean,
+    val hasHydratedReviewHistory: Boolean
+)
+
+private enum class WorkspaceForkRecoveryStage(
+    val label: String
+) {
+    BOOTSTRAP_PUSH(label = "bootstrap push"),
+    REVIEW_HISTORY_IMPORT(label = "review history import")
+}
+
+internal class CloudSyncBlockedException(
+    message: String,
+    cause: Throwable?
+) : Exception(message, cause)
+
+private suspend fun runBootstrapHydrationWithForkRecovery(
+    cloudSettings: CloudSettings,
+    workspaceId: String,
+    syncSession: CloudSyncSession,
+    appVersion: String,
+    remoteService: CloudRemoteGateway,
+    syncLocalStore: SyncLocalStore
+): BootstrapHydrationState {
+    var recoveryAttempted = false
+
+    while (true) {
+        val syncState = syncLocalStore.ensureSyncState(workspaceId)
+        var lastHotCursor = syncState.lastSyncCursor?.toLongOrNull() ?: 0L
+        var lastReviewSequenceId = syncState.lastReviewSequenceId
+        var hasHydratedHotState = syncState.hasHydratedHotState
+        var hasHydratedReviewHistory = syncState.hasHydratedReviewHistory
+        var bootstrapResponse: RemoteBootstrapPullResponse? = null
+
+        if (hasHydratedHotState.not()) {
+            bootstrapResponse = remoteService.bootstrapPull(
+                apiBaseUrl = syncSession.apiBaseUrl,
+                authorizationHeader = syncSession.authorizationHeader,
+                workspaceId = workspaceId,
+                body = buildInitialBootstrapPullRequest(
+                    installationId = cloudSettings.installationId,
+                    appVersion = appVersion,
+                    limit = bootstrapPageLimit
+                )
+            )
+
+            if (bootstrapResponse.remoteIsEmpty) {
+                val bootstrapEntries = syncLocalStore.buildBootstrapEntries(workspaceId)
+                if (bootstrapEntries.length() > 0) {
+                    try {
+                        val bootstrapPushResponse = remoteService.bootstrapPush(
+                            apiBaseUrl = syncSession.apiBaseUrl,
+                            authorizationHeader = syncSession.authorizationHeader,
+                            workspaceId = workspaceId,
+                            body = JSONObject()
+                                .put("mode", "push")
+                                .put("installationId", cloudSettings.installationId)
+                                .put("platform", androidClientPlatform)
+                                .put("appVersion", appVersion)
+                                .put("entries", bootstrapEntries)
+                        )
+                        lastHotCursor = bootstrapPushResponse.bootstrapHotChangeId ?: lastHotCursor
+                    } catch (error: Exception) {
+                        if (
+                            recoverWorkspaceForkConflictIfNeeded(
+                                cloudSettings = cloudSettings,
+                                workspaceId = workspaceId,
+                                syncSession = syncSession,
+                                appVersion = appVersion,
+                                remoteService = remoteService,
+                                syncLocalStore = syncLocalStore,
+                                error = error,
+                                stage = WorkspaceForkRecoveryStage.BOOTSTRAP_PUSH,
+                                recoveryAttempted = recoveryAttempted
+                            )
+                        ) {
+                            recoveryAttempted = true
+                            syncLocalStore.recordSyncAttempt(workspaceId = workspaceId)
+                            continue
+                        }
+                        throw error
+                    }
+                }
+            } else {
+                syncLocalStore.applyBootstrapEntries(workspaceId, bootstrapResponse.entries)
+                lastHotCursor = bootstrapResponse.bootstrapHotChangeId
+                var nextCursor = bootstrapResponse.nextCursor
+
+                while (bootstrapResponse.hasMore && nextCursor != null) {
+                    val nextPage = remoteService.bootstrapPull(
+                        apiBaseUrl = syncSession.apiBaseUrl,
+                        authorizationHeader = syncSession.authorizationHeader,
+                        workspaceId = workspaceId,
+                        body = buildPagedBootstrapPullRequest(
+                            installationId = cloudSettings.installationId,
+                            appVersion = appVersion,
+                            cursor = nextCursor,
+                            limit = bootstrapPageLimit
+                        )
+                    )
+                    syncLocalStore.applyBootstrapEntries(workspaceId, nextPage.entries)
+                    nextCursor = nextPage.nextCursor
+                    lastHotCursor = nextPage.bootstrapHotChangeId
+                    if (nextPage.hasMore.not()) {
+                        break
+                    }
+                }
+            }
+
+            hasHydratedHotState = true
+        }
+
+        if (hasHydratedReviewHistory.not()) {
+            if (bootstrapResponse?.remoteIsEmpty == true) {
+                val reviewEvents = syncLocalStore.buildReviewHistoryImportEvents(workspaceId)
+                if (reviewEvents.length() > 0) {
+                    try {
+                        val importResponse = remoteService.importReviewHistory(
+                            apiBaseUrl = syncSession.apiBaseUrl,
+                            authorizationHeader = syncSession.authorizationHeader,
+                            workspaceId = workspaceId,
+                            body = JSONObject()
+                                .put("installationId", cloudSettings.installationId)
+                                .put("platform", androidClientPlatform)
+                                .put("appVersion", appVersion)
+                                .put("reviewEvents", reviewEvents)
+                        )
+                        lastReviewSequenceId = importResponse.nextReviewSequenceId ?: lastReviewSequenceId
+                    } catch (error: Exception) {
+                        if (
+                            recoverWorkspaceForkConflictIfNeeded(
+                                cloudSettings = cloudSettings,
+                                workspaceId = workspaceId,
+                                syncSession = syncSession,
+                                appVersion = appVersion,
+                                remoteService = remoteService,
+                                syncLocalStore = syncLocalStore,
+                                error = error,
+                                stage = WorkspaceForkRecoveryStage.REVIEW_HISTORY_IMPORT,
+                                recoveryAttempted = recoveryAttempted
+                            )
+                        ) {
+                            recoveryAttempted = true
+                            syncLocalStore.recordSyncAttempt(workspaceId = workspaceId)
+                            continue
+                        }
+                        throw error
+                    }
+                }
+            } else {
+                lastReviewSequenceId = pullAndApplyReviewHistoryBatch(
+                    cloudSettings = cloudSettings,
+                    workspaceId = workspaceId,
+                    syncSession = syncSession,
+                    appVersion = appVersion,
+                    remoteService = remoteService,
+                    syncLocalStore = syncLocalStore,
+                    startingReviewSequenceId = lastReviewSequenceId
+                )
+            }
+
+            hasHydratedReviewHistory = true
+        }
+
+        return BootstrapHydrationState(
+            lastHotCursor = lastHotCursor,
+            lastReviewSequenceId = lastReviewSequenceId,
+            hasHydratedHotState = hasHydratedHotState,
+            hasHydratedReviewHistory = hasHydratedReviewHistory
+        )
+    }
+}
 
 private suspend fun pullAndApplyReviewHistoryBatch(
     cloudSettings: CloudSettings,
@@ -227,6 +341,109 @@ private suspend fun pullAndApplyReviewHistoryBatch(
     } catch (error: Exception) {
         syncLocalStore.discardReviewHistoryChangeBatch()
         throw error
+    }
+}
+
+private suspend fun recoverWorkspaceForkConflictIfNeeded(
+    cloudSettings: CloudSettings,
+    workspaceId: String,
+    syncSession: CloudSyncSession,
+    appVersion: String,
+    remoteService: CloudRemoteGateway,
+    syncLocalStore: SyncLocalStore,
+    error: Exception,
+    stage: WorkspaceForkRecoveryStage,
+    recoveryAttempted: Boolean
+): Boolean {
+    if (error !is CloudRemoteException || error.errorCode != syncWorkspaceForkRequiredErrorCode) {
+        return false
+    }
+    if (recoveryAttempted) {
+        throw CloudSyncBlockedException(
+            message = buildWorkspaceForkBlockedMessage(
+                workspaceId = workspaceId,
+                stage = stage,
+                reason = "automatic workspace identity fork already ran once in this sync attempt and the backend still requires another fork.",
+                requestId = error.requestId
+            ),
+            cause = error
+        )
+    }
+
+    val remoteEmptyProbe = remoteService.bootstrapPull(
+        apiBaseUrl = syncSession.apiBaseUrl,
+        authorizationHeader = syncSession.authorizationHeader,
+        workspaceId = workspaceId,
+        body = buildInitialBootstrapPullRequest(
+            installationId = cloudSettings.installationId,
+            appVersion = appVersion,
+            limit = 1
+        )
+    )
+    if (remoteEmptyProbe.remoteIsEmpty.not()) {
+        throw CloudSyncBlockedException(
+            message = buildWorkspaceForkBlockedMessage(
+                workspaceId = workspaceId,
+                stage = stage,
+                reason = "backend requested a workspace identity fork, but the remote workspace is not empty.",
+                requestId = error.requestId
+            ),
+            cause = error
+        )
+    }
+
+    val sourceWorkspaceId = requireNotNull(error.syncConflict?.conflictingWorkspaceId) {
+        "Cloud sync ${stage.label} cannot recover workspace '$workspaceId' because the backend did not provide syncConflict.conflictingWorkspaceId."
+    }
+    syncLocalStore.forkWorkspaceIdentity(
+        currentLocalWorkspaceId = workspaceId,
+        sourceWorkspaceId = sourceWorkspaceId,
+        destinationWorkspaceId = workspaceId
+    )
+    return true
+}
+
+private fun buildInitialBootstrapPullRequest(
+    installationId: String,
+    appVersion: String,
+    limit: Int
+): JSONObject {
+    return JSONObject()
+        .put("mode", "pull")
+        .put("installationId", installationId)
+        .put("platform", androidClientPlatform)
+        .put("appVersion", appVersion)
+        .put("cursor", JSONObject.NULL)
+        .put("limit", limit)
+}
+
+private fun buildPagedBootstrapPullRequest(
+    installationId: String,
+    appVersion: String,
+    cursor: String,
+    limit: Int
+): JSONObject {
+    return JSONObject()
+        .put("mode", "pull")
+        .put("installationId", installationId)
+        .put("platform", androidClientPlatform)
+        .put("appVersion", appVersion)
+        .put("cursor", cursor)
+        .put("limit", limit)
+}
+
+private fun buildWorkspaceForkBlockedMessage(
+    workspaceId: String,
+    stage: WorkspaceForkRecoveryStage,
+    reason: String,
+    requestId: String?
+): String {
+    val baseMessage = "Cloud sync ${stage.label} is blocked for workspace '$workspaceId': $reason"
+    val normalizedRequestId = requestId?.trim().orEmpty()
+    return if (normalizedRequestId.isEmpty()) {
+        baseMessage
+    } else {
+        "$baseMessage Reference: $normalizedRequestId"
     }
 }
 
