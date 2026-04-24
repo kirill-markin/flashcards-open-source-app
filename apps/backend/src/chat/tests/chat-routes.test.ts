@@ -13,6 +13,8 @@ import type { RequestContext } from "../../server/requestContext";
 
 const SESSION_ONE = "11111111-1111-4111-8111-111111111111";
 const SESSION_TWO = "22222222-2222-4222-8222-222222222222";
+const EXPLICIT_WORKSPACE_ID = "33333333-3333-4333-8333-333333333333";
+const LEGACY_WORKSPACE_ID = "workspace-legacy";
 
 function createRequestContext(): RequestContext {
   return {
@@ -24,6 +26,13 @@ function createRequestContext(): RequestContext {
     userSettingsCreatedAt: "2026-03-30T00:00:00.000Z",
     transport: "bearer",
     connectionId: null,
+  };
+}
+
+function createRequestContextWithSelectedWorkspace(selectedWorkspaceId: string | null): RequestContext {
+  return {
+    ...createRequestContext(),
+    selectedWorkspaceId,
   };
 }
 
@@ -620,6 +629,48 @@ test("DELETE /chat is no longer routed", async () => {
   assert.equal(response.status, 404);
 });
 
+test("GET /chat prefers an explicit workspaceId query param over the legacy selected-workspace fallback", async () => {
+  const requestedWorkspaceIds: string[] = [];
+  const app = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContextWithSelectedWorkspace(LEGACY_WORKSPACE_ID),
+    }),
+    getRecoveredChatSessionSnapshotFn: async (_userId, workspaceId) => {
+      requestedWorkspaceIds.push(workspaceId);
+      return createSnapshot([]);
+    },
+  });
+
+  const response = await app.request(
+    `http://localhost/chat?sessionId=${SESSION_ONE}&workspaceId=${EXPLICIT_WORKSPACE_ID}`,
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(requestedWorkspaceIds, [EXPLICIT_WORKSPACE_ID]);
+});
+
+test("GET /chat preserves the legacy selected-workspace fallback when workspaceId is omitted", async () => {
+  let requestedWorkspaceId: string | null = null;
+  const app = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContextWithSelectedWorkspace(LEGACY_WORKSPACE_ID),
+    }),
+    getRecoveredChatSessionSnapshotFn: async (_userId, workspaceId) => {
+      requestedWorkspaceId = workspaceId;
+      return createSnapshot([]);
+    },
+  });
+
+  const response = await app.request(`http://localhost/chat?sessionId=${SESSION_ONE}`);
+
+  assert.equal(response.status, 200);
+  assert.equal(requestedWorkspaceId, LEGACY_WORKSPACE_ID);
+});
+
 test("GET /chat returns assistant item ids in snapshot history and strips attachment payloads", async () => {
   const app = createChatRoutes({
     allowedOrigins: [],
@@ -742,7 +793,7 @@ test("GET /chat stops before store access when the selected workspace is no long
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
     }),
-    requireAccessibleSelectedWorkspaceIdFn: async () => {
+    resolveAccessibleChatWorkspaceIdFn: async () => {
       throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
     },
     getRecoveredChatSessionSnapshotFn: async () => {
@@ -1038,6 +1089,67 @@ test("POST /chat can return an active run before the current turn appears in mes
   });
 });
 
+test("POST /chat rejects an inaccessible explicit workspaceId before preparing a run", async () => {
+  let prepareChatRunRequested = false;
+  const routes = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContextWithSelectedWorkspace(LEGACY_WORKSPACE_ID),
+    }),
+    resolveAccessibleChatWorkspaceIdFn: async (_requestContext, explicitWorkspaceId) => {
+      assert.equal(explicitWorkspaceId, EXPLICIT_WORKSPACE_ID);
+      throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
+    },
+    prepareChatRunFn: async () => {
+      prepareChatRunRequested = true;
+      throw new Error("prepareChatRunFn should not run");
+    },
+  });
+  const app = new Hono();
+  app.onError((error, context) => {
+    const httpError = toHttpErrorLike(error);
+    if (httpError !== null) {
+      context.status(httpError.statusCode as ContentfulStatusCode);
+      return context.json({
+        error: httpError.message,
+        requestId: null,
+        code: httpError.code,
+      });
+    }
+
+    context.status(500);
+    return context.json({
+      error: "Request failed. Try again.",
+      requestId: null,
+      code: "INTERNAL_ERROR",
+    });
+  });
+  app.route("/", routes);
+
+  const response = await app.request("http://localhost/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId: SESSION_ONE,
+      clientRequestId: "client-request-explicit-workspace",
+      content: [{ type: "text", text: "hello" }],
+      timezone: "Europe/Madrid",
+      workspaceId: EXPLICIT_WORKSPACE_ID,
+    }),
+  });
+
+  assert.equal(prepareChatRunRequested, false);
+  assert.equal(response.status, 404);
+  assert.deepEqual(await response.json(), {
+    error: "Workspace not found",
+    requestId: null,
+    code: "WORKSPACE_NOT_FOUND",
+  });
+});
+
 test("POST /chat without uiLocale preserves the legacy request contract", async () => {
   let preparedUiLocale: string | null = "unexpected";
   const app = createChatRoutes({
@@ -1215,5 +1327,83 @@ test("POST /chat/stop returns not found for an unknown explicit session id", asy
     error: `Chat session not found: ${SESSION_TWO}`,
     requestId: null,
     code: null,
+  });
+});
+
+test("POST /chat/new uses an explicit workspaceId from JSON before the legacy selected-workspace fallback", async () => {
+  const requestedWorkspaceIds: string[] = [];
+  const app = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContextWithSelectedWorkspace(LEGACY_WORKSPACE_ID),
+    }),
+    getChatSessionIdFn: async (_userId, workspaceId) => {
+      requestedWorkspaceIds.push(workspaceId);
+      return SESSION_ONE;
+    },
+    getRecoveredChatSessionSnapshotFn: async () => ({
+      ...createSnapshot([]),
+      composerSuggestions: buildInitialChatComposerSuggestions(undefined),
+    }),
+  });
+
+  const response = await app.request("http://localhost/chat/new", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId: SESSION_ONE,
+      workspaceId: EXPLICIT_WORKSPACE_ID,
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(requestedWorkspaceIds, [EXPLICIT_WORKSPACE_ID]);
+});
+
+test("POST /chat/stop uses an explicit workspaceId from JSON before the legacy selected-workspace fallback", async () => {
+  const requestedWorkspaceIds: string[] = [];
+  const app = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContextWithSelectedWorkspace(LEGACY_WORKSPACE_ID),
+    }),
+    getChatSessionIdFn: async (_userId, workspaceId) => {
+      requestedWorkspaceIds.push(workspaceId);
+      return SESSION_ONE;
+    },
+    requestChatRunCancellationFn: async (_userId, workspaceId, sessionId) => {
+      requestedWorkspaceIds.push(workspaceId);
+      return {
+        sessionId,
+        runId: "run-stop-1",
+        stopped: true,
+        stillRunning: false,
+      };
+    },
+  });
+
+  const response = await app.request("http://localhost/chat/stop", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId: SESSION_ONE,
+      workspaceId: EXPLICIT_WORKSPACE_ID,
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(requestedWorkspaceIds, [EXPLICIT_WORKSPACE_ID, EXPLICIT_WORKSPACE_ID]);
+  assert.deepEqual(await response.json(), {
+    sessionId: SESSION_ONE,
+    conversationScopeId: SESSION_ONE,
+    runId: "run-stop-1",
+    stopped: true,
+    stillRunning: false,
   });
 });

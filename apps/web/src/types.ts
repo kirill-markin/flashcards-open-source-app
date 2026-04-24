@@ -264,6 +264,8 @@ export type ChatSessionSnapshot = Readonly<{
 
 export type StartChatRunRequestBody = Readonly<{
   sessionId: string;
+  // Optional on the wire so older backend/client contract phases keep working.
+  workspaceId?: string;
   clientRequestId: string;
   content: ReadonlyArray<ContentPart>;
   timezone: string;
@@ -278,6 +280,8 @@ export type StartChatRunResponse = ChatSessionSnapshot & Readonly<{
 
 export type NewChatSessionRequestBody = Readonly<{
   sessionId: string;
+  // Optional on the wire so older backend/client contract phases keep working.
+  workspaceId?: string;
   // Optional so newer clients can hint the active UI locale without breaking older contract phases.
   uiLocale?: Locale;
 }>;
@@ -293,6 +297,12 @@ export type StopChatRunResponse = Readonly<{
   sessionId: string;
   stopped: boolean;
   stillRunning: boolean;
+}>;
+
+export type StopChatRunRequestBody = Readonly<{
+  sessionId: string;
+  // Optional on the wire so older backend/client contract phases keep working.
+  workspaceId?: string;
 }>;
 
 /** Mirrors the iOS local workspace payload used by local AI tools. */

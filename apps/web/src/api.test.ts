@@ -5,6 +5,7 @@ import {
   AuthRedirectError,
   buildLoginUrl,
   createNewChatSession,
+  getChatSnapshot,
   getPreferredAuthUiLocale,
   getSession,
   loadProgressSummary,
@@ -13,6 +14,7 @@ import {
   setNavigationHandlerForTests,
   startChatRun,
   stopChatRun,
+  transcribeChatAudio,
 } from "./api";
 import { isAuthResetRequired } from "./accountDeletion";
 import { INSTALLATION_ID_STORAGE_KEY } from "./clientIdentity";
@@ -161,6 +163,26 @@ function createChatConfigResponseValue(): Readonly<{
 function createStartChatRunResponse(): Response {
   return new Response(JSON.stringify({
     accepted: true,
+    sessionId: "session-1",
+    conversationScopeId: "session-1",
+    conversation: {
+      messages: [],
+      updatedAt: 1,
+      mainContentInvalidationVersion: 0,
+    },
+    composerSuggestions: [],
+    chatConfig: createChatConfigResponseValue(),
+    activeRun: null,
+  }), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+function createChatSnapshotResponse(): Response {
+  return new Response(JSON.stringify({
     sessionId: "session-1",
     conversationScopeId: "session-1",
     conversation: {
@@ -500,14 +522,14 @@ describe("progress API decoding", () => {
   });
 });
 
-describe("AI chat locale transport", () => {
+describe("AI chat transport", () => {
   it("bootstraps session transport before the first unsafe chat request", async () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(createSessionResponse())
       .mockResolvedValueOnce(createNewChatSessionResponse());
     vi.stubGlobal("fetch", fetchMock);
 
-    await createNewChatSession("session-1", "es-ES");
+    await createNewChatSession("session-1", "workspace-1", "es-ES");
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:8080/v1/me");
@@ -525,8 +547,8 @@ describe("AI chat locale transport", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const [firstResponse, secondResponse] = await Promise.all([
-      createNewChatSession("session-1", "en"),
-      createNewChatSession("session-2", "en"),
+      createNewChatSession("session-1", "workspace-1", "en"),
+      createNewChatSession("session-2", "workspace-1", "en"),
     ]);
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
@@ -544,7 +566,7 @@ describe("AI chat locale transport", () => {
       .mockResolvedValueOnce(createNewChatSessionResponse());
     vi.stubGlobal("fetch", fetchMock);
 
-    await createNewChatSession("session-1", "en");
+    await createNewChatSession("session-1", "workspace-1", "en");
 
     expect(fetchMock).toHaveBeenCalledTimes(5);
     expect(fetchMock.mock.calls[0]?.[0]).toBe("http://localhost:8080/v1/me");
@@ -561,14 +583,14 @@ describe("AI chat locale transport", () => {
       }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(createNewChatSession("session-1", "en")).rejects.toThrow(
+    await expect(createNewChatSession("session-1", "workspace-1", "en")).rejects.toThrow(
       "CSRF token is not loaded for this browser session",
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("includes uiLocale in POST /chat requests", async () => {
+  it("includes workspaceId and uiLocale in POST /chat requests", async () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(createSessionResponse())
       .mockResolvedValueOnce(createStartChatRunResponse());
@@ -577,6 +599,7 @@ describe("AI chat locale transport", () => {
     await getSession();
     await startChatRun({
       sessionId: "session-1",
+      workspaceId: "workspace-1",
       clientRequestId: "request-1",
       content: [{ type: "text", text: "hello" }],
       timezone: "Europe/Madrid",
@@ -586,6 +609,7 @@ describe("AI chat locale transport", () => {
     const chatRequestInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
     expect(chatRequestInit?.body).toBe(JSON.stringify({
       sessionId: "session-1",
+      workspaceId: "workspace-1",
       clientRequestId: "request-1",
       content: [{ type: "text", text: "hello" }],
       timezone: "Europe/Madrid",
@@ -593,20 +617,36 @@ describe("AI chat locale transport", () => {
     }));
   });
 
-  it("includes uiLocale in POST /chat/new requests", async () => {
+  it("includes workspaceId and uiLocale in POST /chat/new requests", async () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(createSessionResponse())
       .mockResolvedValueOnce(createNewChatSessionResponse());
     vi.stubGlobal("fetch", fetchMock);
 
     await getSession();
-    await createNewChatSession("session-1", "es-ES");
+    await createNewChatSession("session-1", "workspace-1", "es-ES");
 
     const chatRequestInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
     expect(chatRequestInit?.body).toBe(JSON.stringify({
       sessionId: "session-1",
+      workspaceId: "workspace-1",
       uiLocale: "es-ES",
     }));
+  });
+
+  it("includes workspaceId in GET /chat requests", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createSessionResponse())
+      .mockResolvedValueOnce(createChatSnapshotResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getSession();
+    await getChatSnapshot("session-1", "workspace-1");
+
+    const requestUrl = new URL(String(fetchMock.mock.calls[1]?.[0]));
+    expect(requestUrl.pathname).toBe("/v1/chat");
+    expect(requestUrl.searchParams.get("sessionId")).toBe("session-1");
+    expect(requestUrl.searchParams.get("workspaceId")).toBe("workspace-1");
   });
 
   it("accepts reduced POST /chat/stop responses without unused run identifiers", async () => {
@@ -616,7 +656,7 @@ describe("AI chat locale transport", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await getSession();
-    await expect(stopChatRun("session-1")).resolves.toEqual({
+    await expect(stopChatRun("session-1", "workspace-1")).resolves.toEqual({
       sessionId: "session-1",
       stopped: true,
       stillRunning: false,
@@ -625,6 +665,42 @@ describe("AI chat locale transport", () => {
     const chatRequestInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
     expect(chatRequestInit?.body).toBe(JSON.stringify({
       sessionId: "session-1",
+      workspaceId: "workspace-1",
     }));
+  });
+
+  it("includes workspaceId in POST /chat/transcriptions requests", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createSessionResponse())
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        text: "hello",
+        sessionId: "session-1",
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getSession();
+    await transcribeChatAudio(
+      new Blob(["audio"], { type: "audio/webm" }),
+      "web",
+      "session-1",
+      "workspace-1",
+    );
+
+    const chatRequestInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    const formData = chatRequestInit?.body;
+    expect(formData).toBeInstanceOf(FormData);
+    if (!(formData instanceof FormData)) {
+      throw new Error("Expected FormData");
+    }
+
+    expect(formData.get("sessionId")).toBe("session-1");
+    expect(formData.get("workspaceId")).toBe("workspace-1");
+    expect(formData.get("source")).toBe("web");
+    expect(formData.get("file")).toBeInstanceOf(File);
   });
 });

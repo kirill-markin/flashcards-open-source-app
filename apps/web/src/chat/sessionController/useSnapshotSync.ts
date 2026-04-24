@@ -659,9 +659,13 @@ export function useChatSessionSnapshotSync(
     });
 
     try {
+      if (workspaceId === null) {
+        throw new Error(uiMessages.workspaceRequired);
+      }
+
       const snapshot = resumeAttemptId === null
-        ? await getChatSnapshot(sessionId)
-        : await getChatSnapshotWithResumeDiagnostics(sessionId, { resumeAttemptId });
+        ? await getChatSnapshot(sessionId, workspaceId)
+        : await getChatSnapshotWithResumeDiagnostics(sessionId, workspaceId, { resumeAttemptId });
       if (requestVersion !== snapshotRequestVersionRef.current) {
         return null;
       }
