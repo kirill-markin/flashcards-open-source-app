@@ -51,6 +51,7 @@ import type {
   SessionInfo,
   StartChatRunRequestBody,
   StartChatRunResponse,
+  StopChatRunRequestBody,
   StopChatRunResponse,
   SyncBootstrapEntry,
   SyncBootstrapPullResult,
@@ -777,17 +778,26 @@ export async function queryCards(
   }, allowAuthRecovery), `POST /workspaces/${workspaceId}/cards/query`);
 }
 
-export async function getChatSnapshot(sessionId: string): Promise<ChatSessionSnapshot> {
-  return parseChatSessionSnapshotResponse(await requestJson(`/chat?sessionId=${encodeURIComponent(sessionId)}`, {
+function buildChatSnapshotPath(sessionId: string, workspaceId: string): string {
+  const searchParams = new URLSearchParams({
+    sessionId,
+    workspaceId,
+  });
+  return `/chat?${searchParams.toString()}`;
+}
+
+export async function getChatSnapshot(sessionId: string, workspaceId: string): Promise<ChatSessionSnapshot> {
+  return parseChatSessionSnapshotResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
     method: "GET",
   }, allowAuthRecovery), "GET /chat");
 }
 
 export async function getChatSnapshotWithResumeDiagnostics(
   sessionId: string,
+  workspaceId: string,
   diagnostics: ChatResumeRequestDiagnostics,
 ): Promise<ChatSessionSnapshot> {
-  return parseChatSessionSnapshotResponse(await requestJson(`/chat?sessionId=${encodeURIComponent(sessionId)}`, {
+  return parseChatSessionSnapshotResponse(await requestJson(buildChatSnapshotPath(sessionId, workspaceId), {
     method: "GET",
     headers: {
       "X-Chat-Resume-Attempt-Id": String(diagnostics.resumeAttemptId),
@@ -806,10 +816,12 @@ export async function startChatRun(body: StartChatRunRequestBody): Promise<Start
 
 export async function createNewChatSession(
   sessionId: string,
+  workspaceId: string,
   uiLocale: Locale,
 ): Promise<NewChatSessionResponse> {
   const requestBody: NewChatSessionRequestBody = {
     sessionId,
+    workspaceId,
     uiLocale,
   };
 
@@ -819,10 +831,15 @@ export async function createNewChatSession(
   }, allowAuthRecovery), "POST /chat/new");
 }
 
-export async function stopChatRun(sessionId: string): Promise<StopChatRunResponse> {
+export async function stopChatRun(sessionId: string, workspaceId: string): Promise<StopChatRunResponse> {
+  const requestBody: StopChatRunRequestBody = {
+    sessionId,
+    workspaceId,
+  };
+
   return parseStopChatRunResponse(await requestJson("/chat/stop", {
     method: "POST",
-    body: JSON.stringify({ sessionId }),
+    body: JSON.stringify(requestBody),
   }, allowAuthRecovery), "POST /chat/stop");
 }
 
@@ -857,6 +874,7 @@ export async function transcribeChatAudio(
   blob: Blob,
   source: ChatTranscriptionSource,
   sessionId: string,
+  workspaceId: string,
 ): Promise<ChatTranscriptionResponse> {
   const mediaType = normalizeAudioMediaType(blob.type === "" ? "audio/webm" : blob.type);
   const file = new File([blob], `chat-dictation.${extensionForAudioMediaType(mediaType)}`, { type: mediaType });
@@ -864,6 +882,7 @@ export async function transcribeChatAudio(
   formData.append("file", file);
   formData.append("source", source);
   formData.append("sessionId", sessionId);
+  formData.append("workspaceId", workspaceId);
 
   return parseChatTranscriptionResponse(await requestJson("/chat/transcriptions", {
     method: "POST",

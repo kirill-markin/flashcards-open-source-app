@@ -61,7 +61,13 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         sessionId: String?
     ) async throws -> AIChatSessionSnapshot {
         let clientRequestId = UUID().uuidString.lowercased()
-        let path = makeChatPath(basePath: "/chat", sessionId: sessionId)
+        let path = makeChatPath(
+            basePath: "/chat",
+            queryItems: [
+                URLQueryItem(name: "sessionId", value: sessionId),
+                URLQueryItem(name: "workspaceId", value: session.workspaceId)
+            ]
+        )
         let request = try self.makeRequest(
             session: session,
             path: path,
@@ -106,12 +112,14 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         resumeAttemptDiagnostics: AIChatResumeAttemptDiagnostics?
     ) async throws -> AIChatBootstrapResponse {
         let clientRequestId = UUID().uuidString.lowercased()
-        var path = "/chat?limit=\(limit)"
-        if let sessionId, sessionId.isEmpty == false {
-            let allowedCharacters = CharacterSet.urlQueryAllowed.subtracting(CharacterSet(charactersIn: "+&=?"))
-            let encoded = sessionId.addingPercentEncoding(withAllowedCharacters: allowedCharacters) ?? sessionId
-            path += "&sessionId=\(encoded)"
-        }
+        let path = makeChatPath(
+            basePath: "/chat",
+            queryItems: [
+                URLQueryItem(name: "limit", value: String(limit)),
+                URLQueryItem(name: "sessionId", value: sessionId),
+                URLQueryItem(name: "workspaceId", value: session.workspaceId)
+            ]
+        )
         let request = try self.makeRequest(
             session: session,
             path: path,
@@ -155,10 +163,15 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         limit: Int
     ) async throws -> AIChatOlderMessagesResponse {
         let clientRequestId = UUID().uuidString.lowercased()
-        let allowedCharacters = CharacterSet.urlQueryAllowed.subtracting(CharacterSet(charactersIn: "+&=?"))
-        let encodedSessionId = sessionId.addingPercentEncoding(withAllowedCharacters: allowedCharacters) ?? sessionId
-        let encodedCursor = beforeCursor.addingPercentEncoding(withAllowedCharacters: allowedCharacters) ?? beforeCursor
-        let path = "/chat?sessionId=\(encodedSessionId)&limit=\(limit)&before=\(encodedCursor)"
+        let path = makeChatPath(
+            basePath: "/chat",
+            queryItems: [
+                URLQueryItem(name: "sessionId", value: sessionId),
+                URLQueryItem(name: "limit", value: String(limit)),
+                URLQueryItem(name: "before", value: beforeCursor),
+                URLQueryItem(name: "workspaceId", value: session.workspaceId)
+            ]
+        )
         let request = try self.makeRequest(
             session: session,
             path: path,
@@ -210,11 +223,19 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         request: AIChatStartRunRequestBody
     ) async throws -> AIChatStartRunResponse {
         let clientRequestId = request.clientRequestId
+        let requestBody = AIChatStartRunRequestBody(
+            sessionId: request.sessionId,
+            clientRequestId: request.clientRequestId,
+            content: request.content,
+            timezone: request.timezone,
+            uiLocale: request.uiLocale,
+            workspaceId: session.workspaceId
+        )
         let urlRequest = try self.makeJsonRequest(
             session: session,
             path: "/chat",
             method: "POST",
-            body: request,
+            body: requestBody,
             clientRequestId: clientRequestId
         )
         let data = try await self.execute(
@@ -251,11 +272,16 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
         request: AIChatNewSessionRequestBody
     ) async throws -> AIChatNewSessionResponse {
         let clientRequestId = UUID().uuidString.lowercased()
+        let requestBody = AIChatNewSessionRequestBody(
+            sessionId: request.sessionId,
+            uiLocale: request.uiLocale,
+            workspaceId: session.workspaceId
+        )
         let urlRequest = try self.makeJsonRequest(
             session: session,
             path: "/chat/new",
             method: "POST",
-            body: request,
+            body: requestBody,
             clientRequestId: clientRequestId
         )
         let data = try await self.execute(
@@ -295,7 +321,10 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             session: session,
             path: "/chat/stop",
             method: "POST",
-            body: ["sessionId": sessionId],
+            body: AIChatStopRunRequestBody(
+                sessionId: sessionId,
+                workspaceId: session.workspaceId
+            ),
             clientRequestId: clientRequestId
         )
         let data = try await self.execute(
@@ -479,14 +508,26 @@ private func extractChatRequestId(httpResponse: HTTPURLResponse) -> String? {
     return nil
 }
 
-private func makeChatPath(basePath: String, sessionId: String?) -> String {
-    guard let sessionId, sessionId.isEmpty == false else {
+private func makeChatPath(basePath: String, queryItems: [URLQueryItem]) -> String {
+    let encodedQueryItems: [URLQueryItem] = queryItems.compactMap { item -> URLQueryItem? in
+        guard let value = item.value, value.isEmpty == false else {
+            return nil
+        }
+
+        return URLQueryItem(name: item.name, value: value)
+    }
+
+    guard encodedQueryItems.isEmpty == false else {
         return basePath
     }
 
-    let allowedCharacters = CharacterSet.urlQueryAllowed.subtracting(CharacterSet(charactersIn: "+&=?"))
-    let encodedSessionId = sessionId.addingPercentEncoding(withAllowedCharacters: allowedCharacters) ?? sessionId
-    return "\(basePath)?sessionId=\(encodedSessionId)"
+    var components = URLComponents()
+    components.queryItems = encodedQueryItems
+    guard let percentEncodedQuery = components.percentEncodedQuery, percentEncodedQuery.isEmpty == false else {
+        return basePath
+    }
+
+    return "\(basePath)?\(percentEncodedQuery)"
 }
 
 private func formatAIChatUserError(summary: String, diagnostics: AIChatFailureDiagnostics) -> String {

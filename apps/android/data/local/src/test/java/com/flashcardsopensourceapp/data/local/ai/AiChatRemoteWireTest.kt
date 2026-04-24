@@ -12,6 +12,8 @@ import com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.toList
@@ -26,6 +28,7 @@ import org.junit.Test
 class AiChatRemoteWireTest {
     private val appVersion: String = "1.2.1"
     private val testUiLocale: String = "es-ES"
+    private val testWorkspaceId: String = "workspace-1"
 
     private fun makeDispatchers(): AiCoroutineDispatchers {
         return AiCoroutineDispatchers(io = Dispatchers.IO)
@@ -42,9 +45,28 @@ class AiChatRemoteWireTest {
         )
     }
 
+    private fun parseQueryParameters(rawQuery: String?): Map<String, String> {
+        if (rawQuery.isNullOrBlank()) {
+            return emptyMap()
+        }
+
+        return rawQuery.split("&")
+            .filter(String::isNotBlank)
+            .associate { entry ->
+                val separatorIndex = entry.indexOf('=')
+                if (separatorIndex < 0) {
+                    URLDecoder.decode(entry, StandardCharsets.UTF_8) to ""
+                } else {
+                    URLDecoder.decode(entry.substring(startIndex = 0, endIndex = separatorIndex), StandardCharsets.UTF_8) to
+                        URLDecoder.decode(entry.substring(startIndex = separatorIndex + 1), StandardCharsets.UTF_8)
+                }
+            }
+    }
+
     @Test
     fun loadBootstrapIncludesResumeDiagnosticsHeaders() = runBlocking {
         val headersRef = AtomicReference<Map<String, String>>(emptyMap())
+        val queryParametersRef = AtomicReference<Map<String, String>>(emptyMap())
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/chat") { exchange ->
             headersRef.set(
@@ -52,6 +74,7 @@ class AiChatRemoteWireTest {
                     key to value.joinToString(separator = ",")
                 }
             )
+            queryParametersRef.set(parseQueryParameters(rawQuery = exchange.requestURI.rawQuery))
             val body = """
                 {
                   "sessionId": "session-1",
@@ -102,6 +125,7 @@ class AiChatRemoteWireTest {
                 authorizationHeader = "Bearer token-1",
                 sessionId = "session-1",
                 limit = 20,
+                workspaceId = testWorkspaceId,
                 resumeDiagnostics = AiChatResumeDiagnostics(
                     resumeAttemptId = 41L,
                     clientPlatform = "android",
@@ -113,6 +137,9 @@ class AiChatRemoteWireTest {
             assertEquals("session-1", response.conversationScopeId)
             assertEquals("run-1", response.activeRun?.runId)
             assertEquals("5", response.activeRun?.live?.cursor)
+            assertEquals("session-1", queryParametersRef.get()["sessionId"])
+            assertEquals("20", queryParametersRef.get()["limit"])
+            assertEquals(testWorkspaceId, queryParametersRef.get()["workspaceId"])
             assertEquals("41", headersRef.get()["X-chat-resume-attempt-id"])
             assertEquals("android", headersRef.get()["X-client-platform"])
             assertEquals(appVersion, headersRef.get()["X-client-version"])
@@ -166,6 +193,7 @@ class AiChatRemoteWireTest {
                 authorizationHeader = "Bearer token-1",
                 request = AiChatStartRunRequest(
                     sessionId = "session-1",
+                    workspaceId = testWorkspaceId,
                     clientRequestId = "request-1",
                     content = listOf(AiChatWireContentPart.Text(text = "Hello")),
                     timezone = "Europe/Madrid",
@@ -175,6 +203,7 @@ class AiChatRemoteWireTest {
 
             val requestBody = JSONObject(requestBodyRef.get())
             assertEquals("session-1", requestBody.getString("sessionId"))
+            assertEquals(testWorkspaceId, requestBody.getString("workspaceId"))
             assertEquals(testUiLocale, requestBody.getString("uiLocale"))
         } finally {
             server.stop(0)
@@ -225,12 +254,14 @@ class AiChatRemoteWireTest {
                 authorizationHeader = "Bearer token-1",
                 request = AiChatNewSessionRequest(
                     sessionId = "session-1",
+                    workspaceId = testWorkspaceId,
                     uiLocale = testUiLocale
                 )
             )
 
             val requestBody = JSONObject(requestBodyRef.get())
             assertEquals("session-1", requestBody.getString("sessionId"))
+            assertEquals(testWorkspaceId, requestBody.getString("workspaceId"))
             assertEquals(testUiLocale, requestBody.getString("uiLocale"))
         } finally {
             server.stop(0)
@@ -281,13 +312,196 @@ class AiChatRemoteWireTest {
                 authorizationHeader = "Bearer token-1",
                 request = AiChatNewSessionRequest(
                     sessionId = "session-1",
+                    workspaceId = testWorkspaceId,
                     uiLocale = null
                 )
             )
 
             val requestBody = JSONObject(requestBodyRef.get())
             assertEquals("session-1", requestBody.getString("sessionId"))
+            assertEquals(testWorkspaceId, requestBody.getString("workspaceId"))
             assertFalse(requestBody.has("uiLocale"))
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun loadSnapshotIncludesWorkspaceIdQueryParameter() = runBlocking {
+        val queryParametersRef = AtomicReference<Map<String, String>>(emptyMap())
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/chat") { exchange ->
+            queryParametersRef.set(parseQueryParameters(rawQuery = exchange.requestURI.rawQuery))
+            val body = """
+                {
+                  "sessionId": "session-1",
+                  "conversationScopeId": "session-1",
+                  "conversation": {
+                    "updatedAt": 100,
+                    "mainContentInvalidationVersion": 200,
+                    "messages": [],
+                    "hasOlder": false,
+                    "oldestCursor": null
+                  },
+                  "composerSuggestions": [],
+                  "chatConfig": {
+                    "provider": { "id": "openai", "label": "OpenAI" },
+                    "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                    "reasoning": { "effort": "medium", "label": "Medium" },
+                    "features": {
+                      "modelPickerEnabled": false,
+                      "dictationEnabled": true,
+                      "attachmentsEnabled": true
+                    },
+                    "liveUrl": null
+                  },
+                  "activeRun": null
+                }
+            """.trimIndent().toByteArray()
+            exchange.sendResponseHeaders(200, body.size.toLong())
+            exchange.responseBody.use { outputStream -> outputStream.write(body) }
+        }
+        server.start()
+
+        try {
+            val service = makeRemoteService()
+            service.loadSnapshot(
+                apiBaseUrl = "http://127.0.0.1:${server.address.port}",
+                authorizationHeader = "Bearer token-1",
+                sessionId = "session-1",
+                workspaceId = testWorkspaceId
+            )
+
+            assertEquals("session-1", queryParametersRef.get()["sessionId"])
+            assertEquals(testWorkspaceId, queryParametersRef.get()["workspaceId"])
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun loadOlderMessagesIncludesWorkspaceIdQueryParameter() = runBlocking {
+        val queryParametersRef = AtomicReference<Map<String, String>>(emptyMap())
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/chat") { exchange ->
+            queryParametersRef.set(parseQueryParameters(rawQuery = exchange.requestURI.rawQuery))
+            val body = """
+                {
+                  "sessionId": "session-1",
+                  "conversationScopeId": "session-1",
+                  "conversation": {
+                    "updatedAt": 100,
+                    "mainContentInvalidationVersion": 200,
+                    "messages": [],
+                    "hasOlder": false,
+                    "oldestCursor": null
+                  },
+                  "composerSuggestions": [],
+                  "chatConfig": {
+                    "provider": { "id": "openai", "label": "OpenAI" },
+                    "model": { "id": "gpt-5.4", "label": "GPT-5.4", "badgeLabel": "GPT-5.4 · Medium" },
+                    "reasoning": { "effort": "medium", "label": "Medium" },
+                    "features": {
+                      "modelPickerEnabled": false,
+                      "dictationEnabled": true,
+                      "attachmentsEnabled": true
+                    },
+                    "liveUrl": null
+                  },
+                  "activeRun": null
+                }
+            """.trimIndent().toByteArray()
+            exchange.sendResponseHeaders(200, body.size.toLong())
+            exchange.responseBody.use { outputStream -> outputStream.write(body) }
+        }
+        server.start()
+
+        try {
+            val service = makeRemoteService()
+            service.loadOlderMessages(
+                apiBaseUrl = "http://127.0.0.1:${server.address.port}",
+                authorizationHeader = "Bearer token-1",
+                sessionId = "session-1",
+                beforeCursor = "cursor-1",
+                limit = 20,
+                workspaceId = testWorkspaceId
+            )
+
+            assertEquals("session-1", queryParametersRef.get()["sessionId"])
+            assertEquals("cursor-1", queryParametersRef.get()["before"])
+            assertEquals("20", queryParametersRef.get()["limit"])
+            assertEquals(testWorkspaceId, queryParametersRef.get()["workspaceId"])
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun stopRunIncludesWorkspaceIdWhenPresent() = runBlocking {
+        val requestBodyRef = AtomicReference("")
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/chat/stop") { exchange ->
+            requestBodyRef.set(exchange.requestBody.bufferedReader().use { reader -> reader.readText() })
+            val body = """
+                {
+                  "sessionId": "session-1",
+                  "stopped": true,
+                  "stillRunning": false
+                }
+            """.trimIndent().toByteArray()
+            exchange.sendResponseHeaders(200, body.size.toLong())
+            exchange.responseBody.use { outputStream -> outputStream.write(body) }
+        }
+        server.start()
+
+        try {
+            val service = makeRemoteService()
+            service.stopRun(
+                apiBaseUrl = "http://127.0.0.1:${server.address.port}",
+                authorizationHeader = "Bearer token-1",
+                sessionId = "session-1",
+                workspaceId = testWorkspaceId
+            )
+
+            val requestBody = JSONObject(requestBodyRef.get())
+            assertEquals("session-1", requestBody.getString("sessionId"))
+            assertEquals(testWorkspaceId, requestBody.getString("workspaceId"))
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun transcribeAudioIncludesWorkspaceIdMultipartField() = runBlocking {
+        val requestBodyRef = AtomicReference("")
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/chat/transcriptions") { exchange ->
+            requestBodyRef.set(String(exchange.requestBody.readBytes(), StandardCharsets.UTF_8))
+            val body = """
+                {
+                  "text": "Hello",
+                  "sessionId": "session-1"
+                }
+            """.trimIndent().toByteArray()
+            exchange.sendResponseHeaders(200, body.size.toLong())
+            exchange.responseBody.use { outputStream -> outputStream.write(body) }
+        }
+        server.start()
+
+        try {
+            val service = makeRemoteService()
+            service.transcribeAudio(
+                apiBaseUrl = "http://127.0.0.1:${server.address.port}",
+                authorizationHeader = "Bearer token-1",
+                sessionId = "session-1",
+                workspaceId = testWorkspaceId,
+                fileName = "recording.wav",
+                mediaType = "audio/wav",
+                audioBytes = "sample-audio".toByteArray(StandardCharsets.UTF_8)
+            )
+
+            assertTrue(requestBodyRef.get().contains("name=\"sessionId\"\r\n\r\nsession-1"))
+            assertTrue(requestBodyRef.get().contains("name=\"workspaceId\"\r\n\r\n$testWorkspaceId"))
         } finally {
             server.stop(0)
         }
@@ -561,7 +775,7 @@ class AiChatRemoteWireTest {
     @Test
     fun liveAttachIncludesResumeDiagnosticsHeadersAndRunIdQueryParam() = runBlocking {
         val headersRef = AtomicReference<Map<String, String>>(emptyMap())
-        val queryRef = AtomicReference("")
+        val queryParametersRef = AtomicReference<Map<String, String>>(emptyMap())
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/live") { exchange ->
             headersRef.set(
@@ -569,7 +783,7 @@ class AiChatRemoteWireTest {
                     key to value.joinToString(separator = ",")
                 }
             )
-            queryRef.set(exchange.requestURI.rawQuery ?: "")
+            queryParametersRef.set(parseQueryParameters(rawQuery = exchange.requestURI.rawQuery))
             val body = """
                 event: run_terminal
                 data: {"type":"run_terminal","sessionId":"session-1","conversationScopeId":"session-1","runId":"run-1","cursor":"12","sequenceNumber":3,"streamEpoch":"run-1","outcome":"completed"}
@@ -592,6 +806,7 @@ class AiChatRemoteWireTest {
                     authorization = "Live token-2",
                     expiresAt = 123L
                 ),
+                workspaceId = testWorkspaceId,
                 afterCursor = "5",
                 resumeDiagnostics = AiChatResumeDiagnostics(
                     resumeAttemptId = 42L,
@@ -604,9 +819,61 @@ class AiChatRemoteWireTest {
             assertEquals("android", headersRef.get()["X-client-platform"])
             assertEquals(appVersion, headersRef.get()["X-client-version"])
             assertEquals("Live token-2", headersRef.get()["Authorization"])
-            assertTrue(queryRef.get().contains("sessionId=session-1"))
-            assertTrue(queryRef.get().contains("runId=run-1"))
-            assertTrue(queryRef.get().contains("afterCursor=5"))
+            assertEquals("session-1", queryParametersRef.get()["sessionId"])
+            assertEquals("run-1", queryParametersRef.get()["runId"])
+            assertEquals("5", queryParametersRef.get()["afterCursor"])
+            assertFalse(queryParametersRef.get().containsKey("workspaceId"))
+            assertEquals(1, events.size)
+            require(events.single() is AiChatLiveEvent.RunTerminal)
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun liveAttachFallbackAuthorizationIncludesWorkspaceIdQueryParam() = runBlocking {
+        val headersRef = AtomicReference<Map<String, String>>(emptyMap())
+        val queryParametersRef = AtomicReference<Map<String, String>>(emptyMap())
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/live") { exchange ->
+            headersRef.set(
+                exchange.requestHeaders.entries.associate { (key, value) ->
+                    key to value.joinToString(separator = ",")
+                }
+            )
+            queryParametersRef.set(parseQueryParameters(rawQuery = exchange.requestURI.rawQuery))
+            val body = """
+                event: run_terminal
+                data: {"type":"run_terminal","sessionId":"session-1","conversationScopeId":"session-1","runId":"run-1","cursor":"12","sequenceNumber":3,"streamEpoch":"run-1","outcome":"completed"}
+
+            """.trimIndent().toByteArray()
+            exchange.responseHeaders.add("Content-Type", "text/event-stream")
+            exchange.sendResponseHeaders(200, body.size.toLong())
+            exchange.responseBody.use { outputStream -> outputStream.write(body) }
+        }
+        server.start()
+
+        try {
+            val service = makeLiveRemoteService()
+            val events = service.attachLiveRun(
+                authorizationHeader = "Bearer token-1",
+                sessionId = "session-1",
+                runId = "run-1",
+                liveStream = AiChatLiveStreamEnvelope(
+                    url = "http://127.0.0.1:${server.address.port}/live",
+                    authorization = "Bearer ignored-live-stream-token",
+                    expiresAt = 123L
+                ),
+                workspaceId = testWorkspaceId,
+                afterCursor = "5",
+                resumeDiagnostics = null
+            ).toList()
+
+            assertEquals("Bearer token-1", headersRef.get()["Authorization"])
+            assertEquals("session-1", queryParametersRef.get()["sessionId"])
+            assertEquals("run-1", queryParametersRef.get()["runId"])
+            assertEquals("5", queryParametersRef.get()["afterCursor"])
+            assertEquals(testWorkspaceId, queryParametersRef.get()["workspaceId"])
             assertEquals(1, events.size)
             require(events.single() is AiChatLiveEvent.RunTerminal)
         } finally {
@@ -643,6 +910,7 @@ class AiChatRemoteWireTest {
                     authorization = "Live token-2",
                     expiresAt = 123L
                 ),
+                workspaceId = testWorkspaceId,
                 afterCursor = "5",
                 resumeDiagnostics = null
             ).toList()

@@ -8,6 +8,8 @@ import { createChatTranscriptionsRoutes } from "../../routes/chatTranscriptions"
 import type { RequestContext } from "../../server/requestContext";
 
 const SESSION_ONE = "11111111-1111-4111-8111-111111111111";
+const EXPLICIT_WORKSPACE_ID = "33333333-3333-4333-8333-333333333333";
+const LEGACY_WORKSPACE_ID = "workspace-legacy";
 
 function createRequestContext(): RequestContext {
   return {
@@ -19,6 +21,13 @@ function createRequestContext(): RequestContext {
     userSettingsCreatedAt: "2026-03-30T00:00:00.000Z",
     transport: "bearer",
     connectionId: null,
+  };
+}
+
+function createRequestContextWithSelectedWorkspace(selectedWorkspaceId: string | null): RequestContext {
+  return {
+    ...createRequestContext(),
+    selectedWorkspaceId,
   };
 }
 
@@ -40,6 +49,49 @@ function toHttpErrorLike(error: unknown): { statusCode: number; message: string;
 
   return { statusCode, message, code };
 }
+
+test("POST /chat/transcriptions prefers an explicit workspaceId multipart field over the legacy selected-workspace fallback", async () => {
+  const requestedWorkspaceIds: string[] = [];
+  const app = createChatTranscriptionsRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContextWithSelectedWorkspace(LEGACY_WORKSPACE_ID),
+    }),
+    getRecoveredChatSessionSnapshotFn: async (_userId, workspaceId, sessionId) => {
+      requestedWorkspaceIds.push(workspaceId);
+      return {
+        sessionId: sessionId ?? SESSION_ONE,
+        runState: "idle",
+        activeRunId: null,
+        updatedAt: 1,
+        activeRunHeartbeatAt: null,
+        composerSuggestions: [],
+        mainContentInvalidationVersion: 0,
+        messages: [],
+      };
+    },
+    transcribeAudioFn: async () => "hello",
+  });
+
+  const formData = new FormData();
+  formData.set("file", new File(["audio"], "note.m4a", { type: "audio/m4a" }));
+  formData.set("source", "web");
+  formData.set("sessionId", SESSION_ONE);
+  formData.set("workspaceId", EXPLICIT_WORKSPACE_ID);
+
+  const response = await app.request("http://localhost/chat/transcriptions", {
+    method: "POST",
+    body: formData,
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(requestedWorkspaceIds, [EXPLICIT_WORKSPACE_ID]);
+  assert.deepEqual(await response.json(), {
+    text: "hello",
+    sessionId: SESSION_ONE,
+  });
+});
 
 test("POST /chat/transcriptions resolves the explicit sessionId exactly once", async () => {
   const requestedSessionIds: Array<string | undefined> = [];
@@ -143,7 +195,7 @@ test("POST /chat/transcriptions stops before session recovery when the selected 
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
     }),
-    requireAccessibleSelectedWorkspaceIdForAiDictationFn: async () => {
+    resolveAccessibleAiDictationWorkspaceIdFn: async () => {
       throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
     },
     getRecoveredChatSessionSnapshotFn: async () => {

@@ -5,6 +5,7 @@
 import { Buffer } from "node:buffer";
 import { toFile } from "openai";
 import { HttpError } from "../errors";
+import { expectUuidString } from "../server/requestParsing";
 import { getObservedOpenAIClient } from "./openai/client";
 import {
   classifyChatTranscriptionFailure,
@@ -31,6 +32,7 @@ export type ChatTranscriptionUpload = Readonly<{
   file: File;
   source: ChatTranscriptionSource;
   sessionId?: string;
+  workspaceId?: string;
 }>;
 
 export type ChatTranscriptionRequestContext = Readonly<{
@@ -142,11 +144,16 @@ export async function parseChatTranscriptionUpload(request: Request): Promise<Ch
   const sessionId = typeof sessionValue === "string" && sessionValue.trim() !== ""
     ? sessionValue.trim()
     : undefined;
+  const workspaceValue = formData.get("workspaceId");
+  const workspaceId = workspaceValue === null
+    ? undefined
+    : expectUuidString(workspaceValue, "workspaceId");
 
   return {
     file: fileValue,
     source: sourceValue,
     sessionId,
+    workspaceId,
   };
 }
 

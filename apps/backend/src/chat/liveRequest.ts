@@ -1,7 +1,10 @@
 import { authenticateRequest, type AuthResult } from "../auth";
 import { HttpError } from "../errors";
 import { ensureUserProfile, type UserProfile } from "../ensureUser";
-import { requireAccessibleSelectedWorkspaceId } from "../server/requestContext";
+import {
+  parseOptionalWorkspaceIdParam,
+  resolveAccessibleChatWorkspaceId,
+} from "../server/requestContext";
 import { assertChatLiveRunAccess } from "./liveAccess";
 import {
   CHAT_LIVE_AFTER_CURSOR_INVALID_CODE,
@@ -27,7 +30,7 @@ type HandleLiveRequestDependencies = Readonly<{
   authenticateRequestFn: typeof authenticateRequest;
   ensureUserProfileFn: typeof ensureUserProfile;
   verifyChatLiveAuthorizationHeaderFn: typeof verifyChatLiveAuthorizationHeader;
-  requireAccessibleSelectedWorkspaceIdFn: typeof requireAccessibleSelectedWorkspaceId;
+  resolveAccessibleChatWorkspaceIdFn: typeof resolveAccessibleChatWorkspaceId;
   assertChatLiveRunAccessFn: typeof assertChatLiveRunAccess;
 }>;
 
@@ -35,7 +38,7 @@ const defaultHandleLiveRequestDependencies: HandleLiveRequestDependencies = {
   authenticateRequestFn: authenticateRequest,
   ensureUserProfileFn: ensureUserProfile,
   verifyChatLiveAuthorizationHeaderFn: verifyChatLiveAuthorizationHeader,
-  requireAccessibleSelectedWorkspaceIdFn: requireAccessibleSelectedWorkspaceId,
+  resolveAccessibleChatWorkspaceIdFn: resolveAccessibleChatWorkspaceId,
   assertChatLiveRunAccessFn: assertChatLiveRunAccess,
 };
 
@@ -120,15 +123,19 @@ export async function handleLiveRequest(
   const userProfile: UserProfile | null = authResult.transport === "api_key"
     ? null
     : await liveRequestDependencies.ensureUserProfileFn(authResult.userId, null);
+  const explicitWorkspaceId = parseOptionalWorkspaceIdParam(url.searchParams.get("workspaceId") ?? undefined);
 
   let workspaceId: string;
   try {
-    workspaceId = await liveRequestDependencies.requireAccessibleSelectedWorkspaceIdFn({
-      userId: authResult.userId,
-      selectedWorkspaceId: authResult.transport === "api_key"
-        ? authResult.selectedWorkspaceId
-        : userProfile?.selectedWorkspaceId ?? null,
-    });
+    workspaceId = await liveRequestDependencies.resolveAccessibleChatWorkspaceIdFn(
+      {
+        userId: authResult.userId,
+        selectedWorkspaceId: authResult.transport === "api_key"
+          ? authResult.selectedWorkspaceId
+          : userProfile?.selectedWorkspaceId ?? null,
+      },
+      explicitWorkspaceId,
+    );
   } catch (error) {
     if (
       error instanceof HttpError

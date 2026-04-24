@@ -37,6 +37,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
+import java.net.URLEncoder
 import java.net.URL
 import java.nio.charset.StandardCharsets
 import java.util.UUID
@@ -113,16 +114,15 @@ class AiChatRemoteService(
     suspend fun loadSnapshot(
         apiBaseUrl: String,
         authorizationHeader: String,
-        sessionId: String?
+        sessionId: String?,
+        workspaceId: String?
     ): AiChatSessionSnapshot = withContext(dispatchers.io) {
-        val path = if (sessionId.isNullOrBlank()) {
-            "/chat"
-        } else {
-            "/chat?sessionId=$sessionId"
-        }
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
-            path = path,
+            path = buildSnapshotPath(
+                sessionId = sessionId,
+                workspaceId = workspaceId
+            ),
             method = "GET",
             authorizationHeader = authorizationHeader
         )
@@ -140,12 +140,16 @@ class AiChatRemoteService(
         authorizationHeader: String,
         sessionId: String,
         limit: Int,
+        workspaceId: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse = withContext(dispatchers.io) {
-        val path = "/chat?limit=$limit&sessionId=$sessionId"
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
-            path = path,
+            path = buildBootstrapPath(
+                sessionId = sessionId,
+                limit = limit,
+                workspaceId = workspaceId
+            ),
             method = "GET",
             authorizationHeader = authorizationHeader,
             extraHeaders = resumeDiagnosticsHeaders(resumeDiagnostics = resumeDiagnostics)
@@ -164,12 +168,17 @@ class AiChatRemoteService(
         authorizationHeader: String,
         sessionId: String,
         beforeCursor: String,
-        limit: Int
+        limit: Int,
+        workspaceId: String?
     ): AiChatOlderMessagesResponse = withContext(dispatchers.io) {
-        val path = "/chat?sessionId=$sessionId&limit=$limit&before=$beforeCursor"
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
-            path = path,
+            path = buildOlderMessagesPath(
+                sessionId = sessionId,
+                beforeCursor = beforeCursor,
+                limit = limit,
+                workspaceId = workspaceId
+            ),
             method = "GET",
             authorizationHeader = authorizationHeader
         )
@@ -193,6 +202,7 @@ class AiChatRemoteService(
         sessionId: String,
         runId: String,
         liveStream: AiChatLiveStreamEnvelope,
+        workspaceId: String?,
         afterCursor: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): Flow<AiChatLiveEvent> {
@@ -201,6 +211,7 @@ class AiChatRemoteService(
             sessionId = sessionId,
             runId = runId,
             liveStream = liveStream,
+            workspaceId = workspaceId,
             afterCursor = afterCursor,
             resumeDiagnostics = resumeDiagnostics
         )
@@ -238,7 +249,8 @@ class AiChatRemoteService(
     suspend fun stopRun(
         apiBaseUrl: String,
         authorizationHeader: String,
-        sessionId: String
+        sessionId: String,
+        workspaceId: String?
     ): AiChatStopRunResponse = withContext(dispatchers.io) {
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
@@ -252,10 +264,11 @@ class AiChatRemoteService(
             connection.doOutput = true
             connection.outputStream.use { outputStream ->
                 outputStream.write(
-                    JSONObject()
-                        .put("sessionId", sessionId)
-                        .toString()
-                        .toByteArray(StandardCharsets.UTF_8)
+                    putOptionalWorkspaceId(
+                        payload = JSONObject()
+                            .put("sessionId", sessionId),
+                        workspaceId = workspaceId
+                    ).toString().toByteArray(StandardCharsets.UTF_8)
                 )
             }
             val responseBody = readResponseBody(connection = connection)
@@ -269,6 +282,7 @@ class AiChatRemoteService(
         apiBaseUrl: String,
         authorizationHeader: String,
         sessionId: String,
+        workspaceId: String?,
         fileName: String,
         mediaType: String,
         audioBytes: ByteArray
@@ -289,6 +303,7 @@ class AiChatRemoteService(
                     encodeMultipartAudioBody(
                         boundary = boundary,
                         sessionId = sessionId,
+                        workspaceId = workspaceId,
                         fileName = fileName,
                         mediaType = mediaType,
                         audioBytes = audioBytes
@@ -359,7 +374,10 @@ class AiChatRemoteService(
             .put("timezone", request.timezone)
 
         return putOptionalUiLocale(
-            payload = payload,
+            payload = putOptionalWorkspaceId(
+                payload = payload,
+                workspaceId = request.workspaceId
+            ),
             uiLocale = request.uiLocale
         )
     }
@@ -369,9 +387,22 @@ class AiChatRemoteService(
             .put("sessionId", request.sessionId)
 
         return putOptionalUiLocale(
-            payload = payload,
+            payload = putOptionalWorkspaceId(
+                payload = payload,
+                workspaceId = request.workspaceId
+            ),
             uiLocale = request.uiLocale
         )
+    }
+
+    private fun putOptionalWorkspaceId(
+        payload: JSONObject,
+        workspaceId: String?
+    ): JSONObject {
+        workspaceId?.takeIf { value -> value.isNotBlank() }?.let { resolvedWorkspaceId ->
+            payload.put("workspaceId", resolvedWorkspaceId)
+        }
+        return payload
     }
 
     private fun putOptionalUiLocale(
@@ -423,23 +454,31 @@ class AiChatRemoteService(
     private fun encodeMultipartAudioBody(
         boundary: String,
         sessionId: String,
+        workspaceId: String?,
         fileName: String,
         mediaType: String,
         audioBytes: ByteArray
     ): ByteArray {
         val outputStream = ByteArrayOutputStream()
-        outputStream.write("--$boundary\r\n".toByteArray(StandardCharsets.UTF_8))
-        outputStream.write(
-            "Content-Disposition: form-data; name=\"sessionId\"\r\n\r\n"
-                .toByteArray(StandardCharsets.UTF_8)
+        writeMultipartTextField(
+            outputStream = outputStream,
+            boundary = boundary,
+            fieldName = "sessionId",
+            fieldValue = sessionId
         )
-        outputStream.write(sessionId.toByteArray(StandardCharsets.UTF_8))
-        outputStream.write("\r\n".toByteArray(StandardCharsets.UTF_8))
-
-        outputStream.write("--$boundary\r\n".toByteArray(StandardCharsets.UTF_8))
-        outputStream.write(
-            "Content-Disposition: form-data; name=\"source\"\r\n\r\nandroid\r\n"
-                .toByteArray(StandardCharsets.UTF_8)
+        workspaceId?.takeIf { value -> value.isNotBlank() }?.let { resolvedWorkspaceId ->
+            writeMultipartTextField(
+                outputStream = outputStream,
+                boundary = boundary,
+                fieldName = "workspaceId",
+                fieldValue = resolvedWorkspaceId
+            )
+        }
+        writeMultipartTextField(
+            outputStream = outputStream,
+            boundary = boundary,
+            fieldName = "source",
+            fieldValue = "android"
         )
         outputStream.write("--$boundary\r\n".toByteArray(StandardCharsets.UTF_8))
         outputStream.write(
@@ -450,6 +489,79 @@ class AiChatRemoteService(
         outputStream.write(audioBytes)
         outputStream.write("\r\n--$boundary--\r\n".toByteArray(StandardCharsets.UTF_8))
         return outputStream.toByteArray()
+    }
+
+    private fun writeMultipartTextField(
+        outputStream: ByteArrayOutputStream,
+        boundary: String,
+        fieldName: String,
+        fieldValue: String
+    ) {
+        outputStream.write("--$boundary\r\n".toByteArray(StandardCharsets.UTF_8))
+        outputStream.write(
+            "Content-Disposition: form-data; name=\"$fieldName\"\r\n\r\n"
+                .toByteArray(StandardCharsets.UTF_8)
+        )
+        outputStream.write(fieldValue.toByteArray(StandardCharsets.UTF_8))
+        outputStream.write("\r\n".toByteArray(StandardCharsets.UTF_8))
+    }
+
+    private fun buildSnapshotPath(
+        sessionId: String?,
+        workspaceId: String?
+    ): String {
+        val queryParameters = mutableListOf<String>()
+        sessionId?.takeIf { value -> value.isNotBlank() }?.let { resolvedSessionId ->
+            queryParameters.add("sessionId=${encodeQueryValue(value = resolvedSessionId)}")
+        }
+        workspaceId?.takeIf { value -> value.isNotBlank() }?.let { resolvedWorkspaceId ->
+            queryParameters.add("workspaceId=${encodeQueryValue(value = resolvedWorkspaceId)}")
+        }
+        return buildChatPath(queryParameters = queryParameters)
+    }
+
+    private fun buildBootstrapPath(
+        sessionId: String,
+        limit: Int,
+        workspaceId: String?
+    ): String {
+        val queryParameters = mutableListOf(
+            "limit=$limit",
+            "sessionId=${encodeQueryValue(value = sessionId)}"
+        )
+        workspaceId?.takeIf { value -> value.isNotBlank() }?.let { resolvedWorkspaceId ->
+            queryParameters.add("workspaceId=${encodeQueryValue(value = resolvedWorkspaceId)}")
+        }
+        return buildChatPath(queryParameters = queryParameters)
+    }
+
+    private fun buildOlderMessagesPath(
+        sessionId: String,
+        beforeCursor: String,
+        limit: Int,
+        workspaceId: String?
+    ): String {
+        val queryParameters = mutableListOf(
+            "sessionId=${encodeQueryValue(value = sessionId)}",
+            "limit=$limit",
+            "before=${encodeQueryValue(value = beforeCursor)}"
+        )
+        workspaceId?.takeIf { value -> value.isNotBlank() }?.let { resolvedWorkspaceId ->
+            queryParameters.add("workspaceId=${encodeQueryValue(value = resolvedWorkspaceId)}")
+        }
+        return buildChatPath(queryParameters = queryParameters)
+    }
+
+    private fun buildChatPath(queryParameters: List<String>): String {
+        return if (queryParameters.isEmpty()) {
+            "/chat"
+        } else {
+            "/chat?${queryParameters.joinToString(separator = "&")}"
+        }
+    }
+
+    private fun encodeQueryValue(value: String): String {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8)
     }
 }
 
