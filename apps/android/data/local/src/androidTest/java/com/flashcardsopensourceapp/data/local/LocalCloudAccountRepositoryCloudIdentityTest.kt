@@ -1,6 +1,9 @@
 package com.flashcardsopensourceapp.data.local
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.data.local.cloud.forkedCardId
+import com.flashcardsopensourceapp.data.local.cloud.forkedReviewEventId
+import com.flashcardsopensourceapp.data.local.database.OutboxEntryEntity
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
@@ -9,10 +12,13 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -259,9 +265,9 @@ class LocalCloudAccountRepositoryCloudIdentityTest {
     }
 
     @Test
-    fun completeGuestUpgradeIntoNonEmptyWorkspaceReplacesLocalShellAndResetsSyncState() = runBlocking {
+    fun completeGuestUpgradeMergeRequiredPreservesLocalGuestDataWithoutBootstrapProbe() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
-        environment.seedWorkspaceData(workspaceId = localWorkspaceId)
+        val seededCardId = environment.seedWorkspaceData(workspaceId = localWorkspaceId)
         environment.database.syncStateDao().insertSyncState(
             com.flashcardsopensourceapp.data.local.database.SyncStateEntity(
                 workspaceId = localWorkspaceId,
@@ -271,7 +277,40 @@ class LocalCloudAccountRepositoryCloudIdentityTest {
                 hasHydratedReviewHistory = true,
                 lastSyncAttemptAtMillis = 1_000L,
                 lastSuccessfulSyncAtMillis = 2_000L,
-                lastSyncError = "broken"
+                lastSyncError = "broken",
+                blockedInstallationId = null
+            )
+        )
+        environment.database.outboxDao().insertOutboxEntry(
+            OutboxEntryEntity(
+                outboxEntryId = "outbox-card-1",
+                workspaceId = localWorkspaceId,
+                installationId = environment.cloudPreferencesStore.currentCloudSettings().installationId,
+                entityType = "card",
+                entityId = seededCardId,
+                operationType = "upsert",
+                payloadJson = JSONObject()
+                    .put("cardId", seededCardId)
+                    .put("frontText", "Question")
+                    .put("backText", "Answer")
+                    .put("tags", JSONArray())
+                    .put("effortLevel", "medium")
+                    .put("dueAt", JSONObject.NULL)
+                    .put("createdAt", "2026-04-02T15:50:57.000Z")
+                    .put("reps", 0)
+                    .put("lapses", 0)
+                    .put("fsrsCardState", "new")
+                    .put("fsrsStepIndex", JSONObject.NULL)
+                    .put("fsrsStability", JSONObject.NULL)
+                    .put("fsrsDifficulty", JSONObject.NULL)
+                    .put("fsrsLastReviewedAt", JSONObject.NULL)
+                    .put("fsrsScheduledDays", JSONObject.NULL)
+                    .put("deletedAt", JSONObject.NULL)
+                    .toString(),
+                clientUpdatedAtIso = "2026-04-02T15:50:57.000Z",
+                createdAtMillis = 300L,
+                attemptCount = 0,
+                lastError = null
             )
         )
         val guestWorkspaceId = "guest-workspace"
@@ -311,18 +350,43 @@ class LocalCloudAccountRepositoryCloudIdentityTest {
             selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
         )
 
+        val expectedForkedCardId = forkedCardId(
+            sourceWorkspaceId = localWorkspaceId,
+            destinationWorkspaceId = selectedWorkspace.workspaceId,
+            sourceCardId = seededCardId
+        )
+        val expectedForkedReviewEventId = forkedReviewEventId(
+            sourceWorkspaceId = localWorkspaceId,
+            destinationWorkspaceId = selectedWorkspace.workspaceId,
+            sourceReviewEventId = "review-$localWorkspaceId"
+        )
+        val forkedReviewLog = environment.database.reviewLogDao().loadReviewLogs().single()
+        val forkedOutboxEntry = environment.database.outboxDao()
+            .loadAllOutboxEntries(workspaceId = selectedWorkspace.workspaceId)
+            .single()
+        val forkedOutboxPayload = JSONObject(forkedOutboxEntry.payloadJson)
+
         assertEquals(selectedWorkspace.workspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)
-        assertEquals(0, environment.database.cardDao().observeCardsWithRelations().first().size)
-        assertEquals(0, environment.database.reviewLogDao().countReviewLogs())
+        assertNull(environment.database.cardDao().loadCard(seededCardId))
+        assertNotNull(environment.database.cardDao().loadCard(expectedForkedCardId))
+        assertEquals(1, environment.database.reviewLogDao().countReviewLogs())
+        assertEquals(expectedForkedReviewEventId, forkedReviewLog.reviewLogId)
+        assertEquals(expectedForkedCardId, forkedReviewLog.cardId)
+        assertEquals(selectedWorkspace.workspaceId, forkedReviewLog.workspaceId)
+        assertEquals(1, environment.database.outboxDao().countOutboxEntries())
+        assertEquals(selectedWorkspace.workspaceId, forkedOutboxEntry.workspaceId)
+        assertEquals(expectedForkedCardId, forkedOutboxEntry.entityId)
+        assertEquals(expectedForkedCardId, forkedOutboxPayload.getString("cardId"))
         assertNull(environment.database.syncStateDao().loadSyncState(localWorkspaceId))
         assertEquals(
             syncStateEntityWithEmptyProgress(workspaceId = selectedWorkspace.workspaceId),
             environment.database.syncStateDao().loadSyncState(selectedWorkspace.workspaceId)
         )
+        assertTrue(remoteGateway.bootstrapPullWorkspaceIds.isEmpty())
     }
 
     @Test
-    fun completeGuestUpgradeIntoEmptyWorkspacePreservesLocalDataAndRecreatesSyncState() = runBlocking {
+    fun completeGuestUpgradeIntoEmptyWorkspaceForksLocalDataAndRecreatesSyncState() = runBlocking {
         val localWorkspaceId = environment.requireLocalWorkspaceId()
         val seededCardId = environment.seedWorkspaceData(workspaceId = localWorkspaceId)
         environment.database.syncStateDao().insertSyncState(
@@ -334,7 +398,8 @@ class LocalCloudAccountRepositoryCloudIdentityTest {
                 hasHydratedReviewHistory = true,
                 lastSyncAttemptAtMillis = 1_000L,
                 lastSuccessfulSyncAtMillis = 2_000L,
-                lastSyncError = "broken"
+                lastSyncError = "broken",
+                blockedInstallationId = null
             )
         )
         val guestWorkspaceId = "guest-workspace"
@@ -374,10 +439,26 @@ class LocalCloudAccountRepositoryCloudIdentityTest {
             selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
         )
 
+        val expectedForkedCardId = forkedCardId(
+            sourceWorkspaceId = localWorkspaceId,
+            destinationWorkspaceId = selectedWorkspace.workspaceId,
+            sourceCardId = seededCardId
+        )
+        val expectedForkedReviewEventId = forkedReviewEventId(
+            sourceWorkspaceId = localWorkspaceId,
+            destinationWorkspaceId = selectedWorkspace.workspaceId,
+            sourceReviewEventId = "review-$localWorkspaceId"
+        )
+        val forkedReviewLog = environment.database.reviewLogDao().loadReviewLogs().single()
+
         assertEquals(selectedWorkspace.workspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)
-        assertNotNull(environment.database.cardDao().loadCard(seededCardId))
-        assertEquals(selectedWorkspace.workspaceId, environment.database.cardDao().loadCard(seededCardId)?.workspaceId)
+        assertNull(environment.database.cardDao().loadCard(seededCardId))
+        assertNotNull(environment.database.cardDao().loadCard(expectedForkedCardId))
+        assertEquals(selectedWorkspace.workspaceId, environment.database.cardDao().loadCard(expectedForkedCardId)?.workspaceId)
         assertEquals(1, environment.database.reviewLogDao().countReviewLogs())
+        assertEquals(expectedForkedReviewEventId, forkedReviewLog.reviewLogId)
+        assertEquals(expectedForkedCardId, forkedReviewLog.cardId)
+        assertEquals(selectedWorkspace.workspaceId, forkedReviewLog.workspaceId)
         assertNull(environment.database.syncStateDao().loadSyncState(localWorkspaceId))
         assertEquals(
             syncStateEntityWithEmptyProgress(workspaceId = selectedWorkspace.workspaceId),

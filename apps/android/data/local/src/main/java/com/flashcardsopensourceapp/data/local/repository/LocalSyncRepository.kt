@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 
 class LocalSyncRepository(
     private val database: AppDatabase,
@@ -44,7 +46,19 @@ class LocalSyncRepository(
     )
 
     override fun observeSyncStatus(): Flow<SyncStatusSnapshot> {
-        return syncStatusState.asStateFlow()
+        return combine(
+            syncStatusState.asStateFlow(),
+            preferencesStore.observeCloudSettings(),
+            observePersistedSyncStatus()
+        ) { inMemorySnapshot, cloudSettings, persistedSnapshot ->
+            mergeSyncStatusSnapshots(
+                inMemorySnapshot = sanitizeInMemorySyncStatus(
+                    snapshot = inMemorySnapshot,
+                    cloudState = cloudSettings.cloudState
+                ),
+                persistedSnapshot = persistedSnapshot
+            )
+        }
     }
 
     override suspend fun scheduleSync() {
@@ -67,8 +81,26 @@ class LocalSyncRepository(
         operationCoordinator.runExclusive {
             val currentCloudSettings = preferencesStore.currentCloudSettings()
             val previousCloudState = currentCloudSettings.cloudState
-            val currentStatus = syncStatusState.value.status
+            val currentSnapshot = sanitizeInMemorySyncStatus(
+                snapshot = syncStatusState.value,
+                cloudState = currentCloudSettings.cloudState
+            )
+            if (currentSnapshot != syncStatusState.value) {
+                syncStatusState.value = currentSnapshot
+            }
+            val currentStatus = currentSnapshot.status
             emitAutoSyncRequested(autoSyncRequest = autoSyncRequest)
+            val persistedSyncStatus = loadPersistedSyncStatus(cloudSettings = currentCloudSettings)
+            val persistedBlockedStatus = persistedSyncStatus?.status as? SyncStatus.Blocked
+            if (persistedBlockedStatus != null) {
+                syncStatusState.value = persistedSyncStatus
+                val error = IllegalStateException(persistedBlockedStatus.message)
+                emitAutoSyncFailure(
+                    autoSyncRequest = autoSyncRequest,
+                    error = error
+                )
+                throw error
+            }
             if (currentStatus is SyncStatus.Blocked) {
                 if (currentStatus.installationId == currentCloudSettings.installationId) {
                     val error = IllegalStateException(currentStatus.message)
@@ -150,7 +182,7 @@ class LocalSyncRepository(
                     emitAutoSyncSuccess(autoSyncRequest = autoSyncRequest)
                     return@runExclusive
                 }
-                if (isCloudIdentityConflictError(error = error)) {
+                if (isCloudIdentityConflictError(error = error) || error is CloudSyncBlockedException) {
                     val message = error.message ?: "Cloud sync is blocked for this installation."
                     syncStatusState.value = SyncStatusSnapshot(
                         status = SyncStatus.Blocked(
@@ -312,6 +344,29 @@ class LocalSyncRepository(
             accountSnapshot = accountSnapshot
         )
     }
+
+    private fun observePersistedSyncStatus(): Flow<SyncStatusSnapshot?> {
+        return combine(
+            preferencesStore.observeCloudSettings(),
+            database.syncStateDao().observeSyncStates()
+        ) { cloudSettings, syncStates ->
+            val workspaceId = cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId ?: return@combine null
+            syncStates.firstOrNull { syncState -> syncState.workspaceId == workspaceId }
+                ?.toPersistedSyncStatusSnapshot(
+                    installationId = cloudSettings.installationId,
+                    restoreBlockedStatus = cloudSettings.cloudState.shouldRestoreBlockedSyncStatus()
+                )
+        }
+    }
+
+    private suspend fun loadPersistedSyncStatus(cloudSettings: CloudSettings): SyncStatusSnapshot? {
+        val workspaceId = cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId ?: return null
+        val syncState = database.syncStateDao().loadSyncState(workspaceId = workspaceId) ?: return null
+        return syncState.toPersistedSyncStatusSnapshot(
+            installationId = cloudSettings.installationId,
+            restoreBlockedStatus = cloudSettings.cloudState.shouldRestoreBlockedSyncStatus()
+        )
+    }
 }
 
 private data class SyncAuthenticatedCloudSession(
@@ -324,3 +379,73 @@ private data class CloudSyncTarget(
     val workspaceId: String,
     val session: CloudSyncSession
 )
+
+private fun sanitizeInMemorySyncStatus(
+    snapshot: SyncStatusSnapshot,
+    cloudState: CloudAccountState
+): SyncStatusSnapshot {
+    if (cloudState.shouldRestoreBlockedSyncStatus() || snapshot.status !is SyncStatus.Blocked) {
+        return snapshot
+    }
+
+    return snapshot.copy(
+        status = SyncStatus.Idle,
+        lastErrorMessage = ""
+    )
+}
+
+private fun mergeSyncStatusSnapshots(
+    inMemorySnapshot: SyncStatusSnapshot,
+    persistedSnapshot: SyncStatusSnapshot?
+): SyncStatusSnapshot {
+    if (persistedSnapshot == null) {
+        return inMemorySnapshot
+    }
+
+    return when (inMemorySnapshot.status) {
+        SyncStatus.Idle -> persistedSnapshot
+        SyncStatus.Syncing -> inMemorySnapshot.copy(
+            lastSuccessfulSyncAtMillis = inMemorySnapshot.lastSuccessfulSyncAtMillis
+                ?: persistedSnapshot.lastSuccessfulSyncAtMillis
+        )
+
+        is SyncStatus.Blocked -> inMemorySnapshot.copy(
+            lastSuccessfulSyncAtMillis = inMemorySnapshot.lastSuccessfulSyncAtMillis
+                ?: persistedSnapshot.lastSuccessfulSyncAtMillis
+        )
+
+        is SyncStatus.Failed -> inMemorySnapshot.copy(
+            lastSuccessfulSyncAtMillis = inMemorySnapshot.lastSuccessfulSyncAtMillis
+                ?: persistedSnapshot.lastSuccessfulSyncAtMillis
+        )
+    }
+}
+
+private fun SyncStateEntity.toPersistedSyncStatusSnapshot(
+    installationId: String,
+    restoreBlockedStatus: Boolean
+): SyncStatusSnapshot {
+    val persistedBlockedStatus = toPersistedBlockedStatus(installationId = installationId)
+    val blockedStatus = if (restoreBlockedStatus) persistedBlockedStatus else null
+    val lastErrorMessage = if (restoreBlockedStatus.not() && persistedBlockedStatus != null) "" else lastSyncError.orEmpty()
+    return SyncStatusSnapshot(
+        status = blockedStatus ?: SyncStatus.Idle,
+        lastSuccessfulSyncAtMillis = lastSuccessfulSyncAtMillis,
+        lastErrorMessage = lastErrorMessage
+    )
+}
+
+private fun SyncStateEntity.toPersistedBlockedStatus(installationId: String): SyncStatus.Blocked? {
+    if (blockedInstallationId != installationId) {
+        return null
+    }
+
+    return SyncStatus.Blocked(
+        message = lastSyncError ?: "Cloud sync is blocked for this installation.",
+        installationId = installationId
+    )
+}
+
+private fun CloudAccountState.shouldRestoreBlockedSyncStatus(): Boolean {
+    return this == CloudAccountState.LINKED || this == CloudAccountState.GUEST
+}

@@ -213,7 +213,8 @@ data class SyncStateEntity(
     val hasHydratedReviewHistory: Boolean,
     val lastSyncAttemptAtMillis: Long?,
     val lastSuccessfulSyncAtMillis: Long?,
-    val lastSyncError: String?
+    val lastSyncError: String?,
+    val blockedInstallationId: String?
 )
 
 @Entity(tableName = "progress_summary_cache")

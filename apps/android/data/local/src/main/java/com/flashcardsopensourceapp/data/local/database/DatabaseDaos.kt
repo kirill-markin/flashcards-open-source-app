@@ -103,6 +103,9 @@ interface DeckDao {
     @Query("SELECT * FROM decks WHERE deckId = :deckId LIMIT 1")
     suspend fun loadDeck(deckId: String): DeckEntity?
 
+    @Query("SELECT * FROM decks WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC, deckId ASC")
+    suspend fun loadDecks(workspaceId: String): List<DeckEntity>
+
     @Query("SELECT COUNT(*) FROM decks")
     fun observeDeckCount(): Flow<Int>
 
@@ -144,6 +147,9 @@ interface CardDao {
 
     @Query("SELECT * FROM cards WHERE cardId = :cardId LIMIT 1")
     suspend fun loadCard(cardId: String): CardEntity?
+
+    @Query("SELECT * FROM cards WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC, cardId ASC")
+    suspend fun loadCards(workspaceId: String): List<CardEntity>
 
     @Query(
         """
@@ -286,6 +292,12 @@ interface TagDao {
     @Query("SELECT * FROM tags WHERE workspaceId = :workspaceId")
     suspend fun loadTagsForWorkspace(workspaceId: String): List<TagEntity>
 
+    @Query("SELECT * FROM tags WHERE workspaceId = :workspaceId ORDER BY name ASC, tagId ASC")
+    suspend fun loadTags(workspaceId: String): List<TagEntity>
+
+    @Query("SELECT * FROM card_tags WHERE cardId IN (:cardIds)")
+    suspend fun loadCardTags(cardIds: List<String>): List<CardTagEntity>
+
     @Query("SELECT EXISTS(SELECT 1 FROM tags WHERE workspaceId = :workspaceId AND LOWER(name) = LOWER(:tagName) LIMIT 1)")
     suspend fun hasTag(workspaceId: String, tagName: String): Boolean
 
@@ -365,6 +377,9 @@ interface OutboxDao {
     @Query("SELECT * FROM outbox_entries WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC LIMIT :limit")
     suspend fun loadOutboxEntries(workspaceId: String, limit: Int): List<OutboxEntryEntity>
 
+    @Query("SELECT * FROM outbox_entries WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC, outboxEntryId ASC")
+    suspend fun loadAllOutboxEntries(workspaceId: String): List<OutboxEntryEntity>
+
     @Query(
         """
         SELECT * FROM outbox_entries
@@ -427,6 +442,15 @@ interface SyncStateDao {
 
     @Query("UPDATE sync_state SET workspaceId = :newWorkspaceId WHERE workspaceId = :oldWorkspaceId")
     suspend fun reassignWorkspace(oldWorkspaceId: String, newWorkspaceId: String)
+
+    @Query(
+        """
+        UPDATE sync_state
+        SET lastSyncError = NULL, blockedInstallationId = NULL
+        WHERE blockedInstallationId IS NOT NULL
+        """
+    )
+    suspend fun clearBlockedSyncState()
 }
 
 @Dao

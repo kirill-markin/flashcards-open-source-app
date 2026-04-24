@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSummary
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
@@ -166,7 +167,8 @@ class LocalCloudAccountRepository(
             applyLinkedWorkspace(
                 accountSnapshot = authenticatedSession.accountSnapshot,
                 bearerToken = authenticatedSession.credentials.idToken,
-                selectedWorkspace = selectedWorkspace
+                selectedWorkspace = selectedWorkspace,
+                migrationStrategy = LinkedWorkspaceMigrationStrategy.PROBE_REMOTE_BOOTSTRAP
             )
             preferencesStore.saveCredentials(authenticatedSession.credentials)
             selectedWorkspace
@@ -183,6 +185,9 @@ class LocalCloudAccountRepository(
             val guestSession = requireNotNull(activeGuestSession(configuration = configuration)) {
                 "Guest AI session is unavailable."
             }
+            val guestUpgradeMode = requireNotNull(linkContext.guestUpgradeMode) {
+                "Guest upgrade requires prepared guest upgrade context."
+            }
             val validatedSelection = validateWorkspaceSelection(
                 linkContext = linkContext,
                 selection = selection
@@ -197,7 +202,8 @@ class LocalCloudAccountRepository(
             applyLinkedWorkspace(
                 accountSnapshot = authenticatedSession.accountSnapshot,
                 bearerToken = authenticatedSession.credentials.idToken,
-                selectedWorkspace = selectedWorkspace
+                selectedWorkspace = selectedWorkspace,
+                migrationStrategy = guestUpgradeMode.toLinkedWorkspaceMigrationStrategy()
             )
             preferencesStore.saveCredentials(authenticatedSession.credentials)
             selectedWorkspace
@@ -666,25 +672,17 @@ class LocalCloudAccountRepository(
     private suspend fun applyLinkedWorkspace(
         accountSnapshot: CloudAccountSnapshot,
         bearerToken: String,
-        selectedWorkspace: CloudWorkspaceSummary
+        selectedWorkspace: CloudWorkspaceSummary,
+        migrationStrategy: LinkedWorkspaceMigrationStrategy
     ) {
-        val configuration = preferencesStore.currentServerConfiguration()
-        val bootstrapProbe = remoteService.bootstrapPull(
-            apiBaseUrl = configuration.apiBaseUrl,
-            authorizationHeader = "Bearer $bearerToken",
-            workspaceId = selectedWorkspace.workspaceId,
-            body = JSONObject()
-                .put("mode", "pull")
-                .put("installationId", preferencesStore.currentCloudSettings().installationId)
-                .put("platform", androidClientPlatform)
-                .put("appVersion", appVersion)
-                .put("cursor", JSONObject.NULL)
-                .put("limit", 1)
+        val remoteWorkspaceIsEmpty = resolveRemoteWorkspaceEmptiness(
+            bearerToken = bearerToken,
+            selectedWorkspace = selectedWorkspace,
+            migrationStrategy = migrationStrategy
         )
-
         val localLinkedWorkspace = syncLocalStore.migrateLocalShellToLinkedWorkspace(
             workspace = selectedWorkspace,
-            remoteWorkspaceIsEmpty = bootstrapProbe.remoteIsEmpty
+            remoteWorkspaceIsEmpty = remoteWorkspaceIsEmpty
         )
         check(localLinkedWorkspace.workspaceId == selectedWorkspace.workspaceId) {
             "Linked workspace migration produced an unexpected local workspace. " +
@@ -709,6 +707,32 @@ class LocalCloudAccountRepository(
         }
     }
 
+    private suspend fun resolveRemoteWorkspaceEmptiness(
+        bearerToken: String,
+        selectedWorkspace: CloudWorkspaceSummary,
+        migrationStrategy: LinkedWorkspaceMigrationStrategy
+    ): Boolean {
+        return when (migrationStrategy) {
+            LinkedWorkspaceMigrationStrategy.PROBE_REMOTE_BOOTSTRAP -> {
+                val configuration = preferencesStore.currentServerConfiguration()
+                remoteService.bootstrapPull(
+                    apiBaseUrl = configuration.apiBaseUrl,
+                    authorizationHeader = "Bearer $bearerToken",
+                    workspaceId = selectedWorkspace.workspaceId,
+                    body = JSONObject()
+                        .put("mode", "pull")
+                        .put("installationId", preferencesStore.currentCloudSettings().installationId)
+                        .put("platform", androidClientPlatform)
+                        .put("appVersion", appVersion)
+                        .put("cursor", JSONObject.NULL)
+                        .put("limit", 1)
+                ).remoteIsEmpty
+            }
+
+            LinkedWorkspaceMigrationStrategy.FORK_LOCAL_DATA -> true
+        }
+    }
+
     private suspend fun applyLinkedWorkspaceAndSync(
         authenticatedSession: AuthenticatedCloudSession,
         selectedWorkspace: CloudWorkspaceSummary
@@ -716,7 +740,8 @@ class LocalCloudAccountRepository(
         applyLinkedWorkspace(
             accountSnapshot = authenticatedSession.accountSnapshot,
             bearerToken = authenticatedSession.credentials.idToken,
-            selectedWorkspace = selectedWorkspace
+            selectedWorkspace = selectedWorkspace,
+            migrationStrategy = LinkedWorkspaceMigrationStrategy.PROBE_REMOTE_BOOTSTRAP
         )
         requireTransitionInvariant(
             stage = "after prefs update",
@@ -918,3 +943,15 @@ private data class ProgressCloudSession(
     val apiBaseUrl: String,
     val authorizationHeader: String
 )
+
+private enum class LinkedWorkspaceMigrationStrategy {
+    PROBE_REMOTE_BOOTSTRAP,
+    FORK_LOCAL_DATA
+}
+
+private fun CloudGuestUpgradeMode.toLinkedWorkspaceMigrationStrategy(): LinkedWorkspaceMigrationStrategy {
+    return when (this) {
+        CloudGuestUpgradeMode.BOUND -> LinkedWorkspaceMigrationStrategy.PROBE_REMOTE_BOOTSTRAP
+        CloudGuestUpgradeMode.MERGE_REQUIRED -> LinkedWorkspaceMigrationStrategy.FORK_LOCAL_DATA
+    }
+}

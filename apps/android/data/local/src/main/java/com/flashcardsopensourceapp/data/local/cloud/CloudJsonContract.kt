@@ -95,6 +95,22 @@ internal fun JSONObject.requireCloudBoolean(key: String, fieldPath: String): Boo
     )
 }
 
+internal fun JSONObject.optCloudBooleanOrNull(key: String, fieldPath: String): Boolean? {
+    if (has(key).not()) {
+        return null
+    }
+    val value = requireCloudValue(key = key, fieldPath = fieldPath)
+    return when {
+        value === JSONObject.NULL -> null
+        value is Boolean -> value
+        else -> throw cloudContractMismatch(
+            fieldPath = fieldPath,
+            expected = "boolean or null",
+            actualValue = value
+        )
+    }
+}
+
 internal fun JSONObject.requireCloudObject(key: String, fieldPath: String): JSONObject {
     val value = requireCloudValue(key = key, fieldPath = fieldPath)
     return value as? JSONObject ?: throw cloudContractMismatch(
