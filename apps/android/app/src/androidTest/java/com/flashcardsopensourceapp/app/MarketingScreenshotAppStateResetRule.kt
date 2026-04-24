@@ -4,22 +4,19 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.rules.ExternalResource
 
 private const val marketingScreenshotGuestCleanupTimeoutMillis: Long = 20_000L
 
-class MarketingScreenshotAppStateResetRule : ExternalResource() {
-    private val delegate = AppStateResetRule()
-
+class MarketingScreenshotAppStateResetRule : AppStateResetRule() {
     override fun before() {
-        runRemoteCleanupThenDelegate(delegateAction = delegate::before)
+        runRemoteCleanupThenReset(resetAction = { super.before() })
     }
 
     override fun after() {
-        runRemoteCleanupThenDelegate(delegateAction = delegate::after)
+        runRemoteCleanupThenReset(resetAction = { super.after() })
     }
 
-    private fun runRemoteCleanupThenDelegate(delegateAction: () -> Unit) {
+    private fun runRemoteCleanupThenReset(resetAction: () -> Unit) {
         var primaryFailure: Throwable? = null
 
         try {
@@ -29,7 +26,7 @@ class MarketingScreenshotAppStateResetRule : ExternalResource() {
         }
 
         try {
-            delegateAction()
+            resetAction()
         } catch (error: Throwable) {
             if (primaryFailure != null) {
                 primaryFailure.addSuppressed(error)
