@@ -1,10 +1,10 @@
 import Foundation
 import XCTest
 
-final class MarketingReviewScreenshotsTests: MarketingManualScreenshotTestCase {
+final class MarketingReviewAndCardsScreenshotsTests: MarketingManualScreenshotTestCase {
     @MainActor
-    func testGenerateOpportunityCostReviewScreenshots() throws {
-        let localeFixture = try self.launchOpportunityCostReviewCard()
+    func testGenerateOpportunityCostReviewAndCardsScreenshots() throws {
+        let localeFixture = try self.launchMarketingReviewAndCards()
 
         try self.step("capture review front screenshot") {
             try self.captureMarketingScreenshotAndAssertWritten(
@@ -34,6 +34,16 @@ final class MarketingReviewScreenshotsTests: MarketingManualScreenshotTestCase {
         try self.step("capture review AI draft screenshot") {
             try self.captureMarketingScreenshotAndAssertWritten(
                 fileName: localeFixture.reviewAiDraftFileName
+            )
+        }
+
+        try self.step("open cards list state") {
+            try self.launchMarketingCardsList(reviewCardFrontText: localeFixture.reviewCard.frontText)
+        }
+
+        try self.step("capture cards list screenshot") {
+            try self.captureMarketingScreenshotAndAssertWritten(
+                fileName: localeFixture.cardsFileName
             )
         }
     }

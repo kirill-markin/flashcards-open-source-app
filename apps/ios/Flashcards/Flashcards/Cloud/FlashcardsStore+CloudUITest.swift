@@ -6,8 +6,7 @@ enum FlashcardsUITestLaunchScenario: String {
     case guestEmptyWorkspace = "guest_empty_workspace"
     case guestManualReviewCard = "guest_manual_review_card"
     case guestAIReviewCard = "guest_ai_review_card"
-    case marketingOpportunityCostReviewCard = "marketing_opportunity_cost_review_card"
-    case marketingConceptCards = "marketing_concept_cards"
+    case marketingReviewAndCards = "marketing_review_and_cards"
     case marketingProgress = "marketing_progress"
     case marketingGuestSessionCleanup = "marketing_guest_session_cleanup"
 
@@ -15,7 +14,7 @@ enum FlashcardsUITestLaunchScenario: String {
         switch self {
         case .guestEmptyWorkspace, .guestManualReviewCard, .guestAIReviewCard:
             return false
-        case .marketingOpportunityCostReviewCard, .marketingConceptCards, .marketingProgress:
+        case .marketingReviewAndCards, .marketingProgress:
             return true
         case .marketingGuestSessionCleanup:
             return false
@@ -24,8 +23,7 @@ enum FlashcardsUITestLaunchScenario: String {
 
     var requiresStoredGuestRemoteCleanup: Bool {
         switch self {
-        case .marketingOpportunityCostReviewCard,
-                .marketingConceptCards,
+        case .marketingReviewAndCards,
                 .marketingProgress,
                 .marketingGuestSessionCleanup:
             return true
@@ -102,11 +100,17 @@ private enum FlashcardsUITestMarketingProgressSeedError: LocalizedError {
 
 private enum FlashcardsUITestLaunchScenarioError: LocalizedError {
     case createdCardCountMismatch(expected: Int, actual: Int)
+    case missingMarketingCardsFixture(localizationCode: String)
+    case marketingReviewCardPromptMismatch(localizationCode: String, reviewPrompt: String, cardsPrompt: String)
 
     var errorDescription: String? {
         switch self {
         case .createdCardCountMismatch(let expected, let actual):
             return "Expected \(expected) UI test cards but created \(actual)."
+        case .missingMarketingCardsFixture(let localizationCode):
+            return "Marketing review-and-cards screenshots require at least one cards fixture for localization '\(localizationCode)'."
+        case .marketingReviewCardPromptMismatch(let localizationCode, let reviewPrompt, let cardsPrompt):
+            return "Marketing review-and-cards screenshots require the review prompt and first cards-list prompt to match for localization '\(localizationCode)'. reviewPrompt='\(reviewPrompt)' cardsPrompt='\(cardsPrompt)'."
         }
     }
 }
@@ -644,18 +648,42 @@ extension FlashcardsStore {
             try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.manualReviewCard, context: context)
         case .guestAIReviewCard:
             try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.aiReviewCard, context: context)
-        case .marketingOpportunityCostReviewCard:
+        case .marketingReviewAndCards:
             let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: processInfo)
-            try self.createUITestCard(card: localeFixture.reviewCard, context: context)
-        case .marketingConceptCards:
-            let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: processInfo)
-            try self.createUITestCards(cards: localeFixture.conceptCards, context: context)
+            try self.createUITestMarketingReviewAndCardsData(localeFixture: localeFixture, context: context)
         case .marketingProgress:
             let localeFixture = try FlashcardsUITestMarketingFixtures.localeFixture(processInfo: processInfo)
             try self.createUITestProgressData(cards: localeFixture.conceptCards, context: context)
         case .marketingGuestSessionCleanup:
             return
         }
+    }
+
+    private func createUITestMarketingReviewAndCardsData(
+        localeFixture: FlashcardsUITestMarketingLocaleFixture,
+        context: LocalMutationContext
+    ) throws {
+        guard let firstConceptCard = localeFixture.conceptCards.first else {
+            throw FlashcardsUITestLaunchScenarioError.missingMarketingCardsFixture(
+                localizationCode: localeFixture.localizationCode
+            )
+        }
+
+        guard firstConceptCard.frontText == localeFixture.reviewCard.frontText else {
+            throw FlashcardsUITestLaunchScenarioError.marketingReviewCardPromptMismatch(
+                localizationCode: localeFixture.localizationCode,
+                reviewPrompt: localeFixture.reviewCard.frontText,
+                cardsPrompt: firstConceptCard.frontText
+            )
+        }
+
+        let remainingConceptCards = Array(localeFixture.conceptCards.dropFirst())
+        if remainingConceptCards.isEmpty == false {
+            try self.createUITestCards(cards: remainingConceptCards, context: context)
+        }
+
+        // Save the review card last so it remains first in review and at the top of the cards list.
+        try self.createUITestCard(card: localeFixture.reviewCard, context: context)
     }
 
     private func createUITestCards(
