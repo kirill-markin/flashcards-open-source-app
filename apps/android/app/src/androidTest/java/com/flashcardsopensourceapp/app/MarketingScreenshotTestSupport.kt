@@ -20,6 +20,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.test.core.app.ActivityScenario
@@ -35,6 +36,7 @@ import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerPendingAttachmentTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
+import com.flashcardsopensourceapp.feature.cards.cardsCardFrontTextTag
 import com.flashcardsopensourceapp.feature.cards.cardsSearchFieldTag
 import com.flashcardsopensourceapp.feature.progress.progressReviewsActivityChartTag
 import com.flashcardsopensourceapp.feature.progress.progressReviewsSectionTag
@@ -114,14 +116,15 @@ internal class MarketingScreenshotRobot(
     private val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     private var hasAppliedLocale: Boolean = false
 
-    fun waitForRepositorySeededCards(frontTexts: List<String>) {
+    fun prepareCardsListForScreenshot(frontTexts: List<String>, expectedTopFrontText: String) {
         ensureLocaleApplied()
         openCardsTab()
         waitUntilWithSystemDialogMitigation {
             composeRule.onAllNodesWithTag(cardsSearchFieldTag).fetchSemanticsNodes().isNotEmpty() &&
                 frontTexts.all { frontText ->
                     composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty()
-                }
+                } &&
+                visibleCardsFrontTexts().firstOrNull() == expectedTopFrontText
         }
     }
 
@@ -423,6 +426,21 @@ internal class MarketingScreenshotRobot(
             ?.config
             ?.getOrNull(SemanticsProperties.EditableText)
             ?.text
+    }
+
+    private fun visibleCardsFrontTexts(): List<String> {
+        return composeRule.onAllNodesWithTag(cardsCardFrontTextTag, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .map(::nodeTextSummary)
+            .filter { text -> text.isNotBlank() }
+    }
+
+    private fun nodeTextSummary(node: SemanticsNode): String {
+        val texts: List<String> = node.config.getOrNull(SemanticsProperties.Text)
+            ?.map { text -> text.text.trim() }
+            ?.filter { text -> text.isNotBlank() }
+            .orEmpty()
+        return texts.joinToString(separator = " | ")
     }
 
     private fun aiComposerSendButtonMatchesState(expectedLabel: String, expectedEnabled: Boolean): Boolean {
