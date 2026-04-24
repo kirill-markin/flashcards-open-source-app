@@ -30,22 +30,22 @@ The JSON contract is:
   "schemaVersion": 1,
   "generatedAtUtc": "2026-04-23T01:00:12.345Z",
   "asOfUtc": "2026-04-23T00:00:00.000Z",
-  "from": "2026-01-23",
+  "from": "2026-04-21",
   "to": "2026-04-22",
   "totals": {
     "uniqueReviewingUsers": 8,
     "reviewEvents": {
-      "total": 12,
+      "total": 5,
       "byPlatform": {
-        "web": 4,
-        "android": 5,
-        "ios": 3
+        "web": 2,
+        "android": 2,
+        "ios": 1
       }
     }
   },
   "days": [
     {
-      "date": "2026-01-23",
+      "date": "2026-04-21",
       "uniqueReviewingUsers": 2,
       "reviewEvents": {
         "total": 3,
@@ -53,6 +53,18 @@ The JSON contract is:
           "web": 1,
           "android": 1,
           "ios": 1
+        }
+      }
+    },
+    {
+      "date": "2026-04-22",
+      "uniqueReviewingUsers": 2,
+      "reviewEvents": {
+        "total": 2,
+        "byPlatform": {
+          "web": 1,
+          "android": 1,
+          "ios": 0
         }
       }
     }
@@ -68,17 +80,19 @@ Contract rules:
 - `from` and `to` are inclusive UTC dates for the `days` array.
 - `totals.uniqueReviewingUsers` is a number.
 - `totals.reviewEvents.total` is a number and must equal the sum of `totals.reviewEvents.byPlatform`.
-- `days` is an ordered, zero-filled 90-item UTC date series from `from` through `to`.
+- `days` is an ordered, zero-filled all-time UTC date series from `from` through `to`.
 - Each `days[]` entry contains `date`, `uniqueReviewingUsers`, and `reviewEvents`.
 - `to` is always the UTC day immediately before `asOfUtc`.
-- `from` is always 90 complete UTC days before `asOfUtc`.
+- `from` is the earliest included UTC day with qualifying persisted review activity before `asOfUtc`.
+- If there is no qualifying review activity before `asOfUtc`, `from` equals `to` and `days` contains one zero-value UTC day.
+- `totals.reviewEvents` equals the sum of the all-time `days[].reviewEvents` series because both cover the same all-time date range.
 
 ## Counting Semantics
 
 The snapshot uses `content.review_events.reviewed_at_server` and UTC calendar days.
 
 - `totals` are cumulative for all matching review activity before `asOfUtc`.
-- `days` covers only the trailing 90 complete UTC days from `from` through `to`.
+- `days` covers all complete UTC days from `from` through `to`.
 - Missing days are represented as explicit zero-value entries instead of being omitted.
 - `reviewEvents.byPlatform` contains `web`, `android`, and `ios`.
 - Do not infer per-platform unique user counts from review-event volume.
@@ -90,7 +104,8 @@ That means these counts are not immutable historical authorship: if the current 
 
 - Treat the snapshot as a cached daily aggregate, not a live analytics stream.
 - Render UTC dates exactly as provided instead of converting bucket labels into local time.
-- Do not expect the `totals` counters to equal the sum of the 90-day `days` series.
+- Expect the payload to grow by one `days[]` row per UTC day after the first qualifying review date, and possibly grow backward if older review history is backfilled later.
+- Treat `totals` as the canonical headline counters; for review events they should match the sum of the all-time `days` series.
 - Websites can fetch this endpoint when visibility is enabled, and future mobile-app endpoint consumers can do the same once those clients add UI.
 
 Deployment details are documented in [docs/backend-web-deployment.md](./backend-web-deployment.md).
