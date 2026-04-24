@@ -5,6 +5,10 @@ import {
   computeReviewSchedule,
   type ReviewableCardScheduleState,
 } from "../schedule";
+import {
+  createSyncConflictHttpError,
+  findSyncConflictWorkspaceIdInExecutor,
+} from "../sync/fork";
 import { getWorkspaceSchedulerConfig } from "../workspaceSchedulerSettings";
 import { validateOrResetReviewableCardRow } from "./fsrs";
 import {
@@ -81,7 +85,7 @@ export async function appendReviewEventSnapshotInExecutor(
       "INSERT INTO content.review_events",
       "(review_event_id, workspace_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_at_server)",
       "VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, now()))",
-      "ON CONFLICT (workspace_id, replica_id, client_event_id) DO NOTHING",
+      "ON CONFLICT DO NOTHING",
       "RETURNING review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
     ].join(" "),
     [
@@ -107,6 +111,22 @@ export async function appendReviewEventSnapshotInExecutor(
     };
   }
 
+  const conflictingWorkspaceId = await findSyncConflictWorkspaceIdInExecutor(executor, {
+    entityType: "review_event",
+    entityId: reviewEvent.reviewEventId,
+  });
+  if (conflictingWorkspaceId !== null && conflictingWorkspaceId !== workspaceId) {
+    throw createSyncConflictHttpError({
+      phase: "review_event_write",
+      entityType: "review_event",
+      entityId: reviewEvent.reviewEventId,
+      conflictingWorkspaceId,
+      constraint: "review_events_pkey",
+      sqlState: "23505",
+      table: "review_events",
+    });
+  }
+
   const existingResult = await executor.query<ReviewHistoryRow>(
     [
       "SELECT review_event_id, workspace_id, replica_id, client_event_id, card_id, rating, reviewed_at_client, reviewed_at_server",
@@ -121,7 +141,7 @@ export async function appendReviewEventSnapshotInExecutor(
 
   const existingRow = existingResult.rows[0];
   if (existingRow === undefined) {
-    throw new Error("Review event insert deduped but no stored review event was found");
+    throw new Error(`Review event insert deduped but no stored review event was found for ${operationId}`);
   }
 
   const existingReviewEvent = mapReviewHistoryItem(existingRow);
