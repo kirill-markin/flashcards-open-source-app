@@ -2,8 +2,8 @@ import { z } from "zod";
 
 const millisecondsPerDay = 86_400_000;
 const utcDatePattern = /^\d{4}-\d{2}-\d{2}$/;
-
-export const globalMetricsTrailingCompleteUtcDayCount = 90;
+const legacyGlobalMetricsSnapshotTrailingUtcDayCount = 90;
+export const globalMetricsSnapshotSchemaVersion = 1 as const;
 
 export type GlobalMetricsReviewEventsByPlatform = Readonly<{
   web: number;
@@ -23,7 +23,7 @@ export type GlobalMetricsSnapshotDay = Readonly<{
 }>;
 
 export type GlobalMetricsSnapshot = Readonly<{
-  schemaVersion: 1;
+  schemaVersion: typeof globalMetricsSnapshotSchemaVersion;
   generatedAtUtc: string;
   asOfUtc: string;
   from: string;
@@ -62,6 +62,8 @@ export type GlobalMetricsSnapshotDayRow = Readonly<{
   ios_review_events: number | string;
 }>;
 
+export type GlobalMetricsSnapshotHistoricalStartDate = string | null;
+
 const globalMetricsReviewEventsByPlatformSchema = z.object({
   web: z.number().int().nonnegative(),
   android: z.number().int().nonnegative(),
@@ -80,7 +82,7 @@ const globalMetricsSnapshotDaySchema = z.object({
 }).strict();
 
 export const globalMetricsSnapshotSchema = z.object({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(globalMetricsSnapshotSchemaVersion),
   generatedAtUtc: z.string().datetime(),
   asOfUtc: z.string().datetime(),
   from: z.string().regex(utcDatePattern),
@@ -226,12 +228,6 @@ function createSnapshotDayFromRow(row: GlobalMetricsSnapshotDayRow): GlobalMetri
 
 function assertSnapshotDayRange(snapshot: GlobalMetricsSnapshot): void {
   const expectedDates = createInclusiveUtcDateRange(snapshot.from, snapshot.to);
-  if (expectedDates.length !== globalMetricsTrailingCompleteUtcDayCount) {
-    throw new Error(
-      `Global metrics snapshot date window must cover exactly ${globalMetricsTrailingCompleteUtcDayCount} days.`,
-    );
-  }
-
   if (snapshot.days.length !== expectedDates.length) {
     throw new Error(
       `Global metrics snapshot days length must be ${expectedDates.length}, received ${snapshot.days.length}.`,
@@ -275,11 +271,6 @@ function assertSnapshotTimeWindow(snapshot: GlobalMetricsSnapshot): void {
   if (snapshot.to !== expectedTo) {
     throw new Error(`Global metrics snapshot to must equal ${expectedTo}.`);
   }
-
-  const expectedFrom = formatUtcDate(shiftUtcDate(asOfDate, -globalMetricsTrailingCompleteUtcDayCount));
-  if (snapshot.from !== expectedFrom) {
-    throw new Error(`Global metrics snapshot from must equal ${expectedFrom}.`);
-  }
 }
 
 function assertReviewEventsByPlatformSum(
@@ -296,33 +287,82 @@ function assertReviewEventsByPlatformSum(
   }
 }
 
-function assertSnapshotReviewEventShapes(snapshot: GlobalMetricsSnapshot): void {
-  assertReviewEventsByPlatformSum(snapshot.totals.reviewEvents, "totals.reviewEvents");
+function calculateSnapshotReviewEventSums(snapshot: GlobalMetricsSnapshot): GlobalMetricsReviewEvents {
+  let daySeriesTotal = 0;
+  let daySeriesWebTotal = 0;
+  let daySeriesAndroidTotal = 0;
+  let daySeriesIosTotal = 0;
 
   for (const day of snapshot.days) {
     assertReviewEventsByPlatformSum(day.reviewEvents, `days.${day.date}.reviewEvents`);
+    daySeriesTotal += day.reviewEvents.total;
+    daySeriesWebTotal += day.reviewEvents.byPlatform.web;
+    daySeriesAndroidTotal += day.reviewEvents.byPlatform.android;
+    daySeriesIosTotal += day.reviewEvents.byPlatform.ios;
+  }
+
+  return createReviewEvents(
+    daySeriesTotal,
+    daySeriesWebTotal,
+    daySeriesAndroidTotal,
+    daySeriesIosTotal,
+  );
+}
+
+function assertSnapshotReviewEventShapes(snapshot: GlobalMetricsSnapshot): void {
+  assertReviewEventsByPlatformSum(snapshot.totals.reviewEvents, "totals.reviewEvents");
+  calculateSnapshotReviewEventSums(snapshot);
+}
+
+function assertSnapshotReviewEventSeriesMatchesDays(snapshot: GlobalMetricsSnapshot): void {
+  const daySeriesReviewEvents = calculateSnapshotReviewEventSums(snapshot);
+  if (
+    snapshot.totals.reviewEvents.total !== daySeriesReviewEvents.total
+    || snapshot.totals.reviewEvents.byPlatform.web !== daySeriesReviewEvents.byPlatform.web
+    || snapshot.totals.reviewEvents.byPlatform.android !== daySeriesReviewEvents.byPlatform.android
+    || snapshot.totals.reviewEvents.byPlatform.ios !== daySeriesReviewEvents.byPlatform.ios
+  ) {
+    throw new Error(
+      "Global metrics snapshot totals.reviewEvents must equal the sum of day review events.",
+    );
   }
 }
 
-function assertGlobalMetricsSnapshotInvariants(snapshot: GlobalMetricsSnapshot): void {
+function assertGlobalMetricsSnapshotStructuralInvariants(snapshot: GlobalMetricsSnapshot): void {
   assertSnapshotTimeWindow(snapshot);
   assertSnapshotDayRange(snapshot);
   assertSnapshotReviewEventShapes(snapshot);
 }
 
-export function createGlobalMetricsSnapshotWindow(now: Date): GlobalMetricsSnapshotWindow {
-  if (Number.isNaN(now.getTime())) {
+function isLegacyTrailingWindowSnapshot(snapshot: GlobalMetricsSnapshot): boolean {
+  // Existing deployments can still hold the old bounded snapshot until the first
+  // post-deploy seed rewrites the same S3 key with the all-time payload.
+  const asOfDate = parseCanonicalUtcTimestamp(snapshot.asOfUtc, "asOfUtc");
+  const expectedLegacyFrom = formatUtcDate(shiftUtcDate(asOfDate, -legacyGlobalMetricsSnapshotTrailingUtcDayCount));
+  return snapshot.from === expectedLegacyFrom && snapshot.days.length === legacyGlobalMetricsSnapshotTrailingUtcDayCount;
+}
+
+export function createGlobalMetricsSnapshotWindow(params: Readonly<{
+  now: Date;
+  historicalStartDate: GlobalMetricsSnapshotHistoricalStartDate;
+}>): GlobalMetricsSnapshotWindow {
+  if (Number.isNaN(params.now.getTime())) {
     throw new Error("Global metrics snapshot window requires a valid generation time.");
   }
 
-  const asOfDate = createUtcMidnightBoundary(now);
+  const asOfDate = createUtcMidnightBoundary(params.now);
   const toDate = shiftUtcDate(asOfDate, -1);
-  const fromDate = shiftUtcDate(asOfDate, -globalMetricsTrailingCompleteUtcDayCount);
+  const fromDate = params.historicalStartDate === null
+    ? toDate
+    : parseUtcDate(params.historicalStartDate, "historicalStartDate");
+  if (fromDate.getTime() > toDate.getTime()) {
+    throw new Error("Global metrics snapshot historicalStartDate must be less than or equal to to.");
+  }
   const from = formatUtcDate(fromDate);
   const to = formatUtcDate(toDate);
 
   return {
-    generatedAtUtc: now.toISOString(),
+    generatedAtUtc: params.now.toISOString(),
     asOfUtc: asOfDate.toISOString(),
     from,
     to,
@@ -354,7 +394,7 @@ export function buildGlobalMetricsSnapshot(params: Readonly<{
   }
 
   const snapshot: GlobalMetricsSnapshot = {
-    schemaVersion: 1,
+    schemaVersion: globalMetricsSnapshotSchemaVersion,
     generatedAtUtc: params.window.generatedAtUtc,
     asOfUtc: params.window.asOfUtc,
     from: params.window.from,
@@ -386,7 +426,8 @@ export function buildGlobalMetricsSnapshot(params: Readonly<{
     days: params.window.days.map((date) => daysByDate.get(date) ?? createEmptySnapshotDay(date)),
   };
 
-  assertGlobalMetricsSnapshotInvariants(snapshot);
+  assertGlobalMetricsSnapshotStructuralInvariants(snapshot);
+  assertSnapshotReviewEventSeriesMatchesDays(snapshot);
   return snapshot;
 }
 
@@ -410,6 +451,15 @@ export function parseGlobalMetricsSnapshotJson(value: string): GlobalMetricsSnap
   }
 
   const snapshot: GlobalMetricsSnapshot = parsedSnapshot.data;
-  assertGlobalMetricsSnapshotInvariants(snapshot);
+  assertGlobalMetricsSnapshotStructuralInvariants(snapshot);
+
+  try {
+    assertSnapshotReviewEventSeriesMatchesDays(snapshot);
+  } catch (error) {
+    if (!isLegacyTrailingWindowSnapshot(snapshot)) {
+      throw error;
+    }
+  }
+
   return snapshot;
 }
