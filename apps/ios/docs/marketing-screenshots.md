@@ -6,7 +6,7 @@ The generator is a small manual pipeline built from:
 
 - manual-only XCUITest entrypoints in `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/`
 - one shared wrapper script, `scripts/capture-ios-marketing-screenshot.sh`
-- one combined review wrapper, one progress wrapper, and one cards wrapper in `scripts/`
+- one combined review-and-cards wrapper and one progress wrapper in `scripts/`
 - one marketing-material wrapper in `scripts/`
 - deterministic localized fixture data used by both the UI tests and app-side UI-test seeding
 
@@ -23,7 +23,7 @@ The expected generated inventory is five screenshot outputs per locale:
 4. Review AI draft state
 5. Cards list state
 
-One combined review scenario seeds the opportunity-cost card once, then captures screenshot 1, screenshot 2, and screenshot 4 sequentially. The Progress screenshot uses a separate deterministic study-history scenario, and the cards screenshot remains a separate localized concept-card list scenario.
+One combined review-and-cards scenario seeds the opportunity-cost review card together with the cards-list fixtures, then captures screenshot 1, screenshot 2, screenshot 4, and screenshot 5 in one supported run. The Progress screenshot uses a separate deterministic study-history scenario.
 
 The derived marketing-material flow then takes those five localized screenshots and builds one horizontal PNG per locale in the same order:
 
@@ -40,6 +40,7 @@ All five screenshots sit on one dark-gray background with equal spacing between 
 Main scripts:
 
 - `scripts/capture-ios-marketing-screenshot.sh`
+- `scripts/capture-ios-review-and-cards-screenshots.sh`
 - `scripts/capture-ios-review-screenshots.sh`
 - `scripts/capture-ios-progress-screenshot.sh`
 - `scripts/capture-ios-cards-screenshot.sh`
@@ -49,7 +50,6 @@ Manual XCUITest entrypoints:
 
 - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingReviewScreenshotsTests.swift`
 - `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingProgressScreenshotTests.swift`
-- `apps/ios/Flashcards/FlashcardsUITests/MarketingScreenshots/MarketingCardsScreenshotTests.swift`
 
 Shared screenshot support:
 
@@ -60,9 +60,10 @@ Shared screenshot support:
 What each layer does:
 
 - `capture-ios-marketing-screenshot.sh` resolves the locale, selects the already booted simulator, derives the device family, runs one `-only-testing` XCUITest target, and verifies that each expected PNG was written.
-- `capture-ios-review-screenshots.sh` runs the combined review scenario and verifies screenshots 1, 2, and 4 in one pass.
+- `capture-ios-review-and-cards-screenshots.sh` runs the supported combined marketing scenario and verifies screenshots 1, 2, 4, and 5 in one pass.
+- `capture-ios-review-screenshots.sh` is a legacy alias for the combined review-and-cards wrapper.
 - `capture-ios-progress-screenshot.sh` runs the separate Progress scenario and verifies screenshot 3.
-- `capture-ios-cards-screenshot.sh` runs the separate cards-list scenario and verifies screenshot 5.
+- `capture-ios-cards-screenshot.sh` is a legacy alias for the combined review-and-cards wrapper.
 - `build-ios-marketing-materials.sh` can regenerate raw localized screenshots, compose the horizontal derived PNGs, and optimize the final files.
 - `MarketingManualScreenshotTestCase.swift` gates these tests behind the wrapper-provided runtime configuration, falls back to the launch environment only if that file is absent, and writes the PNG file.
 - `MarketingScreenshotFixtures.swift` defines the canonical locale list, locale aliases, localized fixture text, and the expected output filenames.
@@ -201,17 +202,18 @@ Before running the derived marketing-material builder:
 
 ## Run supported scenarios
 
-The supported review wrapper generates three PNGs from one seeded review run:
+The supported combined wrapper generates four PNGs from one seeded review-and-cards run:
 
 ```bash
-bash scripts/capture-ios-review-screenshots.sh
+bash scripts/capture-ios-review-and-cards-screenshots.sh
 ```
 
-That one review run writes:
+That one combined run writes:
 
 - screenshot 1: review front
 - screenshot 2: review result
 - screenshot 4: review AI draft
+- screenshot 5: cards list
 
 Progress remains a separate one-PNG run:
 
@@ -219,16 +221,10 @@ Progress remains a separate one-PNG run:
 bash scripts/capture-ios-progress-screenshot.sh
 ```
 
-Cards list remains a separate one-PNG run:
+Run the combined review-and-cards scenario for a specific locale:
 
 ```bash
-bash scripts/capture-ios-cards-screenshot.sh
-```
-
-Run the combined review scenario for a specific locale:
-
-```bash
-bash scripts/capture-ios-review-screenshots.sh --locale es-ES
+bash scripts/capture-ios-review-and-cards-screenshots.sh --locale es-ES
 ```
 
 Or use the environment variable instead:
@@ -239,12 +235,11 @@ FLASHCARDS_MARKETING_SCREENSHOT_LOCALE=zh-Hans bash scripts/capture-ios-progress
 
 ## Generate all five screenshots for one locale
 
-Use one locale explicitly and run the three supported wrappers in order:
+Use one locale explicitly and run the two supported wrappers in order:
 
 ```bash
-bash scripts/capture-ios-review-screenshots.sh --locale es-ES
+bash scripts/capture-ios-review-and-cards-screenshots.sh --locale es-ES
 bash scripts/capture-ios-progress-screenshot.sh --locale es-ES
-bash scripts/capture-ios-cards-screenshot.sh --locale es-ES
 ```
 
 Do not run these wrappers at the same time. Run the next command only after the previous one exits.
@@ -254,9 +249,8 @@ Or set the locale once in the environment:
 ```bash
 export FLASHCARDS_MARKETING_SCREENSHOT_LOCALE=es-ES
 
-bash scripts/capture-ios-review-screenshots.sh
+bash scripts/capture-ios-review-and-cards-screenshots.sh
 bash scripts/capture-ios-progress-screenshot.sh
-bash scripts/capture-ios-cards-screenshot.sh
 ```
 
 ## Build derived marketing materials
@@ -308,9 +302,8 @@ For a clean multi-locale run, keep one simulator family booted and loop through 
 
 ```bash
 for locale in en-US ar zh-Hans de hi ja ru es-MX es-ES; do
-  bash scripts/capture-ios-review-screenshots.sh --locale "$locale"
+  bash scripts/capture-ios-review-and-cards-screenshots.sh --locale "$locale"
   bash scripts/capture-ios-progress-screenshot.sh --locale "$locale"
-  bash scripts/capture-ios-cards-screenshot.sh --locale "$locale"
 done
 ```
 

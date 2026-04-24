@@ -11,35 +11,77 @@ private data class MarketingReviewTimestamp(
     val minute: Int
 )
 
+internal fun marketingReviewAndCardsRepositorySeedScenario(
+    localeConfig: MarketingScreenshotLocaleConfig
+): RepositorySeedScenario {
+    validateMarketingReviewAndCardsFixtures(localeConfig = localeConfig)
+    return RepositorySeedScenario(
+        cards = marketingSecondaryCardsSeedCards(localeConfig = localeConfig) +
+            marketingSharedReviewSeedCard(localeConfig = localeConfig)
+    )
+}
+
 internal fun marketingReviewRepositorySeedScenario(
     localeConfig: MarketingScreenshotLocaleConfig
 ): RepositorySeedScenario {
+    validateMarketingReviewAndCardsFixtures(localeConfig = localeConfig)
     return RepositorySeedScenario(
-        cards = listOf(
-            RepositorySeedCard(
-                frontText = localeConfig.reviewCard.frontText,
-                backText = localeConfig.reviewCard.backText,
-                tags = localeConfig.reviewCard.tags,
-                effortLevel = EffortLevel.MEDIUM,
-                reviews = emptyList()
-            )
-        )
+        cards = listOf(marketingSharedReviewSeedCard(localeConfig = localeConfig))
     )
 }
 
 internal fun marketingCardsRepositorySeedScenario(
     localeConfig: MarketingScreenshotLocaleConfig
 ): RepositorySeedScenario {
+    validateMarketingReviewAndCardsFixtures(localeConfig = localeConfig)
     return RepositorySeedScenario(
-        cards = localeConfig.cards.map { card ->
-            RepositorySeedCard(
-                frontText = card.frontText,
-                backText = card.backText,
-                tags = listOf(card.subjectTag),
-                effortLevel = EffortLevel.MEDIUM,
-                reviews = emptyList()
-            )
-        }
+        cards = marketingSecondaryCardsSeedCards(localeConfig = localeConfig)
+    )
+}
+
+private fun validateMarketingReviewAndCardsFixtures(
+    localeConfig: MarketingScreenshotLocaleConfig
+) {
+    require(localeConfig.cards.isNotEmpty()) {
+        "Marketing review/cards screenshot requires at least one cards fixture."
+    }
+    require(localeConfig.cards.first().frontText == localeConfig.reviewCard.frontText) {
+        "Marketing review/cards screenshot requires the first cards fixture to share the review prompt."
+    }
+    require(localeConfig.cards.drop(1).none { card -> card.frontText == localeConfig.reviewCard.frontText }) {
+        "Marketing review/cards screenshot supports exactly one shared review/cards prompt."
+    }
+
+    val cardsListTag: String = localeConfig.cards.first().subjectTag
+    require(localeConfig.reviewCard.tags == listOf(cardsListTag)) {
+        "Marketing review/cards screenshot requires matching review/cards tags. " +
+            "ReviewTags=${localeConfig.reviewCard.tags} CardsTag=$cardsListTag"
+    }
+}
+
+private fun marketingSecondaryCardsSeedCards(
+    localeConfig: MarketingScreenshotLocaleConfig
+): List<RepositorySeedCard> {
+    return localeConfig.cards.drop(1).map { card ->
+        RepositorySeedCard(
+            frontText = card.frontText,
+            backText = card.backText,
+            tags = listOf(card.subjectTag),
+            effortLevel = EffortLevel.MEDIUM,
+            reviews = emptyList()
+        )
+    }
+}
+
+private fun marketingSharedReviewSeedCard(
+    localeConfig: MarketingScreenshotLocaleConfig
+): RepositorySeedCard {
+    return RepositorySeedCard(
+        frontText = localeConfig.reviewCard.frontText,
+        backText = localeConfig.reviewCard.backText,
+        tags = localeConfig.reviewCard.tags,
+        effortLevel = EffortLevel.MEDIUM,
+        reviews = emptyList()
     )
 }
 

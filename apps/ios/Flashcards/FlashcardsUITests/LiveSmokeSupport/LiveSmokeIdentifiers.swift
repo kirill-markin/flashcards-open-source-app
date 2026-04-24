@@ -96,8 +96,7 @@ enum LiveSmokeLaunchScenario: String {
     case guestEmptyWorkspace = "guest_empty_workspace"
     case guestManualReviewCard = "guest_manual_review_card"
     case guestAIReviewCard = "guest_ai_review_card"
-    case marketingOpportunityCostReviewCard = "marketing_opportunity_cost_review_card"
-    case marketingConceptCards = "marketing_concept_cards"
+    case marketingReviewAndCards = "marketing_review_and_cards"
     case marketingProgress = "marketing_progress"
     case marketingGuestSessionCleanup = "marketing_guest_session_cleanup"
 }

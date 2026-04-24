@@ -1,16 +1,23 @@
 package com.flashcardsopensourceapp.app
 
 import android.content.Context
+import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.data.local.database.CardEntity
+import com.flashcardsopensourceapp.data.local.database.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.CardWithRelations
+import com.flashcardsopensourceapp.data.local.database.TagEntity
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.SyncStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import java.util.UUID
+import com.flashcardsopensourceapp.data.local.model.normalizeTags
 
 internal data class RepositorySeedReview(
     val rating: ReviewRating,
@@ -87,12 +94,17 @@ internal class RepositorySeedExecutor(
     ): RepositorySeedResult {
         val seededCards: MutableList<RepositorySeededCard> = mutableListOf()
         var reviewCount: Int = 0
+        val seedBaseTimestampMillis: Long = resolveSeedBaseTimestampMillis(
+            appGraph = appGraph,
+            workspaceId = workspaceId
+        )
 
-        seedScenario.cards.forEach { card ->
+        seedScenario.cards.forEachIndexed { index, card ->
             val createdCard: RepositorySeededCard = createCard(
                 appGraph = appGraph,
                 workspaceId = workspaceId,
-                seedCard = card
+                seedCard = card,
+                createdAtMillis = seedBaseTimestampMillis + index.toLong()
             )
             seededCards += createdCard
             card.reviews.sortedBy(RepositorySeedReview::reviewedAtMillis).forEach { review ->
@@ -122,29 +134,45 @@ internal class RepositorySeedExecutor(
     private suspend fun createCard(
         appGraph: AppGraph,
         workspaceId: String,
-        seedCard: RepositorySeedCard
+        seedCard: RepositorySeedCard,
+        createdAtMillis: Long
     ): RepositorySeededCard {
-        val existingCardIds: Set<String> = appGraph.database.cardDao().observeCardsWithRelations().first().map { card ->
-            card.card.cardId
-        }.toSet()
-        appGraph.cardsRepository.createCard(
-            cardDraft = CardDraft(
-                frontText = seedCard.frontText,
-                backText = seedCard.backText,
-                tags = seedCard.tags,
-                effortLevel = seedCard.effortLevel
+        val cardId: String = UUID.randomUUID().toString()
+        val card = CardEntity(
+            cardId = cardId,
+            workspaceId = workspaceId,
+            frontText = seedCard.frontText,
+            backText = seedCard.backText,
+            effortLevel = seedCard.effortLevel,
+            dueAtMillis = null,
+            createdAtMillis = createdAtMillis,
+            updatedAtMillis = createdAtMillis,
+            reps = 0,
+            lapses = 0,
+            fsrsCardState = FsrsCardState.NEW,
+            fsrsStepIndex = null,
+            fsrsStability = null,
+            fsrsDifficulty = null,
+            fsrsLastReviewedAtMillis = null,
+            fsrsScheduledDays = null,
+            deletedAtMillis = null
+        )
+        val normalizedTags: List<String> = appGraph.database.withTransaction {
+            appGraph.database.cardDao().insertCard(card = card)
+            val resolvedTags: List<String> = replaceCardTagsForSeed(
+                appGraph = appGraph,
+                workspaceId = workspaceId,
+                cardId = cardId,
+                tags = seedCard.tags
             )
-        )
-        val createdCard: CardWithRelations = resolveCreatedCard(
-            appGraph = appGraph,
-            existingCardIds = existingCardIds,
-            expectedWorkspaceId = workspaceId
-        )
+            appGraph.syncLocalStore.enqueueCardUpsert(card = card, tags = resolvedTags)
+            resolvedTags
+        }
         return RepositorySeededCard(
-            cardId = createdCard.card.cardId,
-            frontText = createdCard.card.frontText,
-            backText = createdCard.card.backText,
-            tags = createdCard.tags.map { tag -> tag.name }
+            cardId = cardId,
+            frontText = seedCard.frontText,
+            backText = seedCard.backText,
+            tags = normalizedTags
         )
     }
 
@@ -165,22 +193,78 @@ internal class RepositorySeedExecutor(
         )
     }
 
-    private suspend fun resolveCreatedCard(
+    private suspend fun resolveSeedBaseTimestampMillis(
         appGraph: AppGraph,
-        existingCardIds: Set<String>,
-        expectedWorkspaceId: String
-    ): CardWithRelations {
-        val newCards: List<CardWithRelations> = appGraph.database.cardDao().observeCardsWithRelations().first().filter { card ->
-            existingCardIds.contains(card.card.cardId).not()
+        workspaceId: String
+    ): Long {
+        val existingCards: List<CardWithRelations> = appGraph.database.cardDao().observeCardsWithRelations().first().filter { card ->
+            card.card.workspaceId == workspaceId
         }
-        require(newCards.size == 1) {
-            "Expected exactly one created card in workspace '$expectedWorkspaceId', but found ${newCards.size} new cards."
+        val latestExistingTimestampMillis: Long? = existingCards.maxOfOrNull { card ->
+            maxOf(card.card.createdAtMillis, card.card.updatedAtMillis)
         }
-        val createdCard: CardWithRelations = newCards.single()
-        require(createdCard.card.workspaceId == expectedWorkspaceId) {
-            "Expected seeded card workspace '$expectedWorkspaceId', but created '${createdCard.card.workspaceId}'."
+        return maxOf(
+            System.currentTimeMillis(),
+            (latestExistingTimestampMillis ?: Long.MIN_VALUE) + 1L
+        )
+    }
+
+    private suspend fun replaceCardTagsForSeed(
+        appGraph: AppGraph,
+        workspaceId: String,
+        cardId: String,
+        tags: List<String>
+    ): List<String> {
+        val workspaceTags: List<TagEntity> = appGraph.database.tagDao().loadTagsForWorkspace(workspaceId = workspaceId)
+        val normalizedTags: List<String> = normalizeTags(
+            values = tags,
+            referenceTags = workspaceTags.map { tag -> tag.name }
+        )
+        appGraph.database.tagDao().deleteCardTags(cardId = cardId)
+
+        if (normalizedTags.isEmpty()) {
+            appGraph.database.tagDao().deleteUnusedTags(workspaceId = workspaceId)
+            return normalizedTags
         }
-        return createdCard
+
+        val existingTags: List<TagEntity> = appGraph.database.tagDao().loadTagsByNames(
+            workspaceId = workspaceId,
+            names = normalizedTags
+        )
+        val missingTags: List<TagEntity> = normalizedTags.filter { normalizedTag ->
+            existingTags.none { existingTag ->
+                existingTag.name == normalizedTag
+            }
+        }.map { normalizedTag ->
+            TagEntity(
+                tagId = UUID.randomUUID().toString(),
+                workspaceId = workspaceId,
+                name = normalizedTag
+            )
+        }
+        if (missingTags.isNotEmpty()) {
+            appGraph.database.tagDao().insertTags(tags = missingTags)
+        }
+
+        val resolvedTags: List<TagEntity> = appGraph.database.tagDao().loadTagsByNames(
+            workspaceId = workspaceId,
+            names = normalizedTags
+        )
+        appGraph.database.tagDao().insertCardTags(
+            cardTags = normalizedTags.map { normalizedTag ->
+                val tag: TagEntity = requireNotNull(
+                    resolvedTags.firstOrNull { resolvedTag -> resolvedTag.name == normalizedTag }
+                ) {
+                    "Expected resolved tag '$normalizedTag' while seeding repository card '$cardId' in workspace '$workspaceId'."
+                }
+                CardTagEntity(
+                    cardId = cardId,
+                    tagId = tag.tagId
+                )
+            }
+        )
+        appGraph.database.tagDao().deleteUnusedTags(workspaceId = workspaceId)
+        return normalizedTags
     }
 
     private suspend fun verifyGuestCloudReadiness(
