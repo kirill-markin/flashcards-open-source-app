@@ -9,6 +9,10 @@ import {
   normalizeIsoTimestamp,
 } from "../lww";
 import { findLatestSyncChangeId } from "../syncChanges";
+import {
+  createSyncConflictHttpError,
+  findSyncConflictWorkspaceIdInExecutor,
+} from "../sync/fork";
 import { assertConsistentFsrsState } from "./fsrs";
 import {
   CARD_COLUMNS,
@@ -166,6 +170,86 @@ async function loadCardRowForMutation(
   return result.rows[0];
 }
 
+async function insertCardRowForSnapshotInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  input: CardSnapshotInput,
+  metadata: CardMutationMetadata,
+): Promise<CardRow | null> {
+  const result = await executor.query<CardRow>(
+    [
+      "INSERT INTO content.cards",
+      "(",
+      "card_id, workspace_id, front_text, back_text, tags, effort_level, due_at, created_at, reps, lapses,",
+      "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
+      "client_updated_at, last_modified_by_replica_id, last_operation_id, deleted_at",
+      ")",
+      "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)",
+      "ON CONFLICT DO NOTHING",
+      "RETURNING",
+      CARD_COLUMNS,
+    ].join(" "),
+    [
+      input.cardId,
+      workspaceId,
+      input.frontText,
+      input.backText,
+      input.tags,
+      input.effortLevel,
+      input.dueAt,
+      input.createdAt,
+      input.reps,
+      input.lapses,
+      input.fsrsCardState,
+      input.fsrsStepIndex,
+      input.fsrsStability,
+      input.fsrsDifficulty,
+      input.fsrsLastReviewedAt,
+      input.fsrsScheduledDays,
+      metadata.clientUpdatedAt,
+      metadata.lastModifiedByReplicaId,
+      metadata.lastOperationId,
+      input.deletedAt,
+    ],
+  );
+
+  return result.rows[0] ?? null;
+}
+
+async function resolveCardSnapshotInsertConflictInExecutor(
+  executor: DatabaseExecutor,
+  workspaceId: string,
+  cardId: string,
+): Promise<CardRow> {
+  const conflictingWorkspaceId = await findSyncConflictWorkspaceIdInExecutor(executor, {
+    entityType: "card",
+    entityId: cardId,
+  });
+
+  if (conflictingWorkspaceId === null) {
+    throw new Error(`Card insert was skipped but no conflicting workspace was found for ${cardId}`);
+  }
+
+  if (conflictingWorkspaceId !== workspaceId) {
+    throw createSyncConflictHttpError({
+      phase: "sync_write",
+      entityType: "card",
+      entityId: cardId,
+      conflictingWorkspaceId,
+      constraint: "cards_pkey",
+      sqlState: "23505",
+      table: "cards",
+    });
+  }
+
+  const existingRow = await loadCardRowForMutation(executor, workspaceId, cardId);
+  if (existingRow === undefined) {
+    throw new Error(`Card insert was skipped but the current workspace row was not found for ${cardId}`);
+  }
+
+  return existingRow;
+}
+
 export async function upsertCardSnapshotInExecutor(
   executor: DatabaseExecutor,
   workspaceId: string,
@@ -175,58 +259,32 @@ export async function upsertCardSnapshotInExecutor(
   const normalizedInput = normalizeCardSnapshotInput(input);
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
 
-  const existingRow = await loadCardRowForMutation(executor, workspaceId, normalizedInput.cardId);
+  let existingRow = await loadCardRowForMutation(executor, workspaceId, normalizedInput.cardId);
 
   if (existingRow === undefined) {
-    const insertResult = await executor.query<CardRow>(
-      [
-        "INSERT INTO content.cards",
-        "(",
-        "card_id, workspace_id, front_text, back_text, tags, effort_level, due_at, created_at, reps, lapses,",
-        "fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty, fsrs_last_reviewed_at, fsrs_scheduled_days,",
-        "client_updated_at, last_modified_by_replica_id, last_operation_id, deleted_at",
-        ")",
-        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)",
-        "RETURNING",
-        CARD_COLUMNS,
-      ].join(" "),
-      [
-        normalizedInput.cardId,
-        workspaceId,
-        normalizedInput.frontText,
-        normalizedInput.backText,
-        normalizedInput.tags,
-        normalizedInput.effortLevel,
-        normalizedInput.dueAt,
-        normalizedInput.createdAt,
-        normalizedInput.reps,
-        normalizedInput.lapses,
-        normalizedInput.fsrsCardState,
-        normalizedInput.fsrsStepIndex,
-        normalizedInput.fsrsStability,
-        normalizedInput.fsrsDifficulty,
-        normalizedInput.fsrsLastReviewedAt,
-        normalizedInput.fsrsScheduledDays,
-        normalizedMetadata.clientUpdatedAt,
-        normalizedMetadata.lastModifiedByReplicaId,
-        normalizedMetadata.lastOperationId,
-        normalizedInput.deletedAt,
-      ],
+    const insertedRow = await insertCardRowForSnapshotInExecutor(
+      executor,
+      workspaceId,
+      normalizedInput,
+      normalizedMetadata,
     );
 
-    const insertedRow = insertResult.rows[0];
-    if (insertedRow === undefined) {
-      throw new Error("Card insert did not return a row");
+    if (insertedRow === null) {
+      existingRow = await resolveCardSnapshotInsertConflictInExecutor(
+        executor,
+        workspaceId,
+        normalizedInput.cardId,
+      );
+    } else {
+      const insertedCard = mapCard(insertedRow);
+      const changeId = await recordCardSyncChange(executor, workspaceId, insertedCard);
+
+      return {
+        card: insertedCard,
+        applied: true,
+        changeId,
+      };
     }
-
-    const insertedCard = mapCard(insertedRow);
-    const changeId = await recordCardSyncChange(executor, workspaceId, insertedCard);
-
-    return {
-      card: insertedCard,
-      applied: true,
-      changeId,
-    };
   }
 
   const existingCard = mapCard(existingRow);

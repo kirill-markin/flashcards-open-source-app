@@ -36,6 +36,20 @@ export function getRouteMountPaths(basePath: string): ReadonlyArray<string> {
   return [basePath];
 }
 
+export function createPublicHttpErrorBody(error: HttpError, requestId: string): Readonly<{
+  error: string;
+  requestId: string;
+  code: string | null;
+  details?: import("./errors").HttpErrorDetails;
+}> {
+  return {
+    error: error.message,
+    requestId,
+    code: error.code,
+    ...(error.details === null ? {} : { details: error.details }),
+  };
+}
+
 function usesApiKeyAuthorizationHeader(request: Request): boolean {
   const authorizationHeader = request.headers.get("authorization");
   return authorizationHeader !== null && authorizationHeader.startsWith("ApiKey ");
@@ -188,11 +202,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
           ),
         );
       }
-      return context.json({
-        error: error.message,
-        requestId,
-        code: error.code,
-      });
+      return context.json(createPublicHttpErrorBody(error, requestId));
     }
 
     context.status(500);

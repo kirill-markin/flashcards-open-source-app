@@ -4,8 +4,24 @@ export type ValidationIssueSummary = Readonly<{
   message: string;
 }>;
 
+export type SyncConflictEntityType = "card" | "deck" | "review_event";
+
+export type SyncConflictDetails = Readonly<{
+  phase: string;
+  entityType: SyncConflictEntityType;
+  entityId: string;
+  conflictingWorkspaceId: string;
+  constraint: string | null;
+  sqlState: string | null;
+  table: string | null;
+  entryIndex?: number;
+  reviewEventIndex?: number;
+  recoverable: true;
+}>;
+
 export type HttpErrorDetails = Readonly<{
-  validationIssues: ReadonlyArray<ValidationIssueSummary>;
+  validationIssues?: ReadonlyArray<ValidationIssueSummary>;
+  syncConflict?: SyncConflictDetails;
 }>;
 
 export class HttpError extends Error {
