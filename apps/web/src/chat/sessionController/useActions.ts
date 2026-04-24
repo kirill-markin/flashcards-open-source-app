@@ -133,12 +133,16 @@ export function useChatSessionActions(
   const provisionRemoteSession = useCallback(async (
     sessionId: string,
   ): Promise<NewChatSessionResponse> => {
+    if (workspaceId === null) {
+      throw createRemoteSessionProvisioningError(uiMessages.workspaceRequired);
+    }
+
     const activeProvisioning = getActiveProvisioningState();
     if (activeProvisioning !== null && activeProvisioning.sessionId === sessionId) {
       return activeProvisioning.promise;
     }
 
-    const nextPromise = createNewChatSession(sessionId, uiLocale);
+    const nextPromise = createNewChatSession(sessionId, workspaceId, uiLocale);
     remoteSessionProvisioningRef.current = {
       workspaceId,
       sessionId,
@@ -390,6 +394,7 @@ export function useChatSessionActions(
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const requestBody = {
       sessionId,
+      workspaceId,
       clientRequestId: sendParams.clientRequestId,
       content: contentParts,
       timezone,
@@ -493,7 +498,11 @@ export function useChatSessionActions(
 
     dispatch({ type: "stop_requested" });
     try {
-      const response = await stopChatRun(state.currentSessionId);
+      if (workspaceId === null) {
+        throw createRemoteSessionProvisioningError(uiMessages.workspaceRequired);
+      }
+
+      const response = await stopChatRun(state.currentSessionId, workspaceId);
       if (response.stopped && response.stillRunning === false && hasActiveLiveConnection() === false) {
         reconcileTerminalSnapshot();
         dispatch({

@@ -57,6 +57,8 @@ struct AIChatStartRunRequestBody: Codable, Hashable, Sendable {
     let timezone: String
     // Keep this additive field optional while older client and backend builds roll out independently.
     let uiLocale: String?
+    // Keep this additive field optional while older client and backend builds roll out independently.
+    let workspaceId: String?
 }
 
 enum AIChatComposerPhase: String, Hashable, Sendable {
@@ -157,6 +159,8 @@ struct AIChatNewSessionRequestBody: Codable, Hashable, Sendable {
     let sessionId: String?
     // Keep this additive field optional while older client and backend builds roll out independently.
     let uiLocale: String?
+    // Keep this additive field optional while older client and backend builds roll out independently.
+    let workspaceId: String?
 }
 
 struct AIChatNewSessionResponse: Codable, Hashable, Sendable {
@@ -188,6 +192,44 @@ struct AIChatStopRunResponse: Decodable, Hashable, Sendable {
     let sessionId: String
     let stopped: Bool
     let stillRunning: Bool
+}
+
+struct AIChatStopRunRequestBody: Codable, Hashable, Sendable {
+    let sessionId: String
+    // Keep this additive field optional while older client and backend builds roll out independently.
+    let workspaceId: String?
+}
+
+extension AIChatStartRunRequestBody {
+    init(
+        sessionId: String?,
+        clientRequestId: String,
+        content: [AIChatContentPart],
+        timezone: String,
+        uiLocale: String?
+    ) {
+        self.init(
+            sessionId: sessionId,
+            clientRequestId: clientRequestId,
+            content: content,
+            timezone: timezone,
+            uiLocale: uiLocale,
+            workspaceId: nil
+        )
+    }
+}
+
+extension AIChatNewSessionRequestBody {
+    init(
+        sessionId: String?,
+        uiLocale: String?
+    ) {
+        self.init(
+            sessionId: sessionId,
+            uiLocale: uiLocale,
+            workspaceId: nil
+        )
+    }
 }
 
 func currentAIChatUILocaleIdentifier() -> String? {

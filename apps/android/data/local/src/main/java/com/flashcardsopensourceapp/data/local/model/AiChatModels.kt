@@ -293,6 +293,7 @@ sealed interface AiChatWireContentPart {
 
 data class AiChatStartRunRequest(
     val sessionId: String,
+    val workspaceId: String?,
     val clientRequestId: String,
     val content: List<AiChatWireContentPart>,
     val timezone: String,
@@ -301,6 +302,7 @@ data class AiChatStartRunRequest(
 
 data class AiChatNewSessionRequest(
     val sessionId: String,
+    val workspaceId: String?,
     val uiLocale: String?,
 )
 

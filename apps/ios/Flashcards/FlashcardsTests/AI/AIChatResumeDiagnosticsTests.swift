@@ -52,6 +52,10 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Chat-Resume-Attempt-Id"), "11")
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Client-Platform"), aiChatClientPlatform)
             XCTAssertEqual(request.value(forHTTPHeaderField: "X-Client-Version"), aiChatAppVersion())
+            let queryItems = try aiChatQueryItems(request: request)
+            XCTAssertEqual(queryItems.first(where: { $0.name == "limit" })?.value, "20")
+            XCTAssertEqual(queryItems.first(where: { $0.name == "sessionId" })?.value, "session-1")
+            XCTAssertEqual(queryItems.first(where: { $0.name == "workspaceId" })?.value, "workspace-1")
             expectation.fulfill()
             return (
                 HTTPURLResponse(
@@ -75,6 +79,80 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         await self.fulfillment(of: [expectation], timeout: 1.0)
     }
 
+    func testLoadSnapshotIncludesWorkspaceIdQueryItem() async throws {
+        let expectation = XCTestExpectation(description: "Snapshot request captured")
+        let service = AIChatService(
+            session: self.makeURLSession(),
+            encoder: JSONEncoder(),
+            decoder: makeFlashcardsRemoteJSONDecoder()
+        )
+        AIChatTestURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.url?.path, "/chat")
+            let queryItems = try aiChatQueryItems(request: request)
+            XCTAssertEqual(queryItems.first(where: { $0.name == "sessionId" })?.value, "session-1")
+            XCTAssertEqual(queryItems.first(where: { $0.name == "workspaceId" })?.value, "workspace-1")
+            expectation.fulfill()
+            return (
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!,
+                Data(Self.bootstrapResponseJSON.utf8)
+            )
+        }
+
+        let response = try await service.loadSnapshot(
+            session: self.makeLinkedSession(),
+            sessionId: "session-1"
+        )
+
+        XCTAssertEqual(response.sessionId, "session-1")
+        await self.fulfillment(of: [expectation], timeout: 1.0)
+    }
+
+    func testLoadOlderMessagesIncludesWorkspaceIdQueryItem() async throws {
+        let expectation = XCTestExpectation(description: "Older messages request captured")
+        let service = AIChatService(
+            session: self.makeURLSession(),
+            encoder: JSONEncoder(),
+            decoder: makeFlashcardsRemoteJSONDecoder()
+        )
+        AIChatTestURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.url?.path, "/chat")
+            let queryItems = try aiChatQueryItems(request: request)
+            XCTAssertEqual(queryItems.first(where: { $0.name == "sessionId" })?.value, "session-1")
+            XCTAssertEqual(queryItems.first(where: { $0.name == "limit" })?.value, "10")
+            XCTAssertEqual(queryItems.first(where: { $0.name == "before" })?.value, "cursor-1")
+            XCTAssertEqual(queryItems.first(where: { $0.name == "workspaceId" })?.value, "workspace-1")
+            expectation.fulfill()
+            return (
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!,
+                Data(Self.bootstrapResponseJSON.utf8)
+            )
+        }
+
+        let response = try await service.loadOlderMessages(
+            session: self.makeLinkedSession(),
+            sessionId: "session-1",
+            beforeCursor: "cursor-1",
+            limit: 10
+        )
+
+        XCTAssertTrue(response.messages.isEmpty)
+        XCTAssertFalse(response.hasOlder)
+        XCTAssertNil(response.oldestCursor)
+        await self.fulfillment(of: [expectation], timeout: 1.0)
+    }
+
     func testStartRunEncodesUILocaleInRequestBody() async throws {
         let expectation = XCTestExpectation(description: "Start run request captured")
         let service = AIChatService(
@@ -90,6 +168,7 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             XCTAssertEqual(payload.sessionId, "session-1")
             XCTAssertEqual(payload.timezone, TimeZone.current.identifier)
             XCTAssertEqual(payload.uiLocale, currentAIChatUILocaleIdentifier())
+            XCTAssertEqual(payload.workspaceId, "workspace-1")
             expectation.fulfill()
             return (
                 HTTPURLResponse(
@@ -109,7 +188,8 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
                 clientRequestId: "request-1",
                 content: [.text("Help me review this.")],
                 timezone: TimeZone.current.identifier,
-                uiLocale: currentAIChatUILocaleIdentifier()
+                uiLocale: currentAIChatUILocaleIdentifier(),
+                workspaceId: nil
             )
         )
 
@@ -131,6 +211,7 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             let payload = try JSONDecoder().decode(AIChatEncodedNewSessionRequest.self, from: body)
             XCTAssertEqual(payload.sessionId, "session-1")
             XCTAssertEqual(payload.uiLocale, currentAIChatUILocaleIdentifier())
+            XCTAssertEqual(payload.workspaceId, "workspace-1")
             expectation.fulfill()
             return (
                 HTTPURLResponse(
@@ -147,7 +228,8 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             session: self.makeLinkedSession(),
             request: AIChatNewSessionRequestBody(
                 sessionId: "session-1",
-                uiLocale: currentAIChatUILocaleIdentifier()
+                uiLocale: currentAIChatUILocaleIdentifier(),
+                workspaceId: nil
             )
         )
 
@@ -155,7 +237,92 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         await self.fulfillment(of: [expectation], timeout: 1.0)
     }
 
-    func testRequestBodiesOmitUILocaleWhenUnavailable() throws {
+    func testStopRunEncodesWorkspaceIdInRequestBody() async throws {
+        let expectation = XCTestExpectation(description: "Stop run request captured")
+        let service = AIChatService(
+            session: self.makeURLSession(),
+            encoder: JSONEncoder(),
+            decoder: makeFlashcardsRemoteJSONDecoder()
+        )
+        AIChatTestURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.path, "/chat/stop")
+            let body = try XCTUnwrap(aiChatRequestBodyData(request: request))
+            let payload = try JSONDecoder().decode(AIChatEncodedStopRunRequest.self, from: body)
+            XCTAssertEqual(payload.sessionId, "session-1")
+            XCTAssertEqual(payload.workspaceId, "workspace-1")
+            expectation.fulfill()
+            return (
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!,
+                Data(Self.stopRunResponseJSON.utf8)
+            )
+        }
+
+        let response = try await service.stopRun(
+            session: self.makeLinkedSession(),
+            sessionId: "session-1"
+        )
+
+        XCTAssertEqual(response.sessionId, "session-1")
+        XCTAssertTrue(response.stopped)
+        XCTAssertFalse(response.stillRunning)
+        await self.fulfillment(of: [expectation], timeout: 1.0)
+    }
+
+    func testDictationUploadEncodesWorkspaceIdInMultipartBody() async throws {
+        let expectation = XCTestExpectation(description: "Dictation request captured")
+        let temporaryDirectory = FileManager.default.temporaryDirectory
+        let recordedAudioUrl = temporaryDirectory.appendingPathComponent(UUID().uuidString.lowercased()).appendingPathExtension("m4a")
+        try Data("audio-test".utf8).write(to: recordedAudioUrl)
+        defer {
+            try? FileManager.default.removeItem(at: recordedAudioUrl)
+        }
+
+        let transcriptionService = AIChatTranscriptionService(
+            session: self.makeURLSession(),
+            decoder: makeFlashcardsRemoteJSONDecoder()
+        )
+        AIChatTestURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.path, "/chat/transcriptions")
+            let body = try XCTUnwrap(aiChatRequestBodyData(request: request))
+            let multipartBody = String(decoding: body, as: UTF8.self)
+            XCTAssertTrue(multipartBody.contains("name=\"sessionId\"\r\n\r\nsession-1\r\n"))
+            XCTAssertTrue(multipartBody.contains("name=\"workspaceId\"\r\n\r\nworkspace-1\r\n"))
+            XCTAssertTrue(multipartBody.contains("name=\"source\"\r\n\r\nios\r\n"))
+            expectation.fulfill()
+            return (
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!,
+                Data(Self.transcriptionResponseJSON.utf8)
+            )
+        }
+
+        let response = try await transcriptionService.transcribe(
+            session: self.makeLinkedSession(),
+            sessionId: "session-1",
+            recordedAudio: AIChatRecordedAudio(
+                fileUrl: recordedAudioUrl,
+                fileName: "chat-dictation.m4a",
+                mediaType: "audio/mp4"
+            )
+        )
+
+        XCTAssertEqual(response.text, "Transcribed text")
+        XCTAssertEqual(response.sessionId, "session-1")
+        await self.fulfillment(of: [expectation], timeout: 1.0)
+    }
+
+    func testRequestBodiesOmitOptionalWireFieldsWhenUnavailable() throws {
         let encoder = JSONEncoder()
         let startRunData = try encoder.encode(
             AIChatStartRunRequestBody(
@@ -163,7 +330,8 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
                 clientRequestId: "request-1",
                 content: [.text("Help me review this.")],
                 timezone: "Europe/Madrid",
-                uiLocale: nil
+                uiLocale: nil,
+                workspaceId: nil
             )
         )
         let startRunPayload = String(
@@ -173,16 +341,30 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         let newSessionData = try encoder.encode(
             AIChatNewSessionRequestBody(
                 sessionId: "session-1",
-                uiLocale: nil
+                uiLocale: nil,
+                workspaceId: nil
             )
         )
         let newSessionPayload = String(
             decoding: newSessionData,
             as: UTF8.self
         )
+        let stopRunData = try encoder.encode(
+            AIChatStopRunRequestBody(
+                sessionId: "session-1",
+                workspaceId: nil
+            )
+        )
+        let stopRunPayload = String(
+            decoding: stopRunData,
+            as: UTF8.self
+        )
 
         XCTAssertFalse(startRunPayload.contains("\"uiLocale\""))
+        XCTAssertFalse(startRunPayload.contains("\"workspaceId\""))
         XCTAssertFalse(newSessionPayload.contains("\"uiLocale\""))
+        XCTAssertFalse(newSessionPayload.contains("\"workspaceId\""))
+        XCTAssertFalse(stopRunPayload.contains("\"workspaceId\""))
     }
 
     func testLiveStreamConnectIncludesResumeDiagnosticsHeaders() async throws {
@@ -351,6 +533,21 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
       }
     }
     """
+
+    private static let stopRunResponseJSON: String = """
+    {
+      "sessionId": "session-1",
+      "stopped": true,
+      "stillRunning": false
+    }
+    """
+
+    private static let transcriptionResponseJSON: String = """
+    {
+      "text": "Transcribed text",
+      "sessionId": "session-1"
+    }
+    """
 }
 
 private struct AIChatEncodedStartRunRequest: Decodable {
@@ -359,11 +556,23 @@ private struct AIChatEncodedStartRunRequest: Decodable {
     let content: [AIChatContentPart]
     let timezone: String
     let uiLocale: String?
+    let workspaceId: String?
 }
 
 private struct AIChatEncodedNewSessionRequest: Decodable {
     let sessionId: String?
     let uiLocale: String?
+    let workspaceId: String?
+}
+
+private struct AIChatEncodedStopRunRequest: Decodable {
+    let sessionId: String
+    let workspaceId: String?
+}
+
+private func aiChatQueryItems(request: URLRequest) throws -> [URLQueryItem] {
+    let url = try XCTUnwrap(request.url)
+    return URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
 }
 
 private func aiChatRequestBodyData(request: URLRequest) -> Data? {

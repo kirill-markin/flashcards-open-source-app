@@ -111,12 +111,14 @@ class LocalAiChatRepository(
     }
 
     override suspend fun loadChatSnapshot(workspaceId: String?, sessionId: String?): AiChatSessionSnapshot? {
-        val session = authorizedSession(workspaceId = workspaceId)
+        val remoteWorkspaceId = requireRemoteWorkspaceId(workspaceId = workspaceId)
+        val session = authorizedSession(workspaceId = remoteWorkspaceId)
         return try {
             aiChatRemoteService.loadSnapshot(
                 apiBaseUrl = session.apiBaseUrl,
                 authorizationHeader = session.authorizationHeader,
-                sessionId = sessionId
+                sessionId = sessionId,
+                workspaceId = remoteWorkspaceId
             )
         } catch (error: AiChatRemoteException) {
             if (error.statusCode == 404) {
@@ -189,12 +191,14 @@ class LocalAiChatRepository(
         limit: Int,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): AiChatBootstrapResponse {
-        val session = authorizedSession(workspaceId = workspaceId)
+        val remoteWorkspaceId = requireRemoteWorkspaceId(workspaceId = workspaceId)
+        val session = authorizedSession(workspaceId = remoteWorkspaceId)
         return aiChatRemoteService.loadBootstrap(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader,
             sessionId = sessionId,
             limit = limit,
+            workspaceId = remoteWorkspaceId,
             resumeDiagnostics = resumeDiagnostics
         )
     }
@@ -204,12 +208,14 @@ class LocalAiChatRepository(
         sessionId: String,
         uiLocale: String?
     ): AiChatSessionSnapshot {
-        val session = authorizedSession(workspaceId = workspaceId)
+        val remoteWorkspaceId = requireRemoteWorkspaceId(workspaceId = workspaceId)
+        val session = authorizedSession(workspaceId = remoteWorkspaceId)
         return aiChatRemoteService.createNewSession(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader,
             request = AiChatNewSessionRequest(
                 sessionId = sessionId,
+                workspaceId = remoteWorkspaceId,
                 uiLocale = uiLocale
             )
         )
@@ -222,11 +228,13 @@ class LocalAiChatRepository(
         mediaType: String,
         audioBytes: ByteArray
     ): AiChatTranscriptionResult {
-        val session = authorizedSession(workspaceId = workspaceId)
+        val remoteWorkspaceId = requireRemoteWorkspaceId(workspaceId = workspaceId)
+        val session = authorizedSession(workspaceId = remoteWorkspaceId)
         return aiChatRemoteService.transcribeAudio(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader,
             sessionId = sessionId,
+            workspaceId = remoteWorkspaceId,
             fileName = fileName,
             mediaType = mediaType,
             audioBytes = audioBytes
@@ -255,10 +263,12 @@ class LocalAiChatRepository(
         content: List<AiChatContentPart>,
         uiLocale: String?
     ): AiChatStartRunResponse {
-        val session = authorizedSession(workspaceId = workspaceId)
+        val remoteWorkspaceId = requireRemoteWorkspaceId(workspaceId = workspaceId)
+        val session = authorizedSession(workspaceId = remoteWorkspaceId)
         val resolvedSessionId = requireExplicitAiChatSessionIdForRun(state = state)
         val request = AiChatStartRunRequest(
             sessionId = resolvedSessionId,
+            workspaceId = remoteWorkspaceId,
             clientRequestId = java.util.UUID.randomUUID().toString().lowercase(),
             content = buildAiChatRequestContent(content = content),
             timezone = TimeZone.getDefault().id,
@@ -320,6 +330,7 @@ class LocalAiChatRepository(
                     sessionId = sessionId,
                     runId = runId,
                     liveStream = liveStream,
+                    workspaceId = workspaceId,
                     afterCursor = afterCursor,
                     resumeDiagnostics = resumeDiagnostics
                 )
@@ -328,11 +339,13 @@ class LocalAiChatRepository(
     }
 
     override suspend fun stopRun(workspaceId: String?, sessionId: String): AiChatStopRunResponse {
-        val session = authorizedSession(workspaceId = workspaceId)
+        val remoteWorkspaceId = requireRemoteWorkspaceId(workspaceId = workspaceId)
+        val session = authorizedSession(workspaceId = remoteWorkspaceId)
         return aiChatRemoteService.stopRun(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader,
-            sessionId = sessionId
+            sessionId = sessionId,
+            workspaceId = remoteWorkspaceId
         )
     }
 
@@ -379,6 +392,12 @@ class LocalAiChatRepository(
             workspaceId = workspaceId,
             cloudSettings = preferencesStore.currentCloudSettings()
         )
+    }
+
+    private fun requireRemoteWorkspaceId(workspaceId: String?): String {
+        return requireNotNull(workspaceId?.trim()?.ifEmpty { null }) {
+            "AI remote request requires an active workspace. Reopen AI from a workspace and try again."
+        }
     }
 
     private suspend fun refreshedCredentials(

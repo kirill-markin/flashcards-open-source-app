@@ -414,6 +414,8 @@ async function buildUserProgressSummaryInExecutor(
   const validatedInput = validateProgressSummaryInput(request);
   const reviewDates = new Set<string>();
   await applyUserDatabaseScopeInExecutor(executor, { userId: request.userId });
+  // Human progress stays intentionally user-wide across every workspace the
+  // user can still access; AI workspace routing does not change that contract.
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, request.userId);
   let lastReviewedOn: string | null = null;
 

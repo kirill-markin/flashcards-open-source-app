@@ -293,6 +293,7 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
         request.httpBody = try self.makeMultipartBody(
             boundary: boundary,
             sessionId: sessionId,
+            workspaceId: session.workspaceId,
             recordedAudio: recordedAudio
         )
         return request
@@ -330,6 +331,7 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
     private func makeMultipartBody(
         boundary: String,
         sessionId: String?,
+        workspaceId: String?,
         recordedAudio: AIChatRecordedAudio
     ) throws -> Data {
         let audioData = try Data(contentsOf: recordedAudio.fileUrl)
@@ -338,6 +340,11 @@ extension AIChatTranscriptionService: AIChatAudioTranscribing {
             body.append(Data("--\(boundary)\r\n".utf8))
             body.append(Data("Content-Disposition: form-data; name=\"sessionId\"\r\n\r\n".utf8))
             body.append(Data("\(sessionId)\r\n".utf8))
+        }
+        if let workspaceId, workspaceId.isEmpty == false {
+            body.append(Data("--\(boundary)\r\n".utf8))
+            body.append(Data("Content-Disposition: form-data; name=\"workspaceId\"\r\n\r\n".utf8))
+            body.append(Data("\(workspaceId)\r\n".utf8))
         }
         body.append(Data("--\(boundary)\r\n".utf8))
         body.append(Data("Content-Disposition: form-data; name=\"source\"\r\n\r\n".utf8))
