@@ -192,6 +192,15 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
     }
 
     @MainActor
+    func runMarketingGuestSessionCleanupNow() throws {
+        let runtimeConfiguration = try self.manualRuntimeConfiguration()
+        try Self.runMarketingGuestSessionCleanup(
+            runtimeConfiguration: runtimeConfiguration,
+            existingApplication: self.app
+        )
+    }
+
+    @MainActor
     func assertReviewProgressBadge() throws {
         let reviewProgressBadge = self.app.buttons[LiveSmokeIdentifier.reviewProgressBadge]
         if try self.waitForElementValueContaining(

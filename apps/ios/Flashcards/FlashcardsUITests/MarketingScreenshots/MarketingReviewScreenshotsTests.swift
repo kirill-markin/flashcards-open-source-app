@@ -3,6 +3,11 @@ import XCTest
 
 final class MarketingScreenshotsTests: MarketingManualScreenshotTestCase {
     @MainActor
+    func testCleanupMarketingGuestSession() throws {
+        try self.runMarketingGuestSessionCleanupNow()
+    }
+
+    @MainActor
     func testGenerateMarketingScreenshots() throws {
         let localeFixture = try self.launchMarketingScreenshots()
 

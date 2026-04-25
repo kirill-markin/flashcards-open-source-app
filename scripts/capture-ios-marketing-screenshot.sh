@@ -145,6 +145,7 @@ fi
 test_identifier="${positional_arguments[0]}"
 description="${positional_arguments[1]}"
 expected_screenshot_indices=("${positional_arguments[@]:2}")
+cleanup_test_identifier="MarketingScreenshotsTests/testCleanupMarketingGuestSession"
 
 localization_code="$(resolve_requested_locale "$requested_locale")"
 
@@ -189,6 +190,43 @@ cleanup_runtime_configuration() {
     if [[ -n "$screenshot_run_marker_path" ]]; then
         rm -f "$screenshot_run_marker_path"
     fi
+}
+
+run_ios_marketing_xcodebuild_test() {
+    local selected_test_identifier="$1"
+
+    FLASHCARDS_INCLUDE_MANUAL_SCREENSHOT_TESTS=true \
+    FLASHCARDS_MARKETING_SCREENSHOT_OUTPUT_DIRECTORY="$output_directory" \
+    FLASHCARDS_MARKETING_SCREENSHOT_LOCALIZATION="$localization_code" \
+    xcodebuild \
+      -project "$project_path" \
+      -scheme "$scheme_name" \
+      -destination "platform=iOS Simulator,id=$simulator_id" \
+      "-only-testing:Flashcards Open Source App UI Tests/$selected_test_identifier" \
+      test
+}
+
+run_ios_marketing_guest_cleanup() {
+    echo "Running iOS marketing screenshot guest cleanup."
+    run_ios_marketing_xcodebuild_test "$cleanup_test_identifier"
+}
+
+cleanup_on_exit() {
+    local exit_status="$?"
+
+    set +e
+    run_ios_marketing_guest_cleanup
+    local cleanup_status="$?"
+    cleanup_runtime_configuration
+
+    if [[ "$cleanup_status" -ne 0 ]]; then
+        echo "ERROR: iOS marketing screenshot guest cleanup failed." >&2
+        if [[ "$exit_status" -eq 0 ]]; then
+            exit_status=1
+        fi
+    fi
+
+    exit "$exit_status"
 }
 
 resolve_booted_simulator_id() {
@@ -286,23 +324,16 @@ device_family="$(resolve_device_family "$simulator_name")"
 output_directory="$repo_root/apps/ios/docs/media/app-store-screenshots/$device_family"
 
 mkdir -p "$output_directory"
-trap cleanup_runtime_configuration EXIT
 write_runtime_configuration "$output_directory" "$localization_code"
 screenshot_run_marker_path="$(mktemp -t flashcards-open-source-app-ios-marketing-screenshot-run)"
+trap cleanup_on_exit EXIT
 
 echo "Running manual iOS marketing screenshot script for $description on $simulator_name."
 echo "Locale: $localization_code"
 xcrun simctl bootstatus "$simulator_id" -b
 
-FLASHCARDS_INCLUDE_MANUAL_SCREENSHOT_TESTS=true \
-FLASHCARDS_MARKETING_SCREENSHOT_OUTPUT_DIRECTORY="$output_directory" \
-FLASHCARDS_MARKETING_SCREENSHOT_LOCALIZATION="$localization_code" \
-xcodebuild \
-  -project "$project_path" \
-  -scheme "$scheme_name" \
-  -destination "platform=iOS Simulator,id=$simulator_id" \
-  "-only-testing:Flashcards Open Source App UI Tests/$test_identifier" \
-  test
+run_ios_marketing_guest_cleanup
+run_ios_marketing_xcodebuild_test "$test_identifier"
 
 for screenshot_index in "${expected_screenshot_indices[@]}"; do
     output_path="$(resolve_screenshot_path_for_index "$output_directory" "$localization_code" "$screenshot_index" "$screenshot_run_marker_path")"
