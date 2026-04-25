@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type JSX } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent, type JSX } from "react";
 import * as d3 from "d3";
 import {
   reviewEventPlatforms,
@@ -7,6 +7,7 @@ import {
   type ReviewEventsByDatePlatformReviewEventTotal,
   type ReviewEventsByDateReport,
 } from "../../adminApi";
+import type { ReviewEventsByDateRange } from "./query";
 
 type ChartTooltipState = Readonly<{
   visible: boolean;
@@ -329,6 +330,11 @@ export function ReviewEventsByDateDashboard(
   props: Readonly<{
     report: ReviewEventsByDateReport;
     adminEmail: string;
+    defaultRange: ReviewEventsByDateRange;
+    isReportLoading: boolean;
+    dateRangeError: string;
+    onDateRangeApply: (range: ReviewEventsByDateRange) => void;
+    onDateRangeReset: () => void;
   }>,
 ): JSX.Element {
   const uniqueUsersChartRef = useRef<SVGSVGElement | null>(null);
@@ -341,6 +347,43 @@ export function ReviewEventsByDateDashboard(
     left: 0,
     top: 0,
   });
+  const [draftRange, setDraftRange] = useState<ReviewEventsByDateRange>({
+    from: props.report.from,
+    to: props.report.to,
+  });
+
+  useEffect(() => {
+    setDraftRange({
+      from: props.report.from,
+      to: props.report.to,
+    });
+  }, [props.report.from, props.report.to]);
+
+  function handleFromDateChange(event: ChangeEvent<HTMLInputElement>): void {
+    const from = event.currentTarget.value;
+    setDraftRange((currentRange) => ({
+      ...currentRange,
+      from,
+    }));
+  }
+
+  function handleToDateChange(event: ChangeEvent<HTMLInputElement>): void {
+    const to = event.currentTarget.value;
+    setDraftRange((currentRange) => ({
+      ...currentRange,
+      to,
+    }));
+  }
+
+  function handleDateRangeSubmit(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    props.onDateRangeApply(draftRange);
+  }
+
+  function handleDateRangeReset(): void {
+    setDraftRange(props.defaultRange);
+    props.onDateRangeReset();
+  }
 
   const dates = useMemo(
     () => props.report.dateTotals.map((item) => item.date),
@@ -678,7 +721,7 @@ export function ReviewEventsByDateDashboard(
   const summaryCards = [
     { label: "Total Review Events", value: props.report.totalReviewEvents.toLocaleString("en-US") },
     { label: "Users With Review Events", value: props.report.users.length.toLocaleString("en-US") },
-    { label: "Dates With Review Events", value: props.report.dateTotals.length.toLocaleString("en-US") },
+    { label: "Days In Range", value: props.report.dateTotals.length.toLocaleString("en-US") },
     { label: "Peak Daily Volume", value: peakDailyVolume.toLocaleString("en-US") },
     { label: "Peak Daily Unique Users", value: peakDailyUniqueUsers.toLocaleString("en-US") },
   ];
@@ -697,6 +740,53 @@ export function ReviewEventsByDateDashboard(
           <span className="hero-badge">Signed in as {props.adminEmail}</span>
           <span className="hero-badge">Range {formatDateRangeLabel(props.report.from)} to {formatDateRangeLabel(props.report.to)}</span>
         </div>
+      </section>
+
+      <section className="filter-panel" aria-labelledby="review-date-range-title">
+        <div className="filter-panel-header">
+          <div>
+            <p className="eyebrow">Filters</p>
+            <h2 id="review-date-range-title">Date Range</h2>
+          </div>
+          <span className={`filter-status${props.isReportLoading ? " active" : ""}`} aria-live="polite">
+            {props.isReportLoading ? "Updating" : `Default ${props.defaultRange.from} to ${props.defaultRange.to}`}
+          </span>
+        </div>
+        <form className="date-filter-form" noValidate onSubmit={handleDateRangeSubmit}>
+          <label className="date-filter-field">
+            <span>From</span>
+            <input
+              type="date"
+              value={draftRange.from}
+              min={props.defaultRange.from}
+              max={props.defaultRange.to}
+              disabled={props.isReportLoading}
+              onChange={handleFromDateChange}
+            />
+          </label>
+          <label className="date-filter-field">
+            <span>To</span>
+            <input
+              type="date"
+              value={draftRange.to}
+              min={props.defaultRange.from}
+              max={props.defaultRange.to}
+              disabled={props.isReportLoading}
+              onChange={handleToDateChange}
+            />
+          </label>
+          <div className="date-filter-actions">
+            <button className="filter-button filter-button-primary" type="submit" disabled={props.isReportLoading}>
+              Apply
+            </button>
+            <button className="filter-button" type="button" disabled={props.isReportLoading} onClick={handleDateRangeReset}>
+              Reset
+            </button>
+          </div>
+        </form>
+        {props.dateRangeError !== "" ? (
+          <p className="filter-error" role="alert">{props.dateRangeError}</p>
+        ) : null}
       </section>
 
       <section className="summary-grid">
