@@ -55,6 +55,8 @@ private let marketingExpectedReviewProgressBadgeValue: String = [
     "hasReviewedToday=true"
 ].joined(separator: ";")
 
+private let marketingAiHandoffFirstCardValue: String = "first_card"
+
 private enum MarketingScreenshotRuntimeConfigurationStorage {
     static let filePath: String = "/tmp/flashcards-open-source-app-ios-marketing-screenshot-config.json"
 }
@@ -221,21 +223,10 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
 
     @MainActor
     func openOpportunityCostReviewCardAiDraft() throws {
-        try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
-
-        let reviewAiButton = self.app.buttons[LiveSmokeIdentifier.reviewAiButton]
-        if self.waitForOptionalElement(
-            reviewAiButton,
-            identifier: LiveSmokeIdentifier.reviewAiButton,
-            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
-        ) == false {
-            try self.revealOpportunityCostReviewAnswer()
-        }
-
-        try self.tapButton(
-            identifier: LiveSmokeIdentifier.reviewAiButton,
-            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        try self.launchMarketingApplication(
+            launchScenario: .marketingScreenshots,
+            selectedTab: .ai,
+            aiHandoffCard: marketingAiHandoffFirstCardValue
         )
         try self.assertScreenVisible(screen: .ai, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
     }
