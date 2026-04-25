@@ -36,6 +36,10 @@ extension LocalDatabase {
         try self.cardStore.loadActiveCardCount(workspaceId: workspaceId)
     }
 
+    func loadReviewEventCount() throws -> Int {
+        try self.core.scalarInt(sql: "SELECT COUNT(*) FROM review_events", values: [])
+    }
+
     func loadActiveDecks(workspaceId: String) throws -> [Deck] {
         try self.deckStore.loadDecks(workspaceId: workspaceId)
     }
