@@ -7,7 +7,11 @@ import {
 } from "./adminApi";
 import { getAdminAppConfig, type AdminAppConfig } from "./config";
 import { ReviewEventsByDateDashboard } from "./reports/reviewEventsByDate/ReviewEventsByDateDashboard";
-import { loadReviewEventsByDateReport } from "./reports/reviewEventsByDate/query";
+import {
+  loadReviewEventsByDateDefaultRange,
+  loadReviewEventsByDateReport,
+  type ReviewEventsByDateRange,
+} from "./reports/reviewEventsByDate/query";
 
 type AppState =
   | Readonly<{ status: "loading" }>
@@ -16,9 +20,16 @@ type AppState =
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{
       status: "ready";
+      config: AdminAppConfig;
       session: AdminSession;
+      timezone: string;
+      defaultRange: ReviewEventsByDateRange;
       report: ReviewEventsByDateReport;
+      isReportLoading: boolean;
+      dateRangeError: string;
     }>;
+
+const calendarDatePattern = /^(\d{4})-(\d{2})-(\d{2})$/u;
 
 function resolveBrowserTimezone(): string {
   try {
@@ -28,22 +39,57 @@ function resolveBrowserTimezone(): string {
   }
 }
 
-function formatDateOnly(date: Date): string {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
+function parseCalendarDate(date: string, fieldName: string): Date {
+  const match = calendarDatePattern.exec(date);
+  if (match === null) {
+    throw new Error(`${fieldName} must be a valid YYYY-MM-DD date.`);
+  }
+
+  const year = Number.parseInt(match[1], 10);
+  const monthIndex = Number.parseInt(match[2], 10) - 1;
+  const day = Number.parseInt(match[3], 10);
+  const parsedDate = new Date(Date.UTC(year, monthIndex, day));
+
+  if (
+    Number.isNaN(parsedDate.getTime())
+    || parsedDate.getUTCFullYear() !== year
+    || parsedDate.getUTCMonth() !== monthIndex
+    || parsedDate.getUTCDate() !== day
+  ) {
+    throw new Error(`${fieldName} must be a valid calendar date.`);
+  }
+
+  return parsedDate;
 }
 
-function getDefaultRange(): Readonly<{ from: string; to: string }> {
-  const endDate = new Date();
-  const startDate = new Date(endDate);
-  startDate.setDate(endDate.getDate() - 89);
+function compareCalendarDates(left: string, right: string): number {
+  return parseCalendarDate(left, "Date").getTime() - parseCalendarDate(right, "Date").getTime();
+}
 
-  return {
-    from: formatDateOnly(startDate),
-    to: formatDateOnly(endDate),
-  };
+function validateRequestedRange(
+  range: ReviewEventsByDateRange,
+  defaultRange: ReviewEventsByDateRange,
+): string | null {
+  try {
+    parseCalendarDate(range.from, "From date");
+    parseCalendarDate(range.to, "To date");
+  } catch (error) {
+    return error instanceof Error ? error.message : "Date range is invalid.";
+  }
+
+  if (compareCalendarDates(range.from, range.to) > 0) {
+    return "From date must be on or before To date.";
+  }
+
+  if (compareCalendarDates(range.from, defaultRange.from) < 0) {
+    return `From date must be on or after ${defaultRange.from}.`;
+  }
+
+  if (compareCalendarDates(range.to, defaultRange.to) > 0) {
+    return `To date must be on or before ${defaultRange.to}.`;
+  }
+
+  return null;
 }
 
 function redirectToLogin(config: AdminAppConfig): void {
@@ -92,19 +138,42 @@ function ErrorState(props: Readonly<{ message: string }>): JSX.Element {
   );
 }
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unexpected admin app error.";
+}
+
 export default function App(): JSX.Element {
   const [appState, setAppState] = useState<AppState>({ status: "loading" });
+
+  function handleTerminalAdminError(error: unknown, config: AdminAppConfig): boolean {
+    if (error instanceof AdminApiError) {
+      if (error.status === 401) {
+        setAppState({ status: "redirecting" });
+        redirectToLogin(config);
+        return true;
+      }
+
+      if (error.status === 403 && error.code === "ADMIN_ACCESS_REQUIRED") {
+        setAppState({ status: "denied" });
+        return true;
+      }
+    }
+
+    return false;
+  }
 
   useEffect(() => {
     let cancelled = false;
 
     async function load(): Promise<void> {
+      let config: AdminAppConfig | null = null;
+
       try {
-        const config = getAdminAppConfig();
+        config = getAdminAppConfig();
         const session = await fetchAdminSession(config);
         const timezone = resolveBrowserTimezone();
-        const range = getDefaultRange();
-        const report = await loadReviewEventsByDateReport(config, timezone, range.from, range.to);
+        const defaultRange = await loadReviewEventsByDateDefaultRange(config, timezone);
+        const report = await loadReviewEventsByDateReport(config, timezone, defaultRange.from, defaultRange.to);
 
         if (cancelled) {
           return;
@@ -112,32 +181,26 @@ export default function App(): JSX.Element {
 
         setAppState({
           status: "ready",
+          config,
           session,
+          timezone,
+          defaultRange,
           report,
+          isReportLoading: false,
+          dateRangeError: "",
         });
       } catch (error) {
         if (cancelled) {
           return;
         }
 
-        if (error instanceof AdminApiError) {
-          if (error.status === 401) {
-            setAppState({ status: "redirecting" });
-            const config = getAdminAppConfig();
-            redirectToLogin(config);
-            return;
-          }
-
-          if (error.status === 403 && error.code === "ADMIN_ACCESS_REQUIRED") {
-            setAppState({ status: "denied" });
-            return;
-          }
+        if (config !== null && handleTerminalAdminError(error, config)) {
+          return;
         }
 
-        const message = error instanceof Error ? error.message : "Unexpected admin app error.";
         setAppState({
           status: "error",
-          message,
+          message: getErrorMessage(error),
         });
       }
     }
@@ -148,6 +211,74 @@ export default function App(): JSX.Element {
       cancelled = true;
     };
   }, []);
+
+  async function reloadReport(range: ReviewEventsByDateRange): Promise<void> {
+    if (appState.status !== "ready" || appState.isReportLoading) {
+      return;
+    }
+
+    const validationError = validateRequestedRange(range, appState.defaultRange);
+    if (validationError !== null) {
+      setAppState({
+        ...appState,
+        dateRangeError: validationError,
+      });
+      return;
+    }
+
+    const readyState = appState;
+    setAppState({
+      ...readyState,
+      isReportLoading: true,
+      dateRangeError: "",
+    });
+
+    try {
+      const report = await loadReviewEventsByDateReport(
+        readyState.config,
+        readyState.timezone,
+        range.from,
+        range.to,
+      );
+
+      setAppState((currentState) => {
+        if (currentState.status !== "ready") {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          report,
+          isReportLoading: false,
+          dateRangeError: "",
+        };
+      });
+    } catch (error) {
+      if (handleTerminalAdminError(error, readyState.config)) {
+        return;
+      }
+
+      setAppState((currentState) => {
+        if (currentState.status !== "ready") {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          isReportLoading: false,
+          dateRangeError: getErrorMessage(error),
+        };
+      });
+    }
+  }
+
+  function resetReportRange(): void {
+    if (appState.status !== "ready") {
+      return;
+    }
+
+    void reloadReport(appState.defaultRange);
+  }
 
   if (appState.status === "loading" || appState.status === "redirecting") {
     return <LoadingState />;
@@ -165,6 +296,11 @@ export default function App(): JSX.Element {
     <ReviewEventsByDateDashboard
       report={appState.report}
       adminEmail={appState.session.email}
+      defaultRange={appState.defaultRange}
+      isReportLoading={appState.isReportLoading}
+      dateRangeError={appState.dateRangeError}
+      onDateRangeApply={(range) => void reloadReport(range)}
+      onDateRangeReset={resetReportRange}
     />
   );
 }

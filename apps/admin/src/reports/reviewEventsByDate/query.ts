@@ -24,6 +24,16 @@ type ReviewEventsByDateQueryRow = Readonly<{
   review_event_count: string | number;
 }>;
 
+export type ReviewEventsByDateRange = Readonly<{
+  from: string;
+  to: string;
+}>;
+
+type ReviewEventsByDateDefaultRangeQueryRow = Readonly<{
+  from_date: string;
+  to_date: string;
+}>;
+
 function parseCalendarDate(date: string): Date {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(date);
   if (match === null) {
@@ -108,6 +118,25 @@ function toReviewEventsByDateQueryRow(resultSetRow: Readonly<Record<string, Admi
     platform: assertPlatform(resultSetRow.platform ?? null, "platform"),
     review_event_count: toInteger(resultSetRow.review_event_count ?? null, "review_event_count"),
   };
+}
+
+function toReviewEventsByDateDefaultRangeQueryRow(
+  resultSetRow: Readonly<Record<string, AdminQueryValue>>,
+): ReviewEventsByDateDefaultRangeQueryRow {
+  return {
+    from_date: assertIsString(resultSetRow.from_date ?? null, "from_date"),
+    to_date: assertIsString(resultSetRow.to_date ?? null, "to_date"),
+  };
+}
+
+function assertValidDateRange(range: ReviewEventsByDateRange, fieldName: string): ReviewEventsByDateRange {
+  const fromDate = parseCalendarDate(range.from);
+  const toDate = parseCalendarDate(range.to);
+  if (fromDate.getTime() > toDate.getTime()) {
+    throw new Error(`Review events ${fieldName} date range is invalid: ${range.from} > ${range.to}`);
+  }
+
+  return range;
 }
 
 function buildReviewEventsByDateUsers(rows: ReadonlyArray<ReviewEventsByDateRow>): ReadonlyArray<ReviewEventsByDateUser> {
@@ -238,7 +267,23 @@ function buildReviewEventsByDateReport(
   };
 }
 
+export function buildReviewEventsByDateDefaultRangeSql(timezone: string): string {
+  const escapedTimezone = escapeSqlStringLiteral(timezone);
+
+  return [
+    "SELECT",
+    "  COALESCE(",
+    `    to_char(MIN(timezone(${escapedTimezone}, review_events.reviewed_at_server)::date), 'YYYY-MM-DD'),`,
+    `    to_char(timezone(${escapedTimezone}, now())::date, 'YYYY-MM-DD')`,
+    "  ) AS from_date,",
+    `  to_char(timezone(${escapedTimezone}, now())::date, 'YYYY-MM-DD') AS to_date`,
+    "FROM content.review_events AS review_events",
+  ].join("\n");
+}
+
 export function buildReviewEventsByDateSql(timezone: string, from: string, to: string): string {
+  assertValidDateRange({ from, to }, "report");
+
   return [
     "SELECT",
     "  to_char(timezone(",
@@ -273,6 +318,36 @@ export function buildReviewEventsByDateSql(timezone: string, from: string, to: s
     "  workspace_replicas.user_id ASC,",
     "  workspace_replicas.platform ASC",
   ].join("\n");
+}
+
+export async function loadReviewEventsByDateDefaultRange(
+  config: AdminAppConfig,
+  timezone: string,
+): Promise<ReviewEventsByDateRange> {
+  const response = await runAdminQuery(config, buildReviewEventsByDateDefaultRangeSql(timezone));
+  if (response.resultSets.length !== 1) {
+    throw new Error("Review events default range query must return exactly one result set.");
+  }
+
+  const resultSet = response.resultSets[0];
+  if (resultSet === undefined) {
+    throw new Error("Review events default range query result set is missing.");
+  }
+
+  if (resultSet.rows.length !== 1) {
+    throw new Error(`Review events default range query must return exactly one row. Got ${resultSet.rows.length}.`);
+  }
+
+  const row = resultSet.rows[0];
+  if (row === undefined) {
+    throw new Error("Review events default range query row is missing.");
+  }
+
+  const rangeRow = toReviewEventsByDateDefaultRangeQueryRow(row);
+  return assertValidDateRange({
+    from: rangeRow.from_date,
+    to: rangeRow.to_date,
+  }, "default");
 }
 
 export async function loadReviewEventsByDateReport(
