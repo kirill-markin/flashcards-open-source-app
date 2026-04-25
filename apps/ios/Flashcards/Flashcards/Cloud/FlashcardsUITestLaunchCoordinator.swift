@@ -27,7 +27,7 @@ private struct FlashcardsUITestLaunchCoordinator {
         let preservedLaunchState = FlashcardsUITestPreservedLaunchState(userDefaults: store.userDefaults)
 
         if self.launchScenario.requiresStoredGuestRemoteCleanup {
-            try await store.deleteStoredGuestCloudSessionForUITestCleanupIfNeeded()
+            _ = try await store.deleteStoredGuestCloudSessionForUITestCleanupIfNeeded()
         }
 
         do {

@@ -24,71 +24,18 @@ private val testOnlyPreferenceNames: List<String> = listOf(
 )
 
 open class AppStateResetRule : ExternalResource() {
-    private val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-
     companion object {
-        private const val appResetTimeoutMillis: Long = 20_000L
         private const val localeApplyTimeoutMillis: Long = 5_000L
-        private const val uiIdleTimeoutMillis: Long = 5_000L
     }
 
     override fun before() {
         applyConfiguredMarketingScreenshotLocaleOverride()
-        resetAppState()
+        resetAndroidTestAppState()
     }
 
     override fun after() {
-        resetAppState()
+        resetAndroidTestAppState()
         clearConfiguredMarketingScreenshotLocaleOverride()
-    }
-
-    private fun resetAppState() {
-        waitForUiIdle(phase = "before resetting app state")
-
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        val application = context as FlashcardsApplication
-
-        runBlocking {
-            withTimeout(appResetTimeoutMillis) {
-                application.closeAppGraph()
-                clearTestOnlySharedPreferences(context = context)
-                application.recreateAppGraphAndAwaitStartup()
-                application.appGraph.cloudAccountRepository.logout()
-            }
-        }
-        NotificationManagerCompat.from(context).cancelAll()
-        waitForUiIdle(phase = "after resetting app state")
-    }
-
-    private fun waitForUiIdle(phase: String) {
-        device.dismissBlockingSystemDialogIfPresent()
-        val latch = CountDownLatch(1)
-        InstrumentationRegistry.getInstrumentation().waitForIdle {
-            latch.countDown()
-        }
-        val didBecomeIdle = latch.await(uiIdleTimeoutMillis, TimeUnit.MILLISECONDS)
-        device.dismissBlockingSystemDialogIfPresent()
-        if (didBecomeIdle.not()) {
-            val blockingSystemDialogSummary = device.currentBlockingSystemDialogSummaryOrNull() ?: "none"
-            throw IllegalStateException(
-                "Timed out after $uiIdleTimeoutMillis ms waiting for instrumentation to become idle $phase. " +
-                    "blockingSystemDialog=$blockingSystemDialogSummary"
-            )
-        }
-    }
-
-    private fun clearTestOnlySharedPreferences(context: Context) {
-        testOnlyPreferenceNames.forEach { preferenceName ->
-            val sharedPreferences = context.getSharedPreferences(preferenceName, Context.MODE_PRIVATE)
-            val didCommitClear = sharedPreferences.edit().clear().commit()
-            if (didCommitClear.not()) {
-                throw IllegalStateException("Failed to clear shared preferences '$preferenceName'.")
-            }
-            val didDeletePreferences = context.deleteSharedPreferences(preferenceName)
-            if (didDeletePreferences.not() && sharedPreferences.all.isNotEmpty()) {
-                throw IllegalStateException("Failed to delete shared preferences '$preferenceName'.")
-            }
-        }
     }
 
     private fun applyConfiguredMarketingScreenshotLocaleOverride() {
@@ -178,5 +125,58 @@ open class AppStateResetRule : ExternalResource() {
             "Timed out after $localeApplyTimeoutMillis ms while $phase. " +
                 "expectedLanguageTags='$expectedLanguageTags' actualLanguageTags='$actualLanguageTags'."
         )
+    }
+}
+
+internal fun resetAndroidTestAppState() {
+    waitForAndroidTestUiIdle(phase = "before resetting app state")
+
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val application = context as FlashcardsApplication
+
+    runBlocking {
+        withTimeout(appResetTimeoutMillis) {
+            application.closeAppGraph()
+            clearTestOnlySharedPreferences(context = context)
+            application.recreateAppGraphAndAwaitStartup()
+            application.appGraph.cloudAccountRepository.logout()
+        }
+    }
+    NotificationManagerCompat.from(context).cancelAll()
+    waitForAndroidTestUiIdle(phase = "after resetting app state")
+}
+
+private const val appResetTimeoutMillis: Long = 20_000L
+private const val uiIdleTimeoutMillis: Long = 5_000L
+
+private fun waitForAndroidTestUiIdle(phase: String) {
+    val device: UiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+    device.dismissBlockingSystemDialogIfPresent()
+    val latch = CountDownLatch(1)
+    InstrumentationRegistry.getInstrumentation().waitForIdle {
+        latch.countDown()
+    }
+    val didBecomeIdle = latch.await(uiIdleTimeoutMillis, TimeUnit.MILLISECONDS)
+    device.dismissBlockingSystemDialogIfPresent()
+    if (didBecomeIdle.not()) {
+        val blockingSystemDialogSummary = device.currentBlockingSystemDialogSummaryOrNull() ?: "none"
+        throw IllegalStateException(
+            "Timed out after $uiIdleTimeoutMillis ms waiting for instrumentation to become idle $phase. " +
+                "blockingSystemDialog=$blockingSystemDialogSummary"
+        )
+    }
+}
+
+private fun clearTestOnlySharedPreferences(context: Context) {
+    testOnlyPreferenceNames.forEach { preferenceName ->
+        val sharedPreferences = context.getSharedPreferences(preferenceName, Context.MODE_PRIVATE)
+        val didCommitClear = sharedPreferences.edit().clear().commit()
+        if (didCommitClear.not()) {
+            throw IllegalStateException("Failed to clear shared preferences '$preferenceName'.")
+        }
+        val didDeletePreferences = context.deleteSharedPreferences(preferenceName)
+        if (didDeletePreferences.not() && sharedPreferences.all.isNotEmpty()) {
+            throw IllegalStateException("Failed to delete shared preferences '$preferenceName'.")
+        }
     }
 }
