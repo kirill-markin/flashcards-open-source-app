@@ -2,7 +2,7 @@ import Foundation
 import UIKit
 import UserNotifications
 
-let reviewNotificationPermissionPromptThreshold: Int = 3
+let reviewNotificationPermissionPromptThreshold: Int = 6
 let defaultDailyReminderHour: Int = 10
 let defaultDailyReminderMinute: Int = 0
 let dailyReminderSchedulingHorizonDays: Int = 7
@@ -333,6 +333,10 @@ func makeDefaultNotificationPermissionPromptState() -> NotificationPermissionPro
         hasRequestedSystemPermission: false,
         hasDismissedPrePrompt: false
     )
+}
+
+func hasEnoughReviewHistoryForNotificationPrompt(reviewCount: Int) -> Bool {
+    reviewCount >= reviewNotificationPermissionPromptThreshold
 }
 
 func makeReviewNotificationsSettingsUserDefaultsKey(workspaceId: String) -> String {

@@ -11,7 +11,7 @@ import java.time.format.DateTimeFormatter
 import org.json.JSONArray
 import org.json.JSONObject
 
-const val reviewNotificationPermissionPromptThreshold: Int = 3
+const val reviewNotificationPermissionPromptThreshold: Int = 6
 const val defaultDailyReminderHour: Int = 10
 const val defaultDailyReminderMinute: Int = 0
 const val dailyReminderSchedulingHorizonDays: Int = 7

@@ -167,12 +167,13 @@ extension FlashcardsStore {
         self.userDefaults.set(now.timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.reconcileReviewNotifications(trigger: .reviewRecorded, now: now)
         self.recordSuccessfulStrictReminderReview(reviewedAt: reviewedAt, now: now)
+        let reviewCount = self.loadReviewNotificationPromptReviewCount(persistedReviewCount: nextCount)
         Task { @MainActor in
             let permissionStatus = await resolveReviewNotificationPermissionStatus()
             guard permissionStatus == .notRequested else {
                 return
             }
-            guard nextCount >= reviewNotificationPermissionPromptThreshold else {
+            guard hasEnoughReviewHistoryForNotificationPrompt(reviewCount: reviewCount) else {
                 return
             }
             guard self.notificationPermissionPromptState.hasShownPrePrompt == false else {
@@ -193,6 +194,25 @@ extension FlashcardsStore {
                     hasDismissedPrePrompt: false
                 )
             )
+        }
+    }
+
+    private func loadReviewNotificationPromptReviewCount(persistedReviewCount: Int) -> Int {
+        guard let database = self.database else {
+            return persistedReviewCount
+        }
+
+        do {
+            return max(persistedReviewCount, try database.loadReviewEventCount())
+        } catch {
+            logFlashcardsError(
+                domain: "ios_notifications",
+                action: "review_prompt_count_load_failed",
+                metadata: [
+                    "message": Flashcards.errorMessage(error: error)
+                ]
+            )
+            return persistedReviewCount
         }
     }
 

@@ -588,6 +588,10 @@ class LocalReviewRepository(
         )
     }
 
+    override suspend fun countRecordedReviews(): Int {
+        return database.reviewLogDao().countReviewLogs()
+    }
+
     override suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long) {
         database.withTransaction {
             val card = requireNotNull(database.cardDao().loadCard(cardId = cardId)) {
