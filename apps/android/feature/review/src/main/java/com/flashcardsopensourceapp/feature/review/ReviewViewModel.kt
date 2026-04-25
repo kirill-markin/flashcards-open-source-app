@@ -42,6 +42,10 @@ import kotlinx.coroutines.launch
 
 private const val reviewPreviewPageSize: Int = 20
 
+private fun hasEnoughReviewHistoryForNotificationPrompt(reviewCount: Int): Boolean {
+    return reviewCount >= reviewNotificationPermissionPromptThreshold
+}
+
 private data class ReviewDraftState(
     val requestedFilter: ReviewFilter,
     val presentedCardId: String?,
@@ -502,7 +506,7 @@ class ReviewViewModel(
     /**
      * Records successful review bookkeeping and optionally shows the notification pre-prompt.
      */
-    private fun handleSuccessfulReviewRecorded(
+    private suspend fun handleSuccessfulReviewRecorded(
         reviewedAtMillis: Long,
         shouldShowNotificationPermissionPrePrompt: Boolean
     ) {
@@ -510,6 +514,7 @@ class ReviewViewModel(
         reviewNotificationsStore.saveLastActiveAtMillis(timestampMillis = nowMillis)
         val nextReviewCount = reviewNotificationsStore.loadSuccessfulReviewCount() + 1
         reviewNotificationsStore.saveSuccessfulReviewCount(count = nextReviewCount)
+        val reviewCount = maxOf(nextReviewCount, reviewRepository.countRecordedReviews())
         onReviewNotificationsChanged(ReviewNotificationsReconcileTrigger.REVIEW_RECORDED)
         onSuccessfulReviewRecorded(reviewedAtMillis)
 
@@ -518,7 +523,7 @@ class ReviewViewModel(
         }
 
         val promptState = reviewNotificationsStore.loadPromptState()
-        if (nextReviewCount < reviewNotificationPermissionPromptThreshold) {
+        if (hasEnoughReviewHistoryForNotificationPrompt(reviewCount = reviewCount).not()) {
             return
         }
         if (promptState.hasShownPrePrompt || promptState.hasRequestedSystemPermission || promptState.hasDismissedPrePrompt) {
