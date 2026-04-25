@@ -35,6 +35,7 @@ The unified screenshot flow captures an exam-prep concept card about opportunity
 - cards list with the shared opportunity-cost prompt pinned to the top
 
 - Manual screenshot entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingAllScreenshotsScript.kt`
+- Manual guest cleanup entrypoint: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotGuestCleanupScript.kt`
 - Shared screenshot helpers: `apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/MarketingScreenshotTestSupport.kt`
 - Supported manual wrapper script: `scripts/capture-android-marketing-screenshots.sh`
 - Expected generated output PNG targets:
@@ -67,7 +68,8 @@ FLASHCARDS_MARKETING_LOCALE_PREFIX=de-DE bash scripts/capture-android-marketing-
 These scripts are not part of Android CI, release gates, or default `androidTest` runs.
 They exist only to generate marketing screenshots on demand.
 They run `:app:connectedMarketingScreenshotAndroidTest`, not the normal debug instrumentation task, so screenshot-only translations do not affect the Play-first `debug` and `release` builds.
-The screenshot reset flow deletes the guest cloud session remotely before it clears local screenshot state so the seeded guest workspace does not remain on the backend after the run.
+The wrapper also runs a dedicated guest cleanup entrypoint before the screenshot flow and again from an exit trap after the wrapper finishes, including failure exits.
+The screenshot reset flow remains as an in-test defense: it deletes the guest cloud session remotely before it clears local screenshot state so the seeded guest workspace does not remain on the backend after the run.
 
 The unified wrapper script runs one manual-only entrypoint, seeds one guest workspace, saves screenshots 1, 2, 3, 4, and 5 into `/sdcard/Download/flashcards-marketing-screenshots/`, and then pulls those files into the committed marketing media directory.
 

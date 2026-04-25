@@ -6,6 +6,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 android_dir="$repo_root/apps/android"
 locale_prefix="${FLASHCARDS_MARKETING_LOCALE_PREFIX:-en}"
 script_class="com.flashcardsopensourceapp.app.MarketingAllScreenshotsScript"
+cleanup_script_class="com.flashcardsopensourceapp.app.MarketingScreenshotGuestCleanupScript"
 output_dir="$repo_root/apps/android/docs/media/play-store-screenshots"
 remote_screenshot_dir="/sdcard/Download/flashcards-marketing-screenshots"
 file_names=(
@@ -34,13 +35,40 @@ if [[ "$device_sdk" != "36" ]]; then
     exit 1
 fi
 
+run_marketing_guest_cleanup() {
+    "$repo_root/scripts/android-dismiss-system-dialogs.sh"
+    (
+        cd "$android_dir"
+        echo "Running Android marketing screenshot guest cleanup."
+        ./gradlew :app:connectedMarketingScreenshotAndroidTest \
+          "-Pandroid.testInstrumentationRunnerArguments.includeManualOnly=true" \
+          "-Pandroid.testInstrumentationRunnerArguments.clearPackageData=false" \
+          "-Pandroid.testInstrumentationRunnerArguments.marketingLocalePrefix=$locale_prefix" \
+          "-Pandroid.testInstrumentationRunnerArguments.class=$cleanup_script_class"
+    )
+}
+
+cleanup_on_exit() {
+    local exit_status="$?"
+    if ! run_marketing_guest_cleanup; then
+        echo "ERROR: Android marketing screenshot guest cleanup failed." >&2
+        if [[ "$exit_status" -eq 0 ]]; then
+            exit_status=1
+        fi
+    fi
+    exit "$exit_status"
+}
+
 "$repo_root/scripts/android-set-device-locale.sh" "$locale_prefix"
 "$repo_root/scripts/android-dismiss-system-dialogs.sh"
+trap cleanup_on_exit EXIT
+run_marketing_guest_cleanup
 
 cd "$android_dir"
 echo "Running the unified Android marketing screenshot flow."
 ./gradlew :app:connectedMarketingScreenshotAndroidTest \
   "-Pandroid.testInstrumentationRunnerArguments.includeManualOnly=true" \
+  "-Pandroid.testInstrumentationRunnerArguments.clearPackageData=false" \
   "-Pandroid.testInstrumentationRunnerArguments.marketingLocalePrefix=$locale_prefix" \
   "-Pandroid.testInstrumentationRunnerArguments.class=$script_class"
 

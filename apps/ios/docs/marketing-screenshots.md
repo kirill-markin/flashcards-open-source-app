@@ -67,8 +67,9 @@ What each layer does:
 
 The manual screenshot flows now treat guest cloud sessions as short-lived per-run fixtures:
 
-- before each marketing screenshot bootstrap, the app deletes any stored guest session remotely through `POST /guest-auth/session/delete` and then performs the existing local identity reset
-- after each manual screenshot test, XCTest relaunches the app in a dedicated cleanup scenario and waits for the UI-test readiness marker before finishing teardown
+- before each marketing screenshot bootstrap, the wrapper runs a dedicated cleanup XCUITest entrypoint that relaunches the app, deletes any stored guest session remotely through `POST /guest-auth/session/delete`, and performs the existing local identity reset
+- after each manual screenshot test, XCTest still relaunches the app in the same dedicated cleanup scenario and waits for the UI-test readiness marker before finishing teardown
+- the wrapper also registers an exit trap that runs the dedicated cleanup XCUITest entrypoint after `xcodebuild` exits, including failure exits, before it removes the runtime configuration file
 - the cleanup relaunch clears the final guest session remotely and then runs the same local reset path, so both cloud and local screenshot state are removed predictably
 
 This is why the screenshot wrappers must still run sequentially. The cleanup relaunch is part of the supported lifecycle, not an optional background best effort.
