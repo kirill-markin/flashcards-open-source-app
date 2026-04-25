@@ -97,6 +97,8 @@ interface ReviewRepository {
         limit: Int
     ): ReviewTimelinePage
 
+    suspend fun countRecordedReviews(): Int
+
     suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long)
 }
 
