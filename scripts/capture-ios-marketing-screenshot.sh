@@ -17,7 +17,7 @@ supported_locales=(
 print_usage() {
     cat <<'EOF' >&2
 Usage:
-  capture-ios-marketing-screenshot.sh [--locale <code>] <test_identifier> <description> <screenshot_index> <screenshot_slug> [<screenshot_index> <screenshot_slug> ...]
+  capture-ios-marketing-screenshot.sh [--locale <code>] <test_identifier> <description> <screenshot_index> [<screenshot_index> ...]
   capture-ios-marketing-screenshot.sh --list-locales
 
 Supported locales:
@@ -137,19 +137,14 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ "${#positional_arguments[@]}" -lt 4 ]]; then
+if [[ "${#positional_arguments[@]}" -lt 3 ]]; then
     print_usage
     exit 1
 fi
 
 test_identifier="${positional_arguments[0]}"
 description="${positional_arguments[1]}"
-expected_screenshot_arguments=("${positional_arguments[@]:2}")
-
-if (( ${#expected_screenshot_arguments[@]} % 2 != 0 )); then
-    print_usage
-    exit 1
-fi
+expected_screenshot_indices=("${positional_arguments[@]:2}")
 
 localization_code="$(resolve_requested_locale "$requested_locale")"
 
@@ -157,6 +152,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 project_path="$repo_root/apps/ios/Flashcards/Flashcards Open Source App.xcodeproj"
 scheme_name="Flashcards Open Source App"
 runtime_configuration_path="/tmp/flashcards-open-source-app-ios-marketing-screenshot-config.json"
+screenshot_run_marker_path=""
 
 list_booted_simulator_lines() {
     xcrun simctl list devices booted | sed -nE '/^[[:space:]]+.+ \([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\) \(Booted\)[[:space:]]*$/p'
@@ -190,6 +186,9 @@ EOF
 
 cleanup_runtime_configuration() {
     rm -f "$runtime_configuration_path"
+    if [[ -n "$screenshot_run_marker_path" ]]; then
+        rm -f "$screenshot_run_marker_path"
+    fi
 }
 
 resolve_booted_simulator_id() {
@@ -245,6 +244,42 @@ resolve_device_family() {
     exit 1
 }
 
+resolve_screenshot_path_for_index() {
+    local output_directory="$1"
+    local localization_code="$2"
+    local screenshot_index="$3"
+    local run_marker_path="$4"
+
+    if [[ ! "$screenshot_index" =~ ^[0-9]+$ ]]; then
+        echo "Expected numeric screenshot index, got: $screenshot_index" >&2
+        exit 1
+    fi
+
+    local -a matching_paths=()
+    mapfile -t matching_paths < <(
+        find "$output_directory" \
+            -maxdepth 1 \
+            -type f \
+            -name "${localization_code}-${screenshot_index}_*.png" \
+            -newer "$run_marker_path" \
+            -print | sort
+    )
+
+    if [[ "${#matching_paths[@]}" -eq 0 ]]; then
+        echo "Expected screenshot file from the current run matching $output_directory/${localization_code}-${screenshot_index}_*.png." >&2
+        exit 1
+    fi
+
+    if [[ "${#matching_paths[@]}" -gt 1 ]]; then
+        echo "Expected exactly one screenshot file for locale '$localization_code' and index '$screenshot_index' in $output_directory." >&2
+        printf 'Matching files:\n' >&2
+        printf '%s\n' "${matching_paths[@]}" >&2
+        exit 1
+    fi
+
+    echo "${matching_paths[0]}"
+}
+
 simulator_id="$(resolve_booted_simulator_id)"
 simulator_name="$(resolve_simulator_name "$simulator_id")"
 device_family="$(resolve_device_family "$simulator_name")"
@@ -253,6 +288,7 @@ output_directory="$repo_root/apps/ios/docs/media/app-store-screenshots/$device_f
 mkdir -p "$output_directory"
 trap cleanup_runtime_configuration EXIT
 write_runtime_configuration "$output_directory" "$localization_code"
+screenshot_run_marker_path="$(mktemp -t flashcards-open-source-app-ios-marketing-screenshot-run)"
 
 echo "Running manual iOS marketing screenshot script for $description on $simulator_name."
 echo "Locale: $localization_code"
@@ -268,16 +304,7 @@ xcodebuild \
   "-only-testing:Flashcards Open Source App UI Tests/$test_identifier" \
   test
 
-for ((index = 0; index < ${#expected_screenshot_arguments[@]}; index += 2)); do
-    screenshot_index="${expected_screenshot_arguments[$index]}"
-    screenshot_slug="${expected_screenshot_arguments[$((index + 1))]}"
-    output_file_name="${localization_code}-${screenshot_index}_${screenshot_slug}.png"
-    output_path="$output_directory/$output_file_name"
-
-    if [[ ! -f "$output_path" ]]; then
-        echo "Expected screenshot file at $output_path." >&2
-        exit 1
-    fi
-
+for screenshot_index in "${expected_screenshot_indices[@]}"; do
+    output_path="$(resolve_screenshot_path_for_index "$output_directory" "$localization_code" "$screenshot_index" "$screenshot_run_marker_path")"
     echo "Saved screenshot to $output_path"
 done
