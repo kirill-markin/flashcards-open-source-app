@@ -208,20 +208,33 @@ resolve_screenshot_paths() {
     local family="$1"
     local locale="$2"
 
-    local -a screenshot_paths=(
-        "$raw_screenshot_root/$family/${locale}-1_review-card-front-app-store-opportunity-cost.png"
-        "$raw_screenshot_root/$family/${locale}-2_review-card-result-app-store-opportunity-cost.png"
-        "$raw_screenshot_root/$family/${locale}-3_progress-app-store-study-history.png"
-        "$raw_screenshot_root/$family/${locale}-4_review-card-ai-draft-app-store-opportunity-cost.png"
-        "$raw_screenshot_root/$family/${locale}-5_cards-list-app-store-vocabulary.png"
-    )
+    local screenshot_directory="$raw_screenshot_root/$family"
+    local -a screenshot_paths=()
+    local screenshot_index=""
+    local -a matching_paths=()
 
-    local screenshot_path=""
-    for screenshot_path in "${screenshot_paths[@]}"; do
-        if [[ ! -f "$screenshot_path" ]]; then
-            echo "Expected raw screenshot file at $screenshot_path" >&2
+    for screenshot_index in 1 2 3 4 5; do
+        mapfile -t matching_paths < <(
+            find "$screenshot_directory" \
+                -maxdepth 1 \
+                -type f \
+                -name "${locale}-${screenshot_index}_*.png" \
+                -print | sort
+        )
+
+        if [[ "${#matching_paths[@]}" -eq 0 ]]; then
+            echo "Expected raw screenshot file matching $screenshot_directory/${locale}-${screenshot_index}_*.png" >&2
             exit 1
         fi
+
+        if [[ "${#matching_paths[@]}" -gt 1 ]]; then
+            echo "Expected exactly one raw screenshot file for locale '$locale' and index '$screenshot_index' in $screenshot_directory." >&2
+            printf 'Matching files:\n' >&2
+            printf '%s\n' "${matching_paths[@]}" >&2
+            exit 1
+        fi
+
+        screenshot_paths+=("${matching_paths[0]}")
     done
 
     printf '%s\n' "${screenshot_paths[@]}"
