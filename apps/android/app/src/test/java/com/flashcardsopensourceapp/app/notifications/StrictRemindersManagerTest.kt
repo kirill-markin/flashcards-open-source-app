@@ -319,11 +319,23 @@ private class FakeReviewLogDao(
         throw UnsupportedOperationException("Unused in strict reminders manager tests.")
     }
 
+    override suspend fun loadReviewLog(reviewLogId: String): ReviewLogEntity? {
+        throw UnsupportedOperationException("Unused in strict reminders manager tests.")
+    }
+
     override suspend fun loadReviewLogs(workspaceId: String): List<ReviewLogEntity> {
         throw UnsupportedOperationException("Unused in strict reminders manager tests.")
     }
 
     override suspend fun insertReviewLogs(reviewLogs: List<ReviewLogEntity>) {
+        throw UnsupportedOperationException("Unused in strict reminders manager tests.")
+    }
+
+    override suspend fun reassignReviewLogsToCard(workspaceId: String, oldCardId: String, newCardId: String) {
+        throw UnsupportedOperationException("Unused in strict reminders manager tests.")
+    }
+
+    override suspend fun deleteReviewLogs(reviewLogIds: List<String>) {
         throw UnsupportedOperationException("Unused in strict reminders manager tests.")
     }
 
