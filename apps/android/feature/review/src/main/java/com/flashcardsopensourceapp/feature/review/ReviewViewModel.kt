@@ -202,6 +202,7 @@ class ReviewViewModel(
         )
         val emptyState = resolveReviewEmptyState(
             selectedFilter = sessionSnapshot.selectedFilter,
+            remainingCount = sessionSnapshot.remainingCount,
             totalCount = sessionSnapshot.totalCount,
             workspaceCardCount = appMetadata.cardCount
         )
@@ -918,11 +919,16 @@ private fun applyResolvedReviewFilter(
 
 private fun resolveReviewEmptyState(
     selectedFilter: ReviewFilter,
+    remainingCount: Int,
     totalCount: Int,
     workspaceCardCount: Int
 ): ReviewEmptyState? {
-    if (totalCount > 0) {
+    if (remainingCount > 0) {
         return null
+    }
+
+    if (totalCount > 0) {
+        return ReviewEmptyState.SESSION_COMPLETE
     }
 
     if (workspaceCardCount == 0) {
