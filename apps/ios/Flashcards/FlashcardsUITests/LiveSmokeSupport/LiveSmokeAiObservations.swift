@@ -4,7 +4,7 @@ extension LiveSmokeTestCase {
     @MainActor
     func visibleAssistantRowTexts(ignoredExactLabels: Set<String>) -> [String] {
         self.elements(
-            query: self.app.otherElements
+            query: self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.aiAssistantVisibleText)
         )
         .compactMap { element in
