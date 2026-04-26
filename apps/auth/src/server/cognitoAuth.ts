@@ -4,7 +4,7 @@
  * Calls the Cognito IDP endpoint directly via fetch — no AWS SDK needed.
  * Uses USER_AUTH flow with EMAIL_OTP challenge (Essentials tier).
  */
-import { randomBytes } from "node:crypto";
+import { randomInt } from "node:crypto";
 import {
   createCognitoTypedError,
   getCognitoErrorType,
@@ -81,11 +81,71 @@ type CognitoFetchFunction = (
   body: Record<string, unknown>,
 ) => Promise<Record<string, unknown>>;
 
+type RandomIndex = (maxExclusive: number) => number;
+
+const COGNITO_SIGN_UP_PASSWORD_LENGTH = 64;
+const COGNITO_SIGN_UP_PASSWORD_LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
+const COGNITO_SIGN_UP_PASSWORD_UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const COGNITO_SIGN_UP_PASSWORD_DIGITS = "0123456789";
+const COGNITO_SIGN_UP_PASSWORD_SYMBOLS = "^$*.[]{}()?\"!@#%&/\\,><':;|_~`=+-";
+const COGNITO_SIGN_UP_PASSWORD_ALPHABET = [
+  COGNITO_SIGN_UP_PASSWORD_LOWERCASE,
+  COGNITO_SIGN_UP_PASSWORD_UPPERCASE,
+  COGNITO_SIGN_UP_PASSWORD_DIGITS,
+  COGNITO_SIGN_UP_PASSWORD_SYMBOLS,
+].join("");
+
+function pickRandomCharacter(characters: string, randomIndex: RandomIndex): string {
+  const index = randomIndex(characters.length);
+  const character = characters[index];
+  if (character === undefined) {
+    throw new Error("Password character selection produced an out-of-range index");
+  }
+  return character;
+}
+
+function shuffleCharacters(
+  characters: ReadonlyArray<string>,
+  randomIndex: RandomIndex,
+): ReadonlyArray<string> {
+  const shuffledCharacters = [...characters];
+  for (let index = shuffledCharacters.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomIndex(index + 1);
+    const currentCharacter = shuffledCharacters[index];
+    const swapCharacter = shuffledCharacters[swapIndex];
+    if (currentCharacter === undefined || swapCharacter === undefined) {
+      throw new Error("Password character shuffle produced an out-of-range index");
+    }
+    shuffledCharacters[index] = swapCharacter;
+    shuffledCharacters[swapIndex] = currentCharacter;
+  }
+  return shuffledCharacters;
+}
+
+function createCognitoSignUpPasswordWithRandomIndex(randomIndex: RandomIndex): string {
+  const requiredCharacters = [
+    pickRandomCharacter(COGNITO_SIGN_UP_PASSWORD_LOWERCASE, randomIndex),
+    pickRandomCharacter(COGNITO_SIGN_UP_PASSWORD_UPPERCASE, randomIndex),
+    pickRandomCharacter(COGNITO_SIGN_UP_PASSWORD_DIGITS, randomIndex),
+    pickRandomCharacter(COGNITO_SIGN_UP_PASSWORD_SYMBOLS, randomIndex),
+  ];
+  const remainingLength = COGNITO_SIGN_UP_PASSWORD_LENGTH - requiredCharacters.length;
+  const randomCharacters = Array.from(
+    { length: remainingLength },
+    () => pickRandomCharacter(COGNITO_SIGN_UP_PASSWORD_ALPHABET, randomIndex),
+  );
+  return shuffleCharacters([...requiredCharacters, ...randomCharacters], randomIndex).join("");
+}
+
+function createCognitoSignUpPassword(): string {
+  return createCognitoSignUpPasswordWithRandomIndex(randomInt);
+}
+
 const signUpUser = async (email: string): Promise<void> => {
   await cognitoFetch("SignUp", {
     ClientId: getClientId(),
     Username: email,
-    Password: randomBytes(48).toString("base64"),
+    Password: createCognitoSignUpPassword(),
     UserAttributes: [{ Name: "email", Value: email }],
   });
 };
@@ -280,6 +340,8 @@ export const signInWithPassword = async (
 ): Promise<TokenResult> => signInWithPasswordViaCognito(cognitoFetch, email, password);
 
 export const __internal = {
+  createCognitoSignUpPassword,
+  createCognitoSignUpPasswordWithRandomIndex,
   signInWithPasswordViaCognito,
 };
 
