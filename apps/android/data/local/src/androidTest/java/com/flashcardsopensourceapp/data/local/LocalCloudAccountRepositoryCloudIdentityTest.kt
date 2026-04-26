@@ -1171,7 +1171,15 @@ class LocalCloudAccountRepositoryCloudIdentityTest {
         assertEquals(listOf(true), remoteGateway.completeGuestUpgradeGuestWorkspaceSyncedAndOutboxDrained)
         assertEquals(listOf(true), remoteGateway.completeGuestUpgradeSupportsDroppedEntities)
         assertEquals(
-            listOf("push", "pull", "pull_review_history", "bootstrap_pull", "pull", "pull_review_history"),
+            listOf(
+                "push",
+                "pull",
+                "pull_review_history",
+                "bootstrap_pull",
+                "pull_review_history",
+                "pull",
+                "pull_review_history"
+            ),
             remoteGateway.syncRequestEvents
         )
     }
