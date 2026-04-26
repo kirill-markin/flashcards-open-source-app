@@ -318,18 +318,47 @@ enum AIChatStoreTestSupport {
         }
     }
 
+    struct WorkspaceBootstrapEmptinessRequest: Equatable {
+        let apiBaseUrl: String
+        let authorizationHeader: String
+        let workspaceId: String
+        let installationId: String
+    }
+
+    struct ProgressSummaryRequest: Equatable {
+        let apiBaseUrl: String
+        let authorizationHeader: String
+        let timeZone: String
+    }
+
+    struct ProgressSeriesRequest: Equatable {
+        let apiBaseUrl: String
+        let authorizationHeader: String
+        let timeZone: String
+        let from: String
+        let to: String
+    }
+
     @MainActor
     final class CloudSyncService: CloudSyncServing {
         var runLinkedSyncCallCount: Int
         var syncExpectation: XCTestExpectation?
         var runLinkedSyncErrors: [Error]
         var runLinkedSyncGate: AsyncGate?
+        var isWorkspaceEmptyForBootstrapResult: Bool
+        var isWorkspaceEmptyForBootstrapRequests: [WorkspaceBootstrapEmptinessRequest]
+        var progressSummaryRequests: [ProgressSummaryRequest]
+        var progressSeriesRequests: [ProgressSeriesRequest]
 
         init() {
             self.runLinkedSyncCallCount = 0
             self.syncExpectation = nil
             self.runLinkedSyncErrors = []
             self.runLinkedSyncGate = nil
+            self.isWorkspaceEmptyForBootstrapResult = true
+            self.isWorkspaceEmptyForBootstrapRequests = []
+            self.progressSummaryRequests = []
+            self.progressSeriesRequests = []
         }
 
         func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot {
@@ -343,10 +372,23 @@ enum AIChatStoreTestSupport {
             authorizationHeader: String,
             timeZone: String
         ) async throws -> UserProgressSummary {
-            _ = apiBaseUrl
-            _ = authorizationHeader
-            _ = timeZone
-            fatalError("Not used in AIChatStoreTestSupport.")
+            self.progressSummaryRequests.append(
+                ProgressSummaryRequest(
+                    apiBaseUrl: apiBaseUrl,
+                    authorizationHeader: authorizationHeader,
+                    timeZone: timeZone
+                )
+            )
+            return UserProgressSummary(
+                timeZone: timeZone,
+                summary: ProgressSummary(
+                    currentStreakDays: 0,
+                    hasReviewedToday: false,
+                    lastReviewedOn: nil,
+                    activeReviewDays: 0
+                ),
+                generatedAt: "2026-04-25T00:00:00.000Z"
+            )
         }
 
         func loadProgressSeries(
@@ -356,12 +398,28 @@ enum AIChatStoreTestSupport {
             from: String,
             to: String
         ) async throws -> UserProgressSeries {
-            _ = apiBaseUrl
-            _ = authorizationHeader
-            _ = timeZone
-            _ = from
-            _ = to
-            fatalError("Not used in AIChatStoreTestSupport.")
+            self.progressSeriesRequests.append(
+                ProgressSeriesRequest(
+                    apiBaseUrl: apiBaseUrl,
+                    authorizationHeader: authorizationHeader,
+                    timeZone: timeZone,
+                    from: from,
+                    to: to
+                )
+            )
+            return UserProgressSeries(
+                timeZone: timeZone,
+                from: from,
+                to: to,
+                dailyReviews: [],
+                summary: ProgressSummary(
+                    currentStreakDays: 0,
+                    hasReviewedToday: false,
+                    lastReviewedOn: nil,
+                    activeReviewDays: 0
+                ),
+                generatedAt: "2026-04-25T00:00:00.000Z"
+            )
         }
 
         func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary {
@@ -469,11 +527,15 @@ enum AIChatStoreTestSupport {
             workspaceId: String,
             installationId: String
         ) async throws -> Bool {
-            _ = apiBaseUrl
-            _ = authorizationHeader
-            _ = workspaceId
-            _ = installationId
-            fatalError("Not used in AIChatStoreTestSupport.")
+            self.isWorkspaceEmptyForBootstrapRequests.append(
+                WorkspaceBootstrapEmptinessRequest(
+                    apiBaseUrl: apiBaseUrl,
+                    authorizationHeader: authorizationHeader,
+                    workspaceId: workspaceId,
+                    installationId: installationId
+                )
+            )
+            return self.isWorkspaceEmptyForBootstrapResult
         }
 
         func deleteAccount(apiBaseUrl: String, bearerToken: String, confirmationText: String) async throws {

@@ -332,7 +332,7 @@ final class CloudSessionRuntime {
 
     func runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.cloudSyncService)
-        try await self.waitForActiveCloudSyncToSettle()
+        await self.waitForActiveCloudSyncToSettle()
         return try await self.startCloudSyncTask {
             try await cloudSyncService.runLinkedSync(linkedSession: linkedSession)
         }
