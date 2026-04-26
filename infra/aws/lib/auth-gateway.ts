@@ -133,10 +133,8 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
   });
 
   const integration = new apigw.LambdaIntegration(authFn);
-  restApi.root.addProxy({
-    defaultIntegration: integration,
-    anyMethod: true,
-  });
+  restApi.root.addMethod("ANY", integration);
+  restApi.root.addResource("{proxy+}").addMethod("ANY", integration);
 
   if (props.authCertificateArn) {
     const authDomainName = `auth.${props.baseDomain}`;
