@@ -295,8 +295,21 @@ interface TagDao {
     @Query("SELECT * FROM tags WHERE workspaceId = :workspaceId ORDER BY name ASC, tagId ASC")
     suspend fun loadTags(workspaceId: String): List<TagEntity>
 
-    @Query("SELECT * FROM card_tags WHERE cardId IN (:cardIds)")
-    suspend fun loadCardTags(cardIds: List<String>): List<CardTagEntity>
+    @Query(
+        """
+        SELECT card_tags.*
+        FROM card_tags
+        INNER JOIN cards ON cards.cardId = card_tags.cardId
+        INNER JOIN tags ON tags.tagId = card_tags.tagId
+        WHERE cards.workspaceId = :workspaceId
+            AND tags.workspaceId = :workspaceId
+        ORDER BY cards.createdAtMillis ASC, cards.cardId ASC, card_tags.tagId ASC
+        """
+    )
+    suspend fun loadCardTags(workspaceId: String): List<CardTagEntity>
+
+    @Query("UPDATE card_tags SET cardId = :newCardId WHERE cardId = :oldCardId")
+    suspend fun reassignCardTagsToCard(oldCardId: String, newCardId: String)
 
     @Query("SELECT EXISTS(SELECT 1 FROM tags WHERE workspaceId = :workspaceId AND LOWER(name) = LOWER(:tagName) LIMIT 1)")
     suspend fun hasTag(workspaceId: String, tagName: String): Boolean
@@ -347,11 +360,20 @@ interface ReviewLogDao {
     @Query("SELECT * FROM review_logs WHERE reviewLogId IN (:reviewLogIds)")
     suspend fun loadReviewLogs(reviewLogIds: List<String>): List<ReviewLogEntity>
 
+    @Query("SELECT * FROM review_logs WHERE reviewLogId = :reviewLogId LIMIT 1")
+    suspend fun loadReviewLog(reviewLogId: String): ReviewLogEntity?
+
     @Query("SELECT * FROM review_logs WHERE workspaceId = :workspaceId ORDER BY reviewedAtMillis DESC")
     suspend fun loadReviewLogs(workspaceId: String): List<ReviewLogEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReviewLogs(reviewLogs: List<ReviewLogEntity>)
+
+    @Query("UPDATE review_logs SET cardId = :newCardId WHERE workspaceId = :workspaceId AND cardId = :oldCardId")
+    suspend fun reassignReviewLogsToCard(workspaceId: String, oldCardId: String, newCardId: String)
+
+    @Query("DELETE FROM review_logs WHERE reviewLogId IN (:reviewLogIds)")
+    suspend fun deleteReviewLogs(reviewLogIds: List<String>)
 
     @Query("DELETE FROM review_logs")
     suspend fun deleteAllReviewLogs()
@@ -374,10 +396,13 @@ interface OutboxDao {
     @Query("SELECT COUNT(*) FROM outbox_entries")
     suspend fun countOutboxEntries(): Int
 
-    @Query("SELECT * FROM outbox_entries WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC LIMIT :limit")
+    @Query("SELECT COUNT(*) FROM outbox_entries WHERE workspaceId = :workspaceId")
+    suspend fun countOutboxEntriesForWorkspace(workspaceId: String): Int
+
+    @Query("SELECT * FROM outbox_entries WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC, rowid ASC LIMIT :limit")
     suspend fun loadOutboxEntries(workspaceId: String, limit: Int): List<OutboxEntryEntity>
 
-    @Query("SELECT * FROM outbox_entries WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC, outboxEntryId ASC")
+    @Query("SELECT * FROM outbox_entries WHERE workspaceId = :workspaceId ORDER BY createdAtMillis ASC, rowid ASC")
     suspend fun loadAllOutboxEntries(workspaceId: String): List<OutboxEntryEntity>
 
     @Query(
@@ -386,7 +411,7 @@ interface OutboxDao {
         WHERE workspaceId = :workspaceId
             AND entityType = 'review_event'
             AND operationType = 'append'
-        ORDER BY createdAtMillis ASC
+        ORDER BY createdAtMillis ASC, rowid ASC
         """
     )
     suspend fun loadPendingReviewEventOutboxEntries(workspaceId: String): List<OutboxEntryEntity>
@@ -396,7 +421,7 @@ interface OutboxDao {
         SELECT * FROM outbox_entries
         WHERE entityType = 'review_event'
             AND operationType = 'append'
-        ORDER BY createdAtMillis ASC
+        ORDER BY createdAtMillis ASC, rowid ASC
         """
     )
     fun observePendingReviewEventOutboxEntries(): Flow<List<OutboxEntryEntity>>
@@ -416,8 +441,6 @@ interface OutboxDao {
     )
     suspend fun markOutboxEntriesFailed(operationIds: List<String>, errorMessage: String)
 
-    @Query("UPDATE outbox_entries SET workspaceId = :newWorkspaceId WHERE workspaceId = :oldWorkspaceId")
-    suspend fun reassignWorkspace(oldWorkspaceId: String, newWorkspaceId: String)
 }
 
 @Dao

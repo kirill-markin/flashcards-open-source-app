@@ -46,6 +46,8 @@ private struct GuestUpgradeCompleteRequest: Encodable {
 
     let guestToken: String
     let selection: Selection
+    let guestWorkspaceSyncedAndOutboxDrained: Bool
+    let supportsDroppedEntities: Bool
 }
 
 private struct GuestUpgradeCompleteEnvelope: Decodable {
@@ -159,7 +161,9 @@ final class GuestCloudAuthService {
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String,
-        selection: CloudGuestUpgradeSelection
+        selection: CloudGuestUpgradeSelection,
+        supportsDroppedEntities: Bool,
+        guestWorkspaceSyncedAndOutboxDrained: Bool
     ) async throws -> CloudWorkspaceSummary {
         let requestSelection: GuestUpgradeCompleteRequest.Selection
         switch selection {
@@ -182,7 +186,9 @@ final class GuestCloudAuthService {
             method: "POST",
             body: GuestUpgradeCompleteRequest(
                 guestToken: guestToken,
-                selection: requestSelection
+                selection: requestSelection,
+                guestWorkspaceSyncedAndOutboxDrained: guestWorkspaceSyncedAndOutboxDrained,
+                supportsDroppedEntities: supportsDroppedEntities,
             )
         )
         return response.workspace

@@ -37,6 +37,7 @@ import com.flashcardsopensourceapp.data.local.model.normalizeTags
 import com.flashcardsopensourceapp.data.local.model.parseIsoTimestamp
 import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.loadCurrentWorkspaceOrNull
+import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -81,9 +82,20 @@ private data class WorkspaceForkIdMappings(
     val reviewEventIdsBySourceId: Map<String, String>
 )
 
+internal data class PendingLocalHotEntityKey(
+    val entityType: SyncEntityType,
+    val entityId: String
+)
+
+internal data class BootstrapApplyResult(
+    val skippedHotRows: Boolean,
+    val appliedHotEntityKeys: Set<PendingLocalHotEntityKey>
+)
+
 class SyncLocalStore(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
+    private val reviewPreferencesStore: ReviewPreferencesStore,
     private val localProgressCacheStore: LocalProgressCacheStore
 ) {
     private val reviewHistoryChangedEvents = MutableStateFlow<PendingReviewHistoryChangedEvent?>(value = null)
@@ -247,6 +259,10 @@ class SyncLocalStore(
         database.outboxDao().markOutboxEntriesFailed(operationIds, errorMessage)
     }
 
+    suspend fun countOutboxEntries(workspaceId: String): Int {
+        return database.outboxDao().countOutboxEntriesForWorkspace(workspaceId = workspaceId)
+    }
+
     suspend fun ensureSyncState(workspaceId: String): SyncStateEntity {
         val existingSyncState = database.syncStateDao().loadSyncState(workspaceId = workspaceId)
         if (existingSyncState != null) {
@@ -259,6 +275,7 @@ class SyncLocalStore(
             lastReviewSequenceId = 0L,
             hasHydratedHotState = false,
             hasHydratedReviewHistory = false,
+            pendingReviewHistoryImport = false,
             lastSyncAttemptAtMillis = null,
             lastSuccessfulSyncAtMillis = null,
             lastSyncError = null,
@@ -313,6 +330,23 @@ class SyncLocalStore(
         )
     }
 
+    suspend fun markReviewHistoryImportPending(workspaceId: String) {
+        val syncState = ensureSyncState(workspaceId = workspaceId)
+        database.syncStateDao().insertSyncState(
+            syncState.copy(
+                hasHydratedReviewHistory = false,
+                pendingReviewHistoryImport = true
+            )
+        )
+    }
+
+    suspend fun markReviewHistoryImportComplete(workspaceId: String) {
+        val syncState = ensureSyncState(workspaceId = workspaceId)
+        database.syncStateDao().insertSyncState(
+            syncState.copy(pendingReviewHistoryImport = false)
+        )
+    }
+
     suspend fun markSyncSuccess(
         workspaceId: String,
         lastSyncCursor: String,
@@ -320,6 +354,7 @@ class SyncLocalStore(
         hasHydratedHotState: Boolean,
         hasHydratedReviewHistory: Boolean
     ) {
+        val syncState = ensureSyncState(workspaceId = workspaceId)
         val nowMillis = System.currentTimeMillis()
         database.syncStateDao().insertSyncState(
             SyncStateEntity(
@@ -328,12 +363,43 @@ class SyncLocalStore(
                 lastReviewSequenceId = lastReviewSequenceId,
                 hasHydratedHotState = hasHydratedHotState,
                 hasHydratedReviewHistory = hasHydratedReviewHistory,
+                pendingReviewHistoryImport = syncState.pendingReviewHistoryImport,
                 lastSyncAttemptAtMillis = nowMillis,
                 lastSuccessfulSyncAtMillis = nowMillis,
                 lastSyncError = null,
                 blockedInstallationId = null
             )
         )
+    }
+
+    suspend fun reidentifyWorkspaceForkConflictEntity(
+        workspaceId: String,
+        entityType: SyncEntityType,
+        entityId: String
+    ): String {
+        return database.withTransaction {
+            when (entityType) {
+                SyncEntityType.CARD -> reidentifyCardWorkspaceForkConflictInTransaction(
+                    workspaceId = workspaceId,
+                    cardId = entityId
+                )
+
+                SyncEntityType.DECK -> reidentifyDeckWorkspaceForkConflictInTransaction(
+                    workspaceId = workspaceId,
+                    deckId = entityId
+                )
+
+                SyncEntityType.REVIEW_EVENT -> reidentifyReviewEventWorkspaceForkConflictInTransaction(
+                    workspaceId = workspaceId,
+                    reviewEventId = entityId
+                )
+
+                SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> throw IllegalArgumentException(
+                    "Cannot recover workspace fork conflict for unsupported entity type " +
+                        "'${entityType.toRemoteValue()}' in workspace '$workspaceId'."
+                )
+            }
+        }
     }
 
     suspend fun forkWorkspaceIdentity(
@@ -451,6 +517,35 @@ class SyncLocalStore(
         return resultingWorkspace
     }
 
+    /**
+     * Bound guest upgrade must reuse the existing local guest workspace as-is.
+     * Refresh the workspace shell metadata, but do not rewrite identity or
+     * clear any sync progress or blocked state.
+     */
+    suspend fun bindGuestUpgradeToLinkedWorkspace(workspace: CloudWorkspaceSummary): WorkspaceEntity {
+        val currentWorkspaceId = requireNotNull(currentWorkspaceIdOrNull()) {
+            "Bound guest upgrade requires a current local workspace."
+        }
+        check(currentWorkspaceId == workspace.workspaceId) {
+            "Bound guest upgrade must preserve the existing workspace identity. " +
+                "Current='$currentWorkspaceId' Remote='${workspace.workspaceId}'."
+        }
+        database.withTransaction {
+            refreshCurrentWorkspaceShellInTransaction(workspace)
+        }
+
+        val localWorkspaces = database.workspaceDao().loadWorkspaces()
+        check(localWorkspaces.size == 1) {
+            "Bound guest upgrade must leave exactly one local workspace. " +
+                "Local workspaces=${localWorkspaces.map(WorkspaceEntity::workspaceId)}"
+        }
+        return requireNotNull(
+            database.workspaceDao().loadWorkspaceById(workspace.workspaceId)
+        ) {
+            "Bound guest upgrade did not keep the expected local workspace '${workspace.workspaceId}'."
+        }
+    }
+
     suspend fun buildBootstrapEntries(workspaceId: String): JSONArray {
         val entries = JSONArray()
         database.cardDao().observeCardsWithRelations().first()
@@ -551,16 +646,47 @@ class SyncLocalStore(
         }
     }
 
-    suspend fun applyBootstrapEntries(workspaceId: String, entries: List<RemoteBootstrapEntry>) {
-        database.withTransaction {
+    internal suspend fun applyBootstrapEntries(workspaceId: String, entries: List<RemoteBootstrapEntry>): BootstrapApplyResult {
+        return database.withTransaction {
+            val pendingLocalHotEntityKeys: Set<PendingLocalHotEntityKey> =
+                loadPendingLocalHotEntityKeysInTransaction(workspaceId = workspaceId)
+            val appliedHotEntityKeys: MutableSet<PendingLocalHotEntityKey> = mutableSetOf()
+            var skippedHotRows = false
             entries.forEachIndexed { index, entry ->
+                val entryHotEntityKey: PendingLocalHotEntityKey? = entry.toPendingLocalHotEntityKey()
+                if (entryHotEntityKey != null && entryHotEntityKey in pendingLocalHotEntityKeys) {
+                    // Pending outbox rows are the local source of truth until the push phase drains them.
+                    skippedHotRows = true
+                    return@forEachIndexed
+                }
                 applyHotPayload(
                     workspaceId = workspaceId,
                     entityType = entry.entityType,
                     payload = entry.payload,
                     fieldPath = "bootstrap.entries[$index].payload"
                 )
+                if (entryHotEntityKey != null) {
+                    appliedHotEntityKeys += entryHotEntityKey
+                }
             }
+            BootstrapApplyResult(
+                skippedHotRows = skippedHotRows,
+                appliedHotEntityKeys = appliedHotEntityKeys
+            )
+        }
+    }
+
+    internal suspend fun hasPendingLocalHotRowsForAppliedBootstrapKeys(
+        workspaceId: String,
+        appliedHotEntityKeys: Set<PendingLocalHotEntityKey>
+    ): Boolean {
+        if (appliedHotEntityKeys.isEmpty()) {
+            return false
+        }
+
+        return database.withTransaction {
+            loadPendingLocalHotEntityKeysInTransaction(workspaceId = workspaceId)
+                .any { pendingHotEntityKey -> pendingHotEntityKey in appliedHotEntityKeys }
         }
     }
 
@@ -667,21 +793,30 @@ class SyncLocalStore(
         clientUpdatedAtIso: String,
         payloadJson: String
     ) {
-        database.outboxDao().insertOutboxEntry(
-            OutboxEntryEntity(
-                outboxEntryId = UUID.randomUUID().toString(),
-                workspaceId = workspaceId,
-                installationId = preferencesStore.currentCloudSettings().installationId,
-                entityType = entityType.toRemoteValue(),
-                entityId = entityId,
-                operationType = action.toRemoteValue(),
-                payloadJson = payloadJson,
-                clientUpdatedAtIso = clientUpdatedAtIso,
-                createdAtMillis = System.currentTimeMillis(),
-                attemptCount = 0,
-                lastError = null
+        preferencesStore.runWithLocalOutboxWritesAllowed {
+            database.outboxDao().insertOutboxEntry(
+                OutboxEntryEntity(
+                    outboxEntryId = UUID.randomUUID().toString(),
+                    workspaceId = workspaceId,
+                    installationId = preferencesStore.currentCloudSettings().installationId,
+                    entityType = entityType.toRemoteValue(),
+                    entityId = entityId,
+                    operationType = action.toRemoteValue(),
+                    payloadJson = payloadJson,
+                    clientUpdatedAtIso = clientUpdatedAtIso,
+                    createdAtMillis = System.currentTimeMillis(),
+                    attemptCount = 0,
+                    lastError = null
+                )
             )
-        )
+        }
+    }
+
+    private suspend fun loadPendingLocalHotEntityKeysInTransaction(workspaceId: String): Set<PendingLocalHotEntityKey> {
+        return database.outboxDao()
+            .loadAllOutboxEntries(workspaceId = workspaceId)
+            .mapNotNull(::pendingLocalHotEntityKey)
+            .toSet()
     }
 
     private suspend fun currentWorkspaceIdOrNull(): String? {
@@ -735,6 +870,7 @@ class SyncLocalStore(
                 lastReviewSequenceId = 0L,
                 hasHydratedHotState = false,
                 hasHydratedReviewHistory = false,
+                pendingReviewHistoryImport = false,
                 lastSyncAttemptAtMillis = null,
                 lastSuccessfulSyncAtMillis = null,
                 lastSyncError = null,
@@ -908,6 +1044,10 @@ class SyncLocalStore(
         }
 
         if (destinationMatchesCurrentWorkspace) {
+            val didRewriteLocalEntityIds: Boolean = hasWorkspaceForkEntityIdRewrites(
+                snapshot = snapshot,
+                forkMappings = forkMappings
+            )
             snapshot.decks
                 .filter { deck ->
                     forkMappings.deckIdsBySourceId.requireMappedId(
@@ -924,6 +1064,9 @@ class SyncLocalStore(
                     ) != card.cardId
                 }
                 .forEach { card -> database.cardDao().deleteCard(card.cardId) }
+            if (didRewriteLocalEntityIds) {
+                resetVolatileWorkspaceSelectionsAfterLocalEntityReId(workspaceId = destinationWorkspace.workspaceId)
+            }
         } else {
             database.workspaceDao().deleteWorkspace(currentLocalWorkspaceId)
             database.syncStateDao().deleteSyncState(workspaceId = currentLocalWorkspaceId)
@@ -934,21 +1077,158 @@ class SyncLocalStore(
 
     private suspend fun loadWorkspaceForkSnapshot(workspaceId: String): WorkspaceForkSnapshot {
         val cards = database.cardDao().loadCards(workspaceId = workspaceId)
-        val cardTags = if (cards.isEmpty()) {
-            emptyList()
-        } else {
-            database.tagDao().loadCardTags(cardIds = cards.map(CardEntity::cardId))
-        }
         return WorkspaceForkSnapshot(
             cards = cards,
             decks = database.deckDao().loadDecks(workspaceId = workspaceId),
             tags = database.tagDao().loadTags(workspaceId = workspaceId),
-            cardTags = cardTags,
+            cardTags = database.tagDao().loadCardTags(workspaceId = workspaceId),
             reviewLogs = database.reviewLogDao().loadReviewLogs(workspaceId = workspaceId),
             outboxEntries = database.outboxDao().loadAllOutboxEntries(workspaceId = workspaceId),
             schedulerSettings = database.workspaceSchedulerSettingsDao()
                 .loadWorkspaceSchedulerSettings(workspaceId = workspaceId)
         )
+    }
+
+    private suspend fun reidentifyCardWorkspaceForkConflictInTransaction(
+        workspaceId: String,
+        cardId: String
+    ): String {
+        val card = requireNotNull(database.cardDao().loadCard(cardId = cardId)) {
+            "Cannot recover workspace fork conflict for card '$cardId' in workspace '$workspaceId' " +
+                "because the local card does not exist."
+        }
+        require(card.workspaceId == workspaceId) {
+            "Cannot recover workspace fork conflict for card '$cardId' in workspace '$workspaceId' " +
+                "because the local card belongs to workspace '${card.workspaceId}'."
+        }
+
+        val newCardId = generateFreshCardIdInTransaction()
+        database.cardDao().insertCard(card.copy(cardId = newCardId))
+        database.tagDao().reassignCardTagsToCard(oldCardId = cardId, newCardId = newCardId)
+        database.reviewLogDao().reassignReviewLogsToCard(
+            workspaceId = workspaceId,
+            oldCardId = cardId,
+            newCardId = newCardId
+        )
+        rewriteOutboxEntriesForWorkspaceForkEntityReId(
+            workspaceId = workspaceId,
+            entityType = SyncEntityType.CARD,
+            oldEntityId = cardId,
+            newEntityId = newCardId
+        )
+        database.cardDao().deleteCard(cardId = cardId)
+        resetVolatileWorkspaceSelectionsAfterLocalEntityReId(workspaceId = workspaceId)
+        return newCardId
+    }
+
+    private suspend fun reidentifyDeckWorkspaceForkConflictInTransaction(
+        workspaceId: String,
+        deckId: String
+    ): String {
+        val deck = requireNotNull(database.deckDao().loadDeck(deckId = deckId)) {
+            "Cannot recover workspace fork conflict for deck '$deckId' in workspace '$workspaceId' " +
+                "because the local deck does not exist."
+        }
+        require(deck.workspaceId == workspaceId) {
+            "Cannot recover workspace fork conflict for deck '$deckId' in workspace '$workspaceId' " +
+                "because the local deck belongs to workspace '${deck.workspaceId}'."
+        }
+
+        val newDeckId = generateFreshDeckIdInTransaction()
+        database.deckDao().insertDeck(deck.copy(deckId = newDeckId))
+        rewriteOutboxEntriesForWorkspaceForkEntityReId(
+            workspaceId = workspaceId,
+            entityType = SyncEntityType.DECK,
+            oldEntityId = deckId,
+            newEntityId = newDeckId
+        )
+        database.deckDao().deleteDeck(deckId = deckId)
+        resetVolatileWorkspaceSelectionsAfterLocalEntityReId(workspaceId = workspaceId)
+        return newDeckId
+    }
+
+    private suspend fun reidentifyReviewEventWorkspaceForkConflictInTransaction(
+        workspaceId: String,
+        reviewEventId: String
+    ): String {
+        val reviewLog = requireNotNull(database.reviewLogDao().loadReviewLog(reviewLogId = reviewEventId)) {
+            "Cannot recover workspace fork conflict for review_event '$reviewEventId' in workspace '$workspaceId' " +
+                "because the local review log does not exist."
+        }
+        require(reviewLog.workspaceId == workspaceId) {
+            "Cannot recover workspace fork conflict for review_event '$reviewEventId' in workspace '$workspaceId' " +
+                "because the local review log belongs to workspace '${reviewLog.workspaceId}'."
+        }
+
+        val newReviewEventId = generateFreshReviewEventIdInTransaction()
+        database.reviewLogDao().insertReviewLogs(
+            listOf(reviewLog.copy(reviewLogId = newReviewEventId))
+        )
+        rewriteOutboxEntriesForWorkspaceForkEntityReId(
+            workspaceId = workspaceId,
+            entityType = SyncEntityType.REVIEW_EVENT,
+            oldEntityId = reviewEventId,
+            newEntityId = newReviewEventId
+        )
+        database.reviewLogDao().deleteReviewLogs(reviewLogIds = listOf(reviewEventId))
+        resetVolatileWorkspaceSelectionsAfterLocalEntityReId(workspaceId = workspaceId)
+        return newReviewEventId
+    }
+
+    private suspend fun rewriteOutboxEntriesForWorkspaceForkEntityReId(
+        workspaceId: String,
+        entityType: SyncEntityType,
+        oldEntityId: String,
+        newEntityId: String
+    ) {
+        val rewrittenEntries = database.outboxDao()
+            .loadAllOutboxEntries(workspaceId = workspaceId)
+            .mapNotNull { entry ->
+                val rewrittenEntry = rewriteOutboxEntryForWorkspaceForkEntityReId(
+                    entry = entry,
+                    entityType = entityType,
+                    oldEntityId = oldEntityId,
+                    newEntityId = newEntityId
+                )
+                if (rewrittenEntry == entry) {
+                    null
+                } else {
+                    rewrittenEntry
+                }
+            }
+        if (rewrittenEntries.isNotEmpty()) {
+            database.outboxDao().insertOutboxEntries(rewrittenEntries)
+        }
+    }
+
+    private suspend fun generateFreshCardIdInTransaction(): String {
+        repeat(10) {
+            val candidate = UUID.randomUUID().toString()
+            if (database.cardDao().loadCard(cardId = candidate) == null) {
+                return candidate
+            }
+        }
+        throw IllegalStateException("Unable to generate a fresh local card id after 10 attempts.")
+    }
+
+    private suspend fun generateFreshDeckIdInTransaction(): String {
+        repeat(10) {
+            val candidate = UUID.randomUUID().toString()
+            if (database.deckDao().loadDeck(deckId = candidate) == null) {
+                return candidate
+            }
+        }
+        throw IllegalStateException("Unable to generate a fresh local deck id after 10 attempts.")
+    }
+
+    private suspend fun generateFreshReviewEventIdInTransaction(): String {
+        repeat(10) {
+            val candidate = UUID.randomUUID().toString()
+            if (database.reviewLogDao().loadReviewLog(reviewLogId = candidate) == null) {
+                return candidate
+            }
+        }
+        throw IllegalStateException("Unable to generate a fresh local review_event id after 10 attempts.")
     }
 
     private suspend fun replaceSyncStateWithEmptyProgress(workspaceId: String) {
@@ -959,12 +1239,21 @@ class SyncLocalStore(
                 lastReviewSequenceId = 0L,
                 hasHydratedHotState = false,
                 hasHydratedReviewHistory = false,
+                pendingReviewHistoryImport = false,
                 lastSyncAttemptAtMillis = null,
                 lastSuccessfulSyncAtMillis = null,
                 lastSyncError = null,
                 blockedInstallationId = null
             )
         )
+    }
+
+    /**
+     * Local re-id recovery is rare; reset volatile persisted selections instead
+     * of preserving state that may still point at old entity ids.
+     */
+    private fun resetVolatileWorkspaceSelectionsAfterLocalEntityReId(workspaceId: String) {
+        reviewPreferencesStore.clearSelectedReviewFilter(workspaceId = workspaceId)
     }
 
     private suspend fun applyHotPayload(
@@ -1174,6 +1463,49 @@ class SyncLocalStore(
     }
 }
 
+private fun pendingLocalHotEntityKey(entry: OutboxEntryEntity): PendingLocalHotEntityKey? {
+    return parseSyncEntityType(entry.entityType).toPendingLocalHotEntityKey(entityId = entry.entityId)
+}
+
+private fun RemoteBootstrapEntry.toPendingLocalHotEntityKey(): PendingLocalHotEntityKey? {
+    return entityType.toPendingLocalHotEntityKey(entityId = entityId)
+}
+
+private fun SyncEntityType.toPendingLocalHotEntityKey(entityId: String): PendingLocalHotEntityKey? {
+    return when (this) {
+        SyncEntityType.CARD,
+        SyncEntityType.DECK,
+        SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> PendingLocalHotEntityKey(
+            entityType = this,
+            entityId = entityId
+        )
+
+        SyncEntityType.REVIEW_EVENT -> null
+    }
+}
+
+private fun hasWorkspaceForkEntityIdRewrites(
+    snapshot: WorkspaceForkSnapshot,
+    forkMappings: WorkspaceForkIdMappings
+): Boolean {
+    return snapshot.cards.any { card ->
+        forkMappings.cardIdsBySourceId.requireMappedId(
+            entityType = "card",
+            sourceId = card.cardId
+        ) != card.cardId
+    } || snapshot.decks.any { deck ->
+        forkMappings.deckIdsBySourceId.requireMappedId(
+            entityType = "deck",
+            sourceId = deck.deckId
+        ) != deck.deckId
+    } || snapshot.reviewLogs.any { reviewLog ->
+        forkMappings.reviewEventIdsBySourceId.requireMappedId(
+            entityType = "review_event",
+            sourceId = reviewLog.reviewLogId
+        ) != reviewLog.reviewLogId
+    }
+}
+
 private fun buildWorkspaceForkIdMappings(
     sourceWorkspaceId: String,
     destinationWorkspaceId: String,
@@ -1279,6 +1611,96 @@ private fun rewriteOutboxEntryForFork(
         entityId = rewrittenEntityId,
         payloadJson = payloadJson.toString()
     )
+}
+
+private fun rewriteOutboxEntryForWorkspaceForkEntityReId(
+    entry: OutboxEntryEntity,
+    entityType: SyncEntityType,
+    oldEntityId: String,
+    newEntityId: String
+): OutboxEntryEntity {
+    val entryEntityType = parseSyncEntityType(entry.entityType)
+    val payloadJson = JSONObject(entry.payloadJson)
+    var rewrittenEntityId = entry.entityId
+    var changed = false
+
+    when (entityType) {
+        SyncEntityType.CARD -> {
+            if (entryEntityType == SyncEntityType.CARD) {
+                val payloadCardId = payloadJson.requireCloudString(
+                    key = "cardId",
+                    fieldPath = "reid.outbox.card.cardId"
+                )
+                if (entry.entityId == oldEntityId || payloadCardId == oldEntityId) {
+                    rewrittenEntityId = newEntityId
+                    payloadJson.put("cardId", newEntityId)
+                    changed = entry.entityId != newEntityId || payloadCardId != newEntityId
+                }
+            } else if (entryEntityType == SyncEntityType.REVIEW_EVENT) {
+                changed = replaceJsonStringReferenceIfMatches(
+                    payloadJson = payloadJson,
+                    key = "cardId",
+                    oldValue = oldEntityId,
+                    newValue = newEntityId,
+                    fieldPath = "reid.outbox.reviewEvent.cardId"
+                ) || changed
+            }
+        }
+
+        SyncEntityType.DECK -> {
+            if (entryEntityType == SyncEntityType.DECK) {
+                val payloadDeckId = payloadJson.requireCloudString(
+                    key = "deckId",
+                    fieldPath = "reid.outbox.deck.deckId"
+                )
+                if (entry.entityId == oldEntityId || payloadDeckId == oldEntityId) {
+                    rewrittenEntityId = newEntityId
+                    payloadJson.put("deckId", newEntityId)
+                    changed = entry.entityId != newEntityId || payloadDeckId != newEntityId
+                }
+            }
+        }
+
+        SyncEntityType.REVIEW_EVENT -> {
+            if (entryEntityType == SyncEntityType.REVIEW_EVENT) {
+                val payloadReviewEventId = payloadJson.requireCloudString(
+                    key = "reviewEventId",
+                    fieldPath = "reid.outbox.reviewEvent.reviewEventId"
+                )
+                if (entry.entityId == oldEntityId || payloadReviewEventId == oldEntityId) {
+                    rewrittenEntityId = newEntityId
+                    payloadJson.put("reviewEventId", newEntityId)
+                    changed = entry.entityId != newEntityId || payloadReviewEventId != newEntityId
+                }
+            }
+        }
+
+        SyncEntityType.WORKSPACE_SCHEDULER_SETTINGS -> Unit
+    }
+
+    return if (changed) {
+        entry.copy(
+            entityId = rewrittenEntityId,
+            payloadJson = payloadJson.toString()
+        )
+    } else {
+        entry
+    }
+}
+
+private fun replaceJsonStringReferenceIfMatches(
+    payloadJson: JSONObject,
+    key: String,
+    oldValue: String,
+    newValue: String,
+    fieldPath: String
+): Boolean {
+    val currentValue = payloadJson.requireCloudString(key = key, fieldPath = fieldPath)
+    if (currentValue != oldValue) {
+        return false
+    }
+    payloadJson.put(key, newValue)
+    return true
 }
 
 private fun Map<String, String>.requireMappedId(entityType: String, sourceId: String): String {

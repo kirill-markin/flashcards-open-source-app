@@ -665,6 +665,7 @@ struct CloudSyncTrigger: Hashable, Sendable {
 struct CloudSyncResult: Hashable, Sendable {
     let appliedPullChangeCount: Int
     let changedEntityTypes: Set<SyncEntityType>
+    let localIdRepairEntityTypes: Set<SyncEntityType>
     let acknowledgedOperationCount: Int
     let acknowledgedReviewEventOperationCount: Int
     let cleanedUpOperationCount: Int
@@ -673,6 +674,7 @@ struct CloudSyncResult: Hashable, Sendable {
     static let noChanges = CloudSyncResult(
         appliedPullChangeCount: 0,
         changedEntityTypes: [],
+        localIdRepairEntityTypes: [],
         acknowledgedOperationCount: 0,
         acknowledgedReviewEventOperationCount: 0,
         cleanedUpOperationCount: 0,
@@ -690,6 +692,10 @@ struct CloudSyncResult: Hashable, Sendable {
             || self.changedEntityTypes.contains(.reviewEvent)
     }
 
+    var repairedLocalDeckId: Bool {
+        self.localIdRepairEntityTypes.contains(.deck)
+    }
+
     var reviewProgressDataChanged: Bool {
         self.changedEntityTypes.contains(.reviewEvent)
             || self.acknowledgedReviewEventOperationCount > 0
@@ -705,6 +711,7 @@ struct CloudSyncResult: Hashable, Sendable {
         CloudSyncResult(
             appliedPullChangeCount: self.appliedPullChangeCount + other.appliedPullChangeCount,
             changedEntityTypes: self.changedEntityTypes.union(other.changedEntityTypes),
+            localIdRepairEntityTypes: self.localIdRepairEntityTypes.union(other.localIdRepairEntityTypes),
             acknowledgedOperationCount: self.acknowledgedOperationCount + other.acknowledgedOperationCount,
             acknowledgedReviewEventOperationCount: self.acknowledgedReviewEventOperationCount + other.acknowledgedReviewEventOperationCount,
             cleanedUpOperationCount: self.cleanedUpOperationCount + other.cleanedUpOperationCount,

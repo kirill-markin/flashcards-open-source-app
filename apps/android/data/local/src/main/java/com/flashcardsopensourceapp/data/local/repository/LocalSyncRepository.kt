@@ -156,7 +156,8 @@ class LocalSyncRepository(
                     syncSession = syncTarget.session,
                     appVersion = appVersion,
                     remoteService = remoteService,
-                    syncLocalStore = syncLocalStore
+                    syncLocalStore = syncLocalStore,
+                    workspaceForkRecoveryMode = CloudWorkspaceForkRecoveryMode.ENABLED
                 )
                 syncStatusState.value = SyncStatusSnapshot(
                     status = SyncStatus.Idle,

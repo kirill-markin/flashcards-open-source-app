@@ -89,6 +89,7 @@ private suspend fun ensureLocalWorkspaceDependencies(
                 lastReviewSequenceId = 0L,
                 hasHydratedHotState = false,
                 hasHydratedReviewHistory = false,
+                pendingReviewHistoryImport = false,
                 lastSyncAttemptAtMillis = null,
                 lastSuccessfulSyncAtMillis = null,
                 lastSyncError = null,

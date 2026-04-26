@@ -715,6 +715,7 @@ final class ProgressMergeTests: XCTestCase {
             syncResult: CloudSyncResult(
                 appliedPullChangeCount: 0,
                 changedEntityTypes: [],
+                localIdRepairEntityTypes: [],
                 acknowledgedOperationCount: 1,
                 acknowledgedReviewEventOperationCount: 0,
                 cleanedUpOperationCount: 0,
@@ -796,6 +797,7 @@ final class ProgressMergeTests: XCTestCase {
             syncResult: CloudSyncResult(
                 appliedPullChangeCount: 0,
                 changedEntityTypes: [],
+                localIdRepairEntityTypes: [],
                 acknowledgedOperationCount: 1,
                 acknowledgedReviewEventOperationCount: 1,
                 cleanedUpOperationCount: 0,
@@ -880,6 +882,7 @@ final class ProgressMergeTests: XCTestCase {
             syncResult: CloudSyncResult(
                 appliedPullChangeCount: 1,
                 changedEntityTypes: [.reviewEvent],
+                localIdRepairEntityTypes: [],
                 acknowledgedOperationCount: 0,
                 acknowledgedReviewEventOperationCount: 0,
                 cleanedUpOperationCount: 0,
@@ -967,6 +970,7 @@ final class ProgressMergeTests: XCTestCase {
             syncResult: CloudSyncResult(
                 appliedPullChangeCount: 0,
                 changedEntityTypes: [],
+                localIdRepairEntityTypes: [],
                 acknowledgedOperationCount: 0,
                 acknowledgedReviewEventOperationCount: 0,
                 cleanedUpOperationCount: 1,
@@ -1051,6 +1055,7 @@ final class ProgressMergeTests: XCTestCase {
             syncResult: CloudSyncResult(
                 appliedPullChangeCount: 1,
                 changedEntityTypes: [.reviewEvent],
+                localIdRepairEntityTypes: [],
                 acknowledgedOperationCount: 0,
                 acknowledgedReviewEventOperationCount: 0,
                 cleanedUpOperationCount: 0,
@@ -1722,6 +1727,7 @@ final class ProgressMergeTests: XCTestCase {
             credentialStore: credentialStore,
             guestCloudAuthService: GuestCloudAuthService(),
             guestCredentialStore: guestCredentialStore,
+            reviewSubmissionOutboxMutationGate: ReviewSubmissionOutboxMutationGate(),
             reviewSubmissionExecutor: nil,
             reviewHeadLoader: defaultReviewHeadLoader,
             reviewCountsLoader: { _, _, _, _ in
@@ -1921,6 +1927,7 @@ final class ProgressMergeTests: XCTestCase {
             credentialStore: credentialStore,
             guestCloudAuthService: GuestCloudAuthService(),
             guestCredentialStore: guestCredentialStore,
+            reviewSubmissionOutboxMutationGate: ReviewSubmissionOutboxMutationGate(),
             reviewSubmissionExecutor: nil,
             reviewHeadLoader: defaultReviewHeadLoader,
             reviewCountsLoader: defaultReviewCountsLoader,

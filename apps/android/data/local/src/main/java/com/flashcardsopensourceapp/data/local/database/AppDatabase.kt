@@ -29,7 +29,7 @@ private const val androidInstallationId: String = "android-installation"
         ProgressReviewHistoryStateEntity::class,
         ProgressLocalCacheStateEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 @TypeConverters(DatabaseTypeConverters::class)
@@ -70,7 +70,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration8To9,
         migration9To10,
         migration10To11,
-        migration11To12
+        migration11To12,
+        migration12To13
     )
 }
 
@@ -666,5 +667,11 @@ val migration10To11: Migration = object : Migration(10, 11) {
 val migration11To12: Migration = object : Migration(11, 12) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE sync_state ADD COLUMN blockedInstallationId TEXT")
+    }
+}
+
+val migration12To13: Migration = object : Migration(12, 13) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE sync_state ADD COLUMN pendingReviewHistoryImport INTEGER NOT NULL DEFAULT 0")
     }
 }

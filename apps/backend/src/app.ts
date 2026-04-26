@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { AuthError } from "./auth";
 import { getAuthConfig } from "./authConfig";
-import { HttpError } from "./errors";
+import { createPublicHttpErrorDetails, HttpError, type PublicHttpErrorDetails } from "./errors";
 import { createChatRoutes } from "./routes/chat";
 import { createChatTranscriptionsRoutes } from "./routes/chatTranscriptions";
 import { createAgentRoutes } from "./routes/agent";
@@ -40,13 +40,14 @@ export function createPublicHttpErrorBody(error: HttpError, requestId: string): 
   error: string;
   requestId: string;
   code: string | null;
-  details?: import("./errors").HttpErrorDetails;
+  details?: PublicHttpErrorDetails;
 }> {
+  const publicDetails = createPublicHttpErrorDetails(error.details);
   return {
     error: error.message,
     requestId,
     code: error.code,
-    ...(error.details === null ? {} : { details: error.details }),
+    ...(publicDetails === null ? {} : { details: publicDetails }),
   };
 }
 
@@ -188,7 +189,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
             error.message,
             createAgentInstructions(error.code, error.statusCode),
             requestId,
-            error.details ?? undefined,
+            createPublicHttpErrorDetails(error.details) ?? undefined,
           ),
         );
       }

@@ -9,6 +9,7 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.database.migration10To11
+import com.flashcardsopensourceapp.data.local.database.migration12To13
 import com.flashcardsopensourceapp.data.local.database.migration5To6
 import com.flashcardsopensourceapp.data.local.database.migration9To10
 import org.junit.After
@@ -235,6 +236,38 @@ class AppDatabaseMigrationTest {
         try {
             migration10To11.migrate(database)
             assertReviewLogsReviewedAtIndexExists(database = database)
+        } finally {
+            database.close()
+            openHelper.close()
+        }
+    }
+
+    @Test
+    fun migration12To13AddsPendingReviewHistoryImportMarkerDefaultFalse() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        createVersion12Database(context = context)
+
+        val openHelper = openDatabaseAtVersion(
+            context = context,
+            name = targetedMigrationDatabaseName,
+            version = 12
+        )
+        val database = openHelper.writableDatabase
+
+        try {
+            migration12To13.migrate(database)
+
+            assertEquals(
+                0L,
+                readSingleLong(
+                    database = database,
+                    sql = """
+                        SELECT pendingReviewHistoryImport
+                        FROM sync_state
+                        WHERE workspaceId = 'workspace-local'
+                    """.trimIndent()
+                )
+            )
         } finally {
             database.close()
             openHelper.close()
@@ -546,6 +579,58 @@ class AppDatabaseMigrationTest {
             """.trimIndent()
         )
         sqliteDatabase.version = 10
+        sqliteDatabase.close()
+    }
+
+    private fun createVersion12Database(context: Context) {
+        val databaseFile = context.getDatabasePath(targetedMigrationDatabaseName)
+        if (databaseFile.exists()) {
+            databaseFile.delete()
+        }
+        databaseFile.parentFile?.mkdirs()
+
+        val sqliteDatabase = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
+        sqliteDatabase.execSQL(
+            """
+            CREATE TABLE sync_state (
+                workspaceId TEXT NOT NULL PRIMARY KEY,
+                lastSyncCursor TEXT,
+                lastReviewSequenceId INTEGER NOT NULL,
+                hasHydratedHotState INTEGER NOT NULL,
+                hasHydratedReviewHistory INTEGER NOT NULL,
+                lastSyncAttemptAtMillis INTEGER,
+                lastSuccessfulSyncAtMillis INTEGER,
+                lastSyncError TEXT,
+                blockedInstallationId TEXT
+            )
+            """.trimIndent()
+        )
+        sqliteDatabase.execSQL(
+            """
+            INSERT INTO sync_state (
+                workspaceId,
+                lastSyncCursor,
+                lastReviewSequenceId,
+                hasHydratedHotState,
+                hasHydratedReviewHistory,
+                lastSyncAttemptAtMillis,
+                lastSuccessfulSyncAtMillis,
+                lastSyncError,
+                blockedInstallationId
+            ) VALUES (
+                'workspace-local',
+                '123',
+                456,
+                1,
+                0,
+                1000,
+                NULL,
+                NULL,
+                NULL
+            )
+            """.trimIndent()
+        )
+        sqliteDatabase.version = 12
         sqliteDatabase.close()
     }
 

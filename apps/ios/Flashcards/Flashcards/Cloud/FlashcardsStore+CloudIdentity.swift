@@ -24,6 +24,7 @@ extension FlashcardsStore {
         self.pendingStrictRemindersReconcileRequest = nil
         try self.cloudRuntime.clearCredentials()
         try self.dependencies.guestCredentialStore.clearGuestSession()
+        self.clearPendingGuestUpgradeStateAndUnblockMutations()
         rotateStrictReminderNotificationScope(userDefaults: self.userDefaults)
         clearPendingAppNotificationTap(userDefaults: self.userDefaults)
         self.removeStrictReminderNotificationsForCloudIdentityReset(

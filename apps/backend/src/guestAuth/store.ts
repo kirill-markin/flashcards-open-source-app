@@ -3,7 +3,10 @@ import {
   applyWorkspaceDatabaseScopeInExecutor,
   type DatabaseExecutor,
 } from "../db";
+import type { EffortLevel } from "../cards";
+import type { DeckFilterDefinition } from "../decks";
 import { HttpError } from "../errors";
+import type { FsrsCardState } from "../schedule";
 import type {
   SyncClientPlatform,
   WorkspaceReplicaActorKind,
@@ -11,6 +14,7 @@ import type {
 } from "../syncIdentity";
 import type {
   GuestUpgradeCompletion,
+  GuestUpgradeDroppedEntities,
   GuestUpgradeHistoryWrite,
 } from "./types";
 import { hashGuestToken, toIsoString } from "./shared";
@@ -22,9 +26,11 @@ type GuestSessionRow = Readonly<{
 }>;
 
 type GuestUpgradeHistoryReplayRow = Readonly<{
+  source_guest_session_id: string;
   target_subject_user_id: string;
   target_user_id: string;
   target_workspace_id: string;
+  dropped_entities: GuestUpgradeDroppedEntities | null;
 }>;
 
 type GuestWorkspaceRow = Readonly<{
@@ -110,6 +116,10 @@ type WorkspaceSchedulerRow = Readonly<{
   fsrs_updated_at: Date | string;
 }>;
 
+type DeletedGuestWorkspaceRow = Readonly<{
+  workspace_id: string;
+}>;
+
 export type GuestSessionRecord = Readonly<{
   sessionId: string;
   userId: string;
@@ -117,9 +127,11 @@ export type GuestSessionRecord = Readonly<{
 }>;
 
 export type GuestUpgradeReplayRecord = Readonly<{
+  sourceGuestSessionId: string;
   targetSubjectUserId: string;
   targetUserId: string;
   targetWorkspaceId: string;
+  droppedEntities?: GuestUpgradeDroppedEntities;
 }>;
 
 export type GuestReplicaRecord = Readonly<{
@@ -138,12 +150,12 @@ export type GuestCardRecord = Readonly<{
   frontText: string;
   backText: string;
   tags: ReadonlyArray<string>;
-  effortLevel: string;
+  effortLevel: EffortLevel;
   dueAt: Date | string | null;
   createdAt: Date | string;
   reps: number;
   lapses: number;
-  fsrsCardState: string;
+  fsrsCardState: FsrsCardState;
   fsrsStepIndex: number | null;
   fsrsStability: number | null;
   fsrsDifficulty: number | null;
@@ -159,7 +171,7 @@ export type GuestCardRecord = Readonly<{
 export type GuestDeckRecord = Readonly<{
   deckId: string;
   name: string;
-  filterDefinition: Readonly<Record<string, unknown>>;
+  filterDefinition: DeckFilterDefinition;
   createdAt: Date | string;
   clientUpdatedAt: Date | string;
   lastModifiedByReplicaId: string;
@@ -201,9 +213,13 @@ function mapGuestSessionRecord(row: GuestSessionRow): GuestSessionRecord {
 
 function mapGuestUpgradeReplayRecord(row: GuestUpgradeHistoryReplayRow): GuestUpgradeReplayRecord {
   return {
+    sourceGuestSessionId: row.source_guest_session_id,
     targetSubjectUserId: row.target_subject_user_id,
     targetUserId: row.target_user_id,
     targetWorkspaceId: row.target_workspace_id,
+    ...(row.dropped_entities === null
+      ? {}
+      : { droppedEntities: row.dropped_entities }),
   };
 }
 
@@ -226,12 +242,12 @@ function mapGuestCardRecord(row: CardRow): GuestCardRecord {
     frontText: row.front_text,
     backText: row.back_text,
     tags: row.tags,
-    effortLevel: row.effort_level,
+    effortLevel: row.effort_level as EffortLevel,
     dueAt: row.due_at,
     createdAt: row.created_at,
     reps: row.reps,
     lapses: row.lapses,
-    fsrsCardState: row.fsrs_card_state,
+    fsrsCardState: row.fsrs_card_state as FsrsCardState,
     fsrsStepIndex: row.fsrs_step_index,
     fsrsStability: row.fsrs_stability,
     fsrsDifficulty: row.fsrs_difficulty,
@@ -249,7 +265,7 @@ function mapGuestDeckRecord(row: DeckRow): GuestDeckRecord {
   return {
     deckId: row.deck_id,
     name: row.name,
-    filterDefinition: row.filter_definition,
+    filterDefinition: row.filter_definition as DeckFilterDefinition,
     createdAt: row.created_at,
     clientUpdatedAt: row.client_updated_at,
     lastModifiedByReplicaId: row.last_modified_by_replica_id,
@@ -322,14 +338,35 @@ export async function loadGuestUpgradeReplayInExecutor(
   executor: DatabaseExecutor,
   guestSessionId: string,
 ): Promise<GuestUpgradeReplayRecord | null> {
+  // Compatibility read path for released clients that retry
+  // `/guest-auth/upgrade/complete` after the merge committed and the original
+  // guest session was already revoked.
   const result = await executor.query<GuestUpgradeHistoryReplayRow>(
     [
-      "SELECT target_subject_user_id, target_user_id, target_workspace_id",
+      "SELECT source_guest_session_id, target_subject_user_id, target_user_id, target_workspace_id, dropped_entities",
       "FROM auth.guest_upgrade_history",
       "WHERE source_guest_session_id = $1",
       "LIMIT 1",
     ].join(" "),
     [guestSessionId],
+  );
+
+  const row = result.rows[0];
+  return row === undefined ? null : mapGuestUpgradeReplayRecord(row);
+}
+
+export async function loadGuestUpgradeReplayByGuestTokenInExecutor(
+  executor: DatabaseExecutor,
+  guestToken: string,
+): Promise<GuestUpgradeReplayRecord | null> {
+  const result = await executor.query<GuestUpgradeHistoryReplayRow>(
+    [
+      "SELECT source_guest_session_id, target_subject_user_id, target_user_id, target_workspace_id, dropped_entities",
+      "FROM auth.guest_upgrade_history",
+      "WHERE source_guest_session_secret_hash = $1",
+      "LIMIT 1",
+    ].join(" "),
+    [hashGuestToken(guestToken)],
   );
 
   const row = result.rows[0];
@@ -605,130 +642,16 @@ export async function deleteGuestWorkspaceContentInExecutor(
   });
 
   await executor.query(
+    "DELETE FROM content.review_events WHERE workspace_id = $1",
+    [guestWorkspaceId],
+  );
+  await executor.query(
     "DELETE FROM content.decks WHERE workspace_id = $1",
     [guestWorkspaceId],
   );
   await executor.query(
     "DELETE FROM content.cards WHERE workspace_id = $1",
     [guestWorkspaceId],
-  );
-}
-
-export async function insertGuestCardCopyInExecutor(
-  executor: DatabaseExecutor,
-  targetUserId: string,
-  targetWorkspaceId: string,
-  card: GuestCardRecord,
-  replicaId: string,
-): Promise<void> {
-  await applyWorkspaceDatabaseScopeInExecutor(executor, {
-    userId: targetUserId,
-    workspaceId: targetWorkspaceId,
-  });
-
-  await executor.query(
-    [
-      "INSERT INTO content.cards",
-      "(",
-      "card_id, workspace_id, front_text, back_text, tags, effort_level, due_at, reps, lapses,",
-      "updated_at, deleted_at, fsrs_card_state, fsrs_step_index, fsrs_stability, fsrs_difficulty,",
-      "fsrs_last_reviewed_at, fsrs_scheduled_days, client_updated_at, last_modified_by_replica_id, last_operation_id, created_at",
-      ")",
-      "VALUES",
-      "($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)",
-    ].join(" "),
-    [
-      card.cardId,
-      targetWorkspaceId,
-      card.frontText,
-      card.backText,
-      card.tags,
-      card.effortLevel,
-      card.dueAt === null ? null : toIsoString(card.dueAt),
-      card.reps,
-      card.lapses,
-      toIsoString(card.updatedAt),
-      card.deletedAt === null ? null : toIsoString(card.deletedAt),
-      card.fsrsCardState,
-      card.fsrsStepIndex,
-      card.fsrsStability,
-      card.fsrsDifficulty,
-      card.fsrsLastReviewedAt === null ? null : toIsoString(card.fsrsLastReviewedAt),
-      card.fsrsScheduledDays,
-      toIsoString(card.clientUpdatedAt),
-      replicaId,
-      card.lastOperationId,
-      toIsoString(card.createdAt),
-    ],
-  );
-}
-
-export async function insertGuestDeckCopyInExecutor(
-  executor: DatabaseExecutor,
-  targetUserId: string,
-  targetWorkspaceId: string,
-  deck: GuestDeckRecord,
-  replicaId: string,
-): Promise<void> {
-  await applyWorkspaceDatabaseScopeInExecutor(executor, {
-    userId: targetUserId,
-    workspaceId: targetWorkspaceId,
-  });
-
-  await executor.query(
-    [
-      "INSERT INTO content.decks",
-      "(",
-      "deck_id, workspace_id, name, filter_definition, created_at, updated_at, deleted_at,",
-      "client_updated_at, last_modified_by_replica_id, last_operation_id",
-      ")",
-      "VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10)",
-    ].join(" "),
-    [
-      deck.deckId,
-      targetWorkspaceId,
-      deck.name,
-      JSON.stringify(deck.filterDefinition),
-      toIsoString(deck.createdAt),
-      toIsoString(deck.updatedAt),
-      deck.deletedAt === null ? null : toIsoString(deck.deletedAt),
-      toIsoString(deck.clientUpdatedAt),
-      replicaId,
-      deck.lastOperationId,
-    ],
-  );
-}
-
-export async function insertGuestReviewEventCopyInExecutor(
-  executor: DatabaseExecutor,
-  targetUserId: string,
-  targetWorkspaceId: string,
-  reviewEvent: GuestReviewEventRecord,
-  replicaId: string,
-): Promise<void> {
-  await applyWorkspaceDatabaseScopeInExecutor(executor, {
-    userId: targetUserId,
-    workspaceId: targetWorkspaceId,
-  });
-
-  await executor.query(
-    [
-      "INSERT INTO content.review_events",
-      "(",
-      "review_event_id, workspace_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_at_server",
-      ")",
-      "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-    ].join(" "),
-    [
-      reviewEvent.reviewEventId,
-      targetWorkspaceId,
-      reviewEvent.cardId,
-      replicaId,
-      reviewEvent.clientEventId,
-      reviewEvent.rating,
-      toIsoString(reviewEvent.reviewedAtClient),
-      toIsoString(reviewEvent.reviewedAtServer),
-    ],
   );
 }
 
@@ -780,28 +703,39 @@ export async function recordGuestUpgradeHistoryInExecutor(
   executor: DatabaseExecutor,
   history: GuestUpgradeHistoryWrite,
 ): Promise<void> {
+  // Legacy/idempotency-only audit record. Keep it while old clients can retry
+  // completion after session revocation; it is not a local-outbox replay layer.
   await executor.query(
     [
       "INSERT INTO auth.guest_upgrade_history",
       "(",
       "upgrade_id, source_guest_user_id, source_guest_workspace_id, source_guest_session_id,",
-      "target_subject_user_id, target_user_id, target_workspace_id, selection_type",
+      "source_guest_session_secret_hash, target_subject_user_id, target_user_id, target_workspace_id,",
+      "selection_type, dropped_entities",
       ")",
-      "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+      "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)",
     ].join(" "),
     [
       history.upgradeId,
       history.sourceGuestUserId,
       history.sourceGuestWorkspaceId,
       history.sourceGuestSessionId,
+      history.sourceGuestSessionSecretHash,
       history.targetSubjectUserId,
       history.targetUserId,
       history.targetWorkspaceId,
       history.selectionType,
+      history.droppedEntities === undefined
+        ? null
+        : JSON.stringify(history.droppedEntities),
     ],
   );
 
   for (const [sourceGuestReplicaId, targetReplicaId] of history.replicaIdMap) {
+    // Replica aliases are the last durable routing bridge for stale shipped
+    // clients that still reference pre-merge guest replica ids. They do not
+    // alias card/deck/review ids. Remove them only together with the rest of
+    // the guest-upgrade compatibility layer.
     await executor.query(
       [
         "INSERT INTO auth.guest_replica_aliases",
@@ -853,6 +787,36 @@ export async function deleteWorkspaceInExecutor(
     "DELETE FROM org.workspaces WHERE workspace_id = $1",
     [guestWorkspaceId],
   );
+}
+
+export async function deleteGuestWorkspaceIfOwnedBySoleMemberInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+  guestWorkspaceId: string,
+): Promise<boolean> {
+  await applyUserDatabaseScopeInExecutor(executor, { userId: guestUserId });
+  const result = await executor.query<DeletedGuestWorkspaceRow>(
+    [
+      "DELETE FROM org.workspaces AS workspaces",
+      "WHERE workspaces.workspace_id = $1",
+      "AND EXISTS (",
+      "SELECT 1",
+      "FROM org.workspace_memberships memberships",
+      "WHERE memberships.workspace_id = workspaces.workspace_id",
+      "AND memberships.user_id = $2",
+      "AND memberships.role = 'owner'",
+      ")",
+      "AND 1 = (",
+      "SELECT COUNT(*)::int",
+      "FROM org.workspace_memberships all_memberships",
+      "WHERE all_memberships.workspace_id = workspaces.workspace_id",
+      ")",
+      "RETURNING workspaces.workspace_id",
+    ].join(" "),
+    [guestWorkspaceId, guestUserId],
+  );
+
+  return result.rows[0] !== undefined;
 }
 
 export async function deleteUserSettingsInExecutor(

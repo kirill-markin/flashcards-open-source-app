@@ -10,8 +10,8 @@ import {
 } from "../workspaces/shared";
 import {
   deleteUserSettingsInExecutor,
+  deleteGuestWorkspaceIfOwnedBySoleMemberInExecutor,
   hasCognitoIdentityMappingForUserInExecutor,
-  deleteWorkspaceInExecutor as deleteGuestWorkspaceInExecutor,
   loadGuestSessionInExecutor,
   loadGuestWorkspaceIdInExecutor,
   revokeGuestSessionInExecutor,
@@ -38,9 +38,17 @@ export async function cleanupGuestSessionSourceInExecutor(
   guestSessionId: string,
   guestWorkspaceId: string,
 ): Promise<void> {
-  await assertGuestWorkspaceCleanupAllowedInExecutor(executor, guestUserId, guestWorkspaceId);
+  const deletedWorkspace = await deleteGuestWorkspaceIfOwnedBySoleMemberInExecutor(
+    executor,
+    guestUserId,
+    guestWorkspaceId,
+  );
+  if (!deletedWorkspace) {
+    await assertGuestWorkspaceCleanupAllowedInExecutor(executor, guestUserId, guestWorkspaceId);
+    throw new Error(`Guest workspace cleanup delete did not remove workspace ${guestWorkspaceId}`);
+  }
+
   await revokeGuestSessionInExecutor(executor, guestUserId, guestSessionId);
-  await deleteGuestWorkspaceInExecutor(executor, guestUserId, guestWorkspaceId);
   await deleteUserSettingsInExecutor(executor, guestUserId);
 }
 

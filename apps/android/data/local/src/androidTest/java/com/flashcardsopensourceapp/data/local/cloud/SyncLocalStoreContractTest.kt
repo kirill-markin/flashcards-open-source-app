@@ -16,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSetting
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.FsrsCardState
+import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.SyncOperationPayload
@@ -23,6 +24,8 @@ import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.SystemProgressTimeProvider
+import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
+import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
@@ -36,6 +39,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
@@ -46,6 +50,7 @@ class SyncLocalStoreContractTest {
     private lateinit var context: Context
     private lateinit var database: AppDatabase
     private lateinit var preferencesStore: CloudPreferencesStore
+    private lateinit var reviewPreferencesStore: ReviewPreferencesStore
     private lateinit var syncLocalStore: SyncLocalStore
 
     @Before
@@ -53,14 +58,17 @@ class SyncLocalStoreContractTest {
         context = ApplicationProvider.getApplicationContext()
         context.deleteSharedPreferences("flashcards-cloud-metadata")
         context.deleteSharedPreferences("flashcards-cloud-secrets")
+        context.deleteSharedPreferences("flashcards-review-preferences")
         database = Room.inMemoryDatabaseBuilder(
             context = context,
             klass = AppDatabase::class.java
         ).allowMainThreadQueries().build()
         preferencesStore = CloudPreferencesStore(context = context, database = database)
+        reviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
         syncLocalStore = SyncLocalStore(
             database = database,
             preferencesStore = preferencesStore,
+            reviewPreferencesStore = reviewPreferencesStore,
             localProgressCacheStore = LocalProgressCacheStore(
                 database = database,
                 timeProvider = SystemProgressTimeProvider
@@ -73,6 +81,7 @@ class SyncLocalStoreContractTest {
         database.close()
         context.deleteSharedPreferences("flashcards-cloud-metadata")
         context.deleteSharedPreferences("flashcards-cloud-secrets")
+        context.deleteSharedPreferences("flashcards-review-preferences")
     }
 
     @Test
@@ -129,6 +138,106 @@ class SyncLocalStoreContractTest {
         assertNull(card.fsrsLastReviewedAtMillis)
         assertNull(card.deletedAtMillis)
         assertNull(deck.deletedAtMillis)
+    }
+
+    @Test
+    fun applyBootstrapEntriesPreservesPendingLocalHotRows() = runBlocking {
+        insertWorkspaceShell()
+        val dirtyCard = CardEntity(
+            cardId = "card-dirty",
+            workspaceId = workspaceId,
+            frontText = "Local front",
+            backText = "Local back",
+            effortLevel = EffortLevel.MEDIUM,
+            dueAtMillis = null,
+            createdAtMillis = 1L,
+            updatedAtMillis = 2L,
+            reps = 0,
+            lapses = 0,
+            fsrsCardState = FsrsCardState.NEW,
+            fsrsStepIndex = null,
+            fsrsStability = null,
+            fsrsDifficulty = null,
+            fsrsLastReviewedAtMillis = null,
+            fsrsScheduledDays = null,
+            deletedAtMillis = null
+        )
+        val dirtyDeck = DeckEntity(
+            deckId = "deck-dirty",
+            workspaceId = workspaceId,
+            name = "Local deck",
+            filterDefinitionJson = JSONObject()
+                .put("version", 2)
+                .put("tags", JSONArray().put("local"))
+                .toString(),
+            createdAtMillis = 3L,
+            updatedAtMillis = 4L,
+            deletedAtMillis = null
+        )
+        database.cardDao().insertCard(dirtyCard)
+        database.deckDao().insertDeck(dirtyDeck)
+        database.tagDao().insertTags(
+            listOf(
+                TagEntity(
+                    tagId = "tag-local",
+                    workspaceId = workspaceId,
+                    name = "local"
+                )
+            )
+        )
+        database.tagDao().insertCardTags(
+            listOf(CardTagEntity(cardId = dirtyCard.cardId, tagId = "tag-local"))
+        )
+        syncLocalStore.enqueueCardUpsert(card = dirtyCard, tags = listOf("local"))
+        syncLocalStore.enqueueDeckUpsert(deck = dirtyDeck)
+
+        syncLocalStore.applyBootstrapEntries(
+            workspaceId = workspaceId,
+            entries = listOf(
+                remoteCardBootstrapEntry(
+                    cardId = dirtyCard.cardId,
+                    frontText = "Remote front",
+                    backText = "Remote back",
+                    tags = listOf("remote"),
+                    clientUpdatedAt = "2026-03-27T19:10:00Z"
+                ),
+                remoteDeckBootstrapEntry(
+                    deckId = dirtyDeck.deckId,
+                    name = "Remote deck",
+                    clientUpdatedAt = "2026-03-27T19:11:00Z"
+                ),
+                remoteCardBootstrapEntry(
+                    cardId = "card-clean",
+                    frontText = "Clean front",
+                    backText = "Clean back",
+                    tags = listOf("clean"),
+                    clientUpdatedAt = "2026-03-27T19:12:00Z"
+                ),
+                remoteDeckBootstrapEntry(
+                    deckId = "deck-clean",
+                    name = "Clean deck",
+                    clientUpdatedAt = "2026-03-27T19:13:00Z"
+                )
+            )
+        )
+
+        val preservedCard = requireNotNull(database.cardDao().loadCard(dirtyCard.cardId))
+        val preservedDeck = requireNotNull(database.deckDao().loadDeck(dirtyDeck.deckId))
+        val cleanCard = requireNotNull(database.cardDao().loadCard("card-clean"))
+        val cleanDeck = requireNotNull(database.deckDao().loadDeck("deck-clean"))
+        val preservedCardTags = database.cardDao()
+            .observeCardsWithRelations()
+            .first()
+            .single { card -> card.card.cardId == dirtyCard.cardId }
+            .tags
+            .map(TagEntity::name)
+
+        assertEquals("Local front", preservedCard.frontText)
+        assertEquals("Local back", preservedCard.backText)
+        assertEquals(listOf("local"), preservedCardTags)
+        assertEquals("Local deck", preservedDeck.name)
+        assertEquals("Clean front", cleanCard.frontText)
+        assertEquals("Clean deck", cleanDeck.name)
     }
 
     @Test
@@ -219,6 +328,208 @@ class SyncLocalStoreContractTest {
     }
 
     @Test
+    fun reidentifyWorkspaceForkCardConflictRewritesLocalRowsAndOutboxReferences() = runBlocking {
+        insertWorkspaceShell()
+        val originalCard = CardEntity(
+            cardId = "card-1",
+            workspaceId = workspaceId,
+            frontText = "Front",
+            backText = "Back",
+            effortLevel = EffortLevel.MEDIUM,
+            dueAtMillis = null,
+            createdAtMillis = 1L,
+            updatedAtMillis = 2L,
+            reps = 1,
+            lapses = 0,
+            fsrsCardState = FsrsCardState.REVIEW,
+            fsrsStepIndex = null,
+            fsrsStability = 3.5,
+            fsrsDifficulty = 4.0,
+            fsrsLastReviewedAtMillis = 3L,
+            fsrsScheduledDays = 5,
+            deletedAtMillis = null
+        )
+        val originalReviewLog = ReviewLogEntity(
+            reviewLogId = "review-log-1",
+            workspaceId = workspaceId,
+            cardId = originalCard.cardId,
+            replicaId = "replica-1",
+            clientEventId = "client-event-1",
+            rating = ReviewRating.GOOD,
+            reviewedAtMillis = 6L,
+            reviewedAtServerIso = "2026-03-27T19:05:00Z"
+        )
+        database.cardDao().insertCard(originalCard)
+        database.tagDao().insertTags(
+            listOf(
+                TagEntity(
+                    tagId = "tag-1",
+                    workspaceId = workspaceId,
+                    name = "android"
+                )
+            )
+        )
+        database.tagDao().insertCardTags(
+            listOf(CardTagEntity(cardId = originalCard.cardId, tagId = "tag-1"))
+        )
+        database.reviewLogDao().insertReviewLog(originalReviewLog)
+        reviewPreferencesStore.saveSelectedReviewFilter(
+            workspaceId = workspaceId,
+            reviewFilter = ReviewFilter.Tag(tag = "android")
+        )
+        syncLocalStore.enqueueCardUpsert(card = originalCard, tags = listOf("android"))
+        syncLocalStore.enqueueReviewEventAppend(reviewLog = originalReviewLog)
+
+        val reidentifiedCardId = syncLocalStore.reidentifyWorkspaceForkConflictEntity(
+            workspaceId = workspaceId,
+            entityType = SyncEntityType.CARD,
+            entityId = originalCard.cardId
+        )
+
+        val reidentifiedCard = requireNotNull(database.cardDao().loadCard(reidentifiedCardId))
+        val reidentifiedReviewLog = database.reviewLogDao().loadReviewLogs(workspaceId = workspaceId).single()
+        val reidentifiedCardWithRelations = database.cardDao().observeCardsWithRelations().first().single()
+        val outboxEntries = syncLocalStore.loadOutboxEntries(workspaceId = workspaceId)
+        val cardOutboxPayload = (
+            outboxEntries.first { entry -> entry.operation.entityType == SyncEntityType.CARD }
+                .operation.payload as SyncOperationPayload.Card
+            ).payload
+        val reviewEventOutboxPayload = (
+            outboxEntries.first { entry -> entry.operation.entityType == SyncEntityType.REVIEW_EVENT }
+                .operation.payload as SyncOperationPayload.ReviewEvent
+            ).payload
+
+        assertTrue(reidentifiedCardId != originalCard.cardId)
+        assertNull(database.cardDao().loadCard(originalCard.cardId))
+        assertEquals(originalCard.frontText, reidentifiedCard.frontText)
+        assertEquals(reidentifiedCardId, reidentifiedReviewLog.cardId)
+        assertEquals(originalReviewLog.reviewLogId, reidentifiedReviewLog.reviewLogId)
+        assertEquals(listOf("android"), reidentifiedCardWithRelations.tags.map(TagEntity::name))
+        assertEquals(reidentifiedCardId, cardOutboxPayload.cardId)
+        assertEquals(reidentifiedCardId, reviewEventOutboxPayload.cardId)
+        assertEquals(
+            reidentifiedCardId,
+            outboxEntries.first { entry -> entry.operation.entityType == SyncEntityType.CARD }.operation.entityId
+        )
+        assertEquals(
+            ReviewFilter.AllCards,
+            reviewPreferencesStore.loadSelectedReviewFilter(workspaceId = workspaceId)
+        )
+    }
+
+    @Test
+    fun reidentifyWorkspaceForkReviewEventConflictRewritesReviewLogAndOutbox() = runBlocking {
+        insertWorkspaceShell()
+        insertCard()
+        val originalReviewLog = ReviewLogEntity(
+            reviewLogId = "review-log-1",
+            workspaceId = workspaceId,
+            cardId = "card-1",
+            replicaId = "replica-1",
+            clientEventId = "client-event-1",
+            rating = ReviewRating.GOOD,
+            reviewedAtMillis = 6L,
+            reviewedAtServerIso = "2026-03-27T19:05:00Z"
+        )
+        database.reviewLogDao().insertReviewLog(originalReviewLog)
+        syncLocalStore.enqueueReviewEventAppend(reviewLog = originalReviewLog)
+
+        val reidentifiedReviewEventId = syncLocalStore.reidentifyWorkspaceForkConflictEntity(
+            workspaceId = workspaceId,
+            entityType = SyncEntityType.REVIEW_EVENT,
+            entityId = originalReviewLog.reviewLogId
+        )
+
+        val reviewLog = database.reviewLogDao().loadReviewLogs(workspaceId = workspaceId).single()
+        val outboxEntry = syncLocalStore.loadOutboxEntries(workspaceId = workspaceId).single()
+        val outboxPayload = (outboxEntry.operation.payload as SyncOperationPayload.ReviewEvent).payload
+
+        assertTrue(reidentifiedReviewEventId != originalReviewLog.reviewLogId)
+        assertEquals(reidentifiedReviewEventId, reviewLog.reviewLogId)
+        assertEquals(originalReviewLog.cardId, reviewLog.cardId)
+        assertEquals(reidentifiedReviewEventId, outboxEntry.operation.entityId)
+        assertEquals(reidentifiedReviewEventId, outboxPayload.reviewEventId)
+        assertEquals(originalReviewLog.cardId, outboxPayload.cardId)
+    }
+
+    @Test
+    fun reidentifyWorkspaceForkDeckConflictRewritesDeckAndOutbox() = runBlocking {
+        insertWorkspaceShell()
+        val originalDeck = DeckEntity(
+            deckId = "deck-1",
+            workspaceId = workspaceId,
+            name = "Primary",
+            filterDefinitionJson = JSONObject().put("version", 2).toString(),
+            createdAtMillis = 4L,
+            updatedAtMillis = 5L,
+            deletedAtMillis = null
+        )
+        database.deckDao().insertDeck(originalDeck)
+        reviewPreferencesStore.saveSelectedReviewFilter(
+            workspaceId = workspaceId,
+            reviewFilter = ReviewFilter.Deck(deckId = originalDeck.deckId)
+        )
+        syncLocalStore.enqueueDeckUpsert(deck = originalDeck)
+
+        val reidentifiedDeckId = syncLocalStore.reidentifyWorkspaceForkConflictEntity(
+            workspaceId = workspaceId,
+            entityType = SyncEntityType.DECK,
+            entityId = originalDeck.deckId
+        )
+
+        val reidentifiedDeck = requireNotNull(database.deckDao().loadDeck(deckId = reidentifiedDeckId))
+        val outboxEntry = syncLocalStore.loadOutboxEntries(workspaceId = workspaceId).single()
+        val outboxPayload = (outboxEntry.operation.payload as SyncOperationPayload.Deck).payload
+
+        assertTrue(reidentifiedDeckId != originalDeck.deckId)
+        assertNull(database.deckDao().loadDeck(deckId = originalDeck.deckId))
+        assertEquals(originalDeck.name, reidentifiedDeck.name)
+        assertEquals(reidentifiedDeckId, outboxEntry.operation.entityId)
+        assertEquals(reidentifiedDeckId, outboxPayload.deckId)
+        assertEquals(
+            ReviewFilter.AllCards,
+            reviewPreferencesStore.loadSelectedReviewFilter(workspaceId = workspaceId)
+        )
+    }
+
+    @Test
+    fun loadCardTagsFiltersOutCrossWorkspaceTagLinks() = runBlocking {
+        insertWorkspaceShell()
+        database.workspaceDao().insertWorkspace(
+            WorkspaceEntity(
+                workspaceId = "workspace-2",
+                name = "Other",
+                createdAtMillis = 2L
+            )
+        )
+        insertCard()
+        database.tagDao().insertTags(
+            listOf(
+                TagEntity(
+                    tagId = "tag-local",
+                    workspaceId = workspaceId,
+                    name = "local"
+                ),
+                TagEntity(
+                    tagId = "tag-other",
+                    workspaceId = "workspace-2",
+                    name = "other"
+                )
+            )
+        )
+        database.tagDao().insertCardTags(
+            listOf(
+                CardTagEntity(cardId = "card-1", tagId = "tag-local"),
+                CardTagEntity(cardId = "card-1", tagId = "tag-other")
+            )
+        )
+
+        val cardTags = database.tagDao().loadCardTags(workspaceId = workspaceId)
+
+        assertEquals(listOf(CardTagEntity(cardId = "card-1", tagId = "tag-local")), cardTags)
+    }
+
+    @Test
     fun forkWorkspaceIdentityRewritesIdsReferencesAndResetsSyncState() = runBlocking {
         insertWorkspaceShell()
         val originalCard = CardEntity(
@@ -286,6 +597,7 @@ class SyncLocalStoreContractTest {
                 lastReviewSequenceId = 456L,
                 hasHydratedHotState = true,
                 hasHydratedReviewHistory = true,
+                pendingReviewHistoryImport = false,
                 lastSyncAttemptAtMillis = 7L,
                 lastSuccessfulSyncAtMillis = 8L,
                 lastSyncError = "broken",
@@ -372,6 +684,7 @@ class SyncLocalStoreContractTest {
                 lastReviewSequenceId = 0L,
                 hasHydratedHotState = false,
                 hasHydratedReviewHistory = false,
+                pendingReviewHistoryImport = false,
                 lastSyncAttemptAtMillis = null,
                 lastSuccessfulSyncAtMillis = null,
                 lastSyncError = null,
@@ -426,6 +739,7 @@ class SyncLocalStoreContractTest {
                 lastReviewSequenceId = 456L,
                 hasHydratedHotState = true,
                 hasHydratedReviewHistory = true,
+                pendingReviewHistoryImport = false,
                 lastSyncAttemptAtMillis = 7L,
                 lastSuccessfulSyncAtMillis = 8L,
                 lastSyncError = "broken",
@@ -480,6 +794,7 @@ class SyncLocalStoreContractTest {
                 lastReviewSequenceId = 0L,
                 hasHydratedHotState = false,
                 hasHydratedReviewHistory = false,
+                pendingReviewHistoryImport = false,
                 lastSyncAttemptAtMillis = null,
                 lastSuccessfulSyncAtMillis = null,
                 lastSyncError = null,
@@ -728,6 +1043,57 @@ private fun makeRemoteReviewHistoryEvent(
         rating = ReviewRating.GOOD.ordinal,
         reviewedAtClient = reviewedAtClient,
         reviewedAtServer = reviewedAtClient
+    )
+}
+
+private fun remoteCardBootstrapEntry(
+    cardId: String,
+    frontText: String,
+    backText: String,
+    tags: List<String>,
+    clientUpdatedAt: String
+): RemoteBootstrapEntry {
+    return RemoteBootstrapEntry(
+        entityType = SyncEntityType.CARD,
+        entityId = cardId,
+        action = "upsert",
+        payload = JSONObject()
+            .put("cardId", cardId)
+            .put("frontText", frontText)
+            .put("backText", backText)
+            .put("tags", JSONArray(tags))
+            .put("effortLevel", "fast")
+            .put("dueAt", JSONObject.NULL)
+            .put("createdAt", "2026-03-27T19:00:00Z")
+            .put("clientUpdatedAt", clientUpdatedAt)
+            .put("reps", 0)
+            .put("lapses", 0)
+            .put("fsrsCardState", "new")
+            .put("fsrsStepIndex", JSONObject.NULL)
+            .put("fsrsStability", JSONObject.NULL)
+            .put("fsrsDifficulty", JSONObject.NULL)
+            .put("fsrsLastReviewedAt", JSONObject.NULL)
+            .put("fsrsScheduledDays", JSONObject.NULL)
+            .put("deletedAt", JSONObject.NULL)
+    )
+}
+
+private fun remoteDeckBootstrapEntry(
+    deckId: String,
+    name: String,
+    clientUpdatedAt: String
+): RemoteBootstrapEntry {
+    return RemoteBootstrapEntry(
+        entityType = SyncEntityType.DECK,
+        entityId = deckId,
+        action = "upsert",
+        payload = JSONObject()
+            .put("deckId", deckId)
+            .put("name", name)
+            .put("filterDefinition", JSONObject().put("version", 2))
+            .put("createdAt", "2026-03-27T19:00:00Z")
+            .put("clientUpdatedAt", clientUpdatedAt)
+            .put("deletedAt", JSONObject.NULL)
     )
 }
 

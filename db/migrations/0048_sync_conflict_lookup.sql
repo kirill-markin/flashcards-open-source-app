@@ -13,14 +13,29 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
-SET search_path = pg_catalog, public
+SET search_path = pg_catalog
 AS $$
+DECLARE
+  target_entity_uuid UUID;
 BEGIN
+  IF target_entity_type NOT IN ('card', 'deck', 'review_event') THEN
+    RAISE EXCEPTION 'Unsupported sync conflict entity type: %', target_entity_type
+      USING ERRCODE = 'P0001';
+  END IF;
+
+  BEGIN
+    target_entity_uuid := target_entity_id::UUID;
+  EXCEPTION
+    WHEN invalid_text_representation THEN
+      RAISE EXCEPTION 'Invalid sync conflict entity id for %: %', target_entity_type, target_entity_id
+        USING ERRCODE = '22P02';
+  END;
+
   IF target_entity_type = 'card' THEN
     RETURN QUERY
     SELECT cards.workspace_id
     FROM content.cards AS cards
-    WHERE cards.card_id::text = target_entity_id
+    WHERE cards.card_id = target_entity_uuid
     LIMIT 1;
     RETURN;
   END IF;
@@ -29,7 +44,7 @@ BEGIN
     RETURN QUERY
     SELECT decks.workspace_id
     FROM content.decks AS decks
-    WHERE decks.deck_id::text = target_entity_id
+    WHERE decks.deck_id = target_entity_uuid
     LIMIT 1;
     RETURN;
   END IF;
@@ -38,13 +53,10 @@ BEGIN
     RETURN QUERY
     SELECT review_events.workspace_id
     FROM content.review_events AS review_events
-    WHERE review_events.review_event_id::text = target_entity_id
+    WHERE review_events.review_event_id = target_entity_uuid
     LIMIT 1;
     RETURN;
   END IF;
-
-  RAISE EXCEPTION 'Unsupported sync conflict entity type: %', target_entity_type
-    USING ERRCODE = 'P0001';
 END;
 $$;
 

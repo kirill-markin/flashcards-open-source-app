@@ -412,7 +412,8 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             errorDetails: CloudApiErrorDetails(
                 message: "AI live stream request is missing runId.",
                 requestId: "request-400",
-                code: "CHAT_LIVE_RUN_ID_REQUIRED"
+                code: "CHAT_LIVE_RUN_ID_REQUIRED",
+                syncConflict: nil
             ),
             configurationMode: .official
         )

@@ -109,7 +109,10 @@ class LocalCardsRepository(
             deletedAtMillis = null
         )
 
-        database.withTransaction {
+        runLocalOutboxMutationTransaction(
+            database = database,
+            preferencesStore = preferencesStore
+        ) {
             database.cardDao().insertCard(card = card)
             replaceCardTags(
                 database = database,
@@ -133,7 +136,10 @@ class LocalCardsRepository(
             deletedAtMillis = null
         )
 
-        database.withTransaction {
+        runLocalOutboxMutationTransaction(
+            database = database,
+            preferencesStore = preferencesStore
+        ) {
             database.cardDao().updateCard(card = updatedCard)
             replaceCardTags(
                 database = database,
@@ -150,7 +156,10 @@ class LocalCardsRepository(
             "Cannot delete missing card: $cardId"
         }
 
-        database.withTransaction {
+        runLocalOutboxMutationTransaction(
+            database = database,
+            preferencesStore = preferencesStore
+        ) {
             val deletedCard = card.copy(
                 updatedAtMillis = System.currentTimeMillis(),
                 deletedAtMillis = System.currentTimeMillis()
@@ -233,8 +242,13 @@ class LocalDecksRepository(
             deletedAtMillis = null
         )
 
-        database.deckDao().insertDeck(deck = deck)
-        syncLocalStore.enqueueDeckUpsert(deck)
+        runLocalOutboxMutationTransaction(
+            database = database,
+            preferencesStore = preferencesStore
+        ) {
+            database.deckDao().insertDeck(deck = deck)
+            syncLocalStore.enqueueDeckUpsert(deck)
+        }
     }
 
     override suspend fun updateDeck(deckId: String, deckDraft: DeckDraft) {
@@ -251,8 +265,13 @@ class LocalDecksRepository(
             deletedAtMillis = null
         )
 
-        database.deckDao().updateDeck(deck = updatedDeck)
-        syncLocalStore.enqueueDeckUpsert(updatedDeck)
+        runLocalOutboxMutationTransaction(
+            database = database,
+            preferencesStore = preferencesStore
+        ) {
+            database.deckDao().updateDeck(deck = updatedDeck)
+            syncLocalStore.enqueueDeckUpsert(updatedDeck)
+        }
     }
 
     override suspend fun deleteDeck(deckId: String) {
@@ -264,8 +283,13 @@ class LocalDecksRepository(
             updatedAtMillis = System.currentTimeMillis(),
             deletedAtMillis = System.currentTimeMillis()
         )
-        database.deckDao().updateDeck(deck = deletedDeck)
-        syncLocalStore.enqueueDeckUpsert(deletedDeck)
+        runLocalOutboxMutationTransaction(
+            database = database,
+            preferencesStore = preferencesStore
+        ) {
+            database.deckDao().updateDeck(deck = deletedDeck)
+            syncLocalStore.enqueueDeckUpsert(deletedDeck)
+        }
     }
 }
 
@@ -478,12 +502,14 @@ class LocalWorkspaceRepository(
             updatedAtMillis = System.currentTimeMillis()
         )
 
-        database.workspaceSchedulerSettingsDao().insertWorkspaceSchedulerSettings(
-            settings = toWorkspaceSchedulerSettingsEntity(settings = updatedSettings)
-        )
-        syncLocalStore.enqueueWorkspaceSchedulerSettingsUpsert(
-            settings = toWorkspaceSchedulerSettingsEntity(settings = updatedSettings)
-        )
+        runLocalOutboxMutationTransaction(
+            database = database,
+            preferencesStore = preferencesStore
+        ) {
+            val settingsEntity = toWorkspaceSchedulerSettingsEntity(settings = updatedSettings)
+            database.workspaceSchedulerSettingsDao().insertWorkspaceSchedulerSettings(settings = settingsEntity)
+            syncLocalStore.enqueueWorkspaceSchedulerSettingsUpsert(settings = settingsEntity)
+        }
     }
 }
 
@@ -593,7 +619,10 @@ class LocalReviewRepository(
     }
 
     override suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long) {
-        database.withTransaction {
+        runLocalOutboxMutationTransaction(
+            database = database,
+            preferencesStore = preferencesStore
+        ) {
             val card = requireNotNull(database.cardDao().loadCard(cardId = cardId)) {
                 "Cannot review missing card: $cardId"
             }
@@ -690,6 +719,18 @@ private fun toCardSummary(card: CardWithRelations): CardSummary {
         fsrsScheduledDays = card.card.fsrsScheduledDays,
         deletedAtMillis = card.card.deletedAtMillis
     )
+}
+
+private suspend fun <Result> runLocalOutboxMutationTransaction(
+    database: AppDatabase,
+    preferencesStore: CloudPreferencesStore,
+    block: suspend () -> Result
+): Result {
+    return preferencesStore.runWithLocalOutboxMutationAllowed {
+        database.withTransaction {
+            block()
+        }
+    }
 }
 
 private fun toWorkspaceSchedulerSettingsEntity(settings: WorkspaceSchedulerSettings): WorkspaceSchedulerSettingsEntity {

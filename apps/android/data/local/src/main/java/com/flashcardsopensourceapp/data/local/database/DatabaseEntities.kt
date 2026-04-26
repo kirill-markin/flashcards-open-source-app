@@ -211,6 +211,7 @@ data class SyncStateEntity(
     val lastReviewSequenceId: Long,
     val hasHydratedHotState: Boolean,
     val hasHydratedReviewHistory: Boolean,
+    val pendingReviewHistoryImport: Boolean,
     val lastSyncAttemptAtMillis: Long?,
     val lastSuccessfulSyncAtMillis: Long?,
     val lastSyncError: String?,

@@ -881,7 +881,8 @@ private func makeGuestQuotaError() -> AIChatServiceError {
         CloudApiErrorDetails(
             message: "Guest AI limit reached.",
             requestId: "request-guest-limit",
-            code: "GUEST_AI_LIMIT_REACHED"
+            code: "GUEST_AI_LIMIT_REACHED",
+            syncConflict: nil
         ),
         "Guest AI limit reached.",
         AIChatFailureDiagnostics(

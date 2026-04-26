@@ -3,8 +3,12 @@ package com.flashcardsopensourceapp.data.local.cloud
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnection
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeCompletion
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeDroppedEntity
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeDroppedEntityType
 import com.flashcardsopensourceapp.data.local.model.CloudDailyReviewPoint
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeReconciliation
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
@@ -104,6 +108,11 @@ data class RemotePushResponse(
 )
 
 data class CloudSyncConflictDetails(
+    val entityType: SyncEntityType?,
+    val entityId: String?,
+    val entryIndex: Int?,
+    val reviewEventIndex: Int?,
+    val recoverable: Boolean?,
     val conflictingWorkspaceId: String?,
     val remoteIsEmpty: Boolean?
 )
@@ -137,8 +146,10 @@ interface CloudRemoteGateway {
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String,
-        selection: CloudGuestUpgradeSelection
-    ): CloudWorkspaceSummary
+        selection: CloudGuestUpgradeSelection,
+        guestWorkspaceSyncedAndOutboxDrained: Boolean,
+        supportsDroppedEntities: Boolean
+    ): CloudGuestUpgradeCompletion
 
     suspend fun createWorkspace(apiBaseUrl: String, bearerToken: String, name: String): CloudWorkspaceSummary
     suspend fun selectWorkspace(apiBaseUrl: String, bearerToken: String, workspaceId: String): CloudWorkspaceSummary
@@ -413,20 +424,30 @@ class CloudRemoteService : CloudRemoteGateway {
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String,
-        selection: CloudGuestUpgradeSelection
-    ): CloudWorkspaceSummary {
+        selection: CloudGuestUpgradeSelection,
+        guestWorkspaceSyncedAndOutboxDrained: Boolean,
+        supportsDroppedEntities: Boolean
+    ): CloudGuestUpgradeCompletion {
         val response = postJson(
             baseUrl = apiBaseUrl,
             path = "/guest-auth/upgrade/complete",
             authorizationHeader = "Bearer $bearerToken",
-            body = JSONObject()
-                .put("guestToken", guestToken)
-                .put("selection", encodeGuestUpgradeSelection(selection = selection))
+            body = buildGuestUpgradeCompleteRequest(
+                guestToken = guestToken,
+                selection = selection,
+                guestWorkspaceSyncedAndOutboxDrained = guestWorkspaceSyncedAndOutboxDrained,
+                supportsDroppedEntities = supportsDroppedEntities
+            )
         )
-        return parseWorkspace(
-            workspace = response.requireCloudObject("workspace", "guestUpgradeComplete.workspace"),
-            isSelected = true,
-            fieldPath = "guestUpgradeComplete.workspace"
+        return CloudGuestUpgradeCompletion(
+            workspace = parseWorkspace(
+                workspace = response.requireCloudObject("workspace", "guestUpgradeComplete.workspace"),
+                isSelected = true,
+                fieldPath = "guestUpgradeComplete.workspace"
+            ),
+            reconciliation = parseGuestUpgradeReconciliation(
+                response = response
+            )
         )
     }
 
@@ -660,6 +681,19 @@ class CloudRemoteService : CloudRemoteGateway {
         }
     }
 
+    internal fun buildGuestUpgradeCompleteRequest(
+        guestToken: String,
+        selection: CloudGuestUpgradeSelection,
+        guestWorkspaceSyncedAndOutboxDrained: Boolean,
+        supportsDroppedEntities: Boolean
+    ): JSONObject {
+        return JSONObject()
+            .put("guestToken", guestToken)
+            .put("selection", encodeGuestUpgradeSelection(selection = selection))
+            .put("guestWorkspaceSyncedAndOutboxDrained", guestWorkspaceSyncedAndOutboxDrained)
+            .put("supportsDroppedEntities", supportsDroppedEntities)
+    }
+
     private fun parseGuestUpgradeMode(rawMode: String, fieldPath: String): CloudGuestUpgradeMode {
         return when (rawMode) {
             "bound" -> CloudGuestUpgradeMode.BOUND
@@ -670,6 +704,62 @@ class CloudRemoteService : CloudRemoteGateway {
                 )
             }
         }
+    }
+
+    private fun parseGuestUpgradeReconciliation(response: JSONObject): CloudGuestUpgradeReconciliation? {
+        val droppedEntities = response.optCloudObjectOrNull(
+            key = "droppedEntities",
+            fieldPath = "guestUpgradeComplete.droppedEntities"
+        ) ?: return null
+        val droppedCardIds = droppedEntities.optCloudArrayOrNull(
+            key = "cardIds",
+            fieldPath = "guestUpgradeComplete.droppedEntities.cardIds"
+        ) ?: JSONArray()
+        val droppedDeckIds = droppedEntities.optCloudArrayOrNull(
+            key = "deckIds",
+            fieldPath = "guestUpgradeComplete.droppedEntities.deckIds"
+        ) ?: JSONArray()
+        val droppedReviewEventIds = droppedEntities.optCloudArrayOrNull(
+            key = "reviewEventIds",
+            fieldPath = "guestUpgradeComplete.droppedEntities.reviewEventIds"
+        ) ?: JSONArray()
+        return CloudGuestUpgradeReconciliation(
+            droppedEntities = buildList {
+                for (index in 0 until droppedCardIds.length()) {
+                    add(
+                        CloudGuestUpgradeDroppedEntity(
+                            entityType = CloudGuestUpgradeDroppedEntityType.CARD,
+                            entityId = droppedCardIds.requireCloudString(
+                                index = index,
+                                fieldPath = "guestUpgradeComplete.droppedEntities.cardIds[$index]"
+                            )
+                        )
+                    )
+                }
+                for (index in 0 until droppedDeckIds.length()) {
+                    add(
+                        CloudGuestUpgradeDroppedEntity(
+                            entityType = CloudGuestUpgradeDroppedEntityType.DECK,
+                            entityId = droppedDeckIds.requireCloudString(
+                                index = index,
+                                fieldPath = "guestUpgradeComplete.droppedEntities.deckIds[$index]"
+                            )
+                        )
+                    )
+                }
+                for (index in 0 until droppedReviewEventIds.length()) {
+                    add(
+                        CloudGuestUpgradeDroppedEntity(
+                            entityType = CloudGuestUpgradeDroppedEntityType.REVIEW_EVENT,
+                            entityId = droppedReviewEventIds.requireCloudString(
+                                index = index,
+                                fieldPath = "guestUpgradeComplete.droppedEntities.reviewEventIds[$index]"
+                            )
+                        )
+                    )
+                }
+            }
+        )
     }
 
     override
@@ -739,13 +829,17 @@ class CloudRemoteService : CloudRemoteGateway {
             authorizationHeader = authorizationHeader,
             body = body
         )
+        return parseRemotePushResponse(response = response)
+    }
+
+    internal fun parseRemotePushResponse(response: JSONObject): RemotePushResponse {
         val operations = response.requireCloudArray("operations", "push.operations")
         return RemotePushResponse(
             operations = buildList {
                 for (index in 0 until operations.length()) {
                     val entry = operations.requireCloudObject(index, "push.operations[$index]")
                     val status = entry.requireCloudString("status", "push.operations[$index].status")
-                    if (status != "applied" && status != "ignored" && status != "duplicate") {
+                    if (isAcknowledgedPushStatus(status = status).not()) {
                         throw CloudRemoteException(
                             message = "Cloud push failed for operation ${entry.requireCloudString("operationId", "push.operations[$index].operationId")}: ${entry.optCloudStringOrNull("error", "push.operations[$index].error").orEmpty()}",
                             statusCode = 200,
@@ -1005,6 +1099,10 @@ class CloudRemoteService : CloudRemoteGateway {
         }
     }
 
+    private fun isAcknowledgedPushStatus(status: String): Boolean {
+        return status == "applied" || status == "duplicate" || status == "ignored"
+    }
+
     private fun buildPaginatedPath(basePath: String, cursor: String?): String {
         val query = if (cursor == null) {
             "limit=100"
@@ -1223,7 +1321,33 @@ private fun parseSyncConflictDetails(details: JSONObject?): CloudSyncConflictDet
 
     return try {
         val syncConflict = details.optCloudObjectOrNull("syncConflict", "error.details.syncConflict") ?: return null
+        val rawEntityType = syncConflict.optCloudStringOrNull(
+            key = "entityType",
+            fieldPath = "error.details.syncConflict.entityType"
+        )
         CloudSyncConflictDetails(
+            entityType = rawEntityType?.let { value ->
+                parseSyncConflictEntityType(
+                    rawValue = value,
+                    fieldPath = "error.details.syncConflict.entityType"
+                )
+            },
+            entityId = syncConflict.optCloudStringOrNull(
+                key = "entityId",
+                fieldPath = "error.details.syncConflict.entityId"
+            ),
+            entryIndex = syncConflict.optCloudIntOrNull(
+                key = "entryIndex",
+                fieldPath = "error.details.syncConflict.entryIndex"
+            ),
+            reviewEventIndex = syncConflict.optCloudIntOrNull(
+                key = "reviewEventIndex",
+                fieldPath = "error.details.syncConflict.reviewEventIndex"
+            ),
+            recoverable = syncConflict.optCloudBooleanOrNull(
+                key = "recoverable",
+                fieldPath = "error.details.syncConflict.recoverable"
+            ),
             conflictingWorkspaceId = syncConflict.optCloudStringOrNull(
                 key = "conflictingWorkspaceId",
                 fieldPath = "error.details.syncConflict.conflictingWorkspaceId"
@@ -1235,5 +1359,16 @@ private fun parseSyncConflictDetails(details: JSONObject?): CloudSyncConflictDet
         )
     } catch (_: CloudContractMismatchException) {
         null
+    }
+}
+
+private fun parseSyncConflictEntityType(rawValue: String, fieldPath: String): SyncEntityType {
+    return when (rawValue) {
+        "card" -> SyncEntityType.CARD
+        "deck" -> SyncEntityType.DECK
+        "review_event" -> SyncEntityType.REVIEW_EVENT
+        else -> throw CloudContractMismatchException(
+            "Cloud contract mismatch for $fieldPath: expected one of [card, deck, review_event], got invalid string \"$rawValue\""
+        )
     }
 }
