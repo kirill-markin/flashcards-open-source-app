@@ -52,7 +52,7 @@ extension FlashcardsStore {
                 return
             }
 
-            self.progressErrorMessage = Flashcards.errorMessage(error: error)
+            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
         }
     }
 
@@ -101,7 +101,7 @@ extension FlashcardsStore {
                 return
             }
 
-            self.progressErrorMessage = Flashcards.errorMessage(error: error)
+            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
         }
     }
 
@@ -129,7 +129,7 @@ extension FlashcardsStore {
                 return
             }
 
-            self.progressErrorMessage = Flashcards.errorMessage(error: error)
+            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
         }
     }
 
@@ -150,7 +150,7 @@ extension FlashcardsStore {
             try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
 
             guard let progressSnapshot = self.progressSnapshot else {
-                self.progressErrorMessage = ""
+                self.clearProgressErrorMessage()
                 return
             }
 
@@ -160,9 +160,9 @@ extension FlashcardsStore {
                 reviewedAtClient: reviewedAtClient
             )
             self.applyProgressSnapshot(snapshot: patchedSnapshot)
-            self.progressErrorMessage = ""
+            self.clearProgressErrorMessage()
         } catch {
-            self.progressErrorMessage = Flashcards.errorMessage(error: error)
+            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
         }
     }
 
@@ -205,7 +205,7 @@ extension FlashcardsStore {
                 return
             }
 
-            self.progressErrorMessage = Flashcards.errorMessage(error: error)
+            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
         }
     }
 
@@ -213,7 +213,7 @@ extension FlashcardsStore {
         do {
             try self.prepareProgressForCurrentVisibleTabState(now: now)
         } catch {
-            self.progressErrorMessage = Flashcards.errorMessage(error: error)
+            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
             self.applyProgressSnapshot(snapshot: nil)
         }
     }
@@ -229,7 +229,7 @@ extension FlashcardsStore {
                 await self.refreshVisibleProgressIfNeeded(now: now)
             }
         } catch {
-            self.progressErrorMessage = Flashcards.errorMessage(error: error)
+            self.replaceProgressErrorMessage(message: Flashcards.errorMessage(error: error))
             self.applyProgressSnapshot(snapshot: nil)
         }
     }
