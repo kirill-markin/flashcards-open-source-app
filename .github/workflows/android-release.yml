@@ -564,7 +564,7 @@ jobs:
           serviceAccountJson: ${{ steps.auth.outputs.credentials_file_path }}
           packageName: ${{ vars.ANDROID_PLAY_PACKAGE_NAME }}
           releaseFiles: apps/android/app/build/outputs/bundle/release/app-release.aab
-          track: production
+          tracks: production
           status: draft
           releaseName: ${{ env.ANDROID_PLAY_RELEASE_NAME }}
 
