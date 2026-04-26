@@ -13,9 +13,9 @@
   },
   "dependencies": {
     "@aws-crypto/client-node": "^4.2.2",
-    "@aws-sdk/client-cloudwatch": "^3.1036.0",
-    "@aws-sdk/client-s3": "^3.1036.0",
-    "aws-cdk-lib": "^2.250.0",
+    "@aws-sdk/client-cloudwatch": "^3.1037.0",
+    "@aws-sdk/client-s3": "^3.1037.0",
+    "aws-cdk-lib": "^2.251.0",
     "constructs": "^10.6.0"
   },
   "devDependencies": {
