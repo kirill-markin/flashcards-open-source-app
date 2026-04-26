@@ -116,6 +116,7 @@ final class FlashcardsStore {
     @ObservationIgnored var progressSummaryServerBaseCache: PersistedProgressSummaryServerBase?
     @ObservationIgnored var progressSeriesServerBaseCache: PersistedProgressSeriesServerBase?
     @ObservationIgnored var progressObservedScopeKey: ProgressScopeKey?
+    @ObservationIgnored var progressErrorState: ProgressErrorState
     @ObservationIgnored var progressSummaryInvalidatedScopeKeys: Set<ProgressSummaryScopeKey>
     @ObservationIgnored var progressSeriesInvalidatedScopeKeys: Set<ProgressScopeKey>
     @ObservationIgnored var progressSummaryRefreshToken: Int
@@ -378,6 +379,7 @@ final class FlashcardsStore {
         self.progressSummaryServerBaseCache = nil
         self.progressSeriesServerBaseCache = nil
         self.progressObservedScopeKey = nil
+        self.progressErrorState = makeEmptyProgressErrorState()
         self.progressSummaryInvalidatedScopeKeys = []
         self.progressSeriesInvalidatedScopeKeys = []
         self.progressSummaryRefreshToken = 0
