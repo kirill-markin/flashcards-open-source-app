@@ -25,6 +25,7 @@ export interface AuthGatewayProps {
 export interface AuthGatewayResult {
   restApi: apigw.RestApi;
   authFn: lambdaNodejs.NodejsFunction;
+  accessLogGroup: logs.LogGroup;
 }
 
 function addLambdaSecretArnEnvironment(
@@ -157,5 +158,5 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     });
   }
 
-  return { restApi, authFn };
+  return { restApi, authFn, accessLogGroup };
 }
