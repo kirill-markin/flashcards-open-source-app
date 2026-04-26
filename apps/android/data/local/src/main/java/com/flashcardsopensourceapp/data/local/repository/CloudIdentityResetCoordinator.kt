@@ -67,6 +67,7 @@ class CloudIdentityResetCoordinator(
         withContext(Dispatchers.IO) {
             resetMutex.withLock {
                 cloudPreferencesStore.clearCredentials()
+                database.syncStateDao().clearBlockedSyncState()
                 val activeWorkspaceId = ensureLocalWorkspaceShell(
                     database = database,
                     currentTimeMillis = System.currentTimeMillis()

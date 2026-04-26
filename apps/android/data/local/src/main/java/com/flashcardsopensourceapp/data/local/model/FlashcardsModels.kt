@@ -74,6 +74,26 @@ enum class CloudGuestUpgradeMode {
     MERGE_REQUIRED
 }
 
+enum class CloudGuestUpgradeDroppedEntityType {
+    CARD,
+    DECK,
+    REVIEW_EVENT
+}
+
+data class CloudGuestUpgradeDroppedEntity(
+    val entityType: CloudGuestUpgradeDroppedEntityType,
+    val entityId: String
+)
+
+data class CloudGuestUpgradeReconciliation(
+    val droppedEntities: List<CloudGuestUpgradeDroppedEntity>
+)
+
+data class CloudGuestUpgradeCompletion(
+    val workspace: CloudWorkspaceSummary,
+    val reconciliation: CloudGuestUpgradeReconciliation?
+)
+
 sealed interface CloudGuestUpgradeSelection {
     data class Existing(
         val workspaceId: String

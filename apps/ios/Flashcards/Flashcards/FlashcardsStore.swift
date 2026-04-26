@@ -101,8 +101,10 @@ final class FlashcardsStore {
     @ObservationIgnored let decoder: JSONDecoder
     @ObservationIgnored var cloudServiceConfigurationValidator: any CloudServiceConfigurationValidating
     @ObservationIgnored var reviewRuntime: ReviewQueueRuntime
+    @ObservationIgnored var reviewSubmissionOutboxMutationGate: ReviewSubmissionOutboxMutationGate
     @ObservationIgnored var cloudRuntime: CloudSessionRuntime
     @ObservationIgnored var isAccountDeletionRunning: Bool
+    @ObservationIgnored var isGuestUpgradeLocalOutboxMutationBlocked: Bool
     @ObservationIgnored var cachedAIChatStore: AIChatStore?
     @ObservationIgnored var currentVisibleTab: AppTab
     @ObservationIgnored var lastImmediateCloudSyncTriggerAt: Date?
@@ -187,8 +189,12 @@ final class FlashcardsStore {
         guestCredentialStore: GuestCloudCredentialStore,
         initialGlobalErrorMessage: String
     ) {
+        let reviewSubmissionOutboxMutationGate = ReviewSubmissionOutboxMutationGate()
         let reviewSubmissionExecutor: ReviewSubmissionExecuting? = database.map { initializedDatabase in
-            ReviewSubmissionExecutor(databaseURL: initializedDatabase.databaseURL)
+            ReviewSubmissionExecutor(
+                databaseURL: initializedDatabase.databaseURL,
+                outboxMutationGate: reviewSubmissionOutboxMutationGate
+            )
         }
         self.init(
             userDefaults: userDefaults,
@@ -199,6 +205,7 @@ final class FlashcardsStore {
             credentialStore: credentialStore,
             guestCloudAuthService: guestCloudAuthService,
             guestCredentialStore: guestCredentialStore,
+            reviewSubmissionOutboxMutationGate: reviewSubmissionOutboxMutationGate,
             reviewSubmissionExecutor: reviewSubmissionExecutor,
             reviewHeadLoader: defaultReviewHeadLoader,
             reviewCountsLoader: defaultReviewCountsLoader,
@@ -218,6 +225,7 @@ final class FlashcardsStore {
         credentialStore: CloudCredentialStore,
         guestCloudAuthService: GuestCloudAuthService,
         guestCredentialStore: GuestCloudCredentialStore,
+        reviewSubmissionOutboxMutationGate: ReviewSubmissionOutboxMutationGate,
         reviewSubmissionExecutor: ReviewSubmissionExecuting?,
         reviewHeadLoader: @escaping ReviewHeadLoader,
         reviewCountsLoader: @escaping ReviewCountsLoader,
@@ -240,6 +248,7 @@ final class FlashcardsStore {
             credentialStore: credentialStore,
             guestCloudAuthService: guestCloudAuthService,
             guestCredentialStore: guestCredentialStore,
+            reviewSubmissionOutboxMutationGate: reviewSubmissionOutboxMutationGate,
             reviewSubmissionExecutor: reviewSubmissionExecutor,
             reviewHeadLoader: reviewHeadLoader,
             reviewCountsLoader: reviewCountsLoader,
@@ -260,6 +269,7 @@ final class FlashcardsStore {
         credentialStore: CloudCredentialStore,
         guestCloudAuthService: GuestCloudAuthService,
         guestCredentialStore: GuestCloudCredentialStore,
+        reviewSubmissionOutboxMutationGate: ReviewSubmissionOutboxMutationGate,
         reviewSubmissionExecutor: ReviewSubmissionExecuting?,
         reviewHeadLoader: @escaping ReviewHeadLoader,
         reviewCountsLoader: @escaping ReviewCountsLoader,
@@ -350,12 +360,14 @@ final class FlashcardsStore {
             reviewSeedQueueSize: reviewSeedQueueSize,
             reviewQueueReplenishmentThreshold: reviewQueueReplenishmentThreshold
         )
+        self.reviewSubmissionOutboxMutationGate = reviewSubmissionOutboxMutationGate
         self.cloudRuntime = CloudSessionRuntime(
             cloudAuthService: dependencies.cloudAuthService,
             cloudSyncService: dependencies.cloudSyncService,
             credentialStore: dependencies.credentialStore
         )
         self.isAccountDeletionRunning = false
+        self.isGuestUpgradeLocalOutboxMutationBlocked = false
         self.currentVisibleTab = .review
         self.lastImmediateCloudSyncTriggerAt = nil
         self.activeReviewNotificationsRescheduleTask = nil

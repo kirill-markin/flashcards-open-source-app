@@ -158,11 +158,12 @@ export function logAdminQueryEvent(
 export function summarizeValidationIssues(
   error: HttpError | unknown,
 ): ReadonlyArray<Readonly<{ path: string; code: string }>> {
-  if (!(error instanceof HttpError) || error.details === null) {
+  if (!(error instanceof HttpError)) {
     return [];
   }
 
-  return error.details.validationIssues.map((issue) => ({
+  const validationIssues = error.details?.validationIssues ?? [];
+  return validationIssues.map((issue) => ({
     path: issue.path,
     code: issue.code,
   }));

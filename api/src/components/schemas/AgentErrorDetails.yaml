@@ -1,9 +1,9 @@
 type: object
 additionalProperties: false
-required:
-  - validationIssues
 properties:
   validationIssues:
     type: array
     items:
       $ref: ./ValidationIssueSummary.yaml
+  syncConflict:
+    $ref: ./PublicSyncConflictDetails.yaml

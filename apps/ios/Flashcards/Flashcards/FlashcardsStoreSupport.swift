@@ -111,7 +111,9 @@ protocol GuestCloudAuthServing {
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String,
-        selection: CloudGuestUpgradeSelection
+        selection: CloudGuestUpgradeSelection,
+        supportsDroppedEntities: Bool,
+        guestWorkspaceSyncedAndOutboxDrained: Bool
     ) async throws -> CloudWorkspaceSummary
 }
 

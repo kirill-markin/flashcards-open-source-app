@@ -1,13 +1,36 @@
-import type { DatabaseExecutor } from "../db";
+import {
+  applyUserDatabaseScopeInExecutor,
+  type DatabaseExecutor,
+} from "../db";
 import { HttpError } from "../errors";
+import { loadWorkspaceManagementRowInExecutor } from "../workspaces/queries";
+import {
+  assertWorkspaceIsSoleMember,
+  assertWorkspaceOwner,
+} from "../workspaces/shared";
 import {
   deleteUserSettingsInExecutor,
+  deleteGuestWorkspaceIfOwnedBySoleMemberInExecutor,
   hasCognitoIdentityMappingForUserInExecutor,
-  deleteWorkspaceInExecutor,
   loadGuestSessionInExecutor,
   loadGuestWorkspaceIdInExecutor,
   revokeGuestSessionInExecutor,
 } from "./store";
+
+async function assertGuestWorkspaceCleanupAllowedInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+  guestWorkspaceId: string,
+): Promise<void> {
+  await applyUserDatabaseScopeInExecutor(executor, { userId: guestUserId });
+  const managedWorkspace = await loadWorkspaceManagementRowInExecutor(
+    executor,
+    guestUserId,
+    guestWorkspaceId,
+  );
+  assertWorkspaceOwner(managedWorkspace.role);
+  assertWorkspaceIsSoleMember(managedWorkspace.member_count);
+}
 
 export async function cleanupGuestSessionSourceInExecutor(
   executor: DatabaseExecutor,
@@ -15,8 +38,17 @@ export async function cleanupGuestSessionSourceInExecutor(
   guestSessionId: string,
   guestWorkspaceId: string,
 ): Promise<void> {
+  const deletedWorkspace = await deleteGuestWorkspaceIfOwnedBySoleMemberInExecutor(
+    executor,
+    guestUserId,
+    guestWorkspaceId,
+  );
+  if (!deletedWorkspace) {
+    await assertGuestWorkspaceCleanupAllowedInExecutor(executor, guestUserId, guestWorkspaceId);
+    throw new Error(`Guest workspace cleanup delete did not remove workspace ${guestWorkspaceId}`);
+  }
+
   await revokeGuestSessionInExecutor(executor, guestUserId, guestSessionId);
-  await deleteWorkspaceInExecutor(executor, guestUserId, guestWorkspaceId);
   await deleteUserSettingsInExecutor(executor, guestUserId);
 }
 

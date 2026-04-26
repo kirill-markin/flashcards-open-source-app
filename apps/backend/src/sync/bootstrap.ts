@@ -11,6 +11,7 @@ import {
 } from "../pagination";
 import { ensureWorkspaceReplica } from "../syncIdentity";
 import { ensureWorkspaceSyncMetadataInExecutor } from "../syncChanges";
+import { annotateSyncConflictHttpError } from "./fork";
 import { applyWorkspaceSchedulerSettingsSnapshotInExecutor } from "../workspaceSchedulerSettings";
 import {
   cardPayloadSchema,
@@ -164,48 +165,56 @@ export async function processSyncBootstrap(
       }
 
       let appliedEntriesCount = 0;
-      for (const entry of input.entries) {
-        if (entry.entityType === "card") {
-          await upsertCardSnapshotInExecutor(
+      for (const [entryIndex, entry] of input.entries.entries()) {
+        try {
+          if (entry.entityType === "card") {
+            await upsertCardSnapshotInExecutor(
+              executor,
+              workspaceId,
+              toCardSnapshotInput(entry.payload),
+              toCardMutationMetadata({
+                clientUpdatedAt: entry.payload.clientUpdatedAt,
+                lastModifiedByReplicaId: replicaId,
+                lastOperationId: entry.payload.lastOperationId,
+              }),
+            );
+            appliedEntriesCount += 1;
+            continue;
+          }
+
+          if (entry.entityType === "deck") {
+            await upsertDeckSnapshotInExecutor(
+              executor,
+              workspaceId,
+              toDeckSnapshotInput(entry.payload),
+              toDeckMutationMetadata({
+                clientUpdatedAt: entry.payload.clientUpdatedAt,
+                lastModifiedByReplicaId: replicaId,
+                lastOperationId: entry.payload.lastOperationId,
+              }),
+            );
+            appliedEntriesCount += 1;
+            continue;
+          }
+
+          await applyWorkspaceSchedulerSettingsSnapshotInExecutor(
             executor,
             workspaceId,
-            toCardSnapshotInput(entry.payload),
-            toCardMutationMetadata({
+            toWorkspaceSchedulerSettingsSnapshotInput(entry.payload),
+            toWorkspaceSchedulerSettingsMutationMetadata({
               clientUpdatedAt: entry.payload.clientUpdatedAt,
               lastModifiedByReplicaId: replicaId,
               lastOperationId: entry.payload.lastOperationId,
             }),
           );
           appliedEntriesCount += 1;
-          continue;
+        } catch (error) {
+          const annotatedError = annotateSyncConflictHttpError(error, {
+            phase: "bootstrap",
+            entryIndex,
+          });
+          throw annotatedError ?? error;
         }
-
-        if (entry.entityType === "deck") {
-          await upsertDeckSnapshotInExecutor(
-            executor,
-            workspaceId,
-            toDeckSnapshotInput(entry.payload),
-            toDeckMutationMetadata({
-              clientUpdatedAt: entry.payload.clientUpdatedAt,
-              lastModifiedByReplicaId: replicaId,
-              lastOperationId: entry.payload.lastOperationId,
-            }),
-          );
-          appliedEntriesCount += 1;
-          continue;
-        }
-
-        await applyWorkspaceSchedulerSettingsSnapshotInExecutor(
-          executor,
-          workspaceId,
-          toWorkspaceSchedulerSettingsSnapshotInput(entry.payload),
-          toWorkspaceSchedulerSettingsMutationMetadata({
-            clientUpdatedAt: entry.payload.clientUpdatedAt,
-            lastModifiedByReplicaId: replicaId,
-            lastOperationId: entry.payload.lastOperationId,
-          }),
-        );
-        appliedEntriesCount += 1;
       }
 
       return {

@@ -284,9 +284,11 @@ class LocalProgressRepositoryTest {
                     lastReviewSequenceId = 7L,
                     hasHydratedHotState = true,
                     hasHydratedReviewHistory = true,
+                    pendingReviewHistoryImport = false,
                     lastSyncAttemptAtMillis = null,
                     lastSuccessfulSyncAtMillis = null,
-                    lastSyncError = null
+                    lastSyncError = null,
+                    blockedInstallationId = null
                 )
             ),
             workspaceIds = listOf("workspace-1")

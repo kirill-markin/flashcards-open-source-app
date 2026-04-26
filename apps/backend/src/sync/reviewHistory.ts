@@ -6,6 +6,7 @@ import {
 } from "../db";
 import { HttpError } from "../errors";
 import { ensureWorkspaceReplica } from "../syncIdentity";
+import { annotateSyncConflictHttpError } from "./fork";
 import type {
   SyncReviewHistoryImportInput,
   SyncReviewHistoryPullInput,
@@ -73,27 +74,35 @@ export async function processSyncReviewHistoryImportInExecutor(
   let importedCount = 0;
   let duplicateCount = 0;
 
-  for (const reviewEvent of input.reviewEvents) {
-    const mutation = await appendReviewEventSnapshotInExecutor(
-      executor,
-      workspaceId,
-      {
-        reviewEventId: reviewEvent.reviewEventId,
+  for (const [reviewEventIndex, reviewEvent] of input.reviewEvents.entries()) {
+    try {
+      const mutation = await appendReviewEventSnapshotInExecutor(
+        executor,
         workspaceId,
-        cardId: reviewEvent.cardId,
-        replicaId,
-        clientEventId: reviewEvent.clientEventId,
-        rating: reviewEvent.rating,
-        reviewedAtClient: reviewEvent.reviewedAtClient,
-        reviewedAtServer: reviewEvent.reviewedAtServer,
-      },
-      reviewEvent.reviewEventId,
-    );
+        {
+          reviewEventId: reviewEvent.reviewEventId,
+          workspaceId,
+          cardId: reviewEvent.cardId,
+          replicaId,
+          clientEventId: reviewEvent.clientEventId,
+          rating: reviewEvent.rating,
+          reviewedAtClient: reviewEvent.reviewedAtClient,
+          reviewedAtServer: reviewEvent.reviewedAtServer,
+        },
+        reviewEvent.reviewEventId,
+      );
 
-    if (mutation.applied) {
-      importedCount += 1;
-    } else {
-      duplicateCount += 1;
+      if (mutation.applied) {
+        importedCount += 1;
+      } else {
+        duplicateCount += 1;
+      }
+    } catch (error) {
+      const annotatedError = annotateSyncConflictHttpError(error, {
+        phase: "review_history_import",
+        reviewEventIndex,
+      });
+      throw annotatedError ?? error;
     }
   }
 

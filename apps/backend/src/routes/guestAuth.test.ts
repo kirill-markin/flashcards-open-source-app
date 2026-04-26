@@ -6,10 +6,21 @@ import type { AppEnv } from "../app";
 import type { AuthResult } from "../auth";
 import { AuthError } from "../auth";
 import { HttpError } from "../errors";
+import type {
+  GuestUpgradeCompleteCapabilities,
+  GuestUpgradeCompletion,
+  GuestUpgradeSelection,
+} from "../guestAuth";
 import { createGuestAuthRoutes } from "./guestAuth";
 
 type GuestAuthTestAppOptions = Readonly<{
   authResult: AuthResult;
+  onCompleteGuestUpgrade?: (
+    guestToken: string,
+    subjectUserId: string,
+    selection: GuestUpgradeSelection,
+    capabilities: GuestUpgradeCompleteCapabilities,
+  ) => Promise<GuestUpgradeCompletion>;
   onDeleteGuestSession?: (guestToken: string) => Promise<void>;
 }>;
 
@@ -47,6 +58,7 @@ function createGuestAuthTestApp(options: GuestAuthTestAppOptions): Hono<AppEnv> 
   });
   app.route("/", createGuestAuthRoutes({
     authenticateRequestFn: async () => options.authResult,
+    completeGuestUpgradeFn: options.onCompleteGuestUpgrade,
     deleteGuestSessionFn: async (guestToken) => {
       await options.onDeleteGuestSession?.(guestToken);
     },
@@ -136,5 +148,226 @@ test("POST /guest-auth/session/delete returns 409 for a guest session already li
     error: "Guest session is already linked to a signed-in account. Use /me/delete from that account instead.",
     requestId: "request-1",
     code: "GUEST_SESSION_DELETE_LINKED_ACCOUNT",
+  });
+});
+
+test("POST /guest-auth/upgrade/complete returns droppedEntities when merge drops guest rows", async () => {
+  let receivedSelection: GuestUpgradeSelection | null = null;
+  let receivedCapabilities: GuestUpgradeCompleteCapabilities | null = null;
+  const app = createGuestAuthTestApp({
+    authResult: createAuthResult("bearer"),
+    onCompleteGuestUpgrade: async (_guestToken, subjectUserId, selection, capabilities) => {
+      receivedSelection = selection;
+      receivedCapabilities = capabilities;
+      return {
+        workspace: {
+          workspaceId: "target-workspace",
+          name: "Target workspace",
+          createdAt: "2026-04-02T13:00:00.000Z",
+          isSelected: true,
+        },
+        outcome: "fresh_completion",
+        guestSessionId: "guest-session-upgrade-complete",
+        targetSubjectUserId: subjectUserId,
+        targetUserId: "linked-user",
+        targetWorkspaceId: "target-workspace",
+        droppedEntities: {
+          cardIds: ["card-drop-1"],
+          deckIds: ["deck-drop-1"],
+          reviewEventIds: ["review-drop-1", "review-drop-2"],
+        },
+      };
+    },
+  });
+
+  const response = await app.request("http://localhost/guest-auth/upgrade/complete", {
+    method: "POST",
+    headers: {
+      authorization: "Bearer jwt-token",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      guestToken: "guest-token-upgrade-complete",
+      selection: {
+        type: "existing",
+        workspaceId: "target-workspace",
+      },
+      guestWorkspaceSyncedAndOutboxDrained: true,
+      supportsDroppedEntities: true,
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(receivedSelection, {
+    type: "existing",
+    workspaceId: "target-workspace",
+  });
+  assert.deepEqual(receivedCapabilities, {
+    guestWorkspaceSyncedAndOutboxDrained: true,
+    requiresGuestWorkspaceSyncedAndOutboxDrained: true,
+    supportsDroppedEntities: true,
+  });
+  assert.deepEqual(await response.json(), {
+    workspace: {
+      workspaceId: "target-workspace",
+      name: "Target workspace",
+      createdAt: "2026-04-02T13:00:00.000Z",
+      isSelected: true,
+    },
+    droppedEntities: {
+      cardIds: ["card-drop-1"],
+      deckIds: ["deck-drop-1"],
+      reviewEventIds: ["review-drop-1", "review-drop-2"],
+    },
+  });
+});
+
+test("POST /guest-auth/upgrade/complete allows omitted droppedEntities support after guest drain assertion", async () => {
+  let receivedCapabilities: GuestUpgradeCompleteCapabilities | null = null;
+  const app = createGuestAuthTestApp({
+    authResult: createAuthResult("bearer"),
+    onCompleteGuestUpgrade: async (_guestToken, subjectUserId, _selection, capabilities) => {
+      receivedCapabilities = capabilities;
+      return {
+        workspace: {
+          workspaceId: "target-workspace",
+          name: "Target workspace",
+          createdAt: "2026-04-02T13:00:00.000Z",
+          isSelected: true,
+        },
+        outcome: "fresh_completion",
+        guestSessionId: "guest-session-upgrade-complete",
+        targetSubjectUserId: subjectUserId,
+        targetUserId: "linked-user",
+        targetWorkspaceId: "target-workspace",
+      };
+    },
+  });
+
+  const response = await app.request("http://localhost/guest-auth/upgrade/complete", {
+    method: "POST",
+    headers: {
+      authorization: "Bearer jwt-token",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      guestToken: "guest-token-upgrade-complete",
+      selection: {
+        type: "existing",
+        workspaceId: "target-workspace",
+      },
+      guestWorkspaceSyncedAndOutboxDrained: true,
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(receivedCapabilities, {
+    guestWorkspaceSyncedAndOutboxDrained: true,
+    requiresGuestWorkspaceSyncedAndOutboxDrained: true,
+    supportsDroppedEntities: false,
+  });
+  assert.deepEqual(await response.json(), {
+    workspace: {
+      workspaceId: "target-workspace",
+      name: "Target workspace",
+      createdAt: "2026-04-02T13:00:00.000Z",
+      isSelected: true,
+    },
+  });
+});
+
+test("POST /guest-auth/upgrade/complete preserves legacy clients that omit new capability fields", async () => {
+  let receivedCapabilities: GuestUpgradeCompleteCapabilities | null = null;
+  const app = createGuestAuthTestApp({
+    authResult: createAuthResult("bearer"),
+    onCompleteGuestUpgrade: async (_guestToken, subjectUserId, _selection, capabilities) => {
+      receivedCapabilities = capabilities;
+      return {
+        workspace: {
+          workspaceId: "target-workspace",
+          name: "Target workspace",
+          createdAt: "2026-04-02T13:00:00.000Z",
+          isSelected: true,
+        },
+        outcome: "fresh_completion",
+        guestSessionId: "guest-session-upgrade-complete",
+        targetSubjectUserId: subjectUserId,
+        targetUserId: "linked-user",
+        targetWorkspaceId: "target-workspace",
+      };
+    },
+  });
+
+  const response = await app.request("http://localhost/guest-auth/upgrade/complete", {
+    method: "POST",
+    headers: {
+      authorization: "Bearer jwt-token",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      guestToken: "guest-token-upgrade-complete",
+      selection: {
+        type: "existing",
+        workspaceId: "target-workspace",
+      },
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(receivedCapabilities, {
+    guestWorkspaceSyncedAndOutboxDrained: false,
+    requiresGuestWorkspaceSyncedAndOutboxDrained: false,
+    supportsDroppedEntities: false,
+  });
+  assert.deepEqual(await response.json(), {
+    workspace: {
+      workspaceId: "target-workspace",
+      name: "Target workspace",
+      createdAt: "2026-04-02T13:00:00.000Z",
+      isSelected: true,
+    },
+  });
+});
+
+test("POST /guest-auth/upgrade/complete reports typed drain rejection for stale clients", async () => {
+  let receivedCapabilities: GuestUpgradeCompleteCapabilities | null = null;
+  const app = createGuestAuthTestApp({
+    authResult: createAuthResult("bearer"),
+    onCompleteGuestUpgrade: async (_guestToken, _subjectUserId, _selection, capabilities) => {
+      receivedCapabilities = capabilities;
+      throw new HttpError(
+        409,
+        "Guest upgrade merge requires the current guest workspace to be fully synced and the local guest outbox to be empty. Sync the guest workspace, wait until the guest outbox is empty, then retry /guest-auth/upgrade/complete with guestWorkspaceSyncedAndOutboxDrained: true.",
+        "GUEST_UPGRADE_GUEST_SYNC_NOT_DRAINED",
+      );
+    },
+  });
+
+  const response = await app.request("http://localhost/guest-auth/upgrade/complete", {
+    method: "POST",
+    headers: {
+      authorization: "Bearer jwt-token",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      guestToken: "guest-token-upgrade-complete",
+      selection: {
+        type: "existing",
+        workspaceId: "target-workspace",
+      },
+      supportsDroppedEntities: true,
+    }),
+  });
+
+  assert.equal(response.status, 409);
+  assert.deepEqual(receivedCapabilities, {
+    guestWorkspaceSyncedAndOutboxDrained: false,
+    requiresGuestWorkspaceSyncedAndOutboxDrained: true,
+    supportsDroppedEntities: true,
+  });
+  assert.deepEqual(await response.json(), {
+    error: "Guest upgrade merge requires the current guest workspace to be fully synced and the local guest outbox to be empty. Sync the guest workspace, wait until the guest outbox is empty, then retry /guest-auth/upgrade/complete with guestWorkspaceSyncedAndOutboxDrained: true.",
+    requestId: "request-1",
+    code: "GUEST_UPGRADE_GUEST_SYNC_NOT_DRAINED",
   });
 });

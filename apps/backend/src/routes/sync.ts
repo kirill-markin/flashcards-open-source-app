@@ -34,6 +34,30 @@ function getInternalErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function getSyncConflictLogContext(error: HttpError | unknown): Record<string, unknown> {
+  if (!(error instanceof HttpError)) {
+    return {};
+  }
+
+  const syncConflict = error.details?.syncConflict;
+  if (syncConflict === undefined) {
+    return {};
+  }
+
+  return {
+    syncConflictPhase: syncConflict.phase,
+    syncConflictEntityType: syncConflict.entityType,
+    syncConflictEntityId: syncConflict.entityId,
+    conflictingWorkspaceId: syncConflict.conflictingWorkspaceId,
+    constraint: syncConflict.constraint,
+    sqlState: syncConflict.sqlState,
+    table: syncConflict.table,
+    entryIndex: syncConflict.entryIndex ?? null,
+    reviewEventIndex: syncConflict.reviewEventIndex ?? null,
+    syncConflictRecoverable: syncConflict.recoverable,
+  };
+}
+
 export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
 
@@ -54,6 +78,8 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         userId: requestContext.userId,
         workspaceId,
         installationId: input.installationId,
+        platform: input.platform,
+        appVersion: input.appVersion ?? null,
         operationsCount: input.operations.length,
         entityTypes,
       }, false);
@@ -66,11 +92,14 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         userId: requestContext.userId,
         workspaceId,
         installationId: input.installationId,
+        platform: input.platform,
+        appVersion: input.appVersion ?? null,
         operationsCount: input.operations.length,
         entityTypes,
         code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
         message: getInternalErrorMessage(error),
         validationIssues: summarizeValidationIssues(error),
+        ...getSyncConflictLogContext(error),
       }, true);
       throw error;
     }
@@ -92,6 +121,8 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         userId: requestContext.userId,
         workspaceId,
         installationId: input.installationId,
+        platform: input.platform,
+        appVersion: input.appVersion ?? null,
         afterHotChangeId: input.afterHotChangeId,
         nextHotChangeId: result.nextHotChangeId,
         changesCount: result.changes.length,
@@ -105,6 +136,8 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         userId: requestContext.userId,
         workspaceId,
         installationId: input.installationId,
+        platform: input.platform,
+        appVersion: input.appVersion ?? null,
         afterHotChangeId: input.afterHotChangeId,
         code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
         message: getInternalErrorMessage(error),
@@ -130,6 +163,8 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         userId: requestContext.userId,
         workspaceId,
         installationId: input.installationId,
+        platform: input.platform,
+        appVersion: input.appVersion ?? null,
         mode: input.mode,
       }, false);
       return context.json(result);
@@ -141,10 +176,13 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         userId: requestContext.userId,
         workspaceId,
         installationId: input.installationId,
+        platform: input.platform,
+        appVersion: input.appVersion ?? null,
         mode: input.mode,
         code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
         message: getInternalErrorMessage(error),
         validationIssues: summarizeValidationIssues(error),
+        ...getSyncConflictLogContext(error),
       }, true);
       throw error;
     }
@@ -166,6 +204,8 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         userId: requestContext.userId,
         workspaceId,
         installationId: input.installationId,
+        platform: input.platform,
+        appVersion: input.appVersion ?? null,
         afterReviewSequenceId: input.afterReviewSequenceId,
         nextReviewSequenceId: result.nextReviewSequenceId,
         reviewEventsCount: result.reviewEvents.length,
@@ -179,6 +219,8 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         userId: requestContext.userId,
         workspaceId,
         installationId: input.installationId,
+        platform: input.platform,
+        appVersion: input.appVersion ?? null,
         afterReviewSequenceId: input.afterReviewSequenceId,
         code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
         message: getInternalErrorMessage(error),
@@ -204,6 +246,8 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         userId: requestContext.userId,
         workspaceId,
         installationId: input.installationId,
+        platform: input.platform,
+        appVersion: input.appVersion ?? null,
         reviewEventsCount: input.reviewEvents.length,
         importedCount: result.importedCount,
         duplicateCount: result.duplicateCount,
@@ -217,10 +261,13 @@ export function createSyncRoutes(options: SyncRoutesOptions): Hono<AppEnv> {
         userId: requestContext.userId,
         workspaceId,
         installationId: input.installationId,
+        platform: input.platform,
+        appVersion: input.appVersion ?? null,
         reviewEventsCount: input.reviewEvents.length,
         code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
         message: getInternalErrorMessage(error),
         validationIssues: summarizeValidationIssues(error),
+        ...getSyncConflictLogContext(error),
       }, true);
       throw error;
     }
