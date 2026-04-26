@@ -31,6 +31,10 @@ The Android Google Play release workflow also depends on these repository variab
 - `GCP_PLAY_SERVICE_ACCOUNT_EMAIL`
 - `ANDROID_PLAY_PACKAGE_NAME`
 
+This optional local `.env` variable documents the operator service account used for Firebase Test Lab diagnostics:
+
+- `GCP_FTL_READER_SERVICE_ACCOUNT`
+
 And these repository secrets:
 
 - `ANDROID_UPLOAD_KEYSTORE_BASE64`
@@ -91,6 +95,46 @@ To match a Play draft to the exact SHA, GitHub run, and Firebase results:
 - use the `Run details` link in the release summary to open the exact GitHub Actions run
 - use the Firebase summaries to get the Google-assigned matrix ID and the Firebase results path `${ANDROID_FTL_RESULTS_DIR}/<releaseIdentifier>` in the configured results bucket
 - correlate everything by the shared release identifier, GitHub run id and attempt, and target SHA; the Firebase matrix ID is useful for lookup after submission but it is not the manager-readable release identifier
+
+## Local Firebase Test Lab diagnostics
+
+Use `GCP_FTL_READER_SERVICE_ACCOUNT` for local read-only Firebase Test Lab inspection. Do not create or store Google service account JSON keys for this project; key creation is blocked by organization policy, and local access should use `gcloud` service account impersonation.
+
+The current reader service account is:
+
+```text
+codex-ftl-reader@flashcards-open-source-app.iam.gserviceaccount.com
+```
+
+It needs these permissions:
+
+- `roles/viewer`, `roles/cloudtestservice.testViewer`, and `roles/firebase.viewer` on the Google Cloud project
+- `roles/storage.objectViewer` on the dedicated Firebase Test Lab results bucket
+- `roles/iam.serviceAccountTokenCreator` for the local operator account that impersonates it
+
+After `gcloud auth login`, verify diagnostics access with:
+
+```bash
+source .env
+
+gcloud auth print-access-token \
+  --impersonate-service-account "${GCP_FTL_READER_SERVICE_ACCOUNT}" >/dev/null
+
+gcloud --impersonate-service-account "${GCP_FTL_READER_SERVICE_ACCOUNT}" \
+  storage ls "${ANDROID_FTL_RESULTS_BUCKET}/${ANDROID_FTL_RESULTS_DIR}/"
+```
+
+Fetch a specific matrix summary with the Testing API:
+
+```bash
+source .env
+
+access_token="$(gcloud auth print-access-token --impersonate-service-account "${GCP_FTL_READER_SERVICE_ACCOUNT}")"
+
+curl --silent --show-error --fail \
+  --header "Authorization: Bearer ${access_token}" \
+  "https://testing.googleapis.com/v1/projects/${GCP_PROJECT_ID}/testMatrices/<matrix-id>"
+```
 
 ## Android translation model
 
