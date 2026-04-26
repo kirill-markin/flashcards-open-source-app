@@ -13,6 +13,7 @@ export interface AuthProps {
 export interface AuthResult {
   userPool: cognito.UserPool;
   userPoolClient: cognito.UserPoolClient;
+  customEmailSenderFn: lambda.IFunction;
 }
 
 export function auth(scope: Construct, props: AuthProps): AuthResult {
@@ -65,5 +66,6 @@ export function auth(scope: Construct, props: AuthProps): AuthResult {
   return {
     userPool,
     userPoolClient,
+    customEmailSenderFn: sender.fn,
   };
 }
