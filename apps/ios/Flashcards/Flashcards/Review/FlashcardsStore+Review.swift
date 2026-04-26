@@ -275,6 +275,7 @@ extension FlashcardsStore {
         }
 
         do {
+            try self.assertLocalOutboxMutationAllowedDuringPendingGuestUpgrade()
             _ = try await reviewSubmissionExecutor.submitReview(
                 workspaceId: request.workspaceId,
                 submission: ReviewSubmission(

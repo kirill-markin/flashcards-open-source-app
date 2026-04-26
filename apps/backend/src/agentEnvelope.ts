@@ -1,4 +1,4 @@
-import type { HttpErrorDetails } from "./errors";
+import type { PublicHttpErrorDetails } from "./errors";
 import { getPublicAgentDocs } from "./publicUrls";
 
 export type AgentDocs = Readonly<{
@@ -20,7 +20,7 @@ export type AgentErrorEnvelope = Readonly<{
   error: Readonly<{
     code: string;
     message: string;
-    details?: HttpErrorDetails;
+    details?: PublicHttpErrorDetails;
   }>;
   requestId?: string;
 }>;
@@ -44,7 +44,7 @@ export function createAgentErrorEnvelope(
   message: string,
   instructions: string,
   requestId?: string,
-  details?: HttpErrorDetails,
+  details?: PublicHttpErrorDetails,
 ): AgentErrorEnvelope {
   return {
     ok: false,

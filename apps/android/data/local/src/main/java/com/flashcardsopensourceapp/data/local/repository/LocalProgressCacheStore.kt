@@ -168,6 +168,18 @@ class LocalProgressCacheStore(
         )
     }
 
+    suspend fun rebuildWorkspaceReviewHistoryInTransaction(
+        workspaceId: String,
+        updatedAtMillis: Long
+    ) {
+        rebuildWorkspaceInTransaction(
+            workspaceId = workspaceId,
+            timeZone = timeProvider.currentZoneId().id,
+            updatedAtMillis = updatedAtMillis,
+            incrementHistoryVersion = true
+        )
+    }
+
     suspend fun rebuildTimeZoneCache(
         timeZone: String,
         updatedAtMillis: Long

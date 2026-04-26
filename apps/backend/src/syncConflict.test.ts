@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import test from "node:test";
 import type pg from "pg";
 import { createPublicHttpErrorBody } from "./app";
@@ -143,6 +145,20 @@ test("findSyncConflictWorkspaceIdInExecutor resolves conflicts without membershi
     recordedQueries.some((query) => query.text.includes("FROM org.workspace_memberships")),
     false,
   );
+});
+
+test("0048 sync conflict lookup casts target ids once and compares UUID columns directly", () => {
+  const migration = readFileSync(
+    join(__dirname, "../../../db/migrations/0048_sync_conflict_lookup.sql"),
+    "utf8",
+  );
+
+  assert.match(migration, /target_entity_uuid UUID/);
+  assert.match(migration, /target_entity_uuid := target_entity_id::UUID/);
+  assert.doesNotMatch(migration, /::text\s*=\s*target_entity_id/);
+  assert.match(migration, /cards\.card_id = target_entity_uuid/);
+  assert.match(migration, /decks\.deck_id = target_entity_uuid/);
+  assert.match(migration, /review_events\.review_event_id = target_entity_uuid/);
 });
 
 test("upsertCardSnapshotInExecutor returns a typed cross-workspace fork error", async () => {
@@ -340,7 +356,7 @@ test("annotateSyncConflictHttpError adds bootstrap entry metadata", () => {
   });
 });
 
-test("createPublicHttpErrorBody includes optional HttpError details", () => {
+test("createPublicHttpErrorBody includes safe sync conflict details", () => {
   const error = createSyncConflictHttpError({
     phase: "bootstrap",
     entityType: "deck",
@@ -350,6 +366,8 @@ test("createPublicHttpErrorBody includes optional HttpError details", () => {
     sqlState: "23505",
     table: "decks",
   });
+
+  assert.equal(error.details?.syncConflict?.conflictingWorkspaceId, "workspace-other");
 
   const body = createPublicHttpErrorBody(error, "request-1");
 
@@ -362,12 +380,12 @@ test("createPublicHttpErrorBody includes optional HttpError details", () => {
         phase: "bootstrap",
         entityType: "deck",
         entityId: "deck-1",
-        conflictingWorkspaceId: "workspace-other",
-        constraint: "decks_pkey",
-        sqlState: "23505",
-        table: "decks",
         recoverable: true,
       },
     },
   });
+  assert.equal(JSON.stringify(body).includes("workspace-other"), false);
+  assert.equal(JSON.stringify(body).includes("conflictingWorkspaceId"), false);
+  assert.equal(JSON.stringify(body).includes("decks_pkey"), false);
+  assert.equal(JSON.stringify(body).includes("23505"), false);
 });

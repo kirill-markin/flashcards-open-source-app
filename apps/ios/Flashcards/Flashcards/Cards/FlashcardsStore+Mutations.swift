@@ -2,6 +2,11 @@ import Foundation
 
 @MainActor
 extension FlashcardsStore {
+    private func requireLocalOutboxMutationContext() throws -> LocalMutationContext {
+        try self.assertLocalOutboxMutationAllowedDuringPendingGuestUpgrade()
+        return try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+    }
+
     private func localMutationCloudSyncTrigger(now: Date) -> CloudSyncTrigger {
         CloudSyncTrigger(
             source: .localMutation,
@@ -13,7 +18,7 @@ extension FlashcardsStore {
     }
 
     func saveCard(input: CardEditorInput, editingCardId: String?) throws {
-        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         _ = try context.database.saveCard(
             workspaceId: context.workspaceId,
@@ -25,7 +30,7 @@ extension FlashcardsStore {
     }
 
     func createCards(inputs: [CardEditorInput]) throws -> [Card] {
-        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         let createdCards = try context.database.createCards(workspaceId: context.workspaceId, inputs: inputs)
         try self.reload()
@@ -34,7 +39,7 @@ extension FlashcardsStore {
     }
 
     func deleteCard(cardId: String) throws {
-        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         _ = try context.database.deleteCard(workspaceId: context.workspaceId, cardId: cardId)
         self.refreshLocalReadModels(now: now)
@@ -42,7 +47,7 @@ extension FlashcardsStore {
     }
 
     func updateCards(updates: [CardUpdateInput]) throws -> [Card] {
-        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         let updatedCards = try context.database.updateCards(workspaceId: context.workspaceId, updates: updates)
         try self.reload()
@@ -51,7 +56,7 @@ extension FlashcardsStore {
     }
 
     func deleteCards(cardIds: [String]) throws -> BulkDeleteCardsResult {
-        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         let result = try context.database.deleteCards(workspaceId: context.workspaceId, cardIds: cardIds)
         try self.reload()
@@ -60,7 +65,7 @@ extension FlashcardsStore {
     }
 
     func createDeck(input: DeckEditorInput) throws {
-        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         _ = try context.database.createDeck(workspaceId: context.workspaceId, input: input)
         self.refreshLocalReadModels(now: now)
@@ -68,7 +73,7 @@ extension FlashcardsStore {
     }
 
     func updateDeck(deckId: String, input: DeckEditorInput) throws {
-        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         _ = try context.database.updateDeck(
             workspaceId: context.workspaceId,
@@ -80,7 +85,7 @@ extension FlashcardsStore {
     }
 
     func deleteDeck(deckId: String) throws {
-        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         _ = try context.database.deleteDeck(workspaceId: context.workspaceId, deckId: deckId)
         self.refreshLocalReadModels(now: now)
@@ -88,7 +93,7 @@ extension FlashcardsStore {
     }
 
     func submitReview(cardId: String, rating: ReviewRating) throws {
-        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let context = try self.requireLocalOutboxMutationContext()
         let now = Date()
         _ = try context.database.submitReview(
             workspaceId: context.workspaceId,
@@ -107,6 +112,7 @@ extension FlashcardsStore {
         guard self.dependencies.reviewSubmissionExecutor != nil else {
             throw self.reviewRuntime.reviewSubmissionExecutorUnavailableError()
         }
+        try self.assertLocalOutboxMutationAllowedDuringPendingGuestUpgrade()
 
         let workspaceId = try requireWorkspaceId(workspace: self.workspace)
         let nextReviewState = try self.reviewRuntime.enqueueReviewSubmission(
@@ -135,7 +141,7 @@ extension FlashcardsStore {
         maximumIntervalDays: Int,
         enableFuzz: Bool
     ) throws {
-        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
+        let context = try self.requireLocalOutboxMutationContext()
         try context.database.updateWorkspaceSchedulerSettings(
             workspaceId: context.workspaceId,
             desiredRetention: desiredRetention,

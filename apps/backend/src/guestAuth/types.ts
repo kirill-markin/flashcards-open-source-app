@@ -19,6 +19,18 @@ export type GuestUpgradeSelection =
     type: "create_new";
   }>;
 
+export type GuestUpgradeCompleteCapabilities = Readonly<{
+  guestWorkspaceSyncedAndOutboxDrained: boolean;
+  requiresGuestWorkspaceSyncedAndOutboxDrained: boolean;
+  supportsDroppedEntities: boolean;
+}>;
+
+export type GuestUpgradeDroppedEntities = Readonly<{
+  cardIds: ReadonlyArray<string>;
+  deckIds: ReadonlyArray<string>;
+  reviewEventIds: ReadonlyArray<string>;
+}>;
+
 export type GuestUpgradeCompletion = Readonly<{
   workspace: Readonly<{
     workspaceId: string;
@@ -31,6 +43,7 @@ export type GuestUpgradeCompletion = Readonly<{
   targetSubjectUserId: string;
   targetUserId: string;
   targetWorkspaceId: string;
+  droppedEntities?: GuestUpgradeDroppedEntities;
 }>;
 
 export type GuestUpgradeSelectionType = GuestUpgradeSelection["type"];
@@ -40,10 +53,12 @@ export type GuestUpgradeHistoryWrite = Readonly<{
   sourceGuestUserId: string;
   sourceGuestWorkspaceId: string;
   sourceGuestSessionId: string;
+  sourceGuestSessionSecretHash: string;
   targetSubjectUserId: string;
   targetUserId: string;
   targetWorkspaceId: string;
   selectionType: GuestUpgradeSelectionType;
+  droppedEntities?: GuestUpgradeDroppedEntities;
   replicaIdMap: ReadonlyMap<string, string>;
 }>;
 

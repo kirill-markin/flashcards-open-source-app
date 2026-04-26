@@ -145,6 +145,22 @@ internal fun JSONObject.requireCloudArray(key: String, fieldPath: String): JSONA
     )
 }
 
+internal fun JSONObject.optCloudArrayOrNull(key: String, fieldPath: String): JSONArray? {
+    if (has(key).not()) {
+        return null
+    }
+    val value = requireCloudValue(key = key, fieldPath = fieldPath)
+    return when {
+        value === JSONObject.NULL -> null
+        value is JSONArray -> value
+        else -> throw cloudContractMismatch(
+            fieldPath = fieldPath,
+            expected = "array or null",
+            actualValue = value
+        )
+    }
+}
+
 internal fun JSONObject.requireCloudIsoTimestampMillis(key: String, fieldPath: String): Long {
     return parseCloudIsoTimestamp(
         value = requireCloudString(key = key, fieldPath = fieldPath),

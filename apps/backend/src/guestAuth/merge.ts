@@ -1,21 +1,36 @@
 import { randomUUID } from "node:crypto";
-import type { DatabaseExecutor } from "../db";
-import { compareLwwMetadata } from "../lww";
-import { insertSyncChange } from "../syncChanges";
 import {
-  forkCardIdForWorkspace,
-  forkDeckIdForWorkspace,
-  forkReviewEventIdForWorkspace,
-} from "../sync/fork";
+  appendReviewEventSnapshotInExecutor,
+  getInvalidFsrsStateReason,
+  upsertCardSnapshotInExecutor,
+  type CardMutationMetadata,
+  type CardSnapshotInput,
+  type ReviewEvent,
+} from "../cards";
+import {
+  applyWorkspaceDatabaseScopeInExecutor,
+  type DatabaseExecutor,
+} from "../db";
+import {
+  HttpError,
+  type SyncConflictEntityType,
+} from "../errors";
+import {
+  compareLwwMetadata,
+} from "../lww";
+import {
+  upsertDeckSnapshotInExecutor,
+  type DeckMutationMetadata,
+  type DeckSnapshotInput,
+} from "../decks";
+import { insertSyncChange } from "../syncChanges";
 import {
   ensureSystemWorkspaceReplicaInExecutor,
   ensureWorkspaceReplicaInExecutor,
 } from "../syncIdentity";
+import { SYNC_WORKSPACE_FORK_REQUIRED } from "../sync/fork";
 import {
   deleteGuestWorkspaceContentInExecutor,
-  insertGuestCardCopyInExecutor,
-  insertGuestDeckCopyInExecutor,
-  insertGuestReviewEventCopyInExecutor,
   loadGuestCardsInExecutor,
   loadGuestDecksInExecutor,
   loadGuestReplicasInExecutor,
@@ -26,15 +41,29 @@ import {
   updateWorkspaceSchedulerFromGuestInExecutor,
 } from "./store";
 import type {
+  GuestUpgradeDroppedEntities,
   GuestUpgradeHistoryWrite,
   GuestUpgradeSelectionType,
 } from "./types";
 import { toIsoString } from "./shared";
 
-type GuestEntityIdMaps = Readonly<{
-  cardIdMap: ReadonlyMap<string, string>;
-  deckIdMap: ReadonlyMap<string, string>;
-  reviewEventIdMap: ReadonlyMap<string, string>;
+type GuestMergeWriteInput = Readonly<{
+  entityType: SyncConflictEntityType;
+  entityId: string;
+  sourceGuestWorkspaceId: string;
+  targetWorkspaceId: string;
+  supportsDroppedEntities: boolean;
+  write: () => Promise<boolean>;
+}>;
+
+type GuestMergeDroppedEntitiesAccumulator = {
+  cardIds: Array<string>;
+  deckIds: Array<string>;
+  reviewEventIds: Array<string>;
+};
+
+type GuestMergeResult = Readonly<{
+  history: GuestUpgradeHistoryWrite;
 }>;
 
 function schedulerWinnerIsGuest(
@@ -52,40 +81,333 @@ function schedulerWinnerIsGuest(
   }) > 0;
 }
 
-function requireMappedEntityId(
-  entityIdMap: ReadonlyMap<string, string>,
-  sourceEntityId: string,
-  entityType: string,
-): string {
-  const targetEntityId = entityIdMap.get(sourceEntityId);
-  if (targetEntityId === undefined) {
-    throw new Error(`Missing merged ${entityType} id mapping for ${sourceEntityId}`);
-  }
-
-  return targetEntityId;
+function createGuestMutationMetadata(
+  clientUpdatedAt: Date | string,
+  lastModifiedByReplicaId: string,
+  lastOperationId: string,
+): CardMutationMetadata {
+  return {
+    clientUpdatedAt: toIsoString(clientUpdatedAt),
+    lastModifiedByReplicaId,
+    lastOperationId,
+  };
 }
 
-function createGuestEntityIdMaps(
-  sourceWorkspaceId: string,
-  targetWorkspaceId: string,
-  cards: ReadonlyArray<import("./store").GuestCardRecord>,
-  decks: ReadonlyArray<import("./store").GuestDeckRecord>,
-  reviewEvents: ReadonlyArray<import("./store").GuestReviewEventRecord>,
-): GuestEntityIdMaps {
+function createCardSnapshotInput(
+  card: import("./store").GuestCardRecord,
+): CardSnapshotInput {
   return {
-    cardIdMap: new Map(cards.map((card) => ([
-      card.cardId,
-      forkCardIdForWorkspace(sourceWorkspaceId, targetWorkspaceId, card.cardId),
-    ]))),
-    deckIdMap: new Map(decks.map((deck) => ([
-      deck.deckId,
-      forkDeckIdForWorkspace(sourceWorkspaceId, targetWorkspaceId, deck.deckId),
-    ]))),
-    reviewEventIdMap: new Map(reviewEvents.map((reviewEvent) => ([
-      reviewEvent.reviewEventId,
-      forkReviewEventIdForWorkspace(sourceWorkspaceId, targetWorkspaceId, reviewEvent.reviewEventId),
-    ]))),
+    cardId: card.cardId,
+    frontText: card.frontText,
+    backText: card.backText,
+    tags: card.tags,
+    effortLevel: card.effortLevel,
+    dueAt: card.dueAt === null ? null : toIsoString(card.dueAt),
+    createdAt: toIsoString(card.createdAt),
+    reps: card.reps,
+    lapses: card.lapses,
+    fsrsCardState: card.fsrsCardState,
+    fsrsStepIndex: card.fsrsStepIndex,
+    fsrsStability: card.fsrsStability,
+    fsrsDifficulty: card.fsrsDifficulty,
+    fsrsLastReviewedAt: card.fsrsLastReviewedAt === null ? null : toIsoString(card.fsrsLastReviewedAt),
+    fsrsScheduledDays: card.fsrsScheduledDays,
+    deletedAt: card.deletedAt === null ? null : toIsoString(card.deletedAt),
   };
+}
+
+function logGuestMergeFsrsStateReset(
+  workspaceId: string,
+  cardId: string,
+  reason: string,
+): void {
+  console.error(JSON.stringify({
+    domain: "cards",
+    action: "reset_invalid_fsrs_state",
+    workspaceId,
+    cardId,
+    reason,
+    repair: "reset",
+  }));
+}
+
+function repairGuestCardSnapshotInput(
+  workspaceId: string,
+  card: CardSnapshotInput,
+): CardSnapshotInput {
+  const invalidReason = getInvalidFsrsStateReason({
+    due_at: card.dueAt,
+    reps: card.reps,
+    lapses: card.lapses,
+    fsrs_card_state: card.fsrsCardState,
+    fsrs_step_index: card.fsrsStepIndex,
+    fsrs_stability: card.fsrsStability,
+    fsrs_difficulty: card.fsrsDifficulty,
+    fsrs_last_reviewed_at: card.fsrsLastReviewedAt,
+    fsrs_scheduled_days: card.fsrsScheduledDays,
+  });
+  if (invalidReason === null) {
+    return card;
+  }
+
+  logGuestMergeFsrsStateReset(workspaceId, card.cardId, invalidReason);
+  return {
+    ...card,
+    dueAt: null,
+    reps: 0,
+    lapses: 0,
+    fsrsCardState: "new",
+    fsrsStepIndex: null,
+    fsrsStability: null,
+    fsrsDifficulty: null,
+    fsrsLastReviewedAt: null,
+    fsrsScheduledDays: null,
+  };
+}
+
+function createDeckSnapshotInput(
+  deck: import("./store").GuestDeckRecord,
+): DeckSnapshotInput {
+  return {
+    deckId: deck.deckId,
+    name: deck.name,
+    filterDefinition: deck.filterDefinition,
+    createdAt: toIsoString(deck.createdAt),
+    deletedAt: deck.deletedAt === null ? null : toIsoString(deck.deletedAt),
+  };
+}
+
+function createReviewEventSnapshot(
+  workspaceId: string,
+  reviewEvent: import("./store").GuestReviewEventRecord,
+  replicaId: string,
+): ReviewEvent {
+  return {
+    reviewEventId: reviewEvent.reviewEventId,
+    workspaceId,
+    cardId: reviewEvent.cardId,
+    replicaId,
+    clientEventId: reviewEvent.clientEventId,
+    rating: reviewEvent.rating,
+    reviewedAtClient: toIsoString(reviewEvent.reviewedAtClient),
+    reviewedAtServer: toIsoString(reviewEvent.reviewedAtServer),
+  };
+}
+
+function createGuestMergeDroppedEntitiesAccumulator(): GuestMergeDroppedEntitiesAccumulator {
+  return {
+    cardIds: [],
+    deckIds: [],
+    reviewEventIds: [],
+  };
+}
+
+function createGuestMergeSourceCleanupInvariantError(
+  entityType: SyncConflictEntityType,
+  entityId: string,
+  sourceGuestWorkspaceId: string,
+): Error {
+  return new Error(
+    `Guest merge cleanup invariant failed for ${entityType} ${entityId}: `
+    + `source workspace ${sourceGuestWorkspaceId} still owns the conflicting id after cleanup`,
+  );
+}
+
+function recordDroppedGuestMergeEntity(
+  droppedEntities: GuestMergeDroppedEntitiesAccumulator,
+  entityType: SyncConflictEntityType,
+  entityId: string,
+): void {
+  if (entityType === "card") {
+    droppedEntities.cardIds.push(entityId);
+    return;
+  }
+
+  if (entityType === "deck") {
+    droppedEntities.deckIds.push(entityId);
+    return;
+  }
+
+  droppedEntities.reviewEventIds.push(entityId);
+}
+
+function finalizeGuestMergeDroppedEntities(
+  droppedEntities: GuestMergeDroppedEntitiesAccumulator,
+): GuestUpgradeDroppedEntities | undefined {
+  if (
+    droppedEntities.cardIds.length === 0
+    && droppedEntities.deckIds.length === 0
+    && droppedEntities.reviewEventIds.length === 0
+  ) {
+    return undefined;
+  }
+
+  return {
+    cardIds: droppedEntities.cardIds,
+    deckIds: droppedEntities.deckIds,
+    reviewEventIds: droppedEntities.reviewEventIds,
+  };
+}
+
+function createGuestMergeDroppedEntitiesUnsupportedError(
+  entityType: SyncConflictEntityType,
+  entityId: string,
+  conflictingWorkspaceId: string,
+): HttpError {
+  return new HttpError(
+    409,
+    `Guest upgrade cannot drop guest ${entityType} ${entityId} because its id conflicts with another workspace and this client did not declare supportsDroppedEntities. Retry /guest-auth/upgrade/complete with supportsDroppedEntities: true.`,
+    "GUEST_UPGRADE_DROPPED_ENTITIES_UNSUPPORTED",
+    {
+      syncConflict: {
+        phase: "guest_upgrade_merge",
+        entityType,
+        entityId,
+        conflictingWorkspaceId,
+        constraint: null,
+        sqlState: null,
+        table: null,
+        recoverable: true,
+      },
+    },
+  );
+}
+
+function createGuestMergeDroppedReviewEventUnsupportedError(
+  reviewEventId: string,
+  cardId: string,
+): HttpError {
+  return new HttpError(
+    409,
+    `Guest upgrade cannot drop review_event ${reviewEventId} for missing card ${cardId} because this client did not declare supportsDroppedEntities. Retry /guest-auth/upgrade/complete with supportsDroppedEntities: true.`,
+    "GUEST_UPGRADE_DROPPED_ENTITIES_UNSUPPORTED",
+  );
+}
+
+function createGuestMergeDedupedReviewEventUnsupportedError(
+  reviewEventId: string,
+  storedReviewEventId: string,
+): HttpError {
+  return new HttpError(
+    409,
+    `Guest upgrade cannot drop review_event ${reviewEventId} because the target workspace already has review_event ${storedReviewEventId} for the same client event and this client did not declare supportsDroppedEntities. Retry /guest-auth/upgrade/complete with supportsDroppedEntities: true.`,
+    "GUEST_UPGRADE_DROPPED_ENTITIES_UNSUPPORTED",
+  );
+}
+
+function resolveGuestMergeThirdWorkspaceConflict(
+  error: unknown,
+  entityType: SyncConflictEntityType,
+  entityId: string,
+  sourceGuestWorkspaceId: string,
+  targetWorkspaceId: string,
+): string | null {
+  if (!(error instanceof HttpError) || error.code !== SYNC_WORKSPACE_FORK_REQUIRED) {
+    return null;
+  }
+
+  const syncConflict = error.details?.syncConflict ?? null;
+  if (syncConflict === null) {
+    return null;
+  }
+
+  const conflictingWorkspaceId = syncConflict?.conflictingWorkspaceId ?? null;
+  if (conflictingWorkspaceId === null) {
+    return null;
+  }
+
+  if (syncConflict.entityType !== entityType || syncConflict.entityId !== entityId) {
+    throw new Error(
+      `Guest merge conflict metadata mismatch for ${entityType} ${entityId}: `
+      + `${syncConflict.entityType} ${syncConflict.entityId}`,
+    );
+  }
+
+  if (conflictingWorkspaceId === targetWorkspaceId) {
+    return null;
+  }
+
+  if (conflictingWorkspaceId === sourceGuestWorkspaceId) {
+    throw createGuestMergeSourceCleanupInvariantError(
+      entityType,
+      entityId,
+      sourceGuestWorkspaceId,
+    );
+  }
+
+  return conflictingWorkspaceId;
+}
+
+function logGuestMergeDroppedEntity(
+  entityType: SyncConflictEntityType,
+  entityId: string,
+  sourceGuestWorkspaceId: string,
+  targetWorkspaceId: string,
+  conflictingWorkspaceId: string,
+): void {
+  console.error(JSON.stringify({
+    domain: "guest_auth",
+    action: "guest_merge_drop_third_workspace_conflict",
+    entityType,
+    entityId,
+    sourceGuestWorkspaceId,
+    targetWorkspaceId,
+    conflictingWorkspaceId,
+    resolution: "drop_guest_entity",
+  }));
+}
+
+function logGuestMergeDroppedReviewEventForMissingCard(
+  reviewEventId: string,
+  cardId: string,
+  sourceGuestWorkspaceId: string,
+  targetWorkspaceId: string,
+): void {
+  console.error(JSON.stringify({
+    domain: "guest_auth",
+    action: "guest_merge_drop_review_event_missing_target_card",
+    reviewEventId,
+    cardId,
+    sourceGuestWorkspaceId,
+    targetWorkspaceId,
+    resolution: "drop_guest_entity",
+  }));
+}
+
+async function writeGuestEntityIntoTargetInExecutor(
+  input: GuestMergeWriteInput,
+): Promise<boolean> {
+  try {
+    return await input.write();
+  } catch (error) {
+    const conflictingWorkspaceId = resolveGuestMergeThirdWorkspaceConflict(
+      error,
+      input.entityType,
+      input.entityId,
+      input.sourceGuestWorkspaceId,
+      input.targetWorkspaceId,
+    );
+    if (conflictingWorkspaceId === null) {
+      throw error;
+    }
+
+    if (!input.supportsDroppedEntities) {
+      throw createGuestMergeDroppedEntitiesUnsupportedError(
+        input.entityType,
+        input.entityId,
+        conflictingWorkspaceId,
+      );
+    }
+
+    logGuestMergeDroppedEntity(
+      input.entityType,
+      input.entityId,
+      input.sourceGuestWorkspaceId,
+      input.targetWorkspaceId,
+      conflictingWorkspaceId,
+    );
+    return false;
+  }
 }
 
 async function recreateGuestReplicasInExecutor(
@@ -131,109 +453,176 @@ async function recreateGuestReplicasInExecutor(
   return new Map<string, string>(replicaIdMapEntries);
 }
 
-async function insertMergedCardsInExecutor(
+async function mergeCardsIntoTargetInExecutor(
   executor: DatabaseExecutor,
-  sourceWorkspaceId: string,
   targetUserId: string,
   targetWorkspaceId: string,
+  sourceGuestWorkspaceId: string,
   cards: ReadonlyArray<import("./store").GuestCardRecord>,
-  cardIdMap: ReadonlyMap<string, string>,
   replicaIdMap: ReadonlyMap<string, string>,
-  mergeId: string,
-): Promise<void> {
+  supportsDroppedEntities: boolean,
+  droppedEntities: GuestMergeDroppedEntitiesAccumulator,
+): Promise<ReadonlySet<string>> {
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: targetUserId,
+    workspaceId: targetWorkspaceId,
+  });
+
+  const mergedCardIds = new Set<string>();
   for (const card of cards) {
     const targetReplicaId = requireMappedReplicaId(replicaIdMap, card.lastModifiedByReplicaId);
-    const targetCardId = requireMappedEntityId(cardIdMap, card.cardId, "card");
-    const copiedCard: import("./store").GuestCardRecord = {
-      ...card,
-      cardId: targetCardId,
-    };
-    await insertGuestCardCopyInExecutor(
-      executor,
-      targetUserId,
+    const wasWritten = await writeGuestEntityIntoTargetInExecutor({
+      entityType: "card",
+      entityId: card.cardId,
+      sourceGuestWorkspaceId,
       targetWorkspaceId,
-      copiedCard,
-      targetReplicaId,
-    );
-    await insertSyncChange(
-      executor,
-      targetWorkspaceId,
-      "card",
-      targetCardId,
-      "upsert",
-      targetReplicaId,
-      `guest-merge-${mergeId}-card-${sourceWorkspaceId}-${targetCardId}`,
-      toIsoString(card.clientUpdatedAt),
-    );
+      supportsDroppedEntities,
+      write: async (): Promise<boolean> => {
+        await upsertCardSnapshotInExecutor(
+          executor,
+          targetWorkspaceId,
+          repairGuestCardSnapshotInput(
+            targetWorkspaceId,
+            createCardSnapshotInput(card),
+          ),
+          createGuestMutationMetadata(
+            card.clientUpdatedAt,
+            targetReplicaId,
+            card.lastOperationId,
+          ),
+        );
+        return true;
+      },
+    });
+    if (wasWritten) {
+      mergedCardIds.add(card.cardId);
+      continue;
+    }
+
+    recordDroppedGuestMergeEntity(droppedEntities, "card", card.cardId);
   }
+
+  return mergedCardIds;
 }
 
-async function insertMergedDecksInExecutor(
+async function mergeDecksIntoTargetInExecutor(
   executor: DatabaseExecutor,
-  sourceWorkspaceId: string,
   targetUserId: string,
   targetWorkspaceId: string,
+  sourceGuestWorkspaceId: string,
   decks: ReadonlyArray<import("./store").GuestDeckRecord>,
-  deckIdMap: ReadonlyMap<string, string>,
   replicaIdMap: ReadonlyMap<string, string>,
-  mergeId: string,
+  supportsDroppedEntities: boolean,
+  droppedEntities: GuestMergeDroppedEntitiesAccumulator,
 ): Promise<void> {
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: targetUserId,
+    workspaceId: targetWorkspaceId,
+  });
+
   for (const deck of decks) {
     const targetReplicaId = requireMappedReplicaId(replicaIdMap, deck.lastModifiedByReplicaId);
-    const targetDeckId = requireMappedEntityId(deckIdMap, deck.deckId, "deck");
-    const copiedDeck: import("./store").GuestDeckRecord = {
-      ...deck,
-      deckId: targetDeckId,
-    };
-    await insertGuestDeckCopyInExecutor(
-      executor,
-      targetUserId,
-      targetWorkspaceId,
-      copiedDeck,
+    const metadata: DeckMutationMetadata = createGuestMutationMetadata(
+      deck.clientUpdatedAt,
       targetReplicaId,
+      deck.lastOperationId,
     );
-    await insertSyncChange(
-      executor,
+    const wasWritten = await writeGuestEntityIntoTargetInExecutor({
+      entityType: "deck",
+      entityId: deck.deckId,
+      sourceGuestWorkspaceId,
       targetWorkspaceId,
-      "deck",
-      targetDeckId,
-      "upsert",
-      targetReplicaId,
-      `guest-merge-${mergeId}-deck-${sourceWorkspaceId}-${targetDeckId}`,
-      toIsoString(deck.clientUpdatedAt),
-    );
+      supportsDroppedEntities,
+      write: async (): Promise<boolean> => {
+        await upsertDeckSnapshotInExecutor(
+          executor,
+          targetWorkspaceId,
+          createDeckSnapshotInput(deck),
+          metadata,
+        );
+        return true;
+      },
+    });
+    if (!wasWritten) {
+      recordDroppedGuestMergeEntity(droppedEntities, "deck", deck.deckId);
+    }
   }
 }
 
-async function insertMergedReviewEventsInExecutor(
+async function mergeReviewEventsIntoTargetInExecutor(
   executor: DatabaseExecutor,
   targetUserId: string,
   targetWorkspaceId: string,
+  sourceGuestWorkspaceId: string,
   reviewEvents: ReadonlyArray<import("./store").GuestReviewEventRecord>,
-  cardIdMap: ReadonlyMap<string, string>,
-  reviewEventIdMap: ReadonlyMap<string, string>,
   replicaIdMap: ReadonlyMap<string, string>,
+  mergedCardIds: ReadonlySet<string>,
+  supportsDroppedEntities: boolean,
+  droppedEntities: GuestMergeDroppedEntitiesAccumulator,
 ): Promise<void> {
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: targetUserId,
+    workspaceId: targetWorkspaceId,
+  });
+
   for (const reviewEvent of reviewEvents) {
+    if (!mergedCardIds.has(reviewEvent.cardId)) {
+      if (!supportsDroppedEntities) {
+        throw createGuestMergeDroppedReviewEventUnsupportedError(
+          reviewEvent.reviewEventId,
+          reviewEvent.cardId,
+        );
+      }
+
+      logGuestMergeDroppedReviewEventForMissingCard(
+        reviewEvent.reviewEventId,
+        reviewEvent.cardId,
+        sourceGuestWorkspaceId,
+        targetWorkspaceId,
+      );
+      recordDroppedGuestMergeEntity(
+        droppedEntities,
+        "review_event",
+        reviewEvent.reviewEventId,
+      );
+      continue;
+    }
+
     const targetReplicaId = requireMappedReplicaId(replicaIdMap, reviewEvent.replicaId);
-    const targetCardId = requireMappedEntityId(cardIdMap, reviewEvent.cardId, "card");
-    const targetReviewEventId = requireMappedEntityId(
-      reviewEventIdMap,
-      reviewEvent.reviewEventId,
-      "review_event",
-    );
-    const copiedReviewEvent: import("./store").GuestReviewEventRecord = {
-      ...reviewEvent,
-      reviewEventId: targetReviewEventId,
-      cardId: targetCardId,
-    };
-    await insertGuestReviewEventCopyInExecutor(
-      executor,
-      targetUserId,
+    const wasWritten = await writeGuestEntityIntoTargetInExecutor({
+      entityType: "review_event",
+      entityId: reviewEvent.reviewEventId,
+      sourceGuestWorkspaceId,
       targetWorkspaceId,
-      copiedReviewEvent,
-      targetReplicaId,
-    );
+      supportsDroppedEntities,
+      write: async (): Promise<boolean> => {
+        const result = await appendReviewEventSnapshotInExecutor(
+          executor,
+          targetWorkspaceId,
+          createReviewEventSnapshot(targetWorkspaceId, reviewEvent, targetReplicaId),
+          reviewEvent.reviewEventId,
+        );
+        if (result.reviewEvent.reviewEventId === reviewEvent.reviewEventId) {
+          return true;
+        }
+
+        if (!supportsDroppedEntities) {
+          throw createGuestMergeDedupedReviewEventUnsupportedError(
+            reviewEvent.reviewEventId,
+            result.reviewEvent.reviewEventId,
+          );
+        }
+
+        return false;
+      },
+    });
+    if (!wasWritten) {
+      recordDroppedGuestMergeEntity(
+        droppedEntities,
+        "review_event",
+        reviewEvent.reviewEventId,
+      );
+    }
   }
 }
 
@@ -271,25 +660,34 @@ async function maybeApplyGuestSchedulerInExecutor(
 }
 
 /**
- * Merges portable guest workspace state into the selected destination workspace
- * and returns the durable replica alias metadata that must be recorded before
- * the live guest rows are deleted.
+ * Merges already-synced guest cloud workspace state into the selected
+ * destination workspace and returns the durable replica alias metadata that
+ * must be recorded before the live guest rows are deleted.
  *
- * Cards, decks, and review events are deterministically forked into the target
- * workspace so globally keyed entity ids never collide across workspaces.
+ * Cards, decks, and review events keep their existing ids by default. The
+ * source content rows are deleted first inside the same transaction to free
+ * the global ids, then cards/decks reuse normal snapshot LWW behavior in the
+ * target workspace and review events reuse append-only insert-or-no-op
+ * behavior. The backend does not create card/deck/review id aliases or consume
+ * pending client-local outbox rows. If an impossible global-id conflict still
+ * resolves to a true third workspace, the guest entity is dropped only for
+ * clients that declared dropped-entity reconciliation support; older clients
+ * receive a typed error.
  */
 export async function mergeGuestWorkspaceIntoTargetInExecutor(
   executor: DatabaseExecutor,
   params: Readonly<{
     guestSessionId: string;
+    sourceGuestSessionSecretHash: string;
     guestUserId: string;
     guestWorkspaceId: string;
     targetSubjectUserId: string;
     targetUserId: string;
     targetWorkspaceId: string;
     selectionType: GuestUpgradeSelectionType;
+    supportsDroppedEntities: boolean;
   }>,
-): Promise<GuestUpgradeHistoryWrite> {
+): Promise<GuestMergeResult> {
   const upgradeId = randomUUID().toLowerCase();
   const guestReplicas = await loadGuestReplicasInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const guestCards = await loadGuestCardsInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
@@ -297,13 +695,7 @@ export async function mergeGuestWorkspaceIntoTargetInExecutor(
   const guestReviewEvents = await loadGuestReviewEventsInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const guestScheduler = await loadWorkspaceSchedulerInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
   const targetScheduler = await loadWorkspaceSchedulerInExecutor(executor, params.targetUserId, params.targetWorkspaceId);
-  const guestEntityIdMaps = createGuestEntityIdMaps(
-    params.guestWorkspaceId,
-    params.targetWorkspaceId,
-    guestCards,
-    guestDecks,
-    guestReviewEvents,
-  );
+  const droppedEntities = createGuestMergeDroppedEntitiesAccumulator();
 
   await deleteGuestWorkspaceContentInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
 
@@ -314,34 +706,36 @@ export async function mergeGuestWorkspaceIntoTargetInExecutor(
     params.targetWorkspaceId,
   );
 
-  await insertMergedCardsInExecutor(
+  const mergedCardIds = await mergeCardsIntoTargetInExecutor(
     executor,
-    params.guestWorkspaceId,
     params.targetUserId,
     params.targetWorkspaceId,
+    params.guestWorkspaceId,
     guestCards,
-    guestEntityIdMaps.cardIdMap,
     replicaIdMap,
-    upgradeId,
+    params.supportsDroppedEntities,
+    droppedEntities,
   );
-  await insertMergedDecksInExecutor(
+  await mergeDecksIntoTargetInExecutor(
     executor,
+    params.targetUserId,
+    params.targetWorkspaceId,
     params.guestWorkspaceId,
-    params.targetUserId,
-    params.targetWorkspaceId,
     guestDecks,
-    guestEntityIdMaps.deckIdMap,
     replicaIdMap,
-    upgradeId,
+    params.supportsDroppedEntities,
+    droppedEntities,
   );
-  await insertMergedReviewEventsInExecutor(
+  await mergeReviewEventsIntoTargetInExecutor(
     executor,
     params.targetUserId,
     params.targetWorkspaceId,
+    params.guestWorkspaceId,
     guestReviewEvents,
-    guestEntityIdMaps.cardIdMap,
-    guestEntityIdMaps.reviewEventIdMap,
     replicaIdMap,
+    mergedCardIds,
+    params.supportsDroppedEntities,
+    droppedEntities,
   );
   await maybeApplyGuestSchedulerInExecutor(
     executor,
@@ -353,15 +747,23 @@ export async function mergeGuestWorkspaceIntoTargetInExecutor(
     upgradeId,
   );
 
+  const finalizedDroppedEntities = finalizeGuestMergeDroppedEntities(droppedEntities);
+
   return {
-    upgradeId,
-    sourceGuestUserId: params.guestUserId,
-    sourceGuestWorkspaceId: params.guestWorkspaceId,
-    sourceGuestSessionId: params.guestSessionId,
-    targetSubjectUserId: params.targetSubjectUserId,
-    targetUserId: params.targetUserId,
-    targetWorkspaceId: params.targetWorkspaceId,
-    selectionType: params.selectionType,
-    replicaIdMap,
+    history: {
+      upgradeId,
+      sourceGuestUserId: params.guestUserId,
+      sourceGuestWorkspaceId: params.guestWorkspaceId,
+      sourceGuestSessionId: params.guestSessionId,
+      sourceGuestSessionSecretHash: params.sourceGuestSessionSecretHash,
+      targetSubjectUserId: params.targetSubjectUserId,
+      targetUserId: params.targetUserId,
+      targetWorkspaceId: params.targetWorkspaceId,
+      selectionType: params.selectionType,
+      ...(finalizedDroppedEntities === undefined
+        ? {}
+        : { droppedEntities: finalizedDroppedEntities }),
+      replicaIdMap,
+    },
   };
 }

@@ -3,8 +3,10 @@ package com.flashcardsopensourceapp.data.local.repository
 import com.flashcardsopensourceapp.data.local.ai.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.cloud.PendingGuestUpgradeState
 import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
@@ -27,6 +29,7 @@ import com.flashcardsopensourceapp.data.local.model.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.makeCustomCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import org.json.JSONObject
 
@@ -65,6 +68,7 @@ class LocalCloudAccountRepository(
 
     override suspend fun resumePendingAccountDeletionIfNeeded() {
         operationCoordinator.runExclusive {
+            resumePendingGuestUpgradeIfNeeded()
             if (preferencesStore.currentAccountDeletionState() == AccountDeletionState.Hidden) {
                 return@runExclusive
             }
@@ -89,6 +93,7 @@ class LocalCloudAccountRepository(
 
     override suspend fun prepareVerifiedSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext {
         return operationCoordinator.runExclusive {
+            resumePendingGuestUpgradeIfNeeded()
             val configuration = preferencesStore.currentServerConfiguration()
             buildCloudWorkspaceLinkContext(
                 credentials = credentials,
@@ -99,6 +104,7 @@ class LocalCloudAccountRepository(
 
     override suspend fun verifyCode(challenge: CloudOtpChallenge, code: String): CloudWorkspaceLinkContext {
         return operationCoordinator.runExclusive {
+            resumePendingGuestUpgradeIfNeeded()
             val configuration = preferencesStore.currentServerConfiguration()
             val credentials = remoteService.verifyCode(
                 challenge = challenge,
@@ -157,6 +163,10 @@ class LocalCloudAccountRepository(
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {
         return operationCoordinator.runExclusive {
+            val resumedGuestUpgrade = resumePendingGuestUpgradeIfNeeded()
+            if (resumedGuestUpgrade != null) {
+                return@runExclusive resumedGuestUpgrade
+            }
             val authenticatedSession = authenticatedSession(linkContext = linkContext)
             val selectedWorkspace = resolveWorkspaceSelection(
                 linkContext = linkContext,
@@ -167,8 +177,7 @@ class LocalCloudAccountRepository(
             applyLinkedWorkspace(
                 accountSnapshot = authenticatedSession.accountSnapshot,
                 bearerToken = authenticatedSession.credentials.idToken,
-                selectedWorkspace = selectedWorkspace,
-                migrationStrategy = LinkedWorkspaceMigrationStrategy.PROBE_REMOTE_BOOTSTRAP
+                selectedWorkspace = selectedWorkspace
             )
             preferencesStore.saveCredentials(authenticatedSession.credentials)
             selectedWorkspace
@@ -180,6 +189,10 @@ class LocalCloudAccountRepository(
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {
         return operationCoordinator.runExclusive {
+            val resumedGuestUpgrade = resumePendingGuestUpgradeIfNeeded()
+            if (resumedGuestUpgrade != null) {
+                return@runExclusive resumedGuestUpgrade
+            }
             val authenticatedSession = authenticatedSession(linkContext = linkContext)
             val configuration = preferencesStore.currentServerConfiguration()
             val guestSession = requireNotNull(activeGuestSession(configuration = configuration)) {
@@ -192,21 +205,27 @@ class LocalCloudAccountRepository(
                 linkContext = linkContext,
                 selection = selection
             )
-            val selectedWorkspace = remoteService.completeGuestUpgrade(
-                apiBaseUrl = configuration.apiBaseUrl,
-                bearerToken = authenticatedSession.credentials.idToken,
-                guestToken = guestSession.guestToken,
-                selection = validatedSelection.toGuestUpgradeSelection()
-            )
-            clearGuestSessionsIfNeeded()
-            applyLinkedWorkspace(
-                accountSnapshot = authenticatedSession.accountSnapshot,
-                bearerToken = authenticatedSession.credentials.idToken,
-                selectedWorkspace = selectedWorkspace,
-                migrationStrategy = guestUpgradeMode.toLinkedWorkspaceMigrationStrategy()
-            )
-            preferencesStore.saveCredentials(authenticatedSession.credentials)
-            selectedWorkspace
+            preferencesStore.runWithLocalOutboxWritesBlocked(
+                reason = "Guest upgrade is finishing. Wait for account linking to complete before changing cards."
+            ) {
+                drainGuestWorkspaceBeforeUpgradeComplete(
+                    configuration = configuration,
+                    guestSession = guestSession
+                )
+                val pendingGuestUpgradeState = PendingGuestUpgradeState(
+                    configuration = configuration,
+                    credentials = authenticatedSession.credentials,
+                    accountSnapshot = authenticatedSession.accountSnapshot,
+                    guestSession = guestSession,
+                    guestUpgradeMode = guestUpgradeMode,
+                    selection = validatedSelection,
+                    completion = null
+                )
+                preferencesStore.savePendingGuestUpgrade(pendingGuestUpgradeState = pendingGuestUpgradeState)
+                requireNotNull(resumePendingGuestUpgradeIfNeeded()) {
+                    "Pending guest upgrade recovery did not find the saved upgrade state."
+                }
+            }
         }
     }
 
@@ -214,6 +233,10 @@ class LocalCloudAccountRepository(
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {
         return operationCoordinator.runExclusive {
+            val resumedGuestUpgrade = resumePendingGuestUpgradeIfNeeded()
+            if (resumedGuestUpgrade != null) {
+                return@runExclusive resumedGuestUpgrade
+            }
             val authenticatedSession = authenticatedSession()
             val selectedWorkspace = when (selection) {
                 is CloudWorkspaceLinkSelection.Existing -> {
@@ -365,7 +388,8 @@ class LocalCloudAccountRepository(
                 ),
                 appVersion = appVersion,
                 remoteService = remoteService,
-                syncLocalStore = syncLocalStore
+                syncLocalStore = syncLocalStore,
+                workspaceForkRecoveryMode = CloudWorkspaceForkRecoveryMode.ENABLED
             )
             remoteService.loadWorkspaceResetProgressPreview(
                 apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
@@ -395,7 +419,8 @@ class LocalCloudAccountRepository(
                 ),
                 appVersion = appVersion,
                 remoteService = remoteService,
-                syncLocalStore = syncLocalStore
+                syncLocalStore = syncLocalStore,
+                workspaceForkRecoveryMode = CloudWorkspaceForkRecoveryMode.ENABLED
             )
             val result = remoteService.resetWorkspaceProgress(
                 apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
@@ -412,7 +437,8 @@ class LocalCloudAccountRepository(
                 ),
                 appVersion = appVersion,
                 remoteService = remoteService,
-                syncLocalStore = syncLocalStore
+                syncLocalStore = syncLocalStore,
+                workspaceForkRecoveryMode = CloudWorkspaceForkRecoveryMode.ENABLED
             )
             result
         }
@@ -550,6 +576,8 @@ class LocalCloudAccountRepository(
                 }
             }
             resetCoordinator.resetLocalStateForCloudIdentityChange()
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
             if (isRemoteAccountDeletedError(error = error)) {
                 resetCoordinator.resetLocalStateForCloudIdentityChange()
@@ -644,6 +672,80 @@ class LocalCloudAccountRepository(
         )
     }
 
+    private suspend fun resumePendingGuestUpgradeIfNeeded(): CloudWorkspaceSummary? {
+        return resumePendingGuestUpgradeRecoveryIfNeeded(
+            database = database,
+            preferencesStore = preferencesStore,
+            remoteService = remoteService,
+            syncLocalStore = syncLocalStore,
+            guestSessionStore = guestSessionStore,
+            appVersion = appVersion
+        )
+    }
+
+    /**
+     * Guest upgrade completion is allowed only after the current guest
+     * workspace has completed normal sync and Android has verified that no
+     * local guest outbox rows remain to migrate.
+     */
+    private suspend fun drainGuestWorkspaceBeforeUpgradeComplete(
+        configuration: CloudServiceConfiguration,
+        guestSession: StoredGuestAiSession
+    ) {
+        val cloudSettings: CloudSettings = preferencesStore.currentCloudSettings()
+        val guestWorkspaceId: String = requireNotNull(cloudSettings.activeWorkspaceId ?: cloudSettings.linkedWorkspaceId) {
+            "Guest upgrade requires an active guest workspace."
+        }
+        require(cloudSettings.cloudState == CloudAccountState.GUEST) {
+            "Guest upgrade requires guest cloud state before completion."
+        }
+        require(guestWorkspaceId == guestSession.workspaceId) {
+            "Guest upgrade requires current guest workspace '$guestWorkspaceId' to match stored guest session " +
+                "'${guestSession.workspaceId}'. Restart the app and try signing in again."
+        }
+
+        try {
+            runCloudSyncCore(
+                cloudSettings = cloudSettings,
+                workspaceId = guestWorkspaceId,
+                syncSession = CloudSyncSession(
+                    apiBaseUrl = configuration.apiBaseUrl,
+                    authorizationHeader = "Guest ${guestSession.guestToken}"
+                ),
+                appVersion = appVersion,
+                remoteService = remoteService,
+                syncLocalStore = syncLocalStore,
+                workspaceForkRecoveryMode = CloudWorkspaceForkRecoveryMode.DISABLED
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            val preservesBlockedSyncState = error is CloudSyncBlockedException || isCloudIdentityConflictError(error = error)
+            if (preservesBlockedSyncState.not()) {
+                syncLocalStore.markSyncFailure(
+                    workspaceId = guestWorkspaceId,
+                    errorMessage = error.message ?: "Cloud sync failed."
+                )
+            }
+            throw IllegalStateException(
+                "Guest upgrade is paused because guest sync did not finish for workspace '$guestWorkspaceId'. " +
+                    "Check your connection and try signing in again. Cause=${error.message ?: "Cloud sync failed."}",
+                error
+            )
+        }
+
+        val remainingOutboxCount: Int = syncLocalStore.countOutboxEntries(workspaceId = guestWorkspaceId)
+        if (remainingOutboxCount > 0) {
+            val message: String = "Guest upgrade is paused because guest workspace '$guestWorkspaceId' still has " +
+                "$remainingOutboxCount pending local sync operation(s). Sync again before signing in."
+            syncLocalStore.markSyncFailure(
+                workspaceId = guestWorkspaceId,
+                errorMessage = message
+            )
+            throw IllegalStateException(message)
+        }
+    }
+
     private suspend fun resolveWorkspaceSelection(
         linkContext: CloudWorkspaceLinkContext,
         authenticatedSession: AuthenticatedCloudSession,
@@ -672,18 +774,30 @@ class LocalCloudAccountRepository(
     private suspend fun applyLinkedWorkspace(
         accountSnapshot: CloudAccountSnapshot,
         bearerToken: String,
-        selectedWorkspace: CloudWorkspaceSummary,
-        migrationStrategy: LinkedWorkspaceMigrationStrategy
+        selectedWorkspace: CloudWorkspaceSummary
     ) {
         val remoteWorkspaceIsEmpty = resolveRemoteWorkspaceEmptiness(
             bearerToken = bearerToken,
-            selectedWorkspace = selectedWorkspace,
-            migrationStrategy = migrationStrategy
+            selectedWorkspace = selectedWorkspace
         )
         val localLinkedWorkspace = syncLocalStore.migrateLocalShellToLinkedWorkspace(
             workspace = selectedWorkspace,
             remoteWorkspaceIsEmpty = remoteWorkspaceIsEmpty
         )
+        finalizeLinkedWorkspaceMigration(
+            accountSnapshot = accountSnapshot,
+            selectedWorkspace = selectedWorkspace,
+            localLinkedWorkspace = localLinkedWorkspace,
+            missingWorkspaceMessage = "Linked workspace is missing locally after cloud link."
+        )
+    }
+
+    private suspend fun finalizeLinkedWorkspaceMigration(
+        accountSnapshot: CloudAccountSnapshot,
+        selectedWorkspace: CloudWorkspaceSummary,
+        localLinkedWorkspace: WorkspaceEntity,
+        missingWorkspaceMessage: String
+    ) {
         check(localLinkedWorkspace.workspaceId == selectedWorkspace.workspaceId) {
             "Linked workspace migration produced an unexpected local workspace. " +
                 "Expected='${selectedWorkspace.workspaceId}' Actual='${localLinkedWorkspace.workspaceId}'."
@@ -699,7 +813,7 @@ class LocalCloudAccountRepository(
         val localCurrentWorkspace = requireCurrentWorkspace(
             database = database,
             preferencesStore = preferencesStore,
-            missingWorkspaceMessage = "Linked workspace is missing locally after cloud link."
+            missingWorkspaceMessage = missingWorkspaceMessage
         )
         check(localCurrentWorkspace.workspaceId == selectedWorkspace.workspaceId) {
             "Linked workspace '${selectedWorkspace.workspaceId}' did not become the current local workspace. " +
@@ -709,28 +823,21 @@ class LocalCloudAccountRepository(
 
     private suspend fun resolveRemoteWorkspaceEmptiness(
         bearerToken: String,
-        selectedWorkspace: CloudWorkspaceSummary,
-        migrationStrategy: LinkedWorkspaceMigrationStrategy
+        selectedWorkspace: CloudWorkspaceSummary
     ): Boolean {
-        return when (migrationStrategy) {
-            LinkedWorkspaceMigrationStrategy.PROBE_REMOTE_BOOTSTRAP -> {
-                val configuration = preferencesStore.currentServerConfiguration()
-                remoteService.bootstrapPull(
-                    apiBaseUrl = configuration.apiBaseUrl,
-                    authorizationHeader = "Bearer $bearerToken",
-                    workspaceId = selectedWorkspace.workspaceId,
-                    body = JSONObject()
-                        .put("mode", "pull")
-                        .put("installationId", preferencesStore.currentCloudSettings().installationId)
-                        .put("platform", androidClientPlatform)
-                        .put("appVersion", appVersion)
-                        .put("cursor", JSONObject.NULL)
-                        .put("limit", 1)
-                ).remoteIsEmpty
-            }
-
-            LinkedWorkspaceMigrationStrategy.FORK_LOCAL_DATA -> true
-        }
+        val configuration = preferencesStore.currentServerConfiguration()
+        return remoteService.bootstrapPull(
+            apiBaseUrl = configuration.apiBaseUrl,
+            authorizationHeader = "Bearer $bearerToken",
+            workspaceId = selectedWorkspace.workspaceId,
+            body = JSONObject()
+                .put("mode", "pull")
+                .put("installationId", preferencesStore.currentCloudSettings().installationId)
+                .put("platform", androidClientPlatform)
+                .put("appVersion", appVersion)
+                .put("cursor", JSONObject.NULL)
+                .put("limit", 1)
+        ).remoteIsEmpty
     }
 
     private suspend fun applyLinkedWorkspaceAndSync(
@@ -740,8 +847,7 @@ class LocalCloudAccountRepository(
         applyLinkedWorkspace(
             accountSnapshot = authenticatedSession.accountSnapshot,
             bearerToken = authenticatedSession.credentials.idToken,
-            selectedWorkspace = selectedWorkspace,
-            migrationStrategy = LinkedWorkspaceMigrationStrategy.PROBE_REMOTE_BOOTSTRAP
+            selectedWorkspace = selectedWorkspace
         )
         requireTransitionInvariant(
             stage = "after prefs update",
@@ -784,13 +890,19 @@ class LocalCloudAccountRepository(
                 ),
                 appVersion = appVersion,
                 remoteService = remoteService,
-                syncLocalStore = syncLocalStore
+                syncLocalStore = syncLocalStore,
+                workspaceForkRecoveryMode = CloudWorkspaceForkRecoveryMode.ENABLED
             )
         } catch (error: Exception) {
-            syncLocalStore.markSyncFailure(
-                workspaceId = workspaceId,
-                errorMessage = error.message ?: "Cloud sync failed."
+            val preservesBlockedSyncState = error is CloudSyncBlockedException || isCloudIdentityConflictError(
+                error = error
             )
+            if (preservesBlockedSyncState.not()) {
+                syncLocalStore.markSyncFailure(
+                    workspaceId = workspaceId,
+                    errorMessage = error.message ?: "Cloud sync failed."
+                )
+            }
             throw IllegalStateException(
                 buildTransitionInvariantMessage(
                     stage = "initial sync failed",
@@ -943,15 +1055,3 @@ private data class ProgressCloudSession(
     val apiBaseUrl: String,
     val authorizationHeader: String
 )
-
-private enum class LinkedWorkspaceMigrationStrategy {
-    PROBE_REMOTE_BOOTSTRAP,
-    FORK_LOCAL_DATA
-}
-
-private fun CloudGuestUpgradeMode.toLinkedWorkspaceMigrationStrategy(): LinkedWorkspaceMigrationStrategy {
-    return when (this) {
-        CloudGuestUpgradeMode.BOUND -> LinkedWorkspaceMigrationStrategy.PROBE_REMOTE_BOOTSTRAP
-        CloudGuestUpgradeMode.MERGE_REQUIRED -> LinkedWorkspaceMigrationStrategy.FORK_LOCAL_DATA
-    }
-}

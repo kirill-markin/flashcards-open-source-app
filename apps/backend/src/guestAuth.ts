@@ -11,6 +11,7 @@ import {
   prepareGuestUpgradeInExecutor,
 } from "./guestAuth/upgrade";
 import type {
+  GuestUpgradeCompleteCapabilities,
   GuestSessionSnapshot,
   GuestUpgradeCompletion,
   GuestUpgradePreparation,
@@ -18,6 +19,7 @@ import type {
 } from "./guestAuth/types";
 
 export type {
+  GuestUpgradeCompleteCapabilities,
   GuestSessionSnapshot,
   GuestUpgradeCompletion,
   GuestUpgradePreparation,
@@ -49,9 +51,16 @@ export async function completeGuestUpgrade(
   guestToken: string,
   cognitoSubject: string,
   selection: GuestUpgradeSelection,
+  capabilities: GuestUpgradeCompleteCapabilities,
 ): Promise<GuestUpgradeCompletion> {
   return unsafeTransaction(
-    async (executor) => completeGuestUpgradeInExecutor(executor, guestToken, cognitoSubject, selection),
+    async (executor) => completeGuestUpgradeInExecutor(
+      executor,
+      guestToken,
+      cognitoSubject,
+      selection,
+      capabilities,
+    ),
   );
 }
 
