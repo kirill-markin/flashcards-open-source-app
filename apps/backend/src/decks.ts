@@ -21,6 +21,10 @@ import {
   type CursorPageInput,
 } from "./pagination";
 import { findLatestSyncChangeId, insertSyncChange } from "./syncChanges";
+import {
+  createSyncConflictHttpError,
+  findSyncConflictWorkspaceIdInExecutor,
+} from "./sync/fork";
 import type { EffortLevel } from "./cards";
 
 type TimestampValue = Date | string;
@@ -599,7 +603,7 @@ export async function upsertDeckSnapshotInExecutor(
     [workspaceId, normalizedInput.deckId],
   );
 
-  const existingRow = existingResult.rows[0];
+  let existingRow = existingResult.rows[0];
   if (existingRow === undefined) {
     const insertResult = await executor.query<DeckRow>(
       [
@@ -609,6 +613,7 @@ export async function upsertDeckSnapshotInExecutor(
         "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
         ")",
         "VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, now(), $9)",
+        "ON CONFLICT DO NOTHING",
         "RETURNING deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
         "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
       ].join(" "),
@@ -626,18 +631,51 @@ export async function upsertDeckSnapshotInExecutor(
     );
 
     const insertedRow = insertResult.rows[0];
-    if (insertedRow === undefined) {
-      throw new Error("Deck insert did not return a row");
+    if (insertedRow !== undefined) {
+      const insertedDeck = mapDeck(insertedRow);
+      const changeId = await recordDeckSyncChange(executor, workspaceId, insertedDeck);
+
+      return {
+        deck: insertedDeck,
+        applied: true,
+        changeId,
+      };
     }
 
-    const insertedDeck = mapDeck(insertedRow);
-    const changeId = await recordDeckSyncChange(executor, workspaceId, insertedDeck);
+    const conflictingWorkspaceId = await findSyncConflictWorkspaceIdInExecutor(executor, {
+      entityType: "deck",
+      entityId: normalizedInput.deckId,
+    });
+    if (conflictingWorkspaceId === null) {
+      throw new Error(`Deck insert was skipped but no conflicting workspace was found for ${normalizedInput.deckId}`);
+    }
 
-    return {
-      deck: insertedDeck,
-      applied: true,
-      changeId,
-    };
+    if (conflictingWorkspaceId !== workspaceId) {
+      throw createSyncConflictHttpError({
+        phase: "sync_write",
+        entityType: "deck",
+        entityId: normalizedInput.deckId,
+        conflictingWorkspaceId,
+        constraint: "decks_pkey",
+        sqlState: "23505",
+        table: "decks",
+      });
+    }
+
+    const racedExistingResult = await executor.query<DeckRow>(
+      [
+        "SELECT deck_id, workspace_id, name, filter_definition, created_at, client_updated_at,",
+        "last_modified_by_replica_id, last_operation_id, updated_at, deleted_at",
+        "FROM content.decks",
+        "WHERE workspace_id = $1 AND deck_id = $2",
+        "FOR UPDATE",
+      ].join(" "),
+      [workspaceId, normalizedInput.deckId],
+    );
+    existingRow = racedExistingResult.rows[0];
+    if (existingRow === undefined) {
+      throw new Error(`Deck insert was skipped but the current workspace row was not found for ${normalizedInput.deckId}`);
+    }
   }
 
   const existingDeck = mapDeck(existingRow);

@@ -112,6 +112,7 @@ class AppGraph(
     internal val syncLocalStore = SyncLocalStore(
         database = database,
         preferencesStore = cloudPreferencesStore,
+        reviewPreferencesStore = reviewPreferencesStore,
         localProgressCacheStore = localProgressCacheStore
     )
     private val strictRemindersScheduler = AndroidStrictRemindersScheduler(context = context)

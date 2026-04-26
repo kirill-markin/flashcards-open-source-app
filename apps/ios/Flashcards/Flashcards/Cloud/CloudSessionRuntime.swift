@@ -1,9 +1,15 @@
 import Foundation
 
 @MainActor
+struct CloudSyncOperationState {
+    let id: String
+    let task: Task<CloudSyncResult, Error>
+}
+
+@MainActor
 struct CloudSessionRuntimeState {
     var activeCloudSession: CloudLinkedSession?
-    var activeCloudSyncTask: Task<CloudSyncResult, Error>?
+    var activeCloudSyncTask: CloudSyncOperationState?
     var pendingCloudResync: Bool
     var activeCloudLinkTask: CloudLinkTransitionState?
     var activeWorkspaceCompletionTask: CloudWorkspaceCompletionState?
@@ -249,6 +255,20 @@ final class CloudSessionRuntime {
         return true
     }
 
+    func waitForActiveCloudCompletionIfNeeded() async throws -> Bool {
+        if let activeWorkspaceCompletionTask = self.state.activeWorkspaceCompletionTask {
+            _ = try await activeWorkspaceCompletionTask.task.value
+            return true
+        }
+
+        if let activeCloudLinkTask = self.state.activeCloudLinkTask {
+            try await activeCloudLinkTask.task.value
+            return true
+        }
+
+        return false
+    }
+
     func storedLinkedSession(
         cloudSettings: CloudSettings?,
         configuration: CloudServiceConfiguration,
@@ -305,28 +325,59 @@ final class CloudSessionRuntime {
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
         let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.cloudSyncService)
+        return try await self.runCloudSyncTask {
+            try await cloudSyncService.runLinkedSync(linkedSession: linkedSession)
+        }
+    }
 
+    func runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
+        let cloudSyncService = try requireCloudSyncService(cloudSyncService: self.cloudSyncService)
+        try await self.waitForActiveCloudSyncToSettle()
+        return try await self.startCloudSyncTask {
+            try await cloudSyncService.runLinkedSync(linkedSession: linkedSession)
+        }
+    }
+
+    private func runCloudSyncTask(
+        operation: @escaping @MainActor () async throws -> CloudSyncResult
+    ) async throws -> CloudSyncResult {
         if let activeCloudSyncTask = self.state.activeCloudSyncTask {
             self.state.pendingCloudResync = true
-            return try await activeCloudSyncTask.value
+            return try await activeCloudSyncTask.task.value
         }
 
+        return try await self.startCloudSyncTask(operation: operation)
+    }
+
+    private func startCloudSyncTask(
+        operation: @escaping @MainActor () async throws -> CloudSyncResult
+    ) async throws -> CloudSyncResult {
+        let syncOperation = CloudSyncOperationState(
+            id: UUID().uuidString.lowercased(),
+            task: Task { @MainActor in
+                try await self.runCloudSyncLoop(operation: operation)
+            }
+        )
+        self.state.activeCloudSyncTask = syncOperation
+
+        do {
+            let syncResult = try await syncOperation.task.value
+            self.clearActiveCloudSyncTaskIfCurrent(id: syncOperation.id)
+            return syncResult
+        } catch {
+            self.clearActiveCloudSyncTaskIfCurrent(id: syncOperation.id)
+            throw error
+        }
+    }
+
+    private func runCloudSyncLoop(
+        operation: @escaping @MainActor () async throws -> CloudSyncResult
+    ) async throws -> CloudSyncResult {
         var accumulatedResult = CloudSyncResult.noChanges
         while true {
             self.state.pendingCloudResync = false
-            let syncTask = Task { @MainActor in
-                try await cloudSyncService.runLinkedSync(linkedSession: linkedSession)
-            }
-            self.state.activeCloudSyncTask = syncTask
-
-            do {
-                let syncResult = try await syncTask.value
-                accumulatedResult = accumulatedResult.merging(syncResult)
-                self.state.activeCloudSyncTask = nil
-            } catch {
-                self.state.activeCloudSyncTask = nil
-                throw error
-            }
+            let syncResult = try await operation()
+            accumulatedResult = accumulatedResult.merging(syncResult)
 
             if self.state.pendingCloudResync == false {
                 break
@@ -334,6 +385,32 @@ final class CloudSessionRuntime {
         }
 
         return accumulatedResult
+    }
+
+    private func waitForActiveCloudSyncToSettle() async {
+        while let activeCloudSyncTask = self.state.activeCloudSyncTask {
+            do {
+                _ = try await activeCloudSyncTask.task.value
+            } catch {
+                logFlashcardsError(
+                    domain: "cloud",
+                    action: "active_sync_settled_before_fresh_sync",
+                    metadata: [
+                        "message": Flashcards.errorMessage(error: error),
+                    ]
+                )
+            }
+            self.clearActiveCloudSyncTaskIfCurrent(id: activeCloudSyncTask.id)
+        }
+    }
+
+    private func clearActiveCloudSyncTaskIfCurrent(id: String) {
+        guard self.state.activeCloudSyncTask?.id == id else {
+            return
+        }
+
+        self.state.activeCloudSyncTask = nil
+        self.state.pendingCloudResync = false
     }
 
     func isCloudAuthorizationError(_ error: Error) -> Bool {
@@ -366,7 +443,7 @@ final class CloudSessionRuntime {
     }
 
     func cancelForWorkspaceSwitch() {
-        self.state.activeCloudSyncTask?.cancel()
+        self.state.activeCloudSyncTask?.task.cancel()
         self.state.activeCloudSyncTask = nil
         self.state.pendingCloudResync = false
         self.state.activeAIChatSessionPreparation?.task.cancel()
@@ -376,7 +453,7 @@ final class CloudSessionRuntime {
     func cancelForAccountDeletion() {
         self.state.activeCloudLinkTask?.task.cancel()
         self.state.activeCloudLinkTask = nil
-        self.state.activeCloudSyncTask?.cancel()
+        self.state.activeCloudSyncTask?.task.cancel()
         self.state.activeCloudSyncTask = nil
         self.state.pendingCloudResync = false
         self.state.activeAIChatSessionPreparation?.task.cancel()

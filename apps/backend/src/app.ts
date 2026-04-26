@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { AuthError } from "./auth";
 import { getAuthConfig } from "./authConfig";
-import { HttpError } from "./errors";
+import { createPublicHttpErrorDetails, HttpError, type PublicHttpErrorDetails } from "./errors";
 import { createChatRoutes } from "./routes/chat";
 import { createChatTranscriptionsRoutes } from "./routes/chatTranscriptions";
 import { createAgentRoutes } from "./routes/agent";
@@ -34,6 +34,21 @@ export function getRouteMountPaths(basePath: string): ReadonlyArray<string> {
   }
 
   return [basePath];
+}
+
+export function createPublicHttpErrorBody(error: HttpError, requestId: string): Readonly<{
+  error: string;
+  requestId: string;
+  code: string | null;
+  details?: PublicHttpErrorDetails;
+}> {
+  const publicDetails = createPublicHttpErrorDetails(error.details);
+  return {
+    error: error.message,
+    requestId,
+    code: error.code,
+    ...(publicDetails === null ? {} : { details: publicDetails }),
+  };
 }
 
 function usesApiKeyAuthorizationHeader(request: Request): boolean {
@@ -174,7 +189,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
             error.message,
             createAgentInstructions(error.code, error.statusCode),
             requestId,
-            error.details ?? undefined,
+            createPublicHttpErrorDetails(error.details) ?? undefined,
           ),
         );
       }
@@ -188,11 +203,7 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
           ),
         );
       }
-      return context.json({
-        error: error.message,
-        requestId,
-        code: error.code,
-      });
+      return context.json(createPublicHttpErrorBody(error, requestId));
     }
 
     context.status(500);

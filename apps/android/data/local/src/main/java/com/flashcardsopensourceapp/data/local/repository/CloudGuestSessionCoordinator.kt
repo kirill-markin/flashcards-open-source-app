@@ -84,6 +84,23 @@ class CloudGuestSessionCoordinator(
     }
 
     internal suspend fun reconcilePersistedCloudStateLocked(): CloudIdentityReconciliationResult {
+        val recoveredGuestUpgrade: CloudWorkspaceSummary? = resumePendingGuestUpgradeRecoveryIfNeeded(
+            database = database,
+            preferencesStore = preferencesStore,
+            remoteService = remoteService,
+            syncLocalStore = syncLocalStore,
+            guestSessionStore = guestSessionStore,
+            appVersion = appVersion
+        )
+        if (recoveredGuestUpgrade != null) {
+            return CloudIdentityReconciliationResult(
+                cloudSettings = preferencesStore.currentCloudSettings(),
+                restoredGuestSession = null,
+                guestRestoreRequiresSync = false,
+                didRunSync = false
+            )
+        }
+
         val currentCloudSettings = preferencesStore.currentCloudSettings()
         if (hasInvalidActiveWorkspaceId(cloudSettings = currentCloudSettings)) {
             normalizeActiveWorkspaceIdToLocalShell()

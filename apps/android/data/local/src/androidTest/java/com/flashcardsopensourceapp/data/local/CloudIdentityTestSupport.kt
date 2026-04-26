@@ -15,6 +15,7 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.RemoteBootstrapPushResponse
+import com.flashcardsopensourceapp.data.local.cloud.RemotePushOperationResult
 import com.flashcardsopensourceapp.data.local.cloud.RemotePullResponse
 import com.flashcardsopensourceapp.data.local.cloud.RemotePushResponse
 import com.flashcardsopensourceapp.data.local.cloud.RemoteReviewHistoryImportResponse
@@ -28,7 +29,11 @@ import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.model.AgentApiKeyConnectionsResult
 import com.flashcardsopensourceapp.data.local.model.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeCompletion
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeDroppedEntity
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeDroppedEntityType
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeReconciliation
 import com.flashcardsopensourceapp.data.local.model.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.CloudProgressSeries
@@ -55,6 +60,8 @@ import com.flashcardsopensourceapp.data.local.repository.LocalCloudAccountReposi
 import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.LocalSyncRepository
 import com.flashcardsopensourceapp.data.local.repository.SystemProgressTimeProvider
+import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
+import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import org.json.JSONObject
@@ -63,6 +70,7 @@ internal class CloudIdentityTestEnvironment private constructor(
     val context: Context,
     val database: AppDatabase,
     val cloudPreferencesStore: CloudPreferencesStore,
+    val reviewPreferencesStore: ReviewPreferencesStore,
     val aiChatPreferencesStore: AiChatPreferencesStore,
     val aiChatHistoryStore: AiChatHistoryStore,
     val guestAiSessionStore: GuestAiSessionStore,
@@ -81,6 +89,7 @@ internal class CloudIdentityTestEnvironment private constructor(
                 klass = AppDatabase::class.java
             ).allowMainThreadQueries().build()
             val cloudPreferencesStore = CloudPreferencesStore(context = context, database = database)
+            val reviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
             val aiChatPreferencesStore = AiChatPreferencesStore(context = context)
             val aiChatHistoryStore = AiChatHistoryStore(context = context)
             val guestAiSessionStore = GuestAiSessionStore(context = context)
@@ -106,6 +115,7 @@ internal class CloudIdentityTestEnvironment private constructor(
                 context = context,
                 database = database,
                 cloudPreferencesStore = cloudPreferencesStore,
+                reviewPreferencesStore = reviewPreferencesStore,
                 aiChatPreferencesStore = aiChatPreferencesStore,
                 aiChatHistoryStore = aiChatHistoryStore,
                 guestAiSessionStore = guestAiSessionStore,
@@ -131,6 +141,92 @@ internal class CloudIdentityTestEnvironment private constructor(
             resetCoordinator = resetCoordinator,
             guestSessionStore = guestAiSessionStore,
             appVersion = appVersion
+        )
+    }
+
+    suspend fun createRestartedCloudAccountRuntime(
+        remoteGateway: CloudRemoteGateway
+    ): RestartedCloudAccountRuntime {
+        val restartedCloudPreferencesStore = CloudPreferencesStore(context = context, database = database)
+        restartedCloudPreferencesStore.hydrateCloudSettingsFromDatabase()
+        val restartedAiChatPreferencesStore = AiChatPreferencesStore(context = context)
+        val restartedAiChatHistoryStore = AiChatHistoryStore(context = context)
+        val restartedGuestAiSessionStore = GuestAiSessionStore(context = context)
+        val restartedOperationCoordinator = CloudOperationCoordinator()
+        val restartedResetCoordinator = CloudIdentityResetCoordinator(
+            database = database,
+            cloudPreferencesStore = restartedCloudPreferencesStore,
+            aiChatPreferencesStore = restartedAiChatPreferencesStore,
+            aiChatHistoryStore = restartedAiChatHistoryStore,
+            guestAiSessionStore = restartedGuestAiSessionStore
+        )
+        val restartedSyncLocalStore = SyncLocalStore(
+            database = database,
+            preferencesStore = restartedCloudPreferencesStore,
+            reviewPreferencesStore = reviewPreferencesStore,
+            localProgressCacheStore = LocalProgressCacheStore(
+                database = database,
+                timeProvider = SystemProgressTimeProvider
+            )
+        )
+        val repository = LocalCloudAccountRepository(
+            database = database,
+            preferencesStore = restartedCloudPreferencesStore,
+            remoteService = remoteGateway,
+            syncLocalStore = restartedSyncLocalStore,
+            operationCoordinator = restartedOperationCoordinator,
+            resetCoordinator = restartedResetCoordinator,
+            guestSessionStore = restartedGuestAiSessionStore,
+            appVersion = appVersion
+        )
+        return RestartedCloudAccountRuntime(
+            repository = repository,
+            cloudPreferencesStore = restartedCloudPreferencesStore,
+            guestAiSessionStore = restartedGuestAiSessionStore,
+            syncLocalStore = restartedSyncLocalStore
+        )
+    }
+
+    suspend fun createRestartedCloudGuestSessionRuntime(
+        remoteGateway: CloudRemoteGateway
+    ): RestartedCloudGuestSessionRuntime {
+        val restartedCloudPreferencesStore = CloudPreferencesStore(context = context, database = database)
+        restartedCloudPreferencesStore.hydrateCloudSettingsFromDatabase()
+        val restartedAiChatPreferencesStore = AiChatPreferencesStore(context = context)
+        val restartedAiChatHistoryStore = AiChatHistoryStore(context = context)
+        val restartedGuestAiSessionStore = GuestAiSessionStore(context = context)
+        val restartedOperationCoordinator = CloudOperationCoordinator()
+        val restartedResetCoordinator = CloudIdentityResetCoordinator(
+            database = database,
+            cloudPreferencesStore = restartedCloudPreferencesStore,
+            aiChatPreferencesStore = restartedAiChatPreferencesStore,
+            aiChatHistoryStore = restartedAiChatHistoryStore,
+            guestAiSessionStore = restartedGuestAiSessionStore
+        )
+        val restartedSyncLocalStore = SyncLocalStore(
+            database = database,
+            preferencesStore = restartedCloudPreferencesStore,
+            reviewPreferencesStore = reviewPreferencesStore,
+            localProgressCacheStore = LocalProgressCacheStore(
+                database = database,
+                timeProvider = SystemProgressTimeProvider
+            )
+        )
+        val coordinator = CloudGuestSessionCoordinator(
+            database = database,
+            preferencesStore = restartedCloudPreferencesStore,
+            remoteService = remoteGateway,
+            syncLocalStore = restartedSyncLocalStore,
+            operationCoordinator = restartedOperationCoordinator,
+            resetCoordinator = restartedResetCoordinator,
+            guestSessionStore = restartedGuestAiSessionStore,
+            aiChatRemoteService = aiChatRemoteService,
+            appVersion = appVersion
+        )
+        return RestartedCloudGuestSessionRuntime(
+            cloudPreferencesStore = restartedCloudPreferencesStore,
+            guestAiSessionStore = restartedGuestAiSessionStore,
+            cloudGuestSessionCoordinator = coordinator
         )
     }
 
@@ -251,10 +347,11 @@ internal class CloudIdentityTestEnvironment private constructor(
         return cardId
     }
 
-    private fun createSyncLocalStore(): SyncLocalStore {
+    fun createSyncLocalStore(): SyncLocalStore {
         return SyncLocalStore(
             database = database,
             preferencesStore = cloudPreferencesStore,
+            reviewPreferencesStore = reviewPreferencesStore,
             localProgressCacheStore = LocalProgressCacheStore(
                 database = database,
                 timeProvider = SystemProgressTimeProvider
@@ -263,9 +360,23 @@ internal class CloudIdentityTestEnvironment private constructor(
     }
 }
 
+internal data class RestartedCloudAccountRuntime(
+    val repository: LocalCloudAccountRepository,
+    val cloudPreferencesStore: CloudPreferencesStore,
+    val guestAiSessionStore: GuestAiSessionStore,
+    val syncLocalStore: SyncLocalStore
+)
+
+internal data class RestartedCloudGuestSessionRuntime(
+    val cloudPreferencesStore: CloudPreferencesStore,
+    val guestAiSessionStore: GuestAiSessionStore,
+    val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator
+)
+
 internal fun clearCloudAndAiPreferences(context: Context) {
     context.deleteSharedPreferences("flashcards-cloud-metadata")
     context.deleteSharedPreferences("flashcards-cloud-secrets")
+    context.deleteSharedPreferences("flashcards-review-preferences")
     context.deleteSharedPreferences("flashcards-ai-chat-preferences")
     context.deleteSharedPreferences("flashcards-ai-chat-history")
     context.deleteSharedPreferences("flashcards-ai-chat-guest-session")
@@ -329,6 +440,41 @@ internal fun createCloudAccountSnapshot(
     )
 }
 
+internal fun createCloudGuestUpgradeReconciliation(
+    cardIds: List<String>,
+    deckIds: List<String>,
+    reviewEventIds: List<String>
+): CloudGuestUpgradeReconciliation {
+    return CloudGuestUpgradeReconciliation(
+        droppedEntities = buildList {
+            cardIds.forEach { cardId ->
+                add(
+                    CloudGuestUpgradeDroppedEntity(
+                        entityType = CloudGuestUpgradeDroppedEntityType.CARD,
+                        entityId = cardId
+                    )
+                )
+            }
+            deckIds.forEach { deckId ->
+                add(
+                    CloudGuestUpgradeDroppedEntity(
+                        entityType = CloudGuestUpgradeDroppedEntityType.DECK,
+                        entityId = deckId
+                    )
+                )
+            }
+            reviewEventIds.forEach { reviewEventId ->
+                add(
+                    CloudGuestUpgradeDroppedEntity(
+                        entityType = CloudGuestUpgradeDroppedEntityType.REVIEW_EVENT,
+                        entityId = reviewEventId
+                    )
+                )
+            }
+        }
+    )
+}
+
 internal fun syncStateEntityWithEmptyProgress(workspaceId: String): SyncStateEntity {
     return SyncStateEntity(
         workspaceId = workspaceId,
@@ -336,9 +482,11 @@ internal fun syncStateEntityWithEmptyProgress(workspaceId: String): SyncStateEnt
         lastReviewSequenceId = 0L,
         hasHydratedHotState = false,
         hasHydratedReviewHistory = false,
+        pendingReviewHistoryImport = false,
         lastSyncAttemptAtMillis = null,
         lastSuccessfulSyncAtMillis = null,
-        lastSyncError = null
+        lastSyncError = null,
+        blockedInstallationId = null
     )
 }
 
@@ -346,8 +494,11 @@ private data class FakeCloudRemoteGatewayConfig(
     val deleteFailuresRemaining: Int,
     val fetchAccountError: Exception?,
     val guestUpgradeMode: CloudGuestUpgradeMode?,
+    val guestUpgradeReconciliation: CloudGuestUpgradeReconciliation?,
     val bootstrapPullError: Exception?,
-    val bootstrapRemoteIsEmpty: Boolean,
+    val bootstrapRemoteIsEmptyResponses: List<Boolean>,
+    val bootstrapPushErrors: List<Exception>,
+    val importReviewHistoryErrors: List<Exception>,
     val createdWorkspace: CloudWorkspaceSummary,
     val onFetchCloudAccountEntered: CompletableDeferred<Unit>?,
     val blockFetchCloudAccount: CompletableDeferred<Unit>?,
@@ -360,12 +511,18 @@ internal class FakeCloudRemoteGateway private constructor(
     private var deleteFailuresRemaining: Int = config.deleteFailuresRemaining
     private val fetchAccountError: Exception? = config.fetchAccountError
     private val guestUpgradeMode: CloudGuestUpgradeMode? = config.guestUpgradeMode
+    private val guestUpgradeReconciliation: CloudGuestUpgradeReconciliation? = config.guestUpgradeReconciliation
     private val bootstrapPullError: Exception? = config.bootstrapPullError
-    private val bootstrapRemoteIsEmpty: Boolean = config.bootstrapRemoteIsEmpty
+    private val bootstrapRemoteIsEmptyResponses: List<Boolean> = config.bootstrapRemoteIsEmptyResponses
+    private val bootstrapPushErrors: List<Exception> = config.bootstrapPushErrors
+    private val importReviewHistoryErrors: List<Exception> = config.importReviewHistoryErrors
     private val createdWorkspace: CloudWorkspaceSummary = config.createdWorkspace
     private val onFetchCloudAccountEntered: CompletableDeferred<Unit>? = config.onFetchCloudAccountEntered
     private val blockFetchCloudAccount: CompletableDeferred<Unit>? = config.blockFetchCloudAccount
     private val accountSnapshot: CloudAccountSnapshot = config.accountSnapshot
+    private var bootstrapPullResponseIndex: Int = 0
+    private var bootstrapPushErrorIndex: Int = 0
+    private var importReviewHistoryErrorIndex: Int = 0
 
     companion object {
         fun standard(): FakeCloudRemoteGateway {
@@ -374,8 +531,11 @@ internal class FakeCloudRemoteGateway private constructor(
                     deleteFailuresRemaining = 0,
                     fetchAccountError = null,
                     guestUpgradeMode = null,
+                    guestUpgradeReconciliation = null,
                     bootstrapPullError = null,
-                    bootstrapRemoteIsEmpty = true,
+                    bootstrapRemoteIsEmptyResponses = listOf(true),
+                    bootstrapPushErrors = emptyList(),
+                    importReviewHistoryErrors = emptyList(),
                     createdWorkspace = createDefaultCreatedWorkspace(),
                     onFetchCloudAccountEntered = null,
                     blockFetchCloudAccount = null,
@@ -390,8 +550,11 @@ internal class FakeCloudRemoteGateway private constructor(
                     deleteFailuresRemaining = deleteFailuresRemaining,
                     fetchAccountError = null,
                     guestUpgradeMode = null,
+                    guestUpgradeReconciliation = null,
                     bootstrapPullError = null,
-                    bootstrapRemoteIsEmpty = true,
+                    bootstrapRemoteIsEmptyResponses = listOf(true),
+                    bootstrapPushErrors = emptyList(),
+                    importReviewHistoryErrors = emptyList(),
                     createdWorkspace = createDefaultCreatedWorkspace(),
                     onFetchCloudAccountEntered = null,
                     blockFetchCloudAccount = null,
@@ -406,8 +569,11 @@ internal class FakeCloudRemoteGateway private constructor(
                     deleteFailuresRemaining = 0,
                     fetchAccountError = fetchAccountError,
                     guestUpgradeMode = null,
+                    guestUpgradeReconciliation = null,
                     bootstrapPullError = null,
-                    bootstrapRemoteIsEmpty = true,
+                    bootstrapRemoteIsEmptyResponses = listOf(true),
+                    bootstrapPushErrors = emptyList(),
+                    importReviewHistoryErrors = emptyList(),
                     createdWorkspace = createDefaultCreatedWorkspace(),
                     onFetchCloudAccountEntered = null,
                     blockFetchCloudAccount = null,
@@ -422,8 +588,11 @@ internal class FakeCloudRemoteGateway private constructor(
                     deleteFailuresRemaining = 0,
                     fetchAccountError = null,
                     guestUpgradeMode = null,
+                    guestUpgradeReconciliation = null,
                     bootstrapPullError = null,
-                    bootstrapRemoteIsEmpty = true,
+                    bootstrapRemoteIsEmptyResponses = listOf(true),
+                    bootstrapPushErrors = emptyList(),
+                    importReviewHistoryErrors = emptyList(),
                     createdWorkspace = createDefaultCreatedWorkspace(),
                     onFetchCloudAccountEntered = null,
                     blockFetchCloudAccount = null,
@@ -438,8 +607,11 @@ internal class FakeCloudRemoteGateway private constructor(
                     deleteFailuresRemaining = 0,
                     fetchAccountError = null,
                     guestUpgradeMode = null,
+                    guestUpgradeReconciliation = null,
                     bootstrapPullError = bootstrapPullError,
-                    bootstrapRemoteIsEmpty = true,
+                    bootstrapRemoteIsEmptyResponses = listOf(true),
+                    bootstrapPushErrors = emptyList(),
+                    importReviewHistoryErrors = emptyList(),
                     createdWorkspace = createDefaultCreatedWorkspace(),
                     onFetchCloudAccountEntered = null,
                     blockFetchCloudAccount = null,
@@ -451,15 +623,19 @@ internal class FakeCloudRemoteGateway private constructor(
         fun forGuestUpgrade(
             guestUpgradeMode: CloudGuestUpgradeMode,
             accountSnapshot: CloudAccountSnapshot,
-            bootstrapRemoteIsEmpty: Boolean
+            bootstrapRemoteIsEmpty: Boolean,
+            guestUpgradeReconciliation: CloudGuestUpgradeReconciliation?
         ): FakeCloudRemoteGateway {
             return FakeCloudRemoteGateway(
                 config = createConfig(
                     deleteFailuresRemaining = 0,
                     fetchAccountError = null,
                     guestUpgradeMode = guestUpgradeMode,
+                    guestUpgradeReconciliation = guestUpgradeReconciliation,
                     bootstrapPullError = null,
-                    bootstrapRemoteIsEmpty = bootstrapRemoteIsEmpty,
+                    bootstrapRemoteIsEmptyResponses = listOf(bootstrapRemoteIsEmpty),
+                    bootstrapPushErrors = emptyList(),
+                    importReviewHistoryErrors = emptyList(),
                     createdWorkspace = createDefaultCreatedWorkspace(),
                     onFetchCloudAccountEntered = null,
                     blockFetchCloudAccount = null,
@@ -477,9 +653,56 @@ internal class FakeCloudRemoteGateway private constructor(
                     deleteFailuresRemaining = 0,
                     fetchAccountError = null,
                     guestUpgradeMode = null,
+                    guestUpgradeReconciliation = null,
                     bootstrapPullError = null,
-                    bootstrapRemoteIsEmpty = bootstrapRemoteIsEmpty,
+                    bootstrapRemoteIsEmptyResponses = listOf(bootstrapRemoteIsEmpty),
+                    bootstrapPushErrors = emptyList(),
+                    importReviewHistoryErrors = emptyList(),
                     createdWorkspace = createdWorkspace,
+                    onFetchCloudAccountEntered = null,
+                    blockFetchCloudAccount = null,
+                    accountSnapshot = createDefaultAccountSnapshot()
+                )
+            )
+        }
+
+        fun forBootstrapPushScenario(
+            bootstrapRemoteIsEmptyResponses: List<Boolean>,
+            bootstrapPushErrors: List<Exception>
+        ): FakeCloudRemoteGateway {
+            return FakeCloudRemoteGateway(
+                config = createConfig(
+                    deleteFailuresRemaining = 0,
+                    fetchAccountError = null,
+                    guestUpgradeMode = null,
+                    guestUpgradeReconciliation = null,
+                    bootstrapPullError = null,
+                    bootstrapRemoteIsEmptyResponses = bootstrapRemoteIsEmptyResponses,
+                    bootstrapPushErrors = bootstrapPushErrors,
+                    importReviewHistoryErrors = emptyList(),
+                    createdWorkspace = createDefaultCreatedWorkspace(),
+                    onFetchCloudAccountEntered = null,
+                    blockFetchCloudAccount = null,
+                    accountSnapshot = createDefaultAccountSnapshot()
+                )
+            )
+        }
+
+        fun forReviewHistoryImportScenario(
+            bootstrapRemoteIsEmptyResponses: List<Boolean>,
+            importReviewHistoryErrors: List<Exception>
+        ): FakeCloudRemoteGateway {
+            return FakeCloudRemoteGateway(
+                config = createConfig(
+                    deleteFailuresRemaining = 0,
+                    fetchAccountError = null,
+                    guestUpgradeMode = null,
+                    guestUpgradeReconciliation = null,
+                    bootstrapPullError = null,
+                    bootstrapRemoteIsEmptyResponses = bootstrapRemoteIsEmptyResponses,
+                    bootstrapPushErrors = emptyList(),
+                    importReviewHistoryErrors = importReviewHistoryErrors,
+                    createdWorkspace = createDefaultCreatedWorkspace(),
                     onFetchCloudAccountEntered = null,
                     blockFetchCloudAccount = null,
                     accountSnapshot = createDefaultAccountSnapshot()
@@ -496,8 +719,11 @@ internal class FakeCloudRemoteGateway private constructor(
                     deleteFailuresRemaining = 0,
                     fetchAccountError = null,
                     guestUpgradeMode = null,
+                    guestUpgradeReconciliation = null,
                     bootstrapPullError = null,
-                    bootstrapRemoteIsEmpty = true,
+                    bootstrapRemoteIsEmptyResponses = listOf(true),
+                    bootstrapPushErrors = emptyList(),
+                    importReviewHistoryErrors = emptyList(),
                     createdWorkspace = createDefaultCreatedWorkspace(),
                     onFetchCloudAccountEntered = onFetchCloudAccountEntered,
                     blockFetchCloudAccount = blockFetchCloudAccount,
@@ -510,8 +736,11 @@ internal class FakeCloudRemoteGateway private constructor(
             deleteFailuresRemaining: Int,
             fetchAccountError: Exception?,
             guestUpgradeMode: CloudGuestUpgradeMode?,
+            guestUpgradeReconciliation: CloudGuestUpgradeReconciliation?,
             bootstrapPullError: Exception?,
-            bootstrapRemoteIsEmpty: Boolean,
+            bootstrapRemoteIsEmptyResponses: List<Boolean>,
+            bootstrapPushErrors: List<Exception>,
+            importReviewHistoryErrors: List<Exception>,
             createdWorkspace: CloudWorkspaceSummary,
             onFetchCloudAccountEntered: CompletableDeferred<Unit>?,
             blockFetchCloudAccount: CompletableDeferred<Unit>?,
@@ -521,8 +750,11 @@ internal class FakeCloudRemoteGateway private constructor(
                 deleteFailuresRemaining = deleteFailuresRemaining,
                 fetchAccountError = fetchAccountError,
                 guestUpgradeMode = guestUpgradeMode,
+                guestUpgradeReconciliation = guestUpgradeReconciliation,
                 bootstrapPullError = bootstrapPullError,
-                bootstrapRemoteIsEmpty = bootstrapRemoteIsEmpty,
+                bootstrapRemoteIsEmptyResponses = bootstrapRemoteIsEmptyResponses,
+                bootstrapPushErrors = bootstrapPushErrors,
+                importReviewHistoryErrors = importReviewHistoryErrors,
                 createdWorkspace = createdWorkspace,
                 onFetchCloudAccountEntered = onFetchCloudAccountEntered,
                 blockFetchCloudAccount = blockFetchCloudAccount,
@@ -558,10 +790,18 @@ internal class FakeCloudRemoteGateway private constructor(
     var deleteAccountCalls: Int = 0
     var prepareGuestUpgradeCalls: Int = 0
     var completeGuestUpgradeCalls: Int = 0
+    val completeGuestUpgradeGuestWorkspaceSyncedAndOutboxDrained = mutableListOf<Boolean>()
+    val completeGuestUpgradeSupportsDroppedEntities = mutableListOf<Boolean>()
     var createWorkspaceCalls: Int = 0
     var selectWorkspaceCalls: Int = 0
     val renameWorkspaceIds = mutableListOf<String>()
+    val syncRequestEvents = mutableListOf<String>()
+    val pushBodies = mutableListOf<JSONObject>()
+    val pullBodies = mutableListOf<JSONObject>()
+    val pullReviewHistoryBodies = mutableListOf<JSONObject>()
     val bootstrapPullWorkspaceIds = mutableListOf<String>()
+    val bootstrapPushBodies = mutableListOf<JSONObject>()
+    val importReviewHistoryBodies = mutableListOf<JSONObject>()
     val createdWorkspaceId: String = createdWorkspace.workspaceId
 
     override suspend fun validateConfiguration(configuration: CloudServiceConfiguration) {
@@ -629,10 +869,17 @@ internal class FakeCloudRemoteGateway private constructor(
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String,
-        selection: CloudGuestUpgradeSelection
-    ): CloudWorkspaceSummary {
+        selection: CloudGuestUpgradeSelection,
+        guestWorkspaceSyncedAndOutboxDrained: Boolean,
+        supportsDroppedEntities: Boolean
+    ): CloudGuestUpgradeCompletion {
         completeGuestUpgradeCalls += 1
-        return resolveWorkspaceSelection(selection = selection)
+        completeGuestUpgradeGuestWorkspaceSyncedAndOutboxDrained += guestWorkspaceSyncedAndOutboxDrained
+        completeGuestUpgradeSupportsDroppedEntities += supportsDroppedEntities
+        return CloudGuestUpgradeCompletion(
+            workspace = resolveWorkspaceSelection(selection = selection),
+            reconciliation = guestUpgradeReconciliation
+        )
     }
 
     override suspend fun createWorkspace(
@@ -755,7 +1002,17 @@ internal class FakeCloudRemoteGateway private constructor(
         workspaceId: String,
         body: JSONObject
     ): RemotePushResponse {
-        return RemotePushResponse(operations = emptyList())
+        syncRequestEvents += "push"
+        pushBodies += JSONObject(body.toString())
+        val operations = body.getJSONArray("operations")
+        return RemotePushResponse(
+            operations = List(operations.length()) { index ->
+                RemotePushOperationResult(
+                    operationId = operations.getJSONObject(index).getString("operationId"),
+                    resultingHotChangeId = 100L + index
+                )
+            }
+        )
     }
 
     override suspend fun pull(
@@ -764,6 +1021,8 @@ internal class FakeCloudRemoteGateway private constructor(
         workspaceId: String,
         body: JSONObject
     ): RemotePullResponse {
+        syncRequestEvents += "pull"
+        pullBodies += JSONObject(body.toString())
         return RemotePullResponse(changes = emptyList(), nextHotChangeId = 0L, hasMore = false)
     }
 
@@ -776,13 +1035,14 @@ internal class FakeCloudRemoteGateway private constructor(
         bootstrapPullError?.let { error ->
             throw error
         }
+        syncRequestEvents += "bootstrap_pull"
         bootstrapPullWorkspaceIds += workspaceId
         return RemoteBootstrapPullResponse(
             entries = emptyList(),
             nextCursor = null,
             hasMore = false,
             bootstrapHotChangeId = 0L,
-            remoteIsEmpty = bootstrapRemoteIsEmpty
+            remoteIsEmpty = nextBootstrapRemoteIsEmpty()
         )
     }
 
@@ -792,6 +1052,11 @@ internal class FakeCloudRemoteGateway private constructor(
         workspaceId: String,
         body: JSONObject
     ): RemoteBootstrapPushResponse {
+        syncRequestEvents += "bootstrap_push"
+        bootstrapPushBodies += JSONObject(body.toString())
+        nextBootstrapPushErrorOrNull()?.let { error ->
+            throw error
+        }
         return RemoteBootstrapPushResponse(
             appliedEntriesCount = 0,
             bootstrapHotChangeId = 0L
@@ -804,6 +1069,8 @@ internal class FakeCloudRemoteGateway private constructor(
         workspaceId: String,
         body: JSONObject
     ): RemoteReviewHistoryPullResponse {
+        syncRequestEvents += "pull_review_history"
+        pullReviewHistoryBodies += JSONObject(body.toString())
         return RemoteReviewHistoryPullResponse(
             reviewEvents = emptyList(),
             nextReviewSequenceId = 0L,
@@ -817,6 +1084,11 @@ internal class FakeCloudRemoteGateway private constructor(
         workspaceId: String,
         body: JSONObject
     ): RemoteReviewHistoryImportResponse {
+        syncRequestEvents += "import_review_history"
+        importReviewHistoryBodies += JSONObject(body.toString())
+        nextImportReviewHistoryErrorOrNull()?.let { error ->
+            throw error
+        }
         return RemoteReviewHistoryImportResponse(
             importedCount = 0,
             duplicateCount = 0,
@@ -837,5 +1109,31 @@ internal class FakeCloudRemoteGateway private constructor(
                 isSelected = true
             )
         }
+    }
+
+    private fun nextBootstrapRemoteIsEmpty(): Boolean {
+        val response = bootstrapRemoteIsEmptyResponses.getOrElse(bootstrapPullResponseIndex) {
+            bootstrapRemoteIsEmptyResponses.lastOrNull() ?: true
+        }
+        bootstrapPullResponseIndex += 1
+        return response
+    }
+
+    private fun nextBootstrapPushErrorOrNull(): Exception? {
+        if (bootstrapPushErrorIndex >= bootstrapPushErrors.size) {
+            return null
+        }
+        val error = bootstrapPushErrors[bootstrapPushErrorIndex]
+        bootstrapPushErrorIndex += 1
+        return error
+    }
+
+    private fun nextImportReviewHistoryErrorOrNull(): Exception? {
+        if (importReviewHistoryErrorIndex >= importReviewHistoryErrors.size) {
+            return null
+        }
+        val error = importReviewHistoryErrors[importReviewHistoryErrorIndex]
+        importReviewHistoryErrorIndex += 1
+        return error
     }
 }

@@ -6,7 +6,7 @@ import {
   type AgentErrorEnvelope,
 } from "./agentEnvelope";
 import type { AuthTransport } from "./auth";
-import type { HttpErrorDetails } from "./errors";
+import type { PublicHttpErrorDetails } from "./errors";
 import { getPublicApiBaseUrl } from "./publicUrls";
 import type { RequestContext } from "./server/requestContext";
 import type { WorkspaceSummary } from "./workspaces";
@@ -156,7 +156,7 @@ export function createAgentSetupErrorEnvelope(
   message: string,
   instructions: string,
   requestId?: string,
-  details?: HttpErrorDetails,
+  details?: PublicHttpErrorDetails,
 ): AgentErrorEnvelope {
   return createAgentErrorEnvelope(requestUrl, code, message, instructions, requestId, details);
 }

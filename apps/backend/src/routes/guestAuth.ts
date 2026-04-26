@@ -6,9 +6,11 @@ import {
   createGuestSession,
   deleteGuestSession,
   prepareGuestUpgrade,
+  type GuestUpgradeCompleteCapabilities,
   type GuestUpgradeSelection,
 } from "../guestAuth";
 import {
+  expectBoolean,
   expectNonEmptyString,
   expectRecord,
   parseJsonBody,
@@ -34,10 +36,16 @@ type GuestUpgradeCompleteEnvelope = Readonly<{
     createdAt: string;
     isSelected: true;
   }>;
+  droppedEntities?: Readonly<{
+    cardIds: ReadonlyArray<string>;
+    deckIds: ReadonlyArray<string>;
+    reviewEventIds: ReadonlyArray<string>;
+  }>;
 }>;
 
 type GuestAuthRoutesOptions = Readonly<{
   authenticateRequestFn?: typeof authenticateRequest;
+  completeGuestUpgradeFn?: typeof completeGuestUpgrade;
   deleteGuestSessionFn?: typeof deleteGuestSession;
 }>;
 
@@ -58,6 +66,33 @@ function parseGuestUpgradeSelection(value: unknown): GuestUpgradeSelection {
   throw new HttpError(400, "selection.type is invalid", "GUEST_UPGRADE_SELECTION_INVALID");
 }
 
+function parseGuestUpgradeCompleteCapabilities(
+  body: Readonly<Record<string, unknown>>,
+): GuestUpgradeCompleteCapabilities {
+  const hasGuestDrainCapability = body.guestWorkspaceSyncedAndOutboxDrained !== undefined;
+  const hasDroppedEntitiesCapability = body.supportsDroppedEntities !== undefined;
+  const guestWorkspaceSyncedAndOutboxDrained = !hasGuestDrainCapability
+    ? false
+    : expectBoolean(
+      body.guestWorkspaceSyncedAndOutboxDrained,
+      "guestWorkspaceSyncedAndOutboxDrained",
+    );
+
+  if (!hasDroppedEntitiesCapability) {
+    return {
+      guestWorkspaceSyncedAndOutboxDrained,
+      requiresGuestWorkspaceSyncedAndOutboxDrained: hasGuestDrainCapability,
+      supportsDroppedEntities: false,
+    };
+  }
+
+  return {
+    guestWorkspaceSyncedAndOutboxDrained,
+    requiresGuestWorkspaceSyncedAndOutboxDrained: true,
+    supportsDroppedEntities: expectBoolean(body.supportsDroppedEntities, "supportsDroppedEntities"),
+  };
+}
+
 function expectGuestAuthorizationToken(authorizationHeader: string | undefined): string {
   if (authorizationHeader === undefined || !authorizationHeader.startsWith("Guest ")) {
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
@@ -74,6 +109,7 @@ function expectGuestAuthorizationToken(authorizationHeader: string | undefined):
 export function createGuestAuthRoutes(options: GuestAuthRoutesOptions = {}): Hono<AppEnv> {
   const app = new Hono<AppEnv>();
   const authenticateRequestFn = options.authenticateRequestFn ?? authenticateRequest;
+  const completeGuestUpgradeFn = options.completeGuestUpgradeFn ?? completeGuestUpgrade;
   const deleteGuestSessionFn = options.deleteGuestSessionFn ?? deleteGuestSession;
 
   app.post("/guest-auth/session", async (context) => {
@@ -125,14 +161,20 @@ export function createGuestAuthRoutes(options: GuestAuthRoutesOptions = {}): Hon
     const body = expectRecord(await parseJsonBody(context.req.raw));
     const guestToken = expectNonEmptyString(body.guestToken, "guestToken");
     const selection = parseGuestUpgradeSelection(body.selection);
+    // Merge completion consumes already-synced guest cloud rows only. Clients
+    // must drain their local guest outbox before calling this route.
+    const capabilities = parseGuestUpgradeCompleteCapabilities(body);
 
     try {
-      const result = await completeGuestUpgrade(guestToken, auth.subjectUserId, selection);
+      const result = await completeGuestUpgradeFn(guestToken, auth.subjectUserId, selection, capabilities);
       logCloudRouteEvent("guest_upgrade_complete", {
         requestId,
         route: context.req.path,
         statusCode: 200,
         selectionType: selection.type,
+        guestWorkspaceSyncedAndOutboxDrained: capabilities.guestWorkspaceSyncedAndOutboxDrained,
+        requiresGuestWorkspaceSyncedAndOutboxDrained: capabilities.requiresGuestWorkspaceSyncedAndOutboxDrained,
+        supportsDroppedEntities: capabilities.supportsDroppedEntities,
         targetSubjectUserId: result.targetSubjectUserId,
         guestSessionId: result.guestSessionId,
         targetUserId: result.targetUserId,
@@ -140,15 +182,24 @@ export function createGuestAuthRoutes(options: GuestAuthRoutesOptions = {}): Hon
         completionKind: result.outcome,
       }, false);
 
-      return context.json({
-        workspace: result.workspace,
-      } satisfies GuestUpgradeCompleteEnvelope);
+      const response: GuestUpgradeCompleteEnvelope = result.droppedEntities === undefined
+        ? {
+          workspace: result.workspace,
+        }
+        : {
+          workspace: result.workspace,
+          droppedEntities: result.droppedEntities,
+        };
+      return context.json(response);
     } catch (error) {
       logCloudRouteEvent("guest_upgrade_complete_error", {
         requestId,
         route: context.req.path,
         statusCode: error instanceof HttpError ? error.statusCode : 500,
         selectionType: selection.type,
+        guestWorkspaceSyncedAndOutboxDrained: capabilities.guestWorkspaceSyncedAndOutboxDrained,
+        requiresGuestWorkspaceSyncedAndOutboxDrained: capabilities.requiresGuestWorkspaceSyncedAndOutboxDrained,
+        supportsDroppedEntities: capabilities.supportsDroppedEntities,
         targetSubjectUserId: auth.subjectUserId,
         code: error instanceof HttpError ? error.code : "INTERNAL_ERROR",
         message: error instanceof Error ? error.message : String(error),

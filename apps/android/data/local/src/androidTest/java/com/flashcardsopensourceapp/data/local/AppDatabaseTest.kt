@@ -33,6 +33,7 @@ import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.SystemProgressTimeProvider
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
+import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -61,6 +62,7 @@ class AppDatabaseTest {
         context = ApplicationProvider.getApplicationContext()
         context.deleteSharedPreferences("flashcards-cloud-metadata")
         context.deleteSharedPreferences("flashcards-cloud-secrets")
+        context.deleteSharedPreferences("flashcards-review-preferences")
         database = Room.inMemoryDatabaseBuilder(
             context = context,
             klass = AppDatabase::class.java
@@ -70,6 +72,7 @@ class AppDatabaseTest {
         syncLocalStore = SyncLocalStore(
             database = database,
             preferencesStore = preferencesStore,
+            reviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context),
             localProgressCacheStore = LocalProgressCacheStore(
                 database = database,
                 timeProvider = SystemProgressTimeProvider
@@ -83,6 +86,7 @@ class AppDatabaseTest {
         database.close()
         context.deleteSharedPreferences("flashcards-cloud-metadata")
         context.deleteSharedPreferences("flashcards-cloud-secrets")
+        context.deleteSharedPreferences("flashcards-review-preferences")
     }
 
     @Test

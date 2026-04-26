@@ -7,7 +7,8 @@ private enum PersistedCloudStateReconciliationOutcome {
 
 private let blockedCloudIdentityConflictCodes: Set<String> = [
     "SYNC_INSTALLATION_PLATFORM_MISMATCH",
-    "SYNC_REPLICA_CONFLICT"
+    "SYNC_REPLICA_CONFLICT",
+    "SYNC_WORKSPACE_FORK_REQUIRED"
 ]
 
 @MainActor
@@ -27,6 +28,12 @@ extension FlashcardsStore {
     }
 
     func syncCloudNow(trigger: CloudSyncTrigger) async throws {
+        if try await self.resumePendingGuestUpgradeIfNeeded(trigger: trigger) {
+            return
+        }
+        if try await self.cloudRuntime.waitForActiveCloudCompletionIfNeeded() {
+            return
+        }
         if case .blocked(let message) = self.syncStatus {
             throw LocalStoreError.validation(message)
         }
@@ -66,27 +73,47 @@ extension FlashcardsStore {
                 trigger: trigger
             )
         } catch {
+            let failureError: Error
+            do {
+                failureError = try self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
+                    error: error,
+                    now: Date()
+                )
+            } catch {
+                self.syncStatus = self.syncStatusForCloudFailure(
+                    error: error,
+                    fallbackCloudState: failureStateCloudState
+                )
+                if trigger.surfacesGlobalErrorMessage {
+                    self.globalErrorMessage = Flashcards.errorMessage(error: error)
+                }
+                throw error
+            }
             self.syncStatus = self.syncStatusForCloudFailure(
-                error: error,
+                error: failureError,
                 fallbackCloudState: failureStateCloudState
             )
             if trigger.surfacesGlobalErrorMessage {
-                self.globalErrorMessage = Flashcards.errorMessage(error: error)
+                self.globalErrorMessage = Flashcards.errorMessage(error: failureError)
             }
-            throw error
+            throw failureError
         }
     }
 
     func syncCloudIfLinked(trigger: CloudSyncTrigger) async {
-        if self.isCloudSyncBlocked {
-            return
-        }
         if self.userDefaults.bool(forKey: accountDeletionPendingUserDefaultsKey) {
             await self.resumePendingAccountDeletionIfNeeded()
             return
         }
 
         do {
+            if try await self.resumePendingGuestUpgradeIfNeeded(trigger: trigger) {
+                return
+            }
+            if self.isCloudSyncBlocked {
+                return
+            }
+
             let reconciliationOutcome = try await self.reconcilePersistedCloudStateBeforeSync(trigger: trigger)
             let hasStoredCredentials: Bool
             let hasStoredGuestSession: Bool
@@ -98,7 +125,7 @@ extension FlashcardsStore {
                 return
             }
 
-            if try await self.cloudRuntime.waitForActiveCloudLinkTransitionIfNeeded() {
+            if try await self.cloudRuntime.waitForActiveCloudCompletionIfNeeded() {
                 return
             }
 
@@ -219,7 +246,12 @@ extension FlashcardsStore {
         trigger: CloudSyncTrigger
     ) async throws {
         let bootstrapRefreshOutcome = try self.refreshBootstrapSnapshotWithoutReset(now: now)
-        let shouldRefreshReviewState = syncResult.reviewDataChanged || bootstrapRefreshOutcome.cardsChanged
+        let didResetVolatileReviewSelection = self.resetVolatileReviewSelectionAfterLocalIdRepairIfNeeded(
+            syncResult: syncResult,
+            now: now
+        )
+        let shouldRefreshReviewState = didResetVolatileReviewSelection == false
+            && (syncResult.reviewDataChanged || bootstrapRefreshOutcome.cardsChanged)
         let didRefreshReviewState: Bool
         if shouldRefreshReviewState {
             let reviewRefreshMode: ReviewRefreshMode
@@ -234,7 +266,10 @@ extension FlashcardsStore {
             )
             self.reconcileStrictReminders(trigger: .reviewHistoryImported, now: now)
         } else {
-            didRefreshReviewState = false
+            didRefreshReviewState = didResetVolatileReviewSelection
+            if didResetVolatileReviewSelection {
+                self.reconcileStrictReminders(trigger: .reviewHistoryImported, now: now)
+            }
         }
         if trigger.allowsVisibleChangeBanner {
             self.enqueueBackgroundSyncVisibleChangeBannerIfNeeded(
@@ -251,6 +286,58 @@ extension FlashcardsStore {
         self.lastSuccessfulCloudSyncAt = nowIsoTimestamp()
         self.syncStatus = .idle
         self.globalErrorMessage = ""
+    }
+
+    private func failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
+        error: Error,
+        now: Date
+    ) throws -> Error {
+        guard let localIdRepairFailure = error as? CloudSyncLocalIdRepairFailure else {
+            return error
+        }
+
+        try self.applyLocalIdRepairSideEffectsAfterSyncFailure(
+            syncResult: localIdRepairFailure.syncResult,
+            now: now
+        )
+        return localIdRepairFailure.underlyingError
+    }
+
+    private func applyLocalIdRepairSideEffectsAfterSyncFailure(
+        syncResult: CloudSyncResult,
+        now: Date
+    ) throws {
+        let bootstrapRefreshOutcome = try self.refreshBootstrapSnapshotWithoutReset(now: now)
+        let didResetVolatileReviewSelection = self.resetVolatileReviewSelectionAfterLocalIdRepairIfNeeded(
+            syncResult: syncResult,
+            now: now
+        )
+        if didResetVolatileReviewSelection {
+            self.reconcileStrictReminders(trigger: .reviewHistoryImported, now: now)
+        }
+        if bootstrapRefreshOutcome.didChange || didResetVolatileReviewSelection {
+            self.localReadVersion += 1
+        }
+    }
+
+    /**
+     Local re-id recovery can invalidate volatile review filters and selections
+     that store entity ids. Reset broadly to All Cards instead of preserving
+     individual filters with fragile per-entity repair logic.
+     */
+    private func resetVolatileReviewSelectionAfterLocalIdRepairIfNeeded(
+        syncResult: CloudSyncResult,
+        now: Date
+    ) -> Bool {
+        guard syncResult.localIdRepairEntityTypes.isEmpty == false else {
+            return false
+        }
+
+        self.selectedReviewFilter = .allCards
+        self.persistSelectedReviewFilter(reviewFilter: .allCards)
+        self.startReviewLoad(reviewFilter: .allCards, now: now)
+        self.reconcileReviewNotifications(trigger: .filterChanged, now: now)
+        return true
     }
 
     func isCloudAuthorizationError(_ error: Error) -> Bool {
@@ -305,7 +392,25 @@ extension FlashcardsStore {
     }
 
     func runLinkedSync(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
-        try await self.cloudRuntime.runLinkedSync(linkedSession: linkedSession)
+        do {
+            return try await self.cloudRuntime.runLinkedSync(linkedSession: linkedSession)
+        } catch {
+            throw try self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
+                error: error,
+                now: Date()
+            )
+        }
+    }
+
+    func runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: CloudLinkedSession) async throws -> CloudSyncResult {
+        do {
+            return try await self.cloudRuntime.runFreshLinkedSyncAfterActiveSyncSettles(linkedSession: linkedSession)
+        } catch {
+            throw try self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
+                error: error,
+                now: Date()
+            )
+        }
     }
 
     func triggerCloudSyncIfLinked(trigger: CloudSyncTrigger) {

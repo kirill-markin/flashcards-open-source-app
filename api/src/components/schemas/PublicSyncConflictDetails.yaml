@@ -1,0 +1,28 @@
+type: object
+additionalProperties: false
+required:
+  - phase
+  - entityType
+  - entityId
+  - recoverable
+properties:
+  phase:
+    type: string
+  entityType:
+    type: string
+    enum:
+      - card
+      - deck
+      - review_event
+  entityId:
+    type: string
+  entryIndex:
+    type: integer
+    minimum: 0
+  reviewEventIndex:
+    type: integer
+    minimum: 0
+  recoverable:
+    type: boolean
+    enum:
+      - true

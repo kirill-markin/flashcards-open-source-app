@@ -48,6 +48,7 @@ enum AIChatStoreTestSupport {
                     bundle: .main,
                     userDefaults: userDefaults
                 ),
+                reviewSubmissionOutboxMutationGate: ReviewSubmissionOutboxMutationGate(),
                 reviewSubmissionExecutor: nil,
                 reviewHeadLoader: defaultReviewHeadLoader,
                 reviewCountsLoader: defaultReviewCountsLoader,
@@ -497,6 +498,7 @@ enum AIChatStoreTestSupport {
             return CloudSyncResult(
                 appliedPullChangeCount: 0,
                 changedEntityTypes: [],
+                localIdRepairEntityTypes: [],
                 acknowledgedOperationCount: 0,
                 acknowledgedReviewEventOperationCount: 0,
                 cleanedUpOperationCount: 0,
