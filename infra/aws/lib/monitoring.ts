@@ -4,6 +4,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as cloudwatchActions from "aws-cdk-lib/aws-cloudwatch-actions";
+import * as logs from "aws-cdk-lib/aws-logs";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as snsSubscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import { Construct } from "constructs";
@@ -19,7 +20,11 @@ export interface MonitoringProps {
   alertEmail: string;
   db: rds.DatabaseInstance;
   restApi: apigw.RestApi;
+  authRestApi: apigw.RestApi;
   backendFn: lambda.IFunction;
+  authFn: lambda.IFunction;
+  authApiAccessLogGroup: logs.ILogGroup;
+  customEmailSenderFn: lambda.IFunction;
   chatWorkerFn: lambda.IFunction;
   chatLiveFn: lambda.IFunction;
   globalMetricsSnapshotFn: lambda.IFunction;
@@ -27,6 +32,16 @@ export interface MonitoringProps {
 
 export interface MonitoringResult {
   alertTopic: sns.Topic;
+}
+
+const authApiAccessLog5xxMetricNamespace: string = "FlashcardsOpenSourceApp/Auth";
+const authApiAccessLog5xxMetricName: string = "AuthApiAccessLog5xx";
+const authApiAccessLog5xxStatuses: ReadonlyArray<string> = ["500", "501", "502", "503", "504"];
+
+function createAuthApiAccessLog5xxFilterPattern(): logs.IFilterPattern {
+  return logs.FilterPattern.any(
+    ...authApiAccessLog5xxStatuses.map((status: string) => logs.FilterPattern.stringValue("$.status", "=", status)),
+  );
 }
 
 export function monitoring(scope: Construct, props: MonitoringProps): MonitoringResult {
@@ -72,6 +87,40 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 
+  new cloudwatch.Alarm(scope, "AuthApiGateway5xxAlarm", {
+    metric: new cloudwatch.Metric({
+      namespace: "AWS/ApiGateway",
+      metricName: "5XXError",
+      dimensionsMap: { ApiName: props.authRestApi.restApiName },
+      period: cdk.Duration.minutes(5),
+      statistic: "Sum",
+    }),
+    threshold: 3,
+    evaluationPeriods: 1,
+    alarmDescription: "Auth API Gateway returned 3+ server errors in 5 minutes",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  const authApiAccessLog5xxMetricFilter = new logs.MetricFilter(scope, "AuthApiAccessLog5xxMetricFilter", {
+    logGroup: props.authApiAccessLogGroup,
+    filterPattern: createAuthApiAccessLog5xxFilterPattern(),
+    metricNamespace: authApiAccessLog5xxMetricNamespace,
+    metricName: authApiAccessLog5xxMetricName,
+    metricValue: "1",
+    defaultValue: 0,
+  });
+
+  new cloudwatch.Alarm(scope, "AuthApiAccessLog5xxAlarm", {
+    metric: authApiAccessLog5xxMetricFilter.metric({
+      period: cdk.Duration.minutes(5),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Auth API access logs include a 5xx response",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
   new cloudwatch.Alarm(scope, "BackendLambdaErrorAlarm", {
     metric: props.backendFn.metricErrors({
       period: cdk.Duration.minutes(15),
@@ -80,6 +129,28 @@ export function monitoring(scope: Construct, props: MonitoringProps): Monitoring
     threshold: 1,
     evaluationPeriods: 1,
     alarmDescription: "Backend Lambda had errors",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  new cloudwatch.Alarm(scope, "AuthLambdaErrorAlarm", {
+    metric: props.authFn.metricErrors({
+      period: cdk.Duration.minutes(15),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Auth Lambda had unhandled errors",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
+
+  new cloudwatch.Alarm(scope, "CustomEmailSenderLambdaErrorAlarm", {
+    metric: props.customEmailSenderFn.metricErrors({
+      period: cdk.Duration.minutes(15),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    evaluationPeriods: 1,
+    alarmDescription: "Custom email sender Lambda had errors",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }).addAlarmAction(new cloudwatchActions.SnsAction(alertTopic));
 
