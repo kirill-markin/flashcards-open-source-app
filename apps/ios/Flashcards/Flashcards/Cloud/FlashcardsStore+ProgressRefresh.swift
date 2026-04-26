@@ -16,7 +16,7 @@ extension FlashcardsStore {
         self.progressActiveSummaryRefreshToken = refreshToken
         self.isProgressSummaryRefreshing = true
         self.updateProgressRefreshingState()
-        self.progressErrorMessage = ""
+        self.beginProgressSummaryRefreshErrorScope()
 
         defer {
             if self.progressActiveSummaryRefreshScopeKey == scopeKey,
@@ -46,6 +46,7 @@ extension FlashcardsStore {
             try self.persistProgressSummaryServerBase(serverBase: persistedServerBase)
             self.progressSummaryServerBaseCache = persistedServerBase
             self.progressSummaryInvalidatedScopeKeys.remove(scopeKey)
+            self.clearProgressSummaryRefreshErrorMessage()
 
             guard let observedScopeKey = self.progressObservedScopeKey,
                   progressSummaryScopeKey(seriesScopeKey: observedScopeKey) == scopeKey else {
@@ -58,7 +59,6 @@ extension FlashcardsStore {
             }
 
             try self.publishProgressSnapshot(scopeKey: observedScopeKey)
-            self.progressErrorMessage = ""
         } catch {
             if isRequestCancellationError(error: error) {
                 return
@@ -68,7 +68,7 @@ extension FlashcardsStore {
                 return
             }
 
-            self.progressErrorMessage = Flashcards.errorMessage(error: error)
+            self.replaceProgressSummaryRefreshErrorMessage(message: Flashcards.errorMessage(error: error))
         }
     }
 
@@ -86,7 +86,7 @@ extension FlashcardsStore {
         self.progressActiveSeriesRefreshToken = refreshToken
         self.isProgressSeriesRefreshing = true
         self.updateProgressRefreshingState()
-        self.progressErrorMessage = ""
+        self.beginProgressSeriesRefreshErrorScope()
 
         defer {
             if self.progressActiveSeriesRefreshScopeKey == scopeKey,
@@ -116,8 +116,8 @@ extension FlashcardsStore {
             try self.persistProgressSeriesServerBase(serverBase: persistedServerBase)
             self.progressSeriesServerBaseCache = persistedServerBase
             self.progressSeriesInvalidatedScopeKeys.remove(scopeKey)
+            self.clearProgressSeriesRefreshErrorMessage()
             try self.publishProgressSnapshot(scopeKey: scopeKey)
-            self.progressErrorMessage = ""
         } catch {
             if isRequestCancellationError(error: error) {
                 return
@@ -127,7 +127,7 @@ extension FlashcardsStore {
                 return
             }
 
-            self.progressErrorMessage = Flashcards.errorMessage(error: error)
+            self.replaceProgressSeriesRefreshErrorMessage(message: Flashcards.errorMessage(error: error))
         }
     }
 

@@ -12,7 +12,7 @@ extension FlashcardsStore {
                 scopeKey: progressSummaryScopeKey(seriesScopeKey: scopeKey)
             )
             self.progressSeriesServerBaseCache = self.loadPersistedProgressSeriesServerBase(scopeKey: scopeKey)
-            self.progressErrorMessage = ""
+            self.clearProgressErrorMessage()
             if previousScopeKey != nil {
                 self.invalidateProgress(
                     scopeKey: scopeKey,
