@@ -26,7 +26,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AiChatRemoteWireTest {
-    private val appVersion: String = "1.2.1"
+    private val appVersion: String = "1.2.2"
     private val testUiLocale: String = "es-ES"
     private val testWorkspaceId: String = "workspace-1"
 
