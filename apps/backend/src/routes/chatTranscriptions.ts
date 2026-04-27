@@ -53,7 +53,7 @@ async function resolveChatTranscriptionSessionId(
     throw new HttpError(400, "sessionId must be a UUID", "CHAT_SESSION_ID_INVALID");
   }
 
-  // First-party clients at 1.2.1 no longer omit sessionId here. Keep this
+  // First-party clients at 1.2.2 no longer omit sessionId here. Keep this
   // legacy session-less path temporarily for older released clients, then
   // remove it in a future legacy chat cleanup.
   try {
