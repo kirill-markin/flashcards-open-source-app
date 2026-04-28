@@ -27,6 +27,7 @@ import {
   OPENAI_CHAT_TOOLS,
   type ExecutedChatToolCall,
 } from "./tools";
+import { buildOpenAISafetyIdentifier } from "./safetyIdentifier";
 import type { ChatStreamEvent, ContentPart } from "../types";
 import {
   CHAT_MODEL_ID,
@@ -77,6 +78,16 @@ type OpenAIResponsesRequest = Readonly<{
     summary: typeof CHAT_MODEL_REASONING_SUMMARY;
   }>;
   prompt_cache_key: string;
+  safety_identifier: string;
+}>;
+
+type BuildOpenAIResponsesRequestParams = Readonly<{
+  baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>;
+  continuationItems: ReadonlyArray<StoredOpenAIReplayItem>;
+  userId: string;
+  sessionId: string;
+  extraInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>;
+  tools: ReadonlyArray<OpenAI.Responses.Tool>;
 }>;
 
 export type StartOpenAILoopParams = Readonly<{
@@ -279,24 +290,19 @@ export function buildPromptCacheKey(sessionId: string): string {
   return sessionId;
 }
 
-function buildOpenAIResponsesRequest(
-  baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>,
-  continuationItems: ReadonlyArray<StoredOpenAIReplayItem>,
-  sessionId: string,
-  extraInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem> = [],
-  tools: ReadonlyArray<OpenAI.Responses.Tool> = OPENAI_CHAT_TOOLS,
-): OpenAIResponsesRequest {
+function buildOpenAIResponsesRequest(params: BuildOpenAIResponsesRequestParams): OpenAIResponsesRequest {
   return {
     model: CHAT_MODEL_ID,
     store: false,
     include: ["reasoning.encrypted_content"],
-    tools: [...tools],
-    input: buildOpenAIInput(baseInput, continuationItems, extraInput),
+    tools: [...params.tools],
+    input: buildOpenAIInput(params.baseInput, params.continuationItems, params.extraInput),
     reasoning: {
       effort: CHAT_MODEL_REASONING_EFFORT,
       summary: CHAT_MODEL_REASONING_SUMMARY,
     },
-    prompt_cache_key: buildPromptCacheKey(sessionId),
+    prompt_cache_key: buildPromptCacheKey(params.sessionId),
+    safety_identifier: buildOpenAISafetyIdentifier(params.userId),
   };
 }
 
@@ -480,13 +486,14 @@ async function completeToolLimitSummaryTurn(
     client,
     params,
     onEvent,
-    buildOpenAIResponsesRequest(
+    buildOpenAIResponsesRequest({
       baseInput,
       continuationItems,
-      params.sessionId,
-      [buildToolLimitSummaryInstruction(CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS)],
-      [],
-    ),
+      userId: params.userId,
+      sessionId: params.sessionId,
+      extraInput: [buildToolLimitSummaryInstruction(CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS)],
+      tools: [],
+    }),
     summaryCallIndex,
   );
 
@@ -544,7 +551,14 @@ async function runLoopWithDeps(
       client,
       params,
       onEvent,
-      buildOpenAIResponsesRequest(baseInput, continuationItems, params.sessionId),
+      buildOpenAIResponsesRequest({
+        baseInput,
+        continuationItems,
+        userId: params.userId,
+        sessionId: params.sessionId,
+        extraInput: [],
+        tools: OPENAI_CHAT_TOOLS,
+      }),
       callIndex,
     );
 

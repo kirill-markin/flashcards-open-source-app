@@ -6,6 +6,7 @@
 import { z } from "zod";
 import { CHAT_MODEL_ID } from "./config";
 import { getOpenAIClient } from "./openai/client";
+import { buildOpenAISafetyIdentifier } from "./openai/safetyIdentifier";
 import type { ContentPart } from "./types";
 
 export type ChatComposerSuggestionSource = "initial" | "assistant_follow_up";
@@ -22,6 +23,14 @@ export type ChatComposerSuggestion = Readonly<{
   source: ChatComposerSuggestionSource;
   assistantItemId: string | null;
 }>;
+
+export type ChatComposerSuggestionsDependencies = Readonly<{
+  getOpenAIClient: typeof getOpenAIClient;
+}>;
+
+const DEFAULT_CHAT_COMPOSER_SUGGESTIONS_DEPENDENCIES: ChatComposerSuggestionsDependencies = {
+  getOpenAIClient,
+};
 
 const MAX_CHAT_COMPOSER_SUGGESTIONS = 2;
 
@@ -578,10 +587,29 @@ export function parsePersistedChatComposerSuggestions(
  * Generates follow-up suggestions from the latest completed assistant reply.
  */
 export async function generateFollowUpChatComposerSuggestions(
+  userId: string,
   userContent: ReadonlyArray<ContentPart>,
   assistantContent: ReadonlyArray<ContentPart>,
   assistantItemId: string,
   uiLocale: string | null | undefined,
+): Promise<ReadonlyArray<ChatComposerSuggestion>> {
+  return generateFollowUpChatComposerSuggestionsWithDependencies(
+    userId,
+    userContent,
+    assistantContent,
+    assistantItemId,
+    uiLocale,
+    DEFAULT_CHAT_COMPOSER_SUGGESTIONS_DEPENDENCIES,
+  );
+}
+
+export async function generateFollowUpChatComposerSuggestionsWithDependencies(
+  userId: string,
+  userContent: ReadonlyArray<ContentPart>,
+  assistantContent: ReadonlyArray<ContentPart>,
+  assistantItemId: string,
+  uiLocale: string | null | undefined,
+  dependencies: ChatComposerSuggestionsDependencies,
 ): Promise<ReadonlyArray<ChatComposerSuggestion>> {
   const userMessage = extractPlainText(userContent);
   const assistantReply = extractPlainText(assistantContent);
@@ -591,9 +619,10 @@ export async function generateFollowUpChatComposerSuggestions(
 
   const normalizedUiLocale = normalizeChatComposerSuggestionsUiLocale(uiLocale);
 
-  const response = await getOpenAIClient().responses.create({
+  const response = await dependencies.getOpenAIClient().responses.create({
     model: CHAT_MODEL_ID,
     store: false,
+    safety_identifier: buildOpenAISafetyIdentifier(userId),
     input: [{
       type: "message",
       role: "system",
