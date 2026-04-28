@@ -932,6 +932,7 @@ test("runPersistedChatSessionWithDeps exits without failing when the claimed run
 
 test("runPersistedChatSessionWithDeps completes a successful run and persists completion once", async () => {
   let completedPersistCount = 0;
+  let composerSuggestionUserId: string | null = null;
   let composerSuggestionUiLocale: string | null | undefined = undefined;
 
   const logs = await withCapturedLogs(async () => {
@@ -956,11 +957,13 @@ test("runPersistedChatSessionWithDeps completes a successful run and persists co
           };
         },
         generateFollowUpChatComposerSuggestions: async (
+          userId,
           _userContent,
           _assistantContent,
           _assistantItemId,
           uiLocale,
         ) => {
+          composerSuggestionUserId = userId;
           composerSuggestionUiLocale = uiLocale;
           return [];
         },
@@ -979,6 +982,7 @@ test("runPersistedChatSessionWithDeps completes a successful run and persists co
   });
 
   assert.equal(completedPersistCount, 1);
+  assert.equal(composerSuggestionUserId, "user-1");
   assert.equal(composerSuggestionUiLocale, "es-MX");
   assert.equal(findLog(logs, "chat_worker_terminal_state_persisted")?.runStatus, "completed");
 });
