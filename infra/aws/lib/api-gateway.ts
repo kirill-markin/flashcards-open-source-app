@@ -62,6 +62,7 @@ interface BackendFunctionProps {
   demoEmailDostip: string | undefined;
   guestAiWeightedMonthlyTokenCap: string | undefined;
   globalMetricsConfig: GlobalMetricsConfig | undefined;
+  memorySize: number;
 }
 
 interface GlobalMetricsConfig {
@@ -176,7 +177,7 @@ function createBackendFunction(scope: Construct, props: BackendFunctionProps): l
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(15),
-    memorySize: 256,
+    memorySize: props.memorySize,
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
     securityGroups: [props.lambdaSg],
@@ -306,6 +307,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       snapshotBucket: props.globalMetricsSnapshotBucket,
       snapshotObjectKey: props.globalMetricsSnapshotObjectKey,
     },
+    memorySize: 256,
   });
   const chatWorkerFn = createBackendFunction(scope, {
     constructId: "ChatRunWorkerHandler",
@@ -329,6 +331,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: undefined,
+    memorySize: 512,
   });
   const chatLiveFn = createBackendFunction(scope, {
     constructId: "ChatLiveHandler",
@@ -352,6 +355,7 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
     demoEmailDostip: props.demoEmailDostip,
     guestAiWeightedMonthlyTokenCap: props.guestAiWeightedMonthlyTokenCap,
     globalMetricsConfig: undefined,
+    memorySize: 256,
   });
   const chatLiveFunctionUrl = chatLiveFn.addFunctionUrl({
     authType: lambda.FunctionUrlAuthType.NONE,
