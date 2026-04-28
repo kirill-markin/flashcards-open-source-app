@@ -9,7 +9,7 @@ import org.junit.Test
 class CloudRemoteServiceTest {
     @Test
     fun buildGuestUpgradeCompleteRequestDeclaresDrainedGuestOutbox() {
-        val request = CloudRemoteService().buildGuestUpgradeCompleteRequest(
+        val request = buildGuestUpgradeCompleteRequest(
             guestToken = "guest-token",
             selection = CloudGuestUpgradeSelection.Existing(workspaceId = "workspace-linked"),
             guestWorkspaceSyncedAndOutboxDrained = true,
@@ -38,7 +38,7 @@ class CloudRemoteServiceTest {
             """.trimIndent()
         )
 
-        val parsedResponse = CloudRemoteService().parseRemotePushResponse(response = response)
+        val parsedResponse = parseRemotePushResponse(response = response)
 
         assertEquals(1, parsedResponse.operations.size)
         assertEquals("operation-ignored", parsedResponse.operations.single().operationId)
@@ -62,7 +62,7 @@ class CloudRemoteServiceTest {
             """.trimIndent()
         )
 
-        val summary = CloudRemoteService().parseCloudProgressSummaryResponse(
+        val summary = parseCloudProgressSummaryResponse(
             response = response,
             fieldPath = "progressSummary"
         )
@@ -88,7 +88,7 @@ class CloudRemoteServiceTest {
             """.trimIndent()
         )
 
-        CloudRemoteService().parseCloudProgressSummaryResponse(
+        parseCloudProgressSummaryResponse(
             response = response,
             fieldPath = "progressSummary"
         )

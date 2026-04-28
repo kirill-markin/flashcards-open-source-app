@@ -26,7 +26,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.buildAiChatRequestContent
 import com.flashcardsopensourceapp.data.local.model.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
-import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteService
+import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -41,7 +41,7 @@ private data class AuthorizedAiChatSession(
 class LocalAiChatRepository(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
-    private val cloudRemoteService: CloudRemoteService,
+    private val cloudRemoteService: CloudRemoteGateway,
     private val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator,
     private val syncRepository: SyncRepository,
     private val aiChatRemoteService: AiChatRemoteService,
