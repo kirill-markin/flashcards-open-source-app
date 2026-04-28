@@ -50,70 +50,70 @@ import {
   workspaceSettingsRoute,
 } from "./routes";
 import { isWorkspaceManagementLocked } from "./workspaceManagement";
-import { CardFormScreen } from "./screens/CardFormScreen";
-import { CardsScreen } from "./screens/CardsScreen";
-import { ProgressScreen } from "./screens/ProgressScreen";
-import { ReviewScreen } from "./screens/ReviewScreen";
+import { CardFormScreen } from "./screens/cards/CardFormScreen";
+import { CardsScreen } from "./screens/cards/CardsScreen";
+import { ProgressScreen } from "./screens/progress/ProgressScreen";
+import { ReviewScreen } from "./screens/review/ReviewScreen";
 
 const ChatPanel = lazy(async () => import("./chat/ChatPanel").then((module) => ({ default: module.ChatPanel })));
-const AccessPermissionDetailScreen = lazy(async () => import("./screens/AccessPermissionDetailScreen").then((module) => ({
+const AccessPermissionDetailScreen = lazy(async () => import("./screens/settings/access/AccessPermissionDetailScreen").then((module) => ({
   default: module.AccessPermissionDetailScreen,
 })));
-const AccessSettingsScreen = lazy(async () => import("./screens/AccessSettingsScreen").then((module) => ({
+const AccessSettingsScreen = lazy(async () => import("./screens/settings/access/AccessSettingsScreen").then((module) => ({
   default: module.AccessSettingsScreen,
 })));
-const AccountStatusScreen = lazy(async () => import("./screens/AccountStatusScreen").then((module) => ({
+const AccountStatusScreen = lazy(async () => import("./screens/settings/account/AccountStatusScreen").then((module) => ({
   default: module.AccountStatusScreen,
 })));
-const AccountSettingsScreen = lazy(async () => import("./screens/AccountSettingsScreen").then((module) => ({
+const AccountSettingsScreen = lazy(async () => import("./screens/settings/account/AccountSettingsScreen").then((module) => ({
   default: module.AccountSettingsScreen,
 })));
-const AgentConnectionsScreen = lazy(async () => import("./screens/AgentConnectionsScreen").then((module) => ({
+const AgentConnectionsScreen = lazy(async () => import("./screens/settings/account/AgentConnectionsScreen").then((module) => ({
   default: module.AgentConnectionsScreen,
 })));
-const DeckDetailScreen = lazy(async () => import("./screens/DeckDetailScreen").then((module) => ({
+const DeckDetailScreen = lazy(async () => import("./screens/settings/workspace/decks/DeckDetailScreen").then((module) => ({
   default: module.DeckDetailScreen,
 })));
-const DeckFormScreen = lazy(async () => import("./screens/DeckFormScreen").then((module) => ({
+const DeckFormScreen = lazy(async () => import("./screens/settings/workspace/decks/DeckFormScreen").then((module) => ({
   default: module.DeckFormScreen,
 })));
-const DecksScreen = lazy(async () => import("./screens/DecksScreen").then((module) => ({
+const DecksScreen = lazy(async () => import("./screens/settings/workspace/decks/DecksScreen").then((module) => ({
   default: module.DecksScreen,
 })));
-const DangerZoneScreen = lazy(async () => import("./screens/DangerZoneScreen").then((module) => ({
+const DangerZoneScreen = lazy(async () => import("./screens/settings/account/DangerZoneScreen").then((module) => ({
   default: module.DangerZoneScreen,
 })));
-const CurrentWorkspaceScreen = lazy(async () => import("./screens/CurrentWorkspaceScreen").then((module) => ({
+const CurrentWorkspaceScreen = lazy(async () => import("./screens/settings/workspace/CurrentWorkspaceScreen").then((module) => ({
   default: module.CurrentWorkspaceScreen,
 })));
-const SettingsScreen = lazy(async () => import("./screens/SettingsScreen").then((module) => ({
+const SettingsScreen = lazy(async () => import("./screens/settings/SettingsScreen").then((module) => ({
   default: module.SettingsScreen,
 })));
-const LegalSupportScreen = lazy(async () => import("./screens/LegalSupportScreen").then((module) => ({
+const LegalSupportScreen = lazy(async () => import("./screens/settings/account/LegalSupportScreen").then((module) => ({
   default: module.LegalSupportScreen,
 })));
-const OpenSourceSettingsScreen = lazy(async () => import("./screens/OpenSourceSettingsScreen").then((module) => ({
+const OpenSourceSettingsScreen = lazy(async () => import("./screens/settings/account/OpenSourceSettingsScreen").then((module) => ({
   default: module.OpenSourceSettingsScreen,
 })));
-const NotificationsSettingsScreen = lazy(async () => import("./screens/NotificationsSettingsScreen").then((module) => ({
+const NotificationsSettingsScreen = lazy(async () => import("./screens/settings/NotificationsSettingsScreen").then((module) => ({
   default: module.NotificationsSettingsScreen,
 })));
-const ThisDeviceSettingsScreen = lazy(async () => import("./screens/ThisDeviceSettingsScreen").then((module) => ({
+const ThisDeviceSettingsScreen = lazy(async () => import("./screens/settings/ThisDeviceSettingsScreen").then((module) => ({
   default: module.ThisDeviceSettingsScreen,
 })));
-const TagsScreen = lazy(async () => import("./screens/TagsScreen").then((module) => ({
+const TagsScreen = lazy(async () => import("./screens/settings/workspace/TagsScreen").then((module) => ({
   default: module.TagsScreen,
 })));
-const WorkspaceOverviewScreen = lazy(async () => import("./screens/WorkspaceOverviewScreen").then((module) => ({
+const WorkspaceOverviewScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceOverviewScreen").then((module) => ({
   default: module.WorkspaceOverviewScreen,
 })));
-const WorkspaceSchedulerScreen = lazy(async () => import("./screens/WorkspaceSchedulerScreen").then((module) => ({
+const WorkspaceSchedulerScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceSchedulerScreen").then((module) => ({
   default: module.WorkspaceSchedulerScreen,
 })));
-const WorkspaceExportScreen = lazy(async () => import("./screens/WorkspaceExportScreen").then((module) => ({
+const WorkspaceExportScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceExportScreen").then((module) => ({
   default: module.WorkspaceExportScreen,
 })));
-const WorkspaceSettingsScreen = lazy(async () => import("./screens/WorkspaceSettingsScreen").then((module) => ({
+const WorkspaceSettingsScreen = lazy(async () => import("./screens/settings/workspace/WorkspaceSettingsScreen").then((module) => ({
   default: module.WorkspaceSettingsScreen,
 })));
 
