@@ -393,6 +393,7 @@ async function generateTerminalComposerSuggestions(
 ): Promise<ReadonlyArray<ChatComposerSuggestion>> {
   try {
     return await dependencies.generateFollowUpChatComposerSuggestions(
+      params.userId,
       params.turnInput,
       assistantContent,
       params.assistantItemId,

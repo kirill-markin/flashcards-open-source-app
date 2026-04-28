@@ -7,8 +7,12 @@ import {
   type OpenAILoopEventSink,
   type StartOpenAILoopParams,
 } from "./loop";
+import { buildOpenAISafetyIdentifier } from "./safetyIdentifier";
 
 type OpenAILoopDependencies = Parameters<typeof startOpenAILoopWithDeps>[2];
+type OpenAIResponseStream = AsyncIterable<OpenAI.Responses.ResponseStreamEvent> & Readonly<{
+  finalResponse: () => Promise<OpenAI.Responses.Response>;
+}>;
 
 function createParams(
   overrides: Partial<StartOpenAILoopParams> = {},
@@ -142,16 +146,14 @@ function createResponseStream(
 }
 
 function createDependencies(
-  streamFactory: () => AsyncIterable<OpenAI.Responses.ResponseStreamEvent> & Readonly<{
-    finalResponse: () => Promise<OpenAI.Responses.Response>;
-  }>,
+  streamFactory: (request: OpenAI.Responses.ResponseCreateParams) => OpenAIResponseStream,
   runOneToolCall: OpenAILoopDependencies["runOneToolCall"],
 ): OpenAILoopDependencies {
   return {
     buildChatCompletionInput: async () => [],
     getObservedOpenAIClient: () => ({
       responses: {
-        stream: () => streamFactory(),
+        stream: (request: OpenAI.Responses.ResponseCreateParams) => streamFactory(request),
       },
     } as unknown as OpenAI),
     runOneToolCall,
@@ -171,6 +173,30 @@ function collectEvents(): Readonly<{
     events,
   };
 }
+
+test("startOpenAILoopWithDeps sends a hashed safety identifier on the initial model request", async () => {
+  const requests: Array<OpenAI.Responses.ResponseCreateParams> = [];
+  const messageItem = createAssistantMessageItem("done");
+
+  await startOpenAILoopWithDeps(
+    createParams(),
+    async (): Promise<void> => undefined,
+    createDependencies(
+      (request) => {
+        requests.push(request);
+        return createResponseStream([], createResponse([messageItem], "done"));
+      },
+      async () => {
+        throw new Error("runOneToolCall should not be called");
+      },
+    ),
+  );
+
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].safety_identifier, buildOpenAISafetyIdentifier("user-1"));
+  assert.equal(requests[0].prompt_cache_key, "session-1");
+  assert.equal(Object.hasOwn(requests[0], "user"), false);
+});
 
 test("startOpenAILoopWithDeps stops before the next tool call when requested", async () => {
   let stopBeforeNextStep = false;
@@ -333,6 +359,7 @@ test("startOpenAILoopWithDeps reports model phase transitions for the tool-limit
   let streamCallCount = 0;
   let toolCallCount = 0;
   const phases: Array<string> = [];
+  const requests: Array<OpenAI.Responses.ResponseCreateParams> = [];
 
   const result = await startOpenAILoopWithDeps(
     createParams({
@@ -342,7 +369,8 @@ test("startOpenAILoopWithDeps reports model phase transitions for the tool-limit
     }),
     async (): Promise<void> => undefined,
     createDependencies(
-      () => {
+      (request) => {
+        requests.push(request);
         streamCallCount += 1;
         if (streamCallCount <= CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS) {
           return createResponseStream(
@@ -370,6 +398,15 @@ test("startOpenAILoopWithDeps reports model phase transitions for the tool-limit
   assert.equal(result.terminationReason, "completed");
   assert.equal(streamCallCount, CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS + 1);
   assert.equal(toolCallCount, CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS);
+  assert.deepEqual(
+    requests.map((request) => request.safety_identifier),
+    Array.from(
+      { length: CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS + 1 },
+      () => buildOpenAISafetyIdentifier("user-1"),
+    ),
+  );
+  assert.equal(requests[1].safety_identifier, buildOpenAISafetyIdentifier("user-1"));
+  assert.equal(requests[CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS].tools?.length, 0);
   assert.equal(
     phases.filter((phase) => phase === "model").length,
     CHAT_RUN_MAX_TOOL_CALL_MODEL_CALLS + 1,
