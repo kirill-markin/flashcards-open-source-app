@@ -66,10 +66,10 @@ When adding a new web locale, inspect all of these places:
 12. [apps/web/src/chat/sessionController/context.tsx](../apps/web/src/chat/sessionController/context.tsx)
 13. [apps/web/src/chat/useChatHistory.ts](../apps/web/src/chat/useChatHistory.ts)
 14. [apps/web/src/chat/chatMessageContent.tsx](../apps/web/src/chat/chatMessageContent.tsx)
-15. [apps/web/src/screens/reviewSpeech.ts](../apps/web/src/screens/reviewSpeech.ts)
-16. [apps/web/src/screens/useReviewCardEditor.ts](../apps/web/src/screens/useReviewCardEditor.ts)
-17. [apps/web/src/screens/ThisDeviceSettingsScreen.tsx](../apps/web/src/screens/ThisDeviceSettingsScreen.tsx)
-18. [apps/web/src/screens/AccessPermissionDetailScreen.tsx](../apps/web/src/screens/AccessPermissionDetailScreen.tsx)
+15. [apps/web/src/screens/review/reviewSpeech.ts](../apps/web/src/screens/review/reviewSpeech.ts)
+16. [apps/web/src/screens/review/useReviewCardEditor.ts](../apps/web/src/screens/review/useReviewCardEditor.ts)
+17. [apps/web/src/screens/settings/ThisDeviceSettingsScreen.tsx](../apps/web/src/screens/settings/ThisDeviceSettingsScreen.tsx)
+18. [apps/web/src/screens/settings/access/AccessPermissionDetailScreen.tsx](../apps/web/src/screens/settings/access/AccessPermissionDetailScreen.tsx)
 19. [apps/web/src/i18n/runtime.test.ts](../apps/web/src/i18n/runtime.test.ts)
 20. [apps/web/src/api.test.ts](../apps/web/src/api.test.ts)
 21. [apps/web/e2e/live-smoke/](../apps/web/e2e/live-smoke/)
@@ -166,7 +166,7 @@ The new locale should still flow through:
 
 ### 6. Update the browser-local language override screen
 
-Review [apps/web/src/screens/ThisDeviceSettingsScreen.tsx](../apps/web/src/screens/ThisDeviceSettingsScreen.tsx) carefully.
+Review [apps/web/src/screens/settings/ThisDeviceSettingsScreen.tsx](../apps/web/src/screens/settings/ThisDeviceSettingsScreen.tsx) carefully.
 
 This is an easy place to miss required work because it does more than render translated labels:
 
@@ -200,10 +200,10 @@ These files are required audit points for a new locale:
 - [apps/web/src/chat/chatMessageContent.tsx](../apps/web/src/chat/chatMessageContent.tsx)
   Tool labels, copy buttons, attachment labels, reasoning/tool-call status text, clipboard failure alerts.
 
-- [apps/web/src/screens/useReviewCardEditor.ts](../apps/web/src/screens/useReviewCardEditor.ts)
+- [apps/web/src/screens/review/useReviewCardEditor.ts](../apps/web/src/screens/review/useReviewCardEditor.ts)
   Delete-confirmation dialog and editor-specific error copy.
 
-- [apps/web/src/screens/AccessPermissionDetailScreen.tsx](../apps/web/src/screens/AccessPermissionDetailScreen.tsx)
+- [apps/web/src/screens/settings/access/AccessPermissionDetailScreen.tsx](../apps/web/src/screens/settings/access/AccessPermissionDetailScreen.tsx)
   Permission-state labels, guidance text, mapped browser media errors, and secure-context/access failures.
 
 The goal is not just to translate the happy path.
@@ -211,7 +211,7 @@ It is to make sure loading, retry, denied-permission, interrupted-run, and dialo
 
 ### 8. Review speech support if the locale should sound correct when spoken
 
-Review [apps/web/src/screens/reviewSpeech.ts](../apps/web/src/screens/reviewSpeech.ts).
+Review [apps/web/src/screens/review/reviewSpeech.ts](../apps/web/src/screens/review/reviewSpeech.ts).
 
 Adding a UI locale does not automatically make speech output feel correct. The current web behavior should follow this rule:
 
