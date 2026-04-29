@@ -472,7 +472,11 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
       chatConfig: defaultChatConfig,
       activeRun: createChatActiveRun(),
     }));
-    createNewChatSessionMock.mockImplementation(async (sessionId: string, _uiLocale: Locale) => ({
+    createNewChatSessionMock.mockImplementation(async (
+      sessionId: string,
+      _workspaceId: string,
+      _uiLocale: Locale,
+    ) => ({
       ok: true,
       sessionId,
       composerSuggestions: [],

@@ -239,12 +239,12 @@ describe("ChatPanel post-run sync", () => {
       runSync: runSyncMock,
       setErrorMessage: vi.fn(),
     }));
-    consumeChatLiveStreamMock.mockImplementation(async ({ onEvent }) => {
+    consumeChatLiveStreamMock.mockImplementation(async ({ onEvent, runId, sessionId }) => {
       onEvent({
         type: "assistant_tool_call",
-        sessionId: "session-1",
-        conversationScopeId: "session-1",
-        runId: "run-1",
+        sessionId,
+        conversationScopeId: sessionId,
+        runId,
         sequenceNumber: 1,
         streamEpoch: "epoch-1",
         cursor: "cursor-1",
@@ -259,9 +259,9 @@ describe("ChatPanel post-run sync", () => {
       });
       onEvent({
         type: "run_terminal",
-        sessionId: "session-1",
-        conversationScopeId: "session-1",
-        runId: "run-1",
+        sessionId,
+        conversationScopeId: sessionId,
+        runId,
         sequenceNumber: 2,
         streamEpoch: "epoch-1",
         cursor: null,
@@ -288,12 +288,12 @@ describe("ChatPanel post-run sync", () => {
       runSync: runSyncMock,
       setErrorMessage: vi.fn(),
     }));
-    consumeChatLiveStreamMock.mockImplementation(async ({ onEvent }) => {
+    consumeChatLiveStreamMock.mockImplementation(async ({ onEvent, runId, sessionId }) => {
       onEvent({
         type: "assistant_tool_call",
-        sessionId: "session-1",
-        conversationScopeId: "session-1",
-        runId: "run-1",
+        sessionId,
+        conversationScopeId: sessionId,
+        runId,
         sequenceNumber: 1,
         streamEpoch: "epoch-1",
         cursor: "cursor-1",
@@ -308,9 +308,9 @@ describe("ChatPanel post-run sync", () => {
       });
       onEvent({
         type: "assistant_message_done",
-        sessionId: "session-1",
-        conversationScopeId: "session-1",
-        runId: "run-1",
+        sessionId,
+        conversationScopeId: sessionId,
+        runId,
         sequenceNumber: 2,
         streamEpoch: "epoch-1",
         cursor: "cursor-2",
@@ -324,9 +324,9 @@ describe("ChatPanel post-run sync", () => {
       });
       onEvent({
         type: "run_terminal",
-        sessionId: "session-1",
-        conversationScopeId: "session-1",
-        runId: "run-1",
+        sessionId,
+        conversationScopeId: sessionId,
+        runId,
         sequenceNumber: 3,
         streamEpoch: "epoch-1",
         cursor: "cursor-3",

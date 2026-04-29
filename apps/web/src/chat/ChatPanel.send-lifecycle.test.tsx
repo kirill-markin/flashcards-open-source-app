@@ -20,7 +20,7 @@ import {
   transcribeChatAudioMock,
   useAppDataMock,
 } from "./ChatPanelTestSupport";
-import { getChatComposerCapabilities } from "./ChatPanel";
+import { getChatComposerCapabilities } from "./chatComposerState";
 import {
   createUnverifiedWorkspaceAppDataMock,
   createVerifiedWorkspaceAppDataMock,
@@ -160,7 +160,7 @@ describe("ChatPanel send lifecycle", () => {
     await renderChatPanel();
     await flushAsync();
 
-    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-local-fresh");
+    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-local-fresh", "workspace-1");
   });
 
   it("opens a stale warm-start session as a fresh local chat without loading the stale session", async () => {
@@ -238,7 +238,7 @@ describe("ChatPanel send lifecycle", () => {
     await renderChatPanel();
     await flushAsync();
 
-    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-assistant-only");
+    expect(getChatSnapshotMock).toHaveBeenCalledWith("session-assistant-only", "workspace-1");
     expect(createNewChatSessionMock).not.toHaveBeenCalled();
   });
 
