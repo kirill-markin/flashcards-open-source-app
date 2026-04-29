@@ -1,0 +1,17 @@
+package com.flashcardsopensourceapp.feature.review
+
+const val reviewShowAnswerButtonTag: String = "review_show_answer_button"
+const val reviewRateAgainButtonTag: String = "review_rate_again_button"
+const val reviewRateHardButtonTag: String = "review_rate_hard_button"
+const val reviewRateGoodButtonTag: String = "review_rate_good_button"
+const val reviewRateEasyButtonTag: String = "review_rate_easy_button"
+const val reviewFilterButtonTag: String = "review_filter_button"
+const val reviewEditCardButtonTag: String = "review_edit_card_button"
+const val reviewAiCardButtonTag: String = "review_ai_card_button"
+const val reviewEmptyStateTag: String = "review_empty_state"
+const val reviewEmptyStateContentTag: String = "review_empty_state_content"
+const val reviewEmptyStateTitleTag: String = "review_empty_state_title"
+const val reviewCurrentCardTag: String = "review_current_card"
+const val reviewCurrentCardFrontContentTag: String = "review_current_card_front_content"
+const val reviewProgressBadgeTag: String = "review_progress_badge"
+const val reviewQueueButtonTag: String = "review_queue_button"
