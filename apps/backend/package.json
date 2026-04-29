@@ -21,7 +21,7 @@
     "@opentelemetry/sdk-node": "^0.214.0",
     "aws-jwt-verify": "^5.1.1",
     "hono": "^4.12.15",
-    "openai": "^6.34.0",
+    "openai": "^6.35.0",
     "pg": "^8.20.0",
     "zod": "^4.3.6"
   },
