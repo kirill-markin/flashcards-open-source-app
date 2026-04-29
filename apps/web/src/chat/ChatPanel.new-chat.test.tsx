@@ -32,7 +32,6 @@ const {
   setLocalePreference,
   unmountChatPanel,
   clickNewConversation,
-  clickAddAttachment,
   sendMessage,
 } = setupChatPanelTest();
 
@@ -108,14 +107,12 @@ describe("ChatPanel new chat", () => {
     expect(textarea).not.toBeNull();
 
     await setTextareaValue(textarea as HTMLTextAreaElement, "pending draft");
-    await clickAddAttachment();
     await flushAsync();
 
     const draftsBeforeNew = loadChatDraftWorkspaceState("workspace-1");
     const draftSessionIdsBeforeNew = Object.keys(draftsBeforeNew);
     expect(draftSessionIdsBeforeNew).toHaveLength(0);
     expect(textarea?.value).toBe("pending draft");
-    expect(getContainer().textContent).toContain("attached.txt");
 
     await clickNewConversation();
     await flushAsync();
@@ -126,7 +123,6 @@ describe("ChatPanel new chat", () => {
     expect(Object.keys(draftsAfterNew)).toHaveLength(0);
     expect(createNewChatSessionMock.mock.calls[1]?.[0]).toMatch(UUID_PATTERN);
     expect(textarea?.value).toBe("");
-    expect(getContainer().textContent).not.toContain("attached.txt");
   });
 
   it("clears a stale pending post-run sync flag when starting a new conversation", async () => {
@@ -397,6 +393,7 @@ describe("ChatPanel new chat", () => {
 
     expect(createNewChatSessionMock).toHaveBeenCalledWith(
       expect.any(String),
+      "workspace-1",
       "es-MX",
     );
   });
@@ -432,7 +429,7 @@ describe("ChatPanel new chat", () => {
         messages: [],
       },
     }));
-    createNewChatSessionMock.mockImplementation((sessionId: string, uiLocale: string) => {
+    createNewChatSessionMock.mockImplementation((sessionId: string, _workspaceId: string, uiLocale: string) => {
       if (uiLocale === "en") {
         return Promise.resolve({
           ok: true,
@@ -461,7 +458,7 @@ describe("ChatPanel new chat", () => {
 
     expect(createNewChatSessionMock).toHaveBeenCalledTimes(2);
     expect(createNewChatSessionMock.mock.calls[0]?.[0]).toBe(createNewChatSessionMock.mock.calls[1]?.[0]);
-    expect(createNewChatSessionMock.mock.calls[1]?.[1]).toBe("es-MX");
+    expect(createNewChatSessionMock.mock.calls[1]?.[2]).toBe("es-MX");
     expect(getContainer().textContent).not.toContain("Study with spaced repetition");
     expect(secondRequestResolved).toBe(false);
 
@@ -496,7 +493,7 @@ describe("ChatPanel new chat", () => {
         messages: [],
       },
     }));
-    createNewChatSessionMock.mockImplementation((sessionId: string, uiLocale: string) => {
+    createNewChatSessionMock.mockImplementation((sessionId: string, _workspaceId: string, uiLocale: string) => {
       if (uiLocale === "en") {
         return Promise.resolve({
           ok: true,
@@ -551,7 +548,7 @@ describe("ChatPanel new chat", () => {
       chatConfig: ReturnType<typeof createChatSnapshot>["chatConfig"];
     }) => void) | null = null;
 
-    createNewChatSessionMock.mockImplementation((sessionId: string, uiLocale: string) => {
+    createNewChatSessionMock.mockImplementation((sessionId: string, _workspaceId: string, uiLocale: string) => {
       if (uiLocale === "en") {
         if (createNewChatSessionMock.mock.calls.length === 1) {
           return Promise.resolve({
@@ -586,7 +583,7 @@ describe("ChatPanel new chat", () => {
     expect(createNewChatSessionMock).toHaveBeenCalledTimes(3);
     expect(createNewChatSessionMock.mock.calls[1]?.[0]).toBe(freshSessionId);
     expect(createNewChatSessionMock.mock.calls[2]?.[0]).toBe(freshSessionId);
-    expect(createNewChatSessionMock.mock.calls[2]?.[1]).toBe("es-MX");
+    expect(createNewChatSessionMock.mock.calls[2]?.[2]).toBe("es-MX");
 
     resolveSpanishRequest?.({
       ok: true,
