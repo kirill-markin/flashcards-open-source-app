@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local
+package com.flashcardsopensourceapp.data.local.cloudidentity
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.cloud.CloudRemoteGateway
