@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.data.local
+package com.flashcardsopensourceapp.data.local.cloudidentity
 
 import androidx.room.withTransaction
 import androidx.test.ext.junit.runners.AndroidJUnit4
