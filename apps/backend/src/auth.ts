@@ -8,7 +8,7 @@ import {
   JwtParseError,
   JwtWithoutValidKidError,
 } from "aws-jwt-verify/error";
-import { authenticateAgentApiKey } from "./agentApiKeys";
+import { authenticateAgentApiKey } from "./agent/apiKeys";
 import { getAuthConfig } from "./authConfig";
 import { unsafeQuery } from "./dbUnsafe";
 import { authenticateGuestSession } from "./guestAuth";
