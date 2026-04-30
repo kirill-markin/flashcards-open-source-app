@@ -11,12 +11,12 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.flashcardsopensourceapp.app.di.AppGraph
-import com.flashcardsopensourceapp.feature.settings.CurrentWorkspaceRoute
-import com.flashcardsopensourceapp.feature.settings.DeviceDiagnosticsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
-import com.flashcardsopensourceapp.feature.settings.createCurrentWorkspaceViewModelFactory
-import com.flashcardsopensourceapp.feature.settings.createDeviceDiagnosticsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.device.DeviceDiagnosticsRoute
+import com.flashcardsopensourceapp.feature.settings.device.createDeviceDiagnosticsViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.workspace.CurrentWorkspaceRoute
+import com.flashcardsopensourceapp.feature.settings.workspace.createCurrentWorkspaceViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 
 internal fun NavGraphBuilder.registerSettingsRootDestinations(
@@ -69,7 +69,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         val manageSignInMessage = stringResource(
             id = com.flashcardsopensourceapp.feature.settings.R.string.settings_current_workspace_manage_sign_in_message
         )
-        val currentWorkspaceViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.CurrentWorkspaceViewModel>(
+        val currentWorkspaceViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.workspace.CurrentWorkspaceViewModel>(
             factory = createCurrentWorkspaceViewModelFactory(
                 workspaceRepository = appGraph.workspaceRepository,
                 cloudAccountRepository = appGraph.cloudAccountRepository,
@@ -115,7 +115,7 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
 
     composable(route = SettingsDeviceDestination.route) {
         val context = LocalContext.current
-        val deviceDiagnosticsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.DeviceDiagnosticsViewModel>(
+        val deviceDiagnosticsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.device.DeviceDiagnosticsViewModel>(
             factory = createDeviceDiagnosticsViewModelFactory(
                 workspaceRepository = appGraph.workspaceRepository,
                 appVersion = packageInfo.versionName,

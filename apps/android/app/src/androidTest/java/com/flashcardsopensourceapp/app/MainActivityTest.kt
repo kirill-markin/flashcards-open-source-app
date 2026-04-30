@@ -20,39 +20,39 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
+import com.flashcardsopensourceapp.app.R as AppR
+import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
+import com.flashcardsopensourceapp.feature.ai.aiConversationLoadingTag
 import com.flashcardsopensourceapp.feature.ai.aiConversationSurfaceTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontSummaryCardTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontTextFieldTag
-import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
-import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
 import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
+import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
+import com.flashcardsopensourceapp.feature.review.reviewEmptyStateTag
 import com.flashcardsopensourceapp.feature.review.reviewFilterButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewRateGoodButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewShowAnswerButtonTag
-import com.flashcardsopensourceapp.feature.settings.schedulerApplyButtonTag
-import com.flashcardsopensourceapp.feature.settings.schedulerDesiredRetentionFieldTag
-import com.flashcardsopensourceapp.feature.settings.schedulerLearningStepsFieldTag
-import com.flashcardsopensourceapp.feature.settings.schedulerMaximumIntervalFieldTag
-import com.flashcardsopensourceapp.feature.settings.schedulerRelearningStepsFieldTag
-import com.flashcardsopensourceapp.feature.settings.schedulerSaveButtonTag
-import com.flashcardsopensourceapp.feature.settings.workspaceTagCardsCountTag
-import com.flashcardsopensourceapp.feature.settings.workspaceTagRowTag
-import com.flashcardsopensourceapp.feature.settings.workspaceTagsSearchFieldTag
-import com.flashcardsopensourceapp.feature.ai.R as AiFeatureR
-import com.flashcardsopensourceapp.app.R as AppR
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
+import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerApplyButtonTag
+import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerDesiredRetentionFieldTag
+import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerLearningStepsFieldTag
+import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerMaximumIntervalFieldTag
+import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerRelearningStepsFieldTag
+import com.flashcardsopensourceapp.feature.settings.scheduler.schedulerSaveButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspace.workspaceTagCardsCountTag
+import com.flashcardsopensourceapp.feature.settings.workspace.workspaceTagRowTag
+import com.flashcardsopensourceapp.feature.settings.workspace.workspaceTagsSearchFieldTag
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.junit.rules.RuleChain
 import org.junit.rules.TestRule
+import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {

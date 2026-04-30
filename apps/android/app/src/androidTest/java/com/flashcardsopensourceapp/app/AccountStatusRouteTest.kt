@@ -9,9 +9,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
-import com.flashcardsopensourceapp.feature.settings.AccountStatusRoute
-import com.flashcardsopensourceapp.feature.settings.AccountStatusUiState
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
+import com.flashcardsopensourceapp.feature.settings.account.AccountStatusRoute
+import com.flashcardsopensourceapp.feature.settings.account.AccountStatusUiState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

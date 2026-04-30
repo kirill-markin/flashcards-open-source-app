@@ -24,6 +24,11 @@ import com.flashcardsopensourceapp.data.local.model.SyncStatusSnapshot
 import com.flashcardsopensourceapp.data.local.model.makeOfficialCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthMode
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudSendCodeNavigationOutcome
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInViewModel
+import java.io.IOException
+import java.util.Locale
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -40,8 +45,6 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import java.io.IOException
-import java.util.Locale
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CloudSignInViewModelTest {
