@@ -10,10 +10,10 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
-import com.flashcardsopensourceapp.feature.settings.AccountDangerZoneRoute
-import com.flashcardsopensourceapp.feature.settings.AccountDangerZoneUiState
 import com.flashcardsopensourceapp.feature.settings.DestructiveActionState
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
+import com.flashcardsopensourceapp.feature.settings.account.AccountDangerZoneRoute
+import com.flashcardsopensourceapp.feature.settings.account.AccountDangerZoneUiState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

@@ -8,7 +8,7 @@ import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.runtime.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.runtime.AiAttachmentSettingsSource
-import com.flashcardsopensourceapp.feature.settings.AccessCapability
+import com.flashcardsopensourceapp.feature.settings.access.AccessCapability
 import java.util.Locale
 
 data class AiTextProvider(

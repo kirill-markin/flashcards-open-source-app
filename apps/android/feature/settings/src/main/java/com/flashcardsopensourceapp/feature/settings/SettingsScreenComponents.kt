@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -15,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -71,5 +73,38 @@ internal fun DeviceInfoCard(title: String, rows: List<Pair<String, String>>) {
                 )
             }
         }
+    }
+}
+
+@Composable
+internal fun OverviewRow(title: String, value: Int) {
+    OverviewRow(
+        title = title,
+        value = value,
+        valueTag = null
+    )
+}
+
+@Composable
+internal fun OverviewRow(title: String, value: Int, valueTag: String?) {
+    val valueModifier: Modifier = if (valueTag != null) {
+        Modifier.testTag(tag = valueTag)
+    } else {
+        Modifier
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = title,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = value.toString(),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = valueModifier
+        )
     }
 }

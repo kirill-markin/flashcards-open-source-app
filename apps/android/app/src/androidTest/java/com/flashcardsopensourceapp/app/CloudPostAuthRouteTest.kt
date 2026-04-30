@@ -11,10 +11,10 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.data.local.model.CloudWorkspaceLinkSelection
-import com.flashcardsopensourceapp.feature.settings.CloudPostAuthMode
-import com.flashcardsopensourceapp.feature.settings.CloudPostAuthRoute
-import com.flashcardsopensourceapp.feature.settings.CloudPostAuthUiState
-import com.flashcardsopensourceapp.feature.settings.CurrentWorkspaceItemUiState
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthMode
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthRoute
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthUiState
+import com.flashcardsopensourceapp.feature.settings.workspace.CurrentWorkspaceItemUiState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

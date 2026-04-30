@@ -3,8 +3,8 @@ package com.flashcardsopensourceapp.feature.ai.input
 import com.flashcardsopensourceapp.feature.ai.runtime.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.runtime.AiAttachmentSettingsSource
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
-import com.flashcardsopensourceapp.feature.settings.AccessCapability
-import com.flashcardsopensourceapp.feature.settings.AccessStatus
+import com.flashcardsopensourceapp.feature.settings.access.AccessCapability
+import com.flashcardsopensourceapp.feature.settings.access.AccessStatus
 
 sealed interface AiCapabilityPresentationResult {
     data object Present : AiCapabilityPresentationResult

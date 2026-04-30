@@ -6,9 +6,9 @@ import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -24,9 +24,9 @@ import com.flashcardsopensourceapp.feature.review.ReviewPreviewListItem
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewProgressBadgeState
 import com.flashcardsopensourceapp.feature.review.ReviewUiState
-import com.flashcardsopensourceapp.feature.settings.CloudSignInCodeRoute
-import com.flashcardsopensourceapp.feature.settings.CloudSignInUiState
 import com.flashcardsopensourceapp.feature.settings.R as SettingsR
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInCodeRoute
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInUiState
 import java.util.Locale
 import org.junit.After
 import org.junit.Assert.assertEquals

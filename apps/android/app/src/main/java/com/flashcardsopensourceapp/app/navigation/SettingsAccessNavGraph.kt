@@ -6,9 +6,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
-import com.flashcardsopensourceapp.feature.settings.AccessCapability
-import com.flashcardsopensourceapp.feature.settings.AccessDetailRoute
-import com.flashcardsopensourceapp.feature.settings.AccessRoute
+import com.flashcardsopensourceapp.feature.settings.access.AccessCapability
+import com.flashcardsopensourceapp.feature.settings.access.AccessDetailRoute
+import com.flashcardsopensourceapp.feature.settings.access.AccessRoute
 
 internal fun NavGraphBuilder.registerSettingsAccessNavGraph(
     navController: NavHostController

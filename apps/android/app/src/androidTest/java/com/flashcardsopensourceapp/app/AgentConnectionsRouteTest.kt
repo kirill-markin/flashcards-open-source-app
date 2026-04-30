@@ -8,9 +8,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
-import com.flashcardsopensourceapp.feature.settings.AgentConnectionItemUiState
-import com.flashcardsopensourceapp.feature.settings.AgentConnectionsRoute
-import com.flashcardsopensourceapp.feature.settings.AgentConnectionsUiState
+import com.flashcardsopensourceapp.feature.settings.agent.AgentConnectionItemUiState
+import com.flashcardsopensourceapp.feature.settings.agent.AgentConnectionsRoute
+import com.flashcardsopensourceapp.feature.settings.agent.AgentConnectionsUiState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
