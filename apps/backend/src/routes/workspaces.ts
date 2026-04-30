@@ -6,12 +6,12 @@ import {
   createAgentWorkspaceReadyEnvelope,
   createAgentWorkspacesEnvelope,
   shouldUseAgentSetupEnvelope,
-} from "../agentSetup";
+} from "../agent/setup";
 import {
   type AgentApiKeyConnection,
   listAgentApiKeyConnectionsPageForUser,
   revokeAgentApiKeyConnectionForUser,
-} from "../agentApiKeys";
+} from "../agent/apiKeys";
 import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../pagination";
 import {
   createWorkspaceForApiKeyConnection,
