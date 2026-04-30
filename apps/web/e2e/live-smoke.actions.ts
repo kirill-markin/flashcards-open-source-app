@@ -242,27 +242,47 @@ export async function trackedWaitForDeleteWorkspaceRetryTransition(
 export async function observeDeleteWorkspaceDialogState(
   dialog: Locator,
 ): Promise<DeleteWorkspaceDialogObservation> {
-  const confirmationInput = dialog.locator("#delete-workspace-confirmation");
-  const confirmationPhrase = dialog.locator(".settings-delete-phrase");
-  const retryButton = dialog.locator(".screen-actions .primary-btn").first();
-  const errorBanner = dialog.locator(".error-banner").first();
+  const snapshot = await dialog.evaluate((dialogElement): Omit<DeleteWorkspaceDialogObservation, "state"> => {
+    const isElementVisible = (selector: string): boolean => {
+      const element = dialogElement.querySelector(selector);
+      if (element === null) {
+        return false;
+      }
 
-  const isConfirmationInputVisible = await confirmationInput.isVisible().catch(() => false);
-  const isConfirmationPhraseVisible = await confirmationPhrase.isVisible().catch(() => false);
-  const isRetryVisible = await retryButton.isVisible().catch(() => false);
-  const isLoadingVisible = await errorBanner.isVisible().catch(() => false) === false && isConfirmationInputVisible === false;
+      const style = window.getComputedStyle(element);
+      return style.display !== "none"
+        && style.visibility !== "hidden"
+        && element.getClientRects().length > 0;
+    };
 
-  const state: DeleteWorkspaceDialogState = isConfirmationInputVisible && isConfirmationPhraseVisible
+    const isConfirmationInputVisible = isElementVisible("#delete-workspace-confirmation");
+    const isConfirmationPhraseVisible = isElementVisible(".settings-delete-phrase");
+    const isRetryVisible = isElementVisible(".screen-actions .primary-btn");
+    const isErrorVisible = isElementVisible(".error-banner");
+    const isLoadingVisible = isErrorVisible === false && isConfirmationInputVisible === false;
+
+    return {
+      isLoadingVisible,
+      isRetryVisible,
+      isConfirmationPhraseVisible,
+      isConfirmationInputVisible,
+    };
+  });
+
+  const state: DeleteWorkspaceDialogState = snapshot.isConfirmationInputVisible && snapshot.isConfirmationPhraseVisible
     ? "confirmation"
-    : isRetryVisible && isLoadingVisible === false && isConfirmationInputVisible === false && isConfirmationPhraseVisible === false
+    : snapshot.isRetryVisible
+      && snapshot.isLoadingVisible === false
+      && snapshot.isConfirmationInputVisible === false
+      && snapshot.isConfirmationPhraseVisible === false
       ? "retry"
       : "loading";
 
   return {
     state,
-    isLoadingVisible,
-    isRetryVisible,
-    isConfirmationPhraseVisible,
-    isConfirmationInputVisible,
+    isLoadingVisible: snapshot.isLoadingVisible,
+    isRetryVisible: snapshot.isRetryVisible,
+    isConfirmationPhraseVisible: snapshot.isConfirmationPhraseVisible,
+    isConfirmationInputVisible: snapshot.isConfirmationInputVisible,
   };
 }
