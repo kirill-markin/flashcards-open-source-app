@@ -1,14 +1,14 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import { queryWithUserScope } from "./db";
-import { unsafeQuery } from "./dbUnsafe";
-import { HttpError } from "./errors";
+import { queryWithUserScope } from "../db";
+import { unsafeQuery } from "../dbUnsafe";
+import { HttpError } from "../errors";
 import {
   decodeOpaqueCursor,
   encodeOpaqueCursor,
   type CursorPageInput,
-} from "./pagination";
-import { normalizeCrockfordToken } from "./crockford";
-import { ensureApiKeyWorkspaceSelection } from "./workspaces";
+} from "../pagination";
+import { normalizeCrockfordToken } from "../crockford";
+import { ensureApiKeyWorkspaceSelection } from "../workspaces";
 
 const AGENT_API_KEY_PREFIX = "fca";
 const AGENT_API_KEY_ID_LENGTH = 8;

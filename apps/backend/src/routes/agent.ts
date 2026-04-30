@@ -1,10 +1,10 @@
 import { Hono } from "hono";
-import { createAgentEnvelope } from "../agentEnvelope";
+import { createAgentEnvelope } from "../agent/envelope";
 import {
   createAgentAccountEnvelope,
   createAgentWorkspaceReadyEnvelope,
   createAgentWorkspacesEnvelope,
-} from "../agentSetup";
+} from "../agent/setup";
 import { executeAgentSql } from "../aiTools/agentSql";
 import { loadOpenApiDocument } from "../openapi";
 import { parseOptionalCursorQuery, parseRequiredPageLimit } from "../pagination";
