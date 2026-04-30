@@ -9,19 +9,19 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.di.AppGraph
-import com.flashcardsopensourceapp.feature.settings.AccountAdvancedRoute
-import com.flashcardsopensourceapp.feature.settings.AccountDangerZoneRoute
-import com.flashcardsopensourceapp.feature.settings.AccountLegalSupportRoute
-import com.flashcardsopensourceapp.feature.settings.AccountOpenSourceRoute
-import com.flashcardsopensourceapp.feature.settings.AccountRoute
-import com.flashcardsopensourceapp.feature.settings.AccountStatusRoute
-import com.flashcardsopensourceapp.feature.settings.AgentConnectionsRoute
-import com.flashcardsopensourceapp.feature.settings.ServerSettingsRoute
-import com.flashcardsopensourceapp.feature.settings.createAccountDangerZoneViewModelFactory
-import com.flashcardsopensourceapp.feature.settings.createAccountStatusViewModelFactory
-import com.flashcardsopensourceapp.feature.settings.createAgentConnectionsViewModelFactory
-import com.flashcardsopensourceapp.feature.settings.createServerSettingsViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.account.AccountAdvancedRoute
+import com.flashcardsopensourceapp.feature.settings.account.AccountDangerZoneRoute
+import com.flashcardsopensourceapp.feature.settings.account.AccountLegalSupportRoute
+import com.flashcardsopensourceapp.feature.settings.account.AccountOpenSourceRoute
+import com.flashcardsopensourceapp.feature.settings.account.AccountRoute
+import com.flashcardsopensourceapp.feature.settings.account.AccountStatusRoute
+import com.flashcardsopensourceapp.feature.settings.account.createAccountDangerZoneViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.account.createAccountStatusViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.agent.AgentConnectionsRoute
+import com.flashcardsopensourceapp.feature.settings.agent.createAgentConnectionsViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.createSettingsViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.server.ServerSettingsRoute
+import com.flashcardsopensourceapp.feature.settings.server.createServerSettingsViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -81,7 +81,7 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
 
         composable(route = SettingsAccountStatusDestination.route) {
             val context = LocalContext.current
-            val accountStatusViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.AccountStatusViewModel>(
+            val accountStatusViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.account.AccountStatusViewModel>(
                 factory = createAccountStatusViewModelFactory(
                     workspaceRepository = appGraph.workspaceRepository,
                     cloudAccountRepository = appGraph.cloudAccountRepository,
@@ -128,7 +128,7 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
 
         composable(route = SettingsAccountServerDestination.route) {
             val context = LocalContext.current
-            val serverSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.ServerSettingsViewModel>(
+            val serverSettingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.server.ServerSettingsViewModel>(
                 factory = createServerSettingsViewModelFactory(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
                     applicationContext = context.applicationContext
@@ -178,7 +178,7 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
 
         composable(route = SettingsAccountAgentConnectionsDestination.route) {
             val context = LocalContext.current
-            val agentConnectionsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.AgentConnectionsViewModel>(
+            val agentConnectionsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.agent.AgentConnectionsViewModel>(
                 factory = createAgentConnectionsViewModelFactory(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
                     applicationContext = context.applicationContext
@@ -206,7 +206,7 @@ internal fun NavGraphBuilder.registerSettingsAccountNavGraph(
 
         composable(route = SettingsAccountDangerZoneDestination.route) {
             val context = LocalContext.current
-            val accountDangerZoneViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.AccountDangerZoneViewModel>(
+            val accountDangerZoneViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.account.AccountDangerZoneViewModel>(
                 factory = createAccountDangerZoneViewModelFactory(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
                     applicationContext = context.applicationContext

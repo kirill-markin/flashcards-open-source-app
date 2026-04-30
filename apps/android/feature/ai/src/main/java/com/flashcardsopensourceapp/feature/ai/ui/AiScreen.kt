@@ -64,11 +64,11 @@ import com.flashcardsopensourceapp.feature.ai.input.makeAiChatImageAttachmentFro
 import com.flashcardsopensourceapp.feature.ai.input.startDictationRecording
 import com.flashcardsopensourceapp.feature.ai.runtime.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
-import com.flashcardsopensourceapp.feature.settings.AccessCapability
-import com.flashcardsopensourceapp.feature.settings.AccessStatus
-import com.flashcardsopensourceapp.feature.settings.hasRequestedAccessPermission
-import com.flashcardsopensourceapp.feature.settings.openApplicationSettings
-import com.flashcardsopensourceapp.feature.settings.resolveAccessStatus
+import com.flashcardsopensourceapp.feature.settings.access.AccessCapability
+import com.flashcardsopensourceapp.feature.settings.access.AccessStatus
+import com.flashcardsopensourceapp.feature.settings.access.hasRequestedAccessPermission
+import com.flashcardsopensourceapp.feature.settings.access.openApplicationSettings
+import com.flashcardsopensourceapp.feature.settings.access.resolveAccessStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

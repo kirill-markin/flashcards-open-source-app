@@ -5,12 +5,12 @@ import androidx.activity.result.ActivityResultLauncher
 import com.flashcardsopensourceapp.data.local.model.AiChatDictationState
 import com.flashcardsopensourceapp.feature.ai.runtime.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
-import com.flashcardsopensourceapp.feature.settings.AccessCapability
-import com.flashcardsopensourceapp.feature.settings.AccessStatus
-import com.flashcardsopensourceapp.feature.settings.accessCapabilityPermission
-import com.flashcardsopensourceapp.feature.settings.hasRequestedAccessPermission
-import com.flashcardsopensourceapp.feature.settings.markAccessPermissionRequested
-import com.flashcardsopensourceapp.feature.settings.resolveAccessStatus
+import com.flashcardsopensourceapp.feature.settings.access.AccessCapability
+import com.flashcardsopensourceapp.feature.settings.access.AccessStatus
+import com.flashcardsopensourceapp.feature.settings.access.accessCapabilityPermission
+import com.flashcardsopensourceapp.feature.settings.access.hasRequestedAccessPermission
+import com.flashcardsopensourceapp.feature.settings.access.markAccessPermissionRequested
+import com.flashcardsopensourceapp.feature.settings.access.resolveAccessStatus
 
 internal fun dictationStatusLabel(
     dictationState: AiChatDictationState,

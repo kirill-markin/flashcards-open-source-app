@@ -11,9 +11,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
-import com.flashcardsopensourceapp.feature.settings.CloudSignInCodeRoute
-import com.flashcardsopensourceapp.feature.settings.CloudSignInEmailRoute
-import com.flashcardsopensourceapp.feature.settings.CloudSignInUiState
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInCodeRoute
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInEmailRoute
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInUiState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

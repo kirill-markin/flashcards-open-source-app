@@ -12,13 +12,13 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.di.AppGraph
-import com.flashcardsopensourceapp.feature.settings.CloudPostAuthRoute
-import com.flashcardsopensourceapp.feature.settings.CloudSendCodeNavigationOutcome
-import com.flashcardsopensourceapp.feature.settings.CloudSignInCodeRoute
-import com.flashcardsopensourceapp.feature.settings.CloudSignInEmailRoute
-import com.flashcardsopensourceapp.feature.settings.createCloudSignInViewModelFactory
-import kotlinx.coroutines.Dispatchers
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthRoute
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudSendCodeNavigationOutcome
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInCodeRoute
+import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInEmailRoute
+import com.flashcardsopensourceapp.feature.settings.cloud.createCloudSignInViewModelFactory
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -37,7 +37,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 navController = navController,
                 currentBackStackEntry = backStackEntry
             )
-            val signInViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.CloudSignInViewModel>(
+            val signInViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInViewModel>(
                 viewModelStoreOwner = authGraphBackStackEntry,
                 factory = createCloudSignInViewModelFactory(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
@@ -82,7 +82,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 navController = navController,
                 currentBackStackEntry = backStackEntry
             )
-            val signInViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.CloudSignInViewModel>(
+            val signInViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInViewModel>(
                 viewModelStoreOwner = authGraphBackStackEntry,
                 factory = createCloudSignInViewModelFactory(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
@@ -118,7 +118,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 navController = navController,
                 currentBackStackEntry = backStackEntry
             )
-            val signInViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.CloudSignInViewModel>(
+            val signInViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInViewModel>(
                 viewModelStoreOwner = authGraphBackStackEntry,
                 factory = createCloudSignInViewModelFactory(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
