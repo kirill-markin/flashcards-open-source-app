@@ -1,4 +1,4 @@
-import { getPublicAgentDocs, getPublicApiBaseUrl } from "./publicUrls";
+import { getPublicAgentDocs, getPublicApiBaseUrl } from "../publicUrls";
 
 type AgentDiscoveryEnvelope = Readonly<{
   ok: true;

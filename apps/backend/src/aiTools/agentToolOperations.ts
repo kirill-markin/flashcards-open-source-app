@@ -42,7 +42,7 @@ import {
   type UpdateDeckInput,
 } from "../decks";
 import { HttpError } from "../errors";
-import { ensureAgentSyncReplica } from "../agentSyncIdentity";
+import { ensureAgentSyncReplica } from "../agent/syncIdentity";
 import {
   getWorkspaceSchedulerSettings,
   type WorkspaceSchedulerSettings,

@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { authenticateRequest } from "../auth";
 import { deleteAccountForAuthenticatedUser } from "../accountDeletion";
-import { createAgentDiscoveryEnvelope } from "../agentDiscovery";
-import { createAgentAccountEnvelope, shouldUseAgentSetupEnvelope } from "../agentSetup";
+import { createAgentDiscoveryEnvelope } from "../agent/discovery";
+import { createAgentAccountEnvelope, shouldUseAgentSetupEnvelope } from "../agent/setup";
 import { HttpError } from "../errors";
 import {
   loadUserProgressSeries,

@@ -17,7 +17,7 @@ import { createWorkspaceRoutes } from "./routes/workspaces";
 import {
   createAgentConnectionManagementErrorEnvelope,
   createAgentSetupErrorEnvelope,
-} from "./agentSetup";
+} from "./agent/setup";
 import { getGuestAiWeightedMonthlyTokenCap } from "./guestAiQuotaConfig";
 import { logRequestError } from "./server/logging";
 import { getAllowedOrigins } from "./server/requestContext";

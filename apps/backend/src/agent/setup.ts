@@ -1,15 +1,15 @@
-import type { AgentApiKeyConnection } from "./agentApiKeys";
+import type { AgentApiKeyConnection } from "./apiKeys";
 import {
   createAgentEnvelope,
   createAgentErrorEnvelope,
   type AgentEnvelope,
   type AgentErrorEnvelope,
-} from "./agentEnvelope";
-import type { AuthTransport } from "./auth";
-import type { PublicHttpErrorDetails } from "./errors";
-import { getPublicApiBaseUrl } from "./publicUrls";
-import type { RequestContext } from "./server/requestContext";
-import type { WorkspaceSummary } from "./workspaces";
+} from "./envelope";
+import type { AuthTransport } from "../auth";
+import type { PublicHttpErrorDetails } from "../errors";
+import { getPublicApiBaseUrl } from "../publicUrls";
+import type { RequestContext } from "../server/requestContext";
+import type { WorkspaceSummary } from "../workspaces";
 
 type AccountData = Readonly<{
   userId: string;
