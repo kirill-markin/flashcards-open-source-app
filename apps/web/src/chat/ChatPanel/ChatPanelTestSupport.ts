@@ -1,12 +1,12 @@
 import { act, createElement, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { afterEach, beforeEach, expect, vi } from "vitest";
-import { I18nProvider, useI18n } from "../i18n";
-import type { Locale, LocalePreference } from "../i18n/types";
-import type { ChatSessionSnapshot, StartChatRunRequestBody } from "../types";
-import { defaultChatConfig } from "./sessionController/config";
-import { ChatDraftProvider } from "./ChatDraftContext";
-import { ChatSessionControllerProvider } from "./sessionController";
+import { I18nProvider, useI18n } from "../../i18n";
+import type { Locale, LocalePreference } from "../../i18n/types";
+import type { ChatSessionSnapshot, StartChatRunRequestBody } from "../../types";
+import { defaultChatConfig } from "../sessionController/config";
+import { ChatDraftProvider } from "../ChatDraftContext";
+import { ChatSessionControllerProvider } from "../sessionController";
 
 const {
   ApiErrorMock,
@@ -49,15 +49,15 @@ const {
   isBinaryPendingAttachmentMock: vi.fn(),
 }));
 
-vi.mock("../appData", () => ({
+vi.mock("../../appData", () => ({
   useAppData: useAppDataMock,
 }));
 
-vi.mock("./ChatLayoutContext", () => ({
+vi.mock("../ChatLayoutContext", () => ({
   useChatLayout: useChatLayoutMock,
 }));
 
-vi.mock("../api", () => ({
+vi.mock("../../api", () => ({
   ApiError: ApiErrorMock,
   getChatSnapshot: getChatSnapshotMock,
   getChatSnapshotWithResumeDiagnostics: getChatSnapshotMock,
@@ -67,15 +67,15 @@ vi.mock("../api", () => ({
   transcribeChatAudio: transcribeChatAudioMock,
 }));
 
-vi.mock("../localDb/outbox", () => ({
+vi.mock("../../localDb/outbox", () => ({
   listOutboxRecords: listOutboxRecordsMock,
 }));
 
-vi.mock("./liveStream", () => ({
+vi.mock("../liveStream", () => ({
   consumeChatLiveStream: consumeChatLiveStreamMock,
 }));
 
-vi.mock("./FileAttachment", () => ({
+vi.mock("../FileAttachment", () => ({
   checkFileSize: checkFileSizeMock,
   prepareAttachment: prepareAttachmentMock,
   recompressImageAttachment: recompressImageAttachmentMock,

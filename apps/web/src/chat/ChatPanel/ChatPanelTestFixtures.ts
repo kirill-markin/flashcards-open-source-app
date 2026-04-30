@@ -2,7 +2,7 @@ import type {
   ChatSessionHistoryMessage,
   ToolCallContentPart,
   WorkspaceSummary,
-} from "../types";
+} from "../../types";
 
 type AsyncVoidFunction = () => Promise<void>;
 type ErrorMessageSetter = (message: string) => void;
