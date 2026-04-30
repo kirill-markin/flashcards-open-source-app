@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import { persistLocalePreference } from "../i18n/runtime";
+import { persistLocalePreference } from "../../i18n/runtime";
 import {
   createChatActiveRun,
   createChatSnapshot,
@@ -19,11 +19,11 @@ import {
 import {
   loadChatDraftWorkspaceState,
   readChatDraftForSession,
-} from "./chatDraftStorage";
+} from "../chatDraftStorage";
 import {
   loadChatSessionWarmStartSnapshot,
   storeChatSessionWarmStartSnapshot,
-} from "./sessionController/warmStart";
+} from "../sessionController/warmStart";
 
 const {
   flushAsync,

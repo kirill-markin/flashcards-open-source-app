@@ -1,31 +1,31 @@
 import { useRef, type ReactElement } from "react";
-import { useAppData } from "../appData";
-import { useI18n } from "../i18n";
-import { useChatDraft } from "./ChatDraftContext";
-import { useChatLayout } from "./ChatLayoutContext";
+import { useAppData } from "../../appData";
+import { useI18n } from "../../i18n";
+import { useChatDraft } from "../ChatDraftContext";
+import { useChatLayout } from "../ChatLayoutContext";
 import {
   FileAttachment,
   isBinaryPendingAttachment,
-} from "./FileAttachment";
-import { formatCardAttachmentLabel } from "./chatCardParts";
+} from "../FileAttachment";
+import { formatCardAttachmentLabel } from "../chatCardParts";
 import {
   USER_VISIBLE_ATTACHMENT_LIMIT_MB,
-} from "./chatHelpers";
+} from "../chatHelpers";
 import {
   getCanSendPendingMessage,
   getCanShowComposerSuggestions,
   getChatComposerCapabilities,
   getChatComposerState,
   hasChatDraftContent,
-} from "./chatComposerState";
-import { renderStoredMessageContent } from "./chatMessageContent";
-import { useChatAutoScroll } from "./useChatAutoScroll";
-import { useChatSession } from "./sessionController";
-import { useChatAttachments } from "./useChatAttachments";
-import { useChatComposerKeyboard } from "./useChatComposerKeyboard";
-import { useChatComposerSend } from "./useChatComposerSend";
-import { useChatDictationCapture } from "./useChatDictationCapture";
-import { useChatSidebarResize } from "./useChatSidebarResize";
+} from "../chatComposerState";
+import { renderStoredMessageContent } from "../chatMessageContent";
+import { useChatAutoScroll } from "../useChatAutoScroll";
+import { useChatSession } from "../sessionController";
+import { useChatAttachments } from "../useChatAttachments";
+import { useChatComposerKeyboard } from "../useChatComposerKeyboard";
+import { useChatComposerSend } from "../useChatComposerSend";
+import { useChatDictationCapture } from "../useChatDictationCapture";
+import { useChatSidebarResize } from "../useChatSidebarResize";
 
 type Props = Readonly<{
   mode: "sidebar" | "fullscreen";

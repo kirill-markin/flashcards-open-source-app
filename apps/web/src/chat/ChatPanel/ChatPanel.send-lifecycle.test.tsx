@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { persistLocalePreference } from "../i18n/runtime";
+import { persistLocalePreference } from "../../i18n/runtime";
 import {
   ApiErrorMock,
   consumeChatLiveStreamMock,
@@ -20,7 +20,7 @@ import {
   transcribeChatAudioMock,
   useAppDataMock,
 } from "./ChatPanelTestSupport";
-import { getChatComposerCapabilities } from "./chatComposerState";
+import { getChatComposerCapabilities } from "../chatComposerState";
 import {
   createUnverifiedWorkspaceAppDataMock,
   createVerifiedWorkspaceAppDataMock,
@@ -28,8 +28,8 @@ import {
 import {
   loadChatDraftWorkspaceState,
   readChatDraftForSession,
-} from "./chatDraftStorage";
-import { storeChatSessionWarmStartSnapshot } from "./sessionController/warmStart";
+} from "../chatDraftStorage";
+import { storeChatSessionWarmStartSnapshot } from "../sessionController/warmStart";
 
 const {
   flushAsync,
