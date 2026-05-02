@@ -22,12 +22,12 @@ vi.mock("../../appData", () => ({
   useAppData: useAppDataMock,
 }));
 
-vi.mock("../../appData/progressInvalidation", () => ({
+vi.mock("../../appData/progress/progressInvalidation", () => ({
   useProgressInvalidationState: useProgressInvalidationStateMock,
 }));
 
-vi.mock("../../appData/progressSource", async () => {
-  const actualModule = await vi.importActual<typeof import("../../appData/progressSource")>("../../appData/progressSource");
+vi.mock("../../appData/progress/progressSource", async () => {
+  const actualModule = await vi.importActual<typeof import("../../appData/progress/progressSource")>("../../appData/progress/progressSource");
 
   return {
     ...actualModule,
