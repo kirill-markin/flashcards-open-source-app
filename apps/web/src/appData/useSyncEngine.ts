@@ -79,7 +79,7 @@ import {
   nowIso,
   toReviewableCardState,
 } from "./domain";
-import { invalidateLocalProgress, invalidateProgress } from "./progressInvalidation";
+import { invalidateLocalProgress, invalidateProgress } from "./progress/progressInvalidation";
 import type { TestSeedCardInput, TestSeedRequest, TestSeedResult } from "./testSeedBridge";
 import type { SessionLoadState } from "./types";
 import type { SessionVerificationState } from "./warmStart";
