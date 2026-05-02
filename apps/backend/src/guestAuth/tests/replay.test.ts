@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HttpError } from "./errors";
-import { completeGuestUpgradeInExecutor } from "./guestAuth";
+import { HttpError } from "../../errors";
+import { completeGuestUpgradeInExecutor } from "../../guestAuth";
 import {
   createGuestUpgradeExecutor,
   createMergeState,
@@ -18,7 +18,7 @@ import {
   type UserSettingsState,
   type WorkspaceMembershipRole,
   type WorkspaceState,
-} from "./guestAuth.testHarness";
+} from "../../guestAuthTestHarness";
 
 test("completeGuestUpgradeInExecutor replays committed history after guest session cleanup", async () => {
   const guestToken = "guest-token-2";

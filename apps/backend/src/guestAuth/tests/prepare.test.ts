@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { prepareGuestUpgradeInExecutor } from "./guestAuth";
+import { prepareGuestUpgradeInExecutor } from "../../guestAuth";
 import {
   createGuestUpgradeExecutor,
   createMergeState,
-} from "./guestAuth.testHarness";
+} from "../../guestAuthTestHarness";
 
 test("prepareGuestUpgradeInExecutor binds a new cognito subject to the guest user and updates email", async () => {
   const guestToken = "guest-token-prepare-bound";
