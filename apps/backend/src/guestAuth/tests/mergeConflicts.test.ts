@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { DatabaseExecutor } from "./db";
-import { HttpError } from "./errors";
-import { completeGuestUpgradeInExecutor } from "./guestAuth";
+import type { DatabaseExecutor } from "../../db";
+import { HttpError } from "../../errors";
+import { completeGuestUpgradeInExecutor } from "../../guestAuth";
 import {
   addWorkspaceMembership,
   createGuestUpgradeExecutor,
@@ -13,7 +13,7 @@ import {
   createWorkspaceState,
   DROPPED_ENTITIES_SUPPORTED,
   DROPPED_ENTITIES_UNSUPPORTED,
-} from "./guestAuth.testHarness";
+} from "../../guestAuthTestHarness";
 
 test("completeGuestUpgradeInExecutor resolves same-id merge conflicts with LWW cards and idempotent review events", async () => {
   const guestToken = "guest-token-same-id-conflicts";
