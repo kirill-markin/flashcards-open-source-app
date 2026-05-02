@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { completeGuestUpgradeInExecutor } from "./guestAuth";
+import { completeGuestUpgradeInExecutor } from "../../guestAuth";
 import {
   createGuestUpgradeExecutor,
   createMergeState,
   DROPPED_ENTITIES_UNSUPPORTED,
-} from "./guestAuth.testHarness";
+} from "../../guestAuthTestHarness";
 
 test("completeGuestUpgradeInExecutor applies guest scheduler settings when guest metadata wins", async () => {
   const guestToken = "guest-token-scheduler-win";

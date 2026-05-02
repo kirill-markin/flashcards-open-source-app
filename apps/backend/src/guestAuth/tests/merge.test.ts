@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type pg from "pg";
-import type { DatabaseExecutor } from "./db";
-import { HttpError } from "./errors";
-import { completeGuestUpgradeInExecutor } from "./guestAuth";
+import type { DatabaseExecutor } from "../../db";
+import { HttpError } from "../../errors";
+import { completeGuestUpgradeInExecutor } from "../../guestAuth";
 import {
   addWorkspaceMembership,
   createGuestUpgradeExecutor,
@@ -13,7 +13,7 @@ import {
   isGuestUpgradeMergeOnlyExecutorQuery,
   membershipKey,
   type GuestUpgradeExecutorParam,
-} from "./guestAuth.testHarness";
+} from "../../guestAuthTestHarness";
 
 test("completeGuestUpgradeInExecutor reassigns guest installation ownership during merge", async () => {
   const guestToken = "guest-token-1";

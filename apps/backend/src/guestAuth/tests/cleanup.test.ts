@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HttpError } from "./errors";
+import { HttpError } from "../../errors";
 import {
   deleteGuestSessionInExecutor,
   prepareGuestUpgradeInExecutor,
-} from "./guestAuth";
-import { cleanupGuestSessionSourceInExecutor } from "./guestAuth/delete";
+} from "../../guestAuth";
+import { cleanupGuestSessionSourceInExecutor } from "../delete";
 import {
   addWorkspaceMembership,
   createGuestUpgradeExecutor,
   createMergeState,
   membershipKey,
-} from "./guestAuth.testHarness";
+} from "../../guestAuthTestHarness";
 
 test("deleteGuestSessionInExecutor revokes and removes guest server state", async () => {
   const guestToken = "guest-token-delete";
