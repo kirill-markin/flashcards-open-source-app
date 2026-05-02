@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 import {
   buildProgressDateContext,
   type ProgressDateContext,
-} from "../progress/progressDates";
+} from "../../progress/progressDates";
 
 const progressTimeContextPollIntervalMs = 60_000;
 

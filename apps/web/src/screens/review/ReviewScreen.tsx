@@ -14,7 +14,7 @@ import { ReviewFilterMenu } from "./ReviewFilterMenu";
 import { ReviewProgressBadgeIcon } from "../shared/ReviewProgressBadgeIcon";
 import { useAiCardHandoff } from "../../chat/useAiCardHandoff";
 import { useTransientMessage } from "../../useTransientMessage";
-import { formatReviewProgressBadgeValue } from "../../appData/reviewProgressBadge";
+import { formatReviewProgressBadgeValue } from "../../appData/progress/reviewProgressBadge";
 import { useReviewFilterMenu } from "./useReviewFilterMenu";
 import {
   appendRecentReviewRatings,

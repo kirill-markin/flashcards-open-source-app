@@ -10,7 +10,7 @@ import type {
   ProgressSummary,
   ProgressSummaryPayload,
   WorkspaceSummary,
-} from "../types";
+} from "../../types";
 import {
   resetProgressInvalidationStateForTests,
   useProgressInvalidationRefresh,
@@ -24,10 +24,10 @@ import {
   buildProgressDateContext,
   buildProgressSeriesInputForDateContext,
   buildProgressSummaryInputForDateContext,
-} from "../progress/progressDates";
-import { buildProgressSummaryScopeKey } from "./progress/progressScope";
+} from "../../progress/progressDates";
+import { buildProgressSummaryScopeKey } from "./progressScope";
 import { resetProgressTimeContextStateForTests } from "./progressTimeContext";
-import type { SessionVerificationState } from "./warmStart";
+import type { SessionVerificationState } from "../warmStart";
 
 const {
   loadProgressSummaryMock,
@@ -45,12 +45,12 @@ const {
   loadPendingProgressDailyReviewsMock: vi.fn<(workspaceIds: ReadonlyArray<string>, input: Readonly<{ timeZone: string; from: string; to: string }>) => Promise<ReadonlyArray<Readonly<{ date: string; reviewCount: number }>>>>(),
 }));
 
-vi.mock("../api", () => ({
+vi.mock("../../api", () => ({
   loadProgressSummary: loadProgressSummaryMock,
   loadProgressSeries: loadProgressSeriesMock,
 }));
 
-vi.mock("../localDb/progress", () => ({
+vi.mock("../../localDb/progress", () => ({
   hasPendingProgressReviewEvents: hasPendingProgressReviewEventsMock,
   loadLocalProgressSummary: loadLocalProgressSummaryMock,
   loadLocalProgressDailyReviews: loadLocalProgressDailyReviewsMock,

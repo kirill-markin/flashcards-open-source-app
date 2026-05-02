@@ -2,4 +2,4 @@ export {
   AppDataProvider,
   useAppData,
 } from "./provider";
-export { useReviewProgressBadge } from "./reviewProgressBadge";
+export { useReviewProgressBadge } from "./progress/reviewProgressBadge";
