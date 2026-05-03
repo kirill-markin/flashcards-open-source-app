@@ -22,6 +22,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatServerConfig
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCall
 import com.flashcardsopensourceapp.data.local.model.AiChatToolCallStatus
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
+import com.flashcardsopensourceapp.data.local.model.AiChatStopRunRequest
 import com.flashcardsopensourceapp.data.local.model.AiToolCallRequest
 import com.flashcardsopensourceapp.data.local.model.AiChatBootstrapResponse
 import com.flashcardsopensourceapp.data.local.model.AiChatLiveEvent
@@ -249,8 +250,7 @@ class AiChatRemoteService(
     suspend fun stopRun(
         apiBaseUrl: String,
         authorizationHeader: String,
-        sessionId: String,
-        workspaceId: String?
+        request: AiChatStopRunRequest
     ): AiChatStopRunResponse = withContext(dispatchers.io) {
         val connection = openConnection(
             apiBaseUrl = apiBaseUrl,
@@ -264,11 +264,7 @@ class AiChatRemoteService(
             connection.doOutput = true
             connection.outputStream.use { outputStream ->
                 outputStream.write(
-                    putOptionalWorkspaceId(
-                        payload = JSONObject()
-                            .put("sessionId", sessionId),
-                        workspaceId = workspaceId
-                    ).toString().toByteArray(StandardCharsets.UTF_8)
+                    encodeStopRunRequest(request = request).toString().toByteArray(StandardCharsets.UTF_8)
                 )
             }
             val responseBody = readResponseBody(connection = connection)
@@ -395,12 +391,35 @@ class AiChatRemoteService(
         )
     }
 
+    private fun encodeStopRunRequest(request: AiChatStopRunRequest): JSONObject {
+        val payload: JSONObject = JSONObject()
+            .put("sessionId", request.sessionId)
+
+        return putOptionalRunId(
+            payload = putOptionalWorkspaceId(
+                payload = payload,
+                workspaceId = request.workspaceId
+            ),
+            runId = request.runId
+        )
+    }
+
     private fun putOptionalWorkspaceId(
         payload: JSONObject,
         workspaceId: String?
     ): JSONObject {
         workspaceId?.takeIf { value -> value.isNotBlank() }?.let { resolvedWorkspaceId ->
             payload.put("workspaceId", resolvedWorkspaceId)
+        }
+        return payload
+    }
+
+    private fun putOptionalRunId(
+        payload: JSONObject,
+        runId: String?
+    ): JSONObject {
+        runId?.takeIf { value -> value.isNotBlank() }?.let { resolvedRunId ->
+            payload.put("runId", resolvedRunId)
         }
         return payload
     }

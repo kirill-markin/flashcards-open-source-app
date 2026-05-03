@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.data.local.model.AiChatNewSessionRequest
 import com.flashcardsopensourceapp.data.local.model.AiChatResumeDiagnostics
 import com.flashcardsopensourceapp.data.local.model.AiChatRunTerminalOutcome
 import com.flashcardsopensourceapp.data.local.model.AiChatStartRunRequest
+import com.flashcardsopensourceapp.data.local.model.AiChatStopRunRequest
 import com.flashcardsopensourceapp.data.local.model.AiChatWireContentPart
 import com.flashcardsopensourceapp.data.local.model.CloudServiceConfigurationMode
 import com.sun.net.httpserver.HttpServer
@@ -437,7 +438,7 @@ class AiChatRemoteWireTest {
     }
 
     @Test
-    fun stopRunIncludesWorkspaceIdWhenPresent() = runBlocking {
+    fun stopRunIncludesWorkspaceIdAndRunIdWhenPresent() = runBlocking {
         val requestBodyRef = AtomicReference("")
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/chat/stop") { exchange ->
@@ -459,13 +460,56 @@ class AiChatRemoteWireTest {
             service.stopRun(
                 apiBaseUrl = "http://127.0.0.1:${server.address.port}",
                 authorizationHeader = "Bearer token-1",
-                sessionId = "session-1",
-                workspaceId = testWorkspaceId
+                request = AiChatStopRunRequest(
+                    sessionId = "session-1",
+                    workspaceId = testWorkspaceId,
+                    runId = "run-1"
+                )
             )
 
             val requestBody = JSONObject(requestBodyRef.get())
             assertEquals("session-1", requestBody.getString("sessionId"))
             assertEquals(testWorkspaceId, requestBody.getString("workspaceId"))
+            assertEquals("run-1", requestBody.getString("runId"))
+        } finally {
+            server.stop(0)
+        }
+    }
+
+    @Test
+    fun stopRunOmitsBlankRunId() = runBlocking {
+        val requestBodyRef = AtomicReference("")
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/chat/stop") { exchange ->
+            requestBodyRef.set(exchange.requestBody.bufferedReader().use { reader -> reader.readText() })
+            val body = """
+                {
+                  "sessionId": "session-1",
+                  "stopped": true,
+                  "stillRunning": false
+                }
+            """.trimIndent().toByteArray()
+            exchange.sendResponseHeaders(200, body.size.toLong())
+            exchange.responseBody.use { outputStream -> outputStream.write(body) }
+        }
+        server.start()
+
+        try {
+            val service = makeRemoteService()
+            service.stopRun(
+                apiBaseUrl = "http://127.0.0.1:${server.address.port}",
+                authorizationHeader = "Bearer token-1",
+                request = AiChatStopRunRequest(
+                    sessionId = "session-1",
+                    workspaceId = testWorkspaceId,
+                    runId = ""
+                )
+            )
+
+            val requestBody = JSONObject(requestBodyRef.get())
+            assertEquals("session-1", requestBody.getString("sessionId"))
+            assertEquals(testWorkspaceId, requestBody.getString("workspaceId"))
+            assertFalse(requestBody.has("runId"))
         } finally {
             server.stop(0)
         }

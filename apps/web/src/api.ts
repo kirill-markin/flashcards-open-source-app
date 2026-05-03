@@ -831,11 +831,21 @@ export async function createNewChatSession(
   }, allowAuthRecovery), "POST /chat/new");
 }
 
-export async function stopChatRun(sessionId: string, workspaceId: string): Promise<StopChatRunResponse> {
-  const requestBody: StopChatRunRequestBody = {
-    sessionId,
-    workspaceId,
-  };
+export async function stopChatRun(
+  sessionId: string,
+  workspaceId: string,
+  runId: string | null,
+): Promise<StopChatRunResponse> {
+  const requestBody: StopChatRunRequestBody = runId === null
+    ? {
+      sessionId,
+      workspaceId,
+    }
+    : {
+      sessionId,
+      workspaceId,
+      runId,
+    };
 
   return parseStopChatRunResponse(await requestJson("/chat/stop", {
     method: "POST",

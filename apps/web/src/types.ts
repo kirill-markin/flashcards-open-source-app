@@ -303,6 +303,8 @@ export type StopChatRunRequestBody = Readonly<{
   sessionId: string;
   // Optional on the wire so older backend/client contract phases keep working.
   workspaceId?: string;
+  // TODO: Remove optional runId and make it required after most users have updated to the latest version. This is a legacy path.
+  runId?: string;
 }>;
 
 /** Mirrors the iOS local workspace payload used by local AI tools. */

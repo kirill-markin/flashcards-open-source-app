@@ -277,6 +277,26 @@ const UPDATE_CHAT_SESSION_STATUS_SQL = `
     updated_at
 `;
 
+const UPDATE_CHAT_SESSION_STATUS_FOR_ACTIVE_RUN_SQL = `
+  UPDATE ai.chat_sessions
+  SET status = $2,
+      active_run_id = $3,
+      active_run_heartbeat_at = $4,
+      updated_at = now()
+  WHERE session_id = $1
+    AND active_run_id = $5
+  RETURNING
+    session_id,
+    status,
+    active_run_id,
+    active_run_heartbeat_at,
+    composer_suggestions,
+    active_composer_suggestion_generation_id,
+    NULL::jsonb AS active_generation_suggestions,
+    main_content_invalidation_version,
+    updated_at
+`;
+
 const INSERT_CHAT_COMPOSER_SUGGESTION_GENERATION_SQL = `
   INSERT INTO ai.chat_composer_suggestion_generations (
     session_id,
@@ -611,6 +631,27 @@ export async function updateChatSessionStatusRowWithExecutor(
       activeRunHeartbeatAt?.toISOString() ?? null,
     ]);
     return requireSessionRow(rows[0], "update");
+  });
+}
+
+export async function updateChatSessionStatusForActiveRunRowWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+  runState: ChatSessionRunState,
+  activeRunId: string | null,
+  activeRunHeartbeatAt: Date | null,
+  expectedActiveRunId: string,
+): Promise<ChatSessionRow | null> {
+  return withScopedExecutor(executor, scope, async () => {
+    const rows = await executeQuery<ChatSessionRow>(executor, UPDATE_CHAT_SESSION_STATUS_FOR_ACTIVE_RUN_SQL, [
+      sessionId,
+      runState,
+      activeRunId,
+      activeRunHeartbeatAt?.toISOString() ?? null,
+      expectedActiveRunId,
+    ]);
+    return rows[0] ?? null;
   });
 }
 

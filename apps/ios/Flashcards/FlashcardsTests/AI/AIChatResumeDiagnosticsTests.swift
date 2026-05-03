@@ -237,7 +237,7 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         await self.fulfillment(of: [expectation], timeout: 1.0)
     }
 
-    func testStopRunEncodesWorkspaceIdInRequestBody() async throws {
+    func testStopRunEncodesWorkspaceAndRunIdInRequestBody() async throws {
         let expectation = XCTestExpectation(description: "Stop run request captured")
         let service = AIChatService(
             session: self.makeURLSession(),
@@ -250,6 +250,7 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             let body = try XCTUnwrap(aiChatRequestBodyData(request: request))
             let payload = try JSONDecoder().decode(AIChatEncodedStopRunRequest.self, from: body)
             XCTAssertEqual(payload.sessionId, "session-1")
+            XCTAssertEqual(payload.runId, "run-1")
             XCTAssertEqual(payload.workspaceId, "workspace-1")
             expectation.fulfill()
             return (
@@ -265,7 +266,8 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
 
         let response = try await service.stopRun(
             session: self.makeLinkedSession(),
-            sessionId: "session-1"
+            sessionId: "session-1",
+            runId: "run-1"
         )
 
         XCTAssertEqual(response.sessionId, "session-1")
@@ -352,6 +354,7 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         let stopRunData = try encoder.encode(
             AIChatStopRunRequestBody(
                 sessionId: "session-1",
+                runId: nil,
                 workspaceId: nil
             )
         )
@@ -364,6 +367,7 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         XCTAssertFalse(startRunPayload.contains("\"workspaceId\""))
         XCTAssertFalse(newSessionPayload.contains("\"uiLocale\""))
         XCTAssertFalse(newSessionPayload.contains("\"workspaceId\""))
+        XCTAssertFalse(stopRunPayload.contains("\"runId\""))
         XCTAssertFalse(stopRunPayload.contains("\"workspaceId\""))
     }
 
@@ -568,6 +572,7 @@ private struct AIChatEncodedNewSessionRequest: Decodable {
 
 private struct AIChatEncodedStopRunRequest: Decodable {
     let sessionId: String
+    let runId: String?
     let workspaceId: String?
 }
 

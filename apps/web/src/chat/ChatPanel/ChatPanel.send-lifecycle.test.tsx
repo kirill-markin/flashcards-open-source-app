@@ -611,6 +611,62 @@ describe("ChatPanel send lifecycle", () => {
     expect(sendButton).toBeNull();
   });
 
+  it("passes the accepted active run id when stopping a sent message", async () => {
+    await renderChatPanel();
+    await flushAsync();
+    await sendMessage("hello");
+    await flushAsync();
+    await flushAsync();
+
+    await clickStop();
+    await flushAsync();
+
+    expect(stopChatRunMock).toHaveBeenCalledWith(expect.any(String), "workspace-1", "run-1");
+  });
+
+  it("clears stopping and reconciles the snapshot when stop returns a no-op", async () => {
+    let resolveReconcileSnapshot: ((snapshot: ReturnType<typeof createChatSnapshot>) => void) | null = null;
+    getChatSnapshotMock
+      .mockResolvedValueOnce(createChatSnapshot({
+        activeRun: createChatActiveRun(),
+      }))
+      .mockImplementation(() => new Promise((resolve) => {
+        resolveReconcileSnapshot = resolve;
+      }));
+    stopChatRunMock.mockResolvedValue({
+      sessionId: "session-1",
+      stopped: false,
+      stillRunning: true,
+    });
+
+    await renderChatPanel();
+    await flushAsync();
+    await flushAsync();
+
+    await clickStop();
+    await flushAsync();
+    await flushAsync();
+
+    const composerState = getContainer().querySelector('[data-testid="chat-composer-state"]') as HTMLDivElement | null;
+    const stopButton = getContainer().querySelector('.chat-stop-btn[aria-label="Stop response"]') as HTMLButtonElement | null;
+    expect(stopChatRunMock).toHaveBeenCalledWith("session-1", "workspace-1", "run-1");
+    expect(getChatSnapshotMock.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(composerState?.getAttribute("data-stopping")).toBe("false");
+    expect(composerState?.getAttribute("data-composer-state")).toBe("running");
+    expect(stopButton).not.toBeNull();
+    expect(stopButton?.disabled).toBe(false);
+
+    await clickStop();
+    await flushAsync();
+
+    expect(stopChatRunMock.mock.calls[1]).toEqual(["session-1", "workspace-1", null]);
+
+    resolveReconcileSnapshot?.(createChatSnapshot({
+      activeRun: createChatActiveRun({ runId: "run-2" }),
+    }));
+    await flushAsync();
+  });
+
   it("keeps draft preparation controls enabled while an assistant run is active", async () => {
     getChatSnapshotMock.mockResolvedValue(createChatSnapshot({
       activeRun: createChatActiveRun(),
@@ -672,6 +728,8 @@ describe("ChatPanel send lifecycle", () => {
 
     await clickStop();
     await flushAsync();
+
+    expect(stopChatRunMock).toHaveBeenCalledWith("session-1", "workspace-1", "run-1");
 
     const composerState = getContainer().querySelector('[data-testid="chat-composer-state"]') as HTMLDivElement | null;
     const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;

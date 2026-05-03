@@ -216,9 +216,11 @@ enum AIChatStoreTestSupport {
         var loadBootstrapGate: AsyncGate?
         var startRunRequests: [AIChatStartRunRequestBody]
         var createNewSessionRequests: [AIChatNewSessionRequestBody]
+        var stopRunRequests: [(sessionId: String, runId: String?)]
         var loadBootstrapHandler: ((String?) throws -> AIChatBootstrapResponse)?
         var startRunHandler: ((AIChatStartRunRequestBody) throws -> AIChatStartRunResponse)?
         var createNewSessionHandler: ((AIChatNewSessionRequestBody) throws -> AIChatNewSessionResponse)?
+        var stopRunHandler: ((String, String?) throws -> AIChatStopRunResponse)?
 
         var createNewSessionSessionIds: [String?] {
             self.createNewSessionRequests.map(\.sessionId)
@@ -231,9 +233,11 @@ enum AIChatStoreTestSupport {
             self.loadBootstrapGate = nil
             self.startRunRequests = []
             self.createNewSessionRequests = []
+            self.stopRunRequests = []
             self.loadBootstrapHandler = nil
             self.startRunHandler = nil
             self.createNewSessionHandler = nil
+            self.stopRunHandler = nil
         }
 
         func loadSnapshot(
@@ -307,9 +311,15 @@ enum AIChatStoreTestSupport {
 
         func stopRun(
             session: CloudLinkedSession,
-            sessionId: String
+            sessionId: String,
+            runId: String?
         ) async throws -> AIChatStopRunResponse {
             _ = session
+            self.events.append("stopRun:\(sessionId):\(runId ?? "nil")")
+            self.stopRunRequests.append((sessionId: sessionId, runId: runId))
+            if let stopRunHandler {
+                return try stopRunHandler(sessionId, runId)
+            }
             return AIChatStopRunResponse(
                 sessionId: sessionId,
                 stopped: false,

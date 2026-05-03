@@ -314,7 +314,8 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
 
     func stopRun(
         session: CloudLinkedSession,
-        sessionId: String
+        sessionId: String,
+        runId: String?
     ) async throws -> AIChatStopRunResponse {
         let clientRequestId = UUID().uuidString.lowercased()
         let urlRequest = try self.makeJsonRequest(
@@ -323,6 +324,7 @@ final class AIChatService: AIChatSessionServicing, @unchecked Sendable {
             method: "POST",
             body: AIChatStopRunRequestBody(
                 sessionId: sessionId,
+                runId: aiChatNonEmptyRunId(runId: runId),
                 workspaceId: session.workspaceId
             ),
             clientRequestId: clientRequestId

@@ -174,7 +174,8 @@ protocol AIChatSessionServicing: Sendable {
 
     func stopRun(
         session: CloudLinkedSession,
-        sessionId: String
+        sessionId: String,
+        runId: String?
     ) async throws -> AIChatStopRunResponse
 }
 

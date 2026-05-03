@@ -225,6 +225,9 @@ internal class FakeAiChatRepository : AiChatRepository {
     val ensureSessionRequests: MutableList<String> = mutableListOf()
     val transcribeAudioWorkspaceIds: MutableList<String?> = mutableListOf()
     val transcribeAudioSessionIds: MutableList<String> = mutableListOf()
+    val stopRunWorkspaceIds: MutableList<String?> = mutableListOf()
+    val stopRunSessionIds: MutableList<String> = mutableListOf()
+    val stopRunIds: MutableList<String?> = mutableListOf()
     var nextEnsureSessionId: String = "ensured-session-1"
     var transcribeAudioResponse: AiChatTranscriptionResult = AiChatTranscriptionResult(
         text = "transcribed speech",
@@ -237,6 +240,7 @@ internal class FakeAiChatRepository : AiChatRepository {
     var startRunCalls: Int = 0
     var lastStartRunState: AiChatPersistedState? = null
     var lastStartRunUiLocale: String? = null
+    var stopRunResponse: AiChatStopRunResponse? = null
     var startRunResponse: AiChatStartRunResponse = AiChatAcceptedConversationEnvelope(
         accepted = true,
         sessionId = "session-1",
@@ -443,7 +447,14 @@ internal class FakeAiChatRepository : AiChatRepository {
         return liveFlows[runId] ?: emptyFlow()
     }
 
-    override suspend fun stopRun(workspaceId: String?, sessionId: String): AiChatStopRunResponse {
+    override suspend fun stopRun(workspaceId: String?, sessionId: String, runId: String?): AiChatStopRunResponse {
+        stopRunWorkspaceIds += workspaceId
+        stopRunSessionIds += sessionId
+        stopRunIds += runId
+        val configuredResponse: AiChatStopRunResponse? = stopRunResponse
+        if (configuredResponse != null) {
+            return configuredResponse
+        }
         return AiChatStopRunResponse(
             sessionId = sessionId,
             stopped = true,

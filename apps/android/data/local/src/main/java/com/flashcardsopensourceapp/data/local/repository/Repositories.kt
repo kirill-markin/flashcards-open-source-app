@@ -206,5 +206,5 @@ interface AiChatRepository {
         afterCursor: String?,
         resumeDiagnostics: AiChatResumeDiagnostics?
     ): Flow<AiChatLiveEvent>
-    suspend fun stopRun(workspaceId: String?, sessionId: String): AiChatStopRunResponse
+    suspend fun stopRun(workspaceId: String?, sessionId: String, runId: String?): AiChatStopRunResponse
 }
