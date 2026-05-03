@@ -132,12 +132,13 @@ extension AIChatStore {
     }
 
     func cancelStreaming() {
+        let stopRunId: String? = aiChatNonEmptyRunId(runId: self.activeRunId)
         self.activeSendTask?.cancel()
         self.activeSendTask = nil
         Task {
             await self.runtime.detach()
         }
-        self.transitionToStopping(runId: self.activeRunId)
+        self.transitionToStopping(runId: stopRunId)
         self.repairStatus = nil
         self.clearOptimisticAssistantStatusIfNeeded()
 
@@ -162,7 +163,16 @@ extension AIChatStore {
             }
             do {
                 let session = try await self.flashcardsStore.cloudSessionForAI()
-                let stopResponse = try await self.chatService.stopRun(session: session, sessionId: sessionId)
+                let stopResponse = try await self.chatService.stopRun(
+                    session: session,
+                    sessionId: sessionId,
+                    runId: stopRunId
+                )
+                if stopResponse.stopped == false {
+                    self.transitionToIdle()
+                    self.startLinkedBootstrap(forceReloadState: true, resumeAttemptDiagnostics: nil)
+                    return
+                }
                 if stopResponse.stopped, stopResponse.stillRunning == false {
                     self.finalizeStoppedAssistantMessageIfNeeded()
                     self.activeStreamingMessageId = nil

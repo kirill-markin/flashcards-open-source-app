@@ -656,7 +656,7 @@ describe("AI chat transport", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await getSession();
-    await expect(stopChatRun("session-1", "workspace-1")).resolves.toEqual({
+    await expect(stopChatRun("session-1", "workspace-1", null)).resolves.toEqual({
       sessionId: "session-1",
       stopped: true,
       stillRunning: false,
@@ -666,6 +666,27 @@ describe("AI chat transport", () => {
     expect(chatRequestInit?.body).toBe(JSON.stringify({
       sessionId: "session-1",
       workspaceId: "workspace-1",
+    }));
+  });
+
+  it("includes runId in POST /chat/stop requests when known", async () => {
+    const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
+      .mockResolvedValueOnce(createSessionResponse())
+      .mockResolvedValueOnce(createStopChatRunResponse());
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getSession();
+    await expect(stopChatRun("session-1", "workspace-1", "run-1")).resolves.toEqual({
+      sessionId: "session-1",
+      stopped: true,
+      stillRunning: false,
+    });
+
+    const chatRequestInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    expect(chatRequestInit?.body).toBe(JSON.stringify({
+      sessionId: "session-1",
+      workspaceId: "workspace-1",
+      runId: "run-1",
     }));
   });
 

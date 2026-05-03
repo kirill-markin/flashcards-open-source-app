@@ -14,6 +14,7 @@ import type { RequestContext } from "../../server/requestContext";
 const SESSION_ONE = "11111111-1111-4111-8111-111111111111";
 const SESSION_TWO = "22222222-2222-4222-8222-222222222222";
 const EXPLICIT_WORKSPACE_ID = "33333333-3333-4333-8333-333333333333";
+const RUN_ONE = "44444444-4444-4444-8444-444444444444";
 const LEGACY_WORKSPACE_ID = "workspace-legacy";
 
 function createRequestContext(): RequestContext {
@@ -1375,8 +1376,9 @@ test("POST /chat/stop uses an explicit workspaceId from JSON before the legacy s
       requestedWorkspaceIds.push(workspaceId);
       return SESSION_ONE;
     },
-    requestChatRunCancellationFn: async (_userId, workspaceId, sessionId) => {
+    requestChatRunCancellationFn: async (_userId, workspaceId, sessionId, expectedRunId) => {
       requestedWorkspaceIds.push(workspaceId);
+      assert.equal(expectedRunId, null);
       return {
         sessionId,
         runId: "run-stop-1",
@@ -1405,5 +1407,47 @@ test("POST /chat/stop uses an explicit workspaceId from JSON before the legacy s
     runId: "run-stop-1",
     stopped: true,
     stillRunning: false,
+  });
+});
+
+test("POST /chat/stop passes the expected runId when the client provides it", async () => {
+  let requestedRunId: string | null = null;
+  const app = createChatRoutes({
+    allowedOrigins: [],
+    loadRequestContextFromRequestFn: async () => ({
+      requestAuthInputs: {} as never,
+      requestContext: createRequestContext(),
+    }),
+    getChatSessionIdFn: async () => SESSION_ONE,
+    requestChatRunCancellationFn: async (_userId, _workspaceId, sessionId, expectedRunId) => {
+      requestedRunId = expectedRunId;
+      return {
+        sessionId,
+        runId: expectedRunId,
+        stopped: true,
+        stillRunning: true,
+      };
+    },
+  });
+
+  const response = await app.request("http://localhost/chat/stop", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sessionId: SESSION_ONE,
+      runId: RUN_ONE,
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(requestedRunId, RUN_ONE);
+  assert.deepEqual(await response.json(), {
+    sessionId: SESSION_ONE,
+    conversationScopeId: SESSION_ONE,
+    runId: RUN_ONE,
+    stopped: true,
+    stillRunning: true,
   });
 });

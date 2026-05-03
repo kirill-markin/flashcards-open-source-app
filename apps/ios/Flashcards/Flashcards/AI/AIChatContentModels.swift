@@ -10,6 +10,15 @@ func makeAIChatSessionId() -> String {
     UUID().uuidString.lowercased()
 }
 
+func aiChatNonEmptyRunId(runId: String?) -> String? {
+    guard let trimmedRunId: String = runId?.trimmingCharacters(in: .whitespacesAndNewlines),
+          trimmedRunId.isEmpty == false else {
+        return nil
+    }
+
+    return trimmedRunId
+}
+
 func aiChatResolvedSessionId(
     workspaceId: String?,
     sessionId: String

@@ -12,8 +12,11 @@ import {
   INTERRUPTED_TOOL_CALL_OUTPUT,
   listChatMessagesWithExecutor,
   updateChatItemWithExecutor,
+  updateChatSessionRunStateForActiveRunWithExecutor,
   updateChatSessionRunStateWithExecutor,
+  type ChatSessionRunState,
 } from "../store";
+import type { ChatComposerSuggestionInvalidationReason } from "../composerSuggestions";
 import { isChatRunHeartbeatStale } from "../workerLease";
 import {
   createChatRunStatusUpdateFromRow,
@@ -28,6 +31,35 @@ function findAssistantItem(
   assistantItemId: string,
 ): PersistedChatMessageItem | null {
   return messages.find((message) => message.itemId === assistantItemId) ?? null;
+}
+
+async function finalizeSessionRunStateForActiveRunWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  run: ChatRunRow,
+  runState: ChatSessionRunState,
+  invalidationReason: ChatComposerSuggestionInvalidationReason,
+): Promise<void> {
+  const updated = await updateChatSessionRunStateForActiveRunWithExecutor(
+    executor,
+    scope,
+    run.session_id,
+    runState,
+    null,
+    null,
+    run.run_id,
+  );
+
+  if (!updated) {
+    return;
+  }
+
+  await clearActiveChatComposerSuggestionGenerationWithExecutor(
+    executor,
+    scope,
+    run.session_id,
+    invalidationReason,
+  );
 }
 
 export async function finalizeCancelledRunWithExecutor(
@@ -58,18 +90,11 @@ export async function finalizeCancelledRunWithExecutor(
     }),
   );
 
-  await updateChatSessionRunStateWithExecutor(
+  await finalizeSessionRunStateForActiveRunWithExecutor(
     executor,
     scope,
-    run.session_id,
+    run,
     "idle",
-    null,
-    null,
-  );
-  await clearActiveChatComposerSuggestionGenerationWithExecutor(
-    executor,
-    scope,
-    run.session_id,
     "run_cancelled",
   );
 }
@@ -122,18 +147,11 @@ export async function finalizeInterruptedRunWithExecutor(
     }),
   );
 
-  await updateChatSessionRunStateWithExecutor(
+  await finalizeSessionRunStateForActiveRunWithExecutor(
     executor,
     scope,
-    run.session_id,
+    run,
     "interrupted",
-    null,
-    null,
-  );
-  await clearActiveChatComposerSuggestionGenerationWithExecutor(
-    executor,
-    scope,
-    run.session_id,
     "run_interrupted",
   );
 }

@@ -196,6 +196,8 @@ struct AIChatStopRunResponse: Decodable, Hashable, Sendable {
 
 struct AIChatStopRunRequestBody: Codable, Hashable, Sendable {
     let sessionId: String
+    // TODO: Remove optional runId and make it required after most users have updated to the latest version. This is a legacy path.
+    let runId: String?
     // Keep this additive field optional while older client and backend builds roll out independently.
     let workspaceId: String?
 }

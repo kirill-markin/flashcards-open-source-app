@@ -15,6 +15,7 @@ import {
   insertRequestedChatSessionRowWithExecutor,
   selectLatestChatSessionRowWithExecutor,
   selectRequestedChatSessionRowWithExecutor,
+  updateChatSessionStatusForActiveRunRowWithExecutor,
   updateChatSessionStatusRowWithExecutor,
   type ChatSessionRow,
 } from "./repository";
@@ -185,6 +186,27 @@ export const updateChatSessionRunStateWithExecutor = async (
     activeRunId,
     activeRunHeartbeatAt,
   );
+};
+
+export const updateChatSessionRunStateForActiveRunWithExecutor = async (
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+  runState: ChatSessionRunState,
+  activeRunId: string | null,
+  activeRunHeartbeatAt: Date | null,
+  expectedActiveRunId: string,
+): Promise<boolean> => {
+  const row = await updateChatSessionStatusForActiveRunRowWithExecutor(
+    executor,
+    scope,
+    sessionId,
+    runState,
+    activeRunId,
+    activeRunHeartbeatAt,
+    expectedActiveRunId,
+  );
+  return row !== null;
 };
 
 export const getChatSessionId = async (
