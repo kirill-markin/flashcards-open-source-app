@@ -46,6 +46,7 @@ export type ChatSessionSnapshotRuntimeRefs = Readonly<{
   currentWorkspaceIdRef: MutableRefObject<string | null>;
   currentSessionIdRef: MutableRefObject<string | null>;
   runStateRef: MutableRefObject<ChatSessionControllerState["runState"]>;
+  activeRunIdRef: MutableRefObject<string | null>;
   messagesRef: MutableRefObject<ChatHistoryState["messages"]>;
   chatConfigRef: MutableRefObject<ChatSessionControllerState["chatConfig"]>;
   lastSnapshotUpdatedAtRef: MutableRefObject<number | null>;
@@ -67,6 +68,7 @@ export type ChatSessionSnapshotSync = Readonly<{
   ) => Promise<ChatSessionSnapshot | null>;
   resetSnapshotTracking: (updatedAt: number | null) => void;
   runtimeRefs: ChatSessionSnapshotRuntimeRefs;
+  setKnownActiveRunId: (runId: string | null) => void;
   setKnownLiveCursor: (cursor: string | null) => void;
   startActiveRunLiveStream: (
     sessionId: string,
@@ -292,6 +294,7 @@ export function useChatSessionSnapshotSync(
   const currentWorkspaceIdRef = useRef<string | null>(workspaceId);
   const currentSessionIdRef = useRef<string | null>(state.currentSessionId);
   const runStateRef = useRef<ChatSessionControllerState["runState"]>(state.runState);
+  const activeRunIdRef = useRef<string | null>(null);
   const messagesRef = useRef<ChatHistoryState["messages"]>(messages);
   const chatConfigRef = useRef<ChatSessionControllerState["chatConfig"]>(state.chatConfig);
   const lastSnapshotUpdatedAtRef = useRef<number | null>(initialLastSnapshotUpdatedAt);
@@ -307,6 +310,7 @@ export function useChatSessionSnapshotSync(
     currentWorkspaceIdRef,
     currentSessionIdRef,
     runStateRef,
+    activeRunIdRef,
     messagesRef,
     chatConfigRef,
     lastSnapshotUpdatedAtRef,
@@ -346,12 +350,17 @@ export function useChatSessionSnapshotSync(
     liveCursorRef.current = cursor;
   }, []);
 
+  const setKnownActiveRunId = useCallback((runId: string | null): void => {
+    activeRunIdRef.current = runId;
+  }, []);
+
   const invalidatePendingSnapshotRequests = useCallback((): void => {
     snapshotRequestVersionRef.current += 1;
   }, []);
 
   const resetSnapshotTracking = useCallback((updatedAt: number | null): void => {
     lastSnapshotUpdatedAtRef.current = updatedAt;
+    activeRunIdRef.current = null;
     liveCursorRef.current = null;
   }, []);
 
@@ -488,6 +497,8 @@ export function useChatSessionSnapshotSync(
       return;
     }
 
+    setKnownActiveRunId(null);
+
     if (event.outcome === "reset_required") {
       reconcileTerminalSnapshotRef.current();
       return;
@@ -514,6 +525,7 @@ export function useChatSessionSnapshotSync(
     state.mainContentInvalidationVersion,
     triggerToolRunPostSyncIfNeeded,
     uiMessages,
+    setKnownActiveRunId,
     setKnownLiveCursor,
     upsertAssistantReasoningSummary,
     upsertAssistantToolCall,
@@ -688,6 +700,7 @@ export function useChatSessionSnapshotSync(
         );
       }
 
+      setKnownActiveRunId(snapshot.activeRun?.runId ?? null);
       dispatch({
         type: "snapshot_applied",
         sessionId: snapshot.sessionId,
@@ -748,6 +761,7 @@ export function useChatSessionSnapshotSync(
     replaceMessages,
     triggerToolRunPostSyncIfNeeded,
     uiMessages,
+    setKnownActiveRunId,
     setKnownLiveCursor,
     workspaceId,
   ]);
@@ -757,6 +771,7 @@ export function useChatSessionSnapshotSync(
     activeRun: ChatActiveRun,
     resumeAttemptId: number | null,
   ): void => {
+    setKnownActiveRunId(activeRun.runId);
     startLiveStream(
       sessionId,
       activeRun.runId,
@@ -764,7 +779,7 @@ export function useChatSessionSnapshotSync(
       activeRun.live.cursor,
       resumeAttemptId,
     );
-  }, [startLiveStream]);
+  }, [setKnownActiveRunId, startLiveStream]);
 
   const startSnapshotLiveStream = useCallback((
     snapshot: ChatSessionSnapshot,
@@ -838,6 +853,7 @@ export function useChatSessionSnapshotSync(
     loadAndApplySnapshot,
     resetSnapshotTracking,
     runtimeRefs,
+    setKnownActiveRunId,
     setKnownLiveCursor,
     startActiveRunLiveStream,
     startSnapshotLiveStream,

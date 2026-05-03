@@ -98,6 +98,24 @@ internal class AiChatLiveStreamCoordinator(
         context.persistCurrentState()
     }
 
+    fun reconcileConversationAfterStopNoop() {
+        context.activeLiveJob?.cancel(
+            cause = CancellationException("AI live attach cancelled because the stop response did not stop the active run.")
+        )
+        context.activeLiveJob = null
+        context.runtimeStateMutable.update { state ->
+            state.copy(
+                activeRun = null,
+                isLiveAttached = false,
+                composerPhase = AiComposerPhase.IDLE,
+                repairStatus = null,
+                errorMessage = ""
+            )
+        }
+        context.persistCurrentState()
+        restartConversationBootstrap(true, null)
+    }
+
     private fun attachLiveStream(
         workspaceId: String?,
         sessionId: String,

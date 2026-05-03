@@ -51,6 +51,7 @@ export {
   selectRequestedChatSessionWithExecutor,
   touchChatSessionHeartbeat,
   touchChatSessionHeartbeatWithExecutor,
+  updateChatSessionRunStateForActiveRunWithExecutor,
   updateChatSessionRunStateWithExecutor,
 } from "./store/sessionService";
 

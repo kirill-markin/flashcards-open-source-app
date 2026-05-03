@@ -141,6 +141,8 @@ type NewChatRequestBody = Readonly<{
 
 type StopChatRequestBody = Readonly<{
   sessionId: string;
+  // TODO: Remove optional runId and make it required after most users have updated to the latest version. This is a legacy path.
+  runId?: string;
   // Optional explicit routing during the workspaceId client migration. Older
   // released clients still rely on the server-side selected-workspace
   // fallback until every supported build sends workspaceId.
@@ -380,6 +382,9 @@ export function parseStopChatRequestBody(value: unknown): StopChatRequestBody {
 
   return {
     sessionId: expectUuidString(body.sessionId, "sessionId"),
+    runId: body.runId === undefined
+      ? undefined
+      : expectUuidString(body.runId, "runId"),
     workspaceId: parseOptionalWorkspaceIdField(body.workspaceId),
   };
 }
@@ -1050,6 +1055,7 @@ export function createChatRoutes(options: ChatRoutesOptions): Hono<AppEnv> {
       requestContext.userId,
       workspaceId,
       sessionId,
+      body.runId ?? null,
     );
 
     return context.json({

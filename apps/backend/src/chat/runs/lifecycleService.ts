@@ -540,75 +540,109 @@ export async function interruptPreparedChatRun(
 /**
  * Requests cancellation for the active run of a session and returns whether the run stopped immediately.
  */
+function createInactiveChatRunStopState(sessionId: string): ChatRunStopState {
+  return {
+    sessionId,
+    stopped: false,
+    stillRunning: false,
+    runId: null,
+  };
+}
+
+function createExpectedRunMismatchStopState(session: ChatSessionRow): ChatRunStopState {
+  if (session.active_run_id !== null && session.status === "running") {
+    return {
+      sessionId: session.session_id,
+      stopped: false,
+      stillRunning: true,
+      runId: session.active_run_id,
+    };
+  }
+
+  return createInactiveChatRunStopState(session.session_id);
+}
+
+export async function requestChatRunCancellationWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string,
+  expectedRunId: string | null,
+): Promise<ChatRunStopState> {
+  const session = await selectSessionForUpdateWithExecutor(executor, scope, sessionId);
+  if (session.active_run_id === null || session.status !== "running") {
+    return createInactiveChatRunStopState(sessionId);
+  }
+
+  if (expectedRunId !== null && session.active_run_id !== expectedRunId) {
+    return createExpectedRunMismatchStopState(session);
+  }
+
+  const run = await selectChatRunForUpdateWithExecutor(executor, scope, session.active_run_id);
+  if (run === null) {
+    await updateChatSessionRunStateWithExecutor(executor, scope, sessionId, "interrupted", null, null);
+    await clearActiveChatComposerSuggestionGenerationWithExecutor(
+      executor,
+      scope,
+      sessionId,
+      "run_interrupted",
+    );
+    return {
+      sessionId,
+      stopped: true,
+      stillRunning: false,
+      runId: session.active_run_id,
+    };
+  }
+
+  if (run.status === "queued") {
+    await finalizeCancelledRunWithExecutor(executor, scope, run);
+    return {
+      sessionId,
+      stopped: true,
+      stillRunning: false,
+      runId: run.run_id,
+    };
+  }
+
+  if (run.status !== "running") {
+    return {
+      sessionId,
+      stopped: false,
+      stillRunning: false,
+      runId: run.run_id,
+    };
+  }
+
+  await updateChatRunStatusWithExecutor(
+    executor,
+    scope,
+    createChatRunStatusUpdateFromRow(run, {
+      status: "running",
+      cancelRequestedAt: new Date(),
+      finishedAt: null,
+      lastErrorMessage: null,
+    }),
+  );
+
+  return {
+    sessionId,
+    stopped: true,
+    stillRunning: true,
+    runId: run.run_id,
+  };
+}
+
 export async function requestChatRunCancellation(
   userId: string,
   workspaceId: string,
   sessionId: string,
+  expectedRunId: string | null,
 ): Promise<ChatRunStopState> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
-    const scope = { userId, workspaceId };
-    const session = await selectSessionForUpdateWithExecutor(executor, scope, sessionId);
-    if (session.active_run_id === null || session.status !== "running") {
-      return {
-        sessionId,
-        stopped: false,
-        stillRunning: false,
-        runId: null,
-      };
-    }
-
-    const run = await selectChatRunForUpdateWithExecutor(executor, scope, session.active_run_id);
-    if (run === null) {
-      await updateChatSessionRunStateWithExecutor(executor, scope, sessionId, "interrupted", null, null);
-      await clearActiveChatComposerSuggestionGenerationWithExecutor(
-        executor,
-        scope,
-        sessionId,
-        "run_interrupted",
-      );
-      return {
-        sessionId,
-        stopped: true,
-        stillRunning: false,
-        runId: session.active_run_id,
-      };
-    }
-
-    if (run.status === "queued") {
-      await finalizeCancelledRunWithExecutor(executor, scope, run);
-      return {
-        sessionId,
-        stopped: true,
-        stillRunning: false,
-        runId: run.run_id,
-      };
-    }
-
-    if (run.status !== "running") {
-      return {
-        sessionId,
-        stopped: false,
-        stillRunning: false,
-        runId: run.run_id,
-      };
-    }
-
-    await updateChatRunStatusWithExecutor(
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
+    requestChatRunCancellationWithExecutor(
       executor,
-      scope,
-      createChatRunStatusUpdateFromRow(run, {
-        status: "running",
-        cancelRequestedAt: new Date(),
-        finishedAt: null,
-        lastErrorMessage: null,
-      }),
-    );
-
-    return {
+      { userId, workspaceId },
       sessionId,
-      stopped: true,
-      stillRunning: true,
-      runId: run.run_id,
-    };
-  });
+      expectedRunId,
+    ));
 }

@@ -306,6 +306,13 @@ data class AiChatNewSessionRequest(
     val uiLocale: String?,
 )
 
+data class AiChatStopRunRequest(
+    val sessionId: String,
+    val workspaceId: String?,
+    // TODO: Remove optional runId and make it required after most users have updated to the latest version. This is a legacy path.
+    val runId: String?,
+)
+
 data class AiToolCallRequest(
     val toolCallId: String,
     val name: String,
