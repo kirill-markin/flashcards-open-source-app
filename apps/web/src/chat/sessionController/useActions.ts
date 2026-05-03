@@ -80,6 +80,7 @@ export function useChatSessionActions(
     reconcileTerminalSnapshot,
     resetSnapshotTracking,
     runtimeRefs,
+    setKnownActiveRunId,
     setKnownLiveCursor,
     startActiveRunLiveStream,
   } = snapshotSync;
@@ -438,6 +439,7 @@ export function useChatSessionActions(
         chatConfig: response.chatConfig,
       });
       storeChatConfig(response.chatConfig);
+      setKnownActiveRunId(response.activeRun?.runId ?? null);
       setKnownLiveCursor(response.activeRun?.live.cursor ?? null);
       if (response.activeRun === null) {
         reconcileTerminalSnapshot();
@@ -478,6 +480,7 @@ export function useChatSessionActions(
     markRunHadToolCallsFromSnapshot,
     reconcileTerminalSnapshot,
     runtimeRefs,
+    setKnownActiveRunId,
     setKnownLiveCursor,
     startActiveRunLiveStream,
     startAssistantMessage,
@@ -497,12 +500,23 @@ export function useChatSessionActions(
     }
 
     dispatch({ type: "stop_requested" });
+    const activeRunId = runtimeRefs.activeRunIdRef.current;
     try {
       if (workspaceId === null) {
         throw createRemoteSessionProvisioningError(uiMessages.workspaceRequired);
       }
 
-      const response = await stopChatRun(state.currentSessionId, workspaceId);
+      const response = await stopChatRun(state.currentSessionId, workspaceId, activeRunId);
+      if (response.stopped === false) {
+        setKnownActiveRunId(null);
+        reconcileTerminalSnapshot();
+        dispatch({
+          type: "stop_finished",
+          runState: response.stillRunning ? "running" : "idle",
+        });
+        return;
+      }
+
       if (response.stopped && response.stillRunning === false && hasActiveLiveConnection() === false) {
         reconcileTerminalSnapshot();
         dispatch({
@@ -529,10 +543,13 @@ export function useChatSessionActions(
     hasActiveLiveConnection,
     reconcileTerminalSnapshot,
     runtimeRefs.runStateRef,
+    runtimeRefs.activeRunIdRef,
+    setKnownActiveRunId,
     state.currentSessionId,
     state.isStopping,
     state.runState,
     uiMessages,
+    workspaceId,
   ]);
 
   const clearConversation = useCallback(async (): Promise<string | null> => {

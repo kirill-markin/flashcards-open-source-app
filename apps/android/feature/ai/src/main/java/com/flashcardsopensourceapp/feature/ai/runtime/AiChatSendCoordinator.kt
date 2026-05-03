@@ -174,12 +174,14 @@ internal class AiChatSendCoordinator(
     }
 
     fun stopStreaming() {
-        if (context.runtimeStateMutable.value.composerPhase != AiComposerPhase.RUNNING) {
+        val currentState: AiChatRuntimeState = context.runtimeStateMutable.value
+        if (currentState.composerPhase != AiComposerPhase.RUNNING) {
             return
         }
 
-        val sessionId = context.runtimeStateMutable.value.persistedState.chatSessionId
-        val workspaceId = context.runtimeStateMutable.value.workspaceId
+        val sessionId: String = currentState.persistedState.chatSessionId
+        val workspaceId: String? = currentState.workspaceId
+        val runId: String? = currentState.activeRun?.runId?.ifBlank { null }
 
         context.runtimeStateMutable.update { state ->
             state.copy(
@@ -196,8 +198,13 @@ internal class AiChatSendCoordinator(
                 if (sessionId.isNotBlank()) {
                     val response = context.aiChatRepository.stopRun(
                         workspaceId = workspaceId,
-                        sessionId = sessionId
+                        sessionId = sessionId,
+                        runId = runId
                     )
+                    if (response.stopped.not()) {
+                        liveStreamCoordinator.reconcileConversationAfterStopNoop()
+                        return@launch
+                    }
                     if (response.stopped && response.stillRunning.not()) {
                         liveStreamCoordinator.finalizeStoppedConversation()
                         return@launch
