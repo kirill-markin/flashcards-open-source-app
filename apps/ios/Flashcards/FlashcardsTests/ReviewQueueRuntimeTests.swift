@@ -21,6 +21,7 @@ final class ReviewQueueRuntimeTests: XCTestCase {
         )
         let publishedState = makePublishedState(
             reviewQueue: [newlyDueHead, displayedCurrent, trailingCard],
+            reviewQueueCanonicalCount: 3,
             presentedCardId: displayedCurrent.cardId,
             pendingReviewCardIds: []
         )
@@ -50,6 +51,7 @@ final class ReviewQueueRuntimeTests: XCTestCase {
         )
         let currentState = makePublishedState(
             reviewQueue: [previousHead, displayedCurrent],
+            reviewQueueCanonicalCount: 2,
             presentedCardId: displayedCurrent.cardId,
             pendingReviewCardIds: []
         )
@@ -64,6 +66,7 @@ final class ReviewQueueRuntimeTests: XCTestCase {
             selectedReviewFilter: reviewHeadState.resolvedReviewFilter,
             reviewCounts: ReviewCounts(dueCount: 3, totalCount: 3),
             reviewQueue: reviewHeadState.seedReviewQueue,
+            reviewQueueCanonicalCount: reviewHeadState.seedReviewQueue.count,
             hasMoreCards: reviewHeadState.hasMoreCards
         )
 
@@ -93,6 +96,7 @@ final class ReviewQueueRuntimeTests: XCTestCase {
         )
         let currentState = makePublishedState(
             reviewQueue: [seedHead, secondSeedCard, preservedTailCard],
+            reviewQueueCanonicalCount: 2,
             presentedCardId: seedHead.cardId,
             pendingReviewCardIds: []
         )
@@ -107,6 +111,7 @@ final class ReviewQueueRuntimeTests: XCTestCase {
             selectedReviewFilter: reviewHeadState.resolvedReviewFilter,
             reviewCounts: ReviewCounts(dueCount: 3, totalCount: 3),
             reviewQueue: currentState.reviewQueue,
+            reviewQueueCanonicalCount: reviewHeadState.seedReviewQueue.count,
             hasMoreCards: reviewHeadState.hasMoreCards
         )
         let request = runtime.makeReviewQueueChunkLoadRequestIfNeeded(
@@ -123,6 +128,69 @@ final class ReviewQueueRuntimeTests: XCTestCase {
         )
     }
 
+    func testReviewQueueChunkLoadInsertsChunkBeforePreservedTail() throws {
+        var runtime = makeRuntime()
+        let canonicalHead = makeCard(
+            cardId: "canonical-head",
+            dueAt: "2026-03-09T07:30:00.000Z",
+            updatedAt: "2026-03-09T07:00:00.000Z"
+        )
+        let canonicalSecond = makeCard(
+            cardId: "canonical-second",
+            dueAt: "2026-03-09T08:00:00.000Z",
+            updatedAt: "2026-03-09T08:00:00.000Z"
+        )
+        let preservedTailCard = makeCard(
+            cardId: "preserved-tail-card",
+            dueAt: nil,
+            updatedAt: "2026-03-09T09:00:00.000Z"
+        )
+        let chunkHead = makeCard(
+            cardId: "chunk-head",
+            dueAt: nil,
+            updatedAt: "2026-03-09T09:01:00.000Z"
+        )
+        let chunkSecond = makeCard(
+            cardId: "chunk-second",
+            dueAt: nil,
+            updatedAt: "2026-03-09T09:02:00.000Z"
+        )
+        let currentState = makePublishedState(
+            reviewQueue: [canonicalHead, canonicalSecond, preservedTailCard],
+            reviewQueueCanonicalCount: 2,
+            presentedCardId: preservedTailCard.cardId,
+            pendingReviewCardIds: []
+        )
+        let loadingState = runtime.markReviewQueueChunkLoading(
+            publishedState: currentState,
+            requestId: "chunk-1"
+        )
+
+        let nextState = try XCTUnwrap(runtime.applyReviewQueueChunkLoadSuccess(
+            publishedState: loadingState,
+            queueChunkLoadState: ReviewQueueChunkLoadState(
+                reviewQueueChunk: [chunkHead, chunkSecond],
+                hasMoreCards: false
+            ),
+            requestId: "chunk-1",
+            sourceVersion: 0
+        ))
+
+        XCTAssertEqual(
+            nextState.reviewQueue.map(\.cardId),
+            [
+                canonicalHead.cardId,
+                canonicalSecond.cardId,
+                chunkHead.cardId,
+                chunkSecond.cardId,
+                preservedTailCard.cardId
+            ]
+        )
+        XCTAssertEqual(nextState.reviewQueueCanonicalCount, 4)
+        XCTAssertEqual(nextState.presentedCardId, preservedTailCard.cardId)
+        XCTAssertEqual(runtime.effectiveReviewQueue(publishedState: nextState).first?.cardId, preservedTailCard.cardId)
+    }
+
     func testEnqueueReviewSubmissionAdvancesPresentedCardToNextVisibleCard() throws {
         var runtime = makeRuntime()
         let currentCard = makeCard(
@@ -137,6 +205,7 @@ final class ReviewQueueRuntimeTests: XCTestCase {
         )
         let publishedState = makePublishedState(
             reviewQueue: [currentCard, nextCard],
+            reviewQueueCanonicalCount: 2,
             presentedCardId: currentCard.cardId,
             pendingReviewCardIds: []
         )
@@ -166,6 +235,7 @@ final class ReviewQueueRuntimeTests: XCTestCase {
         )
         let publishedState = makePublishedState(
             reviewQueue: [currentCard, nextCard],
+            reviewQueueCanonicalCount: 2,
             presentedCardId: nextCard.cardId,
             pendingReviewCardIds: [currentCard.cardId]
         )
@@ -201,12 +271,14 @@ private func makeRuntime() -> ReviewQueueRuntime {
 
 private func makePublishedState(
     reviewQueue: [Card],
+    reviewQueueCanonicalCount: Int,
     presentedCardId: String?,
     pendingReviewCardIds: Set<String>
 ) -> ReviewQueuePublishedState {
     ReviewQueuePublishedState(
         selectedReviewFilter: .allCards,
         reviewQueue: reviewQueue,
+        reviewQueueCanonicalCount: reviewQueueCanonicalCount,
         presentedCardId: presentedCardId,
         reviewCounts: ReviewCounts(dueCount: reviewQueue.count, totalCount: reviewQueue.count),
         isReviewHeadLoading: false,
