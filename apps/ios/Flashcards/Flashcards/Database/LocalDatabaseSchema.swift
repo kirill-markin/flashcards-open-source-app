@@ -1,7 +1,7 @@
 import Foundation
 
 enum LocalDatabaseSchema {
-    static let currentVersion: Int = 12
+    static let currentVersion: Int = 13
 
     static var baseMigrationSQL: String {
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
@@ -38,7 +38,8 @@ enum LocalDatabaseSchema {
             back_text TEXT NOT NULL, -- answer shown after reveal
             tags_json TEXT NOT NULL, -- JSON-encoded tag list used by local filtering and sync payload generation
             effort_level TEXT NOT NULL CHECK (effort_level IN ('fast', 'medium', 'long')), -- effort classification mirrored from the backend card row
-            due_at TEXT, -- next scheduled review timestamp; NULL for cards that have never been scheduled
+            due_at TEXT, -- TODO: remove after sync and UI no longer need the raw dueAt wire value
+            due_at_millis INTEGER, -- strict UTC epoch-millisecond key used by local review scheduling; NULL for new or malformed due_at
             created_at TEXT NOT NULL, -- original card creation timestamp that must survive later edits, reviews, deletes, and sync merges
             reps INTEGER NOT NULL CHECK (reps >= 0), -- denormalized total successful review count cached on the row
             lapses INTEGER NOT NULL CHECK (lapses >= 0), -- denormalized lapse count cached on the row
@@ -128,13 +129,13 @@ enum LocalDatabaseSchema {
         CREATE INDEX IF NOT EXISTS idx_cards_workspace_updated_at
             ON cards(workspace_id, updated_at DESC, card_id ASC);
 
-        CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_active
-            ON cards(workspace_id, due_at)
-            WHERE deleted_at IS NULL;
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_millis_active
+            ON cards(workspace_id, due_at_millis, created_at DESC, card_id ASC)
+            WHERE deleted_at IS NULL AND due_at_millis IS NOT NULL;
 
-        CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_created_active
-            ON cards(workspace_id, due_at, created_at DESC, card_id ASC)
-            WHERE deleted_at IS NULL;
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_new_due_active
+            ON cards(workspace_id, created_at DESC, card_id ASC)
+            WHERE deleted_at IS NULL AND due_at IS NULL;
 
         CREATE INDEX IF NOT EXISTS idx_cards_workspace_effort_created_active
             ON cards(workspace_id, effort_level, created_at DESC, card_id ASC)

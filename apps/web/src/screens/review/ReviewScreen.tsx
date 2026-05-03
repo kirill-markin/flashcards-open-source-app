@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { useAppData, useReviewProgressBadge } from "../../appData";
 import { ALL_CARDS_REVIEW_FILTER, currentReviewCard, isCardDue } from "../../appData/domain";
+import { parseDueAtMillis } from "../../appData/dueAt";
 import { useI18n } from "../../i18n";
 import type { Card, WorkspaceSchedulerSettings } from "../../types";
 import { computeReviewSchedule, type ReviewRating } from "../../../../backend/src/schedule";
@@ -192,7 +193,8 @@ function isReviewLoadingPreviewDue(dueAt: string | null, nowTimestamp: number): 
     return true;
   }
 
-  return new Date(dueAt).getTime() <= nowTimestamp;
+  const dueAtMillis = parseDueAtMillis(dueAt);
+  return dueAtMillis !== null && dueAtMillis <= nowTimestamp;
 }
 
 function reviewMarkdownClassName(tagName: string): string {

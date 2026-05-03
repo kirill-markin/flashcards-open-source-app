@@ -188,7 +188,7 @@ extension CardStore {
             FROM cards
             WHERE workspace_id = ? AND deleted_at IS NULL\(querySQL.clause)
             """,
-            values: [.text(formatIsoTimestamp(date: now)), .text(workspaceId)] + querySQL.values
+            values: [.integer(epochMillis(date: now)), .text(workspaceId)] + querySQL.values
         ) { statement in
             ReviewCounts(
                 dueCount: Int(DatabaseCore.columnInt64(statement: statement, index: 1)),
@@ -296,8 +296,8 @@ extension CardStore {
         precondition(offset >= 0, "Review timeline page offset must not be negative")
 
         let querySQL = try self.makeReviewQuerySQL(reviewQueryDefinition: reviewQueryDefinition)
-        let nowText = formatIsoTimestamp(date: now)
-        let cutoffText = formatIsoTimestamp(date: now.addingTimeInterval(-recentDuePriorityWindow))
+        let nowMillis = epochMillis(date: now)
+        let cutoffMillis = epochMillis(date: now.addingTimeInterval(-recentDuePriorityWindow))
         let pageRows = try self.core.query(
             sql: """
             SELECT
@@ -307,23 +307,20 @@ extension CardStore {
             ORDER BY
                 CASE
                     WHEN due_at IS NULL THEN 2
-                    WHEN NOT \(cardStoreSupportedIsoDueAtSQL) THEN 4
-                    WHEN \(cardStoreDueAtSortKeySQL) >= ? AND \(cardStoreDueAtSortKeySQL) <= ? THEN 0
-                    WHEN \(cardStoreDueAtSortKeySQL) < ? THEN 1
+                    WHEN due_at_millis IS NULL THEN 4
+                    WHEN due_at_millis >= ? AND due_at_millis <= ? THEN 0
+                    WHEN due_at_millis < ? THEN 1
                     ELSE 3
                 END ASC,
-                CASE
-                    WHEN \(cardStoreSupportedIsoDueAtSQL) THEN \(cardStoreDueAtSortKeySQL)
-                    ELSE NULL
-                END ASC,
+                due_at_millis ASC,
                 created_at DESC,
                 card_id ASC
             LIMIT ? OFFSET ?
             """,
             values: [.text(workspaceId)] + querySQL.values + [
-                .text(cutoffText),
-                .text(nowText),
-                .text(cutoffText),
+                .integer(cutoffMillis),
+                .integer(nowMillis),
+                .integer(cutoffMillis),
                 .integer(Int64(limit + 1)),
                 .integer(Int64(offset))
             ]
@@ -415,7 +412,7 @@ extension CardStore {
                 COALESCE(
                     SUM(
                         CASE
-                            WHEN due_at IS NULL OR due_at <= ? THEN 1
+                            WHEN \(cardStoreActiveReviewDueEligibilitySQL) THEN 1
                             ELSE 0
                         END
                     ),
@@ -442,7 +439,7 @@ extension CardStore {
             FROM cards
             WHERE workspace_id = ? AND deleted_at IS NULL\(querySQL.clause)
             """,
-            values: [.text(formatIsoTimestamp(date: now)), .text(workspaceId)] + querySQL.values
+            values: [.integer(epochMillis(date: now)), .text(workspaceId)] + querySQL.values
         ) { statement in
             DeckCardStats(
                 totalCards: Int(DatabaseCore.columnInt64(statement: statement, index: 0)),
@@ -472,7 +469,7 @@ extension CardStore {
                 COALESCE(
                     SUM(
                         CASE
-                            WHEN due_at IS NULL OR due_at <= ? THEN 1
+                            WHEN \(cardStoreActiveReviewDueEligibilitySQL) THEN 1
                             ELSE 0
                         END
                     ),
@@ -499,7 +496,7 @@ extension CardStore {
             FROM cards
             WHERE workspace_id = ? AND deleted_at IS NULL
             """,
-            values: [.text(formatIsoTimestamp(date: now)), .text(workspaceId)]
+            values: [.integer(epochMillis(date: now)), .text(workspaceId)]
         ) { statement in
             WorkspaceOverviewSnapshot(
                 workspaceName: workspaceName,

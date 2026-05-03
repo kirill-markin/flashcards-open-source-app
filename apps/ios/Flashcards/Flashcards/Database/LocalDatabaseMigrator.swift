@@ -1,5 +1,10 @@
 import Foundation
 
+private struct DueAtMillisMigrationRow {
+    let cardId: String
+    let dueAt: String
+}
+
 struct LocalDatabaseMigrator {
     let core: DatabaseCore
 
@@ -45,6 +50,9 @@ struct LocalDatabaseMigrator {
             case 11:
                 try self.migrateSchemaVersion11To12()
                 schemaVersion = 12
+            case 12:
+                try self.migrateSchemaVersion12To13()
+                schemaVersion = 13
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -407,6 +415,76 @@ struct LocalDatabaseMigrator {
     private func migrateSchemaVersion11To12() throws {
         try self.core.execute(
             sql: "CREATE INDEX IF NOT EXISTS idx_review_events_reviewed_at_client ON review_events(reviewed_at_client)",
+            values: []
+        )
+    }
+
+    private func migrateSchemaVersion12To13() throws {
+        if try self.core.columnExists(tableName: "cards", columnName: "due_at_millis") == false {
+            try self.core.execute(
+                sql: """
+                ALTER TABLE cards
+                ADD COLUMN due_at_millis INTEGER
+                """,
+                values: []
+            )
+        }
+
+        try self.populateDueAtMillisFromDueAtText()
+        try self.core.execute(sql: "DROP INDEX IF EXISTS idx_cards_workspace_due_active", values: [])
+        try self.core.execute(sql: "DROP INDEX IF EXISTS idx_cards_workspace_due_created_active", values: [])
+        try self.createDueAtMillisIndexes()
+    }
+
+    private func populateDueAtMillisFromDueAtText() throws {
+        let rows = try self.core.query(
+            sql: """
+            SELECT card_id, due_at
+            FROM cards
+            WHERE due_at IS NOT NULL AND due_at_millis IS NULL
+            """,
+            values: []
+        ) { statement in
+            DueAtMillisMigrationRow(
+                cardId: DatabaseCore.columnText(statement: statement, index: 0),
+                dueAt: DatabaseCore.columnText(statement: statement, index: 1)
+            )
+        }
+
+        for row in rows {
+            guard let dueAtMillis = parseStrictIsoTimestampEpochMillis(value: row.dueAt) else {
+                continue
+            }
+
+            try self.core.execute(
+                sql: """
+                UPDATE cards
+                SET due_at_millis = ?
+                WHERE card_id = ?
+                """,
+                values: [
+                    .integer(dueAtMillis),
+                    .text(row.cardId)
+                ]
+            )
+        }
+    }
+
+    private func createDueAtMillisIndexes() throws {
+        try self.core.execute(
+            sql: """
+            CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_millis_active
+                ON cards(workspace_id, due_at_millis, created_at DESC, card_id ASC)
+                WHERE deleted_at IS NULL AND due_at_millis IS NOT NULL
+            """,
+            values: []
+        )
+        try self.core.execute(
+            sql: """
+            CREATE INDEX IF NOT EXISTS idx_cards_workspace_new_due_active
+                ON cards(workspace_id, created_at DESC, card_id ASC)
+                WHERE deleted_at IS NULL AND due_at IS NULL
+            """,
             values: []
         )
     }

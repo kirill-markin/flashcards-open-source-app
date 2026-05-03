@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type ReactElement } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAppData } from "../../../../appData";
-import { ALL_CARDS_REVIEW_FILTER } from "../../../../appData/domain";
+import { ALL_CARDS_REVIEW_FILTER, isCardDue } from "../../../../appData/domain";
 import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
 import { buildSettingsDeckEditRoute, reviewRoute, settingsDecksRoute } from "../../../../routes";
@@ -41,6 +41,7 @@ export function DeckDetailScreen(): ReactElement {
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   const currentDeckId = deckId ?? "";
+  const nowTimestamp = Date.now();
 
   const loadScreenData = useCallback(async function loadScreenData(): Promise<void> {
     if (deckId === undefined) {
@@ -204,7 +205,7 @@ export function DeckDetailScreen(): ReactElement {
                 </div>
                 <div className="content-card deck-detail-stat-card">
                   <span className="deck-detail-stat-label">{t("deckDetail.rules.due")}</span>
-                  <span className="deck-detail-stat-value">{formatNumber(detailState.cards.filter((card) => card.dueAt === null || new Date(card.dueAt).getTime() <= Date.now()).length)}</span>
+                  <span className="deck-detail-stat-value">{formatNumber(detailState.cards.filter((card) => isCardDue(card, nowTimestamp)).length)}</span>
                 </div>
                 <div className="content-card deck-detail-stat-card">
                   <span className="deck-detail-stat-label">{t("deckDetail.rules.new")}</span>
