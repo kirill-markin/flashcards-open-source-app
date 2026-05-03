@@ -3,6 +3,11 @@ import SQLite3
 import XCTest
 @testable import Flashcards
 
+private struct DueAtMillisMigrationTestRow {
+    let cardId: String
+    let dueAtMillis: Int64?
+}
+
 final class LocalDatabaseLifecycleTests: XCTestCase {
     private var databaseURL: URL?
     private var database: LocalDatabase?
@@ -28,6 +33,21 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
                 database: database,
                 tableName: "review_events",
                 indexName: "idx_review_events_reviewed_at_client"
+            )
+        )
+        XCTAssertTrue(try self.hasColumn(database: database, tableName: "cards", columnName: "due_at_millis"))
+        XCTAssertTrue(
+            try self.hasIndex(
+                database: database,
+                tableName: "cards",
+                indexName: "idx_cards_workspace_due_millis_active"
+            )
+        )
+        XCTAssertTrue(
+            try self.hasIndex(
+                database: database,
+                tableName: "cards",
+                indexName: "idx_cards_workspace_new_due_active"
             )
         )
         XCTAssertEqual(1, try self.countRows(database: database, tableName: "app_local_settings"))
@@ -154,6 +174,88 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
         )
     }
 
+    func testSchemaVersion12MigrationBackfillsStrictDueAtMillis() throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        try self.insertMigrationCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "canonical-valid",
+            dueAt: "2026-03-09T08:59:00.000Z",
+            createdAt: "2026-03-09T08:00:00.000Z"
+        )
+        try self.insertMigrationCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "noncanonical-valid",
+            dueAt: "2026-03-09T07:30:00Z",
+            createdAt: "2026-03-09T07:00:00.000Z"
+        )
+        try self.insertMigrationCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "invalid-calendar-day",
+            dueAt: "2026-02-31T08:59:00.000Z",
+            createdAt: "2026-03-09T10:00:00.000Z"
+        )
+        try self.insertMigrationCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "malformed-number",
+            dueAt: "1000",
+            createdAt: "2026-03-09T11:00:00.000Z"
+        )
+        try self.insertMigrationCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "new-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T12:00:00.000Z"
+        )
+        try database.close()
+        self.database = nil
+
+        try self.prepareSchemaVersion12Database(databaseURL: try XCTUnwrap(self.databaseURL))
+
+        let migratedDatabase = try LocalDatabase(databaseURL: try XCTUnwrap(self.databaseURL))
+        self.database = migratedDatabase
+        let now = try XCTUnwrap(parseStrictIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+        let rows = try self.loadDueAtMillisRows(database: migratedDatabase)
+        let rowsByCardId = Dictionary(uniqueKeysWithValues: rows.map { row in
+            (row.cardId, row.dueAtMillis)
+        })
+        let canonicalMillis = try XCTUnwrap(rowsByCardId["canonical-valid"] ?? nil)
+        let noncanonicalMillis = try XCTUnwrap(rowsByCardId["noncanonical-valid"] ?? nil)
+        let reviewHead = try migratedDatabase.loadReviewHead(
+            workspaceId: workspace.workspaceId,
+            resolvedReviewFilter: .allCards,
+            reviewQueryDefinition: .allCards,
+            now: now,
+            limit: 10
+        )
+        let reviewCounts = try migratedDatabase.loadReviewCounts(
+            workspaceId: workspace.workspaceId,
+            reviewQueryDefinition: .allCards,
+            now: now
+        )
+
+        XCTAssertEqual(LocalDatabaseSchema.currentVersion, try self.loadSchemaVersion(database: migratedDatabase))
+        XCTAssertTrue(try self.hasColumn(database: migratedDatabase, tableName: "cards", columnName: "due_at_millis"))
+        XCTAssertEqual(
+            canonicalMillis,
+            try XCTUnwrap(parseStrictIsoTimestampEpochMillis(value: "2026-03-09T08:59:00.000Z"))
+        )
+        XCTAssertEqual(
+            noncanonicalMillis,
+            try XCTUnwrap(parseStrictIsoTimestampEpochMillis(value: "2026-03-09T07:30:00Z"))
+        )
+        XCTAssertNil(rowsByCardId["invalid-calendar-day"] ?? nil)
+        XCTAssertNil(rowsByCardId["malformed-number"] ?? nil)
+        XCTAssertNil(rowsByCardId["new-card"] ?? nil)
+        XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["canonical-valid", "noncanonical-valid", "new-card"])
+        XCTAssertEqual(reviewCounts, ReviewCounts(dueCount: 3, totalCount: 5))
+    }
+
     private func makeDatabase() throws -> LocalDatabase {
         let databaseURL = try self.makeDatabaseURL()
         let database = try LocalDatabase(databaseURL: databaseURL)
@@ -202,6 +304,82 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
         return indexNames.contains(indexName)
     }
 
+    private func hasColumn(database: LocalDatabase, tableName: String, columnName: String) throws -> Bool {
+        try database.core.columnExists(tableName: tableName, columnName: columnName)
+    }
+
+    private func loadDueAtMillisRows(database: LocalDatabase) throws -> [DueAtMillisMigrationTestRow] {
+        try database.core.query(
+            sql: """
+            SELECT card_id, due_at_millis
+            FROM cards
+            ORDER BY card_id ASC
+            """,
+            values: []
+        ) { statement in
+            let dueAtMillis: Int64?
+            if sqlite3_column_type(statement, 1) == SQLITE_NULL {
+                dueAtMillis = nil
+            } else {
+                dueAtMillis = DatabaseCore.columnInt64(statement: statement, index: 1)
+            }
+            return DueAtMillisMigrationTestRow(
+                cardId: DatabaseCore.columnText(statement: statement, index: 0),
+                dueAtMillis: dueAtMillis
+            )
+        }
+    }
+
+    private func insertMigrationCard(
+        database: LocalDatabase,
+        workspaceId: String,
+        cardId: String,
+        dueAt: String?,
+        createdAt: String
+    ) throws {
+        try database.core.execute(
+            sql: """
+            INSERT INTO cards (
+                card_id,
+                workspace_id,
+                front_text,
+                back_text,
+                tags_json,
+                effort_level,
+                due_at,
+                due_at_millis,
+                created_at,
+                reps,
+                lapses,
+                fsrs_card_state,
+                fsrs_step_index,
+                fsrs_stability,
+                fsrs_difficulty,
+                fsrs_last_reviewed_at,
+                fsrs_scheduled_days,
+                client_updated_at,
+                last_modified_by_replica_id,
+                last_operation_id,
+                updated_at,
+                deleted_at
+            )
+            VALUES (?, ?, ?, ?, '[]', 'fast', ?, ?, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, ?, 'test-replica', ?, ?, NULL)
+            """,
+            values: [
+                .text(cardId),
+                .text(workspaceId),
+                .text("Front \(cardId)"),
+                .text("Back \(cardId)"),
+                dueAt.map(SQLiteValue.text) ?? .null,
+                dueAt.flatMap(parseStrictIsoTimestampEpochMillis).map(SQLiteValue.integer) ?? .null,
+                .text(createdAt),
+                .text(createdAt),
+                .text("operation-\(cardId)"),
+                .text(createdAt)
+            ]
+        )
+    }
+
     private func prepareSchemaVersion11Database(databaseURL: URL) throws {
         var connection: OpaquePointer?
         let openResult = sqlite3_open_v2(
@@ -226,6 +404,113 @@ final class LocalDatabaseLifecycleTests: XCTestCase {
         guard execResult == SQLITE_OK else {
             let message = String(cString: sqlite3_errmsg(connection))
             throw LocalStoreError.database("Failed to prepare schema v11 fixture: \(message)")
+        }
+    }
+
+    private func prepareSchemaVersion12Database(databaseURL: URL) throws {
+        var connection: OpaquePointer?
+        let openResult = sqlite3_open_v2(
+            databaseURL.path,
+            &connection,
+            SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX,
+            nil
+        )
+        guard openResult == SQLITE_OK, let connection else {
+            throw LocalStoreError.database("Failed to open schema v12 test database")
+        }
+        defer {
+            sqlite3_close_v2(connection)
+        }
+
+        let downgradeSQL = """
+        PRAGMA legacy_alter_table = ON;
+        DROP INDEX IF EXISTS idx_cards_workspace_due_millis_active;
+        DROP INDEX IF EXISTS idx_cards_workspace_new_due_active;
+        ALTER TABLE cards RENAME TO cards_v13;
+        CREATE TABLE cards (
+            card_id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(workspace_id) ON DELETE CASCADE,
+            front_text TEXT NOT NULL,
+            back_text TEXT NOT NULL,
+            tags_json TEXT NOT NULL,
+            effort_level TEXT NOT NULL CHECK (effort_level IN ('fast', 'medium', 'long')),
+            due_at TEXT,
+            created_at TEXT NOT NULL,
+            reps INTEGER NOT NULL CHECK (reps >= 0),
+            lapses INTEGER NOT NULL CHECK (lapses >= 0),
+            fsrs_card_state TEXT NOT NULL CHECK (fsrs_card_state IN ('new', 'learning', 'review', 'relearning')),
+            fsrs_step_index INTEGER CHECK (fsrs_step_index IS NULL OR fsrs_step_index >= 0),
+            fsrs_stability REAL,
+            fsrs_difficulty REAL,
+            fsrs_last_reviewed_at TEXT,
+            fsrs_scheduled_days INTEGER CHECK (fsrs_scheduled_days IS NULL OR fsrs_scheduled_days >= 0),
+            client_updated_at TEXT NOT NULL,
+            last_modified_by_replica_id TEXT NOT NULL,
+            last_operation_id TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            deleted_at TEXT
+        );
+        INSERT INTO cards (
+            card_id,
+            workspace_id,
+            front_text,
+            back_text,
+            tags_json,
+            effort_level,
+            due_at,
+            created_at,
+            reps,
+            lapses,
+            fsrs_card_state,
+            fsrs_step_index,
+            fsrs_stability,
+            fsrs_difficulty,
+            fsrs_last_reviewed_at,
+            fsrs_scheduled_days,
+            client_updated_at,
+            last_modified_by_replica_id,
+            last_operation_id,
+            updated_at,
+            deleted_at
+        )
+        SELECT
+            card_id,
+            workspace_id,
+            front_text,
+            back_text,
+            tags_json,
+            effort_level,
+            due_at,
+            created_at,
+            reps,
+            lapses,
+            fsrs_card_state,
+            fsrs_step_index,
+            fsrs_stability,
+            fsrs_difficulty,
+            fsrs_last_reviewed_at,
+            fsrs_scheduled_days,
+            client_updated_at,
+            last_modified_by_replica_id,
+            last_operation_id,
+            updated_at,
+            deleted_at
+        FROM cards_v13;
+        DROP TABLE cards_v13;
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_active
+            ON cards(workspace_id, due_at)
+            WHERE deleted_at IS NULL;
+        CREATE INDEX IF NOT EXISTS idx_cards_workspace_due_created_active
+            ON cards(workspace_id, due_at, created_at DESC, card_id ASC)
+            WHERE deleted_at IS NULL;
+        PRAGMA legacy_alter_table = OFF;
+        PRAGMA user_version = 12;
+        """
+
+        let execResult = sqlite3_exec(connection, downgradeSQL, nil, nil, nil)
+        guard execResult == SQLITE_OK else {
+            let message = String(cString: sqlite3_errmsg(connection))
+            throw LocalStoreError.database("Failed to prepare schema v12 fixture: \(message)")
         }
     }
 

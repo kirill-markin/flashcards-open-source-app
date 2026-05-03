@@ -1,4 +1,5 @@
 import { compareCardsForReviewOrder, matchesCardFilter, matchesDeckFilterDefinition } from "../appData/domain";
+import { parseDueAtMillis } from "../appData/dueAt";
 import { clearWebSyncCache } from "./cache";
 import { replaceCards } from "./cards";
 import { replaceDecks } from "./decks";
@@ -157,7 +158,8 @@ export function isCardDueForTest(card: Card, nowTimestamp: number): boolean {
     return true;
   }
 
-  return Date.parse(card.dueAt) <= nowTimestamp;
+  const dueAtMillis = parseDueAtMillis(card.dueAt);
+  return dueAtMillis !== null && dueAtMillis <= nowTimestamp;
 }
 
 function resolveLegacyReviewFilter(

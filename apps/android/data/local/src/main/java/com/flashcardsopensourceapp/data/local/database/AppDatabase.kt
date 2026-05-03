@@ -29,7 +29,7 @@ private const val androidInstallationId: String = "android-installation"
         ProgressReviewHistoryStateEntity::class,
         ProgressLocalCacheStateEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 @TypeConverters(DatabaseTypeConverters::class)
@@ -71,7 +71,8 @@ fun createAppDatabaseMigrations(): Array<Migration> {
         migration9To10,
         migration10To11,
         migration11To12,
-        migration12To13
+        migration12To13,
+        migration13To14
     )
 }
 
@@ -673,5 +674,16 @@ val migration11To12: Migration = object : Migration(11, 12) {
 val migration12To13: Migration = object : Migration(12, 13) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE sync_state ADD COLUMN pendingReviewHistoryImport INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+val migration13To14: Migration = object : Migration(13, 14) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS $cardsReviewQueueIndexName
+            ON cards(workspaceId, dueAtMillis, createdAtMillis, cardId)
+            """.trimIndent()
+        )
     }
 }

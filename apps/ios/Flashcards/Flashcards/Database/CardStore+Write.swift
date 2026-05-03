@@ -70,6 +70,7 @@ extension CardStore {
                 tags_json,
                 effort_level,
                 due_at,
+                due_at_millis,
                 created_at,
                 reps,
                 lapses,
@@ -85,7 +86,7 @@ extension CardStore {
                 updated_at,
                 deleted_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, NULL, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, ?, ?, ?, ?, NULL)
+            VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, ?, ?, ?, ?, NULL)
             """,
             values: [
                 .text(newCardId),
@@ -204,14 +205,16 @@ extension CardStore {
         operationId: String,
         reviewedAtServer: String
     ) throws -> Card {
+        let dueAtText = formatIsoTimestamp(date: schedule.dueAt)
         let updatedRows = try self.core.execute(
             sql: """
             UPDATE cards
-            SET due_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?
+            SET due_at = ?, due_at_millis = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?
             WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
             """,
             values: [
-                .text(formatIsoTimestamp(date: schedule.dueAt)),
+                .text(dueAtText),
+                .integer(epochMillis(date: schedule.dueAt)),
                 .integer(Int64(schedule.reps)),
                 .integer(Int64(schedule.lapses)),
                 .text(schedule.fsrsCardState.rawValue),
