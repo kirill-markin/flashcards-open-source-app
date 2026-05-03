@@ -591,6 +591,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
 
     func testSQLiteActiveDueBucketOrderUsesDueAtIndexOrder() throws {
         XCTAssertFalse(cardStoreActiveDueBucketOrderSQL.lowercased().contains("julianday"))
+        XCTAssertTrue(cardStoreActiveDueBucketOrderSQL.lowercased().contains("due_at_millis"))
 
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
@@ -602,14 +603,14 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
             FROM cards
             WHERE workspace_id = ?
                 AND deleted_at IS NULL
-                AND \(cardStoreCanonicalDueAtSQL)
-                AND due_at < ?
+                AND due_at_millis IS NOT NULL
+                AND due_at_millis < ?
             ORDER BY \(cardStoreActiveDueBucketOrderSQL)
             LIMIT ?
             """,
             values: [
                 .text(workspace.workspaceId),
-                .text("2026-03-09T08:00:00.000Z"),
+                .integer(try XCTUnwrap(parseStrictIsoTimestampEpochMillis(value: "2026-03-09T08:00:00.000Z"))),
                 .integer(11)
             ]
         ) { statement in
@@ -617,7 +618,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
         }
         let queryPlan = planDetails.joined(separator: "\n")
 
-        XCTAssertTrue(queryPlan.contains("idx_cards_workspace_due_created_active"), queryPlan)
+        XCTAssertTrue(queryPlan.contains("idx_cards_workspace_due_millis_active"), queryPlan)
         XCTAssertFalse(queryPlan.contains("USE TEMP B-TREE"), queryPlan)
     }
 
@@ -657,6 +658,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
                 tags_json,
                 effort_level,
                 due_at,
+                due_at_millis,
                 created_at,
                 reps,
                 lapses,
@@ -672,7 +674,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
                 updated_at,
                 deleted_at
             )
-            VALUES (?, ?, ?, ?, ?, 'fast', ?, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, ?, 'test-replica', ?, ?, NULL)
+            VALUES (?, ?, ?, ?, ?, 'fast', ?, ?, ?, 0, 0, 'new', NULL, NULL, NULL, NULL, NULL, ?, 'test-replica', ?, ?, NULL)
             """,
             values: [
                 .text(cardId),
@@ -681,6 +683,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
                 .text("Back \(cardId)"),
                 .text("[]"),
                 dueAt.map(SQLiteValue.text) ?? .null,
+                dueAt.flatMap(parseStrictIsoTimestampEpochMillis).map(SQLiteValue.integer) ?? .null,
                 .text(createdAt),
                 .text(createdAt),
                 .text("operation-\(cardId)"),

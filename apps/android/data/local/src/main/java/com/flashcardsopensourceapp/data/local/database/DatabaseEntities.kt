@@ -11,6 +11,8 @@ import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 
+internal const val cardsReviewQueueIndexName: String = "index_cards_workspaceId_dueAtMillis_createdAtMillis_cardId"
+
 @Entity(tableName = "workspaces")
 data class WorkspaceEntity(
     @PrimaryKey val workspaceId: String,
@@ -62,7 +64,13 @@ data class DeckEntity(
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("workspaceId")]
+    indices = [
+        Index("workspaceId"),
+        Index(
+            value = ["workspaceId", "dueAtMillis", "createdAtMillis", "cardId"],
+            name = cardsReviewQueueIndexName
+        )
+    ]
 )
 data class CardEntity(
     @PrimaryKey val cardId: String,

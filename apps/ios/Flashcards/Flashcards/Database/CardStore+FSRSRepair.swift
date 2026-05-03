@@ -24,10 +24,11 @@ extension CardStore {
         let updatedRows = try self.core.execute(
             sql: """
             UPDATE cards
-            SET due_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?
+            SET due_at = ?, due_at_millis = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?
             WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
             """,
             values: [
+                .null,
                 .null,
                 .integer(Int64(repairedCard.reps)),
                 .integer(Int64(repairedCard.lapses)),

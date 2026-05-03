@@ -24,132 +24,48 @@ let cardStoreSelectColumnsSQL: String = """
     deleted_at
 """
 
-let cardStoreIsoSecondPrefixShapeSQL: String = """
-substr(due_at, 1, 19) GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]'
-"""
-
-// TODO: migrate review queue filtering and ordering to an indexed numeric due timestamp
-// so SQLite does not have to mirror Swift ISO calendar validation for due_at text.
-let cardStoreIsoDateTimeComponentRangeSQL: String = """
-(
-    substr(due_at, 6, 2) BETWEEN '01' AND '12'
-    AND substr(due_at, 9, 2) BETWEEN '01' AND '31'
-    AND CAST(substr(due_at, 9, 2) AS INTEGER) <= CASE
-        WHEN substr(due_at, 6, 2) IN ('01', '03', '05', '07', '08', '10', '12') THEN 31
-        WHEN substr(due_at, 6, 2) IN ('04', '06', '09', '11') THEN 30
-        WHEN substr(due_at, 6, 2) = '02'
-            AND (
-                CAST(substr(due_at, 1, 4) AS INTEGER) % 400 = 0
-                OR (
-                    CAST(substr(due_at, 1, 4) AS INTEGER) % 4 = 0
-                    AND CAST(substr(due_at, 1, 4) AS INTEGER) % 100 != 0
-                )
-            ) THEN 29
-        WHEN substr(due_at, 6, 2) = '02' THEN 28
-        ELSE 0
-    END
-    AND substr(due_at, 12, 2) BETWEEN '00' AND '23'
-    AND substr(due_at, 15, 2) BETWEEN '00' AND '59'
-    AND substr(due_at, 18, 2) BETWEEN '00' AND '59'
-)
-"""
-
-let cardStoreCanonicalDueAtSQL: String = """
-(
-    length(due_at) = 24
-    AND due_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9].[0-9][0-9][0-9]Z'
-    AND \(cardStoreIsoDateTimeComponentRangeSQL)
-)
-"""
-
-let cardStoreSupportedIsoDueAtSQL: String = """
-(
-    \(cardStoreCanonicalDueAtSQL)
-    OR (
-        length(due_at) = 20
-        AND due_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z'
-        AND \(cardStoreIsoDateTimeComponentRangeSQL)
-    )
-    OR (
-        length(due_at) > 21
-        AND \(cardStoreIsoSecondPrefixShapeSQL)
-        AND \(cardStoreIsoDateTimeComponentRangeSQL)
-        AND substr(due_at, 20, 1) = '.'
-        AND substr(due_at, length(due_at), 1) = 'Z'
-        AND substr(due_at, 21, length(due_at) - 21) NOT GLOB '*[^0-9]*'
-    )
-)
-"""
-
-let cardStoreNonCanonicalSupportedIsoDueAtSQL: String = """
-(
-    \(cardStoreSupportedIsoDueAtSQL)
-    AND NOT \(cardStoreCanonicalDueAtSQL)
-)
-"""
-
-let cardStoreDueAtSortKeySQL: String = """
-CASE
-    WHEN due_at IS NULL THEN NULL
-    WHEN length(due_at) = 20
-        AND due_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z'
-        THEN substr(due_at, 1, 19) || '.000Z'
-    WHEN \(cardStoreSupportedIsoDueAtSQL)
-        THEN substr(due_at, 1, 20) || substr(substr(due_at, 21, length(due_at) - 21) || '000', 1, 3) || 'Z'
-    ELSE NULL
-END
-"""
-
 let cardStoreActiveReviewDueEligibilitySQL: String = """
 (
     due_at IS NULL
     OR (
         due_at IS NOT NULL
-        AND \(cardStoreSupportedIsoDueAtSQL)
-        AND \(cardStoreDueAtSortKeySQL) <= ?
+        AND due_at_millis IS NOT NULL
+        AND due_at_millis <= ?
     )
 )
 """
 
-let cardStoreActiveDueBucketOrderSQL: String = "due_at ASC, created_at DESC, card_id ASC"
+let cardStoreActiveDueBucketOrderSQL: String = "due_at_millis ASC, created_at DESC, card_id ASC"
 
 private enum ActiveReviewQueueSQLBucket {
-    case recentDue(cutoff: String, now: String, lowerBound: String, upperBound: String)
-    case oldDue(cutoff: String, upperBound: String)
+    case recentDue(cutoffMillis: Int64, nowMillis: Int64)
+    case oldDue(cutoffMillis: Int64)
     case new
 }
 
-private func makeIsoTimestampSecondPrefix(date: Date) -> String {
-    String(formatIsoTimestamp(date: date).prefix(19))
-}
-
-private func makeIsoTimestampSecondUpperBound(date: Date) -> String {
-    "\(makeIsoTimestampSecondPrefix(date: date))Z"
-}
-
-private func makeActiveReviewQueueCanonicalBucketSQL(bucket: ActiveReviewQueueSQLBucket) -> ReviewQuerySQL {
+private func makeActiveReviewQueueBucketSQL(bucket: ActiveReviewQueueSQLBucket) -> ReviewQuerySQL {
     switch bucket {
-    case .recentDue(let cutoff, let now, _, _):
+    case .recentDue(let cutoffMillis, let nowMillis):
         return ReviewQuerySQL(
             clause: """
              AND due_at IS NOT NULL
-             AND \(cardStoreCanonicalDueAtSQL)
-             AND due_at >= ?
-             AND due_at <= ?
+             AND due_at_millis IS NOT NULL
+             AND due_at_millis >= ?
+             AND due_at_millis <= ?
             """,
             values: [
-                .text(cutoff),
-                .text(now)
+                .integer(cutoffMillis),
+                .integer(nowMillis)
             ]
         )
-    case .oldDue(let cutoff, _):
+    case .oldDue(let cutoffMillis):
         return ReviewQuerySQL(
             clause: """
              AND due_at IS NOT NULL
-             AND \(cardStoreCanonicalDueAtSQL)
-             AND due_at < ?
+             AND due_at_millis IS NOT NULL
+             AND due_at_millis < ?
             """,
-            values: [.text(cutoff)]
+            values: [.integer(cutoffMillis)]
         )
     case .new:
         return ReviewQuerySQL(
@@ -159,107 +75,13 @@ private func makeActiveReviewQueueCanonicalBucketSQL(bucket: ActiveReviewQueueSQ
     }
 }
 
-private func makeActiveReviewQueueNonCanonicalCandidateUpperSortKey(
-    canonicalRows: [Card],
-    limit: Int
-) -> String? {
-    guard canonicalRows.count == limit else {
-        return nil
-    }
-
-    return canonicalRows.last?.dueAt
-}
-
-private func makeActiveReviewQueueNonCanonicalBucketSQL(
-    bucket: ActiveReviewQueueSQLBucket,
-    candidateUpperSortKey: String?
-) -> ReviewQuerySQL? {
-    let candidateUpperSortKeyClause: String
-    let candidateUpperSortKeyValues: [SQLiteValue]
-    if let candidateUpperSortKey {
-        candidateUpperSortKeyClause = """
-
-             AND \(cardStoreDueAtSortKeySQL) <= ?
-        """
-        candidateUpperSortKeyValues = [.text(candidateUpperSortKey)]
-    } else {
-        candidateUpperSortKeyClause = ""
-        candidateUpperSortKeyValues = []
-    }
-
-    switch bucket {
-    case .recentDue(let cutoff, let now, let lowerBound, let upperBound):
-        return ReviewQuerySQL(
-            clause: """
-             AND due_at IS NOT NULL
-             AND \(cardStoreNonCanonicalSupportedIsoDueAtSQL)
-             AND due_at >= ?
-             AND due_at <= ?
-             AND \(cardStoreDueAtSortKeySQL) >= ?
-             AND \(cardStoreDueAtSortKeySQL) <= ?\(candidateUpperSortKeyClause)
-            """,
-            values: [
-                .text(lowerBound),
-                .text(upperBound),
-                .text(cutoff),
-                .text(now)
-            ] + candidateUpperSortKeyValues
-        )
-    case .oldDue(let cutoff, let upperBound):
-        return ReviewQuerySQL(
-            clause: """
-             AND due_at IS NOT NULL
-             AND \(cardStoreNonCanonicalSupportedIsoDueAtSQL)
-             AND due_at <= ?
-             AND \(cardStoreDueAtSortKeySQL) < ?\(candidateUpperSortKeyClause)
-            """,
-            values: [
-                .text(upperBound),
-                .text(cutoff)
-            ] + candidateUpperSortKeyValues
-        )
-    case .new:
-        return nil
-    }
-}
-
-private func makeActiveReviewQueueCanonicalBucketOrderSQL(bucket: ActiveReviewQueueSQLBucket) -> String {
+private func makeActiveReviewQueueBucketOrderSQL(bucket: ActiveReviewQueueSQLBucket) -> String {
     switch bucket {
     case .recentDue, .oldDue:
         return cardStoreActiveDueBucketOrderSQL
     case .new:
         return "created_at DESC, card_id ASC"
     }
-}
-
-private func makeActiveReviewQueueNonCanonicalBucketOrderSQL() -> String {
-    "\(cardStoreDueAtSortKeySQL) ASC, created_at DESC, card_id ASC"
-}
-
-private func shouldLoadNonCanonicalActiveBucketRows(bucket: ActiveReviewQueueSQLBucket) -> Bool {
-    switch bucket {
-    case .recentDue, .oldDue:
-        return true
-    case .new:
-        return false
-    }
-}
-
-private func mergeActiveReviewQueueDueBucketRows(
-    canonicalRows: [Card],
-    nonCanonicalRows: [Card],
-    now: Date,
-    limit: Int
-) -> [Card] {
-    guard nonCanonicalRows.isEmpty == false else {
-        return canonicalRows
-    }
-
-    let sortedRows = (canonicalRows + nonCanonicalRows).sorted { leftCard, rightCard in
-        compareCardsForReviewOrder(leftCard: leftCard, rightCard: rightCard, now: now)
-    }
-
-    return Array(sortedRows.prefix(limit))
 }
 
 extension CardStore {
@@ -442,20 +264,17 @@ extension CardStore {
         // then nil dueAt new cards. Future and malformed dueAt values are excluded from the active queue.
         // If this changes, mirror the same change across all three clients in the same change.
         let targetLimit = limit + 1
-        let nowText = formatIsoTimestamp(date: now)
-        let cutoffText = formatIsoTimestamp(date: now.addingTimeInterval(-recentDuePriorityWindow))
+        let nowMillis = epochMillis(date: now)
+        let cutoffMillis = epochMillis(date: now.addingTimeInterval(-recentDuePriorityWindow))
         var rows: [Card] = []
 
         for bucket in [
             ActiveReviewQueueSQLBucket.recentDue(
-                cutoff: cutoffText,
-                now: nowText,
-                lowerBound: makeIsoTimestampSecondPrefix(date: now.addingTimeInterval(-recentDuePriorityWindow)),
-                upperBound: makeIsoTimestampSecondUpperBound(date: now)
+                cutoffMillis: cutoffMillis,
+                nowMillis: nowMillis
             ),
             ActiveReviewQueueSQLBucket.oldDue(
-                cutoff: cutoffText,
-                upperBound: makeIsoTimestampSecondUpperBound(date: now.addingTimeInterval(-recentDuePriorityWindow))
+                cutoffMillis: cutoffMillis
             ),
             ActiveReviewQueueSQLBucket.new
         ] {
@@ -470,7 +289,6 @@ extension CardStore {
                 excludedCardIdsClause: excludedCardIdsClause,
                 excludedCardValues: excludedCardValues,
                 bucket: bucket,
-                now: now,
                 limit: remainingLimit
             )
         }
@@ -484,49 +302,16 @@ extension CardStore {
         excludedCardIdsClause: String,
         excludedCardValues: [SQLiteValue],
         bucket: ActiveReviewQueueSQLBucket,
-        now: Date,
         limit: Int
     ) throws -> [Card] {
-        let canonicalBucketSQL = makeActiveReviewQueueCanonicalBucketSQL(bucket: bucket)
-        let canonicalRows = try self.loadActiveReviewQueueRowsMatchingBucketSQL(
+        let bucketSQL = makeActiveReviewQueueBucketSQL(bucket: bucket)
+        return try self.loadActiveReviewQueueRowsMatchingBucketSQL(
             workspaceId: workspaceId,
             querySQL: querySQL,
             excludedCardIdsClause: excludedCardIdsClause,
             excludedCardValues: excludedCardValues,
-            bucketSQL: canonicalBucketSQL,
-            orderSQL: makeActiveReviewQueueCanonicalBucketOrderSQL(bucket: bucket),
-            limit: limit
-        )
-
-        guard shouldLoadNonCanonicalActiveBucketRows(bucket: bucket) else {
-            return canonicalRows
-        }
-
-        let nonCanonicalCandidateUpperSortKey = makeActiveReviewQueueNonCanonicalCandidateUpperSortKey(
-            canonicalRows: canonicalRows,
-            limit: limit
-        )
-        guard let nonCanonicalBucketSQL = makeActiveReviewQueueNonCanonicalBucketSQL(
-            bucket: bucket,
-            candidateUpperSortKey: nonCanonicalCandidateUpperSortKey
-        ) else {
-            return canonicalRows
-        }
-
-        let nonCanonicalRows = try self.loadActiveReviewQueueRowsMatchingBucketSQL(
-            workspaceId: workspaceId,
-            querySQL: querySQL,
-            excludedCardIdsClause: excludedCardIdsClause,
-            excludedCardValues: excludedCardValues,
-            bucketSQL: nonCanonicalBucketSQL,
-            orderSQL: makeActiveReviewQueueNonCanonicalBucketOrderSQL(),
-            limit: limit
-        )
-
-        return mergeActiveReviewQueueDueBucketRows(
-            canonicalRows: canonicalRows,
-            nonCanonicalRows: nonCanonicalRows,
-            now: now,
+            bucketSQL: bucketSQL,
+            orderSQL: makeActiveReviewQueueBucketOrderSQL(bucket: bucket),
             limit: limit
         )
     }

@@ -12,6 +12,108 @@ const effortLevelSchema = z.enum(["fast", "medium", "long"]);
 const fsrsCardStateSchema = z.enum(["new", "learning", "review", "relearning"]);
 const reviewRatingSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]);
 const platformSchema = z.enum(["ios", "android", "web"]);
+const isoTimestampStringSchema = z.string().datetime();
+const isoDatePrefixPattern = /^(\d{4})-(\d{2})-(\d{2})T/i;
+const commonDaysByMonth: ReadonlyArray<number> = [
+  31,
+  28,
+  31,
+  30,
+  31,
+  30,
+  31,
+  31,
+  30,
+  31,
+  30,
+  31,
+];
+
+type IsoDateParts = Readonly<{
+  year: number;
+  month: number;
+  day: number;
+}>;
+
+function isLeapYear(year: number): boolean {
+  if (year % 400 === 0) {
+    return true;
+  }
+
+  if (year % 100 === 0) {
+    return false;
+  }
+
+  return year % 4 === 0;
+}
+
+function getDaysInMonth(year: number, month: number): number | null {
+  if (month < 1 || month > 12) {
+    return null;
+  }
+
+  if (month === 2 && isLeapYear(year)) {
+    return 29;
+  }
+
+  return commonDaysByMonth[month - 1] ?? null;
+}
+
+function parseIsoDateParts(value: string): IsoDateParts | null {
+  const match = isoDatePrefixPattern.exec(value);
+  if (match === null) {
+    return null;
+  }
+
+  const yearText = match[1];
+  const monthText = match[2];
+  const dayText = match[3];
+  if (
+    yearText === undefined
+    || monthText === undefined
+    || dayText === undefined
+  ) {
+    return null;
+  }
+
+  return {
+    year: Number.parseInt(yearText, 10),
+    month: Number.parseInt(monthText, 10),
+    day: Number.parseInt(dayText, 10),
+  };
+}
+
+function hasValidCalendarDate(value: string): boolean {
+  const parts = parseIsoDateParts(value);
+  if (parts === null) {
+    return false;
+  }
+
+  const daysInMonth = getDaysInMonth(parts.year, parts.month);
+  return daysInMonth !== null && parts.day >= 1 && parts.day <= daysInMonth;
+}
+
+function validateDueAtTimestamp(value: string, refinementContext: z.core.$RefinementCtx): void {
+  const parsedTimestamp = isoTimestampStringSchema.safeParse(value);
+  if (!parsedTimestamp.success) {
+    refinementContext.addIssue({
+      code: "custom",
+      message: `dueAt must be a valid ISO timestamp string; received ${JSON.stringify(value)}`,
+    });
+    return;
+  }
+
+  if (hasValidCalendarDate(value)) {
+    return;
+  }
+
+  refinementContext.addIssue({
+    code: "custom",
+    message: `dueAt must be a valid calendar ISO timestamp; received ${JSON.stringify(value)}`,
+  });
+}
+
+const dueAtTimestampSchema = z.string().superRefine(validateDueAtTimestamp);
 
 const deckFilterDefinitionSchema = z.object({
   version: z.literal(2),
@@ -25,7 +127,7 @@ const cardSnapshotSchema = z.object({
   backText: z.string(),
   tags: z.array(z.string()),
   effortLevel: effortLevelSchema,
-  dueAt: z.string().datetime().nullable(),
+  dueAt: dueAtTimestampSchema.nullable(),
   createdAt: z.string().datetime(),
   reps: z.number().int().nonnegative(),
   lapses: z.number().int().nonnegative(),

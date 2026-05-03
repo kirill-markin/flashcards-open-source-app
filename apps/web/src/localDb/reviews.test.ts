@@ -3,7 +3,9 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { replaceCards } from "./cards";
-import { putOutboxRecord } from "./outbox";
+import { clearWebSyncCache } from "./cache";
+import { getAllFromStore, openDatabase, type StoredCard } from "./core";
+import { listOutboxRecords, putOutboxRecord, type PersistedOutboxRecord } from "./outbox";
 import {
   loadLocalProgressDailyReviews,
   loadLocalProgressSummary,
@@ -24,10 +26,287 @@ import {
   seedCursorFixtures,
   workspaceId,
 } from "./testSupport";
+import type { Card } from "../types";
+
+type LegacyStoredCard = Omit<StoredCard, "dueAt" | "dueAtMillis"> & Readonly<{
+  dueAt?: string | null;
+}>;
+
+const webSyncDatabaseName = "flashcards-web-sync";
+
+function createLegacyCardsStore(database: IDBDatabase): void {
+  const cardsStore = database.createObjectStore("cards", { keyPath: ["workspaceId", "cardId"] });
+  cardsStore.createIndex("workspaceId_createdAt_cardId", ["workspaceId", "createdAt", "cardId"], { unique: false });
+  cardsStore.createIndex("workspaceId_dueAt_cardId", ["workspaceId", "dueAt", "cardId"], { unique: false });
+  cardsStore.createIndex("workspaceId_effort_createdAt_cardId", ["workspaceId", "effortLevel", "createdAt", "cardId"], { unique: false });
+  cardsStore.createIndex("workspaceId_updatedAt_cardId", ["workspaceId", "updatedAt", "cardId"], { unique: false });
+  cardsStore.createIndex("workspaceId_effort_updatedAt_cardId", ["workspaceId", "effortLevel", "updatedAt", "cardId"], { unique: false });
+}
+
+function createLegacyCardTagsStore(database: IDBDatabase): void {
+  const cardTagsStore = database.createObjectStore("cardTags", { keyPath: ["workspaceId", "cardId", "tag"] });
+  cardTagsStore.createIndex("workspaceId_tag_cardId", ["workspaceId", "tag", "cardId"], { unique: false });
+  cardTagsStore.createIndex("workspaceId_cardId_tag", ["workspaceId", "cardId", "tag"], { unique: false });
+}
+
+function createLegacyReviewEventsStore(database: IDBDatabase): void {
+  const reviewEventsStore = database.createObjectStore("reviewEvents", { keyPath: ["workspaceId", "reviewEventId"] });
+  reviewEventsStore.createIndex(
+    "workspaceId_reviewedAtClient_reviewEventId",
+    ["workspaceId", "reviewedAtClient", "reviewEventId"],
+    { unique: false },
+  );
+}
+
+function createLegacyVersion9Schema(database: IDBDatabase): void {
+  createLegacyCardsStore(database);
+  createLegacyCardTagsStore(database);
+  database.createObjectStore("decks", { keyPath: ["workspaceId", "deckId"] })
+    .createIndex("workspaceId_createdAt_deckId", ["workspaceId", "createdAt", "deckId"], { unique: false });
+  database.createObjectStore("progressDailyCounts", { keyPath: ["workspaceId", "localDate"] });
+  createLegacyReviewEventsStore(database);
+  database.createObjectStore("workspaceSettings", { keyPath: "workspaceId" });
+  database.createObjectStore("workspaceSyncState", { keyPath: "workspaceId" });
+  database.createObjectStore("outbox", { keyPath: ["workspaceId", "operationId"] })
+    .createIndex("workspaceId_createdAt", ["workspaceId", "createdAt"], { unique: false });
+  database.createObjectStore("meta", { keyPath: "key" });
+}
+
+function makeLegacyStoredCard(card: Card): LegacyStoredCard {
+  return {
+    workspaceId,
+    cardId: card.cardId,
+    frontText: card.frontText,
+    backText: card.backText,
+    tags: card.tags,
+    effortLevel: card.effortLevel,
+    dueAt: card.dueAt,
+    createdAt: card.createdAt,
+    reps: card.reps,
+    lapses: card.lapses,
+    fsrsCardState: card.fsrsCardState,
+    fsrsStepIndex: card.fsrsStepIndex,
+    fsrsStability: card.fsrsStability,
+    fsrsDifficulty: card.fsrsDifficulty,
+    fsrsLastReviewedAt: card.fsrsLastReviewedAt,
+    fsrsScheduledDays: card.fsrsScheduledDays,
+    clientUpdatedAt: card.clientUpdatedAt,
+    lastModifiedByReplicaId: card.lastModifiedByReplicaId,
+    lastOperationId: card.lastOperationId,
+    updatedAt: card.updatedAt,
+    deletedAt: card.deletedAt,
+  };
+}
+
+function putLegacyRecords(
+  database: IDBDatabase,
+  cards: ReadonlyArray<LegacyStoredCard>,
+  outboxRecords: ReadonlyArray<PersistedOutboxRecord>,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(["cards", "outbox"], "readwrite");
+    const cardsStore = transaction.objectStore("cards");
+    const outboxStore = transaction.objectStore("outbox");
+
+    for (const card of cards) {
+      cardsStore.put(card);
+    }
+
+    for (const outboxRecord of outboxRecords) {
+      outboxStore.put(outboxRecord);
+    }
+
+    transaction.onerror = () => {
+      reject(new Error(`Legacy IndexedDB seed failed: ${transaction.error?.message ?? "unknown error"}`));
+    };
+    transaction.oncomplete = () => {
+      resolve();
+    };
+  });
+}
+
+async function seedLegacyVersion9Database(
+  cards: ReadonlyArray<LegacyStoredCard>,
+  outboxRecords: ReadonlyArray<PersistedOutboxRecord>,
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const request = indexedDB.open(webSyncDatabaseName, 9);
+    request.onerror = () => {
+      reject(new Error(`Legacy IndexedDB open failed: ${request.error?.message ?? "unknown error"}`));
+    };
+    request.onupgradeneeded = () => {
+      createLegacyVersion9Schema(request.result);
+    };
+    request.onsuccess = () => {
+      const database = request.result;
+      putLegacyRecords(database, cards, outboxRecords)
+        .then(() => {
+          database.close();
+          resolve();
+        })
+        .catch((error: unknown) => {
+          database.close();
+          reject(error);
+        });
+    };
+  });
+}
+
+async function loadStoredCardsForTest(): Promise<ReadonlyArray<StoredCard>> {
+  const database = await openDatabase();
+  try {
+    return await getAllFromStore<StoredCard>(database, "cards");
+  } finally {
+    database.close();
+  }
+}
+
+async function loadCardsStoreIndexNamesForTest(): Promise<ReadonlyArray<string>> {
+  const database = await openDatabase();
+  try {
+    const transaction = database.transaction(["cards"], "readonly");
+    const indexNames = transaction.objectStore("cards").indexNames;
+    const result: Array<string> = [];
+    for (let index = 0; index < indexNames.length; index += 1) {
+      const indexName = indexNames.item(index);
+      if (indexName === null) {
+        throw new Error(`IndexedDB cards index name is missing at position ${index}`);
+      }
+      result.push(indexName);
+    }
+    return result;
+  } finally {
+    database.close();
+  }
+}
 
 describe("localDb reviews", () => {
   beforeEach(async () => {
     await seedCursorFixtures();
+  });
+
+  it("migrates legacy dueAt into dueAtMillis and keeps pending card upserts uploadable", async () => {
+    await clearWebSyncCache();
+    const nowTimestamp = Date.parse("2026-03-10T12:00:00.100Z");
+    const originalNow = Date.now;
+    Date.now = () => nowTimestamp;
+
+    try {
+      const missingDueAtBase = makeLegacyStoredCard(makeCard({
+        cardId: "missing-due-at",
+        frontText: "Missing dueAt",
+        backText: "back",
+        tags: ["grammar"],
+        effortLevel: "fast",
+        dueAt: null,
+        createdAt: "2026-03-10T09:00:00.000Z",
+      }));
+      const { dueAt, ...missingDueAtRecord } = missingDueAtBase;
+      void dueAt;
+
+      await seedLegacyVersion9Database(
+        [
+          makeLegacyStoredCard(makeCard({
+            cardId: "canonical-due",
+            frontText: "Canonical due",
+            backText: "back",
+            tags: ["grammar"],
+            effortLevel: "fast",
+            dueAt: "2026-03-10T12:00:00.000Z",
+            createdAt: "2026-03-10T09:00:00.000Z",
+          })),
+          makeLegacyStoredCard(makeCard({
+            cardId: "short-fraction-due",
+            frontText: "Short fraction due",
+            backText: "back",
+            tags: ["grammar"],
+            effortLevel: "fast",
+            dueAt: "2026-03-10T12:00:00.1Z",
+            createdAt: "2026-03-10T09:00:00.000Z",
+          })),
+          makeLegacyStoredCard(makeCard({
+            cardId: "calendar-invalid-due",
+            frontText: "Calendar invalid due",
+            backText: "back",
+            tags: ["grammar"],
+            effortLevel: "fast",
+            dueAt: "2026-02-31T12:00:00.000Z",
+            createdAt: "2026-03-10T09:00:00.000Z",
+          })),
+          missingDueAtRecord,
+        ],
+        [
+          {
+            operationId: "pending-card-upsert",
+            workspaceId,
+            createdAt: "2026-03-10T12:00:00.000Z",
+            attemptCount: 0,
+            lastError: "",
+            operation: {
+              operationId: "pending-card-upsert",
+              entityType: "card",
+              entityId: "canonical-due",
+              action: "upsert",
+              clientUpdatedAt: "2026-03-10T12:00:00.000Z",
+              payload: {
+                cardId: "canonical-due",
+                frontText: "Canonical due",
+                backText: "back",
+                tags: ["grammar"],
+                effortLevel: "fast",
+                dueAt: "2026-03-10T12:00:00.000Z",
+                createdAt: "2026-03-10T09:00:00.000Z",
+                reps: 1,
+                lapses: 0,
+                fsrsCardState: "review",
+                fsrsStepIndex: null,
+                fsrsStability: 1,
+                fsrsDifficulty: 5,
+                fsrsLastReviewedAt: "2026-03-10T12:00:00.000Z",
+                fsrsScheduledDays: 1,
+                deletedAt: null,
+              },
+            },
+          },
+        ],
+      );
+
+      const storedCards = await loadStoredCardsForTest();
+      const cardsStoreIndexNames = await loadCardsStoreIndexNamesForTest();
+      const dueAtMillisByCardId = new Map(storedCards.map((card) => [card.cardId, card.dueAtMillis]));
+      const migratedCalendarInvalidDueAt = storedCards.find((card) => card.cardId === "calendar-invalid-due");
+      const migratedMissingDueAt = storedCards.find((card) => card.cardId === "missing-due-at");
+
+      expect(cardsStoreIndexNames).toContain("workspaceId_dueAtMillis_cardId");
+      expect(dueAtMillisByCardId.get("canonical-due")).toBe(Date.parse("2026-03-10T12:00:00.000Z"));
+      expect(dueAtMillisByCardId.get("short-fraction-due")).toBe(Date.parse("2026-03-10T12:00:00.100Z"));
+      expect(migratedCalendarInvalidDueAt?.dueAt).toBe("2026-02-31T12:00:00.000Z");
+      expect(dueAtMillisByCardId.get("calendar-invalid-due")).toBeNull();
+      expect(migratedMissingDueAt?.dueAt).toBeNull();
+      expect(migratedMissingDueAt?.dueAtMillis).toBeNull();
+
+      const queueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "allCards" }, 10);
+      expect(queueSnapshot.cards.map((card) => card.cardId)).toEqual([
+        "canonical-due",
+        "short-fraction-due",
+        "missing-due-at",
+      ]);
+
+      const pendingOutboxRecords = await listOutboxRecords(workspaceId);
+      expect(pendingOutboxRecords).toHaveLength(1);
+      const pendingOutboxRecord = pendingOutboxRecords[0];
+      if (pendingOutboxRecord === undefined) {
+        throw new Error("Expected migrated outbox record to exist");
+      }
+      const pendingOperation = pendingOutboxRecord.operation;
+      expect(pendingOperation.entityType).toBe("card");
+      if (pendingOperation.entityType !== "card") {
+        throw new Error("Expected migrated outbox record to remain a card upsert");
+      }
+      expect(pendingOperation.payload.dueAt).toBe("2026-03-10T12:00:00.000Z");
+    } finally {
+      Date.now = originalNow;
+    }
   });
 
   it("matches legacy review snapshot ordering and counts for all, deck, and tag filters", async () => {
@@ -298,6 +577,113 @@ describe("localDb reviews", () => {
         "new-null",
         "future-one-ms",
         "malformed-in-range",
+      ]);
+    } finally {
+      Date.now = originalNow;
+    }
+  });
+
+  it("excludes calendar-invalid non-null dueAt values from the active queue", async () => {
+    const nowTimestamp = Date.parse("2026-03-10T12:00:00.000Z");
+    const originalNow = Date.now;
+    Date.now = () => nowTimestamp;
+
+    try {
+      await replaceCards(workspaceId, [
+        makeCard({
+          cardId: "valid-due",
+          frontText: "Valid due",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T11:30:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "new-null",
+          frontText: "New null",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: null,
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "invalid-calendar-day",
+          frontText: "Invalid calendar day",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-02-31T12:00:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "invalid-leap-day",
+          frontText: "Invalid leap day",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-02-29T12:00:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "invalid-month",
+          frontText: "Invalid month",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-13-10T12:00:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "invalid-minute",
+          frontText: "Invalid minute",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T12:60:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "invalid-second",
+          frontText: "Invalid second",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T12:00:60.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "numeric-string",
+          frontText: "Numeric string",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "1000",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+      ]);
+
+      const queueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "allCards" }, 10);
+      const timelinePage = await loadReviewTimelinePage(workspaceId, { kind: "allCards" }, 10, 0);
+
+      expect(queueSnapshot.cards.map((card) => card.cardId)).toEqual([
+        "valid-due",
+        "new-null",
+      ]);
+      expect(queueSnapshot.reviewCounts).toEqual({
+        dueCount: 2,
+        totalCount: 8,
+      });
+      expect(timelinePage.cards.map((card) => card.cardId)).toEqual([
+        "valid-due",
+        "new-null",
+        "invalid-calendar-day",
+        "invalid-leap-day",
+        "invalid-minute",
+        "invalid-month",
+        "invalid-second",
+        "numeric-string",
       ]);
     } finally {
       Date.now = originalNow;

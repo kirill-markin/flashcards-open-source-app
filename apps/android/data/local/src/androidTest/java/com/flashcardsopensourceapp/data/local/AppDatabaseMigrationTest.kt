@@ -8,8 +8,10 @@ import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.flashcardsopensourceapp.data.local.database.cardsReviewQueueIndexName
 import com.flashcardsopensourceapp.data.local.database.migration10To11
 import com.flashcardsopensourceapp.data.local.database.migration12To13
+import com.flashcardsopensourceapp.data.local.database.migration13To14
 import com.flashcardsopensourceapp.data.local.database.migration5To6
 import com.flashcardsopensourceapp.data.local.database.migration9To10
 import org.junit.After
@@ -268,6 +270,27 @@ class AppDatabaseMigrationTest {
                     """.trimIndent()
                 )
             )
+        } finally {
+            database.close()
+            openHelper.close()
+        }
+    }
+
+    @Test
+    fun migration13To14AddsCardsReviewQueueIndex() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        createVersion13Database(context = context)
+
+        val openHelper = openDatabaseAtVersion(
+            context = context,
+            name = targetedMigrationDatabaseName,
+            version = 13
+        )
+        val database = openHelper.writableDatabase
+
+        try {
+            migration13To14.migrate(database)
+            assertCardsReviewQueueIndexExists(database = database)
         } finally {
             database.close()
             openHelper.close()
@@ -634,6 +657,47 @@ class AppDatabaseMigrationTest {
         sqliteDatabase.close()
     }
 
+    private fun createVersion13Database(context: Context) {
+        val databaseFile = context.getDatabasePath(targetedMigrationDatabaseName)
+        if (databaseFile.exists()) {
+            databaseFile.delete()
+        }
+        databaseFile.parentFile?.mkdirs()
+
+        val sqliteDatabase = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
+        sqliteDatabase.execSQL(
+            "CREATE TABLE workspaces (workspaceId TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, createdAtMillis INTEGER NOT NULL)"
+        )
+        sqliteDatabase.execSQL(
+            """
+            CREATE TABLE cards (
+                cardId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                frontText TEXT NOT NULL,
+                backText TEXT NOT NULL,
+                effortLevel TEXT NOT NULL,
+                dueAtMillis INTEGER,
+                createdAtMillis INTEGER NOT NULL,
+                updatedAtMillis INTEGER NOT NULL,
+                reps INTEGER NOT NULL,
+                lapses INTEGER NOT NULL,
+                fsrsCardState TEXT NOT NULL,
+                fsrsStepIndex INTEGER,
+                fsrsStability REAL,
+                fsrsDifficulty REAL,
+                fsrsLastReviewedAtMillis INTEGER,
+                fsrsScheduledDays INTEGER,
+                deletedAtMillis INTEGER,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        sqliteDatabase.execSQL("CREATE INDEX index_cards_workspaceId ON cards(workspaceId)")
+
+        sqliteDatabase.version = 13
+        sqliteDatabase.close()
+    }
+
     private fun openDatabaseAtVersion(
         context: Context,
         name: String,
@@ -744,5 +808,25 @@ class AppDatabaseMigrationTest {
         }
 
         assertTrue(hasReviewedAtIndex)
+    }
+
+    private fun assertCardsReviewQueueIndexExists(database: SupportSQLiteDatabase) {
+        assertEquals(
+            listOf("workspaceId", "dueAtMillis", "createdAtMillis", "cardId"),
+            readIndexColumns(database = database, indexName = cardsReviewQueueIndexName)
+        )
+    }
+
+    private fun readIndexColumns(database: SupportSQLiteDatabase, indexName: String): List<String> {
+        return database.query(SimpleSQLiteQuery("PRAGMA index_info('$indexName')")).use { cursor ->
+            val nameColumnIndex = cursor.getColumnIndexOrThrow("name")
+            val columns = mutableListOf<String>()
+
+            while (cursor.moveToNext()) {
+                columns.add(cursor.getString(nameColumnIndex))
+            }
+
+            columns.toList()
+        }
     }
 }
