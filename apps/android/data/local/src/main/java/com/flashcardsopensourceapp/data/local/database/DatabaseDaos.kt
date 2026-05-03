@@ -159,9 +159,10 @@ interface CardDao {
             AND (dueAtMillis IS NULL OR dueAtMillis <= :nowMillis)
         ORDER BY
             CASE
-                WHEN dueAtMillis <= :nowMillis THEN 0
-                WHEN dueAtMillis IS NULL THEN 1
-                ELSE 2
+                WHEN dueAtMillis IS NOT NULL AND dueAtMillis >= :nowMillis - 3600000 AND dueAtMillis <= :nowMillis THEN 0
+                WHEN dueAtMillis IS NOT NULL AND dueAtMillis < :nowMillis - 3600000 THEN 1
+                WHEN dueAtMillis IS NULL THEN 2
+                ELSE 3
             END ASC,
             dueAtMillis ASC,
             createdAtMillis DESC,
@@ -180,9 +181,10 @@ interface CardDao {
             AND effortLevel IN (:effortLevels)
         ORDER BY
             CASE
-                WHEN dueAtMillis <= :nowMillis THEN 0
-                WHEN dueAtMillis IS NULL THEN 1
-                ELSE 2
+                WHEN dueAtMillis IS NOT NULL AND dueAtMillis >= :nowMillis - 3600000 AND dueAtMillis <= :nowMillis THEN 0
+                WHEN dueAtMillis IS NOT NULL AND dueAtMillis < :nowMillis - 3600000 THEN 1
+                WHEN dueAtMillis IS NULL THEN 2
+                ELSE 3
             END ASC,
             dueAtMillis ASC,
             createdAtMillis DESC,
@@ -212,9 +214,10 @@ interface CardDao {
             )
         ORDER BY
             CASE
-                WHEN dueAtMillis <= :nowMillis THEN 0
-                WHEN dueAtMillis IS NULL THEN 1
-                ELSE 2
+                WHEN dueAtMillis IS NOT NULL AND dueAtMillis >= :nowMillis - 3600000 AND dueAtMillis <= :nowMillis THEN 0
+                WHEN dueAtMillis IS NOT NULL AND dueAtMillis < :nowMillis - 3600000 THEN 1
+                WHEN dueAtMillis IS NULL THEN 2
+                ELSE 3
             END ASC,
             dueAtMillis ASC,
             createdAtMillis DESC,
@@ -245,9 +248,10 @@ interface CardDao {
         )
         ORDER BY
             CASE
-                WHEN dueAtMillis <= :nowMillis THEN 0
-                WHEN dueAtMillis IS NULL THEN 1
-                ELSE 2
+                WHEN dueAtMillis IS NOT NULL AND dueAtMillis >= :nowMillis - 3600000 AND dueAtMillis <= :nowMillis THEN 0
+                WHEN dueAtMillis IS NOT NULL AND dueAtMillis < :nowMillis - 3600000 THEN 1
+                WHEN dueAtMillis IS NULL THEN 2
+                ELSE 3
             END ASC,
             dueAtMillis ASC,
             createdAtMillis DESC,

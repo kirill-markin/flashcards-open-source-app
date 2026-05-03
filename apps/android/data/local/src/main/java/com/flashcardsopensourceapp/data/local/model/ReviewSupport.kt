@@ -1,17 +1,23 @@
 package com.flashcardsopensourceapp.data.local.model
 
 // Keep review queue ordering aligned with:
-// - apps/ios/Flashcards/Flashcards/ReviewQuerySupport.swift::compareCardsForReviewOrder
+// - apps/ios/Flashcards/Flashcards/Review/ReviewQuerySupport.swift::compareCardsForReviewOrder
 // - apps/ios/Flashcards/Flashcards/Database/CardStore+ReadSQL.swift review queue ORDER BY
 // - apps/web/src/appData/domain.ts::compareCardsForReviewOrder
-// Ordering contract: timed due cards first, then null due/new cards, then future cards,
-// followed by earlier dueAt, newer createdAt, then cardId ascending.
+// Ordering contract: recent due cards within the inclusive one-hour window first,
+// then older due cards, then null due/new cards, then future cards, followed by earlier dueAt,
+// newer createdAt, then cardId ascending.
 // If this changes, mirror the same change across all three clients in the same change.
+private const val recentDuePriorityWindowMillis: Long = 60L * 60L * 1_000L
+
 private fun reviewOrderRank(card: CardSummary, nowMillis: Long): Int {
+    val dueAtMillis = card.dueAtMillis
+    val recentDueCutoffMillis = nowMillis - recentDuePriorityWindowMillis
     return when {
-        card.dueAtMillis != null && card.dueAtMillis <= nowMillis -> 0
-        card.dueAtMillis == null -> 1
-        else -> 2
+        dueAtMillis != null && dueAtMillis >= recentDueCutoffMillis && dueAtMillis <= nowMillis -> 0
+        dueAtMillis != null && dueAtMillis < recentDueCutoffMillis -> 1
+        dueAtMillis == null -> 2
+        else -> 3
     }
 }
 
@@ -140,6 +146,20 @@ private fun cardsMatchingReviewFilter(
     }
 }
 
+private fun buildReviewAnswerOptionsByCardId(
+    cards: List<CardSummary>,
+    settings: WorkspaceSchedulerSettings,
+    reviewedAtMillis: Long
+): Map<String, List<ReviewAnswerOption>> {
+    return cards.associate { card ->
+        card.cardId to makeReviewAnswerOptions(
+            card = card,
+            settings = settings,
+            reviewedAtMillis = reviewedAtMillis
+        )
+    }
+}
+
 fun buildReviewDeckFilterOptions(decks: List<DeckSummary>): List<ReviewDeckFilterOption> {
     return decks.map { deck ->
         ReviewDeckFilterOption(
@@ -203,6 +223,7 @@ fun buildReviewTagFilterOptions(cards: List<CardSummary>, reviewedAtMillis: Long
 fun buildReviewSessionSnapshot(
     selectedFilter: ReviewFilter,
     pendingReviewedCards: Set<PendingReviewedCard>,
+    presentedCardId: String?,
     decks: List<DeckSummary>,
     cards: List<CardSummary>,
     tagsSummary: WorkspaceTagsSummary,
@@ -228,6 +249,23 @@ fun buildReviewSessionSnapshot(
     }
     val currentCard = remainingCards.firstOrNull()
     val nextCard = remainingCards.getOrNull(index = 1)
+    val presentedCard = presentedCardId?.let { cardId ->
+        remainingCards.firstOrNull { card ->
+            card.cardId == cardId
+        }
+    }
+    val answerOptionCards = listOfNotNull(
+        currentCard,
+        nextCard,
+        presentedCard
+    ).distinctBy { card ->
+        card.cardId
+    }
+    val answerOptionsByCardId = buildReviewAnswerOptionsByCardId(
+        cards = answerOptionCards,
+        settings = settings,
+        reviewedAtMillis = reviewedAtMillis
+    )
 
     return ReviewSessionSnapshot(
         selectedFilter = resolvedFilter,
@@ -237,19 +275,12 @@ fun buildReviewSessionSnapshot(
         ),
         cards = remainingCards.map(::toReviewCard),
         answerOptions = currentCard?.let { card ->
-            makeReviewAnswerOptions(
-                card = card,
-                settings = settings,
-                reviewedAtMillis = reviewedAtMillis
-            )
+            answerOptionsByCardId[card.cardId]
         } ?: emptyList(),
         nextAnswerOptions = nextCard?.let { card ->
-            makeReviewAnswerOptions(
-                card = card,
-                settings = settings,
-                reviewedAtMillis = reviewedAtMillis
-            )
+            answerOptionsByCardId[card.cardId]
         } ?: emptyList(),
+        answerOptionsByCardId = answerOptionsByCardId,
         remainingCount = remainingCards.size,
         totalCount = matchingCards.size,
         availableDeckFilters = buildReviewDeckFilterOptions(decks = decks),

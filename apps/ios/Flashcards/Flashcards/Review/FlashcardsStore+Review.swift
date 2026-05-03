@@ -379,7 +379,7 @@ extension FlashcardsStore {
         let databaseURL = database.databaseURL
         let reviewCountsLoader = self.dependencies.reviewCountsLoader
         let reviewQueueWindowLoader = self.dependencies.reviewQueueWindowLoader
-        let reviewQueueWindowLimit = max(currentReviewState.reviewQueue.count, reviewSeedQueueSize)
+        let reviewQueueWindowLimit = max(currentReviewState.reviewQueueCanonicalCount, reviewSeedQueueSize)
 
         async let reviewCountsTask = reviewCountsLoader(
             databaseURL,
@@ -404,16 +404,25 @@ extension FlashcardsStore {
         guard resolvedReviewQuery.reviewFilter == self.selectedReviewFilter else {
             return false
         }
+        let refreshedReviewQueue = reviewQueuePreservingPresentedCard(
+            reviewQueue: reviewQueueWindowState.reviewQueue,
+            presentedCardId: currentCardId,
+            pendingReviewCardIds: currentReviewState.pendingReviewCardIds,
+            resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
+            decks: self.decks,
+            cards: self.cards,
+            now: now
+        )
 
         let nextSignature = makeReviewSessionSignature(
             selectedReviewFilter: resolvedReviewQuery.reviewFilter,
-            reviewQueue: reviewQueueWindowState.reviewQueue,
+            reviewQueue: refreshedReviewQueue,
             schedulerSettings: self.schedulerSettings,
             seedQueueSize: reviewSeedQueueSize
         )
         let didChangeReviewSession = currentSignature != nextSignature
         let didChangeReviewCounts = currentReviewState.reviewCounts != reviewCounts
-        let didChangeLoadedReviewQueue = currentReviewState.reviewQueue != reviewQueueWindowState.reviewQueue
+        let didChangeLoadedReviewQueue = currentReviewState.reviewQueue != refreshedReviewQueue
 
         guard didChangeReviewSession || didChangeReviewCounts || didChangeLoadedReviewQueue else {
             return false
@@ -423,7 +432,8 @@ extension FlashcardsStore {
             publishedState: currentReviewState,
             selectedReviewFilter: resolvedReviewQuery.reviewFilter,
             reviewCounts: reviewCounts,
-            reviewQueue: reviewQueueWindowState.reviewQueue,
+            reviewQueue: refreshedReviewQueue,
+            reviewQueueCanonicalCount: reviewQueueWindowState.reviewQueue.count,
             hasMoreCards: reviewQueueWindowState.hasMoreCards
         )
         self.applyReviewPublishedState(reviewState: nextReviewState)

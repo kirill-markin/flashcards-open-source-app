@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual } from "../../appData/domain";
+import {
+  ALL_CARDS_REVIEW_FILTER,
+  isCardDue,
+  isReviewFilterEqual,
+  matchesDeckFilterDefinition,
+} from "../../appData/domain";
 import { useI18n } from "../../i18n";
 import { loadDecksListSnapshot } from "../../localDb/decks";
 import {
@@ -27,6 +32,7 @@ import { formatEffortLevelLabel } from "../shared/featureFormatting";
 
 type UseReviewScreenDataParams = Readonly<{
   activeWorkspaceId: string | null;
+  getCardById: (cardId: string) => Promise<Card>;
   localReadVersion: number;
   selectedReviewFilter: ReviewFilter;
   setErrorMessage: (message: string) => void;
@@ -88,20 +94,18 @@ function resolveReviewFilterTitle(
 
 function buildDisplayedReviewQueue(
   canonicalReviewQueue: ReadonlyArray<Card>,
-  presentedCardId: string | null,
+  presentedCard: Card | null,
 ): ReadonlyArray<Card> {
-  if (presentedCardId === null) {
+  if (presentedCard === null) {
     return canonicalReviewQueue;
   }
 
-  const presentedCard = canonicalReviewQueue.find((card) => card.cardId === presentedCardId);
-  if (presentedCard === undefined) {
-    return canonicalReviewQueue;
-  }
+  const canonicalPresentedCard = canonicalReviewQueue.find((card) => card.cardId === presentedCard.cardId);
+  const displayedPresentedCard = canonicalPresentedCard ?? presentedCard;
 
   return [
-    presentedCard,
-    ...canonicalReviewQueue.filter((card) => card.cardId !== presentedCardId),
+    displayedPresentedCard,
+    ...canonicalReviewQueue.filter((card) => card.cardId !== presentedCard.cardId),
   ];
 }
 
@@ -120,23 +124,95 @@ function buildDisplayedReviewTimeline(
   ];
 }
 
-function resolvePresentedCardId(
+function resolveCanonicalPresentedCard(
   canonicalReviewQueue: ReadonlyArray<Card>,
-  previousPresentedCardId: string | null,
-): string | null {
-  if (previousPresentedCardId !== null) {
-    const previousPresentedCard = canonicalReviewQueue.find((card) => card.cardId === previousPresentedCardId);
-    if (previousPresentedCard !== undefined) {
-      return previousPresentedCard.cardId;
+  previousPresentedCard: Card | null,
+): Card | null {
+  if (previousPresentedCard !== null) {
+    const canonicalPreviousPresentedCard = canonicalReviewQueue.find((card) => card.cardId === previousPresentedCard.cardId);
+    if (canonicalPreviousPresentedCard !== undefined) {
+      return canonicalPreviousPresentedCard;
     }
   }
 
-  return canonicalReviewQueue[0]?.cardId ?? null;
+  return canonicalReviewQueue[0] ?? null;
+}
+
+function matchesResolvedReviewFilterForPreservation(
+  card: Card,
+  resolvedReviewFilter: ReviewFilter,
+  deckSummaries: ReadonlyArray<DeckSummary>,
+): boolean {
+  if (resolvedReviewFilter.kind === "allCards") {
+    return true;
+  }
+
+  if (resolvedReviewFilter.kind === "deck") {
+    const deckSummary = deckSummaries.find((deck) => deck.deckId === resolvedReviewFilter.deckId);
+    return deckSummary === undefined ? false : matchesDeckFilterDefinition(deckSummary.filterDefinition, card);
+  }
+
+  if (resolvedReviewFilter.kind === "effort") {
+    return card.effortLevel === resolvedReviewFilter.effortLevel;
+  }
+
+  return card.tags.includes(resolvedReviewFilter.tag);
+}
+
+function isPreservablePresentedCard(
+  card: Card,
+  resolvedReviewFilter: ReviewFilter,
+  deckSummaries: ReadonlyArray<DeckSummary>,
+  nowTimestamp: number,
+): boolean {
+  return isCardDue(card, nowTimestamp) && matchesResolvedReviewFilterForPreservation(card, resolvedReviewFilter, deckSummaries);
+}
+
+function isMissingPresentedCardError(error: unknown, cardId: string): boolean {
+  return error instanceof Error && error.message === `Card not found: ${cardId}`;
+}
+
+async function loadPresentedCardForPreservation(
+  cardId: string,
+  getCardById: (cardId: string) => Promise<Card>,
+): Promise<Card | null> {
+  try {
+    return await getCardById(cardId);
+  } catch (error) {
+    if (isMissingPresentedCardError(error, cardId)) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+async function resolvePresentedCard(
+  canonicalReviewQueue: ReadonlyArray<Card>,
+  previousPresentedCard: Card | null,
+  resolvedReviewFilter: ReviewFilter,
+  deckSummaries: ReadonlyArray<DeckSummary>,
+  getCardById: (cardId: string) => Promise<Card>,
+): Promise<Card | null> {
+  if (previousPresentedCard === null) {
+    return canonicalReviewQueue[0] ?? null;
+  }
+
+  const canonicalPresentedCard = canonicalReviewQueue.find((card) => card.cardId === previousPresentedCard.cardId);
+  if (canonicalPresentedCard !== undefined) {
+    return canonicalPresentedCard;
+  }
+
+  const loadedPresentedCard = await loadPresentedCardForPreservation(previousPresentedCard.cardId, getCardById);
+  return loadedPresentedCard !== null && isPreservablePresentedCard(loadedPresentedCard, resolvedReviewFilter, deckSummaries, Date.now())
+    ? loadedPresentedCard
+    : canonicalReviewQueue[0] ?? null;
 }
 
 export function useReviewScreenData(params: UseReviewScreenDataParams): UseReviewScreenDataResult {
   const {
     activeWorkspaceId,
+    getCardById,
     localReadVersion,
     selectedReviewFilter,
     setErrorMessage,
@@ -155,18 +231,18 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const [isReviewLoading, setIsReviewLoading] = useState<boolean>(true);
   const [reviewLoadErrorMessage, setReviewLoadErrorMessage] = useState<string>("");
   const [hasLoadedReviewData, setHasLoadedReviewData] = useState<boolean>(false);
-  const [presentedCardId, setPresentedCardId] = useState<string | null>(null);
+  const [presentedCard, setPresentedCard] = useState<Card | null>(null);
   const previousReviewFilterRef = useRef<ReviewFilter | null>(null);
-  const presentedCardIdRef = useRef<string | null>(null);
+  const presentedCardRef = useRef<Card | null>(null);
   const reviewLoadingSnapshot = activeWorkspaceId === null
     ? null
     : readReviewLoadingSnapshot(activeWorkspaceId, selectedReviewFilter);
   const isInitialReviewLoad = isReviewLoading && hasLoadedReviewData === false;
-  const activeReviewQueue = buildDisplayedReviewQueue(canonicalReviewQueue, presentedCardId);
+  const activeReviewQueue = buildDisplayedReviewQueue(canonicalReviewQueue, presentedCard);
 
   useEffect(() => {
-    presentedCardIdRef.current = presentedCardId;
-  }, [presentedCardId]);
+    presentedCardRef.current = presentedCard;
+  }, [presentedCard]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -208,15 +284,22 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
           t("filters.allCards"),
           (effortLevel) => formatEffortLevelLabel(t, effortLevel),
         );
-        const nextPresentedCardId = shouldShowBlockingLoader
-          ? resolvePresentedCardId(reviewQueueSnapshot.cards, null)
-          : resolvePresentedCardId(reviewQueueSnapshot.cards, presentedCardIdRef.current);
-        const nextActiveReviewQueue = buildDisplayedReviewQueue(reviewQueueSnapshot.cards, nextPresentedCardId);
+        const nextPresentedCard = await resolvePresentedCard(
+          reviewQueueSnapshot.cards,
+          shouldShowBlockingLoader ? null : presentedCardRef.current,
+          nextResolvedReviewFilter,
+          decksSnapshot.deckSummaries,
+          getCardById,
+        );
+        if (isCancelled) {
+          return;
+        }
+        const nextActiveReviewQueue = buildDisplayedReviewQueue(reviewQueueSnapshot.cards, nextPresentedCard);
 
         setResolvedReviewFilter(nextResolvedReviewFilter);
         setSelectedReviewFilterTitle(nextSelectedReviewFilterTitle);
         setCanonicalReviewQueue(reviewQueueSnapshot.cards);
-        setPresentedCardId(nextPresentedCardId);
+        setPresentedCard(nextPresentedCard);
         setReviewCounts(reviewQueueSnapshot.reviewCounts);
         setReviewQueueCursor(reviewQueueSnapshot.nextCursor);
         setQueueCards(buildDisplayedReviewTimeline(reviewTimelinePage.cards, nextActiveReviewQueue));
@@ -254,7 +337,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspaceId, localReadVersion, selectedReviewFilter]);
+  }, [activeWorkspaceId, getCardById, localReadVersion, selectedReviewFilter]);
 
   async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<boolean> {
     setErrorMessage("");
@@ -262,11 +345,11 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     try {
       await submitReviewItem(card.cardId, rating);
       const nextCanonicalReviewQueue = canonicalReviewQueue.filter((queuedCard) => queuedCard.cardId !== card.cardId);
-      const nextPresentedCardId = resolvePresentedCardId(nextCanonicalReviewQueue, null);
-      const nextActiveReviewQueue = buildDisplayedReviewQueue(nextCanonicalReviewQueue, nextPresentedCardId);
+      const nextPresentedCard = resolveCanonicalPresentedCard(nextCanonicalReviewQueue, null);
+      const nextActiveReviewQueue = buildDisplayedReviewQueue(nextCanonicalReviewQueue, nextPresentedCard);
 
       setCanonicalReviewQueue(nextCanonicalReviewQueue);
-      setPresentedCardId(nextPresentedCardId);
+      setPresentedCard(nextPresentedCard);
       setQueueCards((currentCards) => buildDisplayedReviewTimeline(
         currentCards.filter((queuedCard) => queuedCard.cardId !== card.cardId),
         nextActiveReviewQueue,

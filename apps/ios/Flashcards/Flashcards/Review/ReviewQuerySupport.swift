@@ -1,5 +1,7 @@
 import Foundation
 
+let recentDuePriorityWindow: TimeInterval = 60 * 60
+
 struct ResolvedReviewQuery: Hashable, Sendable {
     let reviewFilter: ReviewFilter
     let queryDefinition: ReviewQueryDefinition
@@ -32,16 +34,47 @@ struct ReviewQueueWindowLoadState: Hashable, Sendable {
     let hasMoreCards: Bool
 }
 
-private func reviewOrderDueAtRank(card: Card) -> Int {
+enum ReviewOrderBucket: Int, Hashable, Sendable {
+    case recentDue = 0
+    case oldDue = 1
+    case new = 2
+    case future = 3
+    case malformed = 4
+}
+
+struct ReviewOrderRank: Hashable, Sendable {
+    let bucket: ReviewOrderBucket
+    let dueAt: Date?
+}
+
+func makeReviewOrderRank(card: Card, now: Date) -> ReviewOrderRank {
     guard let dueAt = card.dueAt else {
-        return 1
+        return ReviewOrderRank(bucket: .new, dueAt: nil)
     }
 
-    guard parseIsoTimestamp(value: dueAt) != nil else {
-        return 2
+    guard let dueDate = parseIsoTimestamp(value: dueAt) else {
+        return ReviewOrderRank(bucket: .malformed, dueAt: nil)
     }
 
-    return 0
+    if dueDate > now {
+        return ReviewOrderRank(bucket: .future, dueAt: dueDate)
+    }
+
+    let recentCutoff = now.addingTimeInterval(-recentDuePriorityWindow)
+    if dueDate >= recentCutoff {
+        return ReviewOrderRank(bucket: .recentDue, dueAt: dueDate)
+    }
+
+    return ReviewOrderRank(bucket: .oldDue, dueAt: dueDate)
+}
+
+func isActiveReviewOrderBucket(bucket: ReviewOrderBucket) -> Bool {
+    switch bucket {
+    case .recentDue, .oldDue, .new:
+        return true
+    case .future, .malformed:
+        return false
+    }
 }
 
 private func hasActiveTag(tag: String, cards: [Card]) -> Bool {
@@ -54,24 +87,19 @@ private func hasActiveTag(tag: String, cards: [Card]) -> Bool {
 // - apps/ios/Flashcards/Flashcards/Database/CardStore+ReadSQL.swift review queue ORDER BY
 // - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/ReviewSupport.kt::sortCardsForReviewQueue
 // - apps/web/src/appData/domain.ts::compareCardsForReviewOrder
-// Ordering contract: timed due cards first, then nil dueAt new cards, then future cards, then malformed dueAt values last.
+// Ordering contract: recent due cards within the inclusive one-hour window first, then older due cards,
+// then nil dueAt new cards, then future cards, then malformed dueAt values last.
 // If this changes, mirror the same change across all three clients in the same change.
 func compareCardsForReviewOrder(leftCard: Card, rightCard: Card, now: Date) -> Bool {
-    let leftIsDue = isCardDue(card: leftCard, now: now)
-    let rightIsDue = isCardDue(card: rightCard, now: now)
-    if leftIsDue != rightIsDue {
-        return leftIsDue
-    }
-
-    let leftDueRank = reviewOrderDueAtRank(card: leftCard)
-    let rightDueRank = reviewOrderDueAtRank(card: rightCard)
-    if leftDueRank != rightDueRank {
-        return leftDueRank < rightDueRank
+    let leftRank = makeReviewOrderRank(card: leftCard, now: now)
+    let rightRank = makeReviewOrderRank(card: rightCard, now: now)
+    if leftRank.bucket != rightRank.bucket {
+        return leftRank.bucket.rawValue < rightRank.bucket.rawValue
     }
 
     if
-        let leftDueDate = leftCard.dueAt.flatMap(parseIsoTimestamp),
-        let rightDueDate = rightCard.dueAt.flatMap(parseIsoTimestamp),
+        let leftDueDate = leftRank.dueAt,
+        let rightDueDate = rightRank.dueAt,
         leftDueDate != rightDueDate
     {
         return leftDueDate < rightDueDate
@@ -88,7 +116,7 @@ func compareCardsForReviewOrder(leftCard: Card, rightCard: Card, now: Date) -> B
 
 func sortCardsForReviewQueue(cards: [Card], now: Date) -> [Card] {
     cards.filter { card in
-        card.deletedAt == nil && isCardDue(card: card, now: now)
+        card.deletedAt == nil && isActiveReviewOrderBucket(bucket: makeReviewOrderRank(card: card, now: now).bucket)
     }.sorted { leftCard, rightCard in
         compareCardsForReviewOrder(leftCard: leftCard, rightCard: rightCard, now: now)
     }
@@ -187,6 +215,64 @@ func makeReviewQueue(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card], n
         cards: cardsMatchingReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards),
         now: now
     )
+}
+
+private func cardMatchesResolvedReviewFilter(reviewFilter: ReviewFilter, decks: [Deck], card: Card) -> Bool {
+    guard card.deletedAt == nil else {
+        return false
+    }
+
+    switch reviewFilter {
+    case .allCards:
+        return true
+    case .deck(let deckId):
+        guard let deck = decks.first(where: { candidateDeck in
+            candidateDeck.deckId == deckId
+        }) else {
+            return false
+        }
+
+        return matchesDeckFilterDefinition(filterDefinition: deck.filterDefinition, card: card)
+    case .effort(let level):
+        return card.effortLevel == level
+    case .tag(let tag):
+        return card.tags.contains(tag)
+    }
+}
+
+func reviewQueuePreservingPresentedCard(
+    reviewQueue: [Card],
+    presentedCardId: String?,
+    pendingReviewCardIds: Set<String>,
+    resolvedReviewFilter: ReviewFilter,
+    decks: [Deck],
+    cards: [Card],
+    now: Date
+) -> [Card] {
+    guard let presentedCardId else {
+        return reviewQueue
+    }
+    guard reviewQueue.contains(where: { card in
+        card.cardId == presentedCardId
+    }) == false else {
+        return reviewQueue
+    }
+    guard pendingReviewCardIds.contains(presentedCardId) == false else {
+        return reviewQueue
+    }
+    guard let presentedCard = cards.first(where: { card in
+        card.cardId == presentedCardId
+    }) else {
+        return reviewQueue
+    }
+    guard cardMatchesResolvedReviewFilter(reviewFilter: resolvedReviewFilter, decks: decks, card: presentedCard) else {
+        return reviewQueue
+    }
+    guard isActiveReviewOrderBucket(bucket: makeReviewOrderRank(card: presentedCard, now: now).bucket) else {
+        return reviewQueue
+    }
+
+    return reviewQueue + [presentedCard]
 }
 
 private func insertReviewQueueCandidate(
@@ -293,7 +379,10 @@ func makeReviewQueueChunkLoadState(
         guard excludedCardIds.contains(card.cardId) == false else {
             return
         }
-        guard card.deletedAt == nil && isCardDue(card: card, now: now) else {
+        guard card.deletedAt == nil else {
+            return
+        }
+        guard isActiveReviewOrderBucket(bucket: makeReviewOrderRank(card: card, now: now).bucket) else {
             return
         }
 

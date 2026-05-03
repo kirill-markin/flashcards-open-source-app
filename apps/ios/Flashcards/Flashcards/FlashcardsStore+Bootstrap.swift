@@ -177,6 +177,7 @@ extension FlashcardsStore {
     func applyReviewPublishedState(reviewState: ReviewQueuePublishedState) {
         self.selectedReviewFilter = reviewState.selectedReviewFilter
         self.reviewQueue = reviewState.reviewQueue
+        self.reviewQueueCanonicalCount = reviewState.reviewQueueCanonicalCount
         self.presentedReviewCardId = reviewState.presentedCardId
         self.reviewCounts = reviewState.reviewCounts
         self.isReviewHeadLoading = reviewState.isReviewHeadLoading
@@ -190,6 +191,7 @@ extension FlashcardsStore {
         ReviewQueuePublishedState(
             selectedReviewFilter: self.selectedReviewFilter,
             reviewQueue: self.reviewQueue,
+            reviewQueueCanonicalCount: self.reviewQueueCanonicalCount,
             presentedCardId: self.presentedReviewCardId,
             reviewCounts: self.reviewCounts,
             isReviewHeadLoading: self.isReviewHeadLoading,

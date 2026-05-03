@@ -3,6 +3,7 @@ import Foundation
 struct ReviewQueuePublishedState: Hashable {
     let selectedReviewFilter: ReviewFilter
     let reviewQueue: [Card]
+    let reviewQueueCanonicalCount: Int
     let presentedCardId: String?
     let reviewCounts: ReviewCounts
     let isReviewHeadLoading: Bool
@@ -95,6 +96,7 @@ struct ReviewQueueRuntime {
         ReviewQueuePublishedState(
             selectedReviewFilter: selectedReviewFilter,
             reviewQueue: [],
+            reviewQueueCanonicalCount: 0,
             presentedCardId: nil,
             reviewCounts: ReviewCounts(dueCount: 0, totalCount: 0),
             isReviewHeadLoading: false,
@@ -176,6 +178,7 @@ struct ReviewQueueRuntime {
         let nextPublishedState = ReviewQueuePublishedState(
             selectedReviewFilter: resolvedReviewQuery.reviewFilter,
             reviewQueue: [],
+            reviewQueueCanonicalCount: 0,
             presentedCardId: nil,
             reviewCounts: ReviewCounts(dueCount: 0, totalCount: 0),
             isReviewHeadLoading: true,
@@ -235,6 +238,7 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: reviewHeadState.resolvedReviewFilter,
             reviewQueue: reviewHeadState.seedReviewQueue,
+            reviewQueueCanonicalCount: reviewHeadState.seedReviewQueue.count,
             presentedCardId: self.resolvePresentedCardId(
                 reviewQueue: reviewHeadState.seedReviewQueue,
                 pendingReviewCardIds: publishedState.pendingReviewCardIds,
@@ -264,6 +268,7 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            reviewQueueCanonicalCount: publishedState.reviewQueueCanonicalCount,
             presentedCardId: self.resolvePresentedCardId(
                 reviewQueue: publishedState.reviewQueue,
                 pendingReviewCardIds: publishedState.pendingReviewCardIds,
@@ -302,6 +307,7 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            reviewQueueCanonicalCount: publishedState.reviewQueueCanonicalCount,
             presentedCardId: self.resolvePresentedCardId(
                 reviewQueue: publishedState.reviewQueue,
                 pendingReviewCardIds: publishedState.pendingReviewCardIds,
@@ -329,6 +335,7 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            reviewQueueCanonicalCount: publishedState.reviewQueueCanonicalCount,
             presentedCardId: self.resolvePresentedCardId(
                 reviewQueue: publishedState.reviewQueue,
                 pendingReviewCardIds: publishedState.pendingReviewCardIds,
@@ -348,6 +355,7 @@ struct ReviewQueueRuntime {
         selectedReviewFilter: ReviewFilter,
         reviewCounts: ReviewCounts,
         reviewQueue: [Card],
+        reviewQueueCanonicalCount: Int,
         hasMoreCards: Bool
     ) -> ReviewQueuePublishedState {
         self.state.hasMoreReviewQueueCards = hasMoreCards
@@ -355,6 +363,7 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: selectedReviewFilter,
             reviewQueue: reviewQueue,
+            reviewQueueCanonicalCount: reviewQueueCanonicalCount,
             presentedCardId: self.resolvePresentedCardId(
                 reviewQueue: reviewQueue,
                 pendingReviewCardIds: publishedState.pendingReviewCardIds,
@@ -413,6 +422,7 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            reviewQueueCanonicalCount: publishedState.reviewQueueCanonicalCount,
             presentedCardId: self.resolvePresentedCardId(
                 reviewQueue: publishedState.reviewQueue,
                 pendingReviewCardIds: publishedState.pendingReviewCardIds,
@@ -445,11 +455,18 @@ struct ReviewQueueRuntime {
         self.state.hasMoreReviewQueueCards = queueChunkLoadState.hasMoreCards
         self.clearActiveReviewQueueChunkLoad(requestId: requestId)
 
+        let canonicalCount = min(max(publishedState.reviewQueueCanonicalCount, 0), publishedState.reviewQueue.count)
+        let canonicalQueue = Array(publishedState.reviewQueue.prefix(canonicalCount))
+        let preservedTailQueue = Array(publishedState.reviewQueue.dropFirst(canonicalCount))
+        let nextReviewQueue = canonicalQueue + queueChunkLoadState.reviewQueueChunk + preservedTailQueue
+        let nextReviewQueueCanonicalCount = canonicalCount + queueChunkLoadState.reviewQueueChunk.count
+
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
-            reviewQueue: publishedState.reviewQueue + queueChunkLoadState.reviewQueueChunk,
+            reviewQueue: nextReviewQueue,
+            reviewQueueCanonicalCount: nextReviewQueueCanonicalCount,
             presentedCardId: self.resolvePresentedCardId(
-                reviewQueue: publishedState.reviewQueue + queueChunkLoadState.reviewQueueChunk,
+                reviewQueue: nextReviewQueue,
                 pendingReviewCardIds: publishedState.pendingReviewCardIds,
                 preferredPresentedCardId: publishedState.presentedCardId
             ),
@@ -475,6 +492,7 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            reviewQueueCanonicalCount: publishedState.reviewQueueCanonicalCount,
             presentedCardId: self.resolvePresentedCardId(
                 reviewQueue: publishedState.reviewQueue,
                 pendingReviewCardIds: publishedState.pendingReviewCardIds,
@@ -513,6 +531,7 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            reviewQueueCanonicalCount: publishedState.reviewQueueCanonicalCount,
             presentedCardId: self.resolvePresentedCardId(
                 reviewQueue: publishedState.reviewQueue,
                 pendingReviewCardIds: pendingReviewCardIds,
@@ -567,6 +586,7 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            reviewQueueCanonicalCount: publishedState.reviewQueueCanonicalCount,
             presentedCardId: self.resolvePresentedCardId(
                 reviewQueue: publishedState.reviewQueue,
                 pendingReviewCardIds: pendingReviewCardIds,
@@ -596,6 +616,7 @@ struct ReviewQueueRuntime {
         return ReviewQueuePublishedState(
             selectedReviewFilter: publishedState.selectedReviewFilter,
             reviewQueue: publishedState.reviewQueue,
+            reviewQueueCanonicalCount: publishedState.reviewQueueCanonicalCount,
             presentedCardId: presentedCardId,
             reviewCounts: publishedState.reviewCounts,
             isReviewHeadLoading: publishedState.isReviewHeadLoading,

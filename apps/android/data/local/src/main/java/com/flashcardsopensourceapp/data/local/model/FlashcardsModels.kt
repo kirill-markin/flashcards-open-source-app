@@ -494,6 +494,7 @@ data class ReviewSessionSnapshot(
     val cards: List<ReviewCard>,
     val answerOptions: List<ReviewAnswerOption>,
     val nextAnswerOptions: List<ReviewAnswerOption>,
+    val answerOptionsByCardId: Map<String, List<ReviewAnswerOption>>,
     val remainingCount: Int,
     val totalCount: Int,
     val availableDeckFilters: List<ReviewDeckFilterOption>,
