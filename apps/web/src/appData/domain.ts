@@ -1,6 +1,7 @@
 import type {
   ReviewableCardScheduleState,
 } from "../../../backend/src/schedule";
+import { canonicalizeDueAtForSync, parseDueAtMillis } from "./dueAt";
 import type {
   Card,
   CardFilter,
@@ -80,8 +81,8 @@ export function isCardDue(card: Card, nowTimestamp: number): boolean {
     return true;
   }
 
-  const dueAtTimestamp = new Date(card.dueAt).getTime();
-  if (Number.isNaN(dueAtTimestamp)) {
+  const dueAtTimestamp = parseDueAtMillis(card.dueAt);
+  if (dueAtTimestamp === null) {
     return false;
   }
 
@@ -299,8 +300,8 @@ function getReviewOrderDueTimestamp(card: Card): number {
     return Number.POSITIVE_INFINITY;
   }
 
-  const dueAtTimestamp = new Date(card.dueAt).getTime();
-  if (Number.isNaN(dueAtTimestamp)) {
+  const dueAtTimestamp = parseDueAtMillis(card.dueAt);
+  if (dueAtTimestamp === null) {
     return Number.POSITIVE_INFINITY;
   }
 
@@ -355,8 +356,8 @@ function getReviewOrderBucket(card: Card, nowTimestamp: number): ReviewOrderBuck
     return "newNull";
   }
 
-  const dueAtTimestamp = new Date(card.dueAt).getTime();
-  if (Number.isNaN(dueAtTimestamp)) {
+  const dueAtTimestamp = parseDueAtMillis(card.dueAt);
+  if (dueAtTimestamp === null) {
     return "malformed";
   }
 
@@ -714,7 +715,7 @@ export function buildCardUpsertOperation(card: Card): SyncPushOperation {
       backText: card.backText,
       tags: card.tags,
       effortLevel: card.effortLevel,
-      dueAt: card.dueAt,
+      dueAt: canonicalizeDueAtForSync(card.cardId, card.dueAt),
       createdAt: card.createdAt,
       reps: card.reps,
       lapses: card.lapses,

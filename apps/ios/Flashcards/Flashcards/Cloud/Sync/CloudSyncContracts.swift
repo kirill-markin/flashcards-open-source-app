@@ -269,7 +269,11 @@ private struct BootstrapCardPayload: Encodable {
         try container.encode(self.snapshot.backText, forKey: .backText)
         try container.encode(self.snapshot.tags, forKey: .tags)
         try container.encode(self.snapshot.effortLevel, forKey: .effortLevel)
-        try encodeNullableBootstrapValue(self.snapshot.dueAt, forKey: .dueAt, in: &container)
+        try encodeNullableBootstrapValue(
+            canonicalIsoTimestampForSync(cardId: self.snapshot.cardId, dueAt: self.snapshot.dueAt),
+            forKey: .dueAt,
+            in: &container
+        )
         try container.encode(self.snapshot.createdAt, forKey: .createdAt)
         try container.encode(self.snapshot.reps, forKey: .reps)
         try container.encode(self.snapshot.lapses, forKey: .lapses)
@@ -383,6 +387,61 @@ struct RemoteCardChangePayload: Decodable {
     let lastOperationId: String
     let updatedAt: String
     let deletedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case cardId
+        case frontText
+        case backText
+        case tags
+        case effortLevel
+        case dueAt
+        case createdAt
+        case reps
+        case lapses
+        case fsrsCardState
+        case fsrsStepIndex
+        case fsrsStability
+        case fsrsDifficulty
+        case fsrsLastReviewedAt
+        case fsrsScheduledDays
+        case clientUpdatedAt
+        case lastModifiedByReplicaId
+        case lastOperationId
+        case updatedAt
+        case deletedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.cardId = try container.decode(String.self, forKey: .cardId)
+        self.frontText = try container.decode(String.self, forKey: .frontText)
+        self.backText = try container.decode(String.self, forKey: .backText)
+        self.tags = try container.decode([String].self, forKey: .tags)
+        self.effortLevel = try container.decode(EffortLevel.self, forKey: .effortLevel)
+        let decodedDueAt = try container.decodeIfPresent(String.self, forKey: .dueAt)
+        if let decodedDueAt, parseStrictIsoTimestampEpochMillis(value: decodedDueAt) == nil {
+            throw DecodingError.dataCorruptedError(
+                forKey: .dueAt,
+                in: container,
+                debugDescription: "Remote card dueAt must be a strict UTC ISO timestamp"
+            )
+        }
+        self.dueAt = decodedDueAt
+        self.createdAt = try container.decode(String.self, forKey: .createdAt)
+        self.reps = try container.decode(Int.self, forKey: .reps)
+        self.lapses = try container.decode(Int.self, forKey: .lapses)
+        self.fsrsCardState = try container.decode(FsrsCardState.self, forKey: .fsrsCardState)
+        self.fsrsStepIndex = try container.decodeIfPresent(Int.self, forKey: .fsrsStepIndex)
+        self.fsrsStability = try container.decodeIfPresent(Double.self, forKey: .fsrsStability)
+        self.fsrsDifficulty = try container.decodeIfPresent(Double.self, forKey: .fsrsDifficulty)
+        self.fsrsLastReviewedAt = try container.decodeIfPresent(String.self, forKey: .fsrsLastReviewedAt)
+        self.fsrsScheduledDays = try container.decodeIfPresent(Int.self, forKey: .fsrsScheduledDays)
+        self.clientUpdatedAt = try container.decode(String.self, forKey: .clientUpdatedAt)
+        self.lastModifiedByReplicaId = try container.decode(String.self, forKey: .lastModifiedByReplicaId)
+        self.lastOperationId = try container.decode(String.self, forKey: .lastOperationId)
+        self.updatedAt = try container.decode(String.self, forKey: .updatedAt)
+        self.deletedAt = try container.decodeIfPresent(String.self, forKey: .deletedAt)
+    }
 }
 
 struct RemoteDeckChangePayload: Decodable {

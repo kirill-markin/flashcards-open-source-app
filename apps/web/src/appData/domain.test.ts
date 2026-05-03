@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Card } from "../types";
-import { compareCardsForReviewOrder, recentDuePriorityWindow } from "./domain";
+import { buildCardUpsertOperation, compareCardsForReviewOrder, recentDuePriorityWindow } from "./domain";
 
 function makeReviewOrderCard(cardId: string, dueAt: string | null, createdAt: string): Card {
   return {
@@ -95,5 +95,19 @@ describe("review order domain", () => {
       "old-a",
       "old-b",
     ]);
+  });
+
+  it("serializes card upserts with boundary dueAt and no local dueAtMillis", () => {
+    const card = makeReviewOrderCard("reviewed-card", "2026-03-10T12:00:00.1Z", "2026-03-10T09:00:00.000Z");
+    const operation = buildCardUpsertOperation(card);
+
+    expect(operation.payload.dueAt).toBe("2026-03-10T12:00:00.100Z");
+    expect(operation.payload).not.toHaveProperty("dueAtMillis");
+  });
+
+  it("rejects malformed card dueAt during sync upsert serialization", () => {
+    const card = makeReviewOrderCard("reviewed-card", "2026-02-31T12:00:00.000Z", "2026-03-10T09:00:00.000Z");
+
+    expect(() => buildCardUpsertOperation(card)).toThrow(/invalid dueAt/);
   });
 });

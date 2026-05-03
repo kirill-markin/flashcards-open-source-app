@@ -8,6 +8,9 @@ import java.util.Locale
 
 private const val flashcardsOfficialApiBaseUrl: String = "https://api.flashcards-open-source-app.com/v1"
 private const val flashcardsOfficialAuthBaseUrl: String = "https://auth.flashcards-open-source-app.com"
+private val canonicalIsoTimestampFormatter: DateTimeFormatter = DateTimeFormatter
+    .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+    .withZone(ZoneOffset.UTC)
 
 fun makeOfficialCloudServiceConfiguration(): CloudServiceConfiguration {
     return CloudServiceConfiguration(
@@ -88,7 +91,5 @@ fun parseIsoTimestamp(value: String): Long {
 }
 
 fun formatIsoTimestamp(timestampMillis: Long): String {
-    return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(
-        Instant.ofEpochMilli(timestampMillis).atOffset(ZoneOffset.UTC)
-    )
+    return canonicalIsoTimestampFormatter.format(Instant.ofEpochMilli(timestampMillis))
 }

@@ -1,5 +1,16 @@
 import Foundation
 
+private func makeDueAtMillisSQLiteValue(dueAt: String?) -> SQLiteValue {
+    guard let dueAt else {
+        return .null
+    }
+    guard let dueAtMillis = parseStrictIsoTimestampEpochMillis(value: dueAt) else {
+        return .null
+    }
+
+    return .integer(dueAtMillis)
+}
+
 struct SyncApplier {
     let core: DatabaseCore
 
@@ -86,6 +97,7 @@ struct SyncApplier {
                     tags_json,
                     effort_level,
                     due_at,
+                    due_at_millis,
                     created_at,
                     reps,
                     lapses,
@@ -101,7 +113,7 @@ struct SyncApplier {
                     updated_at,
                     deleted_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 values: [
                     .text(card.cardId),
@@ -111,6 +123,7 @@ struct SyncApplier {
                     .text(tagsJson),
                     .text(card.effortLevel.rawValue),
                     card.dueAt.map(SQLiteValue.text) ?? .null,
+                    makeDueAtMillisSQLiteValue(dueAt: card.dueAt),
                     .text(card.createdAt),
                     .integer(Int64(card.reps)),
                     .integer(Int64(card.lapses)),
@@ -138,7 +151,7 @@ struct SyncApplier {
         _ = try self.core.execute(
             sql: """
             UPDATE cards
-            SET front_text = ?, back_text = ?, tags_json = ?, effort_level = ?, due_at = ?, created_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?, deleted_at = ?
+            SET front_text = ?, back_text = ?, tags_json = ?, effort_level = ?, due_at = ?, due_at_millis = ?, created_at = ?, reps = ?, lapses = ?, fsrs_card_state = ?, fsrs_step_index = ?, fsrs_stability = ?, fsrs_difficulty = ?, fsrs_last_reviewed_at = ?, fsrs_scheduled_days = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?, deleted_at = ?
             WHERE workspace_id = ? AND card_id = ?
             """,
             values: [
@@ -147,6 +160,7 @@ struct SyncApplier {
                 .text(tagsJson),
                 .text(card.effortLevel.rawValue),
                 card.dueAt.map(SQLiteValue.text) ?? .null,
+                makeDueAtMillisSQLiteValue(dueAt: card.dueAt),
                 .text(card.createdAt),
                 .integer(Int64(card.reps)),
                 .integer(Int64(card.lapses)),

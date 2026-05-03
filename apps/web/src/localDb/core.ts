@@ -5,6 +5,7 @@ import type {
   ReviewEvent,
   WorkspaceSchedulerSettings,
 } from "../types";
+import { deriveDueAtMillis } from "../appData/dueAt";
 
 export type StoredCard = Readonly<{
   workspaceId: string;
@@ -14,6 +15,7 @@ export type StoredCard = Readonly<{
   tags: ReadonlyArray<string>;
   effortLevel: Card["effortLevel"];
   dueAt: string | null;
+  dueAtMillis: number | null;
   createdAt: string;
   reps: number;
   lapses: number;
@@ -76,7 +78,12 @@ export type DatabaseStores =
   | "meta";
 
 const databaseName = "flashcards-web-sync";
-const databaseVersion = 9;
+const databaseVersion = 10;
+
+type StoredCardDueAtMigrationRecord = Omit<StoredCard, "dueAt" | "dueAtMillis"> & Readonly<{
+  dueAt?: string | null;
+  dueAtMillis?: number | null;
+}>;
 
 function isQuotaExceededError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "QuotaExceededError";
@@ -119,11 +126,19 @@ function createCardsUpdatedAtIndexes(cardsStore: IDBObjectStore): void {
   }
 }
 
+function createCardsDueAtMillisIndex(cardsStore: IDBObjectStore): void {
+  if (!cardsStore.indexNames.contains("workspaceId_dueAtMillis_cardId")) {
+    cardsStore.createIndex("workspaceId_dueAtMillis_cardId", ["workspaceId", "dueAtMillis", "cardId"], { unique: false });
+  }
+}
+
 function createCardsStore(database: IDBDatabase): void {
   const cardsStore = database.createObjectStore("cards", { keyPath: ["workspaceId", "cardId"] });
   cardsStore.createIndex("workspaceId_createdAt_cardId", ["workspaceId", "createdAt", "cardId"], { unique: false });
+  // TODO: Drop this legacy dueAt index after cards-list sorting no longer depends on the boundary string field.
   cardsStore.createIndex("workspaceId_dueAt_cardId", ["workspaceId", "dueAt", "cardId"], { unique: false });
   cardsStore.createIndex("workspaceId_effort_createdAt_cardId", ["workspaceId", "effortLevel", "createdAt", "cardId"], { unique: false });
+  createCardsDueAtMillisIndex(cardsStore);
   createCardsUpdatedAtIndexes(cardsStore);
 }
 
@@ -215,6 +230,37 @@ function upgradeToVersion9(database: IDBDatabase): void {
   }
 }
 
+function normalizeStoredCardDueAtMillis(record: StoredCardDueAtMigrationRecord): StoredCard {
+  const dueAt = record.dueAt ?? null;
+  return {
+    ...record,
+    dueAt,
+    dueAtMillis: deriveDueAtMillis(dueAt),
+  };
+}
+
+function migrateCardsDueAtMillis(cardsStore: IDBObjectStore): void {
+  const request = cardsStore.openCursor();
+  request.onerror = () => {
+    throw describeIndexedDbError("IndexedDB dueAtMillis migration failed", request.error);
+  };
+  request.onsuccess = () => {
+    const cursor = request.result;
+    if (cursor === null) {
+      return;
+    }
+
+    cursor.update(normalizeStoredCardDueAtMillis(cursor.value as StoredCardDueAtMigrationRecord));
+    cursor.continue();
+  };
+}
+
+function upgradeToVersion10(transaction: IDBTransaction): void {
+  const cardsStore = transaction.objectStore("cards");
+  createCardsDueAtMillisIndex(cardsStore);
+  migrateCardsDueAtMillis(cardsStore);
+}
+
 export function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(databaseName, databaseVersion);
@@ -258,6 +304,15 @@ export function openDatabase(): Promise<IDBDatabase> {
 
       if (oldVersion < 9) {
         upgradeToVersion9(request.result);
+      }
+
+      if (oldVersion < 10) {
+        const transaction = request.transaction;
+        if (transaction === null) {
+          throw new Error("IndexedDB upgrade transaction is unavailable");
+        }
+
+        upgradeToVersion10(transaction);
       }
     };
 

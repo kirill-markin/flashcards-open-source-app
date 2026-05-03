@@ -771,7 +771,7 @@ struct CardSyncPayload: Codable, Hashable {
         try container.encode(self.tags, forKey: .tags)
         try container.encode(self.effortLevel, forKey: .effortLevel)
 
-        if let dueAt = self.dueAt {
+        if let dueAt = try canonicalIsoTimestampForSync(cardId: self.cardId, dueAt: self.dueAt) {
             try container.encode(dueAt, forKey: .dueAt)
         } else {
             try container.encodeNil(forKey: .dueAt)

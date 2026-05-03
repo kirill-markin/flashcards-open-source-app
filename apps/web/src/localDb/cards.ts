@@ -7,6 +7,7 @@ import {
   matchesCardFilter,
   matchesDeckFilterDefinition,
 } from "../appData/domain";
+import { deriveDueAtMillis } from "../appData/dueAt";
 import { loadAllowedCardIdsForTags, putCardTagRecords, writeCardTagRecords } from "./cardTags";
 import {
   closeDatabaseAfter,
@@ -22,8 +23,13 @@ type CardCursorIndexName =
   | "workspaceId_createdAt_cardId"
   | "workspaceId_updatedAt_cardId"
   | "workspaceId_dueAt_cardId"
+  | "workspaceId_dueAtMillis_cardId"
   | "workspaceId_effort_createdAt_cardId"
   | "workspaceId_effort_updatedAt_cardId";
+
+export type LocalStoredCard = Readonly<Card & {
+  dueAtMillis: number | null;
+}>;
 
 type IndexedCardCursorOptions = Readonly<{
   indexName: CardCursorIndexName;
@@ -39,7 +45,9 @@ function toStoredCard(workspaceId: string, card: Card): StoredCard {
     backText: card.backText,
     tags: card.tags,
     effortLevel: card.effortLevel,
+    // TODO: Drop boundary-facing legacy dueAt after the domain/wire split.
     dueAt: card.dueAt,
+    dueAtMillis: deriveDueAtMillis(card.dueAt),
     createdAt: card.createdAt,
     reps: card.reps,
     lapses: card.lapses,
@@ -64,7 +72,8 @@ function toCard(record: StoredCard): Card {
     backText: record.backText,
     tags: record.tags,
     effortLevel: record.effortLevel,
-    dueAt: record.dueAt,
+    // TODO: Drop boundary-facing legacy dueAt after the domain/wire split.
+    dueAt: record.dueAt ?? null,
     createdAt: record.createdAt,
     reps: record.reps,
     lapses: record.lapses,
@@ -82,6 +91,25 @@ function toCard(record: StoredCard): Card {
   };
 }
 
+function readStoredDueAtMillis(record: StoredCard): number | null {
+  if (typeof record.dueAtMillis === "number") {
+    if (Number.isFinite(record.dueAtMillis) === false) {
+      throw new Error(`Stored card dueAtMillis must be finite: workspaceId=${record.workspaceId}, cardId=${record.cardId}`);
+    }
+
+    return record.dueAtMillis;
+  }
+
+  return deriveDueAtMillis(record.dueAt ?? null);
+}
+
+function toLocalStoredCard(record: StoredCard): LocalStoredCard {
+  return {
+    ...toCard(record),
+    dueAtMillis: readStoredDueAtMillis(record),
+  };
+}
+
 function openIndexedCursor(
   store: IDBObjectStore,
   options: IndexedCardCursorOptions,
@@ -93,27 +121,28 @@ function makeWorkspaceIndexRange(workspaceId: string): IDBKeyRange {
   return IDBKeyRange.bound([workspaceId], [workspaceId, []]);
 }
 
-function makeWorkspaceDueAtBeforeRange(workspaceId: string, dueAtExclusive: string): IDBKeyRange {
-  return IDBKeyRange.bound([workspaceId], [workspaceId, dueAtExclusive], false, true);
+function makeWorkspaceDueAtMillisBeforeRange(workspaceId: string, dueAtMillisExclusive: number): IDBKeyRange {
+  return IDBKeyRange.bound([workspaceId], [workspaceId, dueAtMillisExclusive], false, true);
 }
 
-function makeWorkspaceDueAtBetweenInclusiveRange(
+function makeWorkspaceDueAtMillisBetweenInclusiveRange(
   workspaceId: string,
-  lowerDueAtInclusive: string,
-  upperDueAtInclusive: string,
+  lowerDueAtMillisInclusive: number,
+  upperDueAtMillisInclusive: number,
 ): IDBKeyRange {
-  return IDBKeyRange.bound([workspaceId, lowerDueAtInclusive], [workspaceId, upperDueAtInclusive, []]);
+  return IDBKeyRange.bound([workspaceId, lowerDueAtMillisInclusive], [workspaceId, upperDueAtMillisInclusive, []]);
 }
 
-function makeWorkspaceDueAtAfterRange(workspaceId: string, dueAtExclusive: string): IDBKeyRange {
-  return IDBKeyRange.bound([workspaceId, dueAtExclusive, []], [workspaceId, []]);
+function makeWorkspaceDueAtMillisAfterRange(workspaceId: string, dueAtMillisExclusive: number): IDBKeyRange {
+  return IDBKeyRange.bound([workspaceId, dueAtMillisExclusive, []], [workspaceId, []]);
 }
 
-async function iterateCardsByIndex(
+async function iterateCardsByIndex<CardValue extends Card>(
   database: IDBDatabase,
   workspaceId: string,
   options: IndexedCardCursorOptions,
-  onCard: (card: Card) => boolean | void,
+  mapRecord: (record: StoredCard) => CardValue,
+  onCard: (card: CardValue) => boolean | void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(["cards"], "readonly");
@@ -151,7 +180,7 @@ async function iterateCardsByIndex(
         return;
       }
 
-      const shouldContinue = onCard(toCard(record));
+      const shouldContinue = onCard(mapRecord(record));
       if (shouldContinue === false) {
         finish();
         return;
@@ -162,13 +191,14 @@ async function iterateCardsByIndex(
   });
 }
 
-export async function iterateCardsByCreatedAtDesc(
+async function iterateCardsByCreatedAtDescMapped<CardValue extends Card>(
   database: IDBDatabase,
   workspaceId: string,
-  onCard: (card: Card) => boolean | void,
+  mapRecord: (record: StoredCard) => CardValue,
+  onCard: (card: CardValue) => boolean | void,
 ): Promise<void> {
   let currentCreatedAt: string | null | undefined;
-  let currentGroup: Array<Card> = [];
+  let currentGroup: Array<CardValue> = [];
   let shouldStop = false;
 
   function flushCurrentGroup(): boolean {
@@ -193,6 +223,7 @@ export async function iterateCardsByCreatedAtDesc(
       direction: "prev",
       keyRange: makeWorkspaceIndexRange(workspaceId),
     },
+    mapRecord,
     (card) => {
       if (shouldStop) {
         return false;
@@ -222,6 +253,22 @@ export async function iterateCardsByCreatedAtDesc(
   if (shouldStop === false && currentGroup.length > 0) {
     flushCurrentGroup();
   }
+}
+
+export async function iterateCardsByCreatedAtDesc(
+  database: IDBDatabase,
+  workspaceId: string,
+  onCard: (card: Card) => boolean | void,
+): Promise<void> {
+  await iterateCardsByCreatedAtDescMapped(database, workspaceId, toCard, onCard);
+}
+
+export async function iterateLocalStoredCardsByCreatedAtDesc(
+  database: IDBDatabase,
+  workspaceId: string,
+  onCard: (card: LocalStoredCard) => boolean | void,
+): Promise<void> {
+  await iterateCardsByCreatedAtDescMapped(database, workspaceId, toLocalStoredCard, onCard);
 }
 
 export async function iterateCardsByUpdatedAtDesc(
@@ -255,6 +302,7 @@ export async function iterateCardsByUpdatedAtDesc(
       direction: "prev",
       keyRange: makeWorkspaceIndexRange(workspaceId),
     },
+    toCard,
     (card) => {
       if (shouldStop) {
         return false;
@@ -299,61 +347,69 @@ export async function iterateCardsByDueAtAsc(
       direction: "next",
       keyRange: makeWorkspaceIndexRange(workspaceId),
     },
+    toCard,
     onCard,
   );
 }
 
-export async function iterateCardsByDueAtAscBefore(
+export async function iterateLocalStoredCardsByDueAtMillisAscBefore(
   database: IDBDatabase,
   workspaceId: string,
-  dueAtExclusive: string,
-  onCard: (card: Card) => boolean | void,
+  dueAtMillisExclusive: number,
+  onCard: (card: LocalStoredCard) => boolean | void,
 ): Promise<void> {
   await iterateCardsByIndex(
     database,
     workspaceId,
     {
-      indexName: "workspaceId_dueAt_cardId",
+      indexName: "workspaceId_dueAtMillis_cardId",
       direction: "next",
-      keyRange: makeWorkspaceDueAtBeforeRange(workspaceId, dueAtExclusive),
+      keyRange: makeWorkspaceDueAtMillisBeforeRange(workspaceId, dueAtMillisExclusive),
     },
+    toLocalStoredCard,
     onCard,
   );
 }
 
-export async function iterateCardsByDueAtAscBetweenInclusive(
+export async function iterateLocalStoredCardsByDueAtMillisAscBetweenInclusive(
   database: IDBDatabase,
   workspaceId: string,
-  lowerDueAtInclusive: string,
-  upperDueAtInclusive: string,
-  onCard: (card: Card) => boolean | void,
+  lowerDueAtMillisInclusive: number,
+  upperDueAtMillisInclusive: number,
+  onCard: (card: LocalStoredCard) => boolean | void,
 ): Promise<void> {
   await iterateCardsByIndex(
     database,
     workspaceId,
     {
-      indexName: "workspaceId_dueAt_cardId",
+      indexName: "workspaceId_dueAtMillis_cardId",
       direction: "next",
-      keyRange: makeWorkspaceDueAtBetweenInclusiveRange(workspaceId, lowerDueAtInclusive, upperDueAtInclusive),
+      keyRange: makeWorkspaceDueAtMillisBetweenInclusiveRange(
+        workspaceId,
+        lowerDueAtMillisInclusive,
+        upperDueAtMillisInclusive,
+      ),
     },
+    toLocalStoredCard,
     onCard,
   );
 }
 
-export async function iterateCardsByDueAtAscAfter(
+export async function iterateLocalStoredCardsByDueAtMillisAscAfter(
   database: IDBDatabase,
   workspaceId: string,
-  dueAtExclusive: string,
-  onCard: (card: Card) => boolean | void,
+  dueAtMillisExclusive: number,
+  onCard: (card: LocalStoredCard) => boolean | void,
 ): Promise<void> {
   await iterateCardsByIndex(
     database,
     workspaceId,
     {
-      indexName: "workspaceId_dueAt_cardId",
+      indexName: "workspaceId_dueAtMillis_cardId",
       direction: "next",
-      keyRange: makeWorkspaceDueAtAfterRange(workspaceId, dueAtExclusive),
+      keyRange: makeWorkspaceDueAtMillisAfterRange(workspaceId, dueAtMillisExclusive),
     },
+    toLocalStoredCard,
     onCard,
   );
 }
@@ -390,6 +446,7 @@ async function iterateCardsByEffortAndCreatedAtDesc(
       direction: "prev",
       keyRange: makeWorkspaceIndexRange(workspaceId),
     },
+    toCard,
     (card) => {
       if (card.effortLevel !== effortLevel) {
         return true;
@@ -457,6 +514,7 @@ async function iterateCardsByEffortAndUpdatedAtDesc(
       direction: "prev",
       keyRange: makeWorkspaceIndexRange(workspaceId),
     },
+    toCard,
     (card) => {
       if (card.effortLevel !== effortLevel) {
         return true;
