@@ -429,6 +429,7 @@ export function ReviewScreen(): ReactElement {
     workspaceSettings,
     localReadVersion,
     localCardCount,
+    getCardById,
     refreshLocalData,
     selectReviewFilter,
     submitReviewItem,
@@ -461,6 +462,7 @@ export function ReviewScreen(): ReactElement {
     tagSuggestions,
   } = useReviewScreenData({
     activeWorkspaceId: activeWorkspace?.workspaceId ?? null,
+    getCardById,
     localReadVersion,
     selectedReviewFilter,
     setErrorMessage,

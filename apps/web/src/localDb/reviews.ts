@@ -12,9 +12,16 @@ import {
   compareCardsForReviewOrder,
   isCardDue,
   matchesDeckFilterDefinition,
+  recentDuePriorityWindow,
 } from "../appData/domain";
 import { loadAllowedCardIdsForTags } from "./cardTags";
-import { iterateCardsByCreatedAtDesc, iterateCardsByDueAtAsc } from "./cards";
+import {
+  iterateCardsByCreatedAtDesc,
+  iterateCardsByDueAtAsc,
+  iterateCardsByDueAtAscAfter,
+  iterateCardsByDueAtAscBefore,
+  iterateCardsByDueAtAscBetweenInclusive,
+} from "./cards";
 import {
   closeDatabaseAfter,
   closeDatabaseAfterWrite,
@@ -35,15 +42,23 @@ import {
 } from "./progress";
 import { decodeCursor, encodeCursor } from "./queryShared";
 
-type ReviewCandidateAccumulator = Readonly<{
-  matchingCards: ReadonlyArray<Card>;
-  dueCards: ReadonlyArray<Card>;
-}>;
-
 type ReviewFilterResolution = Readonly<{
   resolvedReviewFilter: ReviewFilter;
   deck: Deck | null;
   allowedTagCardIds: ReadonlySet<string> | null;
+}>;
+
+type ReviewCardCursorIterator = (
+  database: IDBDatabase,
+  workspaceId: string,
+  onCard: (card: Card) => boolean | void,
+) => Promise<void>;
+
+type DueAtBucketPredicate = (dueAtTimestamp: number, nowTimestamp: number) => boolean;
+
+type ReviewQueueCursorState = Readonly<{
+  cardId: string;
+  asOfTimestamp: number;
 }>;
 
 async function resolveReviewFilterFromIndexedDb(
@@ -123,65 +138,46 @@ function matchesResolvedReviewFilter(
   return filterResolution.allowedTagCardIds?.has(card.cardId) ?? false;
 }
 
-function createEmptyReviewCandidateAccumulator(): ReviewCandidateAccumulator {
-  return {
-    matchingCards: [],
-    dueCards: [],
-  };
+function toIsoTimestamp(timestamp: number): string {
+  return new Date(timestamp).toISOString();
 }
 
-function appendReviewCandidate(
-  accumulator: ReviewCandidateAccumulator,
-  card: Card,
-  nowTimestamp: number,
-): ReviewCandidateAccumulator {
-  return {
-    matchingCards: [...accumulator.matchingCards, card],
-    dueCards: isCardDue(card, nowTimestamp)
-      ? [...accumulator.dueCards, card]
-      : accumulator.dueCards,
-  };
+function toIsoSecondPrefix(timestamp: number): string {
+  return toIsoTimestamp(timestamp).slice(0, 19);
 }
 
-async function collectReviewCandidates(
-  database: IDBDatabase,
-  workspaceId: string,
-  reviewFilter: ReviewFilter,
-  nowTimestamp: number,
-): Promise<Readonly<{
-  filterResolution: ReviewFilterResolution;
-  accumulator: ReviewCandidateAccumulator;
-}>> {
-  const filterResolution = await resolveReviewFilterFromIndexedDb(database, workspaceId, reviewFilter);
-  let accumulator = createEmptyReviewCandidateAccumulator();
-  await iterateReviewCardsInCanonicalOrder(database, workspaceId, nowTimestamp, (card) => {
-    if (matchesResolvedReviewFilter(card, filterResolution) === false) {
-      return true;
-    }
-
-    accumulator = appendReviewCandidate(accumulator, card, nowTimestamp);
-    return true;
-  });
-
-  return {
-    filterResolution,
-    accumulator,
-  };
+function toIsoSecondUpperBound(timestamp: number): string {
+  // IndexedDB compares dueAt as text, so include non-canonical forms that parse inside the same UTC second.
+  return `${toIsoSecondPrefix(timestamp)}\uffff`;
 }
 
-async function iterateReviewCardsInCanonicalOrder(
+function makeDueAtSecondGroupKey(dueAt: string): string {
+  return dueAt.slice(0, 19);
+}
+
+function isRecentDueTimestamp(dueAtTimestamp: number, nowTimestamp: number): boolean {
+  return dueAtTimestamp >= nowTimestamp - recentDuePriorityWindow && dueAtTimestamp <= nowTimestamp;
+}
+
+function isOldDueTimestamp(dueAtTimestamp: number, nowTimestamp: number): boolean {
+  return dueAtTimestamp < nowTimestamp - recentDuePriorityWindow;
+}
+
+function isFutureDueTimestamp(dueAtTimestamp: number, nowTimestamp: number): boolean {
+  return dueAtTimestamp > nowTimestamp;
+}
+
+async function iterateTimedReviewCardsByDueAt(
   database: IDBDatabase,
   workspaceId: string,
   nowTimestamp: number,
+  cursorIterator: ReviewCardCursorIterator,
+  matchesBucket: DueAtBucketPredicate,
   onCard: (card: Card) => boolean | void,
-): Promise<void> {
+): Promise<boolean> {
   let shouldStop = false;
-  const futureCards: Array<Card> = [];
-  const invalidCards: Array<Card> = [];
-
-  let currentDueAt: string | null | undefined;
+  let currentDueAtSecondGroupKey: string | null | undefined;
   let currentDueGroup: Array<Card> = [];
-  let currentDueGroupKind: "timedDue" | "future" | "invalid" | null = null;
 
   function flushCurrentDueGroup(): boolean {
     const sortedGroup = [...currentDueGroup].sort(
@@ -189,24 +185,17 @@ async function iterateReviewCardsInCanonicalOrder(
     );
     currentDueGroup = [];
 
-    if (currentDueGroupKind === "timedDue") {
-      for (const card of sortedGroup) {
-        if (onCard(card) === false) {
-          shouldStop = true;
-          return false;
-        }
+    for (const card of sortedGroup) {
+      if (onCard(card) === false) {
+        shouldStop = true;
+        return false;
       }
-    } else if (currentDueGroupKind === "future") {
-      futureCards.push(...sortedGroup);
-    } else if (currentDueGroupKind === "invalid") {
-      invalidCards.push(...sortedGroup);
     }
 
-    currentDueGroupKind = null;
     return true;
   }
 
-  await iterateCardsByDueAtAsc(database, workspaceId, (card) => {
+  await cursorIterator(database, workspaceId, (card) => {
     if (shouldStop) {
       return false;
     }
@@ -216,22 +205,18 @@ async function iterateReviewCardsInCanonicalOrder(
     }
 
     const dueAtTimestamp = new Date(card.dueAt).getTime();
-    const isInvalidDueAt = Number.isNaN(dueAtTimestamp);
-    const isTimedDue = isInvalidDueAt === false && dueAtTimestamp <= nowTimestamp;
-    const nextGroupKind: "timedDue" | "future" | "invalid" = isTimedDue
-      ? "timedDue"
-      : isInvalidDueAt
-        ? "invalid"
-        : "future";
-
-    if (currentDueAt === undefined) {
-      currentDueAt = card.dueAt;
-      currentDueGroup = [card];
-      currentDueGroupKind = nextGroupKind;
+    if (Number.isNaN(dueAtTimestamp) || matchesBucket(dueAtTimestamp, nowTimestamp) === false) {
       return true;
     }
 
-    if (currentDueAt === card.dueAt) {
+    const dueAtSecondGroupKey = makeDueAtSecondGroupKey(card.dueAt);
+    if (currentDueAtSecondGroupKey === undefined) {
+      currentDueAtSecondGroupKey = dueAtSecondGroupKey;
+      currentDueGroup = [card];
+      return true;
+    }
+
+    if (currentDueAtSecondGroupKey === dueAtSecondGroupKey) {
       currentDueGroup = [...currentDueGroup, card];
       return true;
     }
@@ -240,26 +225,30 @@ async function iterateReviewCardsInCanonicalOrder(
       return false;
     }
 
-    currentDueAt = card.dueAt;
+    currentDueAtSecondGroupKey = dueAtSecondGroupKey;
     currentDueGroup = [card];
-    currentDueGroupKind = nextGroupKind;
     return true;
   });
 
   if (shouldStop) {
-    return;
+    return false;
   }
 
   if (currentDueGroup.length > 0) {
     if (flushCurrentDueGroup() === false) {
-      return;
+      return false;
     }
   }
 
-  if (shouldStop) {
-    return;
-  }
+  return true;
+}
 
+async function iterateNullDueReviewCards(
+  database: IDBDatabase,
+  workspaceId: string,
+  onCard: (card: Card) => boolean | void,
+): Promise<boolean> {
+  let shouldStop = false;
   let currentCreatedAt: string | null | undefined;
   let currentNullGroup: Array<Card> = [];
 
@@ -281,6 +270,7 @@ async function iterateReviewCardsInCanonicalOrder(
     if (shouldStop) {
       return false;
     }
+
     if (card.deletedAt !== null || card.dueAt !== null) {
       return true;
     }
@@ -309,68 +299,237 @@ async function iterateReviewCardsInCanonicalOrder(
     flushCurrentNullGroup();
   }
 
-  if (shouldStop) {
+  return shouldStop === false;
+}
+
+async function iterateMalformedDueAtReviewCards(
+  database: IDBDatabase,
+  workspaceId: string,
+  nowTimestamp: number,
+  onCard: (card: Card) => boolean | void,
+): Promise<boolean> {
+  const malformedCards: Array<Card> = [];
+
+  await iterateCardsByDueAtAsc(database, workspaceId, (card) => {
+    if (card.deletedAt !== null || card.dueAt === null) {
+      return true;
+    }
+
+    const dueAtTimestamp = new Date(card.dueAt).getTime();
+    if (Number.isNaN(dueAtTimestamp)) {
+      malformedCards.push(card);
+    }
+
+    return true;
+  });
+
+  const sortedMalformedCards = [...malformedCards].sort(
+    (leftCard, rightCard) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp),
+  );
+  for (const card of sortedMalformedCards) {
+    if (onCard(card) === false) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+async function iterateActiveReviewCardsInCanonicalOrder(
+  database: IDBDatabase,
+  workspaceId: string,
+  nowTimestamp: number,
+  onCard: (card: Card) => boolean | void,
+): Promise<boolean> {
+  const recentDueCutoffTimestamp = nowTimestamp - recentDuePriorityWindow;
+  const recentDueCutoffLowerBound = toIsoSecondPrefix(recentDueCutoffTimestamp);
+  const recentDueCutoffUpperBound = toIsoSecondUpperBound(recentDueCutoffTimestamp);
+  const nowUpperBound = toIsoSecondUpperBound(nowTimestamp);
+
+  const didFinishRecentDueCards = await iterateTimedReviewCardsByDueAt(
+    database,
+    workspaceId,
+    nowTimestamp,
+    (cursorDatabase, cursorWorkspaceId, cursorOnCard) => iterateCardsByDueAtAscBetweenInclusive(
+      cursorDatabase,
+      cursorWorkspaceId,
+      recentDueCutoffLowerBound,
+      nowUpperBound,
+      cursorOnCard,
+    ),
+    isRecentDueTimestamp,
+    onCard,
+  );
+  if (didFinishRecentDueCards === false) {
+    return false;
+  }
+
+  const didFinishOldDueCards = await iterateTimedReviewCardsByDueAt(
+    database,
+    workspaceId,
+    nowTimestamp,
+    (cursorDatabase, cursorWorkspaceId, cursorOnCard) => iterateCardsByDueAtAscBefore(
+      cursorDatabase,
+      cursorWorkspaceId,
+      recentDueCutoffUpperBound,
+      cursorOnCard,
+    ),
+    isOldDueTimestamp,
+    onCard,
+  );
+  if (didFinishOldDueCards === false) {
+    return false;
+  }
+
+  return iterateNullDueReviewCards(database, workspaceId, onCard);
+}
+
+async function iterateReviewCardsInCanonicalOrder(
+  database: IDBDatabase,
+  workspaceId: string,
+  nowTimestamp: number,
+  onCard: (card: Card) => boolean | void,
+): Promise<void> {
+  const didFinishActiveCards = await iterateActiveReviewCardsInCanonicalOrder(database, workspaceId, nowTimestamp, onCard);
+  if (didFinishActiveCards === false) {
     return;
   }
 
-  for (const card of futureCards) {
-    if (onCard(card) === false) {
-      return;
-    }
+  const nowIso = toIsoTimestamp(nowTimestamp);
+  const didFinishFutureCards = await iterateTimedReviewCardsByDueAt(
+    database,
+    workspaceId,
+    nowTimestamp,
+    (cursorDatabase, cursorWorkspaceId, cursorOnCard) => iterateCardsByDueAtAscAfter(
+      cursorDatabase,
+      cursorWorkspaceId,
+      nowIso,
+      cursorOnCard,
+    ),
+    isFutureDueTimestamp,
+    onCard,
+  );
+  if (didFinishFutureCards === false) {
+    return;
   }
 
-  for (const card of invalidCards) {
-    if (onCard(card) === false) {
-      return;
-    }
-  }
+  await iterateMalformedDueAtReviewCards(database, workspaceId, nowTimestamp, onCard);
 }
 
-function makeReviewCursorCardIdPredicate(cursor: string | null): Readonly<{
-  matches: (cardId: string) => boolean;
-  isSet: boolean;
-}> {
-  if (cursor === null) {
-    return {
-      matches: () => false,
-      isSet: false,
+async function makeReviewCountsFromIndexedDb(
+  database: IDBDatabase,
+  workspaceId: string,
+  filterResolution: ReviewFilterResolution,
+  nowTimestamp: number,
+): Promise<ReviewCounts> {
+  let reviewCounts: ReviewCounts = {
+    dueCount: 0,
+    totalCount: 0,
+  };
+
+  await iterateCardsByCreatedAtDesc(database, workspaceId, (card) => {
+    if (card.deletedAt !== null || matchesResolvedReviewFilter(card, filterResolution) === false) {
+      return true;
+    }
+
+    reviewCounts = {
+      dueCount: reviewCounts.dueCount + (isCardDue(card, nowTimestamp) ? 1 : 0),
+      totalCount: reviewCounts.totalCount + 1,
     };
+    return true;
+  });
+
+  return reviewCounts;
+}
+
+async function loadActiveReviewQueuePage(
+  database: IDBDatabase,
+  workspaceId: string,
+  filterResolution: ReviewFilterResolution,
+  nowTimestamp: number,
+  cursorState: ReviewQueueCursorState | null,
+  limit: number,
+  excludedCardIds: ReadonlySet<string>,
+): Promise<Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>> {
+  const cursorPredicate = makeReviewCursorCardIdPredicate(cursorState);
+  let hasReachedCursor = cursorPredicate.isSet === false;
+  let pageCards: Array<Card> = [];
+  let hasMoreCards = false;
+
+  await iterateActiveReviewCardsInCanonicalOrder(database, workspaceId, nowTimestamp, (card) => {
+    if (matchesResolvedReviewFilter(card, filterResolution) === false) {
+      return true;
+    }
+
+    if (hasReachedCursor === false) {
+      if (cursorPredicate.matches(card.cardId)) {
+        hasReachedCursor = true;
+      }
+      return true;
+    }
+
+    if (excludedCardIds.has(card.cardId)) {
+      return true;
+    }
+
+    if (pageCards.length < limit) {
+      pageCards = [...pageCards, card];
+      return true;
+    }
+
+    hasMoreCards = true;
+    return false;
+  });
+
+  return {
+    cards: pageCards,
+    nextCursor: hasMoreCards && pageCards.length > 0
+      ? encodeReviewQueueCursor(pageCards[pageCards.length - 1]?.cardId ?? "", nowTimestamp)
+      : null,
+  };
+}
+
+function encodeReviewQueueCursor(cardId: string, asOfTimestamp: number): string {
+  if (cardId === "") {
+    throw new Error("Review queue cursor cannot be built without a card id");
   }
 
+  return encodeCursor({ cardId, asOfTimestamp });
+}
+
+function decodeReviewQueueCursor(cursor: string): ReviewQueueCursorState {
   const parsedCursor = decodeCursor(cursor);
   const cardId = parsedCursor.cardId;
   if (typeof cardId !== "string" || cardId === "") {
     throw new Error("review cursor.cardId must be a non-empty string");
   }
 
+  const asOfTimestamp = parsedCursor.asOfTimestamp;
+  if (typeof asOfTimestamp !== "number" || Number.isFinite(asOfTimestamp) === false) {
+    throw new Error("review cursor.asOfTimestamp must be a finite number");
+  }
+
   return {
-    matches: (candidateCardId) => candidateCardId === cardId,
-    isSet: true,
+    cardId,
+    asOfTimestamp,
   };
 }
 
-function makeReviewCountsFromCards(cards: ReadonlyArray<Card>, nowTimestamp: number): ReviewCounts {
-  return cards.reduce<ReviewCounts>((result, card) => ({
-    dueCount: result.dueCount + (isCardDue(card, nowTimestamp) ? 1 : 0),
-    totalCount: result.totalCount + 1,
-  }), {
-    dueCount: 0,
-    totalCount: 0,
-  });
-}
-
-function buildReviewQueueCursor(cards: ReadonlyArray<Card>, pageCards: ReadonlyArray<Card>): string | null {
-  if (pageCards.length === 0) {
-    return null;
+function makeReviewCursorCardIdPredicate(cursorState: ReviewQueueCursorState | null): Readonly<{
+  matches: (cardId: string) => boolean;
+  isSet: boolean;
+}> {
+  if (cursorState === null) {
+    return {
+      matches: () => false,
+      isSet: false,
+    };
   }
 
-  const lastCard = pageCards[pageCards.length - 1];
-  const lastCardIndex = cards.findIndex((card) => card.cardId === lastCard.cardId);
-  if (lastCardIndex === -1 || lastCardIndex >= cards.length - 1) {
-    return null;
-  }
-
-  return encodeCursor({ cardId: lastCard.cardId });
+  return {
+    matches: (candidateCardId) => candidateCardId === cursorState.cardId,
+    isSet: true,
+  };
 }
 
 function deleteWorkspaceReviewEvents(
@@ -408,14 +567,25 @@ export async function loadReviewQueueSnapshot(
 ): Promise<ReviewQueueSnapshot> {
   return closeDatabaseAfter(async (database) => {
     const nowTimestamp = Date.now();
-    const { filterResolution, accumulator } = await collectReviewCandidates(database, workspaceId, reviewFilter, nowTimestamp);
-    const pageCards = accumulator.dueCards.slice(0, limit);
+    const filterResolution = await resolveReviewFilterFromIndexedDb(database, workspaceId, reviewFilter);
+    const [queuePage, reviewCounts] = await Promise.all([
+      loadActiveReviewQueuePage(
+        database,
+        workspaceId,
+        filterResolution,
+        nowTimestamp,
+        null,
+        limit,
+        new Set<string>(),
+      ),
+      makeReviewCountsFromIndexedDb(database, workspaceId, filterResolution, nowTimestamp),
+    ]);
 
     return {
       resolvedReviewFilter: filterResolution.resolvedReviewFilter,
-      cards: pageCards,
-      nextCursor: buildReviewQueueCursor(accumulator.dueCards, pageCards),
-      reviewCounts: makeReviewCountsFromCards(accumulator.matchingCards, nowTimestamp),
+      cards: queuePage.cards,
+      nextCursor: queuePage.nextCursor,
+      reviewCounts,
     };
   });
 }
@@ -428,46 +598,18 @@ export async function loadReviewQueueChunk(
   excludedCardIds: ReadonlySet<string>,
 ): Promise<Readonly<{ cards: ReadonlyArray<Card>; nextCursor: string | null }>> {
   return closeDatabaseAfter(async (database) => {
-    const nowTimestamp = Date.now();
+    const cursorState = cursor === null ? null : decodeReviewQueueCursor(cursor);
+    const nowTimestamp = cursorState === null ? Date.now() : cursorState.asOfTimestamp;
     const filterResolution = await resolveReviewFilterFromIndexedDb(database, workspaceId, reviewFilter);
-    const cursorPredicate = makeReviewCursorCardIdPredicate(cursor);
-    let hasReachedCursor = cursorPredicate.isSet === false;
-    let pageCards: Array<Card> = [];
-    let hasMoreCards = false;
-
-    await iterateReviewCardsInCanonicalOrder(database, workspaceId, nowTimestamp, (card) => {
-      if (excludedCardIds.has(card.cardId)) {
-        return true;
-      }
-      if (matchesResolvedReviewFilter(card, filterResolution) === false) {
-        return true;
-      }
-      if (isCardDue(card, nowTimestamp) === false) {
-        return true;
-      }
-
-      if (hasReachedCursor === false) {
-        if (cursorPredicate.matches(card.cardId)) {
-          hasReachedCursor = true;
-        }
-        return true;
-      }
-
-      if (pageCards.length < limit) {
-        pageCards = [...pageCards, card];
-        return true;
-      }
-
-      hasMoreCards = true;
-      return false;
-    });
-
-    return {
-      cards: pageCards,
-      nextCursor: hasMoreCards && pageCards.length > 0
-        ? encodeCursor({ cardId: pageCards[pageCards.length - 1]?.cardId ?? "" })
-        : null,
-    };
+    return loadActiveReviewQueuePage(
+      database,
+      workspaceId,
+      filterResolution,
+      nowTimestamp,
+      cursorState,
+      limit,
+      excludedCardIds,
+    );
   });
 }
 

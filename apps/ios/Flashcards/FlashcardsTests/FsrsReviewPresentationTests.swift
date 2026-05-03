@@ -229,6 +229,113 @@ final class FsrsReviewPresentationTests: XCTestCase {
         )
     }
 
+    func testMakeReviewQueuePrioritizesRecentDueWindowBeforeOldDueAndNewCards() throws {
+        XCTAssertEqual(recentDuePriorityWindow, 60 * 60)
+
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+        let cards = [
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "new-card",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: nil,
+                updatedAt: "2026-03-09T09:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "old-earlier",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T07:00:00.000Z",
+                updatedAt: "2026-03-09T08:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "old-tie-older",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T07:30:00.000Z",
+                updatedAt: "2026-03-09T06:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "old-tie-newer",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T07:30:00.000Z",
+                updatedAt: "2026-03-09T07:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "recent-cutoff",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:00:00.000Z",
+                updatedAt: "2026-03-09T05:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "recent-tie-older",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:30:00.000Z",
+                updatedAt: "2026-03-09T04:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "recent-tie-newer",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T08:30:00.000Z",
+                updatedAt: "2026-03-09T04:30:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "recent-now",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T09:00:00.000Z",
+                updatedAt: "2026-03-09T03:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "future-one-millisecond",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "2026-03-09T09:00:00.001Z",
+                updatedAt: "2026-03-09T02:00:00.000Z"
+            ),
+            FsrsSchedulerTestSupport.makeTestCard(
+                cardId: "malformed-due",
+                tags: [],
+                effortLevel: .fast,
+                dueAt: "not-an-iso-date",
+                updatedAt: "2026-03-09T01:00:00.000Z"
+            )
+        ]
+
+        XCTAssertEqual(
+            makeReviewQueue(reviewFilter: .allCards, decks: [], cards: cards, now: now).map(\.cardId),
+            [
+                "recent-cutoff",
+                "recent-tie-newer",
+                "recent-tie-older",
+                "recent-now",
+                "old-earlier",
+                "old-tie-newer",
+                "old-tie-older",
+                "new-card"
+            ]
+        )
+        XCTAssertEqual(
+            makeReviewTimeline(reviewFilter: .allCards, decks: [], cards: cards, now: now).map(\.cardId),
+            [
+                "recent-cutoff",
+                "recent-tie-newer",
+                "recent-tie-older",
+                "recent-now",
+                "old-earlier",
+                "old-tie-newer",
+                "old-tie-older",
+                "new-card",
+                "future-one-millisecond",
+                "malformed-due"
+            ]
+        )
+    }
+
     func testMakeReviewQueueDoesNotTreatFutureNewCardsAsDue() throws {
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
         let cards = [

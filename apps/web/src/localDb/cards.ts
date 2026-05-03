@@ -28,6 +28,7 @@ type CardCursorIndexName =
 type IndexedCardCursorOptions = Readonly<{
   indexName: CardCursorIndexName;
   direction: IDBCursorDirection;
+  keyRange: IDBKeyRange | null;
 }>;
 
 function toStoredCard(workspaceId: string, card: Card): StoredCard {
@@ -85,7 +86,27 @@ function openIndexedCursor(
   store: IDBObjectStore,
   options: IndexedCardCursorOptions,
 ): IDBRequest<IDBCursorWithValue | null> {
-  return store.index(options.indexName).openCursor(null, options.direction);
+  return store.index(options.indexName).openCursor(options.keyRange, options.direction);
+}
+
+function makeWorkspaceIndexRange(workspaceId: string): IDBKeyRange {
+  return IDBKeyRange.bound([workspaceId], [workspaceId, []]);
+}
+
+function makeWorkspaceDueAtBeforeRange(workspaceId: string, dueAtExclusive: string): IDBKeyRange {
+  return IDBKeyRange.bound([workspaceId], [workspaceId, dueAtExclusive], false, true);
+}
+
+function makeWorkspaceDueAtBetweenInclusiveRange(
+  workspaceId: string,
+  lowerDueAtInclusive: string,
+  upperDueAtInclusive: string,
+): IDBKeyRange {
+  return IDBKeyRange.bound([workspaceId, lowerDueAtInclusive], [workspaceId, upperDueAtInclusive, []]);
+}
+
+function makeWorkspaceDueAtAfterRange(workspaceId: string, dueAtExclusive: string): IDBKeyRange {
+  return IDBKeyRange.bound([workspaceId, dueAtExclusive, []], [workspaceId, []]);
 }
 
 async function iterateCardsByIndex(
@@ -170,6 +191,7 @@ export async function iterateCardsByCreatedAtDesc(
     {
       indexName: "workspaceId_createdAt_cardId",
       direction: "prev",
+      keyRange: makeWorkspaceIndexRange(workspaceId),
     },
     (card) => {
       if (shouldStop) {
@@ -231,6 +253,7 @@ export async function iterateCardsByUpdatedAtDesc(
     {
       indexName: "workspaceId_updatedAt_cardId",
       direction: "prev",
+      keyRange: makeWorkspaceIndexRange(workspaceId),
     },
     (card) => {
       if (shouldStop) {
@@ -274,6 +297,62 @@ export async function iterateCardsByDueAtAsc(
     {
       indexName: "workspaceId_dueAt_cardId",
       direction: "next",
+      keyRange: makeWorkspaceIndexRange(workspaceId),
+    },
+    onCard,
+  );
+}
+
+export async function iterateCardsByDueAtAscBefore(
+  database: IDBDatabase,
+  workspaceId: string,
+  dueAtExclusive: string,
+  onCard: (card: Card) => boolean | void,
+): Promise<void> {
+  await iterateCardsByIndex(
+    database,
+    workspaceId,
+    {
+      indexName: "workspaceId_dueAt_cardId",
+      direction: "next",
+      keyRange: makeWorkspaceDueAtBeforeRange(workspaceId, dueAtExclusive),
+    },
+    onCard,
+  );
+}
+
+export async function iterateCardsByDueAtAscBetweenInclusive(
+  database: IDBDatabase,
+  workspaceId: string,
+  lowerDueAtInclusive: string,
+  upperDueAtInclusive: string,
+  onCard: (card: Card) => boolean | void,
+): Promise<void> {
+  await iterateCardsByIndex(
+    database,
+    workspaceId,
+    {
+      indexName: "workspaceId_dueAt_cardId",
+      direction: "next",
+      keyRange: makeWorkspaceDueAtBetweenInclusiveRange(workspaceId, lowerDueAtInclusive, upperDueAtInclusive),
+    },
+    onCard,
+  );
+}
+
+export async function iterateCardsByDueAtAscAfter(
+  database: IDBDatabase,
+  workspaceId: string,
+  dueAtExclusive: string,
+  onCard: (card: Card) => boolean | void,
+): Promise<void> {
+  await iterateCardsByIndex(
+    database,
+    workspaceId,
+    {
+      indexName: "workspaceId_dueAt_cardId",
+      direction: "next",
+      keyRange: makeWorkspaceDueAtAfterRange(workspaceId, dueAtExclusive),
     },
     onCard,
   );
@@ -309,6 +388,7 @@ async function iterateCardsByEffortAndCreatedAtDesc(
     {
       indexName: "workspaceId_effort_createdAt_cardId",
       direction: "prev",
+      keyRange: makeWorkspaceIndexRange(workspaceId),
     },
     (card) => {
       if (card.effortLevel !== effortLevel) {
@@ -375,6 +455,7 @@ async function iterateCardsByEffortAndUpdatedAtDesc(
     {
       indexName: "workspaceId_effort_updatedAt_cardId",
       direction: "prev",
+      keyRange: makeWorkspaceIndexRange(workspaceId),
     },
     (card) => {
       if (card.effortLevel !== effortLevel) {

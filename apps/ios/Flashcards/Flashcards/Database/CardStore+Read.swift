@@ -179,7 +179,7 @@ extension CardStore {
                 COALESCE(
                     SUM(
                         CASE
-                            WHEN due_at IS NULL OR due_at <= ? THEN 1
+                            WHEN \(cardStoreActiveReviewDueEligibilitySQL) THEN 1
                             ELSE 0
                         END
                     ),
@@ -296,6 +296,8 @@ extension CardStore {
         precondition(offset >= 0, "Review timeline page offset must not be negative")
 
         let querySQL = try self.makeReviewQuerySQL(reviewQueryDefinition: reviewQueryDefinition)
+        let nowText = formatIsoTimestamp(date: now)
+        let cutoffText = formatIsoTimestamp(date: now.addingTimeInterval(-recentDuePriorityWindow))
         let pageRows = try self.core.query(
             sql: """
             SELECT
@@ -304,17 +306,24 @@ extension CardStore {
             WHERE workspace_id = ? AND deleted_at IS NULL\(querySQL.clause)
             ORDER BY
                 CASE
-                    WHEN due_at <= ? THEN 0
-                    WHEN due_at IS NULL THEN 1
-                    ELSE 2
+                    WHEN due_at IS NULL THEN 2
+                    WHEN NOT \(cardStoreSupportedIsoDueAtSQL) THEN 4
+                    WHEN \(cardStoreDueAtSortKeySQL) >= ? AND \(cardStoreDueAtSortKeySQL) <= ? THEN 0
+                    WHEN \(cardStoreDueAtSortKeySQL) < ? THEN 1
+                    ELSE 3
                 END ASC,
-                due_at ASC,
+                CASE
+                    WHEN \(cardStoreSupportedIsoDueAtSQL) THEN \(cardStoreDueAtSortKeySQL)
+                    ELSE NULL
+                END ASC,
                 created_at DESC,
                 card_id ASC
             LIMIT ? OFFSET ?
             """,
             values: [.text(workspaceId)] + querySQL.values + [
-                .text(formatIsoTimestamp(date: now)),
+                .text(cutoffText),
+                .text(nowText),
+                .text(cutoffText),
                 .integer(Int64(limit + 1)),
                 .integer(Int64(offset))
             ]

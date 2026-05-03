@@ -233,6 +233,31 @@ Behavior:
 
 Memory updates for `relearning` remain short-term FSRS updates even if the card is answered on a later UTC day than the scheduled step.
 
+## Review queue presentation
+
+Review queue ordering is a cross-client presentation policy.
+It chooses the next active card shown to the user; it does not change FSRS transitions, interval calculations, due counts, sync payloads, API contracts, database schema, remote config, workspace scheduler settings, or persisted scheduler state.
+
+At queue evaluation time `now`, `recentDuePriorityWindow` is exactly `1 hour`.
+Active queue entries are presented in this order:
+
+1. recent due cards, where `dueAt` is in the inclusive range `[now - 1 hour, now]`
+2. old due cards, where `dueAt < now - 1 hour`
+3. new cards, where `dueAt` is `null`
+
+The recent-due boundary is inclusive at both ends: `dueAt == now` and `dueAt == now - 1 hour` are recent due.
+Cards with `dueAt > now` and cards with malformed `dueAt` values are not active queue entries, though preview or timeline surfaces may show them where supported.
+
+Tie-breakers inside the recent due and old due buckets must remain stable:
+
+1. `dueAt ASC`
+2. `createdAt DESC`
+3. `cardId ASC`
+
+The card currently displayed to the user remains pinned until it is answered, even if the canonical queue order changes in the background.
+Cards that become due after `Again` or another short-step review can rise ahead of a large old-overdue tail on the next normal queue refresh or review action.
+There is no requirement to refresh an idle review screen solely because a card crosses into the recent-due window.
+
 ## FSRS math
 
 The implementation uses the official FSRS-6 default weights for:

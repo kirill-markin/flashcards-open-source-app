@@ -51,6 +51,18 @@ export const ALL_CARDS_REVIEW_FILTER: ReviewFilter = {
   kind: "allCards",
 };
 
+export const recentDuePriorityWindow: number = 60 * 60 * 1000;
+
+type ReviewOrderBucket = "recentDue" | "oldDue" | "newNull" | "future" | "malformed";
+
+const reviewOrderBucketRanks: Readonly<Record<ReviewOrderBucket, number>> = {
+  recentDue: 0,
+  oldDue: 1,
+  newNull: 2,
+  future: 3,
+  malformed: 4,
+};
+
 export function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -306,16 +318,18 @@ function getReviewOrderCreatedTimestamp(card: Card): number {
 
 /**
  * Keep review queue ordering aligned with:
- * - apps/ios/Flashcards/Flashcards/ReviewQuerySupport.swift::compareCardsForReviewOrder
+ * - apps/ios/Flashcards/Flashcards/Review/ReviewQuerySupport.swift::compareCardsForReviewOrder
  * - apps/ios/Flashcards/Flashcards/Database/CardStore+ReadSQL.swift review queue ORDER BY
  * - apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/ReviewSupport.kt::sortCardsForReviewQueue
- * Ordering contract: timed due cards first, then null due cards, then future cards.
+ * Ordering contract: recent due cards in the inclusive 1-hour window first, then old due,
+ * then null-due/new cards, then future cards, then malformed dueAt cards.
+ * Active queues include only recent due, old due, and null-due/new cards.
  * Within each bucket, earlier dueAt comes first, then newer createdAt, then cardId ascending.
  * If this changes, mirror the same change across all three clients in the same change.
  */
 export function compareCardsForReviewOrder(leftCard: Card, rightCard: Card, nowTimestamp: number): number {
-  const leftOrderRank = getReviewOrderRank(leftCard, nowTimestamp);
-  const rightOrderRank = getReviewOrderRank(rightCard, nowTimestamp);
+  const leftOrderRank = reviewOrderBucketRanks[getReviewOrderBucket(leftCard, nowTimestamp)];
+  const rightOrderRank = reviewOrderBucketRanks[getReviewOrderBucket(rightCard, nowTimestamp)];
 
   if (leftOrderRank !== rightOrderRank) {
     return leftOrderRank - rightOrderRank;
@@ -336,17 +350,21 @@ export function compareCardsForReviewOrder(leftCard: Card, rightCard: Card, nowT
   return leftCard.cardId.localeCompare(rightCard.cardId);
 }
 
-function getReviewOrderRank(card: Card, nowTimestamp: number): number {
+function getReviewOrderBucket(card: Card, nowTimestamp: number): ReviewOrderBucket {
   if (card.dueAt === null) {
-    return 1;
+    return "newNull";
   }
 
   const dueAtTimestamp = new Date(card.dueAt).getTime();
   if (Number.isNaN(dueAtTimestamp)) {
-    return 2;
+    return "malformed";
   }
 
-  return dueAtTimestamp <= nowTimestamp ? 0 : 2;
+  if (dueAtTimestamp > nowTimestamp) {
+    return "future";
+  }
+
+  return dueAtTimestamp >= nowTimestamp - recentDuePriorityWindow ? "recentDue" : "oldDue";
 }
 
 export function deriveReviewTimeline(cards: ReadonlyArray<Card>): ReadonlyArray<Card> {

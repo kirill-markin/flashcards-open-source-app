@@ -87,7 +87,8 @@ interface WorkspaceRepository {
 interface ReviewRepository {
     fun observeReviewSession(
         selectedFilter: ReviewFilter,
-        pendingReviewedCards: Set<PendingReviewedCard>
+        pendingReviewedCards: Set<PendingReviewedCard>,
+        presentedCardId: String?
     ): Flow<ReviewSessionSnapshot>
 
     suspend fun loadReviewTimelinePage(
