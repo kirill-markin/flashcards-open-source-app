@@ -111,7 +111,8 @@ class ReviewViewModel(
     private val reviewSessionState = draftState.flatMapLatest { state ->
         reviewRepository.observeReviewSession(
             selectedFilter = state.requestedFilter,
-            pendingReviewedCards = state.pendingReviewedCards
+            pendingReviewedCards = state.pendingReviewedCards,
+            presentedCardId = state.presentedCardId
         ).map { sessionSnapshot ->
             ObservedReviewSessionState(
                 requestedFilter = state.requestedFilter,
@@ -179,9 +180,7 @@ class ReviewViewModel(
         )
         val sessionPreparedCurrentCard = prepareDisplayedSessionCardPresentation(
             displayedCard = displayedCurrentCard,
-            sessionCards = sessionSnapshot.cards,
-            headAnswerOptions = sessionSnapshot.answerOptions,
-            secondAnswerOptions = sessionSnapshot.nextAnswerOptions,
+            answerOptionsByCardId = sessionSnapshot.answerOptionsByCardId,
             textProvider = textProvider
         )
         val currentPreparedCard = if (
@@ -195,9 +194,7 @@ class ReviewViewModel(
         val displayedNextCard = displayedQueue.getOrNull(index = 1)
         val preparedNextCard = prepareDisplayedSessionCardPresentation(
             displayedCard = displayedNextCard,
-            sessionCards = sessionSnapshot.cards,
-            headAnswerOptions = sessionSnapshot.answerOptions,
-            secondAnswerOptions = sessionSnapshot.nextAnswerOptions,
+            answerOptionsByCardId = sessionSnapshot.answerOptionsByCardId,
             textProvider = textProvider
         )
         val emptyState = resolveReviewEmptyState(
@@ -760,9 +757,7 @@ class ReviewViewModel(
         )
         val preparedCurrentCardAfterSync = prepareDisplayedSessionCardPresentation(
             displayedCard = displayedCurrentCardAfterSync,
-            sessionCards = sessionSnapshot.cards,
-            headAnswerOptions = sessionSnapshot.answerOptions,
-            secondAnswerOptions = sessionSnapshot.nextAnswerOptions,
+            answerOptionsByCardId = sessionSnapshot.answerOptionsByCardId,
             textProvider = textProvider
         )
         val didReviewQueueChange = reviewCardIdsBeforeSync != reviewCardIdsAfterSync
@@ -953,6 +948,7 @@ private fun loadingReviewSessionSnapshot(textProvider: ReviewTextProvider): Revi
         cards = emptyList(),
         answerOptions = emptyList(),
         nextAnswerOptions = emptyList(),
+        answerOptionsByCardId = emptyMap(),
         remainingCount = 0,
         totalCount = 0,
         availableDeckFilters = emptyList(),
@@ -976,7 +972,7 @@ private fun resolvePresentedCardId(
     return sessionCards.firstOrNull()?.cardId
 }
 
-private fun resolveDisplayedCurrentCard(
+internal fun resolveDisplayedCurrentCard(
     sessionCards: List<ReviewCard>,
     presentedCardId: String?
 ): ReviewCard? {
@@ -985,7 +981,7 @@ private fun resolveDisplayedCurrentCard(
     } ?: sessionCards.firstOrNull()
 }
 
-private fun buildDisplayedReviewQueue(
+internal fun buildDisplayedReviewQueue(
     sessionCards: List<ReviewCard>,
     displayedCurrentCardId: String?
 ): List<ReviewCard> {
@@ -1007,22 +1003,30 @@ private fun buildDisplayedReviewQueue(
     }
 }
 
+internal fun resolveDisplayedSessionAnswerOptions(
+    displayedCard: ReviewCard?,
+    answerOptionsByCardId: Map<String, List<ReviewAnswerOption>>
+): List<ReviewAnswerOption>? {
+    val card = displayedCard ?: return null
+    return answerOptionsByCardId[card.cardId]
+}
+
 private fun prepareDisplayedSessionCardPresentation(
     displayedCard: ReviewCard?,
-    sessionCards: List<ReviewCard>,
-    headAnswerOptions: List<ReviewAnswerOption>,
-    secondAnswerOptions: List<ReviewAnswerOption>,
+    answerOptionsByCardId: Map<String, List<ReviewAnswerOption>>,
     textProvider: ReviewTextProvider
 ): PreparedReviewCardPresentation? {
     val card = displayedCard ?: return null
-    val cardIndex = sessionCards.indexOfFirst { sessionCard ->
-        sessionCard.cardId == card.cardId
+    val answerOptions = requireNotNull(
+        resolveDisplayedSessionAnswerOptions(
+            displayedCard = card,
+            answerOptionsByCardId = answerOptionsByCardId
+        )
+    ) {
+        "Review answer options are missing for displayed card: ${card.cardId}"
     }
-
-    val answerOptions = when (cardIndex) {
-        0 -> headAnswerOptions
-        1 -> secondAnswerOptions
-        else -> return null
+    require(answerOptions.isNotEmpty()) {
+        "Review answer options are empty for displayed card: ${card.cardId}"
     }
 
     return prepareReviewCardPresentation(

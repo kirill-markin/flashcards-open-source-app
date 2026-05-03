@@ -124,6 +124,515 @@ describe("localDb reviews", () => {
     }
   });
 
+  it("orders active review queue by recent due, old due, then null and leaves future or malformed cards for timeline", async () => {
+    const nowTimestamp = Date.parse("2026-03-10T12:00:00.000Z");
+    const originalNow = Date.now;
+    Date.now = () => nowTimestamp;
+
+    try {
+      await replaceCards(workspaceId, [
+        makeCard({
+          cardId: "future-tomorrow",
+          frontText: "Future tomorrow",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-11T12:00:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "recent-1155",
+          frontText: "Recent 11:55",
+          backText: "back",
+          tags: ["code"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T11:55:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "new-null",
+          frontText: "New null",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: null,
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "malformed",
+          frontText: "Malformed",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "not-a-date",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "old-yesterday",
+          frontText: "Old yesterday",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-09T12:00:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "recent-1115",
+          frontText: "Recent 11:15",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T11:15:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+      ]);
+
+      const queueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "allCards" }, 10);
+      const timelinePage = await loadReviewTimelinePage(workspaceId, { kind: "allCards" }, 10, 0);
+      const grammarQueueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "tag", tag: "grammar" }, 10);
+
+      expect(queueSnapshot.cards.map((card) => card.cardId)).toEqual([
+        "recent-1115",
+        "recent-1155",
+        "old-yesterday",
+        "new-null",
+      ]);
+      expect(queueSnapshot.reviewCounts).toEqual({
+        dueCount: 4,
+        totalCount: 6,
+      });
+      expect(timelinePage.cards.map((card) => card.cardId)).toEqual([
+        "recent-1115",
+        "recent-1155",
+        "old-yesterday",
+        "new-null",
+        "future-tomorrow",
+        "malformed",
+      ]);
+      expect(grammarQueueSnapshot.cards.map((card) => card.cardId)).toEqual([
+        "recent-1115",
+        "old-yesterday",
+        "new-null",
+      ]);
+    } finally {
+      Date.now = originalNow;
+    }
+  });
+
+  it("keeps recent due boundaries inclusive and excludes now plus one millisecond from the active queue", async () => {
+    const nowTimestamp = Date.parse("2026-03-10T12:00:00.000Z");
+    const originalNow = Date.now;
+    Date.now = () => nowTimestamp;
+
+    try {
+      await replaceCards(workspaceId, [
+        makeCard({
+          cardId: "future-one-ms",
+          frontText: "Future one ms",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T12:00:00.001Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "malformed-in-range",
+          frontText: "Malformed in range",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T11:30:broken",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "old-one-ms",
+          frontText: "Old one ms",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T10:59:59.999Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "due-now",
+          frontText: "Due now",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T12:00:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "new-null",
+          frontText: "New null",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: null,
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "recent-cutoff",
+          frontText: "Recent cutoff",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T11:00:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+      ]);
+
+      const queueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "allCards" }, 10);
+      const timelinePage = await loadReviewTimelinePage(workspaceId, { kind: "allCards" }, 10, 0);
+
+      expect(queueSnapshot.cards.map((card) => card.cardId)).toEqual([
+        "recent-cutoff",
+        "due-now",
+        "old-one-ms",
+        "new-null",
+      ]);
+      expect(timelinePage.cards.map((card) => card.cardId)).toEqual([
+        "recent-cutoff",
+        "due-now",
+        "old-one-ms",
+        "new-null",
+        "future-one-ms",
+        "malformed-in-range",
+      ]);
+    } finally {
+      Date.now = originalNow;
+    }
+  });
+
+  it("includes non-canonical whole-second dueAt at the inclusive now boundary", async () => {
+    const nowTimestamp = Date.parse("2026-03-10T12:00:00.000Z");
+    const originalNow = Date.now;
+    Date.now = () => nowTimestamp;
+
+    try {
+      await replaceCards(workspaceId, [
+        makeCard({
+          cardId: "due-now-short-z",
+          frontText: "Due now short Z",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T12:00:00Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "future-one-ms",
+          frontText: "Future one ms",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T12:00:00.001Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "malformed",
+          frontText: "Malformed",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "not-a-date",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "new-null",
+          frontText: "New null",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: null,
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+      ]);
+
+      const queueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "allCards" }, 10);
+      const timelinePage = await loadReviewTimelinePage(workspaceId, { kind: "allCards" }, 10, 0);
+      const queueCardIds = queueSnapshot.cards.map((card) => card.cardId);
+
+      expect(queueCardIds).toEqual([
+        "due-now-short-z",
+        "new-null",
+      ]);
+      expect(new Set(queueCardIds).size).toBe(queueCardIds.length);
+      expect(timelinePage.cards.map((card) => card.cardId)).toEqual([
+        "due-now-short-z",
+        "new-null",
+        "future-one-ms",
+        "malformed",
+      ]);
+    } finally {
+      Date.now = originalNow;
+    }
+  });
+
+  it("includes short fractional dueAt variants at the inclusive now boundary without duplicates", async () => {
+    const nowTimestamp = Date.parse("2026-03-10T12:00:00.100Z");
+    const originalNow = Date.now;
+    Date.now = () => nowTimestamp;
+
+    try {
+      await replaceCards(workspaceId, [
+        makeCard({
+          cardId: "old-cutoff-second",
+          frontText: "Old cutoff second",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T11:00:00Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "recent-cutoff-short-fraction",
+          frontText: "Recent cutoff short fraction",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T11:00:00.1Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "due-now-canonical",
+          frontText: "Due now canonical",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T12:00:00.100Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "due-now-short-fraction",
+          frontText: "Due now short fraction",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T12:00:00.1Z",
+          createdAt: "2026-03-10T09:03:00.000Z",
+        }),
+        makeCard({
+          cardId: "due-now-two-digit-fraction",
+          frontText: "Due now two digit fraction",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T12:00:00.10Z",
+          createdAt: "2026-03-10T09:02:00.000Z",
+        }),
+        makeCard({
+          cardId: "future-one-ms",
+          frontText: "Future one ms",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T12:00:00.101Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "malformed",
+          frontText: "Malformed",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T12:00:00.broken",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "new-null",
+          frontText: "New null",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: null,
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+      ]);
+
+      const queueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "allCards" }, 10);
+      const timelinePage = await loadReviewTimelinePage(workspaceId, { kind: "allCards" }, 10, 0);
+      const queueCardIds = queueSnapshot.cards.map((card) => card.cardId);
+
+      expect(queueCardIds).toEqual([
+        "recent-cutoff-short-fraction",
+        "due-now-short-fraction",
+        "due-now-two-digit-fraction",
+        "due-now-canonical",
+        "old-cutoff-second",
+        "new-null",
+      ]);
+      expect(new Set(queueCardIds).size).toBe(queueCardIds.length);
+      expect(timelinePage.cards.map((card) => card.cardId)).toEqual([
+        "recent-cutoff-short-fraction",
+        "due-now-short-fraction",
+        "due-now-two-digit-fraction",
+        "due-now-canonical",
+        "old-cutoff-second",
+        "new-null",
+        "future-one-ms",
+        "malformed",
+      ]);
+    } finally {
+      Date.now = originalNow;
+    }
+  });
+
+  it("continues active review chunks across recent due, old due, and null buckets when the cursor card is excluded", async () => {
+    const nowTimestamp = Date.parse("2026-03-10T12:00:00.000Z");
+    const originalNow = Date.now;
+    Date.now = () => nowTimestamp;
+
+    try {
+      await replaceCards(workspaceId, [
+        makeCard({
+          cardId: "recent-1115",
+          frontText: "Recent 11:15",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T11:15:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "recent-1155",
+          frontText: "Recent 11:55",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T11:55:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "old-yesterday",
+          frontText: "Old yesterday",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-09T12:00:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "new-null",
+          frontText: "New null",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: null,
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "future-tomorrow",
+          frontText: "Future tomorrow",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-11T12:00:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+      ]);
+
+      const initialSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "allCards" }, 2);
+      const chunk = await loadReviewQueueChunk(
+        workspaceId,
+        { kind: "allCards" },
+        initialSnapshot.nextCursor,
+        2,
+        new Set(["recent-1155"]),
+      );
+
+      expect(initialSnapshot.cards.map((card) => card.cardId)).toEqual([
+        "recent-1115",
+        "recent-1155",
+      ]);
+      expect(chunk.cards.map((card) => card.cardId)).toEqual([
+        "old-yesterday",
+        "new-null",
+      ]);
+      expect(chunk.nextCursor).toBeNull();
+    } finally {
+      Date.now = originalNow;
+    }
+  });
+
+  it("continues active review chunks from the original queue window when the recent boundary moves", async () => {
+    const initialNowTimestamp = Date.parse("2026-03-10T12:00:00.000Z");
+    const laterNowTimestamp = Date.parse("2026-03-10T12:20:00.000Z");
+    const originalNow = Date.now;
+    Date.now = () => initialNowTimestamp;
+
+    try {
+      await replaceCards(workspaceId, [
+        makeCard({
+          cardId: "recent-1105",
+          frontText: "Recent 11:05",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T11:05:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "recent-1110",
+          frontText: "Recent 11:10",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T11:10:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "recent-1115",
+          frontText: "Recent 11:15",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T11:15:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "old-1000",
+          frontText: "Old 10:00",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: "2026-03-10T10:00:00.000Z",
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+        makeCard({
+          cardId: "new-null",
+          frontText: "New null",
+          backText: "back",
+          tags: ["grammar"],
+          effortLevel: "fast",
+          dueAt: null,
+          createdAt: "2026-03-10T09:00:00.000Z",
+        }),
+      ]);
+
+      const initialSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "allCards" }, 2);
+      Date.now = () => laterNowTimestamp;
+      const chunk = await loadReviewQueueChunk(
+        workspaceId,
+        { kind: "allCards" },
+        initialSnapshot.nextCursor,
+        2,
+        new Set(initialSnapshot.cards.map((card) => card.cardId)),
+      );
+
+      expect(initialSnapshot.cards.map((card) => card.cardId)).toEqual([
+        "recent-1105",
+        "recent-1110",
+      ]);
+      expect(chunk.cards.map((card) => card.cardId)).toEqual([
+        "recent-1115",
+        "old-1000",
+      ]);
+    } finally {
+      Date.now = originalNow;
+    }
+  });
+
   it("keeps timed due ahead of null due ordering with stable cardId tie-breaks", async () => {
     const nowTimestamp = Date.parse("2025-01-08T00:00:00.000Z");
     const originalNow = Date.now;

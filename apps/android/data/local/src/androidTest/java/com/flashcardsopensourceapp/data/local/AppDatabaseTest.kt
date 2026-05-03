@@ -10,6 +10,8 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.CardEntity
+import com.flashcardsopensourceapp.data.local.database.CardTagEntity
+import com.flashcardsopensourceapp.data.local.database.TagEntity
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
@@ -44,6 +46,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -247,7 +250,8 @@ class AppDatabaseTest {
 
         val allCardsSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.Deck(deckId = "missing-deck"),
-            pendingReviewedCards = emptySet()
+            pendingReviewedCards = emptySet(),
+            presentedCardId = null
         ).first()
         val pendingSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.AllCards,
@@ -256,15 +260,18 @@ class AppDatabaseTest {
                     cardId = orderedCards.first().cardId,
                     updatedAtMillis = orderedCards.first().updatedAtMillis
                 )
-            )
+            ),
+            presentedCardId = null
         ).first()
         val tagSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.Tag(tag = "ui"),
-            pendingReviewedCards = emptySet()
+            pendingReviewedCards = emptySet(),
+            presentedCardId = null
         ).first()
         val effortSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.Effort(effortLevel = EffortLevel.FAST),
-            pendingReviewedCards = emptySet()
+            pendingReviewedCards = emptySet(),
+            presentedCardId = null
         ).first()
 
         assertEquals(ReviewFilter.AllCards, allCardsSnapshot.selectedFilter)
@@ -337,78 +344,62 @@ class AppDatabaseTest {
     }
 
     @Test
-    fun reviewQueuePrioritizesTimedDueCardsBeforeNewCardsAndFutureCards(): Unit = runBlocking {
+    fun reviewQueuePrioritizesRecentDueCardsBeforeOldDueNewCardsAndFutureCards(): Unit = runBlocking {
         val nowMillis = System.currentTimeMillis()
+        val fiveMinutesMillis = 5 * 60 * 1_000L
+        val fortyFiveMinutesMillis = 45 * 60 * 1_000L
         val oneDayMillis = 86_400_000L
-        val oneYearMillis = 31_536_000_000L
         val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = nowMillis)
         val reviewRepository = makeReviewRepository()
 
         database.cardDao().insertCards(
             listOf(
-                CardEntity(
-                    cardId = "timed-due-card",
+                makeDueReviewOrderingCardEntity(
+                    cardId = "old-due-card",
                     workspaceId = workspaceId,
-                    frontText = "Timed due",
-                    backText = "Back",
                     effortLevel = EffortLevel.FAST,
                     dueAtMillis = nowMillis - oneDayMillis,
                     createdAtMillis = nowMillis - (2 * oneDayMillis),
-                    updatedAtMillis = nowMillis - (2 * oneDayMillis),
-                    reps = 1,
-                    lapses = 0,
-                    fsrsCardState = FsrsCardState.REVIEW,
-                    fsrsStepIndex = null,
-                    fsrsStability = 1.0,
-                    fsrsDifficulty = 1.0,
-                    fsrsLastReviewedAtMillis = nowMillis - oneDayMillis,
-                    fsrsScheduledDays = 1,
-                    deletedAtMillis = null
+                    updatedAtMillis = nowMillis - (2 * oneDayMillis)
                 ),
-                CardEntity(
+                makeNewReviewOrderingCardEntity(
                     cardId = "new-card",
                     workspaceId = workspaceId,
-                    frontText = "New card",
-                    backText = "Back",
                     effortLevel = EffortLevel.FAST,
-                    dueAtMillis = null,
                     createdAtMillis = nowMillis - oneDayMillis,
-                    updatedAtMillis = nowMillis - oneDayMillis,
-                    reps = 0,
-                    lapses = 0,
-                    fsrsCardState = FsrsCardState.NEW,
-                    fsrsStepIndex = null,
-                    fsrsStability = null,
-                    fsrsDifficulty = null,
-                    fsrsLastReviewedAtMillis = null,
-                    fsrsScheduledDays = null,
-                    deletedAtMillis = null
+                    updatedAtMillis = nowMillis - oneDayMillis
                 ),
-                CardEntity(
+                makeDueReviewOrderingCardEntity(
                     cardId = "future-card",
                     workspaceId = workspaceId,
-                    frontText = "Future card",
-                    backText = "Back",
                     effortLevel = EffortLevel.FAST,
-                    dueAtMillis = nowMillis + oneYearMillis,
+                    dueAtMillis = nowMillis + oneDayMillis,
                     createdAtMillis = nowMillis - oneDayMillis,
-                    updatedAtMillis = nowMillis - oneDayMillis,
-                    reps = 1,
-                    lapses = 0,
-                    fsrsCardState = FsrsCardState.REVIEW,
-                    fsrsStepIndex = null,
-                    fsrsStability = 1.0,
-                    fsrsDifficulty = 1.0,
-                    fsrsLastReviewedAtMillis = nowMillis - oneDayMillis,
-                    fsrsScheduledDays = 1,
-                    deletedAtMillis = null
+                    updatedAtMillis = nowMillis - oneDayMillis
+                ),
+                makeDueReviewOrderingCardEntity(
+                    cardId = "recent-due-1115-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    dueAtMillis = nowMillis - fortyFiveMinutesMillis,
+                    createdAtMillis = nowMillis - fortyFiveMinutesMillis,
+                    updatedAtMillis = nowMillis - fortyFiveMinutesMillis
+                ),
+                makeDueReviewOrderingCardEntity(
+                    cardId = "recent-due-1155-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    dueAtMillis = nowMillis - fiveMinutesMillis,
+                    createdAtMillis = nowMillis - fiveMinutesMillis,
+                    updatedAtMillis = nowMillis - fiveMinutesMillis
                 )
             )
         )
 
         val sessionSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.AllCards,
-            pendingReviewedCards = emptySet()
+            pendingReviewedCards = emptySet(),
+            presentedCardId = null
         ).first()
         val timelinePage = reviewRepository.loadReviewTimelinePage(
             selectedFilter = ReviewFilter.AllCards,
@@ -421,9 +412,136 @@ class AppDatabaseTest {
             nowMillis = nowMillis
         )
 
-        assertEquals(listOf("timed-due-card", "new-card"), sessionSnapshot.cards.map { card -> card.cardId })
-        assertEquals(listOf("timed-due-card", "new-card", "future-card"), timelinePage.cards.map { card -> card.cardId })
-        assertEquals("timed-due-card", topReviewCard?.cardId)
+        assertEquals(
+            listOf("recent-due-1115-card", "recent-due-1155-card", "old-due-card", "new-card"),
+            sessionSnapshot.cards.map { card -> card.cardId }
+        )
+        assertEquals(
+            listOf("recent-due-1115-card", "recent-due-1155-card", "old-due-card", "new-card", "future-card"),
+            timelinePage.cards.map { card -> card.cardId }
+        )
+        assertEquals("recent-due-1115-card", topReviewCard?.cardId)
+    }
+
+    @Test
+    fun topReviewCardQueriesUseRecentDueBoundariesAndFilters(): Unit = runBlocking {
+        val nowMillis = 12 * 60 * 60 * 1_000L
+        val oneHourMillis = 60 * 60 * 1_000L
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = nowMillis)
+        val priorityTag = TagEntity(
+            tagId = "tag-priority",
+            workspaceId = workspaceId,
+            name = "Priority"
+        )
+        val futureTag = TagEntity(
+            tagId = "tag-future-only",
+            workspaceId = workspaceId,
+            name = "Future Only"
+        )
+
+        database.cardDao().insertCards(
+            listOf(
+                makeDueReviewOrderingCardEntity(
+                    cardId = "recent-cutoff-a",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    dueAtMillis = nowMillis - oneHourMillis,
+                    createdAtMillis = 300L,
+                    updatedAtMillis = 300L
+                ),
+                makeDueReviewOrderingCardEntity(
+                    cardId = "recent-cutoff-b",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    dueAtMillis = nowMillis - oneHourMillis,
+                    createdAtMillis = 300L,
+                    updatedAtMillis = 300L
+                ),
+                makeDueReviewOrderingCardEntity(
+                    cardId = "recent-cutoff-older-created",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    dueAtMillis = nowMillis - oneHourMillis,
+                    createdAtMillis = 200L,
+                    updatedAtMillis = 200L
+                ),
+                makeDueReviewOrderingCardEntity(
+                    cardId = "old-boundary-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.LONG,
+                    dueAtMillis = nowMillis - oneHourMillis - 1L,
+                    createdAtMillis = 400L,
+                    updatedAtMillis = 400L
+                ),
+                makeDueReviewOrderingCardEntity(
+                    cardId = "due-now-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.MEDIUM,
+                    dueAtMillis = nowMillis,
+                    createdAtMillis = 500L,
+                    updatedAtMillis = 500L
+                ),
+                makeNewReviewOrderingCardEntity(
+                    cardId = "new-medium-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.MEDIUM,
+                    createdAtMillis = 600L,
+                    updatedAtMillis = 600L
+                ),
+                makeDueReviewOrderingCardEntity(
+                    cardId = "future-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    dueAtMillis = nowMillis + 1L,
+                    createdAtMillis = 700L,
+                    updatedAtMillis = 700L
+                )
+            )
+        )
+        database.tagDao().insertTags(tags = listOf(priorityTag, futureTag))
+        database.tagDao().insertCardTags(
+            cardTags = listOf(
+                CardTagEntity(cardId = "recent-cutoff-a", tagId = priorityTag.tagId),
+                CardTagEntity(cardId = "recent-cutoff-b", tagId = priorityTag.tagId),
+                CardTagEntity(cardId = "recent-cutoff-older-created", tagId = priorityTag.tagId),
+                CardTagEntity(cardId = "old-boundary-card", tagId = priorityTag.tagId),
+                CardTagEntity(cardId = "due-now-card", tagId = priorityTag.tagId),
+                CardTagEntity(cardId = "new-medium-card", tagId = priorityTag.tagId),
+                CardTagEntity(cardId = "future-card", tagId = futureTag.tagId)
+            )
+        )
+
+        val allCardsTop = database.cardDao().loadTopReviewCard(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis
+        )
+        val effortTop = database.cardDao().loadTopReviewCardByEffortLevels(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            effortLevels = listOf(EffortLevel.FAST)
+        )
+        val tagTop = database.cardDao().loadTopReviewCardByAnyTags(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            normalizedTagNames = listOf("priority")
+        )
+        val effortAndTagTop = database.cardDao().loadTopReviewCardByEffortLevelsAndAnyTags(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            effortLevels = listOf(EffortLevel.MEDIUM),
+            normalizedTagNames = listOf("priority")
+        )
+        val futureOnlyTagTop = database.cardDao().loadTopReviewCardByAnyTags(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            normalizedTagNames = listOf("future only")
+        )
+
+        assertEquals("recent-cutoff-a", allCardsTop?.cardId)
+        assertEquals("recent-cutoff-a", effortTop?.cardId)
+        assertEquals("recent-cutoff-a", tagTop?.cardId)
+        assertEquals("due-now-card", effortAndTagTop?.cardId)
+        assertNull(futureOnlyTagTop)
     }
 
     @Test
@@ -692,6 +810,63 @@ class AppDatabaseTest {
                 database = database,
                 timeProvider = SystemProgressTimeProvider
             )
+        )
+    }
+
+    private fun makeDueReviewOrderingCardEntity(
+        cardId: String,
+        workspaceId: String,
+        effortLevel: EffortLevel,
+        dueAtMillis: Long,
+        createdAtMillis: Long,
+        updatedAtMillis: Long
+    ): CardEntity {
+        return CardEntity(
+            cardId = cardId,
+            workspaceId = workspaceId,
+            frontText = cardId,
+            backText = "Back",
+            effortLevel = effortLevel,
+            dueAtMillis = dueAtMillis,
+            createdAtMillis = createdAtMillis,
+            updatedAtMillis = updatedAtMillis,
+            reps = 1,
+            lapses = 0,
+            fsrsCardState = FsrsCardState.REVIEW,
+            fsrsStepIndex = null,
+            fsrsStability = 1.0,
+            fsrsDifficulty = 1.0,
+            fsrsLastReviewedAtMillis = createdAtMillis,
+            fsrsScheduledDays = 1,
+            deletedAtMillis = null
+        )
+    }
+
+    private fun makeNewReviewOrderingCardEntity(
+        cardId: String,
+        workspaceId: String,
+        effortLevel: EffortLevel,
+        createdAtMillis: Long,
+        updatedAtMillis: Long
+    ): CardEntity {
+        return CardEntity(
+            cardId = cardId,
+            workspaceId = workspaceId,
+            frontText = cardId,
+            backText = "Back",
+            effortLevel = effortLevel,
+            dueAtMillis = null,
+            createdAtMillis = createdAtMillis,
+            updatedAtMillis = updatedAtMillis,
+            reps = 0,
+            lapses = 0,
+            fsrsCardState = FsrsCardState.NEW,
+            fsrsStepIndex = null,
+            fsrsStability = null,
+            fsrsDifficulty = null,
+            fsrsLastReviewedAtMillis = null,
+            fsrsScheduledDays = null,
+            deletedAtMillis = null
         )
     }
 }
