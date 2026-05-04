@@ -127,7 +127,6 @@ const enCatalog = {
     weekRangeValue: "{{from}} - {{to}}",
     previousWeek: "Previous week",
     nextWeek: "Next week",
-    emptyWeek: "No reviews yet in this week.",
     reviewSchedule: {
       title: "Review schedule",
       totalCards: "Total cards: {{count}}",

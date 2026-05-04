@@ -129,7 +129,6 @@ export const ruCatalog = {
     weekRangeValue: "{{from}} - {{to}}",
     previousWeek: "Предыдущая неделя",
     nextWeek: "Следующая неделя",
-    emptyWeek: "На этой неделе пока нет повторений.",
     reviewSchedule: {
       title: "Расписание повторений",
       totalCards: "Всего карточек: {{count}}",

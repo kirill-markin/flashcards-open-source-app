@@ -129,7 +129,6 @@ const arCatalog: TranslationCatalog = {
     weekRangeValue: "{{from}} - {{to}}",
     previousWeek: "الأسبوع السابق",
     nextWeek: "الأسبوع التالي",
-    emptyWeek: "لا توجد مراجعات بعد في هذا الأسبوع.",
     reviewSchedule: {
       title: "جدول المراجعة",
       totalCards: "إجمالي البطاقات: {{count}}",
