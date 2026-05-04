@@ -8,7 +8,8 @@ extension FlashcardsStore {
 
         if previousScopeKey != scopeKey {
             self.progressObservedScopeKey = scopeKey
-            self.progressLocalFallbackRevision += 1
+            self.progressReviewedAtClientRevision += 1
+            self.progressReviewScheduleLocalRevision += 1
             self.progressSummaryServerBaseCache = self.loadPersistedProgressSummaryServerBase(
                 scopeKey: progressSummaryScopeKey(seriesScopeKey: scopeKey)
             )
@@ -308,7 +309,7 @@ extension FlashcardsStore {
         let cacheKey = ProgressReviewedAtClientCacheKey(
             workspaceMembershipKey: scopeKey.workspaceMembershipKey,
             installationId: self.cloudSettings?.installationId,
-            revision: self.progressLocalFallbackRevision
+            revision: self.progressReviewedAtClientRevision
         )
         if let entry = self.progressReviewedAtClientCache, entry.key == cacheKey {
             return entry
@@ -340,7 +341,7 @@ extension FlashcardsStore {
             timeZone: scheduleScopeKey.timeZone,
             referenceLocalDate: scheduleScopeKey.referenceLocalDate,
             installationId: self.cloudSettings?.installationId,
-            revision: self.progressLocalFallbackRevision
+            revision: self.progressReviewScheduleLocalRevision
         )
         if let entry = self.progressReviewScheduleLocalCache, entry.key == cacheKey {
             return entry
