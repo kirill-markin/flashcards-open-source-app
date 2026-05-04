@@ -12,13 +12,15 @@ import com.flashcardsopensourceapp.data.local.model.SyncAction
 import com.flashcardsopensourceapp.data.local.model.SyncEntityType
 import com.flashcardsopensourceapp.data.local.model.SyncOperationPayload
 import com.flashcardsopensourceapp.data.local.model.formatIsoTimestamp
+import com.flashcardsopensourceapp.data.local.repository.TimeProvider
 import java.util.UUID
 
 private const val outboxBatchLimit: Int = 200
 
 internal class SyncOutboxLocalStore(
     private val database: AppDatabase,
-    private val preferencesStore: CloudPreferencesStore
+    private val preferencesStore: CloudPreferencesStore,
+    private val timeProvider: TimeProvider
 ) {
     suspend fun enqueueCardUpsert(card: CardEntity, tags: List<String>, affectsReviewSchedule: Boolean) {
         insertOutboxEntry(
@@ -137,7 +139,7 @@ internal class SyncOutboxLocalStore(
                     operationType = action.toRemoteValue(),
                     payloadJson = payloadJson,
                     clientUpdatedAtIso = clientUpdatedAtIso,
-                    createdAtMillis = System.currentTimeMillis(),
+                    createdAtMillis = timeProvider.currentTimeMillis(),
                     affectsReviewSchedule = affectsReviewSchedule,
                     attemptCount = 0,
                     lastError = null
