@@ -69,12 +69,15 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
         try await store.applySyncResultWithoutBlockingReset(
             syncResult: CloudSyncResult(
                 appliedPullChangeCount: 0,
+                reviewScheduleImpactingPullChangeCount: 0,
                 changedEntityTypes: [.card],
                 localIdRepairEntityTypes: [.card],
                 acknowledgedOperationCount: 0,
                 acknowledgedReviewEventOperationCount: 0,
+                acknowledgedReviewScheduleImpactingOperationCount: 0,
                 cleanedUpOperationCount: 0,
-                cleanedUpReviewEventOperationCount: 0
+                cleanedUpReviewEventOperationCount: 0,
+                cleanedUpReviewScheduleImpactingOperationCount: 0
             ),
             now: now,
             trigger: self.makeManualSyncTrigger(now: now)
@@ -133,12 +136,15 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
             CloudSyncLocalIdRepairFailure(
                 syncResult: CloudSyncResult(
                     appliedPullChangeCount: 0,
+                    reviewScheduleImpactingPullChangeCount: 0,
                     changedEntityTypes: [.card],
                     localIdRepairEntityTypes: [.card],
                     acknowledgedOperationCount: 0,
                     acknowledgedReviewEventOperationCount: 0,
+                    acknowledgedReviewScheduleImpactingOperationCount: 0,
                     cleanedUpOperationCount: 0,
-                    cleanedUpReviewEventOperationCount: 0
+                    cleanedUpReviewEventOperationCount: 0,
+                    cleanedUpReviewScheduleImpactingOperationCount: 0
                 ),
                 underlyingError: LocalStoreError.validation("terminal sync failure after repair")
             )
@@ -218,12 +224,15 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
             CloudSyncLocalIdRepairFailure(
                 syncResult: CloudSyncResult(
                     appliedPullChangeCount: 0,
+                    reviewScheduleImpactingPullChangeCount: 0,
                     changedEntityTypes: [.card],
                     localIdRepairEntityTypes: [.card],
                     acknowledgedOperationCount: 0,
                     acknowledgedReviewEventOperationCount: 0,
+                    acknowledgedReviewScheduleImpactingOperationCount: 0,
                     cleanedUpOperationCount: 0,
-                    cleanedUpReviewEventOperationCount: 0
+                    cleanedUpReviewEventOperationCount: 0,
+                    cleanedUpReviewScheduleImpactingOperationCount: 0
                 ),
                 underlyingError: LocalStoreError.validation("terminal sync failure after repair")
             )
@@ -320,12 +329,15 @@ final class ReviewSelectionSyncRecoveryTests: LocalWorkspaceSyncTestCase {
         try await store.applySyncResultWithoutBlockingReset(
             syncResult: CloudSyncResult(
                 appliedPullChangeCount: 1,
+                reviewScheduleImpactingPullChangeCount: 0,
                 changedEntityTypes: [.deck],
                 localIdRepairEntityTypes: [],
                 acknowledgedOperationCount: 0,
                 acknowledgedReviewEventOperationCount: 0,
+                acknowledgedReviewScheduleImpactingOperationCount: 0,
                 cleanedUpOperationCount: 0,
-                cleanedUpReviewEventOperationCount: 0
+                cleanedUpReviewEventOperationCount: 0,
+                cleanedUpReviewScheduleImpactingOperationCount: 0
             ),
             now: now,
             trigger: self.makeManualSyncTrigger(now: now)

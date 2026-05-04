@@ -130,6 +130,21 @@ const arCatalog: TranslationCatalog = {
     previousWeek: "الأسبوع السابق",
     nextWeek: "الأسبوع التالي",
     emptyWeek: "لا توجد مراجعات بعد في هذا الأسبوع.",
+    reviewSchedule: {
+      title: "جدول المراجعة",
+      totalCards: "إجمالي البطاقات: {{count}}",
+      legendLabel: "مجموعات جدول المراجعة",
+      buckets: {
+        new: "جديدة",
+        today: "اليوم",
+        days1To7: "1-7 أيام",
+        days8To30: "8-30 يومًا",
+        days31To90: "31-90 يومًا",
+        days91To360: "91-360 يومًا",
+        years1To2: "1-2 سنة",
+        later: "لاحقًا",
+      },
+    },
     labels: {
       totalReviews: "إجمالي المراجعات",
       activeDays: "الأيام النشطة",

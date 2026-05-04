@@ -12,6 +12,8 @@ import com.flashcardsopensourceapp.data.local.database.cardsReviewQueueIndexName
 import com.flashcardsopensourceapp.data.local.database.migration10To11
 import com.flashcardsopensourceapp.data.local.database.migration12To13
 import com.flashcardsopensourceapp.data.local.database.migration13To14
+import com.flashcardsopensourceapp.data.local.database.migration14To15
+import com.flashcardsopensourceapp.data.local.database.migration15To16
 import com.flashcardsopensourceapp.data.local.database.migration5To6
 import com.flashcardsopensourceapp.data.local.database.migration9To10
 import org.junit.After
@@ -291,6 +293,88 @@ class AppDatabaseMigrationTest {
         try {
             migration13To14.migrate(database)
             assertCardsReviewQueueIndexExists(database = database)
+        } finally {
+            database.close()
+            openHelper.close()
+        }
+    }
+
+    @Test
+    fun migration14To15AddsProgressReviewScheduleCacheTable() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        createVersion14Database(context = context)
+
+        val openHelper = openDatabaseAtVersion(
+            context = context,
+            name = targetedMigrationDatabaseName,
+            version = 14
+        )
+        val database = openHelper.writableDatabase
+
+        try {
+            migration14To15.migrate(database)
+            assertTrue(tableExists(database = database, tableName = "progress_review_schedule_cache"))
+            assertEquals(
+                0L,
+                readSingleLong(
+                    database = database,
+                    sql = "SELECT COUNT(*) FROM progress_review_schedule_cache"
+                )
+            )
+        } finally {
+            database.close()
+            openHelper.close()
+        }
+    }
+
+    @Test
+    fun migration15To16AddsReviewScheduleImpactFlagToOutboxEntries() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        createVersion15Database(context = context)
+
+        val openHelper = openDatabaseAtVersion(
+            context = context,
+            name = targetedMigrationDatabaseName,
+            version = 15
+        )
+        val database = openHelper.writableDatabase
+
+        try {
+            migration15To16.migrate(database)
+
+            assertEquals(
+                1L,
+                readSingleLong(
+                    database = database,
+                    sql = """
+                        SELECT affectsReviewSchedule
+                        FROM outbox_entries
+                        WHERE outboxEntryId = 'outbox-card-upsert'
+                    """.trimIndent()
+                )
+            )
+            assertEquals(
+                0L,
+                readSingleLong(
+                    database = database,
+                    sql = """
+                        SELECT affectsReviewSchedule
+                        FROM outbox_entries
+                        WHERE outboxEntryId = 'outbox-review-event'
+                    """.trimIndent()
+                )
+            )
+            assertEquals(
+                0L,
+                readSingleLong(
+                    database = database,
+                    sql = """
+                        SELECT affectsReviewSchedule
+                        FROM outbox_entries
+                        WHERE outboxEntryId = 'outbox-deck-upsert'
+                    """.trimIndent()
+                )
+            )
         } finally {
             database.close()
             openHelper.close()
@@ -695,6 +779,142 @@ class AppDatabaseMigrationTest {
         sqliteDatabase.execSQL("CREATE INDEX index_cards_workspaceId ON cards(workspaceId)")
 
         sqliteDatabase.version = 13
+        sqliteDatabase.close()
+    }
+
+    private fun createVersion14Database(context: Context) {
+        val databaseFile = context.getDatabasePath(targetedMigrationDatabaseName)
+        if (databaseFile.exists()) {
+            databaseFile.delete()
+        }
+        databaseFile.parentFile?.mkdirs()
+
+        val sqliteDatabase = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
+        sqliteDatabase.version = 14
+        sqliteDatabase.close()
+    }
+
+    private fun createVersion15Database(context: Context) {
+        val databaseFile = context.getDatabasePath(targetedMigrationDatabaseName)
+        if (databaseFile.exists()) {
+            databaseFile.delete()
+        }
+        databaseFile.parentFile?.mkdirs()
+
+        val sqliteDatabase = SQLiteDatabase.openOrCreateDatabase(databaseFile, null)
+        sqliteDatabase.execSQL(
+            "CREATE TABLE workspaces (workspaceId TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, createdAtMillis INTEGER NOT NULL)"
+        )
+        sqliteDatabase.execSQL(
+            """
+            CREATE TABLE outbox_entries (
+                outboxEntryId TEXT NOT NULL PRIMARY KEY,
+                workspaceId TEXT NOT NULL,
+                installationId TEXT NOT NULL,
+                entityType TEXT NOT NULL,
+                entityId TEXT NOT NULL,
+                operationType TEXT NOT NULL,
+                payloadJson TEXT NOT NULL,
+                clientUpdatedAtIso TEXT NOT NULL,
+                createdAtMillis INTEGER NOT NULL,
+                attemptCount INTEGER NOT NULL,
+                lastError TEXT,
+                FOREIGN KEY(workspaceId) REFERENCES workspaces(workspaceId) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        sqliteDatabase.execSQL(
+            "INSERT INTO workspaces (workspaceId, name, createdAtMillis) VALUES ('workspace-local', 'Personal', 100)"
+        )
+        sqliteDatabase.execSQL(
+            """
+            INSERT INTO outbox_entries (
+                outboxEntryId,
+                workspaceId,
+                installationId,
+                entityType,
+                entityId,
+                operationType,
+                payloadJson,
+                clientUpdatedAtIso,
+                createdAtMillis,
+                attemptCount,
+                lastError
+            ) VALUES (
+                'outbox-card-upsert',
+                'workspace-local',
+                'installation-1',
+                'card',
+                'card-1',
+                'upsert',
+                '{}',
+                '2026-05-03T10:00:00Z',
+                100,
+                0,
+                NULL
+            )
+            """.trimIndent()
+        )
+        sqliteDatabase.execSQL(
+            """
+            INSERT INTO outbox_entries (
+                outboxEntryId,
+                workspaceId,
+                installationId,
+                entityType,
+                entityId,
+                operationType,
+                payloadJson,
+                clientUpdatedAtIso,
+                createdAtMillis,
+                attemptCount,
+                lastError
+            ) VALUES (
+                'outbox-review-event',
+                'workspace-local',
+                'installation-1',
+                'review_event',
+                'review-1',
+                'append',
+                '{}',
+                '2026-05-03T10:00:00Z',
+                101,
+                0,
+                NULL
+            )
+            """.trimIndent()
+        )
+        sqliteDatabase.execSQL(
+            """
+            INSERT INTO outbox_entries (
+                outboxEntryId,
+                workspaceId,
+                installationId,
+                entityType,
+                entityId,
+                operationType,
+                payloadJson,
+                clientUpdatedAtIso,
+                createdAtMillis,
+                attemptCount,
+                lastError
+            ) VALUES (
+                'outbox-deck-upsert',
+                'workspace-local',
+                'installation-1',
+                'deck',
+                'deck-1',
+                'upsert',
+                '{}',
+                '2026-05-03T10:00:00Z',
+                102,
+                0,
+                NULL
+            )
+            """.trimIndent()
+        )
+
+        sqliteDatabase.version = 15
         sqliteDatabase.close()
     }
 

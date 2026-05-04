@@ -6,15 +6,22 @@ import {
   useRef,
   useState,
 } from "react";
-import { loadProgressSeries, loadProgressSummary } from "../../api";
+import { loadProgressReviewSchedule, loadProgressSeries, loadProgressSummary } from "../../api";
 import {
   hasPendingProgressReviewEvents,
   loadLocalProgressDailyReviews,
   loadLocalProgressSummary,
   loadPendingProgressDailyReviews,
 } from "../../localDb/progress";
+import {
+  calculatePendingProgressReviewScheduleCardTotalDelta,
+  hasCompleteLocalProgressReviewScheduleCoverage,
+  hasPendingProgressReviewScheduleCardChanges,
+  loadLocalProgressReviewSchedule,
+} from "../../localDb/reviewSchedule";
 import type {
   CloudSettings,
+  ProgressReviewScheduleInput,
   ProgressScopeKey,
   ProgressSeriesInput,
   ProgressSourceState,
@@ -22,6 +29,7 @@ import type {
   WorkspaceSummary,
 } from "../../types";
 import {
+  buildProgressReviewScheduleInputForDateContext,
   buildProgressSeriesInputForDateContext,
   buildProgressSummaryInputForDateContext,
 } from "../../progress/progressDates";
@@ -36,6 +44,7 @@ import {
   canLoadProgressServerBase,
   collectAccessibleWorkspaceIds,
   resolveProgressRefreshKey,
+  resolveProgressReviewScheduleScopeKey,
   resolveProgressSeriesScopeKey,
   resolveProgressSummaryScopeKey,
   type ProgressSourceSections,
@@ -43,13 +52,16 @@ import {
 import {
   buildLocalFallbackSeries,
   createProgressChartData,
+  createProgressReviewScheduleSnapshot,
   createProgressSeriesSnapshot,
   createProgressSummarySnapshot,
   normalizeProgressSeries,
 } from "./progressSnapshots";
 import {
+  loadPersistedProgressReviewSchedule,
   loadPersistedProgressSeries,
   loadPersistedProgressSummary,
+  storePersistedProgressReviewSchedule,
   storePersistedProgressSeries,
   storePersistedProgressSummary,
 } from "./progressStorage";
@@ -60,6 +72,7 @@ type UseProgressSourceParams = Readonly<{
   cloudSettings: CloudSettings | null;
   sessionVerificationState: SessionVerificationState;
   progressLocalVersion: number;
+  progressScheduleLocalVersion: number;
   progressServerInvalidationVersion: number;
   sections: ProgressSourceSections;
 }>;
@@ -69,8 +82,41 @@ type UseProgressSourceResult = Readonly<{
   refreshProgress: () => Promise<void>;
 }>;
 
+type ProgressReviewScheduleRefreshRequest = Readonly<{
+  refreshKey: string;
+  progressScheduleLocalVersion: number;
+}>;
+
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function buildProgressReviewScheduleRefreshKey(
+  scopeKey: ProgressScopeKey,
+  progressServerInvalidationVersion: number,
+  progressScheduleLocalVersion: number,
+  manualRefreshVersion: number,
+): string {
+  return `${scopeKey}::${progressServerInvalidationVersion}::${progressScheduleLocalVersion}::${manualRefreshVersion}`;
+}
+
+function resolveProgressReviewScheduleRefreshKey(
+  scopeKey: ProgressScopeKey | null,
+  canLoadServerBase: boolean,
+  progressServerInvalidationVersion: number,
+  progressScheduleLocalVersion: number,
+  manualRefreshVersion: number,
+): string | null {
+  if (scopeKey === null || canLoadServerBase === false) {
+    return null;
+  }
+
+  return buildProgressReviewScheduleRefreshKey(
+    scopeKey,
+    progressServerInvalidationVersion,
+    progressScheduleLocalVersion,
+    manualRefreshVersion,
+  );
 }
 
 export function useProgressSource(params: UseProgressSourceParams): UseProgressSourceResult {
@@ -80,23 +126,29 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     cloudSettings,
     sessionVerificationState,
     progressLocalVersion,
+    progressScheduleLocalVersion,
     progressServerInvalidationVersion,
     sections,
   } = params;
-  const { includeSummary, includeSeries } = sections;
+  const { includeSummary, includeSeries, includeReviewSchedule } = sections;
   const [progressSourceState, dispatch] = useReducer(progressSourceReducer, createInitialProgressSourceState());
   const timeContext = useProgressTimeContext();
   const [manualRefreshVersion, setManualRefreshVersion] = useState<number>(0);
   const manualRefreshVersionRef = useRef<number>(0);
   const currentSummaryScopeKeyRef = useRef<ProgressScopeKey | null>(null);
   const currentSeriesScopeKeyRef = useRef<ProgressScopeKey | null>(null);
+  const currentReviewScheduleScopeKeyRef = useRef<ProgressScopeKey | null>(null);
   const canLoadServerBaseRef = useRef<boolean>(false);
   const summaryLocalLoadSequenceRef = useRef<number>(0);
   const seriesLocalLoadSequenceRef = useRef<number>(0);
+  const reviewScheduleLocalLoadSequenceRef = useRef<number>(0);
   const summaryServerRefreshPromisesRef = useRef<Map<ProgressScopeKey, Promise<void>>>(new Map());
   const seriesServerRefreshPromisesRef = useRef<Map<ProgressScopeKey, Promise<void>>>(new Map());
+  const reviewScheduleServerRefreshPromisesRef = useRef<Map<ProgressScopeKey, Promise<void>>>(new Map());
   const requestedSummaryRefreshKeysRef = useRef<Map<ProgressScopeKey, string>>(new Map());
   const requestedSeriesRefreshKeysRef = useRef<Map<ProgressScopeKey, string>>(new Map());
+  const requestedReviewScheduleRefreshRequestsRef = useRef<Map<ProgressScopeKey, ProgressReviewScheduleRefreshRequest>>(new Map());
+  const progressScheduleLocalVersionRef = useRef<number>(0);
 
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
   const accessibleWorkspaceIds = useMemo(
@@ -111,8 +163,17 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     () => buildProgressSeriesInputForDateContext(timeContext),
     [timeContext],
   );
+  const reviewScheduleInput = useMemo<ProgressReviewScheduleInput>(
+    () => buildProgressReviewScheduleInputForDateContext(timeContext),
+    [timeContext],
+  );
   const summaryScopeKey = resolveProgressSummaryScopeKey(includeSummary, accessibleWorkspaceIds, summaryInput);
   const seriesScopeKey = resolveProgressSeriesScopeKey(includeSeries, accessibleWorkspaceIds, seriesInput);
+  const reviewScheduleScopeKey = resolveProgressReviewScheduleScopeKey(
+    includeReviewSchedule,
+    accessibleWorkspaceIds,
+    reviewScheduleInput,
+  );
   const canLoadServerBase = canLoadProgressServerBase(sessionVerificationState, cloudSettings);
   const summaryRefreshKey = resolveProgressRefreshKey(
     summaryScopeKey,
@@ -126,8 +187,16 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     progressServerInvalidationVersion,
     manualRefreshVersion,
   );
+  const reviewScheduleRefreshKey = resolveProgressReviewScheduleRefreshKey(
+    reviewScheduleScopeKey,
+    canLoadServerBase,
+    progressServerInvalidationVersion,
+    progressScheduleLocalVersion,
+    manualRefreshVersion,
+  );
 
   canLoadServerBaseRef.current = canLoadServerBase;
+  progressScheduleLocalVersionRef.current = progressScheduleLocalVersion;
 
   useEffect(() => {
     currentSummaryScopeKeyRef.current = summaryScopeKey;
@@ -168,6 +237,29 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
       canRenderServerBase: canLoadServerBaseRef.current,
     });
   }, [canLoadServerBase, seriesScopeKey]);
+
+  useEffect(() => {
+    currentReviewScheduleScopeKeyRef.current = reviewScheduleScopeKey;
+
+    if (reviewScheduleScopeKey === null) {
+      dispatch({ type: "review_schedule_scope_reset" });
+      return;
+    }
+
+    const persistedReviewSchedule = canLoadServerBase
+      ? loadPersistedProgressReviewSchedule(reviewScheduleScopeKey, reviewScheduleInput.timeZone)
+      : null;
+
+    dispatch({
+      type: "review_schedule_scope_initialized",
+      scopeKey: reviewScheduleScopeKey,
+      serverBase: persistedReviewSchedule === null
+        ? null
+        : createProgressReviewScheduleSnapshot(persistedReviewSchedule, "server", false),
+      progressScheduleLocalVersion: progressScheduleLocalVersionRef.current,
+      canRenderServerBase: canLoadServerBaseRef.current,
+    });
+  }, [canLoadServerBase, reviewScheduleInput.timeZone, reviewScheduleScopeKey]);
 
   useEffect(() => {
     if (summaryScopeKey === null) {
@@ -259,6 +351,67 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     progressLocalVersion,
     seriesInput,
     seriesScopeKey,
+  ]);
+
+  useEffect(() => {
+    if (reviewScheduleScopeKey === null) {
+      return;
+    }
+
+    const currentSequence = reviewScheduleLocalLoadSequenceRef.current + 1;
+    reviewScheduleLocalLoadSequenceRef.current = currentSequence;
+
+    void Promise.all([
+      loadLocalProgressReviewSchedule(accessibleWorkspaceIds, reviewScheduleInput),
+      hasPendingProgressReviewScheduleCardChanges(accessibleWorkspaceIds),
+      hasCompleteLocalProgressReviewScheduleCoverage(accessibleWorkspaceIds),
+      calculatePendingProgressReviewScheduleCardTotalDelta(accessibleWorkspaceIds),
+    ]).then(([
+      localReviewSchedule,
+      hasPendingLocalCardChanges,
+      hasCompleteLocalCardState,
+      pendingLocalCardTotalDelta,
+    ]) => {
+      if (
+        currentReviewScheduleScopeKeyRef.current !== reviewScheduleScopeKey
+        || reviewScheduleLocalLoadSequenceRef.current !== currentSequence
+      ) {
+        return;
+      }
+
+      dispatch({
+        type: "review_schedule_local_load_succeeded",
+        scopeKey: reviewScheduleScopeKey,
+        localFallback: createProgressReviewScheduleSnapshot(localReviewSchedule, "local_only", true),
+        hasPendingLocalCardChanges,
+        hasCompleteLocalCardState,
+        pendingLocalCardTotalDelta,
+        progressScheduleLocalVersion,
+        canRenderServerBase: canLoadServerBaseRef.current,
+      });
+    }).catch((error: unknown) => {
+      if (
+        currentReviewScheduleScopeKeyRef.current !== reviewScheduleScopeKey
+        || reviewScheduleLocalLoadSequenceRef.current !== currentSequence
+      ) {
+        return;
+      }
+
+      dispatch({
+        type: "review_schedule_local_load_failed",
+        scopeKey: reviewScheduleScopeKey,
+        errorMessage: getErrorMessage(error),
+        progressScheduleLocalVersion,
+        canRenderServerBase: canLoadServerBaseRef.current,
+      });
+    });
+  }, [
+    accessibleWorkspaceIds,
+    canLoadServerBase,
+    manualRefreshVersion,
+    progressScheduleLocalVersion,
+    reviewScheduleInput,
+    reviewScheduleScopeKey,
   ]);
 
   const refreshProgressSummary = useCallback(async function refreshProgressSummary(
@@ -413,6 +566,91 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     return refreshPromise;
   }, []);
 
+  const refreshProgressReviewSchedule = useCallback(async function refreshProgressReviewSchedule(
+    targetScopeKey: ProgressScopeKey,
+    input: ProgressReviewScheduleInput,
+    nextRefreshKey: string,
+    nextProgressScheduleLocalVersion: number,
+  ): Promise<void> {
+    requestedReviewScheduleRefreshRequestsRef.current.set(targetScopeKey, {
+      refreshKey: nextRefreshKey,
+      progressScheduleLocalVersion: nextProgressScheduleLocalVersion,
+    });
+
+    const inFlightRefresh = reviewScheduleServerRefreshPromisesRef.current.get(targetScopeKey);
+    if (inFlightRefresh !== undefined) {
+      return inFlightRefresh;
+    }
+
+    const refreshPromise = (async (): Promise<void> => {
+      try {
+        while (true) {
+          const requestedRefresh = requestedReviewScheduleRefreshRequestsRef.current.get(targetScopeKey);
+
+          if (requestedRefresh === undefined) {
+            throw new Error(`Missing requested progress review schedule refresh key for scope ${targetScopeKey}`);
+          }
+
+          if (currentReviewScheduleScopeKeyRef.current !== targetScopeKey || canLoadServerBaseRef.current === false) {
+            requestedReviewScheduleRefreshRequestsRef.current.delete(targetScopeKey);
+            return;
+          }
+
+          try {
+            const serverReviewSchedule = await loadProgressReviewSchedule(input);
+            const isCurrentRefreshRequest: boolean = requestedReviewScheduleRefreshRequestsRef.current
+              .get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey;
+
+            if (
+              currentReviewScheduleScopeKeyRef.current === targetScopeKey
+              && canLoadServerBaseRef.current
+              && isCurrentRefreshRequest
+            ) {
+              storePersistedProgressReviewSchedule(targetScopeKey, serverReviewSchedule, input.timeZone);
+              dispatch({
+                type: "review_schedule_server_load_succeeded",
+                scopeKey: targetScopeKey,
+                serverBase: createProgressReviewScheduleSnapshot(serverReviewSchedule, "server", false),
+                progressScheduleLocalVersion: requestedRefresh.progressScheduleLocalVersion,
+                canRenderServerBase: canLoadServerBaseRef.current,
+              });
+            }
+          } catch (error: unknown) {
+            const isCurrentRefreshRequest: boolean = requestedReviewScheduleRefreshRequestsRef.current
+              .get(targetScopeKey)?.refreshKey === requestedRefresh.refreshKey;
+
+            if (
+              currentReviewScheduleScopeKeyRef.current === targetScopeKey
+              && canLoadServerBaseRef.current
+              && isCurrentRefreshRequest
+            ) {
+              dispatch({
+                type: "review_schedule_server_load_failed",
+                scopeKey: targetScopeKey,
+                errorMessage: getErrorMessage(error),
+                progressScheduleLocalVersion: requestedRefresh.progressScheduleLocalVersion,
+                canRenderServerBase: canLoadServerBaseRef.current,
+              });
+            }
+          }
+
+          if (
+            requestedReviewScheduleRefreshRequestsRef.current.get(targetScopeKey)?.refreshKey
+              === requestedRefresh.refreshKey
+          ) {
+            requestedReviewScheduleRefreshRequestsRef.current.delete(targetScopeKey);
+            return;
+          }
+        }
+      } finally {
+        reviewScheduleServerRefreshPromisesRef.current.delete(targetScopeKey);
+      }
+    })();
+
+    reviewScheduleServerRefreshPromisesRef.current.set(targetScopeKey, refreshPromise);
+    return refreshPromise;
+  }, []);
+
   useEffect(() => {
     if (summaryScopeKey === null || summaryRefreshKey === null) {
       return;
@@ -437,8 +675,34 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
     void refreshProgressSeries(seriesScopeKey, seriesInput, seriesRefreshKey);
   }, [refreshProgressSeries, seriesInput, seriesRefreshKey, seriesScopeKey]);
 
+  useEffect(() => {
+    if (reviewScheduleScopeKey === null || reviewScheduleRefreshKey === null) {
+      return;
+    }
+
+    if (
+      requestedReviewScheduleRefreshRequestsRef.current.get(reviewScheduleScopeKey)?.refreshKey
+        === reviewScheduleRefreshKey
+    ) {
+      return;
+    }
+
+    void refreshProgressReviewSchedule(
+      reviewScheduleScopeKey,
+      reviewScheduleInput,
+      reviewScheduleRefreshKey,
+      progressScheduleLocalVersion,
+    );
+  }, [
+    progressScheduleLocalVersion,
+    refreshProgressReviewSchedule,
+    reviewScheduleInput,
+    reviewScheduleRefreshKey,
+    reviewScheduleScopeKey,
+  ]);
+
   const refreshProgress = useCallback(async function refreshProgress(): Promise<void> {
-    if (summaryScopeKey === null && seriesScopeKey === null) {
+    if (summaryScopeKey === null && seriesScopeKey === null && reviewScheduleScopeKey === null) {
       dispatch({
         type: "errors_cleared",
         canRenderServerBase: canLoadServerBase,
@@ -452,6 +716,8 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
       type: "refresh_started",
       summaryScopeKey,
       seriesScopeKey,
+      reviewScheduleScopeKey,
+      progressScheduleLocalVersion,
       canRenderServerBase: canLoadServerBase,
     });
     setManualRefreshVersion(nextManualRefreshVersion);
@@ -478,12 +744,30 @@ export function useProgressSource(params: UseProgressSourceParams): UseProgressS
       ));
     }
 
+    if (reviewScheduleScopeKey !== null) {
+      refreshPromises.push(refreshProgressReviewSchedule(
+        reviewScheduleScopeKey,
+        reviewScheduleInput,
+        buildProgressReviewScheduleRefreshKey(
+          reviewScheduleScopeKey,
+          progressServerInvalidationVersion,
+          progressScheduleLocalVersion,
+          nextManualRefreshVersion,
+        ),
+        progressScheduleLocalVersion,
+      ));
+    }
+
     await Promise.all(refreshPromises);
   }, [
     canLoadServerBase,
+    progressScheduleLocalVersion,
     progressServerInvalidationVersion,
+    refreshProgressReviewSchedule,
     refreshProgressSeries,
     refreshProgressSummary,
+    reviewScheduleInput,
+    reviewScheduleScopeKey,
     seriesInput,
     seriesScopeKey,
     summaryInput,

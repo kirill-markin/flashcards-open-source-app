@@ -624,6 +624,23 @@ export function buildDeletedCard(
   };
 }
 
+export function doesCardMutationAffectReviewSchedule(previousCard: Card | null, nextCard: Card): boolean {
+  if (previousCard === null) {
+    return true;
+  }
+
+  return previousCard.dueAt !== nextCard.dueAt
+    || previousCard.reps !== nextCard.reps
+    || previousCard.lapses !== nextCard.lapses
+    || previousCard.fsrsCardState !== nextCard.fsrsCardState
+    || previousCard.fsrsStepIndex !== nextCard.fsrsStepIndex
+    || previousCard.fsrsStability !== nextCard.fsrsStability
+    || previousCard.fsrsDifficulty !== nextCard.fsrsDifficulty
+    || previousCard.fsrsLastReviewedAt !== nextCard.fsrsLastReviewedAt
+    || previousCard.fsrsScheduledDays !== nextCard.fsrsScheduledDays
+    || previousCard.deletedAt !== nextCard.deletedAt;
+}
+
 export function buildDeck(
   input: CreateDeckInput,
   clientUpdatedAt: string,

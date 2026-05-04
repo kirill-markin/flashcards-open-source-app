@@ -110,6 +110,20 @@ final class CloudSyncService: @unchecked Sendable {
         )
     }
 
+    func loadProgressReviewSchedule(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String
+    ) async throws -> UserReviewSchedule {
+        try await self.transport.request(
+            apiBaseUrl: apiBaseUrl,
+            authorizationHeader: authorizationHeader,
+            path: try self.transport.progressReviewSchedulePath(timeZone: timeZone),
+            method: "GET",
+            body: Optional<String>.none
+        )
+    }
+
     func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary {
         logCloudFlowPhase(phase: .workspaceCreate, outcome: "start", selection: "create_new")
         let response: WorkspaceEnvelope = try await self.transport.request(

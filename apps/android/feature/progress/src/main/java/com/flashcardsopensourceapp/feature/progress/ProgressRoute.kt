@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.progress
 import android.icu.text.DateIntervalFormat
 import android.icu.util.DateInterval
 import android.icu.util.TimeZone
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -49,7 +50,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -64,9 +69,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.flashcardsopensourceapp.data.local.model.ProgressReviewScheduleBucketKey
+import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.Locale
+import kotlin.math.min
 
 private val progressSectionShape = RoundedCornerShape(28.dp)
 private const val reviewChartVisibleGridLines: Int = 4
@@ -81,6 +89,8 @@ private const val progressStreakOverflowThreshold: Int = 99
 const val progressStreakSectionTag: String = "progress_streak_section"
 const val progressReviewsSectionTag: String = "progress_reviews_section"
 const val progressReviewsActivityChartTag: String = "progress_reviews_activity_chart"
+const val progressReviewScheduleSectionTag: String = "progress_review_schedule_section"
+const val progressReviewScheduleDonutChartTag: String = "progress_review_schedule_donut_chart"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -173,6 +183,14 @@ fun ProgressRoute(
                         ReviewsSectionCard(
                             uiState = uiState.reviewsSection
                         )
+                    }
+                    val reviewScheduleSection = uiState.reviewScheduleSection
+                    if (reviewScheduleSection != null) {
+                        item {
+                            ReviewScheduleSectionCard(
+                                uiState = reviewScheduleSection
+                            )
+                        }
                     }
                 }
             }
@@ -697,6 +715,208 @@ private fun ReviewsSectionCard(
             }
         }
     }
+}
+
+@Composable
+private fun ReviewScheduleSectionCard(
+    uiState: ProgressReviewScheduleSectionUiState
+) {
+    val configuration = LocalConfiguration.current
+    val locale = if (configuration.locales.isEmpty) {
+        Locale.getDefault()
+    } else {
+        configuration.locales[0]
+    }
+    val countFormatter = remember(locale) {
+        NumberFormat.getIntegerInstance(locale)
+    }
+    val percentFormatter = remember(locale) {
+        NumberFormat.getPercentInstance(locale).apply {
+            maximumFractionDigits = 0
+        }
+    }
+    val bucketColors = createReviewScheduleBucketColors()
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(progressReviewScheduleSectionTag),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
+        shape = progressSectionShape
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.progress_review_schedule_title),
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            if (uiState.hasCards) {
+                ReviewScheduleDonutChart(
+                    uiState = uiState,
+                    bucketColors = bucketColors,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            } else {
+                Text(
+                    text = stringResource(id = R.string.progress_review_schedule_empty),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                uiState.buckets.forEach { bucket ->
+                    ReviewScheduleLegendRow(
+                        bucket = bucket,
+                        color = bucketColors.getValue(bucket.key),
+                        countLabel = countFormatter.format(bucket.count.toLong()),
+                        percentageLabel = percentFormatter.format(bucket.percentage.toDouble())
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewScheduleDonutChart(
+    uiState: ProgressReviewScheduleSectionUiState,
+    bucketColors: Map<ProgressReviewScheduleBucketKey, Color>,
+    modifier: Modifier
+) {
+    val chartDescription = stringResource(id = R.string.progress_review_schedule_chart_content_description)
+    val emptyTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    val strokeWidth = 28.dp
+
+    Canvas(
+        modifier = modifier
+            .size(184.dp)
+            .testTag(progressReviewScheduleDonutChartTag)
+            .semantics {
+                contentDescription = chartDescription
+            }
+    ) {
+        val strokeWidthPx = strokeWidth.toPx()
+        val diameter = min(size.width, size.height) - strokeWidthPx
+        val topLeft = Offset(
+            x = (size.width - diameter) / 2f,
+            y = (size.height - diameter) / 2f
+        )
+        val arcSize = Size(width = diameter, height = diameter)
+        drawArc(
+            color = emptyTrackColor,
+            startAngle = -90f,
+            sweepAngle = 360f,
+            useCenter = false,
+            topLeft = topLeft,
+            size = arcSize,
+            style = Stroke(
+                width = strokeWidthPx,
+                cap = StrokeCap.Butt
+            )
+        )
+
+        var startAngle = -90f
+        uiState.buckets.filter { bucket ->
+            bucket.count > 0
+        }.forEach { bucket ->
+            val sweepAngle = 360f * bucket.percentage
+            drawArc(
+                color = bucketColors.getValue(bucket.key),
+                startAngle = startAngle,
+                sweepAngle = sweepAngle,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(
+                    width = strokeWidthPx,
+                    cap = StrokeCap.Butt
+                )
+            )
+            startAngle += sweepAngle
+        }
+    }
+}
+
+@Composable
+private fun ReviewScheduleLegendRow(
+    bucket: ProgressReviewScheduleBucketUiState,
+    color: Color,
+    countLabel: String,
+    percentageLabel: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {}
+    ) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .clip(CircleShape)
+                .background(color)
+        )
+        Text(
+            text = reviewScheduleBucketLabel(bucketKey = bucket.key),
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = stringResource(
+                id = R.string.progress_review_schedule_bucket_value,
+                countLabel,
+                percentageLabel
+            ),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.End
+        )
+    }
+}
+
+@Composable
+private fun createReviewScheduleBucketColors(): Map<ProgressReviewScheduleBucketKey, Color> {
+    val colorScheme = MaterialTheme.colorScheme
+    val colors = listOf(
+        colorScheme.primary,
+        colorScheme.tertiary,
+        colorScheme.secondary,
+        colorScheme.error,
+        colorScheme.primaryContainer,
+        colorScheme.tertiaryContainer,
+        colorScheme.secondaryContainer,
+        colorScheme.outline
+    )
+
+    return ProgressReviewScheduleBucketKey.orderedEntries.zip(colors).toMap()
+}
+
+@Composable
+private fun reviewScheduleBucketLabel(
+    bucketKey: ProgressReviewScheduleBucketKey
+): String {
+    val stringResId = when (bucketKey) {
+        ProgressReviewScheduleBucketKey.NEW -> R.string.progress_review_schedule_bucket_new
+        ProgressReviewScheduleBucketKey.TODAY -> R.string.progress_review_schedule_bucket_today
+        ProgressReviewScheduleBucketKey.DAYS_1_TO_7 -> R.string.progress_review_schedule_bucket_days_1_to_7
+        ProgressReviewScheduleBucketKey.DAYS_8_TO_30 -> R.string.progress_review_schedule_bucket_days_8_to_30
+        ProgressReviewScheduleBucketKey.DAYS_31_TO_90 -> R.string.progress_review_schedule_bucket_days_31_to_90
+        ProgressReviewScheduleBucketKey.DAYS_91_TO_360 -> R.string.progress_review_schedule_bucket_days_91_to_360
+        ProgressReviewScheduleBucketKey.YEARS_1_TO_2 -> R.string.progress_review_schedule_bucket_years_1_to_2
+        ProgressReviewScheduleBucketKey.LATER -> R.string.progress_review_schedule_bucket_later
+    }
+
+    return stringResource(id = stringResId)
 }
 
 @Composable

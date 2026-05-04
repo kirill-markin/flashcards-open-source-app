@@ -6,6 +6,15 @@ struct ProgressRequestRange: Hashable, Sendable {
     let to: String
 }
 
+struct ReviewScheduleBucketBoundaries: Hashable, Sendable {
+    let startOfTomorrowMillis: Int64
+    let startOfDay8Millis: Int64
+    let startOfDay31Millis: Int64
+    let startOfDay91Millis: Int64
+    let startOfDay361Millis: Int64
+    let startOfDay721Millis: Int64
+}
+
 private struct ProgressLocalDateParts: Equatable, Sendable {
     let year: Int
     let month: Int
@@ -56,6 +65,46 @@ func progressRequestRange(scopeKey: ProgressScopeKey) -> ProgressRequestRange {
         timeZone: scopeKey.timeZone,
         from: scopeKey.from,
         to: scopeKey.to
+    )
+}
+
+func makeReviewScheduleBucketBoundaries(
+    referenceLocalDate: String,
+    timeZone: TimeZone
+) throws -> ReviewScheduleBucketBoundaries {
+    let calendar = makeProgressStoreCalendar(timeZone: timeZone)
+    let startOfToday = try progressDateForStore(localDate: referenceLocalDate, calendar: calendar)
+    return ReviewScheduleBucketBoundaries(
+        startOfTomorrowMillis: try reviewScheduleBoundaryMillis(
+            startOfToday: startOfToday,
+            offsetDays: 1,
+            calendar: calendar
+        ),
+        startOfDay8Millis: try reviewScheduleBoundaryMillis(
+            startOfToday: startOfToday,
+            offsetDays: 8,
+            calendar: calendar
+        ),
+        startOfDay31Millis: try reviewScheduleBoundaryMillis(
+            startOfToday: startOfToday,
+            offsetDays: 31,
+            calendar: calendar
+        ),
+        startOfDay91Millis: try reviewScheduleBoundaryMillis(
+            startOfToday: startOfToday,
+            offsetDays: 91,
+            calendar: calendar
+        ),
+        startOfDay361Millis: try reviewScheduleBoundaryMillis(
+            startOfToday: startOfToday,
+            offsetDays: 361,
+            calendar: calendar
+        ),
+        startOfDay721Millis: try reviewScheduleBoundaryMillis(
+            startOfToday: startOfToday,
+            offsetDays: 721,
+            calendar: calendar
+        )
     )
 }
 
@@ -215,4 +264,16 @@ private func progressStrictDate(parts: ProgressLocalDateParts, calendar: Calenda
     }
 
     return calendar.startOfDay(for: date)
+}
+
+private func reviewScheduleBoundaryMillis(
+    startOfToday: Date,
+    offsetDays: Int,
+    calendar: Calendar
+) throws -> Int64 {
+    guard let boundaryDate = calendar.date(byAdding: .day, value: offsetDays, to: startOfToday) else {
+        throw LocalStoreError.validation("Review schedule boundary could not be calculated")
+    }
+
+    return epochMillis(date: boundaryDate)
 }

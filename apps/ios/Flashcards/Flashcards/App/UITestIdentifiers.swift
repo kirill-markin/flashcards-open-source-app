@@ -20,6 +20,7 @@ enum UITestIdentifier {
     static let progressScreen: String = "progress.screen"
     static let progressStreakSection: String = "progress.streakSection"
     static let progressReviewsSection: String = "progress.reviewsSection"
+    static let progressReviewScheduleSection: String = "progress.reviewScheduleSection"
     static let cardsScreen: String = "cards.screen"
     static let settingsScreen: String = "settings.screen"
     static let settingsCurrentWorkspaceRow: String = "settings.currentWorkspaceRow"

@@ -4,6 +4,7 @@ import {
   buildCardUpsertOperation,
   cardsMatchingReviewFilter,
   compareCardsForReviewOrder,
+  doesCardMutationAffectReviewSchedule,
   matchesCardFilter,
   matchesDeckFilterDefinition,
   normalizeTagKey,
@@ -118,6 +119,45 @@ describe("review order domain", () => {
     const card = makeReviewOrderCard("reviewed-card", "2026-02-31T12:00:00.000Z", "2026-03-10T09:00:00.000Z");
 
     expect(() => buildCardUpsertOperation(card)).toThrow(/invalid dueAt/);
+  });
+
+  it("classifies only schedule-relevant card mutations as review schedule changes", () => {
+    const originalCard = makeReviewOrderCard("reviewed-card", null, "2026-03-10T09:00:00.000Z");
+    const contentOnlyEdit: Card = {
+      ...originalCard,
+      frontText: "Edited front",
+      backText: "Edited back",
+      tags: ["edited"],
+      effortLevel: "medium",
+      clientUpdatedAt: "2026-03-10T10:00:00.000Z",
+      lastOperationId: "operation-content-only-edit",
+      updatedAt: "2026-03-10T10:00:00.000Z",
+    };
+    const dueAtEdit: Card = {
+      ...originalCard,
+      dueAt: "2026-03-11T09:00:00.000Z",
+    };
+    const fsrsEdit: Card = {
+      ...originalCard,
+      reps: 1,
+      lapses: 1,
+      fsrsCardState: "review",
+      fsrsStepIndex: 0,
+      fsrsStability: 2.5,
+      fsrsDifficulty: 4.5,
+      fsrsLastReviewedAt: "2026-03-10T10:00:00.000Z",
+      fsrsScheduledDays: 1,
+    };
+    const deletedCard: Card = {
+      ...originalCard,
+      deletedAt: "2026-03-10T10:00:00.000Z",
+    };
+
+    expect(doesCardMutationAffectReviewSchedule(null, originalCard)).toBe(true);
+    expect(doesCardMutationAffectReviewSchedule(originalCard, contentOnlyEdit)).toBe(false);
+    expect(doesCardMutationAffectReviewSchedule(originalCard, dueAtEdit)).toBe(true);
+    expect(doesCardMutationAffectReviewSchedule(originalCard, fsrsEdit)).toBe(true);
+    expect(doesCardMutationAffectReviewSchedule(originalCard, deletedCard)).toBe(true);
   });
 });
 

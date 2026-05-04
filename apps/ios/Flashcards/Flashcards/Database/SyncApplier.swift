@@ -11,12 +11,19 @@ private func makeDueAtMillisSQLiteValue(dueAt: String?) -> SQLiteValue {
     return .integer(dueAtMillis)
 }
 
+struct SyncApplyResult: Hashable, Sendable {
+    let didApply: Bool
+    let reviewScheduleImpact: Bool
+
+    static let skipped = SyncApplyResult(didApply: false, reviewScheduleImpact: false)
+}
+
 struct SyncApplier {
     let core: DatabaseCore
 
     /// Applies one hot-state bootstrap entry by merging canonical mutable state
     /// into the local mirror with the same LWW comparator as the backend.
-    func applySyncBootstrapEntry(workspaceId: String, entry: SyncBootstrapEntry) throws {
+    func applySyncBootstrapEntry(workspaceId: String, entry: SyncBootstrapEntry) throws -> SyncApplyResult {
         let cardStore = CardStore(core: self.core)
         let deckStore = DeckStore(core: self.core)
         let workspaceSettingsStore = WorkspaceSettingsStore(core: self.core)
@@ -25,17 +32,20 @@ struct SyncApplier {
         case .card(let card):
             let existingCard = try cardStore.loadOptionalCardIncludingDeleted(workspaceId: workspaceId, cardId: card.cardId)
             if let existingCard, compareLwwCard(left: existingCard, right: card) > 0 {
-                return
+                return .skipped
             }
 
+            let reviewScheduleImpact = remoteCardReviewScheduleImpact(existingCard: existingCard, remoteCard: card)
             try self.upsertRemoteCard(workspaceId: workspaceId, card: card, cardStore: cardStore)
+            return SyncApplyResult(didApply: true, reviewScheduleImpact: reviewScheduleImpact)
         case .deck(let deck):
             let existingDeck = try deckStore.loadOptionalDeckIncludingDeleted(workspaceId: workspaceId, deckId: deck.deckId)
             if let existingDeck, compareLwwDeck(left: existingDeck, right: deck) > 0 {
-                return
+                return .skipped
             }
 
             try self.upsertRemoteDeck(workspaceId: workspaceId, deck: deck, deckStore: deckStore)
+            return SyncApplyResult(didApply: true, reviewScheduleImpact: false)
         case .workspaceSchedulerSettings(let settings):
             let existingSettings = try workspaceSettingsStore.loadWorkspaceSchedulerSettings(workspaceId: workspaceId)
             if compareLwwWorkspaceSettings(left: existingSettings, right: settings) <= 0 {
@@ -44,13 +54,16 @@ struct SyncApplier {
                     settings: settings,
                     workspaceSettingsStore: workspaceSettingsStore
                 )
+                return SyncApplyResult(didApply: true, reviewScheduleImpact: false)
             }
+
+            return .skipped
         }
     }
 
     /// Applies one hot-state delta change. Review history is intentionally
     /// excluded from this lane and handled through its own append-only flow.
-    func applySyncChange(workspaceId: String, change: SyncChange) throws {
+    func applySyncChange(workspaceId: String, change: SyncChange) throws -> SyncApplyResult {
         let entryPayload: SyncBootstrapEntryPayload
         switch change.payload {
         case .card(let card):
@@ -61,7 +74,7 @@ struct SyncApplier {
             entryPayload = .workspaceSchedulerSettings(settings)
         }
 
-        try self.applySyncBootstrapEntry(
+        return try self.applySyncBootstrapEntry(
             workspaceId: workspaceId,
             entry: SyncBootstrapEntry(
                 entityType: change.entityType,
@@ -365,4 +378,21 @@ private func compareLwwWorkspaceSettings(left: WorkspaceSchedulerSettings, right
         rightDeviceId: right.lastModifiedByReplicaId,
         rightOperationId: right.lastOperationId
     )
+}
+
+private func remoteCardReviewScheduleImpact(existingCard: Card?, remoteCard: Card) -> Bool {
+    guard let existingCard else {
+        return remoteCard.deletedAt == nil
+    }
+
+    return existingCard.dueAt != remoteCard.dueAt
+        || existingCard.deletedAt != remoteCard.deletedAt
+        || existingCard.reps != remoteCard.reps
+        || existingCard.lapses != remoteCard.lapses
+        || existingCard.fsrsCardState != remoteCard.fsrsCardState
+        || existingCard.fsrsStepIndex != remoteCard.fsrsStepIndex
+        || existingCard.fsrsStability != remoteCard.fsrsStability
+        || existingCard.fsrsDifficulty != remoteCard.fsrsDifficulty
+        || existingCard.fsrsLastReviewedAt != remoteCard.fsrsLastReviewedAt
+        || existingCard.fsrsScheduledDays != remoteCard.fsrsScheduledDays
 }

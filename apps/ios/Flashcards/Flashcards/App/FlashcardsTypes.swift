@@ -664,21 +664,27 @@ struct CloudSyncTrigger: Hashable, Sendable {
 
 struct CloudSyncResult: Hashable, Sendable {
     let appliedPullChangeCount: Int
+    let reviewScheduleImpactingPullChangeCount: Int
     let changedEntityTypes: Set<SyncEntityType>
     let localIdRepairEntityTypes: Set<SyncEntityType>
     let acknowledgedOperationCount: Int
     let acknowledgedReviewEventOperationCount: Int
+    let acknowledgedReviewScheduleImpactingOperationCount: Int
     let cleanedUpOperationCount: Int
     let cleanedUpReviewEventOperationCount: Int
+    let cleanedUpReviewScheduleImpactingOperationCount: Int
 
     static let noChanges = CloudSyncResult(
         appliedPullChangeCount: 0,
+        reviewScheduleImpactingPullChangeCount: 0,
         changedEntityTypes: [],
         localIdRepairEntityTypes: [],
         acknowledgedOperationCount: 0,
         acknowledgedReviewEventOperationCount: 0,
+        acknowledgedReviewScheduleImpactingOperationCount: 0,
         cleanedUpOperationCount: 0,
-        cleanedUpReviewEventOperationCount: 0
+        cleanedUpReviewEventOperationCount: 0,
+        cleanedUpReviewScheduleImpactingOperationCount: 0
     )
 
     var appliedPullChanges: Bool {
@@ -702,6 +708,12 @@ struct CloudSyncResult: Hashable, Sendable {
             || self.cleanedUpReviewEventOperationCount > 0
     }
 
+    var reviewScheduleDataChanged: Bool {
+        self.reviewScheduleImpactingPullChangeCount > 0
+            || self.acknowledgedReviewScheduleImpactingOperationCount > 0
+            || self.cleanedUpReviewScheduleImpactingOperationCount > 0
+    }
+
     var technicalChangesOnly: Bool {
         self.reviewDataChanged == false
             && (self.acknowledgedOperationCount > 0 || self.cleanedUpOperationCount > 0)
@@ -710,12 +722,15 @@ struct CloudSyncResult: Hashable, Sendable {
     func merging(_ other: CloudSyncResult) -> CloudSyncResult {
         CloudSyncResult(
             appliedPullChangeCount: self.appliedPullChangeCount + other.appliedPullChangeCount,
+            reviewScheduleImpactingPullChangeCount: self.reviewScheduleImpactingPullChangeCount + other.reviewScheduleImpactingPullChangeCount,
             changedEntityTypes: self.changedEntityTypes.union(other.changedEntityTypes),
             localIdRepairEntityTypes: self.localIdRepairEntityTypes.union(other.localIdRepairEntityTypes),
             acknowledgedOperationCount: self.acknowledgedOperationCount + other.acknowledgedOperationCount,
             acknowledgedReviewEventOperationCount: self.acknowledgedReviewEventOperationCount + other.acknowledgedReviewEventOperationCount,
+            acknowledgedReviewScheduleImpactingOperationCount: self.acknowledgedReviewScheduleImpactingOperationCount + other.acknowledgedReviewScheduleImpactingOperationCount,
             cleanedUpOperationCount: self.cleanedUpOperationCount + other.cleanedUpOperationCount,
-            cleanedUpReviewEventOperationCount: self.cleanedUpReviewEventOperationCount + other.cleanedUpReviewEventOperationCount
+            cleanedUpReviewEventOperationCount: self.cleanedUpReviewEventOperationCount + other.cleanedUpReviewEventOperationCount,
+            cleanedUpReviewScheduleImpactingOperationCount: self.cleanedUpReviewScheduleImpactingOperationCount + other.cleanedUpReviewScheduleImpactingOperationCount
         )
     }
 }
@@ -1058,6 +1073,7 @@ struct PersistedOutboxEntry: Hashable {
     let createdAt: String
     let attemptCount: Int
     let lastError: String
+    let reviewScheduleImpact: Bool
     let operation: SyncOperation
 }
 

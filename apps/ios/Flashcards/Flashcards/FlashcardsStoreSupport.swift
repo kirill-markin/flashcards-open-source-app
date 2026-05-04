@@ -27,6 +27,11 @@ protocol CloudSyncServing {
         from: String,
         to: String
     ) async throws -> UserProgressSeries
+    func loadProgressReviewSchedule(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        timeZone: String
+    ) async throws -> UserReviewSchedule
     func createWorkspace(apiBaseUrl: String, bearerToken: String, name: String) async throws -> CloudWorkspaceSummary
     func renameWorkspace(
         apiBaseUrl: String,

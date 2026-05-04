@@ -130,6 +130,21 @@ const hiCatalog: TranslationCatalog = {
     previousWeek: "पिछला सप्ताह",
     nextWeek: "अगला सप्ताह",
     emptyWeek: "इस सप्ताह अभी तक कोई रिव्यू नहीं है।",
+    reviewSchedule: {
+      title: "रिव्यू शेड्यूल",
+      totalCards: "कुल कार्ड: {{count}}",
+      legendLabel: "रिव्यू शेड्यूल बकेट",
+      buckets: {
+        new: "नए",
+        today: "आज",
+        days1To7: "1-7 दिन",
+        days8To30: "8-30 दिन",
+        days31To90: "31-90 दिन",
+        days91To360: "91-360 दिन",
+        years1To2: "1-2 साल",
+        later: "बाद में",
+      },
+    },
     labels: {
       totalReviews: "कुल रिव्यू",
       activeDays: "सक्रिय दिन",

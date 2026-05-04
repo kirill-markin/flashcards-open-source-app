@@ -91,6 +91,11 @@ export type ProgressSummaryInput = Readonly<{
   today: string;
 }>;
 
+export type ProgressReviewScheduleInput = Readonly<{
+  timeZone: string;
+  today: string;
+}>;
+
 export type ProgressScopeKey = string;
 
 export type DailyReviewPoint = Readonly<{
@@ -129,6 +134,31 @@ export type ProgressSeries = Readonly<{
   dailyReviews: ReadonlyArray<DailyReviewPoint>;
 }>;
 
+export const progressReviewScheduleBucketKeys = [
+  "new",
+  "today",
+  "days1To7",
+  "days8To30",
+  "days31To90",
+  "days91To360",
+  "years1To2",
+  "later",
+] as const;
+
+export type ProgressReviewScheduleBucketKey = typeof progressReviewScheduleBucketKeys[number];
+
+export type ProgressReviewScheduleBucket = Readonly<{
+  key: ProgressReviewScheduleBucketKey;
+  count: number;
+}>;
+
+export type ProgressReviewSchedule = Readonly<{
+  timeZone: string;
+  generatedAt: string | null;
+  totalCards: number;
+  buckets: ReadonlyArray<ProgressReviewScheduleBucket>;
+}>;
+
 export type ProgressSummarySnapshot = ProgressSummaryPayload & Readonly<{
   source: "server" | "local_only";
   isApproximate: boolean;
@@ -136,6 +166,11 @@ export type ProgressSummarySnapshot = ProgressSummaryPayload & Readonly<{
 
 export type ProgressSeriesSnapshot = ProgressSeries & Readonly<{
   chartData: ProgressChartData;
+  source: "server" | "local_only";
+  isApproximate: boolean;
+}>;
+
+export type ProgressReviewScheduleSnapshot = ProgressReviewSchedule & Readonly<{
   source: "server" | "local_only";
   isApproximate: boolean;
 }>;
@@ -160,9 +195,25 @@ export type ProgressSeriesSourceState = Readonly<{
   errorMessage: string;
 }>;
 
+export type ProgressReviewScheduleSourceState = Readonly<{
+  scopeKey: ProgressScopeKey | null;
+  localFallback: ProgressReviewScheduleSnapshot | null;
+  serverBase: ProgressReviewScheduleSnapshot | null;
+  progressScheduleLocalVersion: number;
+  serverBaseProgressScheduleLocalVersion: number | null;
+  serverBaseLocalCardTotalDelta: number;
+  hasPendingLocalCardChanges: boolean;
+  hasCompleteLocalCardState: boolean;
+  pendingLocalCardTotalDelta: number;
+  renderedSnapshot: ProgressReviewScheduleSnapshot | null;
+  isLoading: boolean;
+  errorMessage: string;
+}>;
+
 export type ProgressSourceState = Readonly<{
   summary: ProgressSummarySourceState;
   series: ProgressSeriesSourceState;
+  reviewSchedule: ProgressReviewScheduleSourceState;
 }>;
 
 export type AgentApiKeyConnection = Readonly<{

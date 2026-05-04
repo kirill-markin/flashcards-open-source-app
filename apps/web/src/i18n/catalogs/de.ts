@@ -130,6 +130,21 @@ const deCatalog: TranslationCatalog = {
     previousWeek: "Vorherige Woche",
     nextWeek: "Nächste Woche",
     emptyWeek: "In dieser Woche gibt es noch keine Wiederholungen.",
+    reviewSchedule: {
+      title: "Wiederholungsplan",
+      totalCards: "Karten gesamt: {{count}}",
+      legendLabel: "Abschnitte im Wiederholungsplan",
+      buckets: {
+        new: "Neu",
+        today: "Heute",
+        days1To7: "1-7 Tage",
+        days8To30: "8-30 Tage",
+        days31To90: "31-90 Tage",
+        days91To360: "91-360 Tage",
+        years1To2: "1-2 Jahre",
+        later: "Später",
+      },
+    },
     labels: {
       totalReviews: "Wiederholungen gesamt",
       activeDays: "Aktive Tage",

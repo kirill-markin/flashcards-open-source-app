@@ -13,6 +13,7 @@ export type PersistedOutboxRecord = Readonly<{
   createdAt: string;
   attemptCount: number;
   lastError: string;
+  affectsReviewSchedule?: boolean;
   operation: SyncPushOperation;
 }>;
 
