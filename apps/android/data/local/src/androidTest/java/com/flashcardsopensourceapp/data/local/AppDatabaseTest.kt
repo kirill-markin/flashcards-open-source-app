@@ -35,7 +35,7 @@ import com.flashcardsopensourceapp.data.local.repository.LocalReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalWorkspaceRepository
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
-import com.flashcardsopensourceapp.data.local.repository.SystemProgressTimeProvider
+import com.flashcardsopensourceapp.data.local.repository.SystemTimeProvider
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import kotlinx.coroutines.flow.Flow
@@ -80,8 +80,9 @@ class AppDatabaseTest {
             reviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context),
             localProgressCacheStore = LocalProgressCacheStore(
                 database = database,
-                timeProvider = SystemProgressTimeProvider
-            )
+                timeProvider = SystemTimeProvider
+            ),
+            timeProvider = SystemTimeProvider
         )
         syncRepository = FakeSyncRepository()
     }
@@ -1501,7 +1502,7 @@ class AppDatabaseTest {
             syncLocalStore = syncLocalStore,
             localProgressCacheStore = LocalProgressCacheStore(
                 database = database,
-                timeProvider = SystemProgressTimeProvider
+                timeProvider = SystemTimeProvider
             )
         )
     }

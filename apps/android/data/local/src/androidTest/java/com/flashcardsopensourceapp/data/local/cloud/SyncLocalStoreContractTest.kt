@@ -23,7 +23,7 @@ import com.flashcardsopensourceapp.data.local.model.SyncOperationPayload
 import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.repository.LocalProgressCacheStore
-import com.flashcardsopensourceapp.data.local.repository.SystemProgressTimeProvider
+import com.flashcardsopensourceapp.data.local.repository.SystemTimeProvider
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import kotlinx.coroutines.CoroutineStart
@@ -71,8 +71,9 @@ class SyncLocalStoreContractTest {
             reviewPreferencesStore = reviewPreferencesStore,
             localProgressCacheStore = LocalProgressCacheStore(
                 database = database,
-                timeProvider = SystemProgressTimeProvider
-            )
+                timeProvider = SystemTimeProvider
+            ),
+            timeProvider = SystemTimeProvider
         )
     }
 

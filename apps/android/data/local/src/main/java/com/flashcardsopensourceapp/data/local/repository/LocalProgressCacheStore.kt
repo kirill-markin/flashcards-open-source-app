@@ -11,7 +11,7 @@ import java.time.ZoneId
 
 class LocalProgressCacheStore(
     private val database: AppDatabase,
-    private val timeProvider: ProgressTimeProvider
+    private val timeProvider: TimeProvider
 ) {
     suspend fun recordReviewInTransaction(
         reviewLog: ReviewLogEntity,

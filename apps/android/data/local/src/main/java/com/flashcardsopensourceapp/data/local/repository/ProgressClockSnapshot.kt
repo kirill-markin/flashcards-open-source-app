@@ -4,21 +4,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
-interface ProgressTimeProvider {
-    fun currentZoneId(): ZoneId
-    fun currentTimeMillis(): Long
-}
-
-object SystemProgressTimeProvider : ProgressTimeProvider {
-    override fun currentZoneId(): ZoneId {
-        return ZoneId.systemDefault()
-    }
-
-    override fun currentTimeMillis(): Long {
-        return System.currentTimeMillis()
-    }
-}
-
 internal data class ProgressClockSnapshot(
     val zoneId: ZoneId,
     val currentTimeMillis: Long,
@@ -26,7 +11,7 @@ internal data class ProgressClockSnapshot(
 )
 
 internal fun createProgressClockSnapshot(
-    timeProvider: ProgressTimeProvider
+    timeProvider: TimeProvider
 ): ProgressClockSnapshot {
     val zoneId = timeProvider.currentZoneId()
     val currentTimeMillis = timeProvider.currentTimeMillis()
