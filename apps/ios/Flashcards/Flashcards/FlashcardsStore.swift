@@ -134,6 +134,9 @@ final class FlashcardsStore {
     @ObservationIgnored var isProgressSummaryRefreshing: Bool
     @ObservationIgnored var isProgressSeriesRefreshing: Bool
     @ObservationIgnored var isProgressReviewScheduleRefreshing: Bool
+    @ObservationIgnored var progressLocalFallbackRevision: Int
+    @ObservationIgnored var progressReviewedAtClientCache: ProgressReviewedAtClientCacheEntry?
+    @ObservationIgnored var progressReviewScheduleLocalCache: ProgressReviewScheduleLocalCacheEntry?
 
     var aiChatStore: AIChatStore {
         if let cachedAIChatStore {
@@ -403,6 +406,9 @@ final class FlashcardsStore {
         self.isProgressSummaryRefreshing = false
         self.isProgressSeriesRefreshing = false
         self.isProgressReviewScheduleRefreshing = false
+        self.progressLocalFallbackRevision = 0
+        self.progressReviewedAtClientCache = nil
+        self.progressReviewScheduleLocalCache = nil
 
         if database != nil && initialGlobalErrorMessage.isEmpty {
             do {

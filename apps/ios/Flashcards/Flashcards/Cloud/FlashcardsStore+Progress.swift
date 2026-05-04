@@ -161,6 +161,7 @@ extension FlashcardsStore {
         do {
             let scopeKey = try self.prepareProgressScope(now: now)
             let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
+            self.progressLocalFallbackRevision += 1
             self.invalidateProgressSummaryAndSeries(
                 scopeKey: scopeKey,
                 summaryScopeKey: progressSummaryScopeKey(seriesScopeKey: scopeKey)
@@ -192,6 +193,7 @@ extension FlashcardsStore {
         do {
             let scopeKey = try self.prepareProgressScope(now: now)
             let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
+            self.progressLocalFallbackRevision += 1
             self.markProgressReviewSchedulePendingLocalOverlay(scopeKey: scheduleScopeKey)
             guard self.currentVisibleTab == .progress else {
                 return
@@ -222,6 +224,7 @@ extension FlashcardsStore {
             guard syncResult.reviewProgressDataChanged || reviewScheduleDataChanged else {
                 return
             }
+            self.progressLocalFallbackRevision += 1
 
             if syncResult.reviewProgressDataChanged {
                 self.invalidateProgressSummaryAndSeries(scopeKey: scopeKey, summaryScopeKey: summaryScopeKey)
