@@ -77,10 +77,8 @@ func isActiveReviewOrderBucket(bucket: ReviewOrderBucket) -> Bool {
     }
 }
 
-private func hasActiveTag(tag: String, cards: [Card]) -> Bool {
-    deriveActiveCards(cards: cards).contains { card in
-        card.tags.contains(tag)
-    }
+private func activeTagNames(cards: [Card]) -> [String] {
+    deriveActiveCards(cards: cards).flatMap(\.tags)
 }
 
 // Keep review queue ordering aligned with:
@@ -131,6 +129,18 @@ func sortCardsForReviewTimeline(cards: [Card], now: Date) -> [Card] {
 }
 
 func resolveReviewFilter(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card]) -> ReviewFilter {
+    resolveReviewFilter(
+        reviewFilter: reviewFilter,
+        decks: decks,
+        storedTagNames: activeTagNames(cards: cards)
+    )
+}
+
+func resolveReviewFilter(
+    reviewFilter: ReviewFilter,
+    decks: [Deck],
+    storedTagNames: [String]
+) -> ReviewFilter {
     switch reviewFilter {
     case .allCards:
         return .allCards
@@ -145,8 +155,11 @@ func resolveReviewFilter(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card
     case .effort:
         return reviewFilter
     case .tag(let tag):
-        if hasActiveTag(tag: tag, cards: cards) {
-            return reviewFilter
+        if let exactTagName = resolveExactStoredTagNames(
+            requestedTagNames: [tag],
+            storedTagNames: storedTagNames
+        ).first {
+            return .tag(tag: exactTagName)
         }
 
         return .allCards
@@ -173,7 +186,7 @@ func cardsMatchingReviewFilter(reviewFilter: ReviewFilter, decks: [Deck], cards:
         }
     case .tag(let tag):
         return deriveActiveCards(cards: cards).filter { card in
-            card.tags.contains(tag)
+            hasTagMatchingRequest(storedTagNames: card.tags, requestedTagName: tag)
         }
     }
 }
@@ -236,11 +249,11 @@ private func cardMatchesResolvedReviewFilter(reviewFilter: ReviewFilter, decks: 
     case .effort(let level):
         return card.effortLevel == level
     case .tag(let tag):
-        return card.tags.contains(tag)
+        return hasTagMatchingRequest(storedTagNames: card.tags, requestedTagName: tag)
     }
 }
 
-func reviewQueuePreservingPresentedCard(
+func presentedReviewCardForBackgroundRefresh(
     reviewQueue: [Card],
     presentedCardId: String?,
     pendingReviewCardIds: Set<String>,
@@ -248,31 +261,31 @@ func reviewQueuePreservingPresentedCard(
     decks: [Deck],
     cards: [Card],
     now: Date
-) -> [Card] {
+) -> Card? {
     guard let presentedCardId else {
-        return reviewQueue
-    }
-    guard reviewQueue.contains(where: { card in
-        card.cardId == presentedCardId
-    }) == false else {
-        return reviewQueue
+        return nil
     }
     guard pendingReviewCardIds.contains(presentedCardId) == false else {
-        return reviewQueue
+        return nil
+    }
+    if let canonicalPresentedCard = reviewQueue.first(where: { card in
+        card.cardId == presentedCardId
+    }) {
+        return canonicalPresentedCard
     }
     guard let presentedCard = cards.first(where: { card in
         card.cardId == presentedCardId
     }) else {
-        return reviewQueue
+        return nil
     }
     guard cardMatchesResolvedReviewFilter(reviewFilter: resolvedReviewFilter, decks: decks, card: presentedCard) else {
-        return reviewQueue
+        return nil
     }
     guard isActiveReviewOrderBucket(bucket: makeReviewOrderRank(card: presentedCard, now: now).bucket) else {
-        return reviewQueue
+        return nil
     }
 
-    return reviewQueue + [presentedCard]
+    return presentedCard
 }
 
 private func insertReviewQueueCandidate(
@@ -290,8 +303,39 @@ private func insertReviewQueueCandidate(
     return Array(updatedTopCards.prefix(limit))
 }
 
+func resolveTagReviewQuery(requestedTag: String, storedTagNames: [String]) -> ResolvedReviewQuery? {
+    let exactTagNames = resolveExactStoredTagNames(
+        requestedTagNames: [requestedTag],
+        storedTagNames: storedTagNames
+    )
+    guard let displayTagName = exactTagNames.first else {
+        return nil
+    }
+
+    return ResolvedReviewQuery(
+        reviewFilter: .tag(tag: displayTagName),
+        queryDefinition: .tag(exactTagNames: exactTagNames)
+    )
+}
+
 func resolveReviewQuery(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card]) -> ResolvedReviewQuery {
-    let resolvedReviewFilter = resolveReviewFilter(reviewFilter: reviewFilter, decks: decks, cards: cards)
+    resolveReviewQuery(
+        reviewFilter: reviewFilter,
+        decks: decks,
+        storedTagNames: activeTagNames(cards: cards)
+    )
+}
+
+func resolveReviewQuery(
+    reviewFilter: ReviewFilter,
+    decks: [Deck],
+    storedTagNames: [String]
+) -> ResolvedReviewQuery {
+    let resolvedReviewFilter = resolveReviewFilter(
+        reviewFilter: reviewFilter,
+        decks: decks,
+        storedTagNames: storedTagNames
+    )
 
     switch resolvedReviewFilter {
     case .allCards:
@@ -311,7 +355,12 @@ func resolveReviewQuery(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card]
 
         return ResolvedReviewQuery(
             reviewFilter: resolvedReviewFilter,
-            queryDefinition: .deck(filterDefinition: deck.filterDefinition)
+            queryDefinition: .deck(
+                filterDefinition: resolveDeckFilterDefinitionTagNames(
+                    filterDefinition: deck.filterDefinition,
+                    storedTagNames: storedTagNames
+                )
+            )
         )
     case .effort(let level):
         return ResolvedReviewQuery(
@@ -324,11 +373,31 @@ func resolveReviewQuery(reviewFilter: ReviewFilter, decks: [Deck], cards: [Card]
             )
         )
     case .tag(let tag):
-        return ResolvedReviewQuery(
-            reviewFilter: resolvedReviewFilter,
-            queryDefinition: .tag(tag: tag)
+        return resolveTagReviewQuery(
+            requestedTag: tag,
+            storedTagNames: storedTagNames
+        ) ?? ResolvedReviewQuery(
+            reviewFilter: .allCards,
+            queryDefinition: .allCards
         )
     }
+}
+
+func makeReviewSubmissionContext(
+    selectedReviewFilter: ReviewFilter,
+    decks: [Deck],
+    cards: [Card]
+) -> ReviewSubmissionContext {
+    let resolvedReviewQuery = resolveReviewQuery(
+        reviewFilter: selectedReviewFilter,
+        decks: decks,
+        cards: cards
+    )
+
+    return ReviewSubmissionContext(
+        selectedReviewFilter: resolvedReviewQuery.reviewFilter,
+        reviewQueryDefinition: resolvedReviewQuery.queryDefinition
+    )
 }
 
 func makeReviewCounts(

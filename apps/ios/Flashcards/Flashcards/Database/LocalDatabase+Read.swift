@@ -1,5 +1,9 @@
 import Foundation
 
+private func loadStoredTagNames(database: LocalDatabase, workspaceId: String) throws -> [String] {
+    try database.loadWorkspaceTagsSummary(workspaceId: workspaceId).tags.map(\.tag)
+}
+
 extension LocalDatabase {
     func loadBootstrapSnapshot() throws -> AppBootstrapSnapshot {
         let workspace = try self.workspaceSettingsStore.loadWorkspace()
@@ -61,10 +65,21 @@ extension LocalDatabase {
                     queryDefinition: .allCards
                 )
             }
+            let storedTagNames: [String]
+            if deck.filterDefinition.tags.isEmpty {
+                storedTagNames = []
+            } else {
+                storedTagNames = try loadStoredTagNames(database: self, workspaceId: workspaceId)
+            }
 
             return ResolvedReviewQuery(
                 reviewFilter: .deck(deckId: deckId),
-                queryDefinition: .deck(filterDefinition: deck.filterDefinition)
+                queryDefinition: .deck(
+                    filterDefinition: resolveDeckFilterDefinitionTagNames(
+                        filterDefinition: deck.filterDefinition,
+                        storedTagNames: storedTagNames
+                    )
+                )
             )
         case .effort(let level):
             return ResolvedReviewQuery(
@@ -77,10 +92,18 @@ extension LocalDatabase {
                 )
             )
         case .tag(let tag):
-            return ResolvedReviewQuery(
-                reviewFilter: .tag(tag: tag),
-                queryDefinition: .tag(tag: tag)
-            )
+            let storedTagNames = try loadStoredTagNames(database: self, workspaceId: workspaceId)
+            guard let resolvedTagReviewQuery = resolveTagReviewQuery(
+                requestedTag: tag,
+                storedTagNames: storedTagNames
+            ) else {
+                return ResolvedReviewQuery(
+                    reviewFilter: .allCards,
+                    queryDefinition: .allCards
+                )
+            }
+
+            return resolvedTagReviewQuery
         }
     }
 
@@ -211,10 +234,23 @@ extension LocalDatabase {
             filterDefinition: DeckFilterDefinition(version: 2, effortLevels: [], tags: []),
             now: now
         )
+        let hasDeckTagFilters = decks.contains { deck in
+            deck.filterDefinition.tags.isEmpty == false
+        }
+        let storedTagNames: [String]
+        if hasDeckTagFilters {
+            storedTagNames = try loadStoredTagNames(database: self, workspaceId: workspaceId)
+        } else {
+            storedTagNames = []
+        }
         let deckSummaries = try decks.map { deck in
+            let filterDefinition = resolveDeckFilterDefinitionTagNames(
+                filterDefinition: deck.filterDefinition,
+                storedTagNames: storedTagNames
+            )
             let stats = try self.cardStore.loadDeckCardStats(
                 workspaceId: workspaceId,
-                filterDefinition: deck.filterDefinition,
+                filterDefinition: filterDefinition,
                 now: now
             )
             return DeckSummary(
@@ -270,9 +306,19 @@ extension LocalDatabase {
         workspaceId: String,
         filterDefinition: DeckFilterDefinition
     ) throws -> [Card] {
-        try self.cardStore.loadCardsMatchingDeck(
+        let storedTagNames: [String]
+        if filterDefinition.tags.isEmpty {
+            storedTagNames = []
+        } else {
+            storedTagNames = try loadStoredTagNames(database: self, workspaceId: workspaceId)
+        }
+        let resolvedFilterDefinition = resolveDeckFilterDefinitionTagNames(
+            filterDefinition: filterDefinition,
+            storedTagNames: storedTagNames
+        )
+        return try self.cardStore.loadCardsMatchingDeck(
             workspaceId: workspaceId,
-            filterDefinition: filterDefinition
+            filterDefinition: resolvedFilterDefinition
         )
     }
 

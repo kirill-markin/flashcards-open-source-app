@@ -101,9 +101,11 @@ func matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: C
         return true
     }
 
-    let cardTags = Set(card.tags)
+    let cardTagKeys = Set(card.tags.map { tag in
+        normalizeTagKey(tag: tag)
+    })
     return filterDefinition.tags.contains { tag in
-        cardTags.contains(tag)
+        cardTagKeys.contains(normalizeTagKey(tag: tag))
     }
 }
 
@@ -116,9 +118,11 @@ func matchesCardFilter(filter: CardFilter, card: Card) -> Bool {
         return true
     }
 
-    let cardTags = Set(card.tags)
+    let cardTagKeys = Set(card.tags.map { tag in
+        normalizeTagKey(tag: tag)
+    })
     return filter.tags.contains { tag in
-        cardTags.contains(tag)
+        cardTagKeys.contains(normalizeTagKey(tag: tag))
     }
 }
 
@@ -223,6 +227,29 @@ func buildDeckFilterDefinition(
         version: 2,
         effortLevels: effortLevels,
         tags: tags
+    )
+}
+
+func resolveDeckFilterDefinitionTagNames(
+    filterDefinition: DeckFilterDefinition,
+    storedTagNames: [String]
+) -> DeckFilterDefinition {
+    guard filterDefinition.tags.isEmpty == false else {
+        return filterDefinition
+    }
+
+    let exactTagNames = resolveExactStoredTagNames(
+        requestedTagNames: filterDefinition.tags,
+        storedTagNames: storedTagNames
+    )
+    guard exactTagNames.isEmpty == false else {
+        return filterDefinition
+    }
+
+    return DeckFilterDefinition(
+        version: filterDefinition.version,
+        effortLevels: filterDefinition.effortLevels,
+        tags: exactTagNames
     )
 }
 

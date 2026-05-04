@@ -12,7 +12,7 @@ import {
   matchesDeckFilterDefinition,
   recentDuePriorityWindow,
 } from "../appData/domain";
-import { loadAllowedCardIdsForTags } from "./cardTags";
+import { loadAllowedCardIdsForTag } from "./cardTags";
 import {
   iterateLocalStoredCardsByCreatedAtDesc,
   iterateLocalStoredCardsByDueAtMillisAscAfter,
@@ -107,8 +107,8 @@ async function resolveReviewFilterFromIndexedDb(
     };
   }
 
-  const allowedTagCardIds = await loadAllowedCardIdsForTags(database, workspaceId, [reviewFilter.tag]);
-  if (allowedTagCardIds.size === 0) {
+  const tagCardIdsLookup = await loadAllowedCardIdsForTag(database, workspaceId, reviewFilter.tag);
+  if (tagCardIdsLookup.cardIds.size === 0 || tagCardIdsLookup.canonicalTag === null) {
     return {
       resolvedReviewFilter: ALL_CARDS_REVIEW_FILTER,
       deck: null,
@@ -117,9 +117,12 @@ async function resolveReviewFilterFromIndexedDb(
   }
 
   return {
-    resolvedReviewFilter: reviewFilter,
+    resolvedReviewFilter: {
+      kind: "tag",
+      tag: tagCardIdsLookup.canonicalTag,
+    },
     deck: null,
-    allowedTagCardIds,
+    allowedTagCardIds: tagCardIdsLookup.cardIds,
   };
 }
 
