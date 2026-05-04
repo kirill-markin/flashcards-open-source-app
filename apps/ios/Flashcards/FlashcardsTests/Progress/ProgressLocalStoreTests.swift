@@ -257,6 +257,7 @@ final class ProgressLocalStoreTests: ProgressStoreTestCase {
         XCTAssertEqual(1, try self.pendingCardReviewScheduleImpactSum(database: database, workspaceId: workspace.workspaceId))
     }
 
+    @discardableResult
     private func addReviewScheduleCardAtBoundary(
         database: LocalDatabase,
         workspaceId: String,

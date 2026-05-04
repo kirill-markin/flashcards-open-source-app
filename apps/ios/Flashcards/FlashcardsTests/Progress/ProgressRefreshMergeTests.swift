@@ -450,6 +450,18 @@ final class ProgressRefreshMergeTests: ProgressStoreTestCase {
             ]
         )
 
+        // Two caches need to be invalidated to force a fresh local-fallback
+        // evaluation:
+        //   1. handleReviewScheduleLocalCardStateDidChange bumps the local
+        //      revision so the local-fallback cache key (keyed on
+        //      progressReviewScheduleLocalRevision) misses. Direct SQL
+        //      bypasses saveCard, which is the production path that fires
+        //      this hook; we mirror it explicitly here.
+        //   2. invalidateProgressReviewSchedule drops the server-base cache
+        //      and persisted server snapshot for this scope, ensuring the
+        //      next prepare falls back to the local computation we want to
+        //      surface as an error.
+        context.store.handleReviewScheduleLocalCardStateDidChange(now: now)
         context.store.invalidateProgressReviewSchedule(scopeKey: scheduleScopeKey)
         XCTAssertNoThrow(try context.store.prepareProgressSnapshot(now: now))
 

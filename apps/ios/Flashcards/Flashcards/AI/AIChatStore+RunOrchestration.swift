@@ -168,6 +168,13 @@ extension AIChatStore {
                     sessionId: sessionId,
                     runId: stopRunId
                 )
+                // The cancel-cleanup branches below mutate state for the run we
+                // were stopping. If composerPhase moved off .stopping (e.g. a
+                // new run started or transitionToIdle already ran) the
+                // response is stale and must not clobber the new state.
+                guard self.composerPhase == .stopping else {
+                    return
+                }
                 if stopResponse.stopped == false {
                     self.transitionToIdle()
                     self.startLinkedBootstrap(forceReloadState: true, resumeAttemptDiagnostics: nil)
