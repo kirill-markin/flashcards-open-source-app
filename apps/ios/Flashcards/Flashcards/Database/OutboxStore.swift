@@ -52,7 +52,7 @@ private struct ReviewEventOutboxCandidate {
 private struct PendingReviewScheduleCardTotalDeltaEntry {
     let operationId: String
     let entityId: String
-    let clientUpdatedAt: String
+    let isInitialCreate: Bool
     let payloadJson: String
 }
 
@@ -210,7 +210,7 @@ struct OutboxStore {
     ) throws -> Int {
         let entries = try self.core.query(
             sql: """
-            SELECT operation_id, entity_id, client_updated_at, payload_json
+            SELECT operation_id, entity_id, is_initial_create, payload_json
             FROM outbox
             WHERE workspace_id = ?
                 AND installation_id = ?
@@ -227,17 +227,14 @@ struct OutboxStore {
             PendingReviewScheduleCardTotalDeltaEntry(
                 operationId: DatabaseCore.columnText(statement: statement, index: 0),
                 entityId: DatabaseCore.columnText(statement: statement, index: 1),
-                clientUpdatedAt: DatabaseCore.columnText(statement: statement, index: 2),
+                isInitialCreate: DatabaseCore.columnInt64(statement: statement, index: 2) != 0,
                 payloadJson: DatabaseCore.columnText(statement: statement, index: 3)
             )
         }
 
         var changesByCardId: [String: PendingReviewScheduleCardTotalChange] = [:]
         for entry in entries {
-            let parsedChange = try self.parsePendingReviewScheduleCardTotalChange(
-                workspaceId: workspaceId,
-                entry: entry
-            )
+            let parsedChange = try self.parsePendingReviewScheduleCardTotalChange(entry: entry)
             let existingChange = changesByCardId[entry.entityId]
             changesByCardId[entry.entityId] = PendingReviewScheduleCardTotalChange(
                 hasLocalCreate: existingChange?.hasLocalCreate == true || parsedChange.hasLocalCreate,
@@ -434,18 +431,20 @@ struct OutboxStore {
         }
     }
 
-    // Initial-create invariant: when this enqueues the very first upsert for a card,
-    // `clientUpdatedAt` MUST equal `card.createdAt` (same instant string, produced by a
-    // single `nowIsoTimestamp()` reused at the call site). All later upserts for the
-    // same cardId (edits, tombstones, review-applied schedule writes) MUST pass a
-    // `clientUpdatedAt` strictly later than `cards.created_at`. The create-detection in
-    // parsePendingReviewScheduleCardTotalChange relies on that string equality.
+    // `isInitialCreate` is the explicit "this is the very first local upsert for
+    // this card" bit consumed by loadPendingReviewScheduleCardTotalDelta. Callers
+    // pass true exactly once per card (the create path) and false for every later
+    // upsert (edits, tombstones, review-applied schedule writes). The bit is
+    // persisted on the outbox row (see is_initial_create column, schema v15) so
+    // pending card-total deltas read intent directly instead of inferring it from
+    // a timestamp coincidence.
     func enqueueCardUpsertOperation(
         workspaceId: String,
         installationId: String,
         operationId: String,
         clientUpdatedAt: String,
         card: Card,
+        isInitialCreate: Bool,
         reviewScheduleImpact: Bool
     ) throws {
         let payloadJson = try self.core.encodeJsonString(
@@ -476,6 +475,7 @@ struct OutboxStore {
             operationType: "upsert",
             payloadJson: payloadJson,
             clientUpdatedAt: clientUpdatedAt,
+            isInitialCreate: isInitialCreate,
             reviewScheduleImpact: reviewScheduleImpact
         )
     }
@@ -505,6 +505,7 @@ struct OutboxStore {
             operationType: "upsert",
             payloadJson: payloadJson,
             clientUpdatedAt: clientUpdatedAt,
+            isInitialCreate: false,
             reviewScheduleImpact: false
         )
     }
@@ -535,10 +536,21 @@ struct OutboxStore {
             operationType: "upsert",
             payloadJson: payloadJson,
             clientUpdatedAt: clientUpdatedAt,
+            isInitialCreate: false,
             reviewScheduleImpact: false
         )
     }
 
+    // review_event outbox rows are structurally non-impacting: the row records
+    // only the rating/timestamp pair for the review history stream. The card
+    // schedule write that follows a review is enqueued separately on the matching
+    // `card` upsert with reviewScheduleImpact: true (see LocalDatabase+Review.swift).
+    // Pending-card-total deltas (loadPendingReviewScheduleCardTotalDelta) and the
+    // post-acknowledge counters
+    // (CloudSyncResult.acknowledgedReviewScheduleImpactingOperationCount,
+    // cleanedUpReviewScheduleImpactingOperationCount) must never include
+    // review_event rows. The v13→v14 backfill enforces this for legacy rows; new
+    // rows enforce it via the literal `false` passed below.
     func enqueueReviewEventAppendOperation(
         workspaceId: String,
         installationId: String,
@@ -565,6 +577,7 @@ struct OutboxStore {
             operationType: "append",
             payloadJson: payloadJson,
             clientUpdatedAt: clientUpdatedAt,
+            isInitialCreate: false,
             reviewScheduleImpact: false
         )
     }
@@ -578,6 +591,7 @@ struct OutboxStore {
         operationType: String,
         payloadJson: String,
         clientUpdatedAt: String,
+        isInitialCreate: Bool,
         reviewScheduleImpact: Bool
     ) throws {
         try self.core.execute(
@@ -594,9 +608,10 @@ struct OutboxStore {
                 created_at,
                 attempt_count,
                 review_schedule_impact,
+                is_initial_create,
                 last_error
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, NULL)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, NULL)
             """,
             values: [
                 .text(operationId),
@@ -608,7 +623,8 @@ struct OutboxStore {
                 .text(payloadJson),
                 .text(clientUpdatedAt),
                 .text(nowIsoTimestamp()),
-                .integer(reviewScheduleImpact ? 1 : 0)
+                .integer(reviewScheduleImpact ? 1 : 0),
+                .integer(isInitialCreate ? 1 : 0)
             ]
         )
     }
@@ -705,7 +721,6 @@ struct OutboxStore {
     }
 
     private func parsePendingReviewScheduleCardTotalChange(
-        workspaceId: String,
         entry: PendingReviewScheduleCardTotalDeltaEntry
     ) throws -> PendingReviewScheduleCardTotalChange {
         let payload = try self.core.decoder.decode(
@@ -718,10 +733,8 @@ struct OutboxStore {
             )
         }
 
-        let createdAt = try self.loadCardCreatedAt(workspaceId: workspaceId, cardId: entry.entityId)
-        // Initial-create marker: see enqueueCardUpsertOperation contract.
         return PendingReviewScheduleCardTotalChange(
-            hasLocalCreate: createdAt == entry.clientUpdatedAt,
+            hasLocalCreate: entry.isInitialCreate,
             finalIsDeleted: payload.deletedAt != nil
         )
     }

@@ -56,6 +56,9 @@ struct LocalDatabaseMigrator {
             case 13:
                 try self.migrateSchemaVersion13To14()
                 schemaVersion = 14
+            case 14:
+                try self.migrateSchemaVersion14To15()
+                schemaVersion = 15
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -445,6 +448,14 @@ struct LocalDatabaseMigrator {
             return
         }
 
+        // `NOT NULL DEFAULT 1` is "safe-on": every legacy outbox row gets marked
+        // as schedule-impacting by default, then the backfill below explicitly
+        // downgrades the three known-non-impacting entity types. The remaining
+        // entity_type — `card` — is the only one that can carry schedule writes,
+        // and pre-existing card rows are conservatively treated as impacting until
+        // reconciled by the next push. The CHECK constraint is the load-bearing
+        // typecheck preventing accidental NULL/non-binary values from ever being
+        // mis-counted by the impacting-counter family in CloudSyncResult.
         try self.core.execute(
             sql: """
             ALTER TABLE outbox
@@ -455,12 +466,62 @@ struct LocalDatabaseMigrator {
         try self.backfillLegacyOutboxReviewScheduleImpact()
     }
 
+    // Downgrades the three entity types that are never schedule-impacting by
+    // construction: `deck` and `workspace_scheduler_settings` carry no card
+    // schedule state, and `review_event` rows record only the rating/timestamp
+    // pair (the schedule write that follows a review is enqueued separately on
+    // the matching `card` upsert with reviewScheduleImpact: true).
     private func backfillLegacyOutboxReviewScheduleImpact() throws {
         try self.core.execute(
             sql: """
             UPDATE outbox
             SET review_schedule_impact = 0
             WHERE entity_type IN ('deck', 'workspace_scheduler_settings', 'review_event')
+            """,
+            values: []
+        )
+    }
+
+    // Adds the `is_initial_create` outbox column so pending card-total deltas can
+    // read create-vs-update intent directly off the row instead of inferring it
+    // from a timestamp coincidence (cards.created_at == client_updated_at). The
+    // legacy heuristic was correct but fragile: any change that decoupled the two
+    // writes would silently drift the unsynced-cards counter. Persisting the bit
+    // makes the data self-describing.
+    private func migrateSchemaVersion14To15() throws {
+        if try self.core.columnExists(tableName: "outbox", columnName: "is_initial_create") {
+            try self.backfillLegacyOutboxIsInitialCreate()
+            return
+        }
+
+        try self.core.execute(
+            sql: """
+            ALTER TABLE outbox
+            ADD COLUMN is_initial_create INTEGER NOT NULL DEFAULT 0 CHECK (is_initial_create IN (0, 1))
+            """,
+            values: []
+        )
+        try self.backfillLegacyOutboxIsInitialCreate()
+    }
+
+    // Replays the legacy detection heuristic exactly once at migration time:
+    // a pending card upsert whose client_updated_at matches the card's created_at
+    // is the first local create. This mirrors the previous in-memory check in
+    // OutboxStore.parsePendingReviewScheduleCardTotalChange so pre-existing
+    // outbox rows continue to count correctly after the schema change.
+    private func backfillLegacyOutboxIsInitialCreate() throws {
+        try self.core.execute(
+            sql: """
+            UPDATE outbox
+            SET is_initial_create = 1
+            WHERE entity_type = 'card'
+                AND operation_type = 'upsert'
+                AND EXISTS (
+                    SELECT 1 FROM cards
+                    WHERE cards.workspace_id = outbox.workspace_id
+                        AND cards.card_id = outbox.entity_id
+                        AND cards.created_at = outbox.client_updated_at
+                )
             """,
             values: []
         )

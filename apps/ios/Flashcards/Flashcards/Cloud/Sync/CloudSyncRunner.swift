@@ -289,7 +289,13 @@ struct CloudSyncRunner {
             outcome: "self_heal",
             workspaceId: workspaceId,
             installationId: installationId,
-            operationsCount: deletionSummary.operationCount
+            operationsCount: deletionSummary.operationCount,
+            // review_event outbox rows are always non-impacting (see
+            // OutboxStore.enqueueReviewEventAppendOperation), so this cleanup
+            // can never touch the schedule-impacting counter. The literal 0
+            // makes that invariant visible in the structured log instead of
+            // implicit by omission.
+            reviewScheduleImpactingOperationCount: 0
         )
 
         return CloudSyncResult(

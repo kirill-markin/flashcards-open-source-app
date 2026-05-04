@@ -33,6 +33,7 @@ func logCloudFlowPhase(
     migrationKind: String? = nil,
     remoteWorkspaceIsEmpty: Bool? = nil,
     operationsCount: Int? = nil,
+    reviewScheduleImpactingOperationCount: Int? = nil,
     changesCount: Int? = nil,
     errorMessage: String? = nil
 ) {
@@ -51,6 +52,7 @@ func logCloudFlowPhase(
         migrationKind=\(migrationKind ?? "-", privacy: .public) \
         remoteWorkspaceIsEmpty=\(remoteWorkspaceIsEmpty.map(String.init) ?? "-", privacy: .public) \
         operations=\(operationsCount.map(String.init) ?? "-", privacy: .public) \
+        reviewScheduleImpactingOperations=\(reviewScheduleImpactingOperationCount.map(String.init) ?? "-", privacy: .public) \
         changes=\(changesCount.map(String.init) ?? "-", privacy: .public) \
         error=\(errorMessage ?? "-", privacy: .public)
         """
