@@ -50,7 +50,7 @@ import com.flashcardsopensourceapp.data.local.repository.LocalSyncRepository
 import com.flashcardsopensourceapp.data.local.repository.LocalWorkspaceRepository
 import com.flashcardsopensourceapp.data.local.repository.ProgressRepository
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
-import com.flashcardsopensourceapp.data.local.repository.SystemProgressTimeProvider
+import com.flashcardsopensourceapp.data.local.repository.SystemTimeProvider
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.CancellationException
@@ -112,7 +112,7 @@ class AppGraph(
     private val aiCoroutineDispatchers = AiCoroutineDispatchers(io = Dispatchers.IO)
     private val localProgressCacheStore = LocalProgressCacheStore(
         database = database,
-        timeProvider = SystemProgressTimeProvider
+        timeProvider = SystemTimeProvider
     )
     private val aiChatLiveRemoteService = AiChatLiveRemoteService(dispatchers = aiCoroutineDispatchers)
     private val aiChatRemoteService = AiChatRemoteService(
@@ -123,7 +123,8 @@ class AppGraph(
         database = database,
         preferencesStore = cloudPreferencesStore,
         reviewPreferencesStore = reviewPreferencesStore,
-        localProgressCacheStore = localProgressCacheStore
+        localProgressCacheStore = localProgressCacheStore,
+        timeProvider = SystemTimeProvider
     )
     private val strictRemindersScheduler = AndroidStrictRemindersScheduler(context = context)
     private val cloudOperationCoordinator = CloudOperationCoordinator()
@@ -218,7 +219,7 @@ class AppGraph(
         cloudAccountRepository = cloudAccountRepository,
         syncRepository = syncRepository,
         localProgressCacheStore = localProgressCacheStore,
-        timeProvider = SystemProgressTimeProvider
+        timeProvider = SystemTimeProvider
     )
     val progressContextRefreshController = ProgressContextRefreshController(
         appScope = appScope,
