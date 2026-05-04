@@ -64,8 +64,7 @@ final class FlashcardsStore {
     var deckItems: [DeckListItem]
     var selectedReviewFilter: ReviewFilter
     var reviewQueue: [Card]
-    var reviewQueueCanonicalCount: Int
-    var presentedReviewCardId: String?
+    var presentedReviewCard: Card?
     var reviewCounts: ReviewCounts
     var isReviewHeadLoading: Bool
     var isReviewCountsLoading: Bool
@@ -311,8 +310,7 @@ final class FlashcardsStore {
         self.deckItems = []
         self.selectedReviewFilter = initialReviewPublishedState.selectedReviewFilter
         self.reviewQueue = initialReviewPublishedState.reviewQueue
-        self.reviewQueueCanonicalCount = initialReviewPublishedState.reviewQueueCanonicalCount
-        self.presentedReviewCardId = initialReviewPublishedState.presentedCardId
+        self.presentedReviewCard = initialReviewPublishedState.presentedReviewCard
         self.reviewCounts = initialReviewPublishedState.reviewCounts
         self.isReviewHeadLoading = initialReviewPublishedState.isReviewHeadLoading
         self.isReviewCountsLoading = initialReviewPublishedState.isReviewCountsLoading
@@ -359,7 +357,6 @@ final class FlashcardsStore {
         self.decoder = decoder
         self.cloudServiceConfigurationValidator = CloudServiceConfigurationValidator()
         self.reviewRuntime = ReviewQueueRuntime(
-            initialSelectedReviewFilter: initialSelectedReviewFilter,
             reviewSeedQueueSize: reviewSeedQueueSize,
             reviewQueueReplenishmentThreshold: reviewQueueReplenishmentThreshold
         )

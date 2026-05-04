@@ -89,7 +89,14 @@ extension CardStore {
         switch reviewQueryDefinition {
         case .allCards:
             return ReviewQuerySQL(clause: "", values: [])
-        case .tag(let tag):
+        case .tag(let exactTagNames):
+            guard exactTagNames.isEmpty == false else {
+                throw LocalStoreError.database("Tag review query requires at least one exact tag name")
+            }
+            let tagPlaceholders = Array(
+                repeating: "?",
+                count: exactTagNames.count
+            ).joined(separator: ", ")
             return ReviewQuerySQL(
                 clause: """
                  AND EXISTS (
@@ -97,10 +104,12 @@ extension CardStore {
                     FROM card_tags
                     WHERE card_tags.workspace_id = cards.workspace_id
                         AND card_tags.card_id = cards.card_id
-                        AND card_tags.tag = ?
+                        AND card_tags.tag IN (\(tagPlaceholders))
                 )
                 """,
-                values: [.text(tag)]
+                values: exactTagNames.map { tag in
+                    .text(tag)
+                }
             )
         case .deck(let filterDefinition):
             var predicates: [String] = []
@@ -149,7 +158,11 @@ extension CardStore {
         }
     }
 
-    func makeCardsListQuerySQL(searchText: String, filter: CardFilter?) throws -> ReviewQuerySQL {
+    func makeCardsListQuerySQL(
+        searchText: String,
+        filter: CardFilter?,
+        storedTagNames: [String]
+    ) throws -> ReviewQuerySQL {
         var predicates: [String] = []
         var values: [SQLiteValue] = []
         let normalizedSearchText = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -170,7 +183,19 @@ extension CardStore {
         }
 
         if let filter, filter.tags.isEmpty == false {
-            let tagPlaceholders = Array(repeating: "?", count: filter.tags.count).joined(separator: ", ")
+            let exactTagNames = resolveExactStoredTagNames(
+                requestedTagNames: filter.tags,
+                storedTagNames: storedTagNames
+            )
+            guard exactTagNames.isEmpty == false else {
+                predicates.append("0 = 1")
+                return ReviewQuerySQL(
+                    clause: " AND " + predicates.joined(separator: " AND "),
+                    values: values
+                )
+            }
+
+            let tagPlaceholders = Array(repeating: "?", count: exactTagNames.count).joined(separator: ", ")
             predicates.append(
                 """
                 EXISTS (
@@ -182,7 +207,7 @@ extension CardStore {
                 )
                 """
             )
-            values.append(contentsOf: filter.tags.map { tag in
+            values.append(contentsOf: exactTagNames.map { tag in
                 .text(tag)
             })
         }

@@ -4,6 +4,7 @@ import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { replaceCards } from "./cards";
 import { clearWebSyncCache } from "./cache";
+import { replaceDecks } from "./decks";
 import { getAllFromStore, openDatabase, type StoredCard } from "./core";
 import { listOutboxRecords, putOutboxRecord, type PersistedOutboxRecord } from "./outbox";
 import {
@@ -21,6 +22,7 @@ import {
   isCardDueForTest,
   legacyReviewCards,
   makeCard,
+  makeDeck,
   resolveLegacyReviewFilterForTest,
   sampleCards,
   seedCursorFixtures,
@@ -371,6 +373,61 @@ describe("localDb reviews", () => {
       expect(result.cards.map((card) => card.cardId)).toEqual(
         legacyDueCards.slice(startIndex, startIndex + 2).map((card) => card.cardId),
       );
+    } finally {
+      Date.now = originalNow;
+    }
+  });
+
+  it("matches local review tag and deck filters by normalized Unicode tag keys", async () => {
+    const nowTimestamp = Date.parse("2026-03-10T12:00:00.000Z");
+    const originalNow = Date.now;
+    Date.now = () => nowTimestamp;
+
+    try {
+      const unicodeTagCard = makeCard({
+        cardId: "unicode-tag-card",
+        frontText: "Unicode tag",
+        backText: "back",
+        tags: ["Éclair"],
+        effortLevel: "fast",
+        dueAt: "2026-03-10T11:00:00.000Z",
+        createdAt: "2026-03-10T09:00:00.000Z",
+      });
+      const otherCard = makeCard({
+        cardId: "other-tag-card",
+        frontText: "Other tag",
+        backText: "back",
+        tags: ["code"],
+        effortLevel: "fast",
+        dueAt: "2026-03-10T11:05:00.000Z",
+        createdAt: "2026-03-10T09:05:00.000Z",
+      });
+      const unicodeDeck = makeDeck({
+        deckId: "deck-unicode-tag",
+        name: "Unicode tag",
+        effortLevels: [],
+        tags: ["éclair"],
+        createdAt: "2026-03-10T08:00:00.000Z",
+      });
+
+      await replaceDecks(workspaceId, [unicodeDeck]);
+      await replaceCards(workspaceId, [unicodeTagCard, otherCard]);
+
+      const tagQueueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "tag", tag: "éclair" }, 10);
+      const deckQueueSnapshot = await loadReviewQueueSnapshot(workspaceId, { kind: "deck", deckId: unicodeDeck.deckId }, 10);
+      const tagTimelinePage = await loadReviewTimelinePage(workspaceId, { kind: "tag", tag: "éclair" }, 10, 0);
+
+      expect(tagQueueSnapshot.resolvedReviewFilter).toEqual({
+        kind: "tag",
+        tag: "Éclair",
+      });
+      expect(tagQueueSnapshot.cards.map((card) => card.cardId)).toEqual(["unicode-tag-card"]);
+      expect(tagQueueSnapshot.reviewCounts).toEqual({
+        dueCount: 1,
+        totalCount: 1,
+      });
+      expect(deckQueueSnapshot.cards.map((card) => card.cardId)).toEqual(["unicode-tag-card"]);
+      expect(tagTimelinePage.cards.map((card) => card.cardId)).toEqual(["unicode-tag-card"]);
     } finally {
       Date.now = originalNow;
     }

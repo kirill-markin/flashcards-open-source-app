@@ -217,6 +217,176 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
         XCTAssertFalse(timelinePage.hasMoreCards)
     }
 
+    func testSQLiteResolvedTagReviewFilterMatchesUnicodeStoredTagVariants() throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "uppercase-tag-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T08:30:00.000Z",
+            tags: ["Éclair"]
+        )
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "lowercase-tag-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T08:00:00.000Z",
+            tags: ["éclair"]
+        )
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "plain-tag-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T07:00:00.000Z",
+            tags: ["plain"]
+        )
+
+        let resolvedReviewQuery = try database.loadResolvedReviewQuery(
+            workspaceId: workspace.workspaceId,
+            reviewFilter: .tag(tag: "éclair")
+        )
+        let reviewHead = try database.loadReviewHead(
+            workspaceId: workspace.workspaceId,
+            resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
+            reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
+            now: now,
+            limit: 8
+        )
+        let reviewCounts = try database.loadReviewCounts(
+            workspaceId: workspace.workspaceId,
+            reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
+            now: now
+        )
+
+        XCTAssertEqual(resolvedReviewQuery.reviewFilter, .tag(tag: "Éclair"))
+        guard case .tag(let exactTagNames) = resolvedReviewQuery.queryDefinition else {
+            XCTFail("Expected resolved direct tag query definition")
+            return
+        }
+        XCTAssertEqual(Set<String>(exactTagNames), Set<String>(["Éclair", "éclair"]))
+        XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["uppercase-tag-card", "lowercase-tag-card"])
+        XCTAssertEqual(reviewCounts, ReviewCounts(dueCount: 2, totalCount: 2))
+    }
+
+    func testSQLiteResolvedDeckReviewFilterMatchesUnicodeStoredTagName() throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-03-09T09:00:00.000Z"))
+
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "unicode-deck-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T08:00:00.000Z",
+            tags: ["Éclair"]
+        )
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "plain-deck-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T07:00:00.000Z",
+            tags: ["plain"]
+        )
+        let deck = try database.createDeck(
+            workspaceId: workspace.workspaceId,
+            input: DeckEditorInput(
+                name: "Desserts",
+                filterDefinition: buildDeckFilterDefinition(effortLevels: [], tags: ["éclair"])
+            )
+        )
+
+        let resolvedReviewQuery = try database.loadResolvedReviewQuery(
+            workspaceId: workspace.workspaceId,
+            reviewFilter: .deck(deckId: deck.deckId)
+        )
+        let reviewHead = try database.loadReviewHead(
+            workspaceId: workspace.workspaceId,
+            resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
+            reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
+            now: now,
+            limit: 8
+        )
+        let reviewCounts = try database.loadReviewCounts(
+            workspaceId: workspace.workspaceId,
+            reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
+            now: now
+        )
+        let deckSnapshot = try database.loadDecksListSnapshot(
+            workspaceId: workspace.workspaceId,
+            now: now
+        )
+        let matchingDeckCards = try database.loadCardsMatchingDeck(
+            workspaceId: workspace.workspaceId,
+            filterDefinition: deck.filterDefinition
+        )
+
+        XCTAssertEqual(resolvedReviewQuery.reviewFilter, .deck(deckId: deck.deckId))
+        XCTAssertEqual(
+            resolvedReviewQuery.queryDefinition,
+            .deck(filterDefinition: buildDeckFilterDefinition(effortLevels: [], tags: ["Éclair"]))
+        )
+        XCTAssertEqual(reviewHead.seedReviewQueue.map(\.cardId), ["unicode-deck-card"])
+        XCTAssertEqual(reviewCounts, ReviewCounts(dueCount: 1, totalCount: 1))
+        XCTAssertEqual(deckSnapshot.deckSummaries.first(where: { summary in
+            summary.deckId == deck.deckId
+        })?.totalCards, 1)
+        XCTAssertEqual(matchingDeckCards.map(\.cardId), ["unicode-deck-card"])
+    }
+
+    func testSQLiteCardsListFilterMatchesUnicodeStoredTagVariants() throws {
+        let database = try self.makeDatabase()
+        let workspace = try database.workspaceSettingsStore.loadWorkspace()
+
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "uppercase-tag-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T08:30:00.000Z",
+            tags: ["Éclair"]
+        )
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "lowercase-tag-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T08:00:00.000Z",
+            tags: ["éclair"]
+        )
+        try self.insertCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            cardId: "plain-tag-card",
+            dueAt: nil,
+            createdAt: "2026-03-09T07:00:00.000Z",
+            tags: ["plain"]
+        )
+
+        let matchingSnapshot = try database.loadCardsListSnapshot(
+            workspaceId: workspace.workspaceId,
+            searchText: "",
+            filter: CardFilter(tags: ["éclair"], effort: [])
+        )
+        let missingSnapshot = try database.loadCardsListSnapshot(
+            workspaceId: workspace.workspaceId,
+            searchText: "",
+            filter: CardFilter(tags: ["missing"], effort: [])
+        )
+
+        XCTAssertEqual(matchingSnapshot.cards.map(\.cardId), ["uppercase-tag-card", "lowercase-tag-card"])
+        XCTAssertEqual(matchingSnapshot.totalCount, 2)
+        XCTAssertTrue(missingSnapshot.cards.isEmpty)
+        XCTAssertEqual(missingSnapshot.totalCount, 0)
+    }
+
     func testSQLiteReviewTimelineOrdersMalformedDueAtByCreatedAtThenCardId() throws {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
@@ -648,6 +818,25 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
         dueAt: String?,
         createdAt: String
     ) throws {
+        try self.insertCard(
+            database: database,
+            workspaceId: workspaceId,
+            cardId: cardId,
+            dueAt: dueAt,
+            createdAt: createdAt,
+            tags: []
+        )
+    }
+
+    private func insertCard(
+        database: LocalDatabase,
+        workspaceId: String,
+        cardId: String,
+        dueAt: String?,
+        createdAt: String,
+        tags: [String]
+    ) throws {
+        let tagsJson = try database.core.encodeJsonString(value: tags)
         try database.core.execute(
             sql: """
             INSERT INTO cards (
@@ -681,7 +870,7 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
                 .text(workspaceId),
                 .text("Front \(cardId)"),
                 .text("Back \(cardId)"),
-                .text("[]"),
+                .text(tagsJson),
                 dueAt.map(SQLiteValue.text) ?? .null,
                 dueAt.flatMap(parseStrictIsoTimestampEpochMillis).map(SQLiteValue.integer) ?? .null,
                 .text(createdAt),
@@ -689,6 +878,11 @@ final class ReviewSQLiteOrderingTests: XCTestCase {
                 .text("operation-\(cardId)"),
                 .text(createdAt)
             ]
+        )
+        try database.cardStore.replaceCardTagsReadModel(
+            workspaceId: workspaceId,
+            cardId: cardId,
+            tags: tags
         )
     }
 }

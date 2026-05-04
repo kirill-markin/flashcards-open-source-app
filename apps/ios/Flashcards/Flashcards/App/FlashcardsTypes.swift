@@ -370,7 +370,7 @@ struct ReviewCounts: Hashable, Sendable {
 enum ReviewQueryDefinition: Hashable, Sendable {
     case allCards
     case deck(filterDefinition: DeckFilterDefinition)
-    case tag(tag: String)
+    case tag(exactTagNames: [String])
 }
 
 struct ReviewTimelinePage: Hashable, Sendable {

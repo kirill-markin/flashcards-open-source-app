@@ -83,8 +83,7 @@ final class ReviewBackgroundReconcileTests: ProgressStoreTestCase {
             reviewState: ReviewQueuePublishedState(
                 selectedReviewFilter: .allCards,
                 reviewQueue: currentQueue,
-                reviewQueueCanonicalCount: currentQueue.count,
-                presentedCardId: currentQueue[3].cardId,
+                presentedReviewCard: currentQueue[3],
                 reviewCounts: ReviewCounts(dueCount: currentQueue.count, totalCount: currentQueue.count),
                 isReviewHeadLoading: false,
                 isReviewCountsLoading: false,
@@ -102,7 +101,7 @@ final class ReviewBackgroundReconcileTests: ProgressStoreTestCase {
         XCTAssertTrue(didRefresh)
         XCTAssertEqual(store.reviewQueue.map(\.cardId), refreshedWindow.map(\.cardId))
         XCTAssertEqual(store.reviewQueue.count, currentQueue.count)
-        XCTAssertEqual(store.presentedReviewCardId, currentQueue[3].cardId)
+        XCTAssertEqual(store.presentedReviewCard?.cardId, currentQueue[3].cardId)
         XCTAssertEqual(store.reviewCounts, expectedCounts)
         XCTAssertFalse(store.isReviewQueueChunkLoading)
     }
@@ -171,8 +170,7 @@ final class ReviewBackgroundReconcileTests: ProgressStoreTestCase {
             reviewState: ReviewQueuePublishedState(
                 selectedReviewFilter: .allCards,
                 reviewQueue: currentQueue,
-                reviewQueueCanonicalCount: currentQueue.count,
-                presentedCardId: presentedCard.cardId,
+                presentedReviewCard: presentedCard,
                 reviewCounts: ReviewCounts(dueCount: currentQueue.count, totalCount: currentQueue.count),
                 isReviewHeadLoading: false,
                 isReviewCountsLoading: false,
@@ -185,12 +183,10 @@ final class ReviewBackgroundReconcileTests: ProgressStoreTestCase {
         let didRefresh = try await store.refreshReviewState(now: now, mode: .backgroundReconcileSilently)
         let didRefreshAgain = try await store.refreshReviewState(now: now, mode: .backgroundReconcileSilently)
 
-        let expectedStoredQueue = refreshedWindow + [presentedCard]
         XCTAssertTrue(didRefresh)
         XCTAssertFalse(didRefreshAgain)
-        XCTAssertEqual(store.reviewQueue.map(\.cardId), expectedStoredQueue.map(\.cardId))
-        XCTAssertEqual(store.reviewQueueCanonicalCount, refreshedWindow.count)
-        XCTAssertEqual(store.presentedReviewCardId, presentedCard.cardId)
+        XCTAssertEqual(store.reviewQueue.map(\.cardId), refreshedWindow.map(\.cardId))
+        XCTAssertEqual(store.presentedReviewCard?.cardId, presentedCard.cardId)
         XCTAssertEqual(store.effectiveReviewQueue.first?.cardId, presentedCard.cardId)
         XCTAssertEqual(store.effectiveReviewQueue.dropFirst().first?.cardId, refreshedWindow[0].cardId)
         XCTAssertEqual(store.reviewCounts, expectedCounts)
@@ -263,8 +259,7 @@ final class ReviewBackgroundReconcileTests: ProgressStoreTestCase {
             reviewState: ReviewQueuePublishedState(
                 selectedReviewFilter: .allCards,
                 reviewQueue: currentQueue,
-                reviewQueueCanonicalCount: currentQueue.count,
-                presentedCardId: presentedCard.cardId,
+                presentedReviewCard: presentedCard,
                 reviewCounts: ReviewCounts(dueCount: currentQueue.count, totalCount: currentQueue.count),
                 isReviewHeadLoading: false,
                 isReviewCountsLoading: false,
@@ -278,10 +273,317 @@ final class ReviewBackgroundReconcileTests: ProgressStoreTestCase {
 
         XCTAssertTrue(didRefresh)
         XCTAssertEqual(store.reviewQueue.map(\.cardId), refreshedWindow.map(\.cardId))
-        XCTAssertEqual(store.presentedReviewCardId, refreshedWindow[0].cardId)
+        XCTAssertEqual(store.presentedReviewCard?.cardId, refreshedWindow[0].cardId)
         XCTAssertEqual(store.effectiveReviewQueue.first?.cardId, refreshedWindow[0].cardId)
         XCTAssertEqual(store.reviewCounts, expectedCounts)
         XCTAssertFalse(store.isReviewQueueChunkLoading)
+    }
+
+    @MainActor
+    func testReviewSubmissionFailureReloadFailureDoesNotRestoreStaleRollbackCard() throws {
+        let suiteName = "review-submit-reload-failure-\(UUID().uuidString.lowercased())"
+        let userDefaults = UserDefaults(suiteName: suiteName)!
+        let credentialStore = CloudCredentialStore(service: "tests-\(suiteName)-cloud-auth")
+        let guestCredentialStore = GuestCloudCredentialStore(
+            service: "tests-\(suiteName)-guest-auth",
+            bundle: .main,
+            userDefaults: userDefaults
+        )
+        defer {
+            userDefaults.removePersistentDomain(forName: suiteName)
+            try? credentialStore.clearCredentials()
+            try? guestCredentialStore.clearGuestSession()
+        }
+
+        let staleSubmittedCard = makePinnedRefreshCard(
+            cardId: "submitted-card",
+            dueAt: "2026-04-18T09:00:00.000Z",
+            updatedAt: "2026-04-18T09:01:00.000Z"
+        )
+        let nextCard = makePinnedRefreshCard(
+            cardId: "next-card",
+            dueAt: "2026-04-18T09:03:00.000Z",
+            updatedAt: "2026-04-18T09:02:00.000Z"
+        )
+        let store = FlashcardsStore(
+            userDefaults: userDefaults,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder(),
+            database: nil,
+            cloudAuthService: CloudAuthService(),
+            credentialStore: credentialStore,
+            guestCloudAuthService: GuestCloudAuthService(),
+            guestCredentialStore: guestCredentialStore,
+            initialGlobalErrorMessage: ""
+        )
+        defer {
+            store.shutdownForTests()
+        }
+        store.workspace = Workspace(
+            workspaceId: staleSubmittedCard.workspaceId,
+            name: "Test workspace",
+            createdAt: "2026-04-18T08:00:00.000Z"
+        )
+        store.cards = [staleSubmittedCard, nextCard]
+        store.decks = []
+        store.applyReviewPublishedState(
+            reviewState: ReviewQueuePublishedState(
+                selectedReviewFilter: .allCards,
+                reviewQueue: [nextCard],
+                presentedReviewCard: nextCard,
+                reviewCounts: ReviewCounts(dueCount: 2, totalCount: 2),
+                isReviewHeadLoading: false,
+                isReviewCountsLoading: false,
+                isReviewQueueChunkLoading: false,
+                pendingReviewCardIds: [staleSubmittedCard.cardId],
+                reviewSubmissionFailure: nil
+            )
+        )
+        let request = ReviewSubmissionRequest(
+            id: "request-1",
+            workspaceId: staleSubmittedCard.workspaceId,
+            cardId: staleSubmittedCard.cardId,
+            reviewContext: ReviewSubmissionContext(
+                selectedReviewFilter: .allCards,
+                reviewQueryDefinition: .allCards
+            ),
+            reviewSessionSignature: makeReviewSubmissionSessionSignatureForBackgroundTest(
+                selectedReviewFilter: .allCards,
+                reviewQueue: [nextCard]
+            ),
+            cardSnapshot: staleSubmittedCard,
+            rating: .good,
+            reviewedAtClient: "2026-04-18T09:10:00.000Z"
+        )
+
+        store.handleReviewSubmissionFailure(
+            request: request,
+            submissionError: LocalStoreError.validation("Submission failed")
+        )
+
+        XCTAssertEqual(store.presentedReviewCard?.cardId, nextCard.cardId)
+        XCTAssertEqual(store.reviewQueue.map(\.cardId), [nextCard.cardId])
+        XCTAssertEqual(store.effectiveReviewQueue.map(\.cardId), [nextCard.cardId])
+        XCTAssertFalse(store.pendingReviewCardIds.contains(staleSubmittedCard.cardId))
+        XCTAssertTrue(store.reviewSubmissionFailure?.message.contains("Reload failed") == true)
+    }
+
+    @MainActor
+    func testReviewSubmissionFailureClassifiesStaleContextBeforeRefreshingReviewState() throws {
+        let database = try self.makeDatabase()
+        let suiteName = "review-submit-stale-before-refresh-\(UUID().uuidString.lowercased())"
+        let userDefaults = UserDefaults(suiteName: suiteName)!
+        let credentialStore = CloudCredentialStore(service: "tests-\(suiteName)-cloud-auth")
+        let guestCredentialStore = GuestCloudCredentialStore(
+            service: "tests-\(suiteName)-guest-auth",
+            bundle: .main,
+            userDefaults: userDefaults
+        )
+        defer {
+            userDefaults.removePersistentDomain(forName: suiteName)
+            try? credentialStore.clearCredentials()
+            try? guestCredentialStore.clearGuestSession()
+        }
+
+        let submittedCard = makePinnedRefreshCard(
+            cardId: "submitted-card",
+            dueAt: "2026-04-18T09:00:00.000Z",
+            updatedAt: "2026-04-18T09:01:00.000Z"
+        )
+        let currentCard = makePinnedRefreshCard(
+            cardId: "current-card",
+            dueAt: "2026-04-18T09:03:00.000Z",
+            updatedAt: "2026-04-18T09:02:00.000Z"
+        )
+        let otherPendingCard = makePinnedRefreshCard(
+            cardId: "other-pending-card",
+            dueAt: "2026-04-18T09:04:00.000Z",
+            updatedAt: "2026-04-18T09:03:00.000Z"
+        )
+        let store = FlashcardsStore(
+            userDefaults: userDefaults,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder(),
+            database: database,
+            cloudAuthService: CloudAuthService(),
+            credentialStore: credentialStore,
+            guestCloudAuthService: GuestCloudAuthService(),
+            guestCredentialStore: guestCredentialStore,
+            initialGlobalErrorMessage: ""
+        )
+        defer {
+            store.shutdownForTests()
+        }
+        store.reviewRuntime.cancelForAccountDeletion()
+        store.workspace = Workspace(
+            workspaceId: submittedCard.workspaceId,
+            name: "Test workspace",
+            createdAt: "2026-04-18T08:00:00.000Z"
+        )
+        store.cards = [submittedCard, currentCard, otherPendingCard]
+        store.decks = []
+        let existingFailure = ReviewSubmissionFailure(id: "existing-failure", message: "Existing failure")
+        let publishedState = ReviewQueuePublishedState(
+            selectedReviewFilter: .effort(level: .fast),
+            reviewQueue: [currentCard],
+            presentedReviewCard: currentCard,
+            reviewCounts: ReviewCounts(dueCount: 7, totalCount: 9),
+            isReviewHeadLoading: false,
+            isReviewCountsLoading: true,
+            isReviewQueueChunkLoading: true,
+            pendingReviewCardIds: [submittedCard.cardId, otherPendingCard.cardId],
+            reviewSubmissionFailure: existingFailure
+        )
+        store.applyReviewPublishedState(reviewState: publishedState)
+        let request = ReviewSubmissionRequest(
+            id: "request-1",
+            workspaceId: submittedCard.workspaceId,
+            cardId: submittedCard.cardId,
+            reviewContext: ReviewSubmissionContext(
+                selectedReviewFilter: .allCards,
+                reviewQueryDefinition: .allCards
+            ),
+            reviewSessionSignature: makeReviewSubmissionSessionSignatureForBackgroundTest(
+                selectedReviewFilter: .allCards,
+                reviewQueue: [currentCard]
+            ),
+            cardSnapshot: submittedCard,
+            rating: .good,
+            reviewedAtClient: "2026-04-18T09:10:00.000Z"
+        )
+
+        store.handleReviewSubmissionFailure(
+            request: request,
+            submissionError: LocalStoreError.validation("Submission failed")
+        )
+
+        XCTAssertEqual(store.selectedReviewFilter, publishedState.selectedReviewFilter)
+        XCTAssertEqual(store.reviewQueue, publishedState.reviewQueue)
+        XCTAssertEqual(store.presentedReviewCard, publishedState.presentedReviewCard)
+        XCTAssertEqual(store.reviewCounts, publishedState.reviewCounts)
+        XCTAssertEqual(store.isReviewHeadLoading, publishedState.isReviewHeadLoading)
+        XCTAssertEqual(store.isReviewCountsLoading, publishedState.isReviewCountsLoading)
+        XCTAssertEqual(store.isReviewQueueChunkLoading, publishedState.isReviewQueueChunkLoading)
+        XCTAssertEqual(store.pendingReviewCardIds, [otherPendingCard.cardId])
+        XCTAssertEqual(store.reviewSubmissionFailure, existingFailure)
+    }
+
+    @MainActor
+    func testSuccessfulStaleReviewSubmissionClearsPendingWithoutReviewStateMutation() async throws {
+        let suiteName = "review-submit-stale-success-\(UUID().uuidString.lowercased())"
+        let userDefaults = UserDefaults(suiteName: suiteName)!
+        let credentialStore = CloudCredentialStore(service: "tests-\(suiteName)-cloud-auth")
+        let guestCredentialStore = GuestCloudCredentialStore(
+            service: "tests-\(suiteName)-guest-auth",
+            bundle: .main,
+            userDefaults: userDefaults
+        )
+        defer {
+            userDefaults.removePersistentDomain(forName: suiteName)
+            try? credentialStore.clearCredentials()
+            try? guestCredentialStore.clearGuestSession()
+        }
+
+        let staleSubmittedCard = makePinnedRefreshCard(
+            cardId: "submitted-card",
+            dueAt: "2026-04-18T09:00:00.000Z",
+            updatedAt: "2026-04-18T09:01:00.000Z"
+        )
+        let currentCard = makePinnedRefreshCard(
+            cardId: "current-card",
+            dueAt: "2026-04-18T09:03:00.000Z",
+            updatedAt: "2026-04-18T09:02:00.000Z"
+        )
+        let otherPendingCard = makePinnedRefreshCard(
+            cardId: "other-pending-card",
+            dueAt: "2026-04-18T09:04:00.000Z",
+            updatedAt: "2026-04-18T09:03:00.000Z"
+        )
+        let store = FlashcardsStore(
+            userDefaults: userDefaults,
+            encoder: JSONEncoder(),
+            decoder: JSONDecoder(),
+            database: nil,
+            cloudAuthService: CloudAuthService(),
+            cloudSyncService: nil,
+            credentialStore: credentialStore,
+            guestCloudAuthService: GuestCloudAuthService(),
+            guestCredentialStore: guestCredentialStore,
+            reviewSubmissionOutboxMutationGate: ReviewSubmissionOutboxMutationGate(),
+            reviewSubmissionExecutor: SuccessfulReviewSubmissionExecutor(card: staleSubmittedCard),
+            reviewHeadLoader: { _, _, _, _, _, _ in
+                XCTFail("Stale submission success must not start a review head load")
+                return ReviewHeadLoadState(
+                    resolvedReviewFilter: .allCards,
+                    seedReviewQueue: [],
+                    hasMoreCards: false
+                )
+            },
+            reviewCountsLoader: { _, _, _, _ in
+                XCTFail("Stale submission success must not load review counts")
+                return ReviewCounts(dueCount: 0, totalCount: 0)
+            },
+            reviewQueueChunkLoader: { _, _, _, _, _, _ in
+                XCTFail("Stale submission success must not load a review queue chunk")
+                return ReviewQueueChunkLoadState(reviewQueueChunk: [], hasMoreCards: false)
+            },
+            reviewQueueWindowLoader: { _, _, _, _, _ in
+                XCTFail("Stale submission success must not reconcile the review window")
+                return ReviewQueueWindowLoadState(reviewQueue: [], hasMoreCards: false)
+            },
+            reviewTimelinePageLoader: defaultReviewTimelinePageLoader,
+            initialGlobalErrorMessage: ""
+        )
+        defer {
+            store.shutdownForTests()
+        }
+        store.workspace = Workspace(
+            workspaceId: staleSubmittedCard.workspaceId,
+            name: "Test workspace",
+            createdAt: "2026-04-18T08:00:00.000Z"
+        )
+        store.cards = [staleSubmittedCard, currentCard, otherPendingCard]
+        store.decks = []
+        let publishedState = ReviewQueuePublishedState(
+            selectedReviewFilter: .effort(level: .fast),
+            reviewQueue: [currentCard],
+            presentedReviewCard: currentCard,
+            reviewCounts: ReviewCounts(dueCount: 7, totalCount: 9),
+            isReviewHeadLoading: true,
+            isReviewCountsLoading: false,
+            isReviewQueueChunkLoading: true,
+            pendingReviewCardIds: [staleSubmittedCard.cardId, otherPendingCard.cardId],
+            reviewSubmissionFailure: nil
+        )
+        store.applyReviewPublishedState(reviewState: publishedState)
+        let request = ReviewSubmissionRequest(
+            id: "request-1",
+            workspaceId: staleSubmittedCard.workspaceId,
+            cardId: staleSubmittedCard.cardId,
+            reviewContext: ReviewSubmissionContext(
+                selectedReviewFilter: .allCards,
+                reviewQueryDefinition: .allCards
+            ),
+            reviewSessionSignature: makeReviewSubmissionSessionSignatureForBackgroundTest(
+                selectedReviewFilter: .allCards,
+                reviewQueue: [currentCard]
+            ),
+            cardSnapshot: staleSubmittedCard,
+            rating: .good,
+            reviewedAtClient: "2026-04-18T09:10:00.000Z"
+        )
+
+        await store.processReviewSubmissionRequest(request: request)
+
+        XCTAssertEqual(store.selectedReviewFilter, publishedState.selectedReviewFilter)
+        XCTAssertEqual(store.reviewQueue, publishedState.reviewQueue)
+        XCTAssertEqual(store.presentedReviewCard, publishedState.presentedReviewCard)
+        XCTAssertEqual(store.reviewCounts, publishedState.reviewCounts)
+        XCTAssertEqual(store.isReviewHeadLoading, publishedState.isReviewHeadLoading)
+        XCTAssertEqual(store.isReviewCountsLoading, publishedState.isReviewCountsLoading)
+        XCTAssertEqual(store.isReviewQueueChunkLoading, publishedState.isReviewQueueChunkLoading)
+        XCTAssertEqual(store.pendingReviewCardIds, [otherPendingCard.cardId])
+        XCTAssertNil(store.reviewSubmissionFailure)
     }
 
     @MainActor
@@ -347,4 +649,24 @@ private func makePinnedRefreshCard(cardId: String, dueAt: String, updatedAt: Str
         dueAt: dueAt,
         updatedAt: updatedAt
     )
+}
+
+private func makeReviewSubmissionSessionSignatureForBackgroundTest(
+    selectedReviewFilter: ReviewFilter,
+    reviewQueue: [Card]
+) -> ReviewSessionSignature {
+    makeReviewSessionSignature(
+        selectedReviewFilter: selectedReviewFilter,
+        reviewQueue: reviewQueue,
+        schedulerSettings: nil,
+        seedQueueSize: 8
+    )
+}
+
+private struct SuccessfulReviewSubmissionExecutor: ReviewSubmissionExecuting {
+    let card: Card
+
+    func submitReview(workspaceId: String, submission: ReviewSubmission) async throws -> Card {
+        self.card
+    }
 }

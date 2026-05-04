@@ -8,7 +8,9 @@ import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.database.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.CardWithRelations
 import com.flashcardsopensourceapp.data.local.database.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.ReviewEffortCountRow
 import com.flashcardsopensourceapp.data.local.database.ReviewLogEntity
+import com.flashcardsopensourceapp.data.local.database.ReviewTagCountRow
 import com.flashcardsopensourceapp.data.local.database.TagEntity
 import com.flashcardsopensourceapp.data.local.database.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.model.AppMetadataSummary
@@ -22,9 +24,16 @@ import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.DeckSummary
 import com.flashcardsopensourceapp.data.local.model.DeviceDiagnosticsSummary
+import com.flashcardsopensourceapp.data.local.model.EffortLevel
+import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
+import com.flashcardsopensourceapp.data.local.model.ReviewCard
+import com.flashcardsopensourceapp.data.local.model.ReviewCardQueueStatus
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.ReviewDeckFilterOption
+import com.flashcardsopensourceapp.data.local.model.ReviewEffortFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.ReviewTagFilterOption
 import com.flashcardsopensourceapp.data.local.model.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.WorkspaceExportCard
 import com.flashcardsopensourceapp.data.local.model.WorkspaceExportData
@@ -34,6 +43,8 @@ import com.flashcardsopensourceapp.data.local.model.WorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagSummary
 import com.flashcardsopensourceapp.data.local.model.WorkspaceTagsSummary
 import com.flashcardsopensourceapp.data.local.model.buildDeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.buildBoundedReviewSessionSnapshot
+import com.flashcardsopensourceapp.data.local.model.buildReviewDeckFilterOptions
 import com.flashcardsopensourceapp.data.local.model.buildReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.buildReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.computeReviewSchedule
@@ -41,6 +52,7 @@ import com.flashcardsopensourceapp.data.local.model.decodeDeckFilterDefinitionJs
 import com.flashcardsopensourceapp.data.local.model.decodeSchedulerStepListJson
 import com.flashcardsopensourceapp.data.local.model.encodeDeckFilterDefinitionJson
 import com.flashcardsopensourceapp.data.local.model.encodeSchedulerStepListJson
+import com.flashcardsopensourceapp.data.local.model.formatCardEffortLabel
 import com.flashcardsopensourceapp.data.local.model.formatIsoTimestamp
 import com.flashcardsopensourceapp.data.local.model.isCardDue
 import com.flashcardsopensourceapp.data.local.model.isNewCard
@@ -48,10 +60,17 @@ import com.flashcardsopensourceapp.data.local.model.isReviewedCard
 import com.flashcardsopensourceapp.data.local.model.makeDefaultWorkspaceSchedulerSettings
 import com.flashcardsopensourceapp.data.local.model.makeReviewAnswerOptions
 import com.flashcardsopensourceapp.data.local.model.matchesDeckFilterDefinition
+import com.flashcardsopensourceapp.data.local.model.matchesReviewFilter
 import com.flashcardsopensourceapp.data.local.model.normalizeTags
+import com.flashcardsopensourceapp.data.local.model.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.model.queryCards
+import com.flashcardsopensourceapp.data.local.model.resolveReviewFilterFromTagNames
+import com.flashcardsopensourceapp.data.local.model.toReviewCard
 import com.flashcardsopensourceapp.data.local.model.validateWorkspaceSchedulerSettingsInput
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -59,6 +78,55 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import java.util.UUID
+
+private const val reviewSessionCanonicalQueueSize: Int = 8
+private const val reviewSessionQueueLookaheadSize: Int = 1
+
+private sealed interface ReviewTagPredicate {
+    data object None : ReviewTagPredicate
+
+    data object Impossible : ReviewTagPredicate
+
+    data class ExactTagNames(
+        val tagNames: List<String>
+    ) : ReviewTagPredicate {
+        init {
+            require(tagNames.isNotEmpty()) {
+                "Exact review tag predicate must include at least one stored tag name."
+            }
+        }
+    }
+}
+
+private data class ReviewQueuePredicate(
+    val effortLevels: List<EffortLevel>,
+    val tagPredicate: ReviewTagPredicate
+)
+
+private data class ReviewSessionQueryBase(
+    val workspaceId: String,
+    val resolvedFilter: ReviewFilter,
+    val predicate: ReviewQueuePredicate,
+    val deckEntities: List<DeckEntity>,
+    val decksForResolution: List<DeckSummary>,
+    val storedTagNames: List<String>,
+    val settings: WorkspaceSchedulerSettings,
+    val nowMillis: Long
+)
+
+private data class ReviewSessionQueueState(
+    val canonicalCards: List<CardSummary>,
+    val presentedCard: CardSummary?,
+    val dueCount: Int,
+    val remainingCount: Int,
+    val totalCount: Int,
+    val hasMoreCards: Boolean
+)
+
+private data class ReviewFilterOptionsState(
+    val effortFilters: List<ReviewEffortFilterOption>,
+    val tagFilters: List<ReviewTagFilterOption>
+)
 
 class LocalCardsRepository(
     private val database: AppDatabase,
@@ -530,52 +598,173 @@ class LocalReviewRepository(
                 database = database,
                 preferencesStore = preferencesStore
             ),
-            database.deckDao().observeDecks(),
-            database.cardDao().observeCardsWithRelations(),
-            observeCurrentWorkspace(
-                database = database,
-                preferencesStore = preferencesStore
-            ).flatMapLatest { workspace ->
-                if (workspace == null) {
-                    return@flatMapLatest flowOf(null)
-                }
-
-                database.workspaceSchedulerSettingsDao().observeWorkspaceSchedulerSettings(
-                    workspaceId = workspace.workspaceId
+            database.deckDao().observeDecks()
+        ) { workspace, decks ->
+            workspace to decks
+        }.flatMapLatest { (workspace, decks) ->
+            if (workspace == null) {
+                return@flatMapLatest flowOf(
+                    makeEmptyReviewSessionSnapshot(
+                        nowMillis = System.currentTimeMillis()
+                    )
                 )
             }
-        ) { workspace, decks, cards, settingsEntity ->
-            val nowMillis = System.currentTimeMillis()
-            val workspaceId = workspace?.workspaceId
-            val cardSummaries = cards.map(::toCardSummary).filter { card ->
-                card.deletedAtMillis == null && (workspaceId == null || card.workspaceId == workspaceId)
+
+            val workspaceId = workspace.workspaceId
+            val activeDeckEntities = decks.filter { deck ->
+                deck.workspaceId == workspaceId && deck.deletedAtMillis == null
             }
-            val deckSummaries = decks.filter { deck ->
-                deck.deletedAtMillis == null && (workspaceId == null || deck.workspaceId == workspaceId)
-            }.map { deck ->
-                toDeckSummary(
-                    deck = deck,
-                    cards = cardSummaries,
+
+            combine(
+                database.tagDao().observeReviewTagNames(workspaceId = workspaceId),
+                database.workspaceSchedulerSettingsDao().observeWorkspaceSchedulerSettings(
+                    workspaceId = workspaceId
+                ),
+                database.cardDao().observeCardCount()
+            ) { storedTagNames, settingsEntity, _ ->
+                val nowMillis = System.currentTimeMillis()
+                val decksForResolution = activeDeckEntities.map { deck ->
+                    toReviewDeckSummary(
+                        deck = deck,
+                        dueCards = 0
+                    )
+                }
+                val resolvedFilter = resolveReviewFilterFromTagNames(
+                    selectedFilter = selectedFilter,
+                    decks = decksForResolution,
+                    tagNames = storedTagNames
+                )
+                val settings = settingsEntity?.let(::toWorkspaceSchedulerSettings)
+                    ?: makeDefaultWorkspaceSchedulerSettings(
+                        workspaceId = workspaceId,
+                        updatedAtMillis = nowMillis
+                    )
+
+                ReviewSessionQueryBase(
+                    workspaceId = workspaceId,
+                    resolvedFilter = resolvedFilter,
+                    predicate = makeReviewQueuePredicate(
+                        selectedFilter = resolvedFilter,
+                        decks = decksForResolution,
+                        storedTagNames = storedTagNames
+                    ),
+                    deckEntities = activeDeckEntities,
+                    decksForResolution = decksForResolution,
+                    storedTagNames = storedTagNames,
+                    settings = settings,
                     nowMillis = nowMillis
                 )
-            }
-            val schedulerWorkspaceId = workspaceId ?: cardSummaries.firstOrNull()?.workspaceId.orEmpty()
-            val settings = settingsEntity?.let(::toWorkspaceSchedulerSettings)
-                ?: makeDefaultWorkspaceSchedulerSettings(
-                    workspaceId = schedulerWorkspaceId,
-                    updatedAtMillis = nowMillis
-                )
+            }.flatMapLatest { queryBase ->
+                val queueLoadLimit = reviewSessionCanonicalQueueSize +
+                    pendingReviewedCards.size +
+                    reviewSessionQueueLookaheadSize
+                val queueStateFlow = combine(
+                    observeActiveReviewQueue(
+                        database = database,
+                        workspaceId = queryBase.workspaceId,
+                        nowMillis = queryBase.nowMillis,
+                        predicate = queryBase.predicate,
+                        limit = queueLoadLimit
+                    ),
+                    observeReviewDueCount(
+                        database = database,
+                        workspaceId = queryBase.workspaceId,
+                        nowMillis = queryBase.nowMillis,
+                        predicate = queryBase.predicate
+                    ),
+                    observeReviewTotalCount(
+                        database = database,
+                        workspaceId = queryBase.workspaceId,
+                        predicate = queryBase.predicate
+                    ),
+                    observePresentedCard(
+                        database = database,
+                        workspaceId = queryBase.workspaceId,
+                        presentedCardId = presentedCardId
+                    ),
+                    observePendingReviewedCards(
+                        database = database,
+                        workspaceId = queryBase.workspaceId,
+                        pendingReviewedCards = pendingReviewedCards
+                    )
+                ) { queueCards, dueCount, totalCount, presentedCard, pendingCards ->
+                    val canonicalCandidates = queueCards.map(::toCardSummary).filter { card ->
+                        matchesPendingReviewedCard(
+                            pendingReviewedCards = pendingReviewedCards,
+                            card = card
+                        ).not()
+                    }
+                    val canonicalCards = canonicalCandidates.take(reviewSessionCanonicalQueueSize)
+                    val pendingMatchingCount = pendingCards.map(::toCardSummary).count { card ->
+                        isPendingReviewCardCounted(
+                            card = card,
+                            pendingReviewedCards = pendingReviewedCards,
+                            selectedFilter = queryBase.resolvedFilter,
+                            decks = queryBase.decksForResolution,
+                            nowMillis = queryBase.nowMillis
+                        )
+                    }
 
-            buildReviewSessionSnapshot(
-                selectedFilter = selectedFilter,
-                pendingReviewedCards = pendingReviewedCards,
-                presentedCardId = presentedCardId,
-                decks = deckSummaries,
-                cards = cardSummaries,
-                tagsSummary = makeWorkspaceTagsSummary(cards = cardSummaries),
-                settings = settings,
-                reviewedAtMillis = nowMillis
-            )
+                    ReviewSessionQueueState(
+                        canonicalCards = canonicalCards,
+                        presentedCard = resolvePresentedCardSummary(
+                            canonicalCards = canonicalCards,
+                            loadedPresentedCard = presentedCard?.let(::toCardSummary),
+                            presentedCardId = presentedCardId,
+                            pendingReviewedCards = pendingReviewedCards,
+                            selectedFilter = queryBase.resolvedFilter,
+                            decks = queryBase.decksForResolution,
+                            nowMillis = queryBase.nowMillis
+                        ),
+                        dueCount = dueCount,
+                        remainingCount = maxOf(0, dueCount - pendingMatchingCount),
+                        totalCount = totalCount,
+                        hasMoreCards = canonicalCandidates.size > reviewSessionCanonicalQueueSize ||
+                            queueCards.size == queueLoadLimit
+                    )
+                }
+                val filterOptionsFlow = combine(
+                    database.cardDao().observeReviewEffortDueCounts(
+                        workspaceId = queryBase.workspaceId,
+                        nowMillis = queryBase.nowMillis
+                    ),
+                    database.cardDao().observeReviewTagDueCounts(
+                        workspaceId = queryBase.workspaceId,
+                        nowMillis = queryBase.nowMillis
+                    )
+                ) { effortCountRows, tagCountRows ->
+                    ReviewFilterOptionsState(
+                        effortFilters = buildReviewEffortFilterOptionsFromRows(rows = effortCountRows),
+                        tagFilters = buildReviewTagFilterOptionsFromRows(rows = tagCountRows)
+                    )
+                }
+
+                combine(queueStateFlow, filterOptionsFlow) { queueState, filterOptions ->
+                    val deckSummaries = loadReviewDeckSummaries(
+                        database = database,
+                        workspaceId = queryBase.workspaceId,
+                        deckEntities = queryBase.deckEntities,
+                        storedTagNames = queryBase.storedTagNames,
+                        nowMillis = queryBase.nowMillis
+                    )
+
+                    buildBoundedReviewSessionSnapshot(
+                        selectedFilter = queryBase.resolvedFilter,
+                        decks = deckSummaries,
+                        canonicalCards = queueState.canonicalCards,
+                        presentedCard = queueState.presentedCard,
+                        dueCount = queueState.dueCount,
+                        remainingCount = queueState.remainingCount,
+                        totalCount = queueState.totalCount,
+                        hasMoreCards = queueState.hasMoreCards,
+                        availableDeckFilters = buildReviewDeckFilterOptions(decks = deckSummaries),
+                        availableEffortFilters = filterOptions.effortFilters,
+                        availableTagFilters = filterOptions.tagFilters,
+                        settings = queryBase.settings,
+                        reviewedAtMillis = queryBase.nowMillis
+                    )
+                }
+            }
         }
     }
 
@@ -585,10 +774,11 @@ class LocalReviewRepository(
         offset: Int,
         limit: Int
     ): ReviewTimelinePage {
-        val currentWorkspaceId = loadCurrentWorkspaceOrNull(
+        val currentWorkspaceId: String? = loadCurrentWorkspaceOrNull(
             database = database,
             preferencesStore = preferencesStore
         )?.workspaceId
+        val nowMillis: Long = System.currentTimeMillis()
         val cards = database.cardDao().observeCardsWithRelations().first()
         val decks = database.deckDao().observeDecks().first()
         val cardSummaries = cards.map(::toCardSummary).filter { card ->
@@ -600,7 +790,15 @@ class LocalReviewRepository(
             toDeckSummary(
                 deck = deck,
                 cards = cardSummaries,
-                nowMillis = System.currentTimeMillis()
+                nowMillis = nowMillis
+            )
+        }
+        val tagsSummary: WorkspaceTagsSummary = if (currentWorkspaceId == null) {
+            makeWorkspaceTagsSummary(cards = cardSummaries)
+        } else {
+            makeWorkspaceTagsSummaryFromStoredTagNames(
+                tagNames = database.tagDao().loadReviewTagNames(workspaceId = currentWorkspaceId),
+                totalCards = cardSummaries.size
             )
         }
 
@@ -609,8 +807,8 @@ class LocalReviewRepository(
             pendingReviewedCards = pendingReviewedCards,
             decks = deckSummaries,
             cards = cardSummaries,
-            tagsSummary = makeWorkspaceTagsSummary(cards = cardSummaries),
-            reviewedAtMillis = System.currentTimeMillis(),
+            tagsSummary = tagsSummary,
+            reviewedAtMillis = nowMillis,
             offset = offset,
             limit = limit
         )
@@ -618,6 +816,57 @@ class LocalReviewRepository(
 
     override suspend fun countRecordedReviews(): Int {
         return database.reviewLogDao().countReviewLogs()
+    }
+
+    override suspend fun loadReviewCardForRollback(selectedFilter: ReviewFilter, cardId: String): ReviewCard? {
+        val workspace = loadCurrentWorkspaceOrNull(
+            database = database,
+            preferencesStore = preferencesStore
+        ) ?: return null
+        val nowMillis = System.currentTimeMillis()
+        val card = database.cardDao().observeCardWithRelationsByWorkspace(
+            cardId = cardId,
+            workspaceId = workspace.workspaceId
+        ).first() ?: return null
+        val cardSummary = toCardSummary(card = card)
+        if (cardSummary.deletedAtMillis != null) {
+            return null
+        }
+        if (isCardDue(card = cardSummary, nowMillis = nowMillis).not()) {
+            return null
+        }
+
+        val activeDeckEntities = database.deckDao().observeDecks().first().filter { deck ->
+            deck.workspaceId == workspace.workspaceId && deck.deletedAtMillis == null
+        }
+        val storedTagNames = database.tagDao().loadReviewTagNames(workspaceId = workspace.workspaceId)
+        val decksForResolution = activeDeckEntities.map { deck ->
+            toReviewDeckSummary(
+                deck = deck,
+                dueCards = 0
+            )
+        }
+        val resolvedFilter = resolveReviewFilterFromTagNames(
+            selectedFilter = selectedFilter,
+            decks = decksForResolution,
+            tagNames = storedTagNames
+        )
+        if (resolvedFilter != selectedFilter) {
+            return null
+        }
+        if (matchesReviewFilter(
+                filter = resolvedFilter,
+                decks = decksForResolution,
+                card = cardSummary
+            ).not()
+        ) {
+            return null
+        }
+
+        return toReviewCard(
+            card = cardSummary,
+            queueStatus = ReviewCardQueueStatus.ACTIVE
+        )
     }
 
     override suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long) {
@@ -695,6 +944,480 @@ class LocalReviewRepository(
             )
         }
     }
+}
+
+private fun makeEmptyReviewSessionSnapshot(nowMillis: Long): ReviewSessionSnapshot {
+    return buildBoundedReviewSessionSnapshot(
+        selectedFilter = ReviewFilter.AllCards,
+        decks = emptyList(),
+        canonicalCards = emptyList(),
+        presentedCard = null,
+        dueCount = 0,
+        remainingCount = 0,
+        totalCount = 0,
+        hasMoreCards = false,
+        availableDeckFilters = emptyList(),
+        availableEffortFilters = emptyList(),
+        availableTagFilters = emptyList(),
+        settings = makeDefaultWorkspaceSchedulerSettings(
+            workspaceId = "",
+            updatedAtMillis = nowMillis
+        ),
+        reviewedAtMillis = nowMillis
+    )
+}
+
+private fun makeReviewQueuePredicate(
+    selectedFilter: ReviewFilter,
+    decks: List<DeckSummary>,
+    storedTagNames: List<String>
+): ReviewQueuePredicate {
+    return when (selectedFilter) {
+        ReviewFilter.AllCards -> ReviewQueuePredicate(
+            effortLevels = emptyList(),
+            tagPredicate = ReviewTagPredicate.None
+        )
+
+        is ReviewFilter.Deck -> {
+            val deck = requireNotNull(decks.firstOrNull { deck ->
+                deck.deckId == selectedFilter.deckId
+            }) {
+                "Cannot build review queue predicate for missing deck: ${selectedFilter.deckId}"
+            }
+            makeReviewQueuePredicate(
+                filterDefinition = deck.filterDefinition,
+                storedTagNames = storedTagNames
+            )
+        }
+
+        is ReviewFilter.Effort -> ReviewQueuePredicate(
+            effortLevels = listOf(selectedFilter.effortLevel),
+            tagPredicate = ReviewTagPredicate.None
+        )
+
+        is ReviewFilter.Tag -> ReviewQueuePredicate(
+            effortLevels = emptyList(),
+            tagPredicate = makeReviewTagPredicate(
+                requestedTagNames = listOf(selectedFilter.tag),
+                storedTagNames = storedTagNames
+            )
+        )
+    }
+}
+
+private fun makeReviewQueuePredicate(
+    filterDefinition: DeckFilterDefinition,
+    storedTagNames: List<String>
+): ReviewQueuePredicate {
+    return ReviewQueuePredicate(
+        effortLevels = filterDefinition.effortLevels.distinct(),
+        tagPredicate = makeReviewTagPredicate(
+            requestedTagNames = filterDefinition.tags,
+            storedTagNames = storedTagNames
+        )
+    )
+}
+
+private fun makeReviewTagPredicate(
+    requestedTagNames: List<String>,
+    storedTagNames: List<String>
+): ReviewTagPredicate {
+    val requestedTagKeys: List<String> = requestedTagNames.map { tagName ->
+        normalizeTagKey(tag = tagName)
+    }.filter { tagKey ->
+        tagKey.isNotEmpty()
+    }.distinct()
+    if (requestedTagKeys.isEmpty()) {
+        return ReviewTagPredicate.None
+    }
+
+    val requestedTagKeySet: Set<String> = requestedTagKeys.toSet()
+    val exactTagNames: List<String> = storedTagNames.filter { storedTagName ->
+        requestedTagKeySet.contains(normalizeTagKey(tag = storedTagName))
+    }.distinct()
+
+    return if (exactTagNames.isEmpty()) {
+        ReviewTagPredicate.Impossible
+    } else {
+        ReviewTagPredicate.ExactTagNames(tagNames = exactTagNames)
+    }
+}
+
+private fun observeActiveReviewQueue(
+    database: AppDatabase,
+    workspaceId: String,
+    nowMillis: Long,
+    predicate: ReviewQueuePredicate,
+    limit: Int
+): Flow<List<CardWithRelations>> {
+    require(limit > 0) {
+        "Review queue load limit must be positive."
+    }
+
+    return when (val tagPredicate = predicate.tagPredicate) {
+        ReviewTagPredicate.Impossible -> flowOf(emptyList<CardWithRelations>())
+        ReviewTagPredicate.None -> {
+            if (predicate.effortLevels.isEmpty()) {
+                database.cardDao().observeActiveReviewQueue(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    limit = limit
+                )
+            } else {
+                database.cardDao().observeActiveReviewQueueByEffortLevels(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    effortLevels = predicate.effortLevels,
+                    limit = limit
+                )
+            }
+        }
+
+        is ReviewTagPredicate.ExactTagNames -> {
+            if (predicate.effortLevels.isEmpty()) {
+                database.cardDao().observeActiveReviewQueueByAnyTags(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    tagNames = tagPredicate.tagNames,
+                    limit = limit
+                )
+            } else {
+                database.cardDao().observeActiveReviewQueueByEffortLevelsAndAnyTags(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    effortLevels = predicate.effortLevels,
+                    tagNames = tagPredicate.tagNames,
+                    limit = limit
+                )
+            }
+        }
+    }
+}
+
+private fun observeReviewDueCount(
+    database: AppDatabase,
+    workspaceId: String,
+    nowMillis: Long,
+    predicate: ReviewQueuePredicate
+): Flow<Int> {
+    return when (val tagPredicate = predicate.tagPredicate) {
+        ReviewTagPredicate.Impossible -> flowOf(0)
+        ReviewTagPredicate.None -> {
+            if (predicate.effortLevels.isEmpty()) {
+                database.cardDao().observeReviewDueCount(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis
+                )
+            } else {
+                database.cardDao().observeReviewDueCountByEffortLevels(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    effortLevels = predicate.effortLevels
+                )
+            }
+        }
+
+        is ReviewTagPredicate.ExactTagNames -> {
+            if (predicate.effortLevels.isEmpty()) {
+                database.cardDao().observeReviewDueCountByAnyTags(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    tagNames = tagPredicate.tagNames
+                )
+            } else {
+                database.cardDao().observeReviewDueCountByEffortLevelsAndAnyTags(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    effortLevels = predicate.effortLevels,
+                    tagNames = tagPredicate.tagNames
+                )
+            }
+        }
+    }
+}
+
+private fun observeReviewTotalCount(
+    database: AppDatabase,
+    workspaceId: String,
+    predicate: ReviewQueuePredicate
+): Flow<Int> {
+    return when (val tagPredicate = predicate.tagPredicate) {
+        ReviewTagPredicate.Impossible -> flowOf(0)
+        ReviewTagPredicate.None -> {
+            if (predicate.effortLevels.isEmpty()) {
+                database.cardDao().observeReviewTotalCount(workspaceId = workspaceId)
+            } else {
+                database.cardDao().observeReviewTotalCountByEffortLevels(
+                    workspaceId = workspaceId,
+                    effortLevels = predicate.effortLevels
+                )
+            }
+        }
+
+        is ReviewTagPredicate.ExactTagNames -> {
+            if (predicate.effortLevels.isEmpty()) {
+                database.cardDao().observeReviewTotalCountByAnyTags(
+                    workspaceId = workspaceId,
+                    tagNames = tagPredicate.tagNames
+                )
+            } else {
+                database.cardDao().observeReviewTotalCountByEffortLevelsAndAnyTags(
+                    workspaceId = workspaceId,
+                    effortLevels = predicate.effortLevels,
+                    tagNames = tagPredicate.tagNames
+                )
+            }
+        }
+    }
+}
+
+private fun observePresentedCard(
+    database: AppDatabase,
+    workspaceId: String,
+    presentedCardId: String?
+): Flow<CardWithRelations?> {
+    return if (presentedCardId == null) {
+        flowOf(null)
+    } else {
+        database.cardDao().observeCardWithRelationsByWorkspace(
+            cardId = presentedCardId,
+            workspaceId = workspaceId
+        )
+    }
+}
+
+private fun observePendingReviewedCards(
+    database: AppDatabase,
+    workspaceId: String,
+    pendingReviewedCards: Set<PendingReviewedCard>
+): Flow<List<CardWithRelations>> {
+    val cardIds = pendingReviewedCards.map { pendingReviewedCard ->
+        pendingReviewedCard.cardId
+    }.distinct()
+
+    return if (cardIds.isEmpty()) {
+        flowOf(emptyList())
+    } else {
+        database.cardDao().observeCardsWithRelationsByWorkspaceAndIds(
+            workspaceId = workspaceId,
+            cardIds = cardIds
+        )
+    }
+}
+
+private fun isPendingReviewCardCounted(
+    card: CardSummary,
+    pendingReviewedCards: Set<PendingReviewedCard>,
+    selectedFilter: ReviewFilter,
+    decks: List<DeckSummary>,
+    nowMillis: Long
+): Boolean {
+    if (matchesPendingReviewedCard(pendingReviewedCards = pendingReviewedCards, card = card).not()) {
+        return false
+    }
+    if (card.deletedAtMillis != null) {
+        return false
+    }
+    if (isCardDue(card = card, nowMillis = nowMillis).not()) {
+        return false
+    }
+
+    return matchesReviewFilter(
+        filter = selectedFilter,
+        decks = decks,
+        card = card
+    )
+}
+
+private fun resolvePresentedCardSummary(
+    canonicalCards: List<CardSummary>,
+    loadedPresentedCard: CardSummary?,
+    presentedCardId: String?,
+    pendingReviewedCards: Set<PendingReviewedCard>,
+    selectedFilter: ReviewFilter,
+    decks: List<DeckSummary>,
+    nowMillis: Long
+): CardSummary? {
+    if (presentedCardId == null) {
+        return canonicalCards.firstOrNull()
+    }
+
+    val canonicalPresentedCard = canonicalCards.firstOrNull { card ->
+        card.cardId == presentedCardId
+    }
+    if (canonicalPresentedCard != null) {
+        return canonicalPresentedCard
+    }
+
+    val candidate = loadedPresentedCard ?: return canonicalCards.firstOrNull()
+    if (isPreservablePresentedCard(
+            card = candidate,
+            pendingReviewedCards = pendingReviewedCards,
+            selectedFilter = selectedFilter,
+            decks = decks,
+            nowMillis = nowMillis
+        )
+    ) {
+        return candidate
+    }
+
+    return canonicalCards.firstOrNull()
+}
+
+private fun isPreservablePresentedCard(
+    card: CardSummary,
+    pendingReviewedCards: Set<PendingReviewedCard>,
+    selectedFilter: ReviewFilter,
+    decks: List<DeckSummary>,
+    nowMillis: Long
+): Boolean {
+    if (matchesPendingReviewedCard(pendingReviewedCards = pendingReviewedCards, card = card)) {
+        return false
+    }
+    if (card.deletedAtMillis != null) {
+        return false
+    }
+    if (isCardDue(card = card, nowMillis = nowMillis).not()) {
+        return false
+    }
+
+    return matchesReviewFilter(
+        filter = selectedFilter,
+        decks = decks,
+        card = card
+    )
+}
+
+private fun buildReviewEffortFilterOptionsFromRows(
+    rows: List<ReviewEffortCountRow>
+): List<ReviewEffortFilterOption> {
+    val countsByEffort = rows.associate { row ->
+        row.effortLevel to row.totalCount
+    }
+
+    return EffortLevel.entries.map { effortLevel ->
+        ReviewEffortFilterOption(
+            effortLevel = effortLevel,
+            title = formatCardEffortLabel(effortLevel = effortLevel),
+            totalCount = countsByEffort[effortLevel] ?: 0
+        )
+    }
+}
+
+private fun buildReviewTagFilterOptionsFromRows(rows: List<ReviewTagCountRow>): List<ReviewTagFilterOption> {
+    return rows.map { row ->
+        ReviewTagFilterOption(
+            tag = row.tag,
+            totalCount = row.totalCount
+        )
+    }.sortedWith(
+        compareBy<ReviewTagFilterOption> { option ->
+            option.tag.lowercase()
+        }.thenBy { option ->
+            option.tag
+        }
+    )
+}
+
+private suspend fun loadReviewDeckSummaries(
+    database: AppDatabase,
+    workspaceId: String,
+    deckEntities: List<DeckEntity>,
+    storedTagNames: List<String>,
+    nowMillis: Long
+): List<DeckSummary> {
+    // Run per-deck due-count queries in parallel to avoid N+1 sequential
+    // round-trips when many decks are present.
+    return coroutineScope {
+        deckEntities.map { deck ->
+            async {
+                val filterDefinition = decodeDeckFilterDefinition(filterDefinitionJson = deck.filterDefinitionJson)
+                val dueCards = countReviewDueCards(
+                    database = database,
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    predicate = makeReviewQueuePredicate(
+                        filterDefinition = filterDefinition,
+                        storedTagNames = storedTagNames
+                    )
+                )
+
+                toReviewDeckSummary(
+                    deck = deck,
+                    dueCards = dueCards
+                )
+            }
+        }.awaitAll()
+    }
+}
+
+private suspend fun countReviewDueCards(
+    database: AppDatabase,
+    workspaceId: String,
+    nowMillis: Long,
+    predicate: ReviewQueuePredicate
+): Int {
+    return when (val tagPredicate = predicate.tagPredicate) {
+        ReviewTagPredicate.Impossible -> 0
+        ReviewTagPredicate.None -> {
+            if (predicate.effortLevels.isEmpty()) {
+                database.cardDao().countReviewDueCards(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis
+                )
+            } else {
+                database.cardDao().countReviewDueCardsByEffortLevels(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    effortLevels = predicate.effortLevels
+                )
+            }
+        }
+
+        is ReviewTagPredicate.ExactTagNames -> {
+            if (predicate.effortLevels.isEmpty()) {
+                database.cardDao().countReviewDueCardsByAnyTags(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    tagNames = tagPredicate.tagNames
+                )
+            } else {
+                database.cardDao().countReviewDueCardsByEffortLevelsAndAnyTags(
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    effortLevels = predicate.effortLevels,
+                    tagNames = tagPredicate.tagNames
+                )
+            }
+        }
+    }
+}
+
+private fun toReviewDeckSummary(deck: DeckEntity, dueCards: Int): DeckSummary {
+    return DeckSummary(
+        deckId = deck.deckId,
+        workspaceId = deck.workspaceId,
+        name = deck.name,
+        filterDefinition = decodeDeckFilterDefinition(filterDefinitionJson = deck.filterDefinitionJson),
+        totalCards = dueCards,
+        dueCards = dueCards,
+        newCards = 0,
+        reviewedCards = 0,
+        createdAtMillis = deck.createdAtMillis,
+        updatedAtMillis = deck.updatedAtMillis
+    )
+}
+
+private fun matchesPendingReviewedCard(
+    pendingReviewedCards: Set<PendingReviewedCard>,
+    card: CardSummary
+): Boolean {
+    return pendingReviewedCards.contains(
+        PendingReviewedCard(
+            cardId = card.cardId,
+            updatedAtMillis = card.updatedAtMillis
+        )
+    )
 }
 
 private fun toCardSummary(card: CardWithRelations): CardSummary {
@@ -879,6 +1602,23 @@ private fun makeWorkspaceTagsSummary(cards: List<CardSummary>): WorkspaceTagsSum
     return WorkspaceTagsSummary(
         tags = tags,
         totalCards = cards.size
+    )
+}
+
+private fun makeWorkspaceTagsSummaryFromStoredTagNames(
+    tagNames: List<String>,
+    totalCards: Int
+): WorkspaceTagsSummary {
+    val tags = tagNames.map { tagName ->
+        WorkspaceTagSummary(
+            tag = tagName,
+            cardsCount = 0
+        )
+    }
+
+    return WorkspaceTagsSummary(
+        tags = tags,
+        totalCards = totalCards
     )
 }
 

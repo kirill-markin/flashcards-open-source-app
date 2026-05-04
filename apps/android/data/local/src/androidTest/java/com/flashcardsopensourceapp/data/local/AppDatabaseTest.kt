@@ -12,12 +12,14 @@ import com.flashcardsopensourceapp.data.local.database.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.CardEntity
 import com.flashcardsopensourceapp.data.local.database.CardTagEntity
 import com.flashcardsopensourceapp.data.local.database.TagEntity
+import com.flashcardsopensourceapp.data.local.database.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.CardDraft
 import com.flashcardsopensourceapp.data.local.model.CardFilter
 import com.flashcardsopensourceapp.data.local.model.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.EffortLevel
 import com.flashcardsopensourceapp.data.local.model.FsrsCardState
 import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
+import com.flashcardsopensourceapp.data.local.model.ReviewCardQueueStatus
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewIntervalDescription
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
@@ -275,11 +277,15 @@ class AppDatabaseTest {
         ).first()
 
         assertEquals(ReviewFilter.AllCards, allCardsSnapshot.selectedFilter)
+        assertEquals(3, allCardsSnapshot.dueCount)
         assertEquals(3, allCardsSnapshot.totalCount)
         assertEquals(2, pendingSnapshot.remainingCount)
+        assertEquals(3, pendingSnapshot.dueCount)
         assertEquals(3, pendingSnapshot.totalCount)
+        assertEquals(2, tagSnapshot.dueCount)
         assertEquals(2, tagSnapshot.totalCount)
         assertEquals(ReviewFilter.Effort(effortLevel = EffortLevel.FAST), effortSnapshot.selectedFilter)
+        assertEquals(2, effortSnapshot.dueCount)
         assertEquals(2, effortSnapshot.totalCount)
         assertEquals(
             ReviewIntervalDescription.Minutes(count = 10),
@@ -416,11 +422,655 @@ class AppDatabaseTest {
             listOf("recent-due-1115-card", "recent-due-1155-card", "old-due-card", "new-card"),
             sessionSnapshot.cards.map { card -> card.cardId }
         )
+        assertEquals(4, sessionSnapshot.dueCount)
+        assertEquals(5, sessionSnapshot.totalCount)
         assertEquals(
             listOf("recent-due-1115-card", "recent-due-1155-card", "old-due-card", "new-card", "future-card"),
             timelinePage.cards.map { card -> card.cardId }
         )
         assertEquals("recent-due-1115-card", topReviewCard?.cardId)
+    }
+
+    @Test
+    fun reviewRepositoryLoadsBoundedReviewQueueWindowAndSqlCounts(): Unit = runBlocking {
+        val nowMillis = 12 * 60 * 60 * 1_000L
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = nowMillis)
+        val reviewRepository = makeReviewRepository()
+
+        database.cardDao().insertCards(
+            (0 until 10).map { index ->
+                makeNewReviewOrderingCardEntity(
+                    cardId = "new-card-${index.toString().padStart(length = 2, padChar = '0')}",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    createdAtMillis = 1_000L + index,
+                    updatedAtMillis = 1_000L + index
+                )
+            }
+        )
+
+        val sessionSnapshot = reviewRepository.observeReviewSession(
+            selectedFilter = ReviewFilter.AllCards,
+            pendingReviewedCards = emptySet(),
+            presentedCardId = null
+        ).first()
+
+        assertEquals(8, sessionSnapshot.cards.size)
+        assertEquals("new-card-09", sessionSnapshot.presentedCard?.cardId)
+        assertEquals(
+            listOf(
+                "new-card-09",
+                "new-card-08",
+                "new-card-07",
+                "new-card-06",
+                "new-card-05",
+                "new-card-04",
+                "new-card-03",
+                "new-card-02"
+            ),
+            sessionSnapshot.cards.map { card -> card.cardId }
+        )
+        assertEquals(10, sessionSnapshot.dueCount)
+        assertEquals(10, sessionSnapshot.remainingCount)
+        assertEquals(10, sessionSnapshot.totalCount)
+        assertTrue(sessionSnapshot.hasMoreCards)
+    }
+
+    @Test
+    fun reviewRepositoryPreservesPresentedCardOutsideBoundedWindowOnlyWhenActive(): Unit = runBlocking {
+        val nowMillis = System.currentTimeMillis()
+        val fiveMinutesMillis = 5 * 60 * 1_000L
+        val oneDayMillis = 86_400_000L
+        val oldDueAtMillis = nowMillis - oneDayMillis
+        val recentDueAtMillis = nowMillis - fiveMinutesMillis
+        val futureDueAtMillis = nowMillis + oneDayMillis
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = nowMillis)
+        val reviewRepository = makeReviewRepository()
+
+        database.cardDao().insertCards(
+            listOf(
+                makeDueReviewOrderingCardEntity(
+                    cardId = "old-presented-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    dueAtMillis = oldDueAtMillis,
+                    createdAtMillis = nowMillis - (2 * oneDayMillis),
+                    updatedAtMillis = nowMillis - (2 * oneDayMillis)
+                ),
+                makeDueReviewOrderingCardEntity(
+                    cardId = "future-presented-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    dueAtMillis = futureDueAtMillis,
+                    createdAtMillis = nowMillis - oneDayMillis,
+                    updatedAtMillis = nowMillis - oneDayMillis
+                )
+            ) + (0 until 8).map { index ->
+                makeDueReviewOrderingCardEntity(
+                    cardId = "recent-card-${index.toString().padStart(length = 2, padChar = '0')}",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    dueAtMillis = recentDueAtMillis,
+                    createdAtMillis = nowMillis - 1_000L + index,
+                    updatedAtMillis = nowMillis - 1_000L + index
+                )
+            }
+        )
+
+        val preservedSnapshot = reviewRepository.observeReviewSession(
+            selectedFilter = ReviewFilter.AllCards,
+            pendingReviewedCards = emptySet(),
+            presentedCardId = "old-presented-card"
+        ).first()
+        val futurePresentedSnapshot = reviewRepository.observeReviewSession(
+            selectedFilter = ReviewFilter.AllCards,
+            pendingReviewedCards = emptySet(),
+            presentedCardId = "future-presented-card"
+        ).first()
+
+        assertEquals(
+            listOf(
+                "recent-card-07",
+                "recent-card-06",
+                "recent-card-05",
+                "recent-card-04",
+                "recent-card-03",
+                "recent-card-02",
+                "recent-card-01",
+                "recent-card-00"
+            ),
+            preservedSnapshot.cards.map { card -> card.cardId }
+        )
+        assertEquals("old-presented-card", preservedSnapshot.presentedCard?.cardId)
+        assertTrue(preservedSnapshot.answerOptionsByCardId.containsKey("old-presented-card"))
+        assertEquals(9, preservedSnapshot.dueCount)
+        assertEquals(10, preservedSnapshot.totalCount)
+        assertEquals("recent-card-07", futurePresentedSnapshot.presentedCard?.cardId)
+        assertFalse(futurePresentedSnapshot.answerOptionsByCardId.containsKey("future-presented-card"))
+    }
+
+    @Test
+    fun reviewRepositoryLoadsCurrentDueCardForRollback(): Unit = runBlocking {
+        val nowMillis = System.currentTimeMillis()
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = nowMillis)
+        val reviewRepository = makeReviewRepository()
+        val currentCard = makeNewReviewOrderingCardEntity(
+            cardId = "rollback-current-card",
+            workspaceId = workspaceId,
+            effortLevel = EffortLevel.FAST,
+            createdAtMillis = nowMillis,
+            updatedAtMillis = nowMillis
+        )
+
+        database.cardDao().insertCard(card = currentCard)
+
+        val rollbackCard = requireNotNull(
+            reviewRepository.loadReviewCardForRollback(
+                selectedFilter = ReviewFilter.AllCards,
+                cardId = currentCard.cardId
+            )
+        ) {
+            "Expected current due card to load for rollback."
+        }
+
+        assertEquals(currentCard.cardId, rollbackCard.cardId)
+        assertEquals(currentCard.updatedAtMillis, rollbackCard.updatedAtMillis)
+        assertEquals(ReviewCardQueueStatus.ACTIVE, rollbackCard.queueStatus)
+    }
+
+    @Test
+    fun reviewRepositoryRejectsRollbackForNonCurrentOrInactiveCards(): Unit = runBlocking {
+        val nowMillis = System.currentTimeMillis()
+        val oneDayMillis = 86_400_000L
+        val activeWorkspaceId = bootstrapLocalWorkspace(currentTimeMillis = nowMillis)
+        val otherWorkspaceId = "rollback-other-workspace"
+        val reviewRepository = makeReviewRepository()
+        val otherWorkspaceCard = makeNewReviewOrderingCardEntity(
+            cardId = "rollback-other-workspace-card",
+            workspaceId = otherWorkspaceId,
+            effortLevel = EffortLevel.FAST,
+            createdAtMillis = nowMillis,
+            updatedAtMillis = nowMillis
+        )
+        val futureCard = makeDueReviewOrderingCardEntity(
+            cardId = "rollback-future-card",
+            workspaceId = activeWorkspaceId,
+            effortLevel = EffortLevel.FAST,
+            dueAtMillis = nowMillis + oneDayMillis,
+            createdAtMillis = nowMillis,
+            updatedAtMillis = nowMillis
+        )
+        val deletedCard = makeNewReviewOrderingCardEntity(
+            cardId = "rollback-deleted-card",
+            workspaceId = activeWorkspaceId,
+            effortLevel = EffortLevel.FAST,
+            createdAtMillis = nowMillis,
+            updatedAtMillis = nowMillis
+        ).copy(
+            deletedAtMillis = nowMillis
+        )
+
+        database.workspaceDao().insertWorkspace(
+            workspace = WorkspaceEntity(
+                workspaceId = otherWorkspaceId,
+                name = "Rollback other workspace",
+                createdAtMillis = nowMillis + 1L
+            )
+        )
+        database.cardDao().insertCards(
+            cards = listOf(
+                otherWorkspaceCard,
+                futureCard,
+                deletedCard
+            )
+        )
+
+        assertNull(
+            reviewRepository.loadReviewCardForRollback(
+                selectedFilter = ReviewFilter.AllCards,
+                cardId = otherWorkspaceCard.cardId
+            )
+        )
+        assertNull(
+            reviewRepository.loadReviewCardForRollback(
+                selectedFilter = ReviewFilter.AllCards,
+                cardId = futureCard.cardId
+            )
+        )
+        assertNull(
+            reviewRepository.loadReviewCardForRollback(
+                selectedFilter = ReviewFilter.AllCards,
+                cardId = deletedCard.cardId
+            )
+        )
+    }
+
+    @Test
+    fun reviewRepositoryRejectsRollbackWhenFilterResolvesAwayOrDeckPredicateFails(): Unit = runBlocking {
+        val nowMillis = System.currentTimeMillis()
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = nowMillis)
+        val decksRepository = makeDecksRepository()
+        val reviewRepository = makeReviewRepository()
+        val visibleTag = TagEntity(
+            tagId = "rollback-tag-visible",
+            workspaceId = workspaceId,
+            name = "Visible"
+        )
+        val excludedTag = TagEntity(
+            tagId = "rollback-tag-excluded",
+            workspaceId = workspaceId,
+            name = "Excluded"
+        )
+        val staleTag = TagEntity(
+            tagId = "rollback-tag-stale",
+            workspaceId = workspaceId,
+            name = "Stale"
+        )
+        val visibleCard = makeNewReviewOrderingCardEntity(
+            cardId = "rollback-visible-card",
+            workspaceId = workspaceId,
+            effortLevel = EffortLevel.FAST,
+            createdAtMillis = nowMillis,
+            updatedAtMillis = nowMillis
+        )
+        val excludedCard = makeNewReviewOrderingCardEntity(
+            cardId = "rollback-excluded-card",
+            workspaceId = workspaceId,
+            effortLevel = EffortLevel.FAST,
+            createdAtMillis = nowMillis - 1L,
+            updatedAtMillis = nowMillis - 1L
+        )
+        val deletedStaleCard = makeNewReviewOrderingCardEntity(
+            cardId = "rollback-deleted-stale-card",
+            workspaceId = workspaceId,
+            effortLevel = EffortLevel.FAST,
+            createdAtMillis = nowMillis - 2L,
+            updatedAtMillis = nowMillis - 2L
+        ).copy(
+            deletedAtMillis = nowMillis
+        )
+
+        database.cardDao().insertCards(
+            cards = listOf(
+                visibleCard,
+                excludedCard,
+                deletedStaleCard
+            )
+        )
+        database.tagDao().insertTags(tags = listOf(visibleTag, excludedTag, staleTag))
+        database.tagDao().insertCardTags(
+            cardTags = listOf(
+                CardTagEntity(cardId = visibleCard.cardId, tagId = visibleTag.tagId),
+                CardTagEntity(cardId = excludedCard.cardId, tagId = excludedTag.tagId),
+                CardTagEntity(cardId = deletedStaleCard.cardId, tagId = staleTag.tagId)
+            )
+        )
+        decksRepository.createDeck(
+            deckDraft = DeckDraft(
+                name = "Visible rollback deck",
+                filterDefinition = buildDeckFilterDefinition(
+                    effortLevels = emptyList(),
+                    tags = listOf("Visible")
+                )
+            )
+        )
+        val visibleDeckId = requireNotNull(
+            database.deckDao().observeDecks().first().firstOrNull { deck ->
+                deck.name == "Visible rollback deck"
+            }
+        ) {
+            "Expected visible rollback deck to exist."
+        }.deckId
+
+        val activeReviewTagNames = database.tagDao().loadReviewTagNames(workspaceId = workspaceId)
+        val missingTagRollbackCard = reviewRepository.loadReviewCardForRollback(
+            selectedFilter = ReviewFilter.Tag(tag = "Stale"),
+            cardId = visibleCard.cardId
+        )
+        val missingDeckRollbackCard = reviewRepository.loadReviewCardForRollback(
+            selectedFilter = ReviewFilter.Deck(deckId = "missing-rollback-deck"),
+            cardId = visibleCard.cardId
+        )
+        val mismatchedDeckRollbackCard = reviewRepository.loadReviewCardForRollback(
+            selectedFilter = ReviewFilter.Deck(deckId = visibleDeckId),
+            cardId = excludedCard.cardId
+        )
+
+        assertEquals(listOf("Excluded", "Visible"), activeReviewTagNames)
+        assertNull(missingTagRollbackCard)
+        assertNull(missingDeckRollbackCard)
+        assertNull(mismatchedDeckRollbackCard)
+    }
+
+    @Test
+    fun reviewRepositoryResolvesDeletedOnlyDirectTagFromActiveReviewTagsAsAllCards(): Unit = runBlocking {
+        val nowMillis = System.currentTimeMillis()
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = nowMillis)
+        val reviewRepository = makeReviewRepository()
+        val staleTag = TagEntity(
+            tagId = "tag-stale",
+            workspaceId = workspaceId,
+            name = "Stale"
+        )
+        val visibleTag = TagEntity(
+            tagId = "tag-visible",
+            workspaceId = workspaceId,
+            name = "Visible"
+        )
+
+        database.cardDao().insertCards(
+            listOf(
+                makeNewReviewOrderingCardEntity(
+                    cardId = "visible-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    createdAtMillis = nowMillis,
+                    updatedAtMillis = nowMillis
+                ),
+                makeNewReviewOrderingCardEntity(
+                    cardId = "deleted-stale-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    createdAtMillis = nowMillis - 1L,
+                    updatedAtMillis = nowMillis - 1L
+                ).copy(
+                    deletedAtMillis = nowMillis
+                )
+            )
+        )
+        database.tagDao().insertTags(tags = listOf(staleTag, visibleTag))
+        database.tagDao().insertCardTags(
+            cardTags = listOf(
+                CardTagEntity(cardId = "deleted-stale-card", tagId = staleTag.tagId),
+                CardTagEntity(cardId = "visible-card", tagId = visibleTag.tagId)
+            )
+        )
+
+        val activeReviewTagNames = database.tagDao().loadReviewTagNames(workspaceId = workspaceId)
+        val sessionSnapshot = reviewRepository.observeReviewSession(
+            selectedFilter = ReviewFilter.Tag(tag = "stale"),
+            pendingReviewedCards = emptySet(),
+            presentedCardId = null
+        ).first()
+        val timelinePage = reviewRepository.loadReviewTimelinePage(
+            selectedFilter = ReviewFilter.Tag(tag = "stale"),
+            pendingReviewedCards = emptySet(),
+            offset = 0,
+            limit = 10
+        )
+
+        assertEquals(listOf("Visible"), activeReviewTagNames)
+        assertEquals(ReviewFilter.AllCards, sessionSnapshot.selectedFilter)
+        assertEquals(listOf("visible-card"), sessionSnapshot.cards.map { card -> card.cardId })
+        assertEquals("visible-card", sessionSnapshot.presentedCard?.cardId)
+        assertEquals(1, sessionSnapshot.dueCount)
+        assertEquals(1, sessionSnapshot.totalCount)
+        assertEquals(listOf("visible-card"), timelinePage.cards.map { card -> card.cardId })
+        assertFalse(timelinePage.hasMoreCards)
+    }
+
+    @Test
+    fun reviewRepositoryDoesNotPreservePresentedCardFromAnotherWorkspace(): Unit = runBlocking {
+        val nowMillis = 12 * 60 * 60 * 1_000L
+        val activeWorkspaceId = bootstrapLocalWorkspace(currentTimeMillis = nowMillis)
+        val otherWorkspaceId = "other-workspace"
+        val reviewRepository = makeReviewRepository()
+
+        database.workspaceDao().insertWorkspace(
+            workspace = WorkspaceEntity(
+                workspaceId = otherWorkspaceId,
+                name = "Other",
+                createdAtMillis = nowMillis + 1L
+            )
+        )
+        database.cardDao().insertCards(
+            listOf(
+                makeNewReviewOrderingCardEntity(
+                    cardId = "active-workspace-card",
+                    workspaceId = activeWorkspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    createdAtMillis = 100L,
+                    updatedAtMillis = 100L
+                ),
+                makeNewReviewOrderingCardEntity(
+                    cardId = "other-workspace-presented-card",
+                    workspaceId = otherWorkspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    createdAtMillis = 200L,
+                    updatedAtMillis = 200L
+                )
+            )
+        )
+
+        val sessionSnapshot = reviewRepository.observeReviewSession(
+            selectedFilter = ReviewFilter.AllCards,
+            pendingReviewedCards = emptySet(),
+            presentedCardId = "other-workspace-presented-card"
+        ).first()
+
+        assertEquals(listOf("active-workspace-card"), sessionSnapshot.cards.map { card -> card.cardId })
+        assertEquals("active-workspace-card", sessionSnapshot.presentedCard?.cardId)
+        assertFalse(sessionSnapshot.answerOptionsByCardId.containsKey("other-workspace-presented-card"))
+        assertEquals(1, sessionSnapshot.dueCount)
+        assertEquals(1, sessionSnapshot.totalCount)
+    }
+
+    @Test
+    fun reviewRepositoryDoesNotSubtractPendingReviewedCardFromAnotherWorkspace(): Unit = runBlocking {
+        val nowMillis = 12 * 60 * 60 * 1_000L
+        val activeWorkspaceId = bootstrapLocalWorkspace(currentTimeMillis = nowMillis)
+        val otherWorkspaceId = "other-pending-workspace"
+        val reviewRepository = makeReviewRepository()
+        val activeWorkspaceCard = makeNewReviewOrderingCardEntity(
+            cardId = "active-workspace-card",
+            workspaceId = activeWorkspaceId,
+            effortLevel = EffortLevel.FAST,
+            createdAtMillis = 100L,
+            updatedAtMillis = 100L
+        )
+        val otherWorkspaceCard = makeNewReviewOrderingCardEntity(
+            cardId = "other-workspace-pending-card",
+            workspaceId = otherWorkspaceId,
+            effortLevel = EffortLevel.FAST,
+            createdAtMillis = 200L,
+            updatedAtMillis = 200L
+        )
+
+        database.workspaceDao().insertWorkspace(
+            workspace = WorkspaceEntity(
+                workspaceId = otherWorkspaceId,
+                name = "Other pending",
+                createdAtMillis = nowMillis + 1L
+            )
+        )
+        database.cardDao().insertCards(cards = listOf(activeWorkspaceCard, otherWorkspaceCard))
+
+        val sessionSnapshot = reviewRepository.observeReviewSession(
+            selectedFilter = ReviewFilter.AllCards,
+            pendingReviewedCards = setOf(
+                PendingReviewedCard(
+                    cardId = otherWorkspaceCard.cardId,
+                    updatedAtMillis = otherWorkspaceCard.updatedAtMillis
+                )
+            ),
+            presentedCardId = null
+        ).first()
+
+        assertEquals(listOf(activeWorkspaceCard.cardId), sessionSnapshot.cards.map { card -> card.cardId })
+        assertEquals(activeWorkspaceCard.cardId, sessionSnapshot.presentedCard?.cardId)
+        assertEquals(1, sessionSnapshot.dueCount)
+        assertEquals(1, sessionSnapshot.remainingCount)
+        assertEquals(1, sessionSnapshot.totalCount)
+    }
+
+    @Test
+    fun reviewRepositoryMatchesUnicodeTagFilterInBoundedQueueAndCounts(): Unit = runBlocking {
+        val nowMillis = 12 * 60 * 60 * 1_000L
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = nowMillis)
+        val reviewRepository = makeReviewRepository()
+        val unicodeTag = TagEntity(
+            tagId = "tag-eclair",
+            workspaceId = workspaceId,
+            name = "Éclair"
+        )
+        val plainTag = TagEntity(
+            tagId = "tag-plain",
+            workspaceId = workspaceId,
+            name = "Plain"
+        )
+
+        database.cardDao().insertCards(
+            listOf(
+                makeNewReviewOrderingCardEntity(
+                    cardId = "unicode-tag-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    createdAtMillis = 200L,
+                    updatedAtMillis = 200L
+                ),
+                makeNewReviewOrderingCardEntity(
+                    cardId = "plain-tag-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    createdAtMillis = 100L,
+                    updatedAtMillis = 100L
+                )
+            )
+        )
+        database.tagDao().insertTags(tags = listOf(unicodeTag, plainTag))
+        database.tagDao().insertCardTags(
+            cardTags = listOf(
+                CardTagEntity(cardId = "unicode-tag-card", tagId = unicodeTag.tagId),
+                CardTagEntity(cardId = "plain-tag-card", tagId = plainTag.tagId)
+            )
+        )
+
+        val sessionSnapshot = reviewRepository.observeReviewSession(
+            selectedFilter = ReviewFilter.Tag(tag = "éclair"),
+            pendingReviewedCards = emptySet(),
+            presentedCardId = null
+        ).first()
+        val boundedQueueCardIds = database.cardDao().observeActiveReviewQueueByAnyTags(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            tagNames = listOf("Éclair"),
+            limit = 8
+        ).first().map { card ->
+            card.card.cardId
+        }
+        val dueCount = database.cardDao().observeReviewDueCountByAnyTags(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            tagNames = listOf("Éclair")
+        ).first()
+        val totalCount = database.cardDao().observeReviewTotalCountByAnyTags(
+            workspaceId = workspaceId,
+            tagNames = listOf("Éclair")
+        ).first()
+
+        assertEquals(ReviewFilter.Tag(tag = "Éclair"), sessionSnapshot.selectedFilter)
+        assertEquals(listOf("unicode-tag-card"), sessionSnapshot.cards.map { card -> card.cardId })
+        assertEquals("unicode-tag-card", sessionSnapshot.presentedCard?.cardId)
+        assertEquals(1, sessionSnapshot.dueCount)
+        assertEquals(1, sessionSnapshot.remainingCount)
+        assertEquals(1, sessionSnapshot.totalCount)
+        assertEquals(listOf("unicode-tag-card"), boundedQueueCardIds)
+        assertEquals(1, dueCount)
+        assertEquals(1, totalCount)
+        assertTrue(sessionSnapshot.availableTagFilters.any { tag ->
+            tag.tag == "Éclair" && tag.totalCount == 1
+        })
+    }
+
+    @Test
+    fun reviewRepositoryMatchesDeckFilterUnicodeTagsThroughExactStoredNames(): Unit = runBlocking {
+        val nowMillis = 12 * 60 * 60 * 1_000L
+        val workspaceId = bootstrapLocalWorkspace(currentTimeMillis = nowMillis)
+        val decksRepository = makeDecksRepository()
+        val reviewRepository = makeReviewRepository()
+        val unicodeTag = TagEntity(
+            tagId = "tag-privet",
+            workspaceId = workspaceId,
+            name = "Привет"
+        )
+
+        database.cardDao().insertCards(
+            listOf(
+                makeNewReviewOrderingCardEntity(
+                    cardId = "unicode-deck-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    createdAtMillis = 200L,
+                    updatedAtMillis = 200L
+                ),
+                makeNewReviewOrderingCardEntity(
+                    cardId = "other-deck-card",
+                    workspaceId = workspaceId,
+                    effortLevel = EffortLevel.FAST,
+                    createdAtMillis = 100L,
+                    updatedAtMillis = 100L
+                )
+            )
+        )
+        database.tagDao().insertTags(tags = listOf(unicodeTag))
+        database.tagDao().insertCardTags(
+            cardTags = listOf(
+                CardTagEntity(cardId = "unicode-deck-card", tagId = unicodeTag.tagId)
+            )
+        )
+        decksRepository.createDeck(
+            deckDraft = DeckDraft(
+                name = "Unicode deck",
+                filterDefinition = buildDeckFilterDefinition(
+                    effortLevels = emptyList(),
+                    tags = listOf("привет")
+                )
+            )
+        )
+        decksRepository.createDeck(
+            deckDraft = DeckDraft(
+                name = "Missing tag deck",
+                filterDefinition = buildDeckFilterDefinition(
+                    effortLevels = emptyList(),
+                    tags = listOf("missing-unicode-tag")
+                )
+            )
+        )
+        val decks = database.deckDao().observeDecks().first()
+        val unicodeDeckId = requireNotNull(decks.firstOrNull { deck ->
+            deck.name == "Unicode deck"
+        }) {
+            "Expected Unicode deck to exist."
+        }.deckId
+        val missingTagDeckId = requireNotNull(decks.firstOrNull { deck ->
+            deck.name == "Missing tag deck"
+        }) {
+            "Expected missing tag deck to exist."
+        }.deckId
+
+        val unicodeDeckSnapshot = reviewRepository.observeReviewSession(
+            selectedFilter = ReviewFilter.Deck(deckId = unicodeDeckId),
+            pendingReviewedCards = emptySet(),
+            presentedCardId = null
+        ).first()
+        val missingTagDeckSnapshot = reviewRepository.observeReviewSession(
+            selectedFilter = ReviewFilter.Deck(deckId = missingTagDeckId),
+            pendingReviewedCards = emptySet(),
+            presentedCardId = null
+        ).first()
+
+        assertEquals(listOf("unicode-deck-card"), unicodeDeckSnapshot.cards.map { card -> card.cardId })
+        assertEquals(1, unicodeDeckSnapshot.dueCount)
+        assertEquals(1, unicodeDeckSnapshot.totalCount)
+        assertTrue(unicodeDeckSnapshot.availableDeckFilters.any { deck ->
+            deck.deckId == unicodeDeckId && deck.totalCount == 1
+        })
+        assertTrue(unicodeDeckSnapshot.availableDeckFilters.any { deck ->
+            deck.deckId == missingTagDeckId && deck.totalCount == 0
+        })
+        assertTrue(missingTagDeckSnapshot.cards.isEmpty())
+        assertEquals(0, missingTagDeckSnapshot.dueCount)
+        assertEquals(0, missingTagDeckSnapshot.totalCount)
     }
 
     @Test
@@ -523,25 +1173,68 @@ class AppDatabaseTest {
         val tagTop = database.cardDao().loadTopReviewCardByAnyTags(
             workspaceId = workspaceId,
             nowMillis = nowMillis,
-            normalizedTagNames = listOf("priority")
+            tagNames = listOf("Priority")
         )
         val effortAndTagTop = database.cardDao().loadTopReviewCardByEffortLevelsAndAnyTags(
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             effortLevels = listOf(EffortLevel.MEDIUM),
-            normalizedTagNames = listOf("priority")
+            tagNames = listOf("Priority")
         )
         val futureOnlyTagTop = database.cardDao().loadTopReviewCardByAnyTags(
             workspaceId = workspaceId,
             nowMillis = nowMillis,
-            normalizedTagNames = listOf("future only")
+            tagNames = listOf("Future Only")
         )
+        val boundedQueue = database.cardDao().observeActiveReviewQueue(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            limit = 4
+        ).first().map { card ->
+            card.card.cardId
+        }
+        val effortAndTagQueue = database.cardDao().observeActiveReviewQueueByEffortLevelsAndAnyTags(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            effortLevels = listOf(EffortLevel.MEDIUM),
+            tagNames = listOf("Priority"),
+            limit = 10
+        ).first().map { card ->
+            card.card.cardId
+        }
+        val priorityDueCount = database.cardDao().observeReviewDueCountByAnyTags(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            tagNames = listOf("Priority")
+        ).first()
+        val priorityTotalCount = database.cardDao().observeReviewTotalCountByAnyTags(
+            workspaceId = workspaceId,
+            tagNames = listOf("Priority")
+        ).first()
+        val futureOnlyDueCount = database.cardDao().observeReviewDueCountByAnyTags(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            tagNames = listOf("Future Only")
+        ).first()
+        val futureOnlyTotalCount = database.cardDao().observeReviewTotalCountByAnyTags(
+            workspaceId = workspaceId,
+            tagNames = listOf("Future Only")
+        ).first()
 
         assertEquals("recent-cutoff-a", allCardsTop?.cardId)
         assertEquals("recent-cutoff-a", effortTop?.cardId)
         assertEquals("recent-cutoff-a", tagTop?.cardId)
         assertEquals("due-now-card", effortAndTagTop?.cardId)
         assertNull(futureOnlyTagTop)
+        assertEquals(
+            listOf("recent-cutoff-a", "recent-cutoff-b", "recent-cutoff-older-created", "due-now-card"),
+            boundedQueue
+        )
+        assertEquals(listOf("due-now-card", "new-medium-card"), effortAndTagQueue)
+        assertEquals(6, priorityDueCount)
+        assertEquals(6, priorityTotalCount)
+        assertEquals(0, futureOnlyDueCount)
+        assertEquals(1, futureOnlyTotalCount)
     }
 
     @Test

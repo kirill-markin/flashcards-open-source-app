@@ -343,7 +343,17 @@ extension CardStore {
         searchText: String,
         filter: CardFilter?
     ) throws -> CardsListSnapshot {
-        let querySQL = try self.makeCardsListQuerySQL(searchText: searchText, filter: filter)
+        let storedTagNames: [String]
+        if let filter, filter.tags.isEmpty == false {
+            storedTagNames = try self.loadWorkspaceTagsSummary(workspaceId: workspaceId).tags.map(\.tag)
+        } else {
+            storedTagNames = []
+        }
+        let querySQL = try self.makeCardsListQuerySQL(
+            searchText: searchText,
+            filter: filter,
+            storedTagNames: storedTagNames
+        )
         let cards = try self.core.query(
             sql: """
             SELECT

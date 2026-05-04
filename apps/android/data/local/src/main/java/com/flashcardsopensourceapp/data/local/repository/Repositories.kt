@@ -38,6 +38,7 @@ import com.flashcardsopensourceapp.data.local.model.DeviceDiagnosticsSummary
 import com.flashcardsopensourceapp.data.local.model.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.ProgressSeriesSnapshot
 import com.flashcardsopensourceapp.data.local.model.ProgressSummarySnapshot
+import com.flashcardsopensourceapp.data.local.model.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.ReviewSessionSnapshot
@@ -99,6 +100,8 @@ interface ReviewRepository {
     ): ReviewTimelinePage
 
     suspend fun countRecordedReviews(): Int
+
+    suspend fun loadReviewCardForRollback(selectedFilter: ReviewFilter, cardId: String): ReviewCard?
 
     suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long)
 }
