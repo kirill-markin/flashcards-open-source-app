@@ -285,15 +285,30 @@ extension FlashcardsStore {
                 )
             )
             let now = Date()
+            guard self.reviewSubmissionRequestMatchesCurrentContext(request: request, now: now) else {
+                self.applyStaleReviewSubmissionCompletion(request: request)
+                return
+            }
+
             let bootstrapRefreshOutcome = try self.refreshBootstrapSnapshotWithoutReset(now: now)
             let didReconcileReviewState = try await self.reconcileReviewState(
                 now: now,
                 trigger: .localReview
             )
+            let completionValidationContext = self.makeReviewSubmissionRollbackValidationContext(now: now)
+            guard self.reviewSubmissionRequestMatchesCurrentContext(
+                request: request,
+                validationContext: completionValidationContext
+            ) else {
+                self.applyStaleReviewSubmissionCompletion(request: request)
+                return
+            }
+
             self.applyReviewPublishedState(
                 reviewState: self.reviewRuntime.completeReviewSubmission(
                     publishedState: self.currentReviewPublishedState(),
-                    request: request
+                    request: request,
+                    validationContext: completionValidationContext
                 )
             )
             self.handleProgressLocalMutation(
@@ -326,27 +341,112 @@ extension FlashcardsStore {
         }
     }
 
+    private func reviewSubmissionRequestMatchesCurrentContext(
+        request: ReviewSubmissionRequest,
+        now: Date
+    ) -> Bool {
+        self.reviewSubmissionRequestMatchesCurrentContext(
+            request: request,
+            validationContext: self.makeReviewSubmissionRollbackValidationContext(now: now)
+        )
+    }
+
+    private func reviewSubmissionRequestMatchesCurrentContext(
+        request: ReviewSubmissionRequest,
+        validationContext: ReviewSubmissionRollbackValidationContext?
+    ) -> Bool {
+        guard let validationContext else {
+            return false
+        }
+        return self.reviewRuntime.reviewSubmissionRequestMatchesCurrentContext(
+            publishedState: self.currentReviewPublishedState(),
+            request: request,
+            validationContext: validationContext
+        )
+    }
+
+    private func applyStaleReviewSubmissionCompletion(request: ReviewSubmissionRequest) {
+        self.applyReviewPublishedState(
+            reviewState: self.reviewRuntime.completeStaleReviewSubmission(
+                publishedState: self.currentReviewPublishedState(),
+                request: request
+            )
+        )
+    }
+
     func handleReviewSubmissionFailure(request: ReviewSubmissionRequest, submissionError: Error) {
         let submissionErrorMessage = Flashcards.errorMessage(error: submissionError)
+        let now = Date()
+        // Capture the pre-refresh validation context once so the staleness classification
+        // is independent of the bootstrap-refresh outcome below. The catch branch reuses
+        // this same snapshot when the refresh throws and a fresh context is unavailable;
+        // rollback-card selection still requires fresh data and is suppressed in that case.
+        let preRefreshValidationContext = self.makeReviewSubmissionRollbackValidationContext(now: now)
+        guard self.reviewSubmissionRequestMatchesCurrentContext(
+            request: request,
+            validationContext: preRefreshValidationContext
+        ) else {
+            self.applyStaleReviewSubmissionCompletion(request: request)
+            return
+        }
+
         do {
-            try self.reload()
+            _ = try self.refreshBootstrapSnapshotWithoutReset(now: now)
+            let rollbackValidationContext = self.makeReviewSubmissionRollbackValidationContext(now: now)
+            guard self.reviewSubmissionRequestMatchesCurrentContext(
+                request: request,
+                validationContext: rollbackValidationContext
+            ) else {
+                self.applyStaleReviewSubmissionCompletion(request: request)
+                return
+            }
+
             self.applyReviewPublishedState(
                 reviewState: self.reviewRuntime.failReviewSubmission(
                     publishedState: self.currentReviewPublishedState(),
                     request: request,
-                    message: submissionErrorMessage
+                    message: submissionErrorMessage,
+                    validationContext: rollbackValidationContext
                 )
             )
         } catch {
             let reloadErrorMessage = Flashcards.errorMessage(error: error)
+            // Re-run the staleness gate against the pre-refresh snapshot so the
+            // classification stays consistent with the early check above, regardless of
+            // refresh outcome. Rollback-card selection requires fresh data we no longer
+            // have, so we pass nil to suppress it.
+            guard self.reviewSubmissionRequestMatchesCurrentContext(
+                request: request,
+                validationContext: preRefreshValidationContext
+            ) else {
+                self.applyStaleReviewSubmissionCompletion(request: request)
+                return
+            }
             self.applyReviewPublishedState(
                 reviewState: self.reviewRuntime.failReviewSubmission(
                     publishedState: self.currentReviewPublishedState(),
                     request: request,
-                    message: "\(submissionErrorMessage)\n\nReload failed: \(reloadErrorMessage)"
+                    message: "\(submissionErrorMessage)\n\nReload failed: \(reloadErrorMessage)",
+                    validationContext: nil
                 )
             )
         }
+    }
+
+    private func makeReviewSubmissionRollbackValidationContext(
+        now: Date
+    ) -> ReviewSubmissionRollbackValidationContext? {
+        guard let workspaceId = self.workspace?.workspaceId else {
+            return nil
+        }
+
+        return ReviewSubmissionRollbackValidationContext(
+            currentWorkspaceId: workspaceId,
+            cards: self.cards,
+            decks: self.decks,
+            schedulerSettings: self.schedulerSettings,
+            now: now
+        )
     }
 
     private func reconcileReviewState(
@@ -372,14 +472,14 @@ extension FlashcardsStore {
         let currentCardId = currentReviewCard(reviewQueue: currentEffectiveQueue)?.cardId
         let currentSignature = makeReviewSessionSignature(
             selectedReviewFilter: currentReviewState.selectedReviewFilter,
-            reviewQueue: currentReviewState.reviewQueue,
+            reviewQueue: currentEffectiveQueue,
             schedulerSettings: self.schedulerSettings,
             seedQueueSize: reviewSeedQueueSize
         )
         let databaseURL = database.databaseURL
         let reviewCountsLoader = self.dependencies.reviewCountsLoader
         let reviewQueueWindowLoader = self.dependencies.reviewQueueWindowLoader
-        let reviewQueueWindowLimit = max(currentReviewState.reviewQueueCanonicalCount, reviewSeedQueueSize)
+        let reviewQueueWindowLimit = max(currentReviewState.reviewQueue.count, reviewSeedQueueSize)
 
         async let reviewCountsTask = reviewCountsLoader(
             databaseURL,
@@ -404,7 +504,8 @@ extension FlashcardsStore {
         guard resolvedReviewQuery.reviewFilter == self.selectedReviewFilter else {
             return false
         }
-        let refreshedReviewQueue = reviewQueuePreservingPresentedCard(
+        let refreshedReviewQueue = reviewQueueWindowState.reviewQueue
+        let preservedPresentedReviewCard = presentedReviewCardForBackgroundRefresh(
             reviewQueue: reviewQueueWindowState.reviewQueue,
             presentedCardId: currentCardId,
             pendingReviewCardIds: currentReviewState.pendingReviewCardIds,
@@ -413,18 +514,40 @@ extension FlashcardsStore {
             cards: self.cards,
             now: now
         )
+        let nextPresentedReviewCard = preservedPresentedReviewCard ?? refreshedReviewQueue.first { card in
+            currentReviewState.pendingReviewCardIds.contains(card.cardId) == false
+        }
+        let nextReviewStateForComparison = ReviewQueuePublishedState(
+            selectedReviewFilter: resolvedReviewQuery.reviewFilter,
+            reviewQueue: refreshedReviewQueue,
+            presentedReviewCard: nextPresentedReviewCard,
+            reviewCounts: reviewCounts,
+            isReviewHeadLoading: false,
+            isReviewCountsLoading: false,
+            isReviewQueueChunkLoading: false,
+            pendingReviewCardIds: currentReviewState.pendingReviewCardIds,
+            reviewSubmissionFailure: currentReviewState.reviewSubmissionFailure
+        )
+        let nextEffectiveQueueForComparison = self.reviewRuntime.effectiveReviewQueue(
+            publishedState: nextReviewStateForComparison
+        )
 
         let nextSignature = makeReviewSessionSignature(
             selectedReviewFilter: resolvedReviewQuery.reviewFilter,
-            reviewQueue: refreshedReviewQueue,
+            reviewQueue: nextEffectiveQueueForComparison,
             schedulerSettings: self.schedulerSettings,
             seedQueueSize: reviewSeedQueueSize
         )
+        let pendingReviewCardIds = currentReviewState.pendingReviewCardIds
+        let currentNonPendingReviewQueue = currentReviewState.reviewQueue.filter { card in
+            pendingReviewCardIds.contains(card.cardId) == false
+        }
         let didChangeReviewSession = currentSignature != nextSignature
         let didChangeReviewCounts = currentReviewState.reviewCounts != reviewCounts
-        let didChangeLoadedReviewQueue = currentReviewState.reviewQueue != refreshedReviewQueue
+        let didChangeLoadedReviewQueue = currentNonPendingReviewQueue != refreshedReviewQueue
+        let didChangePresentedReviewCard = currentReviewState.presentedReviewCard != nextPresentedReviewCard
 
-        guard didChangeReviewSession || didChangeReviewCounts || didChangeLoadedReviewQueue else {
+        guard didChangeReviewSession || didChangeReviewCounts || didChangeLoadedReviewQueue || didChangePresentedReviewCard else {
             return false
         }
 
@@ -433,7 +556,7 @@ extension FlashcardsStore {
             selectedReviewFilter: resolvedReviewQuery.reviewFilter,
             reviewCounts: reviewCounts,
             reviewQueue: refreshedReviewQueue,
-            reviewQueueCanonicalCount: reviewQueueWindowState.reviewQueue.count,
+            presentedReviewCard: nextPresentedReviewCard,
             hasMoreCards: reviewQueueWindowState.hasMoreCards
         )
         self.applyReviewPublishedState(reviewState: nextReviewState)

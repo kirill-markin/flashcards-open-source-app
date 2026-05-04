@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { Card } from "../types";
-import { buildCardUpsertOperation, compareCardsForReviewOrder, recentDuePriorityWindow } from "./domain";
+import {
+  buildCardUpsertOperation,
+  cardsMatchingReviewFilter,
+  compareCardsForReviewOrder,
+  matchesCardFilter,
+  matchesDeckFilterDefinition,
+  normalizeTagKey,
+  recentDuePriorityWindow,
+  resolveReviewFilter,
+} from "./domain";
 
 function makeReviewOrderCard(cardId: string, dueAt: string | null, createdAt: string): Card {
   return {
@@ -109,5 +118,59 @@ describe("review order domain", () => {
     const card = makeReviewOrderCard("reviewed-card", "2026-02-31T12:00:00.000Z", "2026-03-10T09:00:00.000Z");
 
     expect(() => buildCardUpsertOperation(card)).toThrow(/invalid dueAt/);
+  });
+});
+
+describe("review tag matching domain", () => {
+  it("normalizes tag keys by trimming and lowercasing Unicode text", () => {
+    expect(normalizeTagKey(" Éclair ")).toBe("éclair");
+  });
+
+  it("matches review tag filters by normalized key while preserving canonical stored tag text", () => {
+    const matchingCard = {
+      ...makeReviewOrderCard("unicode-tag", null, "2026-03-10T09:00:00.000Z"),
+      tags: ["Éclair"],
+    };
+    const otherCard = {
+      ...makeReviewOrderCard("other-tag", null, "2026-03-10T09:00:00.000Z"),
+      tags: ["code"],
+    };
+    const reviewFilter = {
+      kind: "tag",
+      tag: "éclair",
+    } as const;
+
+    expect(resolveReviewFilter(reviewFilter, [], [matchingCard, otherCard])).toEqual({
+      kind: "tag",
+      tag: "Éclair",
+    });
+    expect(cardsMatchingReviewFilter(reviewFilter, [], [matchingCard, otherCard]).map((card) => card.cardId)).toEqual([
+      "unicode-tag",
+    ]);
+  });
+
+  it("matches deck filter definition tags by normalized key", () => {
+    const card = {
+      ...makeReviewOrderCard("deck-unicode-tag", null, "2026-03-10T09:00:00.000Z"),
+      tags: ["Éclair"],
+    };
+
+    expect(matchesDeckFilterDefinition({
+      version: 2,
+      effortLevels: [],
+      tags: ["éclair"],
+    }, card)).toBe(true);
+  });
+
+  it("matches card filter tags by normalized key", () => {
+    const card = {
+      ...makeReviewOrderCard("card-filter-unicode-tag", null, "2026-03-10T09:00:00.000Z"),
+      tags: ["Éclair"],
+    };
+
+    expect(matchesCardFilter({
+      effort: [],
+      tags: ["éclair"],
+    }, card)).toBe(true);
   });
 });

@@ -4,9 +4,11 @@ package com.flashcardsopensourceapp.data.local.model
 // - apps/ios/Flashcards/Flashcards/Review/ReviewQuerySupport.swift::compareCardsForReviewOrder
 // - apps/ios/Flashcards/Flashcards/Database/CardStore+ReadSQL.swift review queue ORDER BY
 // - apps/web/src/appData/domain.ts::compareCardsForReviewOrder
-// Ordering contract: recent due cards within the inclusive one-hour window first,
-// then older due cards, then null due/new cards, then future cards, followed by earlier dueAt,
-// newer createdAt, then cardId ascending.
+// Active queue contract: recent due cards within the inclusive one-hour window first,
+// then older due cards, then null due/new cards. Future cards are excluded from the
+// active queue and can appear later in timeline ordering; malformed dueAt values are
+// excluded in string-date clients and are not representable by Android dueAtMillis.
+// Within each bucket, earlier dueAt comes first, then newer createdAt, then cardId ascending.
 // If this changes, mirror the same change across all three clients in the same change.
 private const val recentDuePriorityWindowMillis: Long = 60L * 60L * 1_000L
 
@@ -35,7 +37,7 @@ private fun sortCardsForReviewQueue(cards: List<CardSummary>, nowMillis: Long): 
     )
 }
 
-private fun matchesReviewFilter(filter: ReviewFilter, decks: List<DeckSummary>, card: CardSummary): Boolean {
+fun matchesReviewFilter(filter: ReviewFilter, decks: List<DeckSummary>, card: CardSummary): Boolean {
     return when (filter) {
         ReviewFilter.AllCards -> true
         is ReviewFilter.Deck -> {
@@ -67,6 +69,20 @@ fun resolveReviewFilter(
     decks: List<DeckSummary>,
     tagsSummary: WorkspaceTagsSummary
 ): ReviewFilter {
+    return resolveReviewFilterFromTagNames(
+        selectedFilter = selectedFilter,
+        decks = decks,
+        tagNames = tagsSummary.tags.map { tagSummary ->
+            tagSummary.tag
+        }
+    )
+}
+
+fun resolveReviewFilterFromTagNames(
+    selectedFilter: ReviewFilter,
+    decks: List<DeckSummary>,
+    tagNames: List<String>
+): ReviewFilter {
     return when (selectedFilter) {
         ReviewFilter.AllCards -> ReviewFilter.AllCards
         is ReviewFilter.Deck -> {
@@ -86,14 +102,14 @@ fun resolveReviewFilter(
         }
 
         is ReviewFilter.Tag -> {
-            val matchingTag = tagsSummary.tags.firstOrNull { tagSummary ->
-                normalizeTagKey(tag = tagSummary.tag) == normalizeTagKey(tag = selectedFilter.tag)
+            val matchingTag = tagNames.firstOrNull { tag ->
+                normalizeTagKey(tag = tag) == normalizeTagKey(tag = selectedFilter.tag)
             }
 
             if (matchingTag == null) {
                 ReviewFilter.AllCards
             } else {
-                ReviewFilter.Tag(tag = matchingTag.tag)
+                ReviewFilter.Tag(tag = matchingTag)
             }
         }
     }
@@ -123,7 +139,7 @@ private fun dueCardsMatchingReviewFilter(
     return sortCardsForReviewQueue(
         nowMillis = reviewedAtMillis,
         cards = cards.filter { card ->
-            matchesReviewFilter(
+            card.deletedAtMillis == null && matchesReviewFilter(
                 filter = selectedFilter,
                 decks = decks,
                 card = card
@@ -138,7 +154,7 @@ private fun cardsMatchingReviewFilter(
     cards: List<CardSummary>
 ): List<CardSummary> {
     return cards.filter { card ->
-        matchesReviewFilter(
+        card.deletedAtMillis == null && matchesReviewFilter(
             filter = selectedFilter,
             decks = decks,
             card = card
@@ -241,6 +257,13 @@ fun buildReviewSessionSnapshot(
         cards = cards,
         reviewedAtMillis = reviewedAtMillis
     )
+    val totalMatchingCards = cardsMatchingReviewFilter(
+        selectedFilter = resolvedFilter,
+        decks = decks,
+        cards = cards
+    ).filter { card ->
+        card.deletedAtMillis == null
+    }
     val remainingCards = matchingCards.filter { card ->
         matchesPendingReviewedCard(
             pendingReviewedCards = pendingReviewedCards,
@@ -249,7 +272,7 @@ fun buildReviewSessionSnapshot(
     }
     val currentCard = remainingCards.firstOrNull()
     val nextCard = remainingCards.getOrNull(index = 1)
-    val presentedCard = presentedCardId?.let { cardId ->
+    val presentedCardSummary = presentedCardId?.let { cardId ->
         remainingCards.firstOrNull { card ->
             card.cardId == cardId
         }
@@ -257,7 +280,7 @@ fun buildReviewSessionSnapshot(
     val answerOptionCards = listOfNotNull(
         currentCard,
         nextCard,
-        presentedCard
+        presentedCardSummary
     ).distinctBy { card ->
         card.cardId
     }
@@ -274,6 +297,7 @@ fun buildReviewSessionSnapshot(
             decks = decks
         ),
         cards = remainingCards.map(::toReviewCard),
+        presentedCard = (presentedCardSummary ?: currentCard)?.let(::toReviewCard),
         answerOptions = currentCard?.let { card ->
             answerOptionsByCardId[card.cardId]
         } ?: emptyList(),
@@ -281,8 +305,10 @@ fun buildReviewSessionSnapshot(
             answerOptionsByCardId[card.cardId]
         } ?: emptyList(),
         answerOptionsByCardId = answerOptionsByCardId,
+        dueCount = matchingCards.size,
         remainingCount = remainingCards.size,
-        totalCount = matchingCards.size,
+        totalCount = totalMatchingCards.size,
+        hasMoreCards = false,
         availableDeckFilters = buildReviewDeckFilterOptions(decks = decks),
         availableEffortFilters = buildReviewEffortFilterOptions(
             cards = cards,
@@ -292,6 +318,62 @@ fun buildReviewSessionSnapshot(
             cards = cards,
             reviewedAtMillis = reviewedAtMillis
         ),
+        isLoading = false
+    )
+}
+
+fun buildBoundedReviewSessionSnapshot(
+    selectedFilter: ReviewFilter,
+    decks: List<DeckSummary>,
+    canonicalCards: List<CardSummary>,
+    presentedCard: CardSummary?,
+    dueCount: Int,
+    remainingCount: Int,
+    totalCount: Int,
+    hasMoreCards: Boolean,
+    availableDeckFilters: List<ReviewDeckFilterOption>,
+    availableEffortFilters: List<ReviewEffortFilterOption>,
+    availableTagFilters: List<ReviewTagFilterOption>,
+    settings: WorkspaceSchedulerSettings,
+    reviewedAtMillis: Long
+): ReviewSessionSnapshot {
+    val currentCard = canonicalCards.firstOrNull()
+    val nextCard = canonicalCards.getOrNull(index = 1)
+    val answerOptionCards = listOfNotNull(
+        currentCard,
+        nextCard,
+        presentedCard
+    ).distinctBy { card ->
+        card.cardId
+    }
+    val answerOptionsByCardId = buildReviewAnswerOptionsByCardId(
+        cards = answerOptionCards,
+        settings = settings,
+        reviewedAtMillis = reviewedAtMillis
+    )
+
+    return ReviewSessionSnapshot(
+        selectedFilter = selectedFilter,
+        selectedFilterTitle = reviewFilterTitle(
+            selectedFilter = selectedFilter,
+            decks = decks
+        ),
+        cards = canonicalCards.map(::toReviewCard),
+        presentedCard = (presentedCard ?: currentCard)?.let(::toReviewCard),
+        answerOptions = currentCard?.let { card ->
+            answerOptionsByCardId[card.cardId]
+        } ?: emptyList(),
+        nextAnswerOptions = nextCard?.let { card ->
+            answerOptionsByCardId[card.cardId]
+        } ?: emptyList(),
+        answerOptionsByCardId = answerOptionsByCardId,
+        dueCount = dueCount,
+        remainingCount = remainingCount,
+        totalCount = totalCount,
+        hasMoreCards = hasMoreCards,
+        availableDeckFilters = availableDeckFilters,
+        availableEffortFilters = availableEffortFilters,
+        availableTagFilters = availableTagFilters,
         isLoading = false
     )
 }

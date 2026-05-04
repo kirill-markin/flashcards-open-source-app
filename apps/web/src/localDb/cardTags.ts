@@ -1,10 +1,16 @@
 import type { Card } from "../types";
+import { normalizeTagKey } from "../appData/domain";
 import { describeIndexedDbError } from "./core";
 
 export type CardTagRecord = Readonly<{
   workspaceId: string;
   cardId: string;
   tag: string;
+}>;
+
+export type TagCardIdsLookup = Readonly<{
+  cardIds: ReadonlySet<string>;
+  canonicalTag: string | null;
 }>;
 
 function putCardTags(cardTagsStore: IDBObjectStore, workspaceId: string, card: Card): void {
@@ -54,6 +60,7 @@ export async function iterateCardTagsByTag(
   tag: string,
   onRecord: (record: CardTagRecord) => boolean | void,
 ): Promise<void> {
+  const requestedTagKey = normalizeTagKey(tag);
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(["cardTags"], "readonly");
     const cardTagsStore = transaction.objectStore("cardTags");
@@ -85,7 +92,7 @@ export async function iterateCardTagsByTag(
       }
 
       const record = cursor.value as CardTagRecord;
-      if (record.workspaceId !== workspaceId || record.tag !== tag) {
+      if (record.workspaceId !== workspaceId || normalizeTagKey(record.tag) !== requestedTagKey) {
         cursor.continue();
         return;
       }
@@ -159,13 +166,49 @@ export async function loadAllowedCardIdsForTags(
   tags: ReadonlyArray<string>,
 ): Promise<ReadonlySet<string>> {
   const allowedCardIds = new Set<string>();
-
-  for (const tag of tags) {
-    await iterateCardTagsByTag(database, workspaceId, tag, (record) => {
-      allowedCardIds.add(record.cardId);
-      return true;
-    });
+  const requestedTagKeys = new Set(tags.map((tag) => normalizeTagKey(tag)).filter((tagKey) => tagKey !== ""));
+  if (requestedTagKeys.size === 0) {
+    return allowedCardIds;
   }
 
+  await iterateAllCardTags(database, workspaceId, (record) => {
+    if (requestedTagKeys.has(normalizeTagKey(record.tag))) {
+      allowedCardIds.add(record.cardId);
+    }
+
+    return true;
+  });
+
   return allowedCardIds;
+}
+
+export async function loadAllowedCardIdsForTag(
+  database: IDBDatabase,
+  workspaceId: string,
+  tag: string,
+): Promise<TagCardIdsLookup> {
+  const allowedCardIds = new Set<string>();
+  const requestedTagKey = normalizeTagKey(tag);
+  if (requestedTagKey === "") {
+    return {
+      cardIds: allowedCardIds,
+      canonicalTag: null,
+    };
+  }
+
+  let canonicalTag: string | null = null;
+  await iterateAllCardTags(database, workspaceId, (record) => {
+    if (normalizeTagKey(record.tag) !== requestedTagKey) {
+      return true;
+    }
+
+    allowedCardIds.add(record.cardId);
+    canonicalTag = canonicalTag ?? record.tag.trim();
+    return true;
+  });
+
+  return {
+    cardIds: allowedCardIds,
+    canonicalTag,
+  };
 }

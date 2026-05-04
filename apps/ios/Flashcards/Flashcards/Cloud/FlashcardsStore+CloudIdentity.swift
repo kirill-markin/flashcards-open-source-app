@@ -40,7 +40,6 @@ extension FlashcardsStore {
         self.cachedAIChatStore?.clearLocalHistory()
         clearStoredAIChatHistories(userDefaults: self.userDefaults)
         self.reviewRuntime = ReviewQueueRuntime(
-            initialSelectedReviewFilter: .allCards,
             reviewSeedQueueSize: reviewSeedQueueSize,
             reviewQueueReplenishmentThreshold: reviewQueueReplenishmentThreshold
         )

@@ -129,6 +129,20 @@ export function isReviewFilterEqual(left: ReviewFilter, right: ReviewFilter): bo
   return false;
 }
 
+export function normalizeTagKey(tag: string): string {
+  return tag.trim().toLowerCase();
+}
+
+function hasMatchingTag(tags: ReadonlyArray<string>, requestedTag: string): boolean {
+  const requestedTagKey = normalizeTagKey(requestedTag);
+  return tags.some((tag) => normalizeTagKey(tag) === requestedTagKey);
+}
+
+function findMatchingTag(tags: ReadonlyArray<string>, requestedTag: string): string | null {
+  const requestedTagKey = normalizeTagKey(requestedTag);
+  return tags.find((tag) => normalizeTagKey(tag) === requestedTagKey)?.trim() ?? null;
+}
+
 /** Keep deck matching semantics aligned with apps/ios/Flashcards/Flashcards/CardFilterSupport.swift and apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/FilterSupport.kt: effort is inclusive and tags match on any overlap. */
 export function matchesDeckFilterDefinition(filterDefinition: DeckFilterDefinition, card: Card): boolean {
   if (filterDefinition.effortLevels.length > 0 && filterDefinition.effortLevels.includes(card.effortLevel) === false) {
@@ -139,8 +153,8 @@ export function matchesDeckFilterDefinition(filterDefinition: DeckFilterDefiniti
     return true;
   }
 
-  const cardTags = new Set(card.tags);
-  return filterDefinition.tags.some((tag) => cardTags.has(tag));
+  const cardTagKeys = new Set(card.tags.map((tag) => normalizeTagKey(tag)));
+  return filterDefinition.tags.some((tag) => cardTagKeys.has(normalizeTagKey(tag)));
 }
 
 export function matchesCardFilter(filter: CardFilter, card: Card): boolean {
@@ -152,8 +166,8 @@ export function matchesCardFilter(filter: CardFilter, card: Card): boolean {
     return true;
   }
 
-  const cardTags = new Set(card.tags);
-  return filter.tags.some((tag) => cardTags.has(tag));
+  const cardTagKeys = new Set(card.tags.map((tag) => normalizeTagKey(tag)));
+  return filter.tags.some((tag) => cardTagKeys.has(normalizeTagKey(tag)));
 }
 
 /** Returns only active cards that belong to the provided persisted deck. */
@@ -200,8 +214,15 @@ export function makeWorkspaceTagsSummary(cards: ReadonlyArray<Card>): WorkspaceT
   };
 }
 
-function hasActiveTag(tag: string, cards: ReadonlyArray<Card>): boolean {
-  return deriveActiveCards(cards).some((card) => card.tags.includes(tag));
+function findActiveTag(tag: string, cards: ReadonlyArray<Card>): string | null {
+  for (const card of deriveActiveCards(cards)) {
+    const matchingTag = findMatchingTag(card.tags, tag);
+    if (matchingTag !== null) {
+      return matchingTag;
+    }
+  }
+
+  return null;
 }
 
 export function formatEffortLevelTitle(effortLevel: EffortLevel): string {
@@ -230,11 +251,15 @@ export function resolveReviewFilter(
     return reviewFilter;
   }
 
-  if (hasActiveTag(reviewFilter.tag, cards) === false) {
+  const matchingTag = findActiveTag(reviewFilter.tag, cards);
+  if (matchingTag === null) {
     return ALL_CARDS_REVIEW_FILTER;
   }
 
-  return reviewFilter;
+  return {
+    kind: "tag",
+    tag: matchingTag,
+  };
 }
 
 export function cardsMatchingReviewFilter(
@@ -260,7 +285,7 @@ export function cardsMatchingReviewFilter(
     return deriveActiveCards(cards).filter((card) => card.effortLevel === resolvedReviewFilter.effortLevel);
   }
 
-  return deriveActiveCards(cards).filter((card) => card.tags.includes(resolvedReviewFilter.tag));
+  return deriveActiveCards(cards).filter((card) => hasMatchingTag(card.tags, resolvedReviewFilter.tag));
 }
 
 export function reviewFilterTitle(
@@ -522,10 +547,21 @@ export function normalizeRequiredDeckName(value: string): string {
 }
 
 function normalizeDeckFilterDefinition(filterDefinition: DeckFilterDefinition): DeckFilterDefinition {
+  const normalizedTags = filterDefinition.tags.reduce<Array<string>>((result, tag) => {
+    const normalizedTag = tag.trim();
+    const normalizedTagKey = normalizeTagKey(normalizedTag);
+    if (normalizedTag === "" || result.some((existingTag) => normalizeTagKey(existingTag) === normalizedTagKey)) {
+      return result;
+    }
+
+    result.push(normalizedTag);
+    return result;
+  }, []);
+
   return {
     version: 2,
     effortLevels: [...new Set(filterDefinition.effortLevels)],
-    tags: [...new Set(filterDefinition.tags.map((tag) => tag.trim()).filter((tag) => tag !== ""))],
+    tags: normalizedTags,
   };
 }
 

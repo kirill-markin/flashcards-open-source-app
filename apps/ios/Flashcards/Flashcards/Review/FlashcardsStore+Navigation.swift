@@ -13,8 +13,4 @@ extension FlashcardsStore {
     var effectiveReviewQueue: [Card] {
         self.reviewRuntime.effectiveReviewQueue(publishedState: self.currentReviewPublishedState())
     }
-
-    var presentedReviewCard: Card? {
-        self.effectiveReviewQueue.first
-    }
 }
